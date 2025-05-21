@@ -1,0 +1,7 @@
+{
+  "extends": ["@personal-brain/eslint-config"],
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "ignorePatterns": ["node_modules", "dist", "drizzle.config.ts"]
+}
