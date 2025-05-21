@@ -10,6 +10,7 @@ export * from "./db";
 
 // Export entity components
 export { EntityRegistry } from "./entity/entityRegistry";
+export { EntityService } from "./entity/entityService";
 export type { EntityAdapter } from "./entity/entityRegistry";
 
 // Export types
