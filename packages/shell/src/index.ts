@@ -13,6 +13,10 @@ export { EntityRegistry } from "./entity/entityRegistry";
 export { EntityService } from "./entity/entityService";
 export type { EntityAdapter } from "./entity/entityRegistry";
 
+// Export registry components
+export { Registry } from "./registry/registry";
+export type { ComponentFactory } from "./registry/registry";
+
 // Export types
 export * from "./types";
 
