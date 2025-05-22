@@ -17,6 +17,18 @@ export type { EntityAdapter } from "./entity/entityRegistry";
 export { Registry } from "./registry/registry";
 export type { ComponentFactory } from "./registry/registry";
 
+// Export plugin system components
+export {
+  PluginManager,
+  PluginEvent,
+  PluginStatus,
+} from "./plugins/pluginManager";
+export type {
+  Plugin,
+  PluginContext,
+  PluginInfo,
+} from "./plugins/pluginManager";
+
 // Export types
 export * from "./types";
 

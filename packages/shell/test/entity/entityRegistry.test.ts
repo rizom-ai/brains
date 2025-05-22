@@ -2,78 +2,165 @@ import { describe, expect, test, beforeEach } from "bun:test";
 import { z } from "zod";
 import type { EntityAdapter } from "../../src/entity/entityRegistry";
 import { EntityRegistry } from "../../src/entity/entityRegistry";
-import { Logger, LogLevel } from "../../src/utils/logger";
+import type { Logger } from "../../src/utils/logger";
+import { MockLogger } from "../utils/mockLogger";
 import { baseEntitySchema } from "../../src/types";
-import type { BaseEntity, IContentModel } from "../../src/types";
+import type { IContentModel } from "../../src/types";
+import { createId } from "../../src/db/schema";
 import matter from "gray-matter";
 
-// Test entity schema
+// ============================================================================
+// TEST NOTE ENTITY (following documented functional approach)
+// ============================================================================
+
+/**
+ * Note entity schema extending base entity
+ */
 const noteSchema = baseEntitySchema.extend({
   entityType: z.literal("note"),
-  title: z.string(),
-  content: z.string(),
+  category: z.string(),
 });
 
-// Test entity type
-interface Note extends BaseEntity, IContentModel {
-  title: string;
-  content: string;
-}
+/**
+ * Note entity type
+ */
+type Note = z.infer<typeof noteSchema> & IContentModel;
 
-// Factory function to create a test note
-function createTestNote(options: Partial<Note> = {}): Note {
-  return {
-    id: options.id ?? "123e4567-e89b-12d3-a456-426614174000",
+/**
+ * Input type for creating notes (id, created, updated are optional/generated)
+ */
+type CreateNoteInput = Omit<
+  z.input<typeof noteSchema>,
+  "id" | "created" | "updated" | "entityType"
+> & {
+  id?: string;
+  created?: string;
+  updated?: string;
+};
+
+/**
+ * Factory function to create a Note entity (for testing)
+ */
+function createNote(input: CreateNoteInput): Note {
+  const validated = noteSchema.parse({
+    id: input.id ?? createId(),
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
     entityType: "note",
-    title: options.title ?? "Test Note",
-    content: options.content ?? "This is a test note content.",
-    created: options.created ?? new Date().toISOString(),
-    updated: options.updated ?? new Date().toISOString(),
-    tags: options.tags ?? ["test", "note"],
+    ...input,
+  });
 
+  return {
+    ...validated,
     toMarkdown(): string {
-      return `# ${this.title}\n\n${this.content}`;
+      const categoryTag = this.category ? ` [${this.category}]` : "";
+      return `# ${this.title}${categoryTag}\n\n${this.content}`;
     },
   };
 }
 
-// Test adapter implementation
+/**
+ * Schema for registry registration
+ * For testing purposes, we use a schema that validates the data structure
+ * The actual entity methods are added by the adapter during fromMarkdown
+ */
+const registryNoteSchema = noteSchema;
+
+// ============================================================================
+// TEST ADAPTER IMPLEMENTATION
+// ============================================================================
+
+/**
+ * Schema for parsing markdown frontmatter and content
+ */
+const markdownParseSchema = z
+  .object({
+    id: z.string().optional(),
+    title: z.string().optional(),
+    category: z.string().default("general"),
+    tags: z.array(z.string()).default([]),
+    created: z.string().datetime().optional(),
+    updated: z.string().datetime().optional(),
+    entityType: z.literal("note").optional(),
+  })
+  .default({});
+
+/**
+ * Test adapter implementation for Note entities
+ */
 class NoteAdapter implements EntityAdapter<Note> {
   fromMarkdown(markdown: string, metadata?: Record<string, unknown>): Note {
     const { data, content } = matter(markdown);
     const parsedData = metadata ?? data;
 
-    let title = parsedData.title as string;
+    // Parse frontmatter with Zod for type safety
+    const frontmatter = markdownParseSchema.parse(parsedData);
+
+    let title = frontmatter.title;
     let noteContent = content.trim();
 
-    if (!title && content.startsWith("# ")) {
-      const lines = content.split("\n");
-      title = lines[0].substring(2).trim();
-      noteContent = lines.slice(1).join("\n").trim();
+    // Extract title and content from markdown if not in frontmatter
+    if (!title && content.trim().startsWith("# ")) {
+      const lines = content.trim().split("\n");
+      const titleLine = lines[0];
+      // Handle category tags like "# Test Note [testing]"
+      if (titleLine) {
+        const titleMatch = titleLine.match(/^#\s+(.+?)(?:\s+\[.*\])?\s*$/);
+        title = titleMatch?.[1] ?? titleLine.substring(2).trim();
+      }
+
+      // Get content after title
+      const contentStartIndex = lines.findIndex(
+        (line, i) => i > 0 && line.trim() !== "",
+      );
+      noteContent =
+        contentStartIndex > 0
+          ? lines.slice(contentStartIndex).join("\n").trim()
+          : "";
     }
 
-    let created = parsedData.created as string;
-    if (typeof created !== "string") {
-      created = new Date().toISOString();
+    // If frontmatter has title, extract just body content (skip markdown title)
+    if (frontmatter.title && content.trim().startsWith("# ")) {
+      const lines = content.trim().split("\n");
+      const contentStartIndex = lines.findIndex(
+        (line, i) => i > 0 && line.trim() !== "",
+      );
+      noteContent =
+        contentStartIndex > 0
+          ? lines.slice(contentStartIndex).join("\n").trim()
+          : "";
     }
 
-    let updated = parsedData.updated as string;
-    if (typeof updated !== "string") {
-      updated = new Date().toISOString();
+    // Extract category from title if present (like "# Test Note [testing]")
+    let category: string = frontmatter.category;
+    if (category === "general" && title) {
+      const categoryMatch = title.match(/\[([^\]]+)\]$/);
+      if (categoryMatch) {
+        category = categoryMatch[1] ?? "general";
+        title = title.replace(/\s*\[([^\]]+)\]$/, "").trim();
+      }
     }
 
-    return {
-      id: (parsedData.id as string) ?? crypto.randomUUID(),
-      entityType: "note",
+    return createNote({
+      id: frontmatter.id ?? createId(),
       title: title ?? "Untitled Note",
       content: noteContent,
-      created: created,
-      updated: updated,
-      tags: (parsedData.tags as string[]) ?? [],
+      tags: frontmatter.tags,
+      category: category,
+      created: frontmatter.created ?? new Date().toISOString(),
+      updated: frontmatter.updated ?? new Date().toISOString(),
+    });
+  }
 
-      toMarkdown(): string {
-        return `# ${this.title}\n\n${this.content}`;
-      },
+  extractMetadata(entity: Note): Record<string, unknown> {
+    return {
+      id: entity.id,
+      title: entity.title,
+      tags: entity.tags,
+      category: entity.category,
+      created: entity.created,
+      updated: entity.updated,
+      entityType: entity.entityType,
     };
   }
 
@@ -83,56 +170,34 @@ class NoteAdapter implements EntityAdapter<Note> {
   }
 
   generateFrontMatter(entity: Note): string {
-    const frontmatterData = {
-      id: entity.id,
-      entityType: entity.entityType,
-      title: entity.title,
-      created: entity.created,
-      updated: entity.updated,
-      tags: entity.tags,
-    };
-
-    const yamlLines = ["---"];
-
-    Object.entries(frontmatterData).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        yamlLines.push(`${key}:`);
-        value.forEach((item) => yamlLines.push(`  - ${item}`));
-      } else {
-        yamlLines.push(`${key}: ${value}`);
-      }
-    });
-
-    yamlLines.push("---");
-    return yamlLines.join("\n");
-  }
-
-  extractMetadata(entity: Note): Record<string, unknown> {
-    return {
-      title: entity.title,
-      tags: entity.tags,
-      created: entity.created,
-      updated: entity.updated,
-    };
+    const metadata = this.extractMetadata(entity);
+    // Generate proper YAML frontmatter with delimiters
+    const yamlOutput = matter.stringify("", metadata);
+    return yamlOutput.split("\n\n")[0] ?? "---\n---";
   }
 }
 
+// ============================================================================
+// TESTS
+// ============================================================================
+
 describe("EntityRegistry", (): void => {
-  let registry: EntityRegistry;
   let logger: Logger;
-  let adapter: NoteAdapter;
+  let registry: EntityRegistry;
+  let adapter: EntityAdapter<Note>;
 
   beforeEach((): void => {
-    // Reset singletons and create fresh instances
+    // Reset singletons
     EntityRegistry.resetInstance();
-    Logger.resetInstance();
+    MockLogger.resetInstance();
 
-    logger = Logger.createFresh({ level: LogLevel.ERROR });
+    // Create fresh instances with mock logger
+    logger = MockLogger.createFresh();
     registry = EntityRegistry.createFresh(logger);
     adapter = new NoteAdapter();
 
     // Register the test entity type
-    registry.registerEntityType("note", noteSchema, adapter);
+    registry.registerEntityType("note", registryNoteSchema, adapter);
   });
 
   test("entity lifecycle - register, validate, and retrieve entities", (): void => {
@@ -140,47 +205,113 @@ describe("EntityRegistry", (): void => {
     expect(registry.hasEntityType("note")).toBe(true);
     expect(registry.getAllEntityTypes()).toContain("note");
 
-    // Create and validate an entity
-    const testNote = createTestNote();
-    const validatedNote = registry.validateEntity("note", testNote);
-    expect(validatedNote.id).toBe(testNote.id);
-
-    // Verify error handling for invalid entities
-    const invalidNote = {
-      id: "test-id",
-      entityType: "note",
-      // Missing required fields
+    // Test data validation (without methods)
+    const entityData = {
+      id: createId(),
+      entityType: "note" as const,
+      title: "Test Note",
+      content: "This is a test note content.",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      tags: ["test", "registry"],
+      category: "testing",
     };
-    expect(() => registry.validateEntity("note", invalidNote)).toThrow();
 
-    // Verify error handling for unregistered types
-    expect(() => registry.getAdapter("nonexistent")).toThrow();
-    expect(() => registry.validateEntity("nonexistent", {})).toThrow();
-  });
+    // Test validation - registry validates data structure
+    const validatedEntity = registry.validateEntity<Note>("note", entityData);
+    expect(validatedEntity.id).toBe(entityData.id);
+    expect(validatedEntity.title).toBe("Test Note");
+    expect(validatedEntity.entityType).toBe("note");
+    expect(validatedEntity.category).toBe("testing");
 
-  test("markdown serialization - round-trip conversion", (): void => {
-    // Create a test entity with distinctive values
-    const originalNote = createTestNote({
-      title: "Markdown Test",
-      content: "Testing markdown round-trip conversion",
-      tags: ["markdown", "test"],
+    // Test complete entity with adapter - this creates the full entity with methods
+    const completeNote = createNote({
+      id: entityData.id,
+      title: entityData.title,
+      content: entityData.content,
+      created: entityData.created,
+      updated: entityData.updated,
+      tags: entityData.tags,
+      category: entityData.category,
     });
 
-    // Convert to markdown
-    const markdown = registry.entityToMarkdown(originalNote);
+    // Test markdown conversion with complete entity
+    const markdown = registry.entityToMarkdown(completeNote);
+    expect(markdown).toContain("# Test Note [testing]");
+    expect(markdown).toContain("This is a test note content.");
 
-    // Verify markdown format (contains both frontmatter and content)
-    expect(markdown).toContain("---"); // Has frontmatter
-    expect(markdown).toContain("id: " + originalNote.id);
-    expect(markdown).toContain("# Markdown Test"); // Has content
+    // Test round-trip: entity -> markdown -> entity
+    const reconstructedEntity = registry.markdownToEntity<Note>(
+      "note",
+      markdown,
+    );
+    expect(reconstructedEntity.title).toBe(completeNote.title);
+    expect(reconstructedEntity.content).toBe(completeNote.content);
+    expect(reconstructedEntity.category).toBe(completeNote.category);
+    expect(reconstructedEntity.entityType).toBe("note");
+    expect(typeof reconstructedEntity.toMarkdown).toBe("function");
+  });
 
-    // Convert back to entity
-    const restoredNote = registry.markdownToEntity<Note>("note", markdown);
+  test("validation with missing required fields should throw", (): void => {
+    const invalidEntity = {
+      id: createId(),
+      entityType: "note",
+      // missing required fields: title, content, etc.
+    };
 
-    // Verify core properties survived the round trip
-    expect(restoredNote.id).toBe(originalNote.id);
-    expect(restoredNote.title).toBe(originalNote.title);
-    expect(restoredNote.content).toContain(originalNote.content);
-    expect(restoredNote.tags).toEqual(originalNote.tags);
+    expect(() => {
+      registry.validateEntity<Note>("note", invalidEntity);
+    }).toThrow();
+  });
+
+  test("unregistered entity type should throw", (): void => {
+    expect(() => {
+      registry.validateEntity("unknown", {});
+    }).toThrow();
+
+    expect(() => {
+      registry.markdownToEntity("unknown", "# Test");
+    }).toThrow();
+  });
+
+  test("duplicate entity type registration should throw", (): void => {
+    expect(() => {
+      registry.registerEntityType("note", registryNoteSchema, adapter);
+    }).toThrow();
+  });
+
+  test("get schema and adapter for registered type", (): void => {
+    const schema = registry.getSchema("note");
+    expect(schema).toBeDefined();
+
+    const retrievedAdapter = registry.getAdapter("note");
+    expect(retrievedAdapter).toBe(adapter);
+  });
+
+  test("markdown with frontmatter should be parsed correctly", (): void => {
+    const markdownWithFrontmatter = `---
+id: test-123
+title: "Frontmatter Note"
+tags:
+  - test
+  - frontmatter
+category: "testing"
+created: "2023-01-01T00:00:00.000Z"
+updated: "2023-01-01T00:00:00.000Z"
+entityType: "note"
+---
+
+# Frontmatter Note [testing]
+
+This note has frontmatter metadata.`;
+
+    const entity = registry.markdownToEntity<Note>(
+      "note",
+      markdownWithFrontmatter,
+    );
+    expect(entity.title).toBe("Frontmatter Note");
+    expect(entity.content).toBe("This note has frontmatter metadata.");
+    expect(entity.category).toBe("testing");
+    expect(entity.tags).toEqual(["test", "frontmatter"]);
   });
 });

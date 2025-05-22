@@ -1,6 +1,28 @@
-import type { z } from "zod";
-import type { Logger } from "../utils/logger";
-import type { BaseEntity, IContentModel } from "../types";
+import { z } from "zod";
+import { Logger } from "../utils/logger";
+
+/**
+ * Base entity schema
+ */
+export const baseEntitySchema = z.object({
+  id: z.string().uuid(),
+  created: z.string().datetime(),
+  updated: z.string().datetime(),
+  tags: z.array(z.string()).default([]),
+  entityType: z.string(),
+});
+
+export type BaseEntity = z.infer<typeof baseEntitySchema>;
+
+/**
+ * Content model interface
+ * All entities must be able to represent themselves as markdown
+ * and be constructed from markdown
+ */
+export interface IContentModel extends BaseEntity {
+  // Convert entity to markdown representation
+  toMarkdown(): string;
+}
 
 /**
  * Entity adapter interface
@@ -8,13 +30,13 @@ import type { BaseEntity, IContentModel } from "../types";
  */
 export interface EntityAdapter<T extends BaseEntity & IContentModel> {
   // Convert from markdown to entity
-  fromMarkdown(markdown: string, metadata?: Record<string, unknown>): T;
+  fromMarkdown(markdown: string, metadata?: Record<string, any>): T;
 
   // Extract metadata from entity for search/filtering
-  extractMetadata(entity: T): Record<string, unknown>;
+  extractMetadata(entity: T): Record<string, any>;
 
   // Parse frontmatter metadata from markdown
-  parseFrontMatter(markdown: string): Record<string, unknown>;
+  parseFrontMatter(markdown: string): Record<string, any>;
 
   // Generate frontmatter for markdown
   generateFrontMatter(entity: T): string;
@@ -22,66 +44,47 @@ export interface EntityAdapter<T extends BaseEntity & IContentModel> {
 
 /**
  * Registry for entity types
- * Implements Component Interface Standardization pattern
  */
 export class EntityRegistry {
-  private static instance: EntityRegistry | null = null;
-
-  private entitySchemas = new Map<string, z.ZodType<unknown>>();
-  private entityAdapters = new Map<
-    string,
-    EntityAdapter<BaseEntity & IContentModel>
-  >();
+  private entitySchemas = new Map<string, z.ZodType<any>>();
+  private entityAdapters = new Map<string, EntityAdapter<any>>();
   private logger: Logger;
 
   /**
-   * Get the singleton instance of EntityRegistry
+   * Create a new entity registry
    */
-  public static getInstance(logger: Logger): EntityRegistry {
-    if (!EntityRegistry.instance) {
-      EntityRegistry.instance = new EntityRegistry(logger);
-    }
-    return EntityRegistry.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    EntityRegistry.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
-  public static createFresh(logger: Logger): EntityRegistry {
-    return new EntityRegistry(logger);
-  }
-
-  /**
-   * Private constructor to enforce singleton pattern
-   */
-  private constructor(logger: Logger) {
+  constructor(logger: Logger) {
     this.logger = logger;
   }
 
   /**
    * Register a new entity type with its schema and adapter
    */
-  registerEntityType<TEntity extends BaseEntity & IContentModel>(
+  registerEntityType<T extends BaseEntity & IContentModel>(
     type: string,
-    schema: z.ZodType<unknown>,
-    adapter: EntityAdapter<TEntity>,
+    schema: z.ZodType<T>,
+    adapter: EntityAdapter<T>,
   ): void {
     this.logger.info(`Registering entity type: ${type}`);
 
-    // Check for duplicate registration
-    if (this.entitySchemas.has(type)) {
-      throw new Error(`Entity type '${type}' is already registered`);
-    }
+    // Validate that schema extends baseEntitySchema
+    try {
+      // Create a sample entity with required fields
+      const sampleEntity = {
+        id: "00000000-0000-0000-0000-000000000000",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        tags: [],
+        entityType: type,
+      };
 
-    // Validate that schema can parse - but skip validation for now
-    // TODO: Implement proper schema validation that works with extended schemas
+      // Validate with the schema
+      schema.parse(sampleEntity);
+    } catch (error) {
+      throw new Error(
+        `Entity schema for ${type} must extend baseEntitySchema: ${error.message}`,
+      );
+    }
 
     // Register schema and adapter
     this.entitySchemas.set(type, schema);
@@ -93,12 +96,12 @@ export class EntityRegistry {
   /**
    * Get schema for a specific entity type
    */
-  getSchema(type: string): z.ZodType<unknown> {
+  getSchema<T extends BaseEntity & IContentModel>(type: string): z.ZodType<T> {
     const schema = this.entitySchemas.get(type);
     if (!schema) {
       throw new Error(`No schema registered for entity type: ${type}`);
     }
-    return schema;
+    return schema as z.ZodType<T>;
   }
 
   /**
@@ -124,9 +127,12 @@ export class EntityRegistry {
   /**
    * Validate entity against its schema
    */
-  validateEntity<TData = unknown>(type: string, entity: unknown): TData {
-    const schema = this.getSchema(type);
-    return schema.parse(entity) as TData;
+  validateEntity<T extends BaseEntity & IContentModel>(
+    type: string,
+    entity: unknown,
+  ): T {
+    const schema = this.getSchema<T>(type);
+    return schema.parse(entity);
   }
 
   /**
@@ -157,16 +163,11 @@ export class EntityRegistry {
     // Parse frontmatter
     const metadata = adapter.parseFrontMatter(markdown);
 
-    // Create entity from markdown - adapter handles validation internally
+    // Create entity from markdown
     const entity = adapter.fromMarkdown(markdown, metadata);
 
-    // The adapter should have already validated the entity structure
-    // We just verify it conforms to our schema but preserve methods
-    const schema = this.getSchema(type);
-    schema.parse(entity); // Validate but don't use result to preserve methods
-
-    // Return the full entity with methods intact
-    return entity;
+    // Validate entity
+    return this.validateEntity<T>(type, entity);
   }
 
   /**

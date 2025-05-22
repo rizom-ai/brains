@@ -2,15 +2,16 @@ import { z } from "zod";
 
 /**
  * Base entity schema that all entity types must extend
+ * Uses nanoid for IDs and includes all common fields
  */
 export const baseEntitySchema = z.object({
-  id: z.string().uuid(),
-  entityType: z.string(),
-  title: z.string(),
-  content: z.string(),
-  created: z.string().datetime(),
-  updated: z.string().datetime(),
-  tags: z.array(z.string()).default([]),
+  id: z.string().min(1), // nanoid(12) generated
+  entityType: z.string(), // Type discriminator
+  title: z.string(), // Display title
+  content: z.string(), // Main content
+  created: z.string().datetime(), // ISO timestamp
+  updated: z.string().datetime(), // ISO timestamp
+  tags: z.array(z.string()).default([]), // Tags array
 });
 
 export type BaseEntity = z.infer<typeof baseEntitySchema>;
@@ -18,12 +19,16 @@ export type BaseEntity = z.infer<typeof baseEntitySchema>;
 /**
  * Content model interface
  * All entities must be able to represent themselves as markdown
- * and be constructed from markdown
  */
 export interface IContentModel {
   // Convert entity to markdown representation
   toMarkdown(): string;
 }
+
+/**
+ * Complete entity type - all entities must satisfy this
+ */
+export type Entity = BaseEntity & IContentModel;
 
 /**
  * Search options schema for entity queries

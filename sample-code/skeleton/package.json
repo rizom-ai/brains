@@ -1,38 +1,39 @@
 {
-  "name": "@personal-brain/shell",
-  "version": "0.0.0",
-  "private": true,
+  "name": "personal-brain-skeleton",
+  "version": "0.1.0",
+  "description": "Skeleton application for Personal Brain Rebuild",
   "type": "module",
-  "main": "./src/index.ts",
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir dist",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "fmt": "biome format --write .",
     "test": "bun test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "clean": "rm -rf dist"
+    "restart": "pm2 delete personal-brain || true && pm2 start 'bun start' --name personal-brain"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.13.0",
+    "@modelcontextprotocol/sdk": "^0.5.1",
     "drizzle-orm": "^0.29.4",
-    "drizzle-zod": "^0.5.1",
-    "gray-matter": "^4.0.3",
-    "nanoid": "^5.1.5",
     "openai": "^4.27.0",
+    "pm2": "^5.3.1",
+    "sqlite3": "^5.1.7",
     "ts-pattern": "^5.0.6",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@personal-brain/eslint-config": "workspace:*",
-    "@personal-brain/typescript-config": "workspace:*",
+    "@biomejs/biome": "1.5.3",
     "@types/node": "^20.11.24",
     "bun-types": "latest",
     "drizzle-kit": "^0.20.14",
     "eslint": "^8.56.0",
+    "husky": "^9.0.11",
     "typescript": "^5.3.3"
   }
 }

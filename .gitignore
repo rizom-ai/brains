@@ -179,3 +179,6 @@ dist
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Legacy code reference
+old-code-reference/

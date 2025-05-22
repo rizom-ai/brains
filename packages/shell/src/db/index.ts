@@ -33,5 +33,4 @@ export function createDatabase(
   return drizzle(sqlite);
 }
 
-// Export all schema components
-export { entities, entityChunks, entityEmbeddings, createId } from "./schema";
+// No re-exports - import directly from schema where needed

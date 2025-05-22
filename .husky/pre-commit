@@ -1,1 +1,12 @@
-bun lint-staged
+# Run type checking
+echo "🔍 Running type checks..."
+bun run typecheck
+
+# Run tests
+echo "🧪 Running tests..."
+bun run test
+
+# Run linting and formatting
+echo "🎨 Running lint and format..."
+bun run lint:fix
+bun run format

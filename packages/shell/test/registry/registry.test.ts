@@ -1,6 +1,7 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { Registry } from "../../src/registry/registry";
-import { Logger, LogLevel } from "../../src/utils/logger";
+import type { Logger } from "../../src/utils/logger";
+import { MockLogger } from "../utils/mockLogger";
 
 // Test component interface
 interface TestComponent {
@@ -21,6 +22,12 @@ class SimpleComponent implements TestComponent {
   }
 }
 
+// Test counter component interface
+interface TestCounterComponent {
+  increment(): number;
+  getValue(): number;
+}
+
 describe("Registry", (): void => {
   let registry: Registry;
   let logger: Logger;
@@ -28,16 +35,17 @@ describe("Registry", (): void => {
   beforeEach((): void => {
     // Reset singletons
     Registry.resetInstance();
-    Logger.resetInstance();
 
-    // Create fresh instances
-    logger = Logger.createFresh({ level: LogLevel.ERROR });
+    // Create fresh instances with mock logger
+    logger = MockLogger.createFresh();
     registry = Registry.createFresh(logger);
   });
 
   test("component lifecycle - register, resolve, and unregister", (): void => {
     // Mock factory function
-    const componentFactory = mock((id: string) => new SimpleComponent(id));
+    const componentFactory = mock(
+      (...args: unknown[]) => new SimpleComponent(args[0] as string),
+    );
 
     // Register component
     registry.register("testComponent", componentFactory);
@@ -94,7 +102,7 @@ describe("Registry", (): void => {
 
     // Register and resolve the counter
     registry.register("counter", counterFactory);
-    const counterComponent = registry.resolve("counter");
+    const counterComponent = registry.resolve<TestCounterComponent>("counter");
 
     // Use the component
     expect(counterComponent.increment()).toBe(1);
@@ -102,12 +110,12 @@ describe("Registry", (): void => {
     expect(counterComponent.getValue()).toBe(2);
 
     // Resolve again and it should maintain state
-    const sameCounter = registry.resolve("counter");
+    const sameCounter = registry.resolve<TestCounterComponent>("counter");
     expect(sameCounter.getValue()).toBe(2);
     expect(sameCounter.increment()).toBe(3);
 
     // Create fresh should not maintain state
-    const freshCounter = registry.createFresh("counter");
+    const freshCounter = registry.createFresh<TestCounterComponent>("counter");
     expect(freshCounter.getValue()).toBe(3); // Still uses the same closure var
 
     // Clear registry and re-register
@@ -116,7 +124,7 @@ describe("Registry", (): void => {
     registry.register("counter", counterFactory);
 
     // State should be reset
-    const newCounter = registry.resolve("counter");
+    const newCounter = registry.resolve<TestCounterComponent>("counter");
     expect(newCounter.getValue()).toBe(0);
   });
 });

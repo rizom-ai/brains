@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Reference/legacy code
+old-code-reference/
+sample-code/
+
+# Generated files
+*.config.js
+*.config.mjs
+
+# Cache directories
+.turbo/
+.cache/
+
+# Temporary files
+*.tmp
+*.temp

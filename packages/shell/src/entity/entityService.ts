@@ -1,14 +1,29 @@
 import type { DrizzleDB } from "../db";
-import { entities, createId } from "../db";
+import { entities, createId, selectEntitySchema } from "../db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import { Logger } from "../utils/logger";
-import type {
-  BaseEntity,
-  IContentModel,
-  SearchOptions,
-  SearchResult,
-} from "../types";
+import type { BaseEntity, IContentModel, SearchResult } from "../types";
 import { eq, and, inArray, desc, asc } from "drizzle-orm";
+import { z } from "zod";
+
+/**
+ * Schema for list entities options
+ */
+const listOptionsSchema = z.object({
+  limit: z.number().int().positive().optional().default(20),
+  offset: z.number().int().min(0).optional().default(0),
+  sortBy: z.enum(["created", "updated"]).optional().default("updated"),
+  sortDirection: z.enum(["asc", "desc"]).optional().default("desc"),
+});
+
+/**
+ * Schema for search options (excluding tags)
+ */
+const searchOptionsSchema = z.object({
+  limit: z.number().int().positive().optional().default(20),
+  offset: z.number().int().min(0).optional().default(0),
+  types: z.array(z.string()).optional().default([]),
+});
 
 /**
  * EntityService provides CRUD operations for entities
@@ -130,6 +145,9 @@ export class EntityService {
     }
 
     const entityData = result[0];
+    if (!entityData) {
+      return null;
+    }
 
     // Convert from markdown to entity
     try {
@@ -198,18 +216,23 @@ export class EntityService {
   public async deleteEntity(id: string): Promise<boolean> {
     this.logger.debug(`Deleting entity with ID ${id}`);
 
-    // Delete from database (cascades to chunks and embeddings)
-    const result = await this.db.delete(entities).where(eq(entities.id, id));
+    // First check if entity exists
+    const existingEntity = await this.db
+      .select({ id: entities.id })
+      .from(entities)
+      .where(eq(entities.id, id))
+      .limit(1);
 
-    const success = result.count > 0;
-
-    if (success) {
-      this.logger.info(`Deleted entity with ID ${id}`);
-    } else {
+    if (existingEntity.length === 0) {
       this.logger.info(`Entity with ID ${id} not found for deletion`);
+      return false;
     }
 
-    return success;
+    // Delete from database (cascades to chunks and embeddings)
+    await this.db.delete(entities).where(eq(entities.id, id));
+
+    this.logger.info(`Deleted entity with ID ${id}`);
+    return true;
   }
 
   /**
@@ -224,10 +247,8 @@ export class EntityService {
       sortDirection?: "asc" | "desc";
     } = {},
   ): Promise<T[]> {
-    const limit = options.limit ?? 20;
-    const offset = options.offset ?? 0;
-    const sortBy = options.sortBy ?? "updated";
-    const sortDirection = options.sortDirection ?? "desc";
+    const validatedOptions = listOptionsSchema.parse(options);
+    const { limit, offset, sortBy, sortDirection } = validatedOptions;
 
     this.logger.debug(
       `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset})`,
@@ -279,15 +300,18 @@ export class EntityService {
    */
   public async searchEntitiesByTags(
     tags: string[],
-    options: Omit<SearchOptions, "tags"> = {},
+    options: {
+      limit?: number;
+      offset?: number;
+      types?: string[];
+    } = {},
   ): Promise<SearchResult[]> {
     if (tags.length === 0) {
       return [];
     }
 
-    const limit = options.limit || 20;
-    const offset = options.offset || 0;
-    const types = options.types || [];
+    const validatedOptions = searchOptionsSchema.parse(options);
+    const { limit, offset, types } = validatedOptions;
 
     this.logger.debug(`Searching entities by tags: ${tags.join(", ")}`);
 
@@ -302,10 +326,11 @@ export class EntityService {
     const result = await query;
 
     // Filter results by tags (we need to post-process since SQLite JSON support is limited)
-    const matchingEntities = result.filter((entity) => {
-      const entityTags: string[] = entity.tags;
-      return tags.some((tag) => entityTags.includes(tag));
-    });
+    const matchingEntities = result
+      .map((entity) => selectEntitySchema.parse(entity))
+      .filter((entity) => {
+        return tags.some((tag) => (entity.tags ?? []).includes(tag));
+      });
 
     // Convert to SearchResult format
     const searchResults: SearchResult[] = [];
@@ -313,9 +338,8 @@ export class EntityService {
     for (const entityData of matchingEntities) {
       try {
         // Count matching tags for scoring
-        const entityTags: string[] = entityData.tags;
         const matchingTagCount = tags.filter((tag) =>
-          entityTags.includes(tag),
+          (entityData.tags ?? []).includes(tag),
         ).length;
         const score = matchingTagCount / tags.length;
 
@@ -327,7 +351,7 @@ export class EntityService {
         searchResults.push({
           id: entityData.id,
           entityType: entityData.entityType,
-          tags: entityData.tags,
+          tags: entityData.tags ?? [],
           created: entityData.created,
           updated: entityData.updated,
           score,
