@@ -97,6 +97,13 @@ export class SchemaRegistry {
   }
 
   /**
+   * Get all schema names (alias for getSchemaNames)
+   */
+  getAllSchemaNames(): string[] {
+    return this.getSchemaNames();
+  }
+
+  /**
    * Validate data against a schema
    */
   validate<T = unknown>(

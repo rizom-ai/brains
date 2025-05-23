@@ -1,6 +1,7 @@
-import { Registry } from "../registry/registry";
-import { Logger } from "../utils/logger";
+import type { Registry } from "../registry/registry";
+import type { Logger } from "../utils/logger";
 import { EventEmitter } from "events";
+import type { MessageBus } from "../messaging/messageBus";
 
 /**
  * Plugin interface
@@ -24,6 +25,7 @@ export interface PluginContext {
   logger: Logger;
   getPlugin: (id: string) => Plugin | undefined;
   events: EventEmitter;
+  messageBus: MessageBus;
 }
 
 /**
@@ -69,16 +71,18 @@ export class PluginManager {
   private registry: Registry;
   private logger: Logger;
   private events: EventEmitter;
+  private messageBus: MessageBus;
 
   /**
    * Get the singleton instance of PluginManager
    */
   public static getInstance(
-    registry: Registry = Registry.getInstance(),
-    logger: Logger = Logger.getInstance(),
+    registry: Registry,
+    logger: Logger,
+    messageBus: MessageBus,
   ): PluginManager {
     if (!PluginManager.instance) {
-      PluginManager.instance = new PluginManager(registry, logger);
+      PluginManager.instance = new PluginManager(registry, logger, messageBus);
     }
     return PluginManager.instance;
   }
@@ -93,17 +97,26 @@ export class PluginManager {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(registry: Registry, logger: Logger): PluginManager {
-    return new PluginManager(registry, logger);
+  public static createFresh(
+    registry: Registry,
+    logger: Logger,
+    messageBus: MessageBus,
+  ): PluginManager {
+    return new PluginManager(registry, logger, messageBus);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(registry: Registry, logger: Logger) {
+  private constructor(
+    registry: Registry,
+    logger: Logger,
+    messageBus: MessageBus,
+  ) {
     this.registry = registry;
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
+    this.messageBus = messageBus;
 
     // Register the plugin manager itself in the registry
     this.registry.register("pluginManager", () => this);
@@ -264,6 +277,7 @@ export class PluginManager {
       logger: this.logger.child(`Plugin:${pluginId}`),
       getPlugin: this.getPlugin.bind(this),
       events: this.events,
+      messageBus: this.messageBus,
     };
 
     // Register the plugin

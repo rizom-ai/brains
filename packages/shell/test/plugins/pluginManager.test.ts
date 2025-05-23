@@ -8,6 +8,7 @@ import {
 import { Registry } from "@/registry/registry";
 import type { Logger } from "@/utils/logger";
 import { MockLogger } from "@test/utils/mockLogger";
+import { MessageBus } from "@/messaging/messageBus";
 
 interface MockService {
   id: string;
@@ -64,16 +65,19 @@ describe("PluginManager", (): void => {
   let pluginManager: PluginManager;
   let registry: Registry;
   let logger: Logger;
+  let messageBus: MessageBus;
 
   beforeEach((): void => {
     // Reset singletons
     PluginManager.resetInstance();
     Registry.resetInstance();
+    MessageBus.resetInstance();
 
     // Create fresh instances with mock logger
     logger = MockLogger.createFresh();
     registry = Registry.createFresh(logger);
-    pluginManager = PluginManager.createFresh(registry, logger);
+    messageBus = MessageBus.createFresh(logger);
+    pluginManager = PluginManager.createFresh(registry, logger, messageBus);
   });
 
   test("plugin lifecycle - register and initialize plugins", async (): Promise<void> => {

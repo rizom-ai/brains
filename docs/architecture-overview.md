@@ -10,9 +10,21 @@ The Personal Brain application is being rebuilt with a more modular, plugin-base
 4. **Clear Component Boundaries**: Well-defined interfaces between all components.
 5. **Behavioral Testing**: Focus on testing behavior rather than implementation details.
 
+## Package Structure
+
+The system follows a clean separation of concerns through multiple packages:
+
+- **packages/shell**: Core brain infrastructure
+- **packages/mcp-server**: MCP protocol implementation  
+- **packages/cli**: CLI functionality
+- **packages/matrix-bot**: Matrix bot functionality
+- **apps/brain**: Unified app with multiple runtime modes
+
+See [Package Structure](./architecture/package-structure.md) for detailed information.
+
 ## Key Components
 
-### 1. Shell Core
+### 1. Shell Core (packages/shell)
 
 The shell provides the essential infrastructure for the application:
 

@@ -5,40 +5,9 @@
  * for the Personal Brain application.
  */
 
-// Export database components
-export * from "./db";
+// Export MCP registration functions (if external apps want to use MCP)
+export { registerShellMCP } from "./mcp";
+export type { ShellMCPOptions } from "./mcp";
 
-// Export entity components
-export { EntityRegistry } from "./entity/entityRegistry";
-export { EntityService } from "./entity/entityService";
-export type { EntityAdapter } from "./entity/entityRegistry";
-
-// Export registry components
-export { Registry } from "./registry/registry";
-export type { ComponentFactory } from "./registry/registry";
-
-// Export plugin system components
-export {
-  PluginManager,
-  PluginEvent,
-  PluginStatus,
-} from "./plugins/pluginManager";
-export type {
-  Plugin,
-  PluginContext,
-  PluginInfo,
-} from "./plugins/pluginManager";
-
-// Export types
-export * from "./types";
-
-// Export logger
-export { Logger, LogLevel } from "./utils/logger";
-
-/**
- * Says hello to the provided name
- * Just a simple function to test that the package is working
- */
-export function sayHello(name: string): string {
-  return `Hello, ${name}! Welcome to Personal Brain.`;
-}
+// TODO: Add a proper Shell class that encapsulates all functionality
+// For now, keeping minimal exports until we define the proper public API

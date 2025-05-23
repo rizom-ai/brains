@@ -100,7 +100,7 @@ export class QueryProcessor {
   private async analyzeQueryIntent(query: string): Promise<IntentAnalysis> {
     // Simple intent analysis - in production would use NLP
     const lowerQuery = query.toLowerCase();
-    
+
     let primaryIntent = "search";
     if (lowerQuery.includes("create") || lowerQuery.includes("new")) {
       primaryIntent = "create";
@@ -110,8 +110,8 @@ export class QueryProcessor {
 
     // Determine entity types from query
     const entityTypes = this.entityService.getAllEntityTypes();
-    const mentionedTypes = entityTypes.filter((type: string) => 
-      lowerQuery.includes(type.toLowerCase())
+    const mentionedTypes = entityTypes.filter((type: string) =>
+      lowerQuery.includes(type.toLowerCase()),
     );
 
     return {
@@ -153,7 +153,7 @@ Provide accurate responses based on the available information.
 Intent: ${intentAnalysis.primaryIntent}`;
 
     const entityContent = entities
-      .map(entity => {
+      .map((entity) => {
         return `[${entity.entityType}] ${entity.title}\n${entity.content}`;
       })
       .join("\n\n");
@@ -207,7 +207,7 @@ Intent: ${intentAnalysis.primaryIntent}`;
     entities: Entity[],
   ): QueryResult<T> {
     // Create citations from entities
-    const citations: Citation[] = entities.map(entity => ({
+    const citations: Citation[] = entities.map((entity) => ({
       entityId: entity.id,
       entityType: entity.entityType,
       entityTitle: entity.title,
@@ -237,7 +237,7 @@ Intent: ${intentAnalysis.primaryIntent}`;
 
     const truncated = content.slice(0, maxLength);
     const lastSpace = truncated.lastIndexOf(" ");
-    
+
     return lastSpace > 0
       ? `${content.slice(0, lastSpace)}...`
       : `${truncated}...`;

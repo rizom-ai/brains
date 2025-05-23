@@ -42,10 +42,10 @@ describe("QueryProcessor", () => {
 
   beforeEach(() => {
     logger = MockLogger.createFresh();
-    
+
     // Create mock entity service
     mockEntityService = createMockEntityService();
-    
+
     queryProcessor = QueryProcessor.createFresh({
       entityService: mockEntityService as unknown as EntityService,
       logger,
@@ -55,15 +55,17 @@ describe("QueryProcessor", () => {
   describe("query processing", () => {
     it("should process a search query", async () => {
       const mockEntity = createMockEntity();
-      const mockSearchResults: SearchResult[] = [{
-        id: mockEntity.id,
-        entityType: mockEntity.entityType,
-        tags: mockEntity.tags,
-        created: mockEntity.created,
-        updated: mockEntity.updated,
-        score: 0.9,
-        entity: mockEntity,
-      }];
+      const mockSearchResults: SearchResult[] = [
+        {
+          id: mockEntity.id,
+          entityType: mockEntity.entityType,
+          tags: mockEntity.tags,
+          created: mockEntity.created,
+          updated: mockEntity.updated,
+          score: 0.9,
+          entity: mockEntity,
+        },
+      ];
 
       // Configure mocks
       mockEntityService.search = mock(() => Promise.resolve(mockSearchResults));
@@ -91,10 +93,9 @@ describe("QueryProcessor", () => {
       mockEntityService.search = mock(() => Promise.resolve([]));
       mockEntityService.getAllEntityTypes = mock(() => []);
 
-      const result = await queryProcessor.processQuery(
-        "summarize my notes",
-        { schema: responseSchema }
-      );
+      const result = await queryProcessor.processQuery("summarize my notes", {
+        schema: responseSchema,
+      });
 
       expect(result.answer).toBeDefined();
       expect(result.object).toBeDefined();
@@ -114,16 +115,20 @@ describe("QueryProcessor", () => {
     it("should truncate long content in citations", async () => {
       const longContent = "a".repeat(200);
       const mockEntity = createMockEntity({ content: longContent });
-      
-      mockEntityService.search = mock(() => Promise.resolve([{
-        id: mockEntity.id,
-        entityType: mockEntity.entityType,
-        tags: mockEntity.tags,
-        created: mockEntity.created,
-        updated: mockEntity.updated,
-        score: 0.9,
-        entity: mockEntity,
-      }]));
+
+      mockEntityService.search = mock(() =>
+        Promise.resolve([
+          {
+            id: mockEntity.id,
+            entityType: mockEntity.entityType,
+            tags: mockEntity.tags,
+            created: mockEntity.created,
+            updated: mockEntity.updated,
+            score: 0.9,
+            entity: mockEntity,
+          },
+        ]),
+      );
       mockEntityService.getAllEntityTypes = mock(() => ["note"]);
 
       const result = await queryProcessor.processQuery("find note");
@@ -141,7 +146,9 @@ describe("QueryProcessor", () => {
       const infoSpy = spyOn(logger, "info");
       await queryProcessor.processQuery("create a new note");
 
-      expect(infoSpy).toHaveBeenCalledWith("Processing query: create a new note");
+      expect(infoSpy).toHaveBeenCalledWith(
+        "Processing query: create a new note",
+      );
     });
 
     it("should detect update intent", async () => {

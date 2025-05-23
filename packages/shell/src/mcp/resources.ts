@@ -1,0 +1,153 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { EntityService } from "../entity/entityService";
+import { SchemaRegistry } from "../schema/schemaRegistry";
+import { Logger } from "../utils/logger";
+
+/**
+ * Register shell resources with an MCP server
+ */
+export function registerShellResources(
+  server: McpServer,
+  options: {
+    entityService: EntityService;
+    schemaRegistry: SchemaRegistry;
+    logger: Logger;
+  }
+): void {
+  const { logger, entityService, schemaRegistry } = options;
+
+  logger.info("Registering shell resources with MCP server");
+
+  // Register entity resources
+  const entityTypes = entityService.getEntityTypes();
+  
+  for (const entityType of entityTypes) {
+    server.resource(
+      `entity_${entityType}`,
+      ":id",
+      { description: `Access ${entityType} entities by ID` },
+      async (uri: URL) => {
+        try {
+          const id = uri.pathname.split("/").pop();
+          
+          if (!id) {
+            throw new Error(`Invalid entity URI: ${uri}`);
+          }
+
+          logger.debug(`Reading ${entityType} entity`, { id });
+
+          const entity = await entityService.getEntity(entityType, id);
+
+          if (!entity) {
+            throw new Error(`Entity not found: ${entityType}/${id}`);
+          }
+
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify(entity, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          logger.error(`Error reading ${entityType} resource`, error);
+          throw error;
+        }
+      }
+    );
+  }
+
+  // Register schema resources
+  const schemaNames = schemaRegistry.getAllSchemaNames();
+
+  for (const schemaName of schemaNames) {
+    server.resource(
+      `schema_${schemaName}`,
+      "",
+      { description: `Schema definition for ${schemaName}` },
+      async (uri: URL) => {
+        try {
+          logger.debug("Reading schema resource", { schemaName });
+
+          const schema = schemaRegistry.get(schemaName);
+
+          if (!schema) {
+            throw new Error(`Schema not found: ${schemaName}`);
+          }
+
+          // Convert Zod schema to a simple representation
+          // In a real implementation, we'd have a proper Zod to JSON Schema converter
+          const schemaInfo = {
+            name: schemaName,
+            type: "zod-schema",
+            description: `Zod schema for ${schemaName}`,
+            // We could add more details here if we had a schema introspection utility
+          };
+
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify(schemaInfo, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          logger.error("Error reading schema resource", error);
+          throw error;
+        }
+      }
+    );
+  }
+
+  // Register a general entities list resource
+  server.resource(
+    "entities",
+    "list",
+    { description: "List all available entity types" },
+    async (uri: URL) => {
+      try {
+        const types = entityService.getEntityTypes();
+
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({ entityTypes: types }, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error("Error listing entity types", error);
+        throw error;
+      }
+    }
+  );
+
+  // Register a general schemas list resource
+  server.resource(
+    "schemas",
+    "list",
+    { description: "List all registered schemas" },
+    async (uri: URL) => {
+      try {
+        const names = schemaRegistry.getAllSchemaNames();
+
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({ schemaNames: names }, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error("Error listing schemas", error);
+        throw error;
+      }
+    }
+  );
+
+  logger.info("Shell resources registered successfully");
+}

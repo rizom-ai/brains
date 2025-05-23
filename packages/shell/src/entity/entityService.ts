@@ -3,7 +3,12 @@ import { entities, createId, selectEntitySchema } from "../db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import type { EntityAdapter } from "./entityRegistry";
 import { Logger } from "../utils/logger";
-import type { BaseEntity, IContentModel, SearchResult, SearchOptions } from "../types";
+import type {
+  BaseEntity,
+  IContentModel,
+  SearchResult,
+  SearchOptions,
+} from "../types";
 import { eq, and, inArray, desc, asc } from "drizzle-orm";
 import { z } from "zod";
 
@@ -391,6 +396,13 @@ export class EntityService {
   }
 
   /**
+   * Get entity types (alias for getSupportedEntityTypes)
+   */
+  public getEntityTypes(): string[] {
+    return this.getSupportedEntityTypes();
+  }
+
+  /**
    * Get adapter for a specific entity type
    */
   public getAdapter<T extends BaseEntity & IContentModel>(
@@ -409,8 +421,8 @@ export class EntityService {
     // For now, use tag-based search as a simple implementation
     // In production, this would use full-text search or vector search
     const queryWords = query.toLowerCase().split(/\s+/);
-    const matchingTags = queryWords.filter(word => word.length > 2);
-    
+    const matchingTags = queryWords.filter((word) => word.length > 2);
+
     if (matchingTags.length === 0) {
       return [];
     }
@@ -425,5 +437,25 @@ export class EntityService {
     const searchOptions = searchByTagsOptionsSchema.parse(options ?? {});
 
     return this.searchEntitiesByTags(matchingTags, searchOptions);
+  }
+
+  /**
+   * Search entities by type and query
+   */
+  public async searchEntities(
+    entityType: string,
+    query: string,
+    options?: { limit?: number },
+  ): Promise<SearchResult[]> {
+    // Build search options with the entity type filter
+    const searchOptions: SearchOptions = {
+      types: [entityType],
+      limit: options?.limit ?? 20,
+      offset: 0,
+      sortBy: "relevance",
+      sortDirection: "desc",
+    };
+    
+    return this.search(query, searchOptions);
   }
 }
