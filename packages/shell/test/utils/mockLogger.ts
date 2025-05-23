@@ -1,5 +1,5 @@
-import type { Logger } from "../../src/utils/logger";
-import { LogLevel } from "../../src/utils/logger";
+import type { Logger } from "@/utils/logger";
+import { LogLevel } from "@/utils/logger";
 
 /**
  * Creates a silent logger for tests

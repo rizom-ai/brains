@@ -1,12 +1,12 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import { z } from "zod";
-import type { EntityAdapter } from "../../src/entity/entityRegistry";
-import { EntityRegistry } from "../../src/entity/entityRegistry";
-import type { Logger } from "../../src/utils/logger";
-import { MockLogger } from "../utils/mockLogger";
-import { baseEntitySchema } from "../../src/types";
-import type { IContentModel } from "../../src/types";
-import { createId } from "../../src/db/schema";
+import type { EntityAdapter } from "@/entity/entityRegistry";
+import { EntityRegistry } from "@/entity/entityRegistry";
+import type { Logger } from "@/utils/logger";
+import { MockLogger } from "@test/utils/mockLogger";
+import { baseEntitySchema } from "@/types";
+import type { IContentModel } from "@/types";
+import { createId } from "@/db/schema";
 import matter from "gray-matter";
 
 // ============================================================================

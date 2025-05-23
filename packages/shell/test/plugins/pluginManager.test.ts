@@ -1,13 +1,13 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import type { Plugin, PluginContext } from "../../src/plugins/pluginManager";
+import type { Plugin, PluginContext } from "@/plugins/pluginManager";
 import {
   PluginEvent,
   PluginManager,
   PluginStatus,
-} from "../../src/plugins/pluginManager";
-import { Registry } from "../../src/registry/registry";
-import type { Logger } from "../../src/utils/logger";
-import { MockLogger } from "../utils/mockLogger";
+} from "@/plugins/pluginManager";
+import { Registry } from "@/registry/registry";
+import type { Logger } from "@/utils/logger";
+import { MockLogger } from "@test/utils/mockLogger";
 
 interface MockService {
   id: string;

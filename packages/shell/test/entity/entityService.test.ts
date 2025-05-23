@@ -1,13 +1,13 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { z } from "zod";
-import { EntityService } from "../../src/entity/entityService";
-import { EntityRegistry } from "../../src/entity/entityRegistry";
-import type { DrizzleDB } from "../../src/db";
-import type { Logger } from "../../src/utils/logger";
-import { MockLogger } from "../utils/mockLogger";
-import { baseEntitySchema } from "../../src/types";
-import type { IContentModel } from "../../src/types";
-import { createId } from "../../src/db/schema";
+import { EntityService } from "@/entity/entityService";
+import { EntityRegistry } from "@/entity/entityRegistry";
+import type { DrizzleDB } from "@/db";
+import type { Logger } from "@/utils/logger";
+import { MockLogger } from "@test/utils/mockLogger";
+import { baseEntitySchema } from "@/types";
+import type { IContentModel } from "@/types";
+import { createId } from "@/db/schema";
 
 // ============================================================================
 // TEST NOTE ENTITY (following documented functional approach)

@@ -56,3 +56,55 @@ export type SearchResult = {
   score: number;
   entity: BaseEntity & IContentModel;
 };
+
+/**
+ * Intent analysis result for query processing
+ */
+export interface IntentAnalysis {
+  primaryIntent: string;
+  entityTypes: string[];
+  shouldSearchExternal?: boolean;
+  confidenceScore: number;
+}
+
+/**
+ * Citation for referencing entities in responses
+ */
+export interface Citation {
+  entityId: string;
+  entityType: string;
+  entityTitle: string;
+  excerpt: string;
+}
+
+/**
+ * Query processing options
+ */
+export interface QueryOptions<T = unknown> {
+  userId?: string;
+  conversationId?: string;
+  metadata?: Record<string, unknown>;
+  schema?: z.ZodType<T>;
+}
+
+/**
+ * Query processing result
+ */
+export interface QueryResult<T = unknown> {
+  answer: string;
+  citations: Citation[];
+  relatedEntities: Entity[];
+  object?: T;
+}
+
+/**
+ * Model response from AI models
+ */
+export interface ModelResponse<T = unknown> {
+  object?: T;
+  text?: string;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
+}

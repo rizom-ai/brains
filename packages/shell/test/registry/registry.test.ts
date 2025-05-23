@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { Registry } from "../../src/registry/registry";
-import type { Logger } from "../../src/utils/logger";
-import { MockLogger } from "../utils/mockLogger";
+import { Registry } from "@/registry/registry";
+import type { Logger } from "@/utils/logger";
+import { MockLogger } from "@test/utils/mockLogger";
 
 // Test component interface
 interface TestComponent {

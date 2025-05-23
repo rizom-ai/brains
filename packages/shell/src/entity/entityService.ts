@@ -1,8 +1,9 @@
 import type { DrizzleDB } from "../db";
 import { entities, createId, selectEntitySchema } from "../db/schema";
 import { EntityRegistry } from "./entityRegistry";
+import type { EntityAdapter } from "./entityRegistry";
 import { Logger } from "../utils/logger";
-import type { BaseEntity, IContentModel, SearchResult } from "../types";
+import type { BaseEntity, IContentModel, SearchResult, SearchOptions } from "../types";
 import { eq, and, inArray, desc, asc } from "drizzle-orm";
 import { z } from "zod";
 
@@ -301,9 +302,9 @@ export class EntityService {
   public async searchEntitiesByTags(
     tags: string[],
     options: {
-      limit?: number;
-      offset?: number;
-      types?: string[];
+      limit?: number | undefined;
+      offset?: number | undefined;
+      types?: string[] | undefined;
     } = {},
   ): Promise<SearchResult[]> {
     if (tags.length === 0) {
@@ -380,5 +381,49 @@ export class EntityService {
    */
   public getSupportedEntityTypes(): string[] {
     return this.entityRegistry.getAllEntityTypes();
+  }
+
+  /**
+   * Get all entity types (alias for getSupportedEntityTypes)
+   */
+  public getAllEntityTypes(): string[] {
+    return this.getSupportedEntityTypes();
+  }
+
+  /**
+   * Get adapter for a specific entity type
+   */
+  public getAdapter<T extends BaseEntity & IContentModel>(
+    entityType: string,
+  ): EntityAdapter<T> {
+    return this.entityRegistry.getAdapter<T>(entityType);
+  }
+
+  /**
+   * Search entities by query
+   */
+  public async search(
+    query: string,
+    options?: SearchOptions,
+  ): Promise<SearchResult[]> {
+    // For now, use tag-based search as a simple implementation
+    // In production, this would use full-text search or vector search
+    const queryWords = query.toLowerCase().split(/\s+/);
+    const matchingTags = queryWords.filter(word => word.length > 2);
+    
+    if (matchingTags.length === 0) {
+      return [];
+    }
+
+    // Parse options to extract only what searchEntitiesByTags needs
+    const searchByTagsOptionsSchema = z.object({
+      limit: z.number().optional(),
+      offset: z.number().optional(),
+      types: z.array(z.string()).optional(),
+    });
+
+    const searchOptions = searchByTagsOptionsSchema.parse(options ?? {});
+
+    return this.searchEntitiesByTags(matchingTags, searchOptions);
   }
 }
