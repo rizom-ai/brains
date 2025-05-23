@@ -1,63 +1,91 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { registerShellMCP } from "@/mcp";
+import type { ShellMCPOptions } from "@/mcp";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 describe("MCP Registration", () => {
-  let mockServer: any;
-  let mockServices: any;
+  let mockToolHandlers: Map<string, unknown>;
+  let mockResourceHandlers: Map<string, unknown>;
+  let mockServer: {
+    tool: ReturnType<typeof mock>;
+    resource: ReturnType<typeof mock>;
+  };
+  let mockServices: ShellMCPOptions;
 
   beforeEach(() => {
+    // Create maps to store registered handlers
+    mockToolHandlers = new Map();
+    mockResourceHandlers = new Map();
+
     // Create mock MCP server
     mockServer = {
-      tool: mock(() => {}),
-      resource: mock(() => {}),
+      tool: mock((name: string, _schema: any, handler: any) => {
+        mockToolHandlers.set(name, handler);
+      }),
+      resource: mock(
+        (
+          name: string,
+          _template: string,
+          _metadata: unknown,
+          handler: unknown,
+        ) => {
+          mockResourceHandlers.set(name, handler);
+        },
+      ),
     };
 
-    // Create mock services
+    // Create mock services that satisfy ShellMCPOptions
     mockServices = {
       queryProcessor: {
-        processQuery: mock(() => Promise.resolve({
-          success: true,
-          data: { answer: "Test answer" },
-          entities: [],
-          query: "test query",
-        })),
-      },
+        processQuery: mock(() =>
+          Promise.resolve({
+            answer: "Test answer",
+            citations: [],
+            relatedEntities: [],
+          }),
+        ),
+      } as any,
       brainProtocol: {
-        executeCommand: mock(() => Promise.resolve({
-          id: "123",
-          commandId: "123",
-          success: true,
-          result: "Command executed",
-        })),
-      },
+        executeCommand: mock(() =>
+          Promise.resolve({
+            id: "123",
+            commandId: "123",
+            success: true,
+            result: "Command executed",
+          }),
+        ),
+      } as any,
       entityService: {
+        getSupportedEntityTypes: mock(() => ["note", "task"]),
         getEntityTypes: mock(() => ["note", "task"]),
         searchEntities: mock(() => Promise.resolve([])),
-        getEntity: mock(() => Promise.resolve({ id: "1", type: "note", content: "Test" })),
-      },
+        getEntity: mock(() =>
+          Promise.resolve({ id: "1", type: "note", content: "Test" }),
+        ),
+      } as any,
       schemaRegistry: {
         getAllSchemaNames: mock(() => ["entity", "message"]),
         get: mock(() => undefined),
-      },
+      } as any,
       logger: {
         info: mock(() => {}),
         debug: mock(() => {}),
         error: mock(() => {}),
         warn: mock(() => {}),
-      },
+      } as any,
     };
   });
 
   it("should register shell tools with MCP server", () => {
     // Register shell with MCP
-    registerShellMCP(mockServer, mockServices);
+    registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
     // Check that tools were registered
     expect(mockServer.tool).toHaveBeenCalledTimes(4); // 4 tools
-    
+
     // Verify tool names
-    const toolCalls = mockServer.tool.mock.calls;
-    const toolNames = toolCalls.map((call: any[]) => call[0]);
+    const toolNames = Array.from(mockToolHandlers.keys());
     expect(toolNames).toContain("brain_query");
     expect(toolNames).toContain("brain_command");
     expect(toolNames).toContain("entity_search");
@@ -66,15 +94,13 @@ describe("MCP Registration", () => {
 
   it("should register shell resources with MCP server", () => {
     // Register shell with MCP
-    registerShellMCP(mockServer, mockServices);
+    registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
     // Check that resources were registered
-    // Should have: entities list, schemas list, plus one for each entity type and schema
-    const resourceCalls = mockServer.resource.mock.calls;
-    const resourceNames = resourceCalls.map((call: any[]) => call[0]);
-    
-    expect(resourceNames).toContain("entities");
-    expect(resourceNames).toContain("schemas");
+    const resourceNames = Array.from(mockResourceHandlers.keys());
+
+    expect(resourceNames).toContain("entity-types");
+    expect(resourceNames).toContain("schema-list");
     expect(resourceNames).toContain("entity_note");
     expect(resourceNames).toContain("entity_task");
     expect(resourceNames).toContain("schema_entity");
@@ -83,60 +109,56 @@ describe("MCP Registration", () => {
 
   it("should handle tool execution through adapters", async () => {
     // Register shell with MCP
-    registerShellMCP(mockServer, mockServices);
+    registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
     // Get the brain_query tool handler
-    const queryToolCall = mockServer.tool.mock.calls.find(
-      (call: any[]) => call[0] === "brain_query"
-    );
-    expect(queryToolCall).toBeDefined();
-    
-    const queryHandler = queryToolCall[2]; // Third argument is the handler
+    const queryHandler = mockToolHandlers.get("brain_query");
+    expect(queryHandler).toBeDefined();
+    if (!queryHandler || typeof queryHandler !== 'function') {
+      throw new Error("Query handler not found or not a function");
+    }
 
-    // Execute the tool
+    // Execute the tool with parameters directly
     const result = await queryHandler({
-      params: {
-        query: "test query",
-        options: { limit: 10 },
-      },
+      query: "test query",
+      options: { limit: 10 },
     });
 
     // Check that the adapter properly called the query processor
     expect(mockServices.queryProcessor.processQuery).toHaveBeenCalled();
-    
+
     // Check the result format
     expect(result.content[0].type).toBe("text");
     const parsedResult = JSON.parse(result.content[0].text);
-    expect(parsedResult.data.answer).toBe("Test answer");
+    expect(parsedResult.answer).toBe("Test answer");
   });
 
   it("should handle command execution through adapters", async () => {
     // Register shell with MCP
-    registerShellMCP(mockServer, mockServices);
+    registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
     // Get the brain_command tool handler
-    const commandToolCall = mockServer.tool.mock.calls.find(
-      (call: any[]) => call[0] === "brain_command"
-    );
-    expect(commandToolCall).toBeDefined();
-    
-    const commandHandler = commandToolCall[2];
+    const commandHandler = mockToolHandlers.get("brain_command");
+    expect(commandHandler).toBeDefined();
+    if (!commandHandler || typeof commandHandler !== 'function') {
+      throw new Error("Command handler not found or not a function");
+    }
 
-    // Execute the tool
+    // Execute the tool with parameters directly
     await commandHandler({
-      params: {
-        command: "help",
-        args: ["test"],
-        context: { userId: "user123" },
-      },
+      command: "help",
+      args: ["test"],
+      context: { userId: "user123" },
     });
 
     // Check that the adapter properly called brain protocol
     expect(mockServices.brainProtocol.executeCommand).toHaveBeenCalled();
-    
+
     // Verify the command object was properly constructed
-    const commandCall = mockServices.brainProtocol.executeCommand.mock.calls[0];
-    const command = commandCall[0];
+    const commandCall = (
+      mockServices.brainProtocol.executeCommand as ReturnType<typeof mock>
+    ).mock.calls[0];
+    const command = commandCall?.[0];
     expect(command.command).toBe("help");
     expect(command.args).toEqual({ arg0: "test" });
     expect(command.context?.userId).toBe("user123");

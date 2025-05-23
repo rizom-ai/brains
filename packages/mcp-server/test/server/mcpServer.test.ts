@@ -53,7 +53,7 @@ describe("MCPServer", () => {
   describe("Server Lifecycle", () => {
     it("should start with stdio transport", async () => {
       expect(mcpServer.isRunning()).toBe(false);
-      
+
       // Note: We can't fully test stdio transport in unit tests
       // as it requires actual stdin/stdout streams
       // This would be tested in integration tests
@@ -69,7 +69,7 @@ describe("MCPServer", () => {
     it("should expose server for registration", () => {
       const server = mcpServer.getServer();
       expect(server).toBeDefined();
-      
+
       // Other packages would use this to register tools
       expect(typeof server.tool).toBe("function");
       expect(typeof server.resource).toBe("function");
@@ -77,29 +77,35 @@ describe("MCPServer", () => {
 
     it("should allow tool registration", () => {
       const server = mcpServer.getServer();
-      const mockHandler = mock(() => Promise.resolve({
-        content: [{ type: "text" as const, text: "test" }]
-      }));
+      const mockHandler = mock(() =>
+        Promise.resolve({
+          content: [{ type: "text" as const, text: "test" }],
+        }),
+      );
 
       // This is how other packages would register tools
-      server.tool("test_tool", "Test tool", mockHandler);
-      
+      server.tool("test_tool", {}, mockHandler);
+
       // We can't easily test if it was registered without calling internal methods
       // This would be tested in integration tests
     });
 
     it("should allow resource registration", () => {
       const server = mcpServer.getServer();
-      const mockHandler = mock(() => Promise.resolve({
-        contents: [{ uri: "test://example", text: "test" }]
-      }));
+      const mockHandler = mock(() =>
+        Promise.resolve({
+          contents: [{ uri: "test://example", text: "test" }],
+        }),
+      );
 
       // This is how other packages would register resources
-      server.resource("test_resource", ":id", 
+      server.resource(
+        "test_resource",
+        ":id",
         { description: "Test resource" },
-        mockHandler
+        mockHandler,
       );
-      
+
       // We can't easily test if it was registered without calling internal methods
       // This would be tested in integration tests
     });

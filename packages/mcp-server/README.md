@@ -7,6 +7,7 @@ Model Context Protocol (MCP) server implementation for Personal Brain.
 This package provides the infrastructure for running a standards-compliant MCP server. It does NOT define specific tools or resources - those are registered by the packages that implement the actual functionality.
 
 The MCP server provides:
+
 - **Server Infrastructure**: Core MCP server setup and lifecycle management
 - **Transport Support**: stdio and HTTP/SSE transports
 - **Registration API**: Allows other packages to register their tools and resources
@@ -22,12 +23,12 @@ The MCP server provides:
 ## Usage
 
 ```typescript
-import { MCPServer } from '@brains/mcp-server';
+import { MCPServer } from "@brains/mcp-server";
 
 // Create MCP server (just infrastructure)
 const mcpServer = MCPServer.getInstance({
-  name: 'PersonalBrain',
-  version: '1.0.0'
+  name: "PersonalBrain",
+  version: "1.0.0",
 });
 
 // Get the underlying server for registration
@@ -37,25 +38,31 @@ const server = mcpServer.getServer();
 server.tool("my_tool", "Tool description", async (params) => {
   // Tool implementation
   return {
-    content: [{
-      type: "text",
-      text: "Result"
-    }]
+    content: [
+      {
+        type: "text",
+        text: "Result",
+      },
+    ],
   };
 });
 
 // Other packages register their resources
-server.resource("my_resource", ":id", 
+server.resource(
+  "my_resource",
+  ":id",
   { description: "Resource description" },
   async (uri) => {
     // Resource implementation
     return {
-      contents: [{
-        uri: uri.toString(),
-        text: "Content"
-      }]
+      contents: [
+        {
+          uri: uri.toString(),
+          text: "Content",
+        },
+      ],
     };
-  }
+  },
 );
 
 // Start the server
@@ -65,6 +72,7 @@ await mcpServer.startStdio();
 ## Architecture
 
 This package follows the Inversion of Control principle:
+
 - The MCP server provides the infrastructure
 - Other packages (shell, contexts) register their own tools and resources
 - The MCP server has no knowledge of specific business logic

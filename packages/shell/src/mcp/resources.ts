@@ -1,7 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { EntityService } from "../entity/entityService";
-import { SchemaRegistry } from "../schema/schemaRegistry";
-import { Logger } from "../utils/logger";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { EntityService } from "../entity/entityService";
+import type { SchemaRegistry } from "../schema/schemaRegistry";
+import type { Logger } from "@personal-brain/utils";
 
 /**
  * Register shell resources with an MCP server
@@ -12,7 +13,7 @@ export function registerShellResources(
     entityService: EntityService;
     schemaRegistry: SchemaRegistry;
     logger: Logger;
-  }
+  },
 ): void {
   const { logger, entityService, schemaRegistry } = options;
 
@@ -20,20 +21,20 @@ export function registerShellResources(
 
   // Register entity resources
   const entityTypes = entityService.getEntityTypes();
-  
+
   for (const entityType of entityTypes) {
     server.resource(
       `entity_${entityType}`,
-      ":id",
+      new ResourceTemplate(`entity://${entityType}/{id}`, { list: undefined }),
       { description: `Access ${entityType} entities by ID` },
-      async (uri: URL) => {
+      async (uri, variables) => {
         try {
-          const id = uri.pathname.split("/").pop();
+          const id = variables['id'];
           
-          if (!id) {
-            throw new Error(`Invalid entity URI: ${uri}`);
+          if (!id || Array.isArray(id)) {
+            throw new Error(`Invalid entity ID in URI: ${uri}`);
           }
-
+          
           logger.debug(`Reading ${entityType} entity`, { id });
 
           const entity = await entityService.getEntity(entityType, id);
@@ -54,7 +55,7 @@ export function registerShellResources(
           logger.error(`Error reading ${entityType} resource`, error);
           throw error;
         }
-      }
+      },
     );
   }
 
@@ -64,7 +65,7 @@ export function registerShellResources(
   for (const schemaName of schemaNames) {
     server.resource(
       `schema_${schemaName}`,
-      "",
+      `schema://${schemaName}`,
       { description: `Schema definition for ${schemaName}` },
       async (uri: URL) => {
         try {
@@ -97,14 +98,14 @@ export function registerShellResources(
           logger.error("Error reading schema resource", error);
           throw error;
         }
-      }
+      },
     );
   }
 
   // Register a general entities list resource
   server.resource(
-    "entities",
-    "list",
+    "entity-types",
+    "entity://types",
     { description: "List all available entity types" },
     async (uri: URL) => {
       try {
@@ -122,13 +123,13 @@ export function registerShellResources(
         logger.error("Error listing entity types", error);
         throw error;
       }
-    }
+    },
   );
 
   // Register a general schemas list resource
   server.resource(
-    "schemas",
-    "list",
+    "schema-list",
+    "schema://list",
     { description: "List all registered schemas" },
     async (uri: URL) => {
       try {
@@ -146,7 +147,7 @@ export function registerShellResources(
         logger.error("Error listing schemas", error);
         throw error;
       }
-    }
+    },
   );
 
   logger.info("Shell resources registered successfully");

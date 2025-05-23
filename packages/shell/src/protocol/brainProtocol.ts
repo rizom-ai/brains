@@ -1,4 +1,4 @@
-import type { Logger } from "@/utils/logger";
+import type { Logger } from "@personal-brain/utils";
 import type { MessageBus } from "@/messaging/messageBus";
 import type { QueryProcessor } from "@/query/queryProcessor";
 import { MessageFactory } from "@/messaging/messageFactory";
@@ -13,11 +13,13 @@ export const commandSchema = z.object({
   id: z.string().min(1),
   command: z.string().min(1),
   args: z.record(z.unknown()).optional(),
-  context: z.object({
-    userId: z.string().optional(),
-    conversationId: z.string().optional(),
-    metadata: z.record(z.unknown()).optional(),
-  }).optional(),
+  context: z
+    .object({
+      userId: z.string().optional(),
+      conversationId: z.string().optional(),
+      metadata: z.record(z.unknown()).optional(),
+    })
+    .optional(),
 });
 
 export type Command = z.infer<typeof commandSchema>;
@@ -30,10 +32,12 @@ export const commandResponseSchema = z.object({
   commandId: z.string().min(1),
   success: z.boolean(),
   result: z.unknown().optional(),
-  error: z.object({
-    code: z.string(),
-    message: z.string(),
-  }).optional(),
+  error: z
+    .object({
+      code: z.string(),
+      message: z.string(),
+    })
+    .optional(),
 });
 
 export type CommandResponse = z.infer<typeof commandResponseSchema>;
@@ -48,7 +52,10 @@ export class BrainProtocol {
   private readonly logger: Logger;
   private readonly messageBus: MessageBus;
   private readonly queryProcessor: QueryProcessor;
-  private commandHandlers = new Map<string, (cmd: Command) => Promise<CommandResponse>>();
+  private commandHandlers = new Map<
+    string,
+    (cmd: Command) => Promise<CommandResponse>
+  >();
 
   /**
    * Get the singleton instance of BrainProtocol
@@ -59,7 +66,11 @@ export class BrainProtocol {
     queryProcessor: QueryProcessor,
   ): BrainProtocol {
     if (!BrainProtocol.instance) {
-      BrainProtocol.instance = new BrainProtocol(logger, messageBus, queryProcessor);
+      BrainProtocol.instance = new BrainProtocol(
+        logger,
+        messageBus,
+        queryProcessor,
+      );
     }
     return BrainProtocol.instance;
   }
@@ -109,11 +120,13 @@ export class BrainProtocol {
     this.registerCommandHandler("query", async (cmd) => {
       try {
         const query = String(cmd.args?.["query"] ?? "");
-        const options: Parameters<typeof this.queryProcessor.processQuery>[1] = {};
+        const options: Parameters<typeof this.queryProcessor.processQuery>[1] =
+          {};
         if (cmd.context?.userId) options.userId = cmd.context.userId;
-        if (cmd.context?.conversationId) options.conversationId = cmd.context.conversationId;
+        if (cmd.context?.conversationId)
+          options.conversationId = cmd.context.conversationId;
         if (cmd.context?.metadata) options.metadata = cmd.context.metadata;
-        
+
         const result = await this.queryProcessor.processQuery(query, options);
 
         return {
@@ -144,7 +157,8 @@ export class BrainProtocol {
         success: true,
         result: {
           availableCommands: commands,
-          usage: "Send a command with the format: { command: 'commandName', args: { ... } }",
+          usage:
+            "Send a command with the format: { command: 'commandName', args: { ... } }",
         },
       };
     });
@@ -155,26 +169,29 @@ export class BrainProtocol {
    */
   private setupMessageHandlers(): void {
     // Handle command messages - validate internally
-    this.messageBus.registerHandler("command.execute", async (message: BaseMessage) => {
-      try {
-        // Use type guard to validate message has payload
-        if (!hasPayload(message)) {
-          throw new Error("Command message must have a payload");
+    this.messageBus.registerHandler(
+      "command.execute",
+      async (message: BaseMessage) => {
+        try {
+          // Use type guard to validate message has payload
+          if (!hasPayload(message)) {
+            throw new Error("Command message must have a payload");
+          }
+
+          const command = commandSchema.parse(message.payload);
+          const response = await this.executeCommand(command);
+
+          return MessageFactory.createSuccessResponse(message.id, response);
+        } catch (error) {
+          this.logger.error("Command execution failed", error);
+          return MessageFactory.createErrorResponse(
+            message.id,
+            "COMMAND_ERROR",
+            error instanceof Error ? error.message : "Command execution failed",
+          );
         }
-        
-        const command = commandSchema.parse(message.payload);
-        const response = await this.executeCommand(command);
-        
-        return MessageFactory.createSuccessResponse(message.id, response);
-      } catch (error) {
-        this.logger.error("Command execution failed", error);
-        return MessageFactory.createErrorResponse(
-          message.id,
-          "COMMAND_ERROR",
-          error instanceof Error ? error.message : "Command execution failed",
-        );
-      }
-    });
+      },
+    );
   }
 
   /**
@@ -221,7 +238,8 @@ export class BrainProtocol {
         success: false,
         error: {
           code: "HANDLER_ERROR",
-          message: error instanceof Error ? error.message : "Command handler failed",
+          message:
+            error instanceof Error ? error.message : "Command handler failed",
         },
       };
     }
@@ -235,12 +253,18 @@ export class BrainProtocol {
       // Try to parse as command
       const command = commandSchema.parse(message);
       const response = await this.executeCommand(command);
-      
+
       return MessageFactory.createSuccessResponse(command.id, response);
     } catch (error) {
       // If not a valid command, try to route through message bus
-      if (typeof message === "object" && message !== null && "type" in message) {
-        const busResponse = await this.messageBus.publish(message as BaseMessage);
+      if (
+        typeof message === "object" &&
+        message !== null &&
+        "type" in message
+      ) {
+        const busResponse = await this.messageBus.publish(
+          message as BaseMessage,
+        );
         if (busResponse) {
           return busResponse;
         }

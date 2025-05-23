@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { MessageBus } from "@/messaging/messageBus";
-import type { Logger } from "@/utils/logger";
-import { MockLogger } from "@test/utils/mockLogger";
+
+import { createSilentLogger, type Logger } from "@personal-brain/utils";
 import type { BaseMessage, MessageResponse } from "@/messaging/types";
 
 // Create test message
@@ -29,7 +29,7 @@ describe("MessageBus", () => {
   let logger: Logger;
 
   beforeEach(() => {
-    logger = MockLogger.createFresh();
+    logger = createSilentLogger();
     messageBus = MessageBus.createFresh(logger);
   });
 
@@ -108,7 +108,7 @@ describe("MessageBus", () => {
     it("should call handlers in sequence until one returns a response", async () => {
       const message = createTestMessage("test.message");
       const response = createTestResponse(message.id);
-      
+
       const handler1 = mock(() => Promise.resolve(null));
       const handler2 = mock(() => Promise.resolve(response));
       const handler3 = mock(() => Promise.resolve(createTestResponse("other")));
@@ -128,8 +128,10 @@ describe("MessageBus", () => {
     it("should handle errors in handlers gracefully", async () => {
       const message = createTestMessage("test.message");
       const response = createTestResponse(message.id);
-      
-      const errorHandler = mock(() => Promise.reject(new Error("Handler error")));
+
+      const errorHandler = mock(() =>
+        Promise.reject(new Error("Handler error")),
+      );
       const successHandler = mock(() => Promise.resolve(response));
 
       messageBus.registerHandler("test.message", errorHandler);
@@ -144,7 +146,7 @@ describe("MessageBus", () => {
 
     it("should return null if all handlers throw errors", async () => {
       const message = createTestMessage("test.message");
-      
+
       const errorHandler1 = mock(() => Promise.reject(new Error("Error 1")));
       const errorHandler2 = mock(() => Promise.reject(new Error("Error 2")));
 

@@ -27,6 +27,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.12.0",
+        "zod": "^3.22.4",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -43,6 +44,7 @@
       "dependencies": {
         "@anthropic-ai/sdk": "^0.13.0",
         "@modelcontextprotocol/sdk": "^1.12.0",
+        "@personal-brain/utils": "workspace:*",
         "drizzle-orm": "^0.29.4",
         "drizzle-zod": "^0.5.1",
         "gray-matter": "^4.0.3",
@@ -50,6 +52,7 @@
         "openai": "^4.27.0",
         "ts-pattern": "^5.0.6",
         "zod": "^3.22.4",
+        "zod-to-json-schema": "^3.24.5",
       },
       "devDependencies": {
         "@personal-brain/eslint-config": "workspace:*",
@@ -64,6 +67,18 @@
     "packages/typescript-config": {
       "name": "@personal-brain/typescript-config",
       "version": "0.0.0",
+    },
+    "packages/utils": {
+      "name": "@personal-brain/utils",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@personal-brain/eslint-config": "workspace:*",
+        "@personal-brain/typescript-config": "workspace:*",
+        "@types/node": "^20.11.24",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
     },
   },
   "packages": {
@@ -152,6 +167,8 @@
     "@personal-brain/shell": ["@personal-brain/shell@workspace:packages/shell"],
 
     "@personal-brain/typescript-config": ["@personal-brain/typescript-config@workspace:packages/typescript-config"],
+
+    "@personal-brain/utils": ["@personal-brain/utils@workspace:packages/utils"],
 
     "@types/bun": ["@types/bun@1.2.14", "", { "dependencies": { "bun-types": "1.2.14" } }, "sha512-VsFZKs8oKHzI7zwvECiAJ5oSorWndIWEVhfbYqZd4HI/45kzW7PN2Rr5biAzvGvRuNmYLSANY+H59ubHq8xw7Q=="],
 

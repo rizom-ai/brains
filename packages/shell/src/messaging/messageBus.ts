@@ -1,4 +1,4 @@
-import type { Logger } from "@/utils/logger";
+import type { Logger } from "@personal-brain/utils";
 import type { BaseMessage, MessageResponse } from "./types";
 
 /**
@@ -9,7 +9,10 @@ export class MessageBus {
   private static instance: MessageBus | null = null;
 
   // Store handlers without type information - they handle validation internally
-  private handlers = new Map<string, Set<(message: BaseMessage) => Promise<MessageResponse | null>>>();
+  private handlers = new Map<
+    string,
+    Set<(message: BaseMessage) => Promise<MessageResponse | null>>
+  >();
   private logger: Logger;
 
   /**
@@ -47,8 +50,8 @@ export class MessageBus {
    * Register a handler for a specific message type
    */
   registerHandler(
-    messageType: string, 
-    handler: (message: BaseMessage) => Promise<MessageResponse | null>
+    messageType: string,
+    handler: (message: BaseMessage) => Promise<MessageResponse | null>,
   ): void {
     if (!this.handlers.has(messageType)) {
       this.handlers.set(messageType, new Set());
@@ -103,8 +106,8 @@ export class MessageBus {
    * Unregister a handler for a specific message type
    */
   unregisterHandler(
-    messageType: string, 
-    handler: (message: BaseMessage) => Promise<MessageResponse | null>
+    messageType: string,
+    handler: (message: BaseMessage) => Promise<MessageResponse | null>,
   ): void {
     const handlers = this.handlers.get(messageType);
     if (handlers) {

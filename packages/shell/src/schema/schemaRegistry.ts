@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Logger } from "../utils/logger";
+import type { Logger } from "@personal-brain/utils";
 
 /**
  * Registry for managing Zod schemas across the application

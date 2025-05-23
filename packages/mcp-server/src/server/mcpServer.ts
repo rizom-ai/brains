@@ -2,12 +2,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { MCPServerConfig } from "../types";
 
-// Default console logger
+// Default console logger that always uses stderr for MCP servers
 const defaultLogger = {
-  info: (msg: string) => console.error(`[MCP INFO] ${msg}`),
-  debug: (msg: string) => console.error(`[MCP DEBUG] ${msg}`),
-  error: (msg: string, err?: unknown) => console.error(`[MCP ERROR] ${msg}`, err),
-  warn: (msg: string) => console.error(`[MCP WARN] ${msg}`),
+  info: (msg: string): void => console.error(`[MCP INFO] ${msg}`),
+  debug: (msg: string): void => console.error(`[MCP DEBUG] ${msg}`),
+  error: (msg: string, err?: unknown): void =>
+    console.error(`[MCP ERROR] ${msg}`, err),
+  warn: (msg: string): void => console.error(`[MCP WARN] ${msg}`),
 };
 
 /**
@@ -54,15 +55,17 @@ export class MCPServer {
    * Private constructor to enforce singleton pattern
    */
   private constructor(config?: MCPServerConfig) {
-    this.config = config || {};
+    this.config = config ?? {};
 
     // Create the MCP server instance
     this.mcpServer = new McpServer({
-      name: this.config.name || "MCP-Server",
-      version: this.config.version || "1.0.0",
+      name: this.config.name ?? "MCP-Server",
+      version: this.config.version ?? "1.0.0",
     });
 
-    defaultLogger.info(`Created MCP server: ${this.config.name || "MCP-Server"} v${this.config.version || "1.0.0"}`);
+    defaultLogger.info(
+      `Created MCP server: ${this.config.name ?? "MCP-Server"} v${this.config.version ?? "1.0.0"}`,
+    );
   }
 
   /**

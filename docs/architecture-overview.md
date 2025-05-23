@@ -15,7 +15,7 @@ The Personal Brain application is being rebuilt with a more modular, plugin-base
 The system follows a clean separation of concerns through multiple packages:
 
 - **packages/shell**: Core brain infrastructure
-- **packages/mcp-server**: MCP protocol implementation  
+- **packages/mcp-server**: MCP protocol implementation
 - **packages/cli**: CLI functionality
 - **packages/matrix-bot**: Matrix bot functionality
 - **apps/brain**: Unified app with multiple runtime modes

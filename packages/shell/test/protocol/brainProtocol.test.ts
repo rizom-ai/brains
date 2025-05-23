@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { BrainProtocol } from "@/protocol/brainProtocol";
-import type { Logger } from "@/utils/logger";
-import { MockLogger } from "@test/utils/mockLogger";
+
+import { createSilentLogger, type Logger } from "@personal-brain/utils";
 import { MessageBus } from "@/messaging/messageBus";
 import type { QueryProcessor } from "@/query/queryProcessor";
 import type { Command } from "@/protocol/brainProtocol";
@@ -27,7 +27,7 @@ describe("BrainProtocol", () => {
   let mockQueryProcessor: ReturnType<typeof createMockQueryProcessor>;
 
   beforeEach(() => {
-    logger = MockLogger.createFresh();
+    logger = createSilentLogger();
     messageBus = MessageBus.createFresh(logger);
     mockQueryProcessor = createMockQueryProcessor();
     brainProtocol = BrainProtocol.createFresh(
@@ -51,11 +51,14 @@ describe("BrainProtocol", () => {
       expect(response.success).toBe(true);
       expect(response.commandId).toBe(command.id);
       expect(response.result).toBeDefined();
-      expect(mockQueryProcessor.processQuery).toHaveBeenCalledWith("test query", {
-        userId: "user-1",
-        conversationId: undefined,
-        metadata: undefined,
-      });
+      expect(mockQueryProcessor.processQuery).toHaveBeenCalledWith(
+        "test query",
+        {
+          userId: "user-1",
+          conversationId: undefined,
+          metadata: undefined,
+        },
+      );
     });
 
     it("should handle query command errors", async () => {
@@ -88,8 +91,12 @@ describe("BrainProtocol", () => {
       expect(response.success).toBe(true);
       expect(response.result).toBeDefined();
       const result = response.result;
-      expect((result as { availableCommands: string[] }).availableCommands).toContain("query");
-      expect((result as { availableCommands: string[] }).availableCommands).toContain("help");
+      expect(
+        (result as { availableCommands: string[] }).availableCommands,
+      ).toContain("query");
+      expect(
+        (result as { availableCommands: string[] }).availableCommands,
+      ).toContain("help");
     });
 
     it("should handle unknown commands", async () => {
@@ -165,10 +172,9 @@ describe("BrainProtocol", () => {
     });
 
     it("should route non-command messages to message bus", async () => {
-      const message = MessageFactory.createMessageWithPayload(
-        "test.message",
-        { data: "test" },
-      );
+      const message = MessageFactory.createMessageWithPayload("test.message", {
+        data: "test",
+      });
 
       const busHandler = mock(() =>
         Promise.resolve(MessageFactory.createSuccessResponse(message.id)),

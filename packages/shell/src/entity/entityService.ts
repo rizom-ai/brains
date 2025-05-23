@@ -2,7 +2,7 @@ import type { DrizzleDB } from "../db";
 import { entities, createId, selectEntitySchema } from "../db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import type { EntityAdapter } from "./entityRegistry";
-import { Logger } from "../utils/logger";
+import { Logger } from "@personal-brain/utils";
 import type {
   BaseEntity,
   IContentModel,
@@ -455,7 +455,7 @@ export class EntityService {
       sortBy: "relevance",
       sortDirection: "desc",
     };
-    
+
     return this.search(query, searchOptions);
   }
 }

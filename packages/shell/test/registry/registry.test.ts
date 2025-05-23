@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { Registry } from "@/registry/registry";
-import type { Logger } from "@/utils/logger";
-import { MockLogger } from "@test/utils/mockLogger";
+
+import { createSilentLogger, type Logger } from "@personal-brain/utils";
 
 // Test component interface
 interface TestComponent {
@@ -37,7 +37,7 @@ describe("Registry", (): void => {
     Registry.resetInstance();
 
     // Create fresh instances with mock logger
-    logger = MockLogger.createFresh();
+    logger = createSilentLogger();
     registry = Registry.createFresh(logger);
   });
 

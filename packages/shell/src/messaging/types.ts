@@ -68,7 +68,7 @@ export interface MessageWithPayload<P = unknown> extends BaseMessage {
  * Type guard to check if a message has a payload
  */
 export function hasPayload<P = unknown>(
-  message: BaseMessage
+  message: BaseMessage,
 ): message is MessageWithPayload<P> {
-  return 'payload' in message;
+  return "payload" in message;
 }

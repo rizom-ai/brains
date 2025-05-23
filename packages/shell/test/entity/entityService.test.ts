@@ -3,8 +3,8 @@ import { z } from "zod";
 import { EntityService } from "@/entity/entityService";
 import { EntityRegistry } from "@/entity/entityRegistry";
 import type { DrizzleDB } from "@/db";
-import type { Logger } from "@/utils/logger";
-import { MockLogger } from "@test/utils/mockLogger";
+
+import { createSilentLogger, type Logger } from "@personal-brain/utils";
 import { baseEntitySchema } from "@/types";
 import type { IContentModel } from "@/types";
 import { createId } from "@/db/schema";
@@ -66,13 +66,12 @@ describe("EntityService", (): void => {
     // Reset singletons
     EntityService.resetInstance();
     EntityRegistry.resetInstance();
-    MockLogger.resetInstance();
 
     // Create minimal mock database (we're not testing DB operations)
     mockDb = {} as DrizzleDB;
 
     // Create fresh instances
-    logger = MockLogger.createFresh();
+    logger = createSilentLogger();
     entityRegistry = EntityRegistry.createFresh(logger);
     entityService = EntityService.createFresh(mockDb, entityRegistry, logger);
   });

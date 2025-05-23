@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { Logger } from "../utils/logger";
+import type { Logger } from "@personal-brain/utils";
 import type { BaseEntity, IContentModel } from "../types";
 
 /**

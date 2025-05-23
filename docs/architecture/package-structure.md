@@ -9,6 +9,7 @@ The Personal Brain project uses a monorepo structure with clear separation of co
 ### Core Packages
 
 #### `packages/shell`
+
 - **Purpose**: Core brain infrastructure and business logic
 - **Responsibilities**:
   - Entity management (EntityService, EntityRegistry)
@@ -21,6 +22,7 @@ The Personal Brain project uses a monorepo structure with clear separation of co
 - **Consumers**: All other packages depend on shell
 
 #### `packages/mcp-server`
+
 - **Purpose**: Model Context Protocol (MCP) server infrastructure
 - **Responsibilities**:
   - MCP standard compliance
@@ -28,25 +30,27 @@ The Personal Brain project uses a monorepo structure with clear separation of co
   - Transport implementations (stdio, HTTP/SSE)
   - Connection lifecycle management
   - Does NOT define specific tools or resources
-- **Dependencies**: 
+- **Dependencies**:
   - `@modelcontextprotocol/sdk` only
   - No dependency on shell or other packages
 - **Consumers**: Apps that need MCP interface
 - **Usage Pattern**: Other packages register their own tools/resources with the MCP server
 
 #### `packages/cli`
+
 - **Purpose**: Command-line interface functionality
 - **Responsibilities**:
   - Interactive command parsing
   - CLI-specific formatting and output
   - Command history and completion
   - Direct shell integration (no MCP overhead)
-- **Dependencies**: 
+- **Dependencies**:
   - `packages/shell`
   - CLI libraries (e.g., commander, inquirer)
 - **Consumers**: Brain app in CLI mode
 
 #### `packages/matrix-bot`
+
 - **Purpose**: Matrix bot functionality
 - **Responsibilities**:
   - Matrix protocol handling
@@ -61,6 +65,7 @@ The Personal Brain project uses a monorepo structure with clear separation of co
 ### Context Packages (Future)
 
 #### `packages/note-context`
+
 - **Purpose**: Note management context
 - **Responsibilities**:
   - Note entity adapter
@@ -69,6 +74,7 @@ The Personal Brain project uses a monorepo structure with clear separation of co
 - **Dependencies**: `packages/shell`
 
 #### `packages/task-context`
+
 - **Purpose**: Task management context
 - **Responsibilities**:
   - Task entity adapter
@@ -79,6 +85,7 @@ The Personal Brain project uses a monorepo structure with clear separation of co
 ## Application Structure
 
 ### `apps/brain`
+
 The unified application that can run in multiple modes:
 
 ```typescript
@@ -93,6 +100,7 @@ brain --mode mcp,cli  // Run MCP server and CLI
 ```
 
 **Mode Implementations**:
+
 - Each mode imports and initializes the corresponding package
 - Modes can run concurrently (e.g., MCP server + Matrix bot)
 - Shared shell instance across all modes
@@ -154,19 +162,19 @@ export interface PackageRunner {
 // Example implementation
 export class MCPServerRunner implements PackageRunner {
   name = "mcp-server";
-  
+
   async initialize(shell: Shell): Promise<void> {
     // Setup using shell instance
   }
-  
+
   async start(): Promise<void> {
     // Start the service
   }
-  
+
   async stop(): Promise<void> {
     // Graceful shutdown
   }
-  
+
   getStatus(): PackageStatus {
     // Return current status
   }
@@ -187,7 +195,7 @@ import { Shell } from "@brains/shell";
 // Create MCP server with just the infrastructure
 const mcpServer = MCPServer.createFresh({
   name: "PersonalBrain",
-  version: "1.0.0"
+  version: "1.0.0",
 });
 
 // Get the underlying server for registration
@@ -206,6 +214,7 @@ await mcpServer.startStdio();
 ```
 
 This pattern ensures:
+
 - MCP server has no knowledge of specific business logic
 - Each package owns its tool/resource definitions
 - Clean separation between infrastructure and implementation

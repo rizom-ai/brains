@@ -98,6 +98,48 @@ export interface QueryResult<T = unknown> {
 }
 
 /**
+ * Serializable versions of types for API responses
+ */
+export const serializableEntitySchema = z.object({
+  id: z.string(),
+  entityType: z.string(),
+  title: z.string(),
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  tags: z.array(z.string()),
+});
+
+export type SerializableEntity = z.infer<typeof serializableEntitySchema>;
+
+export const serializableCitationSchema = z.object({
+  entityId: z.string(),
+  entityType: z.string(),
+  entityTitle: z.string(),
+  excerpt: z.string(),
+});
+
+export type SerializableCitation = z.infer<typeof serializableCitationSchema>;
+
+export function serializableQueryResultSchema<T extends z.ZodTypeAny = z.ZodUnknown>(
+  objectSchema?: T
+): z.ZodSchema {
+  return z.object({
+    answer: z.string(),
+    citations: z.array(serializableCitationSchema),
+    relatedEntities: z.array(serializableEntitySchema),
+    ...(objectSchema ? { object: objectSchema } : {}),
+  });
+}
+
+export type SerializableQueryResult<T = unknown> = {
+  answer: string;
+  citations: SerializableCitation[];
+  relatedEntities: SerializableEntity[];
+  object?: T;
+};
+
+/**
  * Model response from AI models
  */
 export interface ModelResponse<T = unknown> {

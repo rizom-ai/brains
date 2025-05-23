@@ -13,7 +13,7 @@ export enum LogLevel {
   INFO = 3,
   WARN = 4,
   ERROR = 5,
-  NONE = 6,
+  NONE = 6, // Silent mode - no output
 }
 
 /**
@@ -25,13 +25,15 @@ export class Logger {
 
   private level: LogLevel;
   private context: string | undefined;
+  private useStderr: boolean;
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(options: { level?: LogLevel; context?: string } = {}) {
+  private constructor(options: { level?: LogLevel; context?: string; useStderr?: boolean } = {}) {
     this.level = options.level ?? LogLevel.INFO;
     this.context = options.context ?? undefined;
+    this.useStderr = options.useStderr ?? false;
   }
 
   /**
@@ -40,9 +42,13 @@ export class Logger {
   public static getInstance(options?: {
     level?: LogLevel;
     context?: string;
+    useStderr?: boolean;
   }): Logger {
     if (!Logger.instance) {
       Logger.instance = new Logger(options);
+    } else if (options?.useStderr !== undefined) {
+      // Update useStderr if explicitly provided
+      Logger.instance.useStderr = options.useStderr;
     }
     return Logger.instance;
   }
@@ -60,6 +66,7 @@ export class Logger {
   public static createFresh(options?: {
     level?: LogLevel;
     context?: string;
+    useStderr?: boolean;
   }): Logger {
     return new Logger(options);
   }
@@ -106,7 +113,11 @@ export class Logger {
    */
   public info(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.INFO) {
-      console.info(this.formatMessage(message), ...args);
+      if (this.useStderr) {
+        console.error(this.formatMessage(message), ...args);
+      } else {
+        console.info(this.formatMessage(message), ...args);
+      }
     }
   }
 
@@ -135,8 +146,17 @@ export class Logger {
     const childLogger = Logger.createFresh({
       level: this.level,
       context,
+      useStderr: this.useStderr,
     });
     return childLogger;
+  }
+
+  /**
+   * Configure the logger to use stderr for all output
+   * Useful for MCP servers that need stdout for JSON-RPC
+   */
+  public setUseStderr(useStderr: boolean): void {
+    this.useStderr = useStderr;
   }
 }
 

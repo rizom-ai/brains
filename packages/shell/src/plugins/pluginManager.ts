@@ -1,5 +1,5 @@
 import type { Registry } from "../registry/registry";
-import type { Logger } from "../utils/logger";
+import type { Logger } from "@personal-brain/utils";
 import { EventEmitter } from "events";
 import type { MessageBus } from "../messaging/messageBus";
 

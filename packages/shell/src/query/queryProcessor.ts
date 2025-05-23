@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { Logger } from "../utils/logger";
+import type { Logger } from "@personal-brain/utils";
 import type { EntityService } from "../entity/entityService";
 import type {
   Entity,
@@ -109,7 +109,7 @@ export class QueryProcessor {
     }
 
     // Determine entity types from query
-    const entityTypes = this.entityService.getAllEntityTypes();
+    const entityTypes = this.entityService.getEntityTypes();
     const mentionedTypes = entityTypes.filter((type: string) =>
       lowerQuery.includes(type.toLowerCase()),
     );

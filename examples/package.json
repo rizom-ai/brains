@@ -1,0 +1,22 @@
+{
+  "name": "@personal-brain/examples",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "brain-mcp": "bun run brain-mcp-server.ts",
+    "test-client": "bun run test-mcp-client.ts",
+    "test-interactive": "./test-mcp.sh"
+  },
+  "dependencies": {
+    "@brains/mcp-server": "workspace:*",
+    "@personal-brain/shell": "workspace:*",
+    "@personal-brain/utils": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "drizzle-orm": "^0.29.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3"
+  }
+}

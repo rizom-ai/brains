@@ -6,8 +6,8 @@ import {
   PluginStatus,
 } from "@/plugins/pluginManager";
 import { Registry } from "@/registry/registry";
-import type { Logger } from "@/utils/logger";
-import { MockLogger } from "@test/utils/mockLogger";
+
+import { createSilentLogger, type Logger } from "@personal-brain/utils";
 import { MessageBus } from "@/messaging/messageBus";
 
 interface MockService {
@@ -74,7 +74,7 @@ describe("PluginManager", (): void => {
     MessageBus.resetInstance();
 
     // Create fresh instances with mock logger
-    logger = MockLogger.createFresh();
+    logger = createSilentLogger();
     registry = Registry.createFresh(logger);
     messageBus = MessageBus.createFresh(logger);
     pluginManager = PluginManager.createFresh(registry, logger, messageBus);

@@ -5,7 +5,11 @@ import { baseMessageSchema, messageResponseSchema } from "@/messaging/types";
 describe("MessageFactory", () => {
   describe("createMessage", () => {
     it("should create a valid base message", () => {
-      const message = MessageFactory.createMessage("test.event", "source", "target");
+      const message = MessageFactory.createMessage(
+        "test.event",
+        "source",
+        "target",
+      );
 
       expect(message.type).toBe("test.event");
       expect(message.source).toBe("source");
@@ -82,7 +86,10 @@ describe("MessageFactory", () => {
 
     it("should create a success response with data", () => {
       const data = { result: "success", items: [1, 2, 3] };
-      const response = MessageFactory.createSuccessResponse("request-123", data);
+      const response = MessageFactory.createSuccessResponse(
+        "request-123",
+        data,
+      );
 
       expect(response.requestId).toBe("request-123");
       expect(response.success).toBe(true);

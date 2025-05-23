@@ -182,3 +182,7 @@ dist
 
 # Legacy code reference
 old-code-reference/
+
+# Temporary files
+.tmp/
+brain.db

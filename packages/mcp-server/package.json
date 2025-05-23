@@ -15,7 +15,8 @@
     "test:watch": "bun test --watch"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0"
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/bun": "latest",
