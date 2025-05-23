@@ -15,7 +15,10 @@ export function createSilentLogger(context?: string): Logger {
  * Create a test logger with a specific log level
  * Useful for debugging tests
  */
-export function createTestLogger(level: LogLevel = LogLevel.NONE, context?: string): Logger {
+export function createTestLogger(
+  level: LogLevel = LogLevel.NONE,
+  context?: string,
+): Logger {
   return Logger.createFresh({
     level,
     ...(context ? { context } : {}),

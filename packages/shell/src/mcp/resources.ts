@@ -29,12 +29,12 @@ export function registerShellResources(
       { description: `Access ${entityType} entities by ID` },
       async (uri, variables) => {
         try {
-          const id = variables['id'];
-          
+          const id = variables["id"];
+
           if (!id || Array.isArray(id)) {
             throw new Error(`Invalid entity ID in URI: ${uri}`);
           }
-          
+
           logger.debug(`Reading ${entityType} entity`, { id });
 
           const entity = await entityService.getEntity(entityType, id);

@@ -121,9 +121,9 @@ export const serializableCitationSchema = z.object({
 
 export type SerializableCitation = z.infer<typeof serializableCitationSchema>;
 
-export function serializableQueryResultSchema<T extends z.ZodTypeAny = z.ZodUnknown>(
-  objectSchema?: T
-): z.ZodSchema {
+export function serializableQueryResultSchema<
+  T extends z.ZodTypeAny = z.ZodUnknown,
+>(objectSchema?: T): z.ZodSchema {
   return z.object({
     answer: z.string(),
     citations: z.array(serializableCitationSchema),

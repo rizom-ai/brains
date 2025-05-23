@@ -11,16 +11,19 @@ This directory contains examples demonstrating how to use the Brain system with 
 ## Prerequisites
 
 1. Install dependencies:
+
 ```bash
 bun install
 ```
 
 2. Build the packages:
+
 ```bash
 bun run build
 ```
 
 3. (Optional) Install MCP inspector for interactive testing:
+
 ```bash
 npm install -g @modelcontextprotocol/inspector
 ```
@@ -30,6 +33,7 @@ npm install -g @modelcontextprotocol/inspector
 ### Basic Server
 
 Run the Brain MCP server:
+
 ```bash
 bun run examples/brain-mcp-server.ts
 ```
@@ -39,11 +43,13 @@ The server will start and listen on stdio for MCP commands.
 ### Automated Testing
 
 In one terminal, run the server:
+
 ```bash
 bun run examples/brain-mcp-server.ts
 ```
 
 In another terminal, run the test client:
+
 ```bash
 bun run examples/test-mcp-client.ts
 ```
@@ -51,11 +57,13 @@ bun run examples/test-mcp-client.ts
 ### Interactive Testing
 
 Use the MCP inspector for interactive testing:
+
 ```bash
 ./examples/test-mcp.sh
 ```
 
 This will open an interactive interface where you can:
+
 - Browse available tools and resources
 - Execute tools with custom parameters
 - Read resources
@@ -67,14 +75,16 @@ The Brain MCP server exposes these tools:
 
 1. **brain_query** - Process natural language queries
    - Parameters: `query` (string), `options` (object)
-   
 2. **brain_command** - Execute Brain commands
+
    - Parameters: `command` (string), `args` (array), `context` (object)
 
 3. **entity_search** - Search for entities
+
    - Parameters: `entityType` (string), `query` (string), `limit` (number)
 
 4. **entity_get** - Get a specific entity
+
    - Parameters: `entityType` (string), `entityId` (string)
 
 5. **brain_status** - Get system status
@@ -91,6 +101,7 @@ The Brain MCP server exposes these tools:
 ## Example Usage
 
 ### Query Processing
+
 ```json
 {
   "tool": "brain_query",
@@ -105,6 +116,7 @@ The Brain MCP server exposes these tools:
 ```
 
 ### Command Execution
+
 ```json
 {
   "tool": "brain_command",
@@ -117,6 +129,7 @@ The Brain MCP server exposes these tools:
 ```
 
 ### Entity Search
+
 ```json
 {
   "tool": "entity_search",
@@ -137,11 +150,13 @@ The Brain MCP server exposes these tools:
 ## Development
 
 To modify the server behavior:
+
 1. Edit `brain-mcp-server.ts`
 2. Add new tools or resources as needed
 3. Restart the server to see changes
 
 The server demonstrates best practices for:
+
 - Initializing Brain components
 - Registering MCP tools and resources
 - Handling requests and responses

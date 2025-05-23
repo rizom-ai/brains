@@ -17,11 +17,13 @@ import { toSerializableQueryResult } from "../utils/serialization";
  */
 export interface MCPQueryParams {
   query: string;
-  options?: {
-    limit?: number | undefined;
-    context?: Record<string, unknown> | undefined;
-    responseSchema?: string | undefined;
-  } | undefined;
+  options?:
+    | {
+        limit?: number | undefined;
+        context?: Record<string, unknown> | undefined;
+        responseSchema?: string | undefined;
+      }
+    | undefined;
 }
 
 /**
@@ -77,8 +79,11 @@ export class QueryProcessorAdapter {
     }
 
     // Execute query with translated options
-    const result = await this.queryProcessor.processQuery(params.query, queryOptions);
-    
+    const result = await this.queryProcessor.processQuery(
+      params.query,
+      queryOptions,
+    );
+
     // Convert to serializable format
     return toSerializableQueryResult(result);
   }

@@ -117,9 +117,6 @@ export class PluginManager {
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
     this.messageBus = messageBus;
-
-    // Register the plugin manager itself in the registry
-    this.registry.register("pluginManager", () => this);
   }
 
   /**

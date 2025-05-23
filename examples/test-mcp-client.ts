@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 /**
  * Test MCP Client
- * 
+ *
  * This script tests the MCP server by sending requests to it.
  * It demonstrates how an MCP client would interact with our server.
- * 
+ *
  * Usage: bun run examples/test-mcp-client.ts
  */
 
@@ -43,7 +43,9 @@ async function main(): Promise<void> {
     console.log("\n=== Available Resources ===");
     const resources = await client.listResources();
     for (const resource of resources.resources) {
-      console.log(`- ${resource.uri}: ${resource.description ?? "No description"}`);
+      console.log(
+        `- ${resource.uri}: ${resource.description ?? "No description"}`,
+      );
     }
 
     // Test brain_status tool
@@ -75,7 +77,6 @@ async function main(): Promise<void> {
     console.log("Health:", JSON.stringify(healthResource, null, 2));
 
     console.log("\n✅ All tests completed successfully!");
-
   } catch (error) {
     console.error("Test failed:", error);
   } finally {

@@ -30,7 +30,9 @@ export class Logger {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(options: { level?: LogLevel; context?: string; useStderr?: boolean } = {}) {
+  private constructor(
+    options: { level?: LogLevel; context?: string; useStderr?: boolean } = {},
+  ) {
     this.level = options.level ?? LogLevel.INFO;
     this.context = options.context ?? undefined;
     this.useStderr = options.useStderr ?? false;

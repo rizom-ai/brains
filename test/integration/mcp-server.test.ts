@@ -7,10 +7,14 @@ describe("MCP Server Integration Tests", () => {
   let transport: StdioClientTransport;
 
   beforeAll(async () => {
-    // Create transport
+    // Create transport with silent logs
     transport = new StdioClientTransport({
       command: "bun",
       args: ["run", "examples/brain-mcp-server.ts"],
+      env: {
+        ...process.env,
+        SILENT_LOGS: "true",
+      },
     });
 
     // Create and connect client
@@ -28,11 +32,11 @@ describe("MCP Server Integration Tests", () => {
 
   it("should list available tools", async () => {
     const result = await client.listTools();
-    
+
     expect(result.tools).toBeDefined();
     expect(result.tools.length).toBeGreaterThan(0);
-    
-    const toolNames = result.tools.map(t => t.name);
+
+    const toolNames = result.tools.map((t) => t.name);
     expect(toolNames).toContain("brain_query");
     expect(toolNames).toContain("brain_command");
     expect(toolNames).toContain("entity_search");
@@ -42,14 +46,14 @@ describe("MCP Server Integration Tests", () => {
 
   it("should list available resources", async () => {
     const result = await client.listResources();
-    
+
     expect(result.resources).toBeDefined();
     expect(result.resources.length).toBeGreaterThan(0);
-    
-    const resourceUris = result.resources.map(r => r.uri);
-    expect(resourceUris).toContain("health");
-    expect(resourceUris).toContain("entity-types");
-    expect(resourceUris).toContain("schema-list");
+
+    const resourceUris = result.resources.map((r) => r.uri);
+    expect(resourceUris).toContain("brain://health");
+    expect(resourceUris).toContain("entity://types");
+    expect(resourceUris).toContain("schema://list");
   });
 
   it("should execute brain_status tool", async () => {
@@ -60,7 +64,7 @@ describe("MCP Server Integration Tests", () => {
 
     expect(result.content).toBeDefined();
     expect(result.content.length).toBeGreaterThan(0);
-    
+
     const content = JSON.parse(result.content[0].text);
     expect(content.status).toBe("operational");
     expect(content.database).toBeDefined();
@@ -69,12 +73,12 @@ describe("MCP Server Integration Tests", () => {
 
   it("should read health resource", async () => {
     const result = await client.readResource({
-      uri: "health",
+      uri: "brain://health",
     });
 
     expect(result.contents).toBeDefined();
     expect(result.contents.length).toBeGreaterThan(0);
-    
+
     const content = JSON.parse(result.contents[0].text);
     expect(content.status).toBe("healthy");
     expect(content.timestamp).toBeDefined();

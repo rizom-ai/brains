@@ -114,7 +114,7 @@ describe("MCP Registration", () => {
     // Get the brain_query tool handler
     const queryHandler = mockToolHandlers.get("brain_query");
     expect(queryHandler).toBeDefined();
-    if (!queryHandler || typeof queryHandler !== 'function') {
+    if (!queryHandler || typeof queryHandler !== "function") {
       throw new Error("Query handler not found or not a function");
     }
 
@@ -140,7 +140,7 @@ describe("MCP Registration", () => {
     // Get the brain_command tool handler
     const commandHandler = mockToolHandlers.get("brain_command");
     expect(commandHandler).toBeDefined();
-    if (!commandHandler || typeof commandHandler !== 'function') {
+    if (!commandHandler || typeof commandHandler !== "function") {
       throw new Error("Command handler not found or not a function");
     }
 

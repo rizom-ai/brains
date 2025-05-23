@@ -5,6 +5,10 @@
  * for the Personal Brain application.
  */
 
+// Main Shell entry point
+export { Shell } from "./shell";
+export type { ShellConfig } from "./shell";
+
 // Core Components
 export { QueryProcessor } from "./query/queryProcessor";
 export { BrainProtocol } from "./protocol/brainProtocol";
@@ -16,7 +20,11 @@ export { PluginManager } from "./plugins/pluginManager";
 // Messaging Components
 export { MessageBus } from "./messaging/messageBus";
 export { MessageFactory } from "./messaging/messageFactory";
-export type { BaseMessage, MessageResponse, MessageWithPayload } from "./messaging/types";
+export type {
+  BaseMessage,
+  MessageResponse,
+  MessageWithPayload,
+} from "./messaging/types";
 
 // Registry & Utilities
 export { Registry } from "./registry/registry";
@@ -48,10 +56,10 @@ export {
 } from "./types";
 
 // Serialization utilities
-export { 
-  toSerializableEntity, 
+export {
+  toSerializableEntity,
   toSerializableQueryResult,
-  validateAndSerializeQueryResult 
+  validateAndSerializeQueryResult,
 } from "./utils/serialization";
 
 // Export EntityAdapter from entityRegistry
@@ -59,6 +67,3 @@ export type { EntityAdapter } from "./entity/entityRegistry";
 
 // Export Plugin interface from pluginManager
 export type { Plugin, PluginContext } from "./plugins/pluginManager";
-
-// TODO: Add a proper Shell class that encapsulates all functionality
-// This would initialize all components and provide a unified interface

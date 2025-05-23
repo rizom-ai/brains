@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { MCPServerConfig } from "../types";
+import type { MCPServerConfig, Logger } from "../types";
 
 // Default console logger that always uses stderr for MCP servers
 const defaultLogger = {
@@ -22,6 +22,7 @@ export class MCPServer {
 
   private readonly mcpServer: McpServer;
   private readonly config: MCPServerConfig;
+  private readonly logger: Logger;
   private transport: StdioServerTransport | null = null;
 
   /**
@@ -56,6 +57,7 @@ export class MCPServer {
    */
   private constructor(config?: MCPServerConfig) {
     this.config = config ?? {};
+    this.logger = this.config.logger ?? defaultLogger;
 
     // Create the MCP server instance
     this.mcpServer = new McpServer({
@@ -63,7 +65,7 @@ export class MCPServer {
       version: this.config.version ?? "1.0.0",
     });
 
-    defaultLogger.info(
+    this.logger.info(
       `Created MCP server: ${this.config.name ?? "MCP-Server"} v${this.config.version ?? "1.0.0"}`,
     );
   }
@@ -80,7 +82,7 @@ export class MCPServer {
    * Start the MCP server with stdio transport
    */
   public async startStdio(): Promise<void> {
-    defaultLogger.info("Starting MCP Server with stdio transport");
+    this.logger.info("Starting MCP Server with stdio transport");
 
     // Create stdio transport
     this.transport = new StdioServerTransport();
@@ -88,21 +90,21 @@ export class MCPServer {
     // Connect the server to the transport
     await this.mcpServer.connect(this.transport);
 
-    defaultLogger.info("MCP Server started successfully");
+    this.logger.info("MCP Server started successfully");
   }
 
   /**
    * Stop the MCP server
    */
   public stop(): void {
-    defaultLogger.info("Stopping MCP Server");
+    this.logger.info("Stopping MCP Server");
 
     if (this.transport) {
       // The SDK handles cleanup when the transport is closed
       this.transport = null;
     }
 
-    defaultLogger.info("MCP Server stopped");
+    this.logger.info("MCP Server stopped");
   }
 
   /**
