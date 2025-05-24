@@ -75,7 +75,6 @@ export const entities = sqliteTable("entities", {
     .$defaultFn(() => Date.now()),
 });
 
-
 /**
  * Entity relationships table
  * Stores connections between entities
@@ -117,7 +116,6 @@ export const selectEntitySchema = createSelectSchema(entities, {
   embedding: z.instanceof(Float32Array).optional(),
   embeddingStatus: z.enum(["pending", "processing", "ready", "failed"]),
 });
-
 
 export const insertEntityRelationSchema = createInsertSchema(entityRelations, {
   metadata: z.record(z.unknown()).default({}),

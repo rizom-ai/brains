@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "sqlite",
-  "id": "2793571c-f606-47d4-8670-58a65415fab8",
+  "id": "7341e8e5-7fbf-47e3-b6b0-6093d66b36d2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "entities": {
@@ -14,8 +14,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "entity_type": {
-          "name": "entity_type",
+        "entityType": {
+          "name": "entityType",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -35,12 +35,13 @@
           "notNull": true,
           "autoincrement": false
         },
-        "category": {
-          "name": "category",
-          "type": "text",
+        "contentWeight": {
+          "name": "contentWeight",
+          "type": "real",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
         },
         "tags": {
           "name": "tags",
@@ -50,20 +51,20 @@
           "autoincrement": false,
           "default": "'[]'"
         },
-        "metadata": {
-          "name": "metadata",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'{}'"
-        },
         "embedding": {
           "name": "embedding",
           "type": "F32_BLOB(1536)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "embeddingStatus": {
+          "name": "embeddingStatus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'pending'"
         },
         "created": {
           "name": "created",
@@ -153,106 +154,6 @@
           "tableTo": "entities",
           "columnsFrom": [
             "target_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
-    "entity_versions": {
-      "name": "entity_versions",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "entity_id": {
-          "name": "entity_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "version_number": {
-          "name": "version_number",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "content": {
-          "name": "content",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "category": {
-          "name": "category",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "tags": {
-          "name": "tags",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created": {
-          "name": "created",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "change_reason": {
-          "name": "change_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "entity_versions_entity_id_entities_id_fk": {
-          "name": "entity_versions_entity_id_entities_id_fk",
-          "tableFrom": "entity_versions",
-          "tableTo": "entities",
-          "columnsFrom": [
-            "entity_id"
           ],
           "columnsTo": [
             "id"

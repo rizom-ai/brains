@@ -2,7 +2,7 @@ import type { DrizzleDB } from "../db";
 import { entities, createId, selectEntitySchema } from "../db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import type { EntityAdapter } from "./entityRegistry";
-import { Logger } from "@personal-brain/utils";
+import { Logger, extractIndexedFields } from "@personal-brain/utils";
 import type {
   BaseEntity,
   IContentModel,
@@ -112,16 +112,22 @@ export class EntityService {
     // Convert to markdown
     const markdown = this.entityRegistry.entityToMarkdown(validatedEntity);
 
+    // Extract indexed fields from markdown
+    const { title, tags, contentWeight } = extractIndexedFields(
+      markdown,
+      validatedEntity.id
+    );
+
     // Store in database
     await this.db.insert(entities).values({
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
-      title: validatedEntity.title,
+      title, // Use extracted title
       content: markdown,
       created: new Date(validatedEntity.created).getTime(),
       updated: new Date(validatedEntity.updated).getTime(),
-      tags: validatedEntity.tags,
-      contentWeight: 1.0, // Default to fully user-created content
+      tags, // Use extracted tags
+      contentWeight, // Use extracted contentWeight
       embedding: null,
       embeddingStatus: "pending",
     });
@@ -202,15 +208,21 @@ export class EntityService {
     // Convert to markdown
     const markdown = this.entityRegistry.entityToMarkdown(validatedEntity);
 
+    // Extract indexed fields from markdown
+    const { title, tags, contentWeight } = extractIndexedFields(
+      markdown,
+      validatedEntity.id
+    );
+
     // Update in database
     await this.db
       .update(entities)
       .set({
-        title: validatedEntity.title,
+        title, // Use extracted title
         content: markdown,
         updated: new Date(validatedEntity.updated).getTime(),
-        tags: validatedEntity.tags,
-        contentWeight: 1.0, // Reset to user-created on update
+        tags, // Use extracted tags
+        contentWeight, // Use extracted contentWeight
       })
       .where(eq(entities.id, validatedEntity.id));
 

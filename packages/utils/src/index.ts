@@ -11,8 +11,10 @@ export { default as defaultLogger } from "./logger";
 // Test utilities
 export { createSilentLogger, createTestLogger } from "./test-utils";
 
-// Future utilities can be added here:
-// - Error classes
-// - Type guards
-// - Common helper functions
-// - Validation utilities
+// Markdown utilities
+export {
+  parseMarkdown,
+  extractTitle,
+  extractIndexedFields,
+  generateMarkdown,
+} from "./markdown";
