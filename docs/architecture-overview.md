@@ -12,13 +12,18 @@ The Personal Brain application is being rebuilt with a more modular, plugin-base
 
 ## Package Structure
 
-The system follows a clean separation of concerns through multiple packages:
+The "brains" repository supports multiple brain implementations with shared infrastructure:
 
-- **packages/shell**: Core brain infrastructure
-- **packages/mcp-server**: MCP protocol implementation
-- **packages/cli**: CLI functionality
-- **packages/matrix-bot**: Matrix bot functionality
-- **apps/brain**: Unified app with multiple runtime modes
+- **packages/shell**: Core brain infrastructure shared by all brain types
+- **packages/mcp-server**: MCP protocol server implementation 
+- **packages/utils**: Shared utilities including logging and markdown processing
+- **packages/cli**: Command-line interface package (future)
+- **packages/matrix-bot**: Matrix bot interface package (future)
+- **apps/personal-brain**: Personal knowledge management brain
+- **apps/team-brain**: Team collaboration brain (future)
+- **apps/collective-brain**: Community knowledge brain (future)
+
+The architecture emphasizes shared core infrastructure that can be specialized for different brain types, with each brain accessible through multiple client interfaces.
 
 See [Package Structure](./architecture/package-structure.md) for detailed information.
 
@@ -122,56 +127,69 @@ Example structure of a context plugin:
 └─────────────────────────────────────┘
 ```
 
-### 4. Interface Adapters
+### 4. Client Interfaces
 
-The CLI and Matrix interfaces connect to the MCP server:
+Multiple client interfaces can connect to the brain through the MCP server:
 
-- **CLI Adapter**: Command-line interface
-- **Matrix Adapter**: Matrix chat interface
-- **Rendering**: Formatting of responses
-- **Command Parsing**: Processing of user input
+- **MCP Clients**: Any MCP-compatible client (Claude Desktop, VS Code, etc.)
+- **CLI Package**: Command-line interface (future package)
+- **Matrix Package**: Matrix chat interface (future package)
+- **Custom Clients**: Any client that implements the MCP protocol
 
 ```
-┌─────────────────────┐   ┌─────────────────────┐
-│     CLI Interface   │   │   Matrix Interface  │
-│  ┌───────────────┐  │   │  ┌───────────────┐  │
-│  │ Command Parser│  │   │  │Message Handler│  │
-│  └───────────────┘  │   │  └───────────────┘  │
-│  ┌───────────────┐  │   │  ┌───────────────┐  │
-│  │   Renderer    │  │   │  │   Formatter   │  │
-│  └───────────────┘  │   │  └───────────────┘  │
-└─────────────────────┘   └─────────────────────┘
-           │                        │
-           ▼                        ▼
-┌─────────────────────────────────────────────┐
-│                MCP Server                   │
-└─────────────────────────────────────────────┘
+┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│   MCP Clients   │   │  CLI Package    │   │ Matrix Package  │
+│  (Claude, etc)  │   │    (future)     │   │    (future)     │
+└────────┬────────┘   └────────┬────────┘   └────────┬────────┘
+         │                     │                     │
+         ▼                     ▼                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                        MCP Server                           │
+│                   (stdio or HTTP transport)                 │
+└─────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      Brain Shell                            │
+│              (Query Processing, Entity Management)           │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Data Flow
 
 The typical data flow in the application follows these steps:
 
-1. User input is received through CLI or Matrix interface
-2. The interface formats the input as an MCP request
-3. The MCP server processes the request and routes it to the BrainProtocol
-4. The BrainProtocol identifies the appropriate context plugin
-5. The context plugin processes the command and accesses the repository as needed
-6. The repository interacts with the database and returns results
-7. Results flow back through the same path to the user
+1. User input is received through any client interface (MCP client, CLI, Matrix, etc.)
+2. The client sends a request to the MCP server (via stdio or HTTP)
+3. The MCP server routes the request to the Shell's BrainProtocol
+4. The BrainProtocol processes the command or query through the appropriate components
+5. The QueryProcessor or command handler accesses entities and services as needed
+6. Results flow back through the MCP server to the client
+7. The client presents the results to the user in its preferred format
 
-## Package Structure
+## Repository Structure
 
-The application is organized as a Turborepo monorepo with the following packages:
+The "brains" repository is designed to support multiple brain implementations:
 
-- **@personal-brain/shell**: Core infrastructure and plugin system
-- **@personal-brain/cli**: Command-line interface
-- **@personal-brain/matrix**: Matrix chat interface
-- **@personal-brain/note-context**: Note management functionality
-- **@personal-brain/profile-context**: Profile management functionality
-- **@personal-brain/website-context**: Website generation functionality
-- **@personal-brain/conversation-context**: Conversation management functionality
-- **@personal-brain/app**: Main application that integrates all components
+### Core Infrastructure (Shared by all brains)
+- **@brains/shell**: Core infrastructure and plugin system
+- **@brains/mcp-server**: MCP protocol server
+- **@brains/utils**: Shared utilities
+
+### Client Packages (Future)
+- **@brains/cli**: Command-line interface
+- **@brains/matrix**: Matrix chat interface
+
+### Context Plugins (Shared across brain types)
+- **@brains/note-context**: Note management functionality
+- **@brains/task-context**: Task management functionality
+- **@brains/person-context**: Person/profile management functionality
+- **@brains/project-context**: Project management functionality
+
+### Brain Applications
+- **apps/personal-brain**: Personal knowledge management
+- **apps/team-brain**: Team collaboration (future)
+- **apps/collective-brain**: Community knowledge (future)
 
 ## Schema Validation
 
@@ -189,4 +207,11 @@ The application uses focused, behavior-based testing:
 - **Unit Tests**: Test the observable behavior of components
 - **Schema Tests**: Verify schema validation works correctly
 - **Command Tests**: Verify commands produce expected outputs
+- **Integration Testing**: Full stack testing with [Test Brain App](./test-brain-app.md)
 - **Manual Testing**: Direct verification through CLI and Matrix
+
+## Additional Features
+
+- **Version Control**: [Git Sync](./git-sync.md) provides backup and synchronization
+- **Executable Distribution**: Apps compile to single binaries using Bun
+- **Multi-Brain Support**: Architecture supports personal, team, and collective brains

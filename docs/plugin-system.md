@@ -111,7 +111,7 @@ Plugins are registered with the plugin manager:
 
 ```typescript
 // In note-context/src/index.ts
-import { registerPlugin, ContextPlugin } from "@personal-brain/shell";
+import { registerPlugin, ContextPlugin } from "@brains/shell";
 import { noteSchema, NoteAdapter } from "./entity/noteEntity";
 import { NoteService } from "./services/noteService";
 import { NoteTools } from "./tools/noteTools";

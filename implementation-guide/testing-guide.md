@@ -411,13 +411,13 @@ pnpm test
 Run tests for a specific package:
 
 ```bash
-pnpm --filter "@personal-brain/skeleton" test
+pnpm --filter "@brains/skeleton" test
 ```
 
 Run a specific test:
 
 ```bash
-pnpm --filter "@personal-brain/skeleton" test -- -t "EntityRegistry"
+pnpm --filter "@brains/skeleton" test -- -t "EntityRegistry"
 ```
 
 ## Creating Test Data

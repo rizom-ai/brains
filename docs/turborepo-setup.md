@@ -162,7 +162,7 @@ Add `packages/typescript-config/package.json`:
 
 ```json
 {
-  "name": "@personal-brain/typescript-config",
+  "name": "@brains/typescript-config",
   "version": "0.0.0",
   "private": true,
   "files": ["base.json"]
@@ -181,7 +181,7 @@ Add `packages/eslint-config/package.json`:
 
 ```json
 {
-  "name": "@personal-brain/eslint-config",
+  "name": "@brains/eslint-config",
   "version": "0.0.0",
   "private": true,
   "main": "index.js",
@@ -226,7 +226,7 @@ Create `packages/shell/package.json`:
 
 ```json
 {
-  "name": "@personal-brain/shell",
+  "name": "@brains/shell",
   "version": "0.0.0",
   "private": true,
   "main": "./dist/index.js",
@@ -249,8 +249,8 @@ Create `packages/shell/package.json`:
     "zod": "^3.22.2"
   },
   "devDependencies": {
-    "@personal-brain/eslint-config": "workspace:*",
-    "@personal-brain/typescript-config": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
     "@types/better-sqlite3": "^7.6.4",
     "@types/node": "^18.16.0",
     "drizzle-kit": "^0.20.0",
@@ -267,7 +267,7 @@ Create `packages/shell/tsconfig.json`:
 
 ```json
 {
-  "extends": "@personal-brain/typescript-config/base.json",
+  "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"
@@ -304,7 +304,7 @@ Create `packages/note-context/package.json`:
 
 ```json
 {
-  "name": "@personal-brain/note-context",
+  "name": "@brains/note-context",
   "version": "0.0.0",
   "private": true,
   "main": "./dist/index.js",
@@ -320,13 +320,13 @@ Create `packages/note-context/package.json`:
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@personal-brain/shell": "workspace:*",
+    "@brains/shell": "workspace:*",
     "gray-matter": "^4.0.3",
     "zod": "^3.22.2"
   },
   "devDependencies": {
-    "@personal-brain/eslint-config": "workspace:*",
-    "@personal-brain/typescript-config": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
     "@types/node": "^18.16.0",
     "eslint": "^8.48.0",
     "tsup": "^7.2.0",
@@ -341,7 +341,7 @@ Create `packages/note-context/tsconfig.json`:
 
 ```json
 {
-  "extends": "@personal-brain/typescript-config/base.json",
+  "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"
@@ -361,7 +361,7 @@ Create `apps/cli/package.json`:
 
 ```json
 {
-  "name": "@personal-brain/cli",
+  "name": "@brains/cli",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -377,14 +377,14 @@ Create `apps/cli/package.json`:
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@personal-brain/shell": "workspace:*",
-    "@personal-brain/note-context": "workspace:*",
-    "@personal-brain/profile-context": "workspace:*",
+    "@brains/shell": "workspace:*",
+    "@brains/note-context": "workspace:*",
+    "@brains/profile-context": "workspace:*",
     "commander": "^11.0.0"
   },
   "devDependencies": {
-    "@personal-brain/eslint-config": "workspace:*",
-    "@personal-brain/typescript-config": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
     "@types/node": "^18.16.0",
     "eslint": "^8.48.0",
     "tsup": "^7.2.0",
@@ -399,7 +399,7 @@ Create `apps/matrix-bot/package.json`:
 
 ```json
 {
-  "name": "@personal-brain/matrix-bot",
+  "name": "@brains/matrix-bot",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -412,14 +412,14 @@ Create `apps/matrix-bot/package.json`:
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@personal-brain/shell": "workspace:*",
-    "@personal-brain/note-context": "workspace:*",
-    "@personal-brain/profile-context": "workspace:*",
+    "@brains/shell": "workspace:*",
+    "@brains/note-context": "workspace:*",
+    "@brains/profile-context": "workspace:*",
     "matrix-js-sdk": "^27.0.0"
   },
   "devDependencies": {
-    "@personal-brain/eslint-config": "workspace:*",
-    "@personal-brain/typescript-config": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
     "@types/node": "^18.16.0",
     "eslint": "^8.48.0",
     "tsup": "^7.2.0",
@@ -471,13 +471,13 @@ pnpm clean
 
 ```bash
 # Build only the shell package
-pnpm --filter "@personal-brain/shell" build
+pnpm --filter "@brains/shell" build
 
 # Run tests for the note context
-pnpm --filter "@personal-brain/note-context" test
+pnpm --filter "@brains/note-context" test
 
 # Clean the CLI app
-pnpm --filter "@personal-brain/cli" clean
+pnpm --filter "@brains/cli" clean
 ```
 
 ## Adding New Packages

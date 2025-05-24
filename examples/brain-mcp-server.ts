@@ -56,7 +56,7 @@ async function main(): Promise<void> {
 
   // Create services
   let embeddingService: IEmbeddingService;
-  
+
   if (isTestMode) {
     // Use mock embedding service in test mode to avoid native module issues
     embeddingService = {

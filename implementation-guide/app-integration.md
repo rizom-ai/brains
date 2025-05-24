@@ -24,7 +24,7 @@ cd apps/personal-brain
 
 ```json
 {
-  "name": "@personal-brain/app",
+  "name": "@brains/app",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -40,17 +40,17 @@ cd apps/personal-brain
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@personal-brain/skeleton": "workspace:*",
-    "@personal-brain/note-context": "workspace:*",
-    "@personal-brain/profile-context": "workspace:*",
-    "@personal-brain/website-context": "workspace:*",
-    "@personal-brain/conversation-context": "workspace:*",
-    "@personal-brain/cli": "workspace:*",
-    "@personal-brain/matrix-bot": "workspace:*"
+    "@brains/skeleton": "workspace:*",
+    "@brains/note-context": "workspace:*",
+    "@brains/profile-context": "workspace:*",
+    "@brains/website-context": "workspace:*",
+    "@brains/conversation-context": "workspace:*",
+    "@brains/cli": "workspace:*",
+    "@brains/matrix-bot": "workspace:*"
   },
   "devDependencies": {
-    "@personal-brain/eslint-config": "workspace:*",
-    "@personal-brain/typescript-config": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
     "@types/node": "^18.16.0",
     "eslint": "^8.48.0",
     "tsup": "^7.2.0",
@@ -63,7 +63,7 @@ cd apps/personal-brain
 
 ```json
 {
-  "extends": "@personal-brain/typescript-config/base.json",
+  "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"
@@ -115,17 +115,17 @@ import {
   runMigrations,
   PluginManager,
   MCPServer,
-} from "@personal-brain/skeleton";
+} from "@brains/skeleton";
 
 // Import contexts
-import { registerNoteContext } from "@personal-brain/note-context";
-import { registerProfileContext } from "@personal-brain/profile-context";
-import { registerWebsiteContext } from "@personal-brain/website-context";
-import { registerConversationContext } from "@personal-brain/conversation-context";
+import { registerNoteContext } from "@brains/note-context";
+import { registerProfileContext } from "@brains/profile-context";
+import { registerWebsiteContext } from "@brains/website-context";
+import { registerConversationContext } from "@brains/conversation-context";
 
 // Import interfaces
-import { registerCLI } from "@personal-brain/cli";
-import { registerMatrix } from "@personal-brain/matrix-bot";
+import { registerCLI } from "@brains/cli";
+import { registerMatrix } from "@brains/matrix-bot";
 
 /**
  * App configuration
@@ -270,12 +270,12 @@ export class AppFactory {
 The CLI interface needs to register a plugin that connects to the MCP server:
 
 ```typescript
-// @personal-brain/cli/src/index.ts
+// @brains/cli/src/index.ts
 import {
   ContextPlugin,
   PluginContext,
   PluginLifecycle,
-} from "@personal-brain/skeleton";
+} from "@brains/skeleton";
 import { CLIAdapter } from "./cliAdapter";
 
 /**
@@ -321,12 +321,12 @@ export function registerCLI(): ContextPlugin {
 Similarly, the Matrix interface registers a plugin:
 
 ```typescript
-// @personal-brain/matrix-bot/src/index.ts
+// @brains/matrix-bot/src/index.ts
 import {
   ContextPlugin,
   PluginContext,
   PluginLifecycle,
-} from "@personal-brain/skeleton";
+} from "@brains/skeleton";
 import { MatrixAdapter } from "./matrixAdapter";
 
 /**
@@ -453,7 +453,7 @@ To create a distributable version of the application:
 
 ```bash
 # Create executable
-pnpm --filter "@personal-brain/app" build
+pnpm --filter "@brains/app" build
 
 # Create package
 cd apps/personal-brain
@@ -538,7 +538,7 @@ pnpm test
 Or test a specific package:
 
 ```bash
-pnpm --filter "@personal-brain/note-context" test
+pnpm --filter "@brains/note-context" test
 ```
 
 ## Integration Testing

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Personal Brain project uses a monorepo structure with clear separation of concerns between packages and apps.
+The Brains repository uses a monorepo structure designed to support multiple brain implementations (personal, team, collective) with shared infrastructure and clear separation of concerns.
 
 ## Package Organization
 
@@ -82,21 +82,54 @@ The Personal Brain project uses a monorepo structure with clear separation of co
   - Task scheduling and reminders
 - **Dependencies**: `packages/shell`
 
+## Multiple Brain Architecture
+
+The repository supports different brain types that share core infrastructure:
+
+### Brain Types
+
+1. **Personal Brain** (`apps/personal-brain`)
+   - Individual knowledge management
+   - Personal notes, tasks, and projects
+   - Private by default
+
+2. **Team Brain** (`apps/team-brain`) - Future
+   - Shared team knowledge
+   - Collaborative features
+   - Permission-based access
+
+3. **Collective Brain** (`apps/collective-brain`) - Future
+   - Community knowledge base
+   - Public contributions
+   - Consensus mechanisms
+
+### Shared vs. Specific Contexts
+
+Some contexts are shared across all brain types:
+- `@brains/note-context` - Notes work the same in all brains
+- `@brains/task-context` - Tasks have universal structure
+- `@brains/project-context` - Projects follow common patterns
+
+Some contexts may be brain-specific:
+- `@brains/personal-context` - Personal profiles, preferences
+- `@brains/team-context` - Team-specific features
+- `@brains/collective-context` - Community governance
+
 ## Application Structure
 
-### `apps/brain`
+### `apps/personal-brain`
 
 The unified application that can run in multiple modes:
 
 ```typescript
 // Example usage
-brain --mode mcp      // Run as MCP server only
-brain --mode cli      // Run as interactive CLI
-brain --mode matrix   // Run as Matrix bot
-brain --mode all      // Run all services (default)
+personal-brain --mode mcp      // Run as MCP server only
+personal-brain --mode cli      // Run as interactive CLI
+personal-brain --mode matrix   // Run as Matrix bot
+personal-brain --mode all      // Run all services (default)
 
 // Multiple modes
-brain --mode mcp,cli  // Run MCP server and CLI
+personal-brain --mode mcp,cli  // Run MCP server and CLI
 ```
 
 **Mode Implementations**:
@@ -109,7 +142,7 @@ brain --mode mcp,cli  // Run MCP server and CLI
 ## Dependency Graph
 
 ```
-apps/brain
+apps/personal-brain
     ├── packages/mcp-server
     │   └── packages/shell
     ├── packages/cli
@@ -129,6 +162,51 @@ apps/brain
 5. **Shared Core**: All modes use the same shell instance
 6. **Inversion of Control**: Infrastructure packages (like MCP) don't define business logic
 
+## Building Executable Applications
+
+### Bun Executable Compilation
+
+Each brain application can be compiled into a standalone executable using Bun:
+
+```bash
+# Build personal-brain executable
+cd apps/personal-brain
+bun build src/index.ts --compile --outfile personal-brain
+
+# Build with optimizations
+bun build src/index.ts --compile --outfile personal-brain --minify
+
+# Cross-platform builds
+bun build src/index.ts --compile --outfile personal-brain-linux --target=bun-linux-x64
+bun build src/index.ts --compile --outfile personal-brain-darwin --target=bun-darwin-x64
+```
+
+### Package Scripts
+
+Each app should include build scripts in `package.json`:
+
+```json
+{
+  "scripts": {
+    "build": "bun build src/index.ts --compile --outfile dist/personal-brain",
+    "build:prod": "bun build src/index.ts --compile --outfile dist/personal-brain --minify",
+    "build:all": "npm run build:linux && npm run build:macos && npm run build:windows",
+    "build:linux": "bun build src/index.ts --compile --outfile dist/personal-brain-linux --target=bun-linux-x64",
+    "build:macos": "bun build src/index.ts --compile --outfile dist/personal-brain-macos --target=bun-darwin-x64",
+    "build:windows": "bun build src/index.ts --compile --outfile dist/personal-brain-windows --target=bun-windows-x64"
+  }
+}
+```
+
+### Distribution
+
+The compiled executables are self-contained and include:
+- All application code
+- All dependencies
+- Bun runtime
+
+No need to install Node.js, Bun, or any dependencies on the target system.
+
 ## Benefits
 
 1. **Clean Architecture**: Clear boundaries between concerns
@@ -136,13 +214,14 @@ apps/brain
 3. **Flexible Deployment**: Choose which modes to run based on needs
 4. **Easy Maintenance**: Changes to one protocol don't affect others
 5. **Reusability**: Packages can be used by other apps if needed
+6. **Single Binary Distribution**: Deploy brain apps as single executables
 
 ## Migration Path
 
 1. Create `packages/mcp-server` and move MCP implementation
 2. Create `packages/cli` and extract CLI functionality
 3. Create `packages/matrix-bot` and extract Matrix functionality
-4. Update `apps/brain` to support mode selection
+4. Update `apps/personal-brain` to support mode selection
 5. Add context packages as needed
 
 ## Package Interface Standards
@@ -181,14 +260,14 @@ export class MCPServerRunner implements PackageRunner {
 }
 ```
 
-This ensures all packages can be managed consistently by the brain app.
+This ensures all packages can be managed consistently by the personal-brain app.
 
 ## MCP Registration Pattern
 
 The MCP server package provides infrastructure without defining specific tools or resources. Other packages register their capabilities:
 
 ```typescript
-// In apps/brain when MCP mode is enabled
+// In apps/personal-brain when MCP mode is enabled
 import { MCPServer } from "@brains/mcp-server";
 import { Shell } from "@brains/shell";
 
