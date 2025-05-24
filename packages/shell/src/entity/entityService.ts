@@ -115,7 +115,7 @@ export class EntityService {
     // Extract indexed fields from markdown
     const { title, tags, contentWeight } = extractIndexedFields(
       markdown,
-      validatedEntity.id
+      validatedEntity.id,
     );
 
     // Store in database
@@ -211,7 +211,7 @@ export class EntityService {
     // Extract indexed fields from markdown
     const { title, tags, contentWeight } = extractIndexedFields(
       markdown,
-      validatedEntity.id
+      validatedEntity.id,
     );
 
     // Update in database

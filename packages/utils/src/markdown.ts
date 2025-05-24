@@ -8,9 +8,9 @@ export function parseMarkdown(markdown: string): {
   content: string;
 } {
   const { data, content } = matter(markdown);
-  return { 
-    frontmatter: data as Record<string, unknown>, 
-    content: content.trim() 
+  return {
+    frontmatter: data as Record<string, unknown>,
+    content: content.trim(),
   };
 }
 
@@ -21,23 +21,20 @@ export function parseMarkdown(markdown: string): {
  * 3. First non-empty line (truncated to 50 chars)
  * 4. Entity ID as fallback
  */
-export function extractTitle(
-  markdown: string,
-  entityId: string
-): string {
+export function extractTitle(markdown: string, entityId: string): string {
   const { frontmatter, content } = parseMarkdown(markdown);
-  
+
   // 1. Check frontmatter title
   if (frontmatter["title"] && typeof frontmatter["title"] === "string") {
     return frontmatter["title"].trim();
   }
-  
+
   // 2. Check for first # heading
   const headingMatch = content.match(/^#\s+(.+)$/m);
-  if (headingMatch && headingMatch[1]) {
+  if (headingMatch?.[1]) {
     return headingMatch[1].trim();
   }
-  
+
   // 3. Use first non-empty line (truncated)
   const lines = content.split("\n");
   for (const line of lines) {
@@ -50,7 +47,7 @@ export function extractTitle(
         .replace(/`(.*?)`/g, "$1") // Remove inline code
         .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Extract link text
         .trim();
-      
+
       // Truncate to reasonable length
       if (cleaned.length > 50) {
         return cleaned.substring(0, 47) + "...";
@@ -58,7 +55,7 @@ export function extractTitle(
       return cleaned;
     }
   }
-  
+
   // 4. Fallback to entity ID
   return entityId;
 }
@@ -68,32 +65,32 @@ export function extractTitle(
  */
 export function extractIndexedFields(
   markdown: string,
-  entityId: string
+  entityId: string,
 ): {
   title: string;
   tags: string[];
   contentWeight: number;
 } {
   const { frontmatter } = parseMarkdown(markdown);
-  
+
   // Extract title using hierarchy
   const title = extractTitle(markdown, entityId);
-  
+
   // Extract tags (ensure it's an array of strings)
   let tags: string[] = [];
   if (Array.isArray(frontmatter["tags"])) {
     tags = frontmatter["tags"]
       .filter((tag): tag is string => typeof tag === "string")
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0);
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
   }
-  
+
   // Extract contentWeight (default to 1.0 for user content)
   let contentWeight = 1.0;
   if (typeof frontmatter["contentWeight"] === "number") {
     contentWeight = Math.max(0, Math.min(1, frontmatter["contentWeight"]));
   }
-  
+
   return { title, tags, contentWeight };
 }
 
@@ -102,7 +99,7 @@ export function extractIndexedFields(
  */
 export function generateMarkdown(
   frontmatter: Record<string, unknown>,
-  content: string
+  content: string,
 ): string {
   return matter.stringify(content, frontmatter);
 }
