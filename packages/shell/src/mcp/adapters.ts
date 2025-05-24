@@ -11,6 +11,7 @@ import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { BrainProtocol } from "../protocol/brainProtocol";
 import type { EntityService } from "../entity/entityService";
 import { toSerializableQueryResult } from "../utils/serialization";
+import { defaultQueryResponseSchema } from "../schemas/defaults";
 
 /**
  * MCP Query parameters (what users provide via MCP tools)
@@ -38,9 +39,11 @@ export class QueryProcessorAdapter {
   /**
    * Execute a query with MCP-style parameters
    */
-  async executeQuery(params: MCPQueryParams): Promise<SerializableQueryResult> {
+  async executeQuery(params: MCPQueryParams): Promise<SerializableQueryResult<unknown>> {
     // Translate MCP parameters to internal QueryOptions
-    const queryOptions: QueryOptions = {};
+    const queryOptions: QueryOptions<unknown> = {
+      schema: defaultQueryResponseSchema, // Default schema, may be overridden below
+    };
 
     if (params.options) {
       // Handle context - extract known fields
@@ -72,10 +75,13 @@ export class QueryProcessorAdapter {
       // Handle response schema
       if (params.options.responseSchema) {
         const schema = this.schemaRegistry.get(params.options.responseSchema);
-        if (schema) {
-          queryOptions.schema = schema;
-        }
+        queryOptions.schema = schema ?? defaultQueryResponseSchema;
+      } else {
+        queryOptions.schema = defaultQueryResponseSchema;
       }
+    } else {
+      // No options provided, use default schema
+      queryOptions.schema = defaultQueryResponseSchema;
     }
 
     // Execute query with translated options

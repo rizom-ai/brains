@@ -53,11 +53,10 @@ describe("BrainProtocol", () => {
       expect(response.result).toBeDefined();
       expect(mockQueryProcessor.processQuery).toHaveBeenCalledWith(
         "test query",
-        {
+        expect.objectContaining({
           userId: "user-1",
-          conversationId: undefined,
-          metadata: undefined,
-        },
+          schema: expect.any(Object),
+        }),
       );
     });
 

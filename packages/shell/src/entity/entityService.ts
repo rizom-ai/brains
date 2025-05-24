@@ -382,9 +382,10 @@ export class EntityService {
         >(entityData.entityType, entityData.content);
 
         // Create excerpt from content
-        const excerpt = entityData.content.slice(0, 200) + 
+        const excerpt =
+          entityData.content.slice(0, 200) +
           (entityData.content.length > 200 ? "..." : "");
-        
+
         searchResults.push({
           entity,
           score,
@@ -475,7 +476,7 @@ export class EntityService {
 
     // Calculate similarity scores and filter/sort results
     const searchResults: SearchResult[] = [];
-    
+
     for (const row of results) {
       // Calculate cosine similarity
       const similarity = calculateCosineSimilarity(
@@ -523,25 +524,27 @@ export class EntityService {
     const maxLength = 200;
     const queryLower = query.toLowerCase();
     const contentLower = content.toLowerCase();
-    
+
     // Find the position of the query in the content
     const position = contentLower.indexOf(queryLower);
-    
+
     if (position !== -1) {
       // Extract text around the query
       const start = Math.max(0, position - 50);
       const end = Math.min(content.length, position + queryLower.length + 50);
       let excerpt = content.slice(start, end);
-      
+
       // Add ellipsis if needed
       if (start > 0) excerpt = "..." + excerpt;
       if (end < content.length) excerpt = excerpt + "...";
-      
+
       return excerpt;
     }
-    
+
     // If query not found, return beginning of content
-    return content.slice(0, maxLength) + (content.length > maxLength ? "..." : "");
+    return (
+      content.slice(0, maxLength) + (content.length > maxLength ? "..." : "")
+    );
   }
 
   /**

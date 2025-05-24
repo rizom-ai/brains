@@ -77,21 +77,21 @@ export interface Citation {
 /**
  * Query processing options
  */
-export interface QueryOptions<T = unknown> {
+export interface QueryOptions<T> {
   userId?: string;
   conversationId?: string;
   metadata?: Record<string, unknown>;
-  schema?: z.ZodType<T>;
+  schema: z.ZodType<T>;
 }
 
 /**
  * Query processing result
  */
-export interface QueryResult<T = unknown> {
+export interface QueryResult<T> {
   answer: string;
   citations: Citation[];
   relatedEntities: Entity[];
-  object?: T;
+  object: T;
 }
 
 /**
@@ -118,31 +118,31 @@ export const serializableCitationSchema = z.object({
 
 export type SerializableCitation = z.infer<typeof serializableCitationSchema>;
 
-export function serializableQueryResultSchema<
-  T extends z.ZodTypeAny = z.ZodUnknown,
->(objectSchema?: T): z.ZodSchema {
+export function serializableQueryResultSchema<T extends z.ZodTypeAny>(
+  objectSchema: T,
+): z.ZodSchema {
   return z.object({
     answer: z.string(),
     citations: z.array(serializableCitationSchema),
     relatedEntities: z.array(serializableEntitySchema),
-    ...(objectSchema ? { object: objectSchema } : {}),
+    object: objectSchema,
   });
 }
 
-export type SerializableQueryResult<T = unknown> = {
+export type SerializableQueryResult<T> = {
   answer: string;
   citations: SerializableCitation[];
   relatedEntities: SerializableEntity[];
-  object?: T;
+  object: T;
 };
 
 /**
  * Model response from AI models
  */
-export interface ModelResponse<T = unknown> {
-  object?: T;
-  text?: string;
-  usage?: {
+export interface ModelResponse<T> {
+  object: T;
+  text: string;
+  usage: {
     inputTokens: number;
     outputTokens: number;
   };

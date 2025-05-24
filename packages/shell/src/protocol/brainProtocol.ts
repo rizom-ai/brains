@@ -5,6 +5,7 @@ import { MessageFactory } from "@/messaging/messageFactory";
 import type { BaseMessage, MessageResponse } from "@/messaging/types";
 import { hasPayload } from "@/messaging/types";
 import { z } from "zod";
+import { defaultQueryResponseSchema } from "@/schemas/defaults";
 
 /**
  * Command schema for Brain Protocol commands
@@ -120,8 +121,9 @@ export class BrainProtocol {
     this.registerCommandHandler("query", async (cmd) => {
       try {
         const query = String(cmd.args?.["query"] ?? "");
-        const options: Parameters<typeof this.queryProcessor.processQuery>[1] =
-          {};
+        const options: Parameters<typeof this.queryProcessor.processQuery>[1] = {
+          schema: defaultQueryResponseSchema,
+        };
         if (cmd.context?.userId) options.userId = cmd.context.userId;
         if (cmd.context?.conversationId)
           options.conversationId = cmd.context.conversationId;

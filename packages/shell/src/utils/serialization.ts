@@ -35,16 +35,16 @@ export function toSerializableQueryResult<T = unknown>(
     answer: result.answer,
     citations: result.citations,
     relatedEntities: result.relatedEntities.map(toSerializableEntity),
-    ...(result.object !== undefined ? { object: result.object } : {}),
+    object: result.object,
   };
 }
 
 /**
  * Validate and serialize a QueryResult using Zod schema
  */
-export function validateAndSerializeQueryResult<T = unknown>(
+export function validateAndSerializeQueryResult<T>(
   result: QueryResult<T>,
-  objectSchema?: z.ZodType<T>,
+  objectSchema: z.ZodType<T>,
 ): SerializableQueryResult<T> {
   const schema = serializableQueryResultSchema(objectSchema);
   const serializable = toSerializableQueryResult(result);

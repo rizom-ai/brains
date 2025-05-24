@@ -11,6 +11,8 @@ import { QueryProcessor } from "@/query/queryProcessor";
 import { BrainProtocol } from "@/protocol/brainProtocol";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
+import type { AIService } from "@/ai/aiService";
+import { defaultQueryResponseSchema } from "@/schemas/defaults";
 
 // Create a mock embedding service
 const mockEmbeddingService: IEmbeddingService = {
@@ -18,6 +20,35 @@ const mockEmbeddingService: IEmbeddingService = {
   generateEmbeddings: async (texts: string[]) =>
     texts.map(() => new Float32Array(384).fill(0.1)),
 };
+
+// Create a mock AI service
+const createMockAIService = (): AIService => ({
+  generateObject: mock(async (_systemPrompt, _userPrompt, schema) => {
+    const mockData = defaultQueryResponseSchema.parse({
+      answer: "This is a test response",
+      summary: "Test summary",
+      topics: ["test"],
+    });
+    return {
+      object: schema.parse(mockData),
+      usage: {
+        promptTokens: 100,
+        completionTokens: 50,
+        totalTokens: 150,
+      },
+    };
+  }),
+  generateText: mock(async () => ({
+    text: "Test response",
+    usage: {
+      promptTokens: 100,
+      completionTokens: 50,
+      totalTokens: 150,
+    },
+  })),
+  updateConfig: mock(),
+  getConfig: mock(() => ({})),
+}) as unknown as AIService;
 
 // Mock database for testing
 function createMockDatabase(): LibSQLDatabase<Record<string, never>> {
@@ -87,6 +118,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
 
       expect(shell.isInitialized()).toBe(false);
@@ -101,6 +133,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
 
       await shell.initialize();
@@ -118,6 +151,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
       await shell.initialize();
 
@@ -135,6 +169,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
@@ -152,6 +187,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
       await shell.initialize();
 
@@ -175,6 +211,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
       await shell.initialize();
 
@@ -197,6 +234,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
@@ -219,6 +257,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
       await shell.initialize();
 
@@ -242,6 +281,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
 
       const mockPlugin = {
@@ -267,6 +307,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
       await shell.initialize();
 
@@ -281,6 +322,7 @@ describe("Shell", () => {
         db,
         logger,
         embeddingService: mockEmbeddingService,
+        aiService: createMockAIService(),
       });
       await shell.initialize();
       shell.shutdown();

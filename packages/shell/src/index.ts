@@ -17,6 +17,12 @@ export { EntityRegistry } from "./entity/entityRegistry";
 export { SchemaRegistry } from "./schema/schemaRegistry";
 export { PluginManager } from "./plugins/pluginManager";
 
+// Services
+export { EmbeddingService } from "./embedding/embeddingService";
+export type { IEmbeddingService } from "./embedding/embeddingService";
+export { AIService } from "./ai/aiService";
+export type { AIModelConfig } from "./ai/aiService";
+
 // Messaging Components
 export { MessageBus } from "./messaging/messageBus";
 export { MessageFactory } from "./messaging/messageFactory";

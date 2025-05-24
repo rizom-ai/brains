@@ -175,5 +175,4 @@ export class EmbeddingService implements IEmbeddingService {
       throw new Error(`Failed to generate embeddings: ${error}`);
     }
   }
-
 }

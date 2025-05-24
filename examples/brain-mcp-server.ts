@@ -10,6 +10,8 @@
 
 import { MCPServer } from "@brains/mcp-server";
 import { Shell, registerShellMCP } from "@personal-brain/shell";
+import { EmbeddingService } from "@personal-brain/shell";
+import { AIService } from "@personal-brain/shell";
 import { Logger, createSilentLogger } from "@personal-brain/utils";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
@@ -51,8 +53,22 @@ async function main(): Promise<void> {
     logger.info(`Database initialized at: ${dbUrl}`);
   }
 
+  // Create services
+  const embeddingService = EmbeddingService.createFresh(logger);
+  await embeddingService.initialize();
+  
+  const aiService = AIService.createFresh(
+    { apiKey: process.env.ANTHROPIC_API_KEY },
+    logger
+  );
+
   // Create and initialize Shell
-  const shell = Shell.createFresh({ db, logger });
+  const shell = Shell.createFresh({ 
+    db, 
+    logger,
+    embeddingService,
+    aiService,
+  });
   await shell.initialize();
 
   // Create MCP server

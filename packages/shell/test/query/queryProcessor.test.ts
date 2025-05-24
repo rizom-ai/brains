@@ -2,9 +2,11 @@ import { describe, expect, it, beforeEach, mock, spyOn } from "bun:test";
 import { z } from "zod";
 import { QueryProcessor } from "@/query/queryProcessor";
 import type { Entity, SearchResult } from "@/types";
+import { defaultQueryResponseSchema } from "@/schemas/defaults";
 
 import { createSilentLogger, type Logger } from "@personal-brain/utils";
 import type { EntityService } from "@/entity/entityService";
+import type { AIService } from "@/ai/aiService";
 
 // Mock entity for testing
 const createMockEntity = (overrides?: Partial<Entity>): Entity => ({
@@ -35,19 +37,53 @@ const createMockEntityService = (): {
   })),
 });
 
+// Create mock AI service
+const createMockAIService = (): {
+  generateObject: ReturnType<typeof mock>;
+  generateText: ReturnType<typeof mock>;
+} => ({
+  generateObject: mock(async (_systemPrompt, _userPrompt, schema) => {
+    // Return a mock object that satisfies the schema
+    const mockData = {
+      summary: "Mock summary",
+      topics: ["test"],
+      answer: "Mock answer",
+    };
+    return {
+      object: schema.parse(mockData),
+      usage: {
+        promptTokens: 100,
+        completionTokens: 50,
+        totalTokens: 150,
+      },
+    };
+  }),
+  generateText: mock(async () => ({
+    text: "Mock AI response",
+    usage: {
+      promptTokens: 100,
+      completionTokens: 50,
+      totalTokens: 150,
+    },
+  })),
+});
+
 describe("QueryProcessor", () => {
   let queryProcessor: QueryProcessor;
   let mockEntityService: ReturnType<typeof createMockEntityService>;
+  let mockAIService: ReturnType<typeof createMockAIService>;
   let logger: Logger;
 
   beforeEach(() => {
     logger = createSilentLogger();
 
-    // Create mock entity service
+    // Create mock services
     mockEntityService = createMockEntityService();
+    mockAIService = createMockAIService();
 
     queryProcessor = QueryProcessor.createFresh({
       entityService: mockEntityService as unknown as EntityService,
+      aiService: mockAIService as unknown as AIService,
       logger,
     });
   });
@@ -68,7 +104,9 @@ describe("QueryProcessor", () => {
       mockEntityService.search = mock(() => Promise.resolve(mockSearchResults));
       mockEntityService.getEntityTypes = mock(() => ["note"]);
 
-      const result = await queryProcessor.processQuery("find my test note");
+      const result = await queryProcessor.processQuery("find my test note", {
+        schema: defaultQueryResponseSchema,
+      });
 
       expect(result.answer).toBeDefined();
       expect(result.citations).toHaveLength(1);
@@ -102,7 +140,9 @@ describe("QueryProcessor", () => {
       mockEntityService.search = mock(() => Promise.resolve([]));
       mockEntityService.getEntityTypes = mock(() => ["note"]);
 
-      const result = await queryProcessor.processQuery("find something");
+      const result = await queryProcessor.processQuery("find something", {
+        schema: defaultQueryResponseSchema,
+      });
 
       expect(result.answer).toBeDefined();
       expect(result.citations).toHaveLength(0);
@@ -128,7 +168,9 @@ describe("QueryProcessor", () => {
       );
       mockEntityService.getEntityTypes = mock(() => ["note"]);
 
-      const result = await queryProcessor.processQuery("find note");
+      const result = await queryProcessor.processQuery("find note", {
+        schema: defaultQueryResponseSchema,
+      });
 
       expect(result.citations[0]?.excerpt).toHaveLength(153); // 150 + "..."
       expect(result.citations[0]?.excerpt).toEndWith("...");
@@ -141,7 +183,9 @@ describe("QueryProcessor", () => {
       mockEntityService.getEntityTypes = mock(() => ["note"]);
 
       const infoSpy = spyOn(logger, "info");
-      await queryProcessor.processQuery("create a new note");
+      await queryProcessor.processQuery("create a new note", {
+        schema: defaultQueryResponseSchema,
+      });
 
       expect(infoSpy).toHaveBeenCalledWith(
         "Processing query: create a new note",
@@ -152,7 +196,9 @@ describe("QueryProcessor", () => {
       mockEntityService.search = mock(() => Promise.resolve([]));
       mockEntityService.getEntityTypes = mock(() => ["note"]);
 
-      await queryProcessor.processQuery("update my note");
+      await queryProcessor.processQuery("update my note", {
+        schema: defaultQueryResponseSchema,
+      });
       // Intent is processed internally, verified through search behavior
     });
 
@@ -160,7 +206,9 @@ describe("QueryProcessor", () => {
       mockEntityService.search = mock(() => Promise.resolve([]));
       mockEntityService.getEntityTypes = mock(() => ["note", "task"]);
 
-      await queryProcessor.processQuery("find my notes");
+      await queryProcessor.processQuery("find my notes", {
+        schema: defaultQueryResponseSchema,
+      });
 
       expect(mockEntityService.search).toHaveBeenCalledWith("find my notes", {
         types: ["note"],

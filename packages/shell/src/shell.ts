@@ -8,15 +8,18 @@ import { EntityService } from "./entity/entityService";
 import type { IEmbeddingService } from "./embedding/embeddingService";
 import { QueryProcessor } from "./query/queryProcessor";
 import { BrainProtocol } from "./protocol/brainProtocol";
+import type { AIService } from "./ai/aiService";
 import type { Logger } from "@personal-brain/utils";
 import type { QueryResult } from "./types";
 import type { Command, CommandResponse } from "./protocol/brainProtocol";
 import type { Plugin } from "./plugins/pluginManager";
+import { defaultQueryResponseSchema } from "./schemas/defaults";
 
 export interface ShellConfig {
   db: LibSQLDatabase<Record<string, never>>;
   logger: Logger;
   embeddingService: IEmbeddingService;
+  aiService: AIService;
   enablePlugins?: boolean;
 }
 
@@ -41,6 +44,7 @@ export class Shell {
   private readonly entityService: EntityService;
   private readonly queryProcessor: QueryProcessor;
   private readonly brainProtocol: BrainProtocol;
+  private readonly aiService: AIService;
   private initialized = false;
 
   /**
@@ -84,8 +88,9 @@ export class Shell {
     // Use the provided Drizzle database
     this.db = config.db;
 
-    // Use the provided embedding service
+    // Use the provided services
     this.embeddingService = config.embeddingService;
+    this.aiService = config.aiService;
 
     // Initialize core components (they are all singletons)
     this.registry = Registry.getInstance(this.logger);
@@ -108,6 +113,7 @@ export class Shell {
     this.queryProcessor = QueryProcessor.getInstance({
       entityService: this.entityService,
       logger: this.logger,
+      aiService: this.aiService,
     });
 
     this.brainProtocol = BrainProtocol.getInstance(
@@ -125,6 +131,7 @@ export class Shell {
     this.registry.register("entityService", () => this.entityService);
     this.registry.register("queryProcessor", () => this.queryProcessor);
     this.registry.register("brainProtocol", () => this.brainProtocol);
+    this.registry.register("aiService", () => this.aiService);
   }
 
   /**
@@ -179,12 +186,15 @@ export class Shell {
       conversationId?: string;
       metadata?: Record<string, unknown>;
     },
-  ): Promise<QueryResult> {
+  ): Promise<QueryResult<unknown>> {
     if (!this.initialized) {
       throw new Error("Shell not initialized");
     }
 
-    return this.queryProcessor.processQuery(query, options);
+    return this.queryProcessor.processQuery(query, {
+      ...options,
+      schema: defaultQueryResponseSchema,
+    });
   }
 
   /**
@@ -232,5 +242,9 @@ export class Shell {
 
   public getSchemaRegistry(): SchemaRegistry {
     return this.schemaRegistry;
+  }
+
+  public getAIService(): AIService {
+    return this.aiService;
   }
 }

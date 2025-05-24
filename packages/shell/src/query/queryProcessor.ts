@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import type { Logger } from "@personal-brain/utils";
 import type { EntityService } from "../entity/entityService";
+import type { AIService } from "../ai/aiService";
 import type {
   Entity,
   Citation,
@@ -17,6 +18,7 @@ import type {
 export interface QueryProcessorConfig {
   entityService: EntityService;
   logger: Logger;
+  aiService: AIService;
 }
 
 /**
@@ -28,6 +30,7 @@ export class QueryProcessor {
 
   private readonly entityService: EntityService;
   private readonly logger: Logger;
+  private readonly aiService: AIService;
 
   /**
    * Get the singleton instance of QueryProcessor
@@ -59,6 +62,7 @@ export class QueryProcessor {
   private constructor(config: QueryProcessorConfig) {
     this.entityService = config.entityService;
     this.logger = config.logger;
+    this.aiService = config.aiService;
   }
 
   /**
@@ -66,7 +70,7 @@ export class QueryProcessor {
    */
   async processQuery<T = unknown>(
     query: string,
-    options?: QueryOptions<T>,
+    options: QueryOptions<T>,
   ): Promise<QueryResult<T>> {
     this.logger.info(`Processing query: ${query}`);
 
@@ -83,11 +87,11 @@ export class QueryProcessor {
       intentAnalysis,
     );
 
-    // 4. Call model (simplified for now - would integrate with actual model)
+    // 4. Call model with required schema
     const modelResponse = await this.callModel<T>(
       systemPrompt,
       userPrompt,
-      options?.schema,
+      options.schema,
     );
 
     // 5. Process response into result
@@ -164,39 +168,30 @@ Intent: ${intentAnalysis.primaryIntent}`;
   }
 
   /**
-   * Call the model (placeholder implementation)
+   * Call the model
    */
   private async callModel<T = unknown>(
     systemPrompt: string,
     userPrompt: string,
-    schema?: z.ZodType<T>,
+    schema: z.ZodType<T>,
   ): Promise<ModelResponse<T>> {
     this.logger.debug("Model call", { systemPrompt, userPrompt });
 
-    // Placeholder response - would integrate with actual model
-    const response = {
-      text: "This is a placeholder response.",
+    // Call AI service with structured output
+    const result = await this.aiService.generateObject(
+      systemPrompt,
+      userPrompt,
+      schema,
+    );
+    
+    return {
+      text: JSON.stringify(result.object),
+      object: result.object,
       usage: {
-        inputTokens: 100,
-        outputTokens: 50,
+        inputTokens: result.usage.promptTokens,
+        outputTokens: result.usage.completionTokens,
       },
     };
-
-    if (schema) {
-      // Validate against schema if provided
-      try {
-        // Create a mock object that satisfies the schema
-        const object = schema.parse({
-          summary: "This is a placeholder summary",
-          topics: ["placeholder"],
-        });
-        return { ...response, object };
-      } catch (error) {
-        this.logger.warn("Schema validation failed", error);
-      }
-    }
-
-    return response;
   }
 
   /**
@@ -214,17 +209,12 @@ Intent: ${intentAnalysis.primaryIntent}`;
       excerpt: this.truncateContent(entity.content, 150),
     }));
 
-    const result: QueryResult<T> = {
-      answer: modelResponse.text ?? "",
+    return {
+      answer: modelResponse.text,
       citations,
       relatedEntities: entities,
+      object: modelResponse.object,
     };
-
-    if (modelResponse.object !== undefined) {
-      result.object = modelResponse.object;
-    }
-
-    return result;
   }
 
   /**

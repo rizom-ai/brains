@@ -17,6 +17,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.12",
     "@anthropic-ai/sdk": "^0.13.0",
     "@libsql/client": "^0.15.7",
     "@modelcontextprotocol/sdk": "^1.12.0",
