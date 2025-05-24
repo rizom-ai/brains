@@ -23,7 +23,8 @@ Entity Object → Markdown → Database Storage
 
 ### Storage Strategy
 
-1. **Primary Storage**: 
+1. **Primary Storage**:
+
    - Full Markdown representation stored in `content` column
    - Includes YAML frontmatter and body content
 
@@ -70,6 +71,7 @@ This is the content of the note...
 ### Entity Type Examples
 
 #### Note Entity
+
 ```markdown
 ---
 id: note_123
@@ -85,6 +87,7 @@ Discussed project timeline...
 ```
 
 #### Profile Entity
+
 ```markdown
 ---
 id: profile_123
@@ -111,11 +114,16 @@ export const entities = sqliteTable("entities", {
   title: text("title").notNull(),
   content: text("content").notNull(), // Full markdown with frontmatter
   contentWeight: real("contentWeight").notNull().default(1.0), // 0.0-1.0, human vs generated ratio
-  tags: text("tags", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
+  tags: text("tags", { mode: "json" })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
   embedding: vector("embedding"), // F32_BLOB(1536) for semantic search
-  embeddingStatus: text("embeddingStatus").$type<'pending' | 'processing' | 'ready' | 'failed'>().default('pending'),
+  embeddingStatus: text("embeddingStatus")
+    .$type<"pending" | "processing" | "ready" | "failed">()
+    .default("pending"),
   created: integer("created").notNull(),
-  updated: integer("updated").notNull()
+  updated: integer("updated").notNull(),
 });
 ```
 
@@ -159,13 +167,13 @@ async createEntity(entity: T): Promise<T> {
     embedding: null,
     embeddingStatus: 'pending'
   });
-  
+
   // Queue for embedding generation
-  await this.embeddingQueue.add({ 
-    entityId: result.id, 
-    content: markdown 
+  await this.embeddingQueue.add({
+    entityId: result.id,
+    content: markdown
   });
-  
+
   return entity;
 }
 
@@ -195,6 +203,7 @@ async processEmbeddingQueue() {
 ### Future Local Model Support
 
 When needed for offline/constrained environments:
+
 - all-MiniLM-L6-v2: 23MB, ~300ms on Pi 5
 - Trade-off: Lower quality but no network dependency
 - Configuration option: `embedding.mode: 'local' | 'api'`
@@ -202,20 +211,24 @@ When needed for offline/constrained environments:
 ## Migration Path
 
 ### Phase 1: Schema Update ✓
+
 - Modify schema to store full Markdown in `content` column
 - Add embedding and status columns
 
 ### Phase 2: Entity Service Refactor (Current)
+
 - Update create/update to serialize via Markdown
 - Implement markdown parsing and field extraction
 - Add embedding queue infrastructure
 
 ### Phase 3: Embedding Integration
+
 - Implement embedding service interface
 - Add background worker for processing
 - Configure provider (start with OpenAI)
 
 ### Phase 4: Testing & Validation
+
 - Round-trip serialization tests
 - Embedding generation tests
 - Search functionality tests
@@ -233,18 +246,21 @@ When needed for offline/constrained environments:
 ## Considerations
 
 ### Performance
+
 - Parsing overhead on read (mitigate with caching if needed)
 - Async embedding generation keeps creation fast
 - Index extraction overhead on write (minimal impact)
 
 ### Consistency
+
 - Frontmatter validation prevents malformed data
 - Entity registry enforces consistent serialization
 - Embedding status ensures search completeness
 
 ### Search Capabilities
+
 - Full-text search on markdown content
-- Structured queries on extracted fields  
+- Structured queries on extracted fields
 - Semantic search via embeddings
 - Hybrid search combining all approaches
 
@@ -280,16 +296,64 @@ Design and implement the embedding service...
 ### Plugin Integration
 
 Plugins can register custom entity types with their own:
+
 - Frontmatter schema (Zod)
 - Markdown serialization rules
 - Field extraction logic
 - Display formatting
 
+## Version Control & Git Sync
+
+### Overview
+
+Instead of database-level versioning, the Personal Brain leverages Git for version control:
+
+1. **Export to Git**: Entities can be exported as individual markdown files
+2. **File Structure**: Organized by entity type (e.g., `/notes/`, `/profiles/`)
+3. **Sync Command**: Built-in command to sync database ↔ Git repository
+4. **History**: Full version history through standard Git tools
+
+### Benefits
+
+- **Standard tooling**: Use any Git client or command line
+- **Branching**: Experiment with content changes safely
+- **Collaboration**: Share specific entities or entire brain
+- **Backup**: Automatic versioning and remote backup
+- **Diff-friendly**: Markdown format shows meaningful changes
+
+### Implementation Approach
+
+```typescript
+// Example sync command
+brain sync --repo ./my-brain-backup
+brain sync --pull  # Import changes from Git
+brain sync --push  # Export changes to Git
+```
+
+### File Naming Convention
+
+```
+/my-brain-repo/
+  /notes/
+    note_abc123_meeting-notes.md
+    note_def456_project-ideas.md
+  /profiles/
+    profile_main_user-profile.md
+  /tasks/
+    task_ghi789_implement-feature.md
+```
+
+Files named as: `{entityType}_{id}_{slugified-title}.md`
+
+This approach eliminates the need for complex database versioning while providing superior version control capabilities through Git's proven ecosystem.
+
 ## Summary
 
 This approach provides a robust foundation for the Personal Brain system that:
+
 - Uses Markdown as the canonical data format
 - Maintains query performance through indexed fields
 - Enables semantic search through embeddings
 - Stays extensible for future entity types
 - Keeps complexity contained within the shell service
+- Leverages Git for version control instead of database versioning

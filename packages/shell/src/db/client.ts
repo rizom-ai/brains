@@ -13,22 +13,27 @@ export interface DatabaseConfig {
  */
 export function createDatabaseClient(config: DatabaseConfig = {}): Client {
   const { url = "file:local.db", authToken, logger } = config;
-  
-  logger?.debug("Creating database client", { url: url.includes("file:") ? url : "remote:***" });
-  
+
+  logger?.debug("Creating database client", {
+    url: url.includes("file:") ? url : "remote:***",
+  });
+
   const client = authToken
     ? createClient({ url, authToken })
     : createClient({ url });
-  
+
   return client;
 }
 
 /**
  * Initialize database schema with vector support
  */
-export async function initializeDatabase(client: Client, logger?: Logger): Promise<void> {
+export async function initializeDatabase(
+  client: Client,
+  logger?: Logger,
+): Promise<void> {
   logger?.info("Initializing database schema");
-  
+
   // Create entities table with vector column for embeddings
   await client.execute(`
     CREATE TABLE IF NOT EXISTS entities (
@@ -48,20 +53,20 @@ export async function initializeDatabase(client: Client, logger?: Logger): Promi
       updated INTEGER NOT NULL
     )
   `);
-  
+
   // Create indexes for regular queries
   await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(entity_type)
   `);
-  
+
   await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_entities_updated ON entities(updated)
   `);
-  
+
   await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_entities_category ON entities(category)
   `);
-  
+
   // Create vector index for similarity search
   // Note: This syntax might need adjustment based on libSQL version
   try {
@@ -72,9 +77,12 @@ export async function initializeDatabase(client: Client, logger?: Logger): Promi
     logger?.debug("Vector index created successfully");
   } catch (error) {
     // Vector indexing might not be available in all libSQL versions
-    logger?.warn("Could not create vector index - vector search will use brute force", error);
+    logger?.warn(
+      "Could not create vector index - vector search will use brute force",
+      error,
+    );
   }
-  
+
   logger?.info("Database schema initialized");
 }
 
@@ -98,5 +106,9 @@ export function embeddingToBase64(embedding: Float32Array): string {
  */
 export function base64ToEmbedding(base64: string): Float32Array {
   const buffer = Buffer.from(base64, "base64");
-  return new Float32Array(buffer.buffer, buffer.byteOffset, buffer.byteLength / 4);
+  return new Float32Array(
+    buffer.buffer,
+    buffer.byteOffset,
+    buffer.byteLength / 4,
+  );
 }

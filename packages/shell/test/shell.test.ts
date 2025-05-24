@@ -42,12 +42,14 @@ function createMockDatabase(): LibSQLDatabase<Record<string, never>> {
     insert: mock(() => createQueryBuilder()),
     update: mock(() => createQueryBuilder()),
     delete: mock(() => createQueryBuilder()),
-    transaction: mock((fn: (tx: unknown) => unknown) => fn({
-      select: mock(() => createQueryBuilder()),
-      insert: mock(() => createQueryBuilder()),
-      update: mock(() => createQueryBuilder()),
-      delete: mock(() => createQueryBuilder()),
-    })),
+    transaction: mock((fn: (tx: unknown) => unknown) =>
+      fn({
+        select: mock(() => createQueryBuilder()),
+        insert: mock(() => createQueryBuilder()),
+        update: mock(() => createQueryBuilder()),
+        delete: mock(() => createQueryBuilder()),
+      }),
+    ),
     execute: mock(() => Promise.resolve({ rows: [], rowsAffected: 0 })),
     run: mock(() => Promise.resolve({ rowsAffected: 0 })),
     all: mock(() => Promise.resolve({ rows: [] })),
@@ -110,12 +112,12 @@ describe("Shell", () => {
       const db = createMockDatabase();
       const logger = createSilentLogger();
       const shell = Shell.createFresh({ db, logger });
-      
+
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(shell.query("test query")).rejects.toThrow(
-        "Shell not initialized"
+        "Shell not initialized",
       );
-      
+
       shell.shutdown();
     });
 
@@ -124,15 +126,15 @@ describe("Shell", () => {
       const logger = createSilentLogger();
       const shell = Shell.createFresh({ db, logger });
       await shell.initialize();
-      
+
       const result = await shell.query("test query", {
         userId: "test-user",
         conversationId: "test-convo",
       });
-      
+
       expect(result).toBeDefined();
       expect(result.answer).toBeDefined();
-      
+
       shell.shutdown();
     });
   });
@@ -160,13 +162,15 @@ describe("Shell", () => {
       const db = createMockDatabase();
       const logger = createSilentLogger();
       const shell = Shell.createFresh({ db, logger });
-      
+
       // eslint-disable-next-line @typescript-eslint/await-thenable
-      await expect(shell.executeCommand({
-        id: "test-123",
-        command: "help",
-      })).rejects.toThrow("Shell not initialized");
-      
+      await expect(
+        shell.executeCommand({
+          id: "test-123",
+          command: "help",
+        }),
+      ).rejects.toThrow("Shell not initialized");
+
       shell.shutdown();
     });
   });
@@ -184,10 +188,10 @@ describe("Shell", () => {
         version: "1.0.0",
         register: (): void => {},
       };
-      
+
       // Should not throw
       shell.registerPlugin(mockPlugin);
-      
+
       shell.shutdown();
     });
 
@@ -202,11 +206,11 @@ describe("Shell", () => {
         version: "1.0.0",
         register: (): void => {},
       };
-      
+
       expect(() => shell.registerPlugin(mockPlugin)).toThrow(
-        "Shell not initialized"
+        "Shell not initialized",
       );
-      
+
       shell.shutdown();
     });
   });
@@ -228,9 +232,11 @@ describe("Shell", () => {
       const shell = Shell.createFresh({ db, logger });
       await shell.initialize();
       shell.shutdown();
-      
+
       // eslint-disable-next-line @typescript-eslint/await-thenable
-      await expect(shell.query("test")).rejects.toThrow("Shell not initialized");
+      await expect(shell.query("test")).rejects.toThrow(
+        "Shell not initialized",
+      );
     });
   });
 });

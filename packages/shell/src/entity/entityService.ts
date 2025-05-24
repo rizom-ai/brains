@@ -123,7 +123,7 @@ export class EntityService {
       tags: validatedEntity.tags,
       contentWeight: 1.0, // Default to fully user-created content
       embedding: null,
-      embeddingStatus: 'pending',
+      embeddingStatus: "pending",
     });
 
     this.logger.info(

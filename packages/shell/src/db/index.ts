@@ -26,7 +26,7 @@ export function createDatabase(
   const authToken = options.authToken ?? process.env["DATABASE_AUTH_TOKEN"];
 
   // Create libSQL client
-  const client = authToken 
+  const client = authToken
     ? createClient({ url, authToken })
     : createClient({ url });
 

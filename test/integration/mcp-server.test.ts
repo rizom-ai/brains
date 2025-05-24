@@ -12,7 +12,7 @@ describe("MCP Server Integration Tests", () => {
   beforeAll(async () => {
     // Create a test database
     testDb = await createTestDatabase();
-    
+
     // Create transport with silent logs and test database path
     transport = new StdioClientTransport({
       command: "bun",
@@ -72,7 +72,7 @@ describe("MCP Server Integration Tests", () => {
 
     expect(result.content).toBeDefined();
     expect(result.content[0].type).toBe("text");
-    
+
     const content = JSON.parse(result.content[0].text);
     expect(content.status).toBe("operational");
     expect(content.database).toBeDefined();

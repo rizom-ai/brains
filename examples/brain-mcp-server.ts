@@ -32,7 +32,7 @@ async function main(): Promise<void> {
   // Initialize database - respect DATABASE_URL if provided
   let dbUrl: string;
   let tempDir: string | undefined;
-  
+
   if (process.env.DATABASE_URL) {
     dbUrl = process.env.DATABASE_URL;
   } else {
@@ -46,7 +46,7 @@ async function main(): Promise<void> {
   // Create libSQL client and Drizzle database
   const client = createClient({ url: dbUrl });
   const db = drizzle(client);
-  
+
   if (!isTestMode) {
     logger.info(`Database initialized at: ${dbUrl}`);
   }

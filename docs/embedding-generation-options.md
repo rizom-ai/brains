@@ -35,13 +35,13 @@ async createEntity(entity: T): Promise<T> {
     embedding: null,
     embeddingStatus: 'pending'
   });
-  
+
   // Queue embedding generation
   await this.embeddingQueue.add({
     entityId: result.id,
     content: markdown
   });
-  
+
   return entity;
 }
 
@@ -49,9 +49,9 @@ async createEntity(entity: T): Promise<T> {
 async processEmbeddingJob(job: EmbeddingJob) {
   const embedding = await this.embeddingService.generate(job.content);
   await this.db.update(entities)
-    .set({ 
-      embedding, 
-      embeddingStatus: 'ready' 
+    .set({
+      embedding,
+      embeddingStatus: 'ready'
     })
     .where(eq(entities.id, job.entityId));
 }
@@ -63,7 +63,7 @@ async processEmbeddingJob(job: EmbeddingJob) {
 async searchEntities(query: string, options: SearchOptions) {
   // Generate query embedding
   const queryEmbedding = await this.embeddingService.generate(query);
-  
+
   // Search only entities with embeddings
   const results = await this.db.select()
     .from(entities)
@@ -78,6 +78,7 @@ async searchEntities(query: string, options: SearchOptions) {
 ```
 
 ### Pros
+
 - ✅ Non-blocking entity creation (instant)
 - ✅ Supports any embedding provider (OpenAI, Anthropic, Cohere)
 - ✅ Better embedding quality with large models
@@ -85,6 +86,7 @@ async searchEntities(query: string, options: SearchOptions) {
 - ✅ Can batch multiple embeddings for efficiency
 
 ### Cons
+
 - ❌ Search incomplete until embeddings generated
 - ❌ Requires job queue infrastructure
 - ❌ More complex testing (async behavior)
@@ -92,6 +94,7 @@ async searchEntities(query: string, options: SearchOptions) {
 - ❌ Network dependency for core functionality
 
 ### Required Infrastructure
+
 - Job queue (e.g., BullMQ, pg-boss, or simple SQLite table)
 - Worker process or interval-based processor
 - Retry logic for failed jobs
@@ -115,17 +118,17 @@ import { pipeline } from '@xenova/transformers';
 
 class EmbeddingService {
   private model: any;
-  
+
   async initialize() {
     // Load model once (23MB for MiniLM)
-    this.model = await pipeline('feature-extraction', 
+    this.model = await pipeline('feature-extraction',
       'Xenova/all-MiniLM-L6-v2');
   }
-  
+
   async generateEmbedding(text: string): Promise<Float32Array> {
-    const output = await this.model(text, { 
+    const output = await this.model(text, {
       pooling: 'mean',
-      normalize: true 
+      normalize: true
     });
     return new Float32Array(output.data);
   }
@@ -135,27 +138,28 @@ class EmbeddingService {
 async createEntity(entity: T): Promise<T> {
   // Generate embedding synchronously
   const embedding = await this.embeddingService.generateEmbedding(markdown);
-  
+
   // Store entity with embedding
   await this.db.insert(entities).values({
     ...entityData,
     embedding // Always populated
   });
-  
+
   return entity;
 }
 ```
 
 ### Model Options
 
-| Model | Size | Dimensions | Pi 5 Speed | Quality |
-|-------|------|------------|------------|---------|
-| all-MiniLM-L6-v2 | 23MB | 384 | ~300ms | Good |
-| all-MiniLM-L12-v2 | 33MB | 384 | ~500ms | Better |
-| gte-small | 31MB | 384 | ~400ms | Good |
-| e5-small-v2 | 33MB | 384 | ~450ms | Better |
+| Model             | Size | Dimensions | Pi 5 Speed | Quality |
+| ----------------- | ---- | ---------- | ---------- | ------- |
+| all-MiniLM-L6-v2  | 23MB | 384        | ~300ms     | Good    |
+| all-MiniLM-L12-v2 | 33MB | 384        | ~500ms     | Better  |
+| gte-small         | 31MB | 384        | ~400ms     | Good    |
+| e5-small-v2       | 33MB | 384        | ~450ms     | Better  |
 
 ### Pros
+
 - ✅ Simple implementation (no queues)
 - ✅ Embeddings always available immediately
 - ✅ No network dependency
@@ -164,6 +168,7 @@ async createEntity(entity: T): Promise<T> {
 - ✅ No API costs
 
 ### Cons
+
 - ❌ Slower entity creation (200-500ms on Pi 5)
 - ❌ Lower quality than large models
 - ❌ Memory footprint (~200MB)
@@ -173,6 +178,7 @@ async createEntity(entity: T): Promise<T> {
 ### Performance Impact
 
 On Raspberry Pi 5:
+
 - Model loading: ~5 seconds (once at startup)
 - Per embedding: 200-500ms depending on text length
 - Memory: ~200MB constant + spike during generation
@@ -186,12 +192,13 @@ On Raspberry Pi 5:
 class EmbeddingService {
   private localModel?: any;
   private useLocal: boolean;
-  
-  constructor(config: { mode: 'local' | 'async' | 'auto' }) {
-    this.useLocal = config.mode === 'local' || 
-                   (config.mode === 'auto' && !process.env.EMBEDDING_API_KEY);
+
+  constructor(config: { mode: "local" | "async" | "auto" }) {
+    this.useLocal =
+      config.mode === "local" ||
+      (config.mode === "auto" && !process.env.EMBEDDING_API_KEY);
   }
-  
+
   async createEntity(entity: T): Promise<T> {
     if (this.useLocal) {
       // Sync local generation
@@ -231,11 +238,13 @@ embedding:
 **Start with async approach**, but design for pluggable embedding providers:
 
 1. **Phase 1**: Async with any API provider (OpenAI, etc.)
+
    - Get core functionality working
    - Learn usage patterns
    - No performance constraints initially
 
 2. **Phase 2**: Add local model support
+
    - Optional for development/offline use
    - Benchmark on target devices
    - Choose appropriate model size
@@ -248,6 +257,7 @@ embedding:
 ## Implementation Checklist
 
 ### For Async Approach
+
 - [ ] Add `embeddingStatus` field to schema
 - [ ] Implement job queue (start simple with SQLite table)
 - [ ] Create embedding service interface
@@ -255,7 +265,8 @@ embedding:
 - [ ] Add retry logic for failures
 - [ ] Monitor embedding generation lag
 
-### For Local Approach  
+### For Local Approach
+
 - [ ] Choose and test model on Pi 5
 - [ ] Implement model loading/caching
 - [ ] Add progress feedback for slow operations
@@ -265,18 +276,21 @@ embedding:
 ## Decision Factors
 
 Choose **async** if:
+
 - Embedding quality is critical
-- Create operations can be non-blocking  
+- Create operations can be non-blocking
 - Have reliable network
 - Can manage queue complexity
 
 Choose **local** if:
+
 - Need offline operation
 - Want predictable performance
 - Avoiding external dependencies
 - Accept quality trade-offs
 
 Choose **hybrid** if:
+
 - Want flexibility
 - Different requirements per deployment
 - Gradual migration path needed

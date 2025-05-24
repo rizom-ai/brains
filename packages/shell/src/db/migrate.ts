@@ -34,7 +34,9 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`Running migrations on database: ${url.includes("file:") ? url : "remote database"}`);
+  console.log(
+    `Running migrations on database: ${url.includes("file:") ? url : "remote database"}`,
+  );
 
   // Create libSQL client
   const client = authToken
