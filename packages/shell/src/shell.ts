@@ -97,7 +97,7 @@ export class Shell {
       this.logger,
       this.messageBus,
     );
-    
+
     this.entityService = EntityService.getInstance({
       db: this.db,
       embeddingService: this.embeddingService,

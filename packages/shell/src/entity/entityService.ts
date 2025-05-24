@@ -4,6 +4,7 @@ import { EntityRegistry } from "./entityRegistry";
 import type { EntityAdapter } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@personal-brain/utils";
 import type { IEmbeddingService } from "../embedding/embeddingService";
+import { calculateCosineSimilarity } from "../utils/similarity";
 import type {
   BaseEntity,
   IContentModel,
@@ -84,8 +85,12 @@ export class EntityService {
   private constructor(options: EntityServiceOptions) {
     this.db = options.db;
     this.embeddingService = options.embeddingService;
-    this.entityRegistry = options.entityRegistry ?? EntityRegistry.getInstance(Logger.getInstance());
-    this.logger = (options.logger ?? Logger.getInstance()).child("EntityService");
+    this.entityRegistry =
+      options.entityRegistry ??
+      EntityRegistry.getInstance(Logger.getInstance());
+    this.logger = (options.logger ?? Logger.getInstance()).child(
+      "EntityService",
+    );
   }
 
   /**
@@ -376,14 +381,15 @@ export class EntityService {
           BaseEntity & IContentModel
         >(entityData.entityType, entityData.content);
 
+        // Create excerpt from content
+        const excerpt = entityData.content.slice(0, 200) + 
+          (entityData.content.length > 200 ? "..." : "");
+        
         searchResults.push({
-          id: entityData.id,
-          entityType: entityData.entityType,
-          tags: entityData.tags,
-          created: new Date(entityData.created).toISOString(),
-          updated: new Date(entityData.updated).toISOString(),
-          score,
           entity,
+          score,
+          excerpt,
+          highlights: [], // Tag-based search doesn't have highlights
         });
       } catch (error) {
         const errorMessage =
@@ -434,31 +440,108 @@ export class EntityService {
   }
 
   /**
-   * Search entities by query
+   * Search entities by query using vector similarity
    */
   public async search(
     query: string,
     options?: SearchOptions,
   ): Promise<SearchResult[]> {
-    // For now, use tag-based search as a simple implementation
-    // In production, this would use full-text search or vector search
-    const queryWords = query.toLowerCase().split(/\s+/);
-    const matchingTags = queryWords.filter((word) => word.length > 2);
+    const validatedOptions = searchOptionsSchema.parse(options ?? {});
+    const { limit, offset, types } = validatedOptions;
 
-    if (matchingTags.length === 0) {
-      return [];
+    this.logger.debug(`Searching entities with query: "${query}"`);
+
+    // Generate embedding for the query
+    const queryEmbedding = await this.embeddingService.generateEmbedding(query);
+
+    // Build the base query
+    const baseQuery = this.db
+      .select({
+        id: entities.id,
+        entityType: entities.entityType,
+        title: entities.title,
+        content: entities.content,
+        created: entities.created,
+        updated: entities.updated,
+        tags: entities.tags,
+        embedding: entities.embedding,
+      })
+      .from(entities);
+
+    // Execute the query with type filter if specified
+    const results = await (types.length > 0
+      ? baseQuery.where(inArray(entities.entityType, types))
+      : baseQuery);
+
+    // Calculate similarity scores and filter/sort results
+    const searchResults: SearchResult[] = [];
+    
+    for (const row of results) {
+      // Calculate cosine similarity
+      const similarity = calculateCosineSimilarity(
+        queryEmbedding,
+        row.embedding,
+      );
+
+      // Only include results above a threshold (e.g., 0.5)
+      if (similarity > 0.5) {
+        // Parse entity from markdown
+        const entity = this.entityRegistry.markdownToEntity(
+          row.entityType,
+          row.content,
+        );
+
+        // Create a more readable excerpt
+        const excerpt = this.createExcerpt(row.content, query);
+
+        searchResults.push({
+          entity,
+          score: similarity,
+          excerpt,
+          highlights: [], // TODO: Implement highlight extraction
+        });
+      }
     }
 
-    // Parse options to extract only what searchEntitiesByTags needs
-    const searchByTagsOptionsSchema = z.object({
-      limit: z.number().optional(),
-      offset: z.number().optional(),
-      types: z.array(z.string()).optional(),
-    });
+    // Sort by similarity score (highest first)
+    searchResults.sort((a, b) => b.score - a.score);
 
-    const searchOptions = searchByTagsOptionsSchema.parse(options ?? {});
+    // Apply pagination
+    const paginatedResults = searchResults.slice(offset, offset + limit);
 
-    return this.searchEntitiesByTags(matchingTags, searchOptions);
+    this.logger.info(
+      `Found ${searchResults.length} results for query "${query}", returning ${paginatedResults.length}`,
+    );
+
+    return paginatedResults;
+  }
+
+  /**
+   * Create an excerpt from content based on query
+   */
+  private createExcerpt(content: string, query: string): string {
+    const maxLength = 200;
+    const queryLower = query.toLowerCase();
+    const contentLower = content.toLowerCase();
+    
+    // Find the position of the query in the content
+    const position = contentLower.indexOf(queryLower);
+    
+    if (position !== -1) {
+      // Extract text around the query
+      const start = Math.max(0, position - 50);
+      const end = Math.min(content.length, position + queryLower.length + 50);
+      let excerpt = content.slice(start, end);
+      
+      // Add ellipsis if needed
+      if (start > 0) excerpt = "..." + excerpt;
+      if (end < content.length) excerpt = excerpt + "...";
+      
+      return excerpt;
+    }
+    
+    // If query not found, return beginning of content
+    return content.slice(0, maxLength) + (content.length > maxLength ? "..." : "");
   }
 
   /**

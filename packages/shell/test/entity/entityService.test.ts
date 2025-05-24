@@ -13,7 +13,7 @@ import type { IEmbeddingService } from "@/embedding/embeddingService";
 // Create a mock embedding service
 const mockEmbeddingService: IEmbeddingService = {
   generateEmbedding: async () => new Float32Array(384).fill(0.1),
-  generateEmbeddings: async (texts: string[]) => 
+  generateEmbeddings: async (texts: string[]) =>
     texts.map(() => new Float32Array(384).fill(0.1)),
 };
 

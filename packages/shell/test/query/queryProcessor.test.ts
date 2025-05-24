@@ -57,13 +57,10 @@ describe("QueryProcessor", () => {
       const mockEntity = createMockEntity();
       const mockSearchResults: SearchResult[] = [
         {
-          id: mockEntity.id,
-          entityType: mockEntity.entityType,
-          tags: mockEntity.tags,
-          created: mockEntity.created,
-          updated: mockEntity.updated,
-          score: 0.9,
           entity: mockEntity,
+          score: 0.9,
+          excerpt: "This is a test note with some content...",
+          highlights: ["test", "note"],
         },
       ];
 

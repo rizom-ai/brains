@@ -158,14 +158,14 @@ Embeddings are generated synchronously using a local model to ensure all entitie
 async createEntity(entity: T): Promise<T> {
   // Generate embedding synchronously
   const embedding = await this.embeddingService.generateEmbedding(markdown);
-  
+
   // Store entity with embedding
   const result = await this.db.insert(entities).values({
     ...extractedFields,
     content: markdown,
     embedding // Always present, no status needed
   });
-  
+
   return entity;
 }
 ```
@@ -175,17 +175,19 @@ async createEntity(entity: T): Promise<T> {
 ```typescript
 class EmbeddingService {
   private model: Pipeline | null = null;
-  
+
   async initialize() {
     // Load model once at startup (23MB for MiniLM)
-    this.model = await pipeline('feature-extraction', 
-      'Xenova/all-MiniLM-L6-v2');
+    this.model = await pipeline(
+      "feature-extraction",
+      "Xenova/all-MiniLM-L6-v2",
+    );
   }
-  
+
   async generateEmbedding(text: string): Promise<Float32Array> {
     const output = await this.model(text, {
-      pooling: 'mean',
-      normalize: true
+      pooling: "mean",
+      normalize: true,
     });
     return new Float32Array(output.data);
   }

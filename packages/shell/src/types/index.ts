@@ -48,13 +48,10 @@ export type SearchOptions = z.infer<typeof searchOptionsSchema>;
  * Search result type
  */
 export type SearchResult = {
-  id: string;
-  entityType: string;
-  tags: string[];
-  created: string;
-  updated: string;
-  score: number;
   entity: BaseEntity & IContentModel;
+  score: number;
+  excerpt: string;
+  highlights: string[];
 };
 
 /**

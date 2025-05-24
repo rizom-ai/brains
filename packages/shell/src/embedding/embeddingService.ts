@@ -1,5 +1,4 @@
 import { EmbeddingModel, FlagEmbedding } from "fastembed";
-import { cosineSimilarity } from "ai";
 import type { Logger } from "@personal-brain/utils";
 
 /**
@@ -80,8 +79,10 @@ export class EmbeddingService implements IEmbeddingService {
 
   private async doInitialize(): Promise<void> {
     try {
-      this.logger.info(`Loading embedding model: ${EmbeddingService.MODEL_NAME}`);
-      
+      this.logger.info(
+        `Loading embedding model: ${EmbeddingService.MODEL_NAME}`,
+      );
+
       // Create the embedding model
       this.model = await FlagEmbedding.init({
         model: EmbeddingService.MODEL_NAME,
@@ -113,23 +114,23 @@ export class EmbeddingService implements IEmbeddingService {
     try {
       // Generate embedding - fastembed returns an async generator
       const embeddings = this.model.embed([text]);
-      
+
       // Get the first (and only) batch
       for await (const batch of embeddings) {
         // Get the first embedding from the batch
         const embedding = batch[0];
-        
+
         if (!embedding) {
           throw new Error("No embedding generated for text");
         }
-        
+
         // Validate dimensions
         if (embedding.length !== EmbeddingService.EMBEDDING_DIM) {
           throw new Error(
-            `Invalid embedding dimensions: expected ${EmbeddingService.EMBEDDING_DIM}, got ${embedding.length}`
+            `Invalid embedding dimensions: expected ${EmbeddingService.EMBEDDING_DIM}, got ${embedding.length}`,
           );
         }
-        
+
         // Convert to Float32Array
         return new Float32Array(embedding);
       }
@@ -157,10 +158,10 @@ export class EmbeddingService implements IEmbeddingService {
 
     try {
       const embeddings: Float32Array[] = [];
-      
+
       // FastEmbed supports batch processing
       const embeddingGenerator = this.model.embed(texts);
-      
+
       for await (const batch of embeddingGenerator) {
         // Each batch contains multiple embeddings
         for (const embedding of batch) {
@@ -175,14 +176,4 @@ export class EmbeddingService implements IEmbeddingService {
     }
   }
 
-  /**
-   * Calculate cosine similarity between two embeddings
-   * @param a First embedding
-   * @param b Second embedding
-   * @returns Similarity score between -1 and 1
-   */
-  public static cosineSimilarity(a: Float32Array, b: Float32Array): number {
-    // Convert Float32Array to number array for the AI SDK
-    return cosineSimilarity(Array.from(a), Array.from(b));
-  }
 }
