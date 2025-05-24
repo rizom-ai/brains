@@ -41,7 +41,9 @@ describe("MCPServer", () => {
 
   describe("Server Creation", () => {
     it("should create server with default config", () => {
-      const defaultServer = MCPServer.createFresh({ logger: createSilentLogger() });
+      const defaultServer = MCPServer.createFresh({
+        logger: createSilentLogger(),
+      });
       const server = defaultServer.getServer();
       expect(server).toBeDefined();
     });

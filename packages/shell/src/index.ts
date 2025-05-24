@@ -33,9 +33,10 @@ export { Registry } from "./registry/registry";
 export { registerShellMCP } from "./mcp";
 export type { ShellMCPOptions } from "./mcp";
 
-// Database exports (for initialization)
+// Database exports
 export type { DrizzleDB } from "./db";
-export { initDatabase } from "./db/init";
+export { createDatabase } from "./db";
+export * from "./db/schema";
 
 // Types
 export type {

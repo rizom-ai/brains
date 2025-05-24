@@ -1,36 +1,40 @@
-import { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
-import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
+import { createClient, type Client } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
+import type { LibSQLDatabase } from "drizzle-orm/libsql";
 
 /**
  * Database connection type
  */
-export type DrizzleDB = BunSQLiteDatabase;
+export type DrizzleDB = LibSQLDatabase<Record<string, never>>;
 
 /**
- * Create a drizzle database connection with configurable path
+ * Create a drizzle database connection with libSQL
  *
- * This allows each app to specify its own database location
+ * This allows each app to specify its own database location or use remote Turso
  */
 export function createDatabase(
   options: {
-    dbPath?: string;
+    url?: string;
+    authToken?: string;
   } = {},
-): DrizzleDB {
-  // Determine database path prioritizing:
-  // 1. Explicitly provided path parameter
+): { db: DrizzleDB; client: Client } {
+  // Determine database URL prioritizing:
+  // 1. Explicitly provided URL
   // 2. Environment variable
-  // 3. Default path
-  const dbPath = options.dbPath ?? process.env["DB_PATH"] ?? "./brain.db";
+  // 3. Default local file
+  const url = options.url ?? process.env["DATABASE_URL"] ?? "file:./brain.db";
+  const authToken = options.authToken ?? process.env["DATABASE_AUTH_TOKEN"];
 
-  // Create SQLite connection
-  const sqlite = new Database(dbPath);
-
-  // Enable foreign keys
-  sqlite.exec("PRAGMA foreign_keys = ON");
+  // Create libSQL client
+  const client = authToken 
+    ? createClient({ url, authToken })
+    : createClient({ url });
 
   // Create drizzle DB instance
-  return drizzle(sqlite);
+  const db = drizzle(client);
+
+  return { db, client };
 }
 
-// No re-exports - import directly from schema where needed
+// Re-export schema types for convenience
+export * from "./schema";

@@ -11,36 +11,48 @@
 import { MCPServer } from "@brains/mcp-server";
 import { Shell, registerShellMCP } from "@personal-brain/shell";
 import { Logger, createSilentLogger } from "@personal-brain/utils";
-import { Database } from "bun:sqlite";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import * as path from "path";
 import { mkdir, rm } from "fs/promises";
 
 async function main(): Promise<void> {
   // Create logger configured to use stderr for MCP compatibility
   // Check for test mode to silence logs
-  const isTestMode = process.env.NODE_ENV === "test" || process.env.SILENT_LOGS === "true";
-  const logger = isTestMode 
+  const isTestMode =
+    process.env.NODE_ENV === "test" || process.env.SILENT_LOGS === "true";
+  const logger = isTestMode
     ? createSilentLogger("brain-mcp-server")
     : Logger.getInstance({ useStderr: true });
-  
+
   if (!isTestMode) {
     logger.info("Starting Brain MCP Server");
   }
 
-  // Initialize database with a temporary path
-  const dbPath = path.join(process.cwd(), ".tmp", "brain-example.db");
+  // Initialize database - respect DATABASE_URL if provided
+  let dbUrl: string;
+  let tempDir: string | undefined;
+  
+  if (process.env.DATABASE_URL) {
+    dbUrl = process.env.DATABASE_URL;
+  } else {
+    // Create temporary database
+    const dbPath = path.join(process.cwd(), ".tmp", "brain-example.db");
+    tempDir = path.dirname(dbPath);
+    await mkdir(tempDir, { recursive: true }).catch(() => {}); // Ignore if exists
+    dbUrl = `file:${dbPath}`;
+  }
 
-  // Ensure the .tmp directory exists
-  const tmpDir = path.dirname(dbPath);
-  await mkdir(tmpDir, { recursive: true }).catch(() => {}); // Ignore if exists
-
-  const sqlite = new Database(dbPath);
+  // Create libSQL client and Drizzle database
+  const client = createClient({ url: dbUrl });
+  const db = drizzle(client);
+  
   if (!isTestMode) {
-    logger.info(`Database initialized at: ${dbPath}`);
+    logger.info(`Database initialized at: ${dbUrl}`);
   }
 
   // Create and initialize Shell
-  const shell = Shell.createFresh({ db: sqlite, logger });
+  const shell = Shell.createFresh({ db, logger });
   await shell.initialize();
 
   // Create MCP server
@@ -78,7 +90,7 @@ async function main(): Promise<void> {
           text: JSON.stringify(
             {
               status: "operational",
-              database: dbPath,
+              database: dbUrl,
               entityTypes,
               registeredSchemas: schemas,
               components: {
@@ -129,17 +141,19 @@ async function main(): Promise<void> {
     }
     shell.shutdown();
     mcpServer.stop();
-    sqlite.close();
+    client.close();
 
-    // Clean up temporary database
-    try {
-      await rm(dbPath, { force: true });
-      await rm(tmpDir, { recursive: true, force: true });
-      if (!isTestMode) {
-        logger.info("Cleaned up temporary database");
+    // Clean up temporary database if we created one
+    if (tempDir && !process.env.DATABASE_URL) {
+      try {
+        await rm(dbUrl.replace("file:", ""), { force: true });
+        await rm(tempDir, { recursive: true, force: true });
+        if (!isTestMode) {
+          logger.info("Cleaned up temporary database");
+        }
+      } catch (error) {
+        // Ignore cleanup errors
       }
-    } catch (error) {
-      // Ignore cleanup errors
     }
   };
 

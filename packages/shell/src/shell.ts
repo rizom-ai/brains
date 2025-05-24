@@ -1,7 +1,4 @@
-import type { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
-import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
-import { initDatabase } from "./db/init";
+import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { Registry } from "./registry/registry";
 import { EntityRegistry } from "./entity/entityRegistry";
 import { SchemaRegistry } from "./schema/schemaRegistry";
@@ -16,14 +13,14 @@ import type { Command, CommandResponse } from "./protocol/brainProtocol";
 import type { Plugin } from "./plugins/pluginManager";
 
 export interface ShellConfig {
-  db: Database | BunSQLiteDatabase<Record<string, unknown>>;
+  db: LibSQLDatabase<Record<string, never>>;
   logger: Logger;
   enablePlugins?: boolean;
 }
 
 /**
  * Shell - The main entry point for the Brain system
- * 
+ *
  * This class encapsulates all core functionality and provides
  * a unified interface for interacting with the Brain.
  * Follows Component Interface Standardization pattern.
@@ -31,7 +28,7 @@ export interface ShellConfig {
 export class Shell {
   private static instance: Shell | null = null;
 
-  private readonly db: BunSQLiteDatabase<Record<string, unknown>>;
+  private readonly db: LibSQLDatabase<Record<string, never>>;
   private readonly logger: Logger;
   private readonly registry: Registry;
   private readonly entityRegistry: EntityRegistry;
@@ -49,7 +46,9 @@ export class Shell {
   public static getInstance(config?: ShellConfig): Shell {
     if (!Shell.instance) {
       if (!config) {
-        throw new Error("Shell configuration required for first initialization");
+        throw new Error(
+          "Shell configuration required for first initialization",
+        );
       }
       Shell.instance = new Shell(config);
     }
@@ -78,16 +77,9 @@ export class Shell {
    */
   private constructor(config: ShellConfig) {
     this.logger = config.logger;
-    
-    // Initialize database
-    if ("prepare" in config.db) {
-      // It's a Bun SQLite Database
-      initDatabase(config.db);
-      this.db = drizzle(config.db);
-    } else {
-      // It's already a Drizzle database
-      this.db = config.db;
-    }
+
+    // Use the provided Drizzle database
+    this.db = config.db;
 
     // Initialize core components (they are all singletons)
     this.registry = Registry.getInstance(this.logger);
@@ -97,25 +89,25 @@ export class Shell {
     this.pluginManager = PluginManager.getInstance(
       this.registry,
       this.logger,
-      this.messageBus
+      this.messageBus,
     );
 
     // Initialize services with dependencies
     this.entityService = EntityService.getInstance(
       this.db,
       this.entityRegistry,
-      this.logger
+      this.logger,
     );
-    
+
     this.queryProcessor = QueryProcessor.getInstance({
       entityService: this.entityService,
       logger: this.logger,
     });
-    
+
     this.brainProtocol = BrainProtocol.getInstance(
       this.logger,
       this.messageBus,
-      this.queryProcessor
+      this.queryProcessor,
     );
 
     // Register core components in the registry
@@ -166,7 +158,7 @@ export class Shell {
 
     // Clear registries
     this.registry.clear();
-    
+
     this.initialized = false;
     this.logger.info("Shell shutdown complete");
   }
@@ -180,7 +172,7 @@ export class Shell {
       userId?: string;
       conversationId?: string;
       metadata?: Record<string, unknown>;
-    }
+    },
   ): Promise<QueryResult> {
     if (!this.initialized) {
       throw new Error("Shell not initialized");
@@ -219,7 +211,7 @@ export class Shell {
   }
 
   // Minimal getters needed for MCP integration
-  
+
   public getQueryProcessor(): QueryProcessor {
     return this.queryProcessor;
   }

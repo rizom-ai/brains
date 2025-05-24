@@ -1,39 +1,54 @@
 #!/usr/bin/env bun
-import { Database } from "bun:sqlite";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import { createClient } from "@libsql/client";
+import { migrate } from "drizzle-orm/libsql/migrator";
+import { drizzle } from "drizzle-orm/libsql";
 
 /**
  * This script runs database migrations using drizzle-kit
  *
  * Usage:
- *   bun db:migrate [--db-path=./custom-path.db]
+ *   bun db:migrate [--url=file:./custom-path.db] [--auth-token=xxx]
  */
 
 async function main(): Promise<void> {
   // Parse command line arguments
   const args = process.argv.slice(2);
-  let dbPath = "./brain.db";
+  let url = process.env["DATABASE_URL"] ?? "file:./brain.db";
+  let authToken = process.env["DATABASE_AUTH_TOKEN"];
 
-  // Look for --db-path argument
-  const dbPathArg = args.find((arg) => arg.startsWith("--db-path="));
-  if (dbPathArg) {
-    const splitPath = dbPathArg.split("=")[1];
-    if (splitPath) {
-      dbPath = splitPath;
+  // Look for --url argument
+  const urlArg = args.find((arg) => arg.startsWith("--url="));
+  if (urlArg) {
+    const splitUrl = urlArg.split("=")[1];
+    if (splitUrl) {
+      url = splitUrl;
     }
   }
 
-  console.log(`Running migrations on database: ${dbPath}`);
+  // Look for --auth-token argument
+  const authTokenArg = args.find((arg) => arg.startsWith("--auth-token="));
+  if (authTokenArg) {
+    const splitToken = authTokenArg.split("=")[1];
+    if (splitToken) {
+      authToken = splitToken;
+    }
+  }
 
-  // Create database connection
-  const sqlite = new Database(dbPath);
-  const db = drizzle(sqlite);
+  console.log(`Running migrations on database: ${url.includes("file:") ? url : "remote database"}`);
+
+  // Create libSQL client
+  const client = authToken
+    ? createClient({ url, authToken })
+    : createClient({ url });
+  const db = drizzle(client);
 
   // Run migrations from the drizzle directory
   console.log("Starting migrations...");
-  migrate(db, { migrationsFolder: "./drizzle" });
+  await migrate(db, { migrationsFolder: "./drizzle" });
   console.log("Migrations completed successfully!");
+
+  // Close the connection
+  client.close();
 }
 
 main().catch((error) => {

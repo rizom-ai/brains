@@ -116,10 +116,14 @@ export class EntityService {
     await this.db.insert(entities).values({
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
-      created: validatedEntity.created,
-      updated: validatedEntity.updated,
+      title: validatedEntity.title,
+      content: markdown,
+      created: new Date(validatedEntity.created).getTime(),
+      updated: new Date(validatedEntity.updated).getTime(),
       tags: validatedEntity.tags,
-      markdown,
+      contentWeight: 1.0, // Default to fully user-created content
+      embedding: null,
+      embeddingStatus: 'pending',
     });
 
     this.logger.info(
@@ -159,7 +163,7 @@ export class EntityService {
     try {
       const entity = this.entityRegistry.markdownToEntity<T>(
         entityType,
-        entityData.markdown,
+        entityData.content,
       );
 
       return entity;
@@ -202,10 +206,11 @@ export class EntityService {
     await this.db
       .update(entities)
       .set({
-        entityType: validatedEntity.entityType,
-        updated: validatedEntity.updated,
+        title: validatedEntity.title,
+        content: markdown,
+        updated: new Date(validatedEntity.updated).getTime(),
         tags: validatedEntity.tags,
-        markdown,
+        contentWeight: 1.0, // Reset to user-created on update
       })
       .where(eq(entities.id, validatedEntity.id));
 
@@ -280,7 +285,7 @@ export class EntityService {
       try {
         const entity = this.entityRegistry.markdownToEntity<T>(
           entityType,
-          entityData.markdown,
+          entityData.content,
         );
 
         entityList.push(entity);
@@ -335,7 +340,7 @@ export class EntityService {
     const matchingEntities = result
       .map((entity) => selectEntitySchema.parse(entity))
       .filter((entity) => {
-        return tags.some((tag) => (entity.tags ?? []).includes(tag));
+        return tags.some((tag) => entity.tags.includes(tag));
       });
 
     // Convert to SearchResult format
@@ -345,21 +350,21 @@ export class EntityService {
       try {
         // Count matching tags for scoring
         const matchingTagCount = tags.filter((tag) =>
-          (entityData.tags ?? []).includes(tag),
+          entityData.tags.includes(tag),
         ).length;
         const score = matchingTagCount / tags.length;
 
         // Parse the entity
         const entity = this.entityRegistry.markdownToEntity<
           BaseEntity & IContentModel
-        >(entityData.entityType, entityData.markdown);
+        >(entityData.entityType, entityData.content);
 
         searchResults.push({
           id: entityData.id,
           entityType: entityData.entityType,
-          tags: entityData.tags ?? [],
-          created: entityData.created,
-          updated: entityData.updated,
+          tags: entityData.tags,
+          created: new Date(entityData.created).toISOString(),
+          updated: new Date(entityData.updated).toISOString(),
           score,
           entity,
         });
