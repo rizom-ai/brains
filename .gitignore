@@ -187,3 +187,7 @@ old-code-reference/
 .tmp/
 brain.db
 
+# direnv
+.envrc
+.direnv/
+

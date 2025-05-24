@@ -8,12 +8,16 @@ export const defaultQueryResponseSchema = z.object({
   answer: z.string(),
   summary: z.string().optional(),
   topics: z.array(z.string()).optional(),
-  entities: z.array(z.object({
-    id: z.string(),
-    type: z.string(),
-    title: z.string(),
-    relevance: z.number().min(0).max(1).optional(),
-  })).optional(),
+  entities: z
+    .array(
+      z.object({
+        id: z.string(),
+        type: z.string(),
+        title: z.string(),
+        relevance: z.number().min(0).max(1).optional(),
+      }),
+    )
+    .optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 

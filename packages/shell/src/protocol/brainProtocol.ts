@@ -121,9 +121,10 @@ export class BrainProtocol {
     this.registerCommandHandler("query", async (cmd) => {
       try {
         const query = String(cmd.args?.["query"] ?? "");
-        const options: Parameters<typeof this.queryProcessor.processQuery>[1] = {
-          schema: defaultQueryResponseSchema,
-        };
+        const options: Parameters<typeof this.queryProcessor.processQuery>[1] =
+          {
+            schema: defaultQueryResponseSchema,
+          };
         if (cmd.context?.userId) options.userId = cmd.context.userId;
         if (cmd.context?.conversationId)
           options.conversationId = cmd.context.conversationId;

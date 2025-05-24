@@ -183,7 +183,7 @@ Intent: ${intentAnalysis.primaryIntent}`;
       userPrompt,
       schema,
     );
-    
+
     return {
       text: JSON.stringify(result.object),
       object: result.object,

@@ -31,10 +31,7 @@ export class AIService {
   /**
    * Get the singleton instance
    */
-  public static getInstance(
-    config: AIModelConfig,
-    logger: Logger,
-  ): AIService {
+  public static getInstance(config: AIModelConfig, logger: Logger): AIService {
     if (!AIService.instance) {
       AIService.instance = new AIService(config, logger);
     }
@@ -51,10 +48,7 @@ export class AIService {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(
-    config: AIModelConfig,
-    logger: Logger,
-  ): AIService {
+  public static createFresh(config: AIModelConfig, logger: Logger): AIService {
     return new AIService(config, logger);
   }
 
@@ -69,9 +63,9 @@ export class AIService {
       maxTokens: config.maxTokens ?? 1000,
     };
     this.logger = logger.child("AIService");
-    
+
     // Create provider with API key if provided
-    this.anthropicProvider = config.apiKey 
+    this.anthropicProvider = config.apiKey
       ? createAnthropic({ apiKey: config.apiKey })
       : anthropic;
   }
@@ -107,8 +101,12 @@ export class AIService {
         model: this.getModel(),
         system: systemPrompt,
         prompt: userPrompt,
-        ...(this.config.temperature !== undefined && { temperature: this.config.temperature }),
-        ...(this.config.maxTokens !== undefined && { maxTokens: this.config.maxTokens }),
+        ...(this.config.temperature !== undefined && {
+          temperature: this.config.temperature,
+        }),
+        ...(this.config.maxTokens !== undefined && {
+          maxTokens: this.config.maxTokens,
+        }),
       });
 
       return {
@@ -150,8 +148,12 @@ export class AIService {
         system: systemPrompt,
         prompt: userPrompt,
         schema,
-        ...(this.config.temperature !== undefined && { temperature: this.config.temperature }),
-        ...(this.config.maxTokens !== undefined && { maxTokens: this.config.maxTokens }),
+        ...(this.config.temperature !== undefined && {
+          temperature: this.config.temperature,
+        }),
+        ...(this.config.maxTokens !== undefined && {
+          maxTokens: this.config.maxTokens,
+        }),
       });
 
       return {

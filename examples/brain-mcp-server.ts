@@ -12,6 +12,7 @@ import { MCPServer } from "@brains/mcp-server";
 import { Shell, registerShellMCP } from "@personal-brain/shell";
 import { EmbeddingService } from "@personal-brain/shell";
 import { AIService } from "@personal-brain/shell";
+import type { IEmbeddingService } from "@personal-brain/shell";
 import { Logger, createSilentLogger } from "@personal-brain/utils";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
@@ -54,17 +55,28 @@ async function main(): Promise<void> {
   }
 
   // Create services
-  const embeddingService = EmbeddingService.createFresh(logger);
-  await embeddingService.initialize();
+  let embeddingService: IEmbeddingService;
   
+  if (isTestMode) {
+    // Use mock embedding service in test mode to avoid native module issues
+    embeddingService = {
+      generateEmbedding: async () => new Float32Array(384).fill(0.1),
+      generateEmbeddings: async (texts: string[]) =>
+        texts.map(() => new Float32Array(384).fill(0.1)),
+    };
+  } else {
+    embeddingService = EmbeddingService.createFresh(logger);
+    await embeddingService.initialize();
+  }
+
   const aiService = AIService.createFresh(
-    { apiKey: process.env.ANTHROPIC_API_KEY },
-    logger
+    { apiKey: process.env.ANTHROPIC_API_KEY || "test-key" },
+    logger,
   );
 
   // Create and initialize Shell
-  const shell = Shell.createFresh({ 
-    db, 
+  const shell = Shell.createFresh({
+    db,
     logger,
     embeddingService,
     aiService,

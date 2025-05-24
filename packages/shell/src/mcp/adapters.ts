@@ -39,7 +39,9 @@ export class QueryProcessorAdapter {
   /**
    * Execute a query with MCP-style parameters
    */
-  async executeQuery(params: MCPQueryParams): Promise<SerializableQueryResult<unknown>> {
+  async executeQuery(
+    params: MCPQueryParams,
+  ): Promise<SerializableQueryResult<unknown>> {
     // Translate MCP parameters to internal QueryOptions
     const queryOptions: QueryOptions<unknown> = {
       schema: defaultQueryResponseSchema, // Default schema, may be overridden below

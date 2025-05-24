@@ -22,33 +22,34 @@ const mockEmbeddingService: IEmbeddingService = {
 };
 
 // Create a mock AI service
-const createMockAIService = (): AIService => ({
-  generateObject: mock(async (_systemPrompt, _userPrompt, schema) => {
-    const mockData = defaultQueryResponseSchema.parse({
-      answer: "This is a test response",
-      summary: "Test summary",
-      topics: ["test"],
-    });
-    return {
-      object: schema.parse(mockData),
+const createMockAIService = (): AIService =>
+  ({
+    generateObject: mock(async (_systemPrompt, _userPrompt, schema) => {
+      const mockData = defaultQueryResponseSchema.parse({
+        answer: "This is a test response",
+        summary: "Test summary",
+        topics: ["test"],
+      });
+      return {
+        object: schema.parse(mockData),
+        usage: {
+          promptTokens: 100,
+          completionTokens: 50,
+          totalTokens: 150,
+        },
+      };
+    }),
+    generateText: mock(async () => ({
+      text: "Test response",
       usage: {
         promptTokens: 100,
         completionTokens: 50,
         totalTokens: 150,
       },
-    };
-  }),
-  generateText: mock(async () => ({
-    text: "Test response",
-    usage: {
-      promptTokens: 100,
-      completionTokens: 50,
-      totalTokens: 150,
-    },
-  })),
-  updateConfig: mock(),
-  getConfig: mock(() => ({})),
-}) as unknown as AIService;
+    })),
+    updateConfig: mock(),
+    getConfig: mock(() => ({})),
+  }) as unknown as AIService;
 
 // Mock database for testing
 function createMockDatabase(): LibSQLDatabase<Record<string, never>> {
