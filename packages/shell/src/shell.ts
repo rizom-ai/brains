@@ -5,6 +5,7 @@ import { SchemaRegistry } from "./schema/schemaRegistry";
 import { MessageBus } from "./messaging/messageBus";
 import { PluginManager } from "./plugins/pluginManager";
 import { EntityService } from "./entity/entityService";
+import type { IEmbeddingService } from "./embedding/embeddingService";
 import { QueryProcessor } from "./query/queryProcessor";
 import { BrainProtocol } from "./protocol/brainProtocol";
 import type { Logger } from "@personal-brain/utils";
@@ -15,6 +16,7 @@ import type { Plugin } from "./plugins/pluginManager";
 export interface ShellConfig {
   db: LibSQLDatabase<Record<string, never>>;
   logger: Logger;
+  embeddingService: IEmbeddingService;
   enablePlugins?: boolean;
 }
 
@@ -35,6 +37,7 @@ export class Shell {
   private readonly schemaRegistry: SchemaRegistry;
   private readonly messageBus: MessageBus;
   private readonly pluginManager: PluginManager;
+  private readonly embeddingService: IEmbeddingService;
   private readonly entityService: EntityService;
   private readonly queryProcessor: QueryProcessor;
   private readonly brainProtocol: BrainProtocol;
@@ -81,6 +84,9 @@ export class Shell {
     // Use the provided Drizzle database
     this.db = config.db;
 
+    // Use the provided embedding service
+    this.embeddingService = config.embeddingService;
+
     // Initialize core components (they are all singletons)
     this.registry = Registry.getInstance(this.logger);
     this.entityRegistry = EntityRegistry.getInstance(this.logger);
@@ -91,13 +97,13 @@ export class Shell {
       this.logger,
       this.messageBus,
     );
-
-    // Initialize services with dependencies
-    this.entityService = EntityService.getInstance(
-      this.db,
-      this.entityRegistry,
-      this.logger,
-    );
+    
+    this.entityService = EntityService.getInstance({
+      db: this.db,
+      embeddingService: this.embeddingService,
+      entityRegistry: this.entityRegistry,
+      logger: this.logger,
+    });
 
     this.queryProcessor = QueryProcessor.getInstance({
       entityService: this.entityService,

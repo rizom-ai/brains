@@ -35,8 +35,7 @@ Entity Object → Markdown → Database Storage
    - `tags`: JSON array extracted from frontmatter (optional, used by some entity types like blog posts)
    - `contentWeight`: Numeric value (0.0-1.0) indicating human vs generated content ratio
    - `created`/`updated`: Timestamps
-   - `embedding`: Vector representation of content
-   - `embeddingStatus`: Status of embedding generation ('pending' | 'processing' | 'ready' | 'failed')
+   - `embedding`: Vector representation of content (always present with local generation)
 
 ## Implementation Details
 
@@ -118,10 +117,7 @@ export const entities = sqliteTable("entities", {
     .$type<string[]>()
     .notNull()
     .default(sql`'[]'`),
-  embedding: vector("embedding"), // F32_BLOB(1536) for semantic search
-  embeddingStatus: text("embeddingStatus")
-    .$type<"pending" | "processing" | "ready" | "failed">()
-    .default("pending"),
+  embedding: vector("embedding").notNull(), // F32_BLOB(384) - always present
   created: integer("created").notNull(),
   updated: integer("updated").notNull(),
 });
@@ -139,7 +135,7 @@ export const entities = sqliteTable("entities", {
    - Extract tags, contentWeight
    - Convert timestamps to Unix milliseconds
 4. Store in database with full Markdown and extracted fields
-5. Queue embedding generation (async)
+5. Generate embedding and store complete entity
 
 #### Retrieve Entity
 
@@ -153,60 +149,71 @@ export const entities = sqliteTable("entities", {
 
 ### Overview
 
-Embeddings are generated asynchronously within the shell service to maintain responsive entity creation while ensuring all entities are searchable.
+Embeddings are generated synchronously using a local model to ensure all entities are immediately searchable. This approach prioritizes reliability and simplicity over perfect accuracy.
 
 ### Implementation
 
 ```typescript
-// Entity creation is non-blocking
+// Entity creation with immediate embeddings
 async createEntity(entity: T): Promise<T> {
-  // Store immediately with null embedding
+  // Generate embedding synchronously
+  const embedding = await this.embeddingService.generateEmbedding(markdown);
+  
+  // Store entity with embedding
   const result = await this.db.insert(entities).values({
     ...extractedFields,
     content: markdown,
-    embedding: null,
-    embeddingStatus: 'pending'
+    embedding // Always present, no status needed
   });
-
-  // Queue for embedding generation
-  await this.embeddingQueue.add({
-    entityId: result.id,
-    content: markdown
-  });
-
+  
   return entity;
 }
+```
 
-// Background processing
-async processEmbeddingQueue() {
-  const pending = await this.getPendingEmbeddings();
-  for (const job of pending) {
-    const embedding = await this.embeddingService.generate(job.content);
-    await this.updateEmbedding(job.entityId, embedding);
+### Local Model Architecture
+
+```typescript
+class EmbeddingService {
+  private model: Pipeline | null = null;
+  
+  async initialize() {
+    // Load model once at startup (23MB for MiniLM)
+    this.model = await pipeline('feature-extraction', 
+      'Xenova/all-MiniLM-L6-v2');
+  }
+  
+  async generateEmbedding(text: string): Promise<Float32Array> {
+    const output = await this.model(text, {
+      pooling: 'mean',
+      normalize: true
+    });
+    return new Float32Array(output.data);
   }
 }
 ```
 
-### Embedding Service Design
+### Model Selection
 
-- **Pluggable Providers**: Support OpenAI, Anthropic, local models
-- **Automatic Retry**: Handle API failures gracefully
-- **Batch Processing**: Generate multiple embeddings efficiently
-- **Status Tracking**: 'pending' | 'processing' | 'ready' | 'failed'
+- **Model**: all-MiniLM-L6-v2
+- **Size**: 23MB download
+- **Dimensions**: 384 (important for schema)
+- **Performance**: ~200-300ms on Pi 5
+- **Quality**: Good enough for RAG applications
 
 ### Search Behavior
 
-- Only search entities with `embeddingStatus: 'ready'`
-- Fallback to keyword search for pending entities
-- Transparent to API consumers
+- All entities are immediately searchable
+- No pending state - embeddings always available
+- Vector similarity search using cosine distance
+- Can combine with keyword/tag filtering
 
-### Future Local Model Support
+### Benefits of Local-First Approach
 
-When needed for offline/constrained environments:
-
-- all-MiniLM-L6-v2: 23MB, ~300ms on Pi 5
-- Trade-off: Lower quality but no network dependency
-- Configuration option: `embedding.mode: 'local' | 'api'`
+1. **Reliability**: No network dependencies or API failures
+2. **Speed**: No network latency for search queries
+3. **Privacy**: All data stays local
+4. **Cost**: No API usage fees
+5. **Simplicity**: No queue infrastructure needed
 
 ## Migration Path
 
@@ -215,17 +222,17 @@ When needed for offline/constrained environments:
 - Modify schema to store full Markdown in `content` column
 - Add embedding and status columns
 
-### Phase 2: Entity Service Refactor (Current)
+### Phase 2: Entity Service Refactor ✓
 
 - Update create/update to serialize via Markdown
 - Implement markdown parsing and field extraction
-- Add embedding queue infrastructure
 
-### Phase 3: Embedding Integration
+### Phase 3: Local Embedding Integration (Current)
 
-- Implement embedding service interface
-- Add background worker for processing
-- Configure provider (start with OpenAI)
+- Remove embeddingStatus field (not needed with sync generation)
+- Update embedding dimensions from 1536 to 384
+- Implement embedding service with Transformers.js
+- Generate embeddings synchronously on creation
 
 ### Phase 4: Testing & Validation
 

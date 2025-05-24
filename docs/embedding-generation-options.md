@@ -4,6 +4,8 @@
 
 This document compares two approaches for generating embeddings in the Personal Brain shell service: asynchronous generation with external APIs vs synchronous generation with local models.
 
+**Decision**: Based on the requirements for fast, reliable RAG functionality, we've chosen to implement **synchronous local embeddings** using all-MiniLM-L6-v2.
+
 ## Context
 
 - Embeddings are the primary use case for the storage system

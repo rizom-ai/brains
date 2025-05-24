@@ -19,7 +19,7 @@ tags: [test, example]
 This is the content.`;
 
       const result = parseMarkdown(markdown);
-      
+
       expect(result.frontmatter).toEqual({
         title: "Test Note",
         tags: ["test", "example"],
@@ -33,14 +33,14 @@ This is the content.`;
 No frontmatter here.`;
 
       const result = parseMarkdown(markdown);
-      
+
       expect(result.frontmatter).toEqual({});
       expect(result.content).toBe("# Just Content\n\nNo frontmatter here.");
     });
 
     it("should handle empty markdown", () => {
       const result = parseMarkdown("");
-      
+
       expect(result.frontmatter).toEqual({});
       expect(result.content).toBe("");
     });
@@ -116,7 +116,7 @@ contentWeight: 0.8
 Content here`;
 
       const fields = extractIndexedFields(markdown, "entity_123");
-      
+
       expect(fields).toEqual({
         title: "Test Entity",
         tags: ["one", "two", "three"],
@@ -128,7 +128,7 @@ Content here`;
       const markdown = `Just some content`;
 
       const fields = extractIndexedFields(markdown, "entity_123");
-      
+
       expect(fields).toEqual({
         title: "Just some content",
         tags: [],
@@ -142,7 +142,7 @@ tags: [valid, 123, "", "  ", another]
 ---`;
 
       const fields = extractIndexedFields(markdown, "entity_123");
-      
+
       expect(fields.tags).toEqual(["valid", "another"]);
     });
 
@@ -173,7 +173,7 @@ contentWeight: -0.5
       const content = "This is the content.";
 
       const markdown = generateMarkdown(frontmatter, content);
-      
+
       expect(markdown).toContain("---");
       expect(markdown).toContain("title: Generated Note");
       expect(markdown).toContain("tags:");
@@ -183,7 +183,7 @@ contentWeight: -0.5
 
     it("should handle empty frontmatter", () => {
       const markdown = generateMarkdown({}, "Just content");
-      
+
       expect(markdown.trim()).toBe("Just content");
     });
   });

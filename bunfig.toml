@@ -1,0 +1,5 @@
+# Bun configuration
+
+[install]
+# Optional dependencies to skip
+optional = ["sharp"]

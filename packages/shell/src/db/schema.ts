@@ -26,7 +26,7 @@ const vector = customType<{
   driverData: Buffer;
 }>({
   dataType() {
-    return "F32_BLOB(1536)"; // 1536 dimensions for OpenAI ada-002
+    return "F32_BLOB(384)"; // 384 dimensions for all-MiniLM-L6-v2
   },
   toDriver(value: Float32Array): Buffer {
     return Buffer.from(value.buffer);
@@ -61,10 +61,7 @@ export const entities = sqliteTable("entities", {
     .default(sql`'[]'`),
 
   // Vector embedding for semantic search
-  embedding: vector("embedding"),
-  embeddingStatus: text("embeddingStatus")
-    .$type<"pending" | "processing" | "ready" | "failed">()
-    .default("pending"),
+  embedding: vector("embedding").notNull(),
 
   // Timestamps (stored as Unix milliseconds for consistency)
   created: integer("created")
@@ -104,17 +101,13 @@ export const entityRelations = sqliteTable("entity_relations", {
 export const insertEntitySchema = createInsertSchema(entities, {
   tags: z.array(z.string()).default([]),
   contentWeight: z.number().min(0).max(1).default(1.0),
-  embedding: z.instanceof(Float32Array).optional(),
-  embeddingStatus: z
-    .enum(["pending", "processing", "ready", "failed"])
-    .default("pending"),
+  embedding: z.instanceof(Float32Array),
 });
 
 export const selectEntitySchema = createSelectSchema(entities, {
   tags: z.array(z.string()),
   contentWeight: z.number().min(0).max(1),
-  embedding: z.instanceof(Float32Array).optional(),
-  embeddingStatus: z.enum(["pending", "processing", "ready", "failed"]),
+  embedding: z.instanceof(Float32Array),
 });
 
 export const insertEntityRelationSchema = createInsertSchema(entityRelations, {

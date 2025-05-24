@@ -3,6 +3,7 @@ import { entities, createId, selectEntitySchema } from "../db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import type { EntityAdapter } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@personal-brain/utils";
+import type { IEmbeddingService } from "../embedding/embeddingService";
 import type {
   BaseEntity,
   IContentModel,
@@ -32,6 +33,16 @@ const searchOptionsSchema = z.object({
 });
 
 /**
+ * Options for creating an EntityService instance
+ */
+export interface EntityServiceOptions {
+  db: DrizzleDB;
+  embeddingService: IEmbeddingService;
+  entityRegistry?: EntityRegistry;
+  logger?: Logger;
+}
+
+/**
  * EntityService provides CRUD operations for entities
  * Implements Component Interface Standardization pattern
  */
@@ -41,19 +52,14 @@ export class EntityService {
   private db: DrizzleDB;
   private entityRegistry: EntityRegistry;
   private logger: Logger;
+  private embeddingService: IEmbeddingService;
 
   /**
    * Get the singleton instance of EntityService
    */
-  public static getInstance(
-    db: DrizzleDB,
-    entityRegistry: EntityRegistry = EntityRegistry.getInstance(
-      Logger.getInstance(),
-    ),
-    logger: Logger = Logger.getInstance(),
-  ): EntityService {
+  public static getInstance(options: EntityServiceOptions): EntityService {
     if (!EntityService.instance) {
-      EntityService.instance = new EntityService(db, entityRegistry, logger);
+      EntityService.instance = new EntityService(options);
     }
     return EntityService.instance;
   }
@@ -68,25 +74,18 @@ export class EntityService {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(
-    db: DrizzleDB,
-    entityRegistry: EntityRegistry,
-    logger: Logger,
-  ): EntityService {
-    return new EntityService(db, entityRegistry, logger);
+  public static createFresh(options: EntityServiceOptions): EntityService {
+    return new EntityService(options);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(
-    db: DrizzleDB,
-    entityRegistry: EntityRegistry,
-    logger: Logger,
-  ) {
-    this.db = db;
-    this.entityRegistry = entityRegistry;
-    this.logger = logger.child("EntityService");
+  private constructor(options: EntityServiceOptions) {
+    this.db = options.db;
+    this.embeddingService = options.embeddingService;
+    this.entityRegistry = options.entityRegistry ?? EntityRegistry.getInstance(Logger.getInstance());
+    this.logger = (options.logger ?? Logger.getInstance()).child("EntityService");
   }
 
   /**
@@ -118,6 +117,9 @@ export class EntityService {
       validatedEntity.id,
     );
 
+    // Generate embedding synchronously
+    const embedding = await this.embeddingService.generateEmbedding(markdown);
+
     // Store in database
     await this.db.insert(entities).values({
       id: validatedEntity.id,
@@ -128,8 +130,7 @@ export class EntityService {
       updated: new Date(validatedEntity.updated).getTime(),
       tags, // Use extracted tags
       contentWeight, // Use extracted contentWeight
-      embedding: null,
-      embeddingStatus: "pending",
+      embedding, // Always present with local generation
     });
 
     this.logger.info(
@@ -214,6 +215,9 @@ export class EntityService {
       validatedEntity.id,
     );
 
+    // Generate new embedding
+    const embedding = await this.embeddingService.generateEmbedding(markdown);
+
     // Update in database
     await this.db
       .update(entities)
@@ -223,6 +227,7 @@ export class EntityService {
         updated: new Date(validatedEntity.updated).getTime(),
         tags, // Use extracted tags
         contentWeight, // Use extracted contentWeight
+        embedding, // Update embedding
       })
       .where(eq(entities.id, validatedEntity.id));
 

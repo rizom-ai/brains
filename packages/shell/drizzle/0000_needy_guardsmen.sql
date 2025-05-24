@@ -5,8 +5,7 @@ CREATE TABLE `entities` (
 	`content` text NOT NULL,
 	`contentWeight` real DEFAULT 1 NOT NULL,
 	`tags` text DEFAULT '[]' NOT NULL,
-	`embedding` F32_BLOB(1536),
-	`embeddingStatus` text DEFAULT 'pending',
+	`embedding` F32_BLOB(384) NOT NULL,
 	`created` integer NOT NULL,
 	`updated` integer NOT NULL
 );

@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "sqlite",
-  "id": "7341e8e5-7fbf-47e3-b6b0-6093d66b36d2",
+  "id": "65a1bbad-acc7-4469-bca9-d0f9f21cbcb4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "entities": {
@@ -53,18 +53,10 @@
         },
         "embedding": {
           "name": "embedding",
-          "type": "F32_BLOB(1536)",
+          "type": "F32_BLOB(384)",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
-        },
-        "embeddingStatus": {
-          "name": "embeddingStatus",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": "'pending'"
         },
         "created": {
           "name": "created",

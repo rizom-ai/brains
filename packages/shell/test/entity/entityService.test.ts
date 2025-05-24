@@ -8,6 +8,14 @@ import { createSilentLogger, type Logger } from "@personal-brain/utils";
 import { baseEntitySchema } from "@/types";
 import type { IContentModel } from "@/types";
 import { createId } from "@/db/schema";
+import type { IEmbeddingService } from "@/embedding/embeddingService";
+
+// Create a mock embedding service
+const mockEmbeddingService: IEmbeddingService = {
+  generateEmbedding: async () => new Float32Array(384).fill(0.1),
+  generateEmbeddings: async (texts: string[]) => 
+    texts.map(() => new Float32Array(384).fill(0.1)),
+};
 
 // ============================================================================
 // TEST NOTE ENTITY (following documented functional approach)
@@ -73,7 +81,12 @@ describe("EntityService", (): void => {
     // Create fresh instances
     logger = createSilentLogger();
     entityRegistry = EntityRegistry.createFresh(logger);
-    entityService = EntityService.createFresh(mockDb, entityRegistry, logger);
+    entityService = EntityService.createFresh({
+      db: mockDb,
+      embeddingService: mockEmbeddingService,
+      entityRegistry,
+      logger,
+    });
   });
 
   test("getSupportedEntityTypes returns empty array when no types registered", (): void => {
