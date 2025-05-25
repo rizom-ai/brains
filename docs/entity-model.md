@@ -4,18 +4,19 @@ The entity model is a core part of the Personal Brain architecture. It provides 
 
 ## Core Design Principles
 
-### Functional Approach (No Classes)
+### Functional Approach for Entities
 
 - **Zod schemas** for validation and type inference
 - **TypeScript interfaces** for type definitions
-- **Factory functions** for entity creation
-- **Pure functions** for entity operations
+- **Factory functions** for entity creation (no classes for entities)
+- **Adapter classes** for serialization (classes are used for adapters)
 
-### Universal Content Interface
+### Markdown-Centric Storage
 
-- All entities implement `IContentModel` for markdown conversion
-- Consistent `toMarkdown()` method across all entity types
-- Storage agnostic through markdown serialization
+- All entities stored as markdown with YAML frontmatter
+- Adapters handle conversion between entities and markdown
+- Database stores the full markdown representation
+- Embeddings stored separately in vector column
 
 ## Core Concepts
 
@@ -38,19 +39,26 @@ export const baseEntitySchema = z.object({
 export type BaseEntity = z.infer<typeof baseEntitySchema>;
 ```
 
-### Content Model Interface
+### Current Implementation Status
 
-Every entity must implement markdown conversion:
+The shell package already includes:
 
-```typescript
-export interface IContentModel {
-  // Convert entity to markdown representation
-  toMarkdown(): string;
-}
+- **EntityRegistry**: Manages entity types and adapters
+- **EntityService**: Provides CRUD operations and search
+- **EntityAdapter interface**: Currently expects `fromMarkdown` only
+- **IContentModel interface**: Currently expects entities to have `toMarkdown()`
+- **Database schema**: Tables for entities and embeddings
 
-// All entities must satisfy this type
-type Entity = BaseEntity & IContentModel;
-```
+### Migration Strategy
+
+The current implementation has entities implement `IContentModel` with `toMarkdown()`. To migrate to adapter-only serialization:
+
+1. **Update EntityAdapter interface** to include `toMarkdown(entity: T): string`
+2. **Remove IContentModel requirement** from entity types
+3. **Update EntityService** to use adapter's `toMarkdown` instead of entity's
+4. **Create pure data entity types** without methods
+
+This can be done incrementally as new entity types are added.
 
 ### Entity Creation Pattern
 
@@ -64,29 +72,23 @@ const noteSchema = baseEntitySchema.extend({
   priority: z.enum(["low", "medium", "high"]).default("medium"),
 });
 
-// 2. Infer the type
-type Note = z.infer<typeof noteSchema> & IContentModel;
+// 2. Infer the type (pure data, no methods)
+type Note = z.infer<typeof noteSchema>;
 
 // 3. Create factory function
 function createNote(
-  input: Omit<z.input<typeof noteSchema>, "id" | "created" | "updated"> & {
+  input: Omit<z.input<typeof noteSchema>, "id" | "created" | "updated" | "entityType"> & {
     id?: string;
   },
 ): Note {
-  const validated = noteSchema.parse({
-    id: input.id ?? createId(),
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
+  const now = new Date().toISOString();
+  return noteSchema.parse({
+    id: input.id ?? nanoid(12),
+    created: now,
+    updated: now,
     entityType: "note",
     ...input,
   });
-
-  return {
-    ...validated,
-    toMarkdown(): string {
-      return `# ${this.title}\n\n${this.content}`;
-    },
-  };
 }
 
 // 4. Usage
@@ -102,36 +104,51 @@ const note = createNote({
 Each entity type requires an adapter for markdown serialization:
 
 ```typescript
-export interface EntityAdapter<T extends BaseEntity & IContentModel> {
-  // Convert from markdown to entity
+export interface EntityAdapter<T extends BaseEntity> {
+  // Bidirectional markdown conversion
+  toMarkdown(entity: T): string;
   fromMarkdown(markdown: string, metadata?: Record<string, unknown>): T;
 
-  // Extract metadata for frontmatter
+  // Metadata handling
   extractMetadata(entity: T): Record<string, unknown>;
-
-  // Parse frontmatter from markdown
   parseFrontMatter(markdown: string): Record<string, unknown>;
-
-  // Generate frontmatter for markdown storage
   generateFrontMatter(entity: T): string;
 }
 
 // Example implementation
 class NoteAdapter implements EntityAdapter<Note> {
+  toMarkdown(note: Note): string {
+    const frontmatter = this.generateFrontMatter(note);
+    const content = note.content || '';
+    const title = note.title ? `# ${note.title}\n\n` : '';
+    
+    return `${frontmatter}${title}${content}`;
+  }
+
   fromMarkdown(markdown: string, metadata?: Record<string, unknown>): Note {
     const { data, content } = matter(markdown);
     const parsedData = metadata ?? data;
 
+    // Extract title from content if not in frontmatter
+    let title = parsedData["title"] as string;
+    let noteContent = content.trim();
+    
+    if (!title) {
+      const match = noteContent.match(/^#\s+(.+)$/m);
+      if (match) {
+        title = match[1];
+        // Remove the title line from content
+        noteContent = noteContent.replace(/^#\s+.+\n?/, '').trim();
+      }
+    }
+
     return createNote({
       id: parsedData["id"] as string,
-      title: (parsedData["title"] as string) || "Untitled",
-      content: content.trim(),
+      title: title || "Untitled",
+      content: noteContent,
       tags: Array.isArray(parsedData["tags"]) ? parsedData["tags"] : [],
       category: parsedData["category"] as string,
-      priority:
-        (parsedData["priority"] as "low" | "medium" | "high") || "medium",
-      created: (parsedData["created"] as string) || new Date().toISOString(),
-      updated: (parsedData["updated"] as string) || new Date().toISOString(),
+      priority: (parsedData["priority"] as "low" | "medium" | "high") || "medium",
     });
   }
 
@@ -148,7 +165,15 @@ class NoteAdapter implements EntityAdapter<Note> {
     };
   }
 
-  // ... other methods
+  generateFrontMatter(entity: Note): string {
+    const metadata = this.extractMetadata(entity);
+    return matter.stringify('', metadata);
+  }
+
+  parseFrontMatter(markdown: string): Record<string, unknown> {
+    const { data } = matter(markdown);
+    return data;
+  }
 }
 ```
 

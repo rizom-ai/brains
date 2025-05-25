@@ -1,29 +1,38 @@
 # Architecture Overview
 
-The Personal Brain application is being rebuilt with a more modular, plugin-based architecture that addresses several key challenges in the current codebase. This document provides a high-level overview of the new architecture.
+The Personal Brain application features a modular, plugin-based architecture built around a core shell that provides essential infrastructure for knowledge management.
 
 ## Core Architecture Principles
 
-1. **Plugin-Based Architecture**: All functionality is implemented as plugins that register with a core shell.
-2. **Extensible Entity Model**: A unified approach to data modeling that contexts can extend.
-3. **Schema-First Design**: All data structures use Zod schemas for validation and type safety.
-4. **Clear Component Boundaries**: Well-defined interfaces between all components.
-5. **Behavioral Testing**: Focus on testing behavior rather than implementation details.
+1. **Monolithic Shell with Plugin Support**: Core functionality lives in the shell package, with plugin interfaces for extensibility
+2. **Functional Entity Model**: Uses factory functions and Zod schemas for entity creation, not classes
+3. **Schema-First Design**: All data structures use Zod schemas for validation and type safety
+4. **Component Interface Standardization**: Consistent singleton pattern across all major components
+5. **Behavioral Testing**: Focus on testing behavior rather than implementation details
 
-## Package Structure
+## Current Implementation State
 
-The "brains" repository supports multiple brain implementations with shared infrastructure:
+### Implemented Packages
 
-- **packages/shell**: Core brain infrastructure shared by all brain types
-- **packages/mcp-server**: MCP protocol server implementation 
+- **packages/shell**: Core brain infrastructure with all essential components
+  - Registry system with singleton pattern
+  - Plugin framework with lifecycle management
+  - Entity model with adapters and markdown storage
+  - Database layer with Drizzle ORM and vector support
+  - Messaging system with pub/sub pattern
+  - Query processor for natural language processing
+  - AI services (embeddings via FastEmbed, chat via Anthropic)
+  - MCP tool/resource integration
+- **packages/mcp-server**: MCP protocol server implementation
 - **packages/utils**: Shared utilities including logging and markdown processing
-- **packages/cli**: Command-line interface package (future)
-- **packages/matrix-bot**: Matrix bot interface package (future)
-- **apps/personal-brain**: Personal knowledge management brain
-- **apps/team-brain**: Team collaboration brain (future)
-- **apps/collective-brain**: Community knowledge brain (future)
 
-The architecture emphasizes shared core infrastructure that can be specialized for different brain types, with each brain accessible through multiple client interfaces.
+### Future Packages (Planned)
+
+- **packages/cli**: Command-line interface package
+- **packages/matrix-bot**: Matrix bot interface package
+- **apps/personal-brain**: Unified application supporting multiple modes
+- **apps/team-brain**: Team collaboration brain
+- **apps/collective-brain**: Community knowledge brain
 
 See [Package Structure](./architecture/package-structure.md) for detailed information.
 
@@ -31,98 +40,164 @@ See [Package Structure](./architecture/package-structure.md) for detailed inform
 
 ### 1. Shell Core (packages/shell)
 
-The shell provides the essential infrastructure for the application:
+The shell provides the core infrastructure and extension points for plugins:
 
-- **Registry System**: Central registration and resolution of components
-- **Plugin Framework**: Registration and lifecycle management for plugins
-- **Messaging System**: Schema-validated message passing between components
-- **MCP Server**: HTTP and stdio interfaces for external communication
-- **Protocol Layer**: Command handling and message routing
+**Core Infrastructure:**
+- **Registry System**: Component registration and dependency injection
+- **Plugin Manager**: Manages plugin lifecycles and dependencies
+- **Entity Framework**: Base entity types, registry, and adapters
+- **Database Layer**: SQLite with vector support (384 dimensions)
+- **AI Services**: Local embeddings (FastEmbed) and chat (Anthropic)
+- **Query Processor**: Natural language query handling
+- **Messaging System**: Pub/sub message passing between components
+- **Brain Protocol**: Command routing and execution
+
+**Plugin Types:**
+- **Context Plugins** (primary): Domain-specific functionality (Note, Task, Profile)
+- **Interface Plugins** (future): External interfaces (CLI, Matrix)
+- **Feature Plugins** (future): Additional capabilities (sync, backup)
 
 ```
-┌─────────────────────────────────────┐
-│             MCP Server              │
-│  ┌─────────┐         ┌───────────┐  │
-│  │  HTTP   │         │   Stdio   │  │
-│  └─────────┘         └───────────┘  │
-│             ▲               ▲       │
-└─────────────┼───────────────┼───────┘
-              │               │
-              ▼               ▼
-┌─────────────────────────────────────┐
-│          Brain Protocol             │
-│  ┌─────────┐         ┌───────────┐  │
-│  │ Command │         │  Message  │  │
-│  │ Router  │         │  Handler  │  │
-│  └─────────┘         └───────────┘  │
-│             ▲               ▲       │
-└─────────────┼───────────────┼───────┘
-              │               │
-              ▼               ▼
-┌─────────────────────────────────────┐
-│           Plugin System             │
-│  ┌─────────┐         ┌───────────┐  │
-│  │ Context │         │  Feature  │  │
-│  │ Registry│         │  Registry │  │
-│  └─────────┘         └───────────┘  │
-└─────────────────────────────────────┘
+                External Interfaces
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│ MCP Server  │  │  CLI (fut)  │  │Matrix (fut) │
+└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+       │                │                │
+       ▼                ▼                ▼
+┌─────────────────────────────────────────────────┐
+│                 Shell Core                      │
+│                                                 │
+│  ┌───────────────────────────────────────────┐  │
+│  │            Plugin Manager                 │  │
+│  │                                           │  │
+│  │  Manages all plugin types:                │  │
+│  │  ┌─────────────┐ ┌─────────────┐         │  │
+│  │  │Note Context │ │Task Context │         │  │
+│  │  │             │ │             │         │  │
+│  │  │• Note entity│ │• Task entity│         │  │
+│  │  │• Note cmds  │ │• Task cmds  │         │  │
+│  │  │• Note msgs  │ │• Task msgs  │         │  │
+│  │  └─────────────┘ └─────────────┘         │  │
+│  └─────────────┬─────────────────────────────┘  │
+│                │                               │
+│                ▼                               │
+│  ┌───────────────────────────────────────────┐  │
+│  │         Extension Points                  │  │
+│  │                                           │  │
+│  │  BrainProtocol ← register commands        │  │
+│  │  MessageBus   ← register handlers         │  │
+│  │  EntityRegistry ← register types          │  │
+│  └───────────────────────────────────────────┘  │
+│                                                 │
+│  ┌───────────────────────────────────────────┐  │
+│  │           Core Services                   │  │
+│  │  • EntityService  • QueryProcessor        │  │
+│  │  • AI Services   • Database               │  │
+│  └───────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────┘
+
+How Plugins Extend the Shell:
+1. Context plugins register entity types with EntityRegistry
+2. Plugins register commands with BrainProtocol
+3. Plugins register message handlers with MessageBus
+4. All plugins share the same core services and infrastructure
+5. Plugin Manager handles initialization order and dependencies
 ```
 
 ### 2. Entity Framework
 
-The entity framework provides a unified approach to data modeling:
+The entity framework uses a functional approach with factory functions and Zod schemas:
 
-- **Base Entity Types**: Common properties and behaviors
-- **Entity Registry**: Registration system for entity types
-- **Entity Adapters**: Type-specific adapters for storage and processing
-- **Repository**: Unified data access layer
+- **Base Entity Schema**: Common properties (id, type, created, updated, tags)
+- **Entity Registry**: Registration system for entity types and adapters
+- **Entity Adapters**: Convert between entities and markdown storage
+- **Entity Service**: Unified CRUD operations and search
+
+Key Design Principles:
+- **Functional Approach**: Factory functions, not classes, for entities
+- **Markdown Storage**: All entities stored as markdown with frontmatter
+- **Type Safety**: Zod schemas for validation
+- **Adapter Pattern**: Each entity type has an adapter for serialization
 
 ```
 ┌─────────────────────────────────────┐
 │          Entity Framework           │
-│  ┌─────────┐         ┌───────────┐  │
-│  │ Entity  │         │  Entity   │  │
-│  │ Registry│         │  Adapter  │  │
-│  └─────────┘         └───────────┘  │
-│             ▲               ▲       │
-└─────────────┼───────────────┼───────┘
-              │               │
-              ▼               ▼
-┌─────────────────────────────────────┐
-│          Repository Layer           │
-│  ┌─────────┐         ┌───────────┐  │
-│  │ Storage │         │  Search   │  │
-│  │ Access  │         │  Service  │  │
-│  └─────────┘         └───────────┘  │
+│                                     │
+│  Entity Creation (Functional):      │
+│  ┌─────────────────────────────┐    │
+│  │ const note = createNote({   │    │
+│  │   title: "My Note",         │    │
+│  │   content: "...",           │    │
+│  │   tags: ["work"]            │    │
+│  │ });                         │    │
+│  └─────────────────────────────┘    │
+│                                     │
+│  ┌─────────────────────────────┐    │
+│  │      EntityRegistry         │    │
+│  │  • Register entity types    │    │
+│  │  • Register adapters        │    │
+│  │  • Validate entities        │    │
+│  └──────────┬──────────────────┘    │
+│             │                       │
+│  ┌──────────▼──────────────────┐    │
+│  │      EntityService          │    │
+│  │  • CRUD operations          │    │
+│  │  • Vector search            │    │
+│  │  • Tag-based search         │    │
+│  └──────────┬──────────────────┘    │
+│             │                       │
+│  ┌──────────▼──────────────────┐    │
+│  │   Database (SQLite)         │    │
+│  │  • Markdown storage         │    │
+│  │  • Vector embeddings        │    │
+│  └─────────────────────────────┘    │
 └─────────────────────────────────────┘
 ```
 
 ### 3. Context Plugins
 
-Each domain of functionality is implemented as a context plugin:
+Context plugins are the primary plugin type, representing domains of functionality:
 
-- **Entity Definitions**: Context-specific entity types
-- **Tool Definitions**: Commands and tools for the context
-- **Message Handlers**: Processing of context-specific messages
-- **Services**: Business logic for the context
+**Current Context Plugins (planned):**
+- **Note Context**: Note management with markdown support
+- **Task Context**: Task tracking and management
+- **Profile Context**: User profiles and preferences
+- **Project Context**: Project organization
 
-Example structure of a context plugin:
+**What Context Plugins Provide:**
+- **Entity Type**: Domain-specific entity (e.g., Note, Task)
+- **Factory Function**: Creates entities with validation
+- **Entity Adapter**: Handles markdown serialization
+- **Commands**: Domain operations (e.g., create-note, list-notes)
+- **Message Handlers**: Async operations and events
+- **Services**: Business logic and operations
 
 ```
 ┌─────────────────────────────────────┐
-│           Note Context              │
-│  ┌─────────┐         ┌───────────┐  │
-│  │  Note   │         │   Note    │  │
-│  │ Entity  │         │  Adapter  │  │
-│  └─────────┘         └───────────┘  │
+│      Note Context Plugin            │
 │                                     │
-│  ┌─────────┐         ┌───────────┐  │
-│  │  Note   │         │   Note    │  │
-│  │ Service │         │   Tools   │  │
-│  └─────────┘         └───────────┘  │
-│                                     │
+│  Registration:                      │
 │  ┌─────────────────────────────┐    │
-│  │     Message Handlers        │    │
+│  │ plugin.register(context) {  │    │
+│  │   // Register entity type   │    │
+│  │   entityRegistry.register(  │    │
+│  │     "note",                 │    │
+│  │     noteSchema,             │    │
+│  │     noteAdapter             │    │
+│  │   );                        │    │
+│  │                             │    │
+│  │   // Register commands      │    │
+│  │   brainProtocol.register(   │    │
+│  │     "create-note",          │    │
+│  │     createNoteHandler       │    │
+│  │   );                        │    │
+│  │                             │    │
+│  │   // Register messages      │    │
+│  │   messageBus.register(      │    │
+│  │     "note.created",         │    │
+│  │     noteCreatedHandler      │    │
+│  │   );                        │    │
+│  │ }                           │    │
 │  └─────────────────────────────┘    │
 └─────────────────────────────────────┘
 ```
@@ -172,21 +247,25 @@ The typical data flow in the application follows these steps:
 The "brains" repository is designed to support multiple brain implementations:
 
 ### Core Infrastructure (Shared by all brains)
+
 - **@brains/shell**: Core infrastructure and plugin system
 - **@brains/mcp-server**: MCP protocol server
 - **@brains/utils**: Shared utilities
 
 ### Client Packages (Future)
+
 - **@brains/cli**: Command-line interface
 - **@brains/matrix**: Matrix chat interface
 
 ### Context Plugins (Shared across brain types)
+
 - **@brains/note-context**: Note management functionality
 - **@brains/task-context**: Task management functionality
 - **@brains/person-context**: Person/profile management functionality
 - **@brains/project-context**: Project management functionality
 
 ### Brain Applications
+
 - **apps/personal-brain**: Personal knowledge management
 - **apps/team-brain**: Team collaboration (future)
 - **apps/collective-brain**: Community knowledge (future)

@@ -89,11 +89,13 @@ The repository supports different brain types that share core infrastructure:
 ### Brain Types
 
 1. **Personal Brain** (`apps/personal-brain`)
+
    - Individual knowledge management
    - Personal notes, tasks, and projects
    - Private by default
 
 2. **Team Brain** (`apps/team-brain`) - Future
+
    - Shared team knowledge
    - Collaborative features
    - Permission-based access
@@ -106,11 +108,13 @@ The repository supports different brain types that share core infrastructure:
 ### Shared vs. Specific Contexts
 
 Some contexts are shared across all brain types:
+
 - `@brains/note-context` - Notes work the same in all brains
 - `@brains/task-context` - Tasks have universal structure
 - `@brains/project-context` - Projects follow common patterns
 
 Some contexts may be brain-specific:
+
 - `@brains/personal-context` - Personal profiles, preferences
 - `@brains/team-context` - Team-specific features
 - `@brains/collective-context` - Community governance
@@ -201,6 +205,7 @@ Each app should include build scripts in `package.json`:
 ### Distribution
 
 The compiled executables are self-contained and include:
+
 - All application code
 - All dependencies
 - Bun runtime

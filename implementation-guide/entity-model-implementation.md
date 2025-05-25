@@ -4,99 +4,105 @@ This guide provides detailed steps for implementing the unified entity model in 
 
 ## Overview
 
-The unified entity model is a core component of the rebuild architecture, providing a consistent approach to managing different types of data (notes, profiles, etc.) through a common interface with markdown as the primary storage format.
+The unified entity model is already implemented in the shell package. This guide explains how to create new entity types (like Note, Task, Profile) that work with the existing infrastructure.
+
+## Current State
+
+The shell package already provides:
+- **EntityRegistry**: For registering entity types and adapters
+- **EntityService**: For CRUD operations and search
+- **EntityAdapter interface**: For markdown serialization (currently requires `fromMarkdown` only)
+- **Database schema**: SQLite tables with vector support
 
 ## Prerequisites
 
-Before implementing the entity model:
-
-1. Set up the skeleton core infrastructure as described in `skeleton-implementation.md`
+1. The shell infrastructure is already set up
 2. Review the entity model documentation in `../docs/entity-model.md`
-3. Understand the markdown-centric storage approach
+3. Understand that entities are stored as markdown with YAML frontmatter
 
 ## Implementation Steps
 
-### 1. Define Base Entity Types
+### 1. Create a New Entity Type
 
-First, implement the core types that define the entity model interface.
-
-Create `src/types/entity.ts`:
+To add a new entity type (e.g., Note), create the schema and factory function:
 
 ```typescript
 import { z } from "zod";
+import { nanoid } from "nanoid";
+import { baseEntitySchema } from "@personal-brain/shell/src/types";
 
-/**
- * Base entity interface
- * Defines the common properties for all entity types
- */
-export interface BaseEntity {
-  id: string;
-  type: string;
-  title?: string;
-  content?: string;
-  created: string;
-  updated: string;
-  tags?: string[];
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * Entity interface that extends BaseEntity with embedding
- */
-export interface Entity extends BaseEntity {
-  embedding?: number[];
-}
-
-/**
- * Schema for validating base entity properties
- */
-export const baseEntitySchema = z.object({
-  id: z.string().min(1, "ID is required"),
-  type: z.string().min(1, "Type is required"),
-  title: z.string().optional(),
-  content: z.string().optional(),
-  created: z.string().datetime(),
-  updated: z.string().datetime(),
-  tags: z.array(z.string()).optional(),
-  metadata: z.record(z.unknown()).optional(),
+// 1. Define entity-specific schema
+export const noteSchema = baseEntitySchema.extend({
+  entityType: z.literal("note"),
+  category: z.string().optional(),
+  priority: z.enum(["low", "medium", "high"]).default("medium"),
 });
 
-/**
- * Type for entity search options
- */
-export interface EntitySearchOptions {
-  entityTypes?: string[];
-  limit?: number;
-  includeEmbeddings?: boolean;
-  includeMetadata?: boolean;
-  tags?: string[];
-  dateRange?: {
-    start?: string;
-    end?: string;
+// 2. Infer the type (currently entities must implement IContentModel)
+export type Note = z.infer<typeof noteSchema> & {
+  toMarkdown(): string;
+};
+
+// 3. Create factory function
+export function createNote(
+  input: Omit<z.input<typeof noteSchema>, "id" | "created" | "updated" | "entityType"> & {
+    id?: string;
+  },
+): Note {
+  const now = new Date().toISOString();
+  const validated = noteSchema.parse({
+    id: input.id ?? nanoid(12),
+    created: now,
+    updated: now,
+    entityType: "note",
+    ...input,
+  });
+
+  return {
+    ...validated,
+    toMarkdown(): string {
+      return `# ${this.title}\n\n${this.content}`;
+    },
   };
 }
 ```
 
-### 2. Implement EntityAdapter Interface
+### 2. Create an Entity Adapter
 
-The EntityAdapter is the bridge between entities and their markdown representation.
-
-Create `src/entity/entityAdapter.ts`:
+Create an adapter that implements the EntityAdapter interface:
 
 ```typescript
-import { BaseEntity, Entity } from "../types/entity";
+import matter from "gray-matter";
+import type { EntityAdapter } from "@personal-brain/shell/src/entity/entityRegistry";
+import type { Note } from "./noteEntity";
+import { createNote } from "./noteEntity";
 
-/**
- * EntityAdapter interface
- * Defines the contract for converting between entities and markdown
- */
-export interface EntityAdapter<T extends BaseEntity> {
-  /**
-   * Convert markdown to entity
-   * @param markdown Markdown string with optional frontmatter
-   * @returns Entity instance
-   */
-  fromMarkdown(markdown: string): T;
+export class NoteAdapter implements EntityAdapter<Note> {
+  fromMarkdown(markdown: string, metadata?: Record<string, unknown>): Note {
+    const { data, content } = matter(markdown);
+    const parsedData = metadata ?? data;
+
+    // Extract title from content if not in frontmatter
+    let title = parsedData["title"] as string;
+    let noteContent = content.trim();
+    
+    if (!title) {
+      const match = noteContent.match(/^#\s+(.+)$/m);
+      if (match) {
+        title = match[1];
+        noteContent = noteContent.replace(/^#\s+.+\n?/, '').trim();
+      }
+    }
+
+    return createNote({
+      id: parsedData["id"] as string,
+      title: title || "Untitled",
+      content: noteContent,
+      tags: Array.isArray(parsedData["tags"]) ? parsedData["tags"] : [],
+      category: parsedData["category"] as string,
+      priority: (parsedData["priority"] as "low" | "medium" | "high") || "medium",
+    });
+  }
 
   /**
    * Convert entity to markdown

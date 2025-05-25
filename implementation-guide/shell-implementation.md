@@ -1,21 +1,31 @@
 # Shell Implementation Guide
 
-This guide provides detailed instructions for implementing the core shell of the Personal Brain application. The shell serves as the foundation for the entire application and includes:
+This guide explains the shell package architecture. The shell is **already implemented** and provides the core infrastructure for the Personal Brain application.
 
-1. Registry system
-2. Plugin framework
-3. Entity model
-4. Database infrastructure
-5. Messaging system
-6. MCP Server
+## Current Implementation
 
-## Starting Point
+The shell package includes:
 
-Begin by creating a new Turborepo monorepo structure:
+1. **Registry system** - Component registration with singleton pattern
+2. **Plugin framework** - Plugin lifecycle management
+3. **Entity model** - Base types and registry for entities
+4. **Database infrastructure** - SQLite with Drizzle ORM and vector support
+5. **Messaging system** - Pub/sub message bus
+6. **Query processor** - Natural language query handling
+7. **AI services** - FastEmbed for embeddings, Anthropic for chat
+8. **MCP integration** - Tool and resource adapters
+
+## Shell Status
+
+✅ **COMPLETE** - The shell package is fully implemented with all core components
+
+## Starting a New Project (If Needed)
+
+If creating a new monorepo with Bun:
 
 ```bash
 # Create the monorepo
-pnpm dlx create-turbo@latest
+bun create turbo@latest
 cd personal-brain
 
 # Create the shell package
@@ -23,7 +33,7 @@ mkdir -p packages/shell
 cd packages/shell
 
 # Initialize the package
-pnpm init
+bun init
 ```
 
 ## Directory Structure

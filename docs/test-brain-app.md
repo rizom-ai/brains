@@ -67,7 +67,7 @@ import { createLogger } from "@brains/utils";
 
 async function main() {
   const logger = createLogger("test-brain");
-  
+
   try {
     const app = new TestBrainApp({
       dbPath: process.env.TEST_DB_PATH || ":memory:",
@@ -75,16 +75,15 @@ async function main() {
       enableStdio: process.env.MCP_STDIO === "true",
       logLevel: process.env.LOG_LEVEL || "info",
     });
-    
+
     await app.start();
-    
+
     // Handle graceful shutdown
     process.on("SIGINT", async () => {
       logger.info("Shutting down test-brain...");
       await app.stop();
       process.exit(0);
     });
-    
   } catch (error) {
     logger.error("Failed to start test-brain", error);
     process.exit(1);
@@ -117,25 +116,25 @@ export class TestBrainApp {
   private shell: Shell;
   private mcpServer: MCPServer;
   private logger: Logger;
-  
+
   constructor(private config: TestBrainConfig) {
     this.logger = createLogger("TestBrainApp");
   }
-  
+
   async start(): Promise<void> {
     // Initialize database
     const client = createClient({
       url: this.config.dbPath,
     });
     const db = drizzle(client);
-    
+
     // Create mock services for testing
     const mockEmbeddingService = {
       generateEmbedding: async () => new Float32Array(384).fill(0.1),
       generateEmbeddings: async (texts: string[]) =>
         texts.map(() => new Float32Array(384).fill(0.1)),
     };
-    
+
     const mockAIService = {
       generateObject: async (_sys: string, _user: string, schema: any) => ({
         object: schema.parse({
@@ -149,7 +148,7 @@ export class TestBrainApp {
         usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
       }),
     };
-    
+
     // Initialize shell
     this.shell = Shell.createFresh({
       db,
@@ -157,34 +156,34 @@ export class TestBrainApp {
       embeddingService: mockEmbeddingService,
       aiService: mockAIService as any,
     });
-    
+
     await this.shell.initialize();
-    
+
     // Register test context
     await this.shell.registerPlugin(testContextPlugin);
-    
+
     // Initialize MCP server
     this.mcpServer = MCPServer.createFresh({
       name: "Test Brain",
       version: "0.1.0",
     });
-    
+
     // Register shell with MCP
     registerShellMCP(this.mcpServer.getServer(), this.shell);
-    
+
     // Start MCP server
     if (this.config.enableStdio) {
       await this.mcpServer.startStdio();
     } else {
       await this.mcpServer.startHttp(this.config.mcpPort);
     }
-    
+
     this.logger.info("Test brain started", {
       stdio: this.config.enableStdio,
       port: this.config.mcpPort,
     });
   }
-  
+
   async stop(): Promise<void> {
     await this.mcpServer.stop();
     await this.shell.shutdown();
@@ -206,7 +205,7 @@ export const testContextPlugin: ContextPlugin = {
   name: "Test Context",
   version: "1.0.0",
   description: "Minimal test context for test-brain",
-  
+
   async register(context: PluginContext): Promise<void> {
     // Register entity type
     context.entityRegistry.registerEntityType(
@@ -214,14 +213,14 @@ export const testContextPlugin: ContextPlugin = {
       testEntitySchema,
       new TestEntityAdapter(),
     );
-    
+
     // Register service
     const service = new TestService(
       context.entityRegistry,
       context.logger.child("TestService"),
     );
     context.registry.register("TestService", service);
-    
+
     // Register tools
     context.messageBus.registerHandler("tool:create-test", async (message) => {
       const { title, value } = message.payload as any;
@@ -233,10 +232,10 @@ export const testContextPlugin: ContextPlugin = {
         payload: { success: true, entity },
       };
     });
-    
+
     context.logger.info("Test context registered");
   },
-  
+
   async unregister(context: PluginContext): Promise<void> {
     context.registry.unregister("TestService");
     context.logger.info("Test context unregistered");
@@ -284,7 +283,7 @@ import { MCPClient } from "@modelcontextprotocol/sdk/client/index.js";
 describe("Test Brain Integration", () => {
   let app: TestBrainApp;
   let client: MCPClient;
-  
+
   beforeAll(async () => {
     app = new TestBrainApp({
       dbPath: ":memory:",
@@ -293,7 +292,7 @@ describe("Test Brain Integration", () => {
       logLevel: "error",
     });
     await app.start();
-    
+
     // Connect MCP client
     client = new MCPClient({
       name: "test-client",
@@ -301,26 +300,26 @@ describe("Test Brain Integration", () => {
     });
     await client.connect("http://localhost:3001");
   });
-  
+
   afterAll(async () => {
     await client.close();
     await app.stop();
   });
-  
+
   it("should create and query test entities", async () => {
     // Create entity
     const createResult = await client.callTool("create-test", {
       title: "Integration Test",
       value: "test-value",
     });
-    
+
     expect(createResult.success).toBe(true);
-    
+
     // Query entities
     const queryResult = await client.callTool("brain_query", {
       query: "test entities",
     });
-    
+
     expect(queryResult.answer).toContain("Integration Test");
   });
 });

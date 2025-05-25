@@ -5,6 +5,7 @@ Git sync provides version control and synchronization capabilities for brain dat
 ## Architecture Overview
 
 Git sync is implemented as a core service in the shell, not as a plugin. This ensures:
+
 - All entity types benefit from version control
 - Consistent sync behavior across different brain types
 - No dependencies on specific contexts
@@ -38,47 +39,47 @@ export interface GitSyncConfig {
 
 export class GitSyncService {
   private static instance: GitSyncService | null = null;
-  
+
   public static getInstance(): GitSyncService {
     if (!GitSyncService.instance) {
       GitSyncService.instance = new GitSyncService();
     }
     return GitSyncService.instance;
   }
-  
+
   public static resetInstance(): void {
     GitSyncService.instance = null;
   }
-  
+
   public static createFresh(): GitSyncService {
     return new GitSyncService();
   }
-  
+
   private constructor(
     private config?: GitSyncConfig,
     private logger?: Logger,
     private entityService?: EntityService,
   ) {}
-  
+
   async initialize(config: GitSyncConfig): Promise<void> {
     // Initialize git repository
     // Set up file watchers
     // Configure auto-sync if enabled
   }
-  
+
   async syncAll(): Promise<void> {
     // Export all entities to markdown
     // Stage changes
     // Commit with timestamp
     // Push to remote if configured
   }
-  
+
   async pull(): Promise<void> {
     // Pull from remote
     // Import changed markdown files
     // Update database
   }
-  
+
   async push(): Promise<void> {
     // Export current state
     // Commit changes
