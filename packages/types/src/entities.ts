@@ -18,7 +18,6 @@ export const baseEntitySchema = z.object({
  */
 export type BaseEntity = z.infer<typeof baseEntitySchema>;
 
-
 /**
  * Search result type
  */

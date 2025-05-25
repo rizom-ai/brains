@@ -5,10 +5,7 @@ import type { EntityAdapter } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type { IEmbeddingService } from "../embedding/embeddingService";
 import { calculateCosineSimilarity } from "../utils/similarity";
-import type {
-  BaseEntity,
-  SearchResult,
-} from "@brains/types";
+import type { BaseEntity, SearchResult } from "@brains/types";
 import type { SearchOptions } from "../types";
 import { eq, and, inArray, desc, asc } from "drizzle-orm";
 import { z } from "zod";
@@ -191,9 +188,7 @@ export class EntityService {
   /**
    * Update an existing entity
    */
-  public async updateEntity<T extends BaseEntity>(
-    entity: T,
-  ): Promise<T> {
+  public async updateEntity<T extends BaseEntity>(entity: T): Promise<T> {
     this.logger.debug(
       `Updating entity of type ${entity.entityType} with ID ${entity.id}`,
     );

@@ -48,10 +48,7 @@ export { createDatabase, runMigrations } from "./db";
 export * from "./db/schema";
 
 // Types that are shell-specific
-export type {
-  SerializableEntity,
-  SerializableQueryResult,
-} from "./types";
+export type { SerializableEntity, SerializableQueryResult } from "./types";
 
 // Schemas for validation
 export {
@@ -66,4 +63,3 @@ export {
   toSerializableQueryResult,
   validateAndSerializeQueryResult,
 } from "./utils/serialization";
-

@@ -170,7 +170,10 @@ class NoteAdapter implements EntityAdapter<Note> {
   }
 
   toMarkdown(entity: Note): string {
-    const categoryTag = entity.category && entity.category !== "general" ? ` [${entity.category}]` : "";
+    const categoryTag =
+      entity.category && entity.category !== "general"
+        ? ` [${entity.category}]`
+        : "";
     return `# ${entity.title}${categoryTag}\n\n${entity.content}`;
   }
 }

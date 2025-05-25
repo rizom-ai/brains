@@ -5,7 +5,11 @@ import type {
   BrainProtocol,
 } from "@brains/types";
 import { GitSync } from "./gitSync";
-import { gitSyncConfigSchema, type GitSyncConfig, type GitSyncConfigInput } from "./types";
+import {
+  gitSyncConfigSchema,
+  type GitSyncConfig,
+  type GitSyncConfigInput,
+} from "./types";
 
 export class GitSyncPlugin implements Plugin {
   id = "git-sync";

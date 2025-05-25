@@ -1,6 +1,10 @@
 import type { Logger } from "@brains/utils";
 import type { BaseMessage, MessageResponse } from "./types";
-import type { MessageHandler as IMessageHandler, MessageWithPayload as IMessageWithPayload, MessageBus as IMessageBus } from "@brains/types";
+import type {
+  MessageHandler as IMessageHandler,
+  MessageWithPayload as IMessageWithPayload,
+  MessageBus as IMessageBus,
+} from "@brains/types";
 
 /**
  * Message bus for handling messages between components
@@ -54,12 +58,14 @@ export class MessageBus implements IMessageBus {
     type: string,
     handler: IMessageHandler<T, R>,
   ): () => void {
-    const wrappedHandler = async (message: BaseMessage): Promise<MessageResponse | null> => {
-      if ('payload' in message) {
+    const wrappedHandler = async (
+      message: BaseMessage,
+    ): Promise<MessageResponse | null> => {
+      if ("payload" in message) {
         // Convert from IMessageBus response to local MessageResponse
         const result = await handler(message as IMessageWithPayload<T>);
         if (!result) return null;
-        
+
         return {
           id: `resp-${Date.now()}`,
           requestId: message.id,
@@ -81,7 +87,7 @@ export class MessageBus implements IMessageBus {
       handlers.add(wrappedHandler);
     }
     this.logger.info(`Registered handler for message type: ${type}`);
-    
+
     // Return unsubscribe function
     // We just clear all handlers for the type since we wrap them
     return () => this.clearHandlers(type);
@@ -128,11 +134,13 @@ export class MessageBus implements IMessageBus {
         data: response.data as R,
       };
     }
-    
+
     // Return error response if no handler found
     return {
       success: false,
-      error: response?.error?.message || `No handler found for message type: ${type}`,
+      error:
+        response?.error?.message ||
+        `No handler found for message type: ${type}`,
     };
   }
 

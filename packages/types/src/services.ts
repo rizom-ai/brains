@@ -50,17 +50,13 @@ export interface EntityService {
   deleteEntity(entityType: string, id: string): Promise<void>;
 
   // List and search
-  listEntities<T extends BaseEntity>(
-    options?: ListOptions,
-  ): Promise<T[]>;
+  listEntities<T extends BaseEntity>(options?: ListOptions): Promise<T[]>;
 
   search(query: string, options?: SearchOptions): Promise<SearchResult[]>;
 
   // Entity type management
   getEntityTypes(): string[];
-  getAdapter<T extends BaseEntity>(
-    entityType: string,
-  ): EntityAdapter<T>;
+  getAdapter<T extends BaseEntity>(entityType: string): EntityAdapter<T>;
 }
 
 /**

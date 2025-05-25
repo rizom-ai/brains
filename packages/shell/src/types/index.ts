@@ -6,7 +6,6 @@ import type { BaseEntity } from "@brains/types";
  */
 export type Entity = BaseEntity;
 
-
 /**
  * Search options schema for entity queries - shell-specific
  */

@@ -1,8 +1,4 @@
-import type {
-  EntityService,
-  BaseEntity,
-  Logger,
-} from "@brains/types";
+import type { EntityService, BaseEntity, Logger } from "@brains/types";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 import { join } from "path";
@@ -102,7 +98,9 @@ export class GitSync {
     // Ensure repo path exists
     if (!existsSync(this.repoPath)) {
       mkdirSync(this.repoPath, { recursive: true });
-      this.logger.info("Created git repository directory", { path: this.repoPath });
+      this.logger.info("Created git repository directory", {
+        path: this.repoPath,
+      });
     }
 
     // Git instance will be created lazily via getter

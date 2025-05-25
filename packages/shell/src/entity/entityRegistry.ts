@@ -30,10 +30,7 @@ export class EntityRegistry {
   private static instance: EntityRegistry | null = null;
 
   private entitySchemas = new Map<string, z.ZodType<unknown>>();
-  private entityAdapters = new Map<
-    string,
-    EntityAdapter<BaseEntity>
-  >();
+  private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   private logger: Logger;
 
   /**
@@ -106,9 +103,7 @@ export class EntityRegistry {
   /**
    * Get adapter for a specific entity type
    */
-  getAdapter<T extends BaseEntity>(
-    type: string,
-  ): EntityAdapter<T> {
+  getAdapter<T extends BaseEntity>(type: string): EntityAdapter<T> {
     const adapter = this.entityAdapters.get(type);
     if (!adapter) {
       throw new Error(`No adapter registered for entity type: ${type}`);
@@ -150,10 +145,7 @@ export class EntityRegistry {
   /**
    * Create entity from markdown with frontmatter
    */
-  markdownToEntity<T extends BaseEntity>(
-    type: string,
-    markdown: string,
-  ): T {
+  markdownToEntity<T extends BaseEntity>(type: string, markdown: string): T {
     const adapter = this.getAdapter<T>(type);
 
     // Parse frontmatter

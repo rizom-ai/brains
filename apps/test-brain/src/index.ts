@@ -30,10 +30,10 @@ async function main() {
     branch: "main",
     autoSync: false, // Manual sync for testing
   });
-  
+
   shell.getPluginManager().registerPlugin(gitSyncPlugin);
   console.log("✅ Git-sync plugin registered");
-  
+
   // Initialize the shell (runs migrations, sets up plugins, etc.)
   await shell.initialize();
 
