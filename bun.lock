@@ -17,6 +17,7 @@
       "name": "@brains/test-brain",
       "version": "0.0.1",
       "dependencies": {
+        "@brains/mcp-server": "workspace:*",
         "@brains/shell": "workspace:*",
       },
       "devDependencies": {
@@ -31,6 +32,23 @@
         "@typescript-eslint/eslint-plugin": "^6.3.0",
         "@typescript-eslint/parser": "^6.3.0",
         "eslint-config-prettier": "^8.10.0",
+      },
+    },
+    "packages/git-sync": {
+      "name": "@brains/git-sync",
+      "version": "0.0.1",
+      "dependencies": {
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "simple-git": "^3.21.0",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
       },
     },
     "packages/mcp-server": {
@@ -55,6 +73,8 @@
       "dependencies": {
         "@ai-sdk/anthropic": "^1.2.12",
         "@anthropic-ai/sdk": "^0.13.0",
+        "@brains/mcp-server": "workspace:*",
+        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.15.7",
         "@modelcontextprotocol/sdk": "^1.12.0",
@@ -77,6 +97,21 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "drizzle-kit": "^0.20.14",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "packages/types": {
+      "name": "@brains/types",
+      "version": "0.0.0",
+      "dependencies": {
+        "@brains/utils": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.12.0",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
         "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
@@ -124,11 +159,15 @@
 
     "@brains/eslint-config": ["@brains/eslint-config@workspace:packages/eslint-config"],
 
+    "@brains/git-sync": ["@brains/git-sync@workspace:packages/git-sync"],
+
     "@brains/mcp-server": ["@brains/mcp-server@workspace:packages/mcp-server"],
 
     "@brains/shell": ["@brains/shell@workspace:packages/shell"],
 
     "@brains/test-brain": ["@brains/test-brain@workspace:apps/test-brain"],
+
+    "@brains/types": ["@brains/types@workspace:packages/types"],
 
     "@brains/typescript-config": ["@brains/typescript-config@workspace:packages/typescript-config"],
 
@@ -203,6 +242,10 @@
     "@humanwhocodes/object-schema": ["@humanwhocodes/object-schema@2.0.3", "", {}, "sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA=="],
 
     "@isaacs/fs-minipass": ["@isaacs/fs-minipass@4.0.1", "", { "dependencies": { "minipass": "^7.0.4" } }, "sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w=="],
+
+    "@kwsites/file-exists": ["@kwsites/file-exists@1.1.1", "", { "dependencies": { "debug": "^4.1.1" } }, "sha512-m9/5YGR18lIwxSFDwfE3oA7bWuq9kdau6ugN4H2rJeyhFQZcG9AgSHkQtSD15a8WvTgfz9aikZMrKPHvbpqFiw=="],
+
+    "@kwsites/promise-deferred": ["@kwsites/promise-deferred@1.1.1", "", {}, "sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw=="],
 
     "@libsql/client": ["@libsql/client@0.15.7", "", { "dependencies": { "@libsql/core": "^0.15.7", "@libsql/hrana-client": "^0.7.0", "js-base64": "^3.7.5", "libsql": "^0.5.11", "promise-limit": "^2.7.0" } }, "sha512-2rKekOBINDKXGwB0I5qeTDuom2944hEkWkjN8O41j95/HRKP+3sk/fq6/PoPJSuwY3pgWAS8vyby+FgOyPnIVQ=="],
 
@@ -919,6 +962,8 @@
     "side-channel-weakmap": ["side-channel-weakmap@1.0.2", "", { "dependencies": { "call-bound": "^1.0.2", "es-errors": "^1.3.0", "get-intrinsic": "^1.2.5", "object-inspect": "^1.13.3", "side-channel-map": "^1.0.1" } }, "sha512-WPS/HvHQTYnHisLo9McqBHOJk2FkHO/tlpvldyrnem4aeQp4hai3gythswg6p01oSoTl58rcpiFAjF2br2Ak2A=="],
 
     "signal-exit": ["signal-exit@4.1.0", "", {}, "sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw=="],
+
+    "simple-git": ["simple-git@3.27.0", "", { "dependencies": { "@kwsites/file-exists": "^1.1.1", "@kwsites/promise-deferred": "^1.1.1", "debug": "^4.3.5" } }, "sha512-ivHoFS9Yi9GY49ogc6/YAi3Fl9ROnF4VyubNylgCkA+RVqLaKWnDSzXOVzya8csELIaWaYNutsEuAhZrtOjozA=="],
 
     "sisteransi": ["sisteransi@1.0.5", "", {}, "sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg=="],
 

@@ -8,12 +8,14 @@
   "scripts": {
     "build": "tsc",
     "dev": "bun run src/index.ts",
+    "server": "bun run src/index.ts --server",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
-    "@brains/shell": "workspace:*"
+    "@brains/shell": "workspace:*",
+    "@brains/mcp-server": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

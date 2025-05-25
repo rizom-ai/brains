@@ -7,11 +7,16 @@ import { SchemaRegistry } from "./schema/schemaRegistry";
 import { MessageBus } from "./messaging/messageBus";
 import { PluginManager } from "./plugins/pluginManager";
 import { EntityService } from "./entity/entityService";
-import { EmbeddingService, type IEmbeddingService } from "./embedding/embeddingService";
+import {
+  EmbeddingService,
+  type IEmbeddingService,
+} from "./embedding/embeddingService";
 import { QueryProcessor } from "./query/queryProcessor";
 import { BrainProtocol } from "./protocol/brainProtocol";
 import { AIService } from "./ai/aiService";
 import { Logger, LogLevel } from "@brains/utils";
+import { MCPServer } from "@brains/mcp-server";
+import { registerShellMCP } from "./mcp";
 import type { QueryResult } from "./types";
 import type { Command, CommandResponse } from "./protocol/brainProtocol";
 import type { Plugin } from "./plugins/pluginManager";
@@ -28,6 +33,8 @@ export interface ShellDependencies {
   logger?: Logger;
   embeddingService?: IEmbeddingService;
   aiService?: AIService;
+  mcpServer?: MCPServer;
+  entityService?: EntityService;
 }
 
 /**
@@ -54,6 +61,7 @@ export class Shell {
   private readonly queryProcessor: QueryProcessor;
   private readonly brainProtocol: BrainProtocol;
   private readonly aiService: AIService;
+  private readonly mcpServer: MCPServer;
   private initialized = false;
 
   /**
@@ -82,11 +90,14 @@ export class Shell {
    * @param config - Configuration for the shell (required if dependencies are provided)
    * @param dependencies - Optional dependencies for testing
    */
-  public static createFresh(config: Partial<ShellConfig>, dependencies?: ShellDependencies): Shell;
+  public static createFresh(
+    config: Partial<ShellConfig>,
+    dependencies?: ShellDependencies,
+  ): Shell;
   public static createFresh(config?: Partial<ShellConfig>): Shell;
   public static createFresh(
     config?: Partial<ShellConfig>,
-    dependencies?: ShellDependencies
+    dependencies?: ShellDependencies,
   ): Shell {
     const fullConfig = createShellConfig(config);
     return new Shell(fullConfig, dependencies);
@@ -97,7 +108,7 @@ export class Shell {
    */
   private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
     this.config = config;
-    
+
     // Default initialization when no dependencies are injected
     if (!dependencies) {
       // Create logger
@@ -107,10 +118,10 @@ export class Shell {
         warn: LogLevel.WARN,
         error: LogLevel.ERROR,
       }[config.logging.level];
-      
-      this.logger = Logger.createFresh({ 
+
+      this.logger = Logger.createFresh({
         level: logLevel,
-        context: config.logging.context 
+        context: config.logging.context,
       });
 
       // Create database connection
@@ -126,11 +137,13 @@ export class Shell {
       this.aiService = AIService.getInstance(config.ai, this.logger);
     } else {
       // Use injected dependencies (for testing)
-      this.logger = dependencies.logger ?? Logger.createFresh({ 
-        level: LogLevel.INFO,
-        context: config.logging.context 
-      });
-      
+      this.logger =
+        dependencies.logger ??
+        Logger.createFresh({
+          level: LogLevel.INFO,
+          context: config.logging.context,
+        });
+
       if (dependencies.db && dependencies.dbClient) {
         this.db = dependencies.db;
         this.dbClient = dependencies.dbClient;
@@ -142,9 +155,12 @@ export class Shell {
         this.db = db;
         this.dbClient = client;
       }
-      
-      this.embeddingService = dependencies.embeddingService ?? EmbeddingService.getInstance(this.logger);
-      this.aiService = dependencies.aiService ?? AIService.getInstance(config.ai, this.logger);
+
+      this.embeddingService =
+        dependencies.embeddingService ??
+        EmbeddingService.getInstance(this.logger);
+      this.aiService =
+        dependencies.aiService ?? AIService.getInstance(config.ai, this.logger);
     }
 
     // Initialize core components (they are all singletons)
@@ -158,12 +174,14 @@ export class Shell {
       this.messageBus,
     );
 
-    this.entityService = EntityService.getInstance({
-      db: this.db,
-      embeddingService: this.embeddingService,
-      entityRegistry: this.entityRegistry,
-      logger: this.logger,
-    });
+    this.entityService =
+      dependencies?.entityService ??
+      EntityService.getInstance({
+        db: this.db,
+        embeddingService: this.embeddingService,
+        entityRegistry: this.entityRegistry,
+        logger: this.logger,
+      });
 
     this.queryProcessor = QueryProcessor.getInstance({
       entityService: this.entityService,
@@ -177,6 +195,26 @@ export class Shell {
       this.queryProcessor,
     );
 
+    // Create or use injected MCP server
+    if (!dependencies?.mcpServer) {
+      this.mcpServer = MCPServer.getInstance({
+        name: "brain-mcp-server",
+        version: "1.0.0",
+        logger: this.logger,
+      });
+
+      // Register shell MCP capabilities
+      registerShellMCP(this.mcpServer.getServer(), {
+        queryProcessor: this.queryProcessor,
+        brainProtocol: this.brainProtocol,
+        entityService: this.entityService,
+        schemaRegistry: this.schemaRegistry,
+        logger: this.logger,
+      });
+    } else {
+      this.mcpServer = dependencies.mcpServer;
+    }
+
     // Register core components in the registry
     this.registry.register("shell", () => this);
     this.registry.register("entityRegistry", () => this.entityRegistry);
@@ -187,6 +225,7 @@ export class Shell {
     this.registry.register("queryProcessor", () => this.queryProcessor);
     this.registry.register("brainProtocol", () => this.brainProtocol);
     this.registry.register("aiService", () => this.aiService);
+    this.registry.register("mcpServer", () => this.mcpServer.getServer());
   }
 
   /**
@@ -313,5 +352,13 @@ export class Shell {
 
   public getAIService(): AIService {
     return this.aiService;
+  }
+
+  public getMCPServer(): MCPServer {
+    return this.mcpServer;
+  }
+
+  public getLogger(): Logger {
+    return this.logger;
   }
 }

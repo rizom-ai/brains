@@ -39,16 +39,17 @@ export function createDatabase(
 
 /**
  * Run database migrations
- * 
+ *
  * @param db The database instance
  * @param migrationsPath Optional path to migrations folder
  */
 export async function runMigrations(
   db: DrizzleDB,
-  migrationsPath?: string
+  migrationsPath?: string,
 ): Promise<void> {
   // If no path provided, use the shell's migrations
-  const folder = migrationsPath ?? new URL("../../drizzle", import.meta.url).pathname;
+  const folder =
+    migrationsPath ?? new URL("../../drizzle", import.meta.url).pathname;
   await migrate(db, { migrationsFolder: folder });
 }
 

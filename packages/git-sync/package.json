@@ -1,0 +1,27 @@
+{
+  "name": "@brains/git-sync",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
+  },
+  "dependencies": {
+    "@brains/types": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "simple-git": "^3.21.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.3"
+  }
+}

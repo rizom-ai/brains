@@ -9,11 +9,13 @@ import { PluginManager } from "@/plugins/pluginManager";
 import { EntityService } from "@/entity/entityService";
 import { QueryProcessor } from "@/query/queryProcessor";
 import { BrainProtocol } from "@/protocol/brainProtocol";
+import { MCPServer } from "@brains/mcp-server";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
 import type { AIService } from "@/ai/aiService";
 import { defaultQueryResponseSchema } from "@/schemas/defaults";
 import type { ShellConfig } from "@/config";
+import type { ShellDependencies } from "@/shell";
 
 // Create a mock embedding service
 const mockEmbeddingService: IEmbeddingService = {
@@ -21,6 +23,48 @@ const mockEmbeddingService: IEmbeddingService = {
   generateEmbeddings: async (texts: string[]) =>
     texts.map(() => new Float32Array(384).fill(0.1)),
 };
+
+// Create a mock MCP server
+const createMockMCPServer = (): MCPServer => {
+  const mockServer = {
+    tool: mock(() => {}),
+    resource: mock(() => {}),
+    prompt: mock(() => {}),
+    connect: mock(() => Promise.resolve()),
+    close: mock(() => Promise.resolve()),
+  };
+  
+  return {
+    getServer: () => mockServer,
+    startStdio: mock(() => Promise.resolve()),
+    stop: mock(() => {}),
+  } as unknown as MCPServer;
+};
+
+// Create a mock EntityService
+const createMockEntityService = (): EntityService => ({
+  // CRUD operations
+  createEntity: mock(async (entity) => ({ ...entity, id: "test-id" })),
+  getEntity: mock(async () => null),
+  updateEntity: mock(async (entity) => entity),
+  deleteEntity: mock(async () => {}),
+  
+  // List and search
+  listEntities: mock(async () => []),
+  search: mock(async () => []), // Return empty array to avoid database queries
+  searchByTags: mock(async () => []),
+  
+  // Entity type management
+  getEntityTypes: mock(() => ["note", "task"]),
+  getAllEntityTypes: mock(() => ["note", "task"]),
+  getSupportedEntityTypes: mock(() => ["note", "task"]),
+  getAdapter: mock(() => ({
+    entityType: "note",
+    schema: {},
+    fromMarkdown: mock(() => ({})),
+    toMarkdown: mock(() => ""),
+  })),
+}) as unknown as EntityService;
 
 // Create a mock AI service
 const createMockAIService = (): AIService =>
@@ -103,39 +147,40 @@ function createTestShell(configOverrides: Partial<ShellConfig> = {}): {
   shell: Shell;
   db: LibSQLDatabase<Record<string, never>>;
   logger: Logger;
-  dependencies: {
-    db: LibSQLDatabase<Record<string, never>>;
-    logger: Logger;
-    embeddingService: IEmbeddingService;
-    aiService: AIService;
-  };
+  dependencies: ShellDependencies;
 } {
   const db = createMockDatabase();
   const logger = createSilentLogger();
-  
+
   const config: Partial<ShellConfig> = {
-    ai: { 
+    ai: {
       apiKey: "test-key",
       provider: "anthropic" as const,
       model: "claude-3-haiku-20240307",
       temperature: 0.7,
-      maxTokens: 1000
+      maxTokens: 1000,
     },
-    ...configOverrides
+    features: {
+      runMigrationsOnInit: false, // Disable migrations for tests
+      enablePlugins: true,
+    },
+    ...configOverrides,
   };
-  
-  const dependencies = {
+
+  const dependencies: ShellDependencies = {
     db,
     logger,
     embeddingService: mockEmbeddingService,
     aiService: createMockAIService(),
+    mcpServer: createMockMCPServer(),
+    entityService: createMockEntityService(),
   };
-  
+
   return {
     shell: Shell.createFresh(config, dependencies),
     db,
     logger,
-    dependencies
+    dependencies,
   };
 }
 

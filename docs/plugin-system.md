@@ -1,6 +1,26 @@
 # Plugin System
 
-The plugin system is a core architectural feature of the Personal Brain application. It provides a flexible mechanism for extending the application with new functionality through contexts, tools, and services.
+The plugin system is a core architectural feature of the Personal Brain application. It provides a flexible mechanism for extending the application with new functionality through contexts and features.
+
+## Plugin Types
+
+### Context Plugins
+Domain-specific plugins that add new entity types and related functionality:
+- **Note Context**: Notes, journaling, documentation
+- **Task Context**: Tasks, todos, project management
+- **Profile Context**: People, contacts, relationships
+
+### Feature Plugins
+Cross-cutting functionality that works across all entity types:
+- **Git Sync**: Version control and synchronization
+- **Backup**: Export and backup functionality
+- **Analytics**: Usage statistics and insights
+
+### Interface Plugins
+Alternative ways to access the brain beyond MCP:
+- **Web Server**: HTTP/WebSocket API, REST endpoints, Web UI
+- **GraphQL**: GraphQL API server
+- **gRPC**: High-performance RPC interface
 
 ## Core Concepts
 
@@ -48,6 +68,18 @@ export interface PluginContext {
 
   // Message bus for communication
   messageBus: MessageBus;
+
+  // Brain protocol for registering commands
+  brainProtocol: BrainProtocol;
+
+  // MCP server for registering tools and resources
+  mcpServer: McpServer;
+
+  // Entity service for data operations
+  entityService: EntityService;
+
+  // Logger for plugin-specific logging
+  logger: Logger;
 
   // Tool registry for registering tools
   toolRegistry: ToolRegistry;
@@ -180,9 +212,9 @@ const websiteContext: ContextPlugin = {
 
 The plugin manager ensures that dependencies are initialized in the correct order.
 
-## Tool Registration
+## MCP Tool Registration
 
-Plugins can register tools to extend the application's capabilities:
+Plugins always register their functionality as MCP tools and resources:
 
 ```typescript
 // Define note tools
@@ -266,6 +298,128 @@ The plugin manager manages the lifecycle of all plugins:
 │                      Shutdown                           │
 └─────────────────────────────────────────────────────────┘
 ```
+
+## Feature Plugin Example
+
+Here's how a feature plugin like Git Sync works:
+
+```typescript
+// packages/git-sync/src/gitSyncPlugin.ts
+export class GitSyncPlugin implements Plugin {
+  id = "git-sync";
+  version = "1.0.0";
+  
+  register(context: PluginContext): PluginLifecycle {
+    const gitSync = new GitSync({
+      entityService: context.entityService,
+      logger: context.logger,
+    });
+    
+    // Register MCP tools
+    context.mcpServer.addTool({
+      name: "git_sync",
+      description: "Synchronize brain with git repository",
+      inputSchema: {
+        type: "object",
+        properties: {
+          operation: {
+            type: "string",
+            enum: ["sync", "pull", "push", "status"]
+          }
+        }
+      },
+      handler: async (input) => {
+        return await gitSync[input.operation]();
+      }
+    });
+    
+    // Register commands
+    context.brainProtocol.registerCommand("sync", () => gitSync.syncAll());
+    context.brainProtocol.registerCommand("sync:status", () => gitSync.getStatus());
+    
+    return {
+      onInitialize: () => gitSync.initialize(),
+      onShutdown: () => gitSync.shutdown(),
+    };
+  }
+}
+```
+
+## Interface Plugin Example
+
+Here's how the web server plugin provides HTTP access:
+
+```typescript
+// packages/web-server/src/webServerPlugin.ts
+export class WebServerPlugin implements Plugin {
+  id = "web-server";
+  version = "1.0.0";
+  
+  private server?: Server;
+  
+  register(context: PluginContext): PluginLifecycle {
+    return {
+      onInitialize: async () => {
+        this.server = Bun.serve({
+          port: 3000,
+          fetch: (req) => this.handleRequest(req, context),
+        });
+        
+        // Set up WebSocket for real-time updates
+        context.messageBus.on("entity.*", (event) => {
+          this.broadcast(event);
+        });
+      },
+      
+      onShutdown: () => this.server?.stop(),
+    };
+  }
+  
+  private async handleRequest(req: Request, context: PluginContext) {
+    const url = new URL(req.url);
+    
+    // REST API endpoints
+    if (url.pathname.startsWith("/api/")) {
+      return this.handleAPI(req, context);
+    }
+    
+    // MCP over HTTP
+    if (url.pathname === "/mcp") {
+      return this.handleMCPOverHTTP(req, context.mcpServer);
+    }
+    
+    // Serve web UI
+    return new Response("Brain Web UI", {
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+  
+  private async handleAPI(req: Request, context: PluginContext) {
+    const url = new URL(req.url);
+    
+    // Direct access to entity service for performance
+    if (url.pathname === "/api/entities" && req.method === "GET") {
+      const entities = await context.entityService.searchEntities("");
+      return Response.json({ entities });
+    }
+    
+    if (url.pathname === "/api/query" && req.method === "POST") {
+      const { query } = await req.json();
+      const result = await context.queryProcessor.processQuery(query);
+      return Response.json(result);
+    }
+    
+    return new Response("Not Found", { status: 404 });
+  }
+}
+```
+
+Benefits of interface plugins:
+- Direct access to core services for better performance
+- Can implement protocols that MCP doesn't support
+- Real-time features via WebSockets
+- Custom authentication and authorization
+- Serve static files and web UIs
 
 ## Plugin Configuration
 

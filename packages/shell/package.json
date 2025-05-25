@@ -21,6 +21,8 @@
     "@anthropic-ai/sdk": "^0.13.0",
     "@libsql/client": "^0.15.7",
     "@modelcontextprotocol/sdk": "^1.12.0",
+    "@brains/mcp-server": "workspace:*",
+    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "ai": "^4.3.16",
     "drizzle-orm": "^0.29.4",

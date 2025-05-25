@@ -4,11 +4,12 @@ The Personal Brain application features a modular, plugin-based architecture bui
 
 ## Core Architecture Principles
 
-1. **Monolithic Shell with Plugin Support**: Core functionality lives in the shell package, with plugin interfaces for extensibility
-2. **Functional Entity Model**: Uses factory functions and Zod schemas for entity creation, not classes
-3. **Schema-First Design**: All data structures use Zod schemas for validation and type safety
-4. **Component Interface Standardization**: Consistent singleton pattern across all major components
-5. **Behavioral Testing**: Focus on testing behavior rather than implementation details
+1. **MCP-First Design**: Every brain application is an MCP server, exposing all functionality through the Model Context Protocol
+2. **Monolithic Shell with Plugin Support**: Core functionality lives in the shell package, with plugin interfaces for extensibility
+3. **Functional Entity Model**: Uses factory functions and Zod schemas for entity creation, not classes
+4. **Schema-First Design**: All data structures use Zod schemas for validation and type safety
+5. **Component Interface Standardization**: Consistent singleton pattern across all major components
+6. **Behavioral Testing**: Focus on testing behavior rather than implementation details
 
 ## Current Implementation State
 
@@ -44,6 +45,7 @@ The shell provides the core infrastructure and extension points for plugins:
 
 **Core Infrastructure:**
 
+- **MCP Server**: Always-on Model Context Protocol server for exposing tools and resources
 - **Registry System**: Component registration and dependency injection
 - **Plugin Manager**: Manages plugin lifecycles and dependencies
 - **Entity Framework**: Base entity types, registry, and adapters
@@ -55,55 +57,81 @@ The shell provides the core infrastructure and extension points for plugins:
 
 **Plugin Types:**
 
-- **Context Plugins** (primary): Domain-specific functionality (Note, Task, Profile)
-- **Interface Plugins** (future): External interfaces (CLI, Matrix)
-- **Feature Plugins** (future): Additional capabilities (sync, backup)
+- **Context Plugins**: Domain-specific functionality (Note, Task, Profile)
+- **Feature Plugins**: Additional capabilities (git-sync, backup, import/export)
+- **Interface Plugins**: Alternative access methods (web-server, GraphQL)
+
+**Interface Architecture:**
+
+Multiple ways to interact with the brain:
+- **MCP Server** (built into shell): Always-on interface for MCP clients
+- **Interface Plugins**: Web server, GraphQL server (run in-process)
+- **External Interfaces**: CLI, Matrix bot (connect via MCP)
+- **Unified app with entry router**: Single deployable that can run different modes
 
 ```
-                External Interfaces
+              Interface Clients
 ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│ MCP Server  │  │  CLI (fut)  │  │Matrix (fut) │
+│     CLI     │  │ Matrix Bot  │  │   Web UI    │
 └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
-       │                │                │
-       ▼                ▼                ▼
+       │                 │                 │
+       └─────────────────┼─────────────────┘
+                         │
+                   MCP Protocol
+                         │
 ┌─────────────────────────────────────────────────┐
-│                 Shell Core                      │
-│                                                 │
+│              Brain Application                  │
 │  ┌───────────────────────────────────────────┐  │
-│  │            Plugin Manager                 │  │
+│  │         MCP Server (Always On)            │  │
+│  │  • Exposes all tools and resources        │  │
+│  │  • Handles client connections              │  │
+│  │  • Routes to Shell Core                   │  │
+│  └────────────────┬──────────────────────────┘  │
+│                   │                             │
+│  ┌────────────────▼──────────────────────────┐  │
+│  │              Shell Core                   │  │
 │  │                                           │  │
-│  │  Manages all plugin types:                │  │
-│  │  ┌─────────────┐ ┌─────────────┐         │  │
-│  │  │Note Context │ │Task Context │         │  │
-│  │  │             │ │             │         │  │
-│  │  │• Note entity│ │• Task entity│         │  │
-│  │  │• Note cmds  │ │• Task cmds  │         │  │
-│  │  │• Note msgs  │ │• Task msgs  │         │  │
-│  │  └─────────────┘ └─────────────┘         │  │
-│  └─────────────┬─────────────────────────────┘  │
-│                │                               │
-│                ▼                               │
-│  ┌───────────────────────────────────────────┐  │
-│  │         Extension Points                  │  │
+│  │  ┌──────────────────────────────────────┐ │  │
+│  │  │         Plugin Manager               │ │  │
+│  │  │                                      │ │  │
+│  │  │  Context Plugins:                    │ │  │
+│  │  │  ┌─────────────┐ ┌─────────────┐    │ │  │
+│  │  │  │Note Context │ │Task Context │    │ │  │
+│  │  │  │• Note entity│ │• Task entity│    │ │  │
+│  │  │  │• Note tools │ │• Task tools │    │ │  │
+│  │  │  └─────────────┘ └─────────────┘    │ │  │
+│  │  │                                      │ │  │
+│  │  │  Feature Plugins:                    │ │  │
+│  │  │  ┌─────────────┐ ┌─────────────┐    │ │  │
+│  │  │  │  Git Sync   │ │   Backup    │    │ │  │
+│  │  │  │• Sync tools │ │• Export tool│    │ │  │
+│  │  │  └─────────────┘ └─────────────┘    │ │  │
+│  │  │                                      │ │  │
+│  │  │  Interface Plugins:                  │ │  │
+│  │  │  ┌─────────────────────────────┐    │ │  │
+│  │  │  │      Web Server             │    │ │  │
+│  │  │  │ • HTTP/WebSocket server    │    │ │  │
+│  │  │  │ • REST & GraphQL APIs      │    │ │  │
+│  │  │  │ • Web UI hosting           │    │ │  │
+│  │  │  │ • MCP over HTTP            │    │ │  │
+│  │  │  └─────────────────────────────┘    │ │  │
+│  │  └──────────────────────────────────────┘ │  │
 │  │                                           │  │
-│  │  BrainProtocol ← register commands        │  │
-│  │  MessageBus   ← register handlers         │  │
-│  │  EntityRegistry ← register types          │  │
-│  └───────────────────────────────────────────┘  │
-│                                                 │
-│  ┌───────────────────────────────────────────┐  │
-│  │           Core Services                   │  │
-│  │  • EntityService  • QueryProcessor        │  │
-│  │  • AI Services   • Database               │  │
+│  │  ┌──────────────────────────────────────┐ │  │
+│  │  │         Core Services                │ │  │
+│  │  │  • EntityService  • QueryProcessor   │ │  │
+│  │  │  • AI Services    • Database         │ │  │
+│  │  │  • BrainProtocol  • MessageBus       │ │  │
+│  │  └──────────────────────────────────────┘ │  │
 │  └───────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────┘
 
-How Plugins Extend the Shell:
-1. Context plugins register entity types with EntityRegistry
-2. Plugins register commands with BrainProtocol
-3. Plugins register message handlers with MessageBus
-4. All plugins share the same core services and infrastructure
-5. Plugin Manager handles initialization order and dependencies
+Key Architecture Points:
+1. MCP Server is always initialized with the Shell
+2. All functionality exposed as MCP tools/resources
+3. Plugins register their tools with the MCP server
+4. Interface clients connect via MCP protocol
+5. Single deployable with multiple entry points
 ```
 
 ### 2. Entity Framework
@@ -219,7 +247,7 @@ Multiple client interfaces can connect to the brain through the MCP server:
 ```
 ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
 │   MCP Clients   │   │  CLI Package    │   │ Matrix Package  │
-│  (Claude, etc)  │   │    (future)     │   │    (future)     │
+│  (Claude, etc)  │   │    (@brains/cli)│   │(@brains/matrix) │
 └────────┬────────┘   └────────┬────────┘   └────────┬────────┘
          │                     │                     │
          ▼                     ▼                     ▼
@@ -234,6 +262,100 @@ Multiple client interfaces can connect to the brain through the MCP server:
 │              (Query Processing, Entity Management)           │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### 5. Deployment Architecture
+
+The brain application uses a single-bundle deployment strategy with multiple entry points:
+
+**Entry Router Pattern:**
+```typescript
+// apps/personal-brain/src/index.ts
+import { runBrainApp } from "@brains/shell";
+import { noteContext, taskContext } from "@brains/contexts";
+import { gitSync } from "@brains/git-sync";
+import { webServer } from "@brains/web-server";
+
+runBrainApp({
+  plugins: [
+    // Context plugins
+    noteContext(),
+    taskContext(),
+    
+    // Feature plugins  
+    gitSync({
+      repoPath: "./brain-repo",
+      autoSync: true,
+    }),
+    
+    // Interface plugins
+    webServer({
+      port: 3000,
+      cors: true,
+    }),
+  ],
+  
+  // Entry points for external interfaces
+  entryPoints: {
+    cli: () => import("./cli.js"),
+    matrix: () => import("./matrix.js"),
+  }
+});
+
+// apps/personal-brain/src/cli.ts
+import { Shell } from "@brains/shell";
+import { runCLI } from "@brains/cli";
+import { getPlugins } from "./config";
+
+// Start brain with same config
+const shell = Shell.getInstance();
+await shell.initialize();
+
+// Register all plugins
+for (const plugin of getPlugins()) {
+  await shell.registerPlugin(plugin);
+}
+
+// Start CLI interface
+runCLI({ shell });
+
+// apps/personal-brain/src/matrix.ts  
+import { Shell } from "@brains/shell";
+import { runMatrix } from "@brains/matrix";
+import { getPlugins } from "./config";
+
+// Start brain with same config
+const shell = Shell.getInstance();
+await shell.initialize();
+
+// Register all plugins
+for (const plugin of getPlugins()) {
+  await shell.registerPlugin(plugin);
+}
+
+// Start Matrix interface
+runMatrix({
+  shell,
+  homeserver: process.env.MATRIX_HOMESERVER,
+  accessToken: process.env.MATRIX_TOKEN,
+});
+```
+
+**Bundling with Bun:**
+```bash
+# Build single bundle with all interfaces
+bun build src/index.ts --outfile=dist/brain.js --target=node
+
+# Usage
+./brain              # Start brain with configured plugins (MCP server mode)
+./brain cli          # Start CLI with embedded brain
+./brain matrix       # Start Matrix bot with embedded brain
+```
+
+**Benefits:**
+- Single deployable artifact
+- Dynamic loading of interfaces
+- Tree-shaking removes unused code
+- Easy distribution and installation
 
 ## Data Flow
 

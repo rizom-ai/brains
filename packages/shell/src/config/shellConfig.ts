@@ -5,10 +5,12 @@ import { z } from "zod";
  */
 export const shellConfigSchema = z.object({
   // Database configuration
-  database: z.object({
-    url: z.string().default("file:./brain.db"),
-    authToken: z.string().optional(),
-  }).default({}),
+  database: z
+    .object({
+      url: z.string().default("file:./brain.db"),
+      authToken: z.string().optional(),
+    })
+    .default({}),
 
   // AI Service configuration
   ai: z.object({
@@ -20,22 +22,28 @@ export const shellConfigSchema = z.object({
   }),
 
   // Embedding configuration
-  embedding: z.object({
-    model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
-    cacheDir: z.string().optional(),
-  }).default({}),
+  embedding: z
+    .object({
+      model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
+      cacheDir: z.string().optional(),
+    })
+    .default({}),
 
   // Logging configuration
-  logging: z.object({
-    level: z.enum(["debug", "info", "warn", "error"]).default("info"),
-    context: z.string().default("shell"),
-  }).default({}),
+  logging: z
+    .object({
+      level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+      context: z.string().default("shell"),
+    })
+    .default({}),
 
   // Feature flags
-  features: z.object({
-    enablePlugins: z.boolean().default(true),
-    runMigrationsOnInit: z.boolean().default(true),
-  }).default({}),
+  features: z
+    .object({
+      enablePlugins: z.boolean().default(true),
+      runMigrationsOnInit: z.boolean().default(true),
+    })
+    .default({}),
 });
 
 export type ShellConfig = z.infer<typeof shellConfigSchema>;
@@ -43,12 +51,15 @@ export type ShellConfig = z.infer<typeof shellConfigSchema>;
 /**
  * Create a shell configuration from environment variables and overrides
  */
-export function createShellConfig(overrides: Partial<ShellConfig> = {}): ShellConfig {
+export function createShellConfig(
+  overrides: Partial<ShellConfig> = {},
+): ShellConfig {
   // Build config from environment with overrides
   const config = {
     database: {
       url: process.env["DATABASE_URL"] ?? overrides.database?.url,
-      authToken: process.env["DATABASE_AUTH_TOKEN"] ?? overrides.database?.authToken,
+      authToken:
+        process.env["DATABASE_AUTH_TOKEN"] ?? overrides.database?.authToken,
     },
     ai: {
       provider: "anthropic" as const,
@@ -59,7 +70,8 @@ export function createShellConfig(overrides: Partial<ShellConfig> = {}): ShellCo
     },
     embedding: {
       model: "fast-all-MiniLM-L6-v2" as const,
-      cacheDir: process.env["FASTEMBED_CACHE_DIR"] ?? overrides.embedding?.cacheDir,
+      cacheDir:
+        process.env["FASTEMBED_CACHE_DIR"] ?? overrides.embedding?.cacheDir,
     },
     logging: {
       level: process.env["LOG_LEVEL"] ?? overrides.logging?.level,
