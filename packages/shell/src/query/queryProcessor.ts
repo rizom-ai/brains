@@ -9,8 +9,8 @@ import type {
   QueryOptions,
   QueryResult,
   ModelResponse,
-  SearchResult,
 } from "../types";
+import type { SearchResult } from "@brains/types";
 
 /**
  * Configuration for QueryProcessor

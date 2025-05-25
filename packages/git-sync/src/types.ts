@@ -9,3 +9,4 @@ export const gitSyncConfigSchema = z.object({
 });
 
 export type GitSyncConfig = z.infer<typeof gitSyncConfigSchema>;
+export type GitSyncConfigInput = z.input<typeof gitSyncConfigSchema>;

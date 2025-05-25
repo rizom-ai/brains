@@ -94,10 +94,10 @@ The plugin exposes the following MCP tool:
 
 ```typescript
 interface GitSyncConfig {
-  repoPath: string;      // Path to git repository
-  remote?: string;       // Remote repository URL
-  branch?: string;       // Branch name (default: "main")
-  autoSync?: boolean;    // Enable automatic syncing
+  repoPath: string; // Path to git repository
+  remote?: string; // Remote repository URL
+  branch?: string; // Branch name (default: "main")
+  autoSync?: boolean; // Enable automatic syncing
   syncInterval?: number; // Sync interval in minutes
 }
 ```

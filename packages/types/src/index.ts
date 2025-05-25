@@ -1,12 +1,12 @@
 /**
  * @brains/types - Shared type definitions for the Brain system
- * 
+ *
  * This package contains all the shared types and interfaces that are used
  * across the Brain ecosystem, including the shell and all plugins.
  */
 
 // Entity types
-export type { BaseEntity, IContentModel, SearchResult } from "./entities";
+export type { BaseEntity, SearchResult } from "./entities";
 export { baseEntitySchema } from "./entities";
 
 // Plugin types

@@ -5,8 +5,7 @@ import { EntityRegistry } from "@/entity/entityRegistry";
 import type { DrizzleDB } from "@/db";
 
 import { createSilentLogger, type Logger } from "@personal-brain/utils";
-import { baseEntitySchema } from "@/types";
-import type { IContentModel } from "@/types";
+import { baseEntitySchema } from "@brains/types";
 import { createId } from "@/db/schema";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
 
@@ -32,7 +31,7 @@ const noteSchema = baseEntitySchema.extend({
 /**
  * Note entity type
  */
-type Note = z.infer<typeof noteSchema> & IContentModel;
+type Note = z.infer<typeof noteSchema>;
 
 /**
  * Factory function to create a Note entity (for testing)
@@ -49,15 +48,7 @@ function createNote(input: Partial<Note>): Note {
     category: undefined,
   };
 
-  const data = { ...defaults, ...input };
-
-  return {
-    ...data,
-    toMarkdown(): string {
-      const categoryTag = data.category ? ` [${data.category}]` : "";
-      return `# ${data.title}${categoryTag}\n\n${data.content}`;
-    },
-  };
+  return { ...defaults, ...input };
 }
 
 // ============================================================================
@@ -194,28 +185,5 @@ describe("EntityService", (): void => {
     expect(updatedEntity.id).toBe(entity.id); // Should not change
   });
 
-  test("entity toMarkdown includes category when present", (): void => {
-    const entityWithCategory = createNote({
-      title: "Test Note",
-      content: "Test content",
-      category: "work",
-    });
-
-    const markdown = entityWithCategory.toMarkdown();
-    expect(markdown).toContain("# Test Note [work]");
-    expect(markdown).toContain("Test content");
-  });
-
-  test("entity toMarkdown excludes category when not present", (): void => {
-    const entityWithoutCategory = createNote({
-      title: "Test Note",
-      content: "Test content",
-      category: undefined,
-    });
-
-    const markdown = entityWithoutCategory.toMarkdown();
-    expect(markdown).toContain("# Test Note");
-    expect(markdown).not.toContain("[");
-    expect(markdown).toContain("Test content");
-  });
+  // Note: toMarkdown tests removed - this is now handled by the adapter
 });

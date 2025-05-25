@@ -1,5 +1,6 @@
 import { Shell, registerShellMCP } from "@brains/shell";
 import { MCPServer } from "@brains/mcp-server";
+import { gitSync } from "@brains/git-sync";
 
 console.log("🧠 Test Brain - Validating Shell Architecture");
 
@@ -23,6 +24,16 @@ async function main() {
     },
   });
 
+  // Register git-sync plugin BEFORE initialization
+  const gitSyncPlugin = gitSync({
+    repoPath: "./brain-repo",
+    branch: "main",
+    autoSync: false, // Manual sync for testing
+  });
+  
+  shell.getPluginManager().registerPlugin(gitSyncPlugin);
+  console.log("✅ Git-sync plugin registered");
+  
   // Initialize the shell (runs migrations, sets up plugins, etc.)
   await shell.initialize();
 
@@ -36,7 +47,8 @@ async function main() {
       logger: {
         info: (msg: string) => console.error(`[MCP] ${msg}`),
         debug: (msg: string) => console.error(`[MCP DEBUG] ${msg}`),
-        error: (msg: string, err?: unknown) => console.error(`[MCP ERROR] ${msg}`, err),
+        error: (msg: string, err?: unknown) =>
+          console.error(`[MCP ERROR] ${msg}`, err),
         warn: (msg: string) => console.error(`[MCP WARN] ${msg}`),
       },
     });
@@ -55,7 +67,7 @@ async function main() {
     await mcpServer.startStdio();
     console.log("✅ MCP server started successfully");
     console.log("   Use this server with any MCP-compatible client");
-    
+
     // Keep the server running
     return;
   }
@@ -71,10 +83,9 @@ async function main() {
     hasQueryProcessor: !!queryProcessor,
   });
 
-  // TODO: Once we have context plugins, we'll register them here
-  // Example:
-  // import { NoteContext } from "@brains/note-context";
-  // shell.registerPlugin(new NoteContext());
+  // Note: We can't create entities without registering their adapters first
+  // This will be done when we create the note-context plugin
+  console.log("\nℹ️  Entity creation skipped - need context plugins first");
 
   // Test basic functionality
   try {

@@ -28,7 +28,7 @@ export interface MessageResponse<T = unknown> {
  * Message handler function
  */
 export type MessageHandler<T = unknown, R = unknown> = (
-  message: MessageWithPayload<T>
+  message: MessageWithPayload<T>,
 ) => Promise<MessageResponse<R>> | MessageResponse<R>;
 
 /**
@@ -38,13 +38,13 @@ export interface MessageBus {
   send<T = unknown, R = unknown>(
     type: string,
     payload: T,
-    sender?: string
+    sender?: string,
   ): Promise<MessageResponse<R>>;
-  
+
   subscribe<T = unknown, R = unknown>(
     type: string,
-    handler: MessageHandler<T, R>
+    handler: MessageHandler<T, R>,
   ): () => void;
-  
+
   unsubscribe(type: string, handler: MessageHandler): void;
 }

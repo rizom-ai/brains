@@ -19,7 +19,7 @@ import { MCPServer } from "@brains/mcp-server";
 import { registerShellMCP } from "./mcp";
 import type { QueryResult } from "./types";
 import type { Command, CommandResponse } from "./protocol/brainProtocol";
-import type { Plugin } from "./plugins/pluginManager";
+import type { Plugin } from "@brains/types";
 import { defaultQueryResponseSchema } from "./schemas/defaults";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
@@ -356,6 +356,10 @@ export class Shell {
 
   public getMCPServer(): MCPServer {
     return this.mcpServer;
+  }
+
+  public getPluginManager(): PluginManager {
+    return this.pluginManager;
   }
 
   public getLogger(): Logger {

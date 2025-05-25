@@ -13,6 +13,7 @@ bun run dev
 ```
 
 This will:
+
 - Initialize the shell with a local SQLite database
 - Run database migrations
 - Execute a test query
@@ -43,7 +44,11 @@ To use with Claude Desktop, add this to your Claude configuration:
   "mcpServers": {
     "test-brain": {
       "command": "bun",
-      "args": ["run", "/path/to/brains/apps/test-brain/src/index.ts", "--server"]
+      "args": [
+        "run",
+        "/path/to/brains/apps/test-brain/src/index.ts",
+        "--server"
+      ]
     }
   }
 }

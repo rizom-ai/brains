@@ -7,10 +7,9 @@ import type { IEmbeddingService } from "../embedding/embeddingService";
 import { calculateCosineSimilarity } from "../utils/similarity";
 import type {
   BaseEntity,
-  IContentModel,
   SearchResult,
-  SearchOptions,
-} from "../types";
+} from "@brains/types";
+import type { SearchOptions } from "../types";
 import { eq, and, inArray, desc, asc } from "drizzle-orm";
 import { z } from "zod";
 
@@ -96,10 +95,10 @@ export class EntityService {
   /**
    * Create a new entity
    */
-  public async createEntity<T extends BaseEntity & IContentModel>(
+  public async createEntity<T extends BaseEntity>(
     entity: Omit<T, "id"> & { id?: string },
   ): Promise<T> {
-    this.logger.debug(`Creating entity of type: ${entity.entityType}`);
+    this.logger.debug(`Creating entity of type: ${entity["entityType"]}`);
 
     // Generate ID if not provided
     const entityWithId = {
@@ -109,7 +108,7 @@ export class EntityService {
 
     // Validate entity against its schema
     const validatedEntity = this.entityRegistry.validateEntity<T>(
-      entity.entityType,
+      entity["entityType"],
       entityWithId,
     );
 
@@ -139,7 +138,7 @@ export class EntityService {
     });
 
     this.logger.info(
-      `Created entity of type ${entity.entityType} with ID ${validatedEntity.id}`,
+      `Created entity of type ${entity["entityType"]} with ID ${validatedEntity.id}`,
     );
 
     return validatedEntity;
@@ -148,7 +147,7 @@ export class EntityService {
   /**
    * Get an entity by ID
    */
-  public async getEntity<T extends BaseEntity & IContentModel>(
+  public async getEntity<T extends BaseEntity>(
     entityType: string,
     id: string,
   ): Promise<T | null> {
@@ -192,7 +191,7 @@ export class EntityService {
   /**
    * Update an existing entity
    */
-  public async updateEntity<T extends BaseEntity & IContentModel>(
+  public async updateEntity<T extends BaseEntity>(
     entity: T,
   ): Promise<T> {
     this.logger.debug(
@@ -271,7 +270,7 @@ export class EntityService {
   /**
    * List entities by type with pagination
    */
-  public async listEntities<T extends BaseEntity & IContentModel>(
+  public async listEntities<T extends BaseEntity>(
     entityType: string,
     options: {
       limit?: number;
@@ -377,9 +376,10 @@ export class EntityService {
         const score = matchingTagCount / tags.length;
 
         // Parse the entity
-        const entity = this.entityRegistry.markdownToEntity<
-          BaseEntity & IContentModel
-        >(entityData.entityType, entityData.content);
+        const entity = this.entityRegistry.markdownToEntity<BaseEntity>(
+          entityData.entityType,
+          entityData.content,
+        );
 
         // Create excerpt from content
         const excerpt =
@@ -434,7 +434,7 @@ export class EntityService {
   /**
    * Get adapter for a specific entity type
    */
-  public getAdapter<T extends BaseEntity & IContentModel>(
+  public getAdapter<T extends BaseEntity>(
     entityType: string,
   ): EntityAdapter<T> {
     return this.entityRegistry.getAdapter<T>(entityType);

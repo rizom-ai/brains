@@ -18,20 +18,13 @@ export const baseEntitySchema = z.object({
  */
 export type BaseEntity = z.infer<typeof baseEntitySchema>;
 
-/**
- * Content model interface for entities
- */
-export interface IContentModel {
-  title: string;
-  content: string;
-  tags: string[];
-}
 
 /**
  * Search result type
  */
 export interface SearchResult {
-  entity: BaseEntity & IContentModel;
+  entity: BaseEntity;
   score: number;
   excerpt: string;
+  highlights: string[];
 }

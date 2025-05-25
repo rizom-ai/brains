@@ -2,31 +2,7 @@ import type { Registry } from "../registry/registry";
 import type { Logger } from "@brains/utils";
 import { EventEmitter } from "events";
 import type { MessageBus } from "../messaging/messageBus";
-
-/**
- * Plugin interface
- * Defines the structure of plugins in the system
- */
-export interface Plugin {
-  id: string;
-  version: string;
-  name?: string;
-  description?: string;
-  dependencies?: string[];
-  register(context: PluginContext): void;
-}
-
-/**
- * Plugin context passed to plugins during registration
- * Provides access to the registry and other shared services
- */
-export interface PluginContext {
-  registry: Registry;
-  logger: Logger;
-  getPlugin: (id: string) => Plugin | undefined;
-  events: EventEmitter;
-  messageBus: MessageBus;
-}
+import type { Plugin, PluginContext } from "@brains/types";
 
 /**
  * Plugin lifecycle event types

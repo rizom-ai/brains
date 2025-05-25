@@ -1,12 +1,14 @@
 import type { z } from "zod";
 import type { Logger } from "@brains/utils";
-import type { BaseEntity, IContentModel } from "../types";
+import type { BaseEntity } from "@brains/types";
 
 /**
  * Entity adapter interface
  * Using markdown as the universal format for entities
  */
-export interface EntityAdapter<T extends BaseEntity & IContentModel> {
+export interface EntityAdapter<T extends BaseEntity> {
+  // Convert entity to markdown content (without frontmatter)
+  toMarkdown(entity: T): string;
   // Convert from markdown to entity
   fromMarkdown(markdown: string, metadata?: Record<string, unknown>): T;
 
@@ -30,7 +32,7 @@ export class EntityRegistry {
   private entitySchemas = new Map<string, z.ZodType<unknown>>();
   private entityAdapters = new Map<
     string,
-    EntityAdapter<BaseEntity & IContentModel>
+    EntityAdapter<BaseEntity>
   >();
   private logger: Logger;
 
@@ -68,7 +70,7 @@ export class EntityRegistry {
   /**
    * Register a new entity type with its schema and adapter
    */
-  registerEntityType<TEntity extends BaseEntity & IContentModel>(
+  registerEntityType<TEntity extends BaseEntity>(
     type: string,
     schema: z.ZodType<unknown>,
     adapter: EntityAdapter<TEntity>,
@@ -104,7 +106,7 @@ export class EntityRegistry {
   /**
    * Get adapter for a specific entity type
    */
-  getAdapter<T extends BaseEntity & IContentModel>(
+  getAdapter<T extends BaseEntity>(
     type: string,
   ): EntityAdapter<T> {
     const adapter = this.entityAdapters.get(type);
@@ -132,14 +134,14 @@ export class EntityRegistry {
   /**
    * Convert entity to markdown with frontmatter
    */
-  entityToMarkdown<T extends BaseEntity & IContentModel>(entity: T): string {
+  entityToMarkdown<T extends BaseEntity>(entity: T): string {
     const adapter = this.getAdapter<T>(entity.entityType);
 
     // Generate frontmatter
     const frontMatter = adapter.generateFrontMatter(entity);
 
-    // Get markdown content
-    const content = entity.toMarkdown();
+    // Get markdown content from adapter
+    const content = adapter.toMarkdown(entity);
 
     // Combine frontmatter and content
     return `${frontMatter}\n\n${content}`;
@@ -148,7 +150,7 @@ export class EntityRegistry {
   /**
    * Create entity from markdown with frontmatter
    */
-  markdownToEntity<T extends BaseEntity & IContentModel>(
+  markdownToEntity<T extends BaseEntity>(
     type: string,
     markdown: string,
   ): T {

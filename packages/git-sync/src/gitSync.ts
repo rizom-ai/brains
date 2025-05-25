@@ -1,8 +1,18 @@
-import type { EntityService, BaseEntity, IContentModel, Logger } from "@brains/types";
+import type {
+  EntityService,
+  BaseEntity,
+  Logger,
+} from "@brains/types";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 import { join } from "path";
-import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
+import {
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  readdirSync,
+} from "fs";
 import { z } from "zod";
 
 /**
@@ -43,7 +53,7 @@ export interface GitSyncStatus {
  * GitSync handles synchronization of entities with a git repository
  */
 export class GitSync {
-  private git: SimpleGit;
+  private _git: SimpleGit | null = null;
   private entityService: EntityService;
   private logger: Logger;
   private repoPath: string;
@@ -56,8 +66,10 @@ export class GitSync {
   constructor(options: GitSyncOptions) {
     // Validate options (excluding the complex types)
     const { entityService, logger, ...validatableOptions } = options;
-    gitSyncOptionsSchema.omit({ entityService: true, logger: true }).parse(validatableOptions);
-    
+    gitSyncOptionsSchema
+      .omit({ entityService: true, logger: true })
+      .parse(validatableOptions);
+
     this.entityService = entityService;
     this.logger = logger.child("GitSync");
     this.repoPath = options.repoPath;
@@ -65,9 +77,20 @@ export class GitSync {
     this.branch = options.branch ?? "main";
     this.autoSync = options.autoSync ?? false;
     this.syncInterval = options.syncInterval ?? 30;
-    
-    // Initialize simple-git with the repo path
-    this.git = simpleGit(this.repoPath);
+  }
+
+  /**
+   * Lazy getter for git instance - creates directory if needed
+   */
+  private get git(): SimpleGit {
+    if (!this._git) {
+      // Ensure directory exists before creating SimpleGit instance
+      if (!existsSync(this.repoPath)) {
+        mkdirSync(this.repoPath, { recursive: true });
+      }
+      this._git = simpleGit(this.repoPath);
+    }
+    return this._git;
   }
 
   /**
@@ -79,13 +102,18 @@ export class GitSync {
     // Ensure repo path exists
     if (!existsSync(this.repoPath)) {
       mkdirSync(this.repoPath, { recursive: true });
+      this.logger.info("Created git repository directory", { path: this.repoPath });
     }
+
+    // Git instance will be created lazily via getter
 
     // Initialize git repo if needed
     const isRepo = await this.git.checkIsRepo();
     if (!isRepo) {
       await this.git.init();
-      this.logger.info("Initialized new git repository", { path: this.repoPath });
+      this.logger.info("Initialized new git repository", {
+        path: this.repoPath,
+      });
     }
 
     // Set remote if provided
@@ -136,9 +164,9 @@ export class GitSync {
 
     // For each entity type, get all entities and save to markdown
     for (const entityType of entityTypes) {
-      const entities = await this.entityService.listEntities({ 
+      const entities = await this.entityService.listEntities({
         entityType,
-        limit: 1000 // Get all entities
+        limit: 1000, // Get all entities
       });
 
       for (const entity of entities) {
@@ -174,8 +202,8 @@ export class GitSync {
         await this.git.pull("origin", this.branch);
         this.logger.info("Pulled latest changes from remote");
       } catch (error) {
-        this.logger.warn("Failed to pull from remote", { 
-          error: error instanceof Error ? error.message : String(error) 
+        this.logger.warn("Failed to pull from remote", {
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -185,7 +213,7 @@ export class GitSync {
     // For each entity type, read markdown files and import
     for (const entityType of entityTypes) {
       const dir = join(this.repoPath, entityType);
-      
+
       if (!existsSync(dir)) {
         continue;
       }
@@ -203,7 +231,10 @@ export class GitSync {
           const entity = adapter.fromMarkdown(markdown);
 
           // Check if entity exists
-          const existing = await this.entityService.getEntity(entityType, entity.id);
+          const existing = await this.entityService.getEntity(
+            entityType,
+            entity.id,
+          );
 
           if (existing) {
             // Update if modified
@@ -241,9 +272,11 @@ export class GitSync {
     const status = await this.git.status();
     if (status.files.length > 0) {
       await this.git.add(".");
-      await this.git.commit(message ?? `Brain sync: ${new Date().toISOString()}`);
+      await this.git.commit(
+        message ?? `Brain sync: ${new Date().toISOString()}`,
+      );
       this.logger.info("Committed changes", { files: status.files.length });
-      
+
       if (this.remote) {
         try {
           await this.git.push("origin", this.branch);
@@ -302,7 +335,7 @@ export class GitSync {
 
     // Do initial sync
     await this.sync();
-    
+
     this.syncTimer = setInterval(() => {
       void this.sync().catch((error) => {
         this.logger.error("Auto-sync failed", {
@@ -326,7 +359,7 @@ export class GitSync {
   /**
    * Get entity file path
    */
-  private getEntityFilePath(entity: BaseEntity & IContentModel): string {
+  private getEntityFilePath(entity: BaseEntity): string {
     // Use entityType as directory and title as filename
     const title = entity.title.replace(/[^a-zA-Z0-9-_ ]/g, "").trim();
     return join(this.repoPath, entity.entityType, `${title}.md`);

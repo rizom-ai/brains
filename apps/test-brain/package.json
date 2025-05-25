@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@brains/shell": "workspace:*",
-    "@brains/mcp-server": "workspace:*"
+    "@brains/mcp-server": "workspace:*",
+    "@brains/git-sync": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import type { Plugin, PluginContext } from "@/plugins/pluginManager";
+import type { Plugin, PluginContext } from "@brains/types";
 import {
   PluginEvent,
   PluginManager,

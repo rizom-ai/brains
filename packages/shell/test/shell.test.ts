@@ -9,7 +9,7 @@ import { PluginManager } from "@/plugins/pluginManager";
 import { EntityService } from "@/entity/entityService";
 import { QueryProcessor } from "@/query/queryProcessor";
 import { BrainProtocol } from "@/protocol/brainProtocol";
-import { MCPServer } from "@brains/mcp-server";
+import type { MCPServer } from "@brains/mcp-server";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
 import type { AIService } from "@/ai/aiService";
@@ -33,7 +33,7 @@ const createMockMCPServer = (): MCPServer => {
     connect: mock(() => Promise.resolve()),
     close: mock(() => Promise.resolve()),
   };
-  
+
   return {
     getServer: () => mockServer,
     startStdio: mock(() => Promise.resolve()),
@@ -42,29 +42,30 @@ const createMockMCPServer = (): MCPServer => {
 };
 
 // Create a mock EntityService
-const createMockEntityService = (): EntityService => ({
-  // CRUD operations
-  createEntity: mock(async (entity) => ({ ...entity, id: "test-id" })),
-  getEntity: mock(async () => null),
-  updateEntity: mock(async (entity) => entity),
-  deleteEntity: mock(async () => {}),
-  
-  // List and search
-  listEntities: mock(async () => []),
-  search: mock(async () => []), // Return empty array to avoid database queries
-  searchByTags: mock(async () => []),
-  
-  // Entity type management
-  getEntityTypes: mock(() => ["note", "task"]),
-  getAllEntityTypes: mock(() => ["note", "task"]),
-  getSupportedEntityTypes: mock(() => ["note", "task"]),
-  getAdapter: mock(() => ({
-    entityType: "note",
-    schema: {},
-    fromMarkdown: mock(() => ({})),
-    toMarkdown: mock(() => ""),
-  })),
-}) as unknown as EntityService;
+const createMockEntityService = (): EntityService =>
+  ({
+    // CRUD operations
+    createEntity: mock(async (entity) => ({ ...entity, id: "test-id" })),
+    getEntity: mock(async () => null),
+    updateEntity: mock(async (entity) => entity),
+    deleteEntity: mock(async () => {}),
+
+    // List and search
+    listEntities: mock(async () => []),
+    search: mock(async () => []), // Return empty array to avoid database queries
+    searchByTags: mock(async () => []),
+
+    // Entity type management
+    getEntityTypes: mock(() => ["note", "task"]),
+    getAllEntityTypes: mock(() => ["note", "task"]),
+    getSupportedEntityTypes: mock(() => ["note", "task"]),
+    getAdapter: mock(() => ({
+      entityType: "note",
+      schema: {},
+      fromMarkdown: mock(() => ({})),
+      toMarkdown: mock(() => ""),
+    })),
+  }) as unknown as EntityService;
 
 // Create a mock AI service
 const createMockAIService = (): AIService =>

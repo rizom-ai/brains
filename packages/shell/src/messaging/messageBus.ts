@@ -1,11 +1,12 @@
 import type { Logger } from "@brains/utils";
 import type { BaseMessage, MessageResponse } from "./types";
+import type { MessageHandler as IMessageHandler, MessageWithPayload as IMessageWithPayload, MessageBus as IMessageBus } from "@brains/types";
 
 /**
  * Message bus for handling messages between components
  * Implements Component Interface Standardization pattern
  */
-export class MessageBus {
+export class MessageBus implements IMessageBus {
   private static instance: MessageBus | null = null;
 
   // Store handlers without type information - they handle validation internally
@@ -47,7 +48,47 @@ export class MessageBus {
   }
 
   /**
-   * Register a handler for a specific message type
+   * Subscribe to messages (implements IMessageBus interface)
+   */
+  subscribe<T = unknown, R = unknown>(
+    type: string,
+    handler: IMessageHandler<T, R>,
+  ): () => void {
+    const wrappedHandler = async (message: BaseMessage): Promise<MessageResponse | null> => {
+      if ('payload' in message) {
+        // Convert from IMessageBus response to local MessageResponse
+        const result = await handler(message as IMessageWithPayload<T>);
+        if (!result) return null;
+        
+        return {
+          id: `resp-${Date.now()}`,
+          requestId: message.id,
+          timestamp: new Date().toISOString(),
+          success: result.success,
+          data: result.data,
+          error: result.error ? { message: result.error } : undefined,
+        };
+      }
+      return null;
+    };
+
+    if (!this.handlers.has(type)) {
+      this.handlers.set(type, new Set());
+    }
+
+    const handlers = this.handlers.get(type);
+    if (handlers) {
+      handlers.add(wrappedHandler);
+    }
+    this.logger.info(`Registered handler for message type: ${type}`);
+    
+    // Return unsubscribe function
+    // We just clear all handlers for the type since we wrap them
+    return () => this.clearHandlers(type);
+  }
+
+  /**
+   * Register a handler for a specific message type (legacy method)
    */
   registerHandler(
     messageType: string,
@@ -65,7 +106,38 @@ export class MessageBus {
   }
 
   /**
-   * Publish a message to all handlers
+   * Send a message and get response (implements IMessageBus interface)
+   */
+  async send<T = unknown, R = unknown>(
+    type: string,
+    payload: T,
+    sender?: string,
+  ): Promise<{ success: boolean; data?: R; error?: string }> {
+    const message: BaseMessage & { payload: T } = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      timestamp: new Date().toISOString(),
+      source: sender,
+      payload,
+    };
+
+    const response = await this.publish(message as BaseMessage);
+    if (response && response.success) {
+      return {
+        success: true,
+        data: response.data as R,
+      };
+    }
+    
+    // Return error response if no handler found
+    return {
+      success: false,
+      error: response?.error?.message || `No handler found for message type: ${type}`,
+    };
+  }
+
+  /**
+   * Publish a message to all handlers (internal method)
    */
   async publish(message: BaseMessage): Promise<MessageResponse | null> {
     const { type } = message;
@@ -103,7 +175,16 @@ export class MessageBus {
   }
 
   /**
-   * Unregister a handler for a specific message type
+   * Unsubscribe from messages (implements IMessageBus interface)
+   */
+  unsubscribe(type: string, _handler: IMessageHandler): void {
+    // Since we wrap handlers, we need to clear all handlers for this type
+    // This is a limitation of the current design
+    this.clearHandlers(type);
+  }
+
+  /**
+   * Unregister a handler for a specific message type (legacy method)
    */
   unregisterHandler(
     messageType: string,

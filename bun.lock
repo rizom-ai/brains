@@ -17,6 +17,7 @@
       "name": "@brains/test-brain",
       "version": "0.0.1",
       "dependencies": {
+        "@brains/git-sync": "workspace:*",
         "@brains/mcp-server": "workspace:*",
         "@brains/shell": "workspace:*",
       },

@@ -1,7 +1,8 @@
 import { describe, expect, it, beforeEach, mock, spyOn } from "bun:test";
 import { z } from "zod";
 import { QueryProcessor } from "@/query/queryProcessor";
-import type { Entity, SearchResult } from "@/types";
+import type { Entity } from "@/types";
+import type { SearchResult } from "@brains/types";
 import { defaultQueryResponseSchema } from "@/schemas/defaults";
 
 import { createSilentLogger, type Logger } from "@personal-brain/utils";
@@ -17,7 +18,6 @@ const createMockEntity = (overrides?: Partial<Entity>): Entity => ({
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T00:00:00Z",
   tags: ["test"],
-  toMarkdown: () => "# Test Note\n\nTest content",
   ...overrides,
 });
 

@@ -64,6 +64,7 @@ The shell provides the core infrastructure and extension points for plugins:
 **Interface Architecture:**
 
 Multiple ways to interact with the brain:
+
 - **MCP Server** (built into shell): Always-on interface for MCP clients
 - **Interface Plugins**: Web server, GraphQL server (run in-process)
 - **External Interfaces**: CLI, Matrix bot (connect via MCP)
@@ -268,6 +269,7 @@ Multiple client interfaces can connect to the brain through the MCP server:
 The brain application uses a single-bundle deployment strategy with multiple entry points:
 
 **Entry Router Pattern:**
+
 ```typescript
 // apps/personal-brain/src/index.ts
 import { runBrainApp } from "@brains/shell";
@@ -280,25 +282,25 @@ runBrainApp({
     // Context plugins
     noteContext(),
     taskContext(),
-    
-    // Feature plugins  
+
+    // Feature plugins
     gitSync({
       repoPath: "./brain-repo",
       autoSync: true,
     }),
-    
+
     // Interface plugins
     webServer({
       port: 3000,
       cors: true,
     }),
   ],
-  
+
   // Entry points for external interfaces
   entryPoints: {
     cli: () => import("./cli.js"),
     matrix: () => import("./matrix.js"),
-  }
+  },
 });
 
 // apps/personal-brain/src/cli.ts
@@ -318,7 +320,7 @@ for (const plugin of getPlugins()) {
 // Start CLI interface
 runCLI({ shell });
 
-// apps/personal-brain/src/matrix.ts  
+// apps/personal-brain/src/matrix.ts
 import { Shell } from "@brains/shell";
 import { runMatrix } from "@brains/matrix";
 import { getPlugins } from "./config";
@@ -341,6 +343,7 @@ runMatrix({
 ```
 
 **Bundling with Bun:**
+
 ```bash
 # Build single bundle with all interfaces
 bun build src/index.ts --outfile=dist/brain.js --target=node
@@ -352,6 +355,7 @@ bun build src/index.ts --outfile=dist/brain.js --target=node
 ```
 
 **Benefits:**
+
 - Single deployable artifact
 - Dynamic loading of interfaces
 - Tree-shaking removes unused code

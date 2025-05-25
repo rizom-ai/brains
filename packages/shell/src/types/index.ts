@@ -1,37 +1,14 @@
 import { z } from "zod";
-
-/**
- * Base entity schema that all entity types must extend
- * Uses nanoid for IDs and includes all common fields
- */
-export const baseEntitySchema = z.object({
-  id: z.string().min(1), // nanoid(12) generated
-  entityType: z.string(), // Type discriminator
-  title: z.string(), // Display title
-  content: z.string(), // Main content
-  created: z.string().datetime(), // ISO timestamp
-  updated: z.string().datetime(), // ISO timestamp
-  tags: z.array(z.string()).default([]), // Tags array
-});
-
-export type BaseEntity = z.infer<typeof baseEntitySchema>;
-
-/**
- * Content model interface
- * All entities must be able to represent themselves as markdown
- */
-export interface IContentModel {
-  // Convert entity to markdown representation
-  toMarkdown(): string;
-}
+import type { BaseEntity } from "@brains/types";
 
 /**
  * Complete entity type - all entities must satisfy this
  */
-export type Entity = BaseEntity & IContentModel;
+export type Entity = BaseEntity;
+
 
 /**
- * Search options schema for entity queries
+ * Search options schema for entity queries - shell-specific
  */
 export const searchOptionsSchema = z.object({
   types: z.array(z.string()).optional(),
@@ -43,16 +20,6 @@ export const searchOptionsSchema = z.object({
 });
 
 export type SearchOptions = z.infer<typeof searchOptionsSchema>;
-
-/**
- * Search result type
- */
-export type SearchResult = {
-  entity: BaseEntity & IContentModel;
-  score: number;
-  excerpt: string;
-  highlights: string[];
-};
 
 /**
  * Intent analysis result for query processing
@@ -120,7 +87,7 @@ export type SerializableCitation = z.infer<typeof serializableCitationSchema>;
 
 export function serializableQueryResultSchema<T extends z.ZodTypeAny>(
   objectSchema: T,
-): z.ZodSchema {
+) {
   return z.object({
     answer: z.string(),
     citations: z.array(serializableCitationSchema),

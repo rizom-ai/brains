@@ -4,8 +4,7 @@ import type { EntityAdapter } from "@/entity/entityRegistry";
 import { EntityRegistry } from "@/entity/entityRegistry";
 
 import { createSilentLogger, type Logger } from "@personal-brain/utils";
-import { baseEntitySchema } from "@/types";
-import type { IContentModel } from "@/types";
+import { baseEntitySchema } from "@brains/types";
 import { createId } from "@/db/schema";
 import matter from "gray-matter";
 
@@ -24,7 +23,7 @@ const noteSchema = baseEntitySchema.extend({
 /**
  * Note entity type
  */
-type Note = z.infer<typeof noteSchema> & IContentModel;
+type Note = z.infer<typeof noteSchema>;
 
 /**
  * Input type for creating notes (id, created, updated are optional/generated)
@@ -50,13 +49,7 @@ function createNote(input: CreateNoteInput): Note {
     ...input,
   });
 
-  return {
-    ...validated,
-    toMarkdown(): string {
-      const categoryTag = this.category ? ` [${this.category}]` : "";
-      return `# ${this.title}${categoryTag}\n\n${this.content}`;
-    },
-  };
+  return validated;
 }
 
 /**
@@ -175,6 +168,11 @@ class NoteAdapter implements EntityAdapter<Note> {
     const yamlOutput = matter.stringify("", metadata);
     return yamlOutput.split("\n\n")[0] ?? "---\n---";
   }
+
+  toMarkdown(entity: Note): string {
+    const categoryTag = entity.category && entity.category !== "general" ? ` [${entity.category}]` : "";
+    return `# ${entity.title}${categoryTag}\n\n${entity.content}`;
+  }
 }
 
 // ============================================================================
@@ -248,7 +246,6 @@ describe("EntityRegistry", (): void => {
     expect(reconstructedEntity.content).toBe(completeNote.content);
     expect(reconstructedEntity.category).toBe(completeNote.category);
     expect(reconstructedEntity.entityType).toBe("note");
-    expect(typeof reconstructedEntity.toMarkdown).toBe("function");
   });
 
   test("validation with missing required fields should throw", (): void => {

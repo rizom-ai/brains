@@ -47,19 +47,14 @@ export type { DrizzleDB } from "./db";
 export { createDatabase, runMigrations } from "./db";
 export * from "./db/schema";
 
-// Types
+// Types that are shell-specific
 export type {
-  BaseEntity,
-  IContentModel,
-  QueryOptions,
-  QueryResult,
   SerializableEntity,
   SerializableQueryResult,
 } from "./types";
 
 // Schemas for validation
 export {
-  baseEntitySchema,
   serializableEntitySchema,
   serializableCitationSchema,
   serializableQueryResultSchema,
@@ -72,8 +67,3 @@ export {
   validateAndSerializeQueryResult,
 } from "./utils/serialization";
 
-// Export EntityAdapter from entityRegistry
-export type { EntityAdapter } from "./entity/entityRegistry";
-
-// Export Plugin interface from pluginManager
-export type { Plugin, PluginContext } from "./plugins/pluginManager";
