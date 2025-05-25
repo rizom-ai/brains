@@ -7,7 +7,10 @@
 
 // Main Shell entry point
 export { Shell } from "./shell";
-export type { ShellConfig } from "./shell";
+
+// Configuration
+export { shellConfigSchema, createShellConfig } from "./config";
+export type { ShellConfig } from "./config";
 
 // Core Components
 export { QueryProcessor } from "./query/queryProcessor";
@@ -41,7 +44,7 @@ export type { ShellMCPOptions } from "./mcp";
 
 // Database exports
 export type { DrizzleDB } from "./db";
-export { createDatabase } from "./db";
+export { createDatabase, runMigrations } from "./db";
 export * from "./db/schema";
 
 // Types

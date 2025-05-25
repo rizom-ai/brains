@@ -1,7 +1,7 @@
 import { generateText, generateObject } from "ai";
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import type { LanguageModelV1 } from "@ai-sdk/provider";
-import type { Logger } from "@personal-brain/utils";
+import type { Logger } from "@brains/utils";
 import type { z } from "zod";
 
 /**

@@ -1,12 +1,11 @@
 {
-  "extends": "@personal-brain/typescript-config/base.json",
+  "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "./",
-    "baseUrl": ".",
+    "baseUrl": "./",
     "paths": {
-      "@/*": ["./src/*"],
-      "@test/*": ["./test/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src", "test"],

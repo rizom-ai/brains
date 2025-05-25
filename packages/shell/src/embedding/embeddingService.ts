@@ -1,5 +1,5 @@
 import { EmbeddingModel, FlagEmbedding } from "fastembed";
-import type { Logger } from "@personal-brain/utils";
+import type { Logger } from "@brains/utils";
 
 /**
  * Interface for embedding service
@@ -84,10 +84,14 @@ export class EmbeddingService implements IEmbeddingService {
       );
 
       // Create the embedding model
+      // Use system temp directory for cache to ensure it's always writable
+      const cacheDir = process.env["FASTEMBED_CACHE_DIR"] ?? 
+        (await import("node:os")).tmpdir() + "/.fastembed-cache";
+      
       this.model = await FlagEmbedding.init({
         model: EmbeddingService.MODEL_NAME,
         maxLength: 512,
-        cacheDir: "node_modules/.cache/fastembed", // Cache in node_modules
+        cacheDir,
         showDownloadProgress: false,
       });
 

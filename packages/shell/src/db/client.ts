@@ -1,5 +1,5 @@
 import { createClient, type Client } from "@libsql/client";
-import type { Logger } from "@personal-brain/utils";
+import type { Logger } from "@brains/utils";
 
 export interface DatabaseConfig {
   url?: string;

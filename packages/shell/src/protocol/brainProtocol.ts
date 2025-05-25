@@ -1,11 +1,11 @@
-import type { Logger } from "@personal-brain/utils";
-import type { MessageBus } from "@/messaging/messageBus";
-import type { QueryProcessor } from "@/query/queryProcessor";
-import { MessageFactory } from "@/messaging/messageFactory";
-import type { BaseMessage, MessageResponse } from "@/messaging/types";
-import { hasPayload } from "@/messaging/types";
+import type { Logger } from "@brains/utils";
+import type { MessageBus } from "../messaging/messageBus";
+import type { QueryProcessor } from "../query/queryProcessor";
+import { MessageFactory } from "../messaging/messageFactory";
+import type { BaseMessage, MessageResponse } from "../messaging/types";
+import { hasPayload } from "../messaging/types";
 import { z } from "zod";
-import { defaultQueryResponseSchema } from "@/schemas/defaults";
+import { defaultQueryResponseSchema } from "../schemas/defaults";
 
 /**
  * Command schema for Brain Protocol commands

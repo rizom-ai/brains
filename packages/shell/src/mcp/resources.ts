@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { EntityService } from "../entity/entityService";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
-import type { Logger } from "@personal-brain/utils";
+import type { Logger } from "@brains/utils";
 
 /**
  * Register shell resources with an MCP server

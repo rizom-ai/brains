@@ -1,4 +1,4 @@
-import { Logger } from "@personal-brain/utils";
+import { Logger } from "@brains/utils";
 
 /**
  * Factory function type for creating components

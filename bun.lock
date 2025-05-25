@@ -13,8 +13,19 @@
         "typescript": "^5.2.2",
       },
     },
+    "apps/test-brain": {
+      "name": "@brains/test-brain",
+      "version": "0.0.1",
+      "dependencies": {
+        "@brains/shell": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
     "packages/eslint-config": {
-      "name": "@personal-brain/eslint-config",
+      "name": "@brains/eslint-config",
       "version": "0.0.0",
       "dependencies": {
         "@typescript-eslint/eslint-plugin": "^6.3.0",
@@ -39,14 +50,14 @@
       },
     },
     "packages/shell": {
-      "name": "@personal-brain/shell",
+      "name": "@brains/shell",
       "version": "0.0.0",
       "dependencies": {
         "@ai-sdk/anthropic": "^1.2.12",
         "@anthropic-ai/sdk": "^0.13.0",
+        "@brains/utils": "workspace:*",
         "@libsql/client": "^0.15.7",
         "@modelcontextprotocol/sdk": "^1.12.0",
-        "@personal-brain/utils": "workspace:*",
         "ai": "^4.3.16",
         "drizzle-orm": "^0.29.4",
         "drizzle-zod": "^0.5.1",
@@ -62,28 +73,27 @@
         "zod-to-json-schema": "^3.24.5",
       },
       "devDependencies": {
-        "@personal-brain/eslint-config": "workspace:*",
-        "@personal-brain/typescript-config": "workspace:*",
-        "@types/node": "^20.11.24",
-        "bun-types": "latest",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
         "drizzle-kit": "^0.20.14",
         "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
     },
     "packages/typescript-config": {
-      "name": "@personal-brain/typescript-config",
+      "name": "@brains/typescript-config",
       "version": "0.0.0",
     },
     "packages/utils": {
-      "name": "@personal-brain/utils",
+      "name": "@brains/utils",
       "version": "0.0.0",
       "dependencies": {
         "gray-matter": "^4.0.3",
       },
       "devDependencies": {
-        "@personal-brain/eslint-config": "workspace:*",
-        "@personal-brain/typescript-config": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
         "@types/node": "^20.11.24",
         "bun-types": "latest",
         "eslint": "^8.56.0",
@@ -112,7 +122,17 @@
 
     "@anush008/tokenizers-win32-x64-msvc": ["@anush008/tokenizers-win32-x64-msvc@0.0.0", "", { "os": "win32", "cpu": "x64" }, "sha512-/5kP0G96+Cr6947F0ZetXnmL31YCaN15dbNbh2NHg7TXXRwfqk95+JtPP5Q7v4jbR2xxAmuseBqB4H/V7zKWuw=="],
 
+    "@brains/eslint-config": ["@brains/eslint-config@workspace:packages/eslint-config"],
+
     "@brains/mcp-server": ["@brains/mcp-server@workspace:packages/mcp-server"],
+
+    "@brains/shell": ["@brains/shell@workspace:packages/shell"],
+
+    "@brains/test-brain": ["@brains/test-brain@workspace:apps/test-brain"],
+
+    "@brains/typescript-config": ["@brains/typescript-config@workspace:packages/typescript-config"],
+
+    "@brains/utils": ["@brains/utils@workspace:packages/utils"],
 
     "@esbuild-kit/core-utils": ["@esbuild-kit/core-utils@3.3.2", "", { "dependencies": { "esbuild": "~0.18.20", "source-map-support": "^0.5.21" } }, "sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ=="],
 
@@ -223,14 +243,6 @@
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
-
-    "@personal-brain/eslint-config": ["@personal-brain/eslint-config@workspace:packages/eslint-config"],
-
-    "@personal-brain/shell": ["@personal-brain/shell@workspace:packages/shell"],
-
-    "@personal-brain/typescript-config": ["@personal-brain/typescript-config@workspace:packages/typescript-config"],
-
-    "@personal-brain/utils": ["@personal-brain/utils@workspace:packages/utils"],
 
     "@types/bun": ["@types/bun@1.2.14", "", { "dependencies": { "bun-types": "1.2.14" } }, "sha512-VsFZKs8oKHzI7zwvECiAJ5oSorWndIWEVhfbYqZd4HI/45kzW7PN2Rr5biAzvGvRuNmYLSANY+H59ubHq8xw7Q=="],
 

@@ -272,6 +272,7 @@ Context plugins are implemented as separate packages:
 - **@brains/project-context**: Project management functionality (future)
 
 This separation ensures:
+
 - Clear boundaries between contexts and shell
 - Explicit public APIs through package exports
 - Independent testing and versioning

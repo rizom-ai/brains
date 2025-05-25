@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { Logger } from "@personal-brain/utils";
+import type { Logger } from "@brains/utils";
 import type { EntityService } from "../entity/entityService";
 import type { AIService } from "../ai/aiService";
 import type {

@@ -2,7 +2,7 @@ import type { DrizzleDB } from "../db";
 import { entities, createId, selectEntitySchema } from "../db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import type { EntityAdapter } from "./entityRegistry";
-import { Logger, extractIndexedFields } from "@personal-brain/utils";
+import { Logger, extractIndexedFields } from "@brains/utils";
 import type { IEmbeddingService } from "../embedding/embeddingService";
 import { calculateCosineSimilarity } from "../utils/similarity";
 import type {

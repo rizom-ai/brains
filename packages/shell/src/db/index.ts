@@ -1,6 +1,7 @@
 import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import { migrate } from "drizzle-orm/libsql/migrator";
 
 /**
  * Database connection type
@@ -15,7 +16,7 @@ export type DrizzleDB = LibSQLDatabase<Record<string, never>>;
 export function createDatabase(
   options: {
     url?: string;
-    authToken?: string;
+    authToken?: string | undefined;
   } = {},
 ): { db: DrizzleDB; client: Client } {
   // Determine database URL prioritizing:
@@ -34,6 +35,21 @@ export function createDatabase(
   const db = drizzle(client);
 
   return { db, client };
+}
+
+/**
+ * Run database migrations
+ * 
+ * @param db The database instance
+ * @param migrationsPath Optional path to migrations folder
+ */
+export async function runMigrations(
+  db: DrizzleDB,
+  migrationsPath?: string
+): Promise<void> {
+  // If no path provided, use the shell's migrations
+  const folder = migrationsPath ?? new URL("../../drizzle", import.meta.url).pathname;
+  await migrate(db, { migrationsFolder: folder });
 }
 
 // Re-export schema types for convenience

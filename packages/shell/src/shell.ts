@@ -1,26 +1,33 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import type { Client } from "@libsql/client";
+import { createDatabase, runMigrations } from "./db";
 import { Registry } from "./registry/registry";
 import { EntityRegistry } from "./entity/entityRegistry";
 import { SchemaRegistry } from "./schema/schemaRegistry";
 import { MessageBus } from "./messaging/messageBus";
 import { PluginManager } from "./plugins/pluginManager";
 import { EntityService } from "./entity/entityService";
-import type { IEmbeddingService } from "./embedding/embeddingService";
+import { EmbeddingService, type IEmbeddingService } from "./embedding/embeddingService";
 import { QueryProcessor } from "./query/queryProcessor";
 import { BrainProtocol } from "./protocol/brainProtocol";
-import type { AIService } from "./ai/aiService";
-import type { Logger } from "@personal-brain/utils";
+import { AIService } from "./ai/aiService";
+import { Logger, LogLevel } from "@brains/utils";
 import type { QueryResult } from "./types";
 import type { Command, CommandResponse } from "./protocol/brainProtocol";
 import type { Plugin } from "./plugins/pluginManager";
 import { defaultQueryResponseSchema } from "./schemas/defaults";
+import type { ShellConfig } from "./config";
+import { createShellConfig } from "./config";
 
-export interface ShellConfig {
-  db: LibSQLDatabase<Record<string, never>>;
-  logger: Logger;
-  embeddingService: IEmbeddingService;
-  aiService: AIService;
-  enablePlugins?: boolean;
+/**
+ * Optional dependencies that can be injected for testing
+ */
+export interface ShellDependencies {
+  db?: LibSQLDatabase<Record<string, never>>;
+  dbClient?: Client;
+  logger?: Logger;
+  embeddingService?: IEmbeddingService;
+  aiService?: AIService;
 }
 
 /**
@@ -33,7 +40,9 @@ export interface ShellConfig {
 export class Shell {
   private static instance: Shell | null = null;
 
+  private readonly config: ShellConfig;
   private readonly db: LibSQLDatabase<Record<string, never>>;
+  private readonly dbClient: Client;
   private readonly logger: Logger;
   private readonly registry: Registry;
   private readonly entityRegistry: EntityRegistry;
@@ -50,14 +59,10 @@ export class Shell {
   /**
    * Get the singleton instance of Shell
    */
-  public static getInstance(config?: ShellConfig): Shell {
+  public static getInstance(config?: Partial<ShellConfig>): Shell {
     if (!Shell.instance) {
-      if (!config) {
-        throw new Error(
-          "Shell configuration required for first initialization",
-        );
-      }
-      Shell.instance = new Shell(config);
+      const fullConfig = createShellConfig(config);
+      Shell.instance = new Shell(fullConfig);
     }
     return Shell.instance;
   }
@@ -74,23 +79,73 @@ export class Shell {
 
   /**
    * Create a fresh instance without affecting the singleton
+   * @param config - Configuration for the shell (required if dependencies are provided)
+   * @param dependencies - Optional dependencies for testing
    */
-  public static createFresh(config: ShellConfig): Shell {
-    return new Shell(config);
+  public static createFresh(config: Partial<ShellConfig>, dependencies?: ShellDependencies): Shell;
+  public static createFresh(config?: Partial<ShellConfig>): Shell;
+  public static createFresh(
+    config?: Partial<ShellConfig>,
+    dependencies?: ShellDependencies
+  ): Shell {
+    const fullConfig = createShellConfig(config);
+    return new Shell(fullConfig, dependencies);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(config: ShellConfig) {
-    this.logger = config.logger;
+  private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
+    this.config = config;
+    
+    // Default initialization when no dependencies are injected
+    if (!dependencies) {
+      // Create logger
+      const logLevel = {
+        debug: LogLevel.DEBUG,
+        info: LogLevel.INFO,
+        warn: LogLevel.WARN,
+        error: LogLevel.ERROR,
+      }[config.logging.level];
+      
+      this.logger = Logger.createFresh({ 
+        level: logLevel,
+        context: config.logging.context 
+      });
 
-    // Use the provided Drizzle database
-    this.db = config.db;
+      // Create database connection
+      const { db, client } = createDatabase({
+        url: config.database.url,
+        authToken: config.database.authToken,
+      });
+      this.db = db;
+      this.dbClient = client;
 
-    // Use the provided services
-    this.embeddingService = config.embeddingService;
-    this.aiService = config.aiService;
+      // Create services
+      this.embeddingService = EmbeddingService.getInstance(this.logger);
+      this.aiService = AIService.getInstance(config.ai, this.logger);
+    } else {
+      // Use injected dependencies (for testing)
+      this.logger = dependencies.logger ?? Logger.createFresh({ 
+        level: LogLevel.INFO,
+        context: config.logging.context 
+      });
+      
+      if (dependencies.db && dependencies.dbClient) {
+        this.db = dependencies.db;
+        this.dbClient = dependencies.dbClient;
+      } else {
+        const { db, client } = createDatabase({
+          url: config.database.url,
+          authToken: config.database.authToken,
+        });
+        this.db = db;
+        this.dbClient = client;
+      }
+      
+      this.embeddingService = dependencies.embeddingService ?? EmbeddingService.getInstance(this.logger);
+      this.aiService = dependencies.aiService ?? AIService.getInstance(config.ai, this.logger);
+    }
 
     // Initialize core components (they are all singletons)
     this.registry = Registry.getInstance(this.logger);
@@ -146,8 +201,17 @@ export class Shell {
     this.logger.info("Initializing Shell");
 
     try {
-      // Initialize plugins
-      await this.pluginManager.initializePlugins();
+      // Run migrations if enabled
+      if (this.config.features.runMigrationsOnInit) {
+        this.logger.info("Running database migrations...");
+        await runMigrations(this.db);
+        this.logger.info("Database migrations completed");
+      }
+
+      // Initialize plugins if enabled
+      if (this.config.features.enablePlugins) {
+        await this.pluginManager.initializePlugins();
+      }
 
       this.initialized = true;
       this.logger.info("Shell initialized successfully");
@@ -171,6 +235,9 @@ export class Shell {
 
     // Clear registries
     this.registry.clear();
+
+    // Close database connection
+    this.dbClient.close();
 
     this.initialized = false;
     this.logger.info("Shell shutdown complete");

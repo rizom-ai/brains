@@ -1,0 +1,13 @@
+# Test database
+test-brain.db
+test-brain.db-journal
+
+# Build output
+dist/
+
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.local

@@ -1,0 +1,76 @@
+import { z } from "zod";
+
+/**
+ * Shell configuration schema
+ */
+export const shellConfigSchema = z.object({
+  // Database configuration
+  database: z.object({
+    url: z.string().default("file:./brain.db"),
+    authToken: z.string().optional(),
+  }).default({}),
+
+  // AI Service configuration
+  ai: z.object({
+    provider: z.enum(["anthropic"]).default("anthropic"),
+    apiKey: z.string(),
+    model: z.string().default("claude-3-haiku-20240307"),
+    temperature: z.number().min(0).max(2).default(0.7),
+    maxTokens: z.number().positive().default(1000),
+  }),
+
+  // Embedding configuration
+  embedding: z.object({
+    model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
+    cacheDir: z.string().optional(),
+  }).default({}),
+
+  // Logging configuration
+  logging: z.object({
+    level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+    context: z.string().default("shell"),
+  }).default({}),
+
+  // Feature flags
+  features: z.object({
+    enablePlugins: z.boolean().default(true),
+    runMigrationsOnInit: z.boolean().default(true),
+  }).default({}),
+});
+
+export type ShellConfig = z.infer<typeof shellConfigSchema>;
+
+/**
+ * Create a shell configuration from environment variables and overrides
+ */
+export function createShellConfig(overrides: Partial<ShellConfig> = {}): ShellConfig {
+  // Build config from environment with overrides
+  const config = {
+    database: {
+      url: process.env["DATABASE_URL"] ?? overrides.database?.url,
+      authToken: process.env["DATABASE_AUTH_TOKEN"] ?? overrides.database?.authToken,
+    },
+    ai: {
+      provider: "anthropic" as const,
+      apiKey: process.env["ANTHROPIC_API_KEY"] ?? overrides.ai?.apiKey ?? "",
+      model: process.env["AI_MODEL"] ?? overrides.ai?.model,
+      temperature: overrides.ai?.temperature,
+      maxTokens: overrides.ai?.maxTokens,
+    },
+    embedding: {
+      model: "fast-all-MiniLM-L6-v2" as const,
+      cacheDir: process.env["FASTEMBED_CACHE_DIR"] ?? overrides.embedding?.cacheDir,
+    },
+    logging: {
+      level: process.env["LOG_LEVEL"] ?? overrides.logging?.level,
+      context: overrides.logging?.context,
+    },
+    features: {
+      enablePlugins: overrides.features?.enablePlugins,
+      runMigrationsOnInit: overrides.features?.runMigrationsOnInit,
+    },
+  };
+
+  // Validate and return with defaults
+  return shellConfigSchema.parse(config);
+}

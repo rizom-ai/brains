@@ -1,5 +1,5 @@
 {
-  "name": "@personal-brain/utils",
+  "name": "@brains/utils",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,8 +12,8 @@
     "clean": "rm -rf dist"
   },
   "devDependencies": {
-    "@personal-brain/eslint-config": "workspace:*",
-    "@personal-brain/typescript-config": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
     "@types/node": "^20.11.24",
     "bun-types": "latest",
     "eslint": "^8.56.0",

@@ -17,7 +17,7 @@ import type { QueryProcessor } from "../query/queryProcessor";
 import type { BrainProtocol } from "../protocol/brainProtocol";
 import type { EntityService } from "../entity/entityService";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
-import type { Logger } from "@personal-brain/utils";
+import type { Logger } from "@brains/utils";
 
 export interface ShellMCPOptions {
   queryProcessor: QueryProcessor;

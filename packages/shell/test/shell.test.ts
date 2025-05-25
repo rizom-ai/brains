@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { Shell } from "@/shell";
-import { createSilentLogger } from "@personal-brain/utils";
+import { createSilentLogger, type Logger } from "@personal-brain/utils";
 import { Registry } from "@/registry/registry";
 import { EntityRegistry } from "@/entity/entityRegistry";
 import { SchemaRegistry } from "@/schema/schemaRegistry";
@@ -13,6 +13,7 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
 import type { AIService } from "@/ai/aiService";
 import { defaultQueryResponseSchema } from "@/schemas/defaults";
+import type { ShellConfig } from "@/config";
 
 // Create a mock embedding service
 const mockEmbeddingService: IEmbeddingService = {
@@ -97,6 +98,47 @@ function createMockDatabase(): LibSQLDatabase<Record<string, never>> {
   } as unknown as LibSQLDatabase<Record<string, never>>;
 }
 
+// Helper to create a test shell with mocks
+function createTestShell(configOverrides: Partial<ShellConfig> = {}): {
+  shell: Shell;
+  db: LibSQLDatabase<Record<string, never>>;
+  logger: Logger;
+  dependencies: {
+    db: LibSQLDatabase<Record<string, never>>;
+    logger: Logger;
+    embeddingService: IEmbeddingService;
+    aiService: AIService;
+  };
+} {
+  const db = createMockDatabase();
+  const logger = createSilentLogger();
+  
+  const config: Partial<ShellConfig> = {
+    ai: { 
+      apiKey: "test-key",
+      provider: "anthropic" as const,
+      model: "claude-3-haiku-20240307",
+      temperature: 0.7,
+      maxTokens: 1000
+    },
+    ...configOverrides
+  };
+  
+  const dependencies = {
+    db,
+    logger,
+    embeddingService: mockEmbeddingService,
+    aiService: createMockAIService(),
+  };
+  
+  return {
+    shell: Shell.createFresh(config, dependencies),
+    db,
+    logger,
+    dependencies
+  };
+}
+
 describe("Shell", () => {
   beforeEach(() => {
     // Reset all singletons before each test
@@ -113,14 +155,7 @@ describe("Shell", () => {
 
   describe("initialization", () => {
     it("should start uninitialized", () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
 
       expect(shell.isInitialized()).toBe(false);
 
@@ -128,14 +163,7 @@ describe("Shell", () => {
     });
 
     it("should initialize successfully", async () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
 
       await shell.initialize();
       expect(shell.isInitialized()).toBe(true);
@@ -146,14 +174,7 @@ describe("Shell", () => {
 
   describe("query processing", () => {
     it("should process queries after initialization", async () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
       await shell.initialize();
 
       const result = await shell.query("test query");
@@ -164,14 +185,7 @@ describe("Shell", () => {
     });
 
     it("should reject queries before initialization", async () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(shell.query("test query")).rejects.toThrow(
@@ -182,14 +196,7 @@ describe("Shell", () => {
     });
 
     it("should process queries with options", async () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
       await shell.initialize();
 
       const result = await shell.query("test query", {
@@ -206,14 +213,7 @@ describe("Shell", () => {
 
   describe("command execution", () => {
     it("should execute commands after initialization", async () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
       await shell.initialize();
 
       const command = {
@@ -229,14 +229,7 @@ describe("Shell", () => {
     });
 
     it("should reject commands before initialization", async () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(
@@ -252,14 +245,7 @@ describe("Shell", () => {
 
   describe("plugin registration", () => {
     it("should register plugins after initialization", async () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
       await shell.initialize();
 
       const mockPlugin = {
@@ -276,14 +262,7 @@ describe("Shell", () => {
     });
 
     it("should reject plugin registration before initialization", () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
 
       const mockPlugin = {
         id: "test-plugin",
@@ -302,14 +281,7 @@ describe("Shell", () => {
 
   describe("shutdown", () => {
     it("should clean up resources on shutdown", async () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
       await shell.initialize();
 
       shell.shutdown();
@@ -317,14 +289,7 @@ describe("Shell", () => {
     });
 
     it("should reject operations after shutdown", async () => {
-      const db = createMockDatabase();
-      const logger = createSilentLogger();
-      const shell = Shell.createFresh({
-        db,
-        logger,
-        embeddingService: mockEmbeddingService,
-        aiService: createMockAIService(),
-      });
+      const { shell } = createTestShell();
       await shell.initialize();
       shell.shutdown();
 
