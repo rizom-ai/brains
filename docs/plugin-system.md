@@ -110,8 +110,8 @@ export class PluginManager {
 Plugins are registered with the plugin manager:
 
 ```typescript
-// In note-context/src/index.ts
-import { registerPlugin, ContextPlugin } from "@brains/shell";
+// packages/note-context/src/index.ts
+import type { Plugin, PluginContext } from "@brains/shell";
 import { noteSchema, NoteAdapter } from "./entity/noteEntity";
 import { NoteService } from "./services/noteService";
 import { NoteTools } from "./tools/noteTools";

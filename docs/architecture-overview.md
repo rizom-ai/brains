@@ -264,13 +264,18 @@ The "brains" repository is designed to support multiple brain implementations:
 
 ### Context Plugins
 
-Currently implemented within the shell package:
-- **packages/shell/src/contexts/note**: Note management functionality
-- **packages/shell/src/contexts/task**: Task management functionality (future)
-- **packages/shell/src/contexts/profile**: User profile functionality (future)
-- **packages/shell/src/contexts/project**: Project management functionality (future)
+Context plugins are implemented as separate packages:
 
-In the future, these may be extracted to separate packages for reusability across different brain types.
+- **@brains/note-context**: Note management functionality
+- **@brains/task-context**: Task management functionality (future)
+- **@brains/profile-context**: User profile functionality (future)
+- **@brains/project-context**: Project management functionality (future)
+
+This separation ensures:
+- Clear boundaries between contexts and shell
+- Explicit public APIs through package exports
+- Independent testing and versioning
+- Reusability across different brain types
 
 ### Brain Applications
 

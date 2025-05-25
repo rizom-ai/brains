@@ -25,11 +25,11 @@ The shell package already provides:
 
 ### 1. Create a Context Plugin Directory
 
-Context plugins live within the shell package. To add a new entity type (e.g., Note):
+Context plugins are separate packages. To add a new entity type (e.g., Note):
 
 ```bash
-# Create the context directory
-mkdir -p packages/shell/src/contexts/note
+# Create the context package directory
+mkdir -p packages/note-context/src
 ```
 
 ### 2. Define the Entity Type
@@ -37,10 +37,10 @@ mkdir -p packages/shell/src/contexts/note
 Create the entity schema and factory function:
 
 ```typescript
-// packages/shell/src/contexts/note/noteEntity.ts
+// packages/note-context/src/entities/note.ts
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { baseEntitySchema } from "@personal-brain/shell";
+import { baseEntitySchema } from "@brains/shell";
 
 // Define entity-specific schema
 export const noteSchema = baseEntitySchema.extend({
@@ -80,7 +80,7 @@ Create an adapter that implements the EntityAdapter interface:
 
 ```typescript
 import matter from "gray-matter";
-import type { EntityAdapter } from "@personal-brain/shell/src/entity/entityRegistry";
+import type { EntityAdapter } from "@brains/shell";
 import type { Note } from "./noteEntity";
 import { createNote } from "./noteEntity";
 

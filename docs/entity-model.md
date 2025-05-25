@@ -54,6 +54,7 @@ The shell package already includes:
 Entities are **NOT** defined in the shell package. Instead:
 
 1. **Shell provides base infrastructure**:
+
    - Base entity schema and types
    - EntityRegistry for registration
    - EntityService for CRUD operations
@@ -65,6 +66,7 @@ Entities are **NOT** defined in the shell package. Instead:
    - Profile Context → Profile entity
 
 Each context plugin is responsible for:
+
 - Defining its entity schema
 - Creating factory functions
 - Implementing entity adapters
@@ -75,10 +77,10 @@ Each context plugin is responsible for:
 Each context plugin defines its own entities:
 
 ```typescript
-// packages/shell/src/contexts/note/noteEntity.ts
+// packages/note-context/src/entities/note.ts
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { baseEntitySchema } from "@personal-brain/shell";
+import { baseEntitySchema } from "@brains/shell";
 
 // 1. Define entity-specific schema
 export const noteSchema = baseEntitySchema.extend({
