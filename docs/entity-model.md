@@ -49,35 +49,53 @@ The shell package already includes:
 - **IContentModel interface**: Currently expects entities to have `toMarkdown()`
 - **Database schema**: Tables for entities and embeddings
 
-### Migration Strategy
+### Where Entities Are Defined
 
-The current implementation has entities implement `IContentModel` with `toMarkdown()`. To migrate to adapter-only serialization:
+Entities are **NOT** defined in the shell package. Instead:
 
-1. **Update EntityAdapter interface** to include `toMarkdown(entity: T): string`
-2. **Remove IContentModel requirement** from entity types
-3. **Update EntityService** to use adapter's `toMarkdown` instead of entity's
-4. **Create pure data entity types** without methods
+1. **Shell provides base infrastructure**:
+   - Base entity schema and types
+   - EntityRegistry for registration
+   - EntityService for CRUD operations
+   - EntityAdapter interface
 
-This can be done incrementally as new entity types are added.
+2. **Context plugins define their entities**:
+   - Note Context → Note entity
+   - Task Context → Task entity
+   - Profile Context → Profile entity
 
-### Entity Creation Pattern
+Each context plugin is responsible for:
+- Defining its entity schema
+- Creating factory functions
+- Implementing entity adapters
+- Registering with the shell's EntityRegistry
 
-Entities are created using factory functions with Zod validation:
+### Entity Creation in Context Plugins
+
+Each context plugin defines its own entities:
 
 ```typescript
+// packages/shell/src/contexts/note/noteEntity.ts
+import { z } from "zod";
+import { nanoid } from "nanoid";
+import { baseEntitySchema } from "@personal-brain/shell";
+
 // 1. Define entity-specific schema
-const noteSchema = baseEntitySchema.extend({
+export const noteSchema = baseEntitySchema.extend({
   entityType: z.literal("note"),
   category: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]).default("medium"),
 });
 
 // 2. Infer the type (pure data, no methods)
-type Note = z.infer<typeof noteSchema>;
+export type Note = z.infer<typeof noteSchema>;
 
 // 3. Create factory function
-function createNote(
-  input: Omit<z.input<typeof noteSchema>, "id" | "created" | "updated" | "entityType"> & {
+export function createNote(
+  input: Omit<
+    z.input<typeof noteSchema>,
+    "id" | "created" | "updated" | "entityType"
+  > & {
     id?: string;
   },
 ): Note {
@@ -90,14 +108,9 @@ function createNote(
     ...input,
   });
 }
-
-// 4. Usage
-const note = createNote({
-  title: "My Note",
-  content: "Note content here",
-  tags: ["work", "project"],
-});
 ```
+
+**Important**: Entities are pure data objects. All serialization logic belongs in the adapter.
 
 ## Entity Adapter Pattern
 
@@ -119,9 +132,9 @@ export interface EntityAdapter<T extends BaseEntity> {
 class NoteAdapter implements EntityAdapter<Note> {
   toMarkdown(note: Note): string {
     const frontmatter = this.generateFrontMatter(note);
-    const content = note.content || '';
-    const title = note.title ? `# ${note.title}\n\n` : '';
-    
+    const content = note.content || "";
+    const title = note.title ? `# ${note.title}\n\n` : "";
+
     return `${frontmatter}${title}${content}`;
   }
 
@@ -132,13 +145,13 @@ class NoteAdapter implements EntityAdapter<Note> {
     // Extract title from content if not in frontmatter
     let title = parsedData["title"] as string;
     let noteContent = content.trim();
-    
+
     if (!title) {
       const match = noteContent.match(/^#\s+(.+)$/m);
       if (match) {
         title = match[1];
         // Remove the title line from content
-        noteContent = noteContent.replace(/^#\s+.+\n?/, '').trim();
+        noteContent = noteContent.replace(/^#\s+.+\n?/, "").trim();
       }
     }
 
@@ -148,7 +161,8 @@ class NoteAdapter implements EntityAdapter<Note> {
       content: noteContent,
       tags: Array.isArray(parsedData["tags"]) ? parsedData["tags"] : [],
       category: parsedData["category"] as string,
-      priority: (parsedData["priority"] as "low" | "medium" | "high") || "medium",
+      priority:
+        (parsedData["priority"] as "low" | "medium" | "high") || "medium",
     });
   }
 
@@ -167,7 +181,7 @@ class NoteAdapter implements EntityAdapter<Note> {
 
   generateFrontMatter(entity: Note): string {
     const metadata = this.extractMetadata(entity);
-    return matter.stringify('', metadata);
+    return matter.stringify("", metadata);
   }
 
   parseFrontMatter(markdown: string): Record<string, unknown> {

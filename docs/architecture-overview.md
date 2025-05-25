@@ -43,6 +43,7 @@ See [Package Structure](./architecture/package-structure.md) for detailed inform
 The shell provides the core infrastructure and extension points for plugins:
 
 **Core Infrastructure:**
+
 - **Registry System**: Component registration and dependency injection
 - **Plugin Manager**: Manages plugin lifecycles and dependencies
 - **Entity Framework**: Base entity types, registry, and adapters
@@ -53,6 +54,7 @@ The shell provides the core infrastructure and extension points for plugins:
 - **Brain Protocol**: Command routing and execution
 
 **Plugin Types:**
+
 - **Context Plugins** (primary): Domain-specific functionality (Note, Task, Profile)
 - **Interface Plugins** (future): External interfaces (CLI, Matrix)
 - **Feature Plugins** (future): Additional capabilities (sync, backup)
@@ -114,6 +116,7 @@ The entity framework uses a functional approach with factory functions and Zod s
 - **Entity Service**: Unified CRUD operations and search
 
 Key Design Principles:
+
 - **Functional Approach**: Factory functions, not classes, for entities
 - **Markdown Storage**: All entities stored as markdown with frontmatter
 - **Type Safety**: Zod schemas for validation
@@ -159,12 +162,14 @@ Key Design Principles:
 Context plugins are the primary plugin type, representing domains of functionality:
 
 **Current Context Plugins (planned):**
+
 - **Note Context**: Note management with markdown support
 - **Task Context**: Task tracking and management
 - **Profile Context**: User profiles and preferences
 - **Project Context**: Project organization
 
 **What Context Plugins Provide:**
+
 - **Entity Type**: Domain-specific entity (e.g., Note, Task)
 - **Factory Function**: Creates entities with validation
 - **Entity Adapter**: Handles markdown serialization
@@ -257,12 +262,15 @@ The "brains" repository is designed to support multiple brain implementations:
 - **@brains/cli**: Command-line interface
 - **@brains/matrix**: Matrix chat interface
 
-### Context Plugins (Shared across brain types)
+### Context Plugins
 
-- **@brains/note-context**: Note management functionality
-- **@brains/task-context**: Task management functionality
-- **@brains/person-context**: Person/profile management functionality
-- **@brains/project-context**: Project management functionality
+Currently implemented within the shell package:
+- **packages/shell/src/contexts/note**: Note management functionality
+- **packages/shell/src/contexts/task**: Task management functionality (future)
+- **packages/shell/src/contexts/profile**: User profile functionality (future)
+- **packages/shell/src/contexts/project**: Project management functionality (future)
+
+In the future, these may be extracted to separate packages for reusability across different brain types.
 
 ### Brain Applications
 

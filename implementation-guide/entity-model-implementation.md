@@ -9,6 +9,7 @@ The unified entity model is already implemented in the shell package. This guide
 ## Current State
 
 The shell package already provides:
+
 - **EntityRegistry**: For registering entity types and adapters
 - **EntityService**: For CRUD operations and search
 - **EntityAdapter interface**: For markdown serialization (currently requires `fromMarkdown` only)
@@ -22,52 +23,58 @@ The shell package already provides:
 
 ## Implementation Steps
 
-### 1. Create a New Entity Type
+### 1. Create a Context Plugin Directory
 
-To add a new entity type (e.g., Note), create the schema and factory function:
+Context plugins live within the shell package. To add a new entity type (e.g., Note):
+
+```bash
+# Create the context directory
+mkdir -p packages/shell/src/contexts/note
+```
+
+### 2. Define the Entity Type
+
+Create the entity schema and factory function:
 
 ```typescript
+// packages/shell/src/contexts/note/noteEntity.ts
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { baseEntitySchema } from "@personal-brain/shell/src/types";
+import { baseEntitySchema } from "@personal-brain/shell";
 
-// 1. Define entity-specific schema
+// Define entity-specific schema
 export const noteSchema = baseEntitySchema.extend({
   entityType: z.literal("note"),
   category: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]).default("medium"),
 });
 
-// 2. Infer the type (currently entities must implement IContentModel)
-export type Note = z.infer<typeof noteSchema> & {
-  toMarkdown(): string;
-};
+// Pure data type (no methods)
+export type Note = z.infer<typeof noteSchema>;
 
-// 3. Create factory function
+// Factory function
 export function createNote(
-  input: Omit<z.input<typeof noteSchema>, "id" | "created" | "updated" | "entityType"> & {
+  input: Omit<
+    z.input<typeof noteSchema>,
+    "id" | "created" | "updated" | "entityType"
+  > & {
     id?: string;
   },
 ): Note {
   const now = new Date().toISOString();
-  const validated = noteSchema.parse({
+  return noteSchema.parse({
     id: input.id ?? nanoid(12),
     created: now,
     updated: now,
     entityType: "note",
     ...input,
   });
-
-  return {
-    ...validated,
-    toMarkdown(): string {
-      return `# ${this.title}\n\n${this.content}`;
-    },
-  };
 }
 ```
 
-### 2. Create an Entity Adapter
+**Note**: The current shell implementation still expects entities to implement `IContentModel` with `toMarkdown()`. This will need to be updated to support pure data entities.
+
+### 3. Create an Entity Adapter
 
 Create an adapter that implements the EntityAdapter interface:
 
@@ -85,12 +92,12 @@ export class NoteAdapter implements EntityAdapter<Note> {
     // Extract title from content if not in frontmatter
     let title = parsedData["title"] as string;
     let noteContent = content.trim();
-    
+
     if (!title) {
       const match = noteContent.match(/^#\s+(.+)$/m);
       if (match) {
         title = match[1];
-        noteContent = noteContent.replace(/^#\s+.+\n?/, '').trim();
+        noteContent = noteContent.replace(/^#\s+.+\n?/, "").trim();
       }
     }
 
@@ -100,7 +107,8 @@ export class NoteAdapter implements EntityAdapter<Note> {
       content: noteContent,
       tags: Array.isArray(parsedData["tags"]) ? parsedData["tags"] : [],
       category: parsedData["category"] as string,
-      priority: (parsedData["priority"] as "low" | "medium" | "high") || "medium",
+      priority:
+        (parsedData["priority"] as "low" | "medium" | "high") || "medium",
     });
   }
 
