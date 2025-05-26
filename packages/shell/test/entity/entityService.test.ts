@@ -186,4 +186,33 @@ describe("EntityService", (): void => {
   });
 
   // Note: toMarkdown tests removed - this is now handled by the adapter
+
+  test("hasAdapter returns true for registered types", () => {
+    // Create test adapter
+    const testAdapter = {
+      entityType: "note",
+      schema: noteSchema,
+      toMarkdown: (entity: Note): string => `# ${entity.title}\n\n${entity.content}`,
+      fromMarkdown: (_markdown: string, metadata?: Record<string, unknown>): Note => {
+        const lines = _markdown.split("\n");
+        const title = lines[0]?.replace(/^#\s*/, "") ?? "Untitled";
+        const content = lines.slice(2).join("\n");
+        return createNote({ title, content, ...metadata });
+      },
+      extractMetadata: (entity: Note): Record<string, unknown> => ({
+        category: entity.category,
+      }),
+      parseFrontMatter: (_markdown: string): Record<string, unknown> => ({}),
+      generateFrontMatter: (entity: Note): string => {
+        return `---\ncategory: ${entity.category ?? ""}\n---\n`;
+      },
+    };
+    
+    // Register a test entity type
+    entityRegistry.registerEntityType("note", noteSchema, testAdapter);
+    
+    expect(entityService.hasAdapter("note")).toBe(true);
+    expect(entityService.hasAdapter("unknownType")).toBe(false);
+  });
+
 });

@@ -318,4 +318,45 @@ describe("PluginManager", (): void => {
     expect(pluginManager.isPluginInitialized("test-plugin")).toBe(true);
     expect(enableHandler).toHaveBeenCalledTimes(1);
   });
+
+  test("plugin registration can handle async operations", async () => {
+    const pm = PluginManager.createFresh(registry, logger, messageBus);
+    
+    // Create a plugin that does async work during registration
+    let asyncWorkCompleted = false;
+    const asyncPlugin = {
+      id: "async-plugin",
+      version: "1.0.0",
+      name: "Async Test Plugin",
+      async register(_context: PluginContext): Promise<PluginCapabilities> {
+        // Simulate async work (e.g., initializing a database)
+        await new Promise(resolve => setTimeout(resolve, 10));
+        asyncWorkCompleted = true;
+        
+        return {
+          tools: [{
+            name: "async_tool",
+            description: "Test async tool",
+            inputSchema: {},
+            handler: async () => ({ success: true }),
+          }],
+          resources: [],
+        };
+      },
+    };
+    
+    pm.registerPlugin(asyncPlugin);
+    
+    // Async work should not be completed yet
+    expect(asyncWorkCompleted).toBe(false);
+    
+    // Initialize plugins
+    await pm.initializePlugins();
+    
+    // Now async work should be completed
+    expect(asyncWorkCompleted).toBe(true);
+    
+    const status = pm.getPluginStatus("async-plugin");
+    expect(status).toBe(PluginStatus.INITIALIZED);
+  });
 });

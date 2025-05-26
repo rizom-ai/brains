@@ -218,18 +218,22 @@ export class GitSync {
 
     // Get all directories in the repo
     const entries = readdirSync(this.repoPath, { withFileTypes: true });
-    
+
     // Process root directory files as baseEntity
     const rootFiles = entries
       .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
       .map((entry) => ({ path: entry.name, entityType: "baseEntity" }));
-    
+
     // Process subdirectories - directory name IS the entity type
-    const subDirs = entries.filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
-    
+    const subDirs = entries.filter(
+      (entry) => entry.isDirectory() && !entry.name.startsWith("."),
+    );
+
     // Build list of all files to process
-    const filesToProcess: Array<{ path: string; entityType: string }> = [...rootFiles];
-    
+    const filesToProcess: Array<{ path: string; entityType: string }> = [
+      ...rootFiles,
+    ];
+
     for (const dir of subDirs) {
       const dirPath = join(this.repoPath, dir.name);
       const files = readdirSync(dirPath)

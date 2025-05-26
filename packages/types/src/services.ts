@@ -58,7 +58,7 @@ export interface EntityService {
   getEntityTypes(): string[];
   getAdapter<T extends BaseEntity>(entityType: string): EntityAdapter<T>;
   hasAdapter(entityType: string): boolean;
-  
+
   // Import/export
   importRawEntity(data: {
     entityType: string;

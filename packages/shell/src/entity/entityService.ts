@@ -599,7 +599,7 @@ export class EntityService {
 
     // Check if entity exists
     const existing = await this.getEntity(data.entityType, entity.id);
-    
+
     if (existing) {
       // Update if modified (compare timestamps)
       const existingTime = new Date(existing.updated).getTime();
