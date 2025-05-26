@@ -10,12 +10,12 @@ export type { BaseEntity, SearchResult } from "./entities";
 export { baseEntitySchema } from "./entities";
 
 // Plugin types
-export type { 
-  Plugin, 
+export type {
+  Plugin,
   PluginContext,
   PluginCapabilities,
   PluginTool,
-  PluginResource
+  PluginResource,
 } from "./plugin";
 export { pluginMetadataSchema } from "./plugin";
 

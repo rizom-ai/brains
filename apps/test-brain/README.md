@@ -15,6 +15,7 @@ bun run server
 ```
 
 This will:
+
 - Initialize the shell with a local SQLite database
 - Configure plugins (git-sync)
 - Execute a test query (in normal mode)

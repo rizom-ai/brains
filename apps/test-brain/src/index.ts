@@ -1,5 +1,6 @@
 import { Shell } from "@brains/shell";
 import { gitSync } from "@brains/git-sync";
+import { join } from "path";
 
 console.log("🧠 Test Brain - Validating Shell Architecture");
 
@@ -28,7 +29,7 @@ async function main() {
     plugins: [
       // Git sync plugin for version control
       gitSync({
-        repoPath: "./brain-repo",
+        repoPath: join(process.cwd(), "brain-repo"), // Use cwd for consistent path
         branch: "main",
         autoSync: false, // Manual sync for testing
       }),

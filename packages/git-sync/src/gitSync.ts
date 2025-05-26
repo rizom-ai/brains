@@ -106,12 +106,21 @@ export class GitSync {
     // Git instance will be created lazily via getter
 
     // Initialize git repo if needed
-    const isRepo = await this.git.checkIsRepo();
-    if (!isRepo) {
+    // Check for .git directory specifically to avoid detecting parent repos
+    const gitDir = join(this.repoPath, ".git");
+    const hasGitDir = existsSync(gitDir);
+    this.logger.debug("Git directory check", { hasGitDir, gitDir });
+    
+    if (!hasGitDir) {
+      this.logger.debug("Initializing git repository...");
       await this.git.init();
       this.logger.info("Initialized new git repository", {
         path: this.repoPath,
       });
+      
+      // Verify it was created
+      const hasGitDirAfter = existsSync(gitDir);
+      this.logger.debug("Git directory check after init", { hasGitDirAfter });
     }
 
     // Set remote if provided

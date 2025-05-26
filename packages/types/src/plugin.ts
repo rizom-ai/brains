@@ -54,7 +54,7 @@ export interface PluginCapabilities {
  * Plugin interface - combines validated metadata with the register function
  */
 export type Plugin = z.infer<typeof pluginMetadataSchema> & {
-  register(context: PluginContext): PluginCapabilities;
+  register(context: PluginContext): Promise<PluginCapabilities>;
 };
 
 /**

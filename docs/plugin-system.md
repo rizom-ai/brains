@@ -163,13 +163,13 @@ const shell = Shell.getInstance({
       branch: "main",
       autoSync: false,
     }),
-    
+
     // Note context plugin
     noteContext({
       defaultFormat: "markdown",
       enableAutoTags: true,
     }),
-    
+
     // Task context plugin
     taskContext({
       defaultPriority: "medium",
@@ -205,6 +205,7 @@ if (failedPlugins.length > 0) {
 ```
 
 Benefits:
+
 - Shell remains functional even if optional plugins fail
 - Clear error messages help diagnose issues
 - Development is easier (can work with partial functionality)
@@ -226,7 +227,7 @@ const shell = Shell.getInstance({
   // ... other config ...
   mcp: {
     transport: "stdio", // or "http" in future
-    port: 3000,         // for HTTP transport
+    port: 3000, // for HTTP transport
   },
 });
 ```

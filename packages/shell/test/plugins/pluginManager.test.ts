@@ -40,7 +40,7 @@ class TestPlugin implements Plugin {
     this.registerError = opts.registerError ?? false;
   }
 
-  register(context: PluginContext): PluginCapabilities {
+  async register(context: PluginContext): Promise<PluginCapabilities> {
     if (this.registerError) {
       throw new Error(`Plugin ${this.id} registration failed`);
     }

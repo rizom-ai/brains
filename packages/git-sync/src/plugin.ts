@@ -27,7 +27,7 @@ export class GitSyncPlugin implements Plugin {
     this.config = gitSyncConfigSchema.parse(config);
   }
 
-  register(context: PluginContext): PluginCapabilities {
+  async register(context: PluginContext): Promise<PluginCapabilities> {
     const { logger, registry } = context;
 
     // Get required services from registry
@@ -47,10 +47,19 @@ export class GitSyncPlugin implements Plugin {
       logger,
     });
 
-    // Initialize git repository (synchronously, as register is not async)
-    void this.gitSync.initialize().catch((error) => {
-      logger.error("Failed to initialize git repository", error);
-    });
+    // Initialize git repository (now we can await it!)
+    try {
+      await this.gitSync.initialize();
+      logger.info("Git repository initialized successfully", {
+        path: this.config.repoPath,
+      });
+    } catch (error) {
+      logger.error("Failed to initialize git repository", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error; // Fail plugin registration if git init fails
+    }
 
     // Define plugin tools
     const tools: PluginTool[] = [
@@ -105,7 +114,7 @@ export class GitSyncPlugin implements Plugin {
 
     // Also register commands with BrainProtocol for backward compatibility
     const [syncTool, pullTool, pushTool, statusTool] = tools;
-    
+
     if (syncTool) {
       brainProtocol.registerCommandHandler("sync", async (cmd) => {
         const result = await syncTool.handler({});

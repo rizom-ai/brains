@@ -299,7 +299,7 @@ describe("Shell", () => {
         id: "test-plugin",
         name: "Test Plugin",
         version: "1.0.0",
-        register: (): PluginCapabilities => ({ tools: [], resources: [] }),
+        register: async (): Promise<PluginCapabilities> => ({ tools: [], resources: [] }),
       };
 
       // Should not throw
@@ -315,7 +315,7 @@ describe("Shell", () => {
         id: "test-plugin",
         name: "Test Plugin",
         version: "1.0.0",
-        register: (): PluginCapabilities => ({ tools: [], resources: [] }),
+        register: async (): Promise<PluginCapabilities> => ({ tools: [], resources: [] }),
       };
 
       expect(() => shell.registerPlugin(mockPlugin)).toThrow(

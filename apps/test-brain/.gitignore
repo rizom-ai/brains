@@ -6,6 +6,9 @@ test-brain.db-journal
 dist/
 build/
 
+# Git sync repository
+brain-repo/
+
 # Dependencies
 node_modules/
 

@@ -143,9 +143,9 @@ The Shell follows an Astro-like configuration pattern for plugin management:
 // Configuration with declarative plugin setup
 const shell = Shell.getInstance({
   database: { url: "file:./brain.db" },
-  ai: { 
-    provider: "anthropic", 
-    apiKey: process.env.ANTHROPIC_API_KEY 
+  ai: {
+    provider: "anthropic",
+    apiKey: process.env.ANTHROPIC_API_KEY,
   },
   plugins: [
     // Plugins are configured, not manually registered
@@ -161,19 +161,22 @@ await shell.initialize();
 
 **Key Architectural Decisions:**
 
-1. **Plugin Initialization Order**: 
+1. **Plugin Initialization Order**:
+
    - Plugins are NOT initialized in configuration order
    - PluginManager resolves dependencies automatically
    - Plugins with no dependencies initialize first
    - Circular dependencies are detected and reported
 
 2. **Error Handling**:
+
    - Plugin failures don't crash the Shell
    - Failed plugins are tracked and can be queried
    - Shell operates in degraded mode if needed
    - Clear error messages for debugging
 
 3. **MCP Server Integration**:
+
    - MCP server is a core component, not a plugin
    - Always available in plugin context
    - Cannot be disabled or replaced

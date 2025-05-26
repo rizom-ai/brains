@@ -2,7 +2,12 @@ import type { Registry } from "../registry/registry";
 import type { Logger } from "@brains/utils";
 import { EventEmitter } from "events";
 import type { MessageBus } from "../messaging/messageBus";
-import type { Plugin, PluginContext, PluginTool, PluginResource } from "@brains/types";
+import type {
+  Plugin,
+  PluginContext,
+  PluginTool,
+  PluginResource,
+} from "@brains/types";
 
 /**
  * Plugin lifecycle event types
@@ -288,7 +293,7 @@ export class PluginManager {
     // Register the plugin
     try {
       // Call plugin's register method and get capabilities
-      const capabilities = plugin.register(context);
+      const capabilities = await plugin.register(context);
 
       // Register plugin tools with MCP server
       for (const tool of capabilities.tools) {
@@ -302,7 +307,10 @@ export class PluginManager {
       for (const resource of capabilities.resources) {
         this.logger.debug(`Registering MCP resource: ${resource.uri}`);
         // Emit event for Shell to handle
-        const resourceEvent: PluginResourceRegisterEvent = { pluginId, resource };
+        const resourceEvent: PluginResourceRegisterEvent = {
+          pluginId,
+          resource,
+        };
         this.events.emit(PluginEvent.RESOURCE_REGISTER, resourceEvent);
       }
 
@@ -412,13 +420,13 @@ export class PluginManager {
    */
   public getFailedPlugins(): Array<{ id: string; error: Error }> {
     const failed: Array<{ id: string; error: Error }> = [];
-    
+
     for (const [id, info] of this.plugins) {
       if (info.status === PluginStatus.ERROR && info.error) {
         failed.push({ id, error: info.error });
       }
     }
-    
+
     return failed;
   }
 
@@ -475,7 +483,7 @@ export class PluginManager {
    */
   public on<E extends PluginEvent>(
     event: E,
-    listener: (...args: PluginManagerEventMap[E]) => void
+    listener: (...args: PluginManagerEventMap[E]) => void,
   ): void {
     this.events.on(event, listener);
   }
@@ -485,7 +493,7 @@ export class PluginManager {
    */
   public once<E extends PluginEvent>(
     event: E,
-    listener: (...args: PluginManagerEventMap[E]) => void
+    listener: (...args: PluginManagerEventMap[E]) => void,
   ): void {
     this.events.once(event, listener);
   }
@@ -495,7 +503,7 @@ export class PluginManager {
    */
   public off<E extends PluginEvent>(
     event: E,
-    listener: (...args: PluginManagerEventMap[E]) => void
+    listener: (...args: PluginManagerEventMap[E]) => void,
   ): void {
     this.events.off(event, listener);
   }

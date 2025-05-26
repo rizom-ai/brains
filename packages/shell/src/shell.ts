@@ -230,14 +230,14 @@ export class Shell {
     // Listen for plugin tool registration events
     this.pluginManager.on(PluginEvent.TOOL_REGISTER, (event) => {
       const { pluginId, tool } = event;
-      this.logger.debug(`Registering MCP tool from plugin ${pluginId}: ${tool.name}`);
-      
+      this.logger.debug(
+        `Registering MCP tool from plugin ${pluginId}: ${tool.name}`,
+      );
+
       // Register the tool with the MCP server
-      this.mcpServer.getServer().tool(
-        tool.name,
-        tool.description,
-        tool.inputSchema,
-        async (params) => {
+      this.mcpServer
+        .getServer()
+        .tool(tool.name, tool.description, tool.inputSchema, async (params) => {
           try {
             const result = await tool.handler(params);
             return {
@@ -252,21 +252,20 @@ export class Shell {
             this.logger.error(`Error in tool ${tool.name}`, error);
             throw error;
           }
-        }
-      );
+        });
     });
 
     // Listen for plugin resource registration events
     this.pluginManager.on(PluginEvent.RESOURCE_REGISTER, (event) => {
       const { pluginId, resource } = event;
-      this.logger.debug(`Registering MCP resource from plugin ${pluginId}: ${resource.uri}`);
-      
-      // Register the resource with the MCP server
-      this.mcpServer.getServer().resource(
-        resource.name,
-        resource.uri,
-        resource.handler
+      this.logger.debug(
+        `Registering MCP resource from plugin ${pluginId}: ${resource.uri}`,
       );
+
+      // Register the resource with the MCP server
+      this.mcpServer
+        .getServer()
+        .resource(resource.name, resource.uri, resource.handler);
     });
   }
 
@@ -296,7 +295,7 @@ export class Shell {
           this.logger.debug(`Registering plugin: ${plugin.id}`);
           this.pluginManager.registerPlugin(plugin);
         }
-        
+
         // Initialize all registered plugins
         await this.pluginManager.initializePlugins();
       }
