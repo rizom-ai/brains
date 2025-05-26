@@ -561,4 +561,55 @@ export class EntityService {
 
     return this.search(query, searchOptions);
   }
+
+  /**
+   * Check if adapter exists for entity type
+   */
+  public hasAdapter(entityType: string): boolean {
+    try {
+      this.entityRegistry.getAdapter(entityType);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Import raw entity data (e.g., from git sync)
+   * Creates a BaseEntity from file system data and passes to create/update
+   */
+  public async importRawEntity(data: {
+    entityType: string;
+    id: string;
+    title: string;
+    content: string;
+    created: Date;
+    updated: Date;
+  }): Promise<void> {
+    // Build BaseEntity from file data
+    const entity: BaseEntity = {
+      id: data.id,
+      entityType: data.entityType,
+      title: data.title,
+      content: data.content,
+      tags: [], // Default empty tags
+      created: data.created.toISOString(),
+      updated: data.updated.toISOString(),
+    };
+
+    // Check if entity exists
+    const existing = await this.getEntity(data.entityType, entity.id);
+    
+    if (existing) {
+      // Update if modified (compare timestamps)
+      const existingTime = new Date(existing.updated).getTime();
+      const newTime = data.updated.getTime();
+      if (existingTime < newTime) {
+        await this.updateEntity(entity);
+      }
+    } else {
+      // Create new entity
+      await this.createEntity(entity);
+    }
+  }
 }

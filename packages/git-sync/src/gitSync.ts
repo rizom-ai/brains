@@ -1,13 +1,14 @@
 import type { EntityService, BaseEntity, Logger } from "@brains/types";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
-import { join } from "path";
+import { join, basename } from "path";
 import {
   mkdirSync,
   readFileSync,
   writeFileSync,
   existsSync,
   readdirSync,
+  statSync,
 } from "fs";
 import { z } from "zod";
 
@@ -110,14 +111,14 @@ export class GitSync {
     const gitDir = join(this.repoPath, ".git");
     const hasGitDir = existsSync(gitDir);
     this.logger.debug("Git directory check", { hasGitDir, gitDir });
-    
+
     if (!hasGitDir) {
       this.logger.debug("Initializing git repository...");
       await this.git.init();
       this.logger.info("Initialized new git repository", {
         path: this.repoPath,
       });
-      
+
       // Verify it was created
       const hasGitDirAfter = existsSync(gitDir);
       this.logger.debug("Git directory check after init", { hasGitDirAfter });
@@ -215,61 +216,86 @@ export class GitSync {
       }
     }
 
-    const entityTypes = this.entityService.getEntityTypes();
+    // Get all directories in the repo
+    const entries = readdirSync(this.repoPath, { withFileTypes: true });
+    
+    // Process root directory files as baseEntity
+    const rootFiles = entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+      .map((entry) => ({ path: entry.name, entityType: "baseEntity" }));
+    
+    // Process subdirectories - directory name IS the entity type
+    const subDirs = entries.filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
+    
+    // Build list of all files to process
+    const filesToProcess: Array<{ path: string; entityType: string }> = [...rootFiles];
+    
+    for (const dir of subDirs) {
+      const dirPath = join(this.repoPath, dir.name);
+      const files = readdirSync(dirPath)
+        .filter((f) => f.endsWith(".md"))
+        .map((f) => ({
+          path: join(dir.name, f),
+          entityType: dir.name, // Directory name is the entity type
+        }));
+      filesToProcess.push(...files);
+    }
 
-    // For each entity type, read markdown files and import
-    for (const entityType of entityTypes) {
-      const dir = join(this.repoPath, entityType);
+    // Track import statistics
+    let imported = 0;
+    let skipped = 0;
+    let failed = 0;
 
-      if (!existsSync(dir)) {
+    // Process each file
+    for (const { path, entityType } of filesToProcess) {
+      // Skip if entity type is not registered
+      if (!this.entityService.hasAdapter(entityType)) {
+        this.logger.debug("Skipping file - no adapter for entity type", {
+          path,
+          entityType,
+        });
+        skipped++;
         continue;
       }
 
-      const files = readdirSync(dir).filter((f) => f.endsWith(".md"));
+      const filePath = join(this.repoPath, path);
+      const markdown = readFileSync(filePath, "utf-8");
+      const stats = statSync(filePath);
 
-      // Read and process each markdown file
-      for (const file of files) {
-        const filePath = join(dir, file);
-        const markdown = readFileSync(filePath, "utf-8");
+      // Extract filename without extension for id and title
+      const filename = basename(path, ".md");
 
-        try {
-          // Parse entity from markdown using adapter
-          const adapter = this.entityService.getAdapter(entityType);
-          const entity = adapter.fromMarkdown(markdown);
-
-          // Check if entity exists
-          const existing = await this.entityService.getEntity(
-            entityType,
-            entity.id,
-          );
-
-          if (existing) {
-            // Update if modified
-            if (existing.updated < entity.updated) {
-              await this.entityService.updateEntity(entity);
-              this.logger.debug("Updated entity from git", {
-                entityType,
-                id: entity.id,
-              });
-            }
-          } else {
-            // Create new entity
-            await this.entityService.createEntity(entity);
-            this.logger.debug("Created entity from git", {
-              entityType,
-              id: entity.id,
-            });
-          }
-        } catch (error) {
-          this.logger.error("Failed to import entity", {
-            file,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
+      try {
+        // Pass file metadata along with content
+        await this.entityService.importRawEntity({
+          entityType,
+          id: filename,
+          title: filename.replace(/-/g, " "), // Convert dashes to spaces
+          content: markdown,
+          created: stats.birthtime,
+          updated: stats.mtime,
+        });
+        this.logger.debug("Imported entity from git", {
+          path,
+          entityType,
+        });
+        imported++;
+      } catch (error) {
+        this.logger.error("Failed to import entity", {
+          path,
+          entityType,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        failed++;
       }
     }
 
-    this.logger.info("Import completed");
+    this.logger.info("Import completed", {
+      total: filesToProcess.length,
+      imported,
+      skipped,
+      failed,
+    });
   }
 
   /**
