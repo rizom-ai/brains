@@ -309,9 +309,124 @@ const websiteContext: ContextPlugin = {
 
 The plugin manager ensures that dependencies are initialized in the correct order.
 
+## Tool-First Architecture
+
+### Design Philosophy
+
+The Brain system follows a **tool-first architecture** where:
+
+1. **Tools are the primary API** - All plugin functionality is exposed as tools
+2. **Tools are self-describing** - Each tool has a schema, description, and handler
+3. **Commands are secondary** - CLI/Matrix interfaces generate commands from tools
+4. **MCP is the standard** - Model Context Protocol provides the tool interface
+
+### Why Tools Over Commands
+
+Traditional command-based systems have limitations:
+
+- Commands are often stringly-typed with arbitrary argument parsing
+- No standardized schema or validation
+- Poor discoverability and documentation
+- Difficult to integrate with external systems
+
+Tools solve these problems:
+
+```typescript
+// Tool definition with schema
+const createNoteTool = {
+  name: "create_note",
+  description: "Create a new note with content and tags",
+  inputSchema: {
+    type: "object",
+    properties: {
+      title: { type: "string", description: "Note title" },
+      content: { type: "string", description: "Note content" },
+      tags: { 
+        type: "array", 
+        items: { type: "string" },
+        description: "Tags for categorization"
+      }
+    },
+    required: ["title", "content"]
+  },
+  handler: async (input) => {
+    // Type-safe, validated input
+    return await noteService.createNote(input.title, input.content, input.tags);
+  }
+};
+```
+
+### Command Generation Pattern
+
+Interface layers (CLI, Matrix bot) can automatically generate commands from tools:
+
+```typescript
+// In CLI interface
+class CLIInterface {
+  generateCommandsFromTools(tools: PluginTool[]) {
+    for (const tool of tools) {
+      // Convert tool name from snake_case to kebab-case for CLI
+      const commandName = tool.name.replace(/_/g, '-');
+      
+      // Generate command with automatic argument parsing
+      this.commander
+        .command(commandName)
+        .description(tool.description)
+        .action(async (args) => {
+          // Validate args against tool.inputSchema
+          const validatedInput = validateWithSchema(args, tool.inputSchema);
+          
+          // Execute tool handler
+          const result = await tool.handler(validatedInput);
+          
+          // Format output for CLI
+          console.log(formatOutput(result));
+        });
+    }
+  }
+}
+
+// In Matrix interface  
+class MatrixInterface {
+  generateCommandsFromTools(tools: PluginTool[]) {
+    for (const tool of tools) {
+      // Register Matrix command
+      this.registerCommand(tool.name, async (roomId, args) => {
+        // Parse Matrix message into tool input
+        const input = parseMatrixArgs(args, tool.inputSchema);
+        
+        // Execute tool
+        const result = await tool.handler(input);
+        
+        // Send formatted response to Matrix room
+        await this.sendMessage(roomId, formatMatrixResponse(result));
+      });
+    }
+  }
+}
+```
+
+Benefits of this approach:
+
+1. **Single source of truth** - Tool definition drives all interfaces
+2. **Consistent validation** - Schema validation everywhere
+3. **Better documentation** - Tools are self-documenting
+4. **Easier testing** - Test tools directly without command parsing
+5. **External integration** - MCP clients can discover and use tools
+
+### Migration Path
+
+For existing command-based code:
+
+1. **Keep existing commands working** - Don't break compatibility
+2. **Implement tools alongside** - Add tool definitions that mirror commands
+3. **Deprecate command registration** - Mark direct command registration as legacy
+4. **Auto-generate commands** - Switch to generating commands from tools
+5. **Remove legacy code** - Once all commands are generated from tools
+
 ## MCP Tool Registration
 
-Plugins always register their functionality as MCP tools and resources:
+Plugins register their functionality as MCP tools and resources:
 
 ```typescript
 // Define note tools
@@ -398,7 +513,7 @@ The plugin manager manages the lifecycle of all plugins:
 
 ## Feature Plugin Example
 
-Here's how a feature plugin like Git Sync works:
+Here's how a feature plugin like Git Sync follows the tool-first approach:
 
 ```typescript
 // packages/git-sync/src/gitSyncPlugin.ts
@@ -406,42 +521,84 @@ export class GitSyncPlugin implements Plugin {
   id = "git-sync";
   version = "1.0.0";
 
-  register(context: PluginContext): PluginLifecycle {
+  async register(context: PluginContext): Promise<PluginCapabilities> {
     const gitSync = new GitSync({
       entityService: context.entityService,
       logger: context.logger,
     });
 
-    // Register MCP tools
-    context.mcpServer.addTool({
-      name: "git_sync",
-      description: "Synchronize brain with git repository",
-      inputSchema: {
-        type: "object",
-        properties: {
-          operation: {
-            type: "string",
-            enum: ["sync", "pull", "push", "status"],
-          },
+    // Initialize git repository
+    await gitSync.initialize();
+
+    // Define tools - the ONLY way to expose functionality
+    const tools: PluginTool[] = [
+      {
+        name: "git_sync",
+        description: "Synchronize all entities with git repository",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+        handler: async () => {
+          await gitSync.sync();
+          return { message: "Sync completed successfully" };
         },
       },
-      handler: async (input) => {
-        return await gitSync[input.operation]();
+      {
+        name: "git_sync_pull",
+        description: "Pull entities from git repository",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+        handler: async () => {
+          const imported = await gitSync.importFromGit();
+          return { 
+            message: `Imported ${imported.length} entities from git`,
+            entities: imported
+          };
+        },
       },
-    });
+      {
+        name: "git_sync_push", 
+        description: "Push entities to git repository",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+        handler: async () => {
+          const exported = await gitSync.exportToGit();
+          return {
+            message: `Exported ${exported.length} entities to git`,
+            entities: exported
+          };
+        },
+      },
+      {
+        name: "git_sync_status",
+        description: "Get git repository status",
+        inputSchema: {
+          type: "object", 
+          properties: {},
+        },
+        handler: async () => {
+          const status = await gitSync.getStatus();
+          return status;
+        },
+      },
+    ];
 
-    // Register commands
-    context.brainProtocol.registerCommand("sync", () => gitSync.syncAll());
-    context.brainProtocol.registerCommand("sync:status", () =>
-      gitSync.getStatus(),
-    );
-
+    // Return plugin capabilities - tools only, no commands!
     return {
-      onInitialize: () => gitSync.initialize(),
-      onShutdown: () => gitSync.shutdown(),
+      tools,
+      resources: [], // No resources for this plugin
     };
   }
 }
+
+// Usage: Interface layers generate commands from these tools
+// CLI: `brain git-sync`, `brain git-sync-pull`, etc.
+// Matrix: `!git_sync`, `!git_sync_pull`, etc.
 ```
 
 ## Interface Plugin Example

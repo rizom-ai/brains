@@ -18,7 +18,6 @@ import { Logger, LogLevel } from "@brains/utils";
 import { MCPServer } from "@brains/mcp-server";
 import { registerShellMCP } from "./mcp";
 import type { QueryResult } from "./types";
-import type { Command, CommandResponse } from "./protocol/brainProtocol";
 import type { Plugin } from "@brains/types";
 import { defaultQueryResponseSchema } from "./schemas/defaults";
 import type { ShellConfig } from "./config";
@@ -192,7 +191,6 @@ export class Shell {
     this.brainProtocol = BrainProtocol.getInstance(
       this.logger,
       this.messageBus,
-      this.queryProcessor,
     );
 
     // Create or use injected MCP server
@@ -206,7 +204,6 @@ export class Shell {
       // Register shell MCP capabilities
       registerShellMCP(this.mcpServer.getServer(), {
         queryProcessor: this.queryProcessor,
-        brainProtocol: this.brainProtocol,
         entityService: this.entityService,
         schemaRegistry: this.schemaRegistry,
         logger: this.logger,
@@ -351,16 +348,6 @@ export class Shell {
     });
   }
 
-  /**
-   * Execute a command
-   */
-  public async executeCommand(command: Command): Promise<CommandResponse> {
-    if (!this.initialized) {
-      throw new Error("Shell not initialized");
-    }
-
-    return this.brainProtocol.executeCommand(command);
-  }
 
   /**
    * Register a plugin

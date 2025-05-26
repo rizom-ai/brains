@@ -140,11 +140,11 @@ class NoteAdapter implements EntityAdapter<Note> {
     const result: Partial<Note> = {
       content: noteContent,
     };
-    
+
     if (category && category !== "general") {
       result.category = category;
     }
-    
+
     return result;
   }
 
@@ -267,7 +267,6 @@ describe("EntityRegistry", (): void => {
     expect(() => {
       registry.validateEntity("unknown", {});
     }).toThrow();
-
   });
 
   test("duplicate entity type registration should throw", (): void => {
@@ -293,7 +292,7 @@ This note has frontmatter metadata.`;
 
     const adapter = registry.getAdapter<Note>("note");
     const parsedContent = adapter.fromMarkdown(markdownWithFrontmatter);
-    
+
     expect(parsedContent.content).toBe("This note has frontmatter metadata.");
     expect(parsedContent.category).toBe("testing");
   });

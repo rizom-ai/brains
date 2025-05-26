@@ -46,16 +46,6 @@ describe("MCP Registration", () => {
           }),
         ),
       } as any,
-      brainProtocol: {
-        executeCommand: mock(() =>
-          Promise.resolve({
-            id: "123",
-            commandId: "123",
-            success: true,
-            result: "Command executed",
-          }),
-        ),
-      } as any,
       entityService: {
         getSupportedEntityTypes: mock(() => ["note", "task"]),
         getEntityTypes: mock(() => ["note", "task"]),
@@ -82,12 +72,11 @@ describe("MCP Registration", () => {
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
     // Check that tools were registered
-    expect(mockServer.tool).toHaveBeenCalledTimes(4); // 4 tools
+    expect(mockServer.tool).toHaveBeenCalledTimes(3); // 3 tools (removed brain_command)
 
     // Verify tool names
     const toolNames = Array.from(mockToolHandlers.keys());
     expect(toolNames).toContain("brain_query");
-    expect(toolNames).toContain("brain_command");
     expect(toolNames).toContain("entity_search");
     expect(toolNames).toContain("entity_get");
   });
@@ -133,34 +122,4 @@ describe("MCP Registration", () => {
     expect(parsedResult.answer).toBe("Test answer");
   });
 
-  it("should handle command execution through adapters", async () => {
-    // Register shell with MCP
-    registerShellMCP(mockServer as unknown as McpServer, mockServices);
-
-    // Get the brain_command tool handler
-    const commandHandler = mockToolHandlers.get("brain_command");
-    expect(commandHandler).toBeDefined();
-    if (!commandHandler || typeof commandHandler !== "function") {
-      throw new Error("Command handler not found or not a function");
-    }
-
-    // Execute the tool with parameters directly
-    await commandHandler({
-      command: "help",
-      args: ["test"],
-      context: { userId: "user123" },
-    });
-
-    // Check that the adapter properly called brain protocol
-    expect(mockServices.brainProtocol.executeCommand).toHaveBeenCalled();
-
-    // Verify the command object was properly constructed
-    const commandCall = (
-      mockServices.brainProtocol.executeCommand as ReturnType<typeof mock>
-    ).mock.calls[0];
-    const command = commandCall?.[0];
-    expect(command.command).toBe("help");
-    expect(command.args).toEqual({ arg0: "test" });
-    expect(command.context?.userId).toBe("user123");
-  });
 });

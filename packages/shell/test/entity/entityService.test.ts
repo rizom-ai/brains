@@ -115,7 +115,9 @@ describe("EntityService", (): void => {
       parseFrontMatter: mock(() => ({})),
       generateFrontMatter: mock(() => ""),
     };
-    const mockGetAdapter = mock(() => mockAdapter) as unknown as typeof entityRegistry.getAdapter;
+    const mockGetAdapter = mock(
+      () => mockAdapter,
+    ) as unknown as typeof entityRegistry.getAdapter;
     entityRegistry.getAdapter = mockGetAdapter;
 
     // This would normally do database operations, but we're testing the validation logic
@@ -258,7 +260,7 @@ describe("EntityService", (): void => {
 
   test("getAdapter throws for unregistered types", () => {
     expect(() => entityService.getAdapter("unknownType")).toThrow(
-      'No adapter registered for entity type: unknownType',
+      "No adapter registered for entity type: unknownType",
     );
   });
 
@@ -269,7 +271,7 @@ describe("EntityService", (): void => {
 
     const types1 = entityService.getAllEntityTypes();
     const types2 = entityService.getEntityTypes();
-    
+
     expect(types1).toEqual(["note", "profile", "task"]);
     expect(types2).toEqual(types1);
     expect(mockGetAllEntityTypes).toHaveBeenCalledTimes(2);

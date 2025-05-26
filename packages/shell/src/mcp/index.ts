@@ -14,14 +14,12 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerShellTools } from "./tools";
 import { registerShellResources } from "./resources";
 import type { QueryProcessor } from "../query/queryProcessor";
-import type { BrainProtocol } from "../protocol/brainProtocol";
 import type { EntityService } from "../entity/entityService";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { Logger } from "@brains/utils";
 
 export interface ShellMCPOptions {
   queryProcessor: QueryProcessor;
-  brainProtocol: BrainProtocol;
   entityService: EntityService;
   schemaRegistry: SchemaRegistry;
   logger: Logger;

@@ -130,14 +130,14 @@ Each entity type requires an adapter for markdown serialization. Adapters work w
 export interface EntityAdapter<T extends BaseEntity> {
   entityType: string;
   schema: z.ZodSchema<T>;
-  
+
   // Convert entity to markdown representation
   toMarkdown(entity: T): string;
-  
+
   // Extract entity-specific fields from markdown
   // Note: This returns Partial<T> - core fields will be merged from database
   fromMarkdown(markdown: string): Partial<T>;
-  
+
   // Optional: Metadata handling for frontmatter
   extractMetadata?(entity: T): Record<string, unknown>;
   parseFrontMatter?(markdown: string): Record<string, unknown>;
@@ -152,16 +152,17 @@ class NoteAdapter implements EntityAdapter<Note> {
   toMarkdown(note: Note): string {
     // For notes, we only store content and entity-specific fields
     // Title is in database, so we don't duplicate it in markdown
-    const frontmatter = note.category || note.priority !== "medium" 
-      ? this.generateFrontMatter(note) 
-      : "";
-    
+    const frontmatter =
+      note.category || note.priority !== "medium"
+        ? this.generateFrontMatter(note)
+        : "";
+
     return `${frontmatter}${note.content}`;
   }
 
   fromMarkdown(markdown: string): Partial<Note> {
     const { data, content } = matter(markdown);
-    
+
     // Return only entity-specific fields
     // Core fields (id, title, created, etc.) will come from database
     return {
@@ -170,13 +171,13 @@ class NoteAdapter implements EntityAdapter<Note> {
       priority: (data.priority as "low" | "medium" | "high") || "medium",
     };
   }
-  
+
   generateFrontMatter(note: Note): string {
     const metadata: Record<string, unknown> = {};
     if (note.category) metadata.category = note.category;
     if (note.priority !== "medium") metadata.priority = note.priority;
-    
-    return Object.keys(metadata).length > 0 
+
+    return Object.keys(metadata).length > 0
       ? matter.stringify("", metadata)
       : "";
   }
@@ -196,14 +197,14 @@ class ProfileAdapter implements EntityAdapter<Profile> {
       links: profile.links,
       skills: profile.skills,
     });
-    
+
     // Bio is the main content
     return `${frontmatter}${profile.bio || ""}`;
   }
 
   fromMarkdown(markdown: string): Partial<Profile> {
     const { data, content } = matter(markdown);
-    
+
     return {
       name: data.name as string,
       email: data.email as string,
@@ -387,7 +388,7 @@ const entity = {
   created: new Date(entityData.created).toISOString(),
   updated: new Date(entityData.updated).toISOString(),
   tags: entityData.tags,
-  
+
   // Entity-specific fields from adapter
   ...parsedContent,
 } as T;

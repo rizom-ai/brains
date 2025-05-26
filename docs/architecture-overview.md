@@ -5,11 +5,12 @@ The Personal Brain application features a modular, plugin-based architecture bui
 ## Core Architecture Principles
 
 1. **MCP-First Design**: Every brain application is an MCP server, exposing all functionality through the Model Context Protocol
-2. **Monolithic Shell with Plugin Support**: Core functionality lives in the shell package, with plugin interfaces for extensibility
-3. **Functional Entity Model**: Uses factory functions and Zod schemas for entity creation, not classes
-4. **Schema-First Design**: All data structures use Zod schemas for validation and type safety
-5. **Component Interface Standardization**: Consistent singleton pattern across all major components
-6. **Behavioral Testing**: Focus on testing behavior rather than implementation details
+2. **Tool-First Architecture**: All functionality is exposed as self-describing tools with schemas; commands are generated from tools
+3. **Monolithic Shell with Plugin Support**: Core functionality lives in the shell package, with plugin interfaces for extensibility
+4. **Functional Entity Model**: Uses factory functions and Zod schemas for entity creation, not classes
+5. **Schema-First Design**: All data structures use Zod schemas for validation and type safety
+6. **Component Interface Standardization**: Consistent singleton pattern across all major components
+7. **Behavioral Testing**: Focus on testing behavior rather than implementation details
 
 ## Current Implementation State
 

@@ -25,7 +25,9 @@ const noteSchema = baseEntitySchema.extend({
 type Note = z.infer<typeof noteSchema>;
 
 // Helper to create test entity data with required fields
-function createTestEntityData(data: Partial<Omit<Note, 'id' | 'created' | 'updated' | 'entityType'>>): Omit<Note, 'id'> {
+function createTestEntityData(
+  data: Partial<Omit<Note, "id" | "created" | "updated" | "entityType">>,
+): Omit<Note, "id"> {
   return {
     entityType: "note" as const,
     title: data.title ?? "Test Note",
@@ -43,7 +45,9 @@ const noteAdapter: EntityAdapter<Note> = {
   schema: noteSchema,
   toMarkdown: (entity: Note): string => {
     // Don't include title in markdown - it's stored in database
-    const frontmatter = entity.category ? `---\ncategory: ${entity.category}\n---\n\n` : "";
+    const frontmatter = entity.category
+      ? `---\ncategory: ${entity.category}\n---\n\n`
+      : "";
     return `${frontmatter}${entity.content}`;
   },
   fromMarkdown: (_markdown: string): Partial<Note> => {
@@ -51,7 +55,7 @@ const noteAdapter: EntityAdapter<Note> = {
     const frontmatterMatch = _markdown.match(/^---\n([\s\S]*?)\n---\n/);
     let content = _markdown;
     let category: string | undefined;
-    
+
     if (frontmatterMatch) {
       // Extract category from frontmatter
       const frontmatterContent = frontmatterMatch[1];
@@ -62,7 +66,7 @@ const noteAdapter: EntityAdapter<Note> = {
       // Remove frontmatter from content
       content = _markdown.slice(frontmatterMatch[0].length).trim();
     }
-    
+
     // Return only entity-specific fields
     return {
       content,
@@ -75,7 +79,7 @@ const noteAdapter: EntityAdapter<Note> = {
   parseFrontMatter: (_markdown: string): Record<string, unknown> => {
     const frontmatterMatch = _markdown.match(/^---\n([\s\S]*?)\n---\n/);
     if (!frontmatterMatch) return {};
-    
+
     const frontmatterContent = frontmatterMatch[1];
     const categoryMatch = frontmatterContent?.match(/category:\s*(.+)/);
     return categoryMatch?.[1] ? { category: categoryMatch[1].trim() } : {};
@@ -207,9 +211,9 @@ describe("EntityService - Database Operations", () => {
       });
 
       const created = await entityService.createEntity(noteData);
-      
+
       // Wait a bit to ensure timestamps differ
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const updatedData = {
         ...created,
@@ -274,11 +278,13 @@ describe("EntityService - Database Operations", () => {
     beforeEach(async () => {
       // Create test entities
       for (let i = 0; i < 5; i++) {
-        await entityService.createEntity(createTestEntityData({
-          title: `Note ${i}`,
-          content: `Content for note ${i}`,
-          tags: [`tag${i}`],
-        }));
+        await entityService.createEntity(
+          createTestEntityData({
+            title: `Note ${i}`,
+            content: `Content for note ${i}`,
+            tags: [`tag${i}`],
+          }),
+        );
       }
     });
 
@@ -328,7 +334,7 @@ describe("EntityService - Database Operations", () => {
       const profileSchema = baseEntitySchema.extend({
         entityType: z.literal("profile"),
       });
-      
+
       type Profile = z.infer<typeof profileSchema>;
       const profileAdapter: EntityAdapter<Profile> = {
         entityType: "profile",
@@ -343,8 +349,12 @@ describe("EntityService - Database Operations", () => {
         parseFrontMatter: (_markdown: string): Record<string, unknown> => ({}),
         generateFrontMatter: (_entity: Profile): string => "",
       };
-      
-      entityRegistry.registerEntityType("profile", profileSchema, profileAdapter);
+
+      entityRegistry.registerEntityType(
+        "profile",
+        profileSchema,
+        profileAdapter,
+      );
 
       await entityService.createEntity({
         entityType: "profile" as const,
@@ -357,7 +367,9 @@ describe("EntityService - Database Operations", () => {
 
       const noteResults = await entityService.listEntities("note");
       expect(noteResults).toHaveLength(5);
-      expect(noteResults.every(item => item.entityType === "note")).toBe(true);
+      expect(noteResults.every((item) => item.entityType === "note")).toBe(
+        true,
+      );
 
       const profileResults = await entityService.listEntities("profile");
       expect(profileResults).toHaveLength(1);
@@ -367,44 +379,59 @@ describe("EntityService - Database Operations", () => {
 
   describe("searchEntitiesByTags", () => {
     beforeEach(async () => {
-      await entityService.createEntity(createTestEntityData({
-        title: "JavaScript Tutorial",
-        content: "Learn JS",
-        tags: ["javascript", "tutorial", "programming"],
-      }));
+      await entityService.createEntity(
+        createTestEntityData({
+          title: "JavaScript Tutorial",
+          content: "Learn JS",
+          tags: ["javascript", "tutorial", "programming"],
+        }),
+      );
 
-      await entityService.createEntity(createTestEntityData({
-        title: "TypeScript Guide",
-        content: "TS is great",
-        tags: ["typescript", "tutorial", "programming"],
-      }));
+      await entityService.createEntity(
+        createTestEntityData({
+          title: "TypeScript Guide",
+          content: "TS is great",
+          tags: ["typescript", "tutorial", "programming"],
+        }),
+      );
 
-      await entityService.createEntity(createTestEntityData({
-        title: "Python Basics",
-        content: "Python 101",
-        tags: ["python", "tutorial"],
-      }));
+      await entityService.createEntity(
+        createTestEntityData({
+          title: "Python Basics",
+          content: "Python 101",
+          tags: ["python", "tutorial"],
+        }),
+      );
     });
 
     test("searches by single tag", async () => {
       const results = await entityService.searchEntitiesByTags(["programming"]);
 
       expect(results).toHaveLength(2);
-      expect(results.every(result => 
-        result.entity.tags.includes("programming")
-      )).toBe(true);
+      expect(
+        results.every((result) => result.entity.tags.includes("programming")),
+      ).toBe(true);
     });
 
     test("searches by multiple tags (OR logic)", async () => {
-      const results = await entityService.searchEntitiesByTags(["javascript", "python"]);
+      const results = await entityService.searchEntitiesByTags([
+        "javascript",
+        "python",
+      ]);
 
       expect(results).toHaveLength(2);
-      expect(results.some(result => result.entity.title === "JavaScript Tutorial")).toBe(true);
-      expect(results.some(result => result.entity.title === "Python Basics")).toBe(true);
+      expect(
+        results.some((result) => result.entity.title === "JavaScript Tutorial"),
+      ).toBe(true);
+      expect(
+        results.some((result) => result.entity.title === "Python Basics"),
+      ).toBe(true);
     });
 
     test("returns empty result for non-existent tags", async () => {
-      const results = await entityService.searchEntitiesByTags(["non-existent"]);
+      const results = await entityService.searchEntitiesByTags([
+        "non-existent",
+      ]);
 
       expect(results).toHaveLength(0);
     });
@@ -413,17 +440,21 @@ describe("EntityService - Database Operations", () => {
   describe("search (vector similarity)", () => {
     test("performs vector similarity search", async () => {
       // Create entities with different content
-      await entityService.createEntity(createTestEntityData({
-        title: "Machine Learning Basics",
-        content: "Neural networks and deep learning fundamentals",
-        tags: ["ml", "ai"],
-      }));
+      await entityService.createEntity(
+        createTestEntityData({
+          title: "Machine Learning Basics",
+          content: "Neural networks and deep learning fundamentals",
+          tags: ["ml", "ai"],
+        }),
+      );
 
-      await entityService.createEntity(createTestEntityData({
-        title: "Cooking Recipe",
-        content: "How to make pasta carbonara",
-        tags: ["cooking", "recipe"],
-      }));
+      await entityService.createEntity(
+        createTestEntityData({
+          title: "Cooking Recipe",
+          content: "How to make pasta carbonara",
+          tags: ["cooking", "recipe"],
+        }),
+      );
 
       const results = await entityService.search("artificial intelligence");
 
@@ -438,7 +469,7 @@ describe("EntityService - Database Operations", () => {
       const profileSchema = baseEntitySchema.extend({
         entityType: z.literal("profile"),
       });
-      
+
       type Profile = z.infer<typeof profileSchema>;
       const profileAdapter: EntityAdapter<Profile> = {
         entityType: "profile",
@@ -453,13 +484,19 @@ describe("EntityService - Database Operations", () => {
         parseFrontMatter: (_markdown: string): Record<string, unknown> => ({}),
         generateFrontMatter: (_entity: Profile): string => "",
       };
-      
-      entityRegistry.registerEntityType("profile", profileSchema, profileAdapter);
 
-      await entityService.createEntity(createTestEntityData({
-        title: "Note about AI",
-        content: "AI content",
-      }));
+      entityRegistry.registerEntityType(
+        "profile",
+        profileSchema,
+        profileAdapter,
+      );
+
+      await entityService.createEntity(
+        createTestEntityData({
+          title: "Note about AI",
+          content: "AI content",
+        }),
+      );
 
       await entityService.createEntity({
         entityType: "profile" as const,
@@ -509,7 +546,7 @@ describe("EntityService - Database Operations", () => {
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(entityService.importRawEntity(rawData)).rejects.toThrow(
-        "No schema registered for entity type: unknown"
+        "No schema registered for entity type: unknown",
       );
     });
   });

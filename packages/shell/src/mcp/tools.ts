@@ -1,13 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { QueryProcessor } from "../query/queryProcessor";
-import type { BrainProtocol } from "../protocol/brainProtocol";
 import type { EntityService } from "../entity/entityService";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { Logger } from "@brains/utils";
 import {
   QueryProcessorAdapter,
-  BrainProtocolAdapter,
   EntityServiceAdapter,
 } from "./adapters";
 
@@ -18,7 +16,6 @@ export function registerShellTools(
   server: McpServer,
   options: {
     queryProcessor: QueryProcessor;
-    brainProtocol: BrainProtocol;
     entityService: EntityService;
     schemaRegistry: SchemaRegistry;
     logger: Logger;
@@ -27,7 +24,6 @@ export function registerShellTools(
   const {
     logger,
     queryProcessor,
-    brainProtocol,
     entityService,
     schemaRegistry,
   } = options;
@@ -37,7 +33,6 @@ export function registerShellTools(
     queryProcessor,
     schemaRegistry,
   );
-  const commandAdapter = new BrainProtocolAdapter(brainProtocol);
   const entityAdapter = new EntityServiceAdapter(entityService);
 
   logger.info("Registering shell tools with MCP server");
@@ -83,39 +78,6 @@ export function registerShellTools(
     },
   );
 
-  // Register command tool
-  server.tool(
-    "brain_command",
-    {
-      command: z.string().describe("The command to execute"),
-      args: z.array(z.unknown()).optional().describe("Command arguments"),
-      context: z.record(z.unknown()).optional().describe("Additional context"),
-    },
-    async (params) => {
-      try {
-        logger.debug("Executing brain_command tool", {
-          command: params.command,
-          args: params.args,
-          context: params.context,
-        });
-
-        const result = await commandAdapter.executeCommand(params);
-        logger.debug("Command result", { result });
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      } catch (error) {
-        logger.error("Error in brain_command tool", error);
-        throw error;
-      }
-    },
-  );
 
   // Register entity search tool
   server.tool(

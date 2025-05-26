@@ -60,35 +60,57 @@ brain-repo/
 
 Each entity is saved with its title as the filename. The context plugins define their own title conventions.
 
-## Commands
-
-Once registered, the plugin adds these commands:
-
-- `brain sync` - Sync all changes
-- `brain sync:pull` - Pull remote changes
-- `brain sync:push` - Push local changes
-- `brain sync:status` - Show sync status
-
 ## MCP Tools
 
-The plugin exposes the following MCP tool:
+The plugin exposes the following MCP tools:
 
 ```json
-{
-  "name": "git_sync",
-  "description": "Synchronize brain data with git repository",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "operation": {
-        "type": "string",
-        "enum": ["sync", "pull", "push", "status"]
-      }
-    },
-    "required": ["operation"]
+[
+  {
+    "name": "git_sync",
+    "description": "Synchronize all entities with git repository",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "git_sync_pull",
+    "description": "Pull entities from git repository",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "git_sync_push",
+    "description": "Push entities to git repository",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "git_sync_status",
+    "description": "Get git repository status",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
   }
-}
+]
 ```
+
+## CLI Usage
+
+When using a Brain CLI interface, commands are automatically generated from these tools:
+
+- `brain git-sync` - Sync all changes
+- `brain git-sync-pull` - Pull remote changes  
+- `brain git-sync-push` - Push local changes
+- `brain git-sync-status` - Show sync status
+
+Note: The exact command format depends on your CLI implementation.
 
 ## Configuration
 

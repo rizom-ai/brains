@@ -258,37 +258,6 @@ describe("Shell", () => {
     });
   });
 
-  describe("command execution", () => {
-    it("should execute commands after initialization", async () => {
-      const { shell } = createTestShell();
-      await shell.initialize();
-
-      const command = {
-        id: "test-123",
-        command: "help",
-      };
-
-      const response = await shell.executeCommand(command);
-      expect(response).toBeDefined();
-      expect(response.success).toBe(true);
-
-      shell.shutdown();
-    });
-
-    it("should reject commands before initialization", async () => {
-      const { shell } = createTestShell();
-
-      // eslint-disable-next-line @typescript-eslint/await-thenable
-      await expect(
-        shell.executeCommand({
-          id: "test-123",
-          command: "help",
-        }),
-      ).rejects.toThrow("Shell not initialized");
-
-      shell.shutdown();
-    });
-  });
 
   describe("plugin registration", () => {
     it("should register plugins after initialization", async () => {

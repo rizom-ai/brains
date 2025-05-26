@@ -9,10 +9,10 @@ import type { BaseEntity } from "@brains/types";
 export interface EntityAdapter<T extends BaseEntity> {
   entityType: string;
   schema: z.ZodSchema<T>;
-  
+
   // Convert entity to markdown content (may include frontmatter for entity-specific fields)
   toMarkdown(entity: T): string;
-  
+
   // Extract entity-specific fields from markdown
   // Returns Partial<T> as core fields come from database
   fromMarkdown(markdown: string): Partial<T>;
@@ -130,8 +130,6 @@ export class EntityRegistry {
     const schema = this.getSchema(type);
     return schema.parse(entity) as TData;
   }
-
-
 
   /**
    * Get all registered entity types

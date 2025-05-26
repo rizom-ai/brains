@@ -4,7 +4,6 @@ import type {
   PluginCapabilities,
   PluginTool,
   EntityService,
-  BrainProtocol,
 } from "@brains/types";
 import { GitSync } from "./gitSync";
 import {
@@ -32,9 +31,8 @@ export class GitSyncPlugin implements Plugin {
 
     // Get required services from registry
     const entityService = registry.resolve<EntityService>("entityService");
-    const brainProtocol = registry.resolve<BrainProtocol>("brainProtocol");
 
-    // These are required services - registry.resolve will throw if not found
+    // Note: We no longer need BrainProtocol - tools are the only interface
 
     // Create GitSync instance
     this.gitSync = new GitSync({
@@ -111,57 +109,6 @@ export class GitSyncPlugin implements Plugin {
         },
       },
     ];
-
-    // Also register commands with BrainProtocol for backward compatibility
-    const [syncTool, pullTool, pushTool, statusTool] = tools;
-
-    if (syncTool) {
-      brainProtocol.registerCommandHandler("sync", async (cmd) => {
-        const result = await syncTool.handler({});
-        return {
-          id: `response-${Date.now()}`,
-          commandId: cmd.id,
-          success: true,
-          result,
-        };
-      });
-    }
-
-    if (pullTool) {
-      brainProtocol.registerCommandHandler("sync:pull", async (cmd) => {
-        const result = await pullTool.handler({});
-        return {
-          id: `response-${Date.now()}`,
-          commandId: cmd.id,
-          success: true,
-          result,
-        };
-      });
-    }
-
-    if (pushTool) {
-      brainProtocol.registerCommandHandler("sync:push", async (cmd) => {
-        const result = await pushTool.handler({});
-        return {
-          id: `response-${Date.now()}`,
-          commandId: cmd.id,
-          success: true,
-          result,
-        };
-      });
-    }
-
-    if (statusTool) {
-      brainProtocol.registerCommandHandler("sync:status", async (cmd) => {
-        const result = await statusTool.handler({});
-        return {
-          id: `response-${Date.now()}`,
-          commandId: cmd.id,
-          success: true,
-          result,
-        };
-      });
-    }
 
     logger.info("Git sync plugin registered", {
       tools: tools.map((t) => t.name),

@@ -8,7 +8,6 @@
 import type { QueryProcessor } from "../query/queryProcessor";
 import type { QueryOptions, SerializableQueryResult } from "../types";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
-import type { BrainProtocol } from "../protocol/brainProtocol";
 import type { EntityService } from "../entity/entityService";
 import { toSerializableQueryResult } from "../utils/serialization";
 import { defaultQueryResponseSchema } from "../schemas/defaults";
@@ -97,55 +96,6 @@ export class QueryProcessorAdapter {
   }
 }
 
-/**
- * MCP Command parameters
- */
-export interface MCPCommandParams {
-  command: string;
-  args?: unknown[] | undefined;
-  context?: Record<string, unknown> | undefined;
-}
-
-/**
- * Adapter for BrainProtocol that handles MCP-style parameters
- */
-export class BrainProtocolAdapter {
-  constructor(private brainProtocol: BrainProtocol) {}
-
-  /**
-   * Execute a command with MCP-style parameters
-   */
-  async executeCommand(params: MCPCommandParams): Promise<unknown> {
-    // BrainProtocol expects a Command object with specific structure
-    const command = {
-      id: `mcp-${Date.now()}`, // Generate a unique ID
-      command: params.command,
-      args: params.args
-        ? // Convert args array to object format
-          params.args.reduce<Record<string, unknown>>((acc, arg, index) => {
-            acc[`arg${index}`] = arg;
-            return acc;
-          }, {})
-        : undefined,
-      context: params.context
-        ? {
-            // Extract known context fields
-            userId:
-              typeof params.context["userId"] === "string"
-                ? params.context["userId"]
-                : undefined,
-            conversationId:
-              typeof params.context["conversationId"] === "string"
-                ? params.context["conversationId"]
-                : undefined,
-            metadata: params.context,
-          }
-        : undefined,
-    };
-
-    return this.brainProtocol.executeCommand(command);
-  }
-}
 
 /**
  * MCP Entity search parameters
