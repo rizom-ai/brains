@@ -2,6 +2,7 @@ import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { z } from "zod";
 import { EntityService } from "@/entity/entityService";
 import { EntityRegistry } from "@/entity/entityRegistry";
+import type { EntityAdapter } from "@/entity/entityRegistry";
 import type { DrizzleDB } from "@/db";
 
 import { createSilentLogger, type Logger } from "@personal-brain/utils";
@@ -104,19 +105,29 @@ describe("EntityService", (): void => {
     ) as typeof entityRegistry.validateEntity;
     entityRegistry.validateEntity = mockValidateEntity;
 
-    // Mock the registry markdown conversion
-    const mockEntityToMarkdown = mock(() => "# Test Note\n\nTest content");
-    entityRegistry.entityToMarkdown = mockEntityToMarkdown;
+    // Mock the adapter
+    const mockAdapter = {
+      entityType: "note",
+      schema: noteSchema,
+      toMarkdown: mock(() => "Test content"),
+      fromMarkdown: mock(() => ({ content: "Test content" })),
+      extractMetadata: mock(() => ({})),
+      parseFrontMatter: mock(() => ({})),
+      generateFrontMatter: mock(() => ""),
+    };
+    const mockGetAdapter = mock(() => mockAdapter) as unknown as typeof entityRegistry.getAdapter;
+    entityRegistry.getAdapter = mockGetAdapter;
 
     // This would normally do database operations, but we're testing the validation logic
     // The actual database calls would be tested in integration tests
     expect(() => {
       entityRegistry.validateEntity("note", testEntity);
-      entityRegistry.entityToMarkdown(testEntity);
+      const adapter = entityRegistry.getAdapter("note");
+      adapter.toMarkdown(testEntity);
     }).not.toThrow();
 
     expect(mockValidateEntity).toHaveBeenCalledWith("note", testEntity);
-    expect(mockEntityToMarkdown).toHaveBeenCalledWith(testEntity);
+    expect(mockGetAdapter).toHaveBeenCalled();
   });
 
   test("entity creation generates ID when not provided", (): void => {
@@ -189,15 +200,16 @@ describe("EntityService", (): void => {
 
   test("hasAdapter returns true for registered types", () => {
     // Create test adapter
-    const testAdapter = {
+    const testAdapter: EntityAdapter<Note> = {
       entityType: "note",
       schema: noteSchema,
-      toMarkdown: (entity: Note): string => `# ${entity.title}\n\n${entity.content}`,
-      fromMarkdown: (_markdown: string, metadata?: Record<string, unknown>): Note => {
+      toMarkdown: (entity: Note): string =>
+        `# ${entity.title}\n\n${entity.content}`,
+      fromMarkdown: (_markdown: string): Partial<Note> => {
         const lines = _markdown.split("\n");
         const title = lines[0]?.replace(/^#\s*/, "") ?? "Untitled";
         const content = lines.slice(2).join("\n");
-        return createNote({ title, content, ...metadata });
+        return { title, content };
       },
       extractMetadata: (entity: Note): Record<string, unknown> => ({
         category: entity.category,
@@ -207,12 +219,59 @@ describe("EntityService", (): void => {
         return `---\ncategory: ${entity.category ?? ""}\n---\n`;
       },
     };
-    
+
     // Register a test entity type
     entityRegistry.registerEntityType("note", noteSchema, testAdapter);
-    
+
     expect(entityService.hasAdapter("note")).toBe(true);
     expect(entityService.hasAdapter("unknownType")).toBe(false);
   });
 
+  test("getAdapter returns adapter for registered types", () => {
+    // Create and register test adapter
+    const testAdapter: EntityAdapter<Note> = {
+      entityType: "note",
+      schema: noteSchema,
+      toMarkdown: (entity: Note): string =>
+        `# ${entity.title}\n\n${entity.content}`,
+      fromMarkdown: (_markdown: string): Partial<Note> => {
+        const lines = _markdown.split("\n");
+        const title = lines[0]?.replace(/^#\s*/, "") ?? "Untitled";
+        const content = lines.slice(2).join("\n");
+        return { title, content };
+      },
+      extractMetadata: (entity: Note): Record<string, unknown> => ({
+        category: entity.category,
+      }),
+      parseFrontMatter: (_markdown: string): Record<string, unknown> => ({}),
+      generateFrontMatter: (entity: Note): string => {
+        return `---\ncategory: ${entity.category ?? ""}\n---\n`;
+      },
+    };
+
+    entityRegistry.registerEntityType("note", noteSchema, testAdapter);
+
+    const retrievedAdapter = entityService.getAdapter("note");
+    expect(retrievedAdapter).toBeDefined();
+    expect(retrievedAdapter.entityType).toBe("note");
+  });
+
+  test("getAdapter throws for unregistered types", () => {
+    expect(() => entityService.getAdapter("unknownType")).toThrow(
+      'No adapter registered for entity type: unknownType',
+    );
+  });
+
+  test("getAllEntityTypes returns same as getEntityTypes", () => {
+    // Mock the registry to return specific types
+    const mockGetAllEntityTypes = mock(() => ["note", "profile", "task"]);
+    entityRegistry.getAllEntityTypes = mockGetAllEntityTypes;
+
+    const types1 = entityService.getAllEntityTypes();
+    const types2 = entityService.getEntityTypes();
+    
+    expect(types1).toEqual(["note", "profile", "task"]);
+    expect(types2).toEqual(types1);
+    expect(mockGetAllEntityTypes).toHaveBeenCalledTimes(2);
+  });
 });

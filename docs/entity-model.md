@@ -11,12 +11,13 @@ The entity model is a core part of the Personal Brain architecture. It provides 
 - **Factory functions** for entity creation (no classes for entities)
 - **Adapter classes** for serialization (classes are used for adapters)
 
-### Markdown-Centric Storage
+### Hybrid Storage Model
 
-- All entities stored as markdown with YAML frontmatter
-- Adapters handle conversion between entities and markdown
-- Database stores the full markdown representation
+- Database stores core metadata in columns: `id`, `entityType`, `title`, `created`, `updated`, `tags`
+- Entity-specific content stored as markdown in `content` column
+- Adapters handle bidirectional conversion between entities and markdown
 - Embeddings stored separately in vector column
+- Single source of truth: database columns for core metadata, markdown for entity-specific fields
 
 ## Core Concepts
 
@@ -116,56 +117,101 @@ export function createNote(
 
 ## Entity Adapter Pattern
 
-Each entity type requires an adapter for markdown serialization:
+Each entity type requires an adapter for markdown serialization. Adapters work with the hybrid storage model:
+
+### Adapter Responsibilities
+
+1. **toMarkdown**: Converts entity to markdown (may include frontmatter for entity-specific fields)
+2. **fromMarkdown**: Extracts entity-specific fields from markdown content
+3. **Core fields** (`id`, `entityType`, `title`, `created`, `updated`, `tags`) come from database
+4. **Entity-specific fields** come from markdown/frontmatter
 
 ```typescript
 export interface EntityAdapter<T extends BaseEntity> {
-  // Bidirectional markdown conversion
+  entityType: string;
+  schema: z.ZodSchema<T>;
+  
+  // Convert entity to markdown representation
   toMarkdown(entity: T): string;
-  fromMarkdown(markdown: string, metadata?: Record<string, unknown>): T;
-
-  // Metadata handling
-  extractMetadata(entity: T): Record<string, unknown>;
-  parseFrontMatter(markdown: string): Record<string, unknown>;
-  generateFrontMatter(entity: T): string;
+  
+  // Extract entity-specific fields from markdown
+  // Note: This returns Partial<T> - core fields will be merged from database
+  fromMarkdown(markdown: string): Partial<T>;
+  
+  // Optional: Metadata handling for frontmatter
+  extractMetadata?(entity: T): Record<string, unknown>;
+  parseFrontMatter?(markdown: string): Record<string, unknown>;
+  generateFrontMatter?(entity: T): string;
 }
 
-// Example implementation
+// Example implementation for Note (content-heavy entity)
 class NoteAdapter implements EntityAdapter<Note> {
-  toMarkdown(note: Note): string {
-    const frontmatter = this.generateFrontMatter(note);
-    const content = note.content || "";
-    const title = note.title ? `# ${note.title}\n\n` : "";
+  entityType = "note";
+  schema = noteSchema;
 
-    return `${frontmatter}${title}${content}`;
+  toMarkdown(note: Note): string {
+    // For notes, we only store content and entity-specific fields
+    // Title is in database, so we don't duplicate it in markdown
+    const frontmatter = note.category || note.priority !== "medium" 
+      ? this.generateFrontMatter(note) 
+      : "";
+    
+    return `${frontmatter}${note.content}`;
   }
 
-  fromMarkdown(markdown: string, metadata?: Record<string, unknown>): Note {
+  fromMarkdown(markdown: string): Partial<Note> {
     const { data, content } = matter(markdown);
-    const parsedData = metadata ?? data;
+    
+    // Return only entity-specific fields
+    // Core fields (id, title, created, etc.) will come from database
+    return {
+      content: content.trim(),
+      category: data.category as string | undefined,
+      priority: (data.priority as "low" | "medium" | "high") || "medium",
+    };
+  }
+  
+  generateFrontMatter(note: Note): string {
+    const metadata: Record<string, unknown> = {};
+    if (note.category) metadata.category = note.category;
+    if (note.priority !== "medium") metadata.priority = note.priority;
+    
+    return Object.keys(metadata).length > 0 
+      ? matter.stringify("", metadata)
+      : "";
+  }
+}
 
-    // Extract title from content if not in frontmatter
-    let title = parsedData["title"] as string;
-    let noteContent = content.trim();
+// Example implementation for Profile (metadata-heavy entity)
+class ProfileAdapter implements EntityAdapter<Profile> {
+  entityType = "profile";
+  schema = profileSchema;
 
-    if (!title) {
-      const match = noteContent.match(/^#\s+(.+)$/m);
-      if (match) {
-        title = match[1];
-        // Remove the title line from content
-        noteContent = noteContent.replace(/^#\s+.+\n?/, "").trim();
-      }
-    }
-
-    return createNote({
-      id: parsedData["id"] as string,
-      title: title || "Untitled",
-      content: noteContent,
-      tags: Array.isArray(parsedData["tags"]) ? parsedData["tags"] : [],
-      category: parsedData["category"] as string,
-      priority:
-        (parsedData["priority"] as "low" | "medium" | "high") || "medium",
+  toMarkdown(profile: Profile): string {
+    // For profiles, most data is in frontmatter
+    const frontmatter = matter.stringify("", {
+      name: profile.name,
+      email: profile.email,
+      avatar: profile.avatar,
+      links: profile.links,
+      skills: profile.skills,
     });
+    
+    // Bio is the main content
+    return `${frontmatter}${profile.bio || ""}`;
+  }
+
+  fromMarkdown(markdown: string): Partial<Profile> {
+    const { data, content } = matter(markdown);
+    
+    return {
+      name: data.name as string,
+      email: data.email as string,
+      bio: content.trim() || undefined,
+      avatar: data.avatar as string | undefined,
+      links: data.links as string[] | undefined,
+      skills: data.skills as string[] | undefined,
+    };
   }
 
   extractMetadata(entity: Note): Record<string, unknown> {
@@ -281,49 +327,73 @@ function createWebsiteSection(
 
 ## Database Storage
 
-Entities are stored as markdown with metadata in a unified table:
+Entities are stored with core metadata in columns and content as markdown:
 
 ```sql
--- Single entities table
+-- Single entities table with hybrid storage
 CREATE TABLE entities (
   id TEXT PRIMARY KEY,
   entity_type TEXT NOT NULL,
-  created TEXT NOT NULL,
-  updated TEXT NOT NULL,
-  tags TEXT NOT NULL,     -- JSON array of strings
-  markdown TEXT NOT NULL, -- Full markdown with frontmatter
+  title TEXT NOT NULL,           -- Core field stored in column
+  content TEXT NOT NULL,         -- Markdown content (without title)
+  tags TEXT NOT NULL DEFAULT '[]', -- JSON array of strings
+  content_weight INTEGER DEFAULT 100,
+  embedding BLOB NOT NULL,       -- Vector embedding
+  created INTEGER NOT NULL,      -- Unix timestamp
+  updated INTEGER NOT NULL,      -- Unix timestamp
 
   INDEX idx_entity_type (entity_type),
   INDEX idx_created (created),
   INDEX idx_updated (updated)
 );
 
--- Chunks for search and processing
-CREATE TABLE entity_chunks (
+-- Entity relationships table
+CREATE TABLE entity_relations (
   id TEXT PRIMARY KEY,
-  entity_id TEXT NOT NULL,
-  chunk_index INTEGER NOT NULL,
-  content TEXT NOT NULL,
-  created_at TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  relation_type TEXT NOT NULL,  -- e.g., "references", "parent", "related"
+  metadata TEXT,                 -- JSON metadata
+  created INTEGER NOT NULL,
 
-  FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
-);
-
--- Embeddings for vector search
-CREATE TABLE entity_embeddings (
-  id TEXT PRIMARY KEY,
-  entity_id TEXT NOT NULL,
-  chunk_id TEXT REFERENCES entity_chunks(id) ON DELETE CASCADE,
-  embedding BLOB,         -- JSON array of numbers
-  created_at TEXT NOT NULL,
-
-  FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+  FOREIGN KEY (source_id) REFERENCES entities(id) ON DELETE CASCADE,
+  FOREIGN KEY (target_id) REFERENCES entities(id) ON DELETE CASCADE
 );
 ```
 
 ## Entity Service
 
-Unified CRUD operations for all entity types:
+Unified CRUD operations for all entity types. The EntityService handles the hybrid storage model by:
+
+1. **When saving**: Stores core fields in database columns, entity-specific content as markdown
+2. **When loading**: Reconstructs full entity by merging database metadata with adapter-parsed content
+
+### Entity Reconstruction Process
+
+```typescript
+// In EntityService.getEntity()
+const entityData = await db.select().from(entities).where(eq(entities.id, id));
+const adapter = entityRegistry.getAdapter(entityType);
+
+// Extract entity-specific fields from markdown
+const parsedContent = adapter.fromMarkdown(entityData.content);
+
+// Merge database fields with parsed content
+const entity = {
+  // Core fields from database (always authoritative)
+  id: entityData.id,
+  entityType: entityData.entityType,
+  title: entityData.title,
+  created: new Date(entityData.created).toISOString(),
+  updated: new Date(entityData.updated).toISOString(),
+  tags: entityData.tags,
+  
+  // Entity-specific fields from adapter
+  ...parsedContent,
+} as T;
+```
+
+### Service Interface
 
 ```typescript
 export class EntityService {

@@ -109,14 +109,19 @@ export class EntityService {
       entityWithId,
     );
 
-    // Convert to markdown
-    const markdown = this.entityRegistry.entityToMarkdown(validatedEntity);
+    // Convert to markdown using adapter
+    const adapter = this.entityRegistry.getAdapter<T>(validatedEntity.entityType);
+    const markdown = adapter.toMarkdown(validatedEntity);
 
-    // Extract indexed fields from markdown
-    const { title, tags, contentWeight } = extractIndexedFields(
+    // Extract content weight from markdown (but keep original title and tags)
+    const { contentWeight } = extractIndexedFields(
       markdown,
       validatedEntity.id,
     );
+    
+    // Use the entity's actual title and tags, not extracted ones
+    const title = validatedEntity.title;
+    const tags = validatedEntity.tags;
 
     // Generate embedding synchronously
     const embedding = await this.embeddingService.generateEmbedding(markdown);
@@ -167,14 +172,29 @@ export class EntityService {
       return null;
     }
 
-    // Convert from markdown to entity
+    // Convert from markdown to entity using hybrid storage model
     try {
-      const entity = this.entityRegistry.markdownToEntity<T>(
-        entityType,
-        entityData.content,
-      );
-
-      return entity;
+      const adapter = this.entityRegistry.getAdapter<T>(entityType);
+      
+      // Extract entity-specific fields from markdown
+      const parsedContent = adapter.fromMarkdown(entityData.content);
+      
+      // Merge database fields with parsed content
+      const entity = {
+        // Core fields from database (always authoritative)
+        id: entityData.id,
+        entityType: entityData.entityType,
+        title: entityData.title,
+        created: new Date(entityData.created).toISOString(),
+        updated: new Date(entityData.updated).toISOString(),
+        tags: entityData.tags,
+        
+        // Entity-specific fields from adapter
+        ...parsedContent,
+      } as T;
+      
+      // Validate the complete entity
+      return await Promise.resolve(this.entityRegistry.validateEntity(entityType, entity));
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -205,14 +225,19 @@ export class EntityService {
       updatedEntity,
     );
 
-    // Convert to markdown
-    const markdown = this.entityRegistry.entityToMarkdown(validatedEntity);
+    // Convert to markdown using adapter
+    const adapter = this.entityRegistry.getAdapter<T>(validatedEntity.entityType);
+    const markdown = adapter.toMarkdown(validatedEntity);
 
-    // Extract indexed fields from markdown
-    const { title, tags, contentWeight } = extractIndexedFields(
+    // Extract content weight from markdown (but keep original title and tags)
+    const { contentWeight } = extractIndexedFields(
       markdown,
       validatedEntity.id,
     );
+    
+    // Use the entity's actual title and tags, not extracted ones
+    const title = validatedEntity.title;
+    const tags = validatedEntity.tags;
 
     // Generate new embedding
     const embedding = await this.embeddingService.generateEmbedding(markdown);
@@ -296,15 +321,30 @@ export class EntityService {
 
     // Convert from markdown to entities
     const entityList: T[] = [];
+    const adapter = this.entityRegistry.getAdapter<T>(entityType);
 
     for (const entityData of result) {
       try {
-        const entity = this.entityRegistry.markdownToEntity<T>(
-          entityType,
-          entityData.content,
-        );
-
-        entityList.push(entity);
+        // Extract entity-specific fields from markdown
+        const parsedContent = adapter.fromMarkdown(entityData.content);
+        
+        // Merge database fields with parsed content
+        const entity = {
+          // Core fields from database
+          id: entityData.id,
+          entityType: entityData.entityType,
+          title: entityData.title,
+          created: new Date(entityData.created).toISOString(),
+          updated: new Date(entityData.updated).toISOString(),
+          tags: entityData.tags,
+          
+          // Entity-specific fields from adapter
+          ...parsedContent,
+        } as T;
+        
+        // Validate and add to list
+        const validatedEntity = this.entityRegistry.validateEntity<T>(entityType, entity);
+        entityList.push(validatedEntity);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
@@ -370,11 +410,19 @@ export class EntityService {
         ).length;
         const score = matchingTagCount / tags.length;
 
-        // Parse the entity
-        const entity = this.entityRegistry.markdownToEntity<BaseEntity>(
-          entityData.entityType,
-          entityData.content,
-        );
+        // Reconstruct entity from database and markdown
+        const adapter = this.entityRegistry.getAdapter(entityData.entityType);
+        const parsedContent = adapter.fromMarkdown(entityData.content);
+        
+        const entity = this.entityRegistry.validateEntity<BaseEntity>(entityData.entityType, {
+          id: entityData.id,
+          entityType: entityData.entityType,
+          title: entityData.title,
+          created: new Date(entityData.created).toISOString(),
+          updated: new Date(entityData.updated).toISOString(),
+          tags: entityData.tags,
+          ...parsedContent,
+        });
 
         // Create excerpt from content
         const excerpt =
@@ -481,21 +529,36 @@ export class EntityService {
 
       // Only include results above a threshold (e.g., 0.5)
       if (similarity > 0.5) {
-        // Parse entity from markdown
-        const entity = this.entityRegistry.markdownToEntity(
-          row.entityType,
-          row.content,
-        );
+        // Reconstruct entity from database and markdown
+        try {
+          const adapter = this.entityRegistry.getAdapter(row.entityType);
+          const parsedContent = adapter.fromMarkdown(row.content);
+          
+          const entity = this.entityRegistry.validateEntity<BaseEntity>(row.entityType, {
+            id: row.id,
+            entityType: row.entityType,
+            title: row.title,
+            created: new Date(row.created).toISOString(),
+            updated: new Date(row.updated).toISOString(),
+            tags: row.tags,
+            ...parsedContent,
+          });
 
-        // Create a more readable excerpt
-        const excerpt = this.createExcerpt(row.content, query);
+          // Create a more readable excerpt
+          const excerpt = this.createExcerpt(row.content, query);
 
-        searchResults.push({
-          entity,
-          score: similarity,
-          excerpt,
-          highlights: [], // TODO: Implement highlight extraction
-        });
+          searchResults.push({
+            entity,
+            score: similarity,
+            excerpt,
+            highlights: [], // TODO: Implement highlight extraction
+          });
+        } catch (error) {
+          this.logger.error(
+            `Failed to parse entity during search: ${error}`,
+          );
+          // Skip this result
+        }
       }
     }
 

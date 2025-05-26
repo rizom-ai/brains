@@ -3,16 +3,16 @@ import { gitSync } from "@brains/git-sync";
 
 console.log("🧠 Test Brain - Validating Shell Architecture");
 
-async function main() {
+async function main(): Promise<void> {
   // Initialize shell with configuration including plugins
   // Following Astro-like pattern where plugins are part of config
   const shell = Shell.getInstance({
     database: {
-      url: process.env["DATABASE_URL"] || "file:./test-brain.db",
+      url: process.env["DATABASE_URL"] ?? "file:./test-brain.db",
     },
     ai: {
       provider: "anthropic" as const,
-      apiKey: process.env["ANTHROPIC_API_KEY"] || "test-key",
+      apiKey: process.env["ANTHROPIC_API_KEY"] ?? "test-key",
       model: "claude-3-haiku-20240307",
       temperature: 0.7,
       maxTokens: 1000,
@@ -76,22 +76,23 @@ async function main() {
     // Execute a simple query to verify everything works
     const result = await shell.query("test query", {});
     console.log("✅ Query executed successfully:", result.answer);
-  } catch (error: any) {
-    if (error.message?.includes("no such table")) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes("no such table")) {
       console.log(
         "ℹ️  Query failed: Database schema issue (F32_BLOB might not be supported in SQLite)",
       );
       console.log("   This is expected when using in-memory SQLite database");
     } else if (
-      error.message?.includes("invalid x-api-key") ||
-      error.message?.includes("authentication_error")
+      errorMessage.includes("invalid x-api-key") ||
+      errorMessage.includes("authentication_error")
     ) {
       console.log("ℹ️  Query failed: Invalid Anthropic API key");
       console.log(
         "   Set ANTHROPIC_API_KEY environment variable to test queries",
       );
     } else {
-      console.log("ℹ️  Query failed:", error.message || error);
+      console.log("ℹ️  Query failed:", errorMessage);
     }
   }
 

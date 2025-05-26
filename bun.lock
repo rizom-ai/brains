@@ -52,6 +52,24 @@
         "typescript": "^5.3.3",
       },
     },
+    "packages/integration-tests": {
+      "name": "@brains/integration-tests",
+      "version": "0.0.0",
+      "dependencies": {
+        "@brains/shell": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@libsql/client": "^0.15.7",
+        "drizzle-orm": "^0.29.4",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "packages/mcp-server": {
       "name": "@brains/mcp-server",
       "version": "0.1.0",
@@ -161,6 +179,8 @@
     "@brains/eslint-config": ["@brains/eslint-config@workspace:packages/eslint-config"],
 
     "@brains/git-sync": ["@brains/git-sync@workspace:packages/git-sync"],
+
+    "@brains/integration-tests": ["@brains/integration-tests@workspace:packages/integration-tests"],
 
     "@brains/mcp-server": ["@brains/mcp-server@workspace:packages/mcp-server"],
 

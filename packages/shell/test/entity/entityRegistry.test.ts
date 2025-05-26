@@ -82,9 +82,11 @@ const markdownParseSchema = z
  * Test adapter implementation for Note entities
  */
 class NoteAdapter implements EntityAdapter<Note> {
-  fromMarkdown(markdown: string, metadata?: Record<string, unknown>): Note {
+  entityType = "note";
+  schema = noteSchema;
+  fromMarkdown(markdown: string): Partial<Note> {
     const { data, content } = matter(markdown);
-    const parsedData = metadata ?? data;
+    const parsedData = data;
 
     // Parse frontmatter with Zod for type safety
     const frontmatter = markdownParseSchema.parse(parsedData);
@@ -134,15 +136,16 @@ class NoteAdapter implements EntityAdapter<Note> {
       }
     }
 
-    return createNote({
-      id: frontmatter.id ?? createId(),
-      title: title ?? "Untitled Note",
+    // Return only entity-specific fields
+    const result: Partial<Note> = {
       content: noteContent,
-      tags: frontmatter.tags,
-      category: category,
-      created: frontmatter.created ?? new Date().toISOString(),
-      updated: frontmatter.updated ?? new Date().toISOString(),
-    });
+    };
+    
+    if (category && category !== "general") {
+      result.category = category;
+    }
+    
+    return result;
   }
 
   extractMetadata(entity: Note): Record<string, unknown> {
@@ -235,20 +238,17 @@ describe("EntityRegistry", (): void => {
       category: entityData.category,
     });
 
-    // Test markdown conversion with complete entity
-    const markdown = registry.entityToMarkdown(completeNote);
+    // Test markdown conversion with adapter directly
+    const adapter = registry.getAdapter<Note>("note");
+    const markdown = adapter.toMarkdown(completeNote);
     expect(markdown).toContain("# Test Note [testing]");
     expect(markdown).toContain("This is a test note content.");
 
-    // Test round-trip: entity -> markdown -> entity
-    const reconstructedEntity = registry.markdownToEntity<Note>(
-      "note",
-      markdown,
-    );
-    expect(reconstructedEntity.title).toBe(completeNote.title);
-    expect(reconstructedEntity.content).toBe(completeNote.content);
-    expect(reconstructedEntity.category).toBe(completeNote.category);
-    expect(reconstructedEntity.entityType).toBe("note");
+    // Test adapter's fromMarkdown (returns partial data)
+    // Note: Since fromMarkdown returns partial data and doesn't parse title,
+    // it won't extract category from the title tag
+    const parsedContent = adapter.fromMarkdown(markdown);
+    expect(parsedContent.content).toBe("This is a test note content.");
   });
 
   test("validation with missing required fields should throw", (): void => {
@@ -268,9 +268,6 @@ describe("EntityRegistry", (): void => {
       registry.validateEntity("unknown", {});
     }).toThrow();
 
-    expect(() => {
-      registry.markdownToEntity("unknown", "# Test");
-    }).toThrow();
   });
 
   test("duplicate entity type registration should throw", (): void => {
@@ -287,30 +284,17 @@ describe("EntityRegistry", (): void => {
     expect(retrievedAdapter).toBe(adapter);
   });
 
-  test("markdown with frontmatter should be parsed correctly", (): void => {
+  test("adapter fromMarkdown should parse frontmatter correctly", (): void => {
     const markdownWithFrontmatter = `---
-id: test-123
-title: "Frontmatter Note"
-tags:
-  - test
-  - frontmatter
 category: "testing"
-created: "2023-01-01T00:00:00.000Z"
-updated: "2023-01-01T00:00:00.000Z"
-entityType: "note"
 ---
-
-# Frontmatter Note [testing]
 
 This note has frontmatter metadata.`;
 
-    const entity = registry.markdownToEntity<Note>(
-      "note",
-      markdownWithFrontmatter,
-    );
-    expect(entity.title).toBe("Frontmatter Note");
-    expect(entity.content).toBe("This note has frontmatter metadata.");
-    expect(entity.category).toBe("testing");
-    expect(entity.tags).toEqual(["test", "frontmatter"]);
+    const adapter = registry.getAdapter<Note>("note");
+    const parsedContent = adapter.fromMarkdown(markdownWithFrontmatter);
+    
+    expect(parsedContent.content).toBe("This note has frontmatter metadata.");
+    expect(parsedContent.category).toBe("testing");
   });
 });

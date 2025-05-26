@@ -4,13 +4,18 @@ import type { BaseEntity } from "@brains/types";
 
 /**
  * Entity adapter interface
- * Using markdown as the universal format for entities
+ * Handles conversion between entities and markdown following the hybrid storage model
  */
 export interface EntityAdapter<T extends BaseEntity> {
-  // Convert entity to markdown content (without frontmatter)
+  entityType: string;
+  schema: z.ZodSchema<T>;
+  
+  // Convert entity to markdown content (may include frontmatter for entity-specific fields)
   toMarkdown(entity: T): string;
-  // Convert from markdown to entity
-  fromMarkdown(markdown: string, metadata?: Record<string, unknown>): T;
+  
+  // Extract entity-specific fields from markdown
+  // Returns Partial<T> as core fields come from database
+  fromMarkdown(markdown: string): Partial<T>;
 
   // Extract metadata from entity for search/filtering
   extractMetadata(entity: T): Record<string, unknown>;
@@ -126,42 +131,7 @@ export class EntityRegistry {
     return schema.parse(entity) as TData;
   }
 
-  /**
-   * Convert entity to markdown with frontmatter
-   */
-  entityToMarkdown<T extends BaseEntity>(entity: T): string {
-    const adapter = this.getAdapter<T>(entity.entityType);
 
-    // Generate frontmatter
-    const frontMatter = adapter.generateFrontMatter(entity);
-
-    // Get markdown content from adapter
-    const content = adapter.toMarkdown(entity);
-
-    // Combine frontmatter and content
-    return `${frontMatter}\n\n${content}`;
-  }
-
-  /**
-   * Create entity from markdown with frontmatter
-   */
-  markdownToEntity<T extends BaseEntity>(type: string, markdown: string): T {
-    const adapter = this.getAdapter<T>(type);
-
-    // Parse frontmatter
-    const metadata = adapter.parseFrontMatter(markdown);
-
-    // Create entity from markdown - adapter handles validation internally
-    const entity = adapter.fromMarkdown(markdown, metadata);
-
-    // The adapter should have already validated the entity structure
-    // We just verify it conforms to our schema but preserve methods
-    const schema = this.getSchema(type);
-    schema.parse(entity); // Validate but don't use result to preserve methods
-
-    // Return the full entity with methods intact
-    return entity;
-  }
 
   /**
    * Get all registered entity types
