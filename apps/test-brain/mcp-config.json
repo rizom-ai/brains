@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "test-brain": {
+      "command": "./dist/test-brain",
+      "args": ["--server"]
+    }
+  }
+}

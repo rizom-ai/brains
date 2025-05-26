@@ -2,53 +2,71 @@
 
 A minimal application for testing the Personal Brain shell architecture.
 
-## Usage
+## Development
 
-### Normal Mode (Interactive Testing)
-
-Run the app normally to test shell initialization and basic query functionality:
+### Running in Development
 
 ```bash
+# Run in development mode (interactive testing)
 bun run dev
-```
 
-This will:
-
-- Initialize the shell with a local SQLite database
-- Run database migrations
-- Execute a test query
-- Shut down cleanly
-
-### Server Mode (MCP Server)
-
-Run as an MCP server to expose the brain functionality via the Model Context Protocol:
-
-```bash
+# Run as MCP server in development
 bun run server
 ```
 
-Or directly:
+This will:
+- Initialize the shell with a local SQLite database
+- Configure plugins (git-sync)
+- Execute a test query (in normal mode)
+- Start MCP server (in server mode)
+
+## Building
+
+The app can be compiled to a standalone binary using Bun:
 
 ```bash
-bun run src/index.ts --server
+# Build the binary
+bun run build
+
+# Build optimized production binary
+bun run build:prod
+
+# Clean build artifacts
+bun run clean
 ```
 
-This starts an MCP server that can be used with any MCP-compatible client (like Claude Desktop).
+The binary will be created at `dist/test-brain`.
+
+## Running the Binary
+
+```bash
+# Run the compiled binary
+bun run start
+
+# Run as MCP server
+bun run start:server
+
+# Or directly
+./dist/test-brain
+./dist/test-brain --server
+```
+
+## Testing with MCP Inspector
+
+1. Build the binary: `bun run build`
+2. Run the MCP inspector: `npx @modelcontextprotocol/inspector --config mcp-config.json --server test-brain`
+3. Open the inspector URL in your browser
 
 ## MCP Client Configuration
 
-To use with Claude Desktop, add this to your Claude configuration:
+To use with Claude Desktop or other MCP clients:
 
 ```json
 {
   "mcpServers": {
     "test-brain": {
-      "command": "bun",
-      "args": [
-        "run",
-        "/path/to/brains/apps/test-brain/src/index.ts",
-        "--server"
-      ]
+      "command": "./dist/test-brain",
+      "args": ["--server"]
     }
   }
 }

@@ -1,20 +1,61 @@
+import { z, type ZodRawShape } from "zod";
 import type { Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
 import type { Registry } from "./registry";
 import type { MessageBus } from "./messaging";
 
 /**
- * Plugin interface
- * Defines the structure of plugins in the system
+ * Plugin metadata schema - validates the data portion of a plugin
  */
-export interface Plugin {
-  id: string;
-  version: string;
-  name?: string;
-  description?: string;
-  dependencies?: string[];
-  register(context: PluginContext): void;
+export const pluginMetadataSchema = z.object({
+  id: z.string(),
+  version: z.string(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  dependencies: z.array(z.string()).optional(),
+});
+
+/**
+ * Plugin tool definition
+ */
+export interface PluginTool {
+  name: string;
+  description: string;
+  inputSchema: ZodRawShape; // Same type as MCP expects
+  handler: (input: unknown) => Promise<unknown>;
 }
+
+/**
+ * Plugin resource definition
+ */
+export interface PluginResource {
+  uri: string;
+  name: string;
+  description?: string;
+  mimeType?: string;
+  handler: () => Promise<{
+    contents: Array<{
+      text: string;
+      uri: string;
+      mimeType?: string;
+    }>;
+  }>;
+}
+
+/**
+ * Plugin capabilities that can be exposed
+ */
+export interface PluginCapabilities {
+  tools: PluginTool[];
+  resources: PluginResource[];
+}
+
+/**
+ * Plugin interface - combines validated metadata with the register function
+ */
+export type Plugin = z.infer<typeof pluginMetadataSchema> & {
+  register(context: PluginContext): PluginCapabilities;
+};
 
 /**
  * Plugin context passed to plugins during registration

@@ -1,6 +1,8 @@
 import type {
   Plugin,
   PluginContext,
+  PluginCapabilities,
+  PluginTool,
   EntityService,
   BrainProtocol,
 } from "@brains/types";
@@ -25,7 +27,7 @@ export class GitSyncPlugin implements Plugin {
     this.config = gitSyncConfigSchema.parse(config);
   }
 
-  register(context: PluginContext): void {
+  register(context: PluginContext): PluginCapabilities {
     const { logger, registry } = context;
 
     // Get required services from registry
@@ -50,65 +52,110 @@ export class GitSyncPlugin implements Plugin {
       logger.error("Failed to initialize git repository", error);
     });
 
-    // Register commands with BrainProtocol
-    brainProtocol.registerCommandHandler("sync", async (cmd) => {
-      if (!this.gitSync) {
-        throw new Error("GitSync not initialized");
-      }
-      await this.gitSync.sync();
-      return {
-        id: `response-${Date.now()}`,
-        commandId: cmd.id,
-        success: true,
-        result: { message: "Sync completed" },
-      };
-    });
+    // Define plugin tools
+    const tools: PluginTool[] = [
+      {
+        name: "git_sync",
+        description: "Synchronize all entities with git repository",
+        inputSchema: {},
+        handler: async (): Promise<{ message: string }> => {
+          if (!this.gitSync) {
+            throw new Error("GitSync not initialized");
+          }
+          await this.gitSync.sync();
+          return { message: "Sync completed" };
+        },
+      },
+      {
+        name: "git_sync_pull",
+        description: "Pull entities from git repository",
+        inputSchema: {},
+        handler: async (): Promise<{ message: string }> => {
+          if (!this.gitSync) {
+            throw new Error("GitSync not initialized");
+          }
+          await this.gitSync.importFromGit();
+          return { message: "Pull completed" };
+        },
+      },
+      {
+        name: "git_sync_push",
+        description: "Push entities to git repository",
+        inputSchema: {},
+        handler: async (): Promise<{ message: string }> => {
+          if (!this.gitSync) {
+            throw new Error("GitSync not initialized");
+          }
+          await this.gitSync.exportToGit();
+          return { message: "Push completed" };
+        },
+      },
+      {
+        name: "git_sync_status",
+        description: "Get git repository status",
+        inputSchema: {},
+        handler: async (): Promise<unknown> => {
+          if (!this.gitSync) {
+            throw new Error("GitSync not initialized");
+          }
+          return this.gitSync.getStatus();
+        },
+      },
+    ];
 
-    brainProtocol.registerCommandHandler("sync:pull", async (cmd) => {
-      if (!this.gitSync) {
-        throw new Error("GitSync not initialized");
-      }
-      await this.gitSync.importFromGit();
-      return {
-        id: `response-${Date.now()}`,
-        commandId: cmd.id,
-        success: true,
-        result: { message: "Pull completed" },
-      };
-    });
+    // Also register commands with BrainProtocol for backward compatibility
+    const [syncTool, pullTool, pushTool, statusTool] = tools;
+    
+    if (syncTool) {
+      brainProtocol.registerCommandHandler("sync", async (cmd) => {
+        const result = await syncTool.handler({});
+        return {
+          id: `response-${Date.now()}`,
+          commandId: cmd.id,
+          success: true,
+          result,
+        };
+      });
+    }
 
-    brainProtocol.registerCommandHandler("sync:push", async (cmd) => {
-      if (!this.gitSync) {
-        throw new Error("GitSync not initialized");
-      }
-      await this.gitSync.exportToGit();
-      return {
-        id: `response-${Date.now()}`,
-        commandId: cmd.id,
-        success: true,
-        result: { message: "Push completed" },
-      };
-    });
+    if (pullTool) {
+      brainProtocol.registerCommandHandler("sync:pull", async (cmd) => {
+        const result = await pullTool.handler({});
+        return {
+          id: `response-${Date.now()}`,
+          commandId: cmd.id,
+          success: true,
+          result,
+        };
+      });
+    }
 
-    brainProtocol.registerCommandHandler("sync:status", async (cmd) => {
-      if (!this.gitSync) {
-        throw new Error("GitSync not initialized");
-      }
-      const status = await this.gitSync.getStatus();
-      return {
-        id: `response-${Date.now()}`,
-        commandId: cmd.id,
-        success: true,
-        result: status,
-      };
-    });
+    if (pushTool) {
+      brainProtocol.registerCommandHandler("sync:push", async (cmd) => {
+        const result = await pushTool.handler({});
+        return {
+          id: `response-${Date.now()}`,
+          commandId: cmd.id,
+          success: true,
+          result,
+        };
+      });
+    }
 
-    // Register MCP tools
-    // TODO: Implement actual MCP tool registration using mcpServer.tool() or similar API
-    // For now, we have access to mcpServer for future tool registration
+    if (statusTool) {
+      brainProtocol.registerCommandHandler("sync:status", async (cmd) => {
+        const result = await statusTool.handler({});
+        return {
+          id: `response-${Date.now()}`,
+          commandId: cmd.id,
+          success: true,
+          result,
+        };
+      });
+    }
 
     logger.info("Git sync plugin registered", {
-      commands: ["sync", "sync:pull", "sync:push", "sync:status"],
+      tools: tools.map((t) => t.name),
     });
 
     // Start auto-sync if configured
@@ -118,7 +165,11 @@ export class GitSyncPlugin implements Plugin {
       });
     }
 
-    logger.info("Git sync plugin registered");
+    // Return plugin capabilities
+    return {
+      tools,
+      resources: [], // No resources for git-sync plugin
+    };
   }
 
   async shutdown(): Promise<void> {

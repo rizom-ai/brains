@@ -1,12 +1,11 @@
-import { Shell, registerShellMCP } from "@brains/shell";
-import { MCPServer } from "@brains/mcp-server";
+import { Shell } from "@brains/shell";
 import { gitSync } from "@brains/git-sync";
 
 console.log("🧠 Test Brain - Validating Shell Architecture");
 
 async function main() {
-  // Initialize shell with minimal configuration
-  // Shell handles all service creation internally
+  // Initialize shell with configuration including plugins
+  // Following Astro-like pattern where plugins are part of config
   const shell = Shell.getInstance({
     database: {
       url: process.env["DATABASE_URL"] || "file:./test-brain.db",
@@ -19,48 +18,33 @@ async function main() {
       maxTokens: 1000,
     },
     logging: {
-      level: "info" as const,
+      level: "debug" as const,
       context: "test-brain",
     },
+    features: {
+      enablePlugins: true,
+      runMigrationsOnInit: false, // Disable migrations for compiled binary
+    },
+    plugins: [
+      // Git sync plugin for version control
+      gitSync({
+        repoPath: "./brain-repo",
+        branch: "main",
+        autoSync: false, // Manual sync for testing
+      }),
+      // Future: noteContext(), taskContext(), etc.
+    ],
   });
-
-  // Register git-sync plugin BEFORE initialization
-  const gitSyncPlugin = gitSync({
-    repoPath: "./brain-repo",
-    branch: "main",
-    autoSync: false, // Manual sync for testing
-  });
-
-  shell.getPluginManager().registerPlugin(gitSyncPlugin);
-  console.log("✅ Git-sync plugin registered");
 
   // Initialize the shell (runs migrations, sets up plugins, etc.)
   await shell.initialize();
 
-  console.log("✅ Shell initialized successfully");
+  console.log("✅ Shell initialized successfully with plugins");
 
   // Set up MCP server if running as server
   if (process.argv.includes("--server")) {
-    const mcpServer = MCPServer.getInstance({
-      name: "test-brain",
-      version: "1.0.0",
-      logger: {
-        info: (msg: string) => console.error(`[MCP] ${msg}`),
-        debug: (msg: string) => console.error(`[MCP DEBUG] ${msg}`),
-        error: (msg: string, err?: unknown) =>
-          console.error(`[MCP ERROR] ${msg}`, err),
-        warn: (msg: string) => console.error(`[MCP WARN] ${msg}`),
-      },
-    });
-
-    // Register shell capabilities with MCP server
-    registerShellMCP(mcpServer.getServer(), {
-      queryProcessor: shell.getQueryProcessor(),
-      brainProtocol: shell.getBrainProtocol(),
-      entityService: shell.getEntityService(),
-      schemaRegistry: shell.getSchemaRegistry(),
-      logger: shell.getLogger(),
-    });
+    // Get the MCP server from the shell (it's already configured)
+    const mcpServer = shell.getMCPServer();
 
     // Start the MCP server
     console.log("🚀 Starting MCP server...");

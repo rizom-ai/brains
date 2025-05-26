@@ -141,11 +141,101 @@ export class PluginManager {
 }
 ```
 
+## Plugin Configuration
+
+### Astro-like Configuration Pattern
+
+Plugins are configured declaratively when creating the Shell instance, following an Astro-like pattern:
+
+```typescript
+const shell = Shell.getInstance({
+  database: {
+    url: "file:./brain.db",
+  },
+  ai: {
+    provider: "anthropic",
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  },
+  plugins: [
+    // Git sync plugin for version control
+    gitSync({
+      repoPath: "./brain-repo",
+      branch: "main",
+      autoSync: false,
+    }),
+    
+    // Note context plugin
+    noteContext({
+      defaultFormat: "markdown",
+      enableAutoTags: true,
+    }),
+    
+    // Task context plugin
+    taskContext({
+      defaultPriority: "medium",
+    }),
+  ],
+});
+```
+
+### Plugin Initialization Order
+
+Plugins are **not** initialized in the order they appear in the configuration. Instead:
+
+1. **Dependency Resolution**: The PluginManager analyzes plugin dependencies
+2. **Topological Sort**: Plugins are sorted so dependencies are initialized first
+3. **Parallel Initialization**: Plugins with no interdependencies can initialize in parallel
+4. **Graceful Failure**: If a plugin fails, others continue to initialize
+
+This ensures robust initialization regardless of configuration order.
+
+### Error Handling During Initialization
+
+Plugin initialization follows a graceful degradation model:
+
+```typescript
+// Shell continues to function even if some plugins fail
+await shell.initialize();
+
+// Check which plugins failed
+const failedPlugins = shell.getPluginManager().getFailedPlugins();
+if (failedPlugins.length > 0) {
+  console.warn("Some plugins failed to initialize:", failedPlugins);
+}
+```
+
+Benefits:
+- Shell remains functional even if optional plugins fail
+- Clear error messages help diagnose issues
+- Development is easier (can work with partial functionality)
+- Production systems are more resilient
+
+### MCP Server Configuration
+
+The MCP server is **not** configured as a plugin. It's a core component that:
+
+- Is always available (not optional)
+- Is created and managed internally by the Shell
+- Provides the `mcpServer` in the plugin context
+- Cannot be disabled or replaced
+
+Future MCP configuration options might include:
+
+```typescript
+const shell = Shell.getInstance({
+  // ... other config ...
+  mcp: {
+    transport: "stdio", // or "http" in future
+    port: 3000,         // for HTTP transport
+  },
+});
+```
+
 ## Plugin Registration
 
-### Registering a Plugin
+### Manual Plugin Registration (Legacy)
 
-Plugins are registered with the plugin manager:
+While the Astro-like configuration is preferred, plugins can still be registered manually:
 
 ```typescript
 // packages/note-context/src/index.ts

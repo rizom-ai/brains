@@ -95,9 +95,12 @@ export function registerShellTools(
       try {
         logger.debug("Executing brain_command tool", {
           command: params.command,
+          args: params.args,
+          context: params.context,
         });
 
         const result = await commandAdapter.executeCommand(params);
+        logger.debug("Command result", { result });
 
         return {
           content: [

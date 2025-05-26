@@ -3,15 +3,18 @@
   "version": "0.0.1",
   "type": "module",
   "private": true,
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
   "scripts": {
-    "build": "tsc",
     "dev": "bun run src/index.ts",
     "server": "bun run src/index.ts --server",
+    "build": "bun build src/index.ts --compile --outfile dist/test-brain",
+    "build:prod": "bun build src/index.ts --compile --minify --outfile dist/test-brain",
+    "start": "./dist/test-brain",
+    "start:server": "./dist/test-brain --server",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@brains/shell": "workspace:*",

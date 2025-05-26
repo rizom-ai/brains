@@ -86,7 +86,7 @@ export type SerializableCitation = z.infer<typeof serializableCitationSchema>;
 
 export function serializableQueryResultSchema<T extends z.ZodTypeAny>(
   objectSchema: T,
-) {
+): ReturnType<typeof z.object> {
   return z.object({
     answer: z.string(),
     citations: z.array(serializableCitationSchema),

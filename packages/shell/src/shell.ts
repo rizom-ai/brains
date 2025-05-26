@@ -5,7 +5,7 @@ import { Registry } from "./registry/registry";
 import { EntityRegistry } from "./entity/entityRegistry";
 import { SchemaRegistry } from "./schema/schemaRegistry";
 import { MessageBus } from "./messaging/messageBus";
-import { PluginManager } from "./plugins/pluginManager";
+import { PluginManager, PluginEvent } from "./plugins/pluginManager";
 import { EntityService } from "./entity/entityService";
 import {
   EmbeddingService,
@@ -226,6 +226,48 @@ export class Shell {
     this.registry.register("brainProtocol", () => this.brainProtocol);
     this.registry.register("aiService", () => this.aiService);
     this.registry.register("mcpServer", () => this.mcpServer.getServer());
+
+    // Listen for plugin tool registration events
+    this.pluginManager.on(PluginEvent.TOOL_REGISTER, (event) => {
+      const { pluginId, tool } = event;
+      this.logger.debug(`Registering MCP tool from plugin ${pluginId}: ${tool.name}`);
+      
+      // Register the tool with the MCP server
+      this.mcpServer.getServer().tool(
+        tool.name,
+        tool.description,
+        tool.inputSchema,
+        async (params) => {
+          try {
+            const result = await tool.handler(params);
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(result, null, 2),
+                },
+              ],
+            };
+          } catch (error) {
+            this.logger.error(`Error in tool ${tool.name}`, error);
+            throw error;
+          }
+        }
+      );
+    });
+
+    // Listen for plugin resource registration events
+    this.pluginManager.on(PluginEvent.RESOURCE_REGISTER, (event) => {
+      const { pluginId, resource } = event;
+      this.logger.debug(`Registering MCP resource from plugin ${pluginId}: ${resource.uri}`);
+      
+      // Register the resource with the MCP server
+      this.mcpServer.getServer().resource(
+        resource.name,
+        resource.uri,
+        resource.handler
+      );
+    });
   }
 
   /**
@@ -247,8 +289,15 @@ export class Shell {
         this.logger.info("Database migrations completed");
       }
 
-      // Initialize plugins if enabled
+      // Register and initialize plugins if enabled
       if (this.config.features.enablePlugins) {
+        // Register plugins from config
+        for (const plugin of this.config.plugins) {
+          this.logger.debug(`Registering plugin: ${plugin.id}`);
+          this.pluginManager.registerPlugin(plugin);
+        }
+        
+        // Initialize all registered plugins
         await this.pluginManager.initializePlugins();
       }
 

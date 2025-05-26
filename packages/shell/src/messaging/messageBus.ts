@@ -64,7 +64,6 @@ export class MessageBus implements IMessageBus {
       if ("payload" in message) {
         // Convert from IMessageBus response to local MessageResponse
         const result = await handler(message as IMessageWithPayload<T>);
-        if (!result) return null;
 
         return {
           id: `resp-${Date.now()}`,
@@ -139,7 +138,7 @@ export class MessageBus implements IMessageBus {
     return {
       success: false,
       error:
-        response?.error?.message ||
+        response?.error?.message ??
         `No handler found for message type: ${type}`,
     };
   }

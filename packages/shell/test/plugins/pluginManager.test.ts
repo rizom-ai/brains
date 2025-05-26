@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import type { Plugin, PluginContext } from "@brains/types";
+import type { Plugin, PluginContext, PluginCapabilities } from "@brains/types";
 import {
   PluginEvent,
   PluginManager,
@@ -40,7 +40,7 @@ class TestPlugin implements Plugin {
     this.registerError = opts.registerError ?? false;
   }
 
-  register(context: PluginContext): void {
+  register(context: PluginContext): PluginCapabilities {
     if (this.registerError) {
       throw new Error(`Plugin ${this.id} registration failed`);
     }
@@ -58,6 +58,12 @@ class TestPlugin implements Plugin {
     });
 
     logger.info(`Registered service for plugin ${this.id}`);
+
+    // Return empty capabilities
+    return {
+      tools: [],
+      resources: [],
+    };
   }
 }
 

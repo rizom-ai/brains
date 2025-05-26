@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { Plugin } from "@brains/types";
+import { pluginMetadataSchema } from "@brains/types";
 
 /**
  * Shell configuration schema
@@ -44,9 +46,14 @@ export const shellConfigSchema = z.object({
       runMigrationsOnInit: z.boolean().default(true),
     })
     .default({}),
+
+  // Plugins - validate metadata structure, trust the register function exists
+  plugins: z.array(pluginMetadataSchema).default([]),
 });
 
-export type ShellConfig = z.infer<typeof shellConfigSchema>;
+export type ShellConfig = z.infer<typeof shellConfigSchema> & {
+  plugins: Plugin[];
+};
 
 /**
  * Create a shell configuration from environment variables and overrides
@@ -81,8 +88,13 @@ export function createShellConfig(
       enablePlugins: overrides.features?.enablePlugins,
       runMigrationsOnInit: overrides.features?.runMigrationsOnInit,
     },
+    plugins: overrides.plugins ?? [],
   };
 
-  // Validate and return with defaults
-  return shellConfigSchema.parse(config);
+  // Validate schema and return with plugins
+  const validated = shellConfigSchema.parse(config);
+  return {
+    ...validated,
+    plugins: overrides.plugins ?? [],
+  };
 }

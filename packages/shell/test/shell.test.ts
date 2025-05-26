@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { Shell } from "@/shell";
 import { createSilentLogger, type Logger } from "@personal-brain/utils";
+import type { PluginCapabilities } from "@brains/types";
 import { Registry } from "@/registry/registry";
 import { EntityRegistry } from "@/entity/entityRegistry";
 import { SchemaRegistry } from "@/schema/schemaRegistry";
@@ -298,7 +299,7 @@ describe("Shell", () => {
         id: "test-plugin",
         name: "Test Plugin",
         version: "1.0.0",
-        register: (): void => {},
+        register: (): PluginCapabilities => ({ tools: [], resources: [] }),
       };
 
       // Should not throw
@@ -314,7 +315,7 @@ describe("Shell", () => {
         id: "test-plugin",
         name: "Test Plugin",
         version: "1.0.0",
-        register: (): void => {},
+        register: (): PluginCapabilities => ({ tools: [], resources: [] }),
       };
 
       expect(() => shell.registerPlugin(mockPlugin)).toThrow(
