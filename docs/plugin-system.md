@@ -341,18 +341,18 @@ const createNoteTool = {
     properties: {
       title: { type: "string", description: "Note title" },
       content: { type: "string", description: "Note content" },
-      tags: { 
-        type: "array", 
+      tags: {
+        type: "array",
         items: { type: "string" },
-        description: "Tags for categorization"
-      }
+        description: "Tags for categorization",
+      },
     },
-    required: ["title", "content"]
+    required: ["title", "content"],
   },
   handler: async (input) => {
     // Type-safe, validated input
     return await noteService.createNote(input.title, input.content, input.tags);
-  }
+  },
 };
 ```
 
@@ -366,8 +366,8 @@ class CLIInterface {
   generateCommandsFromTools(tools: PluginTool[]) {
     for (const tool of tools) {
       // Convert tool name from snake_case to kebab-case for CLI
-      const commandName = tool.name.replace(/_/g, '-');
-      
+      const commandName = tool.name.replace(/_/g, "-");
+
       // Generate command with automatic argument parsing
       this.commander
         .command(commandName)
@@ -375,10 +375,10 @@ class CLIInterface {
         .action(async (args) => {
           // Validate args against tool.inputSchema
           const validatedInput = validateWithSchema(args, tool.inputSchema);
-          
+
           // Execute tool handler
           const result = await tool.handler(validatedInput);
-          
+
           // Format output for CLI
           console.log(formatOutput(result));
         });
@@ -386,7 +386,7 @@ class CLIInterface {
   }
 }
 
-// In Matrix interface  
+// In Matrix interface
 class MatrixInterface {
   generateCommandsFromTools(tools: PluginTool[]) {
     for (const tool of tools) {
@@ -394,10 +394,10 @@ class MatrixInterface {
       this.registerCommand(tool.name, async (roomId, args) => {
         // Parse Matrix message into tool input
         const input = parseMatrixArgs(args, tool.inputSchema);
-        
+
         // Execute tool
         const result = await tool.handler(input);
-        
+
         // Send formatted response to Matrix room
         await this.sendMessage(roomId, formatMatrixResponse(result));
       });
@@ -553,14 +553,14 @@ export class GitSyncPlugin implements Plugin {
         },
         handler: async () => {
           const imported = await gitSync.importFromGit();
-          return { 
+          return {
             message: `Imported ${imported.length} entities from git`,
-            entities: imported
+            entities: imported,
           };
         },
       },
       {
-        name: "git_sync_push", 
+        name: "git_sync_push",
         description: "Push entities to git repository",
         inputSchema: {
           type: "object",
@@ -570,7 +570,7 @@ export class GitSyncPlugin implements Plugin {
           const exported = await gitSync.exportToGit();
           return {
             message: `Exported ${exported.length} entities to git`,
-            entities: exported
+            entities: exported,
           };
         },
       },
@@ -578,7 +578,7 @@ export class GitSyncPlugin implements Plugin {
         name: "git_sync_status",
         description: "Get git repository status",
         inputSchema: {
-          type: "object", 
+          type: "object",
           properties: {},
         },
         handler: async () => {

@@ -96,7 +96,6 @@ export class QueryProcessorAdapter {
   }
 }
 
-
 /**
  * MCP Entity search parameters
  */

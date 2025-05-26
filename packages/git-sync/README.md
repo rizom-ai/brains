@@ -106,7 +106,7 @@ The plugin exposes the following MCP tools:
 When using a Brain CLI interface, commands are automatically generated from these tools:
 
 - `brain git-sync` - Sync all changes
-- `brain git-sync-pull` - Pull remote changes  
+- `brain git-sync-pull` - Pull remote changes
 - `brain git-sync-push` - Push local changes
 - `brain git-sync-status` - Show sync status
 

@@ -121,5 +121,4 @@ describe("MCP Registration", () => {
     const parsedResult = JSON.parse(result.content[0].text);
     expect(parsedResult.answer).toBe("Test answer");
   });
-
 });

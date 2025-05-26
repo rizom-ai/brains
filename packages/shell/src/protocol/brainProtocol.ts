@@ -6,11 +6,11 @@ import { z } from "zod";
 
 /**
  * Brain Protocol - handles protocol-level message routing and processing
- * 
+ *
  * This class serves as the protocol handler for the Brain system,
  * managing message validation, routing, and protocol-level concerns.
  * It does NOT handle commands - all functionality is exposed through tools.
- * 
+ *
  * Implements Component Interface Standardization pattern
  */
 export class BrainProtocol {
@@ -27,10 +27,7 @@ export class BrainProtocol {
     messageBus: MessageBus,
   ): BrainProtocol {
     if (!BrainProtocol.instance) {
-      BrainProtocol.instance = new BrainProtocol(
-        logger,
-        messageBus,
-      );
+      BrainProtocol.instance = new BrainProtocol(logger, messageBus);
     }
     return BrainProtocol.instance;
   }
@@ -55,10 +52,7 @@ export class BrainProtocol {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(
-    logger: Logger,
-    messageBus: MessageBus,
-  ) {
+  private constructor(logger: Logger, messageBus: MessageBus) {
     this.logger = logger;
     this.messageBus = messageBus;
 
@@ -72,7 +66,7 @@ export class BrainProtocol {
   private setupMessageHandlers(): void {
     // Handle protocol-level messages if needed
     // For now, we mainly route through the message bus
-    
+
     this.logger.info("Brain Protocol initialized");
   }
 
@@ -98,7 +92,7 @@ export class BrainProtocol {
 
       // Route through message bus
       const response = await this.messageBus.publish(message as BaseMessage);
-      
+
       if (response) {
         return response;
       }
@@ -131,7 +125,10 @@ export class BrainProtocol {
       return { valid: true, data };
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return { valid: false, error: error.errors[0]?.message ?? "Validation failed" };
+        return {
+          valid: false,
+          error: error.errors[0]?.message ?? "Validation failed",
+        };
       }
       return { valid: false, error: "Unknown validation error" };
     }

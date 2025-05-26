@@ -4,10 +4,7 @@ import type { QueryProcessor } from "../query/queryProcessor";
 import type { EntityService } from "../entity/entityService";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { Logger } from "@brains/utils";
-import {
-  QueryProcessorAdapter,
-  EntityServiceAdapter,
-} from "./adapters";
+import { QueryProcessorAdapter, EntityServiceAdapter } from "./adapters";
 
 /**
  * Register shell tools with an MCP server
@@ -21,12 +18,7 @@ export function registerShellTools(
     logger: Logger;
   },
 ): void {
-  const {
-    logger,
-    queryProcessor,
-    entityService,
-    schemaRegistry,
-  } = options;
+  const { logger, queryProcessor, entityService, schemaRegistry } = options;
 
   // Create adapters
   const queryAdapter = new QueryProcessorAdapter(
@@ -77,7 +69,6 @@ export function registerShellTools(
       }
     },
   );
-
 
   // Register entity search tool
   server.tool(

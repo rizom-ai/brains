@@ -258,7 +258,6 @@ describe("Shell", () => {
     });
   });
 
-
   describe("plugin registration", () => {
     it("should register plugins after initialization", async () => {
       const { shell } = createTestShell();

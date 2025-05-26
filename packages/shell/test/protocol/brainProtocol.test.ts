@@ -5,7 +5,6 @@ import { MessageBus } from "@/messaging/messageBus";
 import { MessageFactory } from "@/messaging/messageFactory";
 import { z } from "zod";
 
-
 describe("BrainProtocol", () => {
   let brainProtocol: BrainProtocol;
   let logger: Logger;
@@ -14,17 +13,16 @@ describe("BrainProtocol", () => {
   beforeEach(() => {
     logger = createSilentLogger();
     messageBus = MessageBus.createFresh(logger);
-    brainProtocol = BrainProtocol.createFresh(
-      logger,
-      messageBus,
-    );
+    brainProtocol = BrainProtocol.createFresh(logger, messageBus);
   });
 
   describe("message processing", () => {
     it("should process valid messages through message bus", async () => {
       // Register a handler with the message bus
       const handler = mock(() =>
-        Promise.resolve(MessageFactory.createSuccessResponse("test-1", { result: "handled" })),
+        Promise.resolve(
+          MessageFactory.createSuccessResponse("test-1", { result: "handled" }),
+        ),
       );
       messageBus.registerHandler("test.message", handler);
 
