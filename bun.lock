@@ -102,6 +102,7 @@
         "drizzle-zod": "^0.5.1",
         "fastembed": "^1.14.4",
         "gray-matter": "^4.0.3",
+        "hono": "^4.7.10",
         "nanoid": "^5.1.5",
         "openai": "^4.27.0",
         "remark": "^15.0.1",

@@ -6,7 +6,7 @@ This document outlines the architecture for connecting multiple interfaces (CLI,
 
 ## Core Principle
 
-**Single Brain, Multiple Interfaces**: All interfaces connect to the same MCP server instance via HTTP/SSE transport to ensure a unified brain with shared state.
+**Single Brain, Multiple Interfaces**: All interfaces connect to the same MCP server instance via HTTP/streamableHTTP transport to ensure a unified brain with shared state.
 
 ## Architecture
 
@@ -16,13 +16,13 @@ This document outlines the architecture for connecting multiple interfaces (CLI,
 │  (brain)    │     │              │     │  (Web UI, etc)  │
 └──────┬──────┘     └──────┬───────┘     └────────┬────────┘
        │                   │                       │
-       │ HTTP/SSE          │ HTTP/SSE             │ HTTP/SSE
+       │ HTTP/streamableHTTP │ HTTP/streamableHTTP  │ HTTP/streamableHTTP
        │                   │                       │
        └───────────────────┴───────────────────────┘
                            │
                     ┌──────▼──────┐
                     │ MCP Server  │
-                    │  (HTTP/SSE) │
+                    │(HTTP/streamableHTTP)│
                     └──────┬──────┘
                            │
                     ┌──────▼──────┐
@@ -38,32 +38,35 @@ This document outlines the architecture for connecting multiple interfaces (CLI,
 
 ## Components
 
-### 1. MCP Server (HTTP/SSE Mode)
+### 1. MCP Server (HTTP/streamableHTTP Mode)
 
 **Location**: `apps/brain-server` (new)
 
 **Responsibilities**:
+
 - Run as a daemon/service
-- Expose MCP protocol over HTTP/SSE
+- Expose MCP protocol over HTTP/streamableHTTP
 - Handle authentication (future)
 - Manage single Shell/Brain instance
 - Support multiple concurrent clients
 
 **Key Features**:
+
 - HTTP endpoint for JSON-RPC calls
-- SSE endpoint for streaming responses
+- streamableHTTP endpoint for streaming responses
 - Health check endpoint
 - Metrics endpoint (future)
 
 **Configuration**:
+
 ```yaml
 server:
   host: 0.0.0.0
   port: 8080
-  transport: http-sse
-  
+  transport: http-streamable
+
 brain:
-  database: 
+  database:
     url: "${DATABASE_URL}"
   plugins:
     - git-sync
@@ -75,17 +78,20 @@ brain:
 **Location**: `apps/brain-cli` (new)
 
 **Responsibilities**:
+
 - Interactive REPL interface
 - Single command execution
 - Connect to MCP server via HTTP
 
 **Key Features**:
+
 - Natural language queries
 - Entity management commands
 - Configuration management
 - Output formatting (json, table, markdown)
 
 **Usage Modes**:
+
 ```bash
 # Interactive REPL
 $ brain
@@ -105,12 +111,14 @@ $ brain search --type task --tag urgent
 **Location**: `apps/matrix-bot` (new)
 
 **Responsibilities**:
+
 - Connect to Matrix homeserver
 - Handle user messages
 - Forward queries to MCP server
 - Format responses for Matrix
 
 **Key Features**:
+
 - Multi-user support
 - Room-based conversations
 - Command parsing
@@ -119,17 +127,20 @@ $ brain search --type task --tag urgent
 ## Implementation Plan
 
 ### Phase 1: MCP HTTP Server
+
 1. Create `brain-server` app
-2. Implement HTTP/SSE transport for MCP
+2. Implement HTTP/streamableHTTP transport for MCP
 3. Add health/status endpoints
 4. Add systemd service file
 
 ### Phase 2: Update Existing Code
+
 1. Modify test-brain to support HTTP client mode
 2. Extract MCP server setup to brain-server
 3. Add HTTP client utilities
 
 ### Phase 3: CLI Application
+
 1. Create brain-cli app
 2. Implement MCP HTTP client
 3. Add REPL interface
@@ -137,6 +148,7 @@ $ brain search --type task --tag urgent
 5. Add output formatting
 
 ### Phase 4: Matrix Bot
+
 1. Create matrix-bot app
 2. Implement Matrix SDK integration
 3. Add message handling
@@ -145,6 +157,7 @@ $ brain search --type task --tag urgent
 ## Deployment Considerations
 
 ### Development
+
 ```bash
 # Start server
 $ cd apps/brain-server && bun run dev
@@ -154,6 +167,7 @@ $ cd apps/brain-cli && bun run dev
 ```
 
 ### Production
+
 ```bash
 # Install as systemd service
 $ sudo cp brain-server.service /etc/systemd/system/
@@ -167,11 +181,13 @@ $ brain query "..."
 ## Security Considerations
 
 ### Authentication
+
 - Initial version: No auth (localhost only)
 - Future: Bearer token authentication
 - Per-user access control (future)
 
 ### Transport Security
+
 - Development: HTTP (localhost only)
 - Production: HTTPS with proper certificates
 - Rate limiting per client
@@ -187,26 +203,29 @@ $ brain query "..."
 ## Alternatives Considered
 
 ### STDIO Spawning (Rejected)
+
 - Each client spawns its own MCP server
 - ❌ No shared state
 - ❌ Resource intensive
 - ❌ Database conflicts
 
 ### Direct Shell Integration (Rejected)
+
 - Each app imports Shell directly
 - ❌ Tight coupling
 - ❌ No remote access
 - ❌ Harder to maintain
 
 ### WebSocket Transport (Future)
-- Could replace SSE for bidirectional streaming
+
+- Could replace streamableHTTP for bidirectional streaming
 - Better for real-time updates
 - Consider for v2
 
 ## Next Steps
 
 1. Review and approve this architecture
-2. Create brain-server app with HTTP/SSE MCP transport
+2. Create brain-server app with HTTP/streamableHTTP MCP transport
 3. Update test-brain to test HTTP client mode
 4. Begin CLI app development
 5. Plan Matrix bot features
