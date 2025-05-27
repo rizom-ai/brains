@@ -9,7 +9,6 @@ import { MessageBus } from "@/messaging/messageBus";
 import { PluginManager } from "@/plugins/pluginManager";
 import { EntityService } from "@/entity/entityService";
 import { QueryProcessor } from "@/query/queryProcessor";
-import { BrainProtocol } from "@/protocol/brainProtocol";
 import type { MCPServer } from "@brains/mcp-server";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
@@ -197,7 +196,6 @@ describe("Shell", () => {
     PluginManager.resetInstance();
     EntityService.resetInstance();
     QueryProcessor.resetInstance();
-    BrainProtocol.resetInstance();
   });
 
   describe("initialization", () => {

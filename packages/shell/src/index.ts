@@ -14,7 +14,6 @@ export type { ShellConfig } from "./config";
 
 // Core Components
 export { QueryProcessor } from "./query/queryProcessor";
-export { BrainProtocol } from "./protocol/brainProtocol";
 export { EntityService } from "./entity/entityService";
 export { EntityRegistry } from "./entity/entityRegistry";
 export { SchemaRegistry } from "./schema/schemaRegistry";

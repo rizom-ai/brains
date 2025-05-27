@@ -12,7 +12,6 @@ import {
   type IEmbeddingService,
 } from "./embedding/embeddingService";
 import { QueryProcessor } from "./query/queryProcessor";
-import { BrainProtocol } from "./protocol/brainProtocol";
 import { AIService } from "./ai/aiService";
 import { Logger, LogLevel } from "@brains/utils";
 import { MCPServer } from "@brains/mcp-server";
@@ -58,7 +57,6 @@ export class Shell {
   private readonly embeddingService: IEmbeddingService;
   private readonly entityService: EntityService;
   private readonly queryProcessor: QueryProcessor;
-  private readonly brainProtocol: BrainProtocol;
   private readonly aiService: AIService;
   private readonly mcpServer: MCPServer;
   private initialized = false;
@@ -188,10 +186,6 @@ export class Shell {
       aiService: this.aiService,
     });
 
-    this.brainProtocol = BrainProtocol.getInstance(
-      this.logger,
-      this.messageBus,
-    );
 
     // Create or use injected MCP server
     if (!dependencies?.mcpServer) {
@@ -220,7 +214,6 @@ export class Shell {
     this.registry.register("pluginManager", () => this.pluginManager);
     this.registry.register("entityService", () => this.entityService);
     this.registry.register("queryProcessor", () => this.queryProcessor);
-    this.registry.register("brainProtocol", () => this.brainProtocol);
     this.registry.register("aiService", () => this.aiService);
     this.registry.register("mcpServer", () => this.mcpServer.getServer());
 
@@ -372,9 +365,6 @@ export class Shell {
     return this.queryProcessor;
   }
 
-  public getBrainProtocol(): BrainProtocol {
-    return this.brainProtocol;
-  }
 
   public getEntityService(): EntityService {
     return this.entityService;

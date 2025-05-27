@@ -98,7 +98,6 @@ async function main(): Promise<void> {
   // Register shell functionality with MCP
   registerShellMCP(mcpServer.getServer(), {
     queryProcessor: shell.getQueryProcessor(),
-    brainProtocol: shell.getBrainProtocol(),
     entityService: shell.getEntityService(),
     schemaRegistry: shell.getSchemaRegistry(),
     logger,
@@ -124,7 +123,6 @@ async function main(): Promise<void> {
               components: {
                 shell: shell.isInitialized() ? "ready" : "not initialized",
                 queryProcessor: "ready",
-                brainProtocol: "ready",
                 entityService: "ready",
               },
             },

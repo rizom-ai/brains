@@ -3,6 +3,8 @@ import { MessageBus } from "@/messaging/messageBus";
 
 import { createSilentLogger, type Logger } from "@personal-brain/utils";
 import type { BaseMessage, MessageResponse } from "@/messaging/types";
+import { MessageFactory } from "@/messaging/messageFactory";
+import { z } from "zod";
 
 // Create test message
 const createTestMessage = (type: string, id?: string): BaseMessage => ({
@@ -156,6 +158,106 @@ describe("MessageBus", () => {
       const result = await messageBus.publish(message);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe("message processing", () => {
+    it("should process valid messages through message bus", async () => {
+      // Register a handler with the message bus
+      const handler = mock(() =>
+        Promise.resolve(
+          MessageFactory.createSuccessResponse("test-1", { result: "handled" }),
+        ),
+      );
+      messageBus.registerHandler("test.message", handler);
+
+      const message = {
+        id: "test-1",
+        type: "test.message",
+        timestamp: new Date().toISOString(),
+        payload: { data: "test" },
+      };
+
+      const response = await messageBus.processMessage(message);
+
+      expect(response.success).toBe(true);
+      expect(response.data).toEqual({ result: "handled" });
+      expect(handler).toHaveBeenCalledWith(message);
+    });
+
+    it("should return error for invalid messages", async () => {
+      const invalidMessage = {
+        // Missing required 'id' and 'type' fields
+        data: "invalid",
+      };
+
+      const response = await messageBus.processMessage(invalidMessage);
+
+      expect(response.success).toBe(false);
+      expect(response.error?.code).toBe("INVALID_MESSAGE");
+    });
+
+    it("should return error when no handler found", async () => {
+      const message = {
+        id: "test-2",
+        type: "unknown.message",
+        timestamp: new Date().toISOString(),
+      };
+
+      const response = await messageBus.processMessage(message);
+
+      expect(response.success).toBe(false);
+      expect(response.error?.code).toBe("NO_HANDLER");
+    });
+
+    it("should handle errors in message processing", async () => {
+      // Register a handler that throws an error
+      messageBus.registerHandler("error.message", () => {
+        throw new Error("Handler error");
+      });
+
+      const message = {
+        id: "test-3",
+        type: "error.message",
+        timestamp: new Date().toISOString(),
+      };
+
+      const response = await messageBus.processMessage(message);
+
+      expect(response.success).toBe(false);
+      expect(response.error?.code).toBe("NO_HANDLER"); // Error in handler means no valid response
+    });
+  });
+
+  describe("message validation", () => {
+    it("should validate messages against schemas", () => {
+      const schema = z.object({
+        name: z.string(),
+        age: z.number(),
+      });
+
+      const validMessage = { name: "John", age: 30 };
+      const result = messageBus.validateMessage(validMessage, schema);
+
+      expect(result.valid).toBe(true);
+      if (result.valid) {
+        expect(result.data).toEqual(validMessage);
+      }
+    });
+
+    it("should return validation errors for invalid messages", () => {
+      const schema = z.object({
+        name: z.string(),
+        age: z.number(),
+      });
+
+      const invalidMessage = { name: "John", age: "thirty" }; // age should be number
+      const result = messageBus.validateMessage(invalidMessage, schema);
+
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.error).toBeDefined();
+      }
     });
   });
 });

@@ -5,6 +5,8 @@ import type {
   MessageWithPayload as IMessageWithPayload,
   MessageBus as IMessageBus,
 } from "@brains/types";
+import { MessageFactory } from "./messageFactory";
+import { z } from "zod";
 
 /**
  * Message bus for handling messages between components
@@ -147,6 +149,12 @@ export class MessageBus implements IMessageBus {
    * Publish a message to all handlers (internal method)
    */
   async publish(message: BaseMessage): Promise<MessageResponse | null> {
+    // Validate message structure
+    if (!message || typeof message !== "object" || !message.type || !message.id) {
+      this.logger.error("Invalid message structure - missing required fields 'id' or 'type'");
+      return null;
+    }
+
     const { type } = message;
     const handlers = this.handlers.get(type) ?? new Set();
 
@@ -171,6 +179,70 @@ export class MessageBus implements IMessageBus {
     }
 
     return null;
+  }
+
+  /**
+   * Process a message with full validation and error handling
+   * This replaces the functionality that was in BrainProtocol
+   */
+  async processMessage(message: unknown): Promise<MessageResponse> {
+    try {
+      // Validate message structure
+      if (
+        typeof message !== "object" ||
+        message === null ||
+        !("type" in message) ||
+        !("id" in message)
+      ) {
+        return MessageFactory.createErrorResponse(
+          "unknown",
+          "INVALID_MESSAGE",
+          "Message must have 'id' and 'type' fields",
+        );
+      }
+
+      // Route through message bus
+      const response = await this.publish(message as BaseMessage);
+
+      if (response) {
+        return response;
+      }
+
+      // No handler found
+      return MessageFactory.createErrorResponse(
+        (message as BaseMessage).id,
+        "NO_HANDLER",
+        `No handler found for message type: ${(message as BaseMessage).type}`,
+      );
+    } catch (error) {
+      this.logger.error("Error processing message", error);
+      return MessageFactory.createErrorResponse(
+        "unknown",
+        "PROCESSING_ERROR",
+        error instanceof Error ? error.message : "Failed to process message",
+      );
+    }
+  }
+
+  /**
+   * Validate a message against a schema
+   */
+  validateMessage<T>(
+    message: unknown,
+    schema: z.ZodSchema<T>,
+  ): { valid: true; data: T } | { valid: false; error: string } {
+    try {
+      const data = schema.parse(message);
+      return { valid: true, data };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return {
+          valid: false,
+          error: error.errors[0]?.message ?? "Validation failed",
+        };
+      }
+      return { valid: false, error: "Unknown validation error" };
+    }
   }
 
   /**
