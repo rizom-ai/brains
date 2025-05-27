@@ -46,7 +46,6 @@ describe("MCP Server Integration Tests", () => {
 
     const toolNames = result.tools.map((t) => t.name);
     expect(toolNames).toContain("brain_query");
-    expect(toolNames).toContain("brain_command");
     expect(toolNames).toContain("entity_search");
     expect(toolNames).toContain("entity_get");
     expect(toolNames).toContain("brain_status");

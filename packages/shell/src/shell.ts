@@ -186,7 +186,6 @@ export class Shell {
       aiService: this.aiService,
     });
 
-
     // Create or use injected MCP server
     if (!dependencies?.mcpServer) {
       this.mcpServer = MCPServer.getInstance({
@@ -364,7 +363,6 @@ export class Shell {
   public getQueryProcessor(): QueryProcessor {
     return this.queryProcessor;
   }
-
 
   public getEntityService(): EntityService {
     return this.entityService;

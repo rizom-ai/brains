@@ -8,6 +8,13 @@
       "when": 1748092019667,
       "tag": "0000_needy_guardsmen",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1748339183284,
+      "tag": "0002_heavy_tyrannus",
+      "breakpoints": true
     }
   ]
 }

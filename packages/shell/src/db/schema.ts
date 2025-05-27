@@ -61,6 +61,9 @@ export const entities = sqliteTable("entities", {
     .default(sql`'[]'`),
 
   // Vector embedding for semantic search
+  // NOTE: This column has a vector index created via migration:
+  // CREATE INDEX entities_embedding_idx ON entities(libsql_vector_idx(embedding))
+  // Drizzle doesn't support libSQL vector functions in schema definitions yet
   embedding: vector("embedding").notNull(),
 
   // Timestamps (stored as Unix milliseconds for consistency)

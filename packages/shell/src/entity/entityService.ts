@@ -4,10 +4,9 @@ import { EntityRegistry } from "./entityRegistry";
 import type { EntityAdapter } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type { IEmbeddingService } from "../embedding/embeddingService";
-import { calculateCosineSimilarity } from "../utils/similarity";
 import type { BaseEntity, SearchResult } from "@brains/types";
 import type { SearchOptions } from "../types";
-import { eq, and, inArray, desc, asc } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
 import { z } from "zod";
 
 /**
@@ -510,82 +509,86 @@ export class EntityService {
     // Generate embedding for the query
     const queryEmbedding = await this.embeddingService.generateEmbedding(query);
 
-    // Build the base query
-    const baseQuery = this.db
-      .select({
-        id: entities.id,
-        entityType: entities.entityType,
-        title: entities.title,
-        content: entities.content,
-        created: entities.created,
-        updated: entities.updated,
-        tags: entities.tags,
-        embedding: entities.embedding,
-      })
-      .from(entities);
+    // Convert Float32Array to JSON array for SQL
+    const embeddingArray = Array.from(queryEmbedding);
 
-    // Execute the query with type filter if specified
-    const results = await (types.length > 0
-      ? baseQuery.where(inArray(entities.entityType, types))
-      : baseQuery);
+    // Build the base select
+    const baseSelect = {
+      id: entities.id,
+      entityType: entities.entityType,
+      title: entities.title,
+      content: entities.content,
+      created: entities.created,
+      updated: entities.updated,
+      tags: entities.tags,
+      // Calculate cosine distance (0 = identical, 1 = orthogonal, 2 = opposite)
+      distance:
+        sql<number>`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)}))`.as(
+          "distance",
+        ),
+    };
 
-    // Calculate similarity scores and filter/sort results
+    // Build the query with type filter if specified
+    const whereCondition =
+      types.length > 0
+        ? and(
+            sql`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)})) < 1.0`,
+            inArray(entities.entityType, types),
+          )
+        : sql`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)})) < 1.0`;
+
+    const results = await this.db
+      .select(baseSelect)
+      .from(entities)
+      .where(whereCondition)
+      .orderBy(sql`distance`)
+      .limit(limit)
+      .offset(offset);
+
+    // Transform results into SearchResult format
     const searchResults: SearchResult[] = [];
 
     for (const row of results) {
-      // Calculate cosine similarity
-      const similarity = calculateCosineSimilarity(
-        queryEmbedding,
-        row.embedding,
-      );
+      try {
+        const adapter = this.entityRegistry.getAdapter(row.entityType);
+        const parsedContent = adapter.fromMarkdown(row.content);
 
-      // Only include results above a threshold (e.g., 0.5)
-      if (similarity > 0.5) {
-        // Reconstruct entity from database and markdown
-        try {
-          const adapter = this.entityRegistry.getAdapter(row.entityType);
-          const parsedContent = adapter.fromMarkdown(row.content);
+        const entity = this.entityRegistry.validateEntity<BaseEntity>(
+          row.entityType,
+          {
+            id: row.id,
+            entityType: row.entityType,
+            title: row.title,
+            created: new Date(row.created).toISOString(),
+            updated: new Date(row.updated).toISOString(),
+            tags: row.tags,
+            ...parsedContent,
+          },
+        );
 
-          const entity = this.entityRegistry.validateEntity<BaseEntity>(
-            row.entityType,
-            {
-              id: row.id,
-              entityType: row.entityType,
-              title: row.title,
-              created: new Date(row.created).toISOString(),
-              updated: new Date(row.updated).toISOString(),
-              tags: row.tags,
-              ...parsedContent,
-            },
-          );
+        // Convert distance to similarity score (1 - distance/2 to normalize to 0-1 range)
+        const score = 1 - row.distance / 2;
 
-          // Create a more readable excerpt
-          const excerpt = this.createExcerpt(row.content, query);
+        // Create a more readable excerpt
+        const excerpt = this.createExcerpt(row.content, query);
 
-          searchResults.push({
-            entity,
-            score: similarity,
-            excerpt,
-            highlights: [], // TODO: Implement highlight extraction
-          });
-        } catch (error) {
-          this.logger.error(`Failed to parse entity during search: ${error}`);
-          // Skip this result
-        }
+        searchResults.push({
+          entity,
+          score,
+          excerpt,
+          highlights: [], // TODO: Implement highlight extraction
+        });
+      } catch (error) {
+        this.logger.error(`Failed to parse entity during search: ${error}`);
+        // Skip this result
       }
     }
 
-    // Sort by similarity score (highest first)
-    searchResults.sort((a, b) => b.score - a.score);
-
-    // Apply pagination
-    const paginatedResults = searchResults.slice(offset, offset + limit);
-
     this.logger.info(
-      `Found ${searchResults.length} results for query "${query}", returning ${paginatedResults.length}`,
+      `Found ${searchResults.length} results for query "${query}"`,
     );
 
-    return paginatedResults;
+    return searchResults;
   }
 
   /**
