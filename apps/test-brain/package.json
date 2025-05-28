@@ -19,6 +19,7 @@
   "dependencies": {
     "@brains/git-sync": "workspace:*",
     "@brains/mcp-server": "workspace:*",
+    "@brains/mcp-server-plugin": "workspace:*",
     "@brains/shell": "workspace:*"
   },
   "devDependencies": {

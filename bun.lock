@@ -19,16 +19,11 @@
       "dependencies": {
         "@brains/git-sync": "workspace:*",
         "@brains/mcp-server": "workspace:*",
+        "@brains/mcp-server-plugin": "workspace:*",
         "@brains/shell": "workspace:*",
-        "@modelcontextprotocol/sdk": "^1.12.0",
-        "cors": "^2.8.5",
-        "express": "^4.18.0",
-        "express-async-handler": "^1.2.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
-        "@types/cors": "^2.8.0",
-        "@types/express": "^4.17.0",
         "typescript": "^5.3.3",
       },
     },
@@ -95,6 +90,24 @@
       },
       "peerDependencies": {
         "bun-types": "latest",
+      },
+    },
+    "packages/mcp-server-plugin": {
+      "name": "@brains/mcp-server-plugin",
+      "version": "0.0.1",
+      "dependencies": {
+        "@brains/mcp-server": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.0.5",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
       },
     },
     "packages/shell": {
@@ -195,6 +208,8 @@
     "@brains/integration-tests": ["@brains/integration-tests@workspace:packages/integration-tests"],
 
     "@brains/mcp-server": ["@brains/mcp-server@workspace:packages/mcp-server"],
+
+    "@brains/mcp-server-plugin": ["@brains/mcp-server-plugin@workspace:packages/mcp-server-plugin"],
 
     "@brains/shell": ["@brains/shell@workspace:packages/shell"],
 

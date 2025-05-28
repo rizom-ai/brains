@@ -1,6 +1,6 @@
 import { Shell } from "@brains/shell";
 import { gitSync } from "@brains/git-sync";
-import { StreamableHTTPServer } from "@brains/mcp-server";
+import { streamableHTTPServerPlugin } from "@brains/mcp-server-plugin";
 
 console.log("🧠 Test Brain - Brain MCP Server");
 
@@ -33,6 +33,18 @@ async function main(): Promise<void> {
           branch: "main",
           autoSync: false, // Manual sync for testing
         }),
+        // StreamableHTTP server plugin
+        streamableHTTPServerPlugin({
+          port: process.env["BRAIN_SERVER_PORT"] ?? 3333,
+          autoStart: true,
+          logger: {
+            info: (msg: string) => console.log(`[test-brain] ${msg}`),
+            debug: (msg: string) => console.log(`[test-brain] ${msg}`),
+            error: (msg: string, err?: unknown) =>
+              console.error(`[test-brain] ${msg}`, err),
+            warn: (msg: string) => console.warn(`[test-brain] ${msg}`),
+          },
+        }),
         // Future: noteContext(), taskContext(), etc.
       ],
     });
@@ -40,57 +52,16 @@ async function main(): Promise<void> {
     // Initialize the shell (runs migrations, sets up plugins, etc.)
     await shell.initialize();
     console.log("✅ Shell initialized successfully with plugins");
+    console.log("🚀 Brain MCP server ready at http://localhost:3333/mcp");
+    console.log("   Health check: http://localhost:3333/health");
+    console.log("   Status: http://localhost:3333/status");
 
-    // Start StreamableHTTP server as default behavior
-    await startStreamableHttpServer(shell);
-
-    // Also start STDIO server for backward compatibility
-    await startStdioServer(shell);
+    // Keep process alive
+    process.stdin.resume();
   } catch (error) {
     console.error("❌ Failed to start brain server:", error);
     process.exit(1);
   }
-}
-
-async function startStreamableHttpServer(shell: Shell): Promise<void> {
-  const PORT = process.env["BRAIN_SERVER_PORT"] ?? 3333;
-
-  // Create StreamableHTTP server with custom logger
-  const httpServer = new StreamableHTTPServer({
-    port: PORT,
-    logger: {
-      info: (msg: string) => console.log(`[test-brain] ${msg}`),
-      debug: (msg: string) => console.log(`[test-brain] ${msg}`),
-      error: (msg: string, err?: unknown) =>
-        console.error(`[test-brain] ${msg}`, err),
-      warn: (msg: string) => console.warn(`[test-brain] ${msg}`),
-    },
-  });
-
-  // Connect the MCP server to the HTTP transport
-  const mcpServer = shell.getMCPServer().getServer();
-  httpServer.connectMCPServer(mcpServer);
-
-  // Start the server
-  try {
-    await httpServer.start();
-    console.log(`🚀 Brain MCP server ready at http://localhost:${PORT}/mcp`);
-    console.log(`   Health check: http://localhost:${PORT}/health`);
-    console.log(`   Status: http://localhost:${PORT}/status`);
-  } catch (error) {
-    if ((error as any).code === "EADDRINUSE") {
-      console.error(`❌ Error: Port ${PORT} is already in use`);
-      process.exit(1);
-    }
-    throw error;
-  }
-}
-
-async function startStdioServer(_shell: Shell): Promise<void> {
-  // Keep STDIO server for backward compatibility
-  console.log("🔧 STDIO MCP server also available for legacy clients");
-  // Note: We don't start STDIO automatically to avoid blocking the HTTP server
-  // STDIO can be started with a flag if needed
 }
 
 // Graceful shutdown
