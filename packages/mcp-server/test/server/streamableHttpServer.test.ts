@@ -19,16 +19,16 @@ async function makeRequest(
     port?: number;
     headers?: Record<string, string>;
     body?: unknown;
-  } = {}
+  } = {},
 ): Promise<{ status: number; body: unknown; headers: Record<string, string> }> {
   const port = options.port ?? 3333;
   const url = `http://localhost:${port}${path}`;
-  
+
   // Default headers for MCP requests
   const defaultHeaders: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  
+
   // Add Accept header for MCP endpoints
   if (path === "/mcp") {
     if (method === "POST") {
@@ -37,7 +37,7 @@ async function makeRequest(
       defaultHeaders["Accept"] = "text/event-stream";
     }
   }
-  
+
   const response = await fetch(url, {
     method,
     headers: {
@@ -54,9 +54,9 @@ async function makeRequest(
   } else if (contentType?.includes("text/event-stream")) {
     // Parse SSE response
     const text = await response.text();
-    const lines = text.split('\n');
+    const lines = text.split("\n");
     for (const line of lines) {
-      if (line.startsWith('data: ')) {
+      if (line.startsWith("data: ")) {
         try {
           body = JSON.parse(line.slice(6));
           break;
@@ -121,7 +121,7 @@ describe("StreamableHTTPServer", () => {
       await server.start();
       expect(server.isRunning()).toBe(true);
       expect(mockLogger.info).toHaveBeenCalledWith(
-        `StreamableHTTP server listening on http://0.0.0.0:${testPort}/mcp`
+        `StreamableHTTP server listening on http://0.0.0.0:${testPort}/mcp`,
       );
     });
 
@@ -136,7 +136,9 @@ describe("StreamableHTTPServer", () => {
 
       await server.stop();
       expect(server.isRunning()).toBe(false);
-      expect(mockLogger.info).toHaveBeenCalledWith("StreamableHTTP server stopped");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "StreamableHTTP server stopped",
+      );
     });
 
     test("should throw when starting already running server", async () => {
@@ -167,7 +169,7 @@ describe("StreamableHTTPServer", () => {
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(server.start()).rejects.toThrow();
       expect(mockLogger.error).toHaveBeenCalledWith(
-        `Port ${testPort} is already in use`
+        `Port ${testPort} is already in use`,
       );
 
       // Cleanup
@@ -186,7 +188,7 @@ describe("StreamableHTTPServer", () => {
 
     test("should respond to health check", async () => {
       const response = await makeRequest("GET", "/health", { port: testPort });
-      
+
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         status: "ok",
@@ -197,7 +199,7 @@ describe("StreamableHTTPServer", () => {
 
     test("should respond to status check", async () => {
       const response = await makeRequest("GET", "/status", { port: testPort });
-      
+
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         sessions: 0,
@@ -228,7 +230,7 @@ describe("StreamableHTTPServer", () => {
     test("should connect MCP server", () => {
       server.connectMCPServer(mcpServer);
       expect(mockLogger.info).toHaveBeenCalledWith(
-        "MCP server connected to StreamableHTTP transport"
+        "MCP server connected to StreamableHTTP transport",
       );
     });
 
@@ -301,13 +303,13 @@ describe("StreamableHTTPServer", () => {
         },
         id: 1,
       });
-      
+
       // Session ID is returned in the header
       expect(response.headers["mcp-session-id"]).toBeDefined();
       expect(typeof response.headers["mcp-session-id"]).toBe("string");
 
       expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringMatching(/^Session initialized: .+/)
+        expect.stringMatching(/^Session initialized: .+/),
       );
     });
 
@@ -390,7 +392,7 @@ describe("StreamableHTTPServer", () => {
     test("should provide access to Express app", () => {
       server = new StreamableHTTPServer();
       const app = server.getApp();
-      
+
       expect(app).toBeDefined();
       expect(app.listen).toBeDefined();
       expect(app.use).toBeDefined();

@@ -29,11 +29,11 @@ export class StreamableHTTPServer {
   constructor(config: StreamableHTTPServerConfig = {}) {
     this.config = config;
     this.logger = this.config.logger ?? {
-      info: (msg: string) => console.log(`[StreamableHTTP] ${msg}`),
-      debug: (msg: string) => console.debug(`[StreamableHTTP] ${msg}`),
-      error: (msg: string, err?: unknown) =>
+      info: (msg: string): void => console.log(`[StreamableHTTP] ${msg}`),
+      debug: (msg: string): void => console.debug(`[StreamableHTTP] ${msg}`),
+      error: (msg: string, err?: unknown): void =>
         console.error(`[StreamableHTTP] ${msg}`, err),
-      warn: (msg: string) => console.warn(`[StreamableHTTP] ${msg}`),
+      warn: (msg: string): void => console.warn(`[StreamableHTTP] ${msg}`),
     };
 
     this.app = express();
@@ -89,7 +89,7 @@ export class StreamableHTTPServer {
         }
 
         this.logger.debug(
-          `POST /mcp - Session: ${req.headers["mcp-session-id"] || "new"}`,
+          `POST /mcp - Session: ${req.headers["mcp-session-id"] ?? "new"}`,
         );
 
         try {
@@ -103,14 +103,14 @@ export class StreamableHTTPServer {
             // New initialization request
             transport = new StreamableHTTPServerTransport({
               sessionIdGenerator: () => randomUUID(),
-              onsessioninitialized: (sessionId) => {
+              onsessioninitialized: (sessionId): void => {
                 this.logger.info(`Session initialized: ${sessionId}`);
                 this.transports[sessionId] = transport;
               },
             });
 
             // Set up onclose handler
-            transport.onclose = () => {
+            transport.onclose = (): void => {
               const sid = transport.sessionId;
               if (sid && this.transports[sid]) {
                 this.logger.info(`Session closed: ${sid}`);
