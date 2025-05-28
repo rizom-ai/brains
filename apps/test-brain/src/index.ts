@@ -1,11 +1,6 @@
 import { Shell } from "@brains/shell";
 import { gitSync } from "@brains/git-sync";
-import express from "express";
-import cors from "cors";
-import { randomUUID } from "node:crypto";
-import asyncHandler from "express-async-handler";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { StreamableHTTPServer } from "@brains/mcp-server";
 
 console.log("🧠 Test Brain - Brain MCP Server");
 
@@ -48,10 +43,9 @@ async function main(): Promise<void> {
 
     // Start StreamableHTTP server as default behavior
     await startStreamableHttpServer(shell);
-    
+
     // Also start STDIO server for backward compatibility
     await startStdioServer(shell);
-
   } catch (error) {
     console.error("❌ Failed to start brain server:", error);
     process.exit(1);
@@ -59,151 +53,36 @@ async function main(): Promise<void> {
 }
 
 async function startStreamableHttpServer(shell: Shell): Promise<void> {
-  const app = express();
-  
-  // Middleware
-  app.use(express.json());
-  app.use(cors()); // Enable CORS for MCP Inspector
-  
-  // Request logging
-  app.use((req, _res, next) => {
-    console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
-    next();
-  });
-
-  // Health endpoints
-  app.get('/health', (_req, res) => {
-    res.json({ 
-      status: 'ok', 
-      transport: 'streamable-http',
-      timestamp: new Date().toISOString()
-    });
-  });
-
-  app.get('/status', (_req, res) => {
-    res.json({ 
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      port: PORT
-    });
-  });
-
-  // Map to store transports by session ID
-  const transports: Record<string, StreamableHTTPServerTransport> = {};
-  
-  // StreamableHTTP endpoint at /mcp
-  app.post('/mcp', asyncHandler(async (req, res) => {
-    console.log('Received POST message for sessionId', req.headers['mcp-session-id'] || 'new session');
-    
-    try {
-      // Check for existing session ID
-      const sessionId = req.headers['mcp-session-id'] as string | undefined;
-      let transport: StreamableHTTPServerTransport;
-      
-      if (sessionId && transports[sessionId]) {
-        // Reuse existing transport
-        transport = transports[sessionId];
-      } else if (!sessionId && isInitializeRequest(req.body)) {
-        // New initialization request
-        transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => randomUUID(),
-          onsessioninitialized: (sessionId) => {
-            // Store the transport by session ID when session is initialized
-            console.log(`Session initialized with ID: ${sessionId}`);
-            transports[sessionId] = transport;
-          }
-        });
-        
-        // Set up onclose handler to clean up transport when closed
-        transport.onclose = () => {
-          const sid = transport.sessionId;
-          if (sid && transports[sid]) {
-            console.log(`Transport closed for session ${sid}, removing from transports map`);
-            delete transports[sid];
-          }
-        };
-        
-        // Get MCP server and connect the transport BEFORE handling the request
-        const mcpServer = shell.getMCPServer().getServer();
-        // @ts-expect-error - MCP SDK type issue: sessionId is string | undefined
-        await mcpServer.connect(transport);
-        
-        // Handle the initialization request
-        await transport.handleRequest(req, res, req.body);
-        return; // Already handled
-      } else {
-        // Invalid request - no session ID or not initialization request
-        res.status(400).json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32000,
-            message: 'Bad Request: Server not initialized'
-          },
-          id: null
-        });
-        return;
-      }
-      
-      // Handle the request with existing transport
-      await transport.handleRequest(req, res, req.body);
-      
-    } catch (error) {
-      console.error('MCP transport error:', error);
-      if (!res.headersSent) {
-        res.status(500).json({ 
-          jsonrpc: '2.0',
-          error: {
-            code: -32603,
-            message: 'Internal error'
-          }
-        });
-      }
-    }
-  }));
-
-  // Handle GET requests for SSE streams
-  app.get('/mcp', asyncHandler(async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-    
-    if (!sessionId || !transports[sessionId]) {
-      res.status(400).send('Invalid or missing session ID');
-      return;
-    }
-    
-    console.log(`Establishing SSE stream for session ${sessionId}`);
-    const transport = transports[sessionId];
-    await transport.handleRequest(req, res);
-  }));
-  
-  // Handle DELETE requests for session termination
-  app.delete('/mcp', asyncHandler(async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-    
-    if (!sessionId || !transports[sessionId]) {
-      res.status(400).send('Invalid or missing session ID');
-      return;
-    }
-    
-    console.log(`Received session termination request for session ${sessionId}`);
-    const transport = transports[sessionId];
-    await transport.handleRequest(req, res);
-  }));
-
   const PORT = process.env["BRAIN_SERVER_PORT"] ?? 3333;
   
-  const server = app.listen(PORT, () => {
+  // Create StreamableHTTP server with custom logger
+  const httpServer = new StreamableHTTPServer({
+    port: PORT,
+    logger: {
+      info: (msg: string) => console.log(`[test-brain] ${msg}`),
+      debug: (msg: string) => console.log(`[test-brain] ${msg}`),
+      error: (msg: string, err?: unknown) => console.error(`[test-brain] ${msg}`, err),
+      warn: (msg: string) => console.warn(`[test-brain] ${msg}`),
+    },
+  });
+
+  // Connect the MCP server to the HTTP transport
+  const mcpServer = shell.getMCPServer().getServer();
+  httpServer.connectMCPServer(mcpServer);
+
+  // Start the server
+  try {
+    await httpServer.start();
     console.log(`🚀 Brain MCP server ready at http://localhost:${PORT}/mcp`);
     console.log(`   Health check: http://localhost:${PORT}/health`);
     console.log(`   Status: http://localhost:${PORT}/status`);
-  });
-  
-  server.on('error', (err: Error & { code?: string }) => {
-    if (err.code === 'EADDRINUSE') {
+  } catch (error) {
+    if ((error as any).code === "EADDRINUSE") {
       console.error(`❌ Error: Port ${PORT} is already in use`);
       process.exit(1);
     }
-    throw err;
-  });
+    throw error;
+  }
 }
 
 async function startStdioServer(_shell: Shell): Promise<void> {
@@ -214,13 +93,13 @@ async function startStdioServer(_shell: Shell): Promise<void> {
 }
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully...');
+process.on("SIGTERM", () => {
+  console.log("Received SIGTERM, shutting down gracefully...");
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully...');
+process.on("SIGINT", () => {
+  console.log("Received SIGINT, shutting down gracefully...");
   process.exit(0);
 });
 

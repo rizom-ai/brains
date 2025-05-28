@@ -59,6 +59,7 @@ brain:
 **Location**: `apps/test-brain/`
 
 **New Dependencies**:
+
 ```json
 {
   "@modelcontextprotocol/sdk": "latest",
@@ -70,6 +71,7 @@ brain:
 **Default Server Implementation**:
 
 1. **Express Server Setup**
+
    ```typescript
    import express from "express";
    import cors from "cors";
@@ -79,7 +81,7 @@ brain:
    const app = express();
    app.use(express.json());
    app.use(cors()); // Enable CORS for MCP Inspector
-   
+
    // Request logging
    app.use((req, res, next) => {
      console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
@@ -88,30 +90,34 @@ brain:
 
    const server = new McpServer({
      name: "test-brain",
-     version: "1.0.0"
+     version: "1.0.0",
    });
    ```
 
 2. **StreamableHTTP Endpoint**
+
    ```typescript
-   app.all('/mcp', async (req, res) => {
+   app.all("/mcp", async (req, res) => {
      // StreamableHTTP transport handler
      // Integrate with existing Shell instance
    });
 
    const PORT = process.env.BRAIN_SERVER_PORT || 3333;
-   app.listen(PORT, () => {
-     console.log(`Brain MCP server ready at http://localhost:${PORT}/mcp`);
-   }).on('error', (err: any) => {
-     if (err.code === 'EADDRINUSE') {
-       console.error(`Error: Port ${PORT} is already in use`);
-       process.exit(1);
-     }
-     throw err;
-   });
+   app
+     .listen(PORT, () => {
+       console.log(`Brain MCP server ready at http://localhost:${PORT}/mcp`);
+     })
+     .on("error", (err: any) => {
+       if (err.code === "EADDRINUSE") {
+         console.error(`Error: Port ${PORT} is already in use`);
+         process.exit(1);
+       }
+       throw err;
+     });
    ```
 
 3. **Session Management**
+
    ```typescript
    interface SessionContext {
      sessionId: string;
@@ -128,11 +134,13 @@ brain:
 **Integration Points**:
 
 1. **Existing Tools Integration** (unchanged)
+
    - `brain_query` → Shell.executeQuery()
-   - `brain_command` → Shell.executeCommand() 
+   - `brain_command` → Shell.executeCommand()
    - `entity_*` tools → EntityService methods
 
 2. **Existing Resources Integration** (unchanged)
+
    - `entity://list` → EntityService.listEntities()
    - `entity://{id}` → EntityService.getEntity()
    - `schema://list` → SchemaRegistry.listSchemas()
@@ -144,36 +152,38 @@ brain:
 ### Phase 3: Health & Monitoring
 
 **Health Endpoints**:
+
 ```typescript
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    transport: 'streamable-http',
-    timestamp: new Date().toISOString()
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    transport: "streamable-http",
+    timestamp: new Date().toISOString(),
   });
 });
 
-app.get('/status', (req, res) => {
-  res.json({ 
+app.get("/status", (req, res) => {
+  res.json({
     sessions: sessions.size,
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    port: PORT
+    port: PORT,
   });
 });
 ```
 
 **Graceful Shutdown**:
+
 ```typescript
-process.on('SIGTERM', async () => {
-  console.log('Received SIGTERM, shutting down gracefully...');
+process.on("SIGTERM", async () => {
+  console.log("Received SIGTERM, shutting down gracefully...");
   // Clean up sessions, close DB connections
   await cleanup();
   process.exit(0);
 });
 
-process.on('SIGINT', async () => {
-  console.log('Received SIGINT, shutting down gracefully...');
+process.on("SIGINT", async () => {
+  console.log("Received SIGINT, shutting down gracefully...");
   await cleanup();
   process.exit(0);
 });
@@ -193,12 +203,11 @@ export async function main() {
 
     // Start StreamableHTTP server
     await startMcpServer(shell);
-    
+
     // Keep STDIO transport for backward compatibility
     await startStdioServer(shell);
-    
   } catch (error) {
-    console.error('Failed to start brain server:', error);
+    console.error("Failed to start brain server:", error);
     process.exit(1);
   }
 }
@@ -214,7 +223,7 @@ export async function startMcpServer(shell: Shell) {
   const app = express();
   app.use(express.json());
   app.use(cors());
-  
+
   // Request logging
   app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
@@ -223,7 +232,7 @@ export async function startMcpServer(shell: Shell) {
 
   const mcpServer = new McpServer({
     name: "test-brain",
-    version: "1.0.0"
+    version: "1.0.0",
   });
 
   // Register existing tools and resources (unchanged)
@@ -231,25 +240,27 @@ export async function startMcpServer(shell: Shell) {
   await setupMcpResources(mcpServer, shell);
 
   // StreamableHTTP transport endpoint
-  app.all('/mcp', createTransportHandler(mcpServer));
-  
+  app.all("/mcp", createTransportHandler(mcpServer));
+
   // Health endpoints
-  app.get('/health', healthHandler);
-  app.get('/status', statusHandler);
+  app.get("/health", healthHandler);
+  app.get("/status", statusHandler);
 
   const PORT = process.env.BRAIN_SERVER_PORT || 3333;
-  
+
   return new Promise((resolve, reject) => {
-    const server = app.listen(PORT, () => {
-      console.log(`Brain MCP server ready at http://localhost:${PORT}/mcp`);
-      resolve(server);
-    }).on('error', (err: any) => {
-      if (err.code === 'EADDRINUSE') {
-        console.error(`Error: Port ${PORT} is already in use`);
-        process.exit(1);
-      }
-      reject(err);
-    });
+    const server = app
+      .listen(PORT, () => {
+        console.log(`Brain MCP server ready at http://localhost:${PORT}/mcp`);
+        resolve(server);
+      })
+      .on("error", (err: any) => {
+        if (err.code === "EADDRINUSE") {
+          console.error(`Error: Port ${PORT} is already in use`);
+          process.exit(1);
+        }
+        reject(err);
+      });
   });
 }
 ```
@@ -259,20 +270,19 @@ export async function startMcpServer(shell: Shell) {
 ```typescript
 function createTransportHandler(mcpServer: McpServer) {
   const sessions = new Map<string, SessionContext>();
-  
+
   return async (req: Request, res: Response) => {
     try {
       const transport = new StreamableHTTPServerTransport({
-        sessionId: req.headers['x-session-id'] as string,
-        enableJsonResponse: false // Enable streaming
+        sessionId: req.headers["x-session-id"] as string,
+        enableJsonResponse: false, // Enable streaming
       });
-      
+
       // Handle the MCP request
       await transport.handle(req, res, mcpServer);
-      
     } catch (error) {
-      console.error('MCP transport error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error("MCP transport error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   };
 }
@@ -299,6 +309,7 @@ apps/test-brain/
 ## Configuration Management
 
 ### Environment Variables
+
 ```bash
 # Server Configuration
 BRAIN_SERVER_HOST=0.0.0.0
@@ -348,6 +359,7 @@ $ BRAIN_SERVER_PORT=4444 ./dist/test-brain
 ## Testing Strategy
 
 ### Manual Testing
+
 1. **Start Server**: `bun run dev`
 2. **MCP Inspector**: Connect to `http://localhost:3333/mcp`
 3. **Verify Tools**: Test `brain_query`, `entity_search`, etc.
@@ -356,14 +368,15 @@ $ BRAIN_SERVER_PORT=4444 ./dist/test-brain
 6. **Session Handling**: Multiple concurrent MCP Inspector connections
 
 ### Automated Testing
+
 ```typescript
-describe('StreamableHTTP Server', () => {
-  test('should start on port 3333');
-  test('should handle MCP requests');
-  test('should integrate with Shell');
-  test('should manage sessions');
-  test('should serve health endpoints');
-  test('should handle graceful shutdown');
+describe("StreamableHTTP Server", () => {
+  test("should start on port 3333");
+  test("should handle MCP requests");
+  test("should integrate with Shell");
+  test("should manage sessions");
+  test("should serve health endpoints");
+  test("should handle graceful shutdown");
 });
 ```
 
@@ -379,6 +392,7 @@ describe('StreamableHTTP Server', () => {
 ## Success Criteria
 
 ### Functional Requirements
+
 - ✅ Server starts immediately by default on port 3333
 - ✅ StreamableHTTP transport working
 - ✅ MCP Inspector can connect and test tools
@@ -389,6 +403,7 @@ describe('StreamableHTTP Server', () => {
 - ✅ Graceful shutdown working
 
 ### Performance Requirements
+
 - < 100ms response time for simple queries
 - Support 10+ concurrent MCP Inspector sessions
 - Graceful handling of connection drops
@@ -396,12 +411,14 @@ describe('StreamableHTTP Server', () => {
 
 ## Timeline
 
-**Week 1**: 
+**Week 1**:
+
 - Add StreamableHTTP dependencies
 - Implement basic server with health endpoints
 - Test MCP Inspector connectivity
 
 **Week 2**:
+
 - Integrate existing Shell functionality
 - Add session management and logging
 - Comprehensive testing and documentation
