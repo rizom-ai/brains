@@ -17,8 +17,8 @@ const defaultLogger = {
  * Other packages register their tools and resources
  * Follows Component Interface Standardization pattern
  */
-export class MCPServer {
-  private static instance: MCPServer | null = null;
+export class StdioMCPServer {
+  private static instance: StdioMCPServer | null = null;
 
   private readonly mcpServer: McpServer;
   private readonly config: MCPServerConfig;
@@ -28,28 +28,28 @@ export class MCPServer {
   /**
    * Get the singleton instance of MCPServer
    */
-  public static getInstance(config?: MCPServerConfig): MCPServer {
-    if (!MCPServer.instance) {
-      MCPServer.instance = new MCPServer(config);
+  public static getInstance(config?: MCPServerConfig): StdioMCPServer {
+    if (!StdioMCPServer.instance) {
+      StdioMCPServer.instance = new StdioMCPServer(config);
     }
-    return MCPServer.instance;
+    return StdioMCPServer.instance;
   }
 
   /**
    * Reset the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
-    if (MCPServer.instance) {
-      MCPServer.instance.stop();
-      MCPServer.instance = null;
+    if (StdioMCPServer.instance) {
+      StdioMCPServer.instance.stop();
+      StdioMCPServer.instance = null;
     }
   }
 
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(config?: MCPServerConfig): MCPServer {
-    return new MCPServer(config);
+  public static createFresh(config?: MCPServerConfig): StdioMCPServer {
+    return new StdioMCPServer(config);
   }
 
   /**

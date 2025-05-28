@@ -1,13 +1,35 @@
 import { Shell } from "@brains/shell";
 import { gitSync } from "@brains/git-sync";
-import { streamableHTTPServerPlugin } from "@brains/mcp-server-plugin";
+import { StreamableHTTPServer } from "@brains/mcp-server";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 console.log("🧠 Test Brain - Brain MCP Server");
 
 async function main(): Promise<void> {
   try {
+    // Create MCP server instance
+    const mcpServer = new McpServer({
+      name: "test-brain-mcp",
+      version: "1.0.0",
+    });
+
+    // Create StreamableHTTP server
+    const httpServer = new StreamableHTTPServer({
+      port: process.env["BRAIN_SERVER_PORT"] ?? 3333,
+      logger: {
+        info: (msg: string) => console.log(`[test-brain] ${msg}`),
+        debug: (msg: string) => console.log(`[test-brain] ${msg}`),
+        error: (msg: string, err?: unknown) =>
+          console.error(`[test-brain] ${msg}`, err),
+        warn: (msg: string) => console.warn(`[test-brain] ${msg}`),
+      },
+    });
+    
+    // Connect MCP server to HTTP transport
+    httpServer.connectMCPServer(mcpServer);
+
     // Initialize shell with configuration including plugins
-    const shell = Shell.getInstance({
+    const shell = Shell.createFresh({
       database: {
         url: process.env["DATABASE_URL"] ?? "file:./test-brain.db",
       },
@@ -33,25 +55,18 @@ async function main(): Promise<void> {
           branch: "main",
           autoSync: false, // Manual sync for testing
         }),
-        // StreamableHTTP server plugin
-        streamableHTTPServerPlugin({
-          port: process.env["BRAIN_SERVER_PORT"] ?? 3333,
-          autoStart: true,
-          logger: {
-            info: (msg: string) => console.log(`[test-brain] ${msg}`),
-            debug: (msg: string) => console.log(`[test-brain] ${msg}`),
-            error: (msg: string, err?: unknown) =>
-              console.error(`[test-brain] ${msg}`, err),
-            warn: (msg: string) => console.warn(`[test-brain] ${msg}`),
-          },
-        }),
         // Future: noteContext(), taskContext(), etc.
       ],
+    }, {
+      mcpServer, // Pass the MCP server as a dependency
     });
 
     // Initialize the shell (runs migrations, sets up plugins, etc.)
     await shell.initialize();
     console.log("✅ Shell initialized successfully with plugins");
+    
+    // Start the HTTP server
+    await httpServer.start();
     console.log("🚀 Brain MCP server ready at http://localhost:3333/mcp");
     console.log("   Health check: http://localhost:3333/health");
     console.log("   Status: http://localhost:3333/status");

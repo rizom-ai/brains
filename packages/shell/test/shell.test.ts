@@ -9,7 +9,7 @@ import { MessageBus } from "@/messaging/messageBus";
 import { PluginManager } from "@/plugins/pluginManager";
 import { EntityService } from "@/entity/entityService";
 import { QueryProcessor } from "@/query/queryProcessor";
-import type { MCPServer } from "@brains/mcp-server";
+import type { McpServer } from "@brains/mcp-server";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
 import type { AIService } from "@/ai/aiService";
@@ -25,20 +25,11 @@ const mockEmbeddingService: IEmbeddingService = {
 };
 
 // Create a mock MCP server
-const createMockMCPServer = (): MCPServer => {
-  const mockServer = {
+const createMockMCPServer = (): McpServer => {
+  return {
     tool: mock(() => {}),
     resource: mock(() => {}),
-    prompt: mock(() => {}),
-    connect: mock(() => Promise.resolve()),
-    close: mock(() => Promise.resolve()),
-  };
-
-  return {
-    getServer: () => mockServer,
-    startStdio: mock(() => Promise.resolve()),
-    stop: mock(() => {}),
-  } as unknown as MCPServer;
+  } as unknown as McpServer;
 };
 
 // Create a mock EntityService

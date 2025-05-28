@@ -6,11 +6,11 @@
  * Usage: bun run src/stdio.ts
  */
 
-import { MCPServer } from "./server/mcpServer";
+import { StdioMCPServer } from "./server/stdio-mcp-server";
 import { z } from "zod";
 
 async function main(): Promise<void> {
-  const server = MCPServer.createFresh({
+  const server = StdioMCPServer.createFresh({
     name: "Example-MCP-Server",
     version: "1.0.0",
   });

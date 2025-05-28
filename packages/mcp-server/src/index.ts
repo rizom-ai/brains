@@ -1,5 +1,5 @@
 // Main exports
-export { MCPServer } from "./server/mcpServer";
+export { StdioMCPServer } from "./server/stdio-mcp-server";
 export { StreamableHTTPServer } from "./server/streamableHttpServer";
 
 // Type exports

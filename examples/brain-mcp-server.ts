@@ -8,7 +8,7 @@
  * Usage: bun run examples/brain-mcp-server.ts
  */
 
-import { MCPServer } from "@brains/mcp-server";
+import { StdioMCPServer } from "@brains/mcp-server";
 import { Shell, registerShellMCP } from "@personal-brain/shell";
 import { EmbeddingService } from "@personal-brain/shell";
 import { AIService } from "@personal-brain/shell";
@@ -84,7 +84,7 @@ async function main(): Promise<void> {
   await shell.initialize();
 
   // Create MCP server
-  const mcpServer = MCPServer.createFresh({
+  const mcpServer = StdioMCPServer.createFresh({
     name: "Brain-MCP-Server",
     version: "1.0.0",
     logger: {

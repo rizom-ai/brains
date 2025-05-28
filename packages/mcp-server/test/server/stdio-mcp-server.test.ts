@@ -1,12 +1,12 @@
 import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
-import { MCPServer } from "@/server/mcpServer";
+import { StdioMCPServer } from "@/server/stdio-mcp-server";
 import { createSilentLogger } from "@personal-brain/utils";
 
-describe("MCPServer", () => {
-  let mcpServer: MCPServer;
+describe("StdioMCPServer", () => {
+  let mcpServer: StdioMCPServer;
 
   beforeEach(() => {
-    mcpServer = MCPServer.createFresh({
+    mcpServer = StdioMCPServer.createFresh({
       name: "TestMCP",
       version: "1.0.0",
       logger: createSilentLogger(),
@@ -15,33 +15,33 @@ describe("MCPServer", () => {
 
   afterEach(() => {
     mcpServer.stop();
-    MCPServer.resetInstance();
+    StdioMCPServer.resetInstance();
   });
 
   describe("Component Interface Standardization", () => {
     it("should implement singleton pattern", () => {
-      const instance1 = MCPServer.getInstance({ logger: createSilentLogger() });
-      const instance2 = MCPServer.getInstance({ logger: createSilentLogger() });
+      const instance1 = StdioMCPServer.getInstance({ logger: createSilentLogger() });
+      const instance2 = StdioMCPServer.getInstance({ logger: createSilentLogger() });
       expect(instance1).toBe(instance2);
     });
 
     it("should reset instance", () => {
-      const instance1 = MCPServer.getInstance({ logger: createSilentLogger() });
-      MCPServer.resetInstance();
-      const instance2 = MCPServer.getInstance({ logger: createSilentLogger() });
+      const instance1 = StdioMCPServer.getInstance({ logger: createSilentLogger() });
+      StdioMCPServer.resetInstance();
+      const instance2 = StdioMCPServer.getInstance({ logger: createSilentLogger() });
       expect(instance1).not.toBe(instance2);
     });
 
     it("should create fresh instance", () => {
-      const instance1 = MCPServer.getInstance({ logger: createSilentLogger() });
-      const instance2 = MCPServer.createFresh({ logger: createSilentLogger() });
+      const instance1 = StdioMCPServer.getInstance({ logger: createSilentLogger() });
+      const instance2 = StdioMCPServer.createFresh({ logger: createSilentLogger() });
       expect(instance1).not.toBe(instance2);
     });
   });
 
   describe("Server Creation", () => {
     it("should create server with default config", () => {
-      const defaultServer = MCPServer.createFresh({
+      const defaultServer = StdioMCPServer.createFresh({
         logger: createSilentLogger(),
       });
       const server = defaultServer.getServer();

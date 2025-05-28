@@ -19,8 +19,8 @@
   "dependencies": {
     "@brains/git-sync": "workspace:*",
     "@brains/mcp-server": "workspace:*",
-    "@brains/mcp-server-plugin": "workspace:*",
-    "@brains/shell": "workspace:*"
+    "@brains/shell": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.7"
   },
   "devDependencies": {
     "@types/bun": "latest",

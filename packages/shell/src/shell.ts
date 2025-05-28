@@ -14,7 +14,7 @@ import {
 import { QueryProcessor } from "./query/queryProcessor";
 import { AIService } from "./ai/aiService";
 import { Logger, LogLevel } from "@brains/utils";
-import { MCPServer } from "@brains/mcp-server";
+import type { McpServer } from "@brains/mcp-server";
 import { registerShellMCP } from "./mcp";
 import type { QueryResult } from "./types";
 import type { Plugin } from "@brains/types";
@@ -31,7 +31,7 @@ export interface ShellDependencies {
   logger?: Logger;
   embeddingService?: IEmbeddingService;
   aiService?: AIService;
-  mcpServer?: MCPServer;
+  mcpServer?: McpServer;
   entityService?: EntityService;
 }
 
@@ -58,7 +58,7 @@ export class Shell {
   private readonly entityService: EntityService;
   private readonly queryProcessor: QueryProcessor;
   private readonly aiService: AIService;
-  private readonly mcpServer: MCPServer;
+  private readonly mcpServer: McpServer;
   private initialized = false;
 
   /**
@@ -186,24 +186,19 @@ export class Shell {
       aiService: this.aiService,
     });
 
-    // Create or use injected MCP server
+    // Use injected MCP server or throw error
     if (!dependencies?.mcpServer) {
-      this.mcpServer = MCPServer.getInstance({
-        name: "brain-mcp-server",
-        version: "1.0.0",
-        logger: this.logger,
-      });
-
-      // Register shell MCP capabilities
-      registerShellMCP(this.mcpServer.getServer(), {
-        queryProcessor: this.queryProcessor,
-        entityService: this.entityService,
-        schemaRegistry: this.schemaRegistry,
-        logger: this.logger,
-      });
-    } else {
-      this.mcpServer = dependencies.mcpServer;
+      throw new Error("MCP server must be provided as a dependency");
     }
+    this.mcpServer = dependencies.mcpServer;
+
+    // Register shell MCP capabilities
+    registerShellMCP(this.mcpServer, {
+      queryProcessor: this.queryProcessor,
+      entityService: this.entityService,
+      schemaRegistry: this.schemaRegistry,
+      logger: this.logger,
+    });
 
     // Register core components in the registry
     this.registry.register("shell", () => this);
@@ -214,7 +209,7 @@ export class Shell {
     this.registry.register("entityService", () => this.entityService);
     this.registry.register("queryProcessor", () => this.queryProcessor);
     this.registry.register("aiService", () => this.aiService);
-    this.registry.register("mcpServer", () => this.mcpServer.getServer());
+    this.registry.register("mcpServer", () => this.mcpServer);
 
     // Listen for plugin tool registration events
     this.pluginManager.on(PluginEvent.TOOL_REGISTER, (event) => {
@@ -224,9 +219,7 @@ export class Shell {
       );
 
       // Register the tool with the MCP server
-      this.mcpServer
-        .getServer()
-        .tool(tool.name, tool.description, tool.inputSchema, async (params) => {
+      this.mcpServer.tool(tool.name, tool.description, tool.inputSchema, async (params) => {
           try {
             const result = await tool.handler(params);
             return {
@@ -252,9 +245,7 @@ export class Shell {
       );
 
       // Register the resource with the MCP server
-      this.mcpServer
-        .getServer()
-        .resource(resource.name, resource.uri, resource.handler);
+      this.mcpServer.resource(resource.name, resource.uri, resource.handler);
     });
   }
 
@@ -376,7 +367,7 @@ export class Shell {
     return this.aiService;
   }
 
-  public getMCPServer(): MCPServer {
+  public getMCPServer(): McpServer {
     return this.mcpServer;
   }
 
