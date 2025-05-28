@@ -2,9 +2,10 @@ import { Shell } from "@brains/shell";
 import { gitSync } from "@brains/git-sync";
 import express from "express";
 import cors from "cors";
-import { nanoid } from "nanoid";
+import { randomUUID } from "node:crypto";
 import asyncHandler from "express-async-handler";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
 console.log("🧠 Test Brain - Brain MCP Server");
 
@@ -87,28 +88,64 @@ async function startStreamableHttpServer(shell: Shell): Promise<void> {
     });
   });
 
+  // Map to store transports by session ID
+  const transports: Record<string, StreamableHTTPServerTransport> = {};
+  
   // StreamableHTTP endpoint at /mcp
   app.post('/mcp', asyncHandler(async (req, res) => {
-    // Create a fresh MCP server instance for this request
-    const mcpServer = shell.getMCPServer().getServer();
+    console.log('Received POST message for sessionId', req.headers['mcp-session-id'] || 'new session');
     
     try {
-      // Create StreamableHTTP transport with session management
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => nanoid(12) // Same length as DB IDs
-      });
+      // Check for existing session ID
+      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+      let transport: StreamableHTTPServerTransport;
       
-      // Connect server to transport
-      // @ts-expect-error - MCP SDK bug: sessionId is typed as `string | undefined` instead of optional
-      await mcpServer.connect(transport);
+      if (sessionId && transports[sessionId]) {
+        // Reuse existing transport
+        transport = transports[sessionId];
+      } else if (!sessionId && isInitializeRequest(req.body)) {
+        // New initialization request
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (sessionId) => {
+            // Store the transport by session ID when session is initialized
+            console.log(`Session initialized with ID: ${sessionId}`);
+            transports[sessionId] = transport;
+          }
+        });
+        
+        // Set up onclose handler to clean up transport when closed
+        transport.onclose = () => {
+          const sid = transport.sessionId;
+          if (sid && transports[sid]) {
+            console.log(`Transport closed for session ${sid}, removing from transports map`);
+            delete transports[sid];
+          }
+        };
+        
+        // Get MCP server and connect the transport BEFORE handling the request
+        const mcpServer = shell.getMCPServer().getServer();
+        // @ts-expect-error - MCP SDK type issue: sessionId is string | undefined
+        await mcpServer.connect(transport);
+        
+        // Handle the initialization request
+        await transport.handleRequest(req, res, req.body);
+        return; // Already handled
+      } else {
+        // Invalid request - no session ID or not initialization request
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32000,
+            message: 'Bad Request: Server not initialized'
+          },
+          id: null
+        });
+        return;
+      }
       
-      // Handle the MCP request
+      // Handle the request with existing transport
       await transport.handleRequest(req, res, req.body);
-      
-      // Cleanup on request close
-      res.on('close', () => {
-        void transport.close();
-      });
       
     } catch (error) {
       console.error('MCP transport error:', error);
@@ -122,6 +159,34 @@ async function startStreamableHttpServer(shell: Shell): Promise<void> {
         });
       }
     }
+  }));
+
+  // Handle GET requests for SSE streams
+  app.get('/mcp', asyncHandler(async (req, res) => {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    
+    if (!sessionId || !transports[sessionId]) {
+      res.status(400).send('Invalid or missing session ID');
+      return;
+    }
+    
+    console.log(`Establishing SSE stream for session ${sessionId}`);
+    const transport = transports[sessionId];
+    await transport.handleRequest(req, res);
+  }));
+  
+  // Handle DELETE requests for session termination
+  app.delete('/mcp', asyncHandler(async (req, res) => {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    
+    if (!sessionId || !transports[sessionId]) {
+      res.status(400).send('Invalid or missing session ID');
+      return;
+    }
+    
+    console.log(`Received session termination request for session ${sessionId}`);
+    const transport = transports[sessionId];
+    await transport.handleRequest(req, res);
   }));
 
   const PORT = process.env["BRAIN_SERVER_PORT"] ?? 3333;
