@@ -74,16 +74,7 @@ async function main(): Promise<void> {
     logger,
   );
 
-  // Create and initialize Shell
-  const shell = Shell.createFresh({
-    db,
-    logger,
-    embeddingService,
-    aiService,
-  });
-  await shell.initialize();
-
-  // Create MCP server
+  // Create MCP server first
   const mcpServer = StdioMCPServer.createFresh({
     name: "Brain-MCP-Server",
     version: "1.0.0",
@@ -95,13 +86,19 @@ async function main(): Promise<void> {
     },
   });
 
-  // Register shell functionality with MCP
-  registerShellMCP(mcpServer.getServer(), {
-    queryProcessor: shell.getQueryProcessor(),
-    entityService: shell.getEntityService(),
-    schemaRegistry: shell.getSchemaRegistry(),
+  // Create and initialize Shell with MCP server
+  const shell = Shell.createFresh({
+    db,
     logger,
+    embeddingService,
+    aiService,
+  }, {
+    mcpServer: mcpServer.getServer(),
   });
+  await shell.initialize();
+
+  // Shell will register its functionality automatically
+  // No need to call registerShellMCP manually
 
   // Add custom brain-specific tools
   const mcp = mcpServer.getServer();

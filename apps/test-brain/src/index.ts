@@ -24,47 +24,50 @@ async function main(): Promise<void> {
         warn: (msg: string) => console.warn(`[test-brain] ${msg}`),
       },
     });
-    
+
     // Connect MCP server to HTTP transport
     httpServer.connectMCPServer(mcpServer);
 
     // Initialize shell with configuration including plugins
-    const shell = Shell.createFresh({
-      database: {
-        url: process.env["DATABASE_URL"] ?? "file:./test-brain.db",
+    const shell = Shell.createFresh(
+      {
+        database: {
+          url: process.env["DATABASE_URL"] ?? "file:./test-brain.db",
+        },
+        ai: {
+          provider: "anthropic" as const,
+          apiKey: process.env["ANTHROPIC_API_KEY"] ?? "test-key",
+          model: "claude-3-haiku-20240307",
+          temperature: 0.7,
+          maxTokens: 1000,
+        },
+        logging: {
+          level: "debug" as const,
+          context: "test-brain",
+        },
+        features: {
+          enablePlugins: true,
+          runMigrationsOnInit: false, // Disable migrations for compiled binary
+        },
+        plugins: [
+          // Git sync plugin for version control
+          gitSync({
+            repoPath: "/home/yeehaa/Documents/brain", // Use existing brain directory
+            branch: "main",
+            autoSync: false, // Manual sync for testing
+          }),
+          // Future: noteContext(), taskContext(), etc.
+        ],
       },
-      ai: {
-        provider: "anthropic" as const,
-        apiKey: process.env["ANTHROPIC_API_KEY"] ?? "test-key",
-        model: "claude-3-haiku-20240307",
-        temperature: 0.7,
-        maxTokens: 1000,
+      {
+        mcpServer, // Pass the MCP server as a dependency
       },
-      logging: {
-        level: "debug" as const,
-        context: "test-brain",
-      },
-      features: {
-        enablePlugins: true,
-        runMigrationsOnInit: false, // Disable migrations for compiled binary
-      },
-      plugins: [
-        // Git sync plugin for version control
-        gitSync({
-          repoPath: "/home/yeehaa/Documents/brain", // Use existing brain directory
-          branch: "main",
-          autoSync: false, // Manual sync for testing
-        }),
-        // Future: noteContext(), taskContext(), etc.
-      ],
-    }, {
-      mcpServer, // Pass the MCP server as a dependency
-    });
+    );
 
     // Initialize the shell (runs migrations, sets up plugins, etc.)
     await shell.initialize();
     console.log("✅ Shell initialized successfully with plugins");
-    
+
     // Start the HTTP server
     await httpServer.start();
     console.log("🚀 Brain MCP server ready at http://localhost:3333/mcp");

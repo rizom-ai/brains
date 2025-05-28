@@ -20,21 +20,33 @@ describe("StdioMCPServer", () => {
 
   describe("Component Interface Standardization", () => {
     it("should implement singleton pattern", () => {
-      const instance1 = StdioMCPServer.getInstance({ logger: createSilentLogger() });
-      const instance2 = StdioMCPServer.getInstance({ logger: createSilentLogger() });
+      const instance1 = StdioMCPServer.getInstance({
+        logger: createSilentLogger(),
+      });
+      const instance2 = StdioMCPServer.getInstance({
+        logger: createSilentLogger(),
+      });
       expect(instance1).toBe(instance2);
     });
 
     it("should reset instance", () => {
-      const instance1 = StdioMCPServer.getInstance({ logger: createSilentLogger() });
+      const instance1 = StdioMCPServer.getInstance({
+        logger: createSilentLogger(),
+      });
       StdioMCPServer.resetInstance();
-      const instance2 = StdioMCPServer.getInstance({ logger: createSilentLogger() });
+      const instance2 = StdioMCPServer.getInstance({
+        logger: createSilentLogger(),
+      });
       expect(instance1).not.toBe(instance2);
     });
 
     it("should create fresh instance", () => {
-      const instance1 = StdioMCPServer.getInstance({ logger: createSilentLogger() });
-      const instance2 = StdioMCPServer.createFresh({ logger: createSilentLogger() });
+      const instance1 = StdioMCPServer.getInstance({
+        logger: createSilentLogger(),
+      });
+      const instance2 = StdioMCPServer.createFresh({
+        logger: createSilentLogger(),
+      });
       expect(instance1).not.toBe(instance2);
     });
   });

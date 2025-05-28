@@ -219,7 +219,11 @@ export class Shell {
       );
 
       // Register the tool with the MCP server
-      this.mcpServer.tool(tool.name, tool.description, tool.inputSchema, async (params) => {
+      this.mcpServer.tool(
+        tool.name,
+        tool.description,
+        tool.inputSchema,
+        async (params) => {
           try {
             const result = await tool.handler(params);
             return {
@@ -234,7 +238,8 @@ export class Shell {
             this.logger.error(`Error in tool ${tool.name}`, error);
             throw error;
           }
-        });
+        },
+      );
     });
 
     // Listen for plugin resource registration events
