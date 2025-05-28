@@ -93,7 +93,6 @@ export class MCPServer {
     this.logger.info("MCP Server started successfully");
   }
 
-
   /**
    * Stop the MCP server
    */

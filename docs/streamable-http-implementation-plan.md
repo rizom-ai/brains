@@ -2,7 +2,20 @@
 
 ## Overview
 
-This document outlines the implementation plan for migrating from the deprecated HTTP+SSE transport to the new StreamableHTTP transport for our Brain MCP server, focusing on server mode implementation.
+This document outlines the implementation plan for migrating `test-brain` from the deprecated HTTP+SSE transport to the new StreamableHTTP transport, transforming it into a self-contained MCP brain server.
+
+## Design Decisions
+
+- **Architecture**: Self-contained MCP server (no client/server split)
+- **Default Behavior**: Starts StreamableHTTP server immediately on port 3333
+- **Transport**: Official `@modelcontextprotocol/sdk` with stateful sessions
+- **Framework**: Express.js with `/mcp` endpoint
+- **Compatibility**: Preserve all existing MCP tools/resources + STDIO transport
+- **Configuration**: Runtime environment variables, existing mcp-config.json format
+- **Operations**: Health endpoints, graceful shutdown, startup logging
+- **Error Handling**: Clear error on port conflicts (no auto-retry)
+- **Web Support**: CORS headers for MCP Inspector
+- **Monitoring**: Basic request logging
 
 ## Current Status
 
@@ -10,7 +23,6 @@ This document outlines the implementation plan for migrating from the deprecated
 - **New Standard**: StreamableHTTP transport
 - **Target Port**: 3333 (avoiding conflicts with common development ports)
 - **MCP Inspector**: Fully compatible with StreamableHTTP
-- **Focus**: Server mode implementation first
 
 ## Implementation Architecture
 
@@ -37,10 +49,12 @@ brain:
 - **Transport**: `StreamableHTTPServerTransport`
 - **Session Management**: Stateful with session ID tracking
 - **Framework**: Express.js for HTTP server
+- **CORS**: Enabled for web-based MCP tools
+- **Logging**: Basic request logging with timestamps
 
 ## Implementation Plan
 
-### Phase 1: Update test-brain Server Mode
+### Phase 1: Core StreamableHTTP Server
 
 **Location**: `apps/test-brain/`
 
@@ -48,23 +62,32 @@ brain:
 ```json
 {
   "@modelcontextprotocol/sdk": "latest",
-  "express": "^4.18.0"
+  "express": "^4.18.0",
+  "cors": "^2.8.5"
 }
 ```
 
-**Server Mode Implementation**:
+**Default Server Implementation**:
 
 1. **Express Server Setup**
    ```typescript
    import express from "express";
+   import cors from "cors";
    import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
    import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-   
+
    const app = express();
    app.use(express.json());
+   app.use(cors()); // Enable CORS for MCP Inspector
    
+   // Request logging
+   app.use((req, res, next) => {
+     console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+     next();
+   });
+
    const server = new McpServer({
-     name: "brain-server",
+     name: "test-brain",
      version: "1.0.0"
    });
    ```
@@ -75,9 +98,16 @@ brain:
      // StreamableHTTP transport handler
      // Integrate with existing Shell instance
    });
-   
-   app.listen(3333, () => {
-     console.log('Brain MCP server listening on http://localhost:3333/mcp');
+
+   const PORT = process.env.BRAIN_SERVER_PORT || 3333;
+   app.listen(PORT, () => {
+     console.log(`Brain MCP server ready at http://localhost:${PORT}/mcp`);
+   }).on('error', (err: any) => {
+     if (err.code === 'EADDRINUSE') {
+       console.error(`Error: Port ${PORT} is already in use`);
+       process.exit(1);
+     }
+     throw err;
    });
    ```
 
@@ -89,7 +119,7 @@ brain:
      shell: Shell;
      lastActivity: Date;
    }
-   
+
    const sessions: Map<string, SessionContext> = new Map();
    ```
 
@@ -97,95 +127,129 @@ brain:
 
 **Integration Points**:
 
-1. **Existing Tools Integration**
+1. **Existing Tools Integration** (unchanged)
    - `brain_query` → Shell.executeQuery()
-   - `brain_command` → Shell.executeCommand()
+   - `brain_command` → Shell.executeCommand() 
    - `entity_*` tools → EntityService methods
 
-2. **Existing Resources Integration**
+2. **Existing Resources Integration** (unchanged)
    - `entity://list` → EntityService.listEntities()
    - `entity://{id}` → EntityService.getEntity()
    - `schema://list` → SchemaRegistry.listSchemas()
 
-3. **Session Isolation**
-   - Each session gets own Shell context
-   - Shared database, isolated state
+3. **Transport Compatibility**
+   - Keep existing STDIO transport alongside StreamableHTTP
+   - Same MCP tools/resources work on both transports
 
-### Phase 3: Testing & Validation
-
-**MCP Inspector Testing**:
-```bash
-# Terminal 1: Start server
-$ cd apps/test-brain && bun run dev --server
-
-# MCP Inspector
-URL: http://localhost:3333/mcp
-Transport: StreamableHTTP
-Status: Connected ✓
-```
+### Phase 3: Health & Monitoring
 
 **Health Endpoints**:
 ```typescript
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', transport: 'streamable-http' });
+  res.json({ 
+    status: 'ok', 
+    transport: 'streamable-http',
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.get('/status', (req, res) => {
   res.json({ 
     sessions: sessions.size,
     uptime: process.uptime(),
-    memory: process.memoryUsage()
+    memory: process.memoryUsage(),
+    port: PORT
   });
+});
+```
+
+**Graceful Shutdown**:
+```typescript
+process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM, shutting down gracefully...');
+  // Clean up sessions, close DB connections
+  await cleanup();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('Received SIGINT, shutting down gracefully...');
+  await cleanup();
+  process.exit(0);
 });
 ```
 
 ## Implementation Details
 
-### Mode Detection Update
+### Main Entry Point
 
 ```typescript
-// src/index.ts
-const args = process.argv.slice(2);
+// src/index.ts - Always start as server by default
+export async function main() {
+  try {
+    // Initialize Shell instance
+    const shell = Shell.getInstance();
+    await shell.initialize();
 
-if (args.includes('--server')) {
-  await runServerMode(); // New StreamableHTTP implementation
-} else {
-  // Existing standalone functionality unchanged
-  await runStandaloneMode();
+    // Start StreamableHTTP server
+    await startMcpServer(shell);
+    
+    // Keep STDIO transport for backward compatibility
+    await startStdioServer(shell);
+    
+  } catch (error) {
+    console.error('Failed to start brain server:', error);
+    process.exit(1);
+  }
 }
+
+main();
 ```
 
-### Server Mode Implementation
+### StreamableHTTP Server Implementation
 
 ```typescript
-// src/modes/server.ts
-export async function runServerMode() {
+// src/server/streamableHttp.ts
+export async function startMcpServer(shell: Shell) {
   const app = express();
   app.use(express.json());
+  app.use(cors());
   
-  // Initialize Shell instance
-  const shell = Shell.getInstance();
-  await shell.initialize();
-  
-  // Setup MCP server with StreamableHTTP
+  // Request logging
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+    next();
+  });
+
   const mcpServer = new McpServer({
-    name: "brain-server",
+    name: "test-brain",
     version: "1.0.0"
   });
-  
-  // Register existing tools and resources
+
+  // Register existing tools and resources (unchanged)
   await setupMcpTools(mcpServer, shell);
   await setupMcpResources(mcpServer, shell);
-  
+
   // StreamableHTTP transport endpoint
   app.all('/mcp', createTransportHandler(mcpServer));
   
   // Health endpoints
   app.get('/health', healthHandler);
   app.get('/status', statusHandler);
+
+  const PORT = process.env.BRAIN_SERVER_PORT || 3333;
   
-  app.listen(3333, () => {
-    console.log('Brain MCP server listening on http://localhost:3333/mcp');
+  return new Promise((resolve, reject) => {
+    const server = app.listen(PORT, () => {
+      console.log(`Brain MCP server ready at http://localhost:${PORT}/mcp`);
+      resolve(server);
+    }).on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`Error: Port ${PORT} is already in use`);
+        process.exit(1);
+      }
+      reject(err);
+    });
   });
 }
 ```
@@ -219,15 +283,16 @@ function createTransportHandler(mcpServer: McpServer) {
 ```
 apps/test-brain/
 ├── src/
-│   ├── index.ts            # Updated mode detection
-│   ├── modes/
-│   │   ├── server.ts       # New StreamableHTTP server mode
-│   │   └── standalone.ts   # Existing standalone mode
+│   ├── index.ts            # Main entry point (always starts server)
+│   ├── server/
+│   │   ├── streamableHttp.ts # StreamableHTTP server implementation
+│   │   └── stdio.ts        # Existing STDIO server (unchanged)
 │   ├── transport/
-│   │   └── streamable.ts   # StreamableHTTP setup utilities
+│   │   └── handlers.ts     # Transport handler utilities
 │   └── shell/
-│       └── mcpIntegration.ts # MCP tools/resources setup
+│       └── mcpIntegration.ts # MCP tools/resources setup (unchanged)
 ├── package.json            # Updated dependencies
+├── mcp-config.json         # Updated for StreamableHTTP
 └── README.md               # Updated usage instructions
 ```
 
@@ -238,10 +303,12 @@ apps/test-brain/
 # Server Configuration
 BRAIN_SERVER_HOST=0.0.0.0
 BRAIN_SERVER_PORT=3333
-BRAIN_MCP_ENDPOINT=/mcp
 
 # Database (unchanged)
 DATABASE_URL=file:test-brain.db
+
+# API Keys (unchanged)
+ANTHROPIC_API_KEY=your-key-here
 
 # Development
 NODE_ENV=development
@@ -251,13 +318,17 @@ LOG_LEVEL=debug
 ### Usage Examples
 
 ```bash
-# Server mode
-$ cd apps/test-brain && bun run dev --server
-# Brain MCP server listening on http://localhost:3333/mcp
-
-# Standalone mode (unchanged)
+# Default behavior - starts server immediately
 $ cd apps/test-brain && bun run dev
-# Existing behavior preserved
+# Brain MCP server ready at http://localhost:3333/mcp
+
+# Production binary
+$ ./dist/test-brain
+# Brain MCP server ready at http://localhost:3333/mcp
+
+# Custom port
+$ BRAIN_SERVER_PORT=4444 ./dist/test-brain
+# Brain MCP server ready at http://localhost:4444/mcp
 ```
 
 ### MCP Inspector Integration
@@ -266,7 +337,7 @@ $ cd apps/test-brain && bun run dev
 // mcp-config.json (updated)
 {
   "mcpServers": {
-    "test-brain-streamable": {
+    "test-brain": {
       "url": "http://localhost:3333/mcp",
       "transport": "streamable-http"
     }
@@ -277,11 +348,12 @@ $ cd apps/test-brain && bun run dev
 ## Testing Strategy
 
 ### Manual Testing
-1. **Start Server**: `bun run dev --server`
+1. **Start Server**: `bun run dev`
 2. **MCP Inspector**: Connect to `http://localhost:3333/mcp`
 3. **Verify Tools**: Test `brain_query`, `entity_search`, etc.
 4. **Verify Resources**: Test `entity://list`, `schema://list`
-5. **Session Handling**: Multiple concurrent connections
+5. **Health Check**: `curl http://localhost:3333/health`
+6. **Session Handling**: Multiple concurrent MCP Inspector connections
 
 ### Automated Testing
 ```typescript
@@ -290,49 +362,54 @@ describe('StreamableHTTP Server', () => {
   test('should handle MCP requests');
   test('should integrate with Shell');
   test('should manage sessions');
+  test('should serve health endpoints');
+  test('should handle graceful shutdown');
 });
 ```
 
 ## Migration Benefits
 
 1. **Modern Transport**: Replace deprecated SSE with StreamableHTTP
-2. **MCP Inspector Compatible**: Full debugging support
-3. **Scalable**: Session-based state management  
-4. **Infrastructure Friendly**: "Just HTTP"
-5. **Backward Compatible**: Standalone mode unchanged
+2. **Self-Contained**: No client/server complexity
+3. **MCP Inspector Compatible**: Full debugging support
+4. **Web-Friendly**: CORS enabled for browser tools
+5. **Production Ready**: Health checks, logging, graceful shutdown
+6. **Backward Compatible**: STDIO transport preserved
 
 ## Success Criteria
 
 ### Functional Requirements
-- ✅ Server starts on port 3333 with `--server` flag
+- ✅ Server starts immediately by default on port 3333
 - ✅ StreamableHTTP transport working
 - ✅ MCP Inspector can connect and test tools
 - ✅ All existing MCP tools/resources functional
 - ✅ Session management working
-- ✅ Standalone mode unchanged
+- ✅ STDIO transport still available
+- ✅ Health endpoints responding
+- ✅ Graceful shutdown working
 
 ### Performance Requirements
 - < 100ms response time for simple queries
-- Support 5+ concurrent MCP Inspector sessions
+- Support 10+ concurrent MCP Inspector sessions
 - Graceful handling of connection drops
-- Memory usage < 200MB for server mode
+- Memory usage < 300MB for server mode
 
 ## Timeline
 
 **Week 1**: 
 - Add StreamableHTTP dependencies
-- Implement basic server mode
+- Implement basic server with health endpoints
 - Test MCP Inspector connectivity
 
 **Week 2**:
 - Integrate existing Shell functionality
-- Add session management
-- Comprehensive testing
+- Add session management and logging
+- Comprehensive testing and documentation
 
 ## Next Steps
 
-1. Update `apps/test-brain/package.json` with `@modelcontextprotocol/sdk`
-2. Implement server mode with StreamableHTTP transport on port 3333
-3. Test connectivity with MCP Inspector
+1. Update `apps/test-brain/package.json` with new dependencies
+2. Implement StreamableHTTP server as default behavior
+3. Test connectivity with MCP Inspector on port 3333
 4. Verify all existing tools work via StreamableHTTP
-5. Update README with new server mode usage
+5. Update README with new usage instructions
