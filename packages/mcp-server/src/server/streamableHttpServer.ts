@@ -31,7 +31,8 @@ export class StreamableHTTPServer {
     this.logger = this.config.logger ?? {
       info: (msg: string) => console.log(`[StreamableHTTP] ${msg}`),
       debug: (msg: string) => console.debug(`[StreamableHTTP] ${msg}`),
-      error: (msg: string, err?: unknown) => console.error(`[StreamableHTTP] ${msg}`, err),
+      error: (msg: string, err?: unknown) =>
+        console.error(`[StreamableHTTP] ${msg}`, err),
       warn: (msg: string) => console.warn(`[StreamableHTTP] ${msg}`),
     };
 
@@ -88,7 +89,7 @@ export class StreamableHTTPServer {
         }
 
         this.logger.debug(
-          `POST /mcp - Session: ${req.headers["mcp-session-id"] || "new"}`
+          `POST /mcp - Session: ${req.headers["mcp-session-id"] || "new"}`,
         );
 
         try {
@@ -151,7 +152,7 @@ export class StreamableHTTPServer {
             });
           }
         }
-      })
+      }),
     );
 
     // Handle GET requests for SSE streams
@@ -168,7 +169,7 @@ export class StreamableHTTPServer {
         this.logger.debug(`GET /mcp - SSE stream for session ${sessionId}`);
         const transport = this.transports[sessionId];
         await transport.handleRequest(req, res);
-      })
+      }),
     );
 
     // Handle DELETE requests for session termination
@@ -185,7 +186,7 @@ export class StreamableHTTPServer {
         this.logger.info(`DELETE /mcp - Terminating session ${sessionId}`);
         const transport = this.transports[sessionId];
         await transport.handleRequest(req, res);
-      })
+      }),
     );
   }
 
@@ -211,7 +212,9 @@ export class StreamableHTTPServer {
     return new Promise((resolve, reject) => {
       this.server = this.app
         .listen(Number(port), host, () => {
-          this.logger.info(`StreamableHTTP server listening on http://${host}:${port}/mcp`);
+          this.logger.info(
+            `StreamableHTTP server listening on http://${host}:${port}/mcp`,
+          );
           resolve();
         })
         .on("error", (err: Error & { code?: string }) => {
@@ -237,7 +240,10 @@ export class StreamableHTTPServer {
           delete this.transports[sessionId];
         }
       } catch (error) {
-        this.logger.error(`Error closing transport for session ${sessionId}:`, error);
+        this.logger.error(
+          `Error closing transport for session ${sessionId}:`,
+          error,
+        );
       }
     }
 

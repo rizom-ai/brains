@@ -54,14 +54,15 @@ async function main(): Promise<void> {
 
 async function startStreamableHttpServer(shell: Shell): Promise<void> {
   const PORT = process.env["BRAIN_SERVER_PORT"] ?? 3333;
-  
+
   // Create StreamableHTTP server with custom logger
   const httpServer = new StreamableHTTPServer({
     port: PORT,
     logger: {
       info: (msg: string) => console.log(`[test-brain] ${msg}`),
       debug: (msg: string) => console.log(`[test-brain] ${msg}`),
-      error: (msg: string, err?: unknown) => console.error(`[test-brain] ${msg}`, err),
+      error: (msg: string, err?: unknown) =>
+        console.error(`[test-brain] ${msg}`, err),
       warn: (msg: string) => console.warn(`[test-brain] ${msg}`),
     },
   });
