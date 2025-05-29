@@ -13,7 +13,6 @@ import type { McpServer } from "@brains/mcp-server";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
 import type { AIService } from "@/ai/aiService";
-import { defaultQueryResponseSchema } from "@/schemas/defaults";
 import type { ShellConfig } from "@/config";
 import type { ShellDependencies } from "@/shell";
 
@@ -62,11 +61,13 @@ const createMockEntityService = (): EntityService =>
 const createMockAIService = (): AIService =>
   ({
     generateObject: mock(async (_systemPrompt, _userPrompt, schema) => {
-      const mockData = defaultQueryResponseSchema.parse({
-        answer: "This is a test response",
+      const mockData = {
+        message: "This is a test response",
         summary: "Test summary",
         topics: ["test"],
-      });
+        sources: [],
+        metadata: {},
+      };
       return {
         object: schema.parse(mockData),
         usage: {
@@ -215,7 +216,7 @@ describe("Shell", () => {
 
       const result = await shell.query("test query");
       expect(result).toBeDefined();
-      expect(result.answer).toBeDefined();
+      expect(result).toHaveProperty("message");
 
       shell.shutdown();
     });
@@ -241,7 +242,7 @@ describe("Shell", () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.answer).toBeDefined();
+      expect(result).toHaveProperty("message");
 
       shell.shutdown();
     });

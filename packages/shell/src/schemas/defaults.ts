@@ -5,19 +5,21 @@ import { z } from "zod";
  * This ensures consistent structure across different query interfaces
  */
 export const defaultQueryResponseSchema = z.object({
-  answer: z.string(),
-  summary: z.string().optional(),
-  topics: z.array(z.string()).optional(),
-  entities: z
+  message: z.string().describe("Natural language response to the query"),
+  summary: z.string().optional().describe("Brief summary if applicable"),
+  topics: z.array(z.string()).optional().describe("Related topics mentioned"),
+  sources: z
     .array(
       z.object({
         id: z.string(),
         type: z.string(),
         title: z.string(),
+        excerpt: z.string().optional(),
         relevance: z.number().min(0).max(1).optional(),
       }),
     )
-    .optional(),
+    .optional()
+    .describe("Source entities used to answer the query"),
   metadata: z.record(z.unknown()).optional(),
 });
 
@@ -27,7 +29,7 @@ export type DefaultQueryResponse = z.infer<typeof defaultQueryResponseSchema>;
  * Simple text response schema for basic queries
  */
 export const simpleTextResponseSchema = z.object({
-  answer: z.string(),
+  message: z.string(),
 });
 
 export type SimpleTextResponse = z.infer<typeof simpleTextResponseSchema>;

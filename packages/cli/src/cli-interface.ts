@@ -24,9 +24,21 @@ export class CLIInterface extends BaseInterface {
     { name: "clear", description: "Clear the screen" },
     { name: "exit", description: "Exit the CLI" },
     { name: "quit", description: "Exit the CLI" },
-    { name: "context", description: "Switch to a different context", usage: "/context <name>" },
-    { name: "search", description: "Search your knowledge base", usage: "/search <query>" },
-    { name: "list", description: "List entities (notes, tasks, etc.)", usage: "/list [type]" },
+    {
+      name: "context",
+      description: "Switch to a different context",
+      usage: "/context <name>",
+    },
+    {
+      name: "search",
+      description: "Search your knowledge base",
+      usage: "/search <query>",
+    },
+    {
+      name: "list",
+      description: "List entities (notes, tasks, etc.)",
+      usage: "/list [type]",
+    },
   ];
 
   constructor(context: InterfaceContext, config?: CLIConfig) {
@@ -52,7 +64,9 @@ export class CLIInterface extends BaseInterface {
         return "Exiting...";
       case "context":
         if (args.length === 0) {
-          const contextCmd = this.localCommands.find(c => c.name === "context");
+          const contextCmd = this.localCommands.find(
+            (c) => c.name === "context",
+          );
           return `Usage: ${contextCmd?.usage}`;
         }
         return null; // Let Shell handle context switching
@@ -64,7 +78,7 @@ export class CLIInterface extends BaseInterface {
   private getHelpText(): string {
     const shortcuts = this.config.shortcuts;
     const commandList = this.localCommands
-      .map(cmd => {
+      .map((cmd) => {
         const usage = cmd.usage ?? `/${cmd.name}`;
         return `• ${usage} - ${cmd.description}`;
       })
@@ -87,18 +101,17 @@ Type any message to interact with the brain.`;
 
   public async start(): Promise<void> {
     this.logger.info("Starting CLI interface");
-    
+
     try {
       const { render } = await import("ink");
       const { default: App } = await import("./components/App.js");
       const React = await import("react");
 
       this.inkApp = render(React.createElement(App, { interface: this }));
-      
+
       // Handle process termination gracefully
       process.on("SIGINT", () => void this.stop());
       process.on("SIGTERM", () => void this.stop());
-      
     } catch (error) {
       this.logger.error("Failed to start CLI interface", { error });
       throw error;
@@ -107,7 +120,7 @@ Type any message to interact with the brain.`;
 
   public async stop(): Promise<void> {
     this.logger.info("Stopping CLI interface");
-    
+
     if (this.inkApp) {
       this.inkApp.unmount();
       this.inkApp = null;

@@ -4,7 +4,6 @@ import type { EntityService } from "../entity/entityService";
 import type { AIService } from "../ai/aiService";
 import type {
   Entity,
-  Citation,
   IntentAnalysis,
   QueryOptions,
   QueryResult,
@@ -94,8 +93,8 @@ export class QueryProcessor {
       options.schema,
     );
 
-    // 5. Process response into result
-    return this.processModelResponse<T>(modelResponse, relevantEntities);
+    // 5. Return the schema object directly
+    return modelResponse.object;
   }
 
   /**
@@ -185,7 +184,6 @@ Intent: ${intentAnalysis.primaryIntent}`;
     );
 
     return {
-      text: JSON.stringify(result.object),
       object: result.object,
       usage: {
         inputTokens: result.usage.promptTokens,
@@ -194,42 +192,4 @@ Intent: ${intentAnalysis.primaryIntent}`;
     };
   }
 
-  /**
-   * Process model response into query result
-   */
-  private processModelResponse<T = unknown>(
-    modelResponse: ModelResponse<T>,
-    entities: Entity[],
-  ): QueryResult<T> {
-    // Create citations from entities
-    const citations: Citation[] = entities.map((entity) => ({
-      entityId: entity.id,
-      entityType: entity.entityType,
-      entityTitle: entity.title,
-      excerpt: this.truncateContent(entity.content, 150),
-    }));
-
-    return {
-      answer: modelResponse.text,
-      citations,
-      relatedEntities: entities,
-      object: modelResponse.object,
-    };
-  }
-
-  /**
-   * Truncate content to specified length
-   */
-  private truncateContent(content: string, maxLength: number): string {
-    if (content.length <= maxLength) {
-      return content;
-    }
-
-    const truncated = content.slice(0, maxLength);
-    const lastSpace = truncated.lastIndexOf(" ");
-
-    return lastSpace > 0
-      ? `${content.slice(0, lastSpace)}...`
-      : `${truncated}...`;
-  }
 }

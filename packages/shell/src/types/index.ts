@@ -30,15 +30,6 @@ export interface IntentAnalysis {
   confidenceScore: number;
 }
 
-/**
- * Citation for referencing entities in responses
- */
-export interface Citation {
-  entityId: string;
-  entityType: string;
-  entityTitle: string;
-  excerpt: string;
-}
 
 /**
  * Query processing options
@@ -51,14 +42,10 @@ export interface QueryOptions<T> {
 }
 
 /**
- * Query processing result
+ * Query processing result is now just the schema type
+ * This allows complete flexibility in what queries return
  */
-export interface QueryResult<T> {
-  answer: string;
-  citations: Citation[];
-  relatedEntities: Entity[];
-  object: T;
-}
+export type QueryResult<T> = T;
 
 /**
  * Serializable versions of types for API responses
@@ -75,39 +62,16 @@ export const serializableEntitySchema = z.object({
 
 export type SerializableEntity = z.infer<typeof serializableEntitySchema>;
 
-export const serializableCitationSchema = z.object({
-  entityId: z.string(),
-  entityType: z.string(),
-  entityTitle: z.string(),
-  excerpt: z.string(),
-});
-
-export type SerializableCitation = z.infer<typeof serializableCitationSchema>;
-
-export function serializableQueryResultSchema<T extends z.ZodTypeAny>(
-  objectSchema: T,
-): ReturnType<typeof z.object> {
-  return z.object({
-    answer: z.string(),
-    citations: z.array(serializableCitationSchema),
-    relatedEntities: z.array(serializableEntitySchema),
-    object: objectSchema,
-  });
-}
-
-export type SerializableQueryResult<T> = {
-  answer: string;
-  citations: SerializableCitation[];
-  relatedEntities: SerializableEntity[];
-  object: T;
-};
+/**
+ * Serializable query result is now just the schema type itself
+ */
+export type SerializableQueryResult<T> = T;
 
 /**
  * Model response from AI models
  */
 export interface ModelResponse<T> {
   object: T;
-  text: string;
   usage: {
     inputTokens: number;
     outputTokens: number;

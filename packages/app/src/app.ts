@@ -3,7 +3,11 @@ import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { Logger, LogLevel } from "@brains/utils";
 import type { BaseInterface, MessageContext } from "@brains/interface-core";
 import { z } from "zod";
-import { appConfigSchema, type AppConfig, type InterfaceConfig } from "./types.js";
+import {
+  appConfigSchema,
+  type AppConfig,
+  type InterfaceConfig,
+} from "./types.js";
 
 export class App {
   private shell: Shell;
@@ -15,22 +19,25 @@ export class App {
 
   public static create(config?: Partial<AppConfig>, shell?: Shell): App {
     const validatedConfig = appConfigSchema.parse(config ?? {});
-    
+
     // Parse command line arguments for interface selection
     const args = process.argv.slice(2);
     const interfaces = [...validatedConfig.interfaces];
-    
+
     // Add CLI interface if --cli flag is present
-    if (args.includes("--cli") && !interfaces.some(i => i.type === "cli")) {
+    if (args.includes("--cli") && !interfaces.some((i) => i.type === "cli")) {
       interfaces.push({
         type: "cli",
         enabled: true,
         config: config?.cliConfig,
       });
     }
-    
+
     // Add Matrix interface if --matrix flag is present
-    if (args.includes("--matrix") && !interfaces.some(i => i.type === "matrix")) {
+    if (
+      args.includes("--matrix") &&
+      !interfaces.some((i) => i.type === "matrix")
+    ) {
       const matrixConfig = {
         type: "matrix" as const,
         enabled: true,
@@ -38,13 +45,17 @@ export class App {
         accessToken: process.env["MATRIX_ACCESS_TOKEN"] ?? "",
         userId: process.env["MATRIX_USER_ID"] ?? "",
       };
-      
+
       // Only add if credentials are available
-      if (matrixConfig.homeserver && matrixConfig.accessToken && matrixConfig.userId) {
+      if (
+        matrixConfig.homeserver &&
+        matrixConfig.accessToken &&
+        matrixConfig.userId
+      ) {
         interfaces.push(matrixConfig);
       }
     }
-    
+
     // Follow Shell's pattern: validate schema then add full Plugin objects
     const appConfig: AppConfig = {
       ...validatedConfig,
@@ -70,7 +81,7 @@ export class App {
       if (config.database) {
         shellConfig.database = { url: config.database };
       }
-      
+
       // Disable migrations for compiled apps
       shellConfig.features = {
         enablePlugins: true,
@@ -152,12 +163,17 @@ export class App {
         }
       } catch (error) {
         const logger = this.createLogger();
-        logger.error(`Failed to initialize ${interfaceConfig.type} interface:`, error);
+        logger.error(
+          `Failed to initialize ${interfaceConfig.type} interface:`,
+          error,
+        );
       }
     }
   }
 
-  private async createInterface(config: InterfaceConfig): Promise<BaseInterface | null> {
+  private async createInterface(
+    config: InterfaceConfig,
+  ): Promise<BaseInterface | null> {
     const logger = this.createLogger();
     const queryProcessor = this.shell.getQueryProcessor();
 
@@ -165,12 +181,15 @@ export class App {
       name: `${this.config.name}-${config.type}`,
       version: this.config.version,
       logger: logger.child(config.type),
-      processQuery: async (query: string, context: MessageContext): Promise<string> => {
-        // For now, use a simple text response schema
-        const textResponseSchema = z.object({
-          response: z.string(),
+      processQuery: async (
+        query: string,
+        context: MessageContext,
+      ): Promise<string> => {
+        // Use a simple text response schema
+        const simpleTextSchema = z.object({
+          message: z.string(),
         });
-        
+
         const result = await queryProcessor.processQuery(query, {
           userId: context.userId,
           metadata: {
@@ -178,10 +197,10 @@ export class App {
             messageId: context.messageId,
             timestamp: context.timestamp,
           },
-          schema: textResponseSchema,
+          schema: simpleTextSchema,
         });
-        
-        return result.answer;
+
+        return result.message;
       },
     };
 
@@ -207,7 +226,8 @@ export class App {
       warn: LogLevel.WARN,
       error: LogLevel.ERROR,
     };
-    const logLevel = logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
+    const logLevel =
+      logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
     return Logger.createFresh({
       level: logLevel,
       context: this.config.name,
@@ -307,7 +327,9 @@ export class App {
 
       // Log active interfaces
       if (this.interfaces.size > 0) {
-        logger.info(`Active interfaces: ${Array.from(this.interfaces.keys()).join(", ")}`);
+        logger.info(
+          `Active interfaces: ${Array.from(this.interfaces.keys()).join(", ")}`,
+        );
       }
 
       // Keep process alive

@@ -52,13 +52,17 @@ export type { SerializableEntity, SerializableQueryResult } from "./types";
 // Schemas for validation
 export {
   serializableEntitySchema,
-  serializableCitationSchema,
-  serializableQueryResultSchema,
 } from "./types";
+
+// Default schemas
+export {
+  defaultQueryResponseSchema,
+  simpleTextResponseSchema,
+  createEntityResponseSchema,
+  updateEntityResponseSchema,
+} from "./schemas/defaults";
 
 // Serialization utilities
 export {
   toSerializableEntity,
-  toSerializableQueryResult,
-  validateAndSerializeQueryResult,
 } from "./utils/serialization";

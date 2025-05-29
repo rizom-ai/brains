@@ -14,7 +14,9 @@ interface Props {
   interface: CLIInterface;
 }
 
-export default function App({ interface: cliInterface }: Props): React.ReactElement {
+export default function App({
+  interface: cliInterface,
+}: Props): React.ReactElement {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "system",
@@ -101,8 +103,21 @@ export default function App({ interface: cliInterface }: Props): React.ReactElem
       <Box flexDirection="column" marginBottom={1}>
         {messages.map((message, index) => (
           <Box key={index} marginBottom={1}>
-            <Text color={message.role === "user" ? "blue" : message.role === "assistant" ? "green" : "gray"}>
-              {message.role === "user" ? "You" : message.role === "assistant" ? "Brain" : "System"}:{" "}
+            <Text
+              color={
+                message.role === "user"
+                  ? "blue"
+                  : message.role === "assistant"
+                    ? "green"
+                    : "gray"
+              }
+            >
+              {message.role === "user"
+                ? "You"
+                : message.role === "assistant"
+                  ? "Brain"
+                  : "System"}
+              :{" "}
             </Text>
             <Text>{message.content}</Text>
           </Box>
@@ -117,7 +132,11 @@ export default function App({ interface: cliInterface }: Props): React.ReactElem
             <Spinner type="dots" /> Processing...
           </Text>
         ) : (
-          <TextInput value={input} onChange={setInput} onSubmit={(value) => void handleSubmit(value)} />
+          <TextInput
+            value={input}
+            onChange={setInput}
+            onSubmit={(value) => void handleSubmit(value)}
+          />
         )}
       </Box>
     </Box>

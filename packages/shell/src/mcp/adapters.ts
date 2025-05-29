@@ -6,10 +6,9 @@
  */
 
 import type { QueryProcessor } from "../query/queryProcessor";
-import type { QueryOptions, SerializableQueryResult } from "../types";
+import type { QueryOptions } from "../types";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { EntityService } from "../entity/entityService";
-import { toSerializableQueryResult } from "../utils/serialization";
 import { defaultQueryResponseSchema } from "../schemas/defaults";
 
 /**
@@ -40,7 +39,7 @@ export class QueryProcessorAdapter {
    */
   async executeQuery(
     params: MCPQueryParams,
-  ): Promise<SerializableQueryResult<unknown>> {
+  ): Promise<unknown> {
     // Translate MCP parameters to internal QueryOptions
     const queryOptions: QueryOptions<unknown> = {
       schema: defaultQueryResponseSchema, // Default schema, may be overridden below
@@ -86,13 +85,10 @@ export class QueryProcessorAdapter {
     }
 
     // Execute query with translated options
-    const result = await this.queryProcessor.processQuery(
+    return this.queryProcessor.processQuery(
       params.query,
       queryOptions,
     );
-
-    // Convert to serializable format
-    return toSerializableQueryResult(result);
   }
 }
 
