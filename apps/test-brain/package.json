@@ -9,18 +9,16 @@
     "server": "bun run src/index.ts --server",
     "build": "bun build src/index.ts --compile --outfile dist/test-brain",
     "build:prod": "bun build src/index.ts --compile --minify --outfile dist/test-brain",
+    "test": "bun test",
     "start": "./dist/test-brain",
     "start:server": "./dist/test-brain --server",
-    "test": "bun test",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@brains/git-sync": "workspace:*",
-    "@brains/mcp-server": "workspace:*",
-    "@brains/shell": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.0.7"
+    "@brains/app": "workspace:*",
+    "@brains/git-sync": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

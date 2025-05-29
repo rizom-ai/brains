@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
 import { StdioMCPServer } from "@/server/stdio-mcp-server";
 import { createSilentLogger } from "@personal-brain/utils";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 describe("StdioMCPServer", () => {
   let stdioServer: StdioMCPServer;
@@ -74,7 +74,7 @@ describe("StdioMCPServer", () => {
 
     it("should throw when starting without MCP server", async () => {
       expect(stdioServer.start()).rejects.toThrow(
-        "MCP server not connected. Call connectMCPServer() first."
+        "MCP server not connected. Call connectMCPServer() first.",
       );
     });
 

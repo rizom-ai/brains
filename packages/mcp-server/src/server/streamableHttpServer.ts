@@ -19,6 +19,7 @@ export interface StreamableHTTPServerConfig {
  * Handles session management and request routing
  */
 export class StreamableHTTPServer {
+  private static instance: StreamableHTTPServer | null = null;
   private app: Express;
   private transports: Record<string, StreamableHTTPServerTransport> = {};
   private mcpServer: McpServer | null = null;
@@ -39,6 +40,30 @@ export class StreamableHTTPServer {
     this.app = express();
     this.setupMiddleware();
     this.setupRoutes();
+  }
+
+  /**
+   * Get singleton instance
+   */
+  public static getInstance(config?: StreamableHTTPServerConfig): StreamableHTTPServer {
+    if (!StreamableHTTPServer.instance) {
+      StreamableHTTPServer.instance = new StreamableHTTPServer(config);
+    }
+    return StreamableHTTPServer.instance;
+  }
+
+  /**
+   * Reset singleton instance (mainly for testing)
+   */
+  public static resetInstance(): void {
+    StreamableHTTPServer.instance = null;
+  }
+
+  /**
+   * Create a fresh instance (bypasses singleton)
+   */
+  public static createFresh(config?: StreamableHTTPServerConfig): StreamableHTTPServer {
+    return new StreamableHTTPServer(config);
   }
 
   private setupMiddleware(): void {

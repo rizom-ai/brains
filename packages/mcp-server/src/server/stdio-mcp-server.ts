@@ -73,7 +73,9 @@ export class StdioMCPServer {
    */
   public async start(): Promise<void> {
     if (!this.mcpServer) {
-      throw new Error("MCP server not connected. Call connectMCPServer() first.");
+      throw new Error(
+        "MCP server not connected. Call connectMCPServer() first.",
+      );
     }
 
     if (this.transport) {

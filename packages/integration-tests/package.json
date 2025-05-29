@@ -12,6 +12,8 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
+    "@brains/app": "workspace:*",
+    "@brains/mcp-server": "workspace:*",
     "@brains/shell": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",

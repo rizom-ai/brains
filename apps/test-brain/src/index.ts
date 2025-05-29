@@ -1,14 +1,21 @@
-import { Shell } from "@brains/shell";
+import { App } from "@brains/app";
 import { gitSync } from "@brains/git-sync";
-import { StreamableHTTPServer } from "@brains/mcp-server";
 
 console.log("🧠 Test Brain - Brain MCP Server");
 
 async function main(): Promise<void> {
   try {
-    // Initialize shell with configuration including plugins
-    const shell = Shell.createFresh(
-      {
+    // Create app with configuration
+    const app = App.create({
+      name: "test-brain",
+      version: "1.0.0",
+      transport: {
+        type: "http",
+        port: Number(process.env["BRAIN_SERVER_PORT"] ?? 3333),
+        host: "localhost",
+      },
+      dbPath: process.env["DATABASE_URL"] ?? "file:./test-brain.db",
+      shellConfig: {
         database: {
           url: process.env["DATABASE_URL"] ?? "file:./test-brain.db",
         },
@@ -36,33 +43,14 @@ async function main(): Promise<void> {
           }),
           // Future: noteContext(), taskContext(), etc.
         ],
-      }
-    );
-
-    // Initialize the shell (runs migrations, sets up plugins, etc.)
-    await shell.initialize();
-    console.log("✅ Shell initialized successfully with plugins");
-
-    // Get the MCP server from shell and connect to HTTP transport
-    const mcpServer = shell.getMcpServer();
-    
-    // Create StreamableHTTP server
-    const httpServer = new StreamableHTTPServer({
-      port: process.env["BRAIN_SERVER_PORT"] ?? 3333,
-      logger: {
-        info: (msg: string) => console.log(`[test-brain] ${msg}`),
-        debug: (msg: string) => console.log(`[test-brain] ${msg}`),
-        error: (msg: string, err?: unknown) =>
-          console.error(`[test-brain] ${msg}`, err),
-        warn: (msg: string) => console.warn(`[test-brain] ${msg}`),
       },
     });
-    
-    // Connect MCP server to HTTP transport
-    httpServer.connectMCPServer(mcpServer);
-    
-    // Start the HTTP server
-    await httpServer.start();
+
+    // Initialize and start the app
+    await app.initialize();
+    console.log("✅ App initialized successfully");
+
+    await app.start();
     console.log("🚀 Brain MCP server ready at http://localhost:3333/mcp");
     console.log("   Health check: http://localhost:3333/health");
     console.log("   Status: http://localhost:3333/status");
