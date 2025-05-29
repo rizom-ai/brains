@@ -9,7 +9,7 @@
  */
 
 import { StdioMCPServer } from "@brains/mcp-server";
-import { Shell, registerShellMCP } from "@personal-brain/shell";
+import { Shell } from "@personal-brain/shell";
 import { EmbeddingService } from "@personal-brain/shell";
 import { AIService } from "@personal-brain/shell";
 import type { IEmbeddingService } from "@personal-brain/shell";
@@ -74,35 +74,19 @@ async function main(): Promise<void> {
     logger,
   );
 
-  // Create MCP server first
-  const mcpServer = StdioMCPServer.createFresh({
-    name: "Brain-MCP-Server",
-    version: "1.0.0",
-    logger: {
-      info: (msg: string) => logger.info(msg),
-      debug: (msg: string) => logger.debug(msg),
-      error: (msg: string, err?: unknown) => logger.error(msg, err),
-      warn: (msg: string) => logger.warn(msg),
-    },
-  });
-
-  // Create and initialize Shell with MCP server
+  // Create and initialize Shell
   const shell = Shell.createFresh({
     db,
     logger,
     embeddingService,
     aiService,
-  }, {
-    mcpServer: mcpServer.getServer(),
   });
   await shell.initialize();
 
-  // Shell will register its functionality automatically
-  // No need to call registerShellMCP manually
+  // Get the MCP server from shell
+  const mcp = shell.getMcpServer();
 
   // Add custom brain-specific tools
-  const mcp = mcpServer.getServer();
-
   mcp.tool("brain_status", {}, async () => {
     const entityTypes = shell.getEntityService().getSupportedEntityTypes();
     const schemas = shell.getSchemaRegistry().getAllSchemaNames();
@@ -163,7 +147,7 @@ async function main(): Promise<void> {
       logger.info("Shutting down Brain MCP Server");
     }
     shell.shutdown();
-    mcpServer.stop();
+    stdioServer.stop();
     client.close();
 
     // Clean up temporary database if we created one
@@ -199,10 +183,21 @@ async function main(): Promise<void> {
     } catch {}
   });
 
-  // Start the server
+  // Create stdio transport
+  const stdioServer = StdioMCPServer.createFresh({
+    logger: {
+      info: (msg: string) => logger.info(msg),
+      debug: (msg: string) => logger.debug(msg),
+      error: (msg: string, err?: unknown) => logger.error(msg, err),
+      warn: (msg: string) => logger.warn(msg),
+    },
+  });
+
+  // Connect MCP server to stdio transport and start
   try {
     logger.info("Starting MCP server on stdio");
-    await mcpServer.startStdio();
+    stdioServer.connectMCPServer(mcp);
+    await stdioServer.start();
 
     // Keep the process alive
     process.stdin.resume();

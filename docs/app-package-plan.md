@@ -7,6 +7,7 @@ Create a new `@brains/app` package that provides a high-level, convenience API f
 ## Motivation
 
 Currently, applications need to:
+
 1. Create an MCP server instance
 2. Create a transport (HTTP or stdio)
 3. Wire them together
@@ -69,15 +70,15 @@ await app.start();
 interface AppConfig {
   // Server configuration
   server: "http" | "stdio";
-  port?: number | string;        // For HTTP server
-  host?: string;                 // For HTTP server
-  
+  port?: number | string; // For HTTP server
+  host?: string; // For HTTP server
+
   // Shell configuration (subset of ShellConfig)
   database?: DatabaseConfig;
   ai?: AIConfig;
   logging?: LoggingConfig;
   plugins?: Plugin[];
-  
+
   // MCP server configuration
   mcpServerName?: string;
   mcpServerVersion?: string;
@@ -86,19 +87,19 @@ interface AppConfig {
 class App {
   // Factory method - creates and initializes everything
   static async create(config: AppConfig): Promise<App>;
-  
+
   // Lifecycle methods
   async start(): Promise<void>;
   async stop(): Promise<void>;
-  
+
   // Access to underlying components (if needed)
   getShell(): Shell;
   getServer(): StreamableHTTPServer | StdioMCPServer;
   getMcpServer(): McpServer;
-  
+
   // Convenience methods
   isRunning(): boolean;
-  getPort(): number | undefined;  // For HTTP servers
+  getPort(): number | undefined; // For HTTP servers
 }
 ```
 
@@ -109,14 +110,14 @@ class App {
   private shell: Shell;
   private transport: StreamableHTTPServer | StdioMCPServer;
   private mcpServer: McpServer;
-  
+
   static async create(config: AppConfig): Promise<App> {
     // 1. Create MCP server
     const mcpServer = new McpServer({
       name: config.mcpServerName ?? "brain-app",
       version: config.mcpServerVersion ?? "1.0.0",
     });
-    
+
     // 2. Create appropriate transport
     let transport;
     if (config.server === "http") {
@@ -133,7 +134,7 @@ class App {
       // Note: stdio creates its own internal MCP server
       mcpServer = transport.getServer();
     }
-    
+
     // 3. Create shell with sensible defaults
     const shellConfig = {
       database: config.database ?? { url: "file:./brain.db" },
@@ -148,12 +149,12 @@ class App {
       },
       plugins: config.plugins ?? [],
     };
-    
+
     const shell = Shell.createFresh(shellConfig, { mcpServer });
-    
+
     // 4. Initialize shell
     await shell.initialize();
-    
+
     // 5. Create and return App instance
     return new App(shell, transport, mcpServer);
   }
@@ -163,6 +164,7 @@ class App {
 ## Benefits
 
 1. **Simplified Application Code**
+
    ```typescript
    // Before: 20+ lines of boilerplate
    // After: 3 lines
@@ -179,6 +181,7 @@ class App {
 ## Migration Example
 
 ### Before (test-brain current code)
+
 ```typescript
 const mcpServer = new McpServer({
   name: "test-brain-mcp",
@@ -187,22 +190,32 @@ const mcpServer = new McpServer({
 
 const httpServer = new StreamableHTTPServer({
   port: process.env["BRAIN_SERVER_PORT"] ?? 3333,
-  logger: { /* ... */ },
+  logger: {
+    /* ... */
+  },
 });
 
 httpServer.connectMCPServer(mcpServer);
 
-const shell = Shell.createFresh({
-  database: { /* ... */ },
-  ai: { /* ... */ },
-  // ... more config
-}, { mcpServer });
+const shell = Shell.createFresh(
+  {
+    database: {
+      /* ... */
+    },
+    ai: {
+      /* ... */
+    },
+    // ... more config
+  },
+  { mcpServer },
+);
 
 await shell.initialize();
 await httpServer.start();
 ```
 
 ### After (using App)
+
 ```typescript
 const app = await App.create({
   server: "http",
@@ -232,10 +245,12 @@ await app.start();
 ## Open Questions
 
 1. **Should App handle process signals automatically?**
+
    - Could add `handleSignals: boolean` option
    - Would register SIGTERM/SIGINT handlers for graceful shutdown
 
 2. **Should we support programmatic config loading?**
+
    - Could add `App.createFromFile("config.json")`
    - Or support environment-based config
 

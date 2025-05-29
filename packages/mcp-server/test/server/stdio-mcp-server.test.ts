@@ -1,20 +1,28 @@
 import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
 import { StdioMCPServer } from "@/server/stdio-mcp-server";
 import { createSilentLogger } from "@personal-brain/utils";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 describe("StdioMCPServer", () => {
-  let mcpServer: StdioMCPServer;
+  let stdioServer: StdioMCPServer;
+  let mockMcpServer: McpServer;
 
   beforeEach(() => {
-    mcpServer = StdioMCPServer.createFresh({
-      name: "TestMCP",
-      version: "1.0.0",
+    stdioServer = StdioMCPServer.createFresh({
       logger: createSilentLogger(),
     });
+
+    // Create a mock MCP server
+    mockMcpServer = {
+      connect: mock(() => Promise.resolve()),
+      close: mock(() => Promise.resolve()),
+      tool: mock(() => {}),
+      resource: mock(() => {}),
+    } as unknown as McpServer;
   });
 
   afterEach(() => {
-    mcpServer.stop();
+    stdioServer.stop();
     StdioMCPServer.resetInstance();
   });
 
@@ -51,79 +59,37 @@ describe("StdioMCPServer", () => {
     });
   });
 
-  describe("Server Creation", () => {
-    it("should create server with default config", () => {
-      const defaultServer = StdioMCPServer.createFresh({
-        logger: createSilentLogger(),
-      });
-      const server = defaultServer.getServer();
-      expect(server).toBeDefined();
-    });
-
-    it("should create server with custom config", () => {
-      const server = mcpServer.getServer();
-      expect(server).toBeDefined();
-    });
-  });
-
   describe("Server Lifecycle", () => {
-    it("should start with stdio transport", async () => {
-      expect(mcpServer.isRunning()).toBe(false);
-
-      // Note: We can't fully test stdio transport in unit tests
-      // as it requires actual stdin/stdout streams
-      // This would be tested in integration tests
+    it("should connect MCP server", () => {
+      stdioServer.connectMCPServer(mockMcpServer);
+      expect(stdioServer.isRunning()).toBe(false);
     });
 
-    it("should stop server", () => {
-      mcpServer.stop();
-      expect(mcpServer.isRunning()).toBe(false);
-    });
-  });
-
-  describe("Tool/Resource Registration", () => {
-    it("should expose server for registration", () => {
-      const server = mcpServer.getServer();
-      expect(server).toBeDefined();
-
-      // Other packages would use this to register tools
-      expect(typeof server.tool).toBe("function");
-      expect(typeof server.resource).toBe("function");
+    it("should start with connected MCP server", async () => {
+      stdioServer.connectMCPServer(mockMcpServer);
+      await stdioServer.start();
+      expect(stdioServer.isRunning()).toBe(true);
+      expect(mockMcpServer.connect).toHaveBeenCalled();
     });
 
-    it("should allow tool registration", () => {
-      const server = mcpServer.getServer();
-      const mockHandler = mock(() =>
-        Promise.resolve({
-          content: [{ type: "text" as const, text: "test" }],
-        }),
+    it("should throw when starting without MCP server", async () => {
+      expect(stdioServer.start()).rejects.toThrow(
+        "MCP server not connected. Call connectMCPServer() first."
       );
-
-      // This is how other packages would register tools
-      server.tool("test_tool", {}, mockHandler);
-
-      // We can't easily test if it was registered without calling internal methods
-      // This would be tested in integration tests
     });
 
-    it("should allow resource registration", () => {
-      const server = mcpServer.getServer();
-      const mockHandler = mock(() =>
-        Promise.resolve({
-          contents: [{ uri: "test://example", text: "test" }],
-        }),
-      );
+    it("should throw when starting already running server", async () => {
+      stdioServer.connectMCPServer(mockMcpServer);
+      await stdioServer.start();
+      expect(stdioServer.start()).rejects.toThrow("Server is already running");
+    });
 
-      // This is how other packages would register resources
-      server.resource(
-        "test_resource",
-        ":id",
-        { description: "Test resource" },
-        mockHandler,
-      );
-
-      // We can't easily test if it was registered without calling internal methods
-      // This would be tested in integration tests
+    it("should stop server", async () => {
+      stdioServer.connectMCPServer(mockMcpServer);
+      await stdioServer.start();
+      expect(stdioServer.isRunning()).toBe(true);
+      stdioServer.stop();
+      expect(stdioServer.isRunning()).toBe(false);
     });
   });
 });

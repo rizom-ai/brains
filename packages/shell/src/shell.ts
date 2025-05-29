@@ -15,6 +15,7 @@ import { QueryProcessor } from "./query/queryProcessor";
 import { AIService } from "./ai/aiService";
 import { Logger, LogLevel } from "@brains/utils";
 import type { McpServer } from "@brains/mcp-server";
+import { McpServer as SdkMcpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerShellMCP } from "./mcp";
 import type { QueryResult } from "./types";
 import type { Plugin } from "@brains/types";
@@ -186,11 +187,16 @@ export class Shell {
       aiService: this.aiService,
     });
 
-    // Use injected MCP server or throw error
-    if (!dependencies?.mcpServer) {
-      throw new Error("MCP server must be provided as a dependency");
+    // Use injected MCP server or create one
+    if (dependencies?.mcpServer) {
+      this.mcpServer = dependencies.mcpServer;
+    } else {
+      // Create our own MCP server
+      this.mcpServer = new SdkMcpServer({
+        name: "brain-shell",
+        version: "1.0.0",
+      });
     }
-    this.mcpServer = dependencies.mcpServer;
 
     // Register shell MCP capabilities
     registerShellMCP(this.mcpServer, {
@@ -372,7 +378,7 @@ export class Shell {
     return this.aiService;
   }
 
-  public getMCPServer(): McpServer {
+  public getMcpServer(): McpServer {
     return this.mcpServer;
   }
 

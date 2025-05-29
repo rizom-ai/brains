@@ -7,16 +7,18 @@
  */
 
 import { StdioMCPServer } from "./server/stdio-mcp-server";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 async function main(): Promise<void> {
-  const server = StdioMCPServer.createFresh({
+  // Create MCP server instance
+  const mcp = new McpServer({
     name: "Example-MCP-Server",
     version: "1.0.0",
   });
 
-  // Get the MCP server for registration
-  const mcp = server.getServer();
+  // Create stdio transport
+  const stdioServer = StdioMCPServer.createFresh();
 
   // Example: Register a simple tool using Zod
   mcp.tool(
@@ -65,8 +67,11 @@ async function main(): Promise<void> {
     },
   );
 
+  // Connect MCP server to stdio transport
+  stdioServer.connectMCPServer(mcp);
+
   try {
-    await server.startStdio();
+    await stdioServer.start();
 
     // Keep the process alive
     process.stdin.resume();

@@ -1,34 +1,37 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { MCPServerConfig, Logger } from "../types";
+import type { Logger } from "../types";
+
+export interface StdioMCPServerConfig {
+  logger?: Logger;
+}
 
 // Default console logger that always uses stderr for MCP servers
-const defaultLogger = {
-  info: (msg: string): void => console.error(`[MCP INFO] ${msg}`),
-  debug: (msg: string): void => console.error(`[MCP DEBUG] ${msg}`),
+const defaultLogger: Logger = {
+  info: (msg: string): void => console.error(`[STDIO MCP] ${msg}`),
+  debug: (msg: string): void => console.error(`[STDIO MCP] ${msg}`),
   error: (msg: string, err?: unknown): void =>
-    console.error(`[MCP ERROR] ${msg}`, err),
-  warn: (msg: string): void => console.error(`[MCP WARN] ${msg}`),
+    console.error(`[STDIO MCP] ${msg}`, err),
+  warn: (msg: string): void => console.error(`[STDIO MCP] ${msg}`),
 };
 
 /**
- * MCP (Model Context Protocol) Server
- * Provides infrastructure for MCP-compliant servers
- * Other packages register their tools and resources
- * Follows Component Interface Standardization pattern
+ * Stdio transport for MCP servers
+ * Handles stdio communication, similar to StreamableHTTPServer
+ * Does NOT create its own MCP server - accepts one via connectMCPServer
  */
 export class StdioMCPServer {
   private static instance: StdioMCPServer | null = null;
 
-  private readonly mcpServer: McpServer;
-  private readonly config: MCPServerConfig;
-  private readonly logger: Logger;
+  private mcpServer: McpServer | null = null;
   private transport: StdioServerTransport | null = null;
+  private readonly config: StdioMCPServerConfig;
+  private readonly logger: Logger;
 
   /**
-   * Get the singleton instance of MCPServer
+   * Get the singleton instance of StdioMCPServer
    */
-  public static getInstance(config?: MCPServerConfig): StdioMCPServer {
+  public static getInstance(config?: StdioMCPServerConfig): StdioMCPServer {
     if (!StdioMCPServer.instance) {
       StdioMCPServer.instance = new StdioMCPServer(config);
     }
@@ -48,67 +51,62 @@ export class StdioMCPServer {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(config?: MCPServerConfig): StdioMCPServer {
+  public static createFresh(config?: StdioMCPServerConfig): StdioMCPServer {
     return new StdioMCPServer(config);
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
-  private constructor(config?: MCPServerConfig) {
-    this.config = config ?? {};
+  constructor(config: StdioMCPServerConfig = {}) {
+    this.config = config;
     this.logger = this.config.logger ?? defaultLogger;
-
-    // Create the MCP server instance
-    this.mcpServer = new McpServer({
-      name: this.config.name ?? "MCP-Server",
-      version: this.config.version ?? "1.0.0",
-    });
-
-    this.logger.info(
-      `Created MCP server: ${this.config.name ?? "MCP-Server"} v${this.config.version ?? "1.0.0"}`,
-    );
   }
 
   /**
-   * Get the underlying MCP server for tool/resource registration
-   * This is what other packages use to register their capabilities
+   * Connect an MCP server to this transport
    */
-  public getServer(): McpServer {
-    return this.mcpServer;
+  public connectMCPServer(mcpServer: McpServer): void {
+    this.mcpServer = mcpServer;
+    this.logger.info("MCP server connected to stdio transport");
   }
 
   /**
-   * Start the MCP server with stdio transport
+   * Start the stdio transport
    */
-  public async startStdio(): Promise<void> {
-    this.logger.info("Starting MCP Server with stdio transport");
+  public async start(): Promise<void> {
+    if (!this.mcpServer) {
+      throw new Error("MCP server not connected. Call connectMCPServer() first.");
+    }
+
+    if (this.transport) {
+      throw new Error("Server is already running");
+    }
+
+    this.logger.info("Starting stdio transport");
 
     // Create stdio transport
     this.transport = new StdioServerTransport();
 
-    // Connect the server to the transport
+    // Connect the MCP server to the transport
     await this.mcpServer.connect(this.transport);
 
-    this.logger.info("MCP Server started successfully");
+    this.logger.info("Stdio transport started successfully");
   }
 
   /**
-   * Stop the MCP server
+   * Stop the stdio transport
    */
   public stop(): void {
-    this.logger.info("Stopping MCP Server");
+    this.logger.info("Stopping stdio transport");
 
     if (this.transport) {
       // The SDK handles cleanup when the transport is closed
       this.transport = null;
     }
 
-    this.logger.info("MCP Server stopped");
+    this.logger.info("Stdio transport stopped");
   }
 
   /**
-   * Check if server is running
+   * Check if transport is running
    */
   public isRunning(): boolean {
     return this.transport !== null;
