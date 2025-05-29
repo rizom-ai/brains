@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Plugin } from "@brains/types";
+import { pluginMetadataSchema, type Plugin } from "@brains/types";
 import type { Shell } from "@brains/shell";
 import type { BaseInterface } from "@brains/interface-core";
 
@@ -41,9 +41,11 @@ export const appConfigSchema = z.object({
   logLevel: z.enum(["debug", "info", "warn", "error"]).optional(), // Maps to logging.level
   // Interface configuration
   interface: interfaceConfigSchema.optional(),
+  // Plugins - validate metadata structure, trust the register function exists
+  plugins: z.array(pluginMetadataSchema).default([]),
 });
 
-export type AppConfig = z.infer<typeof appConfigSchema> & {
+export type AppConfig = Omit<z.infer<typeof appConfigSchema>, "plugins"> & {
   plugins?: Plugin[]; // Optional plugins array, same type as Shell expects
   // Advanced: Pass through any Shell config for testing/advanced use cases
   shellConfig?: Parameters<typeof Shell.createFresh>[0];

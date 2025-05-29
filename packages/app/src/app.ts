@@ -12,7 +12,12 @@ export class App {
 
   public static create(config?: Partial<AppConfig>, shell?: Shell): App {
     const validatedConfig = appConfigSchema.parse(config ?? {});
-    return new App(validatedConfig, shell);
+    // Follow Shell's pattern: validate schema then add full Plugin objects
+    const appConfig: AppConfig = {
+      ...validatedConfig,
+      plugins: (config?.plugins ?? []),
+    };
+    return new App(appConfig, shell);
   }
 
   private constructor(config: AppConfig, shell?: Shell) {

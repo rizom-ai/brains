@@ -280,9 +280,10 @@ export class Shell {
 
       // Register and initialize plugins if enabled
       if (this.config.features.enablePlugins) {
+        this.logger.info(`Plugins enabled, found ${this.config.plugins.length} plugins to register`);
         // Register plugins from config
         for (const plugin of this.config.plugins) {
-          this.logger.debug(`Registering plugin: ${plugin.id}`);
+          this.logger.info(`Registering plugin: ${plugin.id}`);
           this.pluginManager.registerPlugin(plugin);
         }
 

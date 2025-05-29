@@ -95,6 +95,6 @@ export function createShellConfig(
   const validated = shellConfigSchema.parse(config);
   return {
     ...validated,
-    plugins: overrides.plugins ?? [],
+    plugins: config.plugins, // Use the plugins from config, not overrides again
   };
 }
