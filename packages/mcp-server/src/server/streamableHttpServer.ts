@@ -45,7 +45,9 @@ export class StreamableHTTPServer {
   /**
    * Get singleton instance
    */
-  public static getInstance(config?: StreamableHTTPServerConfig): StreamableHTTPServer {
+  public static getInstance(
+    config?: StreamableHTTPServerConfig,
+  ): StreamableHTTPServer {
     if (!StreamableHTTPServer.instance) {
       StreamableHTTPServer.instance = new StreamableHTTPServer(config);
     }
@@ -62,7 +64,9 @@ export class StreamableHTTPServer {
   /**
    * Create a fresh instance (bypasses singleton)
    */
-  public static createFresh(config?: StreamableHTTPServerConfig): StreamableHTTPServer {
+  public static createFresh(
+    config?: StreamableHTTPServerConfig,
+  ): StreamableHTTPServer {
     return new StreamableHTTPServer(config);
   }
 

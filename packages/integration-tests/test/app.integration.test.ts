@@ -11,7 +11,7 @@ describe("App Integration", () => {
     // Get a unique test database for each test
     const testDb = await createTestDatabase();
     dbPath = testDb.dbPath;
-    
+
     // Reset singletons
     Shell.resetInstance();
     StdioMCPServer.resetInstance();
@@ -29,7 +29,7 @@ describe("App Integration", () => {
     it("should create and initialize app with stdio transport", async () => {
       const app = App.create({
         name: "test-stdio-app",
-        dbPath,
+        database: dbPath,
         shellConfig: {
           features: {
             enablePlugins: false,
@@ -39,11 +39,11 @@ describe("App Integration", () => {
       });
 
       await app.initialize();
-      
+
       const server = app.getServer();
       expect(server).toBeInstanceOf(StdioMCPServer);
       expect(app.getShell()).toBeInstanceOf(Shell);
-      
+
       await app.stop();
     });
   });
@@ -52,7 +52,7 @@ describe("App Integration", () => {
     it("should create and initialize app with HTTP transport", async () => {
       const app = App.create({
         name: "test-http-app",
-        dbPath,
+        database: dbPath,
         transport: {
           type: "http",
           port: 0, // Use random port
@@ -67,11 +67,11 @@ describe("App Integration", () => {
       });
 
       await app.initialize();
-      
+
       const server = app.getServer();
       expect(server).toBeInstanceOf(StreamableHTTPServer);
       expect(app.getShell()).toBeInstanceOf(Shell);
-      
+
       // Test that we can start and stop the server
       await app.start();
       await app.stop();
@@ -82,36 +82,27 @@ describe("App Integration", () => {
     it("should handle complete app lifecycle", async () => {
       const app = App.create({
         name: "test-lifecycle-app",
-        dbPath,
+        database: dbPath,
         transport: {
           type: "http",
           port: 0,
           host: "localhost",
         },
-        shellConfig: {
-          features: {
-            enablePlugins: false,
-            runMigrationsOnInit: true,
-          },
-          logging: {
-            level: "error", // Reduce noise
-            context: "test-app",
-          },
-        },
+        logLevel: "error", // Reduce noise
       });
 
       // Initialize
       await app.initialize();
       expect(app.getServer()).toBeDefined();
-      
+
       // Start
       await app.start();
-      
+
       // Get shell and verify it's working
       const shell = app.getShell();
       const mcpServer = shell.getMcpServer();
       expect(mcpServer).toBeDefined();
-      
+
       // Stop
       await app.stop();
     });

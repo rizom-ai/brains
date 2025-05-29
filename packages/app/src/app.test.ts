@@ -22,12 +22,17 @@ describe("App", () => {
 
     it("should create an app with custom config", () => {
       const mockShell = createMockShell();
-      const app = App.create({
-        name: "test-app",
-        version: "2.0.0",
-        dbPath: "/tmp/test.db",
-        transport: { type: "http", port: 8080, host: "localhost" },
-      }, mockShell);
+      const app = App.create(
+        {
+          name: "test-app",
+          version: "2.0.0",
+          database: "/tmp/test.db",
+          transport: { type: "http", port: 8080, host: "localhost" },
+          aiApiKey: "test-key",
+          logLevel: "debug",
+        },
+        mockShell,
+      );
       expect(app).toBeDefined();
     });
 
@@ -36,7 +41,6 @@ describe("App", () => {
       expect(config.name).toBe("brain-app");
       expect(config.version).toBe("1.0.0");
       expect(config.transport).toEqual({ type: "stdio" });
-      expect(config.pluginPaths).toEqual([]);
     });
 
     it("should validate config schema", () => {
@@ -78,7 +82,7 @@ describe("App", () => {
     it("should throw if starting before initialization", async () => {
       const mockShell = createMockShell();
       const app = App.create({}, mockShell);
-      
+
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(app.start()).rejects.toThrow("App not initialized");
     });
@@ -86,7 +90,7 @@ describe("App", () => {
     it("should handle stop gracefully without initialization", async () => {
       const mockShell = createMockShell();
       const app = App.create({}, mockShell);
-      
+
       // Should not throw even without initialization
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(app.stop()).resolves.toBeUndefined();
@@ -95,9 +99,9 @@ describe("App", () => {
     it("should initialize shell during app initialization", async () => {
       const mockShell = createMockShell();
       const app = App.create({}, mockShell);
-      
+
       await app.initialize();
-      
+
       expect(mockShell.initialize).toHaveBeenCalled();
       expect(mockShell.getMcpServer).toHaveBeenCalled();
     });
@@ -114,6 +118,18 @@ describe("App", () => {
       const mockShell = createMockShell();
       const app = App.create({}, mockShell);
       expect(app.getServer()).toBeNull();
+    });
+  });
+
+  describe("run", () => {
+    it("should have static run method", () => {
+      expect(typeof App.run).toBe("function");
+    });
+
+    it("should have instance run method", () => {
+      const mockShell = createMockShell();
+      const app = App.create({}, mockShell);
+      expect(typeof app.run).toBe("function");
     });
   });
 });
