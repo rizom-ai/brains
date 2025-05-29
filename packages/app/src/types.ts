@@ -2,6 +2,7 @@ import { z } from "zod";
 import { pluginMetadataSchema, type Plugin } from "@brains/types";
 import type { Shell } from "@brains/shell";
 import type { BaseInterface } from "@brains/interface-core";
+import type { CLIConfig } from "@brains/cli";
 
 export const transportConfigSchema = z.discriminatedUnion("type", [
   z.object({
@@ -19,9 +20,12 @@ export type TransportConfig = z.infer<typeof transportConfigSchema>;
 export const interfaceConfigSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("cli"),
+    enabled: z.boolean().default(true),
+    config: z.any().optional(), // CLI-specific config
   }),
   z.object({
     type: z.literal("matrix"),
+    enabled: z.boolean().default(true),
     homeserver: z.string(),
     accessToken: z.string(),
     userId: z.string(),
@@ -39,8 +43,8 @@ export const appConfigSchema = z.object({
   database: z.string().optional(), // Maps to database.url in Shell
   aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
   logLevel: z.enum(["debug", "info", "warn", "error"]).optional(), // Maps to logging.level
-  // Interface configuration
-  interface: interfaceConfigSchema.optional(),
+  // Interface configurations (multiple interfaces can be enabled)
+  interfaces: z.array(interfaceConfigSchema).default([]),
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),
 });
@@ -49,6 +53,8 @@ export type AppConfig = Omit<z.infer<typeof appConfigSchema>, "plugins"> & {
   plugins?: Plugin[]; // Optional plugins array, same type as Shell expects
   // Advanced: Pass through any Shell config for testing/advanced use cases
   shellConfig?: Parameters<typeof Shell.createFresh>[0];
-  // Custom interface implementation
-  customInterface?: BaseInterface;
+  // Custom interface implementations
+  customInterfaces?: BaseInterface[];
+  // CLI-specific configuration (used when --cli flag is present)
+  cliConfig?: CLIConfig;
 };

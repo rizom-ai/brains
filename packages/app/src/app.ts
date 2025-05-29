@@ -1,21 +1,55 @@
 import { Shell } from "@brains/shell";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { Logger, LogLevel } from "@brains/utils";
-import { appConfigSchema, type AppConfig } from "./types.js";
+import type { BaseInterface, MessageContext } from "@brains/interface-core";
+import { z } from "zod";
+import { appConfigSchema, type AppConfig, type InterfaceConfig } from "./types.js";
 
 export class App {
   private shell: Shell;
   private server: StdioMCPServer | StreamableHTTPServer | null = null;
+  private interfaces: Map<string, BaseInterface> = new Map();
   private config: AppConfig;
   private shutdownHandlers: Array<() => void> = [];
   private isShuttingDown = false;
 
   public static create(config?: Partial<AppConfig>, shell?: Shell): App {
     const validatedConfig = appConfigSchema.parse(config ?? {});
+    
+    // Parse command line arguments for interface selection
+    const args = process.argv.slice(2);
+    const interfaces = [...validatedConfig.interfaces];
+    
+    // Add CLI interface if --cli flag is present
+    if (args.includes("--cli") && !interfaces.some(i => i.type === "cli")) {
+      interfaces.push({
+        type: "cli",
+        enabled: true,
+        config: config?.cliConfig,
+      });
+    }
+    
+    // Add Matrix interface if --matrix flag is present
+    if (args.includes("--matrix") && !interfaces.some(i => i.type === "matrix")) {
+      const matrixConfig = {
+        type: "matrix" as const,
+        enabled: true,
+        homeserver: process.env["MATRIX_HOMESERVER"] ?? "",
+        accessToken: process.env["MATRIX_ACCESS_TOKEN"] ?? "",
+        userId: process.env["MATRIX_USER_ID"] ?? "",
+      };
+      
+      // Only add if credentials are available
+      if (matrixConfig.homeserver && matrixConfig.accessToken && matrixConfig.userId) {
+        interfaces.push(matrixConfig);
+      }
+    }
+    
     // Follow Shell's pattern: validate schema then add full Plugin objects
     const appConfig: AppConfig = {
       ...validatedConfig,
-      plugins: (config?.plugins ?? []),
+      interfaces,
+      plugins: config?.plugins ?? [],
     };
     return new App(appConfig, shell);
   }
@@ -36,6 +70,12 @@ export class App {
       if (config.database) {
         shellConfig.database = { url: config.database };
       }
+      
+      // Disable migrations for compiled apps
+      shellConfig.features = {
+        enablePlugins: true,
+        runMigrationsOnInit: false,
+      };
 
       if (config.aiApiKey) {
         shellConfig.ai = {
@@ -88,6 +128,91 @@ export class App {
       });
       this.server.connectMCPServer(mcpServer);
     }
+
+    // Initialize interfaces
+    await this.initializeInterfaces();
+  }
+
+  private async initializeInterfaces(): Promise<void> {
+    // Initialize custom interfaces if provided
+    if (this.config.customInterfaces) {
+      for (const customInterface of this.config.customInterfaces) {
+        this.interfaces.set(customInterface.name, customInterface);
+      }
+    }
+
+    // Initialize configured interfaces
+    for (const interfaceConfig of this.config.interfaces) {
+      if (!interfaceConfig.enabled) continue;
+
+      try {
+        const interfaceInstance = await this.createInterface(interfaceConfig);
+        if (interfaceInstance) {
+          this.interfaces.set(interfaceConfig.type, interfaceInstance);
+        }
+      } catch (error) {
+        const logger = this.createLogger();
+        logger.error(`Failed to initialize ${interfaceConfig.type} interface:`, error);
+      }
+    }
+  }
+
+  private async createInterface(config: InterfaceConfig): Promise<BaseInterface | null> {
+    const logger = this.createLogger();
+    const queryProcessor = this.shell.getQueryProcessor();
+
+    const interfaceContext = {
+      name: `${this.config.name}-${config.type}`,
+      version: this.config.version,
+      logger: logger.child(config.type),
+      processQuery: async (query: string, context: MessageContext): Promise<string> => {
+        // For now, use a simple text response schema
+        const textResponseSchema = z.object({
+          response: z.string(),
+        });
+        
+        const result = await queryProcessor.processQuery(query, {
+          userId: context.userId,
+          metadata: {
+            channelId: context.channelId,
+            messageId: context.messageId,
+            timestamp: context.timestamp,
+          },
+          schema: textResponseSchema,
+        });
+        
+        return result.answer;
+      },
+    };
+
+    switch (config.type) {
+      case "cli": {
+        const { CLIInterface } = await import("@brains/cli");
+        return new CLIInterface(interfaceContext, config.config);
+      }
+      case "matrix": {
+        // Matrix interface will be implemented later
+        logger.warn("Matrix interface not yet implemented");
+        return null;
+      }
+      default:
+        return null;
+    }
+  }
+
+  private createLogger(): Logger {
+    const logLevelMap: Record<string, LogLevel> = {
+      debug: LogLevel.DEBUG,
+      info: LogLevel.INFO,
+      warn: LogLevel.WARN,
+      error: LogLevel.ERROR,
+    };
+    const logLevel = logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
+    return Logger.createFresh({
+      level: logLevel,
+      context: this.config.name,
+      useStderr: this.config.transport.type === "stdio",
+    });
   }
 
   public async start(): Promise<void> {
@@ -96,6 +221,18 @@ export class App {
     }
 
     await this.server.start();
+
+    // Start all interfaces
+    for (const [name, interface_] of this.interfaces) {
+      try {
+        await interface_.start();
+        const logger = this.createLogger();
+        logger.info(`Started ${name} interface`);
+      } catch (error) {
+        const logger = this.createLogger();
+        logger.error(`Failed to start ${name} interface:`, error);
+      }
+    }
 
     // Set up signal handlers
     this.setupSignalHandlers();
@@ -110,6 +247,16 @@ export class App {
 
     // Remove signal handlers
     this.cleanupSignalHandlers();
+
+    // Stop all interfaces
+    for (const [name, interface_] of this.interfaces) {
+      try {
+        await interface_.stop();
+      } catch (error) {
+        const logger = this.createLogger();
+        logger.error(`Failed to stop ${name} interface:`, error);
+      }
+    }
 
     if (this.server) {
       await this.server.stop();
@@ -156,6 +303,11 @@ export class App {
         logger.info(
           `   Status: http://${this.config.transport.host}:${this.config.transport.port}/status`,
         );
+      }
+
+      // Log active interfaces
+      if (this.interfaces.size > 0) {
+        logger.info(`Active interfaces: ${Array.from(this.interfaces.keys()).join(", ")}`);
       }
 
       // Keep process alive

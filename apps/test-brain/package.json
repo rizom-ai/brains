@@ -6,18 +6,23 @@
   "main": "./src/index.ts",
   "scripts": {
     "dev": "bun run src/index.ts",
-    "server": "bun run src/index.ts --server",
+    "dev:cli": "bun run src/index.ts --cli",
+    "dev:matrix": "bun run src/index.ts --matrix",
+    "dev:all": "bun run src/index.ts --cli --matrix",
     "compile": "bun build src/index.ts --compile --outfile dist/test-brain",
     "compile:prod": "bun build src/index.ts --compile --minify --outfile dist/test-brain",
     "test": "bun test",
     "start": "./dist/test-brain",
-    "start:server": "./dist/test-brain --server",
+    "start:cli": "./dist/test-brain --cli",
+    "start:matrix": "./dist/test-brain --matrix",
+    "start:all": "./dist/test-brain --cli --matrix",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@brains/app": "workspace:*",
+    "@brains/cli": "workspace:*",
     "@brains/git-sync": "workspace:*"
   },
   "devDependencies": {

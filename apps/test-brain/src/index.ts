@@ -1,7 +1,12 @@
 import { App } from "@brains/app";
 import { gitSync } from "@brains/git-sync";
 
-// That's it! The entire app in one call
+// Run the app - command line args are parsed automatically by App
+// Usage:
+//   bun run src/index.ts              # MCP server only
+//   bun run src/index.ts --cli        # MCP server + CLI interface
+//   bun run src/index.ts --matrix     # MCP server + Matrix interface
+//   bun run src/index.ts --cli --matrix # All interfaces
 App.run({
   name: "test-brain",
   version: "1.0.0",
@@ -13,10 +18,23 @@ App.run({
   database: process.env["DATABASE_URL"] ?? "file:./test-brain.db",
   aiApiKey: process.env["ANTHROPIC_API_KEY"] ?? "test-key",
   logLevel: "debug",
+  // CLI config used when --cli flag is present
+  cliConfig: {
+    shortcuts: {
+      "nn": "create note",
+      "ln": "list notes",
+      "sn": "search notes",
+    },
+  },
+  // Interfaces can also be explicitly configured here
+  interfaces: [
+    // Example: Always enable a specific interface
+    // { type: "cli", enabled: true, config: { /* ... */ } }
+  ],
   plugins: [
     // Git sync plugin for version control
     gitSync({
-      repoPath: "/home/yeehaa/Documents/brain", // Use existing brain directory
+      repoPath: "./brain-repo",
       branch: "main",
       autoSync: false, // Manual sync for testing
     }),
