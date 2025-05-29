@@ -12,7 +12,10 @@ export interface InterfaceContext {
 export abstract class BaseInterface {
   protected logger: Logger;
   protected queue: PQueue;
-  protected processQuery: (query: string, context: MessageContext) => Promise<string>;
+  protected processQuery: (
+    query: string,
+    context: MessageContext,
+  ) => Promise<string>;
   public readonly name: string;
   public readonly version: string;
 
@@ -21,10 +24,17 @@ export abstract class BaseInterface {
     this.version = context.version;
     this.logger = context.logger;
     this.processQuery = context.processQuery;
-    this.queue = new PQueue({ concurrency: 1, interval: 1000, intervalCap: 10 });
+    this.queue = new PQueue({
+      concurrency: 1,
+      interval: 1000,
+      intervalCap: 10,
+    });
   }
 
-  protected async handleInput(input: string, context: MessageContext): Promise<string> {
+  protected async handleInput(
+    input: string,
+    context: MessageContext,
+  ): Promise<string> {
     // Handle interface-specific commands
     if (input.startsWith("/")) {
       const localResponse = await this.handleLocalCommand(input, context);
@@ -37,17 +47,23 @@ export abstract class BaseInterface {
     return this.processMessage(input, context);
   }
 
-  protected abstract handleLocalCommand(command: string, context: MessageContext): Promise<string | null>;
+  protected abstract handleLocalCommand(
+    command: string,
+    context: MessageContext,
+  ): Promise<string | null>;
 
-  protected async processMessage(content: string, context: MessageContext): Promise<string> {
+  protected async processMessage(
+    content: string,
+    context: MessageContext,
+  ): Promise<string> {
     const result = await this.queue.add(async () => {
       return this.processQuery(content, context);
     });
-    
+
     if (!result) {
       throw new Error("No response from query processor");
     }
-    
+
     return result;
   }
 

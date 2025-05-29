@@ -10,18 +10,17 @@ export interface FormatOptions {
 
 export class MarkdownFormatter {
   private createProcessor() {
-    const processor = remark()
-      .data('settings', {
-        bullet: '-',
-        emphasis: '_',
-        setext: false,
-        listItemIndent: 'one',
-      });
-    
+    const processor = remark().data("settings", {
+      bullet: "-",
+      emphasis: "_",
+      setext: false,
+      listItemIndent: "one",
+    });
+
     if (this.options.preserveFrontmatter) {
       return processor.use(remarkFrontmatter);
     }
-    
+
     return processor;
   }
 
@@ -37,7 +36,7 @@ export class MarkdownFormatter {
     const textParts: string[] = [];
 
     visit(tree, "text", (node) => {
-      if ("value" in node && typeof node.value === 'string') {
+      if ("value" in node && typeof node.value === "string") {
         textParts.push(node.value);
       }
     });
@@ -45,13 +44,16 @@ export class MarkdownFormatter {
     return textParts.join(" ").trim();
   }
 
-  public async extractCodeBlocks(markdown: string): Promise<Array<{ lang?: string | null; value: string }>> {
+  public async extractCodeBlocks(
+    markdown: string,
+  ): Promise<Array<{ lang?: string | null; value: string }>> {
     const tree = remark().parse(markdown);
     const codeBlocks: Array<{ lang?: string | null; value: string }> = [];
 
     visit(tree, "code", (node) => {
-      if ("value" in node && typeof node.value === 'string') {
-        const lang = "lang" in node && typeof node.lang === 'string' ? node.lang : null;
+      if ("value" in node && typeof node.value === "string") {
+        const lang =
+          "lang" in node && typeof node.lang === "string" ? node.lang : null;
         codeBlocks.push({
           lang,
           value: node.value,

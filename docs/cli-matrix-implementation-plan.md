@@ -35,14 +35,21 @@ export abstract class BaseInterface {
   protected logger: Logger;
   protected mcpServer: Server;
   protected queue: PQueue;
-  
+
   constructor(context: InterfaceContext) {
     this.logger = context.logger;
     this.mcpServer = context.mcpServer;
-    this.queue = new PQueue({ concurrency: 1, interval: 1000, intervalCap: 10 });
+    this.queue = new PQueue({
+      concurrency: 1,
+      interval: 1000,
+      intervalCap: 10,
+    });
   }
 
-  protected async handleInput(input: string, context: MessageContext): Promise<string> {
+  protected async handleInput(
+    input: string,
+    context: MessageContext,
+  ): Promise<string> {
     // Handle local commands first
     if (input.startsWith("/")) {
       const localResponse = await this.handleLocalCommand(input, context);
@@ -50,12 +57,15 @@ export abstract class BaseInterface {
         return localResponse;
       }
     }
-    
+
     // Process through MCP server
     return this.processMessage(input, context);
   }
-  
-  protected abstract handleLocalCommand(command: string, context: MessageContext): Promise<string | null>;
+
+  protected abstract handleLocalCommand(
+    command: string,
+    context: MessageContext,
+  ): Promise<string | null>;
   public abstract start(): Promise<void>;
   public abstract stop(): Promise<void>;
 }
@@ -65,7 +75,7 @@ export abstract class BaseInterface {
 
 ```typescript
 // packages/interfaces-core/src/markdown/parser.ts
-import { marked } from 'marked';
+import { marked } from "marked";
 
 export class MarkdownParser {
   parse(content: string): marked.TokensList {
@@ -88,28 +98,35 @@ import type { InterfaceConfig } from "./types.js";
 
 export class InterfaceLoader {
   private interfaces = new Map<string, BaseInterface>();
-  
-  async loadInterface(config: InterfaceConfig, context: InterfaceContext): Promise<BaseInterface> {
+
+  async loadInterface(
+    config: InterfaceConfig,
+    context: InterfaceContext,
+  ): Promise<BaseInterface> {
     switch (config.type) {
       case "cli":
         const { CLIInterface } = await import("@brains/cli");
         return new CLIInterface(context);
-        
+
       case "matrix":
         const { MatrixInterface } = await import("@brains/matrix");
         return new MatrixInterface(context, config);
-        
+
       default:
         throw new Error(`Unknown interface type: ${config.type}`);
     }
   }
-  
-  async startInterface(name: string, config: InterfaceConfig, context: InterfaceContext): Promise<void> {
+
+  async startInterface(
+    name: string,
+    config: InterfaceConfig,
+    context: InterfaceContext,
+  ): Promise<void> {
     const interface = await this.loadInterface(config, context);
     this.interfaces.set(name, interface);
     await interface.start();
   }
-  
+
   async stopAll(): Promise<void> {
     for (const [name, interface] of this.interfaces) {
       await interface.stop();
@@ -132,8 +149,8 @@ export class InterfaceStateManager {
       arguments: {
         interfaceType: context.interfaceType,
         contextId: context.contextId,
-        state
-      }
+        state,
+      },
     });
   }
 
@@ -142,8 +159,8 @@ export class InterfaceStateManager {
       name: "interface_load_state",
       arguments: {
         interfaceType: context.interfaceType,
-        contextId: context.contextId
-      }
+        contextId: context.contextId,
+      },
     });
     return result.state;
   }
@@ -151,6 +168,7 @@ export class InterfaceStateManager {
 ```
 
 **Deliverables**:
+
 - [ ] Package setup with TypeScript config
 - [ ] MCP client wrapper with retry logic
 - [ ] Markdown parser/renderer interfaces
@@ -167,7 +185,7 @@ import { BaseInterface, InterfaceContext, MessageContext } from '@brains/interfa
 
 export class CLIInterface extends BaseInterface {
   private inkApp: any; // Ink app instance
-  
+
   constructor(context: InterfaceContext) {
     super(context);
   }
@@ -199,7 +217,7 @@ export class CLIInterface extends BaseInterface {
   public async start(): Promise<void> {
     const { render } = await import('ink');
     const { default: App } = await import('./components/App.js');
-    
+
     this.inkApp = render(<App interface={this} />);
   }
 
@@ -244,9 +262,9 @@ export default function App({ interface }: Props) {
       }
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
     } catch (error) {
-      setMessages(prev => [...prev, { 
-        role: 'error', 
-        content: `Error: ${error.message}` 
+      setMessages(prev => [...prev, {
+        role: 'error',
+        content: `Error: ${error.message}`
       }]);
     }
 
@@ -282,41 +300,43 @@ export default function App({ interface }: Props) {
 
 ```typescript
 // packages/cli/src/renderer.ts
-import chalk from 'chalk';
-import { highlight } from 'cli-highlight';
-import { MarkdownRenderer } from '@brains/interfaces-core';
+import chalk from "chalk";
+import { highlight } from "cli-highlight";
+import { MarkdownRenderer } from "@brains/interfaces-core";
 
 export class CLIMarkdownRenderer implements MarkdownRenderer {
   render(tokens: marked.TokensList): string {
-    return tokens.map(token => this.renderToken(token)).join('');
+    return tokens.map((token) => this.renderToken(token)).join("");
   }
 
   private renderToken(token: marked.Token): string {
     switch (token.type) {
-      case 'heading':
-        return chalk.bold.underline(token.text) + '\n\n';
-      
-      case 'paragraph':
-        return token.text + '\n\n';
-      
-      case 'code':
-        return highlight(token.text, { language: token.lang }) + '\n\n';
-      
-      case 'list':
-        return token.items.map(item => `  • ${item.text}`).join('\n') + '\n\n';
-      
-      case 'blockquote':
-        return chalk.dim('│ ') + token.text + '\n\n';
-      
-      case 'strong':
+      case "heading":
+        return chalk.bold.underline(token.text) + "\n\n";
+
+      case "paragraph":
+        return token.text + "\n\n";
+
+      case "code":
+        return highlight(token.text, { language: token.lang }) + "\n\n";
+
+      case "list":
+        return (
+          token.items.map((item) => `  • ${item.text}`).join("\n") + "\n\n"
+        );
+
+      case "blockquote":
+        return chalk.dim("│ ") + token.text + "\n\n";
+
+      case "strong":
         return chalk.bold(token.text);
-      
-      case 'em':
+
+      case "em":
         return chalk.italic(token.text);
-      
-      case 'link':
+
+      case "link":
         return chalk.blue.underline(token.text);
-      
+
       default:
         return token.raw;
     }
@@ -350,14 +370,15 @@ export class CommandHistory {
 
 // packages/cli/src/features/shortcuts.ts
 export const shortcuts: Record<string, string> = {
-  '/help': 'Show available commands',
-  '/clear': 'Clear the screen',
-  '/history': 'Show command history',
-  '/exit': 'Exit the CLI',
+  "/help": "Show available commands",
+  "/clear": "Clear the screen",
+  "/history": "Show command history",
+  "/exit": "Exit the CLI",
 };
 ```
 
 **Deliverables**:
+
 - [ ] Ink-based CLI application
 - [ ] CLI-specific markdown renderer
 - [ ] Command history
@@ -378,7 +399,11 @@ import {
   RichReply,
   RustSdkCryptoStorageProvider,
 } from "matrix-bot-sdk";
-import { BaseInterface, InterfaceContext, MessageContext } from '@brains/interface-core';
+import {
+  BaseInterface,
+  InterfaceContext,
+  MessageContext,
+} from "@brains/interface-core";
 
 export class MatrixInterface extends BaseInterface {
   private client: MatrixClient;
@@ -389,10 +414,13 @@ export class MatrixInterface extends BaseInterface {
     this.config = config;
   }
 
-  protected async handleLocalCommand(command: string, context: MessageContext): Promise<string | null> {
+  protected async handleLocalCommand(
+    command: string,
+    context: MessageContext,
+  ): Promise<string | null> {
     // Matrix doesn't have many local commands, most go to Brain
     switch (command) {
-      case '/help':
+      case "/help":
         return `Available commands:
 • /help - Show this help message
 • /context <name> - Switch context
@@ -406,14 +434,16 @@ export class MatrixInterface extends BaseInterface {
   public async start(): Promise<void> {
     // Setup storage
     const storage = new SimpleFsStorageProvider(this.config.storageFile);
-    const crypto = new RustSdkCryptoStorageProvider(this.config.cryptoStorageDir);
+    const crypto = new RustSdkCryptoStorageProvider(
+      this.config.cryptoStorageDir,
+    );
 
     // Create client
     this.client = new MatrixClient(
       this.config.homeserver,
       this.config.accessToken,
       storage,
-      crypto
+      crypto,
     );
 
     // Setup crypto if enabled
@@ -434,8 +464,8 @@ export class MatrixInterface extends BaseInterface {
 
   private async handleMatrixMessage(roomId: string, event: any): Promise<void> {
     // Ignore own messages
-    if (event.sender === await this.client.getUserId()) return;
-    
+    if (event.sender === (await this.client.getUserId())) return;
+
     // Ignore non-text messages
     if (event.content?.msgtype !== "m.text") return;
 
@@ -443,12 +473,15 @@ export class MatrixInterface extends BaseInterface {
     await this.queue.add(() => this.processMatrixMessage(roomId, event));
   }
 
-  private async processMatrixMessage(roomId: string, event: any): Promise<void> {
+  private async processMatrixMessage(
+    roomId: string,
+    event: any,
+  ): Promise<void> {
     const context: MessageContext = {
       userId: event.sender,
       channelId: roomId,
       messageId: event.event_id,
-      threadId: event.content?.['m.relates_to']?.event_id,
+      threadId: event.content?.["m.relates_to"]?.event_id,
       timestamp: new Date(event.origin_server_ts),
     };
 
@@ -462,7 +495,7 @@ export class MatrixInterface extends BaseInterface {
       // Format and send response
       const html = await this.formatResponse(response);
       const reply = RichReply.createFor(roomId, event, response, html);
-      
+
       await this.client.sendMessage(roomId, reply);
     } catch (error) {
       await this.sendError(roomId, event, error);
@@ -481,14 +514,14 @@ export class MatrixInterface extends BaseInterface {
 
 ```typescript
 // packages/matrix/src/renderer.ts
-import { marked } from 'marked';
-import { MarkdownRenderer } from '@brains/interfaces-core';
+import { marked } from "marked";
+import { MarkdownRenderer } from "@brains/interfaces-core";
 
 export class MatrixMarkdownRenderer implements MarkdownRenderer {
   render(tokens: marked.TokensList): string {
     // Use marked's built-in HTML renderer
     const renderer = new marked.Renderer();
-    
+
     // Customize for Matrix
     renderer.code = (code, lang) => {
       return `<pre><code class="language-${lang}">${this.escape(code)}</code></pre>`;
@@ -504,11 +537,11 @@ export class MatrixMarkdownRenderer implements MarkdownRenderer {
 
   private escape(text: string): string {
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 }
 ```
@@ -518,7 +551,12 @@ export class MatrixMarkdownRenderer implements MarkdownRenderer {
 ```typescript
 // packages/matrix/src/features/threading.ts
 export class ThreadManager {
-  async createThread(client: MatrixClient, roomId: string, rootEvent: any, response: string): Promise<void> {
+  async createThread(
+    client: MatrixClient,
+    roomId: string,
+    rootEvent: any,
+    response: string,
+  ): Promise<void> {
     await client.sendMessage(roomId, {
       msgtype: "m.text",
       body: response,
@@ -529,28 +567,33 @@ export class ThreadManager {
         rel_type: "m.thread",
         is_falling_back: true,
         "m.in_reply_to": {
-          event_id: rootEvent.event_id
-        }
-      }
+          event_id: rootEvent.event_id,
+        },
+      },
     });
   }
 }
 
 // packages/matrix/src/features/reactions.ts
 export class ReactionHandler {
-  async addThinkingReaction(client: MatrixClient, roomId: string, eventId: string): Promise<void> {
+  async addThinkingReaction(
+    client: MatrixClient,
+    roomId: string,
+    eventId: string,
+  ): Promise<void> {
     await client.sendEvent(roomId, "m.reaction", {
       "m.relates_to": {
         rel_type: "m.annotation",
         event_id: eventId,
-        key: "🤔"
-      }
+        key: "🤔",
+      },
     });
   }
 }
 ```
 
 **Deliverables**:
+
 - [ ] Matrix bot with rate limiting
 - [ ] E2E encryption support
 - [ ] Rich HTML formatting
@@ -575,7 +618,7 @@ export const interfaceStateSchema = baseEntitySchema.extend({
 export const interfaceStateAdapter: EntityAdapter<InterfaceState> = {
   entityType: "interface_state",
   schema: interfaceStateSchema,
-  
+
   toMarkdown: (entity) => {
     return `---
 interface: ${entity.interface}
@@ -585,7 +628,7 @@ lastActive: ${entity.lastActive}
 
 ${JSON.stringify(entity.state, null, 2)}`;
   },
-  
+
   fromMarkdown: (markdown) => {
     const { frontmatter, content } = parseMarkdown(markdown);
     return {
@@ -617,9 +660,9 @@ export const interfaceTools = [
         lastActive: new Date().toISOString(),
       });
       return { success: true, entity };
-    }
+    },
   },
-  
+
   {
     name: "interface_load_state",
     description: "Load interface state",
@@ -631,8 +674,8 @@ export const interfaceTools = [
       const id = `${args.interfaceType}:${args.contextId}`;
       const entity = await entityService.get(id);
       return { state: entity?.state || {} };
-    }
-  }
+    },
+  },
 ];
 ```
 
@@ -654,19 +697,19 @@ describe('CLI', () => {
 
   it('should process queries', async () => {
     const { stdin, lastFrame } = render(<CLI client={mockMCPClient} />);
-    
+
     // Type a query
     stdin.write('What is TypeScript?');
     stdin.write('\r'); // Enter
-    
+
     // Wait for response
     await delay(100);
-    
+
     expect(mockMCPClient.query).toHaveBeenCalledWith(
       'What is TypeScript?',
       expect.objectContaining({ interfaceType: 'cli' })
     );
-    
+
     expect(lastFrame()).toContain('Test response');
   });
 });
@@ -676,27 +719,31 @@ describe('CLI', () => {
 
 ```typescript
 // packages/integration-tests/test/interfaces/matrix.integration.test.ts
-import { MatrixTestHelper } from '../helpers/matrix-test-helper';
+import { MatrixTestHelper } from "../helpers/matrix-test-helper";
 
-describe('Matrix Integration', () => {
-  let helper: MatrixTestHelper;
+describe(
+  "Matrix Integration",
+  () => {
+    let helper: MatrixTestHelper;
 
-  beforeAll(async () => {
-    helper = await MatrixTestHelper.create();
-  }, 30000);
+    beforeAll(async () => {
+      helper = await MatrixTestHelper.create();
+    }, 30000);
 
-  afterAll(async () => {
-    await helper.cleanup();
-  });
+    afterAll(async () => {
+      await helper.cleanup();
+    });
 
-  it('should respond to messages', async () => {
-    const response = await helper.sendMessage('Hello brain!');
-    expect(response).toContain('Hello');
-  });
-}, { 
-  // Only run when INTEGRATION_TEST=true
-  skip: process.env.INTEGRATION_TEST !== 'true' 
-});
+    it("should respond to messages", async () => {
+      const response = await helper.sendMessage("Hello brain!");
+      expect(response).toContain("Hello");
+    });
+  },
+  {
+    // Only run when INTEGRATION_TEST=true
+    skip: process.env.INTEGRATION_TEST !== "true",
+  },
+);
 ```
 
 ### 5.3 Test Helper for Matrix
@@ -706,11 +753,11 @@ describe('Matrix Integration', () => {
 export class MatrixTestHelper {
   private testClient: MatrixClient;
   private testRoomId: string;
-  
+
   static async create(): Promise<MatrixTestHelper> {
     // Start Synapse in Docker
     await this.startSynapse();
-    
+
     // Create test user and room
     const helper = new MatrixTestHelper();
     await helper.setup();

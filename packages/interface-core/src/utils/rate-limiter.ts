@@ -17,15 +17,15 @@ export class RateLimiter {
       interval?: number;
       intervalCap?: number;
     } = { concurrency };
-    
+
     if (interval !== undefined) {
       queueOptions.interval = interval;
     }
-    
+
     if (intervalCap !== undefined) {
       queueOptions.intervalCap = intervalCap;
     }
-    
+
     this.queue = new PQueue(queueOptions);
   }
 
@@ -63,7 +63,7 @@ export class RateLimiter {
 
   public static createForInterface(
     interfaceName: string,
-    config?: Partial<RateLimiterConfig>
+    config?: Partial<RateLimiterConfig>,
   ): RateLimiter {
     return new RateLimiter({
       concurrency: 1,

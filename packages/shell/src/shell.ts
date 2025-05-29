@@ -14,8 +14,7 @@ import {
 import { QueryProcessor } from "./query/queryProcessor";
 import { AIService } from "./ai/aiService";
 import { Logger, LogLevel } from "@brains/utils";
-import type { McpServer } from "@brains/mcp-server";
-import { McpServer as SdkMcpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerShellMCP } from "./mcp";
 import type { QueryResult } from "./types";
 import type { Plugin } from "@brains/types";
@@ -192,7 +191,7 @@ export class Shell {
       this.mcpServer = dependencies.mcpServer;
     } else {
       // Create our own MCP server
-      this.mcpServer = new SdkMcpServer({
+      this.mcpServer = new McpServer({
         name: "brain-shell",
         version: "1.0.0",
       });
