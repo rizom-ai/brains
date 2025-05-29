@@ -1,0 +1,37 @@
+Create a compelling, outcome-focused landing page that instantly communicates my unique value proposition to potential clients. Base this on my profile data and expertise.
+
+CONTENT GUIDELINES:
+1. HERO SECTION:
+   - Create a short, powerful headline (5-7 words) that focuses on the PRIMARY OUTCOME I deliver to clients
+   - Write a concise subheading (15-20 words) that explains HOW I solve their biggest challenge
+   - Include a clear call-to-action that creates urgency or interest
+
+2. PROBLEM STATEMENT SECTION:
+   - Describe 1-2 critical pain points my target audience experiences
+   - Use emotionally resonant language that shows I understand their challenges
+   - Keep paragraphs short (2-3 sentences max) for easy scanning
+   - Include 3-4 bullet points highlighting specific problems I solve
+
+3. SERVICES SECTION:
+   - Focus on BENEFITS rather than features - how each service improves clients' situation
+   - Use action verbs and outcome-focused language
+   - Each service should have a clear value proposition 
+   - Include specific results or transformations clients can expect
+
+4. ABOUT SECTION:
+   - Start with my driving purpose/mission, not just background
+   - Focus on relevant expertise that builds credibility for my services
+   - Highlight unique qualifications that differentiate me
+   - Include a personal element that builds connection
+
+5. CALL-TO-ACTION:
+   - Create a compelling reason to act now
+   - Clearly communicate the next step
+   - Remove friction from taking action
+
+ADDITIONAL REQUIREMENTS:
+- Use terminology that resonates with my industry/target audience without excessive jargon
+- Create scannable content with short paragraphs and strategic use of bullet points
+- Include 1-2 strategic CTAs throughout the page (not just in CTA section)
+- Ensure all content sounds natural and professional, avoiding generic "AI-generated" language
+- Make every word count - be concise while maintaining clarity and impact

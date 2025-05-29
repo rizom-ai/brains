@@ -1,0 +1,28 @@
+Generate brand identity information for a professional website for {{name}}{{occupation}}.
+
+Their tagline is: "{{tagline}}"
+{{pitch}}
+{{uniqueValue}}
+
+Create a comprehensive brand identity with:
+
+1. Tone:
+   - formality: Choose one of: "casual", "conversational", "professional", or "academic"
+   - personality: Array of 3-5 personality traits (e.g., "friendly", "authoritative", "innovative")
+   - emotion: The primary emotional quality of the content (e.g., "inspiring", "reassuring")
+
+2. Content Style:
+   - writingStyle: Description of the ideal writing approach
+   - sentenceLength: Choose one of: "short", "medium", "varied", or "long"
+   - vocabLevel: Choose one of: "simple", "moderate", "advanced", or "technical"
+   - useJargon: Boolean - whether industry terminology is appropriate
+   - useHumor: Boolean - whether humor should be incorporated
+   - useStories: Boolean - whether to use storytelling approaches
+
+3. Values:
+   - coreValues: Array of 3-5 principles or values that define the brand
+   - targetAudience: Array of 2-3 primary audience segments
+   - painPoints: Array of 2-4 problems this professional solves
+   - desiredAction: What website visitors should do (e.g., "Schedule a consultation")
+
+Format as JSON with these exact fields.

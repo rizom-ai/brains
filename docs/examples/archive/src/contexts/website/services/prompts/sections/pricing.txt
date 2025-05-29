@@ -1,0 +1,21 @@
+Generate a pricing section for a professional website. This section should outline the service packages or pricing tiers offered by {{name}}.
+
+Include:
+
+1. **Title**: A clear title for this section (e.g., "Packages & Pricing", "Service Options")
+2. **Introduction** (optional): A brief statement about pricing approach
+3. **Pricing Tiers**: 2-4 different service packages or tiers, each with:
+   - Name: Package or tier name
+   - Price: Price point or price range (can be generic like "Starting at $X" if exact pricing is flexible)
+   - Description: Brief overview of what this tier offers
+   - Features: List of 3-6 specific inclusions
+   - Featured status: Whether this is the recommended or featured package
+   - CTA Text: Button text for this tier
+   - CTA Link: Where the button should link to
+
+Keep the content professional and aligned with the profile:
+
+Name: {{name}}
+Tagline: {{tagline}}
+
+Return ONLY valid JSON with keys for: title, introduction (optional), tiers (array of pricing tier objects), and enabled (set to true if pricing should be shown, or false if pricing should be disabled by default).

@@ -1,0 +1,93 @@
+---
+// Faq.astro - FAQ section for landing page
+interface Props {
+  faq: {
+    title: string;
+    introduction?: string;
+    items: Array<{
+      question: string;
+      answer: string;
+    }>;
+    enabled: boolean;
+  };
+}
+
+const { faq } = Astro.props;
+
+// Don't render if section is disabled
+if (!faq.enabled) return null;
+---
+
+<section id="faq" class="py-24 px-6 md:px-10 lg:px-16 bg-white dark:bg-gray-800">
+  <div class="container mx-auto max-w-5xl">
+    <div class="text-center mb-16">
+      <div class="inline-block px-3 py-1 text-sm font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30 rounded-full mb-4">
+        Questions & Answers
+      </div>
+      <h2 class="text-3xl md:text-4xl font-bold mb-6 text-gray-900 dark:text-white">
+        {faq.title}
+      </h2>
+      
+      {faq.introduction && (
+        <p class="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+          {faq.introduction}
+        </p>
+      )}
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-x-10 gap-y-6">
+      {faq.items.map((item, index) => (
+        <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transition-all duration-300 hover:border-primary-200 dark:hover:border-primary-700 hover:shadow-light">
+          <details class="group">
+            <summary class="flex justify-between items-center px-6 py-5 cursor-pointer bg-gray-50 dark:bg-gray-900 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors">
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white group-hover:text-primary-700 dark:group-hover:text-primary-300">
+                {item.question}
+              </h3>
+              <span class="text-primary-600 dark:text-primary-400 group-open:rotate-180 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </summary>
+            <div class="px-6 py-5 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+              <p class="text-gray-600 dark:text-gray-300 leading-relaxed">
+                {item.answer}
+              </p>
+              
+              {/* Optional: Add a small CTA at the end of answers where appropriate */}
+              {index === faq.items.length - 1 && (
+                <div class="mt-4 text-primary-600 dark:text-primary-400 font-medium text-sm">
+                  <a href="#contact" class="inline-flex items-center group">
+                    Still have questions? Let's talk
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </a>
+                </div>
+              )}
+            </div>
+          </details>
+        </div>
+      ))}
+    </div>
+
+    {/* FAQ CTA - for when people have read through questions */}
+    <div class="mt-16 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/40 rounded-2xl p-8 md:p-10 text-center">
+      <h3 class="text-xl md:text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+        Ready to Build Something Extraordinary?
+      </h3>
+      <p class="text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+        Every ecosystem is unique. Let's discuss how I can help create or transform yours into a thriving, purpose-driven force.
+      </p>
+      <a href="#contact" class="inline-block px-8 py-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
+        Schedule a Consultation
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

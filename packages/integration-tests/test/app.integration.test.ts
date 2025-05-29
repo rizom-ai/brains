@@ -29,7 +29,8 @@ describe("App Integration", () => {
     it("should create and initialize app with stdio transport", async () => {
       const app = App.create({
         name: "test-stdio-app",
-        database: dbPath,
+        database: `file:${dbPath}`,
+        logLevel: "error", // Reduce noise
         shellConfig: {
           features: {
             enablePlugins: false,
@@ -52,7 +53,8 @@ describe("App Integration", () => {
     it("should create and initialize app with HTTP transport", async () => {
       const app = App.create({
         name: "test-http-app",
-        database: dbPath,
+        database: `file:${dbPath}`,
+        logLevel: "error", // Reduce noise
         transport: {
           type: "http",
           port: 0, // Use random port
@@ -82,7 +84,7 @@ describe("App Integration", () => {
     it("should handle complete app lifecycle", async () => {
       const app = App.create({
         name: "test-lifecycle-app",
-        database: dbPath,
+        database: `file:${dbPath}`,
         transport: {
           type: "http",
           port: 0,

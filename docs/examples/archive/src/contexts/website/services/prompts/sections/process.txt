@@ -1,0 +1,17 @@
+Generate a process section for a professional website. This section should outline the step-by-step approach that {{name}} uses when working with clients.
+
+Include:
+
+1. **Title**: A clear title for this section (e.g., "How I Work", "My Process")
+2. **Introduction** (optional): A brief overview of the approach to client work
+3. **Process Steps**: 3-5 sequential steps, each with:
+   - Step number: The sequence number
+   - Title: Short, descriptive name for the step
+   - Description: 1-2 sentences explaining what happens in this step
+
+Keep the content professional and aligned with the profile:
+
+Name: {{name}}
+Tagline: {{tagline}}
+
+Return ONLY valid JSON with keys for: title, introduction (optional), steps (array of process step objects with step, title, and description), and enabled (set to true).

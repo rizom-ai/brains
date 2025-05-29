@@ -1,0 +1,174 @@
+---
+// Footer.astro - Footer section for landing page
+interface Props {
+  footer: {
+    contactDetails?: {
+      email?: string;
+      phone?: string;
+      social?: Array<{
+        platform: string;
+        url: string;
+        icon?: string;
+      }>;
+    };
+    copyrightText?: string;
+    links?: Array<{
+      text: string;
+      url: string;
+    }>;
+    enabled: boolean;
+  };
+}
+
+const { footer } = Astro.props;
+
+// Don't render if section is disabled
+if (!footer.enabled) return null;
+
+// Social media icons mapping
+const socialIcons = {
+  twitter: "fab fa-twitter",
+  linkedin: "fab fa-linkedin",
+  facebook: "fab fa-facebook",
+  instagram: "fab fa-instagram",
+  youtube: "fab fa-youtube",
+  github: "fab fa-github",
+  medium: "fab fa-medium",
+  default: "fas fa-link"
+};
+
+// Get current year for copyright
+const currentYear = new Date().getFullYear();
+---
+
+<footer id="footer" class="pt-20 pb-12 px-6 md:px-10 lg:px-16 bg-gray-900 text-white relative overflow-hidden">
+  {/* Background decorative elements with subtle animation */}
+  <div class="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-gray-800 to-transparent opacity-50 animate-pulse-slow" style="animation-duration: 10s;"></div>
+  <div class="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(41,63,96,0.2),transparent)] pointer-events-none animate-pulse-slow" style="animation-duration: 15s;"></div>
+  
+  <div class="container mx-auto max-w-6xl relative z-10">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
+      {/* Brand section */}
+      <div class="md:col-span-5 reveal-on-scroll-right" data-animate-once="true">
+        <div class="mb-6">
+          <span class="text-2xl font-bold text-white animate-fade-in">Your Brand</span>
+        </div>
+        
+        <p class="text-gray-300 mb-8 max-w-md animate-fade-in-up" style="animation-delay: 0.1s;">
+          Providing expert consulting services to help businesses transform their operations and achieve sustainable growth.
+        </p>
+        
+        {/* Contact information */}
+        <div class="space-y-3 stagger-animation">
+          {footer.contactDetails?.email && (
+            <div class="flex items-center group">
+              <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mr-3 text-primary-400 transform transition-all duration-300 group-hover:scale-110 group-hover:bg-primary-800/50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                </svg>
+              </div>
+              <a href={`mailto:${footer.contactDetails.email}`} class="text-gray-300 hover:text-white transition-colors group">
+                <span class="group-hover:underline">{footer.contactDetails.email}</span>
+              </a>
+            </div>
+          )}
+          
+          {footer.contactDetails?.phone && (
+            <div class="flex items-center group">
+              <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mr-3 text-primary-400 transform transition-all duration-300 group-hover:scale-110 group-hover:bg-primary-800/50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                </svg>
+              </div>
+              <a href={`tel:${footer.contactDetails.phone.replace(/\s+/g, '')}`} class="text-gray-300 hover:text-white transition-colors group">
+                <span class="group-hover:underline">{footer.contactDetails.phone}</span>
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Links section */}
+      <div class="md:col-span-3 reveal-on-scroll" data-animate-once="true">
+        {footer.links && footer.links.length > 0 && (
+          <div>
+            <h3 class="text-xl font-bold mb-5 text-white animate-fade-in">Explore</h3>
+            
+            <ul class="space-y-3 stagger-animation">
+              {footer.links.map(link => (
+                <li>
+                  <a 
+                    href={link.url} 
+                    class="text-gray-300 hover:text-white transition-colors flex items-center group"
+                  >
+                    <span class="w-2 h-2 bg-primary-500 rounded-full mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    <span class="group-hover:translate-x-1 transition-transform">{link.text}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      
+      {/* Social media section */}
+      <div class="md:col-span-4 reveal-on-scroll-left" data-animate-once="true">
+        {footer.contactDetails?.social && footer.contactDetails.social.length > 0 && (
+          <div>
+            <h3 class="text-xl font-bold mb-5 text-white animate-fade-in">Connect</h3>
+            
+            <div class="grid grid-cols-4 gap-4 stagger-animation">
+              {footer.contactDetails.social.map(social => {
+                const platformName = social.platform.toLowerCase();
+                const iconClass = social.icon || socialIcons[platformName] || socialIcons.default;
+                
+                return (
+                  <a 
+                    href={social.url} 
+                    class="w-12 h-12 rounded-full bg-gray-800 hover:bg-primary-800 flex items-center justify-center text-gray-300 hover:text-white transition-all duration-300 transform hover:-translate-y-1 hover:shadow-soft"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span class="sr-only">{social.platform}</span>
+                    <i class={iconClass}></i>
+                  </a>
+                );
+              })}
+            </div>
+            
+            <div class="mt-8 animate-fade-in-up" style="animation-delay: 0.5s;">
+              <h4 class="text-lg font-medium mb-4 text-white">Subscribe to my newsletter</h4>
+              <div class="flex">
+                <input 
+                  type="email" 
+                  placeholder="Enter your email" 
+                  class="bg-gray-800 text-gray-200 py-3 px-4 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary-500 w-full"
+                  aria-label="Email for newsletter"
+                />
+                <button 
+                  type="button" 
+                  class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-r-lg transition-all duration-300 hover:-translate-y-1 shadow-soft animate-shine"
+                >
+                  Subscribe
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+    
+    {/* Copyright bar */}
+    <div class="pt-8 border-t border-gray-800 text-center text-gray-400 flex flex-col md:flex-row justify-between items-center reveal-on-scroll" data-animate-once="true">
+      <div>
+        {footer.copyrightText || `© ${currentYear} All rights reserved.`}
+      </div>
+      
+      <div class="mt-4 md:mt-0 text-sm">
+        <a href="#" class="text-gray-500 hover:text-gray-300 mx-2 transition-all duration-300 hover:-translate-y-1 inline-block">Privacy Policy</a>
+        <a href="#" class="text-gray-500 hover:text-gray-300 mx-2 transition-all duration-300 hover:-translate-y-1 inline-block">Terms of Service</a>
+      </div>
+    </div>
+  </div>
+</footer>

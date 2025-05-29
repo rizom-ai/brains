@@ -1,0 +1,54 @@
+Review and assess the quality of content for a {{sectionType}} section of a landing page.
+
+SECTION CONTENT:
+{{sectionContent}}
+
+WEBSITE IDENTITY INFORMATION:
+Name: {{name}}
+Tagline: {{tagline}}
+Professional description: {{description}}
+{{uniqueValue}}
+{{occupation}}
+{{industry}}
+
+BRAND IDENTITY GUIDELINES:
+Tone:
+- Formality: {{formality}}
+- Personality traits: {{personality}}
+- Emotional quality: {{emotion}}
+
+Content Style:
+- Writing style: {{writingStyle}}
+- Sentence length: {{sentenceLength}}
+- Vocabulary level: {{vocabLevel}}
+- Use jargon: {{useJargon}}
+- Use humor: {{useHumor}}
+- Use stories: {{useStories}}
+
+Brand Values:
+- Core values: {{coreValues}}
+- Target audience: {{targetAudience}}
+- Problem solving: {{painPoints}}
+- Desired action: {{desiredAction}}
+
+ASSESSMENT INSTRUCTIONS:
+1. Evaluate the section content for quality on a scale from 1-10
+2. Evaluate your confidence in your assessment on a scale from 1-10
+3. Provide justifications for both scores
+4. Determine if the section should be enabled or disabled based on quality
+5. Suggest specific improvements if quality is below 9
+6. Ensure all assessments consider the website identity and brand guidelines
+
+Respond with a structured quality assessment in the following JSON format:
+
+{
+  "qualityScore": 9,
+  "qualityJustification": "The content is high quality because...",
+  "confidenceScore": 9,
+  "confidenceJustification": "I'm confident in this assessment because...",
+  "combinedScore": 9,
+  "enabled": true,
+  "suggestedImprovements": "To improve this section..."
+}
+
+Be critical and provide specific, actionable feedback for improvement. Focus on alignment with the brand identity, clarity, impact, and whether the content effectively serves its purpose for the target audience.

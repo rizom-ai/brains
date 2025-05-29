@@ -1,0 +1,127 @@
+---
+// Pricing.astro - Pricing section for landing page
+interface Props {
+  pricing: {
+    title: string;
+    introduction?: string;
+    tiers: Array<{
+      name: string;
+      price?: string;
+      description: string;
+      features: string[];
+      isFeatured: boolean;
+      ctaText: string;
+      ctaLink: string;
+    }>;
+    enabled: boolean;
+  };
+}
+
+const { pricing } = Astro.props;
+
+// Don't render if section is disabled
+if (!pricing.enabled) return null;
+---
+
+<section id="pricing" class="py-24 px-6 md:px-10 lg:px-16 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+  <div class="container mx-auto max-w-6xl">
+    <div class="text-center mb-16">
+      <div class="inline-block px-3 py-1 text-sm font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30 rounded-full mb-4">
+        Collaboration Options
+      </div>
+      <h2 class="text-3xl md:text-4xl font-bold mb-6 text-gray-900 dark:text-white">
+        {pricing.title}
+      </h2>
+      
+      {pricing.introduction && (
+        <p class="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+          {pricing.introduction}
+        </p>
+      )}
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+      {pricing.tiers.map(tier => (
+        <div class={`
+          relative overflow-hidden rounded-2xl border transition-all duration-300
+          ${tier.isFeatured 
+            ? 'border-primary-300 dark:border-primary-700 shadow-lg hover:shadow-xl' 
+            : 'border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg'
+          }
+        `}>
+          {tier.isFeatured && (
+            <div class="absolute top-5 right-5">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/50 dark:text-primary-300">
+                Recommended
+              </span>
+            </div>
+          )}
+          
+          <div class="p-8 md:p-10">
+            <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">
+              {tier.name}
+            </h3>
+            
+            {tier.price && (
+              <div class="mb-6">
+                <span class="text-3xl font-bold text-gray-900 dark:text-white">{tier.price}</span>
+                {tier.price.toLowerCase() !== 'custom' && (
+                  <span class="text-gray-500 dark:text-gray-400">/project</span>
+                )}
+              </div>
+            )}
+            
+            <p class="mb-8 text-gray-600 dark:text-gray-300">
+              {tier.description}
+            </p>
+            
+            <ul class="space-y-4 mb-10">
+              {tier.features.map(feature => (
+                <li class="flex items-start">
+                  <span class="flex-shrink-0 mt-1 mr-3 text-primary-500 dark:text-primary-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                  </span>
+                  <span class="text-gray-600 dark:text-gray-300">{feature}</span>
+                </li>
+              ))}
+            </ul>
+            
+            <a 
+              href={tier.ctaLink}
+              class={`
+                block w-full py-3 px-4 text-center rounded-lg font-medium transition-all duration-300
+                ${tier.isFeatured
+                  ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:-translate-y-1'
+                  : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-white hover:shadow'
+                }
+              `}
+            >
+              {tier.ctaText}
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+    
+    <div class="mt-16 text-center bg-gray-50 dark:bg-gray-900 p-8 rounded-xl max-w-3xl mx-auto">
+      <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+        Need Something Specific?
+      </h3>
+      <p class="text-gray-600 dark:text-gray-300 mb-6">
+        I also offer custom services tailored to your specific ecosystem architecture needs.
+        Let's discuss how I can help create a solution that works best for your organization.
+      </p>
+      <a 
+        href="#contact" 
+        class="inline-flex items-center text-blue-700 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 group"
+      >
+        Contact me for a custom quote
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1 group-hover:translate-x-1 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>

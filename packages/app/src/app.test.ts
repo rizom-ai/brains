@@ -98,7 +98,7 @@ describe("App", () => {
 
     it("should initialize shell during app initialization", async () => {
       const mockShell = createMockShell();
-      const app = App.create({}, mockShell);
+      const app = App.create({ logLevel: "error" }, mockShell);
 
       await app.initialize();
 

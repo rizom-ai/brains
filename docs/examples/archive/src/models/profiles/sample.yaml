@@ -1,0 +1,906 @@
+public_identifier: yeehaa
+profile_pic_url: https://s3.us-west-000.backblazeb2.com/proxycurl/person/yeehaa/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=968016a1a2f28517af9175ecae64681bf7e391162d41fb3795176a2ef279bb7c
+background_cover_image_url: null
+first_name: Jan Hein
+last_name: Hoogstad
+full_name: Jan Hein Hoogstad
+follower_count: 3452
+occupation: Founder at Rizom
+headline: Ecosystem Architect | Black Ocean Navigator | Innovator
+summary: >-
+  I am an entrepreneur, thinker, and coder. Nowadays, I like to call myself an
+  ecosystem architect. This means that I bring people together around common
+  values, discover a shared vision, and translate this into effective
+  ecosystems.
+
+
+  My greatest passion has always been changing the way people learn and
+  challenging preconceived, ill-informed notions about education. With
+  Offcourse, I aim to create an ecosystem of people and tools that focus on open
+  and transparent knowledge sharing, instead of credentials, ego, and
+  intellectual property.
+
+
+  In 2021, I created the Superconnectors event format, enabling startups to
+  present their 'critical ask' to the best-connected people in the Dutch tech
+  ecosystem.
+
+
+  I hold a PhD in Philosophy from the University of Utrecht and have worked as a
+  researcher and teacher at several traditional (Utrecht, Berlin, Amsterdam,
+  Minneapolis) and non-traditional (DevBootcamp San Francisco) schools. I also
+  founded the Innovator's Working Group of the Dutch Internet Society and was
+  actively involved in the Public Spaces Coalition. I strongly advocate for an
+  impactful and inclusive internet.
+
+
+  I currently work and live in Taipei, Taiwan.
+country: TW
+country_full_name: Taiwan
+city: Taipei
+state: Taipei City
+experiences:
+  - starts_at:
+      day: 1
+      month: 4
+      year: 2024
+    ends_at: null
+    company: Rizom
+    company_linkedin_profile_url: https://www.linkedin.com/company/105822603/
+    company_facebook_profile_url: null
+    title: Founder
+    description: >-
+      As Founder of Rizom, I'm creating a community where individuals are
+      empowered to discover and develop their unique strengths and passions. Our
+      ecosystem fosters purpose-driven collaboration that drives both positive
+      societal transformation and sustainable financial success. 
+
+
+      Rizom connects people around shared values and translates collective
+      vision into tangible impact, building on my experience as an ecosystem
+      architect. We're reimagining how communities can thrive through meaningful
+      connections, transparent knowledge sharing, and aligned purpose.
+    location: Taipei, Taipei City, Taiwan
+    logo_url: https://media.licdn.com/dms/image/v2/D4E0BAQHNPLHwHboIoA/company-logo_400_400/company-logo_400_400/0/1733734244895/rizom_collective_logo?e=1749081600&v=beta&t=_dk_T4tS3nsedUfwd68j5WwOoLMXi9723zT6qQhL7S4
+  - starts_at:
+      day: 1
+      month: 4
+      year: 2024
+    ends_at: null
+    company: Rizom
+    company_linkedin_profile_url: https://www.linkedin.com/company/105822603/
+    company_facebook_profile_url: null
+    title: Community member
+    description: As a Rizom community member, I aim to establish a culture where
+      every person is empowered to explore their passions and hone their unique
+      strengths. This inspires aligned, purpose-driven collaboration that drives
+      positive societal transformation and sustainable financial success
+    location: Taipei, Taipei City, Taiwan
+    logo_url: https://media.licdn.com/dms/image/v2/D4E0BAQHNPLHwHboIoA/company-logo_400_400/company-logo_400_400/0/1733734244895/rizom_collective_logo?e=1749081600&v=beta&t=_dk_T4tS3nsedUfwd68j5WwOoLMXi9723zT6qQhL7S4
+  - starts_at:
+      day: 1
+      month: 5
+      year: 2021
+    ends_at: null
+    company: Superconnectors Network
+    company_linkedin_profile_url: https://www.linkedin.com/company/superconnectorsnetwork
+    company_facebook_profile_url: null
+    title: Founder and Chief Vision
+    description: >-
+      Superconnectors is an event where startups can find the right solution to
+      their most critical ask with the help of a Superconnector. This could be
+      an introduction to someone in a specific market, to the right investor, to
+      someone with unique knowledge or someone with exceptional access to
+      talent.
+
+
+      Founders pitch their most critical ask to a group of Superconnectors. The
+      Superconnectors then compete for the best connection to solve their ask!
+      The startups will decide who can help in the best way.
+
+
+      As Founder and Chief Vision, I focus on scaling Superconnectors without
+      watering down what made the concept a success in the first place: a
+      genuine desire to maximize return on ecosystems.
+    location: Rotterdam, South Holland, Netherlands
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/superconnectorsnetwork/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=96f60aeb0e516617c26a5feec79b07d394bdf51e91a62588df593bb69d0245e9
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2024
+    ends_at: null
+    company: Snowday
+    company_linkedin_profile_url: https://www.linkedin.com/company/snowday-education
+    company_facebook_profile_url: null
+    title: Strategic Advisor
+    description: null
+    location: null
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/snowday-education/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=af7aef1be00afa4ff7dd8d54acf1d6b95977115f9c85823240de61ccc490d4b9
+  - starts_at:
+      day: 1
+      month: 12
+      year: 2023
+    ends_at:
+      day: 31
+      month: 12
+      year: 2024
+    company: Offcourse
+    company_linkedin_profile_url: https://www.linkedin.com/company/offcourse_
+    company_facebook_profile_url: null
+    title: Founder
+    description: Changing the way people learn, and challenging preconceived,
+      ill-informed notions about education, has always been my greatest passion.
+      From its inception, Offcourse was meant to be the ecosystem to facilitate
+      that. But back then, both me and the world weren't ready. Now I'm
+      determined to finish what I started.
+    location: New Taipei City, New Taipei City, Taiwan
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/offcourse_/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=675258283a522d42b1ddff6c7cb7d26b7f2f7f2be1135c766aaa9352134c6dd3
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2024
+    ends_at:
+      day: 31
+      month: 5
+      year: 2024
+    company: Weave
+    company_linkedin_profile_url: https://www.linkedin.com/company/weave%C2%A0
+    company_facebook_profile_url: null
+    title: Ecosystem Architect
+    description: >-
+      Weave is a leading software agency based in Rotterdam, The Netherlands. As
+      part of The Sharing Group (TSG), they subscribe to TGS's mission of making
+      sharing the key to a more sustainable and social planet.
+
+
+      In my role as ecosystem architect, I have the following two goals:
+
+
+      1. Fortify Weave's expert position on software engineering in general, and
+      golang in particular.
+
+      2. Expand Weave internationally by developing partnerships that match
+      their business as well as their value proposition.
+    location: Rotterdam, South Holland, Netherlands
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/weave%25C2%25A0/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=475e2f7d4185be9f2bd1d0bc787081b8d74cbe08827008bb90c12edbbcfc99dc
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2022
+    ends_at:
+      day: 31
+      month: 1
+      year: 2024
+    company: Varias
+    company_linkedin_profile_url: https://www.linkedin.com/company/varias-software
+    company_facebook_profile_url: null
+    title: Chief Product Officer
+    description: >-
+      Varias provides autonomous and dedicated emporewed teams that are
+      instantly ready to help later-stage startups scale faster.
+
+
+      In short, we build (digital) products for companies and we deliver
+      validation, product and expert teams.  Our goal is to help you scale
+      faster and outperform your competition.
+
+
+      My team works on developing and improving our products and services.
+      Really excited for this new journey and feel free to shoot me a message if
+      you want to discuss product development, team performance and sustainable
+      scaling of your business.
+    location: Rotterdam, South Holland, Netherlands
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/varias-software/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=b8c4dc07650f07c1efb2621f4bb973c83e0bdf855327d51ed9d6dc4b4d9d31ee
+  - starts_at:
+      day: 1
+      month: 3
+      year: 2022
+    ends_at:
+      day: 31
+      month: 12
+      year: 2023
+    company: Snowday
+    company_linkedin_profile_url: https://www.linkedin.com/company/snowday-education
+    company_facebook_profile_url: null
+    title: Co-Founder and Chief Technology
+    description: >-
+      Snowday is the first ratings and reviews app for extracurricular
+      education, starting with competitive extracurricular activities for high
+      schoolers. Our mission is to make extracurricular education accessible to
+      all students.
+
+
+      Within Snowday, my role is to set up the technical infrastructure and the
+      organization that facilitates it in a way that delivers results now but
+      also rapidly scales when needed.
+    location: New York City Metropolitan Area
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/snowday-education/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=af7aef1be00afa4ff7dd8d54acf1d6b95977115f9c85823240de61ccc490d4b9
+  - starts_at:
+      day: 1
+      month: 6
+      year: 2020
+    ends_at:
+      day: 30
+      month: 11
+      year: 2021
+    company: Lefthoek
+    company_linkedin_profile_url: https://www.linkedin.com/company/lefthoek
+    company_facebook_profile_url: null
+    title: Founder
+    description: Lefthoek unleashes the full corner-cutting power of computers. We
+      release your team's untapped potential by adding an AI powered virtual
+      team member to it. This new colleague will take care of boring, laborious,
+      and difficult tasks, so that your team can be smarter, more creative, and
+      more productive with far less effort.
+    location: Rotterdam, South Holland, Netherlands
+    logo_url: https://media.licdn.com/dms/image/v2/C4D0BAQF1MWg93_T7zg/company-logo_400_400/company-logo_400_400/0/1630470812762/lefthoek_logo?e=1749081600&v=beta&t=m0w3l42StYpgCz9F5iEzE0d5hEXVYIagcoXiCGMbAnI
+  - starts_at:
+      day: 1
+      month: 10
+      year: 2019
+    ends_at:
+      day: 31
+      month: 10
+      year: 2021
+    company: PublicSpaces
+    company_linkedin_profile_url: https://www.linkedin.com/company/publicspacesonline
+    company_facebook_profile_url: null
+    title: Project Lead Developer
+    description: >+
+      At Public Spaces, we are adopting and supporting the development of a
+      software ecosystem that’s based on our values. One of our key activities
+      is the development of a framework of digital quality marks, that
+      technically validates the code and tooling of a website or software
+      application with our values. We call these signs of merit ‘Public
+      Badges’. 
+
+    location: Amsterdam, North Holland, Netherlands
+    logo_url: https://media.licdn.com/dms/image/v2/C4E0BAQHMs32ALi0Ztg/company-logo_400_400/company-logo_400_400/0/1630649887893?e=1749081600&v=beta&t=hNviah_4HjYZd-W4L5IODwCA9CSqyRDhjG3iAYBQ8_4
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2019
+    ends_at:
+      day: 30
+      month: 11
+      year: 2020
+    company: Offcourse
+    company_linkedin_profile_url: https://www.linkedin.com/company/offcourse_
+    company_facebook_profile_url: null
+    title: Concept and  Software Developer
+    description: >-
+      From a personalized learning coach to a network of virtual assistants,
+      technology can help you focus on critical challenges rather than waste
+      energy on uninspiring tasks. Think about it. What could you achieve if you
+      have creative AI to support you? 
+
+
+      We inventory the data and knowledge that you use and create a plan to
+      clean up, connect and aggregate your data and design data models specific
+      to your practice. We develop a roadmap to identify the steps to take to
+      develop an infrastructure of tools and services that transform your work.
+    location: Rotterdam–The Hague metropolitan area, South Holland, Netherlands
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/offcourse_/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=675258283a522d42b1ddff6c7cb7d26b7f2f7f2be1135c766aaa9352134c6dd3
+  - starts_at:
+      day: 1
+      month: 6
+      year: 2013
+    ends_at:
+      day: 31
+      month: 3
+      year: 2020
+    company: Offcourse
+    company_linkedin_profile_url: https://www.linkedin.com/company/offcourse_
+    company_facebook_profile_url: null
+    title: Founder
+    description: Offcourse is an open source platform for online learning. The
+      Internet is an endless source of knowledge; blogs, video tutorials or even
+      that one interesting podcast. Offcourse allows you to gather the best
+      sources online and structure them into easy-shareable courses. This helps
+      you to get started with crowdlearning; sharing what you have learned and
+      learning that others have shared.
+    location: Amsterdam, North Holland, Netherlands
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/offcourse_/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=675258283a522d42b1ddff6c7cb7d26b7f2f7f2be1135c766aaa9352134c6dd3
+  - starts_at:
+      day: 1
+      month: 9
+      year: 2018
+    ends_at:
+      day: 31
+      month: 12
+      year: 2018
+    company: PublicSpaces
+    company_linkedin_profile_url: https://www.linkedin.com/company/publicspacesonline
+    company_facebook_profile_url: null
+    title: Strategic Advisor
+    description: For this project, I did a mapping of the problem and solution space
+      of the so-called ethical internet. This mapping provided a foundation for
+      the Public Badges.
+    location: Amsterdam, North Holland, Netherlands
+    logo_url: https://media.licdn.com/dms/image/v2/C4E0BAQHMs32ALi0Ztg/company-logo_400_400/company-logo_400_400/0/1630649887893?e=1749081600&v=beta&t=hNviah_4HjYZd-W4L5IODwCA9CSqyRDhjG3iAYBQ8_4
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2017
+    ends_at:
+      day: 31
+      month: 12
+      year: 2018
+    company: University of Amsterdam
+    company_linkedin_profile_url: https://www.linkedin.com/company/university-of-amsterdam
+    company_facebook_profile_url: null
+    title: Guest Researcher
+    description: Affiliated to the Faculty of the Humanities at the University of
+      Amsterdam as a guest researcher.
+    location: Amsterdam Area, Netherlands
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/university-of-amsterdam/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=434d4b106f4114655b1fe66ae7166f83543f403d71cc6ce64ae6a0c887aa0e84
+  - starts_at:
+      day: 1
+      month: 8
+      year: 2005
+    ends_at:
+      day: 31
+      month: 12
+      year: 2016
+    company: University of Amsterdam
+    company_linkedin_profile_url: https://www.linkedin.com/company/university-of-amsterdam
+    company_facebook_profile_url: null
+    title: Assistant Professor in Cultural Analysis
+    description: Developed and taught cross-disciplinary curriculums and research
+      projects for bachelor, master and staff. In 2014, I initiated the research
+      project "Augmenting Masterpieces" at the Rijksmuseum, which was nominated
+      for the 'Best of the Web' award in 2015. I also developed "Coding the
+      Humanities", one of the first programming bootcamps in The Netherlands .
+    location: Amsterdam Area, Netherlands
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/university-of-amsterdam/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=434d4b106f4114655b1fe66ae7166f83543f403d71cc6ce64ae6a0c887aa0e84
+  - starts_at:
+      day: 1
+      month: 6
+      year: 2013
+    ends_at:
+      day: 30
+      month: 9
+      year: 2013
+    company: Dev Bootcamp
+    company_linkedin_profile_url: https://www.linkedin.com/company/dev-bootcamp
+    company_facebook_profile_url: null
+    title: Coach & Teaching Assistant
+    description: Coached and supervised students and teaching lectures throughout
+      the program.
+    location: San Francisco Bay Area
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/dev-bootcamp/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=e75624cefd7ec10501bbff51f4805be3d733d1169fb83c846aba42a19decaaf8
+  - starts_at:
+      day: 1
+      month: 9
+      year: 2011
+    ends_at:
+      day: 30
+      month: 9
+      year: 2012
+    company: University of Amsterdam
+    company_linkedin_profile_url: https://www.linkedin.com/company/university-of-amsterdam
+    company_facebook_profile_url: null
+    title: Human Resources Manager
+    description: Designed a training curriculum for new staff and developed a policy
+      for job mobility.
+    location: Amsterdam Area, Netherlands
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/university-of-amsterdam/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=434d4b106f4114655b1fe66ae7166f83543f403d71cc6ce64ae6a0c887aa0e84
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2006
+    ends_at:
+      day: 31
+      month: 12
+      year: 2008
+    company: Jan Van Eyck Academie
+    company_linkedin_profile_url: https://www.linkedin.com/company/jan-van-eyck-academie
+    company_facebook_profile_url: null
+    title: Research Fellow
+    description: null
+    location: Maastricht Area, Netherlands
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/jan-van-eyck-academie/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=2720d5f78d8251f2a5d7bd93f9bbc25c943b9c26277c8f36718b5c505ed7666d
+  - starts_at:
+      day: 1
+      month: 8
+      year: 2001
+    ends_at:
+      day: 31
+      month: 8
+      year: 2005
+    company: University of Utrecht
+    company_linkedin_profile_url: https://www.linkedin.com/company/universiteit-utrecht
+    company_facebook_profile_url: null
+    title: PhD in Philosophy
+    description: Wrote my dissertation, taught lectures and seminars, supervised
+      students and presented my work at research events.
+    location: Berlin Area, Germany
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/universiteit-utrecht/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=b458e028273b3ba31ab09d360198f10b4f64c2a9479f85708695573cb83fbd5c
+education:
+  - starts_at:
+      day: 1
+      month: 1
+      year: 1997
+    ends_at:
+      day: 31
+      month: 12
+      year: 2005
+    field_of_study: Parts of my PhD and MA Studies
+    degree_name: Philosophy
+    school: Humboldt-Universität zu Berlin
+    school_linkedin_profile_url: https://www.linkedin.com/company/15463/
+    school_facebook_profile_url: null
+    description: null
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/humboldt-university-berlin/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=c93ed71f8c79af7f3525d1013863506e0df9cf45493a27512f11f4c1e739a392
+    grade: null
+    activities_and_societies: null
+  - starts_at:
+      day: 1
+      month: 1
+      year: 1994
+    ends_at:
+      day: 31
+      month: 12
+      year: 2005
+    field_of_study: Philosopy
+    degree_name: PhD
+    school: Utrecht University
+    school_linkedin_profile_url: https://www.linkedin.com/company/universiteit-utrecht
+    school_facebook_profile_url: null
+    description: null
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/universiteit-utrecht/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=b458e028273b3ba31ab09d360198f10b4f64c2a9479f85708695573cb83fbd5c
+    grade: null
+    activities_and_societies: |-
+      - President of student Association FUF
+      - Member of the Education Board
+      - Member of the Education Committee
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2012
+    ends_at:
+      day: 31
+      month: 12
+      year: 2012
+    field_of_study: null
+    degree_name: Computer Programming
+    school: Dev Bootcamp
+    school_linkedin_profile_url: https://www.linkedin.com/company/dev-bootcamp
+    school_facebook_profile_url: null
+    description: null
+    logo_url: https://s3.us-west-000.backblazeb2.com/proxycurl/company/dev-bootcamp/profile?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=0004d7f56a0400b0000000001%2F20250311%2Fus-west-000%2Fs3%2Faws4_request&X-Amz-Date=20250311T080509Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=e75624cefd7ec10501bbff51f4805be3d733d1169fb83c846aba42a19decaaf8
+    grade: null
+    activities_and_societies: null
+languages:
+  - CSS / SASS
+  - Dutch
+  - Elixir
+  - English
+  - French
+  - German
+  - HTML / HAML
+  - JavaScript / CoffeeScript
+  - Objective C
+  - Processing / Arduino
+languages_and_proficiencies:
+  - name: CSS / SASS
+    proficiency: FULL_PROFESSIONAL
+  - name: Dutch
+    proficiency: NATIVE_OR_BILINGUAL
+  - name: Elixir
+    proficiency: ELEMENTARY
+  - name: English
+    proficiency: FULL_PROFESSIONAL
+  - name: French
+    proficiency: ELEMENTARY
+  - name: German
+    proficiency: FULL_PROFESSIONAL
+  - name: HTML / HAML
+    proficiency: FULL_PROFESSIONAL
+  - name: JavaScript / CoffeeScript
+    proficiency: FULL_PROFESSIONAL
+  - name: Objective C
+    proficiency: ELEMENTARY
+  - name: Processing / Arduino
+    proficiency: LIMITED_WORKING
+accomplishment_organisations: []
+accomplishment_publications:
+  - name: "Off Beat: Pluralizing Rhythm"
+    publisher: Amsterdam
+    published_on:
+      day: 10
+      month: 7
+      year: 2013
+    description: Collection of essays drawing the attention to rhythm as a tool for
+      analyzing various cultural objects.
+    url: http://www.amazon.com/Off-Beat-Pluralizing-Thamyris-Intersecting/dp/9042036168
+  - name: Time Tracks
+    publisher: Zeno Institute for Philosophy
+    published_on:
+      day: 5
+      month: 12
+      year: 2005
+    description: "Time Tracks defends the statement that time isn't lineair but
+      should be understood as a complex constellation of time tracks: individual
+      temporal manifestations."
+    url: null
+accomplishment_honors_awards:
+  - title: Best of the Web Award
+    issuer: Museums and the Web
+    issued_on:
+      day: 1
+      month: 3
+      year: 2015
+    description: >-
+      + Nomination in two categories: 'Museum professional' and
+      'Innovative/Experimental'
+
+      + Project: Augmenting Masterpieces
+
+      + Output: App prototype
+  - title: Post-doctoral Research Fellowship
+    issuer: Jan van Eyck Academy
+    issued_on:
+      day: 1
+      month: 1
+      year: 2007
+    description: |
+      + Two Year Research Fellowship
+      + Project: The Intellectual Image
+      + Output: two articles
+  - title: Travel Grant
+    issuer: The Netherlands Organization for Scientific Research
+    issued_on:
+      day: 1
+      month: 1
+      year: 2005
+    description: |-
+      + Grant to do research in Berlin
+      + Output: 1 academic article
+  - title: Talent Grant
+    issuer: The Netherlands Organization for International Cooperation in Higher
+      Educatio
+    issued_on:
+      day: 1
+      month: 9
+      year: 2001
+    description: |-
+      + Grant to do research in Berlin 
+      + Output: PhD-proposal
+  - title: Serge Heederik Award
+    issuer: Serge Heederik Stichting
+    issued_on:
+      day: 1
+      month: 4
+      year: 2000
+    description: + Award for best essay
+accomplishment_patents: []
+accomplishment_courses: []
+accomplishment_projects:
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2019
+    ends_at: null
+    title: Bots With an Attitude
+    description: Bots with an attitude is a project for Planet B from Waag. Planet B
+      is a mission to recolonise planet Earth based on a narrative of DIY
+      expeditions to a fictional planet. The project ‘Bots with an attitude’ is
+      a support system for artistic researchers, who work or wish to work with
+      machine learning and AI. The bots are personal assistants. They help by
+      gathering information or helping publish the artist's work. However, they
+      are unusual bots, because they have a character and mind of their own,
+      leading to unexpected encounters and, hopefully, productive surprises.
+    url: null
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2019
+    ends_at: null
+    title: Public Badges
+    description: PublicSpaces is alternative platform for social interaction.
+      Nineteen prominent parties from the Dutch media, culture, education and
+      health sectors – such as media production company VPRO, research
+      collective Waag and cultural center Pakhuis de Zwijger, research the
+      possibility to reclaim the internet as a common good and minimize our
+      dependence upon commercial platforms, such as Facebook and Google.
+      Offcourse Studio developed a badges system that certifies the ethical
+      values of internet products and services.
+    url: null
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2015
+    ends_at: null
+    title: Offcourse_
+    description: Offcourse is a platform by Offcourse Studio. Offcourse is an open
+      source platform for online learning. The Internet is an endless source of
+      knowledge; blogs, video tutorials or even that one interesting podcast. We
+      developed a platform that allows people to gather the best sources online
+      and structure them into easy-shareable courses. This helps people to get
+      started with crowdlearning; sharing what they have learned and learning
+      that others have shared.
+    url: null
+  - starts_at:
+      day: 1
+      month: 6
+      year: 2013
+    ends_at:
+      day: 30
+      month: 6
+      year: 2013
+    title: Augmenting Masterpieces
+    description: >-
+      A collaborative project between the University of Amsterdam, the
+      Rijksmuseum and Unc Inc. The project is part of the Centre for Digital
+      Humanities and successfully developed an app to socially augment the
+      masterpieces in the museum using iBeacon technology. The app was nominated
+      for the 'Best of the Web' award in 2015. 
+
+
+      + Responsibilities: Project Leader
+
+      + Hardware Environment: Raspberry Pi, Arduino
+
+      + Software Environment: TBD
+    url: http://augmentingmasterpieces.nl/
+  - starts_at:
+      day: 1
+      month: 2
+      year: 2013
+    ends_at: null
+    title: Data Drive
+    description: >-
+      A meetup on how data are now driving knowledge production, representation,
+      and manipulation with speakers from academic, artistic and commercial
+      contexts.
+
+
+      + Responsibilities: Organize Events, Coordinate Partnerships, Funding,
+      Developer
+
+      + Software Environment: AngularJS, Heroku, Google Calendar, Bootstrap 3
+
+      + Development Tools: Vim, Yeoman, Sass, Jasmine, Karma, Git
+    url: http://datadrive.codingthehumanities.com
+  - starts_at:
+      day: 1
+      month: 3
+      year: 2013
+    ends_at:
+      day: 31
+      month: 12
+      year: 2015
+    title: Coding the Humanities
+    description: >-
+      A course designed for people to develop their own digital tools for doing
+      research. The Coding the Humanities curriculum involves an MA and BA
+      course, and a “crash course” for university employees. We cooperate with a
+      number of public organisations and private companies, such as Weyeser,
+      Tulp Interactive, Cast Your Art, Open Data Foundation, and Lifely.
+
+
+      + Responsibilities: Project Lead, Full-Stack Developer, Front-end
+      Designer, Deployment 
+
+      + Software Environment: AngularJS, Heroku, Sinatra, Redis
+
+      + Development Tools: Vim, Yeoman, Sass, RSpec, Git
+    url: http://codingthehumanities.com
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2012
+    ends_at:
+      day: 31
+      month: 12
+      year: 2015
+    title: Medial Operations v2
+    description: >-
+      Custom built environment with the aim to remove redundancy from the
+      workflow of academic teachers and researchers. The idea is that an
+      interactive course environment can be set up just by parsing a
+      markdown-styled syllabus.
+
+
+      == website no longer maintained ==
+
+
+      + Responsibilities: Full-Stack Developer, Front-End Designer
+
+      + Software Environment: Rails, MongoDB, Elastic Search
+
+      + Development Tools: Sublime Text 2, Git, Sass, Haml, Nokogiri, Rspec,
+      Cucumber
+    url: null
+  - starts_at:
+      day: 1
+      month: 3
+      year: 2013
+    ends_at:
+      day: 31
+      month: 12
+      year: 2013
+    title: Lost and Found in Space
+    description: >-
+      A single-page application that grew out of my ongoing dissatisfaction with
+      existing presentation tools (PowerPoint, keynote, Prezi). Each slide is a
+      fully database backed object and my future goal is to integrate real-time
+      audience feedback in the application.
+
+
+      + Resposibilities: Full-Stack Developer, Front-end Designer, Deployment
+
+      + Software Environment: AngularJS, Heroku, Rails, PostgreSQL
+
+      + Development Tools: Vim, Sass, Haml, Git, Jasmine
+
+
+      == website no longer maintained ==
+    url: null
+  - starts_at:
+      day: 1
+      month: 1
+      year: 2009
+    ends_at:
+      day: 31
+      month: 12
+      year: 2011
+    title: Medial Operations
+    description: >-
+      This project started out as a simple blog on which to publish my research.
+      It soon developed into an interactive environment for the courses that I
+      was teaching, replacing the inflexible Blackboard environment used in many
+      higher education institutes.
+
+
+      + Responsibilities: Front-End Developer, Deployment
+
+      + Software Environment: Wordpress, BuddyPress, PHP, Javascript, Ajax,
+      HTML, CSS, MediaWiki
+
+      + Development Tools: Coda, Photoshop
+
+
+      == website no longer maintained ==
+    url: http://www.medialoperations.com
+accomplishment_test_scores: []
+volunteer_work:
+  - starts_at:
+      day: 1
+      month: 11
+      year: 2014
+    ends_at:
+      day: 30
+      month: 11
+      year: 2014
+    title: Lecturer
+    cause: Arts And Culture
+    company: null
+    company_linkedin_profile_url: null
+    description: Provide lectures on tea history, knowledge, tea culture and ceremonies.
+    logo_url: null
+  - starts_at:
+      day: 1
+      month: 8
+      year: 2013
+    ends_at:
+      day: 31
+      month: 8
+      year: 2013
+    title: Teacher
+    cause: Science And Technology
+    company: null
+    company_linkedin_profile_url: null
+    description: >
+      Taught a Rails Workhshop to intermediate developers on August 24 at
+      Thoughtbot in San Francisco. RailsBridge is an organization that works to
+      increase diversity in tech by putting on a variety of awesome free
+      events. 
+    logo_url: null
+  - starts_at:
+      day: 1
+      month: 2
+      year: 2017
+    ends_at:
+      day: 28
+      month: 2
+      year: 2017
+    title: Teacher
+    cause: Science And Technology
+    company: null
+    company_linkedin_profile_url: null
+    description: ClojureBridge aims to increase diversity within the Clojure
+      community by offering free, beginner-friendly Clojure programming
+      workshops to people from underrepresented groups. I am a volunteer teacher
+      at the events.
+    logo_url: null
+certifications: []
+connections: 3453
+people_also_viewed:
+  - link: https://www.linkedin.com/in/stein-fortuin
+    name: Stein Fortuin
+    summary: Your challenges, our expertise - CEO & Co-Founder @ Varias
+    location: null
+  - link: https://www.linkedin.com/in/niels-mokkenstorm-a7714811b
+    name: Niels Mokkenstorm
+    summary: 🧑🏽‍💻 Pretty Decent Software Engineer
+    location: null
+  - link: https://www.linkedin.com/in/lloydnimetz
+    name: Lloyd Nimetz
+    summary: Serial entrepreneur, investor and educator.
+    location: null
+  - link: https://www.linkedin.com/in/frankzijlema
+    name: Frank Zijlema
+    summary: Co-Founder @ Varias
+    location: null
+  - link: https://www.linkedin.com/in/guusvheijningen
+    name: Guus van Heijningen
+    summary: Making AI accessible in the AgriFood industry | Founder of PEAX
+    location: null
+  - link: https://www.linkedin.com/in/evgeny-astapov
+    name: Evgeny Astapov
+    summary: CTO @ superconnectors.io 🎤 · Co-founder @ 10kreader 💹 · Helping
+      startups with introductions of a lifetime 🚀
+    location: null
+  - link: https://www.linkedin.com/in/hscheffer
+    name: Hans Scheffer
+    summary: Entrepreneur l Founder & CEO at Helloprint l Founder of The Home of
+      Growth l Co-Founder Engaige Technologies
+    location: null
+  - link: https://www.linkedin.com/in/elisaotañez
+    name: Elisa Otañez
+    summary: Social design and research
+    location: null
+  - link: https://www.linkedin.com/in/jakob-von-moers-6761292b
+    name: Jakob von Moers
+    summary: Founder | swey GmbH | Ex Red Bull | Ex deltatre - Bruin Sports Capital
+    location: null
+  - link: https://www.linkedin.com/in/ohadgilad
+    name: Ohad Gilad
+    summary: "Entrepreneur, Investor & Changemaker: Keadyn VC, 42workspace, Tech
+      Advocates Netherlands, Voor Goed Impact Agency"
+    location: null
+recommendations:
+  - >-
+    Greg V.
+
+
+
+
+    It’s been an absolute pleasure to know and work with Jan Hein for the past
+    few years. His patience while coaching and pair programming with me has been
+    instrumental to my learning of new technologies. The fact that Jan Hein is
+    always taking the initiative to help others, share his knowledge, all while
+    maintaining a genial and welcoming attitude makes him one of my favorite
+    people to collaborate with. Any team would be lucky to have him on board!
+  - >-
+    Nicholas Jayanty
+
+
+
+
+    Jan Hein is a force of nature. His ability to connect with people, his
+    technical skill, and his aptitude and fearlessness when it comes to
+    developing and exploring innovative concepts is truly special.  Emotional
+    intelligence that is off the charts makes Jan Hein a dynamic and inspiring
+    colleague and collaborator.
+activities: []
+similarly_named_profiles: []
+articles: []
+groups:
+  - profile_pic_url: https://media.licdn.com/dms/image/v2/D5607AQGUOLzpHLw1Uw/group-logo_image-shrink_400x400/group-logo_image-shrink_400x400/0/1689652254978?e=1741593600&v=beta&t=rg8Uguz6GUsiHw5mc8KRJ_6GetsKn3S7GLeipkXT_UU
+    name: Portfolio Careers in Asia
+    url: https://www.linkedin.com/groups/14287306
+  - profile_pic_url: https://media.licdn.com/dms/image/v2/D4E07AQH8V7l8K2m5gg/group-logo_image-shrink_400x400/group-logo_image-shrink_400x400/0/1652259405854?e=1741593600&v=beta&t=9BBKkwwu7UZQ2x33jduUsZg84ZH0QQgz486g-gcAqLU
+    name: Rotterdam Tech Social
+    url: https://www.linkedin.com/groups/12657102
+skills: []
+inferred_salary: null
+gender: null
+birth_date: null
+industry: null
+extra: null
+interests: []
+personal_emails: []
+personal_numbers: []

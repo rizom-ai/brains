@@ -1,0 +1,14 @@
+Generate a problem statement section for a professional website. This section should highlight the challenges or pain points that {{name}} helps clients solve.
+
+Include:
+
+1. **Title**: A clear title for this section (e.g., "Challenges We Solve")
+2. **Description**: A concise description of the key problems that potential clients face
+3. **Bullet Points** (optional): If relevant, provide 2-4 specific pain points as bullet points
+
+Keep the content professional, solution-oriented, and aligned with the profile:
+
+Name: {{name}}
+Tagline: {{tagline}}
+
+Return ONLY valid JSON with keys for: title, description, bulletPoints (optional array of strings), and enabled (set to true).

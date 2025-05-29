@@ -1,0 +1,18 @@
+Generate a FAQ (Frequently Asked Questions) section for a professional website. This section should address common questions that potential clients might have about working with {{name}}.
+
+Include:
+
+1. **Title**: A clear title for this section (e.g., "Frequently Asked Questions", "Common Questions")
+2. **Introduction** (optional): A brief statement introducing the FAQ section
+3. **FAQ Items**: 4-6 question and answer pairs, covering topics such as:
+   - Process and methodology
+   - Timelines and expectations
+   - Pricing or payment questions
+   - Common concerns or objections
+
+Keep the content professional, helpful, and aligned with the profile:
+
+Name: {{name}}
+Tagline: {{tagline}}
+
+Return ONLY valid JSON with keys for: title, introduction (optional), items (array of FAQ objects with question and answer properties), and enabled (set to true).

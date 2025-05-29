@@ -1,0 +1,15 @@
+Generate a Call-to-Action (CTA) section for a professional website. This section should encourage visitors to take the next step and contact {{name}}.
+
+Include:
+
+1. **Title**: A compelling headline for this section (e.g., "Ready to Get Started?", "Let's Work Together")
+2. **Subtitle** (optional): A brief supporting message that adds urgency or value
+3. **Button Text**: Clear, action-oriented text for the CTA button
+4. **Button Link**: Where the button should direct users (typically #contact or similar)
+
+Keep the content professional, direct, and aligned with the profile:
+
+Name: {{name}}
+Tagline: {{tagline}}
+
+Return ONLY valid JSON with keys for: title, subtitle (optional), buttonText, buttonLink, and enabled (set to true).

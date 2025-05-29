@@ -1,0 +1,58 @@
+---
+// Cta.astro - Call-to-action section for landing page
+interface Props {
+  cta: {
+    title: string;
+    subtitle?: string;
+    buttonText: string;
+    buttonLink: string;
+    enabled: boolean;
+  };
+}
+
+const { cta } = Astro.props;
+
+// Don't render if section is disabled
+if (!cta.enabled) return null;
+---
+
+<section id="cta" class="py-24 px-6 md:px-10 lg:px-16 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white relative overflow-hidden">
+  {/* Decorative background elements with animation */}
+  <div class="absolute inset-0 overflow-hidden opacity-10">
+    <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white blur-3xl animate-pulse-slow" style="animation-duration: 8s;"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg aspect-square animate-float" style="animation-duration: 15s;">
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+        <path fill="rgba(255, 255, 255, 0.1)" d="M45.3,-59.1C58.9,-49.5,70.5,-35.8,74.3,-20.7C78.2,-5.6,74.3,10.8,67.1,24.8C59.9,38.9,49.4,50.6,36.8,58.2C24.2,65.9,9.6,69.5,-4.1,69.4C-17.9,69.2,-35.8,65.4,-48.2,55.6C-60.6,45.8,-67.4,30,-71.2,13.5C-75,-3,-75.8,-20.3,-68.9,-34.4C-62,-48.5,-47.6,-59.4,-32.7,-67.9C-17.9,-76.4,-2.5,-82.5,10.9,-79.8C24.3,-77.1,31.7,-68.6,45.3,-59.1Z" transform="translate(100 100)" />
+      </svg>
+    </div>
+    <div class="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-white blur-3xl animate-pulse-slow" style="animation-delay: 2s; animation-duration: 10s;"></div>
+  </div>
+  
+  <div class="container mx-auto max-w-4xl text-center relative z-10 reveal-on-scroll-scale" data-animate-once="true">
+    <h2 class="text-3xl md:text-5xl font-bold mb-6 animate-fade-in-up">
+      {cta.title}
+    </h2>
+    
+    {cta.subtitle && (
+      <p class="text-xl text-white mb-10 max-w-2xl mx-auto animate-fade-in-up" style="animation-delay: 0.1s;">
+        {cta.subtitle}
+      </p>
+    )}
+    
+    <div class="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in" style="animation-delay: 0.2s;">
+      <a
+        href={cta.buttonLink}
+        class="inline-block px-8 py-4 text-blue-700 bg-white hover:bg-gray-100 rounded-xl font-medium transition-all duration-300 transform hover:-translate-y-1 shadow-xl animate-shine"
+      >
+        {cta.buttonText}
+      </a>
+      
+      <a
+        href="#about"
+        class="inline-block px-8 py-4 text-white border-2 border-white rounded-xl font-medium transition-all duration-300 transform hover:-translate-y-1 bg-blue-800 hover:bg-blue-900"
+      >
+        Learn More
+      </a>
+    </div>
+  </div>
+</section>

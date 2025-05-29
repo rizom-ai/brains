@@ -1,0 +1,14 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@components/*": ["src/components/*"],
+      "@layouts/*": ["src/layouts/*"],
+      "@website/*": ["src/*"]
+    },
+    "typeRoots": ["./src/types", "../../node_modules/@types"]
+  },
+  "include": ["src/**/*", "./src/types/*.d.ts"]
+}

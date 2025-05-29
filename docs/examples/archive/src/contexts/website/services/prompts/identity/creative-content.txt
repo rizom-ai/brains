@@ -1,0 +1,11 @@
+Generate creative website identity content for a professional named {{name}}{{company}}{{occupation}}.
+
+Include:
+1. Page title (for browser tab, SEO-optimized)
+2. Meta description (compelling summary for search engines, max 160 characters)
+3. Tagline (short phrase that captures value proposition)
+4. Pitch (brief elevator statement, 1-2 sentences)
+5. uniqueValue (what sets this professional apart)
+6. keyAchievements (array of 2-3 notable professional achievements)
+
+Return only these fields formatted as JSON.

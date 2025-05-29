@@ -1,0 +1,41 @@
+Generate a complete professional website identity for {{name}}{{occupation}}{{company}}.
+
+Create a comprehensive identity with the following elements, all formatted as a single JSON object:
+
+### Personal Data
+- name: The professional's full name (already provided as "{{name}}")
+- email: A professional email address 
+- company: Company or organization name
+- location: Geographic location
+- occupation: Professional role or title
+- industry: Industry or sector
+- yearsExperience: Years of professional experience (number)
+
+### Creative Content
+- title: Page title for browser tab (SEO-optimized)
+- description: Meta description (compelling summary for search engines, max 160 characters)
+- tagline: Short phrase that captures value proposition
+- pitch: Brief elevator statement (1-2 sentences)
+- uniqueValue: What sets this professional apart
+- keyAchievements: Array of 2-3 notable professional achievements
+
+### Brand Identity - Tone
+- formality: Choose one of: "casual", "conversational", "professional", or "academic"
+- personality: Array of 3-5 personality traits (e.g., "friendly", "authoritative", "innovative")
+- emotion: The primary emotional quality of the content (e.g., "inspiring", "reassuring")
+
+### Brand Identity - Content Style
+- writingStyle: Description of the ideal writing approach
+- sentenceLength: Choose one of: "short", "medium", "varied", or "long"
+- vocabLevel: Choose one of: "simple", "moderate", "advanced", or "technical"
+- useJargon: Boolean - whether industry terminology is appropriate
+- useHumor: Boolean - whether humor should be incorporated
+- useStories: Boolean - whether to use storytelling approaches
+
+### Brand Identity - Values
+- coreValues: Array of 3-5 principles or values that define the brand
+- targetAudience: Array of 2-3 primary audience segments
+- painPoints: Array of 2-4 problems this professional solves
+- desiredAction: What website visitors should do (e.g., "Schedule a consultation")
+
+Format as a single flat JSON object with these exact fields - no nested objects.

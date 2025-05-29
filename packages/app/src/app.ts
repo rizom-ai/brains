@@ -1,5 +1,6 @@
 import { Shell } from "@brains/shell";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
+import { Logger, LogLevel } from "@brains/utils";
 import { appConfigSchema, type AppConfig } from "./types.js";
 
 export class App {
@@ -25,14 +26,14 @@ export class App {
         plugins: config.plugins ?? [],
         ...config.shellConfig, // Allow overriding for tests/advanced use
       };
-      
+
       // Apply simple app config (these override shellConfig if both are provided)
       if (config.database) {
         shellConfig.database = { url: config.database };
       }
-      
+
       if (config.aiApiKey) {
-        shellConfig.ai = { 
+        shellConfig.ai = {
           apiKey: config.aiApiKey,
           provider: "anthropic",
           model: "claude-3-haiku-20240307",
@@ -40,7 +41,7 @@ export class App {
           maxTokens: 1000,
         };
       }
-      
+
       if (config.logLevel) {
         shellConfig.logging = { level: config.logLevel, context: config.name };
       }
@@ -53,16 +54,31 @@ export class App {
     // Initialize shell
     await this.shell.initialize();
 
+    // Create logger that respects log level
+    const logLevelMap: Record<string, LogLevel> = {
+      debug: LogLevel.DEBUG,
+      info: LogLevel.INFO,
+      warn: LogLevel.WARN,
+      error: LogLevel.ERROR,
+    };
+    const logLevel = logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
+    const logger = Logger.createFresh({
+      level: logLevel,
+      context: this.config.name,
+      useStderr: this.config.transport.type === "stdio", // MCP servers need stderr
+    });
+
     // Create and configure transport server
     const mcpServer = this.shell.getMcpServer();
 
     if (this.config.transport.type === "stdio") {
-      this.server = new StdioMCPServer();
+      this.server = new StdioMCPServer({ logger });
       this.server.connectMCPServer(mcpServer);
     } else {
       this.server = new StreamableHTTPServer({
         port: this.config.transport.port,
         host: this.config.transport.host,
+        logger,
       });
       this.server.connectMCPServer(mcpServer);
     }
@@ -74,7 +90,7 @@ export class App {
     }
 
     await this.server.start();
-    
+
     // Set up signal handlers
     this.setupSignalHandlers();
   }
@@ -83,12 +99,12 @@ export class App {
     if (this.isShuttingDown) {
       return; // Already shutting down
     }
-    
+
     this.isShuttingDown = true;
-    
+
     // Remove signal handlers
     this.cleanupSignalHandlers();
-    
+
     if (this.server) {
       await this.server.stop();
     }
@@ -99,30 +115,49 @@ export class App {
    * This is the simplest way to start an app
    */
   public async run(): Promise<void> {
+    // Create logger for run output
+    const logLevelMap: Record<string, LogLevel> = {
+      debug: LogLevel.DEBUG,
+      info: LogLevel.INFO,
+      warn: LogLevel.WARN,
+      error: LogLevel.ERROR,
+    };
+    const logLevel = logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
+    const logger = Logger.createFresh({
+      level: logLevel,
+      context: this.config.name,
+      useStderr: this.config.transport.type === "stdio",
+    });
+
     try {
-      console.log(`🚀 Starting ${this.config.name} v${this.config.version}`);
-      
+      logger.info(`🚀 Starting ${this.config.name} v${this.config.version}`);
+
       await this.initialize();
-      console.log("✅ App initialized successfully");
-      
+      logger.info("✅ App initialized successfully");
+
       await this.start();
-      
+
       if (this.config.transport.type === "stdio") {
-        console.error("Brain stdio server started");
+        logger.info("Brain stdio server started");
       } else {
-        console.log(`🌐 Brain HTTP server ready at http://${this.config.transport.host}:${this.config.transport.port}/mcp`);
-        console.log(`   Health check: http://${this.config.transport.host}:${this.config.transport.port}/health`);
-        console.log(`   Status: http://${this.config.transport.host}:${this.config.transport.port}/status`);
+        logger.info(
+          `🌐 Brain HTTP server ready at http://${this.config.transport.host}:${this.config.transport.port}/mcp`,
+        );
+        logger.info(
+          `   Health check: http://${this.config.transport.host}:${this.config.transport.port}/health`,
+        );
+        logger.info(
+          `   Status: http://${this.config.transport.host}:${this.config.transport.port}/status`,
+        );
       }
-      
+
       // Keep process alive
       if (this.config.transport.type === "stdio") {
         // For stdio, we need to keep stdin open
         process.stdin.resume();
       }
-      
     } catch (error) {
-      console.error(`❌ Failed to start ${this.config.name}:`, error);
+      logger.error(`❌ Failed to start ${this.config.name}:`, error);
       process.exit(1);
     }
   }
@@ -130,7 +165,10 @@ export class App {
   /**
    * Static convenience method to create and run an app in one call
    */
-  public static async run(config?: Partial<AppConfig>, shell?: Shell): Promise<void> {
+  public static async run(
+    config?: Partial<AppConfig>,
+    shell?: Shell,
+  ): Promise<void> {
     const app = App.create(config, shell);
     await app.run();
   }
@@ -138,7 +176,7 @@ export class App {
   private setupSignalHandlers(): void {
     const gracefulShutdown = async (signal: string): Promise<void> => {
       console.log(`\nReceived ${signal}, shutting down gracefully...`);
-      
+
       try {
         await this.stop();
         process.exit(0);
@@ -161,7 +199,7 @@ export class App {
     // Store handlers so we can remove them later
     this.shutdownHandlers.push(
       () => process.removeListener("SIGINT", sigintHandler),
-      () => process.removeListener("SIGTERM", sigtermHandler)
+      () => process.removeListener("SIGTERM", sigtermHandler),
     );
   }
 

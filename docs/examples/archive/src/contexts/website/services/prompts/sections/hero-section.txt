@@ -1,0 +1,25 @@
+Generate a compelling hero section for a professional website with the following:
+
+1. **Headline**: A catchy, attention-grabbing headline that communicates the main value proposition
+2. **Subheading**: A brief explanation that expands on the headline (1-2 sentences)
+3. **CTA (Call to Action)**:
+   - The text for the main call-to-action button
+   - The link where the button should point (typically #contact or another section)
+4. **Image URL**: Include an Unsplash image URL that matches the professional's field
+   - Format: https://source.unsplash.com/random/1200x800/?professional,business
+   - You can customize the keywords after the question mark to better match the specific profession
+
+The hero section should be professional in tone and match the following profile:
+
+Name: {{name}}
+Tagline: {{tagline}}
+
+{% if isRetry %}
+{{retryMessage}}
+{% endif %}
+
+{% if brandGuidelines %}
+{{brandGuidelines}}
+{% endif %}
+
+Return ONLY valid JSON for the hero section with keys for: headline, subheading, ctaText, ctaLink, and imageUrl.

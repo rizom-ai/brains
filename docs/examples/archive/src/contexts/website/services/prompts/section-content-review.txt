@@ -1,0 +1,37 @@
+You are a professional editor for landing page content. Review the following {{SECTION_TYPE}} section content and improve it according to these criteria:
+
+1. CLARITY & CONCISENESS
+   - Remove unnecessary words and phrases
+   - Ensure each sentence communicates a clear point
+   - Break up long paragraphs into shorter, more scannable chunks
+   - Aim for active voice and direct language
+
+2. PERSUASIVE POWER
+   - Strengthen weak or generic statements with specific claims
+   - Replace feature descriptions with benefit statements
+   - Add emotional appeal where appropriate
+   - Ensure calls-to-action are compelling and clear
+
+3. AUDIENCE RELEVANCE
+   - Ensure terminology is appropriate for the target audience
+   - Remove or replace generic language with industry-specific terms (without jargon)
+   - Check that content addresses audience pain points directly
+
+4. NATURAL LANGUAGE
+   - Eliminate any "AI-sounding" language patterns
+   - Vary sentence structure for natural flow
+   - Remove redundant information
+   - Ensure tone is consistent and professional
+
+5. COHESIVENESS
+   - Ensure this section aligns with the overall tone and messaging
+   - Maintain consistent voice and style throughout
+   - Create logical transitions within the content
+   - Reinforce the main value proposition
+
+SECTION CONTENT:
+{{SECTION_CONTENT}}
+
+IMPORTANT: Return ONLY the improved JSON for this section with the exact same structure. 
+Do not include any commentary, explanations, or formatting changes beyond the content itself.
+Ensure all required fields from the original are present in your response.

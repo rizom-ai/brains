@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "server": "bun run src/index.ts --server",
-    "build": "bun build src/index.ts --compile --outfile dist/test-brain",
-    "build:prod": "bun build src/index.ts --compile --minify --outfile dist/test-brain",
+    "compile": "bun build src/index.ts --compile --outfile dist/test-brain",
+    "compile:prod": "bun build src/index.ts --compile --minify --outfile dist/test-brain",
     "test": "bun test",
     "start": "./dist/test-brain",
     "start:server": "./dist/test-brain --server",

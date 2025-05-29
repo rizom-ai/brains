@@ -1,0 +1,60 @@
+---
+// Hero.astro - Hero section component for landing page
+interface Props {
+  hero: {
+    headline: string;
+    subheading: string;
+    ctaText: string;
+    ctaLink: string;
+    imageUrl?: string;
+  };
+}
+
+const { hero } = Astro.props;
+---
+
+<section id="hero" class="py-20 px-6 md:px-10 lg:px-16 relative bg-gradient-to-r from-primary-50 to-primary-100 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
+  {/* Background decorative elements with subtle pulse animation */}
+  <div class="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-primary-100 dark:bg-primary-900 rounded-full opacity-50 blur-3xl animate-pulse-slow"></div>
+  <div class="absolute bottom-0 left-0 -mb-20 -ml-20 w-96 h-96 bg-primary-200 dark:bg-primary-800 rounded-full opacity-40 blur-3xl animate-pulse-slow" style="animation-delay: 2s;"></div>
+  
+  <div class="container mx-auto max-w-6xl flex flex-col md:flex-row gap-12 items-center relative z-10">
+    <div class="flex-1 space-y-8 text-center md:text-left">
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight">
+        <span class="block animate-fade-in">{hero.headline}</span>
+      </h1>
+      <p class="text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-2xl animate-slide-up">
+        {hero.subheading}
+      </p>
+      <div class="mt-8 animate-fade-in" style="animation-delay: 0.3s;">
+        <a
+          href={hero.ctaLink}
+          class="inline-block px-8 py-4 text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg font-medium shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 animate-shine"
+        >
+          {hero.ctaText}
+        </a>
+      </div>
+    </div>
+    {hero.imageUrl ? (
+      <div class="flex-1 flex justify-center md:justify-end animate-float-with-shadow">
+        <img
+          src={hero.imageUrl}
+          alt="Hero image"
+          class="w-full max-w-md rounded-xl shadow-soft hover:shadow-lg transition-all duration-500"
+          loading="eager"
+        />
+      </div>
+    ) : (
+      <div class="flex-1 flex justify-center md:justify-end animate-float-with-shadow h-64 md:h-96">
+        <div class="w-full max-w-md rounded-xl bg-white/50 dark:bg-gray-800/50 shadow-soft backdrop-blur-sm flex items-center justify-center">
+          <div class="text-primary-700 dark:text-primary-300 text-6xl opacity-30 animate-pulse-slow">
+            {/* Placeholder icon/graphic */}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-24 h-24">
+              <path d="M12.378 1.602a.75.75 0 00-.756 0L3 6.632l9 5.25 9-5.25-8.622-5.03zM21.75 7.93l-9 5.25v9l8.628-5.032a.75.75 0 00.372-.648V7.93zM11.25 22.18v-9l-9-5.25v8.57a.75.75 0 00.372.648l8.628 5.033z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+</section>

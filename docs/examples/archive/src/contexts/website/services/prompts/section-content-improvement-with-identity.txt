@@ -1,0 +1,44 @@
+Improve the content of a {{sectionType}} section for a professional landing page.
+
+CURRENT SECTION CONTENT:
+{{sectionContent}}
+
+QUALITY ASSESSMENT FEEDBACK:
+{{assessmentFeedback}}
+
+WEBSITE IDENTITY INFORMATION:
+Name: {{name}}
+Tagline: {{tagline}}
+Professional description: {{description}}
+{{uniqueValue}}
+{{occupation}}
+{{industry}}
+
+BRAND IDENTITY GUIDELINES:
+Tone:
+- Formality: {{formality}}
+- Personality traits: {{personality}}
+- Emotional quality: {{emotion}}
+
+Content Style:
+- Writing style: {{writingStyle}}
+- Sentence length: {{sentenceLength}}
+- Vocabulary level: {{vocabLevel}}
+- Use jargon: {{useJargon}}
+- Use humor: {{useHumor}}
+- Use stories: {{useStories}}
+
+Brand Values:
+- Core values: {{coreValues}}
+- Target audience: {{targetAudience}}
+- Problem solving: {{painPoints}}
+- Desired action: {{desiredAction}}
+
+IMPROVEMENT INSTRUCTIONS:
+1. Keep the same structure but improve the content based on the quality assessment feedback
+2. Ensure the content aligns with the website identity and brand guidelines
+3. Make sure the content is engaging, clear, and focused on the target audience
+4. Maintain the same fields and data structure as the original
+5. Return only the improved content in valid JSON format, maintaining the schema of the original
+
+Apply the suggested improvements to create a more effective, higher-quality section. Ensure the tone, language, and content align perfectly with the defined brand identity. Return ONLY the valid JSON content for the improved section, nothing else.

@@ -1,0 +1,17 @@
+Generate a services section for a professional website. This section should outline the key services that {{name}} offers to clients.
+
+Include:
+
+1. **Title**: A clear title for this section (e.g., "Services", "What I Offer")
+2. **Introduction** (optional): A brief overview of the service approach
+3. **Service Items**: 3-5 specific services, each with:
+   - Title: Short, descriptive name for the service
+   - Description: 1-2 sentences explaining the service and its benefits
+   - Icon (optional): A suggested icon name (e.g., "code", "chart", "people")
+
+Keep the content professional and aligned with the profile:
+
+Name: {{name}}
+Tagline: {{tagline}}
+
+Return ONLY valid JSON with keys for: title, introduction (optional), and items (array of service objects with title, description, and optional icon).

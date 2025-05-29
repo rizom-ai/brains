@@ -1,0 +1,99 @@
+---
+// Testimonials.astro - Testimonials section for landing page
+interface Props {
+  testimonials: {
+    title: string;
+    introduction?: string;
+    items: Array<{
+      quote: string;
+      author: string;
+      company?: string;
+      imageUrl?: string;
+    }>;
+    clientLogos?: Array<{
+      name: string;
+      imageUrl?: string;
+    }>;
+    enabled: boolean;
+  };
+}
+
+const { testimonials } = Astro.props;
+
+// Don't render if section is disabled
+if (!testimonials.enabled) return null;
+---
+
+<section class="py-20 px-6 md:px-10 lg:px-16 bg-gray-50 dark:bg-gray-900">
+  <div class="container mx-auto max-w-6xl">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6 text-gray-900 dark:text-white">
+        {testimonials.title}
+      </h2>
+      
+      {testimonials.introduction && (
+        <p class="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+          {testimonials.introduction}
+        </p>
+      )}
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+      {testimonials.items.map((item) => (
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md border border-gray-100 dark:border-gray-700">
+          <div class="text-gray-600 dark:text-gray-300 text-lg italic mb-6">
+            "{item.quote}"
+          </div>
+          
+          <div class="flex items-center">
+            {item.imageUrl && (
+              <div class="mr-4">
+                <img 
+                  src={item.imageUrl} 
+                  alt={`Photo of ${item.author}`} 
+                  class="w-14 h-14 rounded-full object-cover"
+                />
+              </div>
+            )}
+            
+            <div>
+              <div class="font-bold text-gray-900 dark:text-white">
+                {item.author}
+              </div>
+              
+              {item.company && (
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                  {item.company}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+    
+    {testimonials.clientLogos && testimonials.clientLogos.length > 0 && (
+      <div class="mt-12">
+        <h3 class="text-center text-xl font-semibold mb-8 text-gray-700 dark:text-gray-300">
+          Trusted by
+        </h3>
+        
+        <div class="flex flex-wrap justify-center gap-8 items-center opacity-70">
+          {testimonials.clientLogos.map((logo) => (
+            <div class="h-16 flex items-center">
+              {logo.imageUrl ? (
+                <img 
+                  src={logo.imageUrl} 
+                  alt={logo.name} 
+                  class="max-h-full grayscale hover:grayscale-0 transition-all"
+                />
+              ) : (
+                <span class="text-lg font-semibold text-gray-500 dark:text-gray-400">{logo.name}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+</section>
