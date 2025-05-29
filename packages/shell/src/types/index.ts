@@ -30,7 +30,6 @@ export interface IntentAnalysis {
   confidenceScore: number;
 }
 
-
 /**
  * Query processing options
  */

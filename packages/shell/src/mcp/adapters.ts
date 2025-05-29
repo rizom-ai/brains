@@ -37,9 +37,7 @@ export class QueryProcessorAdapter {
   /**
    * Execute a query with MCP-style parameters
    */
-  async executeQuery(
-    params: MCPQueryParams,
-  ): Promise<unknown> {
+  async executeQuery(params: MCPQueryParams): Promise<unknown> {
     // Translate MCP parameters to internal QueryOptions
     const queryOptions: QueryOptions<unknown> = {
       schema: defaultQueryResponseSchema, // Default schema, may be overridden below
@@ -85,10 +83,7 @@ export class QueryProcessorAdapter {
     }
 
     // Execute query with translated options
-    return this.queryProcessor.processQuery(
-      params.query,
-      queryOptions,
-    );
+    return this.queryProcessor.processQuery(params.query, queryOptions);
   }
 }
 

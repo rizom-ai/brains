@@ -150,11 +150,7 @@ export class MessageBus implements IMessageBus {
    */
   async publish(message: BaseMessage): Promise<MessageResponse | null> {
     // Validate message structure
-    if (
-      typeof message !== "object" ||
-      !message.type ||
-      !message.id
-    ) {
+    if (typeof message !== "object" || !message.type || !message.id) {
       this.logger.error(
         "Invalid message structure - missing required fields 'id' or 'type'",
       );

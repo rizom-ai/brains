@@ -52,7 +52,7 @@ const createMockAIService = (): {
         const contextMatch = userPrompt.match(/Context:\n([\s\S]+?)\n\nQuery:/);
         if (contextMatch) {
           // Extract entity info from context
-          const contextLines = contextMatch[1].split('\n\n');
+          const contextLines = contextMatch[1].split("\n\n");
           for (const line of contextLines) {
             const match = line.match(/\[(\w+)\] (.+)\n(.+)/);
             if (match) {
@@ -60,12 +60,14 @@ const createMockAIService = (): {
                 id: "test-id",
                 type: match[1],
                 title: match[2],
-                excerpt: match[3].substring(0, 150) + (match[3].length > 150 ? "..." : ""),
+                excerpt:
+                  match[3].substring(0, 150) +
+                  (match[3].length > 150 ? "..." : ""),
               });
             }
           }
         }
-        
+
         return {
           object: schema.parse({
             message: "Mock answer",

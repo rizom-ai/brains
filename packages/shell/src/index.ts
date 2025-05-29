@@ -50,9 +50,7 @@ export * from "./db/schema";
 export type { SerializableEntity, SerializableQueryResult } from "./types";
 
 // Schemas for validation
-export {
-  serializableEntitySchema,
-} from "./types";
+export { serializableEntitySchema } from "./types";
 
 // Default schemas
 export {
@@ -63,6 +61,4 @@ export {
 } from "./schemas/defaults";
 
 // Serialization utilities
-export {
-  toSerializableEntity,
-} from "./utils/serialization";
+export { toSerializableEntity } from "./utils/serialization";

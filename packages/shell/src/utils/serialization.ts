@@ -1,10 +1,5 @@
-import type {
-  Entity,
-  SerializableEntity,
-} from "../types";
-import {
-  serializableEntitySchema,
-} from "../types";
+import type { Entity, SerializableEntity } from "../types";
+import { serializableEntitySchema } from "../types";
 
 /**
  * Convert an Entity to its serializable form, removing methods and non-serializable properties

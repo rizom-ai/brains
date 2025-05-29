@@ -7,6 +7,7 @@ This document outlines the plan for implementing a schema formatter system that 
 ## Problem Statement
 
 Currently, the CLI and Matrix interfaces are hardcoded to expect a `message` field from query responses. This limits the system's ability to:
+
 - Display rich, structured data appropriately
 - Let contexts define their own response formats
 - Provide interface-specific formatting (text vs markdown vs HTML)
@@ -14,42 +15,45 @@ Currently, the CLI and Matrix interfaces are hardcoded to expect a `message` fie
 ## Proposed Solution
 
 Implement a **Schema Formatter System** that:
+
 1. Separates data structure (schemas) from display logic (formatters)
 2. Allows contexts to register custom formatters for their schemas
 3. Provides intelligent fallbacks for unregistered schemas
 4. Maintains backward compatibility with existing `message`-based responses
+
+## Design Philosophy
+
+**Keep it simple**: 
+- Formatters have one job: transform structured data into human-readable markdown text
+- No configuration options - different views should use different formatters
+- Interfaces handle presentation concerns (colors, emoji support, etc.)
+- Shell outputs markdown, interfaces adapt it to their medium
 
 ## Architecture
 
 ### Core Components
 
 ```typescript
-// 1. Base Formatter Interface
+// 1. Simple Formatter Interface - no options!
 interface SchemaFormatter {
-  format(data: unknown, options?: FormatterOptions): string;
+  format(data: unknown): string;
   canFormat(data: unknown): boolean;
-}
-
-interface FormatterOptions {
-  style?: 'plain' | 'markdown' | 'ansi';
-  maxLength?: number;
-  includeMetadata?: boolean;
 }
 
 // 2. Formatter Registry
 class SchemaFormatterRegistry {
   private formatters: Map<string, SchemaFormatter>;
   private defaultFormatter: SchemaFormatter;
-  
+
   register(schemaName: string, formatter: SchemaFormatter): void;
-  format(data: unknown, schemaName?: string, options?: FormatterOptions): string;
+  format(data: unknown, schemaName?: string): string;
   getFormatter(schemaName: string): SchemaFormatter | null;
 }
 
 // 3. Schema-Aware Query Options
 interface QueryOptions<T = unknown> {
   schema: z.ZodType<T>;
-  schemaName?: string;  // Optional hint for formatter selection
+  schemaName?: string; // Optional hint for formatter selection
   // ... existing options
 }
 ```
@@ -59,42 +63,39 @@ interface QueryOptions<T = unknown> {
 ```typescript
 // 1. Smart Default Formatter
 class DefaultSchemaFormatter implements SchemaFormatter {
-  format(data: unknown, options?: FormatterOptions): string {
-    // Check common display fields
-    if (this.hasField(data, 'message')) return data.message;
-    if (this.hasField(data, 'text')) return data.text;
-    if (this.hasField(data, 'display')) return data.display;
-    
+  format(data: unknown): string {
+    // Check common display fields first
+    if (this.hasField(data, "message")) return data.message;
+    if (this.hasField(data, "text")) return data.text;
+    if (this.hasField(data, "display")) return data.display;
+
     // Format known patterns
-    if (this.looksLikeList(data)) return this.formatList(data, options);
-    if (this.looksLikeRecord(data)) return this.formatRecord(data, options);
-    
-    // Fallback to JSON
-    return JSON.stringify(data, null, 2);
-  }
-}
+    if (Array.isArray(data)) return this.formatArray(data);
+    if (this.isObject(data)) return this.formatObject(data);
 
-// 2. Pattern-Based Formatters
-class ListFormatter implements SchemaFormatter {
-  canFormat(data: unknown): boolean {
-    return Array.isArray(data) || 
-           (typeof data === 'object' && 'items' in data);
+    // Fallback to string representation
+    return String(data);
   }
-  
-  format(data: unknown, options?: FormatterOptions): string {
-    // Format arrays and list-like objects
-  }
-}
 
-class RecordFormatter implements SchemaFormatter {
-  canFormat(data: unknown): boolean {
-    return typeof data === 'object' && 
-           !Array.isArray(data) &&
-           Object.keys(data).length > 0;
+  private formatArray(items: unknown[]): string {
+    return items.map((item, i) => `${i + 1}. ${this.format(item)}`).join('\n');
   }
-  
-  format(data: unknown, options?: FormatterOptions): string {
-    // Format object records with nice key-value display
+
+  private formatObject(obj: Record<string, unknown>): string {
+    // Smart object formatting with emoji
+    const entries = Object.entries(obj);
+    return entries.map(([key, value]) => {
+      const icon = this.getIconForKey(key);
+      return `${icon} **${this.humanize(key)}**: ${value}`;
+    }).join('\n');
+  }
+
+  private getIconForKey(key: string): string {
+    const icons: Record<string, string> = {
+      name: '👤', title: '💼', email: '📧', phone: '📱',
+      date: '📅', time: '🕐', location: '📍', status: '📊'
+    };
+    return icons[key.toLowerCase()] || '•';
   }
 }
 ```
@@ -104,109 +105,152 @@ class RecordFormatter implements SchemaFormatter {
 ### Phase 1: Core Infrastructure (Week 1)
 
 1. **Create formatter interfaces and base classes**
-   - [ ] Define `SchemaFormatter` interface in `packages/shell/src/formatters/types.ts`
+
+   - [ ] Define simple `SchemaFormatter` interface in `packages/shell/src/formatters/types.ts`
    - [ ] Implement `SchemaFormatterRegistry` in `packages/shell/src/formatters/registry.ts`
    - [ ] Create `DefaultSchemaFormatter` in `packages/shell/src/formatters/default.ts`
    - [ ] Add formatter registry to Shell class
 
 2. **Update QueryProcessor**
+
    - [ ] Add optional `schemaName` to `QueryOptions`
-   - [ ] Store schema name with query results for formatter hints
-   - [ ] Maintain backward compatibility
+   - [ ] Extract schema description as default schemaName hint
+   - [ ] Pass schemaName through to query results
 
 3. **Update App interface context**
    - [ ] Modify `processQuery` to use formatter registry
-   - [ ] Pass formatter options based on interface type
-   - [ ] Ensure existing behavior remains unchanged
+   - [ ] Return formatted markdown instead of just message field
+   - [ ] Ensure backward compatibility (message field still works)
 
 ### Phase 2: Context Integration (Week 2)
 
 1. **Profile Context Example**
+
    ```typescript
    class ProfileContext implements Plugin {
      async initialize(shell: Shell) {
        const registry = shell.getFormatterRegistry();
+
+       // Different formatters for different views
+       registry.register("profileCard", {
+         format: (data) => `👤 ${data.name}\n💼 ${data.title}\n📧 ${data.email}`
+       });
        
-       // Register profile-specific formatters
-       registry.register('profileSummary', new ProfileSummaryFormatter());
-       registry.register('profileExperiences', new ProfileExperienceFormatter());
-       registry.register('profileSkills', new ProfileSkillsFormatter());
+       registry.register("profileDetail", {
+         format: (data) => {
+           // Full profile with experiences, education, etc.
+           return ProfileFormatter.getInstance().format(data);
+         }
+       });
      }
    }
    ```
 
 2. **Note Context Example**
+
    ```typescript
-   registry.register('noteList', {
+   // Simple inline formatter
+   registry.register("noteList", {
      format: (data) => {
        return data.notes
-         .map(note => `📝 ${note.title}\n   ${note.preview}`)
-         .join('\n\n');
-     }
+         .map(note => `📝 **${note.title}**\n   ${note.preview}`)
+         .join("\n\n");
+     },
+     canFormat: (data) => data?.notes && Array.isArray(data.notes)
    });
    ```
 
 3. **Task Context Example**
    ```typescript
-   registry.register('taskList', new TaskListFormatter({
-     groupByStatus: true,
-     showDueDates: true,
-     useEmoji: true
-   }));
-   ```
-
-### Phase 3: Advanced Features (Week 3)
-
-1. **Interface-Specific Formatting**
-   ```typescript
-   // CLI Interface
-   processQuery(query, { 
-     formatterOptions: { style: 'ansi' } 
-   });
-   
-   // Matrix Interface  
-   processQuery(query, { 
-     formatterOptions: { style: 'markdown' } 
-   });
-   ```
-
-2. **Composite Formatters**
-   ```typescript
-   class CompositeFormatter implements SchemaFormatter {
-     constructor(private formatters: SchemaFormatter[]) {}
+   // Class-based formatter for complex logic
+   class TaskListFormatter implements SchemaFormatter {
+     format(data: { tasks: Task[] }): string {
+       const grouped = this.groupByStatus(data.tasks);
+       return this.formatGroups(grouped);
+     }
      
-     format(data: unknown, options?: FormatterOptions): string {
-       for (const formatter of this.formatters) {
-         if (formatter.canFormat(data)) {
-           return formatter.format(data, options);
-         }
+     canFormat(data: unknown): boolean {
+       return data?.tasks && Array.isArray(data.tasks);
+     }
+   }
+   
+   registry.register("taskList", new TaskListFormatter());
+   ```
+
+### Phase 3: Interface Adaptations
+
+1. **CLI Interface Emoji Handling**
+
+   ```typescript
+   class CLIInterface {
+     private supportsEmoji = this.detectEmojiSupport();
+     
+     private processResponse(markdown: string): string {
+       if (!this.supportsEmoji) {
+         return this.stripEmoji(markdown);
        }
-       throw new Error('No suitable formatter found');
+       return this.markdownToAnsi(markdown);
+     }
+     
+     private detectEmojiSupport(): boolean {
+       return process.env.TERM_PROGRAM === 'iTerm.app' || 
+              !!process.env.WT_SESSION || // Windows Terminal
+              !!process.env.KONSOLE_VERSION;
      }
    }
    ```
 
-3. **Format Hints in Schemas**
+2. **Format Hints in Schemas**
    ```typescript
-   const profileSchema = z.object({
+   // Schemas can hint at their preferred formatter
+   const profileSummarySchema = z.object({
      name: z.string(),
      title: z.string(),
-   }).describe('profileSummary'); // Hint for formatter selection
+     email: z.string()
+   }).describe("profileCard"); // Maps to 'profileCard' formatter
+   
+   // QueryProcessor can extract this hint
+   const schemaName = schema.description || undefined;
+   ```
+
+3. **Fallback Chain**
+   ```typescript
+   class SchemaFormatterRegistry {
+     format(data: unknown, schemaName?: string): string {
+       // 1. Try specific formatter if schemaName provided
+       if (schemaName && this.formatters.has(schemaName)) {
+         return this.formatters.get(schemaName).format(data);
+       }
+       
+       // 2. Try to find a formatter that can handle this data
+       for (const [name, formatter] of this.formatters) {
+         if (formatter.canFormat(data)) {
+           return formatter.format(data);
+         }
+       }
+       
+       // 3. Use default formatter
+       return this.defaultFormatter.format(data);
+     }
+   }
    ```
 
 ## Migration Strategy
 
 ### Step 1: Backward Compatibility
+
 - Default formatter checks for `message` field first
 - Existing queries continue to work unchanged
 - No breaking changes to interfaces
 
 ### Step 2: Gradual Adoption
+
 - Contexts can optionally register formatters
 - Unregistered schemas fall back to default formatting
 - Interfaces can opt-in to formatter options
 
 ### Step 3: Full Migration
+
 - All contexts provide appropriate formatters
 - Interfaces fully utilize formatter options
 - Rich, context-aware displays throughout
@@ -214,29 +258,31 @@ class RecordFormatter implements SchemaFormatter {
 ## Testing Strategy
 
 ### Unit Tests
+
 ```typescript
-describe('SchemaFormatterRegistry', () => {
-  it('should format using registered formatter');
-  it('should fall back to default formatter');
-  it('should pass options to formatters');
-  it('should handle missing schema names');
+describe("SchemaFormatterRegistry", () => {
+  it("should format using registered formatter");
+  it("should fall back to default formatter");
+  it("should pass options to formatters");
+  it("should handle missing schema names");
 });
 
-describe('DefaultSchemaFormatter', () => {
-  it('should extract message field');
-  it('should format arrays as lists');
-  it('should format objects as records');
-  it('should handle nested data');
+describe("DefaultSchemaFormatter", () => {
+  it("should extract message field");
+  it("should format arrays as lists");
+  it("should format objects as records");
+  it("should handle nested data");
 });
 ```
 
 ### Integration Tests
+
 ```typescript
-describe('Query formatting integration', () => {
-  it('should format profile queries with ProfileFormatter');
-  it('should format note queries with NoteFormatter');
-  it('should maintain backward compatibility');
-  it('should respect interface-specific options');
+describe("Query formatting integration", () => {
+  it("should format profile queries with ProfileFormatter");
+  it("should format note queries with NoteFormatter");
+  it("should maintain backward compatibility");
+  it("should respect interface-specific options");
 });
 ```
 
@@ -252,32 +298,37 @@ describe('Query formatting integration', () => {
 ## Example Use Cases
 
 ### 1. Profile Query
-```typescript
-// Query
-"Show me John's profile"
 
-// Response Schema
+```typescript
+// Query: "Show me John's profile"
+// Uses schemaName: "profileCard"
+
+// Response Data:
 {
   name: "John Smith",
   title: "Senior Engineer",
   company: "TechCorp",
-  skills: ["TypeScript", "React", "Node.js"]
+  email: "john@techcorp.com"
 }
 
-// CLI Format (ANSI)
-👤 John Smith
+// Formatter Output (Markdown):
+👤 **John Smith**
 💼 Senior Engineer at TechCorp
-🛠️ Skills: TypeScript, React, Node.js
+📧 john@techcorp.com
 
-// Matrix Format (Markdown)
-**John Smith**
-*Senior Engineer at TechCorp*
-- TypeScript
-- React  
-- Node.js
+// CLI displays (if emoji supported):
+👤 John Smith              # Bold via ANSI
+💼 Senior Engineer at TechCorp
+📧 john@techcorp.com
+
+// CLI displays (if no emoji):
+[P] John Smith
+[W] Senior Engineer at TechCorp
+[E] john@techcorp.com
 ```
 
 ### 2. Task List Query
+
 ```typescript
 // Query
 "What are my pending tasks?"
@@ -296,11 +347,12 @@ describe('Query formatting integration', () => {
 📋 Pending Tasks (2)
   ⏰ Review PR (due tomorrow)
   📅 Update docs (due in 2 days)
-  
+
 ✅ Progress: 2/4 completed
 ```
 
 ### 3. Search Results
+
 ```typescript
 // Query
 "Find notes about TypeScript"
@@ -320,8 +372,8 @@ describe('Query formatting integration', () => {
 
 1. TypeScript Basics (95% match)
    "TypeScript is a typed superset of JavaScript..."
-   
-2. Advanced Types (87% match)  
+
+2. Advanced Types (87% match)
    "Union types and intersections in TypeScript..."
 
 Showing top 2 results. Use 'search --all' for complete list.
