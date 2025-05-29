@@ -1,27 +1,27 @@
 /**
  * Website Deployment Manager
- * 
+ *
  * Handles low-level operations for deploying websites
  */
 
-import { Logger } from '@/utils/logger';
+import { Logger } from "@/utils/logger";
 
-import { CaddyDeploymentManager } from './caddyDeploymentManager';
-import { LocalDevDeploymentManager } from './localDevDeploymentManager';
+import { CaddyDeploymentManager } from "./caddyDeploymentManager";
+import { LocalDevDeploymentManager } from "./localDevDeploymentManager";
 
 /**
  * Site environment type
  */
-export type SiteEnvironment = 'preview' | 'live';
+export type SiteEnvironment = "preview" | "live";
 
 /**
  * Status response for website environments
  */
 export interface EnvironmentStatus {
   environment: SiteEnvironment;
-  buildStatus: 'Built' | 'Not Built' | 'Empty';
+  buildStatus: "Built" | "Not Built" | "Empty";
   fileCount: number;
-  serverStatus: 'Running' | 'Not Running' | 'Not Found' | 'Error' | 'Unknown';
+  serverStatus: "Running" | "Not Running" | "Not Found" | "Error" | "Unknown";
   domain: string;
   accessStatus: string;
   url: string;
@@ -45,20 +45,22 @@ export interface WebsiteDeploymentManager {
    * @param environment The environment to check
    * @returns Status information for the environment
    */
-  getEnvironmentStatus(environment: SiteEnvironment): Promise<EnvironmentStatus>;
-  
+  getEnvironmentStatus(
+    environment: SiteEnvironment,
+  ): Promise<EnvironmentStatus>;
+
   /**
    * Promote website from preview to live
    * @returns Result of the promotion operation
    */
   promoteToLive(): Promise<PromotionResult>;
-  
+
   /**
    * Start website servers
    * @returns Promise indicating success
    */
   startServers?(): Promise<boolean>;
-  
+
   /**
    * Stop website servers
    */
@@ -86,7 +88,9 @@ export interface DeploymentManager {
   getInstance(options?: DeploymentManagerOptions): WebsiteDeploymentManager;
   resetInstance(): void;
   createFresh(options?: DeploymentManagerOptions): WebsiteDeploymentManager;
-  createWithDependencies?(config: Record<string, unknown>): WebsiteDeploymentManager;
+  createWithDependencies?(
+    config: Record<string, unknown>,
+  ): WebsiteDeploymentManager;
 }
 
 /**
@@ -95,40 +99,47 @@ export interface DeploymentManager {
 export class DeploymentManagerFactory {
   private static instance: DeploymentManagerFactory | null = null;
   private deploymentManagerClass: DeploymentManager;
-  
+
   /**
    * Constructor for DeploymentManagerFactory
    * @param deploymentManagerClass The deployment manager class to use
    */
   constructor(deploymentManagerClass?: DeploymentManager) {
     // Default to CaddyDeploymentManager if no class is provided
-    this.deploymentManagerClass = deploymentManagerClass || CaddyDeploymentManager;
+    this.deploymentManagerClass =
+      deploymentManagerClass || CaddyDeploymentManager;
   }
-  
+
   /**
    * Get the singleton instance
    */
-  static getInstance(deploymentManagerClass?: DeploymentManager): DeploymentManagerFactory {
+  static getInstance(
+    deploymentManagerClass?: DeploymentManager,
+  ): DeploymentManagerFactory {
     if (!DeploymentManagerFactory.instance) {
-      DeploymentManagerFactory.instance = new DeploymentManagerFactory(deploymentManagerClass);
+      DeploymentManagerFactory.instance = new DeploymentManagerFactory(
+        deploymentManagerClass,
+      );
     }
     return DeploymentManagerFactory.instance;
   }
-  
+
   /**
    * Reset the singleton instance
    */
   static resetInstance(): void {
     DeploymentManagerFactory.instance = null;
   }
-  
+
   /**
    * Create a fresh instance
    */
-  static createFresh(deploymentManagerClass?: DeploymentManager): DeploymentManagerFactory {
+  static createFresh(
+    deploymentManagerClass?: DeploymentManager,
+  ): DeploymentManagerFactory {
     return new DeploymentManagerFactory(deploymentManagerClass);
   }
-  
+
   /**
    * Set the deployment manager class
    * @param deploymentManagerClass The deployment manager class to use
@@ -136,7 +147,7 @@ export class DeploymentManagerFactory {
   setDeploymentManagerClass(deploymentManagerClass: DeploymentManager): void {
     this.deploymentManagerClass = deploymentManagerClass;
   }
-  
+
   /**
    * Determine the appropriate deployment manager based on deployment type
    * @param deploymentType The deployment type from configuration
@@ -144,25 +155,25 @@ export class DeploymentManagerFactory {
    */
   selectDeploymentManager(deploymentType: string): DeploymentManager {
     const logger = Logger.getInstance();
-    
-    logger.info('Selecting deployment manager', {
+
+    logger.info("Selecting deployment manager", {
       deploymentType,
-      context: 'DeploymentManagerFactory',
+      context: "DeploymentManagerFactory",
     });
-    
-    if (deploymentType === 'local-dev') {
-      logger.info('Selected LocalDevDeploymentManager', {
-        context: 'DeploymentManagerFactory',
+
+    if (deploymentType === "local-dev") {
+      logger.info("Selected LocalDevDeploymentManager", {
+        context: "DeploymentManagerFactory",
       });
       return LocalDevDeploymentManager;
     } else {
-      logger.info('Selected CaddyDeploymentManager', {
-        context: 'DeploymentManagerFactory',
+      logger.info("Selected CaddyDeploymentManager", {
+        context: "DeploymentManagerFactory",
       });
       return CaddyDeploymentManager;
     }
   }
-  
+
   /**
    * Create a deployment manager instance
    * @param options Configuration options
@@ -171,9 +182,11 @@ export class DeploymentManagerFactory {
   create(options?: DeploymentManagerOptions): WebsiteDeploymentManager {
     // If deploymentType is provided, determine the appropriate manager class
     if (options?.deploymentType) {
-      this.deploymentManagerClass = this.selectDeploymentManager(options.deploymentType);
+      this.deploymentManagerClass = this.selectDeploymentManager(
+        options.deploymentType,
+      );
     }
-    
+
     // Create a fresh instance of the configured deployment manager class to avoid issues with cached state
     return this.deploymentManagerClass.createFresh(options);
   }

@@ -1,12 +1,12 @@
 /**
  * Utility functions for error handling and type-safe error processing
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
  * - createFresh(): Creates a new instance without affecting the singleton
  */
-import { Logger } from './logger';
+import { Logger } from "./logger";
 
 /**
  * Base application error class with enhanced context information
@@ -25,7 +25,11 @@ export class AppError extends Error {
    * @param code - Error code
    * @param context - Additional context information
    */
-  constructor(message: string, code = 'GENERAL_ERROR', context?: Record<string, unknown>) {
+  constructor(
+    message: string,
+    code = "GENERAL_ERROR",
+    context?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = this.constructor.name;
     this.code = code;
@@ -42,7 +46,7 @@ export class AppError extends Error {
    * Get a formatted representation of the error for logging
    */
   toLogString(): string {
-    return `${this.code}: ${this.message}${this.context ? ` | Context: ${JSON.stringify(this.context)}` : ''}`;
+    return `${this.code}: ${this.message}${this.context ? ` | Context: ${JSON.stringify(this.context)}` : ""}`;
   }
 }
 
@@ -51,7 +55,7 @@ export class AppError extends Error {
  */
 export class ValidationError extends AppError {
   constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'VALIDATION_ERROR', context);
+    super(message, "VALIDATION_ERROR", context);
   }
 }
 
@@ -62,8 +66,12 @@ export class ApiError extends AppError {
   /** HTTP status code (for API errors) */
   public statusCode?: number;
 
-  constructor(message: string, statusCode?: number, context?: Record<string, unknown>) {
-    super(message, 'API_ERROR', context);
+  constructor(
+    message: string,
+    statusCode?: number,
+    context?: Record<string, unknown>,
+  ) {
+    super(message, "API_ERROR", context);
     this.statusCode = statusCode;
   }
 }
@@ -73,7 +81,7 @@ export class ApiError extends AppError {
  */
 export class DatabaseError extends AppError {
   constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'DATABASE_ERROR', context);
+    super(message, "DATABASE_ERROR", context);
   }
 }
 
@@ -82,7 +90,7 @@ export class DatabaseError extends AppError {
  */
 export class ConfigError extends AppError {
   constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'CONFIG_ERROR', context);
+    super(message, "CONFIG_ERROR", context);
   }
 }
 
@@ -93,20 +101,20 @@ export class ConfigError extends AppError {
 export class ErrorUtils {
   /** The singleton instance */
   private static instance: ErrorUtils | null = null;
-  
+
   /** Logger instance for this class */
   private logger = Logger.getInstance();
-  
+
   /**
    * Private constructor to enforce the use of getInstance() or createFresh()
    */
   private constructor() {
     // Initialization if needed
   }
-  
+
   /**
    * Get the singleton instance of ErrorUtils
-   * 
+   *
    * @returns The shared ErrorUtils instance
    */
   public static getInstance(): ErrorUtils {
@@ -115,7 +123,7 @@ export class ErrorUtils {
     }
     return ErrorUtils.instance;
   }
-  
+
   /**
    * Reset the singleton instance (primarily for testing)
    * This clears the instance and any resources it holds
@@ -123,11 +131,11 @@ export class ErrorUtils {
   public static resetInstance(): void {
     ErrorUtils.instance = null;
   }
-  
+
   /**
    * Create a fresh instance (primarily for testing)
    * This creates a new instance without affecting the singleton
-   * 
+   *
    * @returns A new ErrorUtils instance
    */
   public static createFresh(): ErrorUtils {
@@ -151,7 +159,7 @@ export class ErrorUtils {
     if (error instanceof Error) {
       const appError = new AppError(
         errorMessage || error.message,
-        'WRAPPED_ERROR',
+        "WRAPPED_ERROR",
         { originalError: error.name, stack: error.stack },
       );
       this.logger.error(appError.toLogString());
@@ -159,10 +167,13 @@ export class ErrorUtils {
     }
 
     // For other values (string, number, object, etc.)
-    const message = errorMessage || (typeof error === 'string' ? error : 'Unknown error occurred');
-    const context = typeof error === 'object' && error ? { originalError: error } : undefined;
+    const message =
+      errorMessage ||
+      (typeof error === "string" ? error : "Unknown error occurred");
+    const context =
+      typeof error === "object" && error ? { originalError: error } : undefined;
 
-    const appError = new AppError(message, 'UNKNOWN_ERROR', context);
+    const appError = new AppError(message, "UNKNOWN_ERROR", context);
     this.logger.error(appError.toLogString());
     return appError;
   }
@@ -194,7 +205,7 @@ export class ErrorUtils {
   public async safeExec<T>(
     fn: () => Promise<T>,
     defaultValue: T,
-    logLevel: 'error' | 'warn' | 'debug' = 'error',
+    logLevel: "error" | "warn" | "debug" = "error",
   ): Promise<T> {
     try {
       return await fn();
@@ -202,9 +213,9 @@ export class ErrorUtils {
       const appError = this.handleError(error);
 
       // Use the appropriate log level
-      if (logLevel === 'warn') {
+      if (logLevel === "warn") {
         this.logger.warn(appError.toLogString());
-      } else if (logLevel === 'debug') {
+      } else if (logLevel === "debug") {
         this.logger.debug(appError.toLogString());
       }
 
@@ -249,7 +260,7 @@ export async function tryExec<T>(
 export async function safeExec<T>(
   fn: () => Promise<T>,
   defaultValue: T,
-  logLevel: 'error' | 'warn' | 'debug' = 'error',
+  logLevel: "error" | "warn" | "debug" = "error",
 ): Promise<T> {
   return ErrorUtils.getInstance().safeExec(fn, defaultValue, logLevel);
 }

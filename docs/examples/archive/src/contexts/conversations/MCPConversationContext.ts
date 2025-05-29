@@ -1,28 +1,38 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { v4 as uuidv4 } from 'uuid';
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { v4 as uuidv4 } from "uuid";
 
-import { type TieredHistory, type TieredMemoryConfig, TieredMemoryManager } from '@/contexts/conversations/memory/tieredMemoryManager';
-import type { ConversationNotifier } from '@/contexts/conversations/messaging/conversationNotifier';
-import type { 
+import {
+  type TieredHistory,
+  type TieredMemoryConfig,
+  TieredMemoryManager,
+} from "@/contexts/conversations/memory/tieredMemoryManager";
+import type { ConversationNotifier } from "@/contexts/conversations/messaging/conversationNotifier";
+import type {
   ConversationInfo,
   ConversationStorage,
   NewConversation,
   SearchCriteria,
-} from '@/contexts/conversations/storage/conversationStorage';
-import { InMemoryStorage } from '@/contexts/conversations/storage/inMemoryStorage';
-import type { 
-  ContextCapabilities, 
-  ContextStatus, 
+} from "@/contexts/conversations/storage/conversationStorage";
+import { InMemoryStorage } from "@/contexts/conversations/storage/inMemoryStorage";
+import type {
+  ContextCapabilities,
+  ContextStatus,
   MCPContext,
   MCPFormatterInterface,
   MCPStorageInterface,
   ResourceDefinition,
-} from '@/contexts/MCPContext';
-import type { Conversation, ConversationTurn } from '@/protocol/schemas/conversationSchemas';
-import { AppError } from '@/utils/errorUtils';
-import { Logger } from '@/utils/logger';
+} from "@/contexts/MCPContext";
+import type {
+  Conversation,
+  ConversationTurn,
+} from "@/protocol/schemas/conversationSchemas";
+import { AppError } from "@/utils/errorUtils";
+import { Logger } from "@/utils/logger";
 
-import { ConversationToolService, type ConversationToolServiceContext } from './tools';
+import {
+  ConversationToolService,
+  type ConversationToolServiceContext,
+} from "./tools";
 
 // Bridge interface during migration - supports both ConversationContext and MCPConversationContext
 export interface ConversationToolContext {
@@ -30,24 +40,52 @@ export interface ConversationToolContext {
   setActiveConversation(conversationId: string): void;
   createConversation(title?: string): Promise<string>;
   getConversation(conversationId: string): Promise<Conversation | null>;
-  updateConversation(conversationId: string, updates: Partial<Conversation>): Promise<boolean>;
+  updateConversation(
+    conversationId: string,
+    updates: Partial<Conversation>,
+  ): Promise<boolean>;
   deleteConversation(conversationId: string): Promise<boolean>;
-  listConversations(options?: { limit?: number; offset?: number }): Promise<{ conversations: ConversationInfo[]; total: number }>;
-  addMessage(conversationId: string, message: { query: string; response: string; userId?: string; userName?: string }): Promise<ConversationTurn>;
-  searchConversations(query: string, options?: { tags?: string[]; limit?: number }): Promise<ConversationInfo[]>;
-  
+  listConversations(options?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ conversations: ConversationInfo[]; total: number }>;
+  addMessage(
+    conversationId: string,
+    message: {
+      query: string;
+      response: string;
+      userId?: string;
+      userName?: string;
+    },
+  ): Promise<ConversationTurn>;
+  searchConversations(
+    query: string,
+    options?: { tags?: string[]; limit?: number },
+  ): Promise<ConversationInfo[]>;
+
   // These methods would typically be on the services, but we expose them here for compatibility
-  generateEmbeddingsForConversation(conversationId: string): Promise<{ updated: number; failed: number }>;
+  generateEmbeddingsForConversation(
+    conversationId: string,
+  ): Promise<{ updated: number; failed: number }>;
   getSummary(conversationId: string): Promise<string>;
-  exportConversation(conversationId: string, format?: 'json' | 'markdown'): Promise<string>;
-  
+  exportConversation(
+    conversationId: string,
+    format?: "json" | "markdown",
+  ): Promise<string>;
+
   // Tiered memory methods
-  formatHistoryForPrompt(conversationId: string, maxTokens?: number): Promise<string>;
+  formatHistoryForPrompt(
+    conversationId: string,
+    maxTokens?: number,
+  ): Promise<string>;
   getFlatHistory(conversationId: string): Promise<ConversationTurn[]>;
   getTieredHistory(conversationId: string): Promise<TieredHistory>;
-  
+
   // Room lookup method
-  getConversationIdByRoom(roomId: string, interfaceType?: 'cli' | 'matrix'): Promise<string | null>;
+  getConversationIdByRoom(
+    roomId: string,
+    interfaceType?: "cli" | "matrix",
+  ): Promise<string | null>;
 }
 
 export interface MCPConversationContextOptions {
@@ -61,7 +99,7 @@ export interface MCPConversationContextOptions {
 
 /**
  * MCPConversationContext - Simplified conversation context implementation following MCPContext pattern
- * 
+ *
  * This implementation:
  * - Follows the MCPContext interface pattern (no BaseContext inheritance)
  * - Implements ConversationToolContext for gradual migration support
@@ -69,9 +107,11 @@ export interface MCPConversationContextOptions {
  * - Integrates with MCP servers through registerOnServer
  * - Uses composition over inheritance
  */
-export class MCPConversationContext implements MCPContext, ConversationToolContext, ConversationToolServiceContext {
+export class MCPConversationContext
+  implements MCPContext, ConversationToolContext, ConversationToolServiceContext
+{
   private static instance: MCPConversationContext | null = null;
-  
+
   private name: string;
   private version: string;
   private server: McpServer | null = null;
@@ -89,12 +129,12 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
   private tools: ResourceDefinition[] = [];
 
   private constructor(options: MCPConversationContextOptions) {
-    this.name = options.name || 'ConversationContext';
-    this.version = options.version || '1.0.0';
+    this.name = options.name || "ConversationContext";
+    this.version = options.version || "1.0.0";
     this.storage = options.storage;
     this.notifier = options.notifier;
     this.logger = options.logger || Logger.getInstance();
-    
+
     // Initialize tiered memory manager with provided config or defaults
     this.tieredMemoryManager = TieredMemoryManager.getInstance({
       storage: this.storage,
@@ -119,25 +159,25 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
     try {
       // Following the MCPNoteContext pattern - we implement what we need directly
       // without trying to reuse the old BaseContext-based services
-      
+
       // Setup basic MCP resources
       this.resources = [
         {
-          protocol: 'conversation',
-          path: '/conversations',
-          name: 'conversations',
-          description: 'Access conversation data',
+          protocol: "conversation",
+          path: "/conversations",
+          name: "conversations",
+          description: "Access conversation data",
           handler: async () => {
             const conversations = await this.storage.findConversations({});
             return { conversations };
           },
         },
       ];
-      
+
       // Setup basic MCP tools
       // Get the tool service instance
       const toolService = ConversationToolService.getInstance();
-      
+
       // Register conversation tools using the tool service
       this.tools = toolService.getTools(this);
 
@@ -146,7 +186,11 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
       return true;
     } catch (error) {
       this.logger.error(`Failed to initialize ${this.name}`, { error });
-      throw new AppError(`Failed to initialize ${this.name}`, 'INITIALIZATION_ERROR', error as Record<string, unknown>);
+      throw new AppError(
+        `Failed to initialize ${this.name}`,
+        "INITIALIZATION_ERROR",
+        error as Record<string, unknown>,
+      );
     }
   }
 
@@ -178,37 +222,46 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
     return {
       create: async (item: Record<string, unknown>) => {
         const conversation: NewConversation = {
-          interfaceType: 'cli',
-          roomId: (item['roomId'] as string) || uuidv4(),
+          interfaceType: "cli",
+          roomId: (item["roomId"] as string) || uuidv4(),
           startedAt: new Date(),
           updatedAt: new Date(),
-          metadata: item['metadata'] as Record<string, unknown>,
+          metadata: item["metadata"] as Record<string, unknown>,
         };
         return await this.storage.createConversation(conversation);
       },
       read: async (id: string) => {
         const conversation = await this.storage.getConversation(id);
-        return conversation ? conversation as unknown as Record<string, unknown> : null;
+        return conversation
+          ? (conversation as unknown as Record<string, unknown>)
+          : null;
       },
       update: async (id: string, updates: Record<string, unknown>) => {
-        return await this.storage.updateConversation(id, updates as Partial<Conversation>);
+        return await this.storage.updateConversation(
+          id,
+          updates as Partial<Conversation>,
+        );
       },
       delete: async (id: string) => {
         return await this.storage.deleteConversation(id);
       },
       search: async (criteria: Record<string, unknown>) => {
-        const results = await this.storage.findConversations(criteria as SearchCriteria);
+        const results = await this.storage.findConversations(
+          criteria as SearchCriteria,
+        );
         return results as unknown as Record<string, unknown>[];
       },
       list: async (options?: { limit?: number; offset?: number }) => {
-        const results = await this.storage.findConversations({ 
-          limit: options?.limit, 
-          offset: options?.offset, 
+        const results = await this.storage.findConversations({
+          limit: options?.limit,
+          offset: options?.offset,
         });
         return results as unknown as Record<string, unknown>[];
       },
       count: async (criteria?: Record<string, unknown>) => {
-        const results = await this.storage.findConversations(criteria as SearchCriteria || {});
+        const results = await this.storage.findConversations(
+          (criteria as SearchCriteria) || {},
+        );
         return results.length;
       },
     };
@@ -226,12 +279,13 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
   public registerOnServer(server: McpServer): boolean {
     try {
       this.server = server;
-      
+
       // Register resources
       for (const resource of this.resources) {
         const resourceName = resource.name || `${this.name}_${resource.path}`;
-        const description = resource.description || `Resource for ${resource.path}`;
-        
+        const description =
+          resource.description || `Resource for ${resource.path}`;
+
         const handler = (uri: URL, extra: Record<string, unknown>) => {
           const queryParams: Record<string, unknown> = {};
           if (uri.search) {
@@ -239,39 +293,50 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
               queryParams[key] = value;
             });
           }
-          
-          return resource.handler(extra, queryParams).then(result => ({
-            contents: [{
-              text: JSON.stringify(result),
-              uri: uri.toString(),
-            }],
+
+          return resource.handler(extra, queryParams).then((result) => ({
+            contents: [
+              {
+                text: JSON.stringify(result),
+                uri: uri.toString(),
+              },
+            ],
           }));
         };
-        
+
         server.resource(resourceName, resource.path, { description }, handler);
       }
-      
+
       // Register tools
       for (const tool of this.tools) {
         const toolName = tool.name || `${this.name}_${tool.path}`;
         const description = tool.description || `Tool for ${tool.path}`;
-        
+
         const handler = (extra: Record<string, unknown>) => {
-          const params = extra['params'] || {};
-          const query = extra['query'] || {};
-          
-          return tool.handler(params as Record<string, unknown>, query as Record<string, unknown>)
-            .then(result => ({
-              content: [{
-                type: 'text' as const,
-                text: typeof result === 'string' ? result : JSON.stringify(result),
-              }],
+          const params = extra["params"] || {};
+          const query = extra["query"] || {};
+
+          return tool
+            .handler(
+              params as Record<string, unknown>,
+              query as Record<string, unknown>,
+            )
+            .then((result) => ({
+              content: [
+                {
+                  type: "text" as const,
+                  text:
+                    typeof result === "string"
+                      ? result
+                      : JSON.stringify(result),
+                },
+              ],
             }));
         };
-        
+
         server.tool(toolName, description, handler);
       }
-      
+
       return true;
     } catch (error) {
       this.logger.error(`Error registering ${this.name} on server`, { error });
@@ -281,7 +346,7 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
 
   public getMcpServer(): McpServer {
     if (!this.server) {
-      throw new AppError('MCP server not registered', 'NOT_INITIALIZED');
+      throw new AppError("MCP server not registered", "NOT_INITIALIZED");
     }
     return this.server;
   }
@@ -290,7 +355,12 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
     return {
       resources: [...this.resources],
       tools: [...this.tools],
-      features: ['conversation-management', 'message-history', 'summaries', 'embeddings'],
+      features: [
+        "conversation-management",
+        "message-history",
+        "summaries",
+        "embeddings",
+      ],
     };
   }
 
@@ -313,18 +383,21 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
 
   public async createConversation(title?: string): Promise<string> {
     const conversation: NewConversation = {
-      interfaceType: 'cli',
+      interfaceType: "cli",
       roomId: uuidv4(),
       startedAt: new Date(),
       updatedAt: new Date(),
-      metadata: { title: title || `Conversation ${new Date().toLocaleDateString()}` },
+      metadata: {
+        title: title || `Conversation ${new Date().toLocaleDateString()}`,
+      },
     };
 
     const conversationId = await this.storage.createConversation(conversation);
-    
+
     if (this.notifier) {
       // Get the full conversation and notify
-      const fullConversation = await this.storage.getConversation(conversationId);
+      const fullConversation =
+        await this.storage.getConversation(conversationId);
       if (fullConversation) {
         await this.notifier.notifyConversationStarted(fullConversation);
       }
@@ -333,14 +406,22 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
     return conversationId;
   }
 
-  public async getConversation(conversationId: string): Promise<Conversation | null> {
+  public async getConversation(
+    conversationId: string,
+  ): Promise<Conversation | null> {
     return await this.storage.getConversation(conversationId);
   }
 
-  public async updateConversation(conversationId: string, updates: Partial<Conversation>): Promise<boolean> {
+  public async updateConversation(
+    conversationId: string,
+    updates: Partial<Conversation>,
+  ): Promise<boolean> {
     updates.updatedAt = new Date();
-    const success = await this.storage.updateConversation(conversationId, updates);
-    
+    const success = await this.storage.updateConversation(
+      conversationId,
+      updates,
+    );
+
     if (success && this.notifier) {
       const conversation = await this.storage.getConversation(conversationId);
       if (conversation) {
@@ -354,7 +435,7 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
 
   public async deleteConversation(conversationId: string): Promise<boolean> {
     const success = await this.storage.deleteConversation(conversationId);
-    
+
     if (success && this.notifier) {
       // Use notifyConversationCleared with the conversationId
       await this.notifier.notifyConversationCleared(conversationId);
@@ -368,7 +449,10 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
     return success;
   }
 
-  public async listConversations(options?: { limit?: number; offset?: number }): Promise<{ conversations: ConversationInfo[]; total: number }> {
+  public async listConversations(options?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ conversations: ConversationInfo[]; total: number }> {
     const conversations = await this.storage.findConversations({
       limit: options?.limit,
       offset: options?.offset,
@@ -380,7 +464,15 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
     };
   }
 
-  public async addMessage(conversationId: string, message: { query: string; response: string; userId?: string; userName?: string }): Promise<ConversationTurn> {
+  public async addMessage(
+    conversationId: string,
+    message: {
+      query: string;
+      response: string;
+      userId?: string;
+      userName?: string;
+    },
+  ): Promise<ConversationTurn> {
     const turn: ConversationTurn = {
       id: uuidv4(),
       query: message.query,
@@ -411,14 +503,19 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
     return turn;
   }
 
-  public async searchConversations(query: string, options?: { tags?: string[]; limit?: number }): Promise<ConversationInfo[]> {
+  public async searchConversations(
+    query: string,
+    options?: { tags?: string[]; limit?: number },
+  ): Promise<ConversationInfo[]> {
     return await this.storage.findConversations({
       query,
       limit: options?.limit,
     });
   }
 
-  public async generateEmbeddingsForConversation(_conversationId: string): Promise<{ updated: number; failed: number }> {
+  public async generateEmbeddingsForConversation(
+    _conversationId: string,
+  ): Promise<{ updated: number; failed: number }> {
     // This would typically be implemented by the memory service
     return { updated: 0, failed: 0 };
   }
@@ -428,33 +525,42 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
     if (summaries.length > 0) {
       return summaries[0].content;
     }
-    return 'No summary available';
+    return "No summary available";
   }
 
-  public async getConversationIdByRoom(roomId: string, interfaceType?: 'cli' | 'matrix'): Promise<string | null> {
+  public async getConversationIdByRoom(
+    roomId: string,
+    interfaceType?: "cli" | "matrix",
+  ): Promise<string | null> {
     return await this.storage.getConversationByRoom(roomId, interfaceType);
   }
 
-  public async exportConversation(conversationId: string, format: 'json' | 'markdown' = 'json'): Promise<string> {
+  public async exportConversation(
+    conversationId: string,
+    format: "json" | "markdown" = "json",
+  ): Promise<string> {
     const conversation = await this.storage.getConversation(conversationId);
     if (!conversation) {
-      throw new AppError(`Conversation ${conversationId} not found`, 'NOT_FOUND');
+      throw new AppError(
+        `Conversation ${conversationId} not found`,
+        "NOT_FOUND",
+      );
     }
 
     const turns = await this.storage.getTurns(conversationId);
 
-    if (format === 'markdown') {
-      let markdown = `# ${conversation.metadata?.['title'] || 'Conversation'}\n\n`;
+    if (format === "markdown") {
+      let markdown = `# ${conversation.metadata?.["title"] || "Conversation"}\n\n`;
       markdown += `Created: ${conversation.createdAt}\n`;
       markdown += `Updated: ${conversation.updatedAt}\n\n`;
-      
+
       for (const turn of turns) {
         markdown += `## User (${turn.timestamp})\n\n`;
         markdown += `${turn.query}\n\n`;
         markdown += `## Assistant (${turn.timestamp})\n\n`;
         markdown += `${turn.response}\n\n`;
       }
-      
+
       return markdown;
     }
 
@@ -463,16 +569,25 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
   }
 
   // Tiered memory methods
-  public async formatHistoryForPrompt(conversationId: string, maxTokens?: number): Promise<string> {
-    return await this.tieredMemoryManager.formatHistoryForPrompt(conversationId, maxTokens);
+  public async formatHistoryForPrompt(
+    conversationId: string,
+    maxTokens?: number,
+  ): Promise<string> {
+    return await this.tieredMemoryManager.formatHistoryForPrompt(
+      conversationId,
+      maxTokens,
+    );
   }
 
-  public async getFlatHistory(conversationId: string): Promise<ConversationTurn[]> {
-    const tieredHistory = await this.tieredMemoryManager.getTieredHistory(conversationId);
-    
+  public async getFlatHistory(
+    conversationId: string,
+  ): Promise<ConversationTurn[]> {
+    const tieredHistory =
+      await this.tieredMemoryManager.getTieredHistory(conversationId);
+
     // Combine summaries and active turns into a flat history
     const flatHistory: ConversationTurn[] = [];
-    
+
     // Add summarized turns as pseudo-turns
     for (const summary of tieredHistory.summaries) {
       flatHistory.push({
@@ -482,21 +597,21 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
         timestamp: summary.createdAt,
         metadata: {
           isSummary: true,
-          originalTurnIds: summary.metadata?.['originalTurnIds'],
+          originalTurnIds: summary.metadata?.["originalTurnIds"],
         },
       });
     }
-    
+
     // Add active turns
     flatHistory.push(...tieredHistory.activeTurns);
-    
+
     // Sort by timestamp
     flatHistory.sort((a, b) => {
       const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
       const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
       return aTime - bTime;
     });
-    
+
     return flatHistory;
   }
 
@@ -505,13 +620,17 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
   }
 
   // Singleton pattern
-  public static getInstance(options?: MCPConversationContextOptions): MCPConversationContext {
+  public static getInstance(
+    options?: MCPConversationContextOptions,
+  ): MCPConversationContext {
     if (!MCPConversationContext.instance) {
       // Provide default storage if none specified
       const defaultOptions: MCPConversationContextOptions = options || {
         storage: InMemoryStorage.getInstance(),
       };
-      MCPConversationContext.instance = new MCPConversationContext(defaultOptions);
+      MCPConversationContext.instance = new MCPConversationContext(
+        defaultOptions,
+      );
     }
     return MCPConversationContext.instance;
   }
@@ -520,7 +639,9 @@ export class MCPConversationContext implements MCPContext, ConversationToolConte
     MCPConversationContext.instance = null;
   }
 
-  public static createFresh(options: MCPConversationContextOptions): MCPConversationContext {
+  public static createFresh(
+    options: MCPConversationContextOptions,
+  ): MCPConversationContext {
     return new MCPConversationContext(options);
   }
 }

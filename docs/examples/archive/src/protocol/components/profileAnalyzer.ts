@@ -1,9 +1,9 @@
 /**
  * Analyzes the relevance of a profile to a user query
  */
-import { relevanceConfig } from '@/config';
-import type { EmbeddingService } from '@/resources/ai/embedding';
-import { Logger } from '@utils/logger';
+import { relevanceConfig } from "@/config";
+import type { EmbeddingService } from "@/resources/ai/embedding";
+import { Logger } from "@utils/logger";
 
 /**
  * Configuration options for ProfileAnalyzer
@@ -15,7 +15,7 @@ export interface ProfileAnalyzerConfig {
 
 /**
  * Handles profile-related query analysis
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
@@ -27,23 +27,23 @@ export class ProfileAnalyzer {
 
   /** Logger instance for this class */
   private logger = Logger.getInstance();
-  
+
   private embeddingService: EmbeddingService;
 
   /**
    * Get the singleton instance of ProfileAnalyzer
-   * 
+   *
    * @param config Configuration options
    * @returns The singleton instance
    */
   public static getInstance(config: ProfileAnalyzerConfig): ProfileAnalyzer {
     if (!ProfileAnalyzer.instance) {
       ProfileAnalyzer.instance = new ProfileAnalyzer(config.embeddingService);
-      
+
       const logger = Logger.getInstance();
-      logger.debug('ProfileAnalyzer singleton instance created');
+      logger.debug("ProfileAnalyzer singleton instance created");
     }
-    
+
     return ProfileAnalyzer.instance;
   }
 
@@ -53,32 +53,32 @@ export class ProfileAnalyzer {
    */
   public static resetInstance(): void {
     ProfileAnalyzer.instance = null;
-    
+
     const logger = Logger.getInstance();
-    logger.debug('ProfileAnalyzer singleton instance reset');
+    logger.debug("ProfileAnalyzer singleton instance reset");
   }
 
   /**
    * Create a fresh instance without affecting the singleton
-   * 
+   *
    * @param config Configuration options
    * @returns A new ProfileAnalyzer instance
    */
   public static createFresh(config: ProfileAnalyzerConfig): ProfileAnalyzer {
     const logger = Logger.getInstance();
-    logger.debug('Creating fresh ProfileAnalyzer instance');
-    
+    logger.debug("Creating fresh ProfileAnalyzer instance");
+
     return new ProfileAnalyzer(config.embeddingService);
   }
 
   /**
    * Private constructor to enforce factory method usage
-   * 
+   *
    * @param embeddingService The embedding service to use for semantic similarity
    */
   private constructor(embeddingService: EmbeddingService) {
     this.embeddingService = embeddingService;
-    this.logger.debug('ProfileAnalyzer initialized');
+    this.logger.debug("ProfileAnalyzer initialized");
   }
 
   /**
@@ -88,16 +88,31 @@ export class ProfileAnalyzer {
    */
   isProfileQuery(query: string): boolean {
     const profileKeywords = [
-      'profile', 'about me', 'who am i', 'my background', 'my experience',
-      'my education', 'my skills', 'my work', 'my job', 'my history',
-      'my information', 'tell me about myself', 'my professional', 'resume',
-      'cv', 'curriculum vitae', 'career', 'expertise', 'professional identity',
+      "profile",
+      "about me",
+      "who am i",
+      "my background",
+      "my experience",
+      "my education",
+      "my skills",
+      "my work",
+      "my job",
+      "my history",
+      "my information",
+      "tell me about myself",
+      "my professional",
+      "resume",
+      "cv",
+      "curriculum vitae",
+      "career",
+      "expertise",
+      "professional identity",
     ];
 
     const lowercaseQuery = query.toLowerCase();
 
     // Check if the query contains explicit profile-related keywords
-    return profileKeywords.some(keyword => lowercaseQuery.includes(keyword));
+    return profileKeywords.some((keyword) => lowercaseQuery.includes(keyword));
   }
 
   /**
@@ -107,7 +122,7 @@ export class ProfileAnalyzer {
    * @returns Semantic relevance score (0-1)
    */
   async getProfileRelevance(
-    query: string, 
+    query: string,
     profileEmbedding: number[],
   ): Promise<number> {
     try {
@@ -122,13 +137,19 @@ export class ProfileAnalyzer {
 
       // Scale the similarity to be more decisive
       // (values closer to 0 or 1 rather than middle range)
-      return Math.pow(similarity * relevanceConfig.fallback.similarityScaleFactor + 0.5, 2);
+      return Math.pow(
+        similarity * relevanceConfig.fallback.similarityScaleFactor + 0.5,
+        2,
+      );
     } catch (error) {
-      this.logger.error('Error calculating profile relevance:', { error, context: 'ProfileAnalyzer' });
+      this.logger.error("Error calculating profile relevance:", {
+        error,
+        context: "ProfileAnalyzer",
+      });
       // Fall back to keyword matching
-      return this.isProfileQuery(query) ? 
-        relevanceConfig.fallback.highRelevance : 
-        relevanceConfig.fallback.lowRelevance;
+      return this.isProfileQuery(query)
+        ? relevanceConfig.fallback.highRelevance
+        : relevanceConfig.fallback.lowRelevance;
     }
   }
 }

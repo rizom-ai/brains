@@ -1,31 +1,31 @@
 /**
  * WebsiteIdentityService
- * 
+ *
  * Service for managing website identity information which is used
  * to maintain consistent branding and content across the website.
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
  * - createFresh(): Creates a new instance without affecting the singleton
  */
 
-import type { Profile } from '@/models/profile';
-import { BrainProtocol } from '@/protocol/brainProtocol';
-import { ContextId } from '@/protocol/core/contextOrchestrator';
-import { requestContextData } from '@/protocol/messaging/contextIntegration';
-import type { ContextMediator } from '@/protocol/messaging/contextMediator';
-import { DataRequestType } from '@/protocol/messaging/messageTypes';
-import { Logger } from '@/utils/logger';
+import type { Profile } from "@/models/profile";
+import { BrainProtocol } from "@/protocol/brainProtocol";
+import { ContextId } from "@/protocol/core/contextOrchestrator";
+import { requestContextData } from "@/protocol/messaging/contextIntegration";
+import type { ContextMediator } from "@/protocol/messaging/contextMediator";
+import { DataRequestType } from "@/protocol/messaging/messageTypes";
+import { Logger } from "@/utils/logger";
 
-import { WebsiteIdentityNoteAdapter } from '../adapters/websiteIdentityNoteAdapter';
+import { WebsiteIdentityNoteAdapter } from "../adapters/websiteIdentityNoteAdapter";
 import {
   type WebsiteIdentityData,
   WebsiteIdentitySchema,
-} from '../schemas/websiteIdentitySchema';
+} from "../schemas/websiteIdentitySchema";
 
 // Import prompt template
-import websiteIdentityPrompt from './prompts/identity/website-identity.txt';
+import websiteIdentityPrompt from "./prompts/identity/website-identity.txt";
 
 /**
  * Configuration options for WebsiteIdentityService
@@ -53,7 +53,7 @@ export interface WebsiteIdentityServiceDependencies {
 export class IdentityGenerationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'IdentityGenerationError';
+    this.name = "IdentityGenerationError";
   }
 }
 
@@ -85,8 +85,8 @@ export class WebsiteIdentityService {
     this.identityAdapter = dependencies.identityAdapter;
     this.brainProtocol = dependencies.brainProtocol || null;
 
-    this.logger.debug('WebsiteIdentityService initialized', {
-      context: 'WebsiteIdentityService',
+    this.logger.debug("WebsiteIdentityService initialized", {
+      context: "WebsiteIdentityService",
     });
   }
 
@@ -102,7 +102,9 @@ export class WebsiteIdentityService {
     if (!WebsiteIdentityService.instance) {
       // We cannot create a default mediator - it must be provided
       if (!dependencies?.mediator) {
-        throw new Error('ContextMediator is required for WebsiteIdentityService');
+        throw new Error(
+          "ContextMediator is required for WebsiteIdentityService",
+        );
       }
 
       // Create default dependencies if needed
@@ -117,7 +119,10 @@ export class WebsiteIdentityService {
         ...dependencies,
       };
 
-      WebsiteIdentityService.instance = new WebsiteIdentityService(config, mergedDependencies);
+      WebsiteIdentityService.instance = new WebsiteIdentityService(
+        config,
+        mergedDependencies,
+      );
     }
 
     return WebsiteIdentityService.instance;
@@ -141,7 +146,7 @@ export class WebsiteIdentityService {
   ): WebsiteIdentityService {
     // We cannot create a default mediator - it must be provided
     if (!dependencies?.mediator) {
-      throw new Error('ContextMediator is required for WebsiteIdentityService');
+      throw new Error("ContextMediator is required for WebsiteIdentityService");
     }
 
     // Create default dependencies if needed
@@ -170,24 +175,24 @@ export class WebsiteIdentityService {
       if (!forceRegenerate) {
         const existingIdentity = await this.identityAdapter.getIdentityData();
         if (existingIdentity) {
-          this.logger.debug('Retrieved existing identity data', {
-            context: 'WebsiteIdentityService',
+          this.logger.debug("Retrieved existing identity data", {
+            context: "WebsiteIdentityService",
           });
           return existingIdentity;
         }
       }
 
       // No existing identity or forcing regeneration, generate new identity
-      this.logger.info('Generating new website identity', {
-        context: 'WebsiteIdentityService',
+      this.logger.info("Generating new website identity", {
+        context: "WebsiteIdentityService",
         forceRegenerate,
       });
 
       return await this.generateIdentity();
     } catch (error) {
-      this.logger.error('Error getting identity', {
+      this.logger.error("Error getting identity", {
         error: error instanceof Error ? error.message : String(error),
-        context: 'WebsiteIdentityService',
+        context: "WebsiteIdentityService",
       });
       throw new IdentityGenerationError(
         `Failed to get or generate identity: ${error instanceof Error ? error.message : String(error)}`,
@@ -211,14 +216,14 @@ export class WebsiteIdentityService {
       );
 
       if (!profileData) {
-        throw new Error('No profile data received from Profile context');
+        throw new Error("No profile data received from Profile context");
       }
 
       return profileData;
     } catch (error) {
-      this.logger.error('Error retrieving profile data', {
+      this.logger.error("Error retrieving profile data", {
         error,
-        context: 'WebsiteIdentityService',
+        context: "WebsiteIdentityService",
       });
       throw error;
     }
@@ -237,19 +242,29 @@ export class WebsiteIdentityService {
       // Generate complete identity data using BrainProtocol
       // Format the prompt with profile data
       const prompt = websiteIdentityPrompt
-        .replace('{{name}}', profile.displayName || '')
-        .replace('{{occupation}}', profile.headline ? `, ${profile.headline}` : '')
-        .replace('{{company}}', profile.experiences?.[0]?.organization ? ` from ${profile.experiences[0].organization}` : '');
-        
+        .replace("{{name}}", profile.displayName || "")
+        .replace(
+          "{{occupation}}",
+          profile.headline ? `, ${profile.headline}` : "",
+        )
+        .replace(
+          "{{company}}",
+          profile.experiences?.[0]?.organization
+            ? ` from ${profile.experiences[0].organization}`
+            : "",
+        );
+
       // Process the query with BrainProtocol
       const result = await this.getBrainProtocol().processQuery(prompt, {
-        userId: 'system',
-        userName: 'System',
+        userId: "system",
+        userName: "System",
         schema: WebsiteIdentitySchema,
       });
 
       if (!result.object) {
-        throw new IdentityGenerationError('BrainProtocol failed to generate valid identity data');
+        throw new IdentityGenerationError(
+          "BrainProtocol failed to generate valid identity data",
+        );
       }
 
       // Validation is handled by the schema in processQuery
@@ -258,15 +273,15 @@ export class WebsiteIdentityService {
       // Save to storage
       await this.identityAdapter.saveIdentityData(identityData);
 
-      this.logger.info('Successfully generated and saved identity data', {
-        context: 'WebsiteIdentityService',
+      this.logger.info("Successfully generated and saved identity data", {
+        context: "WebsiteIdentityService",
       });
 
       return identityData;
     } catch (error) {
-      this.logger.error('Failed to generate identity', {
+      this.logger.error("Failed to generate identity", {
         error: error instanceof Error ? error.message : String(error),
-        context: 'WebsiteIdentityService',
+        context: "WebsiteIdentityService",
       });
       throw new IdentityGenerationError(
         `Identity generation failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -282,11 +297,11 @@ export class WebsiteIdentityService {
     if (!this.brainProtocol) {
       this.brainProtocol = BrainProtocol.getInstance();
     }
-    
+
     if (!this.brainProtocol) {
-      throw new Error('BrainProtocol is not available');
+      throw new Error("BrainProtocol is not available");
     }
-    
+
     return this.brainProtocol;
   }
 

@@ -2,31 +2,31 @@
  * Types and interfaces for the BrainProtocol system
  * All types are exported for use by components
  */
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { z } from 'zod';
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { z } from "zod";
 
-import type { 
-  MCPConversationContext, 
-  MCPExternalSourceContext, 
-  MCPNoteContext, 
+import type {
+  MCPConversationContext,
+  MCPExternalSourceContext,
+  MCPNoteContext,
   MCPProfileContext,
-  MCPWebsiteContext, 
-} from '@/contexts';
-import type { ConversationStorage } from '@/contexts/conversations';
-import type { ExternalSourceResult } from '@/contexts/externalSources/sources';
-import type { ProfileAnalyzer } from '@/protocol/components/profileAnalyzer';
-import type { Conversation } from '@/protocol/schemas/conversationSchemas';
-import type { Note } from '@models/note';
-import type { Profile } from '@models/profile';
+  MCPWebsiteContext,
+} from "@/contexts";
+import type { ConversationStorage } from "@/contexts/conversations";
+import type { ExternalSourceResult } from "@/contexts/externalSources/sources";
+import type { ProfileAnalyzer } from "@/protocol/components/profileAnalyzer";
+import type { Conversation } from "@/protocol/schemas/conversationSchemas";
+import type { Note } from "@models/note";
+import type { Profile } from "@models/profile";
 
-import type { ConfigurationManager } from '../core/configurationManager';
-import type { FeatureCoordinator } from '../core/featureCoordinator';
+import type { ConfigurationManager } from "../core/configurationManager";
+import type { FeatureCoordinator } from "../core/featureCoordinator";
 
 /**
  * Interface type for the application
  * Defines the possible interface types for conversations
  */
-export type InterfaceType = 'cli' | 'matrix';
+export type InterfaceType = "cli" | "matrix";
 
 /**
  * Common options for constructing BrainProtocol
@@ -133,14 +133,14 @@ export interface ContextResult {
  * Response from a model
  * This imports the ModelResponse generic interface from the AI resources layer
  */
-export type { ModelResponse, ModelUsage } from '@/resources/ai/interfaces';
+export type { ModelResponse, ModelUsage } from "@/resources/ai/interfaces";
 
 /**
  * Metadata for conversation turns
  */
 export interface TurnMetadata {
   /** Type of turn (user or assistant) */
-  turnType?: 'user' | 'assistant';
+  turnType?: "user" | "assistant";
   /** Whether profile was available */
   hasProfile?: boolean;
   /** Whether query was profile-related */
@@ -170,39 +170,39 @@ export interface TurnOptions {
 /**
  * Interface for ContextManager
  * Defines the contract for managing access to various contexts (notes, profile, external sources)
- * 
+ *
  * This aligns with the MCP specification by providing access to all resource-providing contexts
  * that can be registered with an MCP server.
  */
 export interface IContextManager {
   /** Get access to the note context for data operations */
   getNoteContext(): MCPNoteContext;
-  
+
   /** Get access to the profile context implementation that uses notes for storage */
   getProfileContext(): MCPProfileContext;
-  
+
   /** Get access to the external source context for external knowledge */
   getExternalSourceContext(): MCPExternalSourceContext;
-  
+
   /** Get access to the conversation context for conversation management */
   getConversationContext(): MCPConversationContext;
-  
+
   /** Get access to the website context for website management */
   getWebsiteContext(): MCPWebsiteContext;
-  
+
   /** Enable or disable external sources functionality */
   setExternalSourcesEnabled(enabled: boolean): void;
-  
+
   /** Check if external sources are currently enabled */
   getExternalSourcesEnabled(): boolean;
-  
+
   /** Check if all contexts are properly initialized and ready for use */
   areContextsReady(): boolean;
-  
+
   /** Initialize links between contexts (if needed after initialization) */
   initializeContextLinks(): void;
-  
-  /** 
+
+  /**
    * Get the current renderer for the active interface type
    * This is used for rendering progress steps and other UI elements
    */
@@ -220,7 +220,11 @@ export interface IConversationManager {
   hasActiveConversation(): boolean;
   getCurrentConversationId(): string | null;
   getConversation(conversationId: string): Promise<Conversation | null>;
-  saveTurn(query: string, response: string, options?: TurnOptions): Promise<void>;
+  saveTurn(
+    query: string,
+    response: string,
+    options?: TurnOptions,
+  ): Promise<void>;
   getConversationHistory(conversationId?: string): Promise<string>;
 }
 
@@ -253,21 +257,26 @@ export interface INoteManager {
 export interface IExternalSourceManager {
   isEnabled(): boolean;
   setEnabled(enabled: boolean): void;
-  getExternalResults(query: string, relevantNotes: Note[]): Promise<ExternalSourceResult[] | null>;
+  getExternalResults(
+    query: string,
+    relevantNotes: Note[],
+  ): Promise<ExternalSourceResult[] | null>;
 }
 
 /**
  * Interface for QueryProcessor
  */
 export interface IQueryProcessor {
-  processQuery<T = unknown>(query: string, options?: QueryOptions<T>): Promise<QueryResult<T>>;
+  processQuery<T = unknown>(
+    query: string,
+    options?: QueryOptions<T>,
+  ): Promise<QueryResult<T>>;
 }
-
 
 /**
  * Interface for BrainProtocol
  * Defines the contract for the core BrainProtocol class
- * 
+ *
  * This aligns with the MCP specification by providing:
  * - Access to context resources through the ContextManager
  * - Tools execution through the QueryProcessor
@@ -277,28 +286,31 @@ export interface IQueryProcessor {
 export interface IBrainProtocol {
   /** Get the context manager for accessing all data contexts */
   getContextManager(): IContextManager;
-  
+
   /** Get the conversation manager for handling conversation state */
   getConversationManager(): IConversationManager;
-  
+
   /** Get the feature coordinator for managing system features */
   getFeatureCoordinator(): FeatureCoordinator;
-  
+
   /** Get the configuration manager for API settings (generally use FeatureCoordinator instead) */
   getConfigManager(): ConfigurationManager;
-  
+
   /** Get the MCP server for external communication */
   getMcpServer(): McpServer;
-  
+
   /** Check if the system is ready for use */
   isReady(): boolean;
-  
+
   /** Initialize asynchronous components */
   initialize(): Promise<void>;
-  
+
   /** Process a natural language query with optional schema for structured responses */
-  processQuery<T = unknown>(query: string, options?: QueryOptions<T>): Promise<QueryResult<T>>;
-  
+  processQuery<T = unknown>(
+    query: string,
+    options?: QueryOptions<T>,
+  ): Promise<QueryResult<T>>;
+
   /** Get the current interface type (CLI or Matrix) */
   getInterfaceType(): InterfaceType;
 }

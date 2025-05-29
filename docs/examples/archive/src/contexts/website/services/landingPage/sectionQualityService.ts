@@ -1,22 +1,23 @@
-import type { WebsiteIdentityData } from '@/contexts/website/schemas/websiteIdentitySchema';
-import { BrainProtocol } from '@/protocol/brainProtocol';
-import { Logger } from '@/utils/logger';
-import { TemplateEngine } from '@/utils/templateEngine';
-import type { 
+import type { WebsiteIdentityData } from "@/contexts/website/schemas/websiteIdentitySchema";
+import { BrainProtocol } from "@/protocol/brainProtocol";
+import { Logger } from "@/utils/logger";
+import { TemplateEngine } from "@/utils/templateEngine";
+import type {
   AssessedSection,
   QualityThresholds,
-  SectionQualityAssessment} from '@website/schemas/sectionQualitySchema';
+  SectionQualityAssessment,
+} from "@website/schemas/sectionQualitySchema";
 import {
   QualityThresholdsSchema,
   REQUIRED_SECTION_TYPES,
   SectionQualityAssessmentSchema,
-} from '@website/schemas/sectionQualitySchema';
+} from "@website/schemas/sectionQualitySchema";
 
 // Import prompt templates
-import sectionContentImprovementWithIdentityPrompt from '../prompts/section-content-improvement-with-identity.txt';
-import sectionContentImprovementPrompt from '../prompts/section-content-improvement.txt';
-import sectionQualityAssessmentWithIdentityPrompt from '../prompts/section-quality-assessment-with-identity.txt';
-import sectionQualityAssessmentPrompt from '../prompts/section-quality-assessment.txt';
+import sectionContentImprovementWithIdentityPrompt from "../prompts/section-content-improvement-with-identity.txt";
+import sectionContentImprovementPrompt from "../prompts/section-content-improvement.txt";
+import sectionQualityAssessmentWithIdentityPrompt from "../prompts/section-quality-assessment-with-identity.txt";
+import sectionQualityAssessmentPrompt from "../prompts/section-quality-assessment.txt";
 
 /**
  * Service for assessing and improving the quality of landing page sections
@@ -49,7 +50,7 @@ export class SectionQualityService {
 
   /**
    * Private constructor initializes dependencies
-   * 
+   *
    * @param config Optional configuration
    * @param dependencies Optional service dependencies
    */
@@ -61,14 +62,16 @@ export class SectionQualityService {
     this.logger = dependencies?.logger || Logger.getInstance();
     this.brainProtocol = dependencies?.brainProtocol || null;
     this.templateEngine = TemplateEngine.getInstance();
-    
+
     // Set configuration
-    this.qualityThresholds = QualityThresholdsSchema.parse(config?.qualityThresholds || {});
+    this.qualityThresholds = QualityThresholdsSchema.parse(
+      config?.qualityThresholds || {},
+    );
   }
 
   /**
    * Get singleton instance of SectionQualityService
-   * 
+   *
    * @param config Optional configuration
    * @param dependencies Optional service dependencies
    */
@@ -77,7 +80,10 @@ export class SectionQualityService {
     dependencies?: SectionQualityServiceDependencies,
   ): SectionQualityService {
     if (!SectionQualityService.instance) {
-      SectionQualityService.instance = new SectionQualityService(config, dependencies);
+      SectionQualityService.instance = new SectionQualityService(
+        config,
+        dependencies,
+      );
     }
     return SectionQualityService.instance;
   }
@@ -91,12 +97,12 @@ export class SectionQualityService {
 
   /**
    * Create a fresh instance (primarily for testing)
-   * 
+   *
    * @param config Optional configuration
    * @param dependencies Optional service dependencies
    */
   static createFresh(
-    config?: SectionQualityServiceConfig, 
+    config?: SectionQualityServiceConfig,
     dependencies?: SectionQualityServiceDependencies,
   ): SectionQualityService {
     return new SectionQualityService(config, dependencies);
@@ -135,54 +141,65 @@ export class SectionQualityService {
   ): Promise<SectionQualityAssessment> {
     try {
       this.logger.info(`Assessing quality for section: ${sectionType}`, {
-        context: 'SectionQualityService',
+        context: "SectionQualityService",
       });
 
       // Get BrainProtocol instance
       const brainProtocol = this.getBrainProtocol();
-      
+
       // Choose the appropriate template based on identity availability
-      const templateText = identity ? sectionQualityAssessmentWithIdentityPrompt : sectionQualityAssessmentPrompt;
-      
+      const templateText = identity
+        ? sectionQualityAssessmentWithIdentityPrompt
+        : sectionQualityAssessmentPrompt;
+
       // Prepare template data
       const templateData: Record<string, unknown> = {
         sectionType,
         sectionContent: JSON.stringify(sectionContent, null, 2),
       };
-      
+
       // Add identity data if available
       if (identity) {
         // Map identity data to template variables
-        Object.assign(templateData, this.extractIdentityDataForTemplate(identity));
+        Object.assign(
+          templateData,
+          this.extractIdentityDataForTemplate(identity),
+        );
       }
-      
+
       // Render the template
       const prompt = this.templateEngine.render(templateText, templateData);
 
       // Process the assessment
       const result = await brainProtocol.processQuery(prompt, {
-        userId: 'system',
-        userName: 'System',
+        userId: "system",
+        userName: "System",
         schema: SectionQualityAssessmentSchema,
       });
 
       // Check if we received a structured object
       if (!result.object) {
-        throw new Error(`Failed to generate structured quality assessment for ${sectionType}`);
+        throw new Error(
+          `Failed to generate structured quality assessment for ${sectionType}`,
+        );
       }
 
       // Determine if section should be enabled based on thresholds and required status
       const isRequired = REQUIRED_SECTION_TYPES.includes(sectionType);
-      const meetsCombinedThreshold = 
+      const meetsCombinedThreshold =
         result.object.combinedScore >= this.qualityThresholds.minCombinedScore;
       const meetsQualityThreshold =
         result.object.qualityScore >= this.qualityThresholds.minQualityScore;
       const meetsConfidenceThreshold =
-        result.object.confidenceScore >= this.qualityThresholds.minConfidenceScore;
-      
+        result.object.confidenceScore >=
+        this.qualityThresholds.minConfidenceScore;
+
       // A section is enabled if it's required OR meets all thresholds
-      const enabled = isRequired || 
-        (meetsCombinedThreshold && meetsQualityThreshold && meetsConfidenceThreshold);
+      const enabled =
+        isRequired ||
+        (meetsCombinedThreshold &&
+          meetsQualityThreshold &&
+          meetsConfidenceThreshold);
 
       // Use Zod to parse and ensure correct types with defaults applied
       const assessment = SectionQualityAssessmentSchema.parse({
@@ -191,7 +208,7 @@ export class SectionQualityService {
       });
 
       this.logger.debug(`Quality assessment complete for ${sectionType}`, {
-        context: 'SectionQualityService',
+        context: "SectionQualityService",
         qualityScore: assessment.qualityScore,
         confidenceScore: assessment.confidenceScore,
         combinedScore: assessment.combinedScore,
@@ -202,7 +219,7 @@ export class SectionQualityService {
     } catch (error) {
       this.logger.error(`Error assessing quality for section: ${sectionType}`, {
         error: error instanceof Error ? error.message : String(error),
-        context: 'SectionQualityService',
+        context: "SectionQualityService",
       });
       throw error;
     }
@@ -223,15 +240,18 @@ export class SectionQualityService {
   ): Promise<T> {
     try {
       this.logger.info(`Improving content for section: ${sectionType}`, {
-        context: 'SectionQualityService',
+        context: "SectionQualityService",
         originalQualityScore: assessment.qualityScore,
       });
 
       // No need to improve if score is already high
       if (assessment.qualityScore >= 9) {
-        this.logger.info(`Section ${sectionType} already has high quality score, skipping improvement`, {
-          context: 'SectionQualityService',
-        });
+        this.logger.info(
+          `Section ${sectionType} already has high quality score, skipping improvement`,
+          {
+            context: "SectionQualityService",
+          },
+        );
         return sectionContent;
       }
 
@@ -247,40 +267,48 @@ Suggested Improvements:
 ${assessment.suggestedImprovements}`;
 
       // Choose the appropriate template based on identity availability
-      const templateText = identity ? sectionContentImprovementWithIdentityPrompt : sectionContentImprovementPrompt;
-      
+      const templateText = identity
+        ? sectionContentImprovementWithIdentityPrompt
+        : sectionContentImprovementPrompt;
+
       // Prepare template data
       const templateData: Record<string, unknown> = {
         sectionType,
         sectionContent: JSON.stringify(sectionContent, null, 2),
         assessmentFeedback,
       };
-      
+
       // Add identity data if available
       if (identity) {
         // Map identity data to template variables
-        Object.assign(templateData, this.extractIdentityDataForTemplate(identity));
+        Object.assign(
+          templateData,
+          this.extractIdentityDataForTemplate(identity),
+        );
       }
-      
+
       // Render the template
       const prompt = this.templateEngine.render(templateText, templateData);
 
       // Process the improvement
       const result = await brainProtocol.processQuery(prompt, {
-        userId: 'system',
-        userName: 'System',
+        userId: "system",
+        userName: "System",
       });
 
       // Check if we received a structured object
       if (!result.object) {
-        this.logger.warn(`Failed to generate improved content for ${sectionType}, using original`, {
-          context: 'SectionQualityService',
-        });
+        this.logger.warn(
+          `Failed to generate improved content for ${sectionType}, using original`,
+          {
+            context: "SectionQualityService",
+          },
+        );
         return sectionContent;
       }
 
       this.logger.debug(`Content improvement complete for ${sectionType}`, {
-        context: 'SectionQualityService',
+        context: "SectionQualityService",
         hasImprovedContent: !!result.object,
       });
 
@@ -289,9 +317,9 @@ ${assessment.suggestedImprovements}`;
     } catch (error) {
       this.logger.error(`Error improving content for section: ${sectionType}`, {
         error: error instanceof Error ? error.message : String(error),
-        context: 'SectionQualityService',
+        context: "SectionQualityService",
       });
-      
+
       // If improvement fails, return the original content
       return sectionContent;
     }
@@ -310,59 +338,76 @@ ${assessment.suggestedImprovements}`;
     identity: WebsiteIdentityData,
   ): Promise<AssessedSection<T>> {
     try {
-      this.logger.info(`Processing section with quality assessment: ${sectionType}`, {
-        context: 'SectionQualityService',
-      });
-      
+      this.logger.info(
+        `Processing section with quality assessment: ${sectionType}`,
+        {
+          context: "SectionQualityService",
+        },
+      );
+
       // Determine if this is a required section
       const isRequired = REQUIRED_SECTION_TYPES.includes(sectionType);
-      
+
       // Phase 1: Assessment
-      const initialAssessment = await this.assessSectionQuality(sectionType, sectionContent, identity);
-      
+      const initialAssessment = await this.assessSectionQuality(
+        sectionType,
+        sectionContent,
+        identity,
+      );
+
       // Phase 2: Improvement (if needed)
       let improvedContent = sectionContent;
       let finalAssessment = initialAssessment;
-      
+
       // Only improve if score is below 9 and there are suggestions
-      if (initialAssessment.qualityScore < 9 && initialAssessment.suggestedImprovements) {
+      if (
+        initialAssessment.qualityScore < 9 &&
+        initialAssessment.suggestedImprovements
+      ) {
         improvedContent = await this.improveSectionContent(
-          sectionType, 
-          sectionContent, 
+          sectionType,
+          sectionContent,
           initialAssessment,
           identity,
         );
-        
+
         // Reassess the improved content
         if (improvedContent !== sectionContent) {
-          finalAssessment = await this.assessSectionQuality(sectionType, improvedContent, identity);
+          finalAssessment = await this.assessSectionQuality(
+            sectionType,
+            improvedContent,
+            identity,
+          );
           finalAssessment.improvementsApplied = true;
         }
       }
-      
+
       // Create the assessed section
       const assessedSection: AssessedSection<T> = {
         content: improvedContent,
         assessment: finalAssessment,
         isRequired,
       };
-      
+
       this.logger.info(`Completed quality assessment for ${sectionType}`, {
-        context: 'SectionQualityService',
+        context: "SectionQualityService",
         initialQuality: initialAssessment.qualityScore,
         finalQuality: finalAssessment.qualityScore,
         enabled: finalAssessment.enabled,
         isRequired,
         improvementsApplied: finalAssessment.improvementsApplied,
       });
-      
+
       return assessedSection;
     } catch (error) {
-      this.logger.error(`Error processing section with quality assessment: ${sectionType}`, {
-        error: error instanceof Error ? error.message : String(error),
-        context: 'SectionQualityService',
-      });
-      
+      this.logger.error(
+        `Error processing section with quality assessment: ${sectionType}`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          context: "SectionQualityService",
+        },
+      );
+
       // If assessment fails, return section as is with required status
       const isRequired = REQUIRED_SECTION_TYPES.includes(sectionType);
       return {
@@ -388,7 +433,9 @@ ${assessment.suggestedImprovements}`;
    * Set the dependencies
    * @param dependencies The dependencies to set
    */
-  public setDependencies(dependencies: Partial<SectionQualityServiceDependencies>): void {
+  public setDependencies(
+    dependencies: Partial<SectionQualityServiceDependencies>,
+  ): void {
     if (dependencies.logger) {
       this.logger = dependencies.logger;
     }
@@ -396,43 +443,45 @@ ${assessment.suggestedImprovements}`;
       this.brainProtocol = dependencies.brainProtocol;
     }
   }
-  
+
   /**
    * Extract identity data for use in prompt templates
    * @param identity The website identity data
    * @returns Object with identity data mapped to template variables
    */
-  private extractIdentityDataForTemplate(identity: WebsiteIdentityData): Record<string, unknown> {
+  private extractIdentityDataForTemplate(
+    identity: WebsiteIdentityData,
+  ): Record<string, unknown> {
     return {
       // Personal data
       name: identity.name,
       occupation: identity.occupation,
       industry: identity.industry,
-      
+
       // Creative content
       tagline: identity.tagline,
       description: identity.description,
-      uniqueValue: identity.uniqueValue 
-        ? `Unique value: ${identity.uniqueValue}` 
-        : '',
-      
+      uniqueValue: identity.uniqueValue
+        ? `Unique value: ${identity.uniqueValue}`
+        : "",
+
       // Brand identity - tone
       formality: identity.formality,
-      personality: identity.personality.join(', '),
+      personality: identity.personality.join(", "),
       emotion: identity.emotion,
-      
+
       // Brand identity - content style
       writingStyle: identity.writingStyle,
       sentenceLength: identity.sentenceLength,
       vocabLevel: identity.vocabLevel,
-      useJargon: identity.useJargon ? 'yes' : 'no',
-      useHumor: identity.useHumor ? 'yes' : 'no',
-      useStories: identity.useStories ? 'yes' : 'no',
-      
+      useJargon: identity.useJargon ? "yes" : "no",
+      useHumor: identity.useHumor ? "yes" : "no",
+      useStories: identity.useStories ? "yes" : "no",
+
       // Brand identity - values
-      coreValues: identity.coreValues.join(', '),
-      targetAudience: identity.targetAudience.join(', '),
-      painPoints: identity.painPoints.join(', '),
+      coreValues: identity.coreValues.join(", "),
+      targetAudience: identity.targetAudience.join(", "),
+      painPoints: identity.painPoints.join(", "),
       desiredAction: identity.desiredAction,
     };
   }

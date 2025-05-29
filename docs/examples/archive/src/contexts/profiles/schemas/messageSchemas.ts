@@ -1,16 +1,19 @@
 /**
  * Profiles Context Message Schemas
- * 
+ *
  * This module defines Zod schemas for validating message parameters and payloads
  * specific to the Profiles context. These schemas ensure type safety and validation
  * for cross-context communication involving profiles.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
-import { linkedInInsertProfileSchema } from '@/models/linkedInProfile';
-import { profileSchema } from '@/models/profile';
-import { DataRequestType, NotificationType } from '@/protocol/messaging/messageTypes';
+import { linkedInInsertProfileSchema } from "@/models/linkedInProfile";
+import { profileSchema } from "@/models/profile";
+import {
+  DataRequestType,
+  NotificationType,
+} from "@/protocol/messaging/messageTypes";
 
 /**
  * Schema for PROFILE_DATA request parameters
@@ -25,7 +28,7 @@ export const ProfileDataParamsSchema = z.object({}).optional();
  */
 export const ProfileUpdatedPayloadSchema = z.object({
   /** ID of the updated profile */
-  profileId: z.string().min(1, 'Profile ID is required'),
+  profileId: z.string().min(1, "Profile ID is required"),
   /** Fields that were updated */
   updatedFields: z.array(z.string()).optional(),
 });
@@ -54,17 +57,19 @@ export const LinkedInProfileMigrationParamsSchema = z.object({
 export const ProfileSchemaMap = {
   // Request parameter schemas
   [DataRequestType.PROFILE_DATA]: ProfileDataParamsSchema,
-  
+
   // Notification payload schemas
   [NotificationType.PROFILE_UPDATED]: ProfileUpdatedPayloadSchema,
-  
+
   // Tool parameter schemas - these use special keys that match the tool IDs
-  'profile.update': ProfileUpdateParamsSchema,
-  'profile.migrateLinkedIn': LinkedInProfileMigrationParamsSchema,
+  "profile.update": ProfileUpdateParamsSchema,
+  "profile.migrateLinkedIn": LinkedInProfileMigrationParamsSchema,
 } as const;
 
 // Export derived types for use in type-safe code
 export type ProfileDataParams = z.infer<typeof ProfileDataParamsSchema>;
 export type ProfileUpdatedPayload = z.infer<typeof ProfileUpdatedPayloadSchema>;
 export type ProfileUpdateParams = z.infer<typeof ProfileUpdateParamsSchema>;
-export type LinkedInProfileMigrationParams = z.infer<typeof LinkedInProfileMigrationParamsSchema>;
+export type LinkedInProfileMigrationParams = z.infer<
+  typeof LinkedInProfileMigrationParamsSchema
+>;

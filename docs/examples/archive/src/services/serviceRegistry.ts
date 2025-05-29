@@ -1,31 +1,38 @@
 /**
  * Service Registry - Central access point for internal services
- * 
+ *
  * This module provides a centralized registry for accessing internal services
  * such as repositories, embedding services, search services, and more.
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
  * - createFresh(): Creates a new instance without affecting the singleton
  */
 
-import { ConversationStorageAdapter } from '@/contexts/conversations/conversationStorageAdapter';
-import { ConversationFormatter } from '@/contexts/conversations/formatters/conversationFormatter';
-import { ConversationMcpFormatter } from '@/contexts/conversations/formatters/conversationMcpFormatter';
-import { ConversationMemoryService, ConversationQueryService } from '@/contexts/conversations/services';
-import { InMemoryStorage } from '@/contexts/conversations/storage/inMemoryStorage';
-import { NoteStorageAdapter } from '@/contexts/notes/noteStorageAdapter';
-import { ContextMediator } from '@/protocol/messaging/contextMediator';
-import { ResourceRegistry } from '@/resources/resourceRegistry';
-import { SimpleContainer } from '@/utils/container';
-import { Logger } from '@/utils/logger';
-import { Registry, type RegistryConfig, type RegistryDependencies } from '@/utils/registry';
-import { TextUtils } from '@/utils/textUtils';
+import { ConversationStorageAdapter } from "@/contexts/conversations/conversationStorageAdapter";
+import { ConversationFormatter } from "@/contexts/conversations/formatters/conversationFormatter";
+import { ConversationMcpFormatter } from "@/contexts/conversations/formatters/conversationMcpFormatter";
+import {
+  ConversationMemoryService,
+  ConversationQueryService,
+} from "@/contexts/conversations/services";
+import { InMemoryStorage } from "@/contexts/conversations/storage/inMemoryStorage";
+import { NoteStorageAdapter } from "@/contexts/notes/noteStorageAdapter";
+import { ContextMediator } from "@/protocol/messaging/contextMediator";
+import { ResourceRegistry } from "@/resources/resourceRegistry";
+import { SimpleContainer } from "@/utils/container";
+import { Logger } from "@/utils/logger";
+import {
+  Registry,
+  type RegistryConfig,
+  type RegistryDependencies,
+} from "@/utils/registry";
+import { TextUtils } from "@/utils/textUtils";
 
-import { NoteEmbeddingService } from './notes/noteEmbeddingService';
-import { NoteRepository } from './notes/noteRepository';
-import { NoteSearchService } from './notes/noteSearchService';
+import { NoteEmbeddingService } from "./notes/noteEmbeddingService";
+import { NoteRepository } from "./notes/noteRepository";
+import { NoteSearchService } from "./notes/noteSearchService";
 
 /**
  * ServiceRegistry configuration options
@@ -48,33 +55,33 @@ export interface ServiceRegistryDependencies extends RegistryDependencies {
  */
 export const ServiceIdentifiers = {
   // Repository identifiers
-  NoteRepository: 'service.repositories.note',
+  NoteRepository: "service.repositories.note",
 
   // Embedding service identifiers
-  NoteEmbeddingService: 'service.embedding.note',
+  NoteEmbeddingService: "service.embedding.note",
 
   // Search service identifiers
-  NoteSearchService: 'service.search.note',
+  NoteSearchService: "service.search.note",
 
   // Note service identifiers
-  NoteStorageAdapter: 'noteStorageAdapter', // Must match string used in LandingPageNoteAdapter
+  NoteStorageAdapter: "noteStorageAdapter", // Must match string used in LandingPageNoteAdapter
 
   // Conversation service identifiers
-  ConversationQueryService: 'service.conversation.query',
-  ConversationMemoryService: 'service.conversation.memory',
-  ConversationStorageAdapter: 'service.conversation.storage',
-  ConversationFormatter: 'service.conversation.formatter',
-  ConversationMcpFormatter: 'service.conversation.mcpFormatter',
+  ConversationQueryService: "service.conversation.query",
+  ConversationMemoryService: "service.conversation.memory",
+  ConversationStorageAdapter: "service.conversation.storage",
+  ConversationFormatter: "service.conversation.formatter",
+  ConversationMcpFormatter: "service.conversation.mcpFormatter",
 
   // Utility service identifiers
-  TextUtils: 'service.utils.text',
-  ContextMediator: 'service.messaging.mediator',
-  Logger: 'service.utils.logger',
+  TextUtils: "service.utils.text",
+  ContextMediator: "service.messaging.mediator",
+  Logger: "service.utils.logger",
 };
 
 /**
  * Central registry for accessing internal services
- * 
+ *
  * This registry provides a single point of access for all application services,
  * ensuring consistent initialization and configuration.
  */
@@ -89,11 +96,11 @@ export class ServiceRegistry extends Registry {
   private servicesRegistered = false;
 
   /** Registry type for context-specific operations */
-  protected readonly registryType = 'service';
+  protected readonly registryType = "service";
 
   /**
    * Get the singleton instance of the ServiceRegistry
-   * 
+   *
    * @param config Configuration options
    * @param dependencies Dependencies such as logger
    * @returns The shared instance
@@ -104,7 +111,9 @@ export class ServiceRegistry extends Registry {
   ): ServiceRegistry {
     if (!ServiceRegistry.instance) {
       ServiceRegistry.instance = new ServiceRegistry(config, dependencies);
-      ServiceRegistry.instance.logger.debug('ServiceRegistry singleton instance created');
+      ServiceRegistry.instance.logger.debug(
+        "ServiceRegistry singleton instance created",
+      );
       // Auto-initialize on getInstance
       ServiceRegistry.instance.initialize();
     } else if (config && Object.keys(config).length > 0) {
@@ -129,7 +138,7 @@ export class ServiceRegistry extends Registry {
   /**
    * Create a fresh instance (primarily for testing)
    * This creates a new instance without affecting the singleton
-   * 
+   *
    * @param config Configuration options
    * @param dependencies Dependencies such as logger
    * @returns A new instance
@@ -145,7 +154,7 @@ export class ServiceRegistry extends Registry {
 
   /**
    * Protected constructor to enforce the use of getInstance() or createFresh()
-   * 
+   *
    * @param config Configuration options
    * @param dependencies Dependencies such as logger
    */
@@ -153,30 +162,37 @@ export class ServiceRegistry extends Registry {
     config: Partial<ServiceRegistryConfig> = {},
     dependencies: Partial<ServiceRegistryDependencies> = {},
   ) {
-    super({
-      name: 'ServiceRegistry',
-      ...config,
-    }, dependencies);
+    super(
+      {
+        name: "ServiceRegistry",
+        ...config,
+      },
+      dependencies,
+    );
 
     // Initialize or reference the resource registry
-    this.resourceRegistry = dependencies.resourceRegistry || ResourceRegistry.getInstance({
-      anthropicApiKey: config.apiKey,
-      openAiApiKey: config.apiKey,
-    });
+    this.resourceRegistry =
+      dependencies.resourceRegistry ||
+      ResourceRegistry.getInstance({
+        anthropicApiKey: config.apiKey,
+        openAiApiKey: config.apiKey,
+      });
 
     // Ensure ResourceRegistry is initialized
     if (!this.resourceRegistry.isInitialized()) {
-      this.logger.debug('Initializing ResourceRegistry dependency');
+      this.logger.debug("Initializing ResourceRegistry dependency");
       const success = this.resourceRegistry.initialize();
       if (!success) {
-        this.logger.warn('ResourceRegistry initialization failed, some services may not work');
+        this.logger.warn(
+          "ResourceRegistry initialization failed, some services may not work",
+        );
       }
     }
   }
 
   /**
    * Create the dependency container
-   * 
+   *
    * @returns A new SimpleContainer
    */
   protected override createContainer(): SimpleContainer {
@@ -192,12 +208,11 @@ export class ServiceRegistry extends Registry {
       return;
     }
 
-    this.logger.debug('Registering standard services');
+    this.logger.debug("Registering standard services");
 
     // Register repositories
-    this.register<NoteRepository>(
-      ServiceIdentifiers.NoteRepository,
-      () => NoteRepository.getInstance(),
+    this.register<NoteRepository>(ServiceIdentifiers.NoteRepository, () =>
+      NoteRepository.getInstance(),
     );
 
     // Register embedding services
@@ -211,34 +226,33 @@ export class ServiceRegistry extends Registry {
     );
 
     // Register utility services
-    this.register(
-      ServiceIdentifiers.TextUtils,
-      () => TextUtils.getInstance(),
+    this.register(ServiceIdentifiers.TextUtils, () => TextUtils.getInstance());
+
+    this.register(ServiceIdentifiers.ContextMediator, () =>
+      ContextMediator.getInstance(),
     );
 
-    this.register(
-      ServiceIdentifiers.ContextMediator,
-      () => ContextMediator.getInstance(),
-    );
-
-    this.register(
-      ServiceIdentifiers.Logger,
-      () => Logger.getInstance(),
-    );
+    this.register(ServiceIdentifiers.Logger, () => Logger.getInstance());
 
     // Register note search service with dependencies
     this.registerService<NoteSearchService>(
       ServiceIdentifiers.NoteSearchService,
       (container) => {
         // Get dependencies from container
-        const repository = container.resolve<NoteRepository>(ServiceIdentifiers.NoteRepository);
-        const embeddingService = container.resolve<NoteEmbeddingService>(ServiceIdentifiers.NoteEmbeddingService);
-        const textUtils = container.resolve<TextUtils>(ServiceIdentifiers.TextUtils);
+        const repository = container.resolve<NoteRepository>(
+          ServiceIdentifiers.NoteRepository,
+        );
+        const embeddingService = container.resolve<NoteEmbeddingService>(
+          ServiceIdentifiers.NoteEmbeddingService,
+        );
+        const textUtils = container.resolve<TextUtils>(
+          ServiceIdentifiers.TextUtils,
+        );
         const logger = container.resolve<Logger>(ServiceIdentifiers.Logger);
 
         // Create service with injected dependencies
         return NoteSearchService.createFresh(
-          { entityName: 'note' },
+          { entityName: "note" },
           {
             repository,
             embeddingService,
@@ -256,28 +270,22 @@ export class ServiceRegistry extends Registry {
     );
 
     // Register storage adapter and formatters first since other services depend on them
-    this.register(
-      ServiceIdentifiers.ConversationStorageAdapter,
-      () => {
-        const storage = InMemoryStorage.getInstance();
-        return ConversationStorageAdapter.getInstance(storage);
-      },
+    this.register(ServiceIdentifiers.ConversationStorageAdapter, () => {
+      const storage = InMemoryStorage.getInstance();
+      return ConversationStorageAdapter.getInstance(storage);
+    });
+
+    this.register(ServiceIdentifiers.ConversationFormatter, () =>
+      ConversationFormatter.getInstance(),
     );
 
-    this.register(
-      ServiceIdentifiers.ConversationFormatter,
-      () => ConversationFormatter.getInstance(),
-    );
-
-    this.register(
-      ServiceIdentifiers.ConversationMcpFormatter,
-      () => ConversationMcpFormatter.getInstance(),
+    this.register(ServiceIdentifiers.ConversationMcpFormatter, () =>
+      ConversationMcpFormatter.getInstance(),
     );
 
     // Register NoteStorageAdapter
-    this.register(
-      ServiceIdentifiers.NoteStorageAdapter,
-      () => NoteStorageAdapter.getInstance(),
+    this.register(ServiceIdentifiers.NoteStorageAdapter, () =>
+      NoteStorageAdapter.getInstance(),
     );
 
     // No longer registering resource and tool services - they're built into MCPConversationContext
@@ -307,12 +315,12 @@ export class ServiceRegistry extends Registry {
     );
 
     this.servicesRegistered = true;
-    this.logger.debug('Standard services registered');
+    this.logger.debug("Standard services registered");
   }
 
   /**
    * Get the note repository
-   * 
+   *
    * @returns Note repository
    */
   public getNoteRepository(): NoteRepository {
@@ -321,52 +329,62 @@ export class ServiceRegistry extends Registry {
 
   /**
    * Get the note embedding service
-   * 
+   *
    * @returns Note embedding service
    */
   public getNoteEmbeddingService(): NoteEmbeddingService {
-    return this.resolve<NoteEmbeddingService>(ServiceIdentifiers.NoteEmbeddingService);
+    return this.resolve<NoteEmbeddingService>(
+      ServiceIdentifiers.NoteEmbeddingService,
+    );
   }
 
   /**
    * Get the note search service
-   * 
+   *
    * @returns Note search service
    */
   public getNoteSearchService(): NoteSearchService {
-    return this.resolve<NoteSearchService>(ServiceIdentifiers.NoteSearchService);
+    return this.resolve<NoteSearchService>(
+      ServiceIdentifiers.NoteSearchService,
+    );
   }
 
   /**
    * Get the conversation query service
-   * 
+   *
    * @returns Conversation query service
    */
   public getConversationQueryService(): ConversationQueryService {
-    return this.resolve<ConversationQueryService>(ServiceIdentifiers.ConversationQueryService);
+    return this.resolve<ConversationQueryService>(
+      ServiceIdentifiers.ConversationQueryService,
+    );
   }
 
   /**
    * Get the conversation memory service
-   * 
+   *
    * @returns Conversation memory service
    */
   public getConversationMemoryService(): ConversationMemoryService {
-    return this.resolve<ConversationMemoryService>(ServiceIdentifiers.ConversationMemoryService);
+    return this.resolve<ConversationMemoryService>(
+      ServiceIdentifiers.ConversationMemoryService,
+    );
   }
 
   /**
    * Get the note storage adapter
-   * 
+   *
    * @returns Note storage adapter
    */
   public getNoteStorageAdapter(): NoteStorageAdapter {
-    return this.resolve<NoteStorageAdapter>(ServiceIdentifiers.NoteStorageAdapter);
+    return this.resolve<NoteStorageAdapter>(
+      ServiceIdentifiers.NoteStorageAdapter,
+    );
   }
 
   /**
    * Helper method for getting any service with proper typing
-   * 
+   *
    * @param serviceId Service identifier
    * @returns The service instance
    */
@@ -376,7 +394,7 @@ export class ServiceRegistry extends Registry {
 
   /**
    * Helper method to get the ResourceRegistry
-   * 
+   *
    * @returns The ResourceRegistry instance
    */
   public getResourceRegistry(): ResourceRegistry {
@@ -386,7 +404,7 @@ export class ServiceRegistry extends Registry {
   /**
    * Standardized service registration helper
    * Validates dependencies before registering a service
-   * 
+   *
    * @param id Service identifier
    * @param factory Factory function to create the service
    * @param dependencies Optional array of dependency identifiers
@@ -403,19 +421,25 @@ export class ServiceRegistry extends Registry {
       if (this.has(dependencyId)) continue;
 
       // For cross-registry dependencies, check the resource registry
-      if (dependencyId.startsWith('resource.') && this.resourceRegistry) {
+      if (dependencyId.startsWith("resource.") && this.resourceRegistry) {
         if (!this.resourceRegistry.has(dependencyId)) {
-          this.logger.warn(`Service "${id}" depends on resource "${dependencyId}" which is not registered`);
+          this.logger.warn(
+            `Service "${id}" depends on resource "${dependencyId}" which is not registered`,
+          );
           dependenciesValid = false;
         }
       } else {
-        this.logger.warn(`Service "${id}" depends on "${dependencyId}" which is not registered`);
+        this.logger.warn(
+          `Service "${id}" depends on "${dependencyId}" which is not registered`,
+        );
         dependenciesValid = false;
       }
     }
 
     if (!dependenciesValid) {
-      this.logger.warn(`Registering service "${id}" with missing dependencies. It may not work correctly.`);
+      this.logger.warn(
+        `Registering service "${id}" with missing dependencies. It may not work correctly.`,
+      );
     }
 
     this.register<T>(id, factory);
@@ -425,7 +449,7 @@ export class ServiceRegistry extends Registry {
 /**
  * Global accessor for the service registry
  * This provides a simpler API for accessing services
- * 
+ *
  * @param serviceId Service identifier
  * @returns The service instance
  */

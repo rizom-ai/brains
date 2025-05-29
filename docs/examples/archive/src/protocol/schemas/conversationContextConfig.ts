@@ -1,9 +1,9 @@
 /**
  * Configuration interfaces for ConversationContext
  */
-import type { ConversationStorage } from '@/contexts/conversations/storage/conversationStorage';
+import type { ConversationStorage } from "@/contexts/conversations/storage/conversationStorage";
 
-import type { ConversationOptions } from './conversationSchemas';
+import type { ConversationOptions } from "./conversationSchemas";
 
 /**
  * Configuration options for ConversationContext constructor

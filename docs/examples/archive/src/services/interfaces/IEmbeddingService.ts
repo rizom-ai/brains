@@ -12,7 +12,7 @@ export interface IEmbeddingService {
    * @param text Text to generate embedding for
    */
   generateEmbedding(text: string): Promise<number[]>;
-  
+
   /**
    * Calculate similarity between two embeddings
    * @param embedding1 First embedding

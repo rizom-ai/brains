@@ -48,18 +48,21 @@ The WebsiteContext is responsible for high-level website operations. It:
 ### 2. DeploymentManagerFactory
 
 The factory creates the appropriate deployment manager based on:
+
 - Configuration settings (deployment.type)
 - Environment variable overrides (WEBSITE_DEPLOYMENT_TYPE)
 
 ### 3. WebsiteDeploymentManager Interface
 
 Defines the contract for all deployment managers:
+
 - `getEnvironmentStatus(environment)`: Gets information about a specific environment
 - `promoteToLive()`: Promotes preview content to the live site
 
 ### 4. CaddyDeploymentManager
 
 The server implementation that works with Caddy web server:
+
 - Manages files at `/opt/personal-brain-website/{preview,live}/dist`
 - Handles Caddy server interactions (status checks, reloading)
 - Implements file operations for promotion
@@ -67,6 +70,7 @@ The server implementation that works with Caddy web server:
 ### 5. LocalDevDeploymentManager
 
 The development implementation for local testing:
+
 - Manages files at `./dist/{preview,live}`
 - Simulates deployment without needing a real web server
 - Uses the same interface for command compatibility
@@ -74,6 +78,7 @@ The development implementation for local testing:
 ### 6. ServerManager
 
 Dedicated server management component with responsibilities:
+
 - Initializing servers at application startup
 - Ensuring servers are properly stopped during shutdown
 - Providing server status information
@@ -82,34 +87,34 @@ Dedicated server management component with responsibilities:
 ## Workflow Example
 
 ```
-┌────────────┐   ┌──────────────────┐   ┌───────────────┐  
-│User Command│   │WebsiteContext    │   │DeploymentMgr  │  
-└─────┬──────┘   └────────┬─────────┘   └───────┬───────┘  
-      │                   │                     │          
-      │ website-build     │                     │          
-      │─────────────────>│                     │          
-      │                   │                     │          
-      │                   │ buildWebsite()      │          
-      │                   │────────────>│      │          
-      │                   │                     │          
-      │                   │<───────────│      │          
-      │                   │                     │          
-      │ website-status    │                     │          
-      │─────────────────>│                     │          
-      │                   │                     │          
-      │                   │ getEnvironmentStatus│          
-      │                   │────────────────────>│          
-      │                   │                     │          
-      │                   │<────────────────────│          
-      │                   │                     │          
-      │ website-promote   │                     │          
-      │─────────────────>│                     │          
-      │                   │                     │          
-      │                   │ promoteToLive        │          
-      │                   │────────────────────>│          
-      │                   │                     │          
-      │                   │<────────────────────│          
-      │<─────────────────│                     │          
+┌────────────┐   ┌──────────────────┐   ┌───────────────┐
+│User Command│   │WebsiteContext    │   │DeploymentMgr  │
+└─────┬──────┘   └────────┬─────────┘   └───────┬───────┘
+      │                   │                     │
+      │ website-build     │                     │
+      │─────────────────>│                     │
+      │                   │                     │
+      │                   │ buildWebsite()      │
+      │                   │────────────>│      │
+      │                   │                     │
+      │                   │<───────────│      │
+      │                   │                     │
+      │ website-status    │                     │
+      │─────────────────>│                     │
+      │                   │                     │
+      │                   │ getEnvironmentStatus│
+      │                   │────────────────────>│
+      │                   │                     │
+      │                   │<────────────────────│
+      │                   │                     │
+      │ website-promote   │                     │
+      │─────────────────>│                     │
+      │                   │                     │
+      │                   │ promoteToLive        │
+      │                   │────────────────────>│
+      │                   │                     │
+      │                   │<────────────────────│
+      │<─────────────────│                     │
 ```
 
 ## Manager Selection Logic
@@ -123,6 +128,7 @@ The system selects the appropriate deployment manager:
 ## Directory Structure
 
 ### Server Environment
+
 ```
 /opt/personal-brain-website/
   ├── preview/
@@ -132,6 +138,7 @@ The system selects the appropriate deployment manager:
 ```
 
 ### Development Environment
+
 ```
 ./dist/
   ├── preview/         # Preview environment
@@ -141,6 +148,7 @@ The system selects the appropriate deployment manager:
 ## Testing
 
 The deployment system includes comprehensive tests:
+
 - Unit tests for each manager implementation
 - Integration tests for the workflow
 - Mock implementations for automated testing
@@ -158,12 +166,14 @@ Environment variables and configuration that control deployment:
 
 To ensure proper CSS serving across environments:
 
-1. **Caddy Configuration**: 
+1. **Caddy Configuration**:
+
    - Explicit MIME type handling via path-matching directives
    - Content-Type headers set to "text/css; charset=utf-8"
    - Cache-Control headers optimize CSS caching
 
 2. **Static File Server**:
+
    - Uses the `serve` package for reliable file serving
    - Port configuration via environment variables
    - Consistent behavior in preview and live environments

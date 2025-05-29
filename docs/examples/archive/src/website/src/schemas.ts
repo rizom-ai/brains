@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Section schemas for the landing page structure
@@ -9,7 +9,7 @@ export const HeroSectionSchema = z.object({
   headline: z.string(),
   subheading: z.string(),
   ctaText: z.string(),
-  ctaLink: z.string().default('#contact'),
+  ctaLink: z.string().default("#contact"),
   imageUrl: z.string().optional(),
 });
 
@@ -31,7 +31,7 @@ export const ServiceItemSchema = z.object({
 
 // Services section schema
 export const ServicesSectionSchema = z.object({
-  title: z.string().default('Services'),
+  title: z.string().default("Services"),
   introduction: z.string().optional(),
   items: z.array(ServiceItemSchema),
 });
@@ -45,7 +45,7 @@ export const ProcessStepSchema = z.object({
 
 // Process section schema
 export const ProcessSectionSchema = z.object({
-  title: z.string().default('How I Work'),
+  title: z.string().default("How I Work"),
   introduction: z.string().optional(),
   steps: z.array(ProcessStepSchema),
   enabled: z.boolean().default(true),
@@ -63,13 +63,17 @@ export const CaseStudyItemSchema = z.object({
 
 // Case studies section schema
 export const CaseStudiesSectionSchema = z.object({
-  title: z.string().default('Selected Projects'),
+  title: z.string().default("Selected Projects"),
   introduction: z.string().optional(),
   items: z.array(CaseStudyItemSchema),
-  clientLogos: z.array(z.object({
-    name: z.string(),
-    imageUrl: z.string().optional(),
-  })).optional(),
+  clientLogos: z
+    .array(
+      z.object({
+        name: z.string(),
+        imageUrl: z.string().optional(),
+      }),
+    )
+    .optional(),
   enabled: z.boolean().default(true),
 });
 
@@ -81,7 +85,7 @@ export const ExpertiseItemSchema = z.object({
 
 // Expertise section schema - simplified to essential content with reasonable limits
 export const ExpertiseSectionSchema = z.object({
-  title: z.string().default('Expertise'),
+  title: z.string().default("Expertise"),
   introduction: z.string().optional(),
   // Limit to between 3-5 items for a focused presentation
   items: z.array(ExpertiseItemSchema).min(3).max(5),
@@ -90,7 +94,7 @@ export const ExpertiseSectionSchema = z.object({
 
 // About section schema
 export const AboutSectionSchema = z.object({
-  title: z.string().default('About Me'),
+  title: z.string().default("About Me"),
   content: z.string(),
   imageUrl: z.string().optional(),
   ctaText: z.string().optional(),
@@ -105,13 +109,13 @@ export const PricingTierSchema = z.object({
   description: z.string(),
   features: z.array(z.string()),
   isFeatured: z.boolean().default(false),
-  ctaText: z.string().default('Contact Me'),
-  ctaLink: z.string().default('#contact'),
+  ctaText: z.string().default("Contact Me"),
+  ctaLink: z.string().default("#contact"),
 });
 
 // Pricing section schema
 export const PricingSectionSchema = z.object({
-  title: z.string().default('Packages & Pricing'),
+  title: z.string().default("Packages & Pricing"),
   introduction: z.string().optional(),
   tiers: z.array(PricingTierSchema),
   enabled: z.boolean().default(false), // Disabled by default as it's optional
@@ -125,7 +129,7 @@ export const FaqItemSchema = z.object({
 
 // FAQ section schema - simplified with reasonable limits
 export const FaqSectionSchema = z.object({
-  title: z.string().default('Frequently Asked Questions'),
+  title: z.string().default("Frequently Asked Questions"),
   introduction: z.string().optional(),
   // Limit to between 3-7 items for a good balance of content
   items: z.array(FaqItemSchema).min(3).max(7),
@@ -134,10 +138,10 @@ export const FaqSectionSchema = z.object({
 
 // Call-to-action section schema
 export const CtaSectionSchema = z.object({
-  title: z.string().default('Ready to Get Started?'),
+  title: z.string().default("Ready to Get Started?"),
   subtitle: z.string().optional(),
-  buttonText: z.string().default('Contact Me'),
-  buttonLink: z.string().default('#contact'),
+  buttonText: z.string().default("Contact Me"),
+  buttonLink: z.string().default("#contact"),
   enabled: z.boolean().default(true),
 });
 
@@ -145,21 +149,29 @@ export const CtaSectionSchema = z.object({
 export const ContactDetailsSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
-  social: z.array(z.object({
-    platform: z.string(),
-    url: z.string(),
-    icon: z.string().optional(),
-  })).optional(),
+  social: z
+    .array(
+      z.object({
+        platform: z.string(),
+        url: z.string(),
+        icon: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 // Footer section schema
 export const FooterSectionSchema = z.object({
   contactDetails: ContactDetailsSchema.optional(),
   copyrightText: z.string().optional(),
-  links: z.array(z.object({
-    text: z.string(),
-    url: z.string(),
-  })).optional(),
+  links: z
+    .array(
+      z.object({
+        text: z.string(),
+        url: z.string(),
+      }),
+    )
+    .optional(),
   enabled: z.boolean().default(true),
 });
 
@@ -172,19 +184,21 @@ export const LandingPageSchema = z.object({
   tagline: z.string(),
 
   // Section order - defines which sections appear and in what order
-  sectionOrder: z.array(z.string()).default([
-    'hero',
-    'problemStatement',
-    'services',
-    'process',
-    'caseStudies',
-    'expertise',
-    'about',
-    'pricing',
-    'faq',
-    'cta',
-    'footer',
-  ]),
+  sectionOrder: z
+    .array(z.string())
+    .default([
+      "hero",
+      "problemStatement",
+      "services",
+      "process",
+      "caseStudies",
+      "expertise",
+      "about",
+      "pricing",
+      "faq",
+      "cta",
+      "footer",
+    ]),
 
   // Sections - all required but can be disabled with the 'enabled' property
   hero: HeroSectionSchema,

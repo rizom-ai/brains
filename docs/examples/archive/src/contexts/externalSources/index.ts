@@ -3,10 +3,10 @@
  */
 
 // Export MCP implementation
-export { MCPExternalSourceContext } from './MCPExternalSourceContext';
+export { MCPExternalSourceContext } from "./MCPExternalSourceContext";
 
 // Export configuration types
-export type { MCPExternalSourceContextConfig } from './MCPExternalSourceContext';
+export type { MCPExternalSourceContextConfig } from "./MCPExternalSourceContext";
 
 // Export storage adapter for extension/configuration
-export { ExternalSourceStorageAdapter } from './externalSourceStorageAdapter';
+export { ExternalSourceStorageAdapter } from "./externalSourceStorageAdapter";

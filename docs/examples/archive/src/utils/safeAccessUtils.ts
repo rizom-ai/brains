@@ -1,24 +1,24 @@
 /**
  * Utility functions for safe access to arrays and objects with proper type safety
- * 
+ *
  * These utilities help prevent TypeScript errors when using the noUncheckedIndexedAccess flag
  * and provide a safer way to access array elements and object properties.
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
  * - createFresh(): Creates a new instance without affecting the singleton
- * 
+ *
  * USAGE GUIDANCE:
  * - Use these utilities when accessing array elements by index: safeArrayAccess(array, index, defaultValue)
  * - Use for object property access with dynamic keys: safeIndexAccess(obj, key, defaultValue)
  * - Use for nested property access: safeNestedAccess(obj, 'path.to.property', defaultValue)
  * - Use type narrowing with isDefined() to safely work with possibly undefined values
- * 
+ *
  * These utilities will become even more important when the noUncheckedIndexedAccess flag is enabled
  * in tsconfig.json, which is planned for a future update.
  */
-import { Logger } from '@/utils/logger';
+import { Logger } from "@/utils/logger";
 
 /**
  * Utility class for safe access to arrays and objects with proper type safety
@@ -26,10 +26,10 @@ import { Logger } from '@/utils/logger';
 export class SafeAccessUtils {
   /** The singleton instance */
   private static instance: SafeAccessUtils | null = null;
-  
+
   /** Logger instance */
   private logger = Logger.getInstance();
-  
+
   /**
    * Get the singleton instance of SafeAccessUtils
    */
@@ -39,26 +39,26 @@ export class SafeAccessUtils {
     }
     return SafeAccessUtils.instance;
   }
-  
+
   /**
    * Reset the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
     SafeAccessUtils.instance = null;
   }
-  
+
   /**
    * Create a fresh instance (primarily for testing)
    */
   public static createFresh(): SafeAccessUtils {
     return new SafeAccessUtils();
   }
-  
+
   /**
    * Private constructor to enforce singleton pattern
    */
   private constructor() {}
-  
+
   /**
    * Safely get an element from an array, returning a default value if index is out of bounds
    * @param array - The array to access
@@ -67,8 +67,8 @@ export class SafeAccessUtils {
    * @returns The array element or the default value
    */
   public safeArrayAccess<T>(
-    array: T[] | undefined | null, 
-    index: number, 
+    array: T[] | undefined | null,
+    index: number,
     defaultValue: T,
   ): T {
     if (!array || index < 0 || index >= array.length) {
@@ -76,7 +76,7 @@ export class SafeAccessUtils {
     }
     return array[index];
   }
-  
+
   /**
    * Safely get a property from an object, returning a default value if property doesn't exist
    * @param obj - The object to access
@@ -93,9 +93,9 @@ export class SafeAccessUtils {
       return defaultValue;
     }
     const value = (obj as T)[key];
-    return (value === undefined || value === null) ? defaultValue : value;
+    return value === undefined || value === null ? defaultValue : value;
   }
-  
+
   /**
    * Safely get a property from an object with index signature, returning a default value if property doesn't exist
    * @param obj - The object to access
@@ -113,7 +113,7 @@ export class SafeAccessUtils {
     }
     return obj[key] ?? defaultValue;
   }
-  
+
   /**
    * Safely get a nested property from an object, returning a default value if any part of the path doesn't exist
    * @param obj - The object to access
@@ -129,31 +129,37 @@ export class SafeAccessUtils {
     if (!obj) {
       return defaultValue;
     }
-    
-    const keys = path.split('.');
+
+    const keys = path.split(".");
     let current: unknown = obj;
-    
+
     for (const key of keys) {
-      if (current === undefined || current === null || typeof current !== 'object') {
+      if (
+        current === undefined ||
+        current === null ||
+        typeof current !== "object"
+      ) {
         return defaultValue;
       }
       current = (current as Record<string, unknown>)[key];
     }
-    
-    return (current === undefined || current === null) ? defaultValue : current as T;
+
+    return current === undefined || current === null
+      ? defaultValue
+      : (current as T);
   }
-  
+
   /**
    * Type assertion function to ensure a value is defined (not undefined or null)
    * Throws an error if the value is undefined or null
-   * 
+   *
    * @param value - The value to check
    * @param errorMessage - Optional error message
    * @returns The value, guaranteed to be non-null
    */
   public assertDefined<T>(
-    value: T | undefined | null, 
-    errorMessage = 'Value is undefined or null',
+    value: T | undefined | null,
+    errorMessage = "Value is undefined or null",
   ): T {
     if (value === undefined || value === null) {
       this.logger.error(errorMessage);
@@ -161,25 +167,25 @@ export class SafeAccessUtils {
     }
     return value;
   }
-  
+
   /**
    * Function to check if a value exists (not undefined or null)
-   * 
+   *
    * @param value - The value to check
    * @returns True if the value is defined, false otherwise
    */
   public isDefined<T>(value: T | undefined | null): value is T {
     return value !== undefined && value !== null;
   }
-  
+
   /**
    * Type guard for checking if a value is a non-empty string
-   * 
+   *
    * @param value - The value to check
    * @returns True if the value is a non-empty string
    */
   public isNonEmptyString(value: unknown): value is string {
-    return typeof value === 'string' && value.trim().length > 0;
+    return typeof value === "string" && value.trim().length > 0;
   }
 }
 
@@ -192,11 +198,15 @@ export class SafeAccessUtils {
  * @returns The array element or the default value
  */
 export function safeArrayAccess<T>(
-  array: T[] | undefined | null, 
-  index: number, 
+  array: T[] | undefined | null,
+  index: number,
   defaultValue: T,
 ): T {
-  return SafeAccessUtils.getInstance().safeArrayAccess(array, index, defaultValue);
+  return SafeAccessUtils.getInstance().safeArrayAccess(
+    array,
+    index,
+    defaultValue,
+  );
 }
 
 /**
@@ -241,27 +251,31 @@ export function safeNestedAccess<T>(
   path: string,
   defaultValue: T,
 ): T {
-  return SafeAccessUtils.getInstance().safeNestedAccess(obj, path, defaultValue);
+  return SafeAccessUtils.getInstance().safeNestedAccess(
+    obj,
+    path,
+    defaultValue,
+  );
 }
 
 /**
  * Type assertion function to ensure a value is defined (not undefined or null)
  * Throws an error if the value is undefined or null
- * 
+ *
  * @param value - The value to check
  * @param errorMessage - Optional error message
  * @returns The value, guaranteed to be non-null
  */
 export function assertDefined<T>(
-  value: T | undefined | null, 
-  errorMessage = 'Value is undefined or null',
+  value: T | undefined | null,
+  errorMessage = "Value is undefined or null",
 ): T {
   return SafeAccessUtils.getInstance().assertDefined(value, errorMessage);
 }
 
 /**
  * Function to check if a value exists (not undefined or null)
- * 
+ *
  * @param value - The value to check
  * @returns True if the value is defined, false otherwise
  */
@@ -271,7 +285,7 @@ export function isDefined<T>(value: T | undefined | null): value is T {
 
 /**
  * Type guard for checking if a value is a non-empty string
- * 
+ *
  * @param value - The value to check
  * @returns True if the value is a non-empty string
  */

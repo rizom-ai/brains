@@ -1,61 +1,74 @@
 /**
  * ConversationStorageAdapter
- * 
+ *
  * Adapts the ConversationStorage interface to the standard StorageInterface
  * used by the BaseContext architecture.
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
  * - createFresh(): Creates a new instance without affecting the singleton
  */
 
-import { nanoid } from 'nanoid';
+import { nanoid } from "nanoid";
 
 import type {
   ConversationInfo,
   ConversationStorage,
   ConversationSummary,
   NewConversation,
-} from '@/contexts/conversations/storage/conversationStorage';
-import type { ListOptions, SearchCriteria, StorageInterface } from '@/contexts/storageInterface';
-import type { Conversation, ConversationTurn } from '@/protocol/schemas/conversationSchemas';
-import { Logger } from '@/utils/logger';
-
+} from "@/contexts/conversations/storage/conversationStorage";
+import type {
+  ListOptions,
+  SearchCriteria,
+  StorageInterface,
+} from "@/contexts/storageInterface";
+import type {
+  Conversation,
+  ConversationTurn,
+} from "@/protocol/schemas/conversationSchemas";
+import { Logger } from "@/utils/logger";
 
 /**
  * Adapter to provide standard StorageInterface for conversations
  */
-export class ConversationStorageAdapter implements StorageInterface<Conversation> {
+export class ConversationStorageAdapter
+  implements StorageInterface<Conversation>
+{
   /** The singleton instance */
   private static instance: ConversationStorageAdapter | null = null;
-  
+
   /** Logger instance for this class */
   private logger = Logger.getInstance();
-  
+
   /**
    * Create a new ConversationStorageAdapter
-   * @param storage The underlying storage implementation 
+   * @param storage The underlying storage implementation
    */
   constructor(private storage: ConversationStorage) {}
-  
+
   /**
    * Get the singleton instance of ConversationStorageAdapter
-   * 
+   *
    * @param storage The storage implementation to use (only used when creating a new instance)
    * @returns The shared ConversationStorageAdapter instance
    */
-  public static getInstance(storage: ConversationStorage): ConversationStorageAdapter {
+  public static getInstance(
+    storage: ConversationStorage,
+  ): ConversationStorageAdapter {
     if (!ConversationStorageAdapter.instance) {
-      ConversationStorageAdapter.instance = ConversationStorageAdapter.createWithDependencies(storage);
+      ConversationStorageAdapter.instance =
+        ConversationStorageAdapter.createWithDependencies(storage);
     } else if (storage) {
       // Log at debug level if trying to get instance with different storage
       const logger = Logger.getInstance();
-      logger.debug('getInstance called with storage but instance already exists. Storage ignored');
+      logger.debug(
+        "getInstance called with storage but instance already exists. Storage ignored",
+      );
     }
     return ConversationStorageAdapter.instance;
   }
-  
+
   /**
    * Reset the singleton instance (primarily for testing)
    * This clears the instance and any resources it holds
@@ -63,25 +76,29 @@ export class ConversationStorageAdapter implements StorageInterface<Conversation
   public static resetInstance(): void {
     ConversationStorageAdapter.instance = null;
   }
-  
+
   /**
    * Create a fresh instance (primarily for testing)
    * This creates a new instance without affecting the singleton
-   * 
+   *
    * @param storage The storage implementation to use
    * @returns A new ConversationStorageAdapter instance
    */
-  public static createFresh(storage: ConversationStorage): ConversationStorageAdapter {
+  public static createFresh(
+    storage: ConversationStorage,
+  ): ConversationStorageAdapter {
     return new ConversationStorageAdapter(storage);
   }
-  
+
   /**
    * Factory method for creating an instance with explicit dependencies
-   * 
+   *
    * @param storage The storage implementation to use
    * @returns A new ConversationStorageAdapter instance with resolved dependencies
    */
-  public static createWithDependencies(storage: ConversationStorage): ConversationStorageAdapter {
+  public static createWithDependencies(
+    storage: ConversationStorage,
+  ): ConversationStorageAdapter {
     return new ConversationStorageAdapter(storage);
   }
 
@@ -94,8 +111,8 @@ export class ConversationStorageAdapter implements StorageInterface<Conversation
     // Extract the necessary fields from the item
     const newConversation: NewConversation = {
       id: item.id,
-      interfaceType: item.interfaceType as 'cli' | 'matrix',
-      roomId: item.roomId || '',
+      interfaceType: item.interfaceType as "cli" | "matrix",
+      roomId: item.roomId || "",
       startedAt: item.createdAt || new Date(),
       updatedAt: item.updatedAt || new Date(),
       metadata: item.metadata,
@@ -141,32 +158,43 @@ export class ConversationStorageAdapter implements StorageInterface<Conversation
     // Adapter pattern to map generic search criteria to ConversationStorage search
     try {
       const conversationCriteria: Record<string, unknown> = {};
-      
+
       // Map standard fields
-      if ('interfaceType' in criteria) conversationCriteria['interfaceType'] = criteria['interfaceType'];
-      if ('roomId' in criteria) conversationCriteria['roomId'] = criteria['roomId'];
-      if ('query' in criteria) conversationCriteria['query'] = criteria['query'];
-      if ('startDate' in criteria) conversationCriteria['startDate'] = criteria['startDate'];
-      if ('endDate' in criteria) conversationCriteria['endDate'] = criteria['endDate'];
-      if ('limit' in criteria) conversationCriteria['limit'] = criteria['limit'];
-      if ('offset' in criteria) conversationCriteria['offset'] = criteria['offset'];
-      
+      if ("interfaceType" in criteria)
+        conversationCriteria["interfaceType"] = criteria["interfaceType"];
+      if ("roomId" in criteria)
+        conversationCriteria["roomId"] = criteria["roomId"];
+      if ("query" in criteria)
+        conversationCriteria["query"] = criteria["query"];
+      if ("startDate" in criteria)
+        conversationCriteria["startDate"] = criteria["startDate"];
+      if ("endDate" in criteria)
+        conversationCriteria["endDate"] = criteria["endDate"];
+      if ("limit" in criteria)
+        conversationCriteria["limit"] = criteria["limit"];
+      if ("offset" in criteria)
+        conversationCriteria["offset"] = criteria["offset"];
+
       // Get conversation info objects from storage
-      const conversations = await this.storage.findConversations(conversationCriteria);
-      
+      const conversations =
+        await this.storage.findConversations(conversationCriteria);
+
       // For each info object, fetch the full conversation
       const results: Conversation[] = [];
-      
+
       for (const info of conversations) {
         const conversation = await this.storage.getConversation(info.id);
         if (conversation) {
           results.push(conversation);
         }
       }
-      
+
       return results;
     } catch (error) {
-      this.logger.error('Error searching conversations', { error, context: 'ConversationStorageAdapter' });
+      this.logger.error("Error searching conversations", {
+        error,
+        context: "ConversationStorageAdapter",
+      });
       return [];
     }
   }
@@ -179,31 +207,40 @@ export class ConversationStorageAdapter implements StorageInterface<Conversation
   async list(options?: ListOptions): Promise<Conversation[]> {
     try {
       // Use recent conversations as the default list implementation
-      const limit = options?.['limit'];
-      const offset = options?.['offset'];
-      const interfaceType = options?.['interfaceType'] as 'cli' | 'matrix' | undefined;
-      
+      const limit = options?.["limit"];
+      const offset = options?.["offset"];
+      const interfaceType = options?.["interfaceType"] as
+        | "cli"
+        | "matrix"
+        | undefined;
+
       // Get conversation info objects
-      const conversations = await this.storage.getRecentConversations(limit, interfaceType);
-      
+      const conversations = await this.storage.getRecentConversations(
+        limit,
+        interfaceType,
+      );
+
       // For each info object, fetch the full conversation
       const results: Conversation[] = [];
-      
+
       for (const info of conversations) {
         const conversation = await this.storage.getConversation(info.id);
         if (conversation) {
           results.push(conversation);
         }
       }
-      
+
       // Apply offset if needed
       if (offset && offset > 0) {
         return results.slice(offset);
       }
-      
+
       return results;
     } catch (error) {
-      this.logger.error('Error listing conversations', { error, context: 'ConversationStorageAdapter' });
+      this.logger.error("Error listing conversations", {
+        error,
+        context: "ConversationStorageAdapter",
+      });
       return [];
     }
   }
@@ -220,12 +257,15 @@ export class ConversationStorageAdapter implements StorageInterface<Conversation
         const conversations = await this.storage.findConversations({});
         return conversations.length;
       }
-      
+
       // Use search with criteria and count the results
       const conversations = await this.search(criteria);
       return conversations.length;
     } catch (error) {
-      this.logger.error('Error counting conversations', { error, context: 'ConversationStorageAdapter' });
+      this.logger.error("Error counting conversations", {
+        error,
+        context: "ConversationStorageAdapter",
+      });
       return 0;
     }
   }
@@ -240,7 +280,7 @@ export class ConversationStorageAdapter implements StorageInterface<Conversation
    */
   async getConversationByRoom(
     roomId: string,
-    interfaceType?: 'cli' | 'matrix',
+    interfaceType?: "cli" | "matrix",
   ): Promise<string | null> {
     return this.storage.getConversationByRoom(roomId, interfaceType);
   }
@@ -253,15 +293,18 @@ export class ConversationStorageAdapter implements StorageInterface<Conversation
    */
   async getOrCreateConversation(
     roomId: string,
-    interfaceType: 'cli' | 'matrix',
+    interfaceType: "cli" | "matrix",
   ): Promise<string> {
     // Try to find existing conversation
-    const existingId = await this.storage.getConversationByRoom(roomId, interfaceType);
-    
+    const existingId = await this.storage.getConversationByRoom(
+      roomId,
+      interfaceType,
+    );
+
     if (existingId) {
       return existingId;
     }
-    
+
     // Create a new conversation
     return this.storage.createConversation({
       id: `conv-${nanoid()}`,
@@ -286,13 +329,13 @@ export class ConversationStorageAdapter implements StorageInterface<Conversation
     const newTurn: ConversationTurn = {
       id: turn.id || `turn-${nanoid()}`,
       timestamp: turn.timestamp || new Date(),
-      query: turn.query || '',
-      response: turn.response || '',
-      userId: turn.userId || '',
-      userName: turn.userName || '',
+      query: turn.query || "",
+      response: turn.response || "",
+      userId: turn.userId || "",
+      userName: turn.userName || "",
       metadata: turn.metadata || {},
     };
-    
+
     return this.storage.addTurn(conversationId, newTurn);
   }
 
@@ -338,7 +381,9 @@ export class ConversationStorageAdapter implements StorageInterface<Conversation
    * @param criteria Search criteria
    * @returns Array of conversation info objects
    */
-  async findConversations(criteria: Record<string, unknown>): Promise<ConversationInfo[]> {
+  async findConversations(
+    criteria: Record<string, unknown>,
+  ): Promise<ConversationInfo[]> {
     return this.storage.findConversations(criteria);
   }
 
@@ -350,7 +395,7 @@ export class ConversationStorageAdapter implements StorageInterface<Conversation
    */
   async getRecentConversations(
     limit?: number,
-    interfaceType?: 'cli' | 'matrix',
+    interfaceType?: "cli" | "matrix",
   ): Promise<ConversationInfo[]> {
     return this.storage.getRecentConversations(limit, interfaceType);
   }

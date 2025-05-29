@@ -1,17 +1,17 @@
 /**
  * Claude Language Model Adapter
- * 
+ *
  * This module provides an adapter for the Claude language model using the Vercel AI SDK.
  * It follows the Component Interface Standardization pattern and implements the LanguageModelAdapter interface.
  */
 
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateObject, type LanguageModelUsage } from 'ai';
-import { z } from 'zod';
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { generateObject, type LanguageModelUsage } from "ai";
+import { z } from "zod";
 
-import { aiConfig } from '@/config';
-import type { ModelResponse, ModelUsage } from '@/resources/ai/interfaces';
-import logger from '@/utils/logger';
+import { aiConfig } from "@/config";
+import type { ModelResponse, ModelUsage } from "@/resources/ai/interfaces";
+import logger from "@/utils/logger";
 
 // Define the default schema for text responses
 export const textSchema = z.object({
@@ -54,7 +54,7 @@ export interface CompleteOptions<T = DefaultResponseType> {
 
 /**
  * Claude Language Model client wrapper
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
@@ -67,7 +67,7 @@ export class ClaudeModel {
    * This property should be accessed only by getInstance(), resetInstance(), and createFresh()
    */
   private static instance: ClaudeModel | null = null;
-  
+
   private readonly model: string;
   private readonly apiKey: string;
   private readonly defaultMaxTokens: number;
@@ -75,9 +75,9 @@ export class ClaudeModel {
 
   /**
    * Get the singleton instance of ClaudeModel
-   * 
+   *
    * Part of the Component Interface Standardization pattern.
-   * 
+   *
    * @returns The singleton instance
    */
   public static getInstance(): ClaudeModel {
@@ -89,37 +89,39 @@ export class ClaudeModel {
         defaultMaxTokens: aiConfig.anthropic.defaultMaxTokens,
         defaultTemperature: aiConfig.anthropic.temperature,
       };
-      
+
       ClaudeModel.instance = new ClaudeModel(options);
-      logger.debug('ClaudeModel singleton instance created');
+      logger.debug("ClaudeModel singleton instance created");
     }
-    
+
     return ClaudeModel.instance;
   }
 
   /**
    * Reset the singleton instance
-   * 
+   *
    * Part of the Component Interface Standardization pattern.
    * Primarily used for testing to ensure a clean state.
    */
   public static resetInstance(): void {
     ClaudeModel.instance = null;
-    logger.debug('ClaudeModel singleton instance reset');
+    logger.debug("ClaudeModel singleton instance reset");
   }
-  
+
   /**
    * Create a fresh instance without affecting the singleton
-   * 
+   *
    * Part of the Component Interface Standardization pattern.
    * Primarily used for testing to create isolated instances.
-   * 
+   *
    * @param options Optional configuration options (overrides defaults)
    * @returns A new ClaudeModel instance
    */
-  public static createFresh(options?: Partial<ClaudeModelOptions>): ClaudeModel {
-    logger.debug('Creating fresh ClaudeModel instance');
-    
+  public static createFresh(
+    options?: Partial<ClaudeModelOptions>,
+  ): ClaudeModel {
+    logger.debug("Creating fresh ClaudeModel instance");
+
     // Get default configuration from config
     const defaultOptions: ClaudeModelOptions = {
       model: aiConfig.anthropic.defaultModel,
@@ -127,22 +129,22 @@ export class ClaudeModel {
       defaultMaxTokens: aiConfig.anthropic.defaultMaxTokens,
       defaultTemperature: aiConfig.anthropic.temperature,
     };
-    
+
     // Merge with provided options
     const mergedOptions: ClaudeModelOptions = {
       ...defaultOptions,
       ...options,
     };
-    
+
     return new ClaudeModel(mergedOptions);
   }
 
   /**
    * Private constructor to enforce factory method usage
-   * 
+   *
    * Part of the Component Interface Standardization pattern.
    * Users should call getInstance() or createFresh() instead.
-   * 
+   *
    * @param options Configuration options
    */
   private constructor(options: ClaudeModelOptions) {
@@ -151,16 +153,16 @@ export class ClaudeModel {
     this.apiKey = options.apiKey;
     this.defaultMaxTokens = options.defaultMaxTokens;
     this.defaultTemperature = options.defaultTemperature;
-    
+
     logger.debug(`Claude model initialized with model: ${this.model}`);
   }
 
   /**
    * Send a completion request to Claude and return a structured response
-   * 
+   *
    * All responses use a schema for consistency. If no schema is provided,
    * the default schema for { answer: string } is used.
-   * 
+   *
    * @param options Completion options including optional schema
    * @returns Model response with structured object and token usage
    */
@@ -170,12 +172,12 @@ export class ClaudeModel {
     try {
       // Use the provided schema or default to textSchema
       const schema = options.schema || (textSchema as unknown as z.ZodType<T>);
-      
+
       // Generate structured object using the Vercel AI SDK
       const anthropicProvider = createAnthropic({
         apiKey: this.apiKey,
       });
-      
+
       const response = await generateObject({
         model: anthropicProvider(this.model),
         system: options.systemPrompt,
@@ -184,10 +186,10 @@ export class ClaudeModel {
         temperature: options.temperature ?? this.defaultTemperature,
         maxTokens: options.maxTokens ?? this.defaultMaxTokens,
       });
-      
+
       // Map usage from the AI SDK to our internal format
       const mappedUsage = this.mapUsage(response.usage);
-      
+
       return {
         object: response.object as T,
         usage: mappedUsage,
@@ -197,7 +199,7 @@ export class ClaudeModel {
       throw error;
     }
   }
-  
+
   /**
    * Map SDK usage object to our internal format
    * @param usage The AI SDK usage object
@@ -207,7 +209,7 @@ export class ClaudeModel {
     if (!usage) {
       return { inputTokens: 0, outputTokens: 0 };
     }
-    
+
     // The AI SDK usage object structure is different, so we need to map it
     // The 'prompt' tokens are the input, and the 'completion' tokens are the output
     return {

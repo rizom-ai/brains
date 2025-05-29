@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
-import { eq } from 'drizzle-orm';
+import { eq } from "drizzle-orm";
 
-import { db } from '@/db';
-import { notes } from '@/db/schema';
-import logger from '@/utils/logger';
+import { db } from "@/db";
+import { notes } from "@/db/schema";
+import logger from "@/utils/logger";
 
 async function deleteNoteById(id: string) {
   try {
@@ -19,7 +19,7 @@ async function deleteNoteById(id: string) {
 async function deleteAllNotes() {
   try {
     await db.delete(notes);
-    logger.info('All notes deleted successfully.');
+    logger.info("All notes deleted successfully.");
     return true;
   } catch (error) {
     logger.error(`Error deleting all notes: ${error}`);
@@ -29,7 +29,7 @@ async function deleteAllNotes() {
 
 async function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length === 0) {
     logger.info(`
 Usage:
@@ -39,12 +39,12 @@ Usage:
     process.exit(1);
   }
 
-  if (args[0] === '--all') {
+  if (args[0] === "--all") {
     await deleteAllNotes();
   } else {
     await deleteNoteById(args[0]);
   }
-  
+
   process.exit(0);
 }
 

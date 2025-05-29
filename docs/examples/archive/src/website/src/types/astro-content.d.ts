@@ -3,17 +3,17 @@
  * These provide TypeScript support for the Astro-specific imports
  */
 
-declare module 'astro:content' {
-  import type { z } from 'zod';
+declare module "astro:content" {
+  import type { z } from "zod";
 
   /**
    * Define a collection with a schema
    */
-  export function defineCollection<T extends z.ZodType>(options: { 
-    type: 'data' | 'content';
+  export function defineCollection<T extends z.ZodType>(options: {
+    type: "data" | "content";
     schema: T;
   }): {
-    type: 'data' | 'content';
+    type: "data" | "content";
     schema: T;
   };
 

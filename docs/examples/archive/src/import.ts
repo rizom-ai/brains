@@ -1,13 +1,16 @@
 #!/usr/bin/env bun
-import { resolve } from 'path';
+import { resolve } from "path";
 
-import { importMarkdownDirectory, importMarkdownFile } from '@/importers/markdownImporter';
-import { ProfileImporter } from '@/importers/profileImporter';
-import logger from '@/utils/logger';
+import {
+  importMarkdownDirectory,
+  importMarkdownFile,
+} from "@/importers/markdownImporter";
+import { ProfileImporter } from "@/importers/profileImporter";
+import logger from "@/utils/logger";
 
 async function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length === 0) {
     logger.info(`
 Usage:
@@ -23,12 +26,12 @@ Examples:
   }
 
   // Check if this is a profile import
-  if (args[0] === 'profile') {
+  if (args[0] === "profile") {
     if (args.length < 2) {
-      logger.error('Profile import requires a YAML file path');
+      logger.error("Profile import requires a YAML file path");
       process.exit(1);
     }
-    
+
     const profilePath = resolve(args[1]);
     try {
       logger.info(`Importing profile from: ${profilePath}`);
@@ -44,14 +47,16 @@ Examples:
 
   // Otherwise, handle markdown import
   const path = resolve(args[0]);
-  
+
   try {
     const stats = await Bun.file(path).stat();
-    
+
     if (stats.isDirectory()) {
       logger.info(`Importing markdown files from directory: ${path}`);
       const result = await importMarkdownDirectory(path);
-      logger.info(`Import complete. Imported: ${result.imported}, Failed: ${result.failed}`);
+      logger.info(
+        `Import complete. Imported: ${result.imported}, Failed: ${result.failed}`,
+      );
     } else if (stats.isFile()) {
       logger.info(`Importing markdown file: ${path}`);
       const id = await importMarkdownFile(path);

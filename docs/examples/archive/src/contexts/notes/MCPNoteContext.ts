@@ -1,31 +1,40 @@
 /**
  * MCPNoteContext - Note Context using the simplified MCP design
- * 
+ *
  * This implementation uses the new composition-based MCPContext pattern
  * instead of the previous inheritance-based BaseContext approach.
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
- * - getInstance(): Returns the singleton instance 
+ * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
  * - createFresh(): Creates a new instance without affecting the singleton
- * 
+ *
  * Also implements NoteToolContext for compatibility with NoteToolService during migration
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { textConfig } from '@/config';
-import { createContextFunctionality, type MCPContext, type MCPFormatterInterface, type MCPStorageInterface } from '@/contexts/MCPContext';
-import type { Note } from '@/models/note';
-import type { NoteEmbeddingService, NoteRepository, NoteSearchService } from '@/services/notes';
-import type { NoteSearchOptions } from '@/services/notes/noteSearchService';
-import { ServiceRegistry } from '@/services/serviceRegistry';
-import { Logger } from '@/utils/logger';
-import { isNonEmptyString } from '@/utils/safeAccessUtils';
+import { textConfig } from "@/config";
+import {
+  createContextFunctionality,
+  type MCPContext,
+  type MCPFormatterInterface,
+  type MCPStorageInterface,
+} from "@/contexts/MCPContext";
+import type { Note } from "@/models/note";
+import type {
+  NoteEmbeddingService,
+  NoteRepository,
+  NoteSearchService,
+} from "@/services/notes";
+import type { NoteSearchOptions } from "@/services/notes/noteSearchService";
+import { ServiceRegistry } from "@/services/serviceRegistry";
+import { Logger } from "@/utils/logger";
+import { isNonEmptyString } from "@/utils/safeAccessUtils";
 
-import { NoteFormatter } from './formatters';
-import { NoteStorageAdapter } from './noteStorageAdapter';
-import { type NoteToolContext, NoteToolService } from './tools';
+import { NoteFormatter } from "./formatters";
+import { NoteStorageAdapter } from "./noteStorageAdapter";
+import { type NoteToolContext, NoteToolService } from "./tools";
 
 /**
  * Configuration for the MCPNoteContext
@@ -67,10 +76,10 @@ export interface MCPNoteContextDependencies {
 
 /**
  * Context for working with notes using the new MCP Pattern
- * 
+ *
  * Acts as a facade for note-related operations, coordinating between
  * services, repositories, and MCP components.
- * 
+ *
  * Uses composition instead of inheritance by delegating to the context
  * functionality created by createContextFunctionality.
  */
@@ -96,7 +105,7 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
 
   /**
    * Get singleton instance of MCPNoteContext
-   * 
+   *
    * @param options Configuration options (only used when creating a new instance)
    * @returns The singleton instance
    */
@@ -108,11 +117,13 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
       MCPNoteContext.instance = MCPNoteContext.createFresh(config);
 
       const logger = Logger.getInstance();
-      logger.debug('MCPNoteContext singleton instance created');
+      logger.debug("MCPNoteContext singleton instance created");
     } else if (options) {
       // Log at debug level if trying to get instance with different config
       const logger = Logger.getInstance();
-      logger.debug('getInstance called with config but instance already exists. Config ignored.');
+      logger.debug(
+        "getInstance called with config but instance already exists. Config ignored.",
+      );
     }
 
     return MCPNoteContext.instance;
@@ -126,7 +137,7 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
     if (MCPNoteContext.instance) {
       // Any cleanup needed before destroying the instance
       const logger = Logger.getInstance();
-      logger.debug('MCPNoteContext singleton instance reset');
+      logger.debug("MCPNoteContext singleton instance reset");
 
       MCPNoteContext.instance = null;
     }
@@ -135,7 +146,7 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
   /**
    * Create a fresh instance (primarily for testing)
    * This creates a new instance without affecting the singleton
-   * 
+   *
    * @param config Configuration options
    * @param dependencies Optional dependencies
    * @returns A new MCPNoteContext instance
@@ -145,7 +156,7 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
     dependencies?: MCPNoteContextDependencies,
   ): MCPNoteContext {
     const logger = dependencies?.logger || Logger.getInstance();
-    logger.debug('Creating fresh MCPNoteContext instance');
+    logger.debug("Creating fresh MCPNoteContext instance");
 
     const serviceRegistry = ServiceRegistry.getInstance({
       apiKey: config.apiKey,
@@ -156,7 +167,8 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
       return new MCPNoteContext(
         config,
         dependencies.repository || serviceRegistry.getNoteRepository(),
-        dependencies.embeddingService || serviceRegistry.getNoteEmbeddingService(),
+        dependencies.embeddingService ||
+          serviceRegistry.getNoteEmbeddingService(),
         dependencies.searchService || serviceRegistry.getNoteSearchService(),
         dependencies.storageAdapter,
         dependencies.formatter,
@@ -175,7 +187,7 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
 
   /**
    * Constructor for MCPNoteContext with explicit dependency injection
-   * 
+   *
    * @param config Configuration for the context
    * @param repository Note repository instance
    * @param embeddingService Note embedding service instance
@@ -195,7 +207,7 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
   ) {
     this.config = config;
     this.logger = logger || Logger.getInstance();
-    
+
     // Store repository and services
     this.repository = repository;
     this.embeddingService = embeddingService;
@@ -209,15 +221,17 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
 
     // Create the context implementation using the utility function
     this.contextImpl = createContextFunctionality({
-      name: (this.config.name as string) || 'NoteBrain',
-      version: (this.config.version as string) || '1.0.0',
+      name: (this.config.name as string) || "NoteBrain",
+      version: (this.config.version as string) || "1.0.0",
       logger: this.logger,
     });
 
     // Initialize MCP resources and tools
     this.initializeMcpComponents();
 
-    this.logger.debug('MCPNoteContext initialized with dependency injection', { context: 'MCPNoteContext' });
+    this.logger.debug("MCPNoteContext initialized with dependency injection", {
+      context: "MCPNoteContext",
+    });
   }
 
   /**
@@ -227,12 +241,12 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
     // Register note resources
     this.contextImpl.resources.push(
       {
-        protocol: 'note',
-        path: ':id',
+        protocol: "note",
+        path: ":id",
         handler: async (params) => {
-          const id = params['id'] as string;
+          const id = params["id"] as string;
           if (!id) {
-            throw new Error('No note ID provided');
+            throw new Error("No note ID provided");
           }
 
           const note = await this.getNoteById(id);
@@ -243,77 +257,83 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
 
           return {
             id: note.id,
-            title: note.title || 'Untitled Note',
-            content: note.content || '',
+            title: note.title || "Untitled Note",
+            content: note.content || "",
             tags: note.tags,
             createdAt: note.createdAt,
             updatedAt: note.updatedAt,
           };
         },
-        name: 'Get Note',
-        description: 'Retrieve a note by ID',
+        name: "Get Note",
+        description: "Retrieve a note by ID",
       },
 
       {
-        protocol: 'notes',
-        path: 'search',
+        protocol: "notes",
+        path: "search",
         handler: async (_params, query) => {
           const options: NoteSearchOptions = {
-            query: query ? query['query'] as string : undefined,
-            tags: query && query['tags'] ? String(query['tags']).split(',') : undefined,
-            limit: query && query['limit'] ? Number(query['limit']) : 10,
-            offset: query && query['offset'] ? Number(query['offset']) : 0,
-            semanticSearch: query && query['semantic'] ? String(query['semantic']) === 'true' : true,
+            query: query ? (query["query"] as string) : undefined,
+            tags:
+              query && query["tags"]
+                ? String(query["tags"]).split(",")
+                : undefined,
+            limit: query && query["limit"] ? Number(query["limit"]) : 10,
+            offset: query && query["offset"] ? Number(query["offset"]) : 0,
+            semanticSearch:
+              query && query["semantic"]
+                ? String(query["semantic"]) === "true"
+                : true,
           };
 
           const notes = await this.searchNotes(options);
 
           return {
             count: notes.length,
-            notes: notes.map(note => ({
+            notes: notes.map((note) => ({
               id: note.id,
-              title: note.title || 'Untitled Note',
-              preview: note.content?.substring(0, 150) || '',
+              title: note.title || "Untitled Note",
+              preview: note.content?.substring(0, 150) || "",
               tags: note.tags,
               createdAt: note.createdAt,
             })),
           };
         },
-        name: 'Search Notes',
-        description: 'Search notes by query or tags',
+        name: "Search Notes",
+        description: "Search notes by query or tags",
       },
 
       {
-        protocol: 'notes',
-        path: 'recent',
+        protocol: "notes",
+        path: "recent",
         handler: async (_params, query) => {
-          const limit = query && query['limit'] ? Number(query['limit']) : 5;
+          const limit = query && query["limit"] ? Number(query["limit"]) : 5;
           const notes = await this.getRecentNotes(limit);
 
           return {
             count: notes.length,
-            notes: notes.map(note => ({
+            notes: notes.map((note) => ({
               id: note.id,
-              title: note.title || 'Untitled Note',
-              preview: note.content?.substring(0, 150) || '',
+              title: note.title || "Untitled Note",
+              preview: note.content?.substring(0, 150) || "",
               tags: note.tags,
               createdAt: note.createdAt,
             })),
           };
         },
-        name: 'Recent Notes',
-        description: 'Get recent notes',
+        name: "Recent Notes",
+        description: "Get recent notes",
       },
 
       {
-        protocol: 'notes',
-        path: 'related/:id',
+        protocol: "notes",
+        path: "related/:id",
         handler: async (params, query) => {
-          const id = params['id'] as string;
-          const limit = query && query['limit'] ? Number(query['limit']) : 5;
+          const id = params["id"] as string;
+          const limit = query && query["limit"] ? Number(query["limit"]) : 5;
 
           if (!id) {
-            throw new Error('No note ID provided');
+            throw new Error("No note ID provided");
           }
 
           const notes = await this.getRelatedNotes(id, limit);
@@ -321,17 +341,17 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
           return {
             sourceId: id,
             count: notes.length,
-            notes: notes.map(note => ({
+            notes: notes.map((note) => ({
               id: note.id,
-              title: note.title || 'Untitled Note',
-              preview: note.content?.substring(0, 150) || '',
+              title: note.title || "Untitled Note",
+              preview: note.content?.substring(0, 150) || "",
               tags: note.tags,
               createdAt: note.createdAt,
             })),
           };
         },
-        name: 'Related Notes',
-        description: 'Get notes related to a specific note',
+        name: "Related Notes",
+        description: "Get notes related to a specific note",
       },
     );
 
@@ -342,7 +362,7 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
     // The NoteToolService now uses NoteToolContext interface that works with both
     // NoteContext and MCPNoteContext during the migration phase
     const tools = toolService.getTools(this);
-    
+
     // Store the tools in our context implementation
     this.contextImpl.tools.push(...tools);
   }
@@ -370,16 +390,20 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
 
       if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
         try {
-          const title = isNonEmptyString(note.title) ? note.title : '';
-          const content = isNonEmptyString(note.content) ? note.content : '';
+          const title = isNonEmptyString(note.title) ? note.title : "";
+          const content = isNonEmptyString(note.content) ? note.content : "";
 
           if (title.length > 0 || content.length > 0) {
             // Combine title and content for embedding
             const combinedText = `${title} ${content}`.trim();
-            embedding = await this.embeddingService.generateEmbedding(combinedText);
+            embedding =
+              await this.embeddingService.generateEmbedding(combinedText);
           }
         } catch (error) {
-          this.logger.error(`Error generating embedding for new note: ${error instanceof Error ? error.message : String(error)}`, { error, context: 'MCPNoteContext' });
+          this.logger.error(
+            `Error generating embedding for new note: ${error instanceof Error ? error.message : String(error)}`,
+            { error, context: "MCPNoteContext" },
+          );
         }
       }
 
@@ -395,18 +419,24 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
       const noteId = await this.storage.create(noteData);
 
       // If the note is long, also create chunks
-      const content = isNonEmptyString(note.content) ? note.content : '';
+      const content = isNonEmptyString(note.content) ? note.content : "";
       if (content.length > (textConfig.defaultChunkThreshold || 1000)) {
         try {
           await this.embeddingService.createNoteChunks(noteId, content);
         } catch (error) {
-          this.logger.error(`Failed to create chunks for note ${noteId}: ${error instanceof Error ? error.message : String(error)}`, { error, context: 'MCPNoteContext' });
+          this.logger.error(
+            `Failed to create chunks for note ${noteId}: ${error instanceof Error ? error.message : String(error)}`,
+            { error, context: "MCPNoteContext" },
+          );
         }
       }
 
       return noteId;
     } catch (error) {
-      this.logger.error(`Failed to create note: ${error instanceof Error ? error.message : String(error)}`, { error, context: 'MCPNoteContext' });
+      this.logger.error(
+        `Failed to create note: ${error instanceof Error ? error.message : String(error)}`,
+        { error, context: "MCPNoteContext" },
+      );
       throw error;
     }
   }
@@ -438,9 +468,15 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
    * @param tags Optional tags to filter by
    * @returns Array of similar notes with similarity scores
    */
-  async searchWithEmbedding(text: string, limit = 10, tags?: string[]): Promise<(Note & { similarity?: number })[]> {
+  async searchWithEmbedding(
+    text: string,
+    limit = 10,
+    tags?: string[],
+  ): Promise<(Note & { similarity?: number })[]> {
     if (!text) {
-      this.logger.error('Empty text provided to searchWithEmbedding', { context: 'MCPNoteContext' });
+      this.logger.error("Empty text provided to searchWithEmbedding", {
+        context: "MCPNoteContext",
+      });
       return [];
     }
 
@@ -449,26 +485,32 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
       const embedding = await this.embeddingService.generateEmbedding(text);
 
       // Search for similar notes
-      const scoredNotes = await this.embeddingService.searchSimilarNotes(embedding, limit * 2); // Get more to allow for tag filtering
+      const scoredNotes = await this.embeddingService.searchSimilarNotes(
+        embedding,
+        limit * 2,
+      ); // Get more to allow for tag filtering
 
       // Filter by tags if needed
       let results = scoredNotes;
       if (tags && tags.length > 0) {
-        results = scoredNotes.filter(note => {
+        results = scoredNotes.filter((note) => {
           // If the note has no tags, it doesn't match
           if (!note.tags || note.tags.length === 0) {
             return false;
           }
 
           // Check if any of the note's tags match any of the requested tags
-          return note.tags.some(tag => tags.includes(tag));
+          return note.tags.some((tag) => tags.includes(tag));
         });
       }
 
       // Limit results
       return results.slice(0, limit);
     } catch (error) {
-      this.logger.error(`Error in searchWithEmbedding: ${error instanceof Error ? error.message : String(error)}`, { error, context: 'MCPNoteContext' });
+      this.logger.error(
+        `Error in searchWithEmbedding: ${error instanceof Error ? error.message : String(error)}`,
+        { error, context: "MCPNoteContext" },
+      );
       return [];
     }
   }
@@ -481,7 +523,6 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
   async getRecentNotes(limit = 5): Promise<Note[]> {
     return this.storage.list({ limit });
   }
-
 
   /**
    * Get the total count of notes in the database
@@ -504,18 +545,22 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
         try {
           const existingNote = await this.getNoteById(id);
           if (existingNote) {
-            const title = updates.title || existingNote.title || '';
-            const content = updates.content || existingNote.content || '';
+            const title = updates.title || existingNote.title || "";
+            const content = updates.content || existingNote.content || "";
 
             // Generate embedding for combined text
             const combinedText = `${title} ${content}`.trim();
-            const embedding = await this.embeddingService.generateEmbedding(combinedText);
+            const embedding =
+              await this.embeddingService.generateEmbedding(combinedText);
 
             // Add embedding to updates
             updates.embedding = embedding;
           }
         } catch (error) {
-          this.logger.error(`Error generating embedding for updated note: ${error instanceof Error ? error.message : String(error)}`, { error, context: 'MCPNoteContext' });
+          this.logger.error(
+            `Error generating embedding for updated note: ${error instanceof Error ? error.message : String(error)}`,
+            { error, context: "MCPNoteContext" },
+          );
         }
       }
 
@@ -525,7 +570,10 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
       // Update the note
       return this.storage.update(id, updates);
     } catch (error) {
-      this.logger.error(`Failed to update note ${id}: ${error instanceof Error ? error.message : String(error)}`, { error, context: 'MCPNoteContext' });
+      this.logger.error(
+        `Failed to update note ${id}: ${error instanceof Error ? error.message : String(error)}`,
+        { error, context: "MCPNoteContext" },
+      );
       return false;
     }
   }
@@ -539,7 +587,10 @@ export class MCPNoteContext implements MCPContext, NoteToolContext {
     try {
       return this.storage.delete(id);
     } catch (error) {
-      this.logger.error(`Failed to delete note ${id}: ${error instanceof Error ? error.message : String(error)}`, { error, context: 'MCPNoteContext' });
+      this.logger.error(
+        `Failed to delete note ${id}: ${error instanceof Error ? error.message : String(error)}`,
+        { error, context: "MCPNoteContext" },
+      );
       return false;
     }
   }

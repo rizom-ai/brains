@@ -3,11 +3,11 @@
  * Handles tag-related commands
  */
 
-import type { MCPNoteContext } from '@/contexts';
-import type { IBrainProtocol } from '@/protocol/types';
+import type { MCPNoteContext } from "@/contexts";
+import type { IBrainProtocol } from "@/protocol/types";
 
-import { BaseCommandHandler } from '../core/baseCommandHandler';
-import type { CommandInfo, CommandResult } from '../core/commandTypes';
+import { BaseCommandHandler } from "../core/baseCommandHandler";
+import type { CommandInfo, CommandResult } from "../core/commandTypes";
 
 /**
  * Handler for tag-related commands
@@ -26,9 +26,9 @@ export class TagCommandHandler extends BaseCommandHandler {
   getCommands(): CommandInfo[] {
     return [
       {
-        command: 'tags',
-        description: 'List all tags in the system',
-        usage: 'tags',
+        command: "tags",
+        description: "List all tags in the system",
+        usage: "tags",
       },
     ];
   }
@@ -37,14 +37,14 @@ export class TagCommandHandler extends BaseCommandHandler {
    * Check if this handler can process the command
    */
   canHandle(command: string): boolean {
-    return command === 'tags';
+    return command === "tags";
   }
 
   /**
    * Execute a command
    */
   async execute(command: string): Promise<CommandResult> {
-    if (command === 'tags') {
+    if (command === "tags") {
       return await this.handleTags();
     }
     return this.formatError(`Unknown command: ${command}`);
@@ -60,10 +60,10 @@ export class TagCommandHandler extends BaseCommandHandler {
     // Extract and count all tags
     const tagCounts: { [tag: string]: number } = {};
 
-    allNotes.forEach(note => {
+    allNotes.forEach((note) => {
       if (note.tags && Array.isArray(note.tags)) {
-        note.tags.forEach(tag => {
-          if (typeof tag === 'string') {
+        note.tags.forEach((tag) => {
+          if (typeof tag === "string") {
             tagCounts[tag] = (tagCounts[tag] || 0) + 1;
           }
         });
@@ -76,9 +76,9 @@ export class TagCommandHandler extends BaseCommandHandler {
       .map(([tag, count]) => ({ tag, count }));
 
     if (sortedTags.length === 0) {
-      return this.formatError('No tags found in the system');
+      return this.formatError("No tags found in the system");
     }
 
-    return { type: 'tags', tags: sortedTags };
+    return { type: "tags", tags: sortedTags };
   }
 }

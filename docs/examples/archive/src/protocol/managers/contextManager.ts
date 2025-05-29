@@ -1,7 +1,7 @@
 /**
  * Context Manager for BrainProtocol
  * Manages access to note, profile, conversation, and external source contexts
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
@@ -13,16 +13,16 @@ import {
   MCPNoteContext,
   MCPProfileContext,
   MCPWebsiteContext,
-} from '@/contexts';
-import type { ConversationStorage } from '@/contexts/conversations/storage/conversationStorage';
-import { InMemoryStorage } from '@/contexts/conversations/storage/inMemoryStorage';
-import { ValidationError } from '@/utils/errorUtils';
-import { Logger } from '@/utils/logger';
-import { RendererRegistry } from '@/utils/registry/rendererRegistry';
-import { isDefined } from '@/utils/safeAccessUtils';
+} from "@/contexts";
+import type { ConversationStorage } from "@/contexts/conversations/storage/conversationStorage";
+import { InMemoryStorage } from "@/contexts/conversations/storage/inMemoryStorage";
+import { ValidationError } from "@/utils/errorUtils";
+import { Logger } from "@/utils/logger";
+import { RendererRegistry } from "@/utils/registry/rendererRegistry";
+import { isDefined } from "@/utils/safeAccessUtils";
 
-import type { BrainProtocolConfig } from '../config/brainProtocolConfig';
-import type { IContextManager } from '../types';
+import type { BrainProtocolConfig } from "../config/brainProtocolConfig";
+import type { IContextManager } from "../types";
 
 /**
  * Configuration options for ContextManager
@@ -34,13 +34,13 @@ export interface ContextManagerConfig {
 
 /**
  * Manages the various contexts used by the BrainProtocol
- * 
+ *
  * The ContextManager is responsible for:
  * 1. Creating and initializing context objects (notes, profile, external sources)
  * 2. Providing access to these contexts for other components
  * 3. Managing external source state (enabled/disabled)
  * 4. Ensuring contexts are properly initialized before use
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
@@ -70,7 +70,7 @@ export class ContextManager implements IContextManager {
 
   /**
    * Get the singleton instance of ContextManager
-   * 
+   *
    * @param options - Configuration options (only used when creating a new instance)
    * @returns The singleton instance
    */
@@ -79,11 +79,13 @@ export class ContextManager implements IContextManager {
       ContextManager.instance = new ContextManager(options.config);
 
       const logger = Logger.getInstance();
-      logger.debug('ContextManager singleton instance created');
+      logger.debug("ContextManager singleton instance created");
     } else if (options) {
       // Log a warning if trying to get instance with different config
       const logger = Logger.getInstance();
-      logger.warn('getInstance called with config but instance already exists. Config ignored.');
+      logger.warn(
+        "getInstance called with config but instance already exists. Config ignored.",
+      );
     }
 
     return ContextManager.instance;
@@ -98,27 +100,27 @@ export class ContextManager implements IContextManager {
       ContextManager.instance = null;
 
       const logger = Logger.getInstance();
-      logger.debug('ContextManager singleton instance reset');
+      logger.debug("ContextManager singleton instance reset");
     }
   }
 
   /**
    * Create a fresh instance that is not the singleton
    * This method is primarily used for testing to create isolated instances
-   * 
+   *
    * @param options - Configuration options
    * @returns A new ContextManager instance
    */
   public static createFresh(options: ContextManagerConfig): ContextManager {
     const logger = Logger.getInstance();
-    logger.debug('Creating fresh ContextManager instance');
+    logger.debug("Creating fresh ContextManager instance");
 
     return new ContextManager(options.config);
   }
 
   /**
    * Private constructor to enforce the use of getInstance() or createFresh()
-   * 
+   *
    * @param config - Configuration for the brain protocol
    */
   private constructor(config: BrainProtocolConfig) {
@@ -127,7 +129,7 @@ export class ContextManager implements IContextManager {
 
     const apiKey = config.getApiKey();
     const newsApiKey = config.newsApiKey;
-    const interfaceType = config.interfaceType || 'cli';
+    const interfaceType = config.interfaceType || "cli";
 
     // Initialize the contexts with singletons
     // This ensures we're using the same context instances throughout the application
@@ -146,7 +148,7 @@ export class ContextManager implements IContextManager {
       this.conversationContext = MCPConversationContext.getInstance({
         storage: storage as ConversationStorage,
       });
-      
+
       // Initialize website context
       this.websiteContext = MCPWebsiteContext.getInstance({});
 
@@ -158,14 +160,17 @@ export class ContextManager implements IContextManager {
       // Mark as successfully initialized
       this.initialized = true;
 
-      this.logger.debug('Context manager successfully initialized');
+      this.logger.debug("Context manager successfully initialized");
     } catch (error) {
-      this.initializationError = error instanceof Error ? error : new Error(String(error));
-      this.logger.error('Failed to initialize one or more contexts:', error);
-      throw new ValidationError(
-        'Context manager failed to initialize',
-        { apiKey: !!apiKey, newsApiKey: !!newsApiKey, interfaceType, error },
-      );
+      this.initializationError =
+        error instanceof Error ? error : new Error(String(error));
+      this.logger.error("Failed to initialize one or more contexts:", error);
+      throw new ValidationError("Context manager failed to initialize", {
+        apiKey: !!apiKey,
+        newsApiKey: !!newsApiKey,
+        interfaceType,
+        error,
+      });
     }
   }
 
@@ -227,7 +232,7 @@ export class ContextManager implements IContextManager {
     // Only log if there's an actual change
     if (this.useExternalSources !== enabled) {
       this.useExternalSources = enabled;
-      this.logger.info(`External sources ${enabled ? 'enabled' : 'disabled'}`);
+      this.logger.info(`External sources ${enabled ? "enabled" : "disabled"}`);
     }
   }
 
@@ -244,12 +249,14 @@ export class ContextManager implements IContextManager {
    * @returns Whether all contexts are ready
    */
   areContextsReady(): boolean {
-    return this.initialized &&
+    return (
+      this.initialized &&
       isDefined(this.noteContext) &&
       isDefined(this.profileContextV2) &&
       isDefined(this.externalSourceContext) &&
       isDefined(this.conversationContext) &&
-      isDefined(this.websiteContext);
+      isDefined(this.websiteContext)
+    );
   }
 
   /**
@@ -261,7 +268,7 @@ export class ContextManager implements IContextManager {
       throw new Error(
         this.initializationError
           ? `Contexts not ready: ${this.initializationError.message}`
-          : 'Contexts not ready: Initialization incomplete',
+          : "Contexts not ready: Initialization incomplete",
       );
     }
   }
@@ -274,34 +281,36 @@ export class ContextManager implements IContextManager {
     if (this.areContextsReady()) {
       // ProfileContext doesn't need explicit NoteContext reference anymore
       // this.profileContext.setNoteContext(this.noteContext);
-      this.logger.debug('Context links initialized');
+      this.logger.debug("Context links initialized");
     } else {
-      this.logger.warn('Cannot initialize context links: contexts not ready');
+      this.logger.warn("Cannot initialize context links: contexts not ready");
     }
   }
 
   /**
    * Get the renderer for the current interface type
    * This provides a standardized way to access the renderer from any context
-   * 
+   *
    * @returns The renderer instance for the current interface type
    */
   getRenderer(): unknown {
     try {
       // Get the configured interface type from our stored config
-      const interfaceType = this.config.interfaceType || 'cli';
+      const interfaceType = this.config.interfaceType || "cli";
 
       // Get the renderer from the registry
       const registry = RendererRegistry.getInstance();
       const renderer = registry.getRenderer(interfaceType);
 
       if (!renderer) {
-        this.logger.warn(`No renderer found for interface type: ${interfaceType}`);
+        this.logger.warn(
+          `No renderer found for interface type: ${interfaceType}`,
+        );
       }
 
       return renderer;
     } catch (error) {
-      this.logger.error('Error getting renderer:', error);
+      this.logger.error("Error getting renderer:", error);
       return null;
     }
   }
@@ -318,7 +327,7 @@ export class ContextManager implements IContextManager {
     MCPExternalSourceContext.resetInstance();
     MCPConversationContext.resetInstance();
     MCPWebsiteContext.resetInstance();
-    
-    logger.debug('All context singletons have been reset');
+
+    logger.debug("All context singletons have been reset");
   }
 }

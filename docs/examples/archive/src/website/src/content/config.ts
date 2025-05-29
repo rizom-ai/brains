@@ -1,14 +1,14 @@
-import { defineCollection } from 'astro:content';
+import { defineCollection } from "astro:content";
 
-import { LandingPageSchema } from '../schemas';
+import { LandingPageSchema } from "../schemas";
 
 // Landing page collection using our shared schema
 const landingPageCollection = defineCollection({
-  type: 'data',
+  type: "data",
   schema: LandingPageSchema,
 });
 
 // Export collections
 export const collections = {
-  'landingPage': landingPageCollection,
+  landingPage: landingPageCollection,
 };

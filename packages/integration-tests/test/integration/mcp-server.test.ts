@@ -13,7 +13,10 @@ describe("MCP Server Integration Tests", () => {
     testDb = await createTestDatabase();
 
     // Create transport with silent logs and test database path
-    const testMcpPath = new URL("../helpers/test-mcp-server.ts", import.meta.url).pathname;
+    const testMcpPath = new URL(
+      "../helpers/test-mcp-server.ts",
+      import.meta.url,
+    ).pathname;
     transport = new StdioClientTransport({
       command: "bun",
       args: ["run", testMcpPath],
@@ -72,7 +75,10 @@ describe("MCP Server Integration Tests", () => {
 
     expect(result.content).toBeDefined();
     expect(Array.isArray(result.content)).toBe(true);
-    const contentArray = result.content as Array<{ type: string; text: string }>;
+    const contentArray = result.content as Array<{
+      type: string;
+      text: string;
+    }>;
     expect(contentArray.length).toBeGreaterThan(0);
     expect(contentArray[0]?.type).toBe("text");
 
@@ -93,7 +99,7 @@ describe("MCP Server Integration Tests", () => {
     const firstContent = result.contents[0];
     expect(firstContent).toBeDefined();
     expect(firstContent?.text).toBeDefined();
-    
+
     // The entity types response is a string listing types, not JSON
     const content = firstContent?.text as string;
     expect(content).toBeDefined();

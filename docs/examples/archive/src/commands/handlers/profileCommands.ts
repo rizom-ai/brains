@@ -3,11 +3,11 @@
  * Handles profile-related commands
  */
 
-import type { MCPProfileContext } from '@/contexts';
-import type { IBrainProtocol } from '@/protocol/types';
+import type { MCPProfileContext } from "@/contexts";
+import type { IBrainProtocol } from "@/protocol/types";
 
-import { BaseCommandHandler } from '../core/baseCommandHandler';
-import type { CommandInfo, CommandResult } from '../core/commandTypes';
+import { BaseCommandHandler } from "../core/baseCommandHandler";
+import type { CommandInfo, CommandResult } from "../core/commandTypes";
 
 /**
  * Handler for profile-related commands
@@ -27,10 +27,10 @@ export class ProfileCommandHandler extends BaseCommandHandler {
   getCommands(): CommandInfo[] {
     return [
       {
-        command: 'profile',
-        description: 'View your profile information',
-        usage: 'profile',
-        examples: ['profile'],
+        command: "profile",
+        description: "View your profile information",
+        usage: "profile",
+        examples: ["profile"],
       },
     ];
   }
@@ -39,14 +39,14 @@ export class ProfileCommandHandler extends BaseCommandHandler {
    * Check if this handler can process the command
    */
   canHandle(command: string): boolean {
-    return command === 'profile';
+    return command === "profile";
   }
 
   /**
    * Execute a command
    */
   async execute(command: string, args: string): Promise<CommandResult> {
-    if (command === 'profile') {
+    if (command === "profile") {
       return await this.handleProfile(args);
     }
     return this.formatError(`Unknown command: ${command}`);
@@ -59,12 +59,14 @@ export class ProfileCommandHandler extends BaseCommandHandler {
     const profile = await this.profileContext.getProfile();
 
     if (!profile) {
-      return this.formatError('No profile found. Use "bun run src/import.ts profile <path/to/profile.yaml>" to import a profile.');
+      return this.formatError(
+        'No profile found. Use "bun run src/import.ts profile <path/to/profile.yaml>" to import a profile.',
+      );
     }
 
     // Simply return the profile information
     return {
-      type: 'profile',
+      type: "profile",
       profile,
     };
   }

@@ -1,9 +1,9 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import { aiConfig, textConfig } from '@/config';
-import type { ClaudeModel } from '@/resources/ai/claude'; 
-import { ServiceRegistry } from '@/services/serviceRegistry';
-import { Logger } from '@/utils/logger';
+import { aiConfig, textConfig } from "@/config";
+import type { ClaudeModel } from "@/resources/ai/claude";
+import { ServiceRegistry } from "@/services/serviceRegistry";
+import { Logger } from "@/utils/logger";
 
 /**
  * Configuration options for TagExtractor
@@ -29,7 +29,7 @@ export interface TagExtractorDependencies {
 
 /**
  * TagExtractor class - handles tag extraction from content
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
@@ -58,7 +58,7 @@ export class TagExtractor {
 
   /**
    * Get the singleton instance
-   * 
+   *
    * @param config Optional configuration options (used when creating a new instance)
    * @returns Singleton instance of TagExtractor
    */
@@ -67,14 +67,19 @@ export class TagExtractor {
       const logger = Logger.getInstance();
       // Get resources through ServiceRegistry
       const serviceRegistry = ServiceRegistry.getInstance();
-      const claudeModel = serviceRegistry.getResourceRegistry().getClaudeModel();
-      
-      TagExtractor.instance = new TagExtractor({
-        logger,
-        claudeModel,
-      }, config);
+      const claudeModel = serviceRegistry
+        .getResourceRegistry()
+        .getClaudeModel();
 
-      logger.debug('TagExtractor singleton instance created');
+      TagExtractor.instance = new TagExtractor(
+        {
+          logger,
+          claudeModel,
+        },
+        config,
+      );
+
+      logger.debug("TagExtractor singleton instance created");
     }
     return TagExtractor.instance;
   }
@@ -90,16 +95,16 @@ export class TagExtractor {
       }
     } catch (error) {
       const logger = Logger.getInstance();
-      logger.error('Error during TagExtractor instance reset:', error);
+      logger.error("Error during TagExtractor instance reset:", error);
     } finally {
       TagExtractor.instance = null;
-      Logger.getInstance().debug('TagExtractor singleton instance reset');
+      Logger.getInstance().debug("TagExtractor singleton instance reset");
     }
   }
 
   /**
    * Create a fresh instance without affecting the singleton
-   * 
+   *
    * @param config Optional configuration options
    * @param dependencies Optional dependencies object
    * @returns A new TagExtractor instance
@@ -109,7 +114,7 @@ export class TagExtractor {
     dependencies?: TagExtractorDependencies,
   ): TagExtractor {
     const logger = Logger.getInstance();
-    logger.debug('Creating fresh TagExtractor instance');
+    logger.debug("Creating fresh TagExtractor instance");
 
     if (dependencies) {
       // Use provided dependencies
@@ -117,12 +122,17 @@ export class TagExtractor {
     } else {
       // Use default dependencies from the ServiceRegistry
       const serviceRegistry = ServiceRegistry.getInstance();
-      const claudeModel = serviceRegistry.getResourceRegistry().getClaudeModel();
-      
-      return new TagExtractor({
-        logger,
-        claudeModel,
-      }, config);
+      const claudeModel = serviceRegistry
+        .getResourceRegistry()
+        .getClaudeModel();
+
+      return new TagExtractor(
+        {
+          logger,
+          claudeModel,
+        },
+        config,
+      );
     }
   }
 
@@ -138,15 +148,16 @@ export class TagExtractor {
     // Initialize from dependencies
     this.logger = dependencies.logger;
     this.claudeModel = dependencies.claudeModel;
-    
+
     // Apply configuration with defaults
     this.config = {
       defaultMaxTags: config?.defaultMaxTags ?? textConfig.defaultMaxTags,
-      tagContentMaxLength: config?.tagContentMaxLength ?? textConfig.tagContentMaxLength,
+      tagContentMaxLength:
+        config?.tagContentMaxLength ?? textConfig.tagContentMaxLength,
       temperature: config?.temperature ?? aiConfig.anthropic.temperature,
     };
 
-    this.logger.debug('TagExtractor instance created');
+    this.logger.debug("TagExtractor instance created");
   }
 
   /**
@@ -164,14 +175,16 @@ export class TagExtractor {
     try {
       // Use provided max tags or fall back to config
       const tagsLimit = maxTags ?? this.config.defaultMaxTags;
-      
+
       // API key is no longer needed as the Claude model already has it
-      
+
       // Truncate content if it's too long
-      const maxContentLength = this.config.tagContentMaxLength ?? textConfig.tagContentMaxLength;
-      const truncatedContent = content.length > maxContentLength
-        ? content.substring(0, maxContentLength) + '... [content truncated]'
-        : content;
+      const maxContentLength =
+        this.config.tagContentMaxLength ?? textConfig.tagContentMaxLength;
+      const truncatedContent =
+        content.length > maxContentLength
+          ? content.substring(0, maxContentLength) + "... [content truncated]"
+          : content;
 
       // Build the prompt
       const prompt = `You are a precise tag extraction system. Your task is to extract the most relevant tags from the provided content.
@@ -186,7 +199,7 @@ The tags should capture the main concepts, topics, and themes in the content. Th
 Content to extract tags from:
 ${truncatedContent}
 
-${existingTags.length > 0 ? 'Existing tags to consider: ' + existingTags.join(', ') : ''}
+${existingTags.length > 0 ? "Existing tags to consider: " + existingTags.join(", ") : ""}
 
 Extract up to ${tagsLimit} tags that best represent this content.
 
@@ -199,9 +212,12 @@ FORMAT: Respond with ONLY a comma-separated list of tags, with no additional tex
       });
 
       // Call Claude with schema, using the injected Claude model
-      const response = await this.claudeModel.complete<z.infer<typeof tagSchema>>({
+      const response = await this.claudeModel.complete<
+        z.infer<typeof tagSchema>
+      >({
         schema: tagSchema,
-        systemPrompt: 'You extract tags from content. Only respond with the tags, nothing else.',
+        systemPrompt:
+          "You extract tags from content. Only respond with the tags, nothing else.",
         userPrompt: prompt,
         temperature: this.config.temperature,
       });
@@ -213,5 +229,4 @@ FORMAT: Respond with ONLY a comma-separated list of tags, with no additional tex
       return [];
     }
   }
-
 }

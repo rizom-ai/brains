@@ -1,22 +1,22 @@
 /**
  * Context Integration Module
- * 
+ *
  * This module provides helper functions and utilities for integrating
  * contexts with the messaging system. It includes functions for context
  * communication, common message patterns, and integration with existing code.
  */
 
-import { Logger } from '@/utils/logger';
+import { Logger } from "@/utils/logger";
 
-import { ContextId } from '../core/contextOrchestrator';
+import { ContextId } from "../core/contextOrchestrator";
 
-import type { ContextMediator } from './contextMediator';
-import { MessageFactory } from './messageFactory';
-import { DataRequestType } from './messageTypes';
+import type { ContextMediator } from "./contextMediator";
+import { MessageFactory } from "./messageFactory";
+import { DataRequestType } from "./messageTypes";
 
 /**
  * Make a data request to a context
- * 
+ *
  * @param mediator Context mediator instance
  * @param sourceContext Source context identifier
  * @param targetContext Target context identifier (use ContextId enum)
@@ -34,7 +34,7 @@ export async function requestContextData<T = Record<string, unknown>>(
   timeout?: number,
 ): Promise<T | null> {
   const logger = Logger.getInstance();
-  
+
   try {
     // Create request message
     const request = MessageFactory.createDataRequest(
@@ -44,17 +44,19 @@ export async function requestContextData<T = Record<string, unknown>>(
       parameters,
       timeout,
     );
-    
+
     logger.debug(`Sending ${dataType} request to ${targetContext}`);
-    
+
     // Send request and wait for response
     const response = await mediator.sendRequest(request);
-    
+
     // Check response status
-    if (response.status === 'success' && response.data) {
+    if (response.status === "success" && response.data) {
       return response.data as T;
     } else {
-      logger.warn(`Request to ${targetContext} failed: ${response.error?.message || 'Unknown error'}`);
+      logger.warn(
+        `Request to ${targetContext} failed: ${response.error?.message || "Unknown error"}`,
+      );
       return null;
     }
   } catch (error) {
@@ -65,7 +67,7 @@ export async function requestContextData<T = Record<string, unknown>>(
 
 /**
  * Request notes from the Notes context
- * 
+ *
  * @param mediator Context mediator instance
  * @param sourceContext Source context identifier
  * @param query Search query string
@@ -78,20 +80,19 @@ export async function requestNotes(
   query: string,
   limit?: number,
 ): Promise<Array<{ id: string; title: string; content: string }> | null> {
-  const result = await requestContextData<{ notes: Array<{ id: string; title: string; content: string }> }>(
-    mediator,
-    sourceContext,
-    ContextId.NOTES,
-    DataRequestType.NOTES_SEARCH,
-    { query, limit },
-  );
-  
+  const result = await requestContextData<{
+    notes: Array<{ id: string; title: string; content: string }>;
+  }>(mediator, sourceContext, ContextId.NOTES, DataRequestType.NOTES_SEARCH, {
+    query,
+    limit,
+  });
+
   return result?.notes || null;
 }
 
 /**
  * Request a specific note by ID
- * 
+ *
  * @param mediator Context mediator instance
  * @param sourceContext Source context identifier
  * @param noteId Note ID to fetch
@@ -102,20 +103,18 @@ export async function requestNoteById(
   sourceContext: string,
   noteId: string,
 ): Promise<{ id: string; title: string; content: string } | null> {
-  const result = await requestContextData<{ note: { id: string; title: string; content: string } }>(
-    mediator,
-    sourceContext,
-    ContextId.NOTES,
-    DataRequestType.NOTE_BY_ID,
-    { id: noteId },
-  );
-  
+  const result = await requestContextData<{
+    note: { id: string; title: string; content: string };
+  }>(mediator, sourceContext, ContextId.NOTES, DataRequestType.NOTE_BY_ID, {
+    id: noteId,
+  });
+
   return result?.note || null;
 }
 
 /**
  * Request profile data
- * 
+ *
  * @param mediator Context mediator instance
  * @param sourceContext Source context identifier
  * @returns Profile object or null if not found
@@ -130,13 +129,13 @@ export async function requestProfile(
     ContextId.PROFILE,
     DataRequestType.PROFILE_DATA,
   );
-  
+
   return result?.profile || null;
 }
 
 /**
  * Request conversation history
- * 
+ *
  * @param mediator Context mediator instance
  * @param sourceContext Source context identifier
  * @param conversationId Optional conversation ID (uses current if not provided)
@@ -154,13 +153,13 @@ export async function requestConversationHistory(
     DataRequestType.CONVERSATION_HISTORY,
     { conversationId },
   );
-  
+
   return result?.history || null;
 }
 
 /**
  * Request external sources data
- * 
+ *
  * @param mediator Context mediator instance
  * @param sourceContext Source context identifier
  * @param query Search query string
@@ -170,21 +169,33 @@ export async function requestExternalSources(
   mediator: ContextMediator,
   sourceContext: string,
   query: string,
-): Promise<Array<{ title: string; source: string; url: string; content: string }> | null> {
-  const result = await requestContextData<{ results: Array<{ title: string; source: string; url: string; content: string }> }>(
+): Promise<Array<{
+  title: string;
+  source: string;
+  url: string;
+  content: string;
+}> | null> {
+  const result = await requestContextData<{
+    results: Array<{
+      title: string;
+      source: string;
+      url: string;
+      content: string;
+    }>;
+  }>(
     mediator,
     sourceContext,
     ContextId.EXTERNAL_SOURCES,
     DataRequestType.EXTERNAL_SOURCES,
     { query },
   );
-  
+
   return result?.results || null;
 }
 
 /**
  * Request website deployment status
- * 
+ *
  * @param mediator Context mediator instance
  * @param sourceContext Source context identifier
  * @returns Website status object or null if not found
@@ -199,6 +210,6 @@ export async function requestWebsiteStatus(
     ContextId.WEBSITE,
     DataRequestType.WEBSITE_STATUS,
   );
-  
+
   return result?.status || null;
 }

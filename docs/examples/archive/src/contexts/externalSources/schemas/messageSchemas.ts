@@ -1,13 +1,13 @@
 /**
  * Message Schemas for External Source Context
- * 
+ *
  * This file defines the schema for messages used by the external source context,
  * including request parameters and notification payloads.
  */
 
-import type { z } from 'zod';
+import type { z } from "zod";
 
-import { DataRequestType, NotificationType } from '@/protocol/messaging';
+import { DataRequestType, NotificationType } from "@/protocol/messaging";
 import {
   type ExternalSourceAvailabilityNotification,
   ExternalSourceAvailabilityNotificationSchema,
@@ -23,7 +23,7 @@ import {
   ExternalSourceStatusRequestSchema,
   type ExternalSourceStatusResponse,
   ExternalSourceStatusResponseSchema,
-} from '@/protocol/schemas';
+} from "@/protocol/schemas";
 
 /**
  * Schema map for external source context messages
@@ -32,12 +32,15 @@ import {
 export const ExternalSourceSchemaMap = {
   // Request schemas
   [DataRequestType.EXTERNAL_SOURCES]: ExternalSourceSearchRequestSchema,
-  'externalSources.status': ExternalSourceStatusRequestSchema,
-  
+  "externalSources.status": ExternalSourceStatusRequestSchema,
+
   // Notification schemas
-  [NotificationType.EXTERNAL_SOURCES_STATUS]: ExternalSourceSearchNotificationSchema,
-  [NotificationType.EXTERNAL_SOURCES_AVAILABILITY]: ExternalSourceAvailabilityNotificationSchema,
-  [NotificationType.EXTERNAL_SOURCES_SEARCH]: ExternalSourceSearchNotificationSchema,
+  [NotificationType.EXTERNAL_SOURCES_STATUS]:
+    ExternalSourceSearchNotificationSchema,
+  [NotificationType.EXTERNAL_SOURCES_AVAILABILITY]:
+    ExternalSourceAvailabilityNotificationSchema,
+  [NotificationType.EXTERNAL_SOURCES_SEARCH]:
+    ExternalSourceSearchNotificationSchema,
 } as const;
 
 // Export schemas for use in validation
@@ -63,7 +66,15 @@ export type {
 };
 
 // Create specific param and payload type aliases for clarity
-export type ExternalSourceSearchParams = z.infer<typeof ExternalSourceSearchRequestSchema>;
-export type ExternalSourceStatusParams = z.infer<typeof ExternalSourceStatusRequestSchema>;
-export type ExternalSourceSearchNotificationPayload = z.infer<typeof ExternalSourceSearchNotificationSchema>;
-export type ExternalSourceAvailabilityNotificationPayload = z.infer<typeof ExternalSourceAvailabilityNotificationSchema>;
+export type ExternalSourceSearchParams = z.infer<
+  typeof ExternalSourceSearchRequestSchema
+>;
+export type ExternalSourceStatusParams = z.infer<
+  typeof ExternalSourceStatusRequestSchema
+>;
+export type ExternalSourceSearchNotificationPayload = z.infer<
+  typeof ExternalSourceSearchNotificationSchema
+>;
+export type ExternalSourceAvailabilityNotificationPayload = z.infer<
+  typeof ExternalSourceAvailabilityNotificationSchema
+>;

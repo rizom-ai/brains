@@ -1,12 +1,15 @@
 /**
  * Conversation Summarizer for Tiered Memory
  */
-import { nanoid } from 'nanoid';
+import { nanoid } from "nanoid";
 
-import type { ConversationSummary, ConversationTurn } from '@/protocol/schemas/conversationSchemas';
-import { ResourceRegistry } from '@/resources';
-import { type DefaultResponseType } from '@/resources/ai/interfaces';
-import logger from '@/utils/logger';
+import type {
+  ConversationSummary,
+  ConversationTurn,
+} from "@/protocol/schemas/conversationSchemas";
+import { ResourceRegistry } from "@/resources";
+import { type DefaultResponseType } from "@/resources/ai/interfaces";
+import logger from "@/utils/logger";
 
 /**
  * Configuration options for ConversationSummarizer
@@ -27,7 +30,9 @@ export class ConversationSummarizer {
    * @param options Configuration options
    * @returns The shared instance
    */
-  public static getInstance(options?: ConversationSummarizerOptions): ConversationSummarizer {
+  public static getInstance(
+    options?: ConversationSummarizerOptions,
+  ): ConversationSummarizer {
     if (!ConversationSummarizer.instance) {
       ConversationSummarizer.instance = new ConversationSummarizer(options);
     }
@@ -48,7 +53,9 @@ export class ConversationSummarizer {
    * @param options Configuration options
    * @returns A new instance
    */
-  public static createFresh(options?: ConversationSummarizerOptions): ConversationSummarizer {
+  public static createFresh(
+    options?: ConversationSummarizerOptions,
+  ): ConversationSummarizer {
     return new ConversationSummarizer(options);
   }
 
@@ -67,9 +74,11 @@ export class ConversationSummarizer {
    * @param turns The conversation turns to summarize
    * @returns A summary object
    */
-  async summarizeTurns(turns: ConversationTurn[]): Promise<ConversationSummary> {
+  async summarizeTurns(
+    turns: ConversationTurn[],
+  ): Promise<ConversationSummary> {
     if (!turns || turns.length === 0) {
-      throw new Error('Cannot summarize empty turns array');
+      throw new Error("Cannot summarize empty turns array");
     }
 
     // Sort turns by timestamp to ensure chronological order
@@ -79,19 +88,19 @@ export class ConversationSummarizer {
       return aTime - bTime;
     });
 
-    const turnTexts = sortedTurns.map(turn => {
-      const userPrefix = turn.userName || 'User';
+    const turnTexts = sortedTurns.map((turn) => {
+      const userPrefix = turn.userName || "User";
       return `${userPrefix}: ${turn.query}\nAssistant: ${turn.response}`;
     });
 
     // Combine turns and create a prompt
-    const conversationText = turnTexts.join('\n\n');
+    const conversationText = turnTexts.join("\n\n");
     const prompt = this.createSummarizationPrompt(conversationText);
 
     try {
       // Get Claude model from the ResourceRegistry
       const claude = this.resourceRegistry.getClaudeModel();
-      
+
       // Get summary from Claude
       const response = await claude.complete<DefaultResponseType>({
         systemPrompt: this.getSystemPrompt(),
@@ -109,14 +118,14 @@ export class ConversationSummarizer {
         endTimestamp: sortedTurns[sortedTurns.length - 1].timestamp,
         turnCount: turns.length,
         metadata: {
-          originalTurnIds: sortedTurns.map(turn => turn.id),
+          originalTurnIds: sortedTurns.map((turn) => turn.id),
         },
       };
 
       return summary;
     } catch (error) {
-      logger.error('Failed to generate conversation summary:', error);
-      
+      logger.error("Failed to generate conversation summary:", error);
+
       // Fallback to a basic summary if the model fails
       return this.createFallbackSummary(sortedTurns);
     }
@@ -154,28 +163,32 @@ Summary:`;
   /**
    * Create a fallback summary if the model fails
    */
-  private createFallbackSummary(turns: ConversationTurn[]): ConversationSummary {
+  private createFallbackSummary(
+    turns: ConversationTurn[],
+  ): ConversationSummary {
     // Create a basic summary from the first and last few turns
     const topics = new Set<string>();
-    
+
     // Extract potential topics from the first 3 words of each query
-    turns.forEach(turn => {
+    turns.forEach((turn) => {
       const words = turn.query.split(/\s+/).slice(0, 3);
       if (words.length > 0 && words[0].length > 3) {
         topics.add(words[0]);
       }
     });
-    
-    const topicsList = Array.from(topics).slice(0, 5).join(', ');
-    const firstQuery = turns[0].query.length > 50 
-      ? turns[0].query.substring(0, 50) + '...' 
-      : turns[0].query;
-    
-    const lastQuery = turns[turns.length - 1].query.length > 50 
-      ? turns[turns.length - 1].query.substring(0, 50) + '...' 
-      : turns[turns.length - 1].query;
-    
-    const content = `This conversation contains ${turns.length} turns, starting with "${firstQuery}" and ending with "${lastQuery}". Topics include: ${topicsList || 'various subjects'}.`;
+
+    const topicsList = Array.from(topics).slice(0, 5).join(", ");
+    const firstQuery =
+      turns[0].query.length > 50
+        ? turns[0].query.substring(0, 50) + "..."
+        : turns[0].query;
+
+    const lastQuery =
+      turns[turns.length - 1].query.length > 50
+        ? turns[turns.length - 1].query.substring(0, 50) + "..."
+        : turns[turns.length - 1].query;
+
+    const content = `This conversation contains ${turns.length} turns, starting with "${firstQuery}" and ending with "${lastQuery}". Topics include: ${topicsList || "various subjects"}.`;
 
     return {
       id: `summ-${nanoid()}`,
@@ -188,7 +201,7 @@ Summary:`;
       turnCount: turns.length,
       metadata: {
         isFallback: true,
-        originalTurnIds: turns.map(turn => turn.id),
+        originalTurnIds: turns.map((turn) => turn.id),
       },
     };
   }

@@ -1,6 +1,6 @@
 /**
  * Base interface for formatter implementations in the MCP architecture
- * 
+ *
  * This interface defines the standard contract for formatter components that
  * transform data from one form to another for display or processing.
  */

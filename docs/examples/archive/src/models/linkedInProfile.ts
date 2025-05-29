@@ -1,7 +1,7 @@
 // TODO: This file will be removed after the profile note migration is complete.
 // It's kept temporarily for backward compatibility and migration purposes.
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // Define schemas for complex JSON types
 export const linkedInProfileDateInfoSchema = z.object({
@@ -88,7 +88,7 @@ export const baseProfileSchema = z.object({
   about: z.string().nullable().optional(),
   createdAt: z.string().or(z.date()).optional(),
   updatedAt: z.string().or(z.date()).optional(),
-  
+
   // LinkedIn profile specific fields
   fullName: z.string().optional(),
   profilePicUrl: z.string().optional(),
@@ -100,12 +100,14 @@ export const baseProfileSchema = z.object({
   publicIdentifier: z.string().optional(),
 });
 
-export const baseInsertProfileSchema = baseProfileSchema.omit({ 
-  createdAt: true, 
-  updatedAt: true, 
-}).extend({
-  // Additional fields for insert can be defined here
-});
+export const baseInsertProfileSchema = baseProfileSchema
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    // Additional fields for insert can be defined here
+  });
 
 export const baseUpdateProfileSchema = baseProfileSchema.partial().omit({
   createdAt: true,
@@ -119,11 +121,26 @@ export const linkedInInsertProfileSchema = baseInsertProfileSchema.extend({
   experiences: z.array(linkedInProfileExperienceSchema).nullable().optional(),
   education: z.array(linkedInProfileEducationSchema).nullable().optional(),
   languages: z.array(z.string()).nullable().optional(),
-  languagesAndProficiencies: z.array(linkedInProfileLanguageProficiencySchema).nullable().optional(),
-  accomplishmentPublications: z.array(linkedInProfilePublicationSchema).nullable().optional(),
-  accomplishmentHonorsAwards: z.array(linkedInProfileAwardSchema).nullable().optional(),
-  accomplishmentProjects: z.array(linkedInProfileProjectSchema).nullable().optional(),
-  volunteerWork: z.array(linkedInProfileVolunteerWorkSchema).nullable().optional(),
+  languagesAndProficiencies: z
+    .array(linkedInProfileLanguageProficiencySchema)
+    .nullable()
+    .optional(),
+  accomplishmentPublications: z
+    .array(linkedInProfilePublicationSchema)
+    .nullable()
+    .optional(),
+  accomplishmentHonorsAwards: z
+    .array(linkedInProfileAwardSchema)
+    .nullable()
+    .optional(),
+  accomplishmentProjects: z
+    .array(linkedInProfileProjectSchema)
+    .nullable()
+    .optional(),
+  volunteerWork: z
+    .array(linkedInProfileVolunteerWorkSchema)
+    .nullable()
+    .optional(),
   embedding: z.array(z.number()).nullable().optional(),
   tags: z.array(z.string()).nullable().optional(),
 });
@@ -132,11 +149,26 @@ export const linkedInUpdateProfileSchema = baseUpdateProfileSchema.extend({
   experiences: z.array(linkedInProfileExperienceSchema).nullable().optional(),
   education: z.array(linkedInProfileEducationSchema).nullable().optional(),
   languages: z.array(z.string()).nullable().optional(),
-  languagesAndProficiencies: z.array(linkedInProfileLanguageProficiencySchema).nullable().optional(),
-  accomplishmentPublications: z.array(linkedInProfilePublicationSchema).nullable().optional(),
-  accomplishmentHonorsAwards: z.array(linkedInProfileAwardSchema).nullable().optional(),
-  accomplishmentProjects: z.array(linkedInProfileProjectSchema).nullable().optional(),
-  volunteerWork: z.array(linkedInProfileVolunteerWorkSchema).nullable().optional(),
+  languagesAndProficiencies: z
+    .array(linkedInProfileLanguageProficiencySchema)
+    .nullable()
+    .optional(),
+  accomplishmentPublications: z
+    .array(linkedInProfilePublicationSchema)
+    .nullable()
+    .optional(),
+  accomplishmentHonorsAwards: z
+    .array(linkedInProfileAwardSchema)
+    .nullable()
+    .optional(),
+  accomplishmentProjects: z
+    .array(linkedInProfileProjectSchema)
+    .nullable()
+    .optional(),
+  volunteerWork: z
+    .array(linkedInProfileVolunteerWorkSchema)
+    .nullable()
+    .optional(),
   embedding: z.array(z.number()).nullable().optional(),
   tags: z.array(z.string()).nullable().optional(),
 });
@@ -145,8 +177,12 @@ export const linkedInSelectProfileSchema = baseSelectProfileSchema.extend({
   experiences: z.array(linkedInProfileExperienceSchema).nullable(),
   education: z.array(linkedInProfileEducationSchema).nullable(),
   languages: z.array(z.string()).nullable(),
-  languagesAndProficiencies: z.array(linkedInProfileLanguageProficiencySchema).nullable(),
-  accomplishmentPublications: z.array(linkedInProfilePublicationSchema).nullable(),
+  languagesAndProficiencies: z
+    .array(linkedInProfileLanguageProficiencySchema)
+    .nullable(),
+  accomplishmentPublications: z
+    .array(linkedInProfilePublicationSchema)
+    .nullable(),
   accomplishmentHonorsAwards: z.array(linkedInProfileAwardSchema).nullable(),
   accomplishmentProjects: z.array(linkedInProfileProjectSchema).nullable(),
   volunteerWork: z.array(linkedInProfileVolunteerWorkSchema).nullable(),

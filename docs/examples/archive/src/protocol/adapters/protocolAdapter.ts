@@ -1,11 +1,14 @@
 /**
  * Protocol Adapter Interface
- * 
+ *
  * This interface defines the contract for adapters that translate
  * between the internal protocol format and external interfaces.
  */
 
-import type { DataRequestMessage, DataResponseMessage } from '../messaging/messageTypes';
+import type {
+  DataRequestMessage,
+  DataResponseMessage,
+} from "../messaging/messageTypes";
 
 /**
  * Protocol adapter interface for connecting external interfaces to the protocol
@@ -13,15 +16,15 @@ import type { DataRequestMessage, DataResponseMessage } from '../messaging/messa
 export interface ProtocolAdapter<TExternalRequest, TExternalResponse> {
   /**
    * Convert an external request to a protocol message
-   * 
+   *
    * @param request External request format
    * @returns Protocol message
    */
   toProtocolMessage(request: TExternalRequest): DataRequestMessage;
-  
+
   /**
    * Convert a protocol response message to external response format
-   * 
+   *
    * @param response Protocol response message
    * @returns External response format
    */

@@ -1,6 +1,6 @@
 /**
  * Website Tools for MCP
- * 
+ *
  * This file contains the tool definitions for the WebsiteContext
  * following the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
@@ -8,22 +8,22 @@
  * - createFresh(): Creates a new instance without affecting the singleton
  */
 
-import type { z } from 'zod';
+import type { z } from "zod";
 
-import type { ResourceDefinition } from '@/contexts/contextInterface';
-import { Logger } from '@/utils/logger';
-import { 
+import type { ResourceDefinition } from "@/contexts/contextInterface";
+import { Logger } from "@/utils/logger";
+import {
   LandingPageGenerationToolSchema,
   LandingPageQualityAssessmentToolSchema,
-  WebsiteBuildToolSchema, 
+  WebsiteBuildToolSchema,
   WebsitePromoteToolSchema,
-  WebsiteStatusToolSchema, 
-} from '@website/schemas/websiteToolSchemas';
+  WebsiteStatusToolSchema,
+} from "@website/schemas/websiteToolSchemas";
 
 import {
   GenerateWebsiteIdentityToolSchema,
   GetWebsiteIdentityToolSchema,
-} from '../schemas/websiteIdentitySchema';
+} from "../schemas/websiteIdentitySchema";
 
 /**
  * Interface that defines the required methods for any website context implementation.
@@ -103,13 +103,13 @@ export interface WebsiteToolContext {
 export class WebsiteToolService {
   /** The singleton instance */
   private static instance: WebsiteToolService | null = null;
-  
+
   /** Logger instance for this class */
   private logger = Logger.getInstance();
-  
+
   /**
    * Get the singleton instance of WebsiteToolService
-   * 
+   *
    * @returns The shared WebsiteToolService instance
    */
   public static getInstance(): WebsiteToolService {
@@ -118,7 +118,7 @@ export class WebsiteToolService {
     }
     return WebsiteToolService.instance;
   }
-  
+
   /**
    * Reset the singleton instance (primarily for testing)
    * This clears the instance and any resources it holds
@@ -126,27 +126,29 @@ export class WebsiteToolService {
   public static resetInstance(): void {
     WebsiteToolService.instance = null;
   }
-  
+
   /**
    * Create a fresh instance (primarily for testing)
    * This creates a new instance without affecting the singleton
-   * 
+   *
    * @returns A new WebsiteToolService instance
    */
   public static createFresh(): WebsiteToolService {
     return new WebsiteToolService();
   }
-  
+
   /**
    * Private constructor to enforce singleton pattern
    */
   private constructor() {
-    this.logger.debug('WebsiteToolService initialized', { context: 'WebsiteToolService' });
+    this.logger.debug("WebsiteToolService initialized", {
+      context: "WebsiteToolService",
+    });
   }
-  
+
   /**
    * Get the MCP tools for the website context
-   * 
+   *
    * @param context The website context
    * @returns Array of MCP tools
    */
@@ -154,30 +156,30 @@ export class WebsiteToolService {
     return [
       // generate_landing_page
       this.generateLandingPageTool(context),
-      
+
       // edit_landing_page
       this.editLandingPageTool(context),
-      
+
       // assess_landing_page
       this.assessLandingPageTool(context),
-      
+
       // regenerate_failed_sections
       this.regenerateFailedSectionsTool(context),
-      
+
       // build_website
       this.buildWebsiteTool(context),
-      
+
       // deploy_website (merged with build_website for simplicity)
-      
+
       // promote_website
       this.promoteWebsiteTool(context),
-      
+
       // get_website_status
       this.getWebsiteStatusTool(context),
-      
+
       // get_identity - retrieve website identity information
       this.getWebsiteIdentityTool(context),
-      
+
       // generate_identity - create new website identity
       this.generateWebsiteIdentityTool(context),
     ];
@@ -185,57 +187,60 @@ export class WebsiteToolService {
 
   /**
    * Get the Zod schema for a tool based on its name
-   * 
+   *
    * @param tool Tool definition with parameters
    * @returns Zod schema object for tool parameters
    */
   getToolSchema(tool: { name?: string }): Record<string, z.ZodTypeAny> {
     // Return appropriate Zod schema based on tool name
     switch (tool.name) {
-    case 'generate_landing_page':
-      return LandingPageGenerationToolSchema.shape;
-      
-    case 'edit_landing_page':
-      // No parameters needed for edit_landing_page
-      return {};
+      case "generate_landing_page":
+        return LandingPageGenerationToolSchema.shape;
 
-    case 'assess_landing_page':
-      return LandingPageQualityAssessmentToolSchema.shape;
-      
-    case 'regenerate_failed_sections':
-      // No parameters needed for regenerate_failed_sections
-      return {};
+      case "edit_landing_page":
+        // No parameters needed for edit_landing_page
+        return {};
 
-    case 'build_website':
-      return WebsiteBuildToolSchema.shape;
+      case "assess_landing_page":
+        return LandingPageQualityAssessmentToolSchema.shape;
 
-    case 'promote_website':
-      return WebsitePromoteToolSchema.shape;
+      case "regenerate_failed_sections":
+        // No parameters needed for regenerate_failed_sections
+        return {};
 
-    case 'get_website_status':
-      return WebsiteStatusToolSchema.shape;
-      
-    case 'get_identity':
-      return GetWebsiteIdentityToolSchema.shape;
-      
-    case 'generate_identity':
-      return GenerateWebsiteIdentityToolSchema.shape;
+      case "build_website":
+        return WebsiteBuildToolSchema.shape;
 
-    default:
-      // For unknown tools, return an empty schema
-      return {};
+      case "promote_website":
+        return WebsitePromoteToolSchema.shape;
+
+      case "get_website_status":
+        return WebsiteStatusToolSchema.shape;
+
+      case "get_identity":
+        return GetWebsiteIdentityToolSchema.shape;
+
+      case "generate_identity":
+        return GenerateWebsiteIdentityToolSchema.shape;
+
+      default:
+        // For unknown tools, return an empty schema
+        return {};
     }
   }
 
   /**
    * Create the generate_landing_page tool
    */
-  private generateLandingPageTool(context: WebsiteToolContext): ResourceDefinition {
+  private generateLandingPageTool(
+    context: WebsiteToolContext,
+  ): ResourceDefinition {
     return {
-      protocol: 'website',
-      path: 'generate_landing_page',
-      name: 'generate_landing_page',
-      description: 'Generates a landing page from profile data (without holistic editing)',
+      protocol: "website",
+      path: "generate_landing_page",
+      name: "generate_landing_page",
+      description:
+        "Generates a landing page from profile data (without holistic editing)",
       handler: async (_params: Record<string, unknown>) => {
         // Call context without options - generation is a simple process without options now
         const result = await context.generateLandingPage();
@@ -252,16 +257,17 @@ export class WebsiteToolService {
       },
     };
   }
-  
+
   /**
    * Create the edit_landing_page tool
    */
   private editLandingPageTool(context: WebsiteToolContext): ResourceDefinition {
     return {
-      protocol: 'website',
-      path: 'edit_landing_page',
-      name: 'edit_landing_page',
-      description: 'Performs holistic editing on an existing landing page for consistency across sections',
+      protocol: "website",
+      path: "edit_landing_page",
+      name: "edit_landing_page",
+      description:
+        "Performs holistic editing on an existing landing page for consistency across sections",
       handler: async (_params: Record<string, unknown>) => {
         // Call context to edit the landing page
         const result = await context.editLandingPage();
@@ -282,23 +288,29 @@ export class WebsiteToolService {
   /**
    * Create the assess_landing_page tool
    */
-  private assessLandingPageTool(context: WebsiteToolContext): ResourceDefinition {
+  private assessLandingPageTool(
+    context: WebsiteToolContext,
+  ): ResourceDefinition {
     return {
-      protocol: 'website',
-      path: 'assess_landing_page',
-      name: 'assess_landing_page',
-      description: 'Assesses the quality of an existing landing page and optionally applies recommendations',
+      protocol: "website",
+      path: "assess_landing_page",
+      name: "assess_landing_page",
+      description:
+        "Assesses the quality of an existing landing page and optionally applies recommendations",
       handler: async (params: Record<string, unknown>) => {
         // Parse parameters using Zod for safe validation
-        const validatedParams = LandingPageQualityAssessmentToolSchema.safeParse(params);
-        
+        const validatedParams =
+          LandingPageQualityAssessmentToolSchema.safeParse(params);
+
         if (!validatedParams.success) {
-          throw new Error(`Invalid parameters: ${validatedParams.error.message}`);
+          throw new Error(
+            `Invalid parameters: ${validatedParams.error.message}`,
+          );
         }
-        
+
         // Extract validated options
         const options = validatedParams.data;
-        
+
         // Call context with validated options
         const result = await context.assessLandingPage(options);
 
@@ -310,26 +322,26 @@ export class WebsiteToolService {
       },
     };
   }
-  
+
   /**
    * Create the build_website tool
    */
   private buildWebsiteTool(context: WebsiteToolContext): ResourceDefinition {
     return {
-      protocol: 'website',
-      path: 'build_website',
-      name: 'build_website',
-      description: 'Builds the website using Astro and deploys to preview',
+      protocol: "website",
+      path: "build_website",
+      name: "build_website",
+      description: "Builds the website using Astro and deploys to preview",
       handler: async (params: Record<string, unknown>) => {
-        const generateBeforeBuild = params['generateBeforeBuild'] !== false; // default to true
+        const generateBeforeBuild = params["generateBeforeBuild"] !== false; // default to true
 
         // Generate landing page first if requested
         if (generateBeforeBuild) {
           const generateResult = await context.generateLandingPage();
           if (!generateResult.success) {
-            this.logger.warn('Failed to generate landing page before build', {
+            this.logger.warn("Failed to generate landing page before build", {
               error: generateResult.message,
-              context: 'WebsiteToolService',
+              context: "WebsiteToolService",
             });
             // Continue with build even if generation fails
           }
@@ -337,7 +349,9 @@ export class WebsiteToolService {
 
         // Build and deploy website
         // TODO: Remove conditional after WebsiteContext migration is complete
-        const result = await (context.handleWebsiteBuild ? context.handleWebsiteBuild() : context.buildWebsite());
+        const result = await (context.handleWebsiteBuild
+          ? context.handleWebsiteBuild()
+          : context.buildWebsite());
 
         return result;
       },
@@ -349,13 +363,15 @@ export class WebsiteToolService {
    */
   private promoteWebsiteTool(context: WebsiteToolContext): ResourceDefinition {
     return {
-      protocol: 'website',
-      path: 'promote_website',
-      name: 'promote_website',
-      description: 'Promotes the preview website to production',
+      protocol: "website",
+      path: "promote_website",
+      name: "promote_website",
+      description: "Promotes the preview website to production",
       handler: async (_params: Record<string, unknown>) => {
         // TODO: Remove conditional after WebsiteContext migration is complete
-        const result = await (context.handleWebsitePromote ? context.handleWebsitePromote() : context.promoteWebsite());
+        const result = await (context.handleWebsitePromote
+          ? context.handleWebsitePromote()
+          : context.promoteWebsite());
 
         return {
           success: result.success,
@@ -369,15 +385,19 @@ export class WebsiteToolService {
   /**
    * Create the get_website_status tool
    */
-  private getWebsiteStatusTool(context: WebsiteToolContext): ResourceDefinition {
+  private getWebsiteStatusTool(
+    context: WebsiteToolContext,
+  ): ResourceDefinition {
     return {
-      protocol: 'website',
-      path: 'get_website_status',
-      name: 'get_website_status',
-      description: 'Gets the status of the website environments',
+      protocol: "website",
+      path: "get_website_status",
+      name: "get_website_status",
+      description: "Gets the status of the website environments",
       handler: async (params: Record<string, unknown>) => {
-        const environment = params['environment'] ? String(params['environment']) : 'preview';
-        
+        const environment = params["environment"]
+          ? String(params["environment"])
+          : "preview";
+
         // TODO: Remove conditional after WebsiteContext migration is complete
         const result = await context.getWebsiteStatus(environment);
 
@@ -389,12 +409,15 @@ export class WebsiteToolService {
   /**
    * Create the regenerate_failed_sections tool
    */
-  private regenerateFailedSectionsTool(context: WebsiteToolContext): ResourceDefinition {
+  private regenerateFailedSectionsTool(
+    context: WebsiteToolContext,
+  ): ResourceDefinition {
     return {
-      protocol: 'website',
-      path: 'regenerate_failed_sections',
-      name: 'regenerate_failed_sections',
-      description: 'Regenerates all landing page sections that previously failed',
+      protocol: "website",
+      path: "regenerate_failed_sections",
+      name: "regenerate_failed_sections",
+      description:
+        "Regenerates all landing page sections that previously failed",
       handler: async (_params: Record<string, unknown>) => {
         // Call context to regenerate all failed sections
         const result = await context.regenerateFailedLandingPageSections();
@@ -407,73 +430,87 @@ export class WebsiteToolService {
       },
     };
   }
-  
+
   /**
    * Create the get_identity tool
    */
-  private getWebsiteIdentityTool(context: WebsiteToolContext): ResourceDefinition {
+  private getWebsiteIdentityTool(
+    context: WebsiteToolContext,
+  ): ResourceDefinition {
     return {
-      protocol: 'website',
-      path: 'get_identity',
-      name: 'get_identity',
-      description: 'Gets the website identity information used for branding and content generation',
+      protocol: "website",
+      path: "get_identity",
+      name: "get_identity",
+      description:
+        "Gets the website identity information used for branding and content generation",
       handler: async (_params: Record<string, unknown>) => {
         // Call context to get identity data
         try {
           const identityData = await context.getIdentity();
           return {
             success: true,
-            message: identityData ? 'Retrieved website identity' : 'No identity data found',
+            message: identityData
+              ? "Retrieved website identity"
+              : "No identity data found",
             data: identityData,
           };
         } catch (error) {
-          this.logger.error('Error getting website identity', { error });
-          throw new Error(`Failed to get website identity: ${error instanceof Error ? error.message : String(error)}`);
+          this.logger.error("Error getting website identity", { error });
+          throw new Error(
+            `Failed to get website identity: ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
       },
     };
   }
-  
+
   /**
    * Create the generate_identity tool
    */
-  private generateWebsiteIdentityTool(context: WebsiteToolContext): ResourceDefinition {
+  private generateWebsiteIdentityTool(
+    context: WebsiteToolContext,
+  ): ResourceDefinition {
     return {
-      protocol: 'website',
-      path: 'generate_identity',
-      name: 'generate_identity',
-      description: 'Generates new website identity information from profile data',
+      protocol: "website",
+      path: "generate_identity",
+      name: "generate_identity",
+      description:
+        "Generates new website identity information from profile data",
       handler: async (params: Record<string, unknown>) => {
         // Parse parameters
-        const validatedParams = GenerateWebsiteIdentityToolSchema.safeParse(params);
-        
+        const validatedParams =
+          GenerateWebsiteIdentityToolSchema.safeParse(params);
+
         if (!validatedParams.success) {
-          throw new Error(`Invalid parameters: ${validatedParams.error.message}`);
+          throw new Error(
+            `Invalid parameters: ${validatedParams.error.message}`,
+          );
         }
-        
+
         // Extract forceRegenerate parameter
         const forceRegenerate = validatedParams.data.forceRegenerate ?? false;
-        
-        this.logger.info('Generating website identity', { 
+
+        this.logger.info("Generating website identity", {
           forceRegenerate,
-          context: 'WebsiteToolService',
+          context: "WebsiteToolService",
         });
-        
+
         // Call context to generate identity
         try {
           const result = await context.generateIdentity();
-          
+
           return {
             success: result.success,
             message: result.message,
             data: result.data,
           };
         } catch (error) {
-          this.logger.error('Error generating website identity', { error });
-          throw new Error(`Failed to generate website identity: ${error instanceof Error ? error.message : String(error)}`);
+          this.logger.error("Error generating website identity", { error });
+          throw new Error(
+            `Failed to generate website identity: ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
       },
     };
   }
-  
 }

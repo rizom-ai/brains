@@ -61,7 +61,8 @@ export class App {
       warn: LogLevel.WARN,
       error: LogLevel.ERROR,
     };
-    const logLevel = logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
+    const logLevel =
+      logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
     const logger = Logger.createFresh({
       level: logLevel,
       context: this.config.name,
@@ -122,7 +123,8 @@ export class App {
       warn: LogLevel.WARN,
       error: LogLevel.ERROR,
     };
-    const logLevel = logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
+    const logLevel =
+      logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
     const logger = Logger.createFresh({
       level: logLevel,
       context: this.config.name,

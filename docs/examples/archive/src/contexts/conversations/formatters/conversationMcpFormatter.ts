@@ -1,20 +1,23 @@
 /**
  * ConversationMcpFormatter for formatting conversations specifically for MCP responses
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
  * - createFresh(): Creates a new instance without affecting the singleton
  */
-import type { Conversation, ConversationTurn } from '@/protocol/schemas/conversationSchemas';
-import { Logger } from '@/utils/logger';
+import type {
+  Conversation,
+  ConversationTurn,
+} from "@/protocol/schemas/conversationSchemas";
+import { Logger } from "@/utils/logger";
 
-import type { ConversationSummary } from '../storage/conversationStorage';
+import type { ConversationSummary } from "../storage/conversationStorage";
 
 // Interface for MCP-formatted conversation response
 export interface McpFormattedConversation {
   id: string;
-  interfaceType: 'cli' | 'matrix';
+  interfaceType: "cli" | "matrix";
   roomId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -62,20 +65,22 @@ export interface McpFormattingOptions {
 export class ConversationMcpFormatter {
   /** The singleton instance */
   private static instance: ConversationMcpFormatter | null = null;
-  
+
   /** Logger instance for this class */
   private logger = Logger.getInstance();
-  
+
   /**
    * Private constructor to enforce singleton pattern
    */
   private constructor() {
-    this.logger.debug('ConversationMcpFormatter initialized', { context: 'ConversationMcpFormatter' });
+    this.logger.debug("ConversationMcpFormatter initialized", {
+      context: "ConversationMcpFormatter",
+    });
   }
-  
+
   /**
    * Get the singleton instance of ConversationMcpFormatter
-   * 
+   *
    * @returns The shared ConversationMcpFormatter instance
    */
   public static getInstance(): ConversationMcpFormatter {
@@ -84,7 +89,7 @@ export class ConversationMcpFormatter {
     }
     return ConversationMcpFormatter.instance;
   }
-  
+
   /**
    * Reset the singleton instance (primarily for testing)
    * This clears the instance and any resources it holds
@@ -92,11 +97,11 @@ export class ConversationMcpFormatter {
   public static resetInstance(): void {
     ConversationMcpFormatter.instance = null;
   }
-  
+
   /**
    * Create a fresh instance (primarily for testing)
    * This creates a new instance without affecting the singleton
-   * 
+   *
    * @returns A new ConversationMcpFormatter instance
    */
   public static createFresh(): ConversationMcpFormatter {
@@ -139,13 +144,13 @@ export class ConversationMcpFormatter {
     // Add summaries if they exist
     if (summaries.length > 0) {
       formatted.summaries = options.includeFullMetadata
-        ? summaries.map(s => ({...s, turnCount: s.turnCount || 0}))
+        ? summaries.map((s) => ({ ...s, turnCount: s.turnCount || 0 }))
         : summaries.map((s) => ({
-          id: s.id,
-          content: s.content,
-          createdAt: s.createdAt,
-          turnCount: s.turnCount || 0,
-        }));
+            id: s.id,
+            content: s.content,
+            createdAt: s.createdAt,
+            turnCount: s.turnCount || 0,
+          }));
     }
 
     // Add raw content if requested (useful for debugging)
@@ -232,7 +237,10 @@ export class ConversationMcpFormatter {
 
     // Add summaries with appropriate level of detail
     if (options.includeFullMetadata) {
-      formatted.summaries = sortedSummaries.map(s => ({...s, turnCount: s.turnCount || 0}));
+      formatted.summaries = sortedSummaries.map((s) => ({
+        ...s,
+        turnCount: s.turnCount || 0,
+      }));
     } else {
       // Remove detailed metadata for a more concise response
       formatted.summaries = sortedSummaries.map((summary) => ({
@@ -251,7 +259,9 @@ export class ConversationMcpFormatter {
    * @param turns Conversation turns
    * @returns Statistics object
    */
-  private calculateConversationStats(turns: ConversationTurn[]): Record<string, unknown> {
+  private calculateConversationStats(
+    turns: ConversationTurn[],
+  ): Record<string, unknown> {
     if (turns.length === 0) {
       return {
         empty: true,
@@ -267,14 +277,17 @@ export class ConversationMcpFormatter {
     const queryLengths = turns.map((t) => t.query.length);
     const responseLengths = turns.map((t) => t.response.length);
     const totalQueryLength = queryLengths.reduce((sum, len) => sum + len, 0);
-    const totalResponseLength = responseLengths.reduce((sum, len) => sum + len, 0);
+    const totalResponseLength = responseLengths.reduce(
+      (sum, len) => sum + len,
+      0,
+    );
     const avgQueryLength = totalQueryLength / turns.length;
     const avgResponseLength = totalResponseLength / turns.length;
 
     // Count turns by user
     const userNameCounts: Record<string, number> = {};
     for (const turn of turns) {
-      const userName = turn.userName || 'Unknown';
+      const userName = turn.userName || "Unknown";
       userNameCounts[userName] = (userNameCounts[userName] || 0) + 1;
     }
 
@@ -293,7 +306,7 @@ export class ConversationMcpFormatter {
         firstTimestamp: new Date(first),
         lastTimestamp: new Date(last),
         durationMinutes: Math.round(durationMs / 60000),
-        durationHours: Math.round(durationMs / 3600000 * 10) / 10,
+        durationHours: Math.round((durationMs / 3600000) * 10) / 10,
       };
     }
 
@@ -338,7 +351,9 @@ export class ConversationMcpFormatter {
       id: summary.id,
       time: summary.createdAt,
       turnCount: summary.turnCount || 0,
-      textPreview: summary.content.substring(0, 100) + (summary.content.length > 100 ? '...' : ''),
+      textPreview:
+        summary.content.substring(0, 100) +
+        (summary.content.length > 100 ? "..." : ""),
     }));
 
     return {

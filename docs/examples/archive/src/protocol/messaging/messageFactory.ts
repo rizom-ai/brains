@@ -1,20 +1,20 @@
 /**
  * Message Factory
- * 
+ *
  * Factory for creating standardized context communication messages.
  * This ensures all messages follow the same format and contain required fields.
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
-import type { 
-  AcknowledgmentMessage, 
-  ContextMessage, 
-  DataRequestMessage, 
-  DataResponseMessage, 
-  NotificationMessage, 
-} from './messageTypes';
-import type { DataRequestType, NotificationType } from './messageTypes';
+import type {
+  AcknowledgmentMessage,
+  ContextMessage,
+  DataRequestMessage,
+  DataResponseMessage,
+  NotificationMessage,
+} from "./messageTypes";
+import type { DataRequestType, NotificationType } from "./messageTypes";
 
 /**
  * Factory for creating context communication messages
@@ -22,32 +22,32 @@ import type { DataRequestType, NotificationType } from './messageTypes';
 export class MessageFactory {
   /**
    * Create a base context message with common fields
-   * 
+   *
    * @param sourceContext Source context identifier
    * @param targetContext Target context identifier
    * @param category Message category
    * @returns Base message with common fields
    */
   private static createBaseMessage(
-    sourceContext: string, 
+    sourceContext: string,
     targetContext: string,
-    category: 'request' | 'response' | 'notification',
+    category: "request" | "response" | "notification",
   ): ContextMessage {
     return {
       id: uuidv4(),
       timestamp: new Date(),
-      type: 'context',
-      source: 'context-system',
+      type: "context",
+      source: "context-system",
       target: targetContext,
       sourceContext,
       targetContext,
       category,
     };
   }
-  
+
   /**
    * Create a data request message
-   * 
+   *
    * @param sourceContext Source context identifier
    * @param targetContext Target context identifier
    * @param dataType Type of data being requested
@@ -63,17 +63,17 @@ export class MessageFactory {
     timeout?: number,
   ): DataRequestMessage {
     return {
-      ...this.createBaseMessage(sourceContext, targetContext, 'request'),
-      category: 'request',
+      ...this.createBaseMessage(sourceContext, targetContext, "request"),
+      category: "request",
       dataType,
       parameters,
       timeout,
     };
   }
-  
+
   /**
    * Create a successful data response message
-   * 
+   *
    * @param sourceContext Source context identifier
    * @param targetContext Target context identifier
    * @param requestId ID of the request being responded to
@@ -82,7 +82,7 @@ export class MessageFactory {
    */
   /**
    * Create a data response with typed data
-   * 
+   *
    * @param requestId ID of the request being responded to
    * @param sourceContext Source context identifier
    * @param targetContext Target context identifier
@@ -98,14 +98,14 @@ export class MessageFactory {
     data: T,
   ): DataResponseMessage {
     return {
-      ...this.createBaseMessage(targetContext, sourceContext, 'response'),
-      category: 'response',
+      ...this.createBaseMessage(targetContext, sourceContext, "response"),
+      category: "response",
       requestId,
-      status: 'success',
+      status: "success",
       data: { data, dataType },
     };
   }
-  
+
   static createSuccessResponse(
     sourceContext: string,
     targetContext: string,
@@ -113,17 +113,17 @@ export class MessageFactory {
     data: Record<string, unknown>,
   ): DataResponseMessage {
     return {
-      ...this.createBaseMessage(sourceContext, targetContext, 'response'),
-      category: 'response',
+      ...this.createBaseMessage(sourceContext, targetContext, "response"),
+      category: "response",
       requestId,
-      status: 'success',
+      status: "success",
       data,
     };
   }
-  
+
   /**
    * Create an error data response message
-   * 
+   *
    * @param sourceContext Source context identifier
    * @param targetContext Target context identifier
    * @param requestId ID of the request being responded to
@@ -137,14 +137,14 @@ export class MessageFactory {
     sourceContext: string,
     targetContext: string,
     errorMessage: string,
-    errorCode: string = 'ERROR',
+    errorCode: string = "ERROR",
     details?: Record<string, unknown>,
   ): DataResponseMessage {
     return {
-      ...this.createBaseMessage(sourceContext, targetContext, 'response'),
-      category: 'response',
+      ...this.createBaseMessage(sourceContext, targetContext, "response"),
+      category: "response",
       requestId,
-      status: 'error',
+      status: "error",
       error: {
         code: errorCode,
         message: errorMessage,
@@ -152,10 +152,10 @@ export class MessageFactory {
       },
     };
   }
-  
+
   /**
    * Create a notification message
-   * 
+   *
    * @param sourceContext Source context identifier
    * @param targetContext Target context identifier or '*' for broadcast
    * @param notificationType Type of notification
@@ -171,17 +171,17 @@ export class MessageFactory {
     requiresAck: boolean = false,
   ): NotificationMessage {
     return {
-      ...this.createBaseMessage(sourceContext, targetContext, 'notification'),
-      category: 'notification',
+      ...this.createBaseMessage(sourceContext, targetContext, "notification"),
+      category: "notification",
       notificationType,
       payload,
       requiresAck,
     };
   }
-  
+
   /**
    * Create an acknowledgment message
-   * 
+   *
    * @param sourceContext Source context identifier
    * @param targetContext Target context identifier
    * @param notificationId ID of the notification being acknowledged
@@ -193,12 +193,12 @@ export class MessageFactory {
     sourceContext: string,
     targetContext: string,
     notificationId: string,
-    status: 'received' | 'processed' | 'rejected',
+    status: "received" | "processed" | "rejected",
     message?: string,
   ): AcknowledgmentMessage {
     return {
-      ...this.createBaseMessage(sourceContext, targetContext, 'response'),
-      category: 'response',
+      ...this.createBaseMessage(sourceContext, targetContext, "response"),
+      category: "response",
       notificationId,
       status,
       message,

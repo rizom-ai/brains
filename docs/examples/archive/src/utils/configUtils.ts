@@ -1,6 +1,6 @@
 /**
  * Utility class for configuration management with proper type safety
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
@@ -10,7 +10,7 @@
 export class ConfigUtils {
   /** The singleton instance */
   private static instance: ConfigUtils | null = null;
-  
+
   /**
    * Get the singleton instance of ConfigUtils
    */
@@ -20,36 +20,36 @@ export class ConfigUtils {
     }
     return ConfigUtils.instance;
   }
-  
+
   /**
    * Reset the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
     ConfigUtils.instance = null;
   }
-  
+
   /**
    * Create a fresh instance (primarily for testing)
    */
   public static createFresh(): ConfigUtils {
     return new ConfigUtils();
   }
-  
+
   /**
    * Private constructor to enforce singleton pattern
    */
   private constructor() {}
-  
+
   /**
    * Safely access environment variables with proper typing
    * @param key - The environment variable key to access
    * @param defaultValue - Optional default value if environment variable is not set
    * @returns The environment variable value or the default value
    */
-  public getEnv(key: string, defaultValue = ''): string {
+  public getEnv(key: string, defaultValue = ""): string {
     return process.env[key] || defaultValue;
   }
-  
+
   /**
    * Parse an environment variable as an integer
    * @param key - The environment variable key to access
@@ -59,11 +59,11 @@ export class ConfigUtils {
   public getEnvAsInt(key: string, defaultValue: number): number {
     const value = process.env[key];
     if (!value) return defaultValue;
-    
+
     const parsed = parseInt(value, 10);
     return isNaN(parsed) ? defaultValue : parsed;
   }
-  
+
   /**
    * Parse an environment variable as a float
    * @param key - The environment variable key to access
@@ -73,11 +73,11 @@ export class ConfigUtils {
   public getEnvAsFloat(key: string, defaultValue: number): number {
     const value = process.env[key];
     if (!value) return defaultValue;
-    
+
     const parsed = parseFloat(value);
     return isNaN(parsed) ? defaultValue : parsed;
   }
-  
+
   /**
    * Parse an environment variable as a boolean
    * @param key - The environment variable key to access
@@ -86,9 +86,9 @@ export class ConfigUtils {
    */
   public getEnvAsBool(key: string, defaultValue: boolean): boolean {
     const value = process.env[key]?.toLowerCase();
-    
-    if (value === undefined || value === '') return defaultValue;
-    return value === 'true' || value === '1' || value === 'yes';
+
+    if (value === undefined || value === "") return defaultValue;
+    return value === "true" || value === "1" || value === "yes";
   }
 }
 
@@ -99,7 +99,7 @@ export class ConfigUtils {
  * @param defaultValue - Optional default value if environment variable is not set
  * @returns The environment variable value or the default value
  */
-export function getEnv(key: string, defaultValue = ''): string {
+export function getEnv(key: string, defaultValue = ""): string {
   return ConfigUtils.getInstance().getEnv(key, defaultValue);
 }
 
@@ -138,7 +138,7 @@ export function getEnvAsBool(key: string, defaultValue: boolean): boolean {
  * @returns true if NODE_ENV is set to 'test', false otherwise
  */
 export function isTestEnvironment(): boolean {
-  return process.env.NODE_ENV === 'test';
+  return process.env.NODE_ENV === "test";
 }
 
 /**
@@ -146,7 +146,7 @@ export function isTestEnvironment(): boolean {
  * @returns true if NODE_ENV is set to 'production', false otherwise
  */
 export function isProductionEnvironment(): boolean {
-  return process.env.NODE_ENV === 'production';
+  return process.env.NODE_ENV === "production";
 }
 
 /**
@@ -154,5 +154,5 @@ export function isProductionEnvironment(): boolean {
  * @returns true if NODE_ENV is set to 'development' or not set, false otherwise
  */
 export function isDevelopmentEnvironment(): boolean {
-  return process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+  return process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
 }

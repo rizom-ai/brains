@@ -1,15 +1,18 @@
 /**
  * Conversation Context Message Schemas
- * 
+ *
  * This module defines Zod schemas for validating message parameters and payloads
  * specific to the Conversation context. These schemas ensure type safety and validation
  * for cross-context communication involving conversations.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
-import { DataRequestType, NotificationType } from '@/protocol/messaging/messageTypes';
-import { ConversationTurnSchema } from '@/protocol/schemas/conversationSchemas';
+import {
+  DataRequestType,
+  NotificationType,
+} from "@/protocol/messaging/messageTypes";
+import { ConversationTurnSchema } from "@/protocol/schemas/conversationSchemas";
 
 /**
  * Schema for CONVERSATION_HISTORY request parameters
@@ -17,7 +20,7 @@ import { ConversationTurnSchema } from '@/protocol/schemas/conversationSchemas';
  */
 export const ConversationHistoryParamsSchema = z.object({
   /** ID of the conversation to retrieve history for */
-  conversationId: z.string().min(1, 'Conversation ID is required'),
+  conversationId: z.string().min(1, "Conversation ID is required"),
   /** Maximum number of turns to retrieve */
   limit: z.number().int().positive().optional(),
 });
@@ -28,11 +31,11 @@ export const ConversationHistoryParamsSchema = z.object({
  */
 export const ConversationStartedPayloadSchema = z.object({
   /** ID of the conversation */
-  id: z.string().min(1, 'Conversation ID is required'),
+  id: z.string().min(1, "Conversation ID is required"),
   /** Room ID the conversation is associated with */
   roomId: z.string(),
   /** Type of interface (cli or matrix) */
-  interfaceType: z.enum(['cli', 'matrix']),
+  interfaceType: z.enum(["cli", "matrix"]),
   /** Timestamp when the conversation was created */
   createdAt: z.date(),
 });
@@ -43,7 +46,7 @@ export const ConversationStartedPayloadSchema = z.object({
  */
 export const ConversationClearedPayloadSchema = z.object({
   /** ID of the conversation that was cleared */
-  id: z.string().min(1, 'Conversation ID is required'),
+  id: z.string().min(1, "Conversation ID is required"),
 });
 
 /**
@@ -52,7 +55,7 @@ export const ConversationClearedPayloadSchema = z.object({
  */
 export const ConversationTurnAddedPayloadSchema = z.object({
   /** ID of the conversation the turn was added to */
-  conversationId: z.string().min(1, 'Conversation ID is required'),
+  conversationId: z.string().min(1, "Conversation ID is required"),
   /** ID of the turn that was added */
   turnId: z.string(),
   /** Timestamp when the turn was added */
@@ -67,7 +70,7 @@ export const ConversationTurnAddedPayloadSchema = z.object({
  */
 export const CreateConversationTurnParamsSchema = z.object({
   /** ID of the conversation to add the turn to */
-  conversationId: z.string().min(1, 'Conversation ID is required'),
+  conversationId: z.string().min(1, "Conversation ID is required"),
   /** The turn to add */
   turn: ConversationTurnSchema,
 });
@@ -78,9 +81,9 @@ export const CreateConversationTurnParamsSchema = z.object({
  */
 export const CreateConversationParamsSchema = z.object({
   /** ID of the room to associate the conversation with */
-  roomId: z.string().min(1, 'Room ID is required'),
+  roomId: z.string().min(1, "Room ID is required"),
   /** Type of interface (cli or matrix) */
-  interfaceType: z.enum(['cli', 'matrix']),
+  interfaceType: z.enum(["cli", "matrix"]),
   /** First turn of the conversation (optional) */
   initialTurn: ConversationTurnSchema.optional(),
 });
@@ -93,21 +96,34 @@ export const CreateConversationParamsSchema = z.object({
 export const ConversationSchemaMap = {
   // Request parameter schemas
   [DataRequestType.CONVERSATION_HISTORY]: ConversationHistoryParamsSchema,
-  
+
   // Notification payload schemas
   [NotificationType.CONVERSATION_STARTED]: ConversationStartedPayloadSchema,
   [NotificationType.CONVERSATION_CLEARED]: ConversationClearedPayloadSchema,
-  [NotificationType.CONVERSATION_TURN_ADDED]: ConversationTurnAddedPayloadSchema,
-  
+  [NotificationType.CONVERSATION_TURN_ADDED]:
+    ConversationTurnAddedPayloadSchema,
+
   // Tool parameter schemas
-  'conversation.create': CreateConversationParamsSchema,
-  'conversation.addTurn': CreateConversationTurnParamsSchema,
+  "conversation.create": CreateConversationParamsSchema,
+  "conversation.addTurn": CreateConversationTurnParamsSchema,
 } as const;
 
 // Export derived types for use in type-safe code
-export type ConversationHistoryParams = z.infer<typeof ConversationHistoryParamsSchema>;
-export type ConversationStartedPayload = z.infer<typeof ConversationStartedPayloadSchema>;
-export type ConversationClearedPayload = z.infer<typeof ConversationClearedPayloadSchema>;
-export type ConversationTurnAddedPayload = z.infer<typeof ConversationTurnAddedPayloadSchema>;
-export type CreateConversationTurnParams = z.infer<typeof CreateConversationTurnParamsSchema>;
-export type CreateConversationParams = z.infer<typeof CreateConversationParamsSchema>;
+export type ConversationHistoryParams = z.infer<
+  typeof ConversationHistoryParamsSchema
+>;
+export type ConversationStartedPayload = z.infer<
+  typeof ConversationStartedPayloadSchema
+>;
+export type ConversationClearedPayload = z.infer<
+  typeof ConversationClearedPayloadSchema
+>;
+export type ConversationTurnAddedPayload = z.infer<
+  typeof ConversationTurnAddedPayloadSchema
+>;
+export type CreateConversationTurnParams = z.infer<
+  typeof CreateConversationTurnParamsSchema
+>;
+export type CreateConversationParams = z.infer<
+  typeof CreateConversationParamsSchema
+>;

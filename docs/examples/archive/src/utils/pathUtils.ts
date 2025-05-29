@@ -3,7 +3,7 @@
  * Centralizes access to file system paths and provides consistent abstractions
  */
 
-import * as path from 'path';
+import * as path from "path";
 
 /**
  * Get the project root directory

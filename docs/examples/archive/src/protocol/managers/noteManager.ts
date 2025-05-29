@@ -1,17 +1,17 @@
 /**
  * Note Manager for BrainProtocol
  * Manages note operations and search functionality
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
  * - createFresh(): Creates a new instance without affecting the singleton
  */
-import type { MCPNoteContext } from '@/contexts';
-import type { Note } from '@/models/note';
-import { Logger } from '@/utils/logger';
+import type { MCPNoteContext } from "@/contexts";
+import type { Note } from "@/models/note";
+import { Logger } from "@/utils/logger";
 
-import type { INoteManager } from '../types';
+import type { INoteManager } from "../types";
 
 /**
  * Configuration options for NoteManager
@@ -30,40 +30,42 @@ export class NoteManager implements INoteManager {
    * This property should be accessed only by getInstance(), resetInstance(), and createFresh()
    */
   private static instance: NoteManager | null = null;
-  
+
   /**
    * Logger instance for this class
    */
   private logger = Logger.getInstance();
-  
+
   private noteContext: MCPNoteContext;
 
   /**
    * Get the singleton instance of NoteManager
-   * 
+   *
    * Part of the Component Interface Standardization pattern.
-   * 
+   *
    * @param config Configuration options (only used when creating a new instance)
    * @returns The singleton instance
    */
   public static getInstance(config: NoteManagerConfig): NoteManager {
     if (!NoteManager.instance) {
       NoteManager.instance = new NoteManager(config);
-      
+
       const logger = Logger.getInstance();
-      logger.debug('NoteManager singleton instance created');
+      logger.debug("NoteManager singleton instance created");
     } else if (config && Object.keys(config).length > 0) {
       // Log a warning if trying to get instance with different config
       const logger = Logger.getInstance();
-      logger.warn('getInstance called with config but instance already exists. Config ignored.');
+      logger.warn(
+        "getInstance called with config but instance already exists. Config ignored.",
+      );
     }
-    
+
     return NoteManager.instance;
   }
 
   /**
    * Reset the singleton instance
-   * 
+   *
    * Part of the Component Interface Standardization pattern.
    * Primarily used for testing to ensure a clean state.
    */
@@ -75,42 +77,42 @@ export class NoteManager implements INoteManager {
       }
     } catch (error) {
       const logger = Logger.getInstance();
-      logger.error('Error during NoteManager instance reset:', error);
+      logger.error("Error during NoteManager instance reset:", error);
     } finally {
       NoteManager.instance = null;
-      
+
       const logger = Logger.getInstance();
-      logger.debug('NoteManager singleton instance reset');
+      logger.debug("NoteManager singleton instance reset");
     }
   }
 
   /**
    * Create a fresh NoteManager instance
-   * 
+   *
    * Part of the Component Interface Standardization pattern.
    * Creates a new instance without affecting the singleton instance.
    * Primarily used for testing.
-   * 
+   *
    * @param config Configuration options
    * @returns A new NoteManager instance
    */
   public static createFresh(config: NoteManagerConfig): NoteManager {
     const logger = Logger.getInstance();
-    logger.debug('Creating fresh NoteManager instance');
-    
+    logger.debug("Creating fresh NoteManager instance");
+
     return new NoteManager(config);
   }
 
   /**
    * Create a new note manager
-   * 
+   *
    * Note: When not testing, prefer using getInstance() or createFresh() factory methods
-   * 
+   *
    * @param config Configuration options containing note context
    */
   private constructor(config: NoteManagerConfig) {
     this.noteContext = config.noteContext;
-    this.logger.debug('Note manager initialized');
+    this.logger.debug("Note manager initialized");
   }
 
   /**
@@ -130,20 +132,21 @@ export class NoteManager implements INoteManager {
     // First, try to extract any explicit tags from the query
     const tagRegex = /#(\w+)/g;
     const tagMatches = [...query.matchAll(tagRegex)];
-    const tags = tagMatches.map(match => match[1]);
+    const tags = tagMatches.map((match) => match[1]);
 
     // Remove the tags from the query for better text matching
-    const cleanQuery = query.replace(tagRegex, '').trim();
+    const cleanQuery = query.replace(tagRegex, "").trim();
 
     // Check for specific topic mentions like "MCP", "Model-Context-Protocol"
-    const topicRegex = /\b(MCP|Model[-\s]Context[-\s]Protocol|AI architecture)\b/i;
+    const topicRegex =
+      /\b(MCP|Model[-\s]Context[-\s]Protocol|AI architecture)\b/i;
     const hasMcpTopic = topicRegex.test(query);
 
-    if (hasMcpTopic && !tags.includes('MCP')) {
-      tags.push('MCP');
+    if (hasMcpTopic && !tags.includes("MCP")) {
+      tags.push("MCP");
     }
 
-    this.logger.debug(`Query: "${cleanQuery}", Tags: [${tags.join(', ')}]`);
+    this.logger.debug(`Query: "${cleanQuery}", Tags: [${tags.join(", ")}]`);
 
     // Use semantic search by default for better results
     let results = await this.noteContext.searchNotes({
@@ -155,13 +158,15 @@ export class NoteManager implements INoteManager {
 
     // If no results and we have tags, try with just tags
     if (results.length === 0 && tags.length > 0) {
-      this.logger.debug('No results with query and tags, trying tags only');
+      this.logger.debug("No results with query and tags, trying tags only");
       results = await this.searchByTags(tags, 5);
     }
 
     // If still no results, fall back to keyword search
     if (results.length === 0) {
-      this.logger.debug('No results with semantic search, trying keyword search');
+      this.logger.debug(
+        "No results with semantic search, trying keyword search",
+      );
       results = await this.noteContext.searchNotes({
         query: cleanQuery,
         tags: tags.length > 0 ? tags : undefined,
@@ -172,7 +177,9 @@ export class NoteManager implements INoteManager {
 
     // If no matches, return all notes as a fallback (limited to 3)
     if (results.length === 0) {
-      this.logger.debug('No specific matches, fetching recent notes as fallback');
+      this.logger.debug(
+        "No specific matches, fetching recent notes as fallback",
+      );
       results = await this.getRecentNotes(3);
     }
 
@@ -187,13 +194,15 @@ export class NoteManager implements INoteManager {
    */
   async getRelatedNotes(notes: Note[], limit: number = 3): Promise<Note[]> {
     if (notes.length === 0) {
-      this.logger.debug('No notes provided, returning recent notes');
+      this.logger.debug("No notes provided, returning recent notes");
       return this.getRecentNotes(limit);
     }
 
     // Use the first note to find related content
     const primaryNoteId = notes[0].id;
-    this.logger.debug(`Finding related notes for primary note: ${primaryNoteId}`);
+    this.logger.debug(
+      `Finding related notes for primary note: ${primaryNoteId}`,
+    );
     return this.noteContext.getRelatedNotes(primaryNoteId, limit);
   }
 

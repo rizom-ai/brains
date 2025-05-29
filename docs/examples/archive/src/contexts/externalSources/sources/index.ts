@@ -7,9 +7,9 @@ import type {
   ExternalSearchOptions,
   ExternalSourceInterface,
   ExternalSourceResult,
-} from './externalSourceInterface';
-import { NewsApiSource } from './newsApiSource';
-import { WikipediaSource } from './wikipediaSource';
+} from "./externalSourceInterface";
+import { NewsApiSource } from "./newsApiSource";
+import { WikipediaSource } from "./wikipediaSource";
 
 // Export class implementations
 export { WikipediaSource, NewsApiSource };
@@ -18,4 +18,4 @@ export type {
   ExternalSourceInterface,
   ExternalSourceResult,
   ExternalSearchOptions,
-}; 
+};

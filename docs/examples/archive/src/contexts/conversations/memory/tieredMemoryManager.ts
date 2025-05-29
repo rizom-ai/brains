@@ -1,15 +1,15 @@
 /**
  * TieredMemoryManager for managing conversation memory tiers
  */
-import { nanoid } from 'nanoid';
+import { nanoid } from "nanoid";
 
-import { ConversationSummarizer } from '@/contexts/conversations/memory/summarizer';
-import type { 
-  ConversationStorage, 
-  ConversationSummary, 
-} from '@/contexts/conversations/storage/conversationStorage';
-import type { ConversationTurn } from '@/protocol/schemas/conversationSchemas';
-import logger from '@/utils/logger';
+import { ConversationSummarizer } from "@/contexts/conversations/memory/summarizer";
+import type {
+  ConversationStorage,
+  ConversationSummary,
+} from "@/contexts/conversations/storage/conversationStorage";
+import type { ConversationTurn } from "@/protocol/schemas/conversationSchemas";
+import logger from "@/utils/logger";
 
 /**
  * Configuration for TieredMemoryManager
@@ -54,10 +54,14 @@ export class TieredMemoryManager {
    * @param options Configuration options
    * @returns The shared instance
    */
-  public static getInstance(options?: TieredMemoryManagerOptions): TieredMemoryManager {
+  public static getInstance(
+    options?: TieredMemoryManagerOptions,
+  ): TieredMemoryManager {
     if (!TieredMemoryManager.instance) {
       if (!options?.storage) {
-        throw new Error('TieredMemoryManager requires a storage implementation');
+        throw new Error(
+          "TieredMemoryManager requires a storage implementation",
+        );
       }
       TieredMemoryManager.instance = new TieredMemoryManager(options);
     } else if (options) {
@@ -83,7 +87,9 @@ export class TieredMemoryManager {
    * @param options Configuration options
    * @returns A new instance
    */
-  public static createFresh(options: TieredMemoryManagerOptions): TieredMemoryManager {
+  public static createFresh(
+    options: TieredMemoryManagerOptions,
+  ): TieredMemoryManager {
     return new TieredMemoryManager(options);
   }
 
@@ -93,9 +99,9 @@ export class TieredMemoryManager {
    */
   private constructor(options?: TieredMemoryManagerOptions) {
     if (!options?.storage) {
-      throw new Error('TieredMemoryManager requires a storage implementation');
+      throw new Error("TieredMemoryManager requires a storage implementation");
     }
-    
+
     this.storage = options.storage;
     this.summarizer = ConversationSummarizer.getInstance();
     this.config = {
@@ -121,10 +127,10 @@ export class TieredMemoryManager {
 
     // Get all turns for the conversation
     const turns = await this.storage.getTurns(conversationId);
-    
+
     // Active turns are the ones not associated with any summary
-    const activeTurns = turns.filter(turn => !turn.metadata?.['summaryId']);
-    
+    const activeTurns = turns.filter((turn) => !turn.metadata?.["summaryId"]);
+
     // Check if we need to summarize based on the number of active turns
     if (activeTurns.length <= this.config.maxActiveTurns) {
       return false;
@@ -140,10 +146,12 @@ export class TieredMemoryManager {
    */
   async forceSummarize(conversationId: string): Promise<boolean> {
     const turns = await this.storage.getTurns(conversationId);
-    const activeTurns = turns.filter(turn => !turn.metadata?.['summaryId']);
-    
+    const activeTurns = turns.filter((turn) => !turn.metadata?.["summaryId"]);
+
     if (activeTurns.length < 2) {
-      logger.warn(`Not enough active turns to summarize for conversation ${conversationId}`);
+      logger.warn(
+        `Not enough active turns to summarize for conversation ${conversationId}`,
+      );
       return false;
     }
 
@@ -157,7 +165,7 @@ export class TieredMemoryManager {
    * @returns true if summarization was successful
    */
   private async summarizeOldestActiveTurns(
-    conversationId: string, 
+    conversationId: string,
     activeTurns: ConversationTurn[],
   ): Promise<boolean> {
     try {
@@ -166,39 +174,37 @@ export class TieredMemoryManager {
         this.config.summaryTurnCount,
         activeTurns.length - Math.floor(this.config.maxActiveTurns * 0.8),
       );
-      
+
       if (turnsToSummarize < 2) {
         // Need at least 2 turns to make a meaningful summary
         return false;
       }
-      
+
       // Get the oldest turns to summarize (by timestamp)
-      const sortedTurns = [...activeTurns].sort(
-        (a, b) => {
-          const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-          const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-          return aTime - bTime;
-        },
-      );
+      const sortedTurns = [...activeTurns].sort((a, b) => {
+        const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return aTime - bTime;
+      });
       const turnsToProcess = sortedTurns.slice(0, turnsToSummarize);
-      
+
       // Create a summary
       const summary = await this.summarizer.summarizeTurns(turnsToProcess);
-      
+
       // Add the summary to the storage
       const summaryId = await this.storage.addSummary(conversationId, {
         id: summary.id || `sum-${nanoid()}`,
         conversationId,
         content: summary.content,
-        startTurnId: turnsToProcess[0].id || '',
-        endTurnId: turnsToProcess[turnsToProcess.length - 1].id || '',
+        startTurnId: turnsToProcess[0].id || "",
+        endTurnId: turnsToProcess[turnsToProcess.length - 1].id || "",
         createdAt: new Date(),
         metadata: {
           turnCount: turnsToProcess.length,
-          originalTurnIds: turnsToProcess.map(turn => turn.id),
+          originalTurnIds: turnsToProcess.map((turn) => turn.id),
         },
       });
-      
+
       // Update each turn with the summary ID in its metadata
       for (const turn of turnsToProcess) {
         if (turn.id) {
@@ -211,11 +217,16 @@ export class TieredMemoryManager {
           });
         }
       }
-      
-      logger.debug(`Summarized ${turnsToSummarize} turns for conversation ${conversationId}`);
+
+      logger.debug(
+        `Summarized ${turnsToSummarize} turns for conversation ${conversationId}`,
+      );
       return true;
     } catch (error) {
-      logger.error(`Error summarizing turns for conversation ${conversationId}:`, error);
+      logger.error(
+        `Error summarizing turns for conversation ${conversationId}:`,
+        error,
+      );
       return false;
     }
   }
@@ -228,32 +239,34 @@ export class TieredMemoryManager {
   async getTieredHistory(conversationId: string): Promise<TieredHistory> {
     // Get all turns for the conversation
     const allTurns = await this.storage.getTurns(conversationId);
-    
+
     // Separate turns into active and archived based on metadata
-    const activeTurns = allTurns.filter(turn => 
-      !turn.metadata?.['summaryId'] && turn.metadata?.['isActive'] !== false,
+    const activeTurns = allTurns.filter(
+      (turn) =>
+        !turn.metadata?.["summaryId"] && turn.metadata?.["isActive"] !== false,
     );
-    
-    const archivedTurns = allTurns.filter(turn => 
-      turn.metadata?.['summaryId'] || turn.metadata?.['isActive'] === false,
+
+    const archivedTurns = allTurns.filter(
+      (turn) =>
+        turn.metadata?.["summaryId"] || turn.metadata?.["isActive"] === false,
     );
-    
+
     // Get summaries
     const summaries = await this.storage.getSummaries(conversationId);
-    
+
     // Sort turns by timestamp
     activeTurns.sort((a, b) => {
       const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
       const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
       return aTime - bTime;
     });
-    
+
     archivedTurns.sort((a, b) => {
       const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
       const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
       return aTime - bTime;
     });
-    
+
     return {
       // Apply the maximum limit to active turns
       activeTurns: activeTurns.slice(-this.config.maxActiveTurns),
@@ -269,26 +282,31 @@ export class TieredMemoryManager {
    * @param maxTokens Maximum tokens to include (approximate)
    * @returns Formatted history string
    */
-  async formatHistoryForPrompt(conversationId: string, maxTokens?: number): Promise<string> {
+  async formatHistoryForPrompt(
+    conversationId: string,
+    maxTokens?: number,
+  ): Promise<string> {
     const tokenLimit = maxTokens || this.config.maxTokens;
-    const { activeTurns, summaries } = await this.getTieredHistory(conversationId);
-    
-    let historyText = '';
+    const { activeTurns, summaries } =
+      await this.getTieredHistory(conversationId);
+
+    let historyText = "";
     let estimatedTokens = 0;
-    
+
     // Add summaries first (oldest to newest)
     if (summaries.length > 0) {
-      historyText += 'CONVERSATION SUMMARIES:\n';
-      
+      historyText += "CONVERSATION SUMMARIES:\n";
+
       // Sort summaries by timestamp (oldest first)
       const sortedSummaries = [...summaries].sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
-      
+
       for (const summary of sortedSummaries) {
         const summaryText = `Summary: ${summary.content}\n\n`;
         const summaryTokens = this.estimateTokenCount(summaryText);
-        
+
         if (estimatedTokens + summaryTokens <= tokenLimit) {
           historyText += summaryText;
           estimatedTokens += summaryTokens;
@@ -296,7 +314,7 @@ export class TieredMemoryManager {
           // If we can't fit all summaries, include at least a truncated version of the most recent
           if (sortedSummaries.indexOf(summary) === sortedSummaries.length - 1) {
             const truncatedSummary = this.truncateToTokens(
-              summaryText, 
+              summaryText,
               tokenLimit - estimatedTokens,
             );
             historyText += truncatedSummary;
@@ -305,26 +323,26 @@ export class TieredMemoryManager {
           break;
         }
       }
-      
-      historyText += 'RECENT CONVERSATION:\n';
+
+      historyText += "RECENT CONVERSATION:\n";
     }
-    
+
     // Add active turns (newest last)
     if (activeTurns.length > 0) {
       // Format each turn
-      const formattedTurns = activeTurns.map(turn => {
-        const userPrefix = turn.userName || 'User';
+      const formattedTurns = activeTurns.map((turn) => {
+        const userPrefix = turn.userName || "User";
         return `${userPrefix}: ${turn.query}\nAssistant: ${turn.response}`;
       });
-      
+
       // Calculate how many turns we can fit
-      let includedText = '';
-      
+      let includedText = "";
+
       // Process turns in reverse order to prioritize recent turns
       for (let i = formattedTurns.length - 1; i >= 0; i--) {
-        const turnText = formattedTurns[i] + '\n\n';
+        const turnText = formattedTurns[i] + "\n\n";
         const turnTokens = this.estimateTokenCount(turnText);
-        
+
         if (estimatedTokens + turnTokens <= tokenLimit) {
           includedText = turnText + includedText; // Prepend to maintain order
           estimatedTokens += turnTokens;
@@ -332,10 +350,10 @@ export class TieredMemoryManager {
           break;
         }
       }
-      
+
       historyText += includedText;
     }
-    
+
     return historyText.trim();
   }
 
@@ -377,11 +395,11 @@ export class TieredMemoryManager {
   private truncateToTokens(text: string, targetTokens: number): string {
     // Simple approximation: truncate to character count
     const charLimit = targetTokens * 4;
-    
+
     if (text.length <= charLimit) {
       return text;
     }
-    
-    return text.substring(0, charLimit) + '...';
+
+    return text.substring(0, charLimit) + "...";
   }
 }

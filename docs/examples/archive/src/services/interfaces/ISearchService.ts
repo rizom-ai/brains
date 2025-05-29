@@ -23,7 +23,7 @@ export interface ISearchService<TEntity> {
    * @param options Search options
    */
   search(options: SearchOptions): Promise<TEntity[]>;
-  
+
   /**
    * Find related entities based on a source entity
    * @param entityId ID of the source entity

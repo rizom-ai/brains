@@ -2,10 +2,10 @@
  * Common types for Matrix formatters
  */
 
-import type { WebsiteIdentityData } from '@/contexts/website/schemas/websiteIdentitySchema';
-import type { WebsiteConfig } from '@/contexts/website/websiteStorage';
-import type { LandingPageData } from '@website/schemas';
-import type { AssessedSection } from '@website/schemas/sectionQualitySchema';
+import type { WebsiteIdentityData } from "@/contexts/website/schemas/websiteIdentitySchema";
+import type { WebsiteConfig } from "@/contexts/website/websiteStorage";
+import type { LandingPageData } from "@website/schemas";
+import type { AssessedSection } from "@website/schemas/sectionQualitySchema";
 
 // Note model properties we need for formatting
 
@@ -25,7 +25,7 @@ export interface NotePreview {
   similarity?: number;
   // Additional properties used in Note type, all optional
   embedding?: number[] | null;
-  source?: 'conversation' | 'import' | 'user-created';
+  source?: "conversation" | "import" | "user-created";
   conversationMetadata?: {
     conversationId: string;
     timestamp: Date;
@@ -39,7 +39,11 @@ export interface NotePreview {
 /**
  * Citation source types
  */
-export type CitationSourceType = 'note' | 'webpage' | 'article' | 'conversation';
+export type CitationSourceType =
+  | "note"
+  | "webpage"
+  | "article"
+  | "conversation";
 
 /**
  * Citation data interface
@@ -95,7 +99,7 @@ export interface CitationReference {
  * Website configuration result
  */
 export interface WebsiteConfigResult {
-  type: 'website-config';
+  type: "website-config";
   config?: WebsiteConfig;
   success?: boolean;
   message: string;
@@ -107,7 +111,7 @@ export interface WebsiteConfigResult {
  * Website promote result
  */
 export interface WebsitePromoteResult {
-  type: 'website-promote';
+  type: "website-promote";
   success: boolean;
   message: string;
   url?: string;
@@ -117,12 +121,18 @@ export interface WebsitePromoteResult {
  * Landing page result
  */
 export interface LandingPageResult {
-  type: 'landing-page';
+  type: "landing-page";
   success?: boolean;
   message?: string;
   data?: LandingPageData;
   assessments?: Record<string, AssessedSection<unknown>>;
-  action?: 'generate' | 'edit' | 'assess' | 'apply' | 'regenerate-failed' | 'view';
+  action?:
+    | "generate"
+    | "edit"
+    | "assess"
+    | "apply"
+    | "regenerate-failed"
+    | "view";
   results?: {
     attempted: number;
     succeeded: number;
@@ -135,7 +145,7 @@ export interface LandingPageResult {
  * Website status result
  */
 export interface WebsiteStatusResult {
-  type: 'website-status';
+  type: "website-status";
   success: boolean;
   message: string;
   data?: {
@@ -153,7 +163,7 @@ export interface WebsiteStatusResult {
  * Website build result
  */
 export interface WebsiteBuildResult {
-  type: 'website-build';
+  type: "website-build";
   success: boolean;
   message: string;
   url?: string;
@@ -164,17 +174,17 @@ export interface WebsiteBuildResult {
  * Website identity result
  */
 export interface WebsiteIdentityResult {
-  type: 'website-identity';
+  type: "website-identity";
   success?: boolean;
   message?: string;
   data?: WebsiteIdentityData;
-  action?: 'view' | 'generate' | 'update';
+  action?: "view" | "generate" | "update";
 }
 
 /**
  * UI block types
  */
-export type BlockType = 'header' | 'section' | 'divider' | 'image' | 'context';
+export type BlockType = "header" | "section" | "divider" | "image" | "context";
 
 /**
  * UI block content

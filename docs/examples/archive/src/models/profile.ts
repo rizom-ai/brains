@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // Define the social media link schema
 export const socialLinkSchema = z.object({
@@ -43,7 +43,7 @@ export const educationSchema = z.object({
 // Define the language schema
 export const languageSchema = z.object({
   name: z.string(),
-  proficiency: z.enum(['basic', 'intermediate', 'fluent', 'native']),
+  proficiency: z.enum(["basic", "intermediate", "fluent", "native"]),
 });
 
 // Define the project schema
@@ -64,7 +64,7 @@ export const publicationSchema = z.object({
   description: z.string().optional(),
 });
 
-// TODO: After profile note migration is complete, remove backward compatibility with old schema 
+// TODO: After profile note migration is complete, remove backward compatibility with old schema
 // and simplify the profile model to just use this schema directly.
 
 // Define the main profile schema
@@ -76,28 +76,28 @@ export const profileSchema = z.object({
   avatar: z.string().url().optional(),
   headline: z.string().optional(),
   summary: z.string().optional(),
-  
+
   // Contact information
   contact: contactInfoSchema.optional(),
-  
+
   // Location information
   location: locationSchema.optional(),
-  
+
   // Work experiences - simplified
   experiences: z.array(experienceSchema).optional(),
-  
+
   // Education - simplified
   education: z.array(educationSchema).optional(),
-  
+
   // Skills & expertise
   skills: z.array(z.string()).optional(),
-  
+
   // Languages - simplified
   languages: z.array(languageSchema).optional(),
-  
+
   // Projects - simplified
   projects: z.array(projectSchema).optional(),
-  
+
   // Publications - simplified
   publications: z.array(publicationSchema).optional(),
 
@@ -163,7 +163,7 @@ export interface Education {
 
 export interface Language {
   name: string;
-  proficiency: 'basic' | 'intermediate' | 'fluent' | 'native';
+  proficiency: "basic" | "intermediate" | "fluent" | "native";
 }
 
 export interface Project {

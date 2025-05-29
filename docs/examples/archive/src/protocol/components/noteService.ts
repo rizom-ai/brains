@@ -2,9 +2,9 @@
  * Service for handling note-related operations
  */
 
-import type { MCPNoteContext } from '@/contexts';
-import type { Note } from '@models/note';
-import { Logger } from '@utils/logger';
+import type { MCPNoteContext } from "@/contexts";
+import type { Note } from "@models/note";
+import { Logger } from "@utils/logger";
 
 /**
  * Configuration options for NoteService
@@ -16,7 +16,7 @@ export interface NoteServiceConfig {
 
 /**
  * Handles operations related to notes
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
@@ -28,23 +28,23 @@ export class NoteService {
 
   /** Logger instance for this class */
   private logger = Logger.getInstance();
-  
+
   private context: MCPNoteContext;
 
   /**
    * Get the singleton instance of NoteService
-   * 
+   *
    * @param config Configuration options
    * @returns The singleton instance
    */
   public static getInstance(config: NoteServiceConfig): NoteService {
     if (!NoteService.instance) {
       NoteService.instance = new NoteService(config.context);
-      
+
       const logger = Logger.getInstance();
-      logger.debug('NoteService singleton instance created');
+      logger.debug("NoteService singleton instance created");
     }
-    
+
     return NoteService.instance;
   }
 
@@ -54,32 +54,32 @@ export class NoteService {
    */
   public static resetInstance(): void {
     NoteService.instance = null;
-    
+
     const logger = Logger.getInstance();
-    logger.debug('NoteService singleton instance reset');
+    logger.debug("NoteService singleton instance reset");
   }
 
   /**
    * Create a fresh instance without affecting the singleton
-   * 
+   *
    * @param config Configuration options
    * @returns A new NoteService instance
    */
   public static createFresh(config: NoteServiceConfig): NoteService {
     const logger = Logger.getInstance();
-    logger.debug('Creating fresh NoteService instance');
-    
+    logger.debug("Creating fresh NoteService instance");
+
     return new NoteService(config.context);
   }
 
   /**
    * Private constructor to enforce factory method usage
-   * 
+   *
    * @param context Note context for data access
    */
   private constructor(context: MCPNoteContext) {
     this.context = context;
-    this.logger.debug('NoteService initialized');
+    this.logger.debug("NoteService initialized");
   }
 
   /**
@@ -88,15 +88,20 @@ export class NoteService {
    * @param limit Maximum number of related notes to return
    * @returns Array of related notes
    */
-  async getRelatedNotes(relevantNotes: Note[], limit: number = 3): Promise<Note[]> {
+  async getRelatedNotes(
+    relevantNotes: Note[],
+    limit: number = 3,
+  ): Promise<Note[]> {
     if (relevantNotes.length === 0) {
-      this.logger.debug('No relevant notes, returning recent notes');
+      this.logger.debug("No relevant notes, returning recent notes");
       return this.context.getRecentNotes(limit);
     }
 
     // Use the most relevant note to find related content
     const primaryNoteId = relevantNotes[0].id;
-    this.logger.debug(`Finding related notes for primary note: ${primaryNoteId}`);
+    this.logger.debug(
+      `Finding related notes for primary note: ${primaryNoteId}`,
+    );
     return this.context.getRelatedNotes(primaryNoteId, limit);
   }
 
@@ -109,20 +114,21 @@ export class NoteService {
     // First, try to extract any explicit tags from the query
     const tagRegex = /#(\w+)/g;
     const tagMatches = [...query.matchAll(tagRegex)];
-    const tags = tagMatches.map(match => match[1]);
+    const tags = tagMatches.map((match) => match[1]);
 
     // Remove the tags from the query for better text matching
-    const cleanQuery = query.replace(tagRegex, '').trim();
+    const cleanQuery = query.replace(tagRegex, "").trim();
 
     // Check for specific topic mentions like "MCP", "Model-Context-Protocol"
-    const topicRegex = /\b(MCP|Model[-\s]Context[-\s]Protocol|AI architecture)\b/i;
+    const topicRegex =
+      /\b(MCP|Model[-\s]Context[-\s]Protocol|AI architecture)\b/i;
     const hasMcpTopic = topicRegex.test(query);
 
-    if (hasMcpTopic && !tags.includes('MCP')) {
-      tags.push('MCP');
+    if (hasMcpTopic && !tags.includes("MCP")) {
+      tags.push("MCP");
     }
 
-    this.logger.debug(`Query: "${cleanQuery}", Tags: [${tags.join(', ')}]`);
+    this.logger.debug(`Query: "${cleanQuery}", Tags: [${tags.join(", ")}]`);
 
     // Use semantic search by default for better results
     let results = await this.context.searchNotes({
@@ -134,7 +140,7 @@ export class NoteService {
 
     // If no results and we have tags, try with just tags
     if (results.length === 0 && tags.length > 0) {
-      this.logger.debug('No results with query and tags, trying tags only');
+      this.logger.debug("No results with query and tags, trying tags only");
       results = await this.context.searchNotes({
         tags,
         limit: 5,
@@ -144,7 +150,9 @@ export class NoteService {
 
     // If still no results, fall back to keyword search
     if (results.length === 0) {
-      this.logger.debug('No results with semantic search, trying keyword search');
+      this.logger.debug(
+        "No results with semantic search, trying keyword search",
+      );
       results = await this.context.searchNotes({
         query: cleanQuery,
         tags: tags.length > 0 ? tags : undefined,
@@ -155,7 +163,9 @@ export class NoteService {
 
     // If no matches, return all notes as a fallback (limited to 3)
     if (results.length === 0) {
-      this.logger.debug('No specific matches, fetching recent notes as fallback');
+      this.logger.debug(
+        "No specific matches, fetching recent notes as fallback",
+      );
       results = await this.context.getRecentNotes(3);
     }
 

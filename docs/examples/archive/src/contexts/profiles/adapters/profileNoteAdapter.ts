@@ -1,11 +1,11 @@
-import { MCPNoteContext } from '@/contexts/notes/MCPNoteContext';
-import type { Note } from '@/models/note';
-import type { Profile } from '@/models/profile';
-import { TagExtractor } from '@/utils/tagExtractor';
+import { MCPNoteContext } from "@/contexts/notes/MCPNoteContext";
+import type { Note } from "@/models/note";
+import type { Profile } from "@/models/profile";
+import { TagExtractor } from "@/utils/tagExtractor";
 
 /**
  * Dependencies for ProfileNoteAdapter
- * 
+ *
  * TODO: This creates a direct dependency between ProfileContext and NoteContext.
  * Should be refactored to use messaging layer for cross-context communication.
  */
@@ -16,7 +16,7 @@ export interface ProfileNoteAdapterDependencies {
 
 /**
  * ProfileNoteAdapter
- * 
+ *
  * Specialized adapter for storing profile data as a note
  * Simplifies profile storage to a single profile per personal brain
  */
@@ -25,7 +25,7 @@ export class ProfileNoteAdapter {
   private static instance: ProfileNoteAdapter | null = null;
 
   // Fixed ID for the single profile
-  public static readonly PROFILE_NOTE_ID = 'user-profile';
+  public static readonly PROFILE_NOTE_ID = "user-profile";
 
   private noteContext: MCPNoteContext;
   private tagExtractor: TagExtractor;
@@ -35,7 +35,9 @@ export class ProfileNoteAdapter {
     this.tagExtractor = dependencies.tagExtractor;
   }
 
-  public static getInstance(dependencies?: ProfileNoteAdapterDependencies): ProfileNoteAdapter {
+  public static getInstance(
+    dependencies?: ProfileNoteAdapterDependencies,
+  ): ProfileNoteAdapter {
     if (!ProfileNoteAdapter.instance) {
       // If dependencies are not provided, use default instances
       if (!dependencies) {
@@ -52,7 +54,9 @@ export class ProfileNoteAdapter {
     ProfileNoteAdapter.instance = null;
   }
 
-  public static createFresh(dependencies?: ProfileNoteAdapterDependencies): ProfileNoteAdapter {
+  public static createFresh(
+    dependencies?: ProfileNoteAdapterDependencies,
+  ): ProfileNoteAdapter {
     // If dependencies are not provided, use default instances
     if (!dependencies) {
       const noteContext = MCPNoteContext.getInstance();
@@ -66,7 +70,9 @@ export class ProfileNoteAdapter {
    * Get the user profile from the note store
    */
   async getProfile(): Promise<Profile | null> {
-    const note = await this.noteContext.getNoteById(ProfileNoteAdapter.PROFILE_NOTE_ID);
+    const note = await this.noteContext.getNoteById(
+      ProfileNoteAdapter.PROFILE_NOTE_ID,
+    );
     if (!note) {
       return null;
     }
@@ -80,11 +86,16 @@ export class ProfileNoteAdapter {
   async saveProfile(profile: Profile): Promise<boolean> {
     try {
       const noteData = await this.convertProfileToNote(profile);
-      const existingNote = await this.noteContext.getNoteById(ProfileNoteAdapter.PROFILE_NOTE_ID);
+      const existingNote = await this.noteContext.getNoteById(
+        ProfileNoteAdapter.PROFILE_NOTE_ID,
+      );
 
       if (existingNote) {
         // Update existing note
-        return this.noteContext.updateNote(ProfileNoteAdapter.PROFILE_NOTE_ID, noteData);
+        return this.noteContext.updateNote(
+          ProfileNoteAdapter.PROFILE_NOTE_ID,
+          noteData,
+        );
       } else {
         // Create new note
         const result = await this.noteContext.createNote({
@@ -135,16 +146,13 @@ export class ProfileNoteAdapter {
     const extractedTags = await this.tagExtractor.extractTags(markdownContent);
 
     // Combine extracted tags with any explicitly defined tags in the profile
-    const tags = [
-      ...(profile.tags || []),
-      ...extractedTags,
-    ];
+    const tags = [...(profile.tags || []), ...extractedTags];
 
     return {
       title: `Profile: ${profile.displayName}`,
       content,
       tags: [...new Set(tags)], // Remove duplicates
-      source: 'profile',
+      source: "profile",
     };
   }
 
@@ -159,30 +167,32 @@ export class ProfileNoteAdapter {
     if (profile.headline) {
       sections.push(`*${profile.headline}*`);
     }
-    sections.push('');
+    sections.push("");
 
     // Avatar/image if available
     if (profile.avatar) {
       sections.push(`![Profile Photo](${profile.avatar})`);
-      sections.push('');
+      sections.push("");
     }
 
     // Contact information
-    sections.push('## Contact');
+    sections.push("## Contact");
     sections.push(`- Email: ${profile.email}`);
     if (profile.contact?.phone) {
       sections.push(`- Phone: ${profile.contact.phone}`);
     }
     if (profile.contact?.website) {
-      sections.push(`- Website: [${profile.contact.website}](${profile.contact.website})`);
+      sections.push(
+        `- Website: [${profile.contact.website}](${profile.contact.website})`,
+      );
     }
     if (profile.contact?.social && profile.contact.social.length > 0) {
-      sections.push('- Social:');
-      profile.contact.social.forEach(social => {
+      sections.push("- Social:");
+      profile.contact.social.forEach((social) => {
         sections.push(`  - [${social.platform}](${social.url})`);
       });
     }
-    sections.push('');
+    sections.push("");
 
     // Location information
     if (profile.location) {
@@ -193,82 +203,110 @@ export class ProfileNoteAdapter {
       ].filter(Boolean);
 
       if (locationParts.length > 0) {
-        sections.push(`- Location: ${locationParts.join(', ')}`);
-        sections.push('');
+        sections.push(`- Location: ${locationParts.join(", ")}`);
+        sections.push("");
       }
     }
 
     // Summary
     if (profile.summary) {
-      sections.push('## Summary');
+      sections.push("## Summary");
       sections.push(profile.summary);
-      sections.push('');
+      sections.push("");
     }
 
     // Skills
     if (profile.skills && profile.skills.length > 0) {
-      sections.push('## Skills');
-      const skillsList = profile.skills.map(skill => `- ${skill}`).join('\n');
+      sections.push("## Skills");
+      const skillsList = profile.skills.map((skill) => `- ${skill}`).join("\n");
       sections.push(skillsList);
-      sections.push('');
+      sections.push("");
     }
 
     // Experience
     if (profile.experiences && profile.experiences.length > 0) {
-      sections.push('## Experience');
-      profile.experiences.forEach(exp => {
-        const startDate = exp.startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-        const endDate = exp.endDate ? exp.endDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : 'Present';
+      sections.push("## Experience");
+      profile.experiences.forEach((exp) => {
+        const startDate = exp.startDate.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+        });
+        const endDate = exp.endDate
+          ? exp.endDate.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+            })
+          : "Present";
 
         sections.push(`### ${exp.title} at ${exp.organization}`);
-        sections.push(`*${startDate} - ${endDate}*${exp.location ? ` | ${exp.location}` : ''}`);
+        sections.push(
+          `*${startDate} - ${endDate}*${exp.location ? ` | ${exp.location}` : ""}`,
+        );
 
         if (exp.description) {
-          sections.push('');
+          sections.push("");
           sections.push(exp.description);
         }
-        sections.push('');
+        sections.push("");
       });
     }
 
     // Education
     if (profile.education && profile.education.length > 0) {
-      sections.push('## Education');
-      profile.education.forEach(edu => {
-        const startDate = edu.startDate.toLocaleDateString('en-US', { year: 'numeric' });
-        const endDate = edu.endDate ? edu.endDate.toLocaleDateString('en-US', { year: 'numeric' }) : 'Present';
+      sections.push("## Education");
+      profile.education.forEach((edu) => {
+        const startDate = edu.startDate.toLocaleDateString("en-US", {
+          year: "numeric",
+        });
+        const endDate = edu.endDate
+          ? edu.endDate.toLocaleDateString("en-US", { year: "numeric" })
+          : "Present";
 
-        const degreeField = [edu.degree, edu.field].filter(Boolean).join(' in ');
-        sections.push(`### ${degreeField ? `${degreeField} - ` : ''}${edu.institution}`);
+        const degreeField = [edu.degree, edu.field]
+          .filter(Boolean)
+          .join(" in ");
+        sections.push(
+          `### ${degreeField ? `${degreeField} - ` : ""}${edu.institution}`,
+        );
         sections.push(`*${startDate} - ${endDate}*`);
 
         if (edu.description) {
-          sections.push('');
+          sections.push("");
           sections.push(edu.description);
         }
-        sections.push('');
+        sections.push("");
       });
     }
 
     // Languages
     if (profile.languages && profile.languages.length > 0) {
-      sections.push('## Languages');
-      profile.languages.forEach(lang => {
+      sections.push("## Languages");
+      profile.languages.forEach((lang) => {
         sections.push(`- ${lang.name} (${lang.proficiency})`);
       });
-      sections.push('');
+      sections.push("");
     }
 
     // Projects
     if (profile.projects && profile.projects.length > 0) {
-      sections.push('## Projects');
-      profile.projects.forEach(proj => {
+      sections.push("## Projects");
+      profile.projects.forEach((proj) => {
         sections.push(`### ${proj.title}`);
 
         if (proj.startDate || proj.endDate) {
-          const startDate = proj.startDate ? proj.startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : '';
-          const endDate = proj.endDate ? proj.endDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : 'Present';
-          sections.push(`*${startDate ? `${startDate} - ` : ''}${endDate}*`);
+          const startDate = proj.startDate
+            ? proj.startDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+              })
+            : "";
+          const endDate = proj.endDate
+            ? proj.endDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+              })
+            : "Present";
+          sections.push(`*${startDate ? `${startDate} - ` : ""}${endDate}*`);
         }
 
         if (proj.url) {
@@ -276,23 +314,30 @@ export class ProfileNoteAdapter {
         }
 
         if (proj.description) {
-          sections.push('');
+          sections.push("");
           sections.push(proj.description);
         }
-        sections.push('');
+        sections.push("");
       });
     }
 
     // Publications
     if (profile.publications && profile.publications.length > 0) {
-      sections.push('## Publications');
-      profile.publications.forEach(pub => {
+      sections.push("## Publications");
+      profile.publications.forEach((pub) => {
         sections.push(`### ${pub.title}`);
 
         const publisherDate = [
           pub.publisher,
-          pub.date ? pub.date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : null,
-        ].filter(Boolean).join(' | ');
+          pub.date
+            ? pub.date.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+              })
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" | ");
 
         if (publisherDate) {
           sections.push(`*${publisherDate}*`);
@@ -303,22 +348,22 @@ export class ProfileNoteAdapter {
         }
 
         if (pub.description) {
-          sections.push('');
+          sections.push("");
           sections.push(pub.description);
         }
-        sections.push('');
+        sections.push("");
       });
     }
 
     // Custom fields if any
     if (profile.fields && Object.keys(profile.fields).length > 0) {
-      sections.push('## Additional Information');
+      sections.push("## Additional Information");
       Object.entries(profile.fields).forEach(([key, value]) => {
         sections.push(`- **${key}**: ${value}`);
       });
-      sections.push('');
+      sections.push("");
     }
 
-    return sections.join('\n');
+    return sections.join("\n");
   }
 }

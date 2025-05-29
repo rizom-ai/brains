@@ -1,12 +1,12 @@
 /**
  * Generates system prompts for LLM interactions based on query context
  */
-import { relevanceConfig } from '@/config';
-import { Logger } from '@utils/logger';
+import { relevanceConfig } from "@/config";
+import { Logger } from "@utils/logger";
 
 /**
  * Handles the generation of system prompts for different types of queries
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
@@ -21,17 +21,17 @@ export class SystemPromptGenerator {
 
   /**
    * Get the singleton instance of SystemPromptGenerator
-   * 
+   *
    * @returns The singleton instance
    */
   public static getInstance(): SystemPromptGenerator {
     if (!SystemPromptGenerator.instance) {
       SystemPromptGenerator.instance = new SystemPromptGenerator();
-      
+
       const logger = Logger.getInstance();
-      logger.debug('SystemPromptGenerator singleton instance created');
+      logger.debug("SystemPromptGenerator singleton instance created");
     }
-    
+
     return SystemPromptGenerator.instance;
   }
 
@@ -41,26 +41,26 @@ export class SystemPromptGenerator {
    */
   public static resetInstance(): void {
     SystemPromptGenerator.instance = null;
-    
+
     const logger = Logger.getInstance();
-    logger.debug('SystemPromptGenerator singleton instance reset');
+    logger.debug("SystemPromptGenerator singleton instance reset");
   }
 
   /**
    * Create a fresh instance without affecting the singleton
-   * 
+   *
    * @returns A new SystemPromptGenerator instance
    */
   public static createFresh(): SystemPromptGenerator {
     const logger = Logger.getInstance();
-    logger.debug('Creating fresh SystemPromptGenerator instance');
-    
+    logger.debug("Creating fresh SystemPromptGenerator instance");
+
     return new SystemPromptGenerator();
   }
-  
+
   /**
    * Create a new instance with explicit dependencies
-   * 
+   *
    * @param config Configuration options (thresholds, etc.)
    * @param dependencies External dependencies (none currently required)
    * @returns A new SystemPromptGenerator instance
@@ -70,10 +70,10 @@ export class SystemPromptGenerator {
     _dependencies: Record<string, unknown> = {},
   ): SystemPromptGenerator {
     const logger = Logger.getInstance();
-    logger.debug('Creating SystemPromptGenerator with explicit dependencies');
-    
+    logger.debug("Creating SystemPromptGenerator with explicit dependencies");
+
     // Currently this class doesn't have any configurable options or dependencies,
-    // but this method is implemented for consistency with the Component Interface 
+    // but this method is implemented for consistency with the Component Interface
     // Standardization pattern and future extensibility
     return new SystemPromptGenerator();
   }
@@ -82,7 +82,7 @@ export class SystemPromptGenerator {
    * Private constructor to enforce factory method usage
    */
   private constructor() {
-    this.logger.debug('SystemPromptGenerator initialized');
+    this.logger.debug("SystemPromptGenerator initialized");
   }
   /**
    * Generate the system prompt based on query analysis
@@ -92,8 +92,8 @@ export class SystemPromptGenerator {
    * @returns System prompt for the LLM
    */
   getSystemPrompt(
-    isProfileQuery: boolean = false, 
-    profileRelevance: number = 0, 
+    isProfileQuery: boolean = false,
+    profileRelevance: number = 0,
     hasExternalSources: boolean = false,
   ): string {
     // For when we have both profile and external info
@@ -102,7 +102,11 @@ export class SystemPromptGenerator {
     }
 
     // For when we have external sources but no profile relevance
-    if (hasExternalSources && !isProfileQuery && profileRelevance < relevanceConfig.profileResponseThreshold) {
+    if (
+      hasExternalSources &&
+      !isProfileQuery &&
+      profileRelevance < relevanceConfig.profileResponseThreshold
+    ) {
       return this.getExternalSourcesOnlyPrompt();
     }
 
@@ -122,7 +126,7 @@ export class SystemPromptGenerator {
     }
 
     // Default system prompt for low or no profile relevance, potentially with external sources
-    return hasExternalSources 
+    return hasExternalSources
       ? this.getNotesWithExternalSourcesPrompt()
       : this.getNotesOnlyPrompt();
   }
@@ -209,8 +213,8 @@ Guidelines:
    */
   private getMediumProfileRelevancePrompt(hasExternalSources: boolean): string {
     const externalSourcesGuideline = hasExternalSources
-      ? '\n8. When using external information, clearly indicate the source\n9. Integrate external knowledge with personal insights when appropriate'
-      : '';
+      ? "\n8. When using external information, clearly indicate the source\n9. Integrate external knowledge with personal insights when appropriate"
+      : "";
 
     return `You are a helpful assistant integrated with a personal knowledge base and profile information.
 Your task is to provide accurate, helpful responses based primarily on the user's notes, with background context from their profile.

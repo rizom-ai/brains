@@ -1,14 +1,17 @@
 /**
  * Notes Context Message Schemas
- * 
+ *
  * This module defines Zod schemas for validating message parameters and payloads
  * specific to the Notes context. These schemas ensure type safety and validation
  * for cross-context communication involving notes.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
-import { DataRequestType, NotificationType } from '@/protocol/messaging/messageTypes';
+import {
+  DataRequestType,
+  NotificationType,
+} from "@/protocol/messaging/messageTypes";
 
 /**
  * Schema for NOTE_BY_ID request parameters
@@ -16,7 +19,7 @@ import { DataRequestType, NotificationType } from '@/protocol/messaging/messageT
  */
 export const NoteByIdParamsSchema = z.object({
   /** Note ID to retrieve */
-  id: z.string().min(1, 'Note ID is required'),
+  id: z.string().min(1, "Note ID is required"),
 });
 
 /**
@@ -25,7 +28,7 @@ export const NoteByIdParamsSchema = z.object({
  */
 export const NotesSearchParamsSchema = z.object({
   /** Search query text */
-  query: z.string().min(1, 'Search query is required'),
+  query: z.string().min(1, "Search query is required"),
   /** Maximum number of notes to return */
   limit: z.number().int().positive().optional(),
   /** Whether to include note content in results */
@@ -38,7 +41,7 @@ export const NotesSearchParamsSchema = z.object({
  */
 export const NotesSemanticSearchParamsSchema = z.object({
   /** Text to use for semantic search */
-  text: z.string().min(1, 'Search text is required'),
+  text: z.string().min(1, "Search text is required"),
   /** Maximum number of notes to return */
   limit: z.number().int().positive().optional().default(10),
   /** Optional tags to filter notes by */
@@ -51,7 +54,7 @@ export const NotesSemanticSearchParamsSchema = z.object({
  */
 export const NoteCreatedPayloadSchema = z.object({
   /** ID of the created note */
-  noteId: z.string().min(1, 'Note ID is required'),
+  noteId: z.string().min(1, "Note ID is required"),
   /** Title of the created note */
   title: z.string(),
   /** Tags of the created note */
@@ -64,7 +67,7 @@ export const NoteCreatedPayloadSchema = z.object({
  */
 export const NoteUpdatedPayloadSchema = z.object({
   /** ID of the updated note */
-  noteId: z.string().min(1, 'Note ID is required'),
+  noteId: z.string().min(1, "Note ID is required"),
   /** New title of the note (if changed) */
   title: z.string().optional(),
   /** New tags of the note (if changed) */
@@ -77,7 +80,7 @@ export const NoteUpdatedPayloadSchema = z.object({
  */
 export const NoteDeletedPayloadSchema = z.object({
   /** ID of the deleted note */
-  noteId: z.string().min(1, 'Note ID is required'),
+  noteId: z.string().min(1, "Note ID is required"),
 });
 
 /**
@@ -90,7 +93,7 @@ export const NoteSchemaMap = {
   [DataRequestType.NOTE_BY_ID]: NoteByIdParamsSchema,
   [DataRequestType.NOTES_SEARCH]: NotesSearchParamsSchema,
   [DataRequestType.NOTES_SEMANTIC_SEARCH]: NotesSemanticSearchParamsSchema,
-  
+
   // Notification payload schemas
   [NotificationType.NOTE_CREATED]: NoteCreatedPayloadSchema,
   [NotificationType.NOTE_UPDATED]: NoteUpdatedPayloadSchema,
@@ -100,7 +103,9 @@ export const NoteSchemaMap = {
 // Export derived types for use in type-safe code
 export type NoteByIdParams = z.infer<typeof NoteByIdParamsSchema>;
 export type NotesSearchParams = z.infer<typeof NotesSearchParamsSchema>;
-export type NotesSemanticSearchParams = z.infer<typeof NotesSemanticSearchParamsSchema>;
+export type NotesSemanticSearchParams = z.infer<
+  typeof NotesSemanticSearchParamsSchema
+>;
 export type NoteCreatedPayload = z.infer<typeof NoteCreatedPayloadSchema>;
 export type NoteUpdatedPayload = z.infer<typeof NoteUpdatedPayloadSchema>;
 export type NoteDeletedPayload = z.infer<typeof NoteDeletedPayloadSchema>;

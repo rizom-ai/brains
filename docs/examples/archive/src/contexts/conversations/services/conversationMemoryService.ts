@@ -1,20 +1,26 @@
 /**
  * Conversation Memory Service
- * 
+ *
  * Handles conversation memory management operations.
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
  * - createFresh(): Creates a new instance without affecting the singleton
  */
 
-import type { ConversationStorageAdapter } from '@/contexts/conversations/conversationStorageAdapter';
-import type { TieredHistory, TieredMemoryConfig } from '@/contexts/conversations/memory/tieredMemoryManager';
-import { TieredMemoryManager } from '@/contexts/conversations/memory/tieredMemoryManager';
-import type { ConversationStorage, ConversationSummary } from '@/contexts/conversations/storage/conversationStorage';
-import type { ConversationTurn } from '@/protocol/schemas/conversationSchemas';
-import { Logger } from '@/utils/logger';
+import type { ConversationStorageAdapter } from "@/contexts/conversations/conversationStorageAdapter";
+import type {
+  TieredHistory,
+  TieredMemoryConfig,
+} from "@/contexts/conversations/memory/tieredMemoryManager";
+import { TieredMemoryManager } from "@/contexts/conversations/memory/tieredMemoryManager";
+import type {
+  ConversationStorage,
+  ConversationSummary,
+} from "@/contexts/conversations/storage/conversationStorage";
+import type { ConversationTurn } from "@/protocol/schemas/conversationSchemas";
+import { Logger } from "@/utils/logger";
 
 /**
  * Service for handling conversation memory management
@@ -26,13 +32,13 @@ export class ConversationMemoryService {
 
   /** Logger instance for this class */
   private logger = Logger.getInstance();
-  
+
   /** The tiered memory manager */
   private tieredMemoryManager: TieredMemoryManager;
 
   /**
    * Get the singleton instance of ConversationMemoryService
-   * 
+   *
    * @param storageAdapter The storage adapter to use (only used when creating a new instance)
    * @param tieredMemoryConfig Configuration for tiered memory management (only used when creating a new instance)
    * @returns The shared ConversationMemoryService instance
@@ -49,7 +55,7 @@ export class ConversationMemoryService {
     }
     return ConversationMemoryService.instance;
   }
-  
+
   /**
    * Reset the singleton instance (primarily for testing)
    * This clears the instance and any resources it holds
@@ -57,11 +63,11 @@ export class ConversationMemoryService {
   public static resetInstance(): void {
     ConversationMemoryService.instance = null;
   }
-  
+
   /**
    * Create a fresh instance (primarily for testing)
    * This creates a new instance without affecting the singleton
-   * 
+   *
    * @param storageAdapter The storage adapter to use
    * @param tieredMemoryConfig Configuration for tiered memory management
    * @returns A new ConversationMemoryService instance
@@ -75,7 +81,7 @@ export class ConversationMemoryService {
 
   /**
    * Constructor
-   * 
+   *
    * @param storageAdapter The storage adapter to use
    * @param tieredMemoryConfig Configuration for tiered memory management
    */
@@ -89,12 +95,14 @@ export class ConversationMemoryService {
       config: tieredMemoryConfig,
     });
 
-    this.logger.debug('ConversationMemoryService initialized', { context: 'ConversationMemoryService' });
+    this.logger.debug("ConversationMemoryService initialized", {
+      context: "ConversationMemoryService",
+    });
   }
 
   /**
    * Get the underlying storage implementation
-   * 
+   *
    * @returns The storage implementation
    */
   private getStorageImplementation(): ConversationStorage {
@@ -103,23 +111,26 @@ export class ConversationMemoryService {
 
   /**
    * Add a turn to a conversation
-   * 
+   *
    * @param conversationId The conversation ID
    * @param turn The turn to add
    * @returns The ID of the added turn
    */
-  async addTurn(conversationId: string, turn: Partial<ConversationTurn>): Promise<string> {
+  async addTurn(
+    conversationId: string,
+    turn: Partial<ConversationTurn>,
+  ): Promise<string> {
     const turnId = await this.storageAdapter.addTurn(conversationId, turn);
-    
+
     // Check if summarization is needed
     await this.checkAndSummarize(conversationId);
-    
+
     return turnId;
   }
 
   /**
    * Get turns for a conversation
-   * 
+   *
    * @param conversationId The conversation ID
    * @param limit Maximum number of turns to retrieve
    * @param offset Number of turns to skip
@@ -135,7 +146,7 @@ export class ConversationMemoryService {
 
   /**
    * Get summaries for a conversation
-   * 
+   *
    * @param conversationId The conversation ID
    * @returns Array of conversation summaries
    */
@@ -145,7 +156,7 @@ export class ConversationMemoryService {
 
   /**
    * Check and potentially summarize older turns
-   * 
+   *
    * @param conversationId The conversation ID
    * @returns True if summarization was performed
    */
@@ -155,7 +166,7 @@ export class ConversationMemoryService {
 
   /**
    * Force summarization of active turns in a conversation
-   * 
+   *
    * @param conversationId The conversation ID
    * @returns True if summarization was successful
    */
@@ -165,7 +176,7 @@ export class ConversationMemoryService {
 
   /**
    * Get tiered history for a conversation
-   * 
+   *
    * @param conversationId The conversation ID
    * @returns Tiered history object
    */
@@ -175,18 +186,24 @@ export class ConversationMemoryService {
 
   /**
    * Format history for inclusion in prompts
-   * 
+   *
    * @param conversationId The conversation ID
    * @param maxTokens Maximum tokens to include
    * @returns Formatted history string
    */
-  async formatHistoryForPrompt(conversationId: string, maxTokens?: number): Promise<string> {
-    return this.tieredMemoryManager.formatHistoryForPrompt(conversationId, maxTokens);
+  async formatHistoryForPrompt(
+    conversationId: string,
+    maxTokens?: number,
+  ): Promise<string> {
+    return this.tieredMemoryManager.formatHistoryForPrompt(
+      conversationId,
+      maxTokens,
+    );
   }
 
   /**
    * Update tiered memory configuration
-   * 
+   *
    * @param config New configuration options
    */
   updateConfig(config: Partial<TieredMemoryConfig>): void {

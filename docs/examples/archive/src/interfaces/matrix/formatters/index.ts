@@ -1,6 +1,6 @@
 /**
  * Matrix formatters index
- * 
+ *
  * Exports public matrix formatters for easy importing
  * without leaking implementation details
  */
@@ -9,38 +9,36 @@
 import {
   type Block,
   type BlockBuilderOptions,
-  type BlockElement, 
+  type BlockElement,
   type BlockType,
   getBlockBuilder,
   MatrixBlockBuilder,
   type TextObject,
-} from './block-formatter';
+} from "./block-formatter";
+import { MatrixCitationFormatter } from "./citation-formatter";
 import {
-  MatrixCitationFormatter,
-} from './citation-formatter';
-import { 
   type MarkdownFormatterOptions,
-  MatrixMarkdownFormatter, 
-} from './markdown-formatter';
+  MatrixMarkdownFormatter,
+} from "./markdown-formatter";
 import {
   MatrixResponseFormatter,
   type ResponseFormatterOptions,
   type ResponseType,
-} from './response-formatter';
-import type { BlockContent } from './types';
+} from "./response-formatter";
+import type { BlockContent } from "./types";
 
 // Only export the public API - value exports
 export {
   // Markdown formatter
   MatrixMarkdownFormatter,
-  
+
   // Citation formatter
   MatrixCitationFormatter,
-  
+
   // Block builder
   getBlockBuilder,
   MatrixBlockBuilder,
-  
+
   // Response formatter
   MatrixResponseFormatter,
 };
@@ -49,7 +47,7 @@ export {
 export type {
   // Markdown formatter
   MarkdownFormatterOptions,
-  
+
   // Block builder
   BlockType,
   TextObject,
@@ -57,7 +55,7 @@ export type {
   BlockElement,
   BlockBuilderOptions,
   BlockContent,
-  
+
   // Response formatter
   ResponseType,
   ResponseFormatterOptions,

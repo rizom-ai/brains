@@ -1,9 +1,9 @@
 /**
  * Core Context Interfaces
- * 
+ *
  * This module defines the streamlined interface hierarchy for all context components,
  * with a clear separation between core functionality and MCP-specific concerns.
- * 
+ *
  * Interface simplification as part of Phase 6:
  * - Adds standardized ContextDependencies interface
  * - Adds StorageAccess interface for consistent storage operations
@@ -11,12 +11,15 @@
  * - Adds ServiceAccess interface for consistent service operations
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import type { Registry } from '@/utils/registry';
+import type { Registry } from "@/utils/registry";
 
-import type { FormatterInterface, FormattingOptions } from './formatterInterface';
-import type { StorageInterface } from './storageInterface';
+import type {
+  FormatterInterface,
+  FormattingOptions,
+} from "./formatterInterface";
+import type { StorageInterface } from "./storageInterface";
 
 /**
  * Standard context dependencies interface
@@ -24,7 +27,7 @@ import type { StorageInterface } from './storageInterface';
  */
 export interface ContextDependencies<
   TStorage extends StorageInterface<unknown, unknown>,
-  TFormatter extends FormatterInterface<unknown, unknown>
+  TFormatter extends FormatterInterface<unknown, unknown>,
 > {
   /** Storage implementation */
   storage?: TStorage;
@@ -51,7 +54,7 @@ export interface StorageAccess<T extends StorageInterface<unknown, unknown>> {
 /**
  * Formatter access interface
  * Provides consistent formatter operations across contexts
- * 
+ *
  * @template T - The formatter interface type
  * @template TInputData - The input data type for formatting
  * @template TOutputData - The output data type for formatting
@@ -59,14 +62,14 @@ export interface StorageAccess<T extends StorageInterface<unknown, unknown>> {
 export interface FormatterAccess<
   T extends FormatterInterface<unknown, unknown>,
   TInputData = unknown,
-  TOutputData = unknown
+  TOutputData = unknown,
 > {
   /**
    * Get the formatter implementation
    * @returns Formatter implementation
    */
   getFormatter(): T;
-  
+
   /**
    * Format data using the context's formatter
    * @param data Data to format
@@ -112,7 +115,10 @@ export interface ResourceDefinition {
   /** Resource path */
   path: string;
   /** Resource handler function */
-  handler: (params: Record<string, unknown>, query?: Record<string, unknown>) => Promise<unknown>;
+  handler: (
+    params: Record<string, unknown>,
+    query?: Record<string, unknown>,
+  ) => Promise<unknown>;
   /** Resource name */
   name?: string;
   /** Resource description */
@@ -144,19 +150,19 @@ export interface CoreContextInterface {
    * @returns Promise that resolves to true if initialization was successful
    */
   initialize(): Promise<boolean>;
-  
+
   /**
    * Check if the context is ready for use
    * @returns Boolean indicating readiness state
    */
   isReady(): boolean;
-  
+
   /**
    * Get the current status of the context
    * @returns Status object with context information
    */
   getStatus(): ContextStatus;
-  
+
   /**
    * Clean up resources when context is no longer needed
    * @returns Promise that resolves when cleanup is complete
@@ -174,13 +180,13 @@ export interface McpContextInterface extends CoreContextInterface {
    * @returns Boolean indicating success of registration
    */
   registerOnServer(server: McpServer): boolean;
-  
+
   /**
    * Get the internal MCP server instance
    * @returns Internal MCP server instance
    */
   getMcpServer(): McpServer;
-  
+
   /**
    * Get all capabilities provided by this context
    * @returns Context capabilities object
@@ -191,7 +197,7 @@ export interface McpContextInterface extends CoreContextInterface {
 /**
  * Complete context interface combining all standardized interfaces
  * This provides a comprehensive standard for context implementation
- * 
+ *
  * @template TStorage - The specific StorageInterface implementation
  * @template TFormatter - The specific FormatterInterface implementation
  * @template TInputData - The input data type for formatting
@@ -201,13 +207,11 @@ export interface ContextInterface<
   TStorage extends StorageInterface<unknown, unknown>,
   TFormatter extends FormatterInterface<unknown, unknown>,
   TInputData = unknown,
-  TOutputData = unknown
-> extends 
-  CoreContextInterface, 
-  StorageAccess<TStorage>,
-  FormatterAccess<TFormatter, TInputData, TOutputData>,
-  ServiceAccess
-{
+  TOutputData = unknown,
+> extends CoreContextInterface,
+    StorageAccess<TStorage>,
+    FormatterAccess<TFormatter, TInputData, TOutputData>,
+    ServiceAccess {
   // No additional methods required
   // getInstance and resetInstance should be implemented as static methods on the class
 }

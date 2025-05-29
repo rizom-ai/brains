@@ -1,14 +1,14 @@
-import type { LandingPageData } from '@website/schemas';
+import type { LandingPageData } from "@website/schemas";
 
 /**
  * Enum for tracking the status of section generation
  */
 export enum SectionGenerationStatus {
-  Pending = 'pending',
-  InProgress = 'in_progress',
-  Completed = 'completed',
-  Failed = 'failed',
-  Retrying = 'retrying',
+  Pending = "pending",
+  InProgress = "in_progress",
+  Completed = "completed",
+  Failed = "failed",
+  Retrying = "retrying",
 }
 
 /**
@@ -25,7 +25,10 @@ export interface SectionGenerationResult<T> {
 /**
  * Type representing the generation status of all landing page sections
  */
-export type LandingPageGenerationStatus = Record<string, SectionGenerationResult<unknown>>;
+export type LandingPageGenerationStatus = Record<
+  string,
+  SectionGenerationResult<unknown>
+>;
 
 /**
  * Interface for options when generating landing page content

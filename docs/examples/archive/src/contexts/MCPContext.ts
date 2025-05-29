@@ -1,15 +1,15 @@
 /**
  * MCPContext - Simplified Context System
- * 
+ *
  * This module introduces a streamlined context interface structure that reduces complexity
  * by removing excessive generic parameters and combining formerly separate interfaces.
- * 
+ *
  * This implementation will exist alongside the current system during migration.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { Logger } from '@/utils/logger';
+import { Logger } from "@/utils/logger";
 
 /**
  * Resource definition for MCP resources and tools
@@ -21,7 +21,10 @@ export interface ResourceDefinition {
   /** Resource path */
   path: string;
   /** Resource handler function */
-  handler: (params: Record<string, unknown>, query?: Record<string, unknown>) => Promise<unknown>;
+  handler: (
+    params: Record<string, unknown>,
+    query?: Record<string, unknown>,
+  ) => Promise<unknown>;
   /** Resource name */
   name?: string;
   /** Resource description */
@@ -104,7 +107,10 @@ export interface MCPStorageInterface {
    * @param options Options for listing items
    * @returns Promise that resolves to an array of items
    */
-  list(options?: { limit?: number; offset?: number }): Promise<Record<string, unknown>[]>;
+  list(options?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<Record<string, unknown>[]>;
 
   /**
    * Count items matching criteria
@@ -130,7 +136,7 @@ export interface MCPFormatterInterface {
 
 /**
  * Unified MCP Context interface
- * 
+ *
  * This combines the functionality from CoreContextInterface and McpContextInterface
  * without using excessive generic parameters.
  */
@@ -152,50 +158,50 @@ export interface MCPContext {
    * @returns Promise that resolves to true if initialization was successful
    */
   initialize(): Promise<boolean>;
-  
+
   /**
    * Check if the context is ready for use
    * @returns Boolean indicating readiness state
    */
   isReady(): boolean;
-  
+
   /**
    * Get the current status of the context
    * @returns Status object with context information
    */
   getStatus(): ContextStatus;
-  
+
   /**
    * Get the storage interface for this context
    * @returns The storage interface
    */
   getStorage(): MCPStorageInterface;
-  
+
   /**
    * Get the formatter interface for this context
    * @returns The formatter interface
    */
   getFormatter(): MCPFormatterInterface;
-  
+
   /**
    * Register context resources and tools on an MCP server
    * @param server MCP server instance to register on
    * @returns Boolean indicating success of registration
    */
   registerOnServer(server: McpServer): boolean;
-  
+
   /**
    * Get the internal MCP server instance
    * @returns Internal MCP server instance
    */
   getMcpServer(): McpServer;
-  
+
   /**
    * Get all capabilities provided by this context
    * @returns Context capabilities object
    */
   getCapabilities(): ContextCapabilities;
-  
+
   /**
    * Clean up resources when context is no longer needed
    * @returns Promise that resolves when cleanup is complete
@@ -217,21 +223,23 @@ export interface ContextFunctionalityOptions {
 
 /**
  * Create unified context functionality
- * 
+ *
  * This single utility function creates both core context and MCP functionality,
  * since all contexts in the system are MCP contexts.
- * 
+ *
  * @param options Configuration options
  * @returns Object with context functionality
  */
-export function createContextFunctionality(options: ContextFunctionalityOptions) {
+export function createContextFunctionality(
+  options: ContextFunctionalityOptions,
+) {
   const { name, version } = options;
   const logger = options.logger || Logger.getInstance();
-  
+
   // Create resources and tools collections
   const resources: ResourceDefinition[] = [];
   const tools: ResourceDefinition[] = [];
-  
+
   // Create a minimal MCP server instance
   const mcpServer = {
     name,
@@ -240,15 +248,15 @@ export function createContextFunctionality(options: ContextFunctionalityOptions)
     resource: () => {},
     tool: () => {},
   } as unknown as McpServer;
-  
+
   // Track ready state
   let readyState = false;
-  
+
   return {
     // Core context methods
     getContextName: () => name,
     getContextVersion: () => version,
-    
+
     initialize: async (): Promise<boolean> => {
       try {
         readyState = true;
@@ -260,37 +268,42 @@ export function createContextFunctionality(options: ContextFunctionalityOptions)
         return false;
       }
     },
-    
+
     isReady: () => readyState,
-    
-    getStatus: () => ({
-      name,
-      version,
-      ready: readyState,
-      resourceCount: resources.length,
-      toolCount: tools.length,
-    } as ContextStatus),
-    
+
+    getStatus: () =>
+      ({
+        name,
+        version,
+        ready: readyState,
+        resourceCount: resources.length,
+        toolCount: tools.length,
+      }) as ContextStatus,
+
     cleanup: async (): Promise<void> => {
       logger.debug(`Cleaning up context ${name}`);
       // Base implementation does nothing
     },
-    
+
     // MCP functionality
     resources,
     tools,
     mcpServer,
-    
+
     registerOnServer: (server: McpServer): boolean => {
       try {
         // Register resources
         for (const resource of resources) {
           try {
             const resourceName = resource.name || `${name}_${resource.path}`;
-            const description = resource.description || `Resource for ${resource.path}`;
-            
+            const description =
+              resource.description || `Resource for ${resource.path}`;
+
             // Create a wrapper function for the handler
-            const handlerWrapper = (uri: URL, _extra: Record<string, unknown>) => {
+            const handlerWrapper = (
+              uri: URL,
+              _extra: Record<string, unknown>,
+            ) => {
               // Extract query parameters
               const queryParams: Record<string, unknown> = {};
               if (uri.search) {
@@ -298,9 +311,9 @@ export function createContextFunctionality(options: ContextFunctionalityOptions)
                   queryParams[key] = value;
                 });
               }
-              
+
               // Call the original handler
-              return resource.handler({}, queryParams).then(result => {
+              return resource.handler({}, queryParams).then((result) => {
                 return {
                   contents: [
                     {
@@ -311,7 +324,7 @@ export function createContextFunctionality(options: ContextFunctionalityOptions)
                 };
               });
             };
-            
+
             // Register the resource
             server.resource(
               resourceName,
@@ -321,61 +334,69 @@ export function createContextFunctionality(options: ContextFunctionalityOptions)
             );
           } catch (error) {
             // Continue with other resources even if one fails
-            logger.error(`Error registering resource ${resource.path} in ${name}`, { error });
+            logger.error(
+              `Error registering resource ${resource.path} in ${name}`,
+              { error },
+            );
           }
         }
-        
+
         // Register tools
         for (const tool of tools) {
           try {
             const toolName = tool.name || `${name}_${tool.path}`;
             const description = tool.description || `Tool for ${tool.path}`;
-            
+
             // Create a wrapper function for the handler
             const handlerWrapper = (extra: Record<string, unknown>) => {
               // Extract parameters
-              const params = extra['params'] || {};
-              const query = extra['query'] || {};
-              
+              const params = extra["params"] || {};
+              const query = extra["query"] || {};
+
               // Call the original handler
-              return tool.handler(params as Record<string, unknown>, query as Record<string, unknown>)
-                .then(result => {
+              return tool
+                .handler(
+                  params as Record<string, unknown>,
+                  query as Record<string, unknown>,
+                )
+                .then((result) => {
                   return {
                     content: [
                       {
-                        type: 'text' as const,
-                        text: typeof result === 'string' ? result : JSON.stringify(result),
+                        type: "text" as const,
+                        text:
+                          typeof result === "string"
+                            ? result
+                            : JSON.stringify(result),
                       },
                     ],
                   };
                 });
             };
-            
+
             // Register the tool
-            server.tool(
-              toolName,
-              description,
-              handlerWrapper,
-            );
+            server.tool(toolName, description, handlerWrapper);
           } catch (error) {
             // Continue with other tools even if one fails
-            logger.error(`Error registering tool ${tool.path} in ${name}`, { error });
+            logger.error(`Error registering tool ${tool.path} in ${name}`, {
+              error,
+            });
           }
         }
-        
+
         return true;
       } catch (error) {
         logger.error(`Error registering ${name} on server`, { error });
         return false;
       }
     },
-    
+
     getCapabilities: () => ({
       resources: [...resources],
       tools: [...tools],
       features: [],
     }),
-    
+
     getMcpServer: () => mcpServer,
   };
 }

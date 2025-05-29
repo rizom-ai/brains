@@ -1,0 +1,30 @@
+{
+  "name": "@brains/interface-core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "dev": "tsc --watch",
+    "test": "bun test",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@brains/utils": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.1",
+    "remark": "^15.0.1",
+    "remark-frontmatter": "^5.0.0",
+    "unist-util-visit": "^5.0.0",
+    "gray-matter": "^4.0.3",
+    "p-retry": "^6.2.0",
+    "p-queue": "^8.0.1",
+    "zod": "^3.24.1",
+    "@types/mdast": "^4.0.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.6.3"
+  }
+}

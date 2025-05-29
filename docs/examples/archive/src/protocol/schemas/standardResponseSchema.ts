@@ -1,12 +1,11 @@
 /**
  * Standard response schema for BrainProtocol
- * 
+ *
  * This schema defines the structure for model responses when using
  * the standard response format. It includes the answer text and a
  * metadata object with information about the sources used.
  */
-import { z } from 'zod';
-
+import { z } from "zod";
 
 // Schema for a citation to a note
 export const CitationSchema = z.object({
@@ -39,7 +38,7 @@ export const StandardResponseSchema = z.object({
     /** Whether any sources were used */
     hasSources: z.boolean(),
     /** Source types used (e.g., 'notes', 'external', 'profile') */
-    sourceTypes: z.array(z.enum(['notes', 'external', 'profile'])).optional(),
+    sourceTypes: z.array(z.enum(["notes", "external", "profile"])).optional(),
     /** Citations to notes used */
     citations: z.array(CitationSchema).optional(),
     /** External sources used */
@@ -56,7 +55,7 @@ export type StandardResponse = z.infer<typeof StandardResponseSchema>;
 
 /**
  * Generate a system prompt for the standard schema
- * 
+ *
  * @param isProfileQuery Whether this is a profile-related query
  * @param includeExternalSources Whether external sources were included
  * @returns A system prompt instructing the model on how to use the schema

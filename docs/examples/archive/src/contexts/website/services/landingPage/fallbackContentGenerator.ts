@@ -48,125 +48,129 @@ export class FallbackContentGenerator {
 
     // Section-specific fallback structure based on known section types
     switch (sectionName) {
-    case 'hero':
-      return {
-        ...fallback,
-        headline: 'Welcome to Our Website',
-        subheading: 'This section is currently being updated',
-        ctaText: 'Learn More',
-        ctaLink: '#about',
-      };
-    case 'problemStatement':
-      return {
-        ...fallback,
-        description: 'This section will outline key challenges we address.',
-        enabled: false,
-      };
-    case 'services':
-      return {
-        ...fallback,
-        items: [
-          { 
-            title: 'Service Example', 
-            description: 'This is a placeholder for service content. Please regenerate this section for actual services.', 
+      case "hero":
+        return {
+          ...fallback,
+          headline: "Welcome to Our Website",
+          subheading: "This section is currently being updated",
+          ctaText: "Learn More",
+          ctaLink: "#about",
+        };
+      case "problemStatement":
+        return {
+          ...fallback,
+          description: "This section will outline key challenges we address.",
+          enabled: false,
+        };
+      case "services":
+        return {
+          ...fallback,
+          items: [
+            {
+              title: "Service Example",
+              description:
+                "This is a placeholder for service content. Please regenerate this section for actual services.",
+            },
+          ],
+        };
+      case "process":
+        return {
+          ...fallback,
+          steps: [
+            {
+              step: 1,
+              title: "Step Example",
+              description:
+                "This is a placeholder for process steps. Please regenerate this section.",
+            },
+          ],
+          enabled: false,
+        };
+      case "caseStudies":
+        return {
+          ...fallback,
+          items: [
+            {
+              title: "Case Study Example",
+              description: "This is a placeholder for case study content.",
+              result: "Placeholder result",
+            },
+          ],
+          enabled: false,
+        };
+      case "expertise":
+        return {
+          ...fallback,
+          items: [
+            {
+              title: "Expertise Example",
+              description: "This is a placeholder for expertise content.",
+            },
+          ],
+          enabled: false,
+        };
+      case "about":
+        return {
+          ...fallback,
+          content:
+            "This is a placeholder for the about section content. Please regenerate this section.",
+          enabled: false,
+        };
+      case "pricing":
+        return {
+          ...fallback,
+          tiers: [
+            {
+              name: "Basic",
+              price: "Contact for pricing",
+              features: ["Feature 1", "Feature 2"],
+              cta: "Contact Us",
+              ctaLink: "#contact",
+            },
+          ],
+          enabled: false,
+        };
+      case "faq":
+        return {
+          ...fallback,
+          items: [
+            {
+              question: "What services do you offer?",
+              answer:
+                "This is a placeholder for FAQ content. Please regenerate this section for actual FAQs.",
+            },
+          ],
+          enabled: false,
+        };
+      case "cta":
+        return {
+          ...fallback,
+          title: "Ready to Get Started?",
+          buttonText: "Contact Us",
+          buttonLink: "#contact",
+        };
+      case "footer":
+        return {
+          ...fallback,
+          copyrightText: `© ${new Date().getFullYear()} Company Name`,
+          contactDetails: {
+            email: "contact@example.com",
+            phone: "",
+            social: [],
           },
-        ],
-      };
-    case 'process':
-      return {
-        ...fallback,
-        steps: [
-          {
-            step: 1,
-            title: 'Step Example',
-            description: 'This is a placeholder for process steps. Please regenerate this section.',
-          },
-        ],
-        enabled: false,
-      };
-    case 'caseStudies':
-      return {
-        ...fallback,
-        items: [
-          {
-            title: 'Case Study Example',
-            description: 'This is a placeholder for case study content.',
-            result: 'Placeholder result',
-          },
-        ],
-        enabled: false,
-      };
-    case 'expertise':
-      return {
-        ...fallback,
-        items: [
-          {
-            title: 'Expertise Example',
-            description: 'This is a placeholder for expertise content.',
-          },
-        ],
-        enabled: false,
-      };
-    case 'about':
-      return {
-        ...fallback,
-        content: 'This is a placeholder for the about section content. Please regenerate this section.',
-        enabled: false,
-      };
-    case 'pricing':
-      return {
-        ...fallback,
-        tiers: [
-          {
-            name: 'Basic',
-            price: 'Contact for pricing',
-            features: ['Feature 1', 'Feature 2'],
-            cta: 'Contact Us',
-            ctaLink: '#contact',
-          },
-        ],
-        enabled: false,
-      };
-    case 'faq':
-      return {
-        ...fallback,
-        items: [
-          {
-            question: 'What services do you offer?',
-            answer: 'This is a placeholder for FAQ content. Please regenerate this section for actual FAQs.',
-          },
-        ],
-        enabled: false,
-      };
-    case 'cta':
-      return {
-        ...fallback,
-        title: 'Ready to Get Started?',
-        buttonText: 'Contact Us',
-        buttonLink: '#contact',
-      };
-    case 'footer':
-      return {
-        ...fallback,
-        copyrightText: `© ${new Date().getFullYear()} Company Name`,
-        contactDetails: {
-          email: 'contact@example.com',
-          phone: '',
-          social: [],
-        },
-        links: [
-          {
-            text: 'Home',
-            url: '/',
-          },
-          {
-            text: 'Contact',
-            url: '#contact',
-          },
-        ],
-      };
-    default:
-      return fallback;
+          links: [
+            {
+              text: "Home",
+              url: "/",
+            },
+            {
+              text: "Contact",
+              url: "#contact",
+            },
+          ],
+        };
+      default:
+        return fallback;
     }
   }
 
@@ -177,16 +181,20 @@ export class FallbackContentGenerator {
    * @returns Formatted section name for display
    */
   private formatSectionName(sectionName: string): string {
-    return sectionName
-      // First handle kebab-case by replacing hyphens with spaces
-      .replace(/-/g, ' ')
-      // Then handle camelCase (e.g., "heroSection" -> "hero Section")
-      .replace(/([A-Z])/g, ' $1')
-      // Split into words, capitalize each, and join
-      .split(' ')
-      .filter(word => word.length > 0)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+    return (
+      sectionName
+        // First handle kebab-case by replacing hyphens with spaces
+        .replace(/-/g, " ")
+        // Then handle camelCase (e.g., "heroSection" -> "hero Section")
+        .replace(/([A-Z])/g, " $1")
+        // Split into words, capitalize each, and join
+        .split(" ")
+        .filter((word) => word.length > 0)
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+        )
+        .join(" ")
+    );
   }
 }
 

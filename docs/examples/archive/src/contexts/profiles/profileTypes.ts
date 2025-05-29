@@ -1,6 +1,6 @@
 /**
  * Profile Types
- * 
+ *
  * Type definitions for profile-related functionality
  */
 

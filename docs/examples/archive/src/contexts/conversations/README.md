@@ -27,17 +27,17 @@ Interface defining storage operations for conversations, turns, and summaries. I
 
 ```typescript
 // Creating a conversation
-const conversationId = await context.createConversation('cli', 'roomId');
+const conversationId = await context.createConversation("cli", "roomId");
 
 // Adding turns
-await context.addTurn(conversationId, 'User query', 'Assistant response', {
-  userId: 'user-123',
-  userName: 'User',
+await context.addTurn(conversationId, "User query", "Assistant response", {
+  userId: "user-123",
+  userName: "User",
 });
 
 // Getting history
 const history = await context.getConversationHistory(conversationId, {
-  format: 'markdown',
+  format: "markdown",
   includeSummaries: true,
 });
 ```
@@ -86,34 +86,33 @@ ConversationContext exposes conversations through MCP resources and tools:
 ## Usage Example
 
 ```typescript
-import { ConversationContext } from '@/contexts/conversations';
+import { ConversationContext } from "@/contexts/conversations";
 
 // Get the context instance
 const conversationContext = ConversationContext.getInstance();
 
 // Create a new conversation
 const conversationId = await conversationContext.getOrCreateConversationForRoom(
-  'room-123',
-  'cli'
+  "room-123",
+  "cli",
 );
 
 // Add a turn
 await conversationContext.addTurn(
   conversationId,
-  'What is the meaning of life?',
-  '42'
+  "What is the meaning of life?",
+  "42",
 );
 
 // Get the conversation history for display
 const history = await conversationContext.getConversationHistory(
   conversationId,
-  { format: 'markdown' }
+  { format: "markdown" },
 );
 
 // Format history for prompt
-const promptHistory = await conversationContext.formatHistoryForPrompt(
-  conversationId
-);
+const promptHistory =
+  await conversationContext.formatHistoryForPrompt(conversationId);
 ```
 
 ## Storage Migration
@@ -122,6 +121,6 @@ ConversationContext supports migrating data between storage implementations:
 
 ```typescript
 // Migrate from in-memory to SQLite storage
-const sqliteStorage = new SQLiteStorage('./brain.db');
+const sqliteStorage = new SQLiteStorage("./brain.db");
 await conversationContext.migrateStorage(sqliteStorage);
 ```

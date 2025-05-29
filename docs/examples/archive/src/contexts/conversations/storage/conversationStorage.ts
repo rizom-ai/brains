@@ -3,14 +3,17 @@
  * Defines methods for storing and retrieving conversations, turns, and summaries
  */
 
-import type { Conversation, ConversationTurn } from '@/protocol/schemas/conversationSchemas';
+import type {
+  Conversation,
+  ConversationTurn,
+} from "@/protocol/schemas/conversationSchemas";
 
 /**
  * New conversation data for creation
  */
 export interface NewConversation {
   id?: string;
-  interfaceType: 'cli' | 'matrix';
+  interfaceType: "cli" | "matrix";
   roomId: string;
   startedAt: Date;
   updatedAt: Date;
@@ -35,7 +38,7 @@ export interface ConversationSummary {
  * Search criteria for finding conversations
  */
 export interface SearchCriteria {
-  interfaceType?: 'cli' | 'matrix';
+  interfaceType?: "cli" | "matrix";
   roomId?: string;
   query?: string;
   startDate?: Date;
@@ -50,7 +53,7 @@ export interface SearchCriteria {
  */
 export interface ConversationInfo {
   id: string;
-  interfaceType: 'cli' | 'matrix';
+  interfaceType: "cli" | "matrix";
   roomId: string;
   startedAt: Date;
   updatedAt: Date;
@@ -65,24 +68,46 @@ export interface ConversationStorage {
   // Conversation operations
   createConversation(conversation: NewConversation): Promise<string>;
   getConversation(conversationId: string): Promise<Conversation | null>;
-  getConversationByRoom(roomId: string, interfaceType?: 'cli' | 'matrix'): Promise<string | null>;
-  updateConversation(conversationId: string, updates: Partial<Conversation>): Promise<boolean>;
+  getConversationByRoom(
+    roomId: string,
+    interfaceType?: "cli" | "matrix",
+  ): Promise<string | null>;
+  updateConversation(
+    conversationId: string,
+    updates: Partial<Conversation>,
+  ): Promise<boolean>;
   deleteConversation(conversationId: string): Promise<boolean>;
-  
+
   // Turn operations
   addTurn(conversationId: string, turn: ConversationTurn): Promise<string>;
-  getTurns(conversationId: string, limit?: number, offset?: number): Promise<ConversationTurn[]>;
-  updateTurn(turnId: string, updates: Partial<ConversationTurn>): Promise<boolean>;
-  
+  getTurns(
+    conversationId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<ConversationTurn[]>;
+  updateTurn(
+    turnId: string,
+    updates: Partial<ConversationTurn>,
+  ): Promise<boolean>;
+
   // Summary operations
-  addSummary(conversationId: string, summary: ConversationSummary): Promise<string>;
+  addSummary(
+    conversationId: string,
+    summary: ConversationSummary,
+  ): Promise<string>;
   getSummaries(conversationId: string): Promise<ConversationSummary[]>;
-  
+
   // Search and querying
   findConversations(criteria: SearchCriteria): Promise<ConversationInfo[]>;
-  getRecentConversations(limit?: number, interfaceType?: 'cli' | 'matrix'): Promise<ConversationInfo[]>;
-  
+  getRecentConversations(
+    limit?: number,
+    interfaceType?: "cli" | "matrix",
+  ): Promise<ConversationInfo[]>;
+
   // Metadata operations
-  updateMetadata(conversationId: string, metadata: Record<string, unknown>): Promise<boolean>;
+  updateMetadata(
+    conversationId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<boolean>;
   getMetadata(conversationId: string): Promise<Record<string, unknown> | null>;
 }

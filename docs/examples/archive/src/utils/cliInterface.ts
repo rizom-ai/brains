@@ -1,6 +1,6 @@
 /**
  * CLI Interface utility using Inquirer for prompts and Chalk for styling
- * 
+ *
  * Implements the Component Interface Standardization pattern with:
  * - getInstance(): Returns the singleton instance
  * - resetInstance(): Resets the singleton instance (mainly for testing)
@@ -8,13 +8,13 @@
  */
 // No timers import needed
 
-import chalk from 'chalk';
-import inquirer from 'inquirer';
-import ora from 'ora';
-import type { Ora } from 'ora';
+import chalk from "chalk";
+import inquirer from "inquirer";
+import ora from "ora";
+import type { Ora } from "ora";
 
-import logger from './logger';
-import type { IProgressTracker } from './registry/rendererRegistry';
+import logger from "./logger";
+import type { IProgressTracker } from "./registry/rendererRegistry";
 
 /**
  * Configuration options for CLIInterface
@@ -62,7 +62,7 @@ export interface CLIStyles {
 
 /**
  * CLIInterface provides standardized CLI output and user interaction methods.
- * 
+ *
  * This class follows the Component Interface Standardization pattern with singleton
  * management via getInstance(), resetInstance(), and createFresh().
  */
@@ -75,45 +75,45 @@ export class CLIInterface implements IProgressTracker {
 
   /** Logger instance to use */
   public readonly logger: typeof logger;
-  
+
   /** Active spinner instance */
   private spinner: Ora | null = null;
 
   /** Common style configuration */
   private static readonly styleConfig: CLIStyles = {
     // Basic styles
-    title: chalk.cyan.bold,              // Cyan bold for main titles
-    subtitle: chalk.magenta.bold,        // Magenta bold for subtitles
-    separator: chalk.cyan,               // Cyan for separators
-    label: chalk.dim,                    // Dim for labels
-    value: chalk.white,                  // White for values
-    highlight: chalk.cyan,               // Cyan for highlighted text
-    success: chalk.green,                // Green for success messages
-    error: chalk.red,                    // Red for error messages
-    warning: chalk.yellow,               // Yellow for warnings
-    info: chalk.blue,                    // Blue for info messages
-    dim: chalk.dim,                      // Dim for less important text
+    title: chalk.cyan.bold, // Cyan bold for main titles
+    subtitle: chalk.magenta.bold, // Magenta bold for subtitles
+    separator: chalk.cyan, // Cyan for separators
+    label: chalk.dim, // Dim for labels
+    value: chalk.white, // White for values
+    highlight: chalk.cyan, // Cyan for highlighted text
+    success: chalk.green, // Green for success messages
+    error: chalk.red, // Red for error messages
+    warning: chalk.yellow, // Yellow for warnings
+    info: chalk.blue, // Blue for info messages
+    dim: chalk.dim, // Dim for less important text
 
     // Specialized styles
-    id: chalk.gray,                      // Gray for IDs
-    tag: chalk.cyan,                     // Cyan for tags
-    date: chalk.white,                   // White for dates
-    number: chalk.cyan,                  // Cyan for numbers
-    command: chalk.cyan,                 // Cyan for commands
-    example: chalk.italic,               // Italic for examples
-    url: chalk.blue.underline,           // Blue underlined for URLs
-    warn: chalk.yellow,                  // Yellow for warnings
+    id: chalk.gray, // Gray for IDs
+    tag: chalk.cyan, // Cyan for tags
+    date: chalk.white, // White for dates
+    number: chalk.cyan, // Cyan for numbers
+    command: chalk.cyan, // Cyan for commands
+    example: chalk.italic, // Italic for examples
+    url: chalk.blue.underline, // Blue underlined for URLs
+    warn: chalk.yellow, // Yellow for warnings
 
     // Icon styles
-    successIcon: chalk.green('✓'),       // Green checkmark for success
-    errorIcon: chalk.red('✖'),           // Red X for errors
-    warningIcon: chalk.yellow('⚠'),      // Yellow warning symbol
-    infoIcon: chalk.blue('ℹ'),           // Blue info symbol
+    successIcon: chalk.green("✓"), // Green checkmark for success
+    errorIcon: chalk.red("✖"), // Red X for errors
+    warningIcon: chalk.yellow("⚠"), // Yellow warning symbol
+    infoIcon: chalk.blue("ℹ"), // Blue info symbol
   };
 
   /**
    * Get the singleton instance of CLIInterface
-   * 
+   *
    * @param options Options for configuring the interface
    * @returns The shared CLIInterface instance
    */
@@ -135,7 +135,7 @@ export class CLIInterface implements IProgressTracker {
   /**
    * Create a fresh instance (primarily for testing)
    * This creates a new instance without affecting the singleton
-   * 
+   *
    * @param options Options for configuring the interface
    * @returns A new CLIInterface instance
    */
@@ -161,7 +161,7 @@ export class CLIInterface implements IProgressTracker {
 
   /**
    * Private constructor to enforce the use of getInstance()
-   * 
+   *
    * @param options Configuration options
    */
   private constructor(options?: CLIInterfaceOptions) {
@@ -176,7 +176,7 @@ export class CLIInterface implements IProgressTracker {
   public displayTitle(title: string): void {
     if (this.silent) return;
 
-    const separator = '='.repeat(title.length + 4);
+    const separator = "=".repeat(title.length + 4);
     const formattedTitle = `\n${this.styles.separator(separator)}\n${this.styles.title(`  ${title}  `)}\n${this.styles.separator(separator)}\n`;
 
     // Output to console
@@ -194,7 +194,7 @@ export class CLIInterface implements IProgressTracker {
     if (this.silent) return;
 
     // Add a separator line before subtitle
-    const line = '─'.repeat(subtitle.length + 4);
+    const line = "─".repeat(subtitle.length + 4);
 
     // Format with separator line for clearer hierarchy
     const formattedSubtitle = `\n${this.styles.dim(line)}\n${this.styles.subtitle(subtitle)}\n`;
@@ -214,7 +214,7 @@ export class CLIInterface implements IProgressTracker {
     if (this.silent) return;
 
     const formatted = `${this.styles.successIcon} ${message}`;
-    process.stdout.write(formatted + '\n');
+    process.stdout.write(formatted + "\n");
     this.logger.info(`[SUCCESS] ${message}`);
   }
 
@@ -226,7 +226,7 @@ export class CLIInterface implements IProgressTracker {
     if (this.silent) return;
 
     const formatted = `${this.styles.errorIcon} ${message}`;
-    process.stdout.write(formatted + '\n');
+    process.stdout.write(formatted + "\n");
     this.logger.error(message);
   }
 
@@ -238,7 +238,7 @@ export class CLIInterface implements IProgressTracker {
     if (this.silent) return;
 
     const formatted = `${this.styles.warningIcon} ${message}`;
-    process.stdout.write(formatted + '\n');
+    process.stdout.write(formatted + "\n");
     this.logger.warn(message);
   }
 
@@ -250,7 +250,7 @@ export class CLIInterface implements IProgressTracker {
     if (this.silent) return;
 
     const formatted = `${this.styles.infoIcon} ${message}`;
-    process.stdout.write(formatted + '\n');
+    process.stdout.write(formatted + "\n");
     this.logger.info(message);
   }
 
@@ -260,119 +260,132 @@ export class CLIInterface implements IProgressTracker {
    * @param options Optional formatting options
    */
   public print(
-    message: string, 
-    options?: { 
-      renderMarkdown?: boolean
+    message: string,
+    options?: {
+      renderMarkdown?: boolean;
     },
   ): void {
     if (this.silent) return;
 
     if (options?.renderMarkdown) {
-      process.stdout.write(this.renderMarkdown(message) + '\n');
+      process.stdout.write(this.renderMarkdown(message) + "\n");
     } else {
-      process.stdout.write(message + '\n');
+      process.stdout.write(message + "\n");
     }
   }
-  
+
   /**
    * Render markdown text with terminal formatting
    * @param markdown The markdown text to render
    * @returns Formatted text for terminal display
    */
   public renderMarkdown(markdown: string): string {
-    const lines = markdown.split('\n');
+    const lines = markdown.split("\n");
     const processedLines: string[] = [];
-    
+
     // Process each line individually for better control
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i];
-      const nextLine = i < lines.length - 1 ? lines[i + 1] : '';
-      
+      const nextLine = i < lines.length - 1 ? lines[i + 1] : "";
+
       // Handle headers
       if (line.match(/^### /)) {
-        processedLines.push(''); // Add extra line before header
+        processedLines.push(""); // Add extra line before header
         processedLines.push(this.styles.subtitle(line.substring(4)));
         // If next line doesn't have its own spacing, add a blank line
-        if (nextLine && nextLine.trim() !== '') {
-          processedLines.push('');
+        if (nextLine && nextLine.trim() !== "") {
+          processedLines.push("");
         }
-      } 
-      else if (line.match(/^## /)) {
-        processedLines.push(''); // Add extra line before header
+      } else if (line.match(/^## /)) {
+        processedLines.push(""); // Add extra line before header
         processedLines.push(this.styles.title(line.substring(3)));
         // If next line doesn't have its own spacing, add a blank line
-        if (nextLine && nextLine.trim() !== '') {
-          processedLines.push('');
+        if (nextLine && nextLine.trim() !== "") {
+          processedLines.push("");
         }
-      }
-      else if (line.match(/^# /)) {
-        processedLines.push(''); // Add extra line before header
+      } else if (line.match(/^# /)) {
+        processedLines.push(""); // Add extra line before header
         processedLines.push(this.styles.title(line.substring(2)));
         // If next line doesn't have its own spacing, add a blank line
-        if (nextLine && nextLine.trim() !== '') {
-          processedLines.push('');
+        if (nextLine && nextLine.trim() !== "") {
+          processedLines.push("");
         }
       }
       // Handle bold and italic (process within the line)
       else {
         // Bold and italic
-        line = line.replace(/\*\*\*(.*?)\*\*\*/g, (_, text) => chalk.bold.italic(text));
+        line = line.replace(/\*\*\*(.*?)\*\*\*/g, (_, text) =>
+          chalk.bold.italic(text),
+        );
         line = line.replace(/\*\*(.*?)\*\*/g, (_, text) => chalk.bold(text));
         line = line.replace(/\*(.*?)\*/g, (_, text) => chalk.italic(text));
         line = line.replace(/_(.*?)_/g, (_, text) => chalk.italic(text));
-        
+
         // Inline code
-        line = line.replace(/`(.*?)`/g, (_, code) => chalk.gray.bgBlackBright(` ${code} `));
-        
+        line = line.replace(/`(.*?)`/g, (_, code) =>
+          chalk.gray.bgBlackBright(` ${code} `),
+        );
+
         // Lists
         if (line.match(/^- /)) {
-          line = `${this.styles.info('•')} ${line.substring(2)}`;
+          line = `${this.styles.info("•")} ${line.substring(2)}`;
         } else if (line.match(/^ {2}- /)) {
-          line = `  ${this.styles.info('◦')} ${line.substring(4)}`;
+          line = `  ${this.styles.info("◦")} ${line.substring(4)}`;
         } else if (line.match(/^ {4}- /)) {
-          line = `    ${this.styles.info('▪')} ${line.substring(6)}`;
+          line = `    ${this.styles.info("▪")} ${line.substring(6)}`;
         }
-        
+
         // Numbered lists
         const numberedListMatch = line.match(/^(\d+)\. (.*$)/);
         if (numberedListMatch) {
           const [, num, text] = numberedListMatch;
-          line = `${this.styles.number(num + '.')} ${text}`;
+          line = `${this.styles.number(num + ".")} ${text}`;
         }
-        
+
         // Blockquotes
         if (line.match(/^> /)) {
           line = this.styles.dim(`│ ${line.substring(2)}`);
         }
-        
+
         // Links
-        line = line.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => 
-          `${text} (${this.styles.url(url)})`);
-        
+        line = line.replace(
+          /\[([^\]]+)\]\(([^)]+)\)/g,
+          (_, text, url) => `${text} (${this.styles.url(url)})`,
+        );
+
         // Horizontal rules
-        if (line === '---') {
-          line = this.styles.separator('─'.repeat(80));
+        if (line === "---") {
+          line = this.styles.separator("─".repeat(80));
         }
-        
+
         // Tables (simple)
         const tableMatch = line.match(/\| (.*) \|/);
         if (tableMatch) {
           const [, content] = tableMatch;
-          const cells = content.split(' | ');
-          line = '| ' + cells.map((cell: string) => this.styles.value(cell.trim())).join(' | ') + ' |';
+          const cells = content.split(" | ");
+          line =
+            "| " +
+            cells
+              .map((cell: string) => this.styles.value(cell.trim()))
+              .join(" | ") +
+            " |";
         }
-        
+
         processedLines.push(line);
       }
     }
-    
+
     // Process code blocks which can span multiple lines
-    let result = processedLines.join('\n');
+    let result = processedLines.join("\n");
     result = result.replace(/```(?:.*?)\n([\s\S]*?)```/g, (_, code) => {
-      const lines = code.split('\n');
-      return '\n' + lines.map((line: string) => this.styles.dim('  ' + line)).join('\n') + '\n';
+      const lines = code.split("\n");
+      return (
+        "\n" +
+        lines.map((line: string) => this.styles.dim("  " + line)).join("\n") +
+        "\n"
+      );
     });
-    
+
     return result;
   }
 
@@ -386,29 +399,35 @@ export class CLIInterface implements IProgressTracker {
     label: string,
     value: string | number | string[] | null,
     options?: {
-      emptyText?: string,
-      formatter?: (val: string) => string
+      emptyText?: string;
+      formatter?: (val: string) => string;
     },
   ): void {
     if (this.silent) return;
 
-    const emptyText = options?.emptyText || 'None';
+    const emptyText = options?.emptyText || "None";
 
     // Format the label
-    const formattedLabel = `${this.styles.label(label + ':')}`;
+    const formattedLabel = `${this.styles.label(label + ":")}`;
 
     // Handle array values
     if (Array.isArray(value)) {
       if (value.length === 0) {
-        process.stdout.write(`${formattedLabel} ${this.styles.dim(emptyText)}\n`);
+        process.stdout.write(
+          `${formattedLabel} ${this.styles.dim(emptyText)}\n`,
+        );
       } else {
-        const formatter = options?.formatter || (val => this.styles.tag(val));
-        process.stdout.write(`${formattedLabel} ${value.map(formatter).join(' ')}\n`);
+        const formatter = options?.formatter || ((val) => this.styles.tag(val));
+        process.stdout.write(
+          `${formattedLabel} ${value.map(formatter).join(" ")}\n`,
+        );
       }
     } else {
       // Handle empty values
-      if (value === undefined || value === null || value === '') {
-        process.stdout.write(`${formattedLabel} ${this.styles.dim(emptyText)}\n`);
+      if (value === undefined || value === null || value === "") {
+        process.stdout.write(
+          `${formattedLabel} ${this.styles.dim(emptyText)}\n`,
+        );
       } else {
         const displayValue = options?.formatter
           ? options.formatter(value.toString())
@@ -423,7 +442,10 @@ export class CLIInterface implements IProgressTracker {
    * @param items The items to display
    * @param formatter Optional formatter for the items
    */
-  public displayList<T>(items: T[], formatter?: (item: T, index: number) => string): void {
+  public displayList<T>(
+    items: T[],
+    formatter?: (item: T, index: number) => string,
+  ): void {
     if (this.silent) return;
 
     // Log the list operation
@@ -435,7 +457,7 @@ export class CLIInterface implements IProgressTracker {
     });
 
     // Add a blank line after the list
-    process.stdout.write('\n');
+    process.stdout.write("\n");
   }
 
   /**
@@ -445,7 +467,11 @@ export class CLIInterface implements IProgressTracker {
    * @param examples Optional usage examples
    * @returns The formatted command string
    */
-  public formatCommand(command: string, description: string, examples?: string[]): string {
+  public formatCommand(
+    command: string,
+    description: string,
+    examples?: string[],
+  ): string {
     const cmdText = `  ${this.styles.command(command.padEnd(20))} - ${description}`;
 
     if (!examples || examples.length === 0) {
@@ -454,8 +480,10 @@ export class CLIInterface implements IProgressTracker {
 
     return [
       cmdText,
-      ...examples.map(ex => `    ${this.styles.dim('>')} ${this.styles.example(ex)}`),
-    ].join('\n');
+      ...examples.map(
+        (ex) => `    ${this.styles.dim(">")} ${this.styles.example(ex)}`,
+      ),
+    ].join("\n");
   }
 
   /**
@@ -474,10 +502,10 @@ export class CLIInterface implements IProgressTracker {
    */
   public formatTags(tags: string[] | null | undefined): string {
     if (!tags || tags.length === 0) {
-      return this.styles.dim('No tags');
+      return this.styles.dim("No tags");
     }
 
-    return tags.map(tag => this.styles.tag(`#${tag}`)).join(' ');
+    return tags.map((tag) => this.styles.tag(`#${tag}`)).join(" ");
   }
 
   /**
@@ -486,7 +514,7 @@ export class CLIInterface implements IProgressTracker {
    * @returns The formatted date string
    */
   public formatDate(date: Date | string | number): string {
-    const dateObj = typeof date === 'object' ? date : new Date(date);
+    const dateObj = typeof date === "object" ? date : new Date(date);
     return dateObj.toLocaleString();
   }
 
@@ -496,15 +524,18 @@ export class CLIInterface implements IProgressTracker {
    * @param choices The available choices
    * @returns The selected value
    */
-  public async select<T>(message: string, choices: Array<{ name: string, value: T }>): Promise<T> {
+  public async select<T>(
+    message: string,
+    choices: Array<{ name: string; value: T }>,
+  ): Promise<T> {
     if (this.silent) {
-      throw new Error('Cannot use select in silent mode');
+      throw new Error("Cannot use select in silent mode");
     }
 
     const { selection } = await inquirer.prompt([
       {
-        type: 'list',
-        name: 'selection',
+        type: "list",
+        name: "selection",
         message,
         choices,
       },
@@ -520,13 +551,13 @@ export class CLIInterface implements IProgressTracker {
    */
   public async input(message: string, defaultValue?: string): Promise<string> {
     if (this.silent) {
-      throw new Error('Cannot use input in silent mode');
+      throw new Error("Cannot use input in silent mode");
     }
 
     const { input } = await inquirer.prompt([
       {
-        type: 'input',
-        name: 'input',
+        type: "input",
+        name: "input",
         message,
         default: defaultValue,
       },
@@ -540,15 +571,18 @@ export class CLIInterface implements IProgressTracker {
    * @param defaultValue Optional default value
    * @returns The user's confirmation
    */
-  public async confirm(message: string, defaultValue = false): Promise<boolean> {
+  public async confirm(
+    message: string,
+    defaultValue = false,
+  ): Promise<boolean> {
     if (this.silent) {
-      throw new Error('Cannot use confirm in silent mode');
+      throw new Error("Cannot use confirm in silent mode");
     }
 
     const { confirmed } = await inquirer.prompt([
       {
-        type: 'confirm',
-        name: 'confirmed',
+        type: "confirm",
+        name: "confirmed",
         message,
         default: defaultValue,
       },
@@ -562,56 +596,56 @@ export class CLIInterface implements IProgressTracker {
    */
   public startSpinner(text: string): void {
     if (this.silent) return;
-    
+
     // Stop any existing spinner
     this.stopSpinner();
-    
+
     // Create a new spinner
     this.spinner = ora({
       text,
-      color: 'cyan',
+      color: "cyan",
     }).start();
-    
+
     this.logger.debug(`Started spinner: ${text}`);
   }
-  
+
   /**
    * Update an active spinner with new text
    * @param text The new spinner text
    */
   public updateSpinner(text: string): void {
     if (this.silent || !this.spinner) return;
-    
+
     this.spinner.text = text;
     this.logger.debug(`Updated spinner: ${text}`);
   }
-  
+
   /**
    * Stop the active spinner
    * @param type Optional completion type (success, error, info)
    * @param text Optional completion text
    */
-  public stopSpinner(type?: 'success' | 'error' | 'info', text?: string): void {
+  public stopSpinner(type?: "success" | "error" | "info", text?: string): void {
     if (this.silent || !this.spinner) return;
-    
-    if (type === 'success') {
+
+    if (type === "success") {
       this.spinner.succeed(text);
-    } else if (type === 'error') {
+    } else if (type === "error") {
       this.spinner.fail(text);
-    } else if (type === 'info') {
+    } else if (type === "info") {
       this.spinner.info(text);
     } else {
       this.spinner.stop();
     }
-    
+
     this.spinner = null;
-    this.logger.debug('Stopped spinner');
+    this.logger.debug("Stopped spinner");
   }
 
   /**
    * Implementation of IProgressTracker interface
    * Execute a task with progress tracking compatible with the common interface
-   * 
+   *
    * @param title Operation title (ignored in CLI, used only in Matrix)
    * @param steps Array of step descriptions
    * @param task The async task to execute
@@ -633,38 +667,43 @@ export class CLIInterface implements IProgressTracker {
    * @returns The result of the task
    */
   public async withProgressSpinner<T>(
-    steps: string[], 
+    steps: string[],
     task: (updateStep: (stepIndex: number) => void) => Promise<T>,
   ): Promise<T> {
     if (this.silent) {
       return task(() => {});
     }
-    
+
     if (steps.length === 0) {
       return task(() => {});
     }
-    
+
     // Start with first step
     this.startSpinner(`${steps[0]} (Step 1/${steps.length})`);
-    
+
     // Create an update function to pass to the task
     const updateStep = (stepIndex: number) => {
       if (stepIndex < 0 || stepIndex >= steps.length) return;
-      
-      this.updateSpinner(`${steps[stepIndex]} (Step ${stepIndex + 1}/${steps.length})`);
+
+      this.updateSpinner(
+        `${steps[stepIndex]} (Step ${stepIndex + 1}/${steps.length})`,
+      );
     };
-    
+
     try {
       // Execute the task with the update function
       const result = await task(updateStep);
-      
+
       // Complete the spinner
-      this.stopSpinner('success', 'Process completed successfully');
-      
+      this.stopSpinner("success", "Process completed successfully");
+
       return result;
     } catch (error) {
       // Show error in the spinner
-      this.stopSpinner('error', `Process failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.stopSpinner(
+        "error",
+        `Process failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       throw error;
     }
   }
@@ -675,19 +714,27 @@ export class CLIInterface implements IProgressTracker {
    * @param task The async task to execute
    * @returns The result of the task
    */
-  public async withSpinner<T>(message: string, task: () => Promise<T>): Promise<T> {
+  public async withSpinner<T>(
+    message: string,
+    task: () => Promise<T>,
+  ): Promise<T> {
     if (this.silent) {
       return task();
     }
 
     this.startSpinner(message);
-    
+
     try {
       const result = await task();
-      this.stopSpinner('success', message + ' Completed!');
+      this.stopSpinner("success", message + " Completed!");
       return result;
     } catch (error) {
-      this.stopSpinner('error', message + ' Failed! ' + (error instanceof Error ? error.message : String(error)));
+      this.stopSpinner(
+        "error",
+        message +
+          " Failed! " +
+          (error instanceof Error ? error.message : String(error)),
+      );
       throw error;
     }
   }

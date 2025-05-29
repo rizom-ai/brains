@@ -1,11 +1,11 @@
 /**
  * SimpleContainer for Dependency Injection
- * 
+ *
  * A lightweight dependency injection container implementation
  * that follows the Component Interface Standardization pattern.
  */
 
-import { Logger } from './logger';
+import { Logger } from "./logger";
 
 /**
  * Type for a factory function that creates a service instance
@@ -28,7 +28,7 @@ export interface SimpleContainerConfig {
    * Name for the container (for logging)
    */
   name?: string;
-  
+
   /**
    * Whether to suppress logs
    */
@@ -57,27 +57,27 @@ export class SimpleContainer {
    * Singleton instance storage
    */
   private static instance: SimpleContainer | null = null;
-  
+
   /**
    * Registry of services
    */
   private services = new Map<string, ServiceConfig<unknown>>();
-  
+
   /**
    * Cache of singleton instances
    */
   private instances = new Map<string, unknown>();
-  
+
   /**
    * Logger instance
    */
   private readonly logger: Logger;
-  
+
   /**
    * Container name for logging
    */
   private readonly name: string;
-  
+
   /**
    * Private constructor to enforce singleton pattern
    */
@@ -86,22 +86,22 @@ export class SimpleContainer {
     dependencies: Partial<SimpleContainerDependencies> = {},
   ) {
     // Set name for logging
-    this.name = config.name || 'SimpleContainer';
-    
+    this.name = config.name || "SimpleContainer";
+
     // Use provided logger or create default one
     this.logger = dependencies.logger || Logger.getInstance();
-    
+
     if (config.silent) {
       // Use a silent logger if requested
       this.logger = Logger.createFresh({ silent: true });
     }
-    
+
     this.logger.debug(`${this.name} constructed`);
   }
-  
+
   /**
    * Get the singleton instance
-   * 
+   *
    * @param config Configuration options
    * @param dependencies Dependencies
    * @returns The shared instance
@@ -113,10 +113,10 @@ export class SimpleContainer {
     if (!SimpleContainer.instance) {
       SimpleContainer.instance = new SimpleContainer(config, dependencies);
     }
-    
+
     return SimpleContainer.instance;
   }
-  
+
   /**
    * Reset the singleton instance (primarily for testing)
    */
@@ -126,10 +126,10 @@ export class SimpleContainer {
       SimpleContainer.instance = null;
     }
   }
-  
+
   /**
    * Create a fresh instance (primarily for testing)
-   * 
+   *
    * @param config Configuration options
    * @param dependencies Dependencies
    * @returns A new instance
@@ -140,16 +140,22 @@ export class SimpleContainer {
   ): SimpleContainer {
     return new SimpleContainer(config, dependencies);
   }
-  
+
   /**
    * Register a service with the container
    * @param name Unique service identifier
    * @param factory Factory function to create the service
    * @param singleton Whether to create only one instance (default: true)
    */
-  public register<T>(name: string, factory: ServiceFactory<T>, singleton = true): void {
+  public register<T>(
+    name: string,
+    factory: ServiceFactory<T>,
+    singleton = true,
+  ): void {
     if (this.services.has(name)) {
-      this.logger.warn(`Service '${name}' is already registered. Overwriting previous registration.`);
+      this.logger.warn(
+        `Service '${name}' is already registered. Overwriting previous registration.`,
+      );
     }
     this.services.set(name, { factory, singleton });
     // Clear instance if service is re-registered
@@ -164,24 +170,24 @@ export class SimpleContainer {
    */
   public resolve<T>(name: string): T {
     const serviceConfig = this.services.get(name);
-    
+
     if (!serviceConfig) {
       throw new Error(`Service '${name}' is not registered in the container`);
     }
-    
+
     // For singletons, return the cached instance if available
     if (serviceConfig.singleton && this.instances.has(name)) {
       return this.instances.get(name) as T;
     }
-    
+
     // Create a new instance
     const instance = serviceConfig.factory(this);
-    
+
     // Cache the instance if it's a singleton
     if (serviceConfig.singleton) {
       this.instances.set(name, instance);
     }
-    
+
     return instance as T;
   }
 

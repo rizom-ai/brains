@@ -1,6 +1,6 @@
 /**
  * Schema Registry
- * 
+ *
  * This module serves as a central registry for all message schemas across contexts.
  * It imports and re-exports schemas from each context, providing a single point of
  * access for validation and type information.
@@ -21,14 +21,14 @@ import {
   ConversationTurnAddedPayloadSchema,
   CreateConversationParamsSchema,
   CreateConversationTurnParamsSchema,
-} from '@/contexts/conversations/schemas/messageSchemas';
+} from "@/contexts/conversations/schemas/messageSchemas";
 import {
   ExternalSourceAvailabilityNotificationSchema,
   ExternalSourceSchemaMap,
   ExternalSourceSearchNotificationSchema,
   ExternalSourceSearchRequestSchema,
   ExternalSourceStatusRequestSchema,
-} from '@/contexts/externalSources/schemas/messageSchemas';
+} from "@/contexts/externalSources/schemas/messageSchemas";
 import {
   NoteByIdParamsSchema,
   NoteCreatedPayloadSchema,
@@ -37,14 +37,14 @@ import {
   NotesSearchParamsSchema,
   NotesSemanticSearchParamsSchema,
   NoteUpdatedPayloadSchema,
-} from '@/contexts/notes/schemas/messageSchemas';
+} from "@/contexts/notes/schemas/messageSchemas";
 import {
   LinkedInProfileMigrationParamsSchema,
   ProfileDataParamsSchema,
   ProfileSchemaMap,
   ProfileUpdatedPayloadSchema,
   ProfileUpdateParamsSchema,
-} from '@/contexts/profiles/schemas/messageSchemas';
+} from "@/contexts/profiles/schemas/messageSchemas";
 import {
   WebsiteContentGenerationParamsSchema,
   WebsiteDeployedPayloadSchema,
@@ -52,12 +52,9 @@ import {
   WebsiteIdentityUpdateParamsSchema,
   WebsiteSchemaMap,
   WebsiteStatusParamsSchema,
-} from '@/contexts/website/schemas/messageSchemas';
+} from "@/contexts/website/schemas/messageSchemas";
 
-import type { 
-  DataRequestMessage, 
-  NotificationMessage, 
-} from './messageTypes';
+import type { DataRequestMessage, NotificationMessage } from "./messageTypes";
 
 // Re-export all schemas for convenience
 export {
@@ -68,13 +65,13 @@ export {
   ConversationTurnAddedPayloadSchema,
   CreateConversationParamsSchema,
   CreateConversationTurnParamsSchema,
-  
+
   // External Sources context schemas
   ExternalSourceSearchRequestSchema,
   ExternalSourceStatusRequestSchema,
   ExternalSourceSearchNotificationSchema,
   ExternalSourceAvailabilityNotificationSchema,
-  
+
   // Notes context schemas
   NoteByIdParamsSchema,
   NotesSearchParamsSchema,
@@ -82,13 +79,13 @@ export {
   NoteCreatedPayloadSchema,
   NoteUpdatedPayloadSchema,
   NoteDeletedPayloadSchema,
-  
+
   // Profiles context schemas
   ProfileDataParamsSchema,
   ProfileUpdatedPayloadSchema,
   ProfileUpdateParamsSchema,
   LinkedInProfileMigrationParamsSchema,
-  
+
   // Website context schemas
   WebsiteStatusParamsSchema,
   WebsiteGeneratedPayloadSchema,
@@ -106,7 +103,7 @@ export type {
   ConversationTurnAddedPayload,
   CreateConversationTurnParams,
   CreateConversationParams,
-} from '@/contexts/conversations/schemas/messageSchemas';
+} from "@/contexts/conversations/schemas/messageSchemas";
 
 export type {
   // External Sources context types
@@ -114,7 +111,7 @@ export type {
   ExternalSourceStatusParams,
   ExternalSourceSearchNotificationPayload,
   ExternalSourceAvailabilityNotificationPayload,
-} from '@/contexts/externalSources/schemas/messageSchemas';
+} from "@/contexts/externalSources/schemas/messageSchemas";
 
 export type {
   // Notes context types
@@ -124,7 +121,7 @@ export type {
   NoteCreatedPayload,
   NoteUpdatedPayload,
   NoteDeletedPayload,
-} from '@/contexts/notes/schemas/messageSchemas';
+} from "@/contexts/notes/schemas/messageSchemas";
 
 export type {
   // Profiles context types
@@ -132,7 +129,7 @@ export type {
   ProfileUpdatedPayload,
   ProfileUpdateParams,
   LinkedInProfileMigrationParams,
-} from '@/contexts/profiles/schemas/messageSchemas';
+} from "@/contexts/profiles/schemas/messageSchemas";
 
 export type {
   // Website context types
@@ -141,7 +138,7 @@ export type {
   WebsiteDeployedPayload,
   WebsiteIdentityUpdateParams,
   WebsiteContentGenerationParams,
-} from '@/contexts/website/schemas/messageSchemas';
+} from "@/contexts/website/schemas/messageSchemas";
 
 /**
  * Registry mapping message types to their parameter schemas
@@ -150,63 +147,57 @@ export type {
 export const MessageSchemaRegistry = {
   // Conversation context schemas
   ...ConversationSchemaMap,
-  
+
   // External Sources context schemas
   ...ExternalSourceSchemaMap,
-  
+
   // Notes context schemas
   ...NoteSchemaMap,
-  
+
   // Profiles context schemas
   ...ProfileSchemaMap,
-  
+
   // Website context schemas
   ...WebsiteSchemaMap,
 } as const;
 
 /**
  * Type guard to check if a message is a DataRequestMessage
- * 
+ *
  * @param message The message to check
  * @returns Whether the message is a DataRequestMessage
  */
 export function isDataRequestMessage(
   message: unknown,
 ): message is DataRequestMessage {
-  if (!message || typeof message !== 'object') {
+  if (!message || typeof message !== "object") {
     return false;
   }
-  
+
   const msg = message as Record<string, unknown>;
-  return (
-    msg['category'] === 'request' &&
-    'dataType' in msg
-  );
+  return msg["category"] === "request" && "dataType" in msg;
 }
 
 /**
  * Type guard to check if a message is a NotificationMessage
- * 
+ *
  * @param message The message to check
  * @returns Whether the message is a NotificationMessage
  */
 export function isNotificationMessage(
   message: unknown,
 ): message is NotificationMessage {
-  if (!message || typeof message !== 'object') {
+  if (!message || typeof message !== "object") {
     return false;
   }
-  
+
   const msg = message as Record<string, unknown>;
-  return (
-    msg['category'] === 'notification' &&
-    'notificationType' in msg
-  );
+  return msg["category"] === "notification" && "notificationType" in msg;
 }
 
 /**
  * Check if a schema exists for a specific request type
- * 
+ *
  * @param dataType The data request type to check
  * @returns Whether a schema exists for the request type
  */
@@ -216,10 +207,12 @@ export function hasSchemaForRequestType(dataType: string): boolean {
 
 /**
  * Check if a schema exists for a specific notification type
- * 
+ *
  * @param notificationType The notification type to check
  * @returns Whether a schema exists for the notification type
  */
-export function hasSchemaForNotificationType(notificationType: string): boolean {
+export function hasSchemaForNotificationType(
+  notificationType: string,
+): boolean {
   return notificationType in MessageSchemaRegistry;
 }
