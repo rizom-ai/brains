@@ -327,22 +327,22 @@ export class Shell {
     // Register formatters for default response schemas
     this.formatterRegistry.register(
       "simpleTextResponse",
-      new SimpleTextResponseFormatter()
+      new SimpleTextResponseFormatter(),
     );
 
     this.formatterRegistry.register(
       "defaultQueryResponse",
-      new DefaultQueryResponseFormatter()
+      new DefaultQueryResponseFormatter(),
     );
 
     this.formatterRegistry.register(
       "createEntityResponse",
-      new CreateEntityResponseFormatter()
+      new CreateEntityResponseFormatter(),
     );
 
     this.formatterRegistry.register(
       "updateEntityResponse",
-      new UpdateEntityResponseFormatter()
+      new UpdateEntityResponseFormatter(),
     );
 
     this.logger.debug("Default formatters registered");

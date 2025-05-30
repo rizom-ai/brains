@@ -1,10 +1,10 @@
-import { BaseFormatter } from './base';
-import { z } from 'zod';
+import { BaseFormatter } from "./base";
+import { z } from "zod";
 
 const defaultQueryResponseSchema = z.object({
   message: z.string(),
   sources: z.array(z.string()).optional().default([]),
-  relatedTopics: z.array(z.string()).optional().default([])
+  relatedTopics: z.array(z.string()).optional().default([]),
 });
 
 export class DefaultQueryResponseFormatter extends BaseFormatter {
@@ -21,20 +21,22 @@ export class DefaultQueryResponseFormatter extends BaseFormatter {
     parts.push(response.message);
 
     // Sources
-    if (response.sources && response.sources.length > 0) {
-      parts.push('\n**Sources:**');
-      response.sources.forEach(source => {
+    if (response.sources.length > 0) {
+      parts.push("\n**Sources:**");
+      response.sources.forEach((source) => {
         parts.push(`- ${source}`);
       });
     }
 
     // Related topics
-    if (response.relatedTopics && response.relatedTopics.length > 0) {
-      parts.push('\n**Related Topics:**');
-      parts.push(response.relatedTopics.map(topic => `\`${topic}\``).join(' '));
+    if (response.relatedTopics.length > 0) {
+      parts.push("\n**Related Topics:**");
+      parts.push(
+        response.relatedTopics.map((topic) => `\`${topic}\``).join(" "),
+      );
     }
 
-    return parts.join('\n');
+    return parts.join("\n");
   }
 
   canFormat(data: unknown): boolean {

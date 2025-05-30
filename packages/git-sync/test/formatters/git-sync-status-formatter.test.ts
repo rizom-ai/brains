@@ -13,11 +13,11 @@ describe("GitSyncStatusFormatter", () => {
         behind: 0,
         branch: "main",
         lastCommit: "abc123def456",
-        files: []
+        files: [],
       };
 
       const result = formatter.format(status);
-      
+
       expect(result).toContain("## 🔄 Git Repository Status");
       expect(result).toContain("**Branch:** `main`");
       expect(result).toContain("✅ Clean");
@@ -34,12 +34,12 @@ describe("GitSyncStatusFormatter", () => {
         branch: "feature/test",
         files: [
           { path: "src/index.ts", status: "M" },
-          { path: "README.md", status: "A" }
-        ]
+          { path: "README.md", status: "A" },
+        ],
       };
 
       const result = formatter.format(status);
-      
+
       expect(result).toContain("⚠️ Uncommitted changes");
       expect(result).toContain("**Ahead:** 2 commits ↑");
       expect(result).toContain("**Behind:** 1 commit ↓");
@@ -55,11 +55,11 @@ describe("GitSyncStatusFormatter", () => {
         ahead: 0,
         behind: 0,
         branch: "",
-        files: []
+        files: [],
       };
 
       const result = formatter.format(status);
-      
+
       expect(result).toContain("❌ **Not a git repository**");
       expect(result).not.toContain("Changed Files");
     });
@@ -67,7 +67,7 @@ describe("GitSyncStatusFormatter", () => {
     it("should truncate long file lists", () => {
       const files = Array.from({ length: 15 }, (_, i) => ({
         path: `file${i}.ts`,
-        status: "M"
+        status: "M",
       }));
 
       const status = {
@@ -76,11 +76,11 @@ describe("GitSyncStatusFormatter", () => {
         ahead: 0,
         behind: 0,
         branch: "main",
-        files
+        files,
       };
 
       const result = formatter.format(status);
-      
+
       expect(result).toContain("`file0.ts`");
       expect(result).toContain("`file9.ts`");
       expect(result).not.toContain("`file10.ts`");
@@ -93,7 +93,7 @@ describe("GitSyncStatusFormatter", () => {
       const status = {
         isRepo: true,
         hasChanges: false,
-        branch: "main"
+        branch: "main",
       };
 
       expect(formatter.canFormat(status)).toBe(true);

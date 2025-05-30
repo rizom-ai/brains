@@ -20,7 +20,7 @@ export abstract class BaseFormatter implements SchemaFormatter {
    * Format a list as markdown bullets
    */
   protected formatList(items: unknown[]): string {
-    return items.map(item => `- ${String(item)}`).join("\n");
+    return items.map((item) => `- ${String(item)}`).join("\n");
   }
 
   /**
@@ -29,10 +29,10 @@ export abstract class BaseFormatter implements SchemaFormatter {
   protected formatTable(headers: string[], rows: unknown[][]): string {
     const headerRow = `| ${headers.join(" | ")} |`;
     const separator = `| ${headers.map(() => "---").join(" | ")} |`;
-    const dataRows = rows.map(row => 
-      `| ${row.map(cell => String(cell ?? "")).join(" | ")} |`
-    ).join("\n");
-    
+    const dataRows = rows
+      .map((row) => `| ${row.map((cell) => String(cell ?? "")).join(" | ")} |`)
+      .join("\n");
+
     return `${headerRow}\n${separator}\n${dataRows}`;
   }
 

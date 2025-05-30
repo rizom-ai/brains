@@ -42,7 +42,7 @@ describe("DefaultSchemaFormatter", () => {
           message: "Priority 1",
           text: "Priority 2",
           display: "Priority 3",
-        })
+        }),
       ).toBe("Priority 1");
     });
 
@@ -58,10 +58,10 @@ describe("DefaultSchemaFormatter", () => {
 
     it("should handle objects with non-string display fields", () => {
       expect(formatter.format({ message: 42 })).toBe(
-        JSON.stringify({ message: 42 }, null, 2)
+        JSON.stringify({ message: 42 }, null, 2),
       );
       expect(formatter.format({ text: null })).toBe(
-        JSON.stringify({ text: null }, null, 2)
+        JSON.stringify({ text: null }, null, 2),
       );
     });
 

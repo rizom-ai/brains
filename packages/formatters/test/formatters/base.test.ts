@@ -49,7 +49,10 @@ describe("BaseFormatter", () => {
       // @ts-ignore
       const result = formatter.formatTable(
         ["Name", "Age"],
-        [["John", 30], ["Jane", 25]]
+        [
+          ["John", 30],
+          ["Jane", 25],
+        ],
       );
 
       expect(result).toContain("| Name | Age |");
@@ -60,10 +63,7 @@ describe("BaseFormatter", () => {
 
     it("should handle null values in cells", () => {
       // @ts-ignore
-      const result = formatter.formatTable(
-        ["Col1", "Col2"],
-        [["Value", null]]
-      );
+      const result = formatter.formatTable(["Col1", "Col2"], [["Value", null]]);
 
       expect(result).toContain("| Value |  |");
     });

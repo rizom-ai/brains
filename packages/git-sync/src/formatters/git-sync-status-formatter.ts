@@ -33,10 +33,14 @@ export class GitSyncStatusFormatter extends BaseFormatter {
     if (status.ahead > 0 || status.behind > 0) {
       parts.push("\n### Sync Status");
       if (status.ahead > 0) {
-        parts.push(`- **Ahead:** ${status.ahead} commit${status.ahead !== 1 ? 's' : ''} ↑`);
+        parts.push(
+          `- **Ahead:** ${status.ahead} commit${status.ahead !== 1 ? "s" : ""} ↑`,
+        );
       }
       if (status.behind > 0) {
-        parts.push(`- **Behind:** ${status.behind} commit${status.behind !== 1 ? 's' : ''} ↓`);
+        parts.push(
+          `- **Behind:** ${status.behind} commit${status.behind !== 1 ? "s" : ""} ↓`,
+        );
       }
     } else if (!status.hasChanges) {
       parts.push("\n✅ **Fully synchronized**");
@@ -57,34 +61,39 @@ export class GitSyncStatusFormatter extends BaseFormatter {
   }
 
   canFormat(data: unknown): boolean {
-    return this.hasFields(data, ['branch', 'hasChanges', 'isRepo']);
+    return this.hasFields(data, ["branch", "hasChanges", "isRepo"]);
   }
 
-  private formatFileList(files: Array<{path: string; status: string}>): string {
+  private formatFileList(
+    files: Array<{ path: string; status: string }>,
+  ): string {
     if (files.length > 10) {
       const shown = files.slice(0, 10);
       const remaining = files.length - 10;
       return [
-        ...shown.map(f => `- \`${f.path}\` (${this.getStatusSymbol(f.status)})`),
-        `- ... and ${remaining} more`
+        ...shown.map(
+          (f) => `- \`${f.path}\` (${this.getStatusSymbol(f.status)})`,
+        ),
+        `- ... and ${remaining} more`,
       ].join("\n");
     }
-    return files.map(f => `- \`${f.path}\` (${this.getStatusSymbol(f.status)})`).join("\n");
+    return files
+      .map((f) => `- \`${f.path}\` (${this.getStatusSymbol(f.status)})`)
+      .join("\n");
   }
 
   private getStatusSymbol(status: string): string {
     const statusMap: Record<string, string> = {
-      'M': 'modified',
-      'A': 'added',
-      'D': 'deleted',
-      'R': 'renamed',
-      'C': 'copied',
-      'U': 'updated',
-      '?': 'untracked'
+      M: "modified",
+      A: "added",
+      D: "deleted",
+      R: "renamed",
+      C: "copied",
+      U: "updated",
+      "?": "untracked",
     };
     return statusMap[status] || status;
   }
-
 }
 
 interface GitSyncStatus {

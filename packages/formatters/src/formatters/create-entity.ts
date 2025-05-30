@@ -1,11 +1,11 @@
-import { BaseFormatter } from './base';
-import { z } from 'zod';
+import { BaseFormatter } from "./base";
+import { z } from "zod";
 
 const createEntityResponseSchema = z.object({
   id: z.string(),
   entityType: z.string(),
   title: z.string().optional(),
-  tags: z.array(z.string()).optional()
+  tags: z.array(z.string()).optional(),
 });
 
 export class CreateEntityResponseFormatter extends BaseFormatter {
@@ -18,13 +18,15 @@ export class CreateEntityResponseFormatter extends BaseFormatter {
     const response = parsed.data;
     const parts: string[] = [];
 
-    parts.push(`✅ Created ${response.entityType}: **${response.title || response.id}**`);
-    
+    parts.push(
+      `✅ Created ${response.entityType}: **${response.title ?? response.id}**`,
+    );
+
     if (response.tags && response.tags.length > 0) {
-      parts.push(`Tags: ${response.tags.map(t => `\`${t}\``).join(' ')}`);
+      parts.push(`Tags: ${response.tags.map((t) => `\`${t}\``).join(" ")}`);
     }
 
-    return parts.join('\n');
+    return parts.join("\n");
   }
 
   canFormat(data: unknown): boolean {

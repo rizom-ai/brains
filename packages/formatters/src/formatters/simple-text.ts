@@ -1,8 +1,8 @@
-import { BaseFormatter } from './base';
-import { z } from 'zod';
+import { BaseFormatter } from "./base";
+import { z } from "zod";
 
 const simpleTextResponseSchema = z.object({
-  message: z.string()
+  message: z.string(),
 });
 
 export class SimpleTextResponseFormatter extends BaseFormatter {
