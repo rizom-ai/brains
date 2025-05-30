@@ -7,7 +7,10 @@ import type {
   PluginContext,
   PluginTool,
   PluginResource,
+  SchemaFormatter,
 } from "@brains/types";
+import type { Shell } from "../shell";
+import type { SchemaFormatterRegistry } from "../formatters";
 
 /**
  * Plugin lifecycle event types
@@ -281,6 +284,17 @@ export class PluginManager {
     // Emit before initialize event
     this.events.emit(PluginEvent.BEFORE_INITIALIZE, pluginId, plugin);
 
+    // Get formatter registry from shell via registry (if available)
+    let formatterRegistry: SchemaFormatterRegistry | null = null;
+    try {
+      if (this.registry.has("shell")) {
+        const shell = this.registry.resolve<Shell>("shell");
+        formatterRegistry = shell.getFormatterRegistry();
+      }
+    } catch (error) {
+      this.logger.debug("Shell not available, formatter registry will be unavailable");
+    }
+
     // Create plugin context
     const context: PluginContext = {
       registry: this.registry,
@@ -288,6 +302,15 @@ export class PluginManager {
       getPlugin: this.getPlugin.bind(this),
       events: this.events,
       messageBus: this.messageBus,
+      formatters: {
+        register: (schemaName: string, formatter: SchemaFormatter) => {
+          if (!formatterRegistry) {
+            this.logger.warn(`Cannot register formatter "${schemaName}" - formatter registry not available`);
+            return;
+          }
+          formatterRegistry.register(schemaName, formatter);
+        }
+      },
     };
 
     // Register the plugin

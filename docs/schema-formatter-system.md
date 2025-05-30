@@ -23,7 +23,8 @@ Implement a **Schema Formatter System** that:
 
 ## Design Philosophy
 
-**Keep it simple**: 
+**Keep it simple**:
+
 - Formatters have one job: transform structured data into human-readable markdown text
 - No configuration options - different views should use different formatters
 - Interfaces handle presentation concerns (colors, emoji support, etc.)
@@ -78,24 +79,32 @@ class DefaultSchemaFormatter implements SchemaFormatter {
   }
 
   private formatArray(items: unknown[]): string {
-    return items.map((item, i) => `${i + 1}. ${this.format(item)}`).join('\n');
+    return items.map((item, i) => `${i + 1}. ${this.format(item)}`).join("\n");
   }
 
   private formatObject(obj: Record<string, unknown>): string {
     // Smart object formatting with emoji
     const entries = Object.entries(obj);
-    return entries.map(([key, value]) => {
-      const icon = this.getIconForKey(key);
-      return `${icon} **${this.humanize(key)}**: ${value}`;
-    }).join('\n');
+    return entries
+      .map(([key, value]) => {
+        const icon = this.getIconForKey(key);
+        return `${icon} **${this.humanize(key)}**: ${value}`;
+      })
+      .join("\n");
   }
 
   private getIconForKey(key: string): string {
     const icons: Record<string, string> = {
-      name: '👤', title: '💼', email: '📧', phone: '📱',
-      date: '📅', time: '🕐', location: '📍', status: '📊'
+      name: "👤",
+      title: "💼",
+      email: "📧",
+      phone: "📱",
+      date: "📅",
+      time: "🕐",
+      location: "📍",
+      status: "📊",
     };
-    return icons[key.toLowerCase()] || '•';
+    return icons[key.toLowerCase()] || "•";
   }
 }
 ```
@@ -133,14 +142,15 @@ class DefaultSchemaFormatter implements SchemaFormatter {
 
        // Different formatters for different views
        registry.register("profileCard", {
-         format: (data) => `👤 ${data.name}\n💼 ${data.title}\n📧 ${data.email}`
+         format: (data) =>
+           `👤 ${data.name}\n💼 ${data.title}\n📧 ${data.email}`,
        });
-       
+
        registry.register("profileDetail", {
          format: (data) => {
            // Full profile with experiences, education, etc.
            return ProfileFormatter.getInstance().format(data);
-         }
+         },
        });
      }
    }
@@ -153,14 +163,15 @@ class DefaultSchemaFormatter implements SchemaFormatter {
    registry.register("noteList", {
      format: (data) => {
        return data.notes
-         .map(note => `📝 **${note.title}**\n   ${note.preview}`)
+         .map((note) => `📝 **${note.title}**\n   ${note.preview}`)
          .join("\n\n");
      },
-     canFormat: (data) => data?.notes && Array.isArray(data.notes)
+     canFormat: (data) => data?.notes && Array.isArray(data.notes),
    });
    ```
 
 3. **Task Context Example**
+
    ```typescript
    // Class-based formatter for complex logic
    class TaskListFormatter implements SchemaFormatter {
@@ -168,12 +179,12 @@ class DefaultSchemaFormatter implements SchemaFormatter {
        const grouped = this.groupByStatus(data.tasks);
        return this.formatGroups(grouped);
      }
-     
+
      canFormat(data: unknown): boolean {
        return data?.tasks && Array.isArray(data.tasks);
      }
    }
-   
+
    registry.register("taskList", new TaskListFormatter());
    ```
 
@@ -184,31 +195,36 @@ class DefaultSchemaFormatter implements SchemaFormatter {
    ```typescript
    class CLIInterface {
      private supportsEmoji = this.detectEmojiSupport();
-     
+
      private processResponse(markdown: string): string {
        if (!this.supportsEmoji) {
          return this.stripEmoji(markdown);
        }
        return this.markdownToAnsi(markdown);
      }
-     
+
      private detectEmojiSupport(): boolean {
-       return process.env.TERM_PROGRAM === 'iTerm.app' || 
-              !!process.env.WT_SESSION || // Windows Terminal
-              !!process.env.KONSOLE_VERSION;
+       return (
+         process.env.TERM_PROGRAM === "iTerm.app" ||
+         !!process.env.WT_SESSION || // Windows Terminal
+         !!process.env.KONSOLE_VERSION
+       );
      }
    }
    ```
 
 2. **Format Hints in Schemas**
+
    ```typescript
    // Schemas can hint at their preferred formatter
-   const profileSummarySchema = z.object({
-     name: z.string(),
-     title: z.string(),
-     email: z.string()
-   }).describe("profileCard"); // Maps to 'profileCard' formatter
-   
+   const profileSummarySchema = z
+     .object({
+       name: z.string(),
+       title: z.string(),
+       email: z.string(),
+     })
+     .describe("profileCard"); // Maps to 'profileCard' formatter
+
    // QueryProcessor can extract this hint
    const schemaName = schema.description || undefined;
    ```
@@ -221,14 +237,14 @@ class DefaultSchemaFormatter implements SchemaFormatter {
        if (schemaName && this.formatters.has(schemaName)) {
          return this.formatters.get(schemaName).format(data);
        }
-       
+
        // 2. Try to find a formatter that can handle this data
        for (const [name, formatter] of this.formatters) {
          if (formatter.canFormat(data)) {
            return formatter.format(data);
          }
        }
-       
+
        // 3. Use default formatter
        return this.defaultFormatter.format(data);
      }

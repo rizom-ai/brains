@@ -57,6 +57,15 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
   register(context: PluginContext): Promise<PluginCapabilities>;
 };
 
+import type { SchemaFormatter } from "./formatters";
+
+/**
+ * Minimal formatter registry interface for plugins
+ */
+export interface FormatterRegistry {
+  register(schemaName: string, formatter: SchemaFormatter): void;
+}
+
 /**
  * Plugin context passed to plugins during registration
  * Provides access to the registry and other shared services
@@ -67,4 +76,5 @@ export interface PluginContext {
   getPlugin: (id: string) => Plugin | undefined;
   events: EventEmitter;
   messageBus: MessageBus;
+  formatters: FormatterRegistry;
 }

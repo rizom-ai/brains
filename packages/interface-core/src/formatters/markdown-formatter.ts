@@ -9,7 +9,8 @@ export interface FormatOptions {
 }
 
 export class MarkdownFormatter {
-  private createProcessor() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private createProcessor(): any {
     const processor = remark().data("settings", {
       bullet: "-",
       emphasis: "_",

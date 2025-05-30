@@ -42,5 +42,8 @@ export type {
   BrainProtocol,
 } from "./services";
 
+// Formatter types
+export type { SchemaFormatter } from "./formatters";
+
 // Re-export commonly used types from utils
 export type { Logger } from "@brains/utils";

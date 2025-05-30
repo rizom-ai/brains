@@ -21,6 +21,7 @@ import type { Plugin } from "@brains/types";
 import { defaultQueryResponseSchema } from "./schemas/defaults";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
+import { SchemaFormatterRegistry, DefaultSchemaFormatter } from "./formatters";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -52,6 +53,7 @@ export class Shell {
   private readonly registry: Registry;
   private readonly entityRegistry: EntityRegistry;
   private readonly schemaRegistry: SchemaRegistry;
+  private readonly formatterRegistry: SchemaFormatterRegistry;
   private readonly messageBus: MessageBus;
   private readonly pluginManager: PluginManager;
   private readonly embeddingService: IEmbeddingService;
@@ -164,6 +166,10 @@ export class Shell {
     this.registry = Registry.getInstance(this.logger);
     this.entityRegistry = EntityRegistry.getInstance(this.logger);
     this.schemaRegistry = SchemaRegistry.getInstance(this.logger);
+    this.formatterRegistry = SchemaFormatterRegistry.getInstance({
+      defaultFormatter: new DefaultSchemaFormatter(),
+      logger: this.logger,
+    });
     this.messageBus = MessageBus.getInstance(this.logger);
     this.pluginManager = PluginManager.getInstance(
       this.registry,
@@ -209,6 +215,7 @@ export class Shell {
     this.registry.register("shell", () => this);
     this.registry.register("entityRegistry", () => this.entityRegistry);
     this.registry.register("schemaRegistry", () => this.schemaRegistry);
+    this.registry.register("formatterRegistry", () => this.formatterRegistry);
     this.registry.register("messageBus", () => this.messageBus);
     this.registry.register("pluginManager", () => this.pluginManager);
     this.registry.register("entityService", () => this.entityService);
@@ -374,6 +381,10 @@ export class Shell {
 
   public getSchemaRegistry(): SchemaRegistry {
     return this.schemaRegistry;
+  }
+
+  public getFormatterRegistry(): SchemaFormatterRegistry {
+    return this.formatterRegistry;
   }
 
   public getAIService(): AIService {
