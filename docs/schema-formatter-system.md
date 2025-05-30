@@ -230,6 +230,7 @@ class DefaultSchemaFormatter implements SchemaFormatter {
    ```
 
 3. **Fallback Chain**
+
    ```typescript
    class SchemaFormatterRegistry {
      format(data: unknown, schemaName?: string): string {

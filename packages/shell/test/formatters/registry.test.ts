@@ -12,10 +12,10 @@ describe("SchemaFormatterRegistry", () => {
   beforeEach(() => {
     // Reset singleton
     SchemaFormatterRegistry.resetInstance();
-    
+
     defaultFormatter = new DefaultSchemaFormatter();
     logger = createSilentLogger();
-    
+
     registry = SchemaFormatterRegistry.createFresh({
       defaultFormatter,
       logger,
@@ -181,7 +181,7 @@ describe("SchemaFormatterRegistry", () => {
       };
 
       registry.setDefaultFormatter(newDefault);
-      
+
       // Test that new default is used
       const result = registry.format("test");
       expect(result).toBe("new default");
@@ -195,14 +195,14 @@ describe("SchemaFormatterRegistry", () => {
         logger,
       });
       const instance2 = SchemaFormatterRegistry.getInstance();
-      
+
       expect(instance1).toBe(instance2);
     });
 
     it("should throw when getInstance called without dependencies first time", () => {
       SchemaFormatterRegistry.resetInstance();
       expect(() => SchemaFormatterRegistry.getInstance()).toThrow(
-        "Default formatter required for first initialization"
+        "Default formatter required for first initialization",
       );
     });
   });

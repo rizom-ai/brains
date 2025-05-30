@@ -1,6 +1,6 @@
 /**
  * Schema Formatter System Types
- * 
+ *
  * Internal types for the shell's formatter implementation.
  */
 

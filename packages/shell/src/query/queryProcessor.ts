@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { ZodType } from "zod";
 import type { Logger } from "@brains/utils";
 import type { EntityService } from "../entity/entityService";
 import type { AIService } from "../ai/aiService";
@@ -98,6 +98,14 @@ export class QueryProcessor {
   }
 
   /**
+   * Extract schema name from Zod schema description
+   * This allows schemas to hint at which formatter to use
+   */
+  getSchemaName<T>(schema: ZodType<T>): string | undefined {
+    return schema.description;
+  }
+
+  /**
    * Analyze the intent of a query
    */
   private async analyzeQueryIntent(query: string): Promise<IntentAnalysis> {
@@ -172,7 +180,7 @@ Intent: ${intentAnalysis.primaryIntent}`;
   private async callModel<T = unknown>(
     systemPrompt: string,
     userPrompt: string,
-    schema: z.ZodType<T>,
+    schema: ZodType<T>,
   ): Promise<ModelResponse<T>> {
     this.logger.debug("Model call", { systemPrompt, userPrompt });
 

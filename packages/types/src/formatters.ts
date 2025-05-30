@@ -1,6 +1,6 @@
 /**
  * Schema Formatter Types for Plugins
- * 
+ *
  * Simple interfaces for formatting structured data into human-readable markdown.
  */
 

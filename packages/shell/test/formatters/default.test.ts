@@ -40,10 +40,10 @@ describe("DefaultSchemaFormatter", () => {
     });
 
     it("should prefer message over text and display", () => {
-      const data = { 
-        message: "Message wins", 
+      const data = {
+        message: "Message wins",
         text: "Text loses",
-        display: "Display loses"
+        display: "Display loses",
       };
       expect(formatter.format(data)).toBe("Message wins");
     });

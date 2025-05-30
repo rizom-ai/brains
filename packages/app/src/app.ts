@@ -176,6 +176,7 @@ export class App {
   ): Promise<BaseInterface | null> {
     const logger = this.createLogger();
     const queryProcessor = this.shell.getQueryProcessor();
+    const formatterRegistry = this.shell.getFormatterRegistry();
 
     const interfaceContext = {
       name: `${this.config.name}-${config.type}`,
@@ -188,7 +189,7 @@ export class App {
         // Use a simple text response schema
         const simpleTextSchema = z.object({
           message: z.string(),
-        });
+        }).describe("simpleTextResponse");
 
         const result = await queryProcessor.processQuery(query, {
           userId: context.userId,
@@ -200,7 +201,9 @@ export class App {
           schema: simpleTextSchema,
         });
 
-        return result.message;
+        // Use formatter registry to format the result
+        const schemaName = queryProcessor.getSchemaName(simpleTextSchema);
+        return formatterRegistry.format(result, schemaName);
       },
     };
 

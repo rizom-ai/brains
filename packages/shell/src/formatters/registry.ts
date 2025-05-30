@@ -4,26 +4,29 @@ import type { ISchemaFormatterRegistry } from "./types";
 
 /**
  * Registry for managing schema formatters
- * 
+ *
  * Follows the Component Interface Standardization pattern
  */
 export class SchemaFormatterRegistry implements ISchemaFormatterRegistry {
   private static instance: SchemaFormatterRegistry | null = null;
-  
+
   private formatters = new Map<string, SchemaFormatter>();
   private defaultFormatter: SchemaFormatter;
 
   /**
    * Get singleton instance
    */
-  public static getInstance(
-    dependencies?: { defaultFormatter: SchemaFormatter; logger?: Logger }
-  ): SchemaFormatterRegistry {
+  public static getInstance(dependencies?: {
+    defaultFormatter: SchemaFormatter;
+    logger?: Logger;
+  }): SchemaFormatterRegistry {
     if (!SchemaFormatterRegistry.instance) {
       if (!dependencies?.defaultFormatter) {
         throw new Error("Default formatter required for first initialization");
       }
-      SchemaFormatterRegistry.instance = new SchemaFormatterRegistry(dependencies);
+      SchemaFormatterRegistry.instance = new SchemaFormatterRegistry(
+        dependencies,
+      );
     }
     return SchemaFormatterRegistry.instance;
   }
@@ -38,14 +41,18 @@ export class SchemaFormatterRegistry implements ISchemaFormatterRegistry {
   /**
    * Create a fresh instance (for testing)
    */
-  public static createFresh(
-    dependencies: { defaultFormatter: SchemaFormatter; logger?: Logger }
-  ): SchemaFormatterRegistry {
+  public static createFresh(dependencies: {
+    defaultFormatter: SchemaFormatter;
+    logger?: Logger;
+  }): SchemaFormatterRegistry {
     return new SchemaFormatterRegistry(dependencies);
   }
 
   private constructor(
-    private dependencies: { defaultFormatter: SchemaFormatter; logger?: Logger }
+    private dependencies: {
+      defaultFormatter: SchemaFormatter;
+      logger?: Logger;
+    },
   ) {
     this.defaultFormatter = dependencies.defaultFormatter;
   }
@@ -55,7 +62,9 @@ export class SchemaFormatterRegistry implements ISchemaFormatterRegistry {
    */
   public register(schemaName: string, formatter: SchemaFormatter): void {
     this.formatters.set(schemaName, formatter);
-    this.dependencies.logger?.debug(`Registered formatter for schema: ${schemaName}`);
+    this.dependencies.logger?.debug(
+      `Registered formatter for schema: ${schemaName}`,
+    );
   }
 
   /**
@@ -102,7 +111,9 @@ export class SchemaFormatterRegistry implements ISchemaFormatterRegistry {
    */
   public unregister(schemaName: string): void {
     this.formatters.delete(schemaName);
-    this.dependencies.logger?.debug(`Unregistered formatter for schema: ${schemaName}`);
+    this.dependencies.logger?.debug(
+      `Unregistered formatter for schema: ${schemaName}`,
+    );
   }
 
   /**

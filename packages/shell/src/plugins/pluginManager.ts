@@ -292,7 +292,9 @@ export class PluginManager {
         formatterRegistry = shell.getFormatterRegistry();
       }
     } catch (error) {
-      this.logger.debug("Shell not available, formatter registry will be unavailable");
+      this.logger.debug(
+        "Shell not available, formatter registry will be unavailable",
+      );
     }
 
     // Create plugin context
@@ -305,11 +307,13 @@ export class PluginManager {
       formatters: {
         register: (schemaName: string, formatter: SchemaFormatter) => {
           if (!formatterRegistry) {
-            this.logger.warn(`Cannot register formatter "${schemaName}" - formatter registry not available`);
+            this.logger.warn(
+              `Cannot register formatter "${schemaName}" - formatter registry not available`,
+            );
             return;
           }
           formatterRegistry.register(schemaName, formatter);
-        }
+        },
       },
     };
 
