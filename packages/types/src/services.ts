@@ -51,7 +51,7 @@ export interface EntityService {
   // List and search
   listEntities<T extends BaseEntity>(
     entityType: string,
-    options?: Omit<ListOptions, "entityType">
+    options?: Omit<ListOptions, "entityType">,
   ): Promise<T[]>;
 
   search(query: string, options?: SearchOptions): Promise<SearchResult[]>;

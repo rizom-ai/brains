@@ -35,7 +35,7 @@ async function main(): Promise<void> {
     plugins: [
       // Git sync plugin for version control
       gitSync({
-        repoPath: "./brain-repo",
+        repoPath: "/home/yeehaa/Documents/brain",
         branch: "main",
         autoSync: false, // Manual sync for testing
       }),
