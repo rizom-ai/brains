@@ -172,8 +172,7 @@ export class GitSync {
 
     // For each entity type, get all entities and save to markdown
     for (const entityType of entityTypes) {
-      const entities = await this.entityService.listEntities({
-        entityType,
+      const entities = await this.entityService.listEntities(entityType, {
         limit: 1000, // Get all entities
       });
 

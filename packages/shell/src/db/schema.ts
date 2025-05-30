@@ -80,9 +80,7 @@ export const entities = sqliteTable("entities", {
 
   // Content metadata
   contentWeight: real("contentWeight").notNull().default(1.0),
-  tags: jsonArray("tags")
-    .notNull()
-    .default([]),
+  tags: jsonArray("tags").notNull().default([]),
 
   // Vector embedding for semantic search
   // NOTE: This column has a vector index created via migration:
