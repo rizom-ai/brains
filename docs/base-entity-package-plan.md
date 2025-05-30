@@ -13,6 +13,7 @@ Currently, the Brain system depends on specialized entity plugins (like Note Con
 3. Testing requires implementing mock entity plugins
 
 A base entity package would provide:
+
 - Default entity handling for any entity type
 - Consistent serialization/deserialization to/from Markdown
 - Compatibility with existing Git repositories
@@ -32,6 +33,7 @@ The Shell will depend on this package and automatically register the base entity
 ## Design Philosophy
 
 **Stand-alone, reusable components**:
+
 - Clean separation from core Shell functionality
 - Well-defined interfaces for extensibility
 - Consistent with existing project architecture
@@ -80,7 +82,7 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
   serialize(entity: BaseEntity): string {
     // Extract frontmatter fields
     const { content, ...metadata } = entity;
-    
+
     // Generate YAML frontmatter
     return matter.stringify(content || "", metadata);
   }
@@ -91,7 +93,7 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
   deserialize(markdown: string, id?: string): BaseEntity {
     // Parse markdown with frontmatter
     const parsed = matter(markdown);
-    
+
     // Extract entity fields from frontmatter
     const entity: BaseEntity = {
       id: id || parsed.data.id || generateId(),
@@ -102,7 +104,7 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
       updated: parsed.data.updated || new Date().toISOString(),
       tags: parsed.data.tags || [],
     };
-    
+
     return entity;
   }
 
@@ -156,7 +158,7 @@ export class BaseEntityFormatter implements SchemaFormatter {
     }
 
     const entity = data as BaseEntity;
-    
+
     // Format as markdown
     return `# ${entity.title}
 
@@ -195,20 +197,20 @@ private registerBaseEntitySupport(): void {
 
   // Create base entity adapter
   const baseEntityAdapter = new BaseEntityAdapter();
-  
+
   // Register with entity registry
   this.entityRegistry.register(
     "base",
     baseEntitySchema,
     baseEntityAdapter
   );
-  
+
   // Register formatter
   this.formatterRegistry.register(
     "baseEntity",
     new BaseEntityFormatter()
   );
-  
+
   this.logger.debug("Base entity support registered");
 }
 ```
@@ -247,11 +249,7 @@ const entity = await shell.getEntityService().createEntity({
 class NotePlugin implements Plugin {
   register(context) {
     // Register specialized note adapter
-    context.entityRegistry.register(
-      "note", 
-      noteSchema, 
-      new NoteAdapter()
-    );
+    context.entityRegistry.register("note", noteSchema, new NoteAdapter());
   }
 }
 ```

@@ -131,13 +131,13 @@ export class EntityService {
     await this.db.insert(entities).values({
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
-      title, // Use extracted title
+      title,
       content: markdown,
       created: new Date(validatedEntity.created).getTime(),
       updated: new Date(validatedEntity.updated).getTime(),
-      tags, // Use extracted tags
-      contentWeight, // Use extracted contentWeight
-      embedding, // Always present with local generation
+      tags,
+      contentWeight,
+      embedding,
     });
 
     this.logger.info(
@@ -251,12 +251,12 @@ export class EntityService {
     await this.db
       .update(entities)
       .set({
-        title, // Use extracted title
+        title,
         content: markdown,
         updated: new Date(validatedEntity.updated).getTime(),
-        tags, // Use extracted tags
-        contentWeight, // Use extracted contentWeight
-        embedding, // Update embedding
+        tags,
+        contentWeight,
+        embedding,
       })
       .where(eq(entities.id, validatedEntity.id));
 

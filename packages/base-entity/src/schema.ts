@@ -7,10 +7,10 @@ import { baseEntitySchema as coreBaseEntitySchema } from "@brains/types";
  * which will be added automatically
  */
 export const createBaseEntitySchema = coreBaseEntitySchema
-  .omit({ 
+  .omit({
     id: true,
-    created: true, 
-    updated: true 
+    created: true,
+    updated: true,
   })
   .extend({
     id: z.string().optional(),

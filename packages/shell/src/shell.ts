@@ -288,7 +288,7 @@ export class Shell {
     try {
       // Register default formatters
       this.registerDefaultFormatters();
-      
+
       // Register base entity support
       this.registerBaseEntitySupport();
 
@@ -350,31 +350,28 @@ export class Shell {
     );
 
     // Register base entity formatter
-    this.formatterRegistry.register(
-      "baseEntity", 
-      new BaseEntityFormatter()
-    );
+    this.formatterRegistry.register("baseEntity", new BaseEntityFormatter());
 
     this.logger.debug("Default formatters registered");
   }
-  
+
   /**
    * Register base entity support
    * This provides fallback handling for generic entities
    */
   private registerBaseEntitySupport(): void {
     this.logger.debug("Registering base entity support");
-    
+
     // Create base entity adapter
     const baseEntityAdapter = new BaseEntityAdapter();
-    
+
     // Register with entity registry
     this.entityRegistry.registerEntityType(
       "base",
       baseEntityAdapter.schema,
-      baseEntityAdapter
+      baseEntityAdapter,
     );
-    
+
     this.logger.debug("Base entity support registered");
   }
 

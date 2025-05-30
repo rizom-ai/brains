@@ -30,7 +30,7 @@ export interface EntityAdapter<T extends BaseEntity> {
 
 /**
  * Adapter for base entity type - handles serialization/deserialization
- * 
+ *
  * Provides a fallback implementation for the EntityAdapter interface
  * that works with any entity conforming to the BaseEntity interface.
  */
@@ -52,7 +52,7 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
   toMarkdown(entity: BaseEntity): string {
     // Extract content field
     const { content, ...frontmatter } = entity;
-    
+
     // Generate markdown with frontmatter
     return generateMarkdown(frontmatter, content || "");
   }
@@ -62,7 +62,7 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
    */
   fromMarkdown(markdown: string): Partial<BaseEntity> {
     const { frontmatter, content } = parseMarkdown(markdown);
-    
+
     // Return parsed fields
     return {
       content,
@@ -95,7 +95,7 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
    */
   generateFrontMatter(entity: BaseEntity): string {
     const { content: _content, ...frontmatter } = entity;
-    
+
     // Generate YAML frontmatter
     return matter.stringify("", frontmatter).trim();
   }

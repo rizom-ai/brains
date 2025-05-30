@@ -10,7 +10,4 @@ export { BaseEntityAdapter } from "./adapter";
 export { BaseEntityFormatter } from "./formatter";
 
 // Export schema for creating entities
-export { 
-  createBaseEntitySchema,
-  type CreateBaseEntity
-} from "./schema";
+export { createBaseEntitySchema, type CreateBaseEntity } from "./schema";

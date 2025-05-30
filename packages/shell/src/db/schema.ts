@@ -41,6 +41,31 @@ const vector = customType<{
 });
 
 /**
+ * Custom type for JSON arrays in libSQL
+ * Works around Drizzle ORM issue with JSON mode
+ */
+const jsonArray = customType<{
+  data: string[];
+  driverData: string;
+}>({
+  dataType() {
+    return "text";
+  },
+  toDriver(value: string[]): string {
+    return JSON.stringify(value || []);
+  },
+  fromDriver(value: string): string[] {
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  },
+});
+
+/**
  * Main entities table with embedded vectors
  * This schema combines the entity data with embeddings for efficient queries
  */
@@ -55,10 +80,9 @@ export const entities = sqliteTable("entities", {
 
   // Content metadata
   contentWeight: real("contentWeight").notNull().default(1.0),
-  tags: text("tags", { mode: "json" })
-    .$type<string[]>()
+  tags: jsonArray("tags")
     .notNull()
-    .default(sql`'[]'`),
+    .default([]),
 
   // Vector embedding for semantic search
   // NOTE: This column has a vector index created via migration:
@@ -102,13 +126,11 @@ export const entityRelations = sqliteTable("entity_relations", {
  * Zod schemas for validation
  */
 export const insertEntitySchema = createInsertSchema(entities, {
-  tags: z.array(z.string()).default([]),
   contentWeight: z.number().min(0).max(1).default(1.0),
   embedding: z.instanceof(Float32Array),
 });
 
 export const selectEntitySchema = createSelectSchema(entities, {
-  tags: z.array(z.string()),
   contentWeight: z.number().min(0).max(1),
   embedding: z.instanceof(Float32Array),
 });

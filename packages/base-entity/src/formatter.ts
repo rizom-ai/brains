@@ -4,7 +4,7 @@ import { parseMarkdown } from "@brains/utils";
 
 /**
  * Formatter for base entities
- * 
+ *
  * Provides a basic formatter for BaseEntity instances,
  * displaying database fields and frontmatter separately.
  */
@@ -19,19 +19,19 @@ export class BaseEntityFormatter implements SchemaFormatter {
 
     const entity = data as BaseEntity;
     let output = "";
-    
+
     // Display entity title
     output += `# ${entity.title}\n\n`;
-    
+
     // Display database fields section
     output += "## Database Fields\n\n";
     output += `- **ID**: ${entity.id}\n`;
     output += `- **Type**: ${entity.entityType}\n`;
-    
+
     if (entity.tags.length > 0) {
       output += `- **Tags**: ${entity.tags.join(", ")}\n`;
     }
-    
+
     if (entity.created) {
       try {
         const createdDate = new Date(entity.created);
@@ -40,7 +40,7 @@ export class BaseEntityFormatter implements SchemaFormatter {
         output += `- **Created**: ${entity.created}\n`;
       }
     }
-    
+
     if (entity.updated) {
       try {
         const updatedDate = new Date(entity.updated);
@@ -49,11 +49,11 @@ export class BaseEntityFormatter implements SchemaFormatter {
         output += `- **Updated**: ${entity.updated}\n`;
       }
     }
-    
+
     // If there's content, extract and display frontmatter and content separately
     if (entity.content) {
       const { frontmatter, content } = parseMarkdown(entity.content);
-      
+
       // Display frontmatter as JSON
       if (Object.keys(frontmatter).length > 0) {
         output += "\n## Frontmatter\n\n";
@@ -61,14 +61,14 @@ export class BaseEntityFormatter implements SchemaFormatter {
         output += JSON.stringify(frontmatter, null, 2);
         output += "\n```\n";
       }
-      
+
       // Display content
       if (content.trim().length > 0) {
         output += "\n## Content\n\n";
         output += content;
       }
     }
-    
+
     return output;
   }
 
