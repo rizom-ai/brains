@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { MessageBus } from "@/messaging/messageBus";
 
-import { createSilentLogger, type Logger } from "@personal-brain/utils";
+import { createSilentLogger, type Logger } from "@brains/utils";
 import type { BaseMessage, MessageResponse } from "@/messaging/types";
 import { MessageFactory } from "@/messaging/messageFactory";
 import { z } from "zod";

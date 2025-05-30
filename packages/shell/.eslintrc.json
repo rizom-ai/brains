@@ -1,5 +1,5 @@
 {
-  "extends": ["@personal-brain/eslint-config"],
+  "extends": ["@brains/eslint-config"],
   "parserOptions": {
     "project": "./tsconfig.json"
   },

@@ -2,8 +2,10 @@
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "skipLibCheck": true,
+    "jsx": "react"
   },
-  "include": ["**/*.ts"],
+  "include": ["test/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

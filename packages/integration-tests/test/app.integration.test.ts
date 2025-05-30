@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { App } from "@brains/app";
 import { Shell } from "@brains/shell";
+import { EntityRegistry } from "@brains/shell/src/entity/entityRegistry";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { createTestDatabase } from "./helpers/test-db.js";
 
@@ -14,6 +15,7 @@ describe("App Integration", () => {
 
     // Reset singletons
     Shell.resetInstance();
+    EntityRegistry.resetInstance();
     StdioMCPServer.resetInstance();
     StreamableHTTPServer.resetInstance();
   });
@@ -21,6 +23,7 @@ describe("App Integration", () => {
   afterEach(() => {
     // Clean up
     Shell.resetInstance();
+    EntityRegistry.resetInstance();
     StdioMCPServer.resetInstance();
     StreamableHTTPServer.resetInstance();
   });

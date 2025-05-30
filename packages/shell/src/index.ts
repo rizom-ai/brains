@@ -3,62 +3,25 @@
  *
  * This is the core package that provides the foundational architecture
  * for the Personal Brain application.
+ * 
+ * IMPORTANT: To avoid import side effects, components should be imported directly
+ * from their source files rather than from this barrel export.
+ * 
+ * Example:
+ *   import { Shell } from "@brains/shell/src/shell";
+ *   import { EntityRegistry } from "@brains/shell/src/entity/entityRegistry";
+ * 
+ * This prevents loading unnecessary dependencies (like fastembed/onnxruntime)
+ * when you only need type definitions or specific components.
  */
 
-// Main Shell entry point
+// Re-export only the main Shell class as it's the primary entry point
 export { Shell } from "./shell";
 
-// Configuration
-export { shellConfigSchema, createShellConfig } from "./config";
+// Re-export essential types that don't trigger side effects
 export type { ShellConfig } from "./config";
-
-// Core Components
-export { QueryProcessor } from "./query/queryProcessor";
-export { EntityService } from "./entity/entityService";
-export { EntityRegistry } from "./entity/entityRegistry";
-export { SchemaRegistry } from "./schema/schemaRegistry";
-export { PluginManager } from "./plugins/pluginManager";
-
-// Services
-export { EmbeddingService } from "./embedding/embeddingService";
 export type { IEmbeddingService } from "./embedding/embeddingService";
-export { AIService } from "./ai/aiService";
 export type { AIModelConfig } from "./ai/aiService";
-
-// Messaging Components
-export { MessageBus } from "./messaging/messageBus";
-export { MessageFactory } from "./messaging/messageFactory";
-export type {
-  BaseMessage,
-  MessageResponse,
-  MessageWithPayload,
-} from "./messaging/types";
-
-// Registry & Utilities
-export { Registry } from "./registry/registry";
-
-// MCP Integration
-export { registerShellMCP } from "./mcp";
-export type { ShellMCPOptions } from "./mcp";
-
-// Database exports
 export type { DrizzleDB } from "./db";
-export { createDatabase, runMigrations } from "./db";
-export * from "./db/schema";
-
-// Types that are shell-specific
 export type { SerializableEntity, SerializableQueryResult } from "./types";
-
-// Schemas for validation
-export { serializableEntitySchema } from "./types";
-
-// Default schemas
-export {
-  defaultQueryResponseSchema,
-  simpleTextResponseSchema,
-  createEntityResponseSchema,
-  updateEntityResponseSchema,
-} from "./schemas/defaults";
-
-// Serialization utilities
-export { toSerializableEntity } from "./utils/serialization";
+export type { ShellMCPOptions } from "./mcp";

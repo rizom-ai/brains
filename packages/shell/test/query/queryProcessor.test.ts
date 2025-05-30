@@ -10,7 +10,7 @@ import {
   updateEntityResponseSchema,
 } from "@/schemas/defaults";
 
-import { createSilentLogger, type Logger } from "@personal-brain/utils";
+import { createSilentLogger, type Logger } from "@brains/utils";
 import type { EntityService } from "@/entity/entityService";
 import type { AIService } from "@/ai/aiService";
 

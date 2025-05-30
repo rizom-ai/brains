@@ -29,6 +29,7 @@ import {
   CreateEntityResponseFormatter,
   UpdateEntityResponseFormatter,
 } from "@brains/formatters";
+import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -287,6 +288,9 @@ export class Shell {
     try {
       // Register default formatters
       this.registerDefaultFormatters();
+      
+      // Register base entity support
+      this.registerBaseEntitySupport();
 
       // Run migrations if enabled
       if (this.config.features.runMigrationsOnInit) {
@@ -345,7 +349,33 @@ export class Shell {
       new UpdateEntityResponseFormatter(),
     );
 
+    // Register base entity formatter
+    this.formatterRegistry.register(
+      "baseEntity", 
+      new BaseEntityFormatter()
+    );
+
     this.logger.debug("Default formatters registered");
+  }
+  
+  /**
+   * Register base entity support
+   * This provides fallback handling for generic entities
+   */
+  private registerBaseEntitySupport(): void {
+    this.logger.debug("Registering base entity support");
+    
+    // Create base entity adapter
+    const baseEntityAdapter = new BaseEntityAdapter();
+    
+    // Register with entity registry
+    this.entityRegistry.registerEntityType(
+      "base",
+      baseEntityAdapter.schema,
+      baseEntityAdapter
+    );
+    
+    this.logger.debug("Base entity support registered");
   }
 
   /**

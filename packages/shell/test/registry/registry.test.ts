@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { Registry } from "@/registry/registry";
 
-import { createSilentLogger, type Logger } from "@personal-brain/utils";
+import { createSilentLogger, type Logger } from "@brains/utils";
 
 // Test component interface
 interface TestComponent {

@@ -42,6 +42,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "packages/base-entity": {
+      "name": "@brains/base-entity",
+      "version": "1.0.0",
+      "dependencies": {
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "gray-matter": "^4.0.3",
+        "nanoid": "^5.0.4",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+      },
+    },
     "packages/cli": {
       "name": "@brains/cli",
       "version": "0.1.0",
@@ -170,6 +186,7 @@
       "dependencies": {
         "@ai-sdk/anthropic": "^1.2.12",
         "@anthropic-ai/sdk": "^0.13.0",
+        "@brains/base-entity": "workspace:*",
         "@brains/formatters": "workspace:*",
         "@brains/mcp-server": "workspace:*",
         "@brains/types": "workspace:*",
@@ -259,6 +276,8 @@
     "@anush008/tokenizers-win32-x64-msvc": ["@anush008/tokenizers-win32-x64-msvc@0.0.0", "", { "os": "win32", "cpu": "x64" }, "sha512-/5kP0G96+Cr6947F0ZetXnmL31YCaN15dbNbh2NHg7TXXRwfqk95+JtPP5Q7v4jbR2xxAmuseBqB4H/V7zKWuw=="],
 
     "@brains/app": ["@brains/app@workspace:packages/app"],
+
+    "@brains/base-entity": ["@brains/base-entity@workspace:packages/base-entity"],
 
     "@brains/cli": ["@brains/cli@workspace:packages/cli"],
 

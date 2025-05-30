@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { SchemaFormatterRegistry } from "@/formatters/registry";
 import { DefaultSchemaFormatter } from "@brains/formatters";
 import type { SchemaFormatter } from "@brains/types";
-import { createSilentLogger } from "@personal-brain/utils";
+import { createSilentLogger } from "@brains/utils";
 
 describe("SchemaFormatterRegistry", () => {
   let registry: SchemaFormatterRegistry;

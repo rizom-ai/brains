@@ -7,7 +7,7 @@ import {
 } from "@/plugins/pluginManager";
 import { Registry } from "@/registry/registry";
 
-import { createSilentLogger, type Logger } from "@personal-brain/utils";
+import { createSilentLogger, type Logger } from "@brains/utils";
 import { MessageBus } from "@/messaging/messageBus";
 
 interface MockService {

@@ -19,6 +19,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
     "@anthropic-ai/sdk": "^0.13.0",
+    "@brains/base-entity": "workspace:*",
     "@brains/formatters": "workspace:*",
     "@brains/mcp-server": "workspace:*",
     "@brains/types": "workspace:*",

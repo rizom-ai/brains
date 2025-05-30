@@ -1,0 +1,32 @@
+{
+  "name": "@brains/base-entity",
+  "version": "1.0.0",
+  "description": "Base entity adapter and utilities for the brain system",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@brains/types": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "gray-matter": "^4.0.3",
+    "nanoid": "^5.0.4",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@brains/typescript-config": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@types/bun": "latest"
+  }
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { Shell } from "@/shell";
-import { createSilentLogger, type Logger } from "@personal-brain/utils";
+import { createSilentLogger, type Logger } from "@brains/utils";
 import type { PluginCapabilities } from "@brains/types";
 import { Registry } from "@/registry/registry";
 import { EntityRegistry } from "@/entity/entityRegistry";

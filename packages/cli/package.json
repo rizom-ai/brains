@@ -9,7 +9,6 @@
     "src"
   ],
   "scripts": {
-    "build": "tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --max-warnings 0 .",

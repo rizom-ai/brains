@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { z } from "zod";
 import { SchemaRegistry } from "@/schema/schemaRegistry";
-import { createSilentLogger } from "@personal-brain/utils";
+import { createSilentLogger } from "@brains/utils";
 
 describe("SchemaRegistry", () => {
   let registry: SchemaRegistry;
