@@ -21,7 +21,14 @@ import type { Plugin } from "@brains/types";
 import { defaultQueryResponseSchema } from "./schemas/defaults";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
-import { SchemaFormatterRegistry, DefaultSchemaFormatter } from "./formatters";
+import { SchemaFormatterRegistry } from "./formatters";
+import {
+  DefaultSchemaFormatter,
+  SimpleTextResponseFormatter,
+  DefaultQueryResponseFormatter,
+  CreateEntityResponseFormatter,
+  UpdateEntityResponseFormatter,
+} from "@brains/formatters";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -278,6 +285,9 @@ export class Shell {
     this.logger.info("Initializing Shell");
 
     try {
+      // Register default formatters
+      this.registerDefaultFormatters();
+
       // Run migrations if enabled
       if (this.config.features.runMigrationsOnInit) {
         this.logger.info("Running database migrations...");
@@ -306,6 +316,36 @@ export class Shell {
       this.logger.error("Failed to initialize Shell", error);
       throw error;
     }
+  }
+
+  /**
+   * Register default formatters for core response schemas
+   */
+  private registerDefaultFormatters(): void {
+    this.logger.debug("Registering default formatters");
+
+    // Register formatters for default response schemas
+    this.formatterRegistry.register(
+      "simpleTextResponse",
+      new SimpleTextResponseFormatter()
+    );
+
+    this.formatterRegistry.register(
+      "defaultQueryResponse",
+      new DefaultQueryResponseFormatter()
+    );
+
+    this.formatterRegistry.register(
+      "createEntityResponse",
+      new CreateEntityResponseFormatter()
+    );
+
+    this.formatterRegistry.register(
+      "updateEntityResponse",
+      new UpdateEntityResponseFormatter()
+    );
+
+    this.logger.debug("Default formatters registered");
   }
 
   /**

@@ -11,6 +11,7 @@
     "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
+    "@brains/formatters": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "simple-git": "^3.21.0",

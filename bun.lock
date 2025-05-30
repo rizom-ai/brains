@@ -72,10 +72,24 @@
         "eslint-config-prettier": "^8.10.0",
       },
     },
+    "packages/formatters": {
+      "name": "@brains/formatters",
+      "version": "1.0.0",
+      "dependencies": {
+        "@brains/types": "workspace:*",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+      },
+    },
     "packages/git-sync": {
       "name": "@brains/git-sync",
       "version": "0.0.1",
       "dependencies": {
+        "@brains/formatters": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "simple-git": "^3.21.0",
@@ -156,6 +170,7 @@
       "dependencies": {
         "@ai-sdk/anthropic": "^1.2.12",
         "@anthropic-ai/sdk": "^0.13.0",
+        "@brains/formatters": "workspace:*",
         "@brains/mcp-server": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -248,6 +263,8 @@
     "@brains/cli": ["@brains/cli@workspace:packages/cli"],
 
     "@brains/eslint-config": ["@brains/eslint-config@workspace:packages/eslint-config"],
+
+    "@brains/formatters": ["@brains/formatters@workspace:packages/formatters"],
 
     "@brains/git-sync": ["@brains/git-sync@workspace:packages/git-sync"],
 

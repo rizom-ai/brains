@@ -11,6 +11,8 @@ import {
   type GitSyncConfig,
   type GitSyncConfigInput,
 } from "./types";
+import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
+import { gitSyncStatusSchema } from "./schemas";
 
 export class GitSyncPlugin implements Plugin {
   id = "git-sync";
@@ -27,10 +29,13 @@ export class GitSyncPlugin implements Plugin {
   }
 
   async register(context: PluginContext): Promise<PluginCapabilities> {
-    const { logger, registry } = context;
+    const { logger, registry, formatters } = context;
 
     // Get required services from registry
     const entityService = registry.resolve<EntityService>("entityService");
+
+    // Register our custom formatter
+    formatters.register("gitSyncStatus", new GitSyncStatusFormatter());
 
     // Note: We no longer need BrainProtocol - tools are the only interface
 
@@ -105,7 +110,10 @@ export class GitSyncPlugin implements Plugin {
           if (!this.gitSync) {
             throw new Error("GitSync not initialized");
           }
-          return this.gitSync.getStatus();
+          const status = await this.gitSync.getStatus();
+          // Parse through schema to ensure it has the right structure
+          // and the schema description will hint at using gitSyncStatus formatter
+          return gitSyncStatusSchema.parse(status);
         },
       },
     ];

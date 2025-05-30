@@ -3,11 +3,11 @@ import { z } from "zod";
 import { QueryProcessor } from "@/query/queryProcessor";
 import type { Entity } from "@/types";
 import type { SearchResult } from "@brains/types";
-import { 
+import {
   defaultQueryResponseSchema,
   simpleTextResponseSchema,
   createEntityResponseSchema,
-  updateEntityResponseSchema
+  updateEntityResponseSchema,
 } from "@/schemas/defaults";
 
 import { createSilentLogger, type Logger } from "@personal-brain/utils";
@@ -236,9 +236,11 @@ describe("QueryProcessor", () => {
 
   describe("schema name extraction", () => {
     it("should extract schema name from schema description", () => {
-      const schema = z.object({
-        message: z.string(),
-      }).describe("testSchema");
+      const schema = z
+        .object({
+          message: z.string(),
+        })
+        .describe("testSchema");
 
       const schemaName = queryProcessor.getSchemaName(schema);
       expect(schemaName).toBe("testSchema");
@@ -254,10 +256,18 @@ describe("QueryProcessor", () => {
     });
 
     it("should handle default schemas with descriptions", () => {
-      expect(queryProcessor.getSchemaName(defaultQueryResponseSchema)).toBe("defaultQueryResponse");
-      expect(queryProcessor.getSchemaName(simpleTextResponseSchema)).toBe("simpleTextResponse");
-      expect(queryProcessor.getSchemaName(createEntityResponseSchema)).toBe("createEntityResponse");
-      expect(queryProcessor.getSchemaName(updateEntityResponseSchema)).toBe("updateEntityResponse");
+      expect(queryProcessor.getSchemaName(defaultQueryResponseSchema)).toBe(
+        "defaultQueryResponse",
+      );
+      expect(queryProcessor.getSchemaName(simpleTextResponseSchema)).toBe(
+        "simpleTextResponse",
+      );
+      expect(queryProcessor.getSchemaName(createEntityResponseSchema)).toBe(
+        "createEntityResponse",
+      );
+      expect(queryProcessor.getSchemaName(updateEntityResponseSchema)).toBe(
+        "updateEntityResponse",
+      );
     });
   });
 

@@ -187,9 +187,11 @@ export class App {
         context: MessageContext,
       ): Promise<string> => {
         // Use a simple text response schema
-        const simpleTextSchema = z.object({
-          message: z.string(),
-        }).describe("simpleTextResponse");
+        const simpleTextSchema = z
+          .object({
+            message: z.string(),
+          })
+          .describe("simpleTextResponse");
 
         const result = await queryProcessor.processQuery(query, {
           userId: context.userId,
