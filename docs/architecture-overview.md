@@ -57,7 +57,7 @@ The shell provides the core infrastructure and extension points for plugins:
 
 **Plugin Types:**
 
-- **Context Plugins**: Domain-specific functionality (Note, Task, Profile)
+- **Entity Plugins**: Domain-specific functionality (Note, Task, Profile)
 - **Feature Plugins**: Additional capabilities (git-sync, backup, import/export)
 - **Interface Plugins**: Alternative access methods (web-server, GraphQL)
 
@@ -95,9 +95,9 @@ Multiple ways to interact with the brain:
 │  │  ┌──────────────────────────────────────┐ │  │
 │  │  │         Plugin Manager               │ │  │
 │  │  │                                      │ │  │
-│  │  │  Context Plugins:                    │ │  │
+│  │  │  Entity Plugins:                     │ │  │
 │  │  │  ┌─────────────┐ ┌─────────────┐    │ │  │
-│  │  │  │Note Context │ │Task Context │    │ │  │
+│  │  │  │ Note Plugin │ │ Task Plugin │    │ │  │
 │  │  │  │• Note entity│ │• Task entity│    │ │  │
 │  │  │  │• Note tools │ │• Task tools │    │ │  │
 │  │  │  └─────────────┘ └─────────────┘    │ │  │
@@ -150,8 +150,8 @@ const shell = Shell.getInstance({
   plugins: [
     // Plugins are configured, not manually registered
     gitSync({ repoPath: "./brain-repo", autoSync: false }),
-    noteContext({ defaultFormat: "markdown" }),
-    taskContext({ defaultPriority: "medium" }),
+    notePlugin({ defaultFormat: "markdown" }),
+    taskPlugin({ defaultPriority: "medium" }),
   ],
 });
 
@@ -238,18 +238,18 @@ Key Design Principles:
 └─────────────────────────────────────┘
 ```
 
-### 3. Context Plugins
+### 3. Entity Plugins
 
-Context plugins are the primary plugin type, representing domains of functionality:
+Entity plugins are the primary plugin type, representing domains of functionality:
 
-**Current Context Plugins (planned):**
+**Current Entity Plugins (planned):**
 
-- **Note Context**: Note management with markdown support
-- **Task Context**: Task tracking and management
-- **Profile Context**: User profiles and preferences
-- **Project Context**: Project organization
+- **Note Plugin**: Note management with markdown support
+- **Task Plugin**: Task tracking and management
+- **Profile Plugin**: User profiles and preferences
+- **Project Plugin**: Project organization
 
-**What Context Plugins Provide:**
+**What Entity Plugins Provide:**
 
 - **Entity Type**: Domain-specific entity (e.g., Note, Task)
 - **Factory Function**: Creates entities with validation
@@ -260,7 +260,7 @@ Context plugins are the primary plugin type, representing domains of functionali
 
 ```
 ┌─────────────────────────────────────┐
-│      Note Context Plugin            │
+│        Note Plugin                  │
 │                                     │
 │  Registration:                      │
 │  ┌─────────────────────────────┐    │
@@ -325,15 +325,15 @@ The brain application uses a single-bundle deployment strategy with multiple ent
 ```typescript
 // apps/personal-brain/src/index.ts
 import { runBrainApp } from "@brains/shell";
-import { noteContext, taskContext } from "@brains/contexts";
+import { notePlugin, taskPlugin } from "@brains/plugins";
 import { gitSync } from "@brains/git-sync";
 import { webServer } from "@brains/web-server";
 
 runBrainApp({
   plugins: [
-    // Context plugins
-    noteContext(),
-    taskContext(),
+    // Entity plugins
+    notePlugin(),
+    taskPlugin(),
 
     // Feature plugins
     gitSync({
@@ -440,18 +440,18 @@ The "brains" repository is designed to support multiple brain implementations:
 - **@brains/cli**: Command-line interface
 - **@brains/matrix**: Matrix chat interface
 
-### Context Plugins
+### Entity Plugins
 
-Context plugins are implemented as separate packages:
+Entity plugins are implemented as separate packages:
 
-- **@brains/note-context**: Note management functionality
-- **@brains/task-context**: Task management functionality (future)
-- **@brains/profile-context**: User profile functionality (future)
-- **@brains/project-context**: Project management functionality (future)
+- **@brains/note-plugin**: Note management functionality
+- **@brains/task-plugin**: Task management functionality (future)
+- **@brains/profile-plugin**: User profile functionality (future)
+- **@brains/project-plugin**: Project management functionality (future)
 
 This separation ensures:
 
-- Clear boundaries between contexts and shell
+- Clear boundaries between plugins and shell
 - Explicit public APIs through package exports
 - Independent testing and versioning
 - Reusability across different brain types

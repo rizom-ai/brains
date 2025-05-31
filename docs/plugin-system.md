@@ -8,13 +8,13 @@ The plugin system follows a **tool-first architecture** where plugins expose the
 
 ## Plugin Types
 
-### Context Plugins
+### Entity Plugins
 
-Domain-specific plugins that add new entity types and related functionality:
+Plugins that add new entity types and related functionality:
 
-- **Note Context**: Notes, journaling, documentation
-- **Task Context**: Tasks, todos, project management  
-- **Profile Context**: People, contacts, relationships
+- **Note Plugin**: Notes, journaling, documentation
+- **Task Plugin**: Tasks, todos, project management
+- **Profile Plugin**: People, contacts, relationships
 
 ### Feature Plugins
 
@@ -42,19 +42,19 @@ All plugins must implement a standard interface:
 export interface Plugin {
   // Unique identifier for the plugin
   id: string;
-  
+
   // Version of the plugin
   version: string;
-  
+
   // Human-readable name
   name?: string;
-  
+
   // Description of plugin functionality
   description?: string;
-  
+
   // Other plugins this plugin depends on
   dependencies?: string[];
-  
+
   // Register plugin components and capabilities
   register(context: PluginContext): Promise<PluginCapabilities>;
 }
@@ -68,7 +68,7 @@ Plugins expose their functionality through tools and resources:
 export interface PluginCapabilities {
   // MCP tools exposed by the plugin
   tools: PluginTool[];
-  
+
   // MCP resources exposed by the plugin
   resources: PluginResource[];
 }
@@ -103,19 +103,19 @@ The context provided to plugins during registration:
 export interface PluginContext {
   // Component registry for services
   registry: Registry;
-  
+
   // Logger for plugin-specific logging
   logger: Logger;
-  
+
   // Access other plugins
   getPlugin: (id: string) => Plugin | undefined;
-  
+
   // Event emitter for plugin communication
   events: EventEmitter;
-  
+
   // Message bus for structured messaging
   messageBus: MessageBus;
-  
+
   // Formatter registry for custom formatters
   formatters: FormatterRegistry;
 }
@@ -129,19 +129,19 @@ The plugin manager handles plugin registration, dependencies, and lifecycle:
 export class PluginManager {
   // Register a plugin
   registerPlugin(plugin: Plugin): void;
-  
+
   // Initialize all registered plugins in dependency order
   async initializePlugins(): Promise<void>;
-  
+
   // Disable a plugin
   disablePlugin(id: string): void;
-  
+
   // Enable a previously disabled plugin
   async enablePlugin(id: string): Promise<void>;
-  
+
   // Get a registered plugin by ID
   getPlugin(id: string): Plugin | undefined;
-  
+
   // Get all registered plugins
   getAllPlugins(): Map<string, PluginState>;
 }
@@ -154,12 +154,12 @@ The plugin manager emits events during the plugin lifecycle:
 ```typescript
 enum PluginEvent {
   REGISTERED = "plugin:registered",
-  INITIALIZED = "plugin:initialized", 
+  INITIALIZED = "plugin:initialized",
   DISABLED = "plugin:disabled",
   ENABLED = "plugin:enabled",
   ERROR = "plugin:error",
   TOOL_REGISTER = "plugin:tool:register",
-  RESOURCE_REGISTER = "plugin:resource:register"
+  RESOURCE_REGISTER = "plugin:resource:register",
 }
 ```
 
@@ -175,74 +175,72 @@ export const myPlugin: Plugin = {
   version: "1.0.0",
   name: "My Plugin",
   description: "A sample plugin",
-  
+
   async register(context: PluginContext): Promise<PluginCapabilities> {
     const { logger, registry } = context;
-    
+
     logger.info("Registering My Plugin");
-    
+
     return {
-      tools: [{
-        name: "my_tool",
-        description: "Does something useful",
-        inputSchema: {
-          input: z.string().describe("The input to process")
+      tools: [
+        {
+          name: "my_tool",
+          description: "Does something useful",
+          inputSchema: {
+            input: z.string().describe("The input to process"),
+          },
+          handler: async (input) => {
+            // Tool implementation
+            return { result: `Processed: ${input.input}` };
+          },
         },
-        handler: async (input) => {
-          // Tool implementation
-          return { result: `Processed: ${input.input}` };
-        }
-      }],
-      resources: [{
-        uri: "my-plugin://status",
-        name: "My Plugin Status",
-        handler: async () => ({
-          contents: [{
-            text: "Plugin is running",
-            uri: "my-plugin://status"
-          }]
-        })
-      }]
+      ],
+      resources: [
+        {
+          uri: "my-plugin://status",
+          name: "My Plugin Status",
+          handler: async () => ({
+            contents: [
+              {
+                text: "Plugin is running",
+                uri: "my-plugin://status",
+              },
+            ],
+          }),
+        },
+      ],
     };
-  }
+  },
 };
 ```
 
-### Context Plugin Example
+### Entity Plugin Example
 
 ```typescript
 import type { Plugin } from "@brains/types";
 import { NoteAdapter } from "./adapters/noteAdapter";
 
-export const noteContext: Plugin = {
-  id: "note-context",
+export const notePlugin: Plugin = {
+  id: "note-plugin",
   version: "1.0.0",
-  name: "Note Context",
+  name: "Note Plugin",
   description: "Adds note management capabilities",
-  
+
   async register(context) {
     const { registry, logger } = context;
-    
+
     // Register entity adapter
     const entityRegistry = registry.get("entityRegistry");
     entityRegistry.registerEntityType("note", noteSchema, new NoteAdapter());
-    
+
     // Register formatters
     context.formatters.register("note", new NoteFormatter());
-    
+
     return {
-      tools: [
-        createNoteTool,
-        searchNotesTool,
-        updateNoteTool,
-        deleteNoteTool
-      ],
-      resources: [
-        notesListResource,
-        noteStatsResource
-      ]
+      tools: [createNoteTool, searchNotesTool, updateNoteTool, deleteNoteTool],
+      resources: [notesListResource, noteStatsResource],
     };
-  }
+  },
 };
 ```
 
@@ -254,36 +252,36 @@ Plugins are configured when creating an App instance:
 
 ```typescript
 import { App } from "@brains/app";
-import { gitSync } from "@brains/git-sync";
-import { noteContext } from "@brains/note-context";
+import { gitSyncPlugin } from "@brains/git-sync";
+import { notePlugin } from "@brains/note-plugin";
 
 await App.run({
   name: "my-brain",
   version: "1.0.0",
-  
+
   // Plugin configuration
   plugins: [
     // Feature plugin with configuration
-    gitSync({
+    gitSyncPlugin({
       repoPath: "./brain-repo",
       branch: "main",
       autoSync: true,
-      syncInterval: 300 // 5 minutes
+      syncInterval: 300, // 5 minutes
     }),
-    
-    // Context plugin
-    noteContext(),
-    
+
+    // Entity plugin
+    notePlugin(),
+
     // Custom plugin
     {
       id: "custom-plugin",
       version: "1.0.0",
       register: async (context) => ({
         tools: [],
-        resources: []
-      })
-    }
-  ]
+        resources: [],
+      }),
+    },
+  ],
 });
 ```
 
@@ -305,16 +303,16 @@ export function gitSync(options: GitSyncOptions): Plugin {
     id: "git-sync",
     version: "1.0.0",
     name: "Git Sync",
-    
+
     async register(context) {
       // Use options to configure the plugin
       const gitSync = new GitSync(options);
-      
+
       return {
         tools: gitSync.getTools(),
-        resources: gitSync.getResources()
+        resources: gitSync.getResources(),
       };
-    }
+    },
   };
 }
 ```
@@ -332,5 +330,5 @@ export function gitSync(options: GitSyncOptions): Plugin {
 ## Plugin Examples
 
 - **Git Sync Plugin**: See `packages/git-sync` for a complete feature plugin
-- **Note Context**: See `docs/examples/note-context` for a context plugin example
+- **Note Plugin**: See `docs/examples/note-plugin` for an entity plugin example
 - **Custom Plugin**: See the inline plugin example in the App configuration section

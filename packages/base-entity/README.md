@@ -17,6 +17,7 @@ This package is automatically used by the Shell. You don't need to explicitly re
 ### When Base Entity is Used
 
 The base entity type (`"base"`) is used as a fallback for:
+
 - Files in the root directory during git sync
 - Generic entities that don't have a specific type
 - Testing and development
@@ -74,11 +75,11 @@ import type { EntityAdapter } from "@brains/types";
 class NoteAdapter implements EntityAdapter<Note> {
   entityType = "note";
   schema = noteSchema;
-  
+
   toMarkdown(entity: Note): string {
     // Convert note to markdown
   }
-  
+
   fromMarkdown(markdown: string): Partial<Note> {
     // Parse note from markdown
   }

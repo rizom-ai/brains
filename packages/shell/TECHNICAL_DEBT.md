@@ -5,12 +5,14 @@ This document tracks known architectural improvements and optimizations for the 
 ## TODO Comments in Code
 
 ### Search Highlight Extraction
+
 - **Location**: `src/entity/entityService.ts:579`
 - **Issue**: Search results don't include text highlights showing where the query matched
 - **Impact**: Users can't see why a particular result matched their search
 - **Solution**: Implement highlight extraction that finds query terms in the content and returns surrounding text snippets
 
-### Schema Validation for Extended Schemas  
+### Schema Validation for Extended Schemas
+
 - **Location**: `src/entity/entityRegistry.ts`
 - **Issue**: Need proper schema validation that works with schemas that extend the base entity schema
 - **Impact**: Entity validation might not catch all issues with extended entity types

@@ -62,20 +62,20 @@ The Brains repository uses a monorepo structure designed to support multiple bra
   - Matrix SDK
 - **Consumers**: Brain app in Matrix mode
 
-### Context Packages (Future)
+### Entity Plugin Packages (Future)
 
-#### `packages/note-context`
+#### `packages/note-plugin`
 
-- **Purpose**: Note management context
+- **Purpose**: Note management plugin
 - **Responsibilities**:
   - Note entity adapter
   - Note-specific operations
   - Note search and indexing
 - **Dependencies**: `packages/shell`
 
-#### `packages/task-context`
+#### `packages/task-plugin`
 
-- **Purpose**: Task management context
+- **Purpose**: Task management plugin
 - **Responsibilities**:
   - Task entity adapter
   - Task-specific operations
@@ -105,19 +105,19 @@ The repository supports different brain types that share core infrastructure:
    - Public contributions
    - Consensus mechanisms
 
-### Shared vs. Specific Contexts
+### Shared vs. Specific Plugins
 
-Some contexts are shared across all brain types:
+Some plugins are shared across all brain types:
 
-- `@brains/note-context` - Notes work the same in all brains
-- `@brains/task-context` - Tasks have universal structure
-- `@brains/project-context` - Projects follow common patterns
+- `@brains/note-plugin` - Notes work the same in all brains
+- `@brains/task-plugin` - Tasks have universal structure
+- `@brains/project-plugin` - Projects follow common patterns
 
-Some contexts may be brain-specific:
+Some plugins may be brain-specific:
 
-- `@brains/personal-context` - Personal profiles, preferences
-- `@brains/team-context` - Team-specific features
-- `@brains/collective-context` - Community governance
+- `@brains/personal-plugin` - Personal profiles, preferences
+- `@brains/team-plugin` - Team-specific features
+- `@brains/collective-plugin` - Community governance
 
 ## Application Structure
 
@@ -289,9 +289,9 @@ const server = mcpServer.getServer();
 Shell.registerMCPTools(server);
 Shell.registerMCPResources(server);
 
-// Contexts register their specific tools
-noteContext.registerMCPTools(server);
-taskContext.registerMCPTools(server);
+// Plugins register their specific tools
+notePlugin.registerMCPTools(server);
+taskPlugin.registerMCPTools(server);
 
 // Start the server
 await mcpServer.startStdio();

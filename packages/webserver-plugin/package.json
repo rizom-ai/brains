@@ -1,0 +1,38 @@
+{
+  "name": "@brains/webserver-plugin",
+  "version": "1.0.0",
+  "description": "Webserver plugin for Personal Brain - generates and serves static sites",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint src test --fix"
+  },
+  "dependencies": {
+    "@brains/shell": "workspace:*",
+    "@brains/types": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "hono": "^4.0.0",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "@types/js-yaml": "^4.0.9",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

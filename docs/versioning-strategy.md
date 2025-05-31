@@ -31,6 +31,7 @@ find packages apps -name "package.json" -not -path "*/node_modules/*" \
 ### 2. Automated Version Management Tools
 
 #### Changesets (Recommended for Public Packages)
+
 ```bash
 bun add -D @changesets/cli
 
@@ -48,6 +49,7 @@ bunx changeset publish
 ```
 
 #### Lerna (Traditional Choice)
+
 ```bash
 bun add -D lerna
 
@@ -99,18 +101,18 @@ async function updatePackageVersion(path: string) {
 async function findPackageJsons(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true });
   const files: string[] = [];
-  
+
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
     if (entry.name === "node_modules") continue;
-    
+
     if (entry.isDirectory()) {
-      files.push(...await findPackageJsons(fullPath));
+      files.push(...(await findPackageJsons(fullPath)));
     } else if (entry.name === "package.json") {
       files.push(fullPath);
     }
   }
-  
+
   return files;
 }
 
@@ -153,6 +155,7 @@ Since all packages are private and tightly coupled:
 ## Version Numbering
 
 Follow semantic versioning even for private packages:
+
 - `0.1.0` - Initial development version
 - `0.2.0` - New features added
 - `0.2.1` - Bug fixes

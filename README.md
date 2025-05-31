@@ -5,6 +5,7 @@ A modular, extensible knowledge management system built on the Model Context Pro
 ## Overview
 
 Personal Brain provides:
+
 - **Unified Entity Model**: Store notes, tasks, profiles, and custom entity types
 - **Markdown-First Storage**: All content stored as markdown with YAML frontmatter
 - **Vector Search**: Semantic search powered by local embeddings
@@ -49,9 +50,9 @@ await App.run({
     gitSync({
       repoPath: "./brain-repo",
       branch: "main",
-      autoSync: true
-    })
-  ]
+      autoSync: true,
+    }),
+  ],
 });
 ```
 
