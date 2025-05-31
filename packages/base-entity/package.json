@@ -1,6 +1,6 @@
 {
   "name": "@brains/base-entity",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Base entity adapter and utilities for the brain system",
   "type": "module",
   "main": "./src/index.ts",

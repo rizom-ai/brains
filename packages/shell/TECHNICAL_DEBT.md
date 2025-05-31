@@ -2,6 +2,20 @@
 
 This document tracks known architectural improvements and optimizations for the shell package. These items are not critical for functionality but should be addressed before production use or as pain points arise.
 
+## TODO Comments in Code
+
+### Search Highlight Extraction
+- **Location**: `src/entity/entityService.ts:579`
+- **Issue**: Search results don't include text highlights showing where the query matched
+- **Impact**: Users can't see why a particular result matched their search
+- **Solution**: Implement highlight extraction that finds query terms in the content and returns surrounding text snippets
+
+### Schema Validation for Extended Schemas  
+- **Location**: `src/entity/entityRegistry.ts`
+- **Issue**: Need proper schema validation that works with schemas that extend the base entity schema
+- **Impact**: Entity validation might not catch all issues with extended entity types
+- **Solution**: Implement a validation approach that properly handles schema inheritance/extension
+
 ## High Priority (before production)
 
 ### 1. Async Embedding Generation

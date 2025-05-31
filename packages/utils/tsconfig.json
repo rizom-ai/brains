@@ -1,9 +1,10 @@
 {
-  "extends": "@personal-brain/typescript-config/base.json",
+  "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "dist",
-    "composite": true
+    "composite": true,
+    "esModuleInterop": true
   },
   "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]

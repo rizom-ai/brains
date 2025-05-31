@@ -1,3 +1,3 @@
 module.exports = {
-  extends: ["@personal-brain/eslint-config"],
+  extends: ["@brains/eslint-config"],
 };

@@ -54,7 +54,6 @@ The shell provides the core infrastructure and extension points for plugins:
 - **AI Services**: Local embeddings (FastEmbed) and chat (Anthropic)
 - **Query Processor**: Natural language query handling
 - **Messaging System**: Pub/sub message passing between components
-- **Brain Protocol**: Command routing and execution
 
 **Plugin Types:**
 

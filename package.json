@@ -18,7 +18,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "version:sync": "bun scripts/sync-versions.ts",
+    "version:set": "bun scripts/sync-versions.ts && git add -A && git commit -m 'chore: sync package versions'"
   },
   "devDependencies": {
     "eslint": "^8.48.0",
