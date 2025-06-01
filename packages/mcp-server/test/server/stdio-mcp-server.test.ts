@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
 import { StdioMCPServer } from "@/server/stdio-mcp-server";
-import { createSilentLogger } from "@personal-brain/utils";
+import { createSilentLogger } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 describe("StdioMCPServer", () => {

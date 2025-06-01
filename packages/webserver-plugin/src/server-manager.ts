@@ -3,7 +3,7 @@ import { serveStatic } from "hono/bun";
 import { compress } from "hono/compress";
 import { etag } from "hono/etag";
 import type { Server } from "bun";
-import { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils";
 import { join } from "path";
 import { existsSync } from "fs";
 
@@ -43,7 +43,7 @@ export class ServerManager {
 
     // Add middleware
     app.use("/*", etag());
-    
+
     // No caching for preview
     app.use("/*", async (c, next) => {
       await next();
@@ -51,16 +51,19 @@ export class ServerManager {
     });
 
     // Serve static files
-    app.use("/*", serveStatic({ 
-      root: this.options.distDir,
-      rewriteRequestPath: (path) => {
-        // Handle clean URLs - try with .html extension
-        if (!path.includes(".") && path !== "/") {
-          return path + ".html";
-        }
-        return path;
-      }
-    }));
+    app.use(
+      "/*",
+      serveStatic({
+        root: this.options.distDir,
+        rewriteRequestPath: (path) => {
+          // Handle clean URLs - try with .html extension
+          if (!path.includes(".") && path !== "/") {
+            return path + ".html";
+          }
+          return path;
+        },
+      }),
+    );
 
     // 404 handler
     app.notFound(async (c) => {
@@ -88,9 +91,9 @@ export class ServerManager {
     // Production caching
     app.use("/*", async (c, next) => {
       await next();
-      
+
       const path = c.req.path;
-      
+
       // Cache static assets for 1 year
       if (path.match(/\.(js|css|jpg|jpeg|png|gif|ico|woff|woff2)$/)) {
         c.header("Cache-Control", "public, max-age=31536000, immutable");
@@ -101,16 +104,19 @@ export class ServerManager {
     });
 
     // Serve static files
-    app.use("/*", serveStatic({ 
-      root: this.options.distDir,
-      rewriteRequestPath: (path) => {
-        // Handle clean URLs - try with .html extension
-        if (!path.includes(".") && path !== "/") {
-          return path + ".html";
-        }
-        return path;
-      }
-    }));
+    app.use(
+      "/*",
+      serveStatic({
+        root: this.options.distDir,
+        rewriteRequestPath: (path) => {
+          // Handle clean URLs - try with .html extension
+          if (!path.includes(".") && path !== "/") {
+            return path + ".html";
+          }
+          return path;
+        },
+      }),
+    );
 
     // 404 handler
     app.notFound(async (c) => {
@@ -138,10 +144,12 @@ export class ServerManager {
       throw new Error("No build found. Run build_site first.");
     }
 
-    this.logger.info(`Starting preview server on port ${this.options.previewPort}`);
+    this.logger.info(
+      `Starting preview server on port ${this.options.previewPort}`,
+    );
 
     const app = this.createPreviewApp();
-    
+
     this.servers.preview = Bun.serve({
       port: this.options.previewPort,
       fetch: app.fetch,
@@ -165,10 +173,12 @@ export class ServerManager {
       throw new Error("No build found. Run build_site first.");
     }
 
-    this.logger.info(`Starting production server on port ${this.options.productionPort}`);
+    this.logger.info(
+      `Starting production server on port ${this.options.productionPort}`,
+    );
 
     const app = this.createProductionApp();
-    
+
     this.servers.production = Bun.serve({
       port: this.options.productionPort,
       fetch: app.fetch,
@@ -189,7 +199,7 @@ export class ServerManager {
       return;
     }
 
-    server.stop();
+    await server.stop();
     this.servers[type] = null;
     this.logger.info(`${type} server stopped`);
   }

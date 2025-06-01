@@ -9,12 +9,14 @@ The Article plugin adds support for long-form, structured content to the Persona
 Based on requirements gathering, the Article plugin will:
 
 ### Entity Design
+
 - **Separate entity type** - Articles are distinct from Notes, not a subtype
 - **Draft/Published workflow** - Using `publishedAt` field (null = draft)
 - **No categories** - Use tags for categorization (simpler, more flexible)
 - **Series support** - Via frontmatter fields (`series` and `seriesPart`)
 
 ### Fields to Include
+
 - `title` - Article title (required)
 - `content` - Markdown content (required)
 - `tags` - Array of tags (same as other entities)
@@ -24,6 +26,7 @@ Based on requirements gathering, the Article plugin will:
 - Standard fields: `id`, `entityType`, `created`, `updated`
 
 ### Fields Explicitly Excluded (Presentation Concerns)
+
 - ❌ Table of contents - Generate at presentation time
 - ❌ Reading time - Calculate on demand
 - ❌ Author - Implicit in personal brain
@@ -34,6 +37,7 @@ Based on requirements gathering, the Article plugin will:
 ### Technical Implementation
 
 #### Schema Definition
+
 ```typescript
 const articleSchema = baseEntitySchema.extend({
   entityType: z.literal("article"),
@@ -44,11 +48,13 @@ const articleSchema = baseEntitySchema.extend({
 ```
 
 #### Article Adapter
+
 - Extends `EntityAdapter<Article>`
 - Handles frontmatter serialization for series fields
 - Preserves publishedAt in frontmatter
 
 #### MCP Tools
+
 1. `create_article` - Create new article (draft by default)
 2. `update_article` - Update existing article
 3. `publish_article` - Set publishedAt timestamp
@@ -62,6 +68,7 @@ const articleSchema = baseEntitySchema.extend({
 8. `search_articles` - Full-text search published articles
 
 #### Query Behavior
+
 - Default queries exclude drafts (publishedAt = null)
 - Explicit flag needed to include drafts
 - Series articles can be queried together
@@ -89,17 +96,19 @@ packages/article-plugin/
 ## Example Usage
 
 ### Creating an Article
+
 ```typescript
 const article = createArticle({
   title: "Getting Started with TypeScript",
   content: "TypeScript is a typed superset of JavaScript...",
   tags: ["tutorial", "typescript", "programming"],
   series: "TypeScript Fundamentals",
-  seriesPart: 1
+  seriesPart: 1,
 });
 ```
 
 ### Markdown Storage Format
+
 ```markdown
 ---
 id: "abc123"
@@ -121,6 +130,7 @@ TypeScript is a typed superset of JavaScript...
 ## Git Sync Behavior
 
 Articles follow standard Git sync patterns:
+
 - Stored in `article/` directory
 - Drafts and published articles both synced
 - Filename: `{title-slugified}.md`

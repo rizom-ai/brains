@@ -1,5 +1,5 @@
 import type { Registry } from "@brains/types";
-import { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils";
 import { join } from "path";
 import { ContentGenerator } from "./content-generator";
 import { SiteBuilder } from "./site-builder";
@@ -28,7 +28,7 @@ export class WebserverManager {
 
   constructor(options: WebserverManagerOptions) {
     this.logger = options.logger;
-    
+
     // Astro site is located relative to the plugin
     const astroSiteDir = join(import.meta.dir, "astro-site");
 
@@ -80,14 +80,14 @@ export class WebserverManager {
    * Start preview server
    */
   async startPreviewServer(): Promise<string> {
-    return await this.serverManager.startPreviewServer();
+    return this.serverManager.startPreviewServer();
   }
 
   /**
    * Start production server
    */
   async startProductionServer(): Promise<string> {
-    return await this.serverManager.startProductionServer();
+    return this.serverManager.startProductionServer();
   }
 
   /**
@@ -102,7 +102,7 @@ export class WebserverManager {
    */
   async preview(): Promise<string> {
     await this.buildSite();
-    return await this.startPreviewServer();
+    return this.startPreviewServer();
   }
 
   /**
@@ -119,7 +119,7 @@ export class WebserverManager {
     };
   } {
     const serverStatus = this.serverManager.getStatus();
-    
+
     return {
       hasBuild: this.siteBuilder.hasBuild(),
       lastBuild: this.lastBuildTime?.toISOString(),

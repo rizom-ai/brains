@@ -16,20 +16,21 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
           .optional()
           .describe("Force a clean build by removing previous build artifacts"),
       },
-      handler: async (input) => {
+      handler: async (input): Promise<Record<string, unknown>> => {
         const { clean } = input as { clean?: boolean };
-        
+
         try {
           await manager.buildSite(clean ? { clean: true } : undefined);
           const status = manager.getStatus();
-          
+
           return {
             success: true,
             message: "Site built successfully",
             lastBuild: status.lastBuild,
           };
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown error";
+          const message =
+            error instanceof Error ? error.message : "Unknown error";
           return {
             success: false,
             error: message,
@@ -42,7 +43,7 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
       name: "start_preview_server",
       description: "Start the preview server to test the site locally",
       inputSchema: {},
-      handler: async () => {
+      handler: async (): Promise<Record<string, unknown>> => {
         try {
           const url = await manager.startPreviewServer();
           return {
@@ -51,7 +52,8 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
             message: `Preview server started at ${url}`,
           };
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown error";
+          const message =
+            error instanceof Error ? error.message : "Unknown error";
           return {
             success: false,
             error: message,
@@ -64,7 +66,7 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
       name: "start_production_server",
       description: "Start the production server to serve the site",
       inputSchema: {},
-      handler: async () => {
+      handler: async (): Promise<Record<string, unknown>> => {
         try {
           const url = await manager.startProductionServer();
           return {
@@ -73,7 +75,8 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
             message: `Production server started at ${url}`,
           };
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown error";
+          const message =
+            error instanceof Error ? error.message : "Unknown error";
           return {
             success: false,
             error: message,
@@ -90,9 +93,9 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
           .enum(["preview", "production"])
           .describe("Which server to stop"),
       },
-      handler: async (input) => {
+      handler: async (input): Promise<Record<string, unknown>> => {
         const { type } = input as { type: "preview" | "production" };
-        
+
         try {
           await manager.stopServer(type);
           return {
@@ -100,7 +103,8 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
             message: `${type} server stopped`,
           };
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown error";
+          const message =
+            error instanceof Error ? error.message : "Unknown error";
           return {
             success: false,
             error: message,
@@ -113,7 +117,7 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
       name: "preview_site",
       description: "Build the site and start preview server in one command",
       inputSchema: {},
-      handler: async () => {
+      handler: async (): Promise<Record<string, unknown>> => {
         try {
           const url = await manager.preview();
           return {
@@ -122,7 +126,8 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
             message: `Site built and preview server started at ${url}`,
           };
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown error";
+          const message =
+            error instanceof Error ? error.message : "Unknown error";
           return {
             success: false,
             error: message,
@@ -135,9 +140,9 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
       name: "get_site_status",
       description: "Get the current status of the site and servers",
       inputSchema: {},
-      handler: async () => {
+      handler: async (): Promise<Record<string, unknown>> => {
         const status = manager.getStatus();
-        
+
         return {
           hasBuild: status.hasBuild,
           lastBuild: status.lastBuild,

@@ -1,15 +1,15 @@
-import type { Plugin, PluginContext } from "@brains/types";
+import type { Plugin, PluginContext, PluginCapabilities } from "@brains/types";
 import { webserverTools } from "./tools";
 import { WebserverManager } from "./webserver-manager";
 
 export interface WebserverPluginOptions {
   // Output directory for generated site
   outputDir?: string;
-  
+
   // Server configuration
   previewPort?: number;
   productionPort?: number;
-  
+
   // Site metadata
   siteTitle?: string;
   siteDescription?: string;
@@ -19,9 +19,7 @@ export interface WebserverPluginOptions {
 /**
  * Create a webserver plugin instance
  */
-export function webserverPlugin(
-  options: WebserverPluginOptions = {},
-): Plugin {
+export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
   return {
     id: "webserver-plugin",
     version: "1.0.0",
@@ -29,7 +27,7 @@ export function webserverPlugin(
     description:
       "Generates and serves static websites from Personal Brain content",
 
-    async register(context: PluginContext) {
+    async register(context: PluginContext): Promise<PluginCapabilities> {
       const { registry, logger } = context;
 
       // Create webserver manager instance

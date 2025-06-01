@@ -1,4 +1,4 @@
-import { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils";
 import { join } from "path";
 import { existsSync } from "fs";
 
@@ -74,10 +74,10 @@ export class SiteBuilder {
    */
   async clean(): Promise<void> {
     const distDir = this.getDistDir();
-    
+
     if (existsSync(distDir)) {
       this.logger.info("Cleaning build directory");
-      
+
       const proc = Bun.spawn(["rm", "-rf", distDir], {
         cwd: this.astroSiteDir,
       });

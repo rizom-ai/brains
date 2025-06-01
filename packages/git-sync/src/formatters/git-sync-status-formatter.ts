@@ -47,7 +47,7 @@ export class GitSyncStatusFormatter extends BaseFormatter {
     }
 
     // Changed files
-    if (status.files && status.files.length > 0) {
+    if (status.files.length > 0) {
       parts.push("\n### Changed Files");
       parts.push(this.formatFileList(status.files));
     }
@@ -92,7 +92,7 @@ export class GitSyncStatusFormatter extends BaseFormatter {
       U: "updated",
       "?": "untracked",
     };
-    return statusMap[status] || status;
+    return statusMap[status] ?? status;
   }
 }
 

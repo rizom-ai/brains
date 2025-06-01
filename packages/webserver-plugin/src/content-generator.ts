@@ -1,5 +1,5 @@
 import type { Registry, EntityService, BaseEntity } from "@brains/types";
-import { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
@@ -35,10 +35,10 @@ export class ContentGenerator {
    */
   async initialize(): Promise<void> {
     this.logger.debug("Initializing content directories");
-    
+
     // Create base content directory
     await this.ensureDirectory(this.contentDir);
-    
+
     // Create collection directories
     await this.ensureDirectory(join(this.contentDir, "landing"));
     // Future: notes, articles, etc.
@@ -58,9 +58,9 @@ export class ContentGenerator {
    * Write a YAML file to a collection
    */
   private async writeYamlFile(
-    collection: string, 
-    filename: string, 
-    data: unknown
+    collection: string,
+    filename: string,
+    data: unknown,
   ): Promise<void> {
     const filePath = join(this.contentDir, collection, filename);
     const yamlContent = yaml.dump(data);
@@ -78,19 +78,23 @@ export class ContentGenerator {
     const entityService = this.registry.resolve<EntityService>("entityService");
 
     // Get statistics
-    const notes = await entityService.listEntities<BaseEntity>("note", { limit: 1000 });
+    const notes = await entityService.listEntities<BaseEntity>("note", {
+      limit: 1000,
+    });
     const allTags = new Set<string>();
-    
+
     // Collect all unique tags
-    notes.forEach(note => {
-      note.tags.forEach(tag => allTags.add(tag));
+    notes.forEach((note) => {
+      note.tags.forEach((tag) => allTags.add(tag));
     });
 
     // Get recent notes for display
     const recentNotes = notes
-      .sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime())
+      .sort(
+        (a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime(),
+      )
       .slice(0, 5)
-      .map(note => ({
+      .map((note) => ({
         id: note.id,
         title: note.title,
         created: note.created,
@@ -123,9 +127,12 @@ export class ContentGenerator {
   async checkForSiteContent(): Promise<boolean> {
     // EntityService is resolved from the registry
     const entityService = this.registry.resolve<EntityService>("entityService");
-    
+
     try {
-      const siteContent = await entityService.listEntities<BaseEntity>("site-content", { limit: 1 });
+      const siteContent = await entityService.listEntities<BaseEntity>(
+        "site-content",
+        { limit: 1 },
+      );
       return siteContent.length > 0;
     } catch (error) {
       // Entity type might not exist yet
@@ -139,7 +146,7 @@ export class ContentGenerator {
   async generateAll(): Promise<void> {
     // Ensure directories exist
     await this.initialize();
-    
+
     // Generate content
     await this.generateLandingPage();
     // Future: generateNotePages(), generateArticlePages(), etc.

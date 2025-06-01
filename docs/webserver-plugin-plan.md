@@ -7,12 +7,14 @@ The Webserver plugin provides a read-only web interface for the Personal Brain, 
 ## Architecture Decisions
 
 ### Core Technology Stack
+
 - **Astro** - Static site generator with excellent Markdown support
 - **Bun** - Runtime and package manager (Astro runs on Bun)
 - **Tailwind CSS** - Utility-first CSS framework
 - **Plain Astro Components** - No React/Vue/Svelte unless needed for interactivity
 
 ### Integration Model
+
 - **Interface Plugin** - Runs inside the brain process
 - **Direct Access** - Uses EntityService directly, no MCP overhead
 - **Manual Builds** - Site generation triggered by user command
@@ -20,11 +22,13 @@ The Webserver plugin provides a read-only web interface for the Personal Brain, 
 - **HTTP Only** - No HTTPS in plugin, use CDN/proxy for SSL
 
 ### Architecture Components
+
 1. **ContentGenerator** - Queries brain entities, generates YAML/markdown files
 2. **SiteBuilder** - Runs Astro build process
 3. **ServerManager** - Manages preview/production HTTP servers using Hono
 
 ### Server Strategy
+
 - **Preview Server** (port 4321) - For testing changes before publishing
 - **Production Server** (port 8080) - For serving the live site
 - **SSL via CDN/Proxy** - Use Cloudflare, Caddy, or tunnels for HTTPS
@@ -36,22 +40,25 @@ The Webserver plugin provides a read-only web interface for the Personal Brain, 
 **Goal**: Get a working webserver plugin with minimal complexity while establishing the foundation for future growth.
 
 **What it includes:**
+
 - Single landing page showing brain statistics
 - Astro setup with Content Collections from the start
 - Basic plugin structure with MCP tools
 - Minimal viable product that can be enhanced incrementally
 
 **Why start here:**
+
 - Immediate visual feedback
 - Establishes the plugin architecture
 - Tests the build/serve workflow
 - Uses Astro properly from the beginning (no rewrites needed)
 
 **Landing Page Content Collection:**
+
 ```typescript
 // src/content/config.ts
 const landing = defineCollection({
-  type: 'data',
+  type: "data",
   schema: z.object({
     title: z.string(),
     description: z.string(),
@@ -60,16 +67,19 @@ const landing = defineCollection({
       tagCount: z.number(),
       lastUpdated: z.string(),
     }),
-    recentNotes: z.array(z.object({
-      id: z.string(),
-      title: z.string(),
-      created: z.string(),
-    })),
+    recentNotes: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        created: z.string(),
+      }),
+    ),
   }),
 });
 ```
 
 **Minimal Directory Structure (Phase 0):**
+
 ```
 packages/webserver-plugin/
 ├── src/
@@ -88,6 +98,7 @@ packages/webserver-plugin/
 ```
 
 **Benefits of this approach:**
+
 - Content Collections architecture established from day one
 - Landing page data is version-controlled and typed
 - Easy to add notes/articles collections later
@@ -95,11 +106,13 @@ packages/webserver-plugin/
 - Can deploy just the landing page initially
 
 ### Phase 1: Full Implementation
+
 (Everything from the original plan - articles, notes, multiple pages, etc.)
 
 ## Plugin Architecture
 
 ### High-Level Flow
+
 ```
 1. User triggers build via MCP tool
 2. Plugin queries entities from brain
@@ -109,6 +122,7 @@ packages/webserver-plugin/
 ```
 
 ### Directory Structure
+
 ```
 packages/webserver-plugin/
 ├── src/
@@ -143,6 +157,7 @@ packages/webserver-plugin/
 ## Content Mapping
 
 ### Entity to Astro Collections
+
 ```typescript
 // Brain Entity → Astro Collection
 Article → src/content/articles/
@@ -150,12 +165,15 @@ Note → src/content/notes/
 ```
 
 ### Frontmatter Preservation
+
 All entity metadata is preserved in Astro frontmatter:
+
 - Standard fields: id, title, tags, created, updated
 - Article fields: publishedAt, series, seriesPart
 - Used for sorting, filtering, and display
 
 ### URL Structure
+
 - `/` - Homepage with recent articles
 - `/articles/[slug]` - Individual article pages
 - `/articles` - Article listing page
@@ -166,22 +184,28 @@ All entity metadata is preserved in Astro frontmatter:
 ## MCP Tools
 
 ### Site Management
+
 1. `build_site` - Generate static site
+
    - Options: `clean` (force full rebuild)
    - Returns: Build status and statistics
 
 2. `start_webserver` - Start serving the site
+
    - Options: `port` (default: 3000)
    - Returns: Server URL
 
 3. `stop_webserver` - Stop the web server
+
    - Returns: Confirmation
 
 4. `get_site_status` - Check server and build status
    - Returns: Server state, last build time, content stats
 
 ### Content Control
+
 5. `set_content_visibility` - Control what's public
+
    - Parameters: `entityType`, `visibility` (public/private)
    - Default: Articles public, Notes private
 
@@ -192,13 +216,14 @@ All entity metadata is preserved in Astro frontmatter:
 ## Build Process
 
 ### Step 1: Content Sync
+
 ```typescript
 async syncContent() {
   // Query published articles
   const articles = await entityService.listEntities('article', {
     filter: { publishedAt: { $ne: null } }
   });
-  
+
   // Write to Astro collections
   for (const article of articles) {
     await writeContentFile('articles', article);
@@ -207,6 +232,7 @@ async syncContent() {
 ```
 
 ### Step 2: Astro Build
+
 ```typescript
 async buildAstro() {
   // Run Astro build command
@@ -214,12 +240,13 @@ async buildAstro() {
     cwd: './astro-site',
     env: { ...process.env }
   });
-  
+
   await proc.exited;
 }
 ```
 
 ### Step 3: Serve Static Files
+
 ```typescript
 async startServer(port: number) {
   Bun.serve({
@@ -235,29 +262,28 @@ async startServer(port: number) {
 ## Astro Configuration
 
 ### Key Integrations
+
 ```javascript
 // astro.config.mjs
-import { defineConfig } from 'astro/config';
-import tailwind from '@astrojs/tailwind';
-import sitemap from '@astrojs/sitemap';
+import { defineConfig } from "astro/config";
+import tailwind from "@astrojs/tailwind";
+import sitemap from "@astrojs/sitemap";
 
 export default defineConfig({
-  integrations: [
-    tailwind(),
-    sitemap(),
-  ],
-  site: 'https://yourdomain.com', // Configurable
-  output: 'static',
+  integrations: [tailwind(), sitemap()],
+  site: "https://yourdomain.com", // Configurable
+  output: "static",
 });
 ```
 
 ### Content Collections Schema
+
 ```typescript
 // src/content/config.ts
-import { z, defineCollection } from 'astro:content';
+import { z, defineCollection } from "astro:content";
 
 const articles = defineCollection({
-  type: 'content',
+  type: "content",
   schema: z.object({
     title: z.string(),
     tags: z.array(z.string()),
@@ -271,6 +297,7 @@ const articles = defineCollection({
 ## Features
 
 ### Phase 1 (MVP)
+
 - ✅ Static site generation from brain content
 - ✅ Article and Note pages
 - ✅ Homepage with recent articles
@@ -281,6 +308,7 @@ const articles = defineCollection({
 - ✅ Responsive design with Tailwind
 
 ### Phase 2 (Enhancements)
+
 - 🔄 Search functionality (client-side)
 - 🔄 Dark mode toggle
 - 🔄 Reading progress indicator
@@ -289,6 +317,7 @@ const articles = defineCollection({
 - 🔄 Analytics integration
 
 ### Phase 3 (Future)
+
 - 🔮 Incremental builds
 - 🔮 Hot reload during development
 - 🔮 Admin interface
@@ -298,33 +327,35 @@ const articles = defineCollection({
 ## Configuration
 
 ### Plugin Options
+
 ```typescript
 interface WebserverPluginOptions {
   // Build settings
-  outputDir?: string;          // Default: "./dist"
-  
-  // Server settings  
-  defaultPort?: number;        // Default: 3000
-  hostname?: string;           // Default: "localhost"
-  
+  outputDir?: string; // Default: "./dist"
+
+  // Server settings
+  defaultPort?: number; // Default: 3000
+  hostname?: string; // Default: "localhost"
+
   // Site metadata
-  siteUrl?: string;           // For sitemap/RSS
-  siteTitle?: string;         // Site name
-  siteDescription?: string;   // Meta description
-  
+  siteUrl?: string; // For sitemap/RSS
+  siteTitle?: string; // Site name
+  siteDescription?: string; // Meta description
+
   // Content settings
-  articlesPerPage?: number;   // Default: 10
-  showDrafts?: boolean;       // Default: false
+  articlesPerPage?: number; // Default: 10
+  showDrafts?: boolean; // Default: false
 }
 ```
 
 ### Usage Example
+
 ```typescript
-import { webserverPlugin } from '@brains/webserver-plugin';
+import { webserverPlugin } from "@brains/webserver-plugin";
 
 const plugin = webserverPlugin({
-  siteUrl: 'https://mybrain.com',
-  siteTitle: 'My Digital Brain',
+  siteUrl: "https://mybrain.com",
+  siteTitle: "My Digital Brain",
   defaultPort: 8080,
 });
 ```
@@ -351,6 +382,7 @@ const plugin = webserverPlugin({
 ## Deployment Options
 
 The generated static site can be deployed to:
+
 - **Netlify** - Drop dist/ folder
 - **Vercel** - Static export
 - **GitHub Pages** - Push to gh-pages branch
@@ -360,18 +392,21 @@ The generated static site can be deployed to:
 ## Technical Considerations
 
 ### Performance
+
 - Pre-render all pages at build time
 - Optimize images during build
 - Minimal JavaScript (Astro islands only where needed)
 - Efficient static file serving
 
 ### Security
+
 - No dynamic server-side code
 - No database connections in production
 - Static files only
 - Optional HTTP auth for preview server
 
 ### Scalability
+
 - Static files scale infinitely
 - CDN-friendly output
 - No server-side processing
@@ -384,18 +419,22 @@ The generated static site can be deployed to:
 When AI generates content for the site (like value propositions, hero text, etc.), we need a workflow to capture and manage it:
 
 **1. Generation Phase**
+
 - ContentGenerator creates landing page with AI-generated content
 - Content is stored temporarily in Astro content collections
 
 **2. Review Phase**
+
 - User previews the generated content on the site
 - Decides which content to keep/edit
 
 **3. Capture Phase**
+
 - MCP tool: `capture_generated_content` promotes content to entities
 - Creates a new entity type: `site-content`
 
 **4. Entity Structure for Site Content**
+
 ```typescript
 // Entity type: site-content
 {
@@ -418,17 +457,20 @@ features:
 ```
 
 **5. Edit Workflow**
+
 - Once captured as entity, content can be edited like any other
 - Git sync preserves changes
 - ContentGenerator checks for existing site-content entities before generating
 
 **Benefits:**
+
 - Clear separation between generated and curated content
 - Enables iterative improvement of site content
 - Maintains brain as source of truth
 - No pollution of brain with ephemeral build artifacts
 
 **Future Enhancement:**
+
 - Tool to diff generated vs stored content
 - Selective merge of AI improvements
 - Version tracking for site content evolution

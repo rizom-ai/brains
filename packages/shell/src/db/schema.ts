@@ -52,7 +52,7 @@ const jsonArray = customType<{
     return "text";
   },
   toDriver(value: string[]): string {
-    return JSON.stringify(value || []);
+    return JSON.stringify(value);
   },
   fromDriver(value: string): string[] {
     if (!value) return [];
