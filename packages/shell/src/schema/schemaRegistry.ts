@@ -15,9 +15,7 @@ export class SchemaRegistry {
    * Get the singleton instance of SchemaRegistry
    */
   public static getInstance(logger: Logger): SchemaRegistry {
-    if (!SchemaRegistry.instance) {
-      SchemaRegistry.instance = new SchemaRegistry(logger);
-    }
+    SchemaRegistry.instance ??= new SchemaRegistry(logger);
     return SchemaRegistry.instance;
   }
 

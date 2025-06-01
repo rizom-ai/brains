@@ -27,9 +27,7 @@ export class EmbeddingService implements IEmbeddingService {
    * Get the singleton instance
    */
   public static getInstance(logger: Logger): EmbeddingService {
-    if (!EmbeddingService.instance) {
-      EmbeddingService.instance = new EmbeddingService(logger);
-    }
+    EmbeddingService.instance ??= new EmbeddingService(logger);
     return EmbeddingService.instance;
   }
 

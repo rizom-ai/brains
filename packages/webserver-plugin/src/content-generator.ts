@@ -134,7 +134,7 @@ export class ContentGenerator {
         { limit: 1 },
       );
       return siteContent.length > 0;
-    } catch (error) {
+    } catch {
       // Entity type might not exist yet
       return false;
     }

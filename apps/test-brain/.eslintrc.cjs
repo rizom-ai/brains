@@ -1,9 +1,10 @@
 module.exports = {
-  extends: ["@brains/eslint-config/index.js"],
-  parser: "@typescript-eslint/parser",
+  root: false,
+  extends: ["@brains/eslint-config"],
   parserOptions: {
-    project: "./tsconfig.json",
+    projectService: {
+      allowDefaultProject: ['*.js', '*.mjs']
+    },
     tsconfigRootDir: __dirname,
-  },
-  root: true,
+  }
 };

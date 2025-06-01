@@ -97,9 +97,7 @@ export class PluginManager {
     logger: Logger,
     messageBus: MessageBus,
   ): PluginManager {
-    if (!PluginManager.instance) {
-      PluginManager.instance = new PluginManager(registry, logger, messageBus);
-    }
+    PluginManager.instance ??= new PluginManager(registry, logger, messageBus);
     return PluginManager.instance;
   }
 
@@ -291,7 +289,7 @@ export class PluginManager {
         const shell = this.registry.resolve<Shell>("shell");
         formatterRegistry = shell.getFormatterRegistry();
       }
-    } catch (error) {
+    } catch {
       this.logger.debug(
         "Shell not available, formatter registry will be unavailable",
       );

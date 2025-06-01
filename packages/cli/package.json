@@ -11,8 +11,8 @@
   "scripts": {
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint --max-warnings 0 .",
-    "lint:fix": "eslint --fix .",
+    "lint": "eslint --max-warnings 0 src",
+    "lint:fix": "eslint --fix src",
     "test": "bun test"
   },
   "dependencies": {

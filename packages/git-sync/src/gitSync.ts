@@ -137,7 +137,7 @@ export class GitSync {
     if (this.branch && this.branch !== "main") {
       try {
         await this.git.checkoutBranch(this.branch, "HEAD");
-      } catch (error) {
+      } catch {
         // Branch might not exist yet, will be created on first commit
         this.logger.debug("Branch does not exist yet", { branch: this.branch });
       }
@@ -340,7 +340,7 @@ export class GitSync {
       try {
         const log = await this.git.log({ maxCount: 1 });
         lastCommit = log.latest?.hash;
-      } catch (error) {
+      } catch {
         // No commits yet
       }
     }

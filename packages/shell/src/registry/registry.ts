@@ -20,9 +20,7 @@ export class Registry {
    * Get the singleton instance of Registry
    */
   public static getInstance(logger: Logger = Logger.getInstance()): Registry {
-    if (!Registry.instance) {
-      Registry.instance = new Registry(logger);
-    }
+    Registry.instance ??= new Registry(logger);
     return Registry.instance;
   }
 

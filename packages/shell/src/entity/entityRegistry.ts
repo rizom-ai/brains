@@ -42,9 +42,7 @@ export class EntityRegistry {
    * Get the singleton instance of EntityRegistry
    */
   public static getInstance(logger: Logger): EntityRegistry {
-    if (!EntityRegistry.instance) {
-      EntityRegistry.instance = new EntityRegistry(logger);
-    }
+    EntityRegistry.instance ??= new EntityRegistry(logger);
     return EntityRegistry.instance;
   }
 

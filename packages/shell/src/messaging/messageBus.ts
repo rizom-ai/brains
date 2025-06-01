@@ -26,9 +26,7 @@ export class MessageBus implements IMessageBus {
    * Get the singleton instance of MessageBus
    */
   public static getInstance(logger: Logger): MessageBus {
-    if (!MessageBus.instance) {
-      MessageBus.instance = new MessageBus(logger);
-    }
+    MessageBus.instance ??= new MessageBus(logger);
     return MessageBus.instance;
   }
 
@@ -129,7 +127,7 @@ export class MessageBus implements IMessageBus {
     };
 
     const response = await this.publish(message as BaseMessage);
-    if (response && response.success) {
+    if (response?.success) {
       return {
         success: true,
         data: response.data as R,

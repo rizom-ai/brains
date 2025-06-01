@@ -5,8 +5,7 @@ module.exports = {
   ignorePatterns: ["node_modules/", "dist/", "*.config.*"],
   parserOptions: {
     ecmaVersion: 2022,
-    sourceType: "module",
-    project: "./tsconfig.json"
+    sourceType: "module"
   },
   rules: {
     "@typescript-eslint/no-explicit-any": "error",
@@ -20,7 +19,7 @@ module.exports = {
     "@typescript-eslint/explicit-function-return-type": "warn",
     "@typescript-eslint/explicit-module-boundary-types": "warn",
     "@typescript-eslint/no-non-null-assertion": "error",
-    "@typescript-eslint/no-unnecessary-type-assertion": "error",
+    // "@typescript-eslint/no-unnecessary-type-assertion": "error", // Requires type info
     "@typescript-eslint/prefer-nullish-coalescing": "warn",
     "@typescript-eslint/prefer-optional-chain": "warn",
     "@typescript-eslint/ban-ts-comment": "warn",

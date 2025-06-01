@@ -32,9 +32,7 @@ export class StdioMCPServer {
    * Get the singleton instance of StdioMCPServer
    */
   public static getInstance(config?: StdioMCPServerConfig): StdioMCPServer {
-    if (!StdioMCPServer.instance) {
-      StdioMCPServer.instance = new StdioMCPServer(config);
-    }
+    StdioMCPServer.instance ??= new StdioMCPServer(config);
     return StdioMCPServer.instance;
   }
 

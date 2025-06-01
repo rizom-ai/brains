@@ -1,7 +1,10 @@
 module.exports = {
+  root: false,
   extends: ["@brains/eslint-config"],
   parserOptions: {
-    project: true
-  },
-  ignorePatterns: ["node_modules", "dist"]
+    projectService: {
+      allowDefaultProject: ['*.js', '*.mjs']
+    },
+    tsconfigRootDir: __dirname,
+  }
 };

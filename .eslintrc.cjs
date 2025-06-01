@@ -1,10 +1,8 @@
 module.exports = {
-  root: false,
+  root: true,
   extends: ["@brains/eslint-config"],
   parserOptions: {
-    projectService: {
-      allowDefaultProject: ['*.js', '*.mjs']
-    },
     tsconfigRootDir: __dirname,
+    project: ['./tsconfig.json', './packages/*/tsconfig.json', './apps/*/tsconfig.json']
   }
 };

@@ -3,6 +3,7 @@ import type {
   PluginContext,
   BaseEntity,
   EntityService,
+  EntityAdapter,
   Registry,
   PluginTool,
   ComponentFactory,
@@ -10,6 +11,7 @@ import type {
 } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
+import { z } from "zod";
 
 export interface PluginTestHarnessOptions {
   /**
@@ -284,6 +286,50 @@ export class PluginTestHarness {
       },
       getEntityTypes: (): string[] => {
         return Array.from(this.entities.keys());
+      },
+      hasAdapter: (entityType: string): boolean => {
+        // Mock implementation - assume adapter exists for known entity types
+        return this.entities.has(entityType) || entityType === "note" || entityType === "task";
+      },
+      getAdapter: <T extends BaseEntity>(entityType: string): EntityAdapter<T> => {
+        // Mock adapter that converts entities to markdown
+        const baseSchema = z.object({
+          id: z.string(),
+          entityType: z.string(),
+          title: z.string(),
+          content: z.string(),
+          tags: z.array(z.string()),
+          created: z.string(),
+          updated: z.string(),
+        }) as unknown as z.ZodSchema<T>;
+        
+        return {
+          entityType,
+          schema: baseSchema,
+          toMarkdown: (entity: T): string => {
+            return `# ${entity.title}\n\n${entity.content}`;
+          },
+          fromMarkdown: (markdown: string): T => {
+            const lines = markdown.split('\n');
+            const title = lines[0]?.replace(/^#\s+/, '') ?? 'Untitled';
+            const content = lines.slice(2).join('\n');
+            const now = new Date().toISOString();
+            return {
+              id: `mock-${Date.now()}`,
+              entityType,
+              title,
+              content,
+              tags: [],
+              created: now,
+              updated: now,
+            } as unknown as T;
+          },
+        };
+      },
+      importRawEntity: async (entity: unknown): Promise<void> => {
+        // Mock import - just create the entity
+        const entityData = entity as Record<string, unknown>;
+        await this.createTestEntity((entityData["entityType"] as string | undefined) ?? "note", entityData);
       },
     };
   }

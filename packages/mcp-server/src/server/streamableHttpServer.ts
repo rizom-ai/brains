@@ -48,9 +48,7 @@ export class StreamableHTTPServer {
   public static getInstance(
     config?: StreamableHTTPServerConfig,
   ): StreamableHTTPServer {
-    if (!StreamableHTTPServer.instance) {
-      StreamableHTTPServer.instance = new StreamableHTTPServer(config);
-    }
+    StreamableHTTPServer.instance ??= new StreamableHTTPServer(config);
     return StreamableHTTPServer.instance;
   }
 
@@ -131,8 +129,8 @@ export class StreamableHTTPServer {
           } else if (!sessionId && isInitializeRequest(req.body)) {
             // New initialization request
             transport = new StreamableHTTPServerTransport({
-              sessionIdGenerator: () => randomUUID(),
-              onsessioninitialized: (sessionId): void => {
+              sessionIdGenerator: (): string => randomUUID(),
+              onsessioninitialized: (sessionId: string): void => {
                 this.logger.info(`Session initialized: ${sessionId}`);
                 this.transports[sessionId] = transport;
               },

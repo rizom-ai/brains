@@ -35,9 +35,7 @@ export class QueryProcessor {
    * Get the singleton instance of QueryProcessor
    */
   public static getInstance(config: QueryProcessorConfig): QueryProcessor {
-    if (!QueryProcessor.instance) {
-      QueryProcessor.instance = new QueryProcessor(config);
-    }
+    QueryProcessor.instance ??= new QueryProcessor(config);
     return QueryProcessor.instance;
   }
 

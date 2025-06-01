@@ -54,9 +54,7 @@ export class EntityService {
    * Get the singleton instance of EntityService
    */
   public static getInstance(options: EntityServiceOptions): EntityService {
-    if (!EntityService.instance) {
-      EntityService.instance = new EntityService(options);
-    }
+    EntityService.instance ??= new EntityService(options);
     return EntityService.instance;
   }
 

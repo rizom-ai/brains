@@ -32,9 +32,7 @@ export class AIService {
    * Get the singleton instance
    */
   public static getInstance(config: AIModelConfig, logger: Logger): AIService {
-    if (!AIService.instance) {
-      AIService.instance = new AIService(config, logger);
-    }
+    AIService.instance ??= new AIService(config, logger);
     return AIService.instance;
   }
 

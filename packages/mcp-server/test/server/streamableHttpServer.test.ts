@@ -60,14 +60,12 @@ async function makeRequest(
         try {
           body = JSON.parse(line.slice(6));
           break;
-        } catch (e) {
+        } catch {
           // Continue to next line
         }
       }
     }
-    if (!body) {
-      body = text; // Fallback to raw text
-    }
+    body ??= text; // Fallback to raw text
   } else {
     body = await response.text();
   }
