@@ -22,11 +22,17 @@ export class PluginAssertions {
       throw new Error("Entity must have string entityType");
     }
 
-    if (!e["created"] || !(e["created"] instanceof Date || typeof e["created"] === "string")) {
+    if (
+      !e["created"] ||
+      !(e["created"] instanceof Date || typeof e["created"] === "string")
+    ) {
       throw new Error("Entity must have created date");
     }
 
-    if (!e["updated"] || !(e["updated"] instanceof Date || typeof e["updated"] === "string")) {
+    if (
+      !e["updated"] ||
+      !(e["updated"] instanceof Date || typeof e["updated"] === "string")
+    ) {
       throw new Error("Entity must have updated date");
     }
   }
@@ -42,7 +48,10 @@ export class PluginAssertions {
       orderMatters?: boolean;
     } = {},
   ): void {
-    const { ignoreFields = ["id", "created", "updated"], orderMatters = false } = options;
+    const {
+      ignoreFields = ["id", "created", "updated"],
+      orderMatters = false,
+    } = options;
 
     if (actual.length !== expected.length) {
       throw new Error(
@@ -50,13 +59,19 @@ export class PluginAssertions {
       );
     }
 
-    const actualToCompare = actual.map(e => this.omitFields(e, ignoreFields));
-    const expectedToCompare = expected.map(e => this.omitFields(e, ignoreFields));
+    const actualToCompare = actual.map((e) => this.omitFields(e, ignoreFields));
+    const expectedToCompare = expected.map((e) =>
+      this.omitFields(e, ignoreFields),
+    );
 
     if (!orderMatters) {
       // Sort by a stable field for comparison
-      actualToCompare.sort((a, b) => (a.title ?? "").localeCompare(b.title ?? ""));
-      expectedToCompare.sort((a, b) => (a.title ?? "").localeCompare(b.title ?? ""));
+      actualToCompare.sort((a, b) =>
+        (a.title ?? "").localeCompare(b.title ?? ""),
+      );
+      expectedToCompare.sort((a, b) =>
+        (a.title ?? "").localeCompare(b.title ?? ""),
+      );
     }
 
     for (let i = 0; i < actualToCompare.length; i++) {
@@ -64,7 +79,9 @@ export class PluginAssertions {
       const expectedItem = expectedToCompare[i];
 
       for (const [key, value] of Object.entries(expectedItem ?? {})) {
-        const actualValue = actualItem ? (actualItem as Record<string, unknown>)[key] : undefined;
+        const actualValue = actualItem
+          ? (actualItem as Record<string, unknown>)[key]
+          : undefined;
         if (actualValue !== value) {
           throw new Error(
             `Entity mismatch at index ${i}, field ${key}. Expected ${value}, got ${actualValue}`,
@@ -130,7 +147,10 @@ export class PluginAssertions {
   ): Promise<T> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(
-        () => reject(new Error(message ?? `Operation timed out after ${timeout}ms`)),
+        () =>
+          reject(
+            new Error(message ?? `Operation timed out after ${timeout}ms`),
+          ),
         timeout,
       );
     });
@@ -147,28 +167,34 @@ export class PluginAssertions {
   ): Promise<void> {
     let operationThrew = false;
     let caughtError: unknown;
-    
+
     try {
       await operation();
     } catch (error) {
       operationThrew = true;
       caughtError = error;
     }
-    
+
     if (!operationThrew) {
       throw new Error("Expected operation to throw but it succeeded");
     }
-    
+
     // If we have an expected error pattern, validate it
     if (expectedError) {
       if (typeof expectedError === "string") {
-        if (!(caughtError instanceof Error) || !caughtError.message.includes(expectedError)) {
+        if (
+          !(caughtError instanceof Error) ||
+          !caughtError.message.includes(expectedError)
+        ) {
           throw new Error(
             `Expected error message to include "${expectedError}" but got "${caughtError}"`,
           );
         }
       } else if (expectedError instanceof RegExp) {
-        if (!(caughtError instanceof Error) || !expectedError.test(caughtError.message)) {
+        if (
+          !(caughtError instanceof Error) ||
+          !expectedError.test(caughtError.message)
+        ) {
           throw new Error(
             `Expected error message to match ${expectedError} but got "${caughtError}"`,
           );

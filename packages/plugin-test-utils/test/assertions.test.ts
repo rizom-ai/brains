@@ -1,6 +1,11 @@
 import { describe, it, expect } from "bun:test";
 import { PluginAssertions } from "../src/assertions";
-import type { BaseEntity, PluginTool, Plugin, PluginCapabilities } from "@brains/types";
+import type {
+  BaseEntity,
+  PluginTool,
+  Plugin,
+  PluginCapabilities,
+} from "@brains/types";
 
 describe("PluginAssertions", () => {
   describe("assertValidEntity", () => {
@@ -14,7 +19,7 @@ describe("PluginAssertions", () => {
         content: "Content",
         tags: [],
       };
-      
+
       // Should not throw
       PluginAssertions.assertValidEntity(entity);
     });
@@ -23,7 +28,7 @@ describe("PluginAssertions", () => {
       expect(() => {
         PluginAssertions.assertValidEntity(null);
       }).toThrow("Entity must be an object");
-      
+
       expect(() => {
         PluginAssertions.assertValidEntity("string");
       }).toThrow("Entity must be an object");
@@ -69,12 +74,12 @@ describe("PluginAssertions", () => {
         createEntity({ id: "1", title: "A" }),
         createEntity({ id: "2", title: "B" }),
       ];
-      
+
       const expected = [
         { title: "A", content: "Content" },
         { title: "B", content: "Content" },
       ];
-      
+
       // Should not throw
       PluginAssertions.assertEntitiesMatch(actual, expected);
     });
@@ -82,7 +87,7 @@ describe("PluginAssertions", () => {
     it("should fail on count mismatch", () => {
       const actual = [createEntity()];
       const expected = [{ title: "A" }, { title: "B" }];
-      
+
       expect(() => {
         PluginAssertions.assertEntitiesMatch(actual, expected);
       }).toThrow("Entity count mismatch");
@@ -91,7 +96,7 @@ describe("PluginAssertions", () => {
     it("should fail on field mismatch", () => {
       const actual = [createEntity({ title: "A" })];
       const expected = [{ title: "B" }];
-      
+
       expect(() => {
         PluginAssertions.assertEntitiesMatch(actual, expected);
       }).toThrow("Entity mismatch");
@@ -103,9 +108,11 @@ describe("PluginAssertions", () => {
         createEntity({ title: "A" }),
       ];
       const expected = [{ title: "A" }, { title: "B" }];
-      
+
       expect(() => {
-        PluginAssertions.assertEntitiesMatch(actual, expected, { orderMatters: true });
+        PluginAssertions.assertEntitiesMatch(actual, expected, {
+          orderMatters: true,
+        });
       }).toThrow("Entity mismatch");
     });
 
@@ -115,7 +122,7 @@ describe("PluginAssertions", () => {
         createEntity({ title: "A" }),
       ];
       const expected = [{ title: "A" }, { title: "B" }];
-      
+
       // Should not throw (default orderMatters is false)
       PluginAssertions.assertEntitiesMatch(actual, expected);
     });
@@ -129,7 +136,7 @@ describe("PluginAssertions", () => {
         inputSchema: {},
         handler: async () => ({}),
       };
-      
+
       PluginAssertions.assertValidTool(tool);
     });
 
@@ -137,7 +144,7 @@ describe("PluginAssertions", () => {
       expect(() => {
         PluginAssertions.assertValidTool({ name: "test" });
       }).toThrow("Tool must have handler function");
-      
+
       expect(() => {
         PluginAssertions.assertValidTool({ handler: () => {} });
       }).toThrow("Tool must have string name");
@@ -150,9 +157,10 @@ describe("PluginAssertions", () => {
         id: "test-plugin",
         name: "Test Plugin",
         version: "1.0.0",
-        register: async () => ({ tools: [], resources: [] } as PluginCapabilities),
+        register: async () =>
+          ({ tools: [], resources: [] }) as PluginCapabilities,
       };
-      
+
       PluginAssertions.assertValidPlugin(plugin);
     });
 
@@ -169,26 +177,20 @@ describe("PluginAssertions", () => {
 
   describe("assertCompletesWithin", () => {
     it("should pass for fast operation", async () => {
-      const result = await PluginAssertions.assertCompletesWithin(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 10));
-          return "success";
-        },
-        100,
-      );
-      
+      const result = await PluginAssertions.assertCompletesWithin(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return "success";
+      }, 100);
+
       expect(result).toBe("success");
     });
 
     it("should fail for slow operation", async () => {
       expect(
-        PluginAssertions.assertCompletesWithin(
-          async () => {
-            await new Promise(resolve => setTimeout(resolve, 200));
-            return "too slow";
-          },
-          100,
-        )
+        PluginAssertions.assertCompletesWithin(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          return "too slow";
+        }, 100),
       ).rejects.toThrow("Operation timed out");
     });
   });
@@ -209,53 +211,40 @@ describe("PluginAssertions", () => {
       } catch (error) {
         threwError = true;
         expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toContain("Expected operation to throw");
+        expect((error as Error).message).toContain(
+          "Expected operation to throw",
+        );
       }
       expect(threwError).toBe(true);
     });
 
     it("should match error message string", async () => {
-      await PluginAssertions.assertThrows(
-        async () => {
-          throw new Error("Specific error message");
-        },
-        "Specific error"
-      );
-      
+      await PluginAssertions.assertThrows(async () => {
+        throw new Error("Specific error message");
+      }, "Specific error");
+
       expect(
-        PluginAssertions.assertThrows(
-          async () => {
-            throw new Error("Wrong message");
-          },
-          "Specific error"
-        )
+        PluginAssertions.assertThrows(async () => {
+          throw new Error("Wrong message");
+        }, "Specific error"),
       ).rejects.toThrow("Expected error message to include");
     });
 
     it("should match error message regex", async () => {
-      await PluginAssertions.assertThrows(
-        async () => {
-          throw new Error("Error code: 123");
-        },
-        /Error code: \d+/
-      );
+      await PluginAssertions.assertThrows(async () => {
+        throw new Error("Error code: 123");
+      }, /Error code: \d+/);
     });
 
     it("should match error type", async () => {
-      await PluginAssertions.assertThrows(
-        async () => {
-          throw new TypeError("Type error");
-        },
-        TypeError
-      );
-      
+      await PluginAssertions.assertThrows(async () => {
+        throw new TypeError("Type error");
+      }, TypeError);
+
       expect(
-        PluginAssertions.assertThrows(
-          async () => {
-            throw new Error("Regular error");
-          },
-          TypeError
-        )
+        PluginAssertions.assertThrows(async () => {
+          throw new Error("Regular error");
+        }, TypeError),
       ).rejects.toThrow("Expected error to be instance of");
     });
   });

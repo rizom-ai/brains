@@ -48,7 +48,7 @@ export class PluginTestHarness {
     const context = this.getPluginContext();
 
     const capabilities = await plugin.register(context);
-    
+
     // Collect tools
     for (const tool of capabilities.tools) {
       this.tools.set(tool.name, tool);
@@ -66,7 +66,7 @@ export class PluginTestHarness {
   ): Promise<T> {
     const id = `${entityType}-${++this.entityIdCounter}`;
     const now = new Date().toISOString();
-    
+
     const entity = {
       id,
       entityType,
@@ -94,7 +94,7 @@ export class PluginTestHarness {
     id: string,
   ): Promise<T | null> {
     const entities = this.entities.get(entityType) ?? [];
-    return (entities.find(e => e.id === id) as T | undefined) ?? null;
+    return (entities.find((e) => e.id === id) as T | undefined) ?? null;
   }
 
   /**
@@ -112,11 +112,12 @@ export class PluginTestHarness {
   async query(query: string): Promise<Record<string, unknown>> {
     // Simple implementation - just search by title
     const allEntities = Array.from(this.entities.values()).flat();
-    const matches = allEntities.filter(e => 
-      e.title.toLowerCase().includes(query.toLowerCase()) ||
-      e.content.toLowerCase().includes(query.toLowerCase())
+    const matches = allEntities.filter(
+      (e) =>
+        e.title.toLowerCase().includes(query.toLowerCase()) ||
+        e.content.toLowerCase().includes(query.toLowerCase()),
     );
-    
+
     return {
       query,
       results: matches,
@@ -174,7 +175,7 @@ export class PluginTestHarness {
       registry: this.createMockRegistry(),
       logger: this.logger,
       getPlugin: (id: string): Plugin | undefined => {
-        return this.installedPlugins.find(p => p.id === id);
+        return this.installedPlugins.find((p) => p.id === id);
       },
       events: {
         on: (): unknown => undefined,
@@ -183,7 +184,7 @@ export class PluginTestHarness {
       } as unknown as EventEmitter,
       messageBus: {
         publish: async (): Promise<void> => undefined,
-        subscribe: (): () => void => () => undefined,
+        subscribe: (): (() => void) => () => undefined,
       } as unknown as MessageBus,
       formatters: {
         register: (): void => undefined,
@@ -213,10 +214,10 @@ export class PluginTestHarness {
    */
   private createMockRegistry(): Registry {
     const registry = new Map<string, unknown>();
-    
+
     // Pre-register the entity service
     registry.set("entityService", this.createMockEntityService());
-    
+
     return {
       register: <T>(id: string, factory: ComponentFactory<T>): void => {
         registry.set(id, factory);
@@ -229,7 +230,9 @@ export class PluginTestHarness {
         if (!factory) {
           throw new Error(`Component ${id} not found in registry`);
         }
-        return (typeof factory === "function" ? factory(...args) : factory) as T;
+        return (
+          typeof factory === "function" ? factory(...args) : factory
+        ) as T;
       },
       has: (id: string): boolean => {
         return registry.has(id);
@@ -248,7 +251,9 @@ export class PluginTestHarness {
         if (!factory) {
           throw new Error(`Component ${id} not found in registry`);
         }
-        return (typeof factory === "function" ? factory(...args) : factory) as T;
+        return (
+          typeof factory === "function" ? factory(...args) : factory
+        ) as T;
       },
     };
   }
@@ -258,14 +263,23 @@ export class PluginTestHarness {
    */
   private createMockEntityService(): Partial<EntityService> {
     return {
-      createEntity: async <T extends BaseEntity>(entity: Omit<T, "id"> & { id?: string }): Promise<T> => {
-        const entityType = ((entity as Record<string, unknown>)["entityType"] as string) || "base";
+      createEntity: async <T extends BaseEntity>(
+        entity: Omit<T, "id"> & { id?: string },
+      ): Promise<T> => {
+        const entityType =
+          ((entity as Record<string, unknown>)["entityType"] as string) ||
+          "base";
         return this.createTestEntity(entityType, entity) as Promise<T>;
       },
-      getEntity: async <T extends BaseEntity>(entityType: string, id: string): Promise<T | null> => {
+      getEntity: async <T extends BaseEntity>(
+        entityType: string,
+        id: string,
+      ): Promise<T | null> => {
         return this.getEntity(entityType, id);
       },
-      listEntities: async <T extends BaseEntity>(entityType: string): Promise<T[]> => {
+      listEntities: async <T extends BaseEntity>(
+        entityType: string,
+      ): Promise<T[]> => {
         return this.listEntities(entityType);
       },
       getEntityTypes: (): string[] => {

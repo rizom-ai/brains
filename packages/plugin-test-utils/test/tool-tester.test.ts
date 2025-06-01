@@ -18,11 +18,11 @@ describe("ToolTester", () => {
           count: z.number().optional(),
         })
         .parse(input);
-      
+
       if (parsed.message === "error") {
         throw new Error("Test error");
       }
-      
+
       return {
         result: parsed.message,
         count: parsed.count ?? 1,
@@ -42,10 +42,7 @@ describe("ToolTester", () => {
     const tool = createTestTool();
     const tester = new ToolTester(tool);
 
-    const validInputs = [
-      { message: "test" },
-      { message: "test", count: 5 },
-    ];
+    const validInputs = [{ message: "test" }, { message: "test", count: 5 }];
 
     const invalidInputs = [
       {}, // missing required message
@@ -82,6 +79,8 @@ describe("ToolTester", () => {
 
     const error = await tester.expectError({ message: "success" });
     expect(error).toBeInstanceOf(Error);
-    expect(error.message).toBe("Expected tool to throw an error but it succeeded");
+    expect(error.message).toBe(
+      "Expected tool to throw an error but it succeeded",
+    );
   });
 });

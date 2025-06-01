@@ -1,4 +1,11 @@
-import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from "fs";
+import {
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  existsSync,
+  readdirSync,
+  statSync,
+} from "fs";
 import { join, dirname } from "path";
 
 /**
@@ -55,7 +62,7 @@ export class FileTestUtils {
       const stat = statSync(fullPath);
 
       if (stat.isDirectory() && recursive) {
-        files.push(...this.listFiles(fullPath, true).map(f => join(item, f)));
+        files.push(...this.listFiles(fullPath, true).map((f) => join(item, f)));
       } else if (stat.isFile()) {
         files.push(item);
       }
@@ -76,9 +83,12 @@ export class FileTestUtils {
   /**
    * Assert file content
    */
-  static assertFileContent(path: string, expectedContent: string | RegExp): void {
+  static assertFileContent(
+    path: string,
+    expectedContent: string | RegExp,
+  ): void {
     const actual = this.readFile(path);
-    
+
     if (typeof expectedContent === "string") {
       if (actual !== expectedContent) {
         throw new Error(
@@ -126,7 +136,7 @@ export class FileTestUtils {
       if (Date.now() - start > timeout) {
         throw new Error(`Timeout waiting for file: ${path}`);
       }
-      await new Promise(resolve => setTimeout(resolve, interval));
+      await new Promise((resolve) => setTimeout(resolve, interval));
     }
   }
 }

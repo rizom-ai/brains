@@ -34,8 +34,11 @@ describe("PluginTestHarness", () => {
   });
 
   it("should retrieve created entities", async () => {
-    const note = await harness.createTestEntity("base", TestDataGenerator.note());
-    
+    const note = await harness.createTestEntity(
+      "base",
+      TestDataGenerator.note(),
+    );
+
     const retrieved = await harness.getEntity("base", note.id);
     expect(retrieved).toBeDefined();
     expect(retrieved?.id).toBe(note.id);
@@ -52,10 +55,13 @@ describe("PluginTestHarness", () => {
   });
 
   it("should execute queries", async () => {
-    await harness.createTestEntity("base", TestDataGenerator.note({
-      title: "Test Query Note",
-      content: "Content for query testing",
-    }));
+    await harness.createTestEntity(
+      "base",
+      TestDataGenerator.note({
+        title: "Test Query Note",
+        content: "Content for query testing",
+      }),
+    );
 
     const result = await harness.query("Test Query Note");
     expect(result).toBeDefined();
@@ -68,12 +74,14 @@ describe("PluginTestHarness", () => {
       version: "1.0.0",
       register: async () => {
         const capabilities: PluginCapabilities = {
-          tools: [{
-            name: "test_tool",
-            description: "Test tool",
-            inputSchema: {},
-            handler: async () => ({ success: true }),
-          }],
+          tools: [
+            {
+              name: "test_tool",
+              description: "Test tool",
+              inputSchema: {},
+              handler: async () => ({ success: true }),
+            },
+          ],
           resources: [],
         };
         return capabilities;
@@ -81,7 +89,7 @@ describe("PluginTestHarness", () => {
     };
 
     await harness.installPlugin(testPlugin);
-    
+
     const installedPlugins = harness.getInstalledPlugins();
     expect(installedPlugins).toContain(testPlugin);
   });

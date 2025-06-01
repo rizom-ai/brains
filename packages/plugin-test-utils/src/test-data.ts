@@ -41,11 +41,16 @@ export class TestDataGenerator {
   /**
    * Generate multiple test notes
    */
-  static notes(count: number, overrides: Partial<BaseEntity> = {}): Array<Partial<BaseEntity>> {
-    return Array.from({ length: count }, (_, i) => this.note({
-      ...overrides,
-      title: overrides.title ?? `Test Note ${i + 1}`,
-    }));
+  static notes(
+    count: number,
+    overrides: Partial<BaseEntity> = {},
+  ): Array<Partial<BaseEntity>> {
+    return Array.from({ length: count }, (_, i) =>
+      this.note({
+        ...overrides,
+        title: overrides.title ?? `Test Note ${i + 1}`,
+      }),
+    );
   }
 
   /**
@@ -58,7 +63,9 @@ export class TestDataGenerator {
     const content = [
       `# ${options.title}`,
       "",
-      ...options.sections.map(section => `## ${section}\n\nContent for ${section}.\n`),
+      ...options.sections.map(
+        (section) => `## ${section}\n\nContent for ${section}.\n`,
+      ),
     ].join("\n");
 
     return {
@@ -71,17 +78,19 @@ export class TestDataGenerator {
   /**
    * Generate markdown content
    */
-  static markdown(options: {
-    headers?: string[];
-    paragraphs?: number;
-    lists?: boolean;
-    code?: boolean;
-  } = {}): string {
+  static markdown(
+    options: {
+      headers?: string[];
+      paragraphs?: number;
+      lists?: boolean;
+      code?: boolean;
+    } = {},
+  ): string {
     const parts: string[] = [];
-    
+
     // Add custom headers first
     if (options.headers) {
-      options.headers.forEach(header => {
+      options.headers.forEach((header) => {
         parts.push(`# ${header}`);
         parts.push("");
       });
@@ -90,9 +99,7 @@ export class TestDataGenerator {
     // Add paragraphs
     const paragraphCount = options.paragraphs ?? 1;
     for (let i = 1; i <= paragraphCount; i++) {
-      parts.push(
-        `Lorem ipsum dolor sit amet, consectetur adipiscing elit.`
-      );
+      parts.push(`Lorem ipsum dolor sit amet, consectetur adipiscing elit.`);
       parts.push("");
     }
 
@@ -148,12 +155,14 @@ export class TestDataGenerator {
     count: number,
     baseOverrides: Partial<BaseEntity> = {},
   ): BaseEntity[] {
-    return Array.from({ length: count }, (_, i) => 
+    return Array.from({ length: count }, (_, i) =>
       this.entity({
         ...baseOverrides,
         entityType,
-        title: baseOverrides.title ?? `${entityType.charAt(0).toUpperCase() + entityType.slice(1)} ${i + 1}`,
-      })
+        title:
+          baseOverrides.title ??
+          `${entityType.charAt(0).toUpperCase() + entityType.slice(1)} ${i + 1}`,
+      }),
     );
   }
 
@@ -161,13 +170,22 @@ export class TestDataGenerator {
    * Generate random content
    */
   static randomContent(length: number): string {
-    const words = ["lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit"];
+    const words = [
+      "lorem",
+      "ipsum",
+      "dolor",
+      "sit",
+      "amet",
+      "consectetur",
+      "adipiscing",
+      "elit",
+    ];
     const result: string[] = [];
-    
+
     while (result.join(" ").length < length) {
       result.push(words[Math.floor(Math.random() * words.length)] ?? "lorem");
     }
-    
+
     return result.join(" ").substring(0, length);
   }
 
