@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { webserverPlugin } from "../../src/index";
-import type { Registry, EntityService, BaseEntity, Plugin, PluginContext, PluginCapabilities } from "@brains/types";
+import type {
+  Registry,
+  EntityService,
+  BaseEntity,
+  Plugin,
+  PluginContext,
+  PluginCapabilities,
+} from "@brains/types";
 import { createSilentLogger } from "@brains/utils";
 import { mkdirSync, existsSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
@@ -10,15 +17,25 @@ import type { WebserverManager } from "../../src/webserver-manager";
 const silentLogger = createSilentLogger();
 
 // Type definitions for tool handlers
-type BuildResult = { success: boolean; message?: string; lastBuild?: string; error?: string };
-type ServerResult = { success: boolean; url?: string; message?: string; error?: string };
-type StatusResult = { 
-  hasBuild: boolean; 
-  lastBuild?: string; 
-  servers: { 
-    preview: { running: boolean; url?: string }; 
-    production: { running: boolean; url?: string } 
-  } 
+type BuildResult = {
+  success: boolean;
+  message?: string;
+  lastBuild?: string;
+  error?: string;
+};
+type ServerResult = {
+  success: boolean;
+  url?: string;
+  message?: string;
+  error?: string;
+};
+type StatusResult = {
+  hasBuild: boolean;
+  lastBuild?: string;
+  servers: {
+    preview: { running: boolean; url?: string };
+    production: { running: boolean; url?: string };
+  };
 };
 
 describe("WebserverPlugin Integration", () => {
@@ -35,21 +52,21 @@ describe("WebserverPlugin Integration", () => {
   beforeEach(() => {
     // Save original Bun.spawn
     originalSpawn = Bun.spawn;
-    
+
     // Create test directories
     testBrainDir = join(import.meta.dir, "test-brain");
     testOutputDir = join(testBrainDir, "webserver");
     astroSiteDir = join(import.meta.dir, "../../src/astro-site");
-    
+
     if (existsSync(testBrainDir)) {
       rmSync(testBrainDir, { recursive: true });
     }
     mkdirSync(testBrainDir, { recursive: true });
-    
+
     // Create mock astro-site directory structure
     mkdirSync(join(astroSiteDir, "src/content/landing"), { recursive: true });
     mkdirSync(join(astroSiteDir, "dist"), { recursive: true });
-    
+
     // Create a mock package.json
     const packageJson = {
       name: "test-astro-site",
@@ -60,11 +77,13 @@ describe("WebserverPlugin Integration", () => {
     };
     writeFileSync(
       join(astroSiteDir, "package.json"),
-      JSON.stringify(packageJson, null, 2)
+      JSON.stringify(packageJson, null, 2),
     );
-    
+
     // Mock Bun.spawn to simulate successful builds
-    (Bun as unknown as { spawn: typeof Bun.spawn }).spawn = ((..._args: Parameters<typeof Bun.spawn>): ReturnType<typeof Bun.spawn> => {
+    (Bun as unknown as { spawn: typeof Bun.spawn }).spawn = ((
+      ..._args: Parameters<typeof Bun.spawn>
+    ): ReturnType<typeof Bun.spawn> => {
       // Mock successful execution
       return {
         exited: Promise.resolve(0),
@@ -114,7 +133,7 @@ describe("WebserverPlugin Integration", () => {
   afterEach(async () => {
     // Restore original Bun.spawn
     (Bun as unknown as { spawn: typeof Bun.spawn }).spawn = originalSpawn;
-    
+
     // Cleanup webserver manager
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (webserverManager) {
@@ -125,7 +144,7 @@ describe("WebserverPlugin Integration", () => {
     if (existsSync(testBrainDir)) {
       rmSync(testBrainDir, { recursive: true });
     }
-    
+
     // Cleanup mock astro-site
     if (existsSync(astroSiteDir)) {
       rmSync(astroSiteDir, { recursive: true });
@@ -162,13 +181,13 @@ describe("WebserverPlugin Integration", () => {
       } as unknown as PluginContext;
 
       pluginCapabilities = await plugin.register(context);
-      
+
       // Get webserver manager from registry
       webserverManager = mockRegistry.resolve("webserverManager");
 
       expect(pluginCapabilities.tools).toHaveLength(6);
-      
-      const toolNames = pluginCapabilities.tools.map(t => t.name);
+
+      const toolNames = pluginCapabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("build_site");
       expect(toolNames).toContain("start_preview_server");
       expect(toolNames).toContain("start_production_server");
@@ -196,18 +215,20 @@ describe("WebserverPlugin Integration", () => {
       pluginCapabilities = await plugin.register(context);
       webserverManager = mockRegistry.resolve("webserverManager");
 
-      const buildTool = pluginCapabilities.tools.find(t => t.name === "build_site");
+      const buildTool = pluginCapabilities.tools.find(
+        (t) => t.name === "build_site",
+      );
       expect(buildTool).toBeDefined();
 
       // Execute build tool
       if (!buildTool) throw new Error("Build tool not found");
-      const result = await buildTool.handler({ clean: true }) as BuildResult;
-      
+      const result = (await buildTool.handler({ clean: true })) as BuildResult;
+
       // Log the error if build fails
       if (!result.success) {
         console.error("Build failed:", result.error);
       }
-      
+
       expect(result.success).toBe(true);
       expect(result.message).toBe("Site built successfully");
       expect(result.lastBuild).toBeDefined();
@@ -215,7 +236,9 @@ describe("WebserverPlugin Integration", () => {
 
     it("should handle build errors gracefully", async () => {
       // Mock EntityService to throw error
-      mockEntityService.listEntities = async <T extends BaseEntity>(): Promise<T[]> => {
+      mockEntityService.listEntities = async <T extends BaseEntity>(): Promise<
+        T[]
+      > => {
         throw new Error("Database connection failed");
       };
 
@@ -235,10 +258,12 @@ describe("WebserverPlugin Integration", () => {
       pluginCapabilities = await plugin.register(context);
       webserverManager = mockRegistry.resolve("webserverManager");
 
-      const buildTool = pluginCapabilities.tools.find(t => t.name === "build_site");
+      const buildTool = pluginCapabilities.tools.find(
+        (t) => t.name === "build_site",
+      );
       if (!buildTool) throw new Error("Build tool not found");
 
-      const result = await buildTool.handler({}) as BuildResult;
+      const result = (await buildTool.handler({})) as BuildResult;
       expect(result.success).toBe(false);
       expect(result.error).toContain("Database connection failed");
     });
@@ -262,10 +287,18 @@ describe("WebserverPlugin Integration", () => {
       pluginCapabilities = await plugin.register(context);
       webserverManager = mockRegistry.resolve("webserverManager");
 
-      const buildTool = pluginCapabilities.tools.find(t => t.name === "build_site");
-      const startPreviewTool = pluginCapabilities.tools.find(t => t.name === "start_preview_server");
-      const stopServerTool = pluginCapabilities.tools.find(t => t.name === "stop_server");
-      const statusTool = pluginCapabilities.tools.find(t => t.name === "get_site_status");
+      const buildTool = pluginCapabilities.tools.find(
+        (t) => t.name === "build_site",
+      );
+      const startPreviewTool = pluginCapabilities.tools.find(
+        (t) => t.name === "start_preview_server",
+      );
+      const stopServerTool = pluginCapabilities.tools.find(
+        (t) => t.name === "stop_server",
+      );
+      const statusTool = pluginCapabilities.tools.find(
+        (t) => t.name === "get_site_status",
+      );
 
       if (!buildTool || !startPreviewTool || !stopServerTool || !statusTool) {
         throw new Error("Required tools not found");
@@ -275,21 +308,23 @@ describe("WebserverPlugin Integration", () => {
       await buildTool.handler({});
 
       // Start preview server
-      const startResult = await startPreviewTool.handler({}) as ServerResult;
+      const startResult = (await startPreviewTool.handler({})) as ServerResult;
       expect(startResult.success).toBe(true);
       expect(startResult.url).toBe("http://localhost:14325");
 
       // Check status
-      const statusResult = await statusTool.handler({}) as StatusResult;
+      const statusResult = (await statusTool.handler({})) as StatusResult;
       expect(statusResult.servers.preview.running).toBe(true);
       expect(statusResult.servers.preview.url).toBe("http://localhost:14325");
 
       // Stop server
-      const stopResult = await stopServerTool.handler({ type: "preview" }) as ServerResult;
+      const stopResult = (await stopServerTool.handler({
+        type: "preview",
+      })) as ServerResult;
       expect(stopResult.success).toBe(true);
 
       // Check status again
-      const finalStatus = await statusTool.handler({}) as StatusResult;
+      const finalStatus = (await statusTool.handler({})) as StatusResult;
       expect(finalStatus.servers.preview.running).toBe(false);
     });
 
@@ -310,10 +345,12 @@ describe("WebserverPlugin Integration", () => {
       pluginCapabilities = await plugin.register(context);
       webserverManager = mockRegistry.resolve("webserverManager");
 
-      const previewTool = pluginCapabilities.tools.find(t => t.name === "preview_site");
+      const previewTool = pluginCapabilities.tools.find(
+        (t) => t.name === "preview_site",
+      );
       if (!previewTool) throw new Error("Preview tool not found");
 
-      const result = await previewTool.handler({}) as ServerResult;
+      const result = (await previewTool.handler({})) as ServerResult;
       expect(result.success).toBe(true);
       expect(result.url).toBe("http://localhost:14326");
       expect(result.message).toContain("Site built and preview server started");
@@ -323,7 +360,9 @@ describe("WebserverPlugin Integration", () => {
   describe("Content Generation", () => {
     it("should generate content based on brain entities", async () => {
       // Add more test notes
-      mockEntityService.listEntities = async <T extends BaseEntity>(entityType: string): Promise<T[]> => {
+      mockEntityService.listEntities = async <T extends BaseEntity>(
+        entityType: string,
+      ): Promise<T[]> => {
         if (entityType === "note") {
           return [
             {
@@ -375,19 +414,23 @@ describe("WebserverPlugin Integration", () => {
       pluginCapabilities = await plugin.register(context);
       webserverManager = mockRegistry.resolve("webserverManager");
 
-      const buildTool = pluginCapabilities.tools.find(t => t.name === "build_site");
-      const statusTool = pluginCapabilities.tools.find(t => t.name === "get_site_status");
+      const buildTool = pluginCapabilities.tools.find(
+        (t) => t.name === "build_site",
+      );
+      const statusTool = pluginCapabilities.tools.find(
+        (t) => t.name === "get_site_status",
+      );
 
       if (!buildTool || !statusTool) {
         throw new Error("Required tools not found");
       }
 
       // Build site
-      const buildResult = await buildTool.handler({}) as BuildResult;
+      const buildResult = (await buildTool.handler({})) as BuildResult;
       expect(buildResult.success).toBe(true);
 
       // Check status
-      const status = await statusTool.handler({}) as StatusResult;
+      const status = (await statusTool.handler({})) as StatusResult;
       expect(status.hasBuild).toBe(true);
       expect(status.lastBuild).toBeDefined();
     });
@@ -411,12 +454,25 @@ describe("WebserverPlugin Integration", () => {
       pluginCapabilities = await plugin.register(context);
       webserverManager = mockRegistry.resolve("webserverManager");
 
-      const buildTool = pluginCapabilities.tools.find(t => t.name === "build_site");
-      const startPreviewTool = pluginCapabilities.tools.find(t => t.name === "start_preview_server");
-      const startProductionTool = pluginCapabilities.tools.find(t => t.name === "start_production_server");
-      const statusTool = pluginCapabilities.tools.find(t => t.name === "get_site_status");
+      const buildTool = pluginCapabilities.tools.find(
+        (t) => t.name === "build_site",
+      );
+      const startPreviewTool = pluginCapabilities.tools.find(
+        (t) => t.name === "start_preview_server",
+      );
+      const startProductionTool = pluginCapabilities.tools.find(
+        (t) => t.name === "start_production_server",
+      );
+      const statusTool = pluginCapabilities.tools.find(
+        (t) => t.name === "get_site_status",
+      );
 
-      if (!buildTool || !startPreviewTool || !startProductionTool || !statusTool) {
+      if (
+        !buildTool ||
+        !startPreviewTool ||
+        !startProductionTool ||
+        !statusTool
+      ) {
         throw new Error("Required tools not found");
       }
 
@@ -424,14 +480,18 @@ describe("WebserverPlugin Integration", () => {
       await buildTool.handler({});
 
       // Start both servers
-      const previewResult = await startPreviewTool.handler({}) as ServerResult;
+      const previewResult = (await startPreviewTool.handler(
+        {},
+      )) as ServerResult;
       expect(previewResult.success).toBe(true);
 
-      const productionResult = await startProductionTool.handler({}) as ServerResult;
+      const productionResult = (await startProductionTool.handler(
+        {},
+      )) as ServerResult;
       expect(productionResult.success).toBe(true);
 
       // Check status
-      const status = await statusTool.handler({}) as StatusResult;
+      const status = (await statusTool.handler({})) as StatusResult;
       expect(status.servers.preview.running).toBe(true);
       expect(status.servers.production.running).toBe(true);
       expect(status.servers.preview.url).toBe("http://localhost:14328");
@@ -456,18 +516,20 @@ describe("WebserverPlugin Integration", () => {
 
       pluginCapabilities = await plugin.register(context);
       webserverManager = mockRegistry.resolve("webserverManager");
-      
+
       // Remove the dist directory to simulate no build
       const distDir = join(astroSiteDir, "dist");
       if (existsSync(distDir)) {
         rmSync(distDir, { recursive: true });
       }
 
-      const startPreviewTool = pluginCapabilities.tools.find(t => t.name === "start_preview_server");
+      const startPreviewTool = pluginCapabilities.tools.find(
+        (t) => t.name === "start_preview_server",
+      );
       if (!startPreviewTool) throw new Error("Start preview tool not found");
 
       // Try to start server without build
-      const result = await startPreviewTool.handler({}) as ServerResult;
+      const result = (await startPreviewTool.handler({})) as ServerResult;
       expect(result.success).toBe(false);
       expect(result.error).toContain("No build found");
     });
@@ -489,7 +551,9 @@ describe("WebserverPlugin Integration", () => {
       pluginCapabilities = await plugin.register(context);
       webserverManager = mockRegistry.resolve("webserverManager");
 
-      const stopServerTool = pluginCapabilities.tools.find(t => t.name === "stop_server");
+      const stopServerTool = pluginCapabilities.tools.find(
+        (t) => t.name === "stop_server",
+      );
       if (!stopServerTool) throw new Error("Stop server tool not found");
 
       // This should be caught by Zod validation

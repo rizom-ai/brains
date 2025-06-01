@@ -180,6 +180,26 @@
         "bun-types": "latest",
       },
     },
+    "packages/plugin-test-utils": {
+      "name": "@brains/plugin-test-utils",
+      "version": "0.0.0",
+      "dependencies": {
+        "@brains/base-entity": "workspace:*",
+        "@brains/shell": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.0.0",
+      },
+      "peerDependencies": {
+        "bun-types": "latest",
+      },
+    },
     "packages/shell": {
       "name": "@brains/shell",
       "version": "0.1.0",
@@ -315,6 +335,8 @@
     "@brains/interface-core": ["@brains/interface-core@workspace:packages/interface-core"],
 
     "@brains/mcp-server": ["@brains/mcp-server@workspace:packages/mcp-server"],
+
+    "@brains/plugin-test-utils": ["@brains/plugin-test-utils@workspace:packages/plugin-test-utils"],
 
     "@brains/shell": ["@brains/shell@workspace:packages/shell"],
 

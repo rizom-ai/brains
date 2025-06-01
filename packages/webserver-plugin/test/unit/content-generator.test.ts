@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentGenerator } from "../../src/content-generator";
-import type { Registry, EntityService, BaseEntity, ListOptions } from "@brains/types";
+import type {
+  Registry,
+  EntityService,
+  BaseEntity,
+  ListOptions,
+} from "@brains/types";
 import { createSilentLogger } from "@brains/utils";
 import { mkdirSync, existsSync, rmSync } from "fs";
 import { readFile } from "fs/promises";
@@ -24,7 +29,7 @@ describe("ContentGenerator", () => {
     // Mock EntityService with proper typing
     const mockListEntities = async <T extends BaseEntity>(
       _entityType: string,
-      _options?: Omit<ListOptions, "entityType">
+      _options?: Omit<ListOptions, "entityType">,
     ): Promise<T[]> => {
       return [
         {
@@ -49,7 +54,7 @@ describe("ContentGenerator", () => {
     };
 
     mockEntityService = {
-      listEntities: mock(mockListEntities) as EntityService['listEntities'],
+      listEntities: mock(mockListEntities) as EntityService["listEntities"],
     } as unknown as EntityService;
 
     // Mock Registry
@@ -107,16 +112,22 @@ describe("ContentGenerator", () => {
       expect((data["stats"] as Record<string, unknown>)["noteCount"]).toBe(2);
       expect((data["stats"] as Record<string, unknown>)["tagCount"]).toBe(3); // tag1, tag2, tag3
       expect(data["recentNotes"] as unknown[]).toHaveLength(2);
-      expect(((data["recentNotes"] as unknown[])[0] as Record<string, unknown>)["title"]).toBe("Test Note 2"); // Most recent first
+      expect(
+        ((data["recentNotes"] as unknown[])[0] as Record<string, unknown>)[
+          "title"
+        ],
+      ).toBe("Test Note 2"); // Most recent first
     });
 
     it("should handle empty notes list", async () => {
       const emptyListEntities = async <T extends BaseEntity>(
         _entityType: string,
-        _options?: Omit<ListOptions, "entityType">
+        _options?: Omit<ListOptions, "entityType">,
       ): Promise<T[]> => [] as unknown as T[];
-      
-      mockEntityService.listEntities = mock(emptyListEntities) as EntityService['listEntities'];
+
+      mockEntityService.listEntities = mock(
+        emptyListEntities,
+      ) as EntityService["listEntities"];
 
       await contentGenerator.generateAll();
 
@@ -126,7 +137,7 @@ describe("ContentGenerator", () => {
 
       expect((data["stats"] as Record<string, unknown>)["noteCount"]).toBe(0);
       expect((data["stats"] as Record<string, unknown>)["tagCount"]).toBe(0);
-      expect((data["recentNotes"] as unknown[])).toHaveLength(0);
+      expect(data["recentNotes"] as unknown[]).toHaveLength(0);
     });
 
     it("should limit recent notes to 5", async () => {
@@ -143,10 +154,12 @@ describe("ContentGenerator", () => {
 
       const manyNotesListEntities = async <T extends BaseEntity>(
         _entityType: string,
-        _options?: Omit<ListOptions, "entityType">
+        _options?: Omit<ListOptions, "entityType">,
       ): Promise<T[]> => manyNotes as unknown as T[];
-      
-      mockEntityService.listEntities = mock(manyNotesListEntities) as EntityService['listEntities'];
+
+      mockEntityService.listEntities = mock(
+        manyNotesListEntities,
+      ) as EntityService["listEntities"];
 
       await contentGenerator.generateAll();
 
@@ -154,7 +167,7 @@ describe("ContentGenerator", () => {
       const content = await readFile(yamlPath, "utf-8");
       const data = yaml.load(content) as Record<string, unknown>;
 
-      expect((data["recentNotes"] as unknown[])).toHaveLength(5);
+      expect(data["recentNotes"] as unknown[]).toHaveLength(5);
     });
   });
 
@@ -162,15 +175,17 @@ describe("ContentGenerator", () => {
     it("should return true if site-content entities exist", async () => {
       const siteContentListEntities = async <T extends BaseEntity>(
         type: string,
-        _options?: Omit<ListOptions, "entityType">
+        _options?: Omit<ListOptions, "entityType">,
       ): Promise<T[]> => {
         if (type === "site-content") {
           return [{ id: "sc1", entityType: "site-content" }] as unknown as T[];
         }
         return [] as unknown as T[];
       };
-      
-      mockEntityService.listEntities = mock(siteContentListEntities) as EntityService['listEntities'];
+
+      mockEntityService.listEntities = mock(
+        siteContentListEntities,
+      ) as EntityService["listEntities"];
 
       const hasSiteContent = await contentGenerator.checkForSiteContent();
       expect(hasSiteContent).toBe(true);
@@ -179,15 +194,17 @@ describe("ContentGenerator", () => {
     it("should return false if no site-content entities exist", async () => {
       const noSiteContentListEntities = async <T extends BaseEntity>(
         type: string,
-        _options?: Omit<ListOptions, "entityType">
+        _options?: Omit<ListOptions, "entityType">,
       ): Promise<T[]> => {
         if (type === "site-content") {
           return [] as unknown as T[];
         }
         return [] as unknown as T[];
       };
-      
-      mockEntityService.listEntities = mock(noSiteContentListEntities) as EntityService['listEntities'];
+
+      mockEntityService.listEntities = mock(
+        noSiteContentListEntities,
+      ) as EntityService["listEntities"];
 
       const hasSiteContent = await contentGenerator.checkForSiteContent();
       expect(hasSiteContent).toBe(false);
@@ -196,15 +213,17 @@ describe("ContentGenerator", () => {
     it("should return false if entity type throws error", async () => {
       const errorListEntities = async <T extends BaseEntity>(
         type: string,
-        _options?: Omit<ListOptions, "entityType">
+        _options?: Omit<ListOptions, "entityType">,
       ): Promise<T[]> => {
         if (type === "site-content") {
           throw new Error("Entity type not registered");
         }
         return [] as unknown as T[];
       };
-      
-      mockEntityService.listEntities = mock(errorListEntities) as EntityService['listEntities'];
+
+      mockEntityService.listEntities = mock(
+        errorListEntities,
+      ) as EntityService["listEntities"];
 
       const hasSiteContent = await contentGenerator.checkForSiteContent();
       expect(hasSiteContent).toBe(false);

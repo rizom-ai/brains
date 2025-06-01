@@ -34,13 +34,15 @@ describe("SiteBuilder", () => {
 
     // Mock Bun.spawn
     originalSpawn = Bun.spawn;
-    (Bun as unknown as BunWithSpawn).spawn = mock((_args: string[], _options: unknown): ReturnType<typeof Bun.spawn> => {
-      return {
-        exited: Promise.resolve(0),
-        stdout: new ReadableStream(),
-        stderr: new ReadableStream(),
-      } as unknown as ReturnType<typeof Bun.spawn>;
-    }) as unknown as typeof Bun.spawn;
+    (Bun as unknown as BunWithSpawn).spawn = mock(
+      (_args: string[], _options: unknown): ReturnType<typeof Bun.spawn> => {
+        return {
+          exited: Promise.resolve(0),
+          stdout: new ReadableStream(),
+          stderr: new ReadableStream(),
+        } as unknown as ReturnType<typeof Bun.spawn>;
+      },
+    ) as unknown as typeof Bun.spawn;
 
     siteBuilder = new SiteBuilder({
       logger: createSilentLogger("test"),
@@ -91,11 +93,14 @@ describe("SiteBuilder", () => {
     });
 
     it("should throw error if build fails", () => {
-      (Bun as unknown as BunWithSpawn).spawn = mock((): ReturnType<typeof Bun.spawn> => ({
-        exited: Promise.resolve(1),
-        stdout: new ReadableStream(),
-        stderr: new Response("Build error").body,
-      } as unknown as ReturnType<typeof Bun.spawn>)) as unknown as typeof Bun.spawn;
+      (Bun as unknown as BunWithSpawn).spawn = mock(
+        (): ReturnType<typeof Bun.spawn> =>
+          ({
+            exited: Promise.resolve(1),
+            stdout: new ReadableStream(),
+            stderr: new Response("Build error").body,
+          }) as unknown as ReturnType<typeof Bun.spawn>,
+      ) as unknown as typeof Bun.spawn;
 
       expect(siteBuilder.build()).rejects.toThrow("Astro build failed");
     });
@@ -125,16 +130,18 @@ describe("SiteBuilder", () => {
       writeFileSync(join(distDir, "index.html"), "<html></html>");
 
       // Mock spawn to actually remove the directory
-      (Bun as unknown as BunWithSpawn).spawn = mock((args: string[], _options: unknown): ReturnType<typeof Bun.spawn> => {
-        if (args[0] === "rm" && args[1] === "-rf") {
-          if (args[2]) rmSync(args[2], { recursive: true });
-        }
-        return {
-          exited: Promise.resolve(0),
-          stdout: new ReadableStream(),
-          stderr: new ReadableStream(),
-        } as unknown as ReturnType<typeof Bun.spawn>;
-      }) as unknown as typeof Bun.spawn;
+      (Bun as unknown as BunWithSpawn).spawn = mock(
+        (args: string[], _options: unknown): ReturnType<typeof Bun.spawn> => {
+          if (args[0] === "rm" && args[1] === "-rf") {
+            if (args[2]) rmSync(args[2], { recursive: true });
+          }
+          return {
+            exited: Promise.resolve(0),
+            stdout: new ReadableStream(),
+            stderr: new ReadableStream(),
+          } as unknown as ReturnType<typeof Bun.spawn>;
+        },
+      ) as unknown as typeof Bun.spawn;
 
       await siteBuilder.clean();
 

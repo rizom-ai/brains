@@ -19,10 +19,16 @@ describe("ServerManager", () => {
       rmSync(testDistDir, { recursive: true });
     }
     mkdirSync(testDistDir, { recursive: true });
-    
+
     // Create some test files
-    writeFileSync(join(testDistDir, "index.html"), "<html><body>Test</body></html>");
-    writeFileSync(join(testDistDir, "404.html"), "<html><body>Not Found</body></html>");
+    writeFileSync(
+      join(testDistDir, "index.html"),
+      "<html><body>Test</body></html>",
+    );
+    writeFileSync(
+      join(testDistDir, "404.html"),
+      "<html><body>Not Found</body></html>",
+    );
 
     // Save original Bun.serve
     originalBunServe = Bun.serve;
@@ -38,10 +44,10 @@ describe("ServerManager", () => {
   afterEach(async () => {
     // Restore original Bun.serve
     (Bun as unknown as BunWithServe).serve = originalBunServe;
-    
+
     // Stop any running servers
     await serverManager.stopAll();
-    
+
     // Cleanup
     if (existsSync(testDistDir)) {
       rmSync(testDistDir, { recursive: true });
@@ -65,7 +71,7 @@ describe("ServerManager", () => {
       }) as unknown as typeof Bun.serve;
 
       const url = await serverManager.startPreviewServer();
-      
+
       expect(url).toBe("http://localhost:4321");
       expect((Bun as unknown as BunWithServe).serve).toHaveBeenCalled();
     });
@@ -77,11 +83,13 @@ describe("ServerManager", () => {
         stop: mock(() => {}),
       };
 
-      (Bun as unknown as BunWithServe).serve = mock(() => mockServer) as unknown as typeof Bun.serve;
-      
+      (Bun as unknown as BunWithServe).serve = mock(
+        () => mockServer,
+      ) as unknown as typeof Bun.serve;
+
       // Start server first time
       await serverManager.startPreviewServer();
-      
+
       // Try to start again - should return existing URL
       const url = await serverManager.startPreviewServer();
       expect(url).toBe("http://localhost:4321");
@@ -98,10 +106,12 @@ describe("ServerManager", () => {
       };
 
       // const originalServe = Bun.serve; // Not used
-      (Bun as unknown as BunWithServe).serve = mock(() => mockServer) as unknown as typeof Bun.serve;
+      (Bun as unknown as BunWithServe).serve = mock(
+        () => mockServer,
+      ) as unknown as typeof Bun.serve;
 
       await serverManager.startPreviewServer();
-      
+
       // Should still start even without index.html
       expect((Bun as unknown as BunWithServe).serve).toHaveBeenCalled();
     });
@@ -122,7 +132,7 @@ describe("ServerManager", () => {
       }) as unknown as typeof Bun.serve;
 
       const url = await serverManager.startProductionServer();
-      
+
       expect(url).toBe("http://localhost:8080");
       expect((Bun as unknown as BunWithServe).serve).toHaveBeenCalled();
     });
@@ -134,11 +144,13 @@ describe("ServerManager", () => {
         stop: mock(() => {}),
       };
 
-      (Bun as unknown as BunWithServe).serve = mock(() => mockServer) as unknown as typeof Bun.serve;
-      
+      (Bun as unknown as BunWithServe).serve = mock(
+        () => mockServer,
+      ) as unknown as typeof Bun.serve;
+
       // Start server first time
       await serverManager.startProductionServer();
-      
+
       // Try to start again - should return existing URL
       const url = await serverManager.startProductionServer();
       expect(url).toBe("http://localhost:8080");
@@ -153,17 +165,19 @@ describe("ServerManager", () => {
         fetch: mock(() => Promise.resolve()),
         stop: mockStop,
       };
-      
-      (Bun as unknown as BunWithServe).serve = mock(() => mockServer) as unknown as typeof Bun.serve;
-      
+
+      (Bun as unknown as BunWithServe).serve = mock(
+        () => mockServer,
+      ) as unknown as typeof Bun.serve;
+
       // Start server first
       await serverManager.startPreviewServer();
-      
+
       // Then stop it
       await serverManager.stopServer("preview");
 
       expect(mockStop).toHaveBeenCalled();
-      
+
       // Check status shows server is stopped
       const status = serverManager.getStatus();
       expect(status.preview).toBe(false);
@@ -176,17 +190,19 @@ describe("ServerManager", () => {
         fetch: mock(() => Promise.resolve()),
         stop: mockStop,
       };
-      
-      (Bun as unknown as BunWithServe).serve = mock(() => mockServer) as unknown as typeof Bun.serve;
-      
+
+      (Bun as unknown as BunWithServe).serve = mock(
+        () => mockServer,
+      ) as unknown as typeof Bun.serve;
+
       // Start server first
       await serverManager.startProductionServer();
-      
+
       // Then stop it
       await serverManager.stopServer("production");
 
       expect(mockStop).toHaveBeenCalled();
-      
+
       // Check status shows server is stopped
       const status = serverManager.getStatus();
       expect(status.production).toBe(false);
@@ -203,26 +219,26 @@ describe("ServerManager", () => {
     it("should stop all running servers", async () => {
       const mockStopPreview = mock(() => {});
       const mockStopProduction = mock(() => {});
-      
+
       const mockPreviewServer = {
         port: 4321,
         fetch: mock(() => Promise.resolve()),
         stop: mockStopPreview,
       };
-      
+
       const mockProductionServer = {
         port: 8080,
         fetch: mock(() => Promise.resolve()),
         stop: mockStopProduction,
       };
-      
+
       // Mock both servers
       let callCount = 0;
       (Bun as unknown as BunWithServe).serve = mock(() => {
         callCount++;
         return callCount === 1 ? mockPreviewServer : mockProductionServer;
       }) as unknown as typeof Bun.serve;
-      
+
       // Start both servers
       await serverManager.startPreviewServer();
       await serverManager.startProductionServer();
@@ -232,7 +248,7 @@ describe("ServerManager", () => {
 
       expect(mockStopPreview).toHaveBeenCalled();
       expect(mockStopProduction).toHaveBeenCalled();
-      
+
       // Check status shows both servers stopped
       const status = serverManager.getStatus();
       expect(status.preview).toBe(false);
@@ -246,16 +262,18 @@ describe("ServerManager", () => {
         fetch: mock(() => Promise.resolve()),
         stop: mockStop,
       };
-      
-      (Bun as unknown as BunWithServe).serve = mock(() => mockServer) as unknown as typeof Bun.serve;
-      
+
+      (Bun as unknown as BunWithServe).serve = mock(
+        () => mockServer,
+      ) as unknown as typeof Bun.serve;
+
       // Start only preview server
       await serverManager.startPreviewServer();
 
       await serverManager.stopAll();
 
       expect(mockStop).toHaveBeenCalled();
-      
+
       // Check status
       const status = serverManager.getStatus();
       expect(status.preview).toBe(false);
@@ -277,13 +295,23 @@ describe("ServerManager", () => {
 
     it("should return correct status when servers are running", async () => {
       const mockServers = [
-        { port: 4321, fetch: mock(() => Promise.resolve()), stop: mock(() => {}) },
-        { port: 8080, fetch: mock(() => Promise.resolve()), stop: mock(() => {}) },
+        {
+          port: 4321,
+          fetch: mock(() => Promise.resolve()),
+          stop: mock(() => {}),
+        },
+        {
+          port: 8080,
+          fetch: mock(() => Promise.resolve()),
+          stop: mock(() => {}),
+        },
       ];
-      
+
       let serverIndex = 0;
-      (Bun as unknown as BunWithServe).serve = mock(() => mockServers[serverIndex++]) as unknown as typeof Bun.serve;
-      
+      (Bun as unknown as BunWithServe).serve = mock(
+        () => mockServers[serverIndex++],
+      ) as unknown as typeof Bun.serve;
+
       await serverManager.startPreviewServer();
       await serverManager.startProductionServer();
 
@@ -303,9 +331,11 @@ describe("ServerManager", () => {
         fetch: mock(() => Promise.resolve()),
         stop: mock(() => {}),
       };
-      
-      (Bun as unknown as BunWithServe).serve = mock(() => mockServer) as unknown as typeof Bun.serve;
-      
+
+      (Bun as unknown as BunWithServe).serve = mock(
+        () => mockServer,
+      ) as unknown as typeof Bun.serve;
+
       await serverManager.startPreviewServer();
 
       const status = serverManager.getStatus();
@@ -329,7 +359,7 @@ describe("ServerManager", () => {
 
       const originalServe = Bun.serve;
       let capturedFetch: unknown;
-      
+
       (Bun as unknown as BunWithServe).serve = mock((options: unknown) => {
         capturedFetch = (options as { fetch: unknown }).fetch;
         return mockServer;
@@ -337,9 +367,11 @@ describe("ServerManager", () => {
 
       try {
         await serverManager.startPreviewServer();
-        
+
         // Test serving index.html
-        const response = await (capturedFetch as (req: Request) => Promise<Response>)(new Request("http://localhost:4321/"));
+        const response = await (
+          capturedFetch as (req: Request) => Promise<Response>
+        )(new Request("http://localhost:4321/"));
         expect(response.status).toBe(200);
         expect(response.headers.get("content-type")).toContain("text/html");
       } finally {
@@ -356,7 +388,7 @@ describe("ServerManager", () => {
 
       const originalServe = Bun.serve;
       let capturedFetch: unknown;
-      
+
       (Bun as unknown as BunWithServe).serve = mock((options: unknown) => {
         capturedFetch = (options as { fetch: unknown }).fetch;
         return mockServer;
@@ -364,9 +396,11 @@ describe("ServerManager", () => {
 
       try {
         await serverManager.startPreviewServer();
-        
+
         // Test non-existent file
-        const response = await (capturedFetch as (req: Request) => Promise<Response>)(new Request("http://localhost:4321/missing.html"));
+        const response = await (
+          capturedFetch as (req: Request) => Promise<Response>
+        )(new Request("http://localhost:4321/missing.html"));
         expect(response.status).toBe(404);
       } finally {
         (Bun as unknown as BunWithServe).serve = originalServe;

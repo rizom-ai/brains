@@ -42,6 +42,13 @@ export interface ShellDependencies {
   aiService?: AIService;
   mcpServer?: McpServer;
   entityService?: EntityService;
+  registry?: Registry;
+  entityRegistry?: EntityRegistry;
+  schemaRegistry?: SchemaRegistry;
+  formatterRegistry?: SchemaFormatterRegistry;
+  messageBus?: MessageBus;
+  pluginManager?: PluginManager;
+  queryProcessor?: QueryProcessor;
 }
 
 /**
@@ -107,7 +114,40 @@ export class Shell {
     dependencies?: ShellDependencies,
   ): Shell {
     const fullConfig = createShellConfig(config);
-    return new Shell(fullConfig, dependencies);
+    
+    // Create fresh instances of all registries
+    const logger = dependencies?.logger ?? Logger.createFresh({
+      level: LogLevel.INFO,
+      context: fullConfig.logging.context,
+    });
+    
+    const registry = Registry.createFresh(logger);
+    const entityRegistry = EntityRegistry.createFresh(logger);
+    const schemaRegistry = SchemaRegistry.createFresh(logger);
+    const formatterRegistry = SchemaFormatterRegistry.createFresh({
+      defaultFormatter: new DefaultSchemaFormatter(),
+      logger,
+    });
+    const messageBus = MessageBus.createFresh(logger);
+    const pluginManager = PluginManager.createFresh(
+      registry,
+      logger,
+      messageBus,
+    );
+    
+    // Merge fresh instances with any provided dependencies
+    const freshDependencies: ShellDependencies = {
+      ...dependencies,
+      logger,
+      registry,
+      entityRegistry,
+      schemaRegistry,
+      formatterRegistry,
+      messageBus,
+      pluginManager,
+    };
+    
+    return new Shell(fullConfig, freshDependencies);
   }
 
   /**
@@ -170,16 +210,17 @@ export class Shell {
         dependencies.aiService ?? AIService.getInstance(config.ai, this.logger);
     }
 
-    // Initialize core components (they are all singletons)
-    this.registry = Registry.getInstance(this.logger);
-    this.entityRegistry = EntityRegistry.getInstance(this.logger);
-    this.schemaRegistry = SchemaRegistry.getInstance(this.logger);
-    this.formatterRegistry = SchemaFormatterRegistry.getInstance({
+    // Initialize core components
+    // Use provided dependencies if available, otherwise use singletons
+    this.registry = dependencies?.registry ?? Registry.getInstance(this.logger);
+    this.entityRegistry = dependencies?.entityRegistry ?? EntityRegistry.getInstance(this.logger);
+    this.schemaRegistry = dependencies?.schemaRegistry ?? SchemaRegistry.getInstance(this.logger);
+    this.formatterRegistry = dependencies?.formatterRegistry ?? SchemaFormatterRegistry.getInstance({
       defaultFormatter: new DefaultSchemaFormatter(),
       logger: this.logger,
     });
-    this.messageBus = MessageBus.getInstance(this.logger);
-    this.pluginManager = PluginManager.getInstance(
+    this.messageBus = dependencies?.messageBus ?? MessageBus.getInstance(this.logger);
+    this.pluginManager = dependencies?.pluginManager ?? PluginManager.getInstance(
       this.registry,
       this.logger,
       this.messageBus,
@@ -194,7 +235,7 @@ export class Shell {
         logger: this.logger,
       });
 
-    this.queryProcessor = QueryProcessor.getInstance({
+    this.queryProcessor = dependencies?.queryProcessor ?? QueryProcessor.getInstance({
       entityService: this.entityService,
       logger: this.logger,
       aiService: this.aiService,
