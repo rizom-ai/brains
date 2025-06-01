@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { gitSync } from "../src/plugin";
 import {
   PluginTestHarness,
@@ -56,7 +56,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       const capabilities = await plugin.register(context);
 
       // Verify tools
-      const toolNames = capabilities.tools.map(t => t.name);
+      const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("git_sync");
       expect(toolNames).toContain("git_sync_pull");
       expect(toolNames).toContain("git_sync_push");
@@ -77,9 +77,11 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Get status tool
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      const statusTool = capabilities.tools.find(t => t.name === "git_sync_status");
+      const statusTool = capabilities.tools.find(
+        (t) => t.name === "git_sync_status",
+      );
 
-      const status = await statusTool!.handler({}) as any;
+      const status = (await statusTool!.handler({})) as any;
       expect(status.isRepo).toBe(true);
       expect(status.branch).toBeDefined();
       expect(status.files).toBeDefined();
@@ -96,10 +98,12 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Get push tool
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      const pushTool = capabilities.tools.find(t => t.name === "git_sync_push");
+      const pushTool = capabilities.tools.find(
+        (t) => t.name === "git_sync_push",
+      );
 
       // Execute push
-      const result = await pushTool!.handler({}) as any;
+      const result = (await pushTool!.handler({})) as any;
       expect(result.message).toBe("Push completed");
 
       // Verify files were created
@@ -128,15 +132,17 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Get sync tool
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      const syncTool = capabilities.tools.find(t => t.name === "git_sync");
+      const syncTool = capabilities.tools.find((t) => t.name === "git_sync");
 
       // Execute sync
-      const result = await syncTool!.handler({}) as any;
+      const result = (await syncTool!.handler({})) as any;
       expect(result.message).toBe("Sync completed");
 
       // Verify status
-      const statusTool = capabilities.tools.find(t => t.name === "git_sync_status");
-      const status = await statusTool!.handler({}) as any;
+      const statusTool = capabilities.tools.find(
+        (t) => t.name === "git_sync_status",
+      );
+      const status = (await statusTool!.handler({})) as any;
       expect(status.isRepo).toBe(true);
     });
   });
@@ -145,7 +151,8 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
     it("should handle pull from repository", async () => {
       // Create some files to pull
       FileTestUtils.createFiles(testRepoPath, {
-        "note/existing-note.md": "# Existing Note\n\nThis was already in the repo",
+        "note/existing-note.md":
+          "# Existing Note\n\nThis was already in the repo",
       });
 
       const plugin = gitSync({
@@ -158,11 +165,87 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Get pull tool
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      const pullTool = capabilities.tools.find(t => t.name === "git_sync_pull");
+      const pullTool = capabilities.tools.find(
+        (t) => t.name === "git_sync_pull",
+      );
 
       // Execute pull
-      const result = await pullTool!.handler({}) as any;
+      const result = (await pullTool!.handler({})) as any;
       expect(result.message).toBe("Pull completed");
+    });
+
+    it("should skip files for unregistered entity types during import", async () => {
+      // Create files in unregistered directories
+      FileTestUtils.createFiles(testRepoPath, {
+        "test.md": "# Root file",
+        "unknown/file.md": "# Unknown type",
+        "note/valid-note.md": "# Valid Note\n\nContent",
+      });
+
+      const plugin = gitSync({
+        repoPath: testRepoPath,
+        autoSync: false,
+      });
+
+      await harness.installPlugin(plugin);
+
+      // Get initial entity count
+      const initialNotes = await harness.listEntities("note");
+      const initialCount = initialNotes.length;
+
+      // Execute pull
+      const context = harness.getPluginContext();
+      const capabilities = await plugin.register(context);
+      const pullTool = capabilities.tools.find(
+        (t) => t.name === "git_sync_pull",
+      );
+
+      await pullTool!.handler({});
+
+      // Check that only the valid note was imported
+      const finalNotes = await harness.listEntities("note");
+      expect(finalNotes.length).toBe(initialCount + 1);
+      
+      // Verify the imported note has correct data
+      const importedNote = finalNotes.find(n => n.id === "valid-note");
+      expect(importedNote).toBeDefined();
+      expect(importedNote?.title).toBe("valid note");
+      
+      // Verify that unknown type was not imported (harness doesn't track unknown types)
+      // The fact that only one note was imported proves that files in root and unknown dirs were skipped
+    });
+
+    it("should import files with correct metadata from filename", async () => {
+      // Create a file with dashes in name to test title conversion
+      FileTestUtils.createFiles(testRepoPath, {
+        "note/test-note-with-dashes.md": "# Test Note\n\nContent here",
+      });
+
+      const plugin = gitSync({
+        repoPath: testRepoPath,
+        autoSync: false,
+      });
+
+      await harness.installPlugin(plugin);
+
+      // Execute pull
+      const context = harness.getPluginContext();
+      const capabilities = await plugin.register(context);
+      const pullTool = capabilities.tools.find(
+        (t) => t.name === "git_sync_pull",
+      );
+
+      await pullTool!.handler({});
+
+      // Verify the imported note has correct metadata
+      const notes = await harness.listEntities("note");
+      const importedNote = notes.find(n => n.id === "test-note-with-dashes");
+      
+      expect(importedNote).toBeDefined();
+      expect(importedNote?.entityType).toBe("note");
+      expect(importedNote?.id).toBe("test-note-with-dashes");
+      expect(importedNote?.title).toBe("test note with dashes"); // Dashes converted to spaces
+      expect(importedNote?.content).toBe("# Test Note\n\nContent here");
     });
   });
 
@@ -185,14 +268,16 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Push entities
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      const pushTool = capabilities.tools.find(t => t.name === "git_sync_push");
+      const pushTool = capabilities.tools.find(
+        (t) => t.name === "git_sync_push",
+      );
 
       await pushTool!.handler({});
 
       // Check directories - need to check subdirectories, not just root
       const noteDir = join(testRepoPath, "note");
       FileTestUtils.assertExists(noteDir);
-      
+
       // Task directory should also exist since we added a task entity
       const taskDir = join(testRepoPath, "task");
       if (existsSync(taskDir)) {
@@ -218,7 +303,9 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Push
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      const pushTool = capabilities.tools.find(t => t.name === "git_sync_push");
+      const pushTool = capabilities.tools.find(
+        (t) => t.name === "git_sync_push",
+      );
 
       await pushTool!.handler({});
 
@@ -243,9 +330,11 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Verify still works
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      const statusTool = capabilities.tools.find(t => t.name === "git_sync_status");
+      const statusTool = capabilities.tools.find(
+        (t) => t.name === "git_sync_status",
+      );
 
-      const status = await statusTool!.handler({}) as any;
+      const status = (await statusTool!.handler({})) as any;
       expect(status.isRepo).toBe(true);
     });
   });

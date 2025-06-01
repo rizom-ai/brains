@@ -289,9 +289,15 @@ export class PluginTestHarness {
       },
       hasAdapter: (entityType: string): boolean => {
         // Mock implementation - assume adapter exists for known entity types
-        return this.entities.has(entityType) || entityType === "note" || entityType === "task";
+        return (
+          this.entities.has(entityType) ||
+          entityType === "note" ||
+          entityType === "task"
+        );
       },
-      getAdapter: <T extends BaseEntity>(entityType: string): EntityAdapter<T> => {
+      getAdapter: <T extends BaseEntity>(
+        entityType: string,
+      ): EntityAdapter<T> => {
         // Mock adapter that converts entities to markdown
         const baseSchema = z.object({
           id: z.string(),
@@ -302,7 +308,7 @@ export class PluginTestHarness {
           created: z.string(),
           updated: z.string(),
         }) as unknown as z.ZodSchema<T>;
-        
+
         return {
           entityType,
           schema: baseSchema,
@@ -310,9 +316,9 @@ export class PluginTestHarness {
             return `# ${entity.title}\n\n${entity.content}`;
           },
           fromMarkdown: (markdown: string): T => {
-            const lines = markdown.split('\n');
-            const title = lines[0]?.replace(/^#\s+/, '') ?? 'Untitled';
-            const content = lines.slice(2).join('\n');
+            const lines = markdown.split("\n");
+            const title = lines[0]?.replace(/^#\s+/, "") ?? "Untitled";
+            const content = lines.slice(2).join("\n");
             const now = new Date().toISOString();
             return {
               id: `mock-${Date.now()}`,
@@ -329,7 +335,10 @@ export class PluginTestHarness {
       importRawEntity: async (entity: unknown): Promise<void> => {
         // Mock import - just create the entity
         const entityData = entity as Record<string, unknown>;
-        await this.createTestEntity((entityData["entityType"] as string | undefined) ?? "note", entityData);
+        await this.createTestEntity(
+          (entityData["entityType"] as string | undefined) ?? "note",
+          entityData,
+        );
       },
     };
   }
