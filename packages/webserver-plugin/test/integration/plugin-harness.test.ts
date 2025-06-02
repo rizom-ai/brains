@@ -26,7 +26,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
     testBrainDir = join(import.meta.dir, "test-brain-simple");
     testOutputDir = join(testBrainDir, "webserver");
     // Use the actual template directory from the package
-    testTemplateDir = join(import.meta.dir, "../../templates/astro-site");
+    testTemplateDir = join(import.meta.dir, "../../src/astro-site");
 
     // Clean up if exists
     if (existsSync(testBrainDir)) {

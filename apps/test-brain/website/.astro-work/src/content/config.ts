@@ -1,7 +1,7 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection, z } from "astro:content";
 
 const landingCollection = defineCollection({
-  type: 'data',
+  type: "data",
   schema: z.object({
     title: z.string(),
     description: z.string(),
@@ -10,11 +10,13 @@ const landingCollection = defineCollection({
       tagCount: z.number(),
       lastUpdated: z.string(),
     }),
-    recentNotes: z.array(z.object({
-      id: z.string(),
-      title: z.string(),
-      created: z.string(),
-    })),
+    recentNotes: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        created: z.string(),
+      }),
+    ),
   }),
 });
 

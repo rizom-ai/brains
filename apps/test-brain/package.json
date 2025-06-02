@@ -23,7 +23,8 @@
   "dependencies": {
     "@brains/app": "workspace:*",
     "@brains/cli": "workspace:*",
-    "@brains/git-sync": "workspace:*"
+    "@brains/git-sync": "workspace:*",
+    "@brains/webserver-plugin": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

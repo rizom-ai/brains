@@ -1,5 +1,6 @@
 import { App } from "@brains/app";
 import { gitSync } from "@brains/git-sync";
+import { webserverPlugin } from "@brains/webserver-plugin";
 
 // Run the app - command line args are parsed automatically by App
 // Usage:
@@ -38,6 +39,14 @@ async function main(): Promise<void> {
         repoPath: "/home/yeehaa/Documents/brain",
         branch: "main",
         autoSync: false, // Manual sync for testing
+      }),
+      // Webserver plugin for generating and serving websites
+      webserverPlugin({
+        outputDir: "./website",
+        siteTitle: "Test Brain",
+        siteDescription: "A test instance of Personal Brain",
+        previewPort: 4321,
+        productionPort: 8080,
       }),
       // Future: noteContext(), taskContext(), etc.
     ],

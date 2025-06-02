@@ -1,6 +1,7 @@
 import type { Registry } from "@brains/types";
 import type { Logger } from "@brains/utils";
 import { join } from "path";
+import { fileURLToPath } from "url";
 import { ContentGenerator } from "./content-generator";
 import { SiteBuilder } from "./site-builder";
 import { ServerManager } from "./server-manager";
@@ -33,10 +34,16 @@ export class WebserverManager {
   constructor(options: WebserverManagerOptions) {
     this.logger = options.logger;
 
-    // Template directory - use provided path or default to templates/astro-site
-    this.templateDir =
-      options.astroSiteTemplate ??
-      join(import.meta.dir, "../templates/astro-site");
+    // Template directory - use provided path or resolve relative to this module
+    if (options.astroSiteTemplate) {
+      this.templateDir = options.astroSiteTemplate;
+    } else {
+      const templateUrl = import.meta.resolve("./astro-site/package.json");
+      const templatePath = fileURLToPath(templateUrl);
+      this.templateDir = join(templatePath, "..");
+    }
+    
+    this.logger.debug(`Template directory resolved to: ${this.templateDir}`);
 
     // Working directory where we'll copy the template
     this.workingDir = join(options.outputDir, ".astro-work");
