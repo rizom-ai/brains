@@ -1,5 +1,5 @@
-import type { DrizzleDB } from "../db";
-import { entities, createId, selectEntitySchema } from "../db/schema";
+import type { DrizzleDB } from "@brains/db";
+import { entities, createId, selectEntitySchema } from "@brains/db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import type { EntityAdapter } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
@@ -90,20 +90,32 @@ export class EntityService {
    * Create a new entity
    */
   public async createEntity<T extends BaseEntity>(
-    entity: Omit<T, "id"> & { id?: string },
+    entity: Omit<T, "id" | "created" | "updated"> & { 
+      id?: string;
+      created?: string;
+      updated?: string;
+    },
   ): Promise<T> {
     this.logger.debug(`Creating entity of type: ${entity["entityType"]}`);
 
-    // Generate ID if not provided
-    const entityWithId = {
+    // Generate ID and timestamps if not provided
+    const now = new Date().toISOString();
+    const entityWithDefaults = {
       ...entity,
       id: entity.id ?? createId(),
+      created: entity.created ?? now,
+      updated: entity.updated ?? now,
     } as T;
+    
+    this.logger.debug("Creating entity with timestamps", {
+      provided: { created: entity.created, updated: entity.updated },
+      using: { created: entityWithDefaults.created, updated: entityWithDefaults.updated },
+    });
 
     // Validate entity against its schema
     const validatedEntity = this.entityRegistry.validateEntity<T>(
       entity["entityType"],
-      entityWithId,
+      entityWithDefaults,
     );
 
     // Convert to markdown using adapter

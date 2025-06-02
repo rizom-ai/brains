@@ -3,11 +3,11 @@ import { z } from "zod";
 import { EntityService } from "@/entity/entityService";
 import { EntityRegistry } from "@/entity/entityRegistry";
 import type { EntityAdapter } from "@/entity/entityRegistry";
-import type { DrizzleDB } from "@/db";
+import type { DrizzleDB } from "@brains/db";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
-import { createId } from "@/db/schema";
+import { createId } from "@brains/db/schema";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
 
 // Create a mock embedding service

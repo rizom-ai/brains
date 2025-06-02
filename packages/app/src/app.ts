@@ -82,10 +82,9 @@ export class App {
         shellConfig.database = { url: config.database };
       }
 
-      // Disable migrations for compiled apps
+      // Set feature flags
       shellConfig.features = {
         enablePlugins: true,
-        runMigrationsOnInit: false,
       };
 
       if (config.aiApiKey) {

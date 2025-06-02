@@ -154,7 +154,6 @@ function createTestShell(configOverrides: Partial<ShellConfig> = {}): {
       maxTokens: 1000,
     },
     features: {
-      runMigrationsOnInit: false, // Disable migrations for tests
       enablePlugins: true,
     },
     ...configOverrides,

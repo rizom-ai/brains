@@ -19,7 +19,7 @@ async function main(): Promise<void> {
     },
     database: process.env["DATABASE_URL"] ?? "file:./test-brain.db",
     aiApiKey: process.env["ANTHROPIC_API_KEY"] ?? "test-key",
-    logLevel: "error",
+    logLevel: "debug",
     // CLI config used when --cli flag is present
     cliConfig: {
       shortcuts: {

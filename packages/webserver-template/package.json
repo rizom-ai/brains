@@ -17,7 +17,6 @@
     "astro": "^5.8.1"
   },
   "devDependencies": {
-    "@brains/typescript-config": "*",
     "@types/node": "^20.11.5",
     "@tailwindcss/vite": "^4.1.8",
     "tailwindcss": "^4.1.8"

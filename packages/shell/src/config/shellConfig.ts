@@ -43,7 +43,6 @@ export const shellConfigSchema = z.object({
   features: z
     .object({
       enablePlugins: z.boolean().default(true),
-      runMigrationsOnInit: z.boolean().default(true),
     })
     .default({}),
 
@@ -86,7 +85,6 @@ export function createShellConfig(
     },
     features: {
       enablePlugins: overrides.features?.enablePlugins,
-      runMigrationsOnInit: overrides.features?.runMigrationsOnInit,
     },
     plugins: overrides.plugins ?? [],
   };

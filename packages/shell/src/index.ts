@@ -22,6 +22,6 @@ export { Shell } from "./shell";
 export type { ShellConfig } from "./config";
 export type { IEmbeddingService } from "./embedding/embeddingService";
 export type { AIModelConfig } from "./ai/aiService";
-export type { DrizzleDB } from "./db";
+export type { DrizzleDB } from "@brains/db";
 export type { SerializableEntity, SerializableQueryResult } from "./types";
 export type { ShellMCPOptions } from "./mcp";

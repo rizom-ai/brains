@@ -29,18 +29,18 @@ The template expects content in the `landing` collection with the following stru
 
 ```typescript
 {
-  title: string
-  description: string
+  title: string;
+  description: string;
   stats: {
-    noteCount: number
-    tagCount: number
-    lastUpdated: string
+    noteCount: number;
+    tagCount: number;
+    lastUpdated: string;
   }
   recentNotes: Array<{
-    id: string
-    title: string
-    created: string
-  }>
+    id: string;
+    title: string;
+    created: string;
+  }>;
 }
 ```
 

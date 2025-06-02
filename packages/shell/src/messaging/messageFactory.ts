@@ -1,4 +1,4 @@
-import { createId } from "../db/schema";
+import { createId } from "@brains/db/schema";
 import type { Message, MessageResponse } from "./types";
 
 /**

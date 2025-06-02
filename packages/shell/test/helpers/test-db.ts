@@ -1,6 +1,5 @@
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
-import { migrate } from "drizzle-orm/libsql/migrator";
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -29,12 +28,9 @@ export async function createTestDatabase(): Promise<{
   // Create Drizzle instance
   const db = drizzle(client);
 
-  // Run migrations
-  // Use __dirname to get a reliable path regardless of where tests are run from
-  const migrationsPath = join(__dirname, "../../drizzle");
-  await migrate(db, {
-    migrationsFolder: migrationsPath,
-  });
+  // Run migrations from @brains/db package
+  const { runMigrations } = await import("@brains/db");
+  await runMigrations(db);
 
   // Cleanup function
   const cleanup = async (): Promise<void> => {

@@ -1,6 +1,6 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
-import { createDatabase, runMigrations } from "./db";
+import { createDatabase } from "@brains/db";
 import { Registry } from "./registry/registry";
 import { EntityRegistry } from "./entity/entityRegistry";
 import { SchemaRegistry } from "./schema/schemaRegistry";
@@ -339,13 +339,6 @@ export class Shell {
 
       // Register base entity support
       this.registerBaseEntitySupport();
-
-      // Run migrations if enabled
-      if (this.config.features.runMigrationsOnInit) {
-        this.logger.info("Running database migrations...");
-        await runMigrations(this.db);
-        this.logger.info("Database migrations completed");
-      }
 
       // Register and initialize plugins if enabled
       if (this.config.features.enablePlugins) {

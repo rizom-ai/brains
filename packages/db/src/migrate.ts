@@ -46,7 +46,8 @@ async function main(): Promise<void> {
 
   // Run migrations from the drizzle directory
   console.log("Starting migrations...");
-  await migrate(db, { migrationsFolder: "./drizzle" });
+  const migrationsFolder = new URL("../drizzle", import.meta.url).pathname;
+  await migrate(db, { migrationsFolder });
   console.log("Migrations completed successfully!");
 
   // Close the connection

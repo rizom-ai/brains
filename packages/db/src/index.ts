@@ -47,9 +47,9 @@ export async function runMigrations(
   db: DrizzleDB,
   migrationsPath?: string,
 ): Promise<void> {
-  // If no path provided, use the shell's migrations
+  // If no path provided, use the db package's migrations
   const folder =
-    migrationsPath ?? new URL("../../drizzle", import.meta.url).pathname;
+    migrationsPath ?? new URL("../drizzle", import.meta.url).pathname;
   await migrate(db, { migrationsFolder: folder });
 }
 

@@ -1,5 +1,5 @@
 {
-  "extends": ["@brains/typescript-config/base.json", "astro/tsconfigs/base"],
+  "extends": "astro/tsconfigs/base",
   "compilerOptions": {
     "types": ["astro/client"]
   },

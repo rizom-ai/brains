@@ -19,6 +19,7 @@
       "dependencies": {
         "@brains/app": "workspace:*",
         "@brains/cli": "workspace:*",
+        "@brains/db": "workspace:*",
         "@brains/git-sync": "workspace:*",
         "@brains/webserver-plugin": "workspace:*",
       },
@@ -78,6 +79,23 @@
         "@types/react": "^18.3.16",
         "react-devtools-core": "^6.1.2",
         "typescript": "^5.7.2",
+      },
+    },
+    "packages/db": {
+      "name": "@brains/db",
+      "version": "0.1.0",
+      "dependencies": {
+        "@libsql/client": "^0.15.7",
+        "drizzle-orm": "^0.29.4",
+        "nanoid": "^5.1.5",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "drizzle-kit": "^0.20.14",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
       },
     },
     "packages/eslint-config": {
@@ -208,6 +226,7 @@
         "@ai-sdk/anthropic": "^1.2.12",
         "@anthropic-ai/sdk": "^0.13.0",
         "@brains/base-entity": "workspace:*",
+        "@brains/db": "workspace:*",
         "@brains/formatters": "workspace:*",
         "@brains/mcp-server": "workspace:*",
         "@brains/types": "workspace:*",
@@ -233,7 +252,6 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
-        "drizzle-kit": "^0.20.14",
         "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
@@ -303,7 +321,6 @@
         "astro": "^5.8.1",
       },
       "devDependencies": {
-        "@brains/typescript-config": "*",
         "@tailwindcss/vite": "^4.1.8",
         "@types/node": "^20.11.5",
         "tailwindcss": "^4.1.8",
@@ -358,6 +375,8 @@
     "@brains/base-entity": ["@brains/base-entity@workspace:packages/base-entity"],
 
     "@brains/cli": ["@brains/cli@workspace:packages/cli"],
+
+    "@brains/db": ["@brains/db@workspace:packages/db"],
 
     "@brains/eslint-config": ["@brains/eslint-config@workspace:packages/eslint-config"],
 

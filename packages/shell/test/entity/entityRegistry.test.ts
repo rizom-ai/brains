@@ -5,7 +5,7 @@ import { EntityRegistry } from "@/entity/entityRegistry";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
-import { createId } from "@/db/schema";
+import { createId } from "@brains/db/schema";
 import matter from "gray-matter";
 
 // ============================================================================

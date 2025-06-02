@@ -38,7 +38,9 @@ export class WebserverManager {
     if (options.astroSiteTemplate) {
       this.templateDir = options.astroSiteTemplate;
     } else {
-      const templateUrl = import.meta.resolve("@brains/webserver-template/package.json");
+      const templateUrl = import.meta.resolve(
+        "@brains/webserver-template/package.json",
+      );
       const templatePath = fileURLToPath(templateUrl);
       this.templateDir = join(templatePath, "..");
     }
