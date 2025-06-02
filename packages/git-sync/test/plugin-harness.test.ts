@@ -205,12 +205,12 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Check that only the valid note was imported
       const finalNotes = await harness.listEntities("note");
       expect(finalNotes.length).toBe(initialCount + 1);
-      
+
       // Verify the imported note has correct data
-      const importedNote = finalNotes.find(n => n.id === "valid-note");
+      const importedNote = finalNotes.find((n) => n.id === "valid-note");
       expect(importedNote).toBeDefined();
       expect(importedNote?.title).toBe("valid note");
-      
+
       // Verify that unknown type was not imported (harness doesn't track unknown types)
       // The fact that only one note was imported proves that files in root and unknown dirs were skipped
     });
@@ -239,8 +239,8 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
 
       // Verify the imported note has correct metadata
       const notes = await harness.listEntities("note");
-      const importedNote = notes.find(n => n.id === "test-note-with-dashes");
-      
+      const importedNote = notes.find((n) => n.id === "test-note-with-dashes");
+
       expect(importedNote).toBeDefined();
       expect(importedNote?.entityType).toBe("note");
       expect(importedNote?.id).toBe("test-note-with-dashes");

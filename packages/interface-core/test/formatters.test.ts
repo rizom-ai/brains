@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { 
-  MarkdownFormatter, 
-  ResponseFormatter 
-} from "../src/formatters/index";
+import { MarkdownFormatter, ResponseFormatter } from "../src/formatters/index";
 import type { MessageContext } from "../src/types";
 
 describe("MarkdownFormatter", () => {
@@ -21,7 +18,9 @@ describe("MarkdownFormatter", () => {
     });
 
     it("should preserve frontmatter when option is set", async () => {
-      const formatterWithFrontmatter = new MarkdownFormatter({ preserveFrontmatter: true });
+      const formatterWithFrontmatter = new MarkdownFormatter({
+        preserveFrontmatter: true,
+      });
       const input = "---\ntitle: Test\n---\n# Hello";
       const result = await formatterWithFrontmatter.format(input);
       expect(result).toContain("---");
@@ -49,7 +48,8 @@ describe("MarkdownFormatter", () => {
 
   describe("extractCodeBlocks", () => {
     it("should extract code blocks with language", async () => {
-      const input = "Text\n```javascript\nconsole.log('hello');\n```\nMore text";
+      const input =
+        "Text\n```javascript\nconsole.log('hello');\n```\nMore text";
       const result = await formatter.extractCodeBlocks(input);
       expect(result).toHaveLength(1);
       expect(result[0]?.lang).toBe("javascript");
@@ -89,7 +89,9 @@ describe("ResponseFormatter", () => {
 
     it("should truncate long responses when maxLength is set", () => {
       const longFormatter = new ResponseFormatter({ maxLength: 10 });
-      const result = longFormatter.formatResponse("This is a very long message");
+      const result = longFormatter.formatResponse(
+        "This is a very long message",
+      );
       expect(result).toBe("This is...");
     });
 

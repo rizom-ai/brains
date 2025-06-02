@@ -4,11 +4,13 @@ import { join } from "path";
 import { ContentGenerator } from "./content-generator";
 import { SiteBuilder } from "./site-builder";
 import { ServerManager } from "./server-manager";
+import { copyDirectory, cleanDirectory } from "./template-utils";
 
 export interface WebserverManagerOptions {
   logger: Logger;
   registry: Registry;
   outputDir: string;
+  astroSiteTemplate?: string;
   previewPort: number;
   productionPort: number;
   siteTitle: string;
@@ -25,18 +27,23 @@ export class WebserverManager {
   private siteBuilder: SiteBuilder;
   private serverManager: ServerManager;
   private lastBuildTime?: Date;
+  private workingDir: string;
+  private templateDir: string;
 
   constructor(options: WebserverManagerOptions) {
     this.logger = options.logger;
 
-    // Astro site is located relative to the plugin
-    const astroSiteDir = join(import.meta.dir, "astro-site");
+    // Template directory - use provided path or default to templates/astro-site
+    this.templateDir = options.astroSiteTemplate ?? join(import.meta.dir, "../templates/astro-site");
+    
+    // Working directory where we'll copy the template
+    this.workingDir = join(options.outputDir, ".astro-work");
 
-    // Initialize components
+    // Initialize components with working directory
     this.contentGenerator = new ContentGenerator({
       logger: options.logger.child("ContentGenerator"),
       registry: options.registry,
-      astroSiteDir,
+      astroSiteDir: this.workingDir,
       siteTitle: options.siteTitle,
       siteDescription: options.siteDescription,
       siteUrl: options.siteUrl,
@@ -44,7 +51,7 @@ export class WebserverManager {
 
     this.siteBuilder = new SiteBuilder({
       logger: options.logger.child("SiteBuilder"),
-      astroSiteDir,
+      astroSiteDir: this.workingDir,
     });
 
     this.serverManager = new ServerManager({
@@ -61,19 +68,29 @@ export class WebserverManager {
   async buildSite(options?: { clean?: boolean }): Promise<void> {
     this.logger.info("Starting site build");
 
-    // Clean if requested
-    if (options?.clean) {
-      await this.siteBuilder.clean();
+    try {
+      // Clean working directory if requested
+      if (options?.clean) {
+        this.logger.debug("Cleaning working directory");
+        await cleanDirectory(this.workingDir);
+      }
+
+      // Copy template to working directory
+      this.logger.debug("Copying template to working directory");
+      await copyDirectory(this.templateDir, this.workingDir);
+
+      // Generate content
+      await this.contentGenerator.generateAll();
+
+      // Build site
+      await this.siteBuilder.build();
+
+      this.lastBuildTime = new Date();
+      this.logger.info("Site build completed");
+    } catch (error) {
+      this.logger.error("Site build failed", error);
+      throw error;
     }
-
-    // Generate content
-    await this.contentGenerator.generateAll();
-
-    // Build site
-    await this.siteBuilder.build();
-
-    this.lastBuildTime = new Date();
-    this.logger.info("Site build completed");
   }
 
   /**

@@ -5,57 +5,97 @@ import {
   TestDataGenerator,
 } from "@brains/plugin-test-utils";
 import { join } from "path";
-import { rmSync, existsSync, mkdirSync, writeFileSync } from "fs";
+import { rmSync, existsSync, mkdirSync } from "fs";
 
 describe("WebserverPlugin with PluginTestHarness", () => {
   let harness: PluginTestHarness;
   let testBrainDir: string;
   let testOutputDir: string;
-  let astroSiteDir: string;
+  let testTemplateDir: string;
   let originalSpawn: typeof Bun.spawn;
+  let originalExistsSync: typeof existsSync;
+  let originalServe: typeof Bun.serve;
+  let mockServers: Array<{ stop: () => Promise<void> }> = [];
 
   beforeEach(async () => {
-    // Save original Bun.spawn
+    // Save original functions
     originalSpawn = Bun.spawn;
+    originalServe = Bun.serve;
 
     // Setup test directories
     testBrainDir = join(import.meta.dir, "test-brain-simple");
     testOutputDir = join(testBrainDir, "webserver");
-    astroSiteDir = join(import.meta.dir, "../../src/astro-site");
+    // Use the actual template directory from the package
+    testTemplateDir = join(import.meta.dir, "../../templates/astro-site");
 
     // Clean up if exists
     if (existsSync(testBrainDir)) {
       rmSync(testBrainDir, { recursive: true });
     }
     mkdirSync(testBrainDir, { recursive: true });
+    
+    // Create the expected directory structure that the plugin will use
+    const workDir = join(testOutputDir, ".astro-work");
+    mkdirSync(join(workDir, "dist"), { recursive: true });
 
-    // Create mock astro-site directory structure
-    mkdirSync(join(astroSiteDir, "src/content/landing"), { recursive: true });
-    mkdirSync(join(astroSiteDir, "dist"), { recursive: true });
-
-    // Create a mock package.json
-    const packageJson = {
-      name: "test-astro-site",
-      scripts: {
-        build: "echo 'mock build'",
-        dev: "echo 'mock dev'",
-      },
-    };
-    writeFileSync(
-      join(astroSiteDir, "package.json"),
-      JSON.stringify(packageJson, null, 2),
-    );
+    // Don't create or modify files in the real astro-site directory
+    // The plugin will use the actual source files
 
     // Mock Bun.spawn
     (Bun as unknown as { spawn: typeof Bun.spawn }).spawn = ((
-      ..._args: Parameters<typeof Bun.spawn>
+      _args: Parameters<typeof Bun.spawn>[0]
     ): ReturnType<typeof Bun.spawn> => {
+      // Mock successful execution for all commands
       return {
         exited: Promise.resolve(0),
         stdout: new ReadableStream(),
         stderr: new ReadableStream(),
       } as unknown as ReturnType<typeof Bun.spawn>;
     }) as unknown as typeof Bun.spawn;
+    
+    // Mock file existence for build checks
+    originalExistsSync = existsSync;
+    (global as unknown as { existsSync: typeof existsSync }).existsSync = ((path: Parameters<typeof existsSync>[0]): boolean => {
+      const pathStr = path.toString();
+      
+      // For test template directory, check if it actually exists
+      if (pathStr.includes(testTemplateDir)) {
+        return originalExistsSync(path);
+      }
+      
+      // For anything under test output directory, return true
+      if (pathStr.includes(testOutputDir)) {
+        return true;
+      }
+      
+      // Default to original for other paths
+      return originalExistsSync(path);
+    }) as typeof existsSync;
+
+    // Mock Bun.serve for server tests
+    mockServers = [];
+    (Bun as unknown as { serve: typeof Bun.serve }).serve = ((config: Parameters<typeof Bun.serve>[0]): ReturnType<typeof Bun.serve> => {
+      const port = ((config as Record<string, unknown>)["port"] as number | undefined) ?? 3000;
+      const mockServer = {
+        port,
+        stop: async () => { /* mock stop */ },
+        development: false,
+        hostname: "localhost",
+        reload: () => {},
+        upgrade: () => false,
+        fetch: config.fetch,
+        publish: () => 0,
+        subscriberCount: () => 0,
+        requestIP: () => null,
+        id: "",
+        pendingWebSockets: 0,
+        url: new URL(`http://localhost:${port}`),
+        address: { port, hostname: "localhost", family: "IPv4" },
+        unref: () => {}
+      } as unknown as ReturnType<typeof Bun.serve>;
+      mockServers.push(mockServer);
+      return mockServer;
+    }) as unknown as typeof Bun.serve;
 
     // Create test harness
     harness = new PluginTestHarness();
@@ -71,16 +111,24 @@ describe("WebserverPlugin with PluginTestHarness", () => {
   afterEach(async () => {
     // Restore original Bun.spawn
     (Bun as unknown as { spawn: typeof Bun.spawn }).spawn = originalSpawn;
+    
+    // Restore original Bun.serve
+    (Bun as unknown as { serve: typeof Bun.serve }).serve = originalServe;
+    
+    // Restore original existsSync
+    (global as unknown as { existsSync: typeof existsSync }).existsSync = originalExistsSync;
+
+    // Stop any mock servers
+    for (const server of mockServers) {
+      await server.stop();
+    }
+    mockServers = [];
 
     // Cleanup
     await harness.cleanup();
 
-    if (existsSync(testBrainDir)) {
+    if (originalExistsSync(testBrainDir)) {
       rmSync(testBrainDir, { recursive: true });
-    }
-
-    if (existsSync(astroSiteDir)) {
-      rmSync(astroSiteDir, { recursive: true });
     }
   });
 
@@ -88,6 +136,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
     it("should register plugin and execute tools", async () => {
       const plugin = webserverPlugin({
         outputDir: testOutputDir,
+        astroSiteTemplate: testTemplateDir,
         siteTitle: "Test Brain",
         siteDescription: "Test Description",
         previewPort: 16001,
@@ -119,6 +168,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
 
     it("should handle server lifecycle", async () => {
       const plugin = webserverPlugin({
+        astroSiteTemplate: testTemplateDir,
         outputDir: testOutputDir,
         siteTitle: "Test Brain",
         siteDescription: "Test Description",
@@ -146,10 +196,13 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       }
 
       await buildTool.handler({});
+      
       const previewResult = await previewTool.handler({});
+      
       const typedPreviewResult = previewResult as {
         success: boolean;
         url: string;
+        error?: string;
       };
 
       expect(typedPreviewResult.success).toBe(true);
@@ -173,6 +226,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       }
 
       const plugin = webserverPlugin({
+        astroSiteTemplate: testTemplateDir,
         outputDir: testOutputDir,
         siteTitle: "Data Test",
         siteDescription: "Testing with generated data",
@@ -202,6 +256,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
   describe("Server Management", () => {
     it("should start and stop individual servers", async () => {
       const plugin = webserverPlugin({
+        astroSiteTemplate: testTemplateDir,
         outputDir: testOutputDir,
         siteTitle: "Test Brain",
         siteDescription: "Test Description",
@@ -264,6 +319,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
 
     it("should handle both preview and production servers", async () => {
       const plugin = webserverPlugin({
+        astroSiteTemplate: testTemplateDir,
         outputDir: testOutputDir,
         siteTitle: "Test Brain",
         siteDescription: "Test Description",
@@ -349,6 +405,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       }
 
       const plugin = webserverPlugin({
+        astroSiteTemplate: testTemplateDir,
         outputDir: testOutputDir,
         siteTitle: "Integration Test Brain",
         siteDescription: "Testing content generation",
@@ -393,6 +450,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
   describe("Error Scenarios", () => {
     it("should handle missing dist directory", async () => {
       const plugin = webserverPlugin({
+        astroSiteTemplate: testTemplateDir,
         outputDir: testOutputDir,
         siteTitle: "Test Brain",
         siteDescription: "Test Description",
@@ -402,8 +460,8 @@ describe("WebserverPlugin with PluginTestHarness", () => {
 
       await harness.installPlugin(plugin);
 
-      // Remove dist directory
-      const distDir = join(astroSiteDir, "dist");
+      // Remove dist directory from working dir
+      const distDir = join(testOutputDir, ".astro-work", "dist");
       if (existsSync(distDir)) {
         rmSync(distDir, { recursive: true });
       }
@@ -431,6 +489,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       };
 
       const plugin = webserverPlugin({
+        astroSiteTemplate: testTemplateDir,
         outputDir: testOutputDir,
         siteTitle: "Test Brain",
         siteDescription: "Test Description",
@@ -457,6 +516,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
 
     it("should handle invalid server type for stop command", async () => {
       const plugin = webserverPlugin({
+        astroSiteTemplate: testTemplateDir,
         outputDir: testOutputDir,
         siteTitle: "Test Brain",
         siteDescription: "Test Description",

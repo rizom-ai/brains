@@ -20,6 +20,33 @@ export class SiteBuilder {
   }
 
   /**
+   * Install dependencies if needed
+   */
+  async ensureDependencies(): Promise<void> {
+    const nodeModulesPath = join(this.astroSiteDir, "node_modules");
+    
+    if (!existsSync(nodeModulesPath)) {
+      this.logger.info("Installing Astro site dependencies");
+      
+      const proc = Bun.spawn(["bun", "install"], {
+        cwd: this.astroSiteDir,
+        env: { ...process.env },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+      const exitCode = await proc.exited;
+
+      if (exitCode !== 0) {
+        const stderr = await new Response(proc.stderr).text();
+        throw new Error(`Failed to install dependencies: ${stderr}`);
+      }
+
+      this.logger.info("Dependencies installed successfully");
+    }
+  }
+
+  /**
    * Build the Astro site
    */
   async build(): Promise<void> {
@@ -35,6 +62,9 @@ export class SiteBuilder {
     if (!existsSync(packageJsonPath)) {
       throw new Error(`No package.json found in ${this.astroSiteDir}`);
     }
+
+    // Ensure dependencies are installed
+    await this.ensureDependencies();
 
     // Run Astro build
     const proc = Bun.spawn(["bun", "run", "build"], {

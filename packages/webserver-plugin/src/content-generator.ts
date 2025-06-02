@@ -78,7 +78,8 @@ export class ContentGenerator {
     const entityService = this.registry.resolve<EntityService>("entityService");
 
     // Get statistics
-    const notes = await entityService.listEntities<BaseEntity>("note", {
+    // For now, we'll use base entities since note entity type may not be registered
+    const notes = await entityService.listEntities<BaseEntity>("base", {
       limit: 1000,
     });
     const allTags = new Set<string>();

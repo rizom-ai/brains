@@ -1,10 +1,13 @@
 import type { Plugin, PluginContext, PluginCapabilities } from "@brains/types";
 import { webserverTools } from "./tools";
-import { WebserverManager } from "./webserver-manager";
+import { WebserverManager, type WebserverManagerOptions } from "./webserver-manager";
 
 export interface WebserverPluginOptions {
   // Output directory for generated site
   outputDir?: string;
+  
+  // Path to the Astro site template
+  astroSiteTemplate?: string;
 
   // Server configuration
   previewPort?: number;
@@ -31,7 +34,7 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       const { registry, logger } = context;
 
       // Create webserver manager instance
-      const manager = new WebserverManager({
+      const managerOptions: WebserverManagerOptions = {
         logger: logger.child("WebserverPlugin"),
         registry,
         outputDir: options.outputDir ?? "./dist",
@@ -40,8 +43,17 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
         siteTitle: options.siteTitle ?? "Personal Brain",
         siteDescription:
           options.siteDescription ?? "A digital knowledge repository",
-        siteUrl: options.siteUrl,
-      });
+      };
+      
+      // Only add optional properties if they have values
+      if (options.astroSiteTemplate !== undefined) {
+        managerOptions.astroSiteTemplate = options.astroSiteTemplate;
+      }
+      if (options.siteUrl !== undefined) {
+        managerOptions.siteUrl = options.siteUrl;
+      }
+      
+      const manager = new WebserverManager(managerOptions);
 
       // Register the manager for other components to access
       registry.register("webserverManager", () => manager);

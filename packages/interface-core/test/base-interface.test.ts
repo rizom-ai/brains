@@ -54,11 +54,17 @@ class TestInterface extends BaseInterface {
   }
 
   // Expose protected methods for testing
-  public testHandleInput(input: string, context: MessageContext): Promise<string> {
+  public testHandleInput(
+    input: string,
+    context: MessageContext,
+  ): Promise<string> {
     return this.handleInput(input, context);
   }
 
-  public testProcessMessage(content: string, context: MessageContext): Promise<string> {
+  public testProcessMessage(
+    content: string,
+    context: MessageContext,
+  ): Promise<string> {
     return this.processMessage(content, context);
   }
 }
@@ -72,7 +78,7 @@ describe("BaseInterface", () => {
   beforeEach(() => {
     processQueryMock = createMockFn();
     processQueryMock.mockResolvedValue("Processed query result");
-    
+
     mockContext = {
       name: "Test Interface",
       version: "1.0.0",
@@ -99,32 +105,52 @@ describe("BaseInterface", () => {
 
   describe("handleInput", () => {
     it("should process non-command input as query", async () => {
-      const result = await testInterface.testHandleInput("Hello world", messageContext);
-      
+      const result = await testInterface.testHandleInput(
+        "Hello world",
+        messageContext,
+      );
+
       expect(testInterface.mockHandleLocalCommand.calls).toHaveLength(0);
       expect(processQueryMock.calls).toHaveLength(1);
-      expect(processQueryMock.calls[0]).toEqual(["Hello world", messageContext]);
+      expect(processQueryMock.calls[0]).toEqual([
+        "Hello world",
+        messageContext,
+      ]);
       expect(result).toBe("Processed query result");
     });
 
     it("should check local commands for slash commands", async () => {
-      testInterface.mockHandleLocalCommand.mockResolvedValue("Local command result");
-      
-      const result = await testInterface.testHandleInput("/help", messageContext);
-      
+      testInterface.mockHandleLocalCommand.mockResolvedValue(
+        "Local command result",
+      );
+
+      const result = await testInterface.testHandleInput(
+        "/help",
+        messageContext,
+      );
+
       expect(testInterface.mockHandleLocalCommand.calls).toHaveLength(1);
-      expect(testInterface.mockHandleLocalCommand.calls[0]).toEqual(["/help", messageContext]);
+      expect(testInterface.mockHandleLocalCommand.calls[0]).toEqual([
+        "/help",
+        messageContext,
+      ]);
       expect(processQueryMock.calls).toHaveLength(0);
       expect(result).toBe("Local command result");
     });
 
     it("should process command as query if local handler returns null", async () => {
       testInterface.mockHandleLocalCommand.mockResolvedValue(null);
-      
-      const result = await testInterface.testHandleInput("/unknown", messageContext);
-      
+
+      const result = await testInterface.testHandleInput(
+        "/unknown",
+        messageContext,
+      );
+
       expect(testInterface.mockHandleLocalCommand.calls).toHaveLength(1);
-      expect(testInterface.mockHandleLocalCommand.calls[0]).toEqual(["/unknown", messageContext]);
+      expect(testInterface.mockHandleLocalCommand.calls[0]).toEqual([
+        "/unknown",
+        messageContext,
+      ]);
       expect(processQueryMock.calls).toHaveLength(1);
       expect(processQueryMock.calls[0]).toEqual(["/unknown", messageContext]);
       expect(result).toBe("Processed query result");
@@ -133,18 +159,24 @@ describe("BaseInterface", () => {
 
   describe("processMessage", () => {
     it("should process message through queue", async () => {
-      const result = await testInterface.testProcessMessage("Test message", messageContext);
-      
+      const result = await testInterface.testProcessMessage(
+        "Test message",
+        messageContext,
+      );
+
       expect(processQueryMock.calls).toHaveLength(1);
-      expect(processQueryMock.calls[0]).toEqual(["Test message", messageContext]);
+      expect(processQueryMock.calls[0]).toEqual([
+        "Test message",
+        messageContext,
+      ]);
       expect(result).toBe("Processed query result");
     });
 
     it("should throw error if processQuery returns falsy", async () => {
       processQueryMock.mockResolvedValue("");
-      
+
       await expect(
-        testInterface.testProcessMessage("Test message", messageContext)
+        testInterface.testProcessMessage("Test message", messageContext),
       ).rejects.toThrow("No response from query processor");
     });
 
@@ -152,16 +184,18 @@ describe("BaseInterface", () => {
       // The queue is configured with concurrency: 1, interval: 1000, intervalCap: 10
       // This means max 10 messages per second
       const promises: Promise<string>[] = [];
-      
+
       // Send 15 messages
       for (let i = 0; i < 15; i++) {
-        promises.push(testInterface.testProcessMessage(`Message ${i}`, messageContext));
+        promises.push(
+          testInterface.testProcessMessage(`Message ${i}`, messageContext),
+        );
       }
-      
+
       const startTime = Date.now();
       await Promise.all(promises);
       const endTime = Date.now();
-      
+
       // Should have taken at least 1 second due to rate limiting
       expect(endTime - startTime).toBeGreaterThanOrEqual(1000);
       expect(processQueryMock.calls).toHaveLength(15);
@@ -171,34 +205,37 @@ describe("BaseInterface", () => {
       // Create a new mock with custom implementation
       const customMock = createMockFn();
       const results: string[] = [];
-      
+
       // Override the mock to track order and return custom results
       const originalFn = customMock;
-      mockContext.processQuery = async (query: string, context: MessageContext) => {
+      mockContext.processQuery = async (
+        query: string,
+        context: MessageContext,
+      ) => {
         originalFn.calls.push([query, context]);
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
         const result = `Result: ${query}`;
         results.push(query);
         return result;
       };
-      
+
       // Re-create test interface with new mock
       testInterface = new TestInterface(mockContext);
-      
+
       const promises = [
         testInterface.testProcessMessage("First", messageContext),
         testInterface.testProcessMessage("Second", messageContext),
         testInterface.testProcessMessage("Third", messageContext),
       ];
-      
+
       const responses = await Promise.all(promises);
-      
+
       expect(responses).toEqual([
         "Result: First",
-        "Result: Second", 
+        "Result: Second",
         "Result: Third",
       ]);
-      
+
       // Check that calls were made in order
       expect(results).toEqual(["First", "Second", "Third"]);
     });
@@ -217,11 +254,17 @@ describe("BaseInterface", () => {
 
     it("should require implementations to provide handleLocalCommand method", async () => {
       testInterface.mockHandleLocalCommand.mockResolvedValue("Command handled");
-      
-      const result = await testInterface.testHandleInput("/test", messageContext);
-      
+
+      const result = await testInterface.testHandleInput(
+        "/test",
+        messageContext,
+      );
+
       expect(testInterface.mockHandleLocalCommand.calls).toHaveLength(1);
-      expect(testInterface.mockHandleLocalCommand.calls[0]).toEqual(["/test", messageContext]);
+      expect(testInterface.mockHandleLocalCommand.calls[0]).toEqual([
+        "/test",
+        messageContext,
+      ]);
       expect(result).toBe("Command handled");
     });
   });
@@ -230,18 +273,18 @@ describe("BaseInterface", () => {
     it("should propagate errors from processQuery", async () => {
       const error = new Error("Query processing failed");
       processQueryMock.mockRejectedValue(error);
-      
+
       await expect(
-        testInterface.testProcessMessage("Failing message", messageContext)
+        testInterface.testProcessMessage("Failing message", messageContext),
       ).rejects.toThrow("Query processing failed");
     });
 
     it("should propagate errors from handleLocalCommand", async () => {
       const error = new Error("Command handling failed");
       testInterface.mockHandleLocalCommand.mockRejectedValue(error);
-      
+
       await expect(
-        testInterface.testHandleInput("/failing", messageContext)
+        testInterface.testHandleInput("/failing", messageContext),
       ).rejects.toThrow("Command handling failed");
     });
   });

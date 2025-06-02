@@ -62,6 +62,9 @@ describe("SiteBuilder", () => {
 
   describe("build", () => {
     it("should run astro build command", async () => {
+      // Create node_modules to skip dependency installation
+      mkdirSync(join(testDir, "node_modules"));
+      
       await siteBuilder.build();
 
       expect(Bun.spawn).toHaveBeenCalledWith(
@@ -93,6 +96,9 @@ describe("SiteBuilder", () => {
     });
 
     it("should throw error if build fails", () => {
+      // Create node_modules to skip dependency installation
+      mkdirSync(join(testDir, "node_modules"));
+      
       (Bun as unknown as BunWithSpawn).spawn = mock(
         (): ReturnType<typeof Bun.spawn> =>
           ({

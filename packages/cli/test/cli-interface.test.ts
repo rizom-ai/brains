@@ -20,7 +20,7 @@ describe("CLIInterface", () => {
   beforeEach(() => {
     mock.restore();
     processQueryMock = mock(() => Promise.resolve("Query processed"));
-    
+
     mockContext = {
       name: "Test CLI",
       version: "1.0.0",
@@ -39,8 +39,8 @@ describe("CLIInterface", () => {
     it("should create instance with custom config", () => {
       const config: CLIConfig = {
         shortcuts: {
-          "h": "/help",
-          "q": "/quit",
+          h: "/help",
+          q: "/quit",
         },
       };
       cliInterface = new CLIInterface(mockContext, config);
@@ -62,7 +62,10 @@ describe("CLIInterface", () => {
 
       await cliInterface.processInput("Hello world");
 
-      expect(processQueryMock).toHaveBeenCalledWith("Hello world", expect.any(Object));
+      expect(processQueryMock).toHaveBeenCalledWith(
+        "Hello world",
+        expect.any(Object),
+      );
       expect(responseHandler).toHaveBeenCalledWith("Query processed");
     });
 
@@ -72,7 +75,9 @@ describe("CLIInterface", () => {
 
       await cliInterface.processInput("/help");
 
-      expect(responseHandler).toHaveBeenCalledWith(expect.stringContaining("Available commands:"));
+      expect(responseHandler).toHaveBeenCalledWith(
+        expect.stringContaining("Available commands:"),
+      );
     });
 
     it("should handle /clear command", async () => {
@@ -86,10 +91,12 @@ describe("CLIInterface", () => {
     });
 
     it("should emit error event on failure", async () => {
-      processQueryMock = mock(() => Promise.reject(new Error("Process failed")));
+      processQueryMock = mock(() =>
+        Promise.reject(new Error("Process failed")),
+      );
       mockContext.processQuery = processQueryMock;
       cliInterface = new CLIInterface(mockContext);
-      
+
       const errorHandler = mock(() => {});
       cliInterface.on("error", errorHandler);
 
@@ -107,14 +114,14 @@ describe("CLIInterface", () => {
     it("should support event listeners", () => {
       const responseHandler = mock(() => {});
       const errorHandler = mock(() => {});
-      
+
       // Test adding listeners
       cliInterface.on("response", responseHandler);
       cliInterface.on("error", errorHandler);
-      
+
       // Listeners will be called when processInput triggers events
       // We've already tested this in the processInput tests above
-      
+
       // Test removing listeners
       cliInterface.off("response", responseHandler);
       cliInterface.off("error", errorHandler);

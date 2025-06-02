@@ -1,0 +1,8 @@
+# Astro generated files
+.astro/
+dist/
+node_modules/
+bun.lock
+
+# Generated content
+src/content/landing/*.yaml
