@@ -1,11 +1,14 @@
 import type { Plugin, PluginContext, PluginCapabilities } from "@brains/types";
 import { webserverTools } from "./tools";
-import { WebserverManager, type WebserverManagerOptions } from "./webserver-manager";
+import {
+  WebserverManager,
+  type WebserverManagerOptions,
+} from "./webserver-manager";
 
 export interface WebserverPluginOptions {
   // Output directory for generated site
   outputDir?: string;
-  
+
   // Path to the Astro site template
   astroSiteTemplate?: string;
 
@@ -44,7 +47,7 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
         siteDescription:
           options.siteDescription ?? "A digital knowledge repository",
       };
-      
+
       // Only add optional properties if they have values
       if (options.astroSiteTemplate !== undefined) {
         managerOptions.astroSiteTemplate = options.astroSiteTemplate;
@@ -52,7 +55,7 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       if (options.siteUrl !== undefined) {
         managerOptions.siteUrl = options.siteUrl;
       }
-      
+
       const manager = new WebserverManager(managerOptions);
 
       // Register the manager for other components to access

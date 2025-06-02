@@ -24,10 +24,10 @@ export class SiteBuilder {
    */
   async ensureDependencies(): Promise<void> {
     const nodeModulesPath = join(this.astroSiteDir, "node_modules");
-    
+
     if (!existsSync(nodeModulesPath)) {
       this.logger.info("Installing Astro site dependencies");
-      
+
       const proc = Bun.spawn(["bun", "install"], {
         cwd: this.astroSiteDir,
         env: { ...process.env },

@@ -33,7 +33,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       rmSync(testBrainDir, { recursive: true });
     }
     mkdirSync(testBrainDir, { recursive: true });
-    
+
     // Create the expected directory structure that the plugin will use
     const workDir = join(testOutputDir, ".astro-work");
     mkdirSync(join(workDir, "dist"), { recursive: true });
@@ -43,7 +43,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
 
     // Mock Bun.spawn
     (Bun as unknown as { spawn: typeof Bun.spawn }).spawn = ((
-      _args: Parameters<typeof Bun.spawn>[0]
+      _args: Parameters<typeof Bun.spawn>[0],
     ): ReturnType<typeof Bun.spawn> => {
       // Mock successful execution for all commands
       return {
@@ -52,33 +52,41 @@ describe("WebserverPlugin with PluginTestHarness", () => {
         stderr: new ReadableStream(),
       } as unknown as ReturnType<typeof Bun.spawn>;
     }) as unknown as typeof Bun.spawn;
-    
+
     // Mock file existence for build checks
     originalExistsSync = existsSync;
-    (global as unknown as { existsSync: typeof existsSync }).existsSync = ((path: Parameters<typeof existsSync>[0]): boolean => {
+    (global as unknown as { existsSync: typeof existsSync }).existsSync = ((
+      path: Parameters<typeof existsSync>[0],
+    ): boolean => {
       const pathStr = path.toString();
-      
+
       // For test template directory, check if it actually exists
       if (pathStr.includes(testTemplateDir)) {
         return originalExistsSync(path);
       }
-      
+
       // For anything under test output directory, return true
       if (pathStr.includes(testOutputDir)) {
         return true;
       }
-      
+
       // Default to original for other paths
       return originalExistsSync(path);
     }) as typeof existsSync;
 
     // Mock Bun.serve for server tests
     mockServers = [];
-    (Bun as unknown as { serve: typeof Bun.serve }).serve = ((config: Parameters<typeof Bun.serve>[0]): ReturnType<typeof Bun.serve> => {
-      const port = ((config as Record<string, unknown>)["port"] as number | undefined) ?? 3000;
+    (Bun as unknown as { serve: typeof Bun.serve }).serve = ((
+      config: Parameters<typeof Bun.serve>[0],
+    ): ReturnType<typeof Bun.serve> => {
+      const port =
+        ((config as Record<string, unknown>)["port"] as number | undefined) ??
+        3000;
       const mockServer = {
         port,
-        stop: async () => { /* mock stop */ },
+        stop: async () => {
+          /* mock stop */
+        },
         development: false,
         hostname: "localhost",
         reload: () => {},
@@ -91,7 +99,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
         pendingWebSockets: 0,
         url: new URL(`http://localhost:${port}`),
         address: { port, hostname: "localhost", family: "IPv4" },
-        unref: () => {}
+        unref: () => {},
       } as unknown as ReturnType<typeof Bun.serve>;
       mockServers.push(mockServer);
       return mockServer;
@@ -111,12 +119,13 @@ describe("WebserverPlugin with PluginTestHarness", () => {
   afterEach(async () => {
     // Restore original Bun.spawn
     (Bun as unknown as { spawn: typeof Bun.spawn }).spawn = originalSpawn;
-    
+
     // Restore original Bun.serve
     (Bun as unknown as { serve: typeof Bun.serve }).serve = originalServe;
-    
+
     // Restore original existsSync
-    (global as unknown as { existsSync: typeof existsSync }).existsSync = originalExistsSync;
+    (global as unknown as { existsSync: typeof existsSync }).existsSync =
+      originalExistsSync;
 
     // Stop any mock servers
     for (const server of mockServers) {
@@ -196,9 +205,9 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       }
 
       await buildTool.handler({});
-      
+
       const previewResult = await previewTool.handler({});
-      
+
       const typedPreviewResult = previewResult as {
         success: boolean;
         url: string;

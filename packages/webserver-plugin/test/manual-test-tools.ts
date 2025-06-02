@@ -26,7 +26,7 @@ async function testWebserverPlugin(): Promise<void> {
     tags: ["demo", "example"],
   });
 
-  // Install the plugin  
+  // Install the plugin
   const plugin = webserverPlugin({
     siteTitle: "Test Brain",
     siteDescription: "Testing the webserver plugin",
@@ -39,11 +39,13 @@ async function testWebserverPlugin(): Promise<void> {
   // Get the plugin context to access tools
   const context = harness.getPluginContext();
   const capabilities = await plugin.register(context);
-  
+
   // Find the tools
-  const buildTool = capabilities.tools.find(t => t.name === "build_site");
-  const previewTool = capabilities.tools.find(t => t.name === "preview_site");
-  const statusTool = capabilities.tools.find(t => t.name === "get_site_status");
+  const buildTool = capabilities.tools.find((t) => t.name === "build_site");
+  const previewTool = capabilities.tools.find((t) => t.name === "preview_site");
+  const statusTool = capabilities.tools.find(
+    (t) => t.name === "get_site_status",
+  );
 
   if (!buildTool || !previewTool || !statusTool) {
     throw new Error("Required tools not found");
@@ -69,7 +71,9 @@ async function testWebserverPlugin(): Promise<void> {
     (previewResult as { success: boolean }).success &&
     (previewResult as { url: string }).url
   ) {
-    console.log(`\nSite is running at: ${(previewResult as { url: string }).url}`);
+    console.log(
+      `\nSite is running at: ${(previewResult as { url: string }).url}`,
+    );
     console.log("Press Ctrl+C to stop\n");
 
     // Keep the process running

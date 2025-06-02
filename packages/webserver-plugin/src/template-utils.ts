@@ -30,7 +30,11 @@ export async function copyDirectory(src: string, dest: string): Promise<void> {
       await copyDirectory(srcPath, destPath);
     } else {
       // Skip certain files
-      if (item === "bun.lock" || item === "package-lock.json" || item.endsWith(".yaml")) {
+      if (
+        item === "bun.lock" ||
+        item === "package-lock.json" ||
+        item.endsWith(".yaml")
+      ) {
         continue;
       }
       // Copy file

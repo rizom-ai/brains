@@ -34,8 +34,10 @@ export class WebserverManager {
     this.logger = options.logger;
 
     // Template directory - use provided path or default to templates/astro-site
-    this.templateDir = options.astroSiteTemplate ?? join(import.meta.dir, "../templates/astro-site");
-    
+    this.templateDir =
+      options.astroSiteTemplate ??
+      join(import.meta.dir, "../templates/astro-site");
+
     // Working directory where we'll copy the template
     this.workingDir = join(options.outputDir, ".astro-work");
 
