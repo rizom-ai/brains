@@ -38,11 +38,11 @@ export class WebserverManager {
     if (options.astroSiteTemplate) {
       this.templateDir = options.astroSiteTemplate;
     } else {
-      const templateUrl = import.meta.resolve("./astro-site/package.json");
+      const templateUrl = import.meta.resolve("@brains/webserver-template/package.json");
       const templatePath = fileURLToPath(templateUrl);
       this.templateDir = join(templatePath, "..");
     }
-    
+
     this.logger.debug(`Template directory resolved to: ${this.templateDir}`);
 
     // Working directory where we'll copy the template

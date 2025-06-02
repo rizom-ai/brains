@@ -20,6 +20,7 @@
     "@brains/shell": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@brains/webserver-template": "workspace:*",
     "hono": "^4.0.0",
     "js-yaml": "^4.1.0",
     "zod": "^3.22.4"

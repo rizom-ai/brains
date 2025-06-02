@@ -192,3 +192,7 @@ brain.db
 .direnv/
 
 apps/test-brain/server.log
+
+# Webserver plugin build artifacts
+.astro-work/
+website/
