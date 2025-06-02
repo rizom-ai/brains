@@ -1,4 +1,5 @@
-import type { Registry, EntityService, BaseEntity } from "@brains/types";
+import type { Registry, EntityService, BaseEntity, LandingPageData } from "@brains/types";
+import { landingPageSchema } from "@brains/types";
 import type { Logger } from "@brains/utils";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
@@ -102,7 +103,7 @@ export class ContentGenerator {
       }));
 
     // Create landing page data
-    const landingData = {
+    const landingData: LandingPageData = {
       title: this.options.siteTitle,
       description: this.options.siteDescription,
       stats: {
@@ -113,8 +114,11 @@ export class ContentGenerator {
       recentNotes,
     };
 
+    // Validate data against schema
+    const validatedData = landingPageSchema.parse(landingData);
+
     // Write to landing collection
-    await this.writeYamlFile("landing", "site.yaml", landingData);
+    await this.writeYamlFile("landing", "site.yaml", validatedData);
 
     this.logger.info("Landing page data generated", {
       noteCount: notes.length,

@@ -45,5 +45,9 @@ export type {
 // Formatter types
 export type { SchemaFormatter } from "./formatters";
 
+// Webserver types
+export { landingPageSchema } from "./webserver";
+export type { LandingPageData } from "./webserver";
+
 // Re-export commonly used types from utils
 export type { Logger } from "@brains/utils";
