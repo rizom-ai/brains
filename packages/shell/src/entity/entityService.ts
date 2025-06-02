@@ -90,7 +90,7 @@ export class EntityService {
    * Create a new entity
    */
   public async createEntity<T extends BaseEntity>(
-    entity: Omit<T, "id" | "created" | "updated"> & { 
+    entity: Omit<T, "id" | "created" | "updated"> & {
       id?: string;
       created?: string;
       updated?: string;
@@ -106,10 +106,13 @@ export class EntityService {
       created: entity.created ?? now,
       updated: entity.updated ?? now,
     } as T;
-    
+
     this.logger.debug("Creating entity with timestamps", {
       provided: { created: entity.created, updated: entity.updated },
-      using: { created: entityWithDefaults.created, updated: entityWithDefaults.updated },
+      using: {
+        created: entityWithDefaults.created,
+        updated: entityWithDefaults.updated,
+      },
     });
 
     // Validate entity against its schema
@@ -675,30 +678,37 @@ export class EntityService {
     created: Date;
     updated: Date;
   }): Promise<void> {
-    // Build BaseEntity from file data
-    const entity: BaseEntity = {
-      id: data.id,
-      entityType: data.entityType,
-      title: data.title,
-      content: data.content,
-      tags: [], // Default empty tags
-      created: data.created.toISOString(),
-      updated: data.updated.toISOString(),
-    };
-
     // Check if entity exists
-    const existing = await this.getEntity(data.entityType, entity.id);
+    const existing = await this.getEntity(data.entityType, data.id);
 
     if (existing) {
       // Update if modified (compare timestamps)
       const existingTime = new Date(existing.updated).getTime();
       const newTime = data.updated.getTime();
       if (existingTime < newTime) {
+        // Build complete entity for update
+        const entity: BaseEntity = {
+          id: data.id,
+          entityType: data.entityType,
+          title: data.title,
+          content: data.content,
+          tags: existing.tags || [], // Preserve existing tags
+          created: existing.created, // Keep original creation date
+          updated: data.updated.toISOString(),
+        };
         await this.updateEntity(entity);
       }
     } else {
-      // Create new entity
-      await this.createEntity(entity);
+      // Create new entity with timestamps
+      await this.createEntity({
+        id: data.id,
+        entityType: data.entityType,
+        title: data.title,
+        content: data.content,
+        tags: [], // Default empty tags
+        created: data.created.toISOString(),
+        updated: data.updated.toISOString(),
+      });
     }
   }
 }

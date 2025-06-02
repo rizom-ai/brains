@@ -1,1 +1,9 @@
+/* Import Archivo font from Google Fonts - must come BEFORE tailwindcss import */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
 @import "tailwindcss";
+
+/* Configure Tailwind theme */
+@theme {
+  --font-sans: 'Archivo', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}

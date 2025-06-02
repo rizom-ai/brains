@@ -271,9 +271,10 @@ export class GitSync {
       try {
         // Use file timestamps, but fallback to current time if birthtime is invalid
         // (birthtime can be 1970 on some filesystems that don't track creation time)
-        const created = stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime;
+        const created =
+          stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime;
         const updated = stats.mtime;
-        
+
         this.logger.debug("File timestamps", {
           path,
           birthtime: stats.birthtime.toISOString(),
@@ -283,13 +284,7 @@ export class GitSync {
             updated: updated.toISOString(),
           },
         });
-        
-        // TODO: Fix timestamp preservation issue
-        // Currently, file timestamps (created/updated) are not being preserved
-        // when importing from git. The EntityService.importRawEntity() method
-        // receives the correct timestamps but they may be getting overridden
-        // somewhere in the create/update flow.
-        
+
         // Pass file metadata along with content
         await this.entityService.importRawEntity({
           entityType,
