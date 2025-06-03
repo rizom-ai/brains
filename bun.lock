@@ -318,8 +318,8 @@
       "name": "@brains/webserver-template",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/types": "workspace:*",
         "astro": "^5.8.1",
+        "zod": "^3.24.1",
       },
       "devDependencies": {
         "@tailwindcss/vite": "^4.1.8",

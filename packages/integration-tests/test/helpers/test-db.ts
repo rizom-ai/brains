@@ -29,8 +29,8 @@ export async function createTestDatabase(): Promise<{
   // Create Drizzle instance
   const db = drizzle(client);
 
-  // Run migrations from shell package
-  const migrationsPath = join(__dirname, "../../../shell/drizzle");
+  // Run migrations from db package
+  const migrationsPath = join(__dirname, "../../../db/drizzle");
   await migrate(db, {
     migrationsFolder: migrationsPath,
   });

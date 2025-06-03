@@ -692,7 +692,7 @@ export class EntityService {
           entityType: data.entityType,
           title: data.title,
           content: data.content,
-          tags: existing.tags || [], // Preserve existing tags
+          tags: existing.tags, // Preserve existing tags
           created: existing.created, // Keep original creation date
           updated: data.updated.toISOString(),
         };

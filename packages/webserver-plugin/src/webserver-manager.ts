@@ -1,4 +1,4 @@
-import type { Registry } from "@brains/types";
+import type { Registry, PluginContext } from "@brains/types";
 import type { Logger } from "@brains/utils";
 import { join } from "path";
 import { fileURLToPath } from "url";
@@ -10,6 +10,7 @@ import { copyDirectory, cleanDirectory } from "./template-utils";
 export interface WebserverManagerOptions {
   logger: Logger;
   registry: Registry;
+  context: PluginContext;
   outputDir: string;
   astroSiteTemplate?: string;
   previewPort: number;
@@ -54,6 +55,7 @@ export class WebserverManager {
     this.contentGenerator = new ContentGenerator({
       logger: options.logger.child("ContentGenerator"),
       registry: options.registry,
+      context: options.context,
       astroSiteDir: this.workingDir,
       siteTitle: options.siteTitle,
       siteDescription: options.siteDescription,

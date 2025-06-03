@@ -5,6 +5,7 @@ import type {
   EntityService,
   BaseEntity,
   ListOptions,
+  PluginContext,
 } from "@brains/types";
 import { createSilentLogger } from "@brains/utils";
 import { mkdirSync, existsSync, rmSync } from "fs";
@@ -67,10 +68,35 @@ describe("ContentGenerator", () => {
       }),
     } as unknown as Registry;
 
+    // Mock Plugin Context
+    const mockContext = {
+      registry: mockRegistry,
+      logger: createSilentLogger("test"),
+      query: mock(async <T>(_query: string, _schema: unknown): Promise<T> => {
+        // Return landing page data matching the schema
+        return {
+          title: "Test Brain",
+          tagline: "Test Description",
+          hero: {
+            headline: "Your Personal Knowledge Hub",
+            subheadline: "Organize, connect, and discover your digital thoughts",
+            ctaText: "View Dashboard",
+            ctaLink: "/dashboard",
+          },
+        } as T;
+      }),
+      // Other context properties we don't use in this test
+      getPlugin: () => undefined,
+      events: {} as unknown as PluginContext["events"],
+      messageBus: {} as unknown as PluginContext["messageBus"],
+      formatters: {} as unknown as PluginContext["formatters"],
+    } as unknown as PluginContext;
+
     // Create ContentGenerator instance
     contentGenerator = new ContentGenerator({
       logger: createSilentLogger("test"),
       registry: mockRegistry,
+      context: mockContext,
       astroSiteDir: testDir,
       siteTitle: "Test Brain",
       siteDescription: "Test Description",
@@ -84,6 +110,7 @@ describe("ContentGenerator", () => {
 
       expect(existsSync(join(testDir, "src/content"))).toBe(true);
       expect(existsSync(join(testDir, "src/content/landing"))).toBe(true);
+      expect(existsSync(join(testDir, "src/content/dashboard"))).toBe(true);
     });
 
     it("should not fail if directories already exist", async () => {
@@ -101,7 +128,26 @@ describe("ContentGenerator", () => {
     it("should generate landing page YAML with correct data", async () => {
       await contentGenerator.generateAll();
 
-      const yamlPath = join(testDir, "src/content/landing/site.yaml");
+      const yamlPath = join(testDir, "src/content/landing/index.yaml");
+      expect(existsSync(yamlPath)).toBe(true);
+
+      const content = await readFile(yamlPath, "utf-8");
+      const data = yaml.load(content) as Record<string, unknown>;
+
+      expect(data["title"]).toBe("Test Brain");
+      expect(data["tagline"]).toBe("Test Description");
+      expect(data["hero"]).toBeDefined();
+      const hero = data["hero"] as Record<string, unknown>;
+      expect(hero["headline"]).toBe("Your Personal Knowledge Hub");
+      expect(hero["subheadline"]).toBe("Organize, connect, and discover your digital thoughts");
+      expect(hero["ctaText"]).toBe("View Dashboard");
+      expect(hero["ctaLink"]).toBe("/dashboard");
+    });
+
+    it("should generate dashboard YAML with correct data", async () => {
+      await contentGenerator.generateAll();
+
+      const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
       expect(existsSync(yamlPath)).toBe(true);
 
       const content = await readFile(yamlPath, "utf-8");
@@ -131,7 +177,7 @@ describe("ContentGenerator", () => {
 
       await contentGenerator.generateAll();
 
-      const yamlPath = join(testDir, "src/content/landing/site.yaml");
+      const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
       const content = await readFile(yamlPath, "utf-8");
       const data = yaml.load(content) as Record<string, unknown>;
 
@@ -163,7 +209,7 @@ describe("ContentGenerator", () => {
 
       await contentGenerator.generateAll();
 
-      const yamlPath = join(testDir, "src/content/landing/site.yaml");
+      const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
       const content = await readFile(yamlPath, "utf-8");
       const data = yaml.load(content) as Record<string, unknown>;
 

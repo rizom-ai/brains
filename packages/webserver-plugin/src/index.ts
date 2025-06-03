@@ -40,6 +40,7 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       const managerOptions: WebserverManagerOptions = {
         logger: logger.child("WebserverPlugin"),
         registry,
+        context,
         outputDir: options.outputDir ?? "./dist",
         previewPort: options.previewPort ?? 4321,
         productionPort: options.productionPort ?? 8080,

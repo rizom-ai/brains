@@ -313,6 +313,17 @@ export class PluginManager {
           formatterRegistry.register(schemaName, formatter);
         },
       },
+      query: async <T>(query: string, schema: unknown): Promise<T> => {
+        try {
+          const queryProcessor = this.registry.resolve<{
+            processQuery: <T>(query: string, options: { schema: unknown }) => Promise<T>;
+          }>("queryProcessor");
+          return await queryProcessor.processQuery<T>(query, { schema });
+        } catch (error) {
+          this.logger.error("Failed to execute query", error);
+          throw new Error(`Query execution failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      },
     };
 
     // Register the plugin

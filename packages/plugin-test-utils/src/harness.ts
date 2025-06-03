@@ -191,6 +191,28 @@ export class PluginTestHarness {
       formatters: {
         register: (): void => undefined,
       },
+      query: async <T>(query: string, _schema: unknown): Promise<T> => {
+        // For test harness, return mock data based on query
+        if (query.includes("landing page")) {
+          return {
+            title: "Test Brain",
+            tagline: "Test Description", 
+            hero: {
+              headline: "Your Personal Knowledge Hub",
+              subheadline: "Organize, connect, and discover your digital thoughts",
+              ctaText: "View Dashboard",
+              ctaLink: "/dashboard",
+            },
+          } as T;
+        }
+        
+        // Default response
+        return {
+          query,
+          response: "Mock response from query processor",
+          results: [],
+        } as T;
+      },
     };
   }
 
@@ -342,4 +364,5 @@ export class PluginTestHarness {
       },
     };
   }
+
 }

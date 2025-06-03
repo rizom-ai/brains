@@ -4,6 +4,7 @@ import { Shell } from "@brains/shell";
 import { EntityRegistry } from "@brains/shell/src/entity/entityRegistry";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { createTestDatabase } from "./helpers/test-db.js";
+import { createMockAIService } from "./helpers/mock-ai-service.js";
 
 describe("App Integration", () => {
   let dbPath: string;
@@ -30,17 +31,25 @@ describe("App Integration", () => {
 
   describe("stdio transport", () => {
     it("should create and initialize app with stdio transport", async () => {
-      const app = App.create({
-        name: "test-stdio-app",
-        database: `file:${dbPath}`,
-        logLevel: "error", // Reduce noise
-        shellConfig: {
+      // Create shell with mock AI service
+      const shell = Shell.createFresh(
+        {
+          database: { url: `file:${dbPath}` },
           features: {
             enablePlugins: false,
             runMigrationsOnInit: true,
           },
         },
-      });
+        {
+          aiService: createMockAIService(),
+        }
+      );
+
+      const app = App.create({
+        name: "test-stdio-app",
+        database: `file:${dbPath}`,
+        logLevel: "error", // Reduce noise
+      }, shell);
 
       await app.initialize();
 
@@ -54,6 +63,20 @@ describe("App Integration", () => {
 
   describe("HTTP transport", () => {
     it("should create and initialize app with HTTP transport", async () => {
+      // Create shell with mock AI service
+      const shell = Shell.createFresh(
+        {
+          database: { url: `file:${dbPath}` },
+          features: {
+            enablePlugins: false,
+            runMigrationsOnInit: true,
+          },
+        },
+        {
+          aiService: createMockAIService(),
+        }
+      );
+
       const app = App.create({
         name: "test-http-app",
         database: `file:${dbPath}`,
@@ -63,13 +86,7 @@ describe("App Integration", () => {
           port: 0, // Use random port
           host: "localhost",
         },
-        shellConfig: {
-          features: {
-            enablePlugins: false,
-            runMigrationsOnInit: true,
-          },
-        },
-      });
+      }, shell);
 
       await app.initialize();
 
@@ -85,6 +102,20 @@ describe("App Integration", () => {
 
   describe("full lifecycle", () => {
     it("should handle complete app lifecycle", async () => {
+      // Create shell with mock AI service
+      const shell = Shell.createFresh(
+        {
+          database: { url: `file:${dbPath}` },
+          features: {
+            enablePlugins: false,
+            runMigrationsOnInit: true,
+          },
+        },
+        {
+          aiService: createMockAIService(),
+        }
+      );
+
       const app = App.create({
         name: "test-lifecycle-app",
         database: `file:${dbPath}`,
@@ -94,7 +125,7 @@ describe("App Integration", () => {
           host: "localhost",
         },
         logLevel: "error", // Reduce noise
-      });
+      }, shell);
 
       // Initialize
       await app.initialize();
@@ -104,8 +135,8 @@ describe("App Integration", () => {
       await app.start();
 
       // Get shell and verify it's working
-      const shell = app.getShell();
-      const mcpServer = shell.getMcpServer();
+      const appShell = app.getShell();
+      const mcpServer = appShell.getMcpServer();
       expect(mcpServer).toBeDefined();
 
       // Stop

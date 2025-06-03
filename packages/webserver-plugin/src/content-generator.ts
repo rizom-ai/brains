@@ -1,5 +1,15 @@
-import type { Registry, EntityService, BaseEntity, LandingPageData } from "@brains/types";
-import { landingPageSchema } from "@brains/types";
+import type {
+  Registry,
+  EntityService,
+  BaseEntity,
+  PluginContext,
+} from "@brains/types";
+import { 
+  landingPageSchema, 
+  dashboardSchema,
+  type DashboardData,
+  type LandingPageData 
+} from "@brains/webserver-template/schemas";
 import type { Logger } from "@brains/utils";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
@@ -9,6 +19,7 @@ import * as yaml from "js-yaml";
 export interface ContentGeneratorOptions {
   logger: Logger;
   registry: Registry;
+  context: PluginContext;
   astroSiteDir: string;
   siteTitle: string;
   siteDescription: string;
@@ -21,12 +32,14 @@ export interface ContentGeneratorOptions {
 export class ContentGenerator {
   private logger: Logger;
   private registry: Registry;
+  private context: PluginContext;
   private options: ContentGeneratorOptions;
   private contentDir: string;
 
   constructor(options: ContentGeneratorOptions) {
     this.logger = options.logger;
     this.registry = options.registry;
+    this.context = options.context;
     this.options = options;
     this.contentDir = join(options.astroSiteDir, "src", "content");
   }
@@ -42,6 +55,7 @@ export class ContentGenerator {
 
     // Create collection directories
     await this.ensureDirectory(join(this.contentDir, "landing"));
+    await this.ensureDirectory(join(this.contentDir, "dashboard"));
     // Future: notes, articles, etc.
   }
 
@@ -70,10 +84,32 @@ export class ContentGenerator {
   }
 
   /**
-   * Generate landing page data from brain content
+   * Generate landing page data using query processor
    */
   async generateLandingPage(): Promise<void> {
     this.logger.info("Generating landing page data");
+
+    // Use the schema to get structured landing page content
+    const query = `Generate content for the landing page of ${this.options.siteTitle}. 
+    Create an engaging headline, tagline, and call-to-action based on the notes and knowledge in this brain.`;
+
+    // Use the plugin context's query method - much cleaner!
+    const landingData = await this.context.query<LandingPageData>(
+      query,
+      landingPageSchema,
+    );
+
+    // Write to landing collection
+    await this.writeYamlFile("landing", "index.yaml", landingData);
+
+    this.logger.info("Landing page data generated");
+  }
+
+  /**
+   * Generate dashboard data from brain content
+   */
+  async generateDashboard(): Promise<void> {
+    this.logger.info("Generating dashboard data");
 
     // EntityService is resolved from the registry
     const entityService = this.registry.resolve<EntityService>("entityService");
@@ -102,8 +138,8 @@ export class ContentGenerator {
         created: note.created,
       }));
 
-    // Create landing page data
-    const landingData: LandingPageData = {
+    // Create dashboard data
+    const dashboardData: DashboardData = {
       title: this.options.siteTitle,
       description: this.options.siteDescription,
       stats: {
@@ -115,12 +151,12 @@ export class ContentGenerator {
     };
 
     // Validate data against schema
-    const validatedData = landingPageSchema.parse(landingData);
+    const validatedData = dashboardSchema.parse(dashboardData);
 
-    // Write to landing collection
-    await this.writeYamlFile("landing", "site.yaml", validatedData);
+    // Write to dashboard collection
+    await this.writeYamlFile("dashboard", "index.yaml", validatedData);
 
-    this.logger.info("Landing page data generated", {
+    this.logger.info("Dashboard data generated", {
       noteCount: notes.length,
       tagCount: allTags.size,
     });
@@ -154,6 +190,7 @@ export class ContentGenerator {
 
     // Generate content
     await this.generateLandingPage();
+    await this.generateDashboard();
     // Future: generateNotePages(), generateArticlePages(), etc.
   }
 }

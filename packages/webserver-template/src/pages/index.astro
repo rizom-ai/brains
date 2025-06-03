@@ -2,14 +2,14 @@
 import { getCollection } from 'astro:content';
 import '../styles/global.css';
 
-const siteData = await getCollection('landing');
-const site = siteData[0]?.data;
+const landingData = await getCollection('landing');
+const landing = landingData[0]?.data;
 
-if (!site) {
-  throw new Error('No site data found');
+if (!landing) {
+  throw new Error('No landing page data found');
 }
 
-const { title, description, stats, recentNotes } = site;
+const { title, tagline, hero } = landing;
 ---
 
 <!DOCTYPE html>
@@ -18,38 +18,27 @@ const { title, description, stats, recentNotes } = site;
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{title}</title>
-  <meta name="description" content={description}>
+  <meta name="description" content={tagline}>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gray-50">
-  <div class="container mx-auto px-4 py-8 max-w-4xl">
-    <h1 class="text-4xl font-bold text-blue-600 mb-2">{title}</h1>
-    <p class="text-xl text-gray-600 mb-8">{description}</p>
-    
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-      <div class="bg-white p-6 rounded-lg shadow-md text-center">
-        <div class="text-3xl font-bold text-blue-600">{stats.noteCount}</div>
-        <div class="text-gray-600">Notes</div>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow-md text-center">
-        <div class="text-3xl font-bold text-blue-600">{stats.tagCount}</div>
-        <div class="text-gray-600">Tags</div>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow-md text-center">
-        <div class="text-3xl font-bold text-blue-600">{new Date(stats.lastUpdated).toLocaleDateString()}</div>
-        <div class="text-gray-600">Last Updated</div>
-      </div>
-    </div>
-
-    <div>
-      <h2 class="text-2xl font-bold mb-4">Recent Notes</h2>
-      <div class="space-y-3">
-        {recentNotes.map((note) => (
-          <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-600">
-            <h3 class="text-lg font-semibold">{note.title}</h3>
-            <span class="text-sm text-gray-500">{new Date(note.created).toLocaleDateString()}</span>
-          </div>
-        ))}
-      </div>
+<body class="bg-gradient-to-b from-blue-50 to-white min-h-screen">
+  <div class="container mx-auto px-4 py-16 max-w-6xl">
+    <!-- Hero Section -->
+    <div class="text-center mb-16">
+      <h1 class="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
+        {hero.headline}
+      </h1>
+      <p class="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
+        {hero.subheadline}
+      </p>
+      <a 
+        href={hero.ctaLink} 
+        class="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors"
+      >
+        {hero.ctaText}
+      </a>
     </div>
   </div>
 </body>

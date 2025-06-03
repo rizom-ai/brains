@@ -77,4 +77,5 @@ export interface PluginContext {
   events: EventEmitter;
   messageBus: MessageBus;
   formatters: FormatterRegistry;
+  query: <T>(query: string, schema: unknown) => Promise<T>;
 }
