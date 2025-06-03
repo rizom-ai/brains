@@ -6,8 +6,8 @@ import type { z } from "zod";
  * Prevents real API calls during testing
  */
 export function createMockAIService(): AIService {
-  return {
-    generateText: async (systemPrompt: string, userPrompt: string) => {
+  const mockService = {
+    generateText: async (_systemPrompt: string, userPrompt: string) => {
       return {
         text: "Mock AI response for: " + userPrompt.slice(0, 50),
         usage: {
@@ -18,13 +18,16 @@ export function createMockAIService(): AIService {
       };
     },
     generateObject: async <T>(
-      systemPrompt: string,
+      _systemPrompt: string,
       userPrompt: string,
       schema: z.ZodType<T>,
-    ): Promise<{ object: T; usage: { inputTokens: number; outputTokens: number } }> => {
+    ): Promise<{
+      object: T;
+      usage: { inputTokens: number; outputTokens: number };
+    }> => {
       // Return a mock object based on the query
       let mockObject: unknown;
-      
+
       if (userPrompt.includes("landing page")) {
         mockObject = {
           title: "Test Brain",
@@ -36,7 +39,10 @@ export function createMockAIService(): AIService {
             ctaLink: "/dashboard",
           },
         };
-      } else if (userPrompt.includes("create") || userPrompt.includes("Create")) {
+      } else if (
+        userPrompt.includes("create") ||
+        userPrompt.includes("Create")
+      ) {
         mockObject = {
           action: "create",
           entityType: "note",
@@ -44,7 +50,10 @@ export function createMockAIService(): AIService {
           content: "Test content",
           response: "Created successfully",
         };
-      } else if (userPrompt.includes("search") || userPrompt.includes("Search")) {
+      } else if (
+        userPrompt.includes("search") ||
+        userPrompt.includes("Search")
+      ) {
         mockObject = {
           query: userPrompt,
           results: [],
@@ -62,7 +71,7 @@ export function createMockAIService(): AIService {
 
       // Parse with schema to ensure it matches
       const parsed = schema.parse(mockObject);
-      
+
       return {
         object: parsed,
         usage: {
@@ -71,5 +80,7 @@ export function createMockAIService(): AIService {
         },
       };
     },
-  } as AIService;
+  };
+
+  return mockService as unknown as AIService;
 }

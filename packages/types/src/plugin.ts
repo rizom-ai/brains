@@ -3,6 +3,9 @@ import type { Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
 import type { Registry } from "./registry";
 import type { MessageBus } from "./messaging";
+import type { SchemaFormatter } from "./formatters";
+import type { EntityAdapter } from "./services";
+import type { BaseEntity } from "./entities";
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -57,8 +60,6 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
   register(context: PluginContext): Promise<PluginCapabilities>;
 };
 
-import type { SchemaFormatter } from "./formatters";
-
 /**
  * Minimal formatter registry interface for plugins
  */
@@ -77,5 +78,10 @@ export interface PluginContext {
   events: EventEmitter;
   messageBus: MessageBus;
   formatters: FormatterRegistry;
-  query: <T>(query: string, schema: unknown) => Promise<T>;
+  query: <T>(query: string, schema: z.ZodType<T>) => Promise<T>;
+  registerEntityType: <T extends BaseEntity>(
+    entityType: string,
+    schema: z.ZodType<T>,
+    adapter: EntityAdapter<T>,
+  ) => void;
 }

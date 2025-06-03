@@ -7,8 +7,11 @@ import type { z } from "zod";
 export interface EntityAdapter<T extends BaseEntity> {
   entityType: string;
   schema: z.ZodSchema<T>;
-  fromMarkdown(markdown: string): T;
   toMarkdown(entity: T): string;
+  fromMarkdown(markdown: string): Partial<T>;
+  extractMetadata(entity: T): Record<string, unknown>;
+  parseFrontMatter(markdown: string): Record<string, unknown>;
+  generateFrontMatter(entity: T): string;
 }
 
 /**
@@ -19,6 +22,10 @@ export interface ListOptions {
   offset?: number;
   sortBy?: "created" | "updated";
   sortDirection?: "asc" | "desc";
+  filter?: {
+    title?: string;
+    tags?: string[];
+  };
 }
 
 /**

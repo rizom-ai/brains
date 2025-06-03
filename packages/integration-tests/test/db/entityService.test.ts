@@ -3,7 +3,7 @@ import { z } from "zod";
 import { EntityService } from "@brains/shell/src/entity/entityService";
 import { EntityRegistry } from "@brains/shell/src/entity/entityRegistry";
 import { createTestDatabase } from "../helpers/test-db";
-import type { DrizzleDB } from "@brains/shell/src/db";
+import type { DrizzleDB } from "@brains/db";
 import { createSilentLogger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
 import type { IEmbeddingService } from "@brains/shell/src/embedding/embeddingService";
@@ -327,6 +327,29 @@ describe("EntityService - Database Operations", () => {
         const currCreated = new Date(curr.created).getTime();
         expect(currCreated).toBeGreaterThanOrEqual(prevCreated);
       }
+    });
+
+    test("filters entities by title", async () => {
+      // Create entities with specific titles
+      await entityService.createEntity(
+        createTestEntityData({
+          title: "Unique Title Test",
+          content: "Content with unique title",
+        }),
+      );
+
+      const result = await entityService.listEntities("note", {
+        filter: { title: "Unique Title Test" },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]?.title).toBe("Unique Title Test");
+
+      // Should not find non-existent title
+      const emptyResult = await entityService.listEntities("note", {
+        filter: { title: "Non-existent Title" },
+      });
+      expect(emptyResult).toHaveLength(0);
     });
 
     test("filters entities by type", async () => {

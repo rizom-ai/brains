@@ -37,19 +37,21 @@ describe("App Integration", () => {
           database: { url: `file:${dbPath}` },
           features: {
             enablePlugins: false,
-            runMigrationsOnInit: true,
           },
         },
         {
           aiService: createMockAIService(),
-        }
+        },
       );
 
-      const app = App.create({
-        name: "test-stdio-app",
-        database: `file:${dbPath}`,
-        logLevel: "error", // Reduce noise
-      }, shell);
+      const app = App.create(
+        {
+          name: "test-stdio-app",
+          database: `file:${dbPath}`,
+          logLevel: "error", // Reduce noise
+        },
+        shell,
+      );
 
       await app.initialize();
 
@@ -69,24 +71,26 @@ describe("App Integration", () => {
           database: { url: `file:${dbPath}` },
           features: {
             enablePlugins: false,
-            runMigrationsOnInit: true,
           },
         },
         {
           aiService: createMockAIService(),
-        }
+        },
       );
 
-      const app = App.create({
-        name: "test-http-app",
-        database: `file:${dbPath}`,
-        logLevel: "error", // Reduce noise
-        transport: {
-          type: "http",
-          port: 0, // Use random port
-          host: "localhost",
+      const app = App.create(
+        {
+          name: "test-http-app",
+          database: `file:${dbPath}`,
+          logLevel: "error", // Reduce noise
+          transport: {
+            type: "http",
+            port: 0, // Use random port
+            host: "localhost",
+          },
         },
-      }, shell);
+        shell,
+      );
 
       await app.initialize();
 
@@ -108,24 +112,26 @@ describe("App Integration", () => {
           database: { url: `file:${dbPath}` },
           features: {
             enablePlugins: false,
-            runMigrationsOnInit: true,
           },
         },
         {
           aiService: createMockAIService(),
-        }
+        },
       );
 
-      const app = App.create({
-        name: "test-lifecycle-app",
-        database: `file:${dbPath}`,
-        transport: {
-          type: "http",
-          port: 0,
-          host: "localhost",
+      const app = App.create(
+        {
+          name: "test-lifecycle-app",
+          database: `file:${dbPath}`,
+          transport: {
+            type: "http",
+            port: 0,
+            host: "localhost",
+          },
+          logLevel: "error", // Reduce noise
         },
-        logLevel: "error", // Reduce noise
-      }, shell);
+        shell,
+      );
 
       // Initialize
       await app.initialize();

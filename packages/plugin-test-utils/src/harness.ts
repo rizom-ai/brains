@@ -30,9 +30,36 @@ export class PluginTestHarness {
   private entityIdCounter = 0;
   private logger: Logger;
   private installedPlugins: Plugin[] = [];
+  private mockEntityRegistry: {
+    registeredTypes: Map<
+      string,
+      { schema: z.ZodType<BaseEntity>; adapter: EntityAdapter<BaseEntity> }
+    >;
+    registerEntityType: <T extends BaseEntity>(
+      entityType: string,
+      schema: z.ZodType<T>,
+      adapter: EntityAdapter<T>,
+    ) => void;
+  };
 
   constructor(options: PluginTestHarnessOptions = {}) {
     this.logger = options.logger ?? createSilentLogger("test-harness");
+
+    // Initialize the mock entity registry
+    this.mockEntityRegistry = {
+      registeredTypes: new Map(),
+      registerEntityType: <T extends BaseEntity>(
+        entityType: string,
+        schema: z.ZodType<T>,
+        adapter: EntityAdapter<T>,
+      ): void => {
+        this.mockEntityRegistry.registeredTypes.set(entityType, {
+          schema: schema as z.ZodType<BaseEntity>,
+          adapter: adapter as EntityAdapter<BaseEntity>,
+        });
+        this.logger.debug(`Registered entity type: ${entityType}`);
+      },
+    };
   }
 
   /**
@@ -191,27 +218,36 @@ export class PluginTestHarness {
       formatters: {
         register: (): void => undefined,
       },
-      query: async <T>(query: string, _schema: unknown): Promise<T> => {
+      query: async <T>(query: string, _schema: z.ZodType<T>): Promise<T> => {
         // For test harness, return mock data based on query
         if (query.includes("landing page")) {
           return {
             title: "Test Brain",
-            tagline: "Test Description", 
+            tagline: "Test Description",
             hero: {
               headline: "Your Personal Knowledge Hub",
-              subheadline: "Organize, connect, and discover your digital thoughts",
+              subheadline:
+                "Organize, connect, and discover your digital thoughts",
               ctaText: "View Dashboard",
               ctaLink: "/dashboard",
             },
           } as T;
         }
-        
+
         // Default response
         return {
           query,
           response: "Mock response from query processor",
           results: [],
         } as T;
+      },
+      registerEntityType: <T extends BaseEntity>(
+        entityType: string,
+        schema: z.ZodType<T>,
+        adapter: EntityAdapter<T>,
+      ): void => {
+        // For test harness, register the entity type in our mock registry
+        this.mockEntityRegistry.registerEntityType(entityType, schema, adapter);
       },
     };
   }
@@ -231,6 +267,7 @@ export class PluginTestHarness {
     this.entities.clear();
     this.entityIdCounter = 0;
     this.installedPlugins = [];
+    this.mockEntityRegistry.registeredTypes.clear();
   }
 
   /**
@@ -337,20 +374,26 @@ export class PluginTestHarness {
           toMarkdown: (entity: T): string => {
             return `# ${entity.title}\n\n${entity.content}`;
           },
-          fromMarkdown: (markdown: string): T => {
+          fromMarkdown: (markdown: string): Partial<T> => {
             const lines = markdown.split("\n");
             const title = lines[0]?.replace(/^#\s+/, "") ?? "Untitled";
             const content = lines.slice(2).join("\n");
-            const now = new Date().toISOString();
             return {
-              id: `mock-${Date.now()}`,
-              entityType,
               title,
               content,
-              tags: [],
-              created: now,
-              updated: now,
-            } as unknown as T;
+            } as Partial<T>;
+          },
+          extractMetadata: (entity: T): Record<string, unknown> => {
+            return {
+              title: entity.title,
+              tags: entity.tags,
+            };
+          },
+          parseFrontMatter: (_markdown: string): Record<string, unknown> => {
+            return {};
+          },
+          generateFrontMatter: (_entity: T): string => {
+            return "";
           },
         };
       },
@@ -364,5 +407,4 @@ export class PluginTestHarness {
       },
     };
   }
-
 }

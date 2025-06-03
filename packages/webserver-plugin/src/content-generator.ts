@@ -4,12 +4,13 @@ import type {
   BaseEntity,
   PluginContext,
 } from "@brains/types";
-import { 
-  landingPageSchema, 
+import {
+  landingPageSchema,
   dashboardSchema,
   type DashboardData,
-  type LandingPageData 
-} from "@brains/webserver-template/schemas";
+  type LandingPageData,
+} from "./schemas";
+import type { SiteContent } from "@brains/site-content-entity";
 import type { Logger } from "@brains/utils";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
@@ -89,15 +90,31 @@ export class ContentGenerator {
   async generateLandingPage(): Promise<void> {
     this.logger.info("Generating landing page data");
 
-    // Use the schema to get structured landing page content
-    const query = `Generate content for the landing page of ${this.options.siteTitle}. 
-    Create an engaging headline, tagline, and call-to-action based on the notes and knowledge in this brain.`;
+    // Check for existing hero content first
+    const existingHero = await this.getExistingSiteContent("landing", "hero");
 
-    // Use the plugin context's query method - much cleaner!
-    const landingData = await this.context.query<LandingPageData>(
-      query,
-      landingPageSchema,
-    );
+    let landingData: LandingPageData;
+
+    if (existingHero) {
+      this.logger.info("Using existing site content for landing page hero");
+      // Use existing content - merge with default structure
+      landingData = {
+        title: this.options.siteTitle,
+        tagline: this.options.siteDescription,
+        hero: existingHero as LandingPageData["hero"],
+      };
+    } else {
+      this.logger.info("Generating new landing page content with AI");
+      // Use the schema to get structured landing page content
+      const query = `Generate content for the landing page of ${this.options.siteTitle}. 
+      Create an engaging headline, tagline, and call-to-action based on the notes and knowledge in this brain.`;
+
+      // Use the plugin context's query method
+      // Avoid the type inference issue by not specifying the generic parameter
+      const queryResult = await this.context.query(query, landingPageSchema);
+      // TypeScript knows this matches LandingPageData from the schema
+      landingData = queryResult;
+    }
 
     // Write to landing collection
     await this.writeYamlFile("landing", "index.yaml", landingData);
@@ -178,6 +195,52 @@ export class ContentGenerator {
     } catch {
       // Entity type might not exist yet
       return false;
+    }
+  }
+
+  /**
+   * Get existing site content for a specific page and section
+   * Uses a predictable title format: "landing:hero"
+   */
+  async getExistingSiteContent(
+    page: string,
+    section: string,
+  ): Promise<unknown | null> {
+    const entityService = this.registry.resolve<EntityService>("entityService");
+
+    // Create a unique, predictable title for this content
+    const contentTitle = `${page}:${section}`;
+
+    try {
+      // Use the new filter capability to query by title
+      const results = await entityService.listEntities<SiteContent>(
+        "site-content",
+        {
+          filter: { title: contentTitle },
+          limit: 1,
+        },
+      );
+
+      if (results.length === 0) {
+        this.logger.debug("No existing site content found", {
+          title: contentTitle,
+        });
+        return null;
+      }
+
+      const matchingContent = results[0];
+      if (!matchingContent) {
+        return null;
+      }
+      this.logger.info("Found existing site content", { title: contentTitle });
+      return matchingContent.data || null;
+    } catch (error) {
+      this.logger.debug("Error looking for site content", {
+        page,
+        section,
+        error,
+      });
+      return null;
     }
   }
 

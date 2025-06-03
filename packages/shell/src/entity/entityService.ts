@@ -17,6 +17,12 @@ const listOptionsSchema = z.object({
   offset: z.number().int().min(0).optional().default(0),
   sortBy: z.enum(["created", "updated"]).optional().default("updated"),
   sortDirection: z.enum(["asc", "desc"]).optional().default("desc"),
+  filter: z
+    .object({
+      title: z.string().optional(),
+      tags: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -315,20 +321,37 @@ export class EntityService {
       offset?: number;
       sortBy?: "created" | "updated";
       sortDirection?: "asc" | "desc";
+      filter?: {
+        title?: string;
+        tags?: string[];
+      };
     } = {},
   ): Promise<T[]> {
     const validatedOptions = listOptionsSchema.parse(options);
-    const { limit, offset, sortBy, sortDirection } = validatedOptions;
+    const { limit, offset, sortBy, sortDirection, filter } = validatedOptions;
 
     this.logger.debug(
-      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset})`,
+      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)})`,
     );
 
+    // Build where conditions
+    const whereConditions = [eq(entities.entityType, entityType)];
+
+    if (filter?.title) {
+      whereConditions.push(eq(entities.title, filter.title));
+    }
+
+    if (filter?.tags && filter.tags.length > 0) {
+      // For tags, we need to check if any of the filter tags are in the entity's tags
+      // This is a bit complex with SQLite JSON arrays, so we'll filter in memory for now
+      // TODO: Optimize this with proper SQL JSON queries
+    }
+
     // Query database
-    const result = await this.db
+    const query = this.db
       .select()
       .from(entities)
-      .where(eq(entities.entityType, entityType))
+      .where(and(...whereConditions))
       .limit(limit)
       .offset(offset)
       .orderBy(
@@ -336,6 +359,8 @@ export class EntityService {
           ? desc(sortBy === "created" ? entities.created : entities.updated)
           : asc(sortBy === "created" ? entities.created : entities.updated),
       );
+
+    const result = await query;
 
     // Convert from markdown to entities
     const entityList: T[] = [];

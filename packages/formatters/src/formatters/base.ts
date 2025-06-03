@@ -49,4 +49,11 @@ export abstract class BaseFormatter implements SchemaFormatter {
   protected hasFields(data: unknown, fields: string[]): boolean {
     return hasProps(data, fields);
   }
+
+  /**
+   * Format an error message
+   */
+  protected formatError(message: string): string {
+    return `Error: ${message}`;
+  }
 }

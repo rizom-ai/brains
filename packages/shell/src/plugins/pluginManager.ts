@@ -8,9 +8,13 @@ import type {
   PluginTool,
   PluginResource,
   SchemaFormatter,
+  EntityAdapter,
+  BaseEntity,
 } from "@brains/types";
 import type { Shell } from "../shell";
 import type { SchemaFormatterRegistry } from "../formatters";
+import type { EntityRegistry } from "../entity/entityRegistry";
+import type { z } from "zod";
 
 /**
  * Plugin lifecycle event types
@@ -313,15 +317,40 @@ export class PluginManager {
           formatterRegistry.register(schemaName, formatter);
         },
       },
-      query: async <T>(query: string, schema: unknown): Promise<T> => {
+      query: async <T>(query: string, schema: z.ZodType<T>): Promise<T> => {
         try {
           const queryProcessor = this.registry.resolve<{
-            processQuery: <T>(query: string, options: { schema: unknown }) => Promise<T>;
+            processQuery: <T>(
+              query: string,
+              options: { schema: z.ZodType<T> },
+            ) => Promise<T>;
           }>("queryProcessor");
           return await queryProcessor.processQuery<T>(query, { schema });
         } catch (error) {
           this.logger.error("Failed to execute query", error);
-          throw new Error(`Query execution failed: ${error instanceof Error ? error.message : String(error)}`);
+          throw new Error(
+            `Query execution failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      },
+      registerEntityType: <T extends BaseEntity>(
+        entityType: string,
+        schema: z.ZodType<T>,
+        adapter: EntityAdapter<T>,
+      ): void => {
+        try {
+          const entityRegistry =
+            this.registry.resolve<EntityRegistry>("entityRegistry");
+          entityRegistry.registerEntityType(entityType, schema, adapter);
+          this.logger.info(`Registered entity type: ${entityType}`);
+        } catch (error) {
+          this.logger.error(
+            `Failed to register entity type ${entityType}`,
+            error,
+          );
+          throw new Error(
+            `Entity type registration failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
       },
     };

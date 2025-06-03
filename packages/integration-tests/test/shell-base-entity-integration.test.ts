@@ -31,7 +31,6 @@ describe("Shell and Base Entity Integration", () => {
     shell = Shell.createFresh(
       {
         features: {
-          runMigrationsOnInit: true,
           enablePlugins: false,
         },
         database: {
@@ -70,7 +69,6 @@ describe("Shell and Base Entity Integration", () => {
     shell = Shell.createFresh(
       {
         features: {
-          runMigrationsOnInit: true,
           enablePlugins: false,
         },
         database: {
@@ -97,7 +95,6 @@ describe("Shell and Base Entity Integration", () => {
     shell = Shell.createFresh(
       {
         features: {
-          runMigrationsOnInit: true,
           enablePlugins: false,
         },
         database: {
@@ -199,7 +196,6 @@ describe("Shell and Base Entity Integration", () => {
     shell = Shell.createFresh(
       {
         features: {
-          runMigrationsOnInit: true,
           enablePlugins: false,
         },
         database: {
@@ -256,7 +252,6 @@ describe("Shell and Base Entity Integration", () => {
     shell = Shell.createFresh(
       {
         features: {
-          runMigrationsOnInit: true,
           enablePlugins: false,
         },
         database: {

@@ -256,6 +256,24 @@
         "typescript": "^5.3.3",
       },
     },
+    "packages/site-content-entity": {
+      "name": "@brains/site-content-entity",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/formatters": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "gray-matter": "^4.0.3",
+        "js-yaml": "^4.1.0",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/js-yaml": "^4.0.9",
+      },
+    },
     "packages/types": {
       "name": "@brains/types",
       "version": "0.1.0",
@@ -295,6 +313,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@brains/shell": "workspace:*",
+        "@brains/site-content-entity": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "@brains/webserver-template": "workspace:*",
@@ -394,6 +413,8 @@
     "@brains/plugin-test-utils": ["@brains/plugin-test-utils@workspace:packages/plugin-test-utils"],
 
     "@brains/shell": ["@brains/shell@workspace:packages/shell"],
+
+    "@brains/site-content-entity": ["@brains/site-content-entity@workspace:packages/site-content-entity"],
 
     "@brains/test-brain": ["@brains/test-brain@workspace:apps/test-brain"],
 

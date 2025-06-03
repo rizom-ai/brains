@@ -12,6 +12,7 @@ import { mkdirSync, existsSync, rmSync } from "fs";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import * as yaml from "js-yaml";
+import { z } from "zod";
 
 describe("ContentGenerator", () => {
   let contentGenerator: ContentGenerator;
@@ -72,19 +73,22 @@ describe("ContentGenerator", () => {
     const mockContext = {
       registry: mockRegistry,
       logger: createSilentLogger("test"),
-      query: mock(async <T>(_query: string, _schema: unknown): Promise<T> => {
-        // Return landing page data matching the schema
-        return {
-          title: "Test Brain",
-          tagline: "Test Description",
-          hero: {
-            headline: "Your Personal Knowledge Hub",
-            subheadline: "Organize, connect, and discover your digital thoughts",
-            ctaText: "View Dashboard",
-            ctaLink: "/dashboard",
-          },
-        } as T;
-      }),
+      query: mock(
+        async <T>(_query: string, _schema: z.ZodType<T>): Promise<T> => {
+          // Return landing page data matching the schema
+          return {
+            title: "Test Brain",
+            tagline: "Test Description",
+            hero: {
+              headline: "Your Personal Knowledge Hub",
+              subheadline:
+                "Organize, connect, and discover your digital thoughts",
+              ctaText: "View Dashboard",
+              ctaLink: "/dashboard",
+            },
+          } as T;
+        },
+      ),
       // Other context properties we don't use in this test
       getPlugin: () => undefined,
       events: {} as unknown as PluginContext["events"],
@@ -96,7 +100,7 @@ describe("ContentGenerator", () => {
     contentGenerator = new ContentGenerator({
       logger: createSilentLogger("test"),
       registry: mockRegistry,
-      context: mockContext,
+      context: mockContext as PluginContext,
       astroSiteDir: testDir,
       siteTitle: "Test Brain",
       siteDescription: "Test Description",
@@ -139,9 +143,62 @@ describe("ContentGenerator", () => {
       expect(data["hero"]).toBeDefined();
       const hero = data["hero"] as Record<string, unknown>;
       expect(hero["headline"]).toBe("Your Personal Knowledge Hub");
-      expect(hero["subheadline"]).toBe("Organize, connect, and discover your digital thoughts");
+      expect(hero["subheadline"]).toBe(
+        "Organize, connect, and discover your digital thoughts",
+      );
       expect(hero["ctaText"]).toBe("View Dashboard");
       expect(hero["ctaLink"]).toBe("/dashboard");
+    });
+
+    it("should use existing site-content for landing page when available", async () => {
+      // Mock existing site-content
+      const mockSiteContent = {
+        id: "test-site-content",
+        entityType: "site-content",
+        title: "landing:hero",
+        content: "Existing hero content",
+        page: "landing",
+        section: "hero",
+        data: {
+          headline: "Existing Headline",
+          subheadline: "Existing Subheadline",
+          ctaText: "Existing CTA",
+          ctaLink: "/existing",
+        },
+        tags: ["site-content", "landing", "hero"],
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      // Mock EntityService to return our site-content
+      const mockListEntities = mock(
+        async (entityType: string, options?: any) => {
+          if (
+            entityType === "site-content" &&
+            options?.filter?.title === "landing:hero"
+          ) {
+            return [mockSiteContent];
+          }
+          return [];
+        },
+      );
+
+      // Replace the mock EntityService's listEntities method
+      mockEntityService.listEntities =
+        mockListEntities as EntityService["listEntities"];
+
+      await contentGenerator.generateAll();
+
+      const yamlPath = join(testDir, "src/content/landing/index.yaml");
+      const content = await readFile(yamlPath, "utf-8");
+      const data = yaml.load(content) as Record<string, unknown>;
+
+      // Should use existing content
+      const hero = data["hero"] as Record<string, unknown>;
+      expect(hero["headline"]).toBe("Existing Headline");
+      expect(hero["subheadline"]).toBe("Existing Subheadline");
+      expect(hero["ctaText"]).toBe("Existing CTA");
+      expect(hero["ctaLink"]).toBe("/existing");
     });
 
     it("should generate dashboard YAML with correct data", async () => {

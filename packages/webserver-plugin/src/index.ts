@@ -4,6 +4,11 @@ import {
   WebserverManager,
   type WebserverManagerOptions,
 } from "./webserver-manager";
+import {
+  siteContentSchema,
+  siteContentAdapter,
+  SiteContentFormatter,
+} from "@brains/site-content-entity";
 
 export interface WebserverPluginOptions {
   // Output directory for generated site
@@ -34,7 +39,13 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       "Generates and serves static websites from Personal Brain content",
 
     async register(context: PluginContext): Promise<PluginCapabilities> {
-      const { registry, logger } = context;
+      const { registry, logger, formatters, registerEntityType } = context;
+
+      // Register site-content entity type
+      registerEntityType("site-content", siteContentSchema, siteContentAdapter);
+
+      // Register site-content formatter
+      formatters.register("site-content", new SiteContentFormatter());
 
       // Create webserver manager instance
       const managerOptions: WebserverManagerOptions = {
@@ -64,7 +75,7 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
 
       // Return plugin capabilities
       return {
-        tools: webserverTools(manager),
+        tools: webserverTools(manager, registry),
         resources: [],
       };
     },

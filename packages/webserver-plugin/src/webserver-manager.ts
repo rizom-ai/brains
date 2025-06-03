@@ -6,6 +6,7 @@ import { ContentGenerator } from "./content-generator";
 import { SiteBuilder } from "./site-builder";
 import { ServerManager } from "./server-manager";
 import { copyDirectory, cleanDirectory } from "./template-utils";
+import { writeFile } from "fs/promises";
 
 export interface WebserverManagerOptions {
   logger: Logger;
@@ -92,6 +93,10 @@ export class WebserverManager {
       this.logger.debug("Copying template to working directory");
       await copyDirectory(this.templateDir, this.workingDir);
 
+      // Generate content config for Astro
+      this.logger.debug("Generating content config");
+      await this.generateContentConfig();
+
       // Generate content
       await this.contentGenerator.generateAll();
 
@@ -163,5 +168,62 @@ export class WebserverManager {
   async cleanup(): Promise<void> {
     this.logger.info("Cleaning up webserver manager");
     await this.serverManager.stopAll();
+  }
+
+  /**
+   * Generate the content/config.ts file for Astro
+   */
+  private async generateContentConfig(): Promise<void> {
+    const { mkdir } = await import("fs/promises");
+
+    // Ensure content directory exists
+    const contentDir = join(this.workingDir, "src", "content");
+    await mkdir(contentDir, { recursive: true });
+
+    // Generate content config with schemas that match our schemas.ts
+    const contentConfig = `import { defineCollection, z } from "astro:content";
+
+const landingCollection = defineCollection({
+  type: "data",
+  schema: z.object({
+    title: z.string(),
+    tagline: z.string(),
+    hero: z.object({
+      headline: z.string(),
+      subheadline: z.string(),
+      ctaText: z.string(),
+      ctaLink: z.string(),
+    }),
+  }),
+});
+
+const dashboardCollection = defineCollection({
+  type: "data",
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    stats: z.object({
+      noteCount: z.number(),
+      tagCount: z.number(),
+      lastUpdated: z.string(),
+    }),
+    recentNotes: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        created: z.string(),
+      }),
+    ),
+  }),
+});
+
+export const collections = {
+  landing: landingCollection,
+  dashboard: dashboardCollection,
+};
+`;
+
+    const configPath = join(contentDir, "config.ts");
+    await writeFile(configPath, contentConfig);
   }
 }

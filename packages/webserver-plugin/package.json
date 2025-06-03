@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@brains/shell": "workspace:*",
+    "@brains/site-content-entity": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/webserver-template": "workspace:*",

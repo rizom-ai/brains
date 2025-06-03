@@ -1,11 +1,18 @@
-import type { PluginTool } from "@brains/types";
+import type { PluginTool, EntityService, Registry } from "@brains/types";
 import type { WebserverManager } from "./webserver-manager";
 import { z } from "zod";
+import {
+  landingHeroDataSchema,
+  siteContentSchema,
+} from "@brains/site-content-entity";
 
 /**
  * Create MCP tools for the webserver plugin
  */
-export function webserverTools(manager: WebserverManager): PluginTool[] {
+export function webserverTools(
+  manager: WebserverManager,
+  registry: Registry,
+): PluginTool[] {
   return [
     {
       name: "build_site",
@@ -157,6 +164,62 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
             },
           },
         };
+      },
+    },
+
+    {
+      name: "capture_generated_content",
+      description:
+        "Capture AI-generated content as a site-content entity for future use",
+      inputSchema: {
+        page: z
+          .string()
+          .describe("The page this content is for (e.g., 'landing')"),
+        section: z.string().describe("The section of the page (e.g., 'hero')"),
+        data: landingHeroDataSchema.describe("The content data to capture"),
+      },
+      handler: async (input): Promise<Record<string, unknown>> => {
+        const { page, section, data } = input as {
+          page: string;
+          section: string;
+          data: z.infer<typeof landingHeroDataSchema>;
+        };
+
+        try {
+          const entityService =
+            registry.resolve<EntityService>("entityService");
+
+          // Create a predictable title matching our lookup format
+          const title = `${page}:${section}`;
+
+          // Create the site-content entity using proper schema
+          const siteContentData = siteContentSchema.omit({ id: true }).parse({
+            entityType: "site-content",
+            title,
+            content: `Generated content for ${page} page, ${section} section`,
+            tags: ["site-content", page, section, "generated"],
+            page,
+            section,
+            data,
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          });
+
+          const entity = await entityService.createEntity(siteContentData);
+
+          return {
+            success: true,
+            message: `Content captured as entity ${entity.id}`,
+            entityId: entity.id,
+          };
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Unknown error";
+          return {
+            success: false,
+            error: message,
+          };
+        }
       },
     },
   ];
