@@ -33,14 +33,14 @@ describe("Frontmatter Utilities", () => {
   describe("extractMetadata", () => {
     it("should exclude system fields by default", () => {
       const metadata = extractMetadata(testEntity);
-      
+
       expect(metadata).toEqual({
         title: "Test Note",
         tags: ["test", "important"],
         category: "work",
         priority: 1,
       });
-      
+
       // System fields should not be included
       expect(metadata).not.toHaveProperty("id");
       expect(metadata).not.toHaveProperty("entityType");
@@ -53,25 +53,32 @@ describe("Frontmatter Utilities", () => {
       const config: FrontmatterConfig<TestNote> = {
         includeFields: ["title", "tags"],
       };
-      
+
       const metadata = extractMetadata(testEntity, config);
-      
+
       expect(metadata).toEqual({
         title: "Test Note",
         tags: ["test", "important"],
       });
-      
+
       expect(metadata).not.toHaveProperty("category");
       expect(metadata).not.toHaveProperty("priority");
     });
 
     it("should respect excludeFields config", () => {
       const config: FrontmatterConfig<TestNote> = {
-        excludeFields: ["id", "entityType", "content", "created", "updated", "tags"],
+        excludeFields: [
+          "id",
+          "entityType",
+          "content",
+          "created",
+          "updated",
+          "tags",
+        ],
       };
-      
+
       const metadata = extractMetadata(testEntity, config);
-      
+
       expect(metadata).toEqual({
         title: "Test Note",
         category: "work",
@@ -83,12 +90,12 @@ describe("Frontmatter Utilities", () => {
       const config: FrontmatterConfig<TestNote> = {
         customSerializers: {
           tags: (tags) => tags.join(", "),
-          priority: (p) => p === 1 ? "high" : "normal",
+          priority: (p) => (p === 1 ? "high" : "normal"),
         },
       };
-      
+
       const metadata = extractMetadata(testEntity, config);
-      
+
       expect(metadata["tags"]).toBe("test, important");
       expect(metadata["priority"]).toBe("high");
     });
@@ -97,9 +104,9 @@ describe("Frontmatter Utilities", () => {
       // Create entity without optional category field
       const { category: _category, ...entityWithoutCategory } = testEntity;
       const entityWithUndefined: TestNote = entityWithoutCategory;
-      
+
       const metadata = extractMetadata(entityWithUndefined);
-      
+
       expect(metadata).not.toHaveProperty("category");
     });
   });
@@ -110,9 +117,12 @@ describe("Frontmatter Utilities", () => {
         title: "Test Note",
         tags: ["test", "important"],
       };
-      
-      const markdown = generateMarkdownWithFrontmatter("This is content", metadata);
-      
+
+      const markdown = generateMarkdownWithFrontmatter(
+        "This is content",
+        metadata,
+      );
+
       expect(markdown).toContain("---");
       expect(markdown).toContain("title: Test Note");
       expect(markdown).toContain("tags:");
@@ -123,7 +133,7 @@ describe("Frontmatter Utilities", () => {
 
     it("should return content only when no metadata", () => {
       const markdown = generateMarkdownWithFrontmatter("Just content", {});
-      
+
       expect(markdown).toBe("Just content");
       expect(markdown).not.toContain("---");
     });
@@ -142,7 +152,7 @@ category: work
 This is the content`;
 
       const result = parseMarkdownWithFrontmatter(markdown);
-      
+
       expect(result.content).toBe("This is the content");
       expect(result.metadata).toEqual({
         title: "Test Note",
@@ -153,9 +163,9 @@ This is the content`;
 
     it("should handle markdown without frontmatter", () => {
       const markdown = "Just content\n\nMore content";
-      
+
       const result = parseMarkdownWithFrontmatter(markdown);
-      
+
       expect(result.content).toBe("Just content\n\nMore content");
       expect(result.metadata).toEqual({});
     });
@@ -167,7 +177,7 @@ This is the content`;
 Content here`;
 
       const result = parseMarkdownWithFrontmatter(markdown);
-      
+
       expect(result.content).toBe("Content here");
       expect(result.metadata).toEqual({});
     });
@@ -176,14 +186,14 @@ Content here`;
   describe("createFrontmatterAdapter", () => {
     it("should create adapter with default config", () => {
       const adapter = createFrontmatterAdapter<TestNote>();
-      
+
       // Test toMarkdown
       const markdown = adapter.toMarkdown(testEntity);
       expect(markdown).toContain("title: Test Note");
       expect(markdown).toContain("This is the content");
       expect(markdown).not.toContain("id:");
       expect(markdown).not.toContain("created:");
-      
+
       // Test fromMarkdown
       const parsed = adapter.fromMarkdown(markdown);
       expect(parsed.title).toBe("Test Note");
@@ -197,24 +207,25 @@ Content here`;
           tags: (tags) => tags.join(", "),
         },
         customDeserializers: {
-          tags: (value) => typeof value === "string" ? value.split(", ") : value as string[],
+          tags: (value) =>
+            typeof value === "string" ? value.split(", ") : (value as string[]),
         },
       };
-      
+
       const adapter = createFrontmatterAdapter(config);
-      
+
       const markdown = adapter.toMarkdown(testEntity);
       expect(markdown).toContain("tags: 'test, important'");
-      
+
       const parsed = adapter.fromMarkdown(markdown);
       expect(parsed.tags).toEqual(["test", "important"]);
     });
 
     it("should generate frontmatter only", () => {
       const adapter = createFrontmatterAdapter<TestNote>();
-      
+
       const frontmatter = adapter.generateFrontMatter(testEntity);
-      
+
       expect(frontmatter).toContain("---");
       expect(frontmatter).toContain("title: Test Note");
       expect(frontmatter).not.toContain("This is the content");
@@ -230,7 +241,7 @@ Content here`;
         created: "2024-01-01",
         updated: "2024-01-01",
       };
-      
+
       const frontmatter = adapter.generateFrontMatter(emptyEntity);
       expect(frontmatter).toBe("");
     });
@@ -262,13 +273,13 @@ Content here`;
   describe("roundtrip testing", () => {
     it("should maintain data through serialization roundtrip", () => {
       const adapter = createFrontmatterAdapter<TestNote>();
-      
+
       // Entity -> Markdown
       const markdown = adapter.toMarkdown(testEntity);
-      
+
       // Markdown -> Partial Entity
       const parsed = adapter.fromMarkdown(markdown);
-      
+
       // Check all non-system fields are preserved
       expect(parsed.title).toBe(testEntity.title);
       expect(parsed.tags).toEqual(testEntity.tags);
@@ -308,10 +319,10 @@ Content here`;
       };
 
       const adapter = createFrontmatterAdapter<ComplexEntity>();
-      
+
       const markdown = adapter.toMarkdown(complexEntity);
       const parsed = adapter.fromMarkdown(markdown);
-      
+
       expect(parsed.metadata).toEqual(complexEntity.metadata);
     });
   });

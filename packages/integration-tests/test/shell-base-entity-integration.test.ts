@@ -166,7 +166,9 @@ describe("Shell and Base Entity Integration", () => {
 
     // Convert to markdown - BaseEntity has no frontmatter (no entity-specific fields)
     const markdown = adapter.toMarkdown(entity);
-    expect(markdown).toBe("# Test Content\n\nThis is a test entity with markdown content.");
+    expect(markdown).toBe(
+      "# Test Content\n\nThis is a test entity with markdown content.",
+    );
     expect(markdown).not.toContain("---");
     expect(markdown).not.toContain("id:");
     expect(markdown).not.toContain("entityType:");
@@ -176,7 +178,7 @@ describe("Shell and Base Entity Integration", () => {
     expect(parsed.content).toBe(
       "# Test Content\n\nThis is a test entity with markdown content.",
     );
-    
+
     // System fields should not be in the parsed result
     expect(parsed.id).toBeUndefined();
     expect(parsed.entityType).toBeUndefined();

@@ -47,9 +47,13 @@ const DEFAULT_SYSTEM_FIELDS: Array<keyof BaseEntity> = [
  */
 export function extractMetadata<T extends BaseEntity>(
   entity: T,
-  config?: FrontmatterConfig<T>
+  config?: FrontmatterConfig<T>,
 ): Record<string, unknown> {
-  const { includeFields, excludeFields = DEFAULT_SYSTEM_FIELDS, customSerializers } = config ?? {};
+  const {
+    includeFields,
+    excludeFields = DEFAULT_SYSTEM_FIELDS,
+    customSerializers,
+  } = config ?? {};
 
   const metadata: Record<string, unknown> = {};
 
@@ -64,14 +68,14 @@ export function extractMetadata<T extends BaseEntity>(
   } else {
     // Otherwise include all fields except excluded ones
     fieldsToProcess = allFields.filter(
-      (field) => !excludeFields.includes(field as keyof BaseEntity)
+      (field) => !excludeFields.includes(field as keyof BaseEntity),
     );
   }
 
   // Process each field
   for (const field of fieldsToProcess) {
     const value = entity[field];
-    
+
     // Skip undefined values
     if (value === undefined) {
       continue;
@@ -96,7 +100,7 @@ export function extractMetadata<T extends BaseEntity>(
  */
 export function generateMarkdownWithFrontmatter(
   content: string,
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown>,
 ): string {
   // Only add frontmatter if there's metadata
   if (Object.keys(metadata).length === 0) {
@@ -114,7 +118,7 @@ export function parseMarkdownWithFrontmatter(markdown: string): {
   metadata: Record<string, unknown>;
 } {
   const { content, data } = matter(markdown);
-  
+
   return {
     content: content.trim(),
     metadata: data as Record<string, unknown>,
@@ -126,7 +130,7 @@ export function parseMarkdownWithFrontmatter(markdown: string): {
  */
 export function deserializeMetadata<T extends BaseEntity>(
   metadata: Record<string, unknown>,
-  config?: FrontmatterConfig<T>
+  config?: FrontmatterConfig<T>,
 ): Record<string, unknown> {
   if (!config?.customDeserializers) {
     return metadata;
@@ -134,7 +138,9 @@ export function deserializeMetadata<T extends BaseEntity>(
 
   const result: Record<string, unknown> = { ...metadata };
 
-  for (const [field, deserializer] of Object.entries(config.customDeserializers)) {
+  for (const [field, deserializer] of Object.entries(
+    config.customDeserializers,
+  )) {
     if (field in metadata) {
       result[field] = deserializer(metadata[field]);
     }
@@ -147,7 +153,7 @@ export function deserializeMetadata<T extends BaseEntity>(
  * Create a frontmatter-aware adapter for an entity type
  */
 export function createFrontmatterAdapter<T extends BaseEntity>(
-  config?: FrontmatterConfig<T>
+  config?: FrontmatterConfig<T>,
 ): {
   toMarkdown: (entity: T) => string;
   fromMarkdown: (markdown: string) => Partial<T>;
@@ -170,7 +176,7 @@ export function createFrontmatterAdapter<T extends BaseEntity>(
     fromMarkdown: (markdown: string): Partial<T> => {
       const { content, metadata } = parseMarkdownWithFrontmatter(markdown);
       const deserializedMetadata = deserializeMetadata<T>(metadata, config);
-      
+
       return {
         ...deserializedMetadata,
         content,
@@ -200,17 +206,17 @@ export function createFrontmatterAdapter<T extends BaseEntity>(
       if (Object.keys(metadata).length === 0) {
         return "";
       }
-      
+
       // Generate markdown with empty content and extract just frontmatter
       const fullMarkdown = matter.stringify("", metadata);
       const lines = fullMarkdown.split("\n");
-      
+
       // Find the closing --- and return everything up to and including it
       const endIndex = lines.findIndex((line, i) => i > 0 && line === "---");
       if (endIndex > 0) {
         return lines.slice(0, endIndex + 1).join("\n");
       }
-      
+
       return "";
     },
   };
@@ -224,14 +230,18 @@ export function shouldIncludeInFrontmatter(value: unknown): boolean {
   if (value === undefined || value === null) {
     return false;
   }
-  
+
   if (Array.isArray(value) && value.length === 0) {
     return false;
   }
-  
-  if (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0) {
+
+  if (
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 0
+  ) {
     return false;
   }
-  
+
   return true;
 }

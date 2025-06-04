@@ -1,11 +1,11 @@
 import type { EntityAdapter } from "@brains/types";
 import { siteContentSchema, type SiteContent } from "./schemas";
 import * as yaml from "js-yaml";
-import { 
-  createFrontmatterAdapter, 
+import {
+  createFrontmatterAdapter,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
-  type FrontmatterConfig 
+  type FrontmatterConfig,
 } from "@brains/utils";
 
 // Configuration for site-content frontmatter
@@ -26,7 +26,7 @@ export const siteContentAdapter: EntityAdapter<SiteContent> = {
     // and page/section go in frontmatter
     const metadata = frontmatterAdapter.extractMetadata(entity);
     const dataYaml = yaml.dump(entity.data, { indent: 2 });
-    
+
     // Use frontmatter utility to generate markdown with metadata
     return generateMarkdownWithFrontmatter(dataYaml, metadata);
   },
