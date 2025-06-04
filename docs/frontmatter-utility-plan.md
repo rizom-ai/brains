@@ -1,18 +1,20 @@
 # Frontmatter Utility Planning Document
 
 ## Goal
+
 Create a generic frontmatter utility that ensures consistent handling across all entity adapters and supports complete roundtrip import/export, while moving to a cleaner database schema using JSON metadata.
 
 ## Current Problems
 
 1. **BaseEntityAdapter** puts ALL fields in frontmatter (including system fields like id, created, updated)
-2. **SiteContentAdapter** only puts entity-specific fields 
+2. **SiteContentAdapter** only puts entity-specific fields
 3. No consistent approach to what belongs in frontmatter
 4. **Database has redundant columns** for title/tags that duplicate frontmatter
 
 ## Database Schema Change
 
 ### Current Schema (Redundant)
+
 ```sql
 entities: {
   id, entityType, title, content, tags, created, updated
@@ -20,6 +22,7 @@ entities: {
 ```
 
 ### New Schema (Clean)
+
 ```sql
 entities: {
   id: string,
@@ -32,6 +35,7 @@ entities: {
 ```
 
 ### Benefits
+
 - No redundancy between DB and markdown
 - Flexible queries on any frontmatter field
 - Single source of truth (markdown)
@@ -42,15 +46,18 @@ entities: {
 ### What Goes Where
 
 #### Metadata JSON Column (From frontmatter)
+
 - `title`
-- `tags` 
+- `tags`
 - Entity-specific fields (e.g., `page`, `section` for site-content)
 - Any other frontmatter fields
 
 #### Content Column
+
 - Full markdown including frontmatter (for export/roundtrip)
 
 #### System Columns (NOT in frontmatter)
+
 - `id` - from filename
 - `entityType` - from directory or adapter
 - `created` - from file creation time or git
@@ -59,6 +66,7 @@ entities: {
 ### Roundtrip Scenarios
 
 #### Export (Entity → Markdown)
+
 ```typescript
 // Entity in DB
 {
@@ -80,6 +88,7 @@ Note content...
 ```
 
 #### Import (Markdown → Entity)
+
 ```typescript
 // File: 20240104_note.md
 ---
@@ -103,13 +112,19 @@ Note content...
 ## Query Changes
 
 ### Before (Hardcoded fields)
+
 ```typescript
 // Limited to title/tags only
-filter: { title: "landing:hero" }
-filter: { tags: ["important"] }
+filter: {
+  title: "landing:hero";
+}
+filter: {
+  tags: ["important"];
+}
 ```
 
 ### After (Flexible metadata)
+
 ```typescript
 // Can query any frontmatter field
 filter: { metadata: { title: "landing:hero" } }
@@ -123,10 +138,10 @@ filter: { metadata: { customField: "value" } }
 interface FrontmatterConfig<T extends BaseEntity> {
   // Which fields to include in frontmatter (besides default)
   includeFields?: (keyof T)[];
-  
+
   // Which fields to exclude from frontmatter
   excludeFields?: (keyof T)[];
-  
+
   // Custom handling for complex fields
   customSerializers?: {
     [K in keyof T]?: (value: T[K]) => any;
@@ -134,55 +149,61 @@ interface FrontmatterConfig<T extends BaseEntity> {
 }
 
 // Helper to create adapter with consistent frontmatter handling
-function createFrontmatterAdapter<T extends BaseEntity>(config?: FrontmatterConfig<T>) {
+function createFrontmatterAdapter<T extends BaseEntity>(
+  config?: FrontmatterConfig<T>,
+) {
   return {
     toMarkdown: (entity: T) => {
       const metadata = extractMetadata(entity, config);
       return generateMarkdownWithFrontmatter(entity.content, metadata);
     },
-    
+
     fromMarkdown: (markdown: string) => {
       const { metadata, content } = parseMarkdownWithFrontmatter(markdown);
       return { ...metadata, content } as Partial<T>;
     },
-    
+
     extractMetadata: (entity: T) => {
       return extractMetadata(entity, config);
-    }
+    },
   };
 }
 
 // Simple usage
 const baseAdapter = createFrontmatterAdapter<BaseEntity>({
-  excludeFields: ['id', 'entityType', 'created', 'updated', 'content']
+  excludeFields: ["id", "entityType", "created", "updated", "content"],
 });
 
 // With entity-specific fields
 const siteContentAdapter = createFrontmatterAdapter<SiteContent>({
-  includeFields: ['title', 'tags', 'page', 'section']
+  includeFields: ["title", "tags", "page", "section"],
 });
 ```
 
 ## Implementation Steps
 
 ### Phase 1: Database Schema Change
+
 1. **Update Drizzle schema** to add metadata JSON column
 2. **Remove title/tags columns** from entities table
 3. **Update EntityService** to populate metadata from frontmatter
 4. **Update ListOptions filter** to support metadata queries
 
 ### Phase 2: Create Frontmatter Utility
+
 1. **Create utility** in `packages/utils/src/frontmatter.ts`
 2. **Add metadata extraction** functions
 3. **Add frontmatter generation** functions
 4. **Add roundtrip tests**
 
 ### Phase 3: Update Adapters
+
 1. **Update BaseEntityAdapter** to exclude system fields from frontmatter
 2. **Update SiteContentAdapter** to use the utility
 3. **Ensure extractMetadata** returns proper JSON for DB storage
 
 ### Phase 4: Update Queries
+
 1. **Update site-content queries** to use `filter: { metadata: { title: "..." } }`
 2. **Add indexes** for frequently queried metadata fields if needed
 3. **Test performance** with real data
@@ -198,6 +219,7 @@ const siteContentAdapter = createFrontmatterAdapter<SiteContent>({
 ## Migration Note
 
 Since we can delete and recreate the database, no migration needed. Just:
+
 1. Update schema
 2. Re-import all markdown files
 3. Metadata will be populated from frontmatter

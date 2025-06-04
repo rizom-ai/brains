@@ -44,7 +44,9 @@ const noteAdapter: EntityAdapter<Note> = {
   schema: noteSchema,
   toMarkdown: (entity: Note): string => {
     // Include note-specific fields in frontmatter
-    const frontmatter = entity.category ? `---\ncategory: ${entity.category}\n---\n\n` : "";
+    const frontmatter = entity.category
+      ? `---\ncategory: ${entity.category}\n---\n\n`
+      : "";
     return `${frontmatter}${entity.content}`;
   },
   fromMarkdown: (_markdown: string): Partial<Note> => {
@@ -484,7 +486,7 @@ describe("EntityService - Database Operations", () => {
       );
 
       // Profile adapter already registered above
-      
+
       await entityService.createEntity({
         entityType: "profile" as const,
         content: "Profile of AI researcher",
@@ -507,7 +509,7 @@ category: imported
 ---
 
 This note was imported`;
-      
+
       const rawData = {
         entityType: "note",
         id: "imported-note-id",

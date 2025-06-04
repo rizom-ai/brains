@@ -1,6 +1,5 @@
 import { describe, test, expect } from "bun:test";
 import { BaseEntityAdapter } from "../src/adapter";
-import { parseMarkdown } from "@brains/utils";
 import type { BaseEntity } from "@brains/types";
 
 describe("BaseEntityAdapter", () => {
@@ -14,51 +13,65 @@ describe("BaseEntityAdapter", () => {
     updated: new Date().toISOString(),
   };
 
-  test("toMarkdown should convert entity to markdown with frontmatter", () => {
+  test("toMarkdown should convert entity to markdown without frontmatter", () => {
     const markdown = adapter.toMarkdown(testEntity);
 
-    // Should contain YAML frontmatter
-    expect(markdown).toContain("---");
-    expect(markdown).toContain("id: test-id-123");
-    expect(markdown).toContain("entityType: base");
-
-    // Should contain content
-    expect(markdown).toContain("This is test content");
+    // BaseEntity has no entity-specific fields, so no frontmatter
+    expect(markdown).toBe("This is test content");
+    expect(markdown).not.toContain("---");
+    expect(markdown).not.toContain("id:");
+    expect(markdown).not.toContain("entityType:");
   });
 
   test("fromMarkdown should extract entity fields from markdown", () => {
-    const markdown = adapter.toMarkdown(testEntity);
-    const extracted = adapter.fromMarkdown(markdown);
+    // Test with plain content (no frontmatter)
+    const plainMarkdown = "This is test content";
+    const extracted = adapter.fromMarkdown(plainMarkdown);
 
     // Should extract content
     expect(extracted.content).toBe("This is test content");
 
-    // Should extract frontmatter fields
-    expect(extracted.id).toBe("test-id-123");
-    expect(extracted.entityType).toBe("base");
+    // Should not have system fields
+    expect(extracted.id).toBeUndefined();
+    expect(extracted.entityType).toBeUndefined();
   });
 
-  test("parseFrontMatter should extract metadata from markdown", () => {
-    const markdown = adapter.toMarkdown(testEntity);
+  test("parseFrontMatter should return empty object for base entities", () => {
+    const markdown = "This is test content";
     const metadata = adapter.parseFrontMatter(markdown);
 
-    expect(metadata.id).toBe("test-id-123");
-    expect(metadata.entityType).toBe("base");
+    expect(metadata).toEqual({});
   });
 
-  test("generateFrontMatter should create YAML frontmatter", () => {
+  test("generateFrontMatter should return empty string for base entities", () => {
     const frontmatter = adapter.generateFrontMatter(testEntity);
 
-    expect(frontmatter).toContain("---");
-    expect(frontmatter).toContain("id: test-id-123");
-    expect(frontmatter).toContain("entityType: base");
+    // BaseEntity has no entity-specific fields, so no frontmatter
+    expect(frontmatter).toBe("");
   });
 
-  test("extractMetadata should return searchable metadata", () => {
+  test("extractMetadata should return empty object for base entities", () => {
     const metadata = adapter.extractMetadata(testEntity);
 
-    // BaseEntity only has timestamps in metadata now
-    expect(metadata.created).toBe(testEntity.created);
-    expect(metadata.updated).toBe(testEntity.updated);
+    // BaseEntity has no entity-specific fields for metadata
+    expect(metadata).toEqual({});
+  });
+
+  test("should handle markdown with frontmatter from other sources", () => {
+    // If a base entity markdown has frontmatter (e.g., from manual editing),
+    // it should be parsed but not include system fields
+    const markdownWithFrontmatter = `---
+title: Some Title
+customField: value
+---
+
+This is test content`;
+
+    const extracted = adapter.fromMarkdown(markdownWithFrontmatter);
+
+    expect(extracted.content).toBe("This is test content");
+    // Entity-specific fields from frontmatter should be included
+    expect((extracted as any).title).toBe("Some Title");
+    expect((extracted as any).customField).toBe("value");
   });
 });

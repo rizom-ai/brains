@@ -12,7 +12,7 @@ import { mkdirSync, existsSync, rmSync } from "fs";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import * as yaml from "js-yaml";
-import { z } from "zod";
+import type { z } from "zod";
 
 describe("ContentGenerator", () => {
   let contentGenerator: ContentGenerator;
@@ -215,7 +215,9 @@ describe("ContentGenerator", () => {
       expect(data["title"]).toBe("Test Brain");
       expect(data["description"]).toBe("Test Description");
       // Should have at least 2 entities (the mock notes)
-      expect((data["stats"] as Record<string, unknown>)["entityCount"]).toBeGreaterThanOrEqual(2);
+      expect(
+        (data["stats"] as Record<string, unknown>)["entityCount"],
+      ).toBeGreaterThanOrEqual(2);
       // Dashboard shows up to 5 recent entities from all entity types
       expect((data["recentEntities"] as unknown[]).length).toBeGreaterThan(0);
       expect(

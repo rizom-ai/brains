@@ -18,3 +18,14 @@ export {
   extractIndexedFields,
   generateMarkdown,
 } from "./markdown";
+
+// Frontmatter utilities
+export {
+  extractMetadata,
+  generateMarkdownWithFrontmatter,
+  parseMarkdownWithFrontmatter,
+  createFrontmatterAdapter,
+  shouldIncludeInFrontmatter,
+  deserializeMetadata,
+  type FrontmatterConfig,
+} from "./frontmatter";

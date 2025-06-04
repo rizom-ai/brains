@@ -164,18 +164,22 @@ describe("Shell and Base Entity Integration", () => {
       updated: new Date().toISOString(),
     };
 
-    // Convert to markdown
+    // Convert to markdown - BaseEntity has no frontmatter (no entity-specific fields)
     const markdown = adapter.toMarkdown(entity);
-    expect(markdown).toContain("---");
-    expect(markdown).toContain("id: test-123");
-    expect(markdown).toContain("entityType: base");
-    expect(markdown).toContain("# Test Content");
+    expect(markdown).toBe("# Test Content\n\nThis is a test entity with markdown content.");
+    expect(markdown).not.toContain("---");
+    expect(markdown).not.toContain("id:");
+    expect(markdown).not.toContain("entityType:");
 
     // Convert back from markdown
     const parsed = adapter.fromMarkdown(markdown);
     expect(parsed.content).toBe(
       "# Test Content\n\nThis is a test entity with markdown content.",
     );
+    
+    // System fields should not be in the parsed result
+    expect(parsed.id).toBeUndefined();
+    expect(parsed.entityType).toBeUndefined();
   });
 
   test("can list and search base entities", async () => {
@@ -215,7 +219,7 @@ describe("Shell and Base Entity Integration", () => {
     // Test that we can list entities
     const allEntities = await entityService.listEntities<BaseEntity>("base");
     expect(allEntities.length).toBeGreaterThanOrEqual(2);
-    
+
     // Test semantic search
     const searchResults = await entityService.search("Content");
     expect(searchResults.length).toBeGreaterThanOrEqual(2);

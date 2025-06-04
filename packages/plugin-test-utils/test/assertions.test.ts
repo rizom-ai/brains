@@ -1,10 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { PluginAssertions } from "../src/assertions";
-import type {
-  PluginTool,
-  Plugin,
-  PluginCapabilities,
-} from "@brains/types";
+import type { PluginTool, Plugin, PluginCapabilities } from "@brains/types";
 import type { TestEntity } from "../src/test-data";
 
 describe("PluginAssertions", () => {
@@ -86,7 +82,10 @@ describe("PluginAssertions", () => {
 
     it("should fail on count mismatch", () => {
       const actual = [createEntity()];
-      const expected: Array<Partial<TestEntity>> = [{ title: "A" }, { title: "B" }];
+      const expected: Array<Partial<TestEntity>> = [
+        { title: "A" },
+        { title: "B" },
+      ];
 
       expect(() => {
         PluginAssertions.assertEntitiesMatch(actual, expected);
@@ -107,7 +106,10 @@ describe("PluginAssertions", () => {
         createEntity({ title: "B" }),
         createEntity({ title: "A" }),
       ];
-      const expected: Array<Partial<TestEntity>> = [{ title: "A" }, { title: "B" }];
+      const expected: Array<Partial<TestEntity>> = [
+        { title: "A" },
+        { title: "B" },
+      ];
 
       expect(() => {
         PluginAssertions.assertEntitiesMatch(actual, expected, {
@@ -121,7 +123,10 @@ describe("PluginAssertions", () => {
         createEntity({ title: "B" }),
         createEntity({ title: "A" }),
       ];
-      const expected: Array<Partial<TestEntity>> = [{ title: "A" }, { title: "B" }];
+      const expected: Array<Partial<TestEntity>> = [
+        { title: "A" },
+        { title: "B" },
+      ];
 
       // Should not throw (default orderMatters is false)
       PluginAssertions.assertEntitiesMatch(actual, expected);

@@ -50,10 +50,10 @@ export const entities = sqliteTable("entities", {
     .primaryKey()
     .$defaultFn(() => createId()),
   entityType: text("entityType").notNull(),
-  
+
   // Content with frontmatter
   content: text("content").notNull(),
-  
+
   // Metadata from frontmatter (includes title, tags, and entity-specific fields)
   metadata: text("metadata", { mode: "json" })
     .$type<Record<string, unknown>>()

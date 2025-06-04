@@ -1,26 +1,39 @@
 import type { EntityAdapter } from "@brains/types";
 import { siteContentSchema, type SiteContent } from "./schemas";
 import * as yaml from "js-yaml";
-import matter from "gray-matter";
+import { 
+  createFrontmatterAdapter, 
+  generateMarkdownWithFrontmatter,
+  parseMarkdownWithFrontmatter,
+  type FrontmatterConfig 
+} from "@brains/utils";
+
+// Configuration for site-content frontmatter
+const siteContentConfig: FrontmatterConfig<SiteContent> = {
+  // Only include entity-specific fields in frontmatter
+  includeFields: ["page", "section"],
+};
+
+// Create frontmatter adapter with site-content config
+const frontmatterAdapter = createFrontmatterAdapter(siteContentConfig);
 
 export const siteContentAdapter: EntityAdapter<SiteContent> = {
   entityType: "site-content",
   schema: siteContentSchema,
 
   toMarkdown: (entity: SiteContent): string => {
-    const frontmatter = {
-      page: entity.page,
-      section: entity.section,
-    };
-
-    // Convert data to YAML format in the content
+    // For site-content, the 'data' field is stored as YAML in the content
+    // and page/section go in frontmatter
+    const metadata = frontmatterAdapter.extractMetadata(entity);
     const dataYaml = yaml.dump(entity.data, { indent: 2 });
-
-    return matter.stringify(dataYaml, frontmatter);
+    
+    // Use frontmatter utility to generate markdown with metadata
+    return generateMarkdownWithFrontmatter(dataYaml, metadata);
   },
 
   fromMarkdown: (markdown: string): Partial<SiteContent> => {
-    const { data: frontmatter, content } = matter(markdown);
+    // Parse frontmatter and content
+    const { content, metadata } = parseMarkdownWithFrontmatter(markdown);
 
     // Parse YAML content back to data object
     let parsedData = {};
@@ -32,28 +45,21 @@ export const siteContentAdapter: EntityAdapter<SiteContent> = {
     }
 
     return {
-      page: frontmatter["page"] as string,
-      section: frontmatter["section"] as string,
+      page: metadata["page"] as string,
+      section: metadata["section"] as string,
       data: parsedData,
     };
   },
 
-  extractMetadata: (entity: SiteContent): Record<string, unknown> => ({
-    page: entity.page,
-    section: entity.section,
-  }),
+  extractMetadata: (entity: SiteContent): Record<string, unknown> => {
+    return frontmatterAdapter.extractMetadata(entity);
+  },
 
   parseFrontMatter: (markdown: string): Record<string, unknown> => {
-    const { data } = matter(markdown);
-    return data;
+    return frontmatterAdapter.parseFrontMatter(markdown);
   },
 
   generateFrontMatter: (entity: SiteContent): string => {
-    return matter
-      .stringify("", {
-        page: entity.page,
-        section: entity.section,
-      })
-      .trim();
+    return frontmatterAdapter.generateFrontMatter(entity);
   },
 };

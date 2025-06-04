@@ -491,7 +491,6 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       expect(typedResult.error).toContain("No build found");
     });
 
-
     it("should handle invalid server type for stop command", async () => {
       const plugin = webserverPlugin({
         astroSiteTemplate: testTemplateDir,

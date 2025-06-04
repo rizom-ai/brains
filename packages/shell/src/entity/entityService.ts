@@ -334,7 +334,7 @@ export class EntityService {
           // SQLite JSON query: json_extract(metadata, '$.key') = value
           const jsonPath = `$.${key}`;
           whereConditions.push(
-            sql`json_extract(${entities.metadata}, ${jsonPath}) = ${value}`
+            sql`json_extract(${entities.metadata}, ${jsonPath}) = ${value}`,
           );
         }
       }
@@ -401,7 +401,6 @@ export class EntityService {
 
     return entityList;
   }
-
 
   /**
    * Get supported entity types from registry

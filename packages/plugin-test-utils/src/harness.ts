@@ -139,8 +139,8 @@ export class PluginTestHarness {
   async query(query: string): Promise<Record<string, unknown>> {
     // Simple implementation - just search by content
     const allEntities = Array.from(this.entities.values()).flat();
-    const matches = allEntities.filter(
-      (e) => e.content.toLowerCase().includes(query.toLowerCase()),
+    const matches = allEntities.filter((e) =>
+      e.content.toLowerCase().includes(query.toLowerCase()),
     );
 
     return {
@@ -377,7 +377,14 @@ export class PluginTestHarness {
           },
           extractMetadata: (entity: T): Record<string, unknown> => {
             // Return any entity-specific fields beyond base fields
-            const { id: _id, entityType: _entityType, content: _content, created: _created, updated: _updated, ...metadata } = entity as Record<string, unknown>;
+            const {
+              id: _id,
+              entityType: _entityType,
+              content: _content,
+              created: _created,
+              updated: _updated,
+              ...metadata
+            } = entity as Record<string, unknown>;
             return metadata;
           },
           parseFrontMatter: (_markdown: string): Record<string, unknown> => {

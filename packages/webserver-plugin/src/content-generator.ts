@@ -139,15 +139,21 @@ export class ContentGenerator {
     // Collect entities from all types
     for (const entityType of entityTypes) {
       try {
-        const entities = await entityService.listEntities<BaseEntity>(entityType, {
-          limit: 100,
-          sortBy: "updated",
-          sortDirection: "desc",
-        });
+        const entities = await entityService.listEntities<BaseEntity>(
+          entityType,
+          {
+            limit: 100,
+            sortBy: "updated",
+            sortDirection: "desc",
+          },
+        );
         totalEntityCount += entities.length;
         allEntities.push(...entities);
       } catch (error) {
-        this.logger.debug(`Failed to list entities of type ${entityType}:`, error);
+        this.logger.debug(
+          `Failed to list entities of type ${entityType}:`,
+          error,
+        );
       }
     }
 
@@ -160,7 +166,7 @@ export class ContentGenerator {
       .map((entity) => {
         // Try to extract a title from the entity
         let title = "Untitled";
-        
+
         // Check if entity has a title property (from entity-specific fields)
         if ("title" in entity && typeof entity.title === "string") {
           title = entity.title;

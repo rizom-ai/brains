@@ -68,12 +68,14 @@ export class PluginAssertions {
       // Sort by a stable field for comparison
       // First try to sort by a common field like title or content
       const getSortKey = (item: Partial<BaseEntity>): string => {
-        if ('title' in item && typeof item.title === 'string') return item.title;
-        if ('content' in item && typeof item.content === 'string') return item.content;
-        if ('id' in item && typeof item.id === 'string') return item.id;
+        if ("title" in item && typeof item.title === "string")
+          return item.title;
+        if ("content" in item && typeof item.content === "string")
+          return item.content;
+        if ("id" in item && typeof item.id === "string") return item.id;
         return JSON.stringify(item);
       };
-      
+
       actualToCompare.sort((a, b) =>
         getSortKey(a).localeCompare(getSortKey(b)),
       );

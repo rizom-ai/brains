@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { BaseEntity } from "@brains/types";
-import { parseMarkdown, generateMarkdown } from "@brains/utils";
-import matter from "gray-matter";
+import { createFrontmatterAdapter } from "@brains/utils";
 
 /**
  * Interface for entity adapter - imported here since it's not exported from @brains/types
@@ -31,8 +30,9 @@ export interface EntityAdapter<T extends BaseEntity> {
 /**
  * Adapter for base entity type - handles serialization/deserialization
  *
- * Provides a fallback implementation for the EntityAdapter interface
- * that works with any entity conforming to the BaseEntity interface.
+ * Following the new architecture, system fields (id, entityType, created, updated)
+ * are NOT included in frontmatter. Only entity-specific fields go in frontmatter.
+ * For BaseEntity, there are no entity-specific fields, so frontmatter is typically empty.
  */
 export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
   public readonly entityType = "base";
@@ -44,57 +44,45 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
     updated: z.string().datetime(),
   });
 
+  // Use frontmatter utility with default config (excludes system fields)
+  private readonly frontmatterAdapter = createFrontmatterAdapter<BaseEntity>();
+
   /**
    * Convert entity to markdown with frontmatter
+   * For base entities, this typically results in content only (no frontmatter)
    */
   toMarkdown(entity: BaseEntity): string {
-    // Extract content field
-    const { content, ...frontmatter } = entity;
-
-    // Generate markdown with frontmatter
-    return generateMarkdown(frontmatter, content || "");
+    return this.frontmatterAdapter.toMarkdown(entity);
   }
 
   /**
    * Extract entity fields from markdown
+   * Returns only entity-specific fields (none for BaseEntity)
    */
   fromMarkdown(markdown: string): Partial<BaseEntity> {
-    const { frontmatter, content } = parseMarkdown(markdown);
-
-    // Return parsed fields
-    return {
-      content,
-      ...frontmatter,
-    };
+    return this.frontmatterAdapter.fromMarkdown(markdown);
   }
 
   /**
    * Extract metadata for search/filtering
+   * For base entities, no metadata since no entity-specific fields
    */
   extractMetadata(entity: BaseEntity): Record<string, unknown> {
-    // For base entities, we only have timestamps as metadata
-    // Subclasses can override to add entity-specific metadata
-    return {
-      created: entity.created,
-      updated: entity.updated,
-    };
+    return this.frontmatterAdapter.extractMetadata(entity);
   }
 
   /**
    * Parse frontmatter metadata from markdown
    */
   parseFrontMatter(markdown: string): Record<string, unknown> {
-    const { frontmatter } = parseMarkdown(markdown);
-    return frontmatter;
+    return this.frontmatterAdapter.parseFrontMatter(markdown);
   }
 
   /**
    * Generate frontmatter for markdown
+   * For base entities, this returns empty string since no entity-specific fields
    */
   generateFrontMatter(entity: BaseEntity): string {
-    const { content: _content, ...frontmatter } = entity;
-
-    // Generate YAML frontmatter
-    return matter.stringify("", frontmatter).trim();
+    return this.frontmatterAdapter.generateFrontMatter(entity);
   }
 }
