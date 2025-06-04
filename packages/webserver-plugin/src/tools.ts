@@ -1,10 +1,8 @@
 import type { PluginTool, EntityService, Registry } from "@brains/types";
 import type { WebserverManager } from "./webserver-manager";
 import { z } from "zod";
-import {
-  landingHeroDataSchema,
-  siteContentSchema,
-} from "@brains/site-content-entity";
+import { landingHeroDataSchema } from "./content-schemas";
+import { siteContentSchema } from "./schemas";
 
 /**
  * Create MCP tools for the webserver plugin

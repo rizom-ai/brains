@@ -13,6 +13,7 @@
       "outputs": []
     },
     "dev": {
+      "dependsOn": ["precompile"],
       "cache": false,
       "persistent": true
     },
@@ -24,6 +25,13 @@
     },
     "clean": {
       "cache": false
+    },
+    "precompile": {
+      "outputs": ["src/content-schemas.txt"]
+    },
+    "compile": {
+      "dependsOn": ["precompile"],
+      "outputs": ["dist/**"]
     }
   }
 }

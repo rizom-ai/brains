@@ -1,39 +1,22 @@
 import { z } from "zod";
+import { baseEntitySchema } from "@brains/types";
 
 /**
- * Schema for landing page content
+ * Schema for site content entities
+ * These store AI-generated or user-edited content for the website
  */
-export const landingPageSchema = z.object({
-  title: z.string(),
-  tagline: z.string(),
-  hero: z.object({
-    headline: z.string(),
-    subheadline: z.string(),
-    ctaText: z.string(),
-    ctaLink: z.string(),
-  }),
+export const siteContentSchema = baseEntitySchema.extend({
+  entityType: z.literal("site-content"),
+
+  // Which page this content is for (e.g., "landing", "about")
+  page: z.string(),
+
+  // Which section of the page (e.g., "hero", "features")
+  section: z.string(),
+
+  // The actual content data as structured object
+  data: z.record(z.unknown()),
 });
 
-export type LandingPageData = z.infer<typeof landingPageSchema>;
+export type SiteContent = z.infer<typeof siteContentSchema>;
 
-/**
- * Schema for dashboard page content
- */
-export const dashboardSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  stats: z.object({
-    noteCount: z.number(),
-    tagCount: z.number(),
-    lastUpdated: z.string(),
-  }),
-  recentNotes: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      created: z.string(),
-    }),
-  ),
-});
-
-export type DashboardData = z.infer<typeof dashboardSchema>;

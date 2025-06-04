@@ -1,6 +1,6 @@
 import { BaseFormatter } from "@brains/formatters";
 import type { SchemaFormatter } from "@brains/types";
-import { siteContentSchema } from "./schema";
+import { siteContentSchema } from "./schemas";
 import * as yaml from "js-yaml";
 
 export class SiteContentFormatter

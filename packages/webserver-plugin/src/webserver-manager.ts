@@ -7,6 +7,7 @@ import { SiteBuilder } from "./site-builder";
 import { ServerManager } from "./server-manager";
 import { copyDirectory, cleanDirectory } from "./template-utils";
 import { writeFile } from "fs/promises";
+import contentSchemasSource from "./content-schemas.txt";
 
 export interface WebserverManagerOptions {
   logger: Logger;
@@ -92,6 +93,10 @@ export class WebserverManager {
       // Copy template to working directory
       this.logger.debug("Copying template to working directory");
       await copyDirectory(this.templateDir, this.workingDir);
+
+      // Generate schemas.ts file for the template
+      this.logger.debug("Generating schemas.ts file");
+      await this.generateSchemas();
 
       // Generate content config for Astro
       this.logger.debug("Generating content config");
@@ -180,41 +185,18 @@ export class WebserverManager {
     const contentDir = join(this.workingDir, "src", "content");
     await mkdir(contentDir, { recursive: true });
 
-    // Generate content config with schemas that match our schemas.ts
-    const contentConfig = `import { defineCollection, z } from "astro:content";
+    // Generate content config that imports from the generated schemas
+    const contentConfig = `import { defineCollection } from "astro:content";
+import { landingPageSchema, dashboardSchema } from "../schemas";
 
 const landingCollection = defineCollection({
   type: "data",
-  schema: z.object({
-    title: z.string(),
-    tagline: z.string(),
-    hero: z.object({
-      headline: z.string(),
-      subheadline: z.string(),
-      ctaText: z.string(),
-      ctaLink: z.string(),
-    }),
-  }),
+  schema: landingPageSchema,
 });
 
 const dashboardCollection = defineCollection({
   type: "data",
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    stats: z.object({
-      noteCount: z.number(),
-      tagCount: z.number(),
-      lastUpdated: z.string(),
-    }),
-    recentNotes: z.array(
-      z.object({
-        id: z.string(),
-        title: z.string(),
-        created: z.string(),
-      }),
-    ),
-  }),
+  schema: dashboardSchema,
 });
 
 export const collections = {
@@ -225,5 +207,16 @@ export const collections = {
 
     const configPath = join(contentDir, "config.ts");
     await writeFile(configPath, contentConfig);
+  }
+
+  /**
+   * Generate the schemas.ts file for the template
+   * This writes the imported content-schemas source to the template
+   */
+  private async generateSchemas(): Promise<void> {
+    const destSchemaPath = join(this.workingDir, "src", "schemas.ts");
+    
+    this.logger.debug("Writing schemas.ts to template", { to: destSchemaPath });
+    await writeFile(destSchemaPath, contentSchemasSource);
   }
 }

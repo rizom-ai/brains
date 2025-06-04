@@ -12,16 +12,18 @@
     }
   },
   "scripts": {
+    "precompile": "cp src/content-schemas.ts src/content-schemas.txt",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint src test --fix"
   },
   "dependencies": {
+    "@brains/formatters": "workspace:*",
     "@brains/shell": "workspace:*",
-    "@brains/site-content-entity": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/webserver-template": "workspace:*",
+    "gray-matter": "^4.0.3",
     "hono": "^4.0.0",
     "js-yaml": "^4.1.0",
     "zod": "^3.22.4"

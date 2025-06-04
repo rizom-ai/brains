@@ -4,11 +4,9 @@ import {
   WebserverManager,
   type WebserverManagerOptions,
 } from "./webserver-manager";
-import {
-  siteContentSchema,
-  siteContentAdapter,
-  SiteContentFormatter,
-} from "@brains/site-content-entity";
+import { siteContentSchema } from "./schemas";
+import { siteContentAdapter } from "./site-content-adapter";
+import { SiteContentFormatter } from "./site-content-formatter";
 
 export interface WebserverPluginOptions {
   // Output directory for generated site

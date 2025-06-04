@@ -1,5 +1,5 @@
 import type { EntityAdapter } from "@brains/types";
-import { siteContentSchema, type SiteContent } from "./schema";
+import { siteContentSchema, type SiteContent } from "./schemas";
 import * as yaml from "js-yaml";
 import matter from "gray-matter";
 

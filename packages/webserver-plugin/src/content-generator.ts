@@ -9,8 +9,8 @@ import {
   dashboardSchema,
   type DashboardData,
   type LandingPageData,
-} from "./schemas";
-import type { SiteContent } from "@brains/site-content-entity";
+} from "./content-schemas";
+import type { SiteContent } from "./schemas";
 import type { Logger } from "@brains/utils";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";

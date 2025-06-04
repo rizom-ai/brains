@@ -196,3 +196,6 @@ apps/test-brain/server.log
 # Webserver plugin build artifacts
 .astro-work/
 website/
+
+# Generated files
+packages/webserver-plugin/src/content-schemas.txt
