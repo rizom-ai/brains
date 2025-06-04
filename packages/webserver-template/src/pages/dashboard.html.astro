@@ -9,7 +9,7 @@ if (!dashboard) {
   throw new Error('No dashboard data found');
 }
 
-const { title, description, stats, recentNotes } = dashboard;
+const { title, description, stats, recentEntities } = dashboard;
 ---
 
 <!DOCTYPE html>
@@ -27,12 +27,12 @@ const { title, description, stats, recentNotes } = dashboard;
     
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
       <div class="bg-white p-6 rounded-lg shadow-md text-center">
-        <div class="text-3xl font-bold text-blue-600">{stats.noteCount}</div>
-        <div class="text-gray-600">Notes</div>
+        <div class="text-3xl font-bold text-blue-600">{stats.entityCount}</div>
+        <div class="text-gray-600">Entities</div>
       </div>
       <div class="bg-white p-6 rounded-lg shadow-md text-center">
-        <div class="text-3xl font-bold text-blue-600">{stats.tagCount}</div>
-        <div class="text-gray-600">Tags</div>
+        <div class="text-3xl font-bold text-blue-600">{stats.entityTypeCount}</div>
+        <div class="text-gray-600">Entity Types</div>
       </div>
       <div class="bg-white p-6 rounded-lg shadow-md text-center">
         <div class="text-3xl font-bold text-blue-600">{new Date(stats.lastUpdated).toLocaleDateString()}</div>
@@ -41,12 +41,12 @@ const { title, description, stats, recentNotes } = dashboard;
     </div>
 
     <div>
-      <h2 class="text-2xl font-bold mb-4">Recent Notes</h2>
+      <h2 class="text-2xl font-bold mb-4">Recent Entities</h2>
       <div class="space-y-3">
-        {recentNotes.map((note) => (
+        {recentEntities.map((entity) => (
           <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-600">
-            <h3 class="text-lg font-semibold">{note.title}</h3>
-            <span class="text-sm text-gray-500">{new Date(note.created).toLocaleDateString()}</span>
+            <h3 class="text-lg font-semibold">{entity.title}</h3>
+            <span class="text-sm text-gray-500">{new Date(entity.created).toLocaleDateString()}</span>
           </div>
         ))}
       </div>

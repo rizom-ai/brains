@@ -1,5 +1,5 @@
 import { webserverPlugin } from "../src/index";
-import { PluginTestHarness } from "@brains/plugin-test-utils";
+import { PluginTestHarness, type TestEntity } from "@brains/plugin-test-utils";
 
 async function testWebserverPlugin(): Promise<void> {
   console.log("Testing webserver plugin with test harness...");
@@ -8,19 +8,19 @@ async function testWebserverPlugin(): Promise<void> {
   const harness = new PluginTestHarness();
 
   // Create some test entities
-  await harness.createTestEntity("base", {
+  await harness.createTestEntity<TestEntity>("base", {
     title: "First Note",
     content: "This is my first note",
     tags: ["test", "demo"],
   });
 
-  await harness.createTestEntity("base", {
+  await harness.createTestEntity<TestEntity>("base", {
     title: "Second Note",
     content: "Another test note",
     tags: ["test"],
   });
 
-  await harness.createTestEntity("base", {
+  await harness.createTestEntity<TestEntity>("base", {
     title: "Third Note",
     content: "Yet another note",
     tags: ["demo", "example"],

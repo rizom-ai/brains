@@ -19,4 +19,3 @@ export const siteContentSchema = baseEntitySchema.extend({
 });
 
 export type SiteContent = z.infer<typeof siteContentSchema>;
-

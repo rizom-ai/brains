@@ -102,15 +102,25 @@ describe("Schema Generation", () => {
       await manager.buildSite();
 
       // Check that content/config.ts was created
-      const configPath = join(tempDir, ".astro-work", "src", "content", "config.ts");
+      const configPath = join(
+        tempDir,
+        ".astro-work",
+        "src",
+        "content",
+        "config.ts",
+      );
       expect(existsSync(configPath)).toBe(true);
 
       // Read and verify content
       const configContent = readFileSync(configPath, "utf-8");
 
       // Should import from generated schemas
-      expect(configContent).toContain('import { defineCollection } from "astro:content"');
-      expect(configContent).toContain('import { landingPageSchema, dashboardSchema } from "../schemas"');
+      expect(configContent).toContain(
+        'import { defineCollection } from "astro:content"',
+      );
+      expect(configContent).toContain(
+        'import { landingPageSchema, dashboardSchema } from "../schemas"',
+      );
 
       // Should not have inline schema definitions
       expect(configContent).not.toContain("z.object({");
@@ -140,7 +150,13 @@ describe("Schema Generation", () => {
 
       // Both files should exist
       const schemasPath = join(tempDir, ".astro-work", "src", "schemas.ts");
-      const configPath = join(tempDir, ".astro-work", "src", "content", "config.ts");
+      const configPath = join(
+        tempDir,
+        ".astro-work",
+        "src",
+        "content",
+        "config.ts",
+      );
 
       expect(existsSync(schemasPath)).toBe(true);
       expect(existsSync(configPath)).toBe(true);

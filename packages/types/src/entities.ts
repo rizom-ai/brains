@@ -6,9 +6,7 @@ import { z } from "zod";
 export const baseEntitySchema = z.object({
   id: z.string(),
   entityType: z.string(),
-  title: z.string(),
   content: z.string(),
-  tags: z.array(z.string()),
   created: z.string().datetime(),
   updated: z.string().datetime(),
 });

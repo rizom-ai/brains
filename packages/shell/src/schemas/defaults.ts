@@ -14,7 +14,6 @@ export const defaultQueryResponseSchema = z
         z.object({
           id: z.string(),
           type: z.string(),
-          title: z.string(),
           excerpt: z.string().optional(),
           relevance: z.number().min(0).max(1).optional(),
         }),

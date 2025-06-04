@@ -14,9 +14,12 @@ import matter from "gray-matter";
 
 /**
  * Note entity schema extending base entity
+ * For testing, we add title and tags as note-specific fields
  */
 const noteSchema = baseEntitySchema.extend({
   entityType: z.literal("note"),
+  title: z.string(),
+  tags: z.array(z.string()),
   category: z.string(),
 });
 
@@ -173,11 +176,13 @@ class NoteAdapter implements EntityAdapter<Note> {
   }
 
   toMarkdown(entity: Note): string {
-    const categoryTag =
-      entity.category && entity.category !== "general"
-        ? ` [${entity.category}]`
-        : "";
-    return `# ${entity.title}${categoryTag}\n\n${entity.content}`;
+    // Include frontmatter for note-specific fields
+    const frontmatter = {
+      title: entity.title,
+      tags: entity.tags,
+      category: entity.category,
+    };
+    return matter.stringify(entity.content, frontmatter);
   }
 }
 
@@ -241,7 +246,8 @@ describe("EntityRegistry", (): void => {
     // Test markdown conversion with adapter directly
     const adapter = registry.getAdapter<Note>("note");
     const markdown = adapter.toMarkdown(completeNote);
-    expect(markdown).toContain("# Test Note [testing]");
+    expect(markdown).toContain("title: Test Note");
+    expect(markdown).toContain("category: testing");
     expect(markdown).toContain("This is a test note content.");
 
     // Test adapter's fromMarkdown (returns partial data)

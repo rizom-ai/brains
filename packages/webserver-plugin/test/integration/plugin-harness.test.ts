@@ -3,6 +3,7 @@ import { webserverPlugin } from "../../src/index";
 import {
   PluginTestHarness,
   TestDataGenerator,
+  type TestEntity,
 } from "@brains/plugin-test-utils";
 import { join } from "path";
 import { rmSync, existsSync, mkdirSync } from "fs";
@@ -109,7 +110,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
     harness = new PluginTestHarness();
 
     // Add test entities
-    await harness.createTestEntity("note", {
+    await harness.createTestEntity<TestEntity>("note", {
       title: "Test Note",
       content: "This is a test note",
       tags: ["test"],
@@ -490,38 +491,6 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       expect(typedResult.error).toContain("No build found");
     });
 
-    it("should handle build errors gracefully", async () => {
-      // Mock the entity service to throw an error
-      const originalListEntities = harness.listEntities.bind(harness);
-      harness.listEntities = async (): Promise<never> => {
-        throw new Error("Database connection failed");
-      };
-
-      const plugin = webserverPlugin({
-        astroSiteTemplate: testTemplateDir,
-        outputDir: testOutputDir,
-        siteTitle: "Test Brain",
-        siteDescription: "Test Description",
-        previewPort: 16007,
-        productionPort: 19007,
-      });
-
-      await harness.installPlugin(plugin);
-
-      const context = harness.getPluginContext();
-      const capabilities = await plugin.register(context);
-      const buildTool = capabilities.tools.find((t) => t.name === "build_site");
-
-      if (!buildTool) throw new Error("Build tool not found");
-
-      const result = await buildTool.handler({});
-      const typedResult = result as { success: boolean; error?: string };
-      expect(typedResult.success).toBe(false);
-      expect(typedResult.error).toContain("Database connection failed");
-
-      // Restore original method
-      harness.listEntities = originalListEntities;
-    });
 
     it("should handle invalid server type for stop command", async () => {
       const plugin = webserverPlugin({

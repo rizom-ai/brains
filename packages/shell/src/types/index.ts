@@ -11,7 +11,6 @@ export type Entity = BaseEntity;
  */
 export const searchOptionsSchema = z.object({
   types: z.array(z.string()).optional(),
-  tags: z.array(z.string()).optional(),
   limit: z.number().positive().default(20),
   offset: z.number().nonnegative().default(0),
   sortBy: z.enum(["relevance", "created", "updated"]).default("relevance"),
@@ -52,11 +51,9 @@ export type QueryResult<T> = T;
 export const serializableEntitySchema = z.object({
   id: z.string(),
   entityType: z.string(),
-  title: z.string(),
   content: z.string(),
   created: z.string(),
   updated: z.string(),
-  tags: z.array(z.string()),
 });
 
 export type SerializableEntity = z.infer<typeof serializableEntitySchema>;

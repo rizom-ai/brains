@@ -18,11 +18,9 @@ import type { AIService } from "@/ai/aiService";
 const createMockEntity = (overrides?: Partial<Entity>): Entity => ({
   id: "test-id",
   entityType: "note",
-  title: "Test Note",
   content: "Test content",
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T00:00:00Z",
-  tags: ["test"],
   ...overrides,
 });
 
@@ -168,7 +166,6 @@ describe("QueryProcessor", () => {
       expect(result.sources?.[0]).toMatchObject({
         id: mockEntity.id,
         type: mockEntity.entityType,
-        title: mockEntity.title,
       });
     });
 
@@ -210,13 +207,10 @@ describe("QueryProcessor", () => {
       mockEntityService.search = mock(() =>
         Promise.resolve([
           {
-            id: mockEntity.id,
-            entityType: mockEntity.entityType,
-            tags: mockEntity.tags,
-            created: mockEntity.created,
-            updated: mockEntity.updated,
-            score: 0.9,
             entity: mockEntity,
+            score: 0.9,
+            excerpt: longContent.slice(0, 150) + "...",
+            highlights: [],
           },
         ]),
       );

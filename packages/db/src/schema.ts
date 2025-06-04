@@ -41,31 +41,6 @@ const vector = customType<{
 });
 
 /**
- * Custom type for JSON arrays in libSQL
- * Works around Drizzle ORM issue with JSON mode
- */
-const jsonArray = customType<{
-  data: string[];
-  driverData: string;
-}>({
-  dataType() {
-    return "text";
-  },
-  toDriver(value: string[]): string {
-    return JSON.stringify(value);
-  },
-  fromDriver(value: string): string[] {
-    if (!value) return [];
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  },
-});
-
-/**
  * Main entities table with embedded vectors
  * This schema combines the entity data with embeddings for efficient queries
  */
@@ -75,12 +50,18 @@ export const entities = sqliteTable("entities", {
     .primaryKey()
     .$defaultFn(() => createId()),
   entityType: text("entityType").notNull(),
-  title: text("title").notNull(),
+  
+  // Content with frontmatter
   content: text("content").notNull(),
+  
+  // Metadata from frontmatter (includes title, tags, and entity-specific fields)
+  metadata: text("metadata", { mode: "json" })
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default(sql`'{}'`),
 
   // Content metadata
   contentWeight: real("contentWeight").notNull().default(1.0),
-  tags: jsonArray("tags").notNull().default([]),
 
   // Vector embedding for semantic search
   // NOTE: This column has a vector index created via migration:

@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "sqlite",
-  "id": "65a1bbad-acc7-4469-bca9-d0f9f21cbcb4",
+  "id": "ac176538-8bf2-4080-aed7-6de29166fef6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "entities": {
@@ -21,19 +21,20 @@
           "notNull": true,
           "autoincrement": false
         },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "content": {
           "name": "content",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
         },
         "contentWeight": {
           "name": "contentWeight",
@@ -42,14 +43,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": 1
-        },
-        "tags": {
-          "name": "tags",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'[]'"
         },
         "embedding": {
           "name": "embedding",

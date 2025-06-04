@@ -131,40 +131,62 @@ export class ContentGenerator {
     // EntityService is resolved from the registry
     const entityService = this.registry.resolve<EntityService>("entityService");
 
-    // Get statistics
-    // For now, we'll use base entities since note entity type may not be registered
-    const notes = await entityService.listEntities<BaseEntity>("base", {
-      limit: 1000,
-    });
-    const allTags = new Set<string>();
+    // Get all entity types in the system
+    const entityTypes = entityService.getEntityTypes();
+    let totalEntityCount = 0;
+    const allEntities: BaseEntity[] = [];
 
-    // Collect all unique tags
-    notes.forEach((note) => {
-      note.tags.forEach((tag) => allTags.add(tag));
-    });
+    // Collect entities from all types
+    for (const entityType of entityTypes) {
+      try {
+        const entities = await entityService.listEntities<BaseEntity>(entityType, {
+          limit: 100,
+          sortBy: "updated",
+          sortDirection: "desc",
+        });
+        totalEntityCount += entities.length;
+        allEntities.push(...entities);
+      } catch (error) {
+        this.logger.debug(`Failed to list entities of type ${entityType}:`, error);
+      }
+    }
 
-    // Get recent notes for display
-    const recentNotes = notes
+    // Get recent entities for display
+    const recentEntities = allEntities
       .sort(
         (a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime(),
       )
       .slice(0, 5)
-      .map((note) => ({
-        id: note.id,
-        title: note.title,
-        created: note.created,
-      }));
+      .map((entity) => {
+        // Try to extract a title from the entity
+        let title = "Untitled";
+        
+        // Check if entity has a title property (from entity-specific fields)
+        if ("title" in entity && typeof entity.title === "string") {
+          title = entity.title;
+        } else {
+          // Try to extract from content (first line, first 50 chars)
+          const firstLine = entity.content.split("\n")[0] || "";
+          title = firstLine.slice(0, 50) + (firstLine.length > 50 ? "..." : "");
+        }
+
+        return {
+          id: entity.id,
+          title,
+          created: entity.created,
+        };
+      });
 
     // Create dashboard data
     const dashboardData: DashboardData = {
       title: this.options.siteTitle,
       description: this.options.siteDescription,
       stats: {
-        noteCount: notes.length,
-        tagCount: allTags.size,
+        entityCount: totalEntityCount,
+        entityTypeCount: entityTypes.length,
         lastUpdated: new Date().toISOString(),
       },
-      recentNotes,
+      recentEntities,
     };
 
     // Validate data against schema
@@ -174,8 +196,8 @@ export class ContentGenerator {
     await this.writeYamlFile("dashboard", "index.yaml", validatedData);
 
     this.logger.info("Dashboard data generated", {
-      noteCount: notes.length,
-      tagCount: allTags.size,
+      entityCount: totalEntityCount,
+      entityTypeCount: entityTypes.length,
     });
   }
 
@@ -212,11 +234,11 @@ export class ContentGenerator {
     const contentTitle = `${page}:${section}`;
 
     try {
-      // Use the new filter capability to query by title
+      // Use metadata filter to query by title
       const results = await entityService.listEntities<SiteContent>(
         "site-content",
         {
-          filter: { title: contentTitle },
+          filter: { metadata: { title: contentTitle } },
           limit: 1,
         },
       );

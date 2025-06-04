@@ -215,7 +215,7 @@ export const collections = {
    */
   private async generateSchemas(): Promise<void> {
     const destSchemaPath = join(this.workingDir, "src", "schemas.ts");
-    
+
     this.logger.debug("Writing schemas.ts to template", { to: destSchemaPath });
     await writeFile(destSchemaPath, contentSchemasSource);
   }

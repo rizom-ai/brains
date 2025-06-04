@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "5",
-      "when": 1748092019667,
-      "tag": "0000_needy_guardsmen",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1748339183284,
-      "tag": "0002_heavy_tyrannus",
+      "when": 1749046076226,
+      "tag": "0000_gigantic_hex",
       "breakpoints": true
     }
   ]

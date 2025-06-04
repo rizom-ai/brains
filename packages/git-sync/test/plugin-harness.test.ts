@@ -117,7 +117,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Verify content of one file
       if (files.length > 0) {
         const content = readFileSync(join(noteDir, files[0]), "utf-8");
-        expect(content).toContain("# Test Note");
+        expect(content).toContain("This is test content");
       }
     });
 
@@ -209,7 +209,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Verify the imported note has correct data
       const importedNote = finalNotes.find((n) => n.id === "valid-note");
       expect(importedNote).toBeDefined();
-      expect(importedNote?.title).toBe("valid note");
+      expect(importedNote?.id).toBe("valid-note");
 
       // Verify that unknown type was not imported (harness doesn't track unknown types)
       // The fact that only one note was imported proves that files in root and unknown dirs were skipped
@@ -244,7 +244,6 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       expect(importedNote).toBeDefined();
       expect(importedNote?.entityType).toBe("note");
       expect(importedNote?.id).toBe("test-note-with-dashes");
-      expect(importedNote?.title).toBe("test note with dashes"); // Dashes converted to spaces
       expect(importedNote?.content).toBe("# Test Note\n\nContent here");
     });
   });
@@ -253,7 +252,6 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
     it("should handle multiple entity types", async () => {
       // Add different entity types
       await harness.createTestEntity("task", {
-        title: "Test Task",
         content: "Task content",
         status: "pending",
       });
@@ -289,7 +287,6 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
     it("should handle entities with special names", async () => {
       // Create entity with special characters
       await harness.createTestEntity("note", {
-        title: "Note: Special/Characters",
         content: "Content with @#$% symbols",
       });
 

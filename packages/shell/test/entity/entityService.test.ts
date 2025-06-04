@@ -23,9 +23,12 @@ const mockEmbeddingService: IEmbeddingService = {
 
 /**
  * Note entity schema extending base entity
+ * For testing, we add title and tags as note-specific fields
  */
 const noteSchema = baseEntitySchema.extend({
   entityType: z.literal("note"),
+  title: z.string(),
+  tags: z.array(z.string()),
   category: z.string().optional(),
 });
 

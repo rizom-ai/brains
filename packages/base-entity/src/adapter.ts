@@ -39,11 +39,9 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
   public readonly schema = z.object({
     id: z.string(),
     entityType: z.string(),
-    title: z.string(),
     content: z.string(),
     created: z.string().datetime(),
     updated: z.string().datetime(),
-    tags: z.array(z.string()),
   });
 
   /**
@@ -74,9 +72,9 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
    * Extract metadata for search/filtering
    */
   extractMetadata(entity: BaseEntity): Record<string, unknown> {
+    // For base entities, we only have timestamps as metadata
+    // Subclasses can override to add entity-specific metadata
     return {
-      title: entity.title,
-      tags: entity.tags,
       created: entity.created,
       updated: entity.updated,
     };

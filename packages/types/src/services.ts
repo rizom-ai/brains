@@ -23,8 +23,8 @@ export interface ListOptions {
   sortBy?: "created" | "updated";
   sortDirection?: "asc" | "desc";
   filter?: {
-    title?: string;
-    tags?: string[];
+    // Flexible metadata filter - can query any frontmatter field
+    metadata?: Record<string, unknown>;
   };
 }
 
@@ -72,7 +72,6 @@ export interface EntityService {
   importRawEntity(data: {
     entityType: string;
     id: string;
-    title: string;
     content: string;
     created: Date;
     updated: Date;

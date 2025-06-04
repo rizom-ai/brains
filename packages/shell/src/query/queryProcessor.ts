@@ -163,7 +163,7 @@ Intent: ${intentAnalysis.primaryIntent}`;
 
     const entityContent = entities
       .map((entity) => {
-        return `[${entity.entityType}] ${entity.title}\n${entity.content}`;
+        return `[${entity.entityType}] ${entity.id}\n${entity.content}`;
       })
       .join("\n\n");
 

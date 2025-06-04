@@ -45,13 +45,6 @@ export class SiteContentFormatter
     lines.push(yaml.dump(siteContent.data, { indent: 2 }));
     lines.push("```");
 
-    // Tags
-    if (siteContent.tags.length > 0) {
-      lines.push("");
-      lines.push("## Tags");
-      lines.push(this.formatList(siteContent.tags));
-    }
-
     return lines.join("\n");
   }
 }

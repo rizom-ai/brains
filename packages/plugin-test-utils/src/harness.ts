@@ -99,9 +99,7 @@ export class PluginTestHarness {
     const entity = {
       id,
       entityType,
-      title: data.title ?? "Test Entity",
       content: data.content ?? "Test content",
-      tags: data.tags ?? [],
       created: data.created ?? now,
       updated: data.updated ?? now,
       ...data,
@@ -139,12 +137,10 @@ export class PluginTestHarness {
    * Execute a query (simplified for testing)
    */
   async query(query: string): Promise<Record<string, unknown>> {
-    // Simple implementation - just search by title
+    // Simple implementation - just search by content
     const allEntities = Array.from(this.entities.values()).flat();
     const matches = allEntities.filter(
-      (e) =>
-        e.title.toLowerCase().includes(query.toLowerCase()) ||
-        e.content.toLowerCase().includes(query.toLowerCase()),
+      (e) => e.content.toLowerCase().includes(query.toLowerCase()),
     );
 
     return {
@@ -372,22 +368,17 @@ export class PluginTestHarness {
           entityType,
           schema: baseSchema,
           toMarkdown: (entity: T): string => {
-            return `# ${entity.title}\n\n${entity.content}`;
+            return entity.content;
           },
           fromMarkdown: (markdown: string): Partial<T> => {
-            const lines = markdown.split("\n");
-            const title = lines[0]?.replace(/^#\s+/, "") ?? "Untitled";
-            const content = lines.slice(2).join("\n");
             return {
-              title,
-              content,
+              content: markdown,
             } as Partial<T>;
           },
           extractMetadata: (entity: T): Record<string, unknown> => {
-            return {
-              title: entity.title,
-              tags: entity.tags,
-            };
+            // Return any entity-specific fields beyond base fields
+            const { id: _id, entityType: _entityType, content: _content, created: _created, updated: _updated, ...metadata } = entity as Record<string, unknown>;
+            return metadata;
           },
           parseFrontMatter: (_markdown: string): Record<string, unknown> => {
             return {};

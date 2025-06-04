@@ -2,6 +2,14 @@ import type { BaseEntity } from "@brains/types";
 import { randomBytes } from "crypto";
 
 /**
+ * Extended entity type for testing that includes common fields
+ */
+export interface TestEntity extends BaseEntity {
+  title?: string;
+  tags?: string[];
+}
+
+/**
  * Generate test entity data
  */
 export class TestDataGenerator {
@@ -24,7 +32,7 @@ export class TestDataGenerator {
   /**
    * Generate test note data
    */
-  static note(overrides: Partial<BaseEntity> = {}): Partial<BaseEntity> {
+  static note(overrides: Partial<TestEntity> = {}): Partial<TestEntity> {
     // If no title override, don't include counter for default
     const defaultTitle = overrides.title ?? "Test Note";
     const now = new Date().toISOString();
@@ -43,8 +51,8 @@ export class TestDataGenerator {
    */
   static notes(
     count: number,
-    overrides: Partial<BaseEntity> = {},
-  ): Array<Partial<BaseEntity>> {
+    overrides: Partial<TestEntity> = {},
+  ): Array<Partial<TestEntity>> {
     return Array.from({ length: count }, (_, i) =>
       this.note({
         ...overrides,
@@ -59,7 +67,7 @@ export class TestDataGenerator {
   static article(options: {
     title: string;
     sections: string[];
-  }): Partial<BaseEntity> {
+  }): Partial<TestEntity> {
     const content = [
       `# ${options.title}`,
       "",
@@ -131,17 +139,17 @@ export class TestDataGenerator {
   }
 
   /**
-   * Generate entity with full BaseEntity fields
+   * Generate entity with full TestEntity fields
    */
-  static entity(overrides: Partial<BaseEntity> = {}): BaseEntity {
+  static entity(overrides: Partial<TestEntity> = {}): TestEntity {
     const now = new Date().toISOString();
     return {
       id: this.id(),
       entityType: "base",
       created: now,
       updated: now,
-      title: "Test Entity",
       content: "Test content",
+      title: "Test Entity",
       tags: [],
       ...overrides,
     };
@@ -153,8 +161,8 @@ export class TestDataGenerator {
   static entityBatch(
     entityType: string,
     count: number,
-    baseOverrides: Partial<BaseEntity> = {},
-  ): BaseEntity[] {
+    baseOverrides: Partial<TestEntity> = {},
+  ): TestEntity[] {
     return Array.from({ length: count }, (_, i) =>
       this.entity({
         ...baseOverrides,

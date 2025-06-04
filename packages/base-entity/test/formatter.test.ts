@@ -8,9 +8,7 @@ describe("BaseEntityFormatter", () => {
   const testEntity: BaseEntity = {
     id: "test-id-123",
     entityType: "base",
-    title: "Test Entity",
     content: "This is test content",
-    tags: ["test", "entity"],
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
   };
@@ -26,14 +24,13 @@ describe("BaseEntityFormatter", () => {
   test("format should return formatted markdown", () => {
     const formatted = formatter.format(testEntity);
 
-    // Should contain title
-    expect(formatted).toContain("# Test Entity");
+    // Should contain entity header with ID
+    expect(formatted).toContain("# Entity: test-id-123");
 
-    // Should contain database fields section
-    expect(formatted).toContain("## Database Fields");
+    // Should contain core fields section
+    expect(formatted).toContain("## Core Fields");
     expect(formatted).toContain("**ID**: test-id-123");
     expect(formatted).toContain("**Type**: base");
-    expect(formatted).toContain("**Tags**: test, entity");
 
     // Should contain content section
     expect(formatted).toContain("## Content");

@@ -289,7 +289,6 @@ export class GitSync {
         await this.entityService.importRawEntity({
           entityType,
           id: filename,
-          title: filename.replace(/-/g, " "), // Convert dashes to spaces
           content: markdown,
           created,
           updated,
@@ -412,8 +411,8 @@ export class GitSync {
    * Get entity file path
    */
   private getEntityFilePath(entity: BaseEntity): string {
-    // Use entityType as directory and title as filename
-    const title = entity.title.replace(/[^a-zA-Z0-9-_ ]/g, "").trim();
-    return join(this.repoPath, entity.entityType, `${title}.md`);
+    // Use entityType as directory and id as filename
+    // Since BaseEntity no longer has title, we use the id
+    return join(this.repoPath, entity.entityType, `${entity.id}.md`);
   }
 }

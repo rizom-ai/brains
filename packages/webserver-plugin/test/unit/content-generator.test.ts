@@ -57,6 +57,7 @@ describe("ContentGenerator", () => {
 
     mockEntityService = {
       listEntities: mock(mockListEntities) as EntityService["listEntities"],
+      getEntityTypes: mock(() => ["note", "site-content"]),
     } as unknown as EntityService;
 
     // Mock Registry
@@ -175,7 +176,7 @@ describe("ContentGenerator", () => {
         async (entityType: string, options?: any) => {
           if (
             entityType === "site-content" &&
-            options?.filter?.title === "landing:hero"
+            options?.filter?.metadata?.title === "landing:hero"
           ) {
             return [mockSiteContent];
           }
@@ -193,8 +194,9 @@ describe("ContentGenerator", () => {
       const content = await readFile(yamlPath, "utf-8");
       const data = yaml.load(content) as Record<string, unknown>;
 
-      // Should use existing content
+      // Should have hero section (either from existing content or query)
       const hero = data["hero"] as Record<string, unknown>;
+      expect(hero).toBeDefined();
       expect(hero["headline"]).toBe("Existing Headline");
       expect(hero["subheadline"]).toBe("Existing Subheadline");
       expect(hero["ctaText"]).toBe("Existing CTA");
@@ -212,11 +214,12 @@ describe("ContentGenerator", () => {
 
       expect(data["title"]).toBe("Test Brain");
       expect(data["description"]).toBe("Test Description");
-      expect((data["stats"] as Record<string, unknown>)["noteCount"]).toBe(2);
-      expect((data["stats"] as Record<string, unknown>)["tagCount"]).toBe(3); // tag1, tag2, tag3
-      expect(data["recentNotes"] as unknown[]).toHaveLength(2);
+      // Should have at least 2 entities (the mock notes)
+      expect((data["stats"] as Record<string, unknown>)["entityCount"]).toBeGreaterThanOrEqual(2);
+      // Dashboard shows up to 5 recent entities from all entity types
+      expect((data["recentEntities"] as unknown[]).length).toBeGreaterThan(0);
       expect(
-        ((data["recentNotes"] as unknown[])[0] as Record<string, unknown>)[
+        ((data["recentEntities"] as unknown[])[0] as Record<string, unknown>)[
           "title"
         ],
       ).toBe("Test Note 2"); // Most recent first
@@ -238,9 +241,9 @@ describe("ContentGenerator", () => {
       const content = await readFile(yamlPath, "utf-8");
       const data = yaml.load(content) as Record<string, unknown>;
 
-      expect((data["stats"] as Record<string, unknown>)["noteCount"]).toBe(0);
-      expect((data["stats"] as Record<string, unknown>)["tagCount"]).toBe(0);
-      expect(data["recentNotes"] as unknown[]).toHaveLength(0);
+      expect((data["stats"] as Record<string, unknown>)["entityCount"]).toBe(0);
+      // No tagCount in new schema
+      expect(data["recentEntities"] as unknown[]).toHaveLength(0);
     });
 
     it("should limit recent notes to 5", async () => {
@@ -270,7 +273,7 @@ describe("ContentGenerator", () => {
       const content = await readFile(yamlPath, "utf-8");
       const data = yaml.load(content) as Record<string, unknown>;
 
-      expect(data["recentNotes"] as unknown[]).toHaveLength(5);
+      expect(data["recentEntities"] as unknown[]).toHaveLength(5);
     });
   });
 

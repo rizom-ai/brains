@@ -1,17 +1,24 @@
 import { z } from "zod";
 
 /**
+ * Schema for the landing page hero section
+ */
+export const landingHeroDataSchema = z.object({
+  headline: z.string(),
+  subheadline: z.string(),
+  ctaText: z.string(),
+  ctaLink: z.string(),
+});
+
+export type LandingHeroData = z.infer<typeof landingHeroDataSchema>;
+
+/**
  * Schema for landing page content
  */
 export const landingPageSchema = z.object({
   title: z.string(),
   tagline: z.string(),
-  hero: z.object({
-    headline: z.string(),
-    subheadline: z.string(),
-    ctaText: z.string(),
-    ctaLink: z.string(),
-  }),
+  hero: landingHeroDataSchema,
 });
 
 export type LandingPageData = z.infer<typeof landingPageSchema>;
@@ -23,11 +30,11 @@ export const dashboardSchema = z.object({
   title: z.string(),
   description: z.string(),
   stats: z.object({
-    noteCount: z.number(),
-    tagCount: z.number(),
+    entityCount: z.number(),
+    entityTypeCount: z.number(),
     lastUpdated: z.string(),
   }),
-  recentNotes: z.array(
+  recentEntities: z.array(
     z.object({
       id: z.string(),
       title: z.string(),
@@ -37,15 +44,3 @@ export const dashboardSchema = z.object({
 });
 
 export type DashboardData = z.infer<typeof dashboardSchema>;
-
-/**
- * Schema for the data field of landing page hero section
- */
-export const landingHeroDataSchema = z.object({
-  headline: z.string(),
-  subheadline: z.string(),
-  ctaText: z.string(),
-  ctaLink: z.string(),
-});
-
-export type LandingHeroData = z.infer<typeof landingHeroDataSchema>;

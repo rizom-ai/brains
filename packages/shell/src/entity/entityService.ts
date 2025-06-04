@@ -1,5 +1,5 @@
 import type { DrizzleDB } from "@brains/db";
-import { entities, createId, selectEntitySchema } from "@brains/db/schema";
+import { entities, createId } from "@brains/db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import type { EntityAdapter } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
@@ -19,11 +19,12 @@ const listOptionsSchema = z.object({
   sortDirection: z.enum(["asc", "desc"]).optional().default("desc"),
   filter: z
     .object({
-      title: z.string().optional(),
-      tags: z.array(z.string()).optional(),
+      metadata: z.record(z.unknown()).optional(),
     })
     .optional(),
 });
+
+type ListOptions = z.input<typeof listOptionsSchema>;
 
 /**
  * Schema for search options (excluding tags)
@@ -133,15 +134,14 @@ export class EntityService {
     );
     const markdown = adapter.toMarkdown(validatedEntity);
 
-    // Extract content weight from markdown (but keep original title and tags)
+    // Extract metadata using adapter
+    const metadata = adapter.extractMetadata(validatedEntity);
+
+    // Extract content weight from markdown
     const { contentWeight } = extractIndexedFields(
       markdown,
       validatedEntity.id,
     );
-
-    // Use the entity's actual title and tags, not extracted ones
-    const title = validatedEntity.title;
-    const tags = validatedEntity.tags;
 
     // Generate embedding synchronously
     const embedding = await this.embeddingService.generateEmbedding(markdown);
@@ -150,11 +150,10 @@ export class EntityService {
     await this.db.insert(entities).values({
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
-      title,
       content: markdown,
+      metadata,
       created: new Date(validatedEntity.created).getTime(),
       updated: new Date(validatedEntity.updated).getTime(),
-      tags,
       contentWeight,
       embedding,
     });
@@ -199,17 +198,18 @@ export class EntityService {
       // Extract entity-specific fields from markdown
       const parsedContent = adapter.fromMarkdown(entityData.content);
 
-      // Merge database fields with parsed content
+      // Merge database fields with parsed content and metadata
       const entity = {
         // Core fields from database (always authoritative)
         id: entityData.id,
         entityType: entityData.entityType,
-        title: entityData.title,
         created: new Date(entityData.created).toISOString(),
         updated: new Date(entityData.updated).toISOString(),
-        tags: entityData.tags,
 
-        // Entity-specific fields from adapter
+        // Fields from metadata (includes title, tags, entity-specific fields)
+        ...entityData.metadata,
+
+        // Entity-specific fields from adapter (override metadata if needed)
         ...parsedContent,
       } as T;
 
@@ -253,15 +253,14 @@ export class EntityService {
     );
     const markdown = adapter.toMarkdown(validatedEntity);
 
-    // Extract content weight from markdown (but keep original title and tags)
+    // Extract metadata using adapter
+    const metadata = adapter.extractMetadata(validatedEntity);
+
+    // Extract content weight from markdown
     const { contentWeight } = extractIndexedFields(
       markdown,
       validatedEntity.id,
     );
-
-    // Use the entity's actual title and tags, not extracted ones
-    const title = validatedEntity.title;
-    const tags = validatedEntity.tags;
 
     // Generate new embedding
     const embedding = await this.embeddingService.generateEmbedding(markdown);
@@ -270,10 +269,9 @@ export class EntityService {
     await this.db
       .update(entities)
       .set({
-        title,
         content: markdown,
+        metadata,
         updated: new Date(validatedEntity.updated).getTime(),
-        tags,
         contentWeight,
         embedding,
       })
@@ -316,16 +314,7 @@ export class EntityService {
    */
   public async listEntities<T extends BaseEntity>(
     entityType: string,
-    options: {
-      limit?: number;
-      offset?: number;
-      sortBy?: "created" | "updated";
-      sortDirection?: "asc" | "desc";
-      filter?: {
-        title?: string;
-        tags?: string[];
-      };
-    } = {},
+    options: ListOptions = {},
   ): Promise<T[]> {
     const validatedOptions = listOptionsSchema.parse(options);
     const { limit, offset, sortBy, sortDirection, filter } = validatedOptions;
@@ -337,14 +326,18 @@ export class EntityService {
     // Build where conditions
     const whereConditions = [eq(entities.entityType, entityType)];
 
-    if (filter?.title) {
-      whereConditions.push(eq(entities.title, filter.title));
-    }
-
-    if (filter?.tags && filter.tags.length > 0) {
-      // For tags, we need to check if any of the filter tags are in the entity's tags
-      // This is a bit complex with SQLite JSON arrays, so we'll filter in memory for now
-      // TODO: Optimize this with proper SQL JSON queries
+    // Handle metadata filters
+    if (filter?.metadata) {
+      // For each metadata filter, add a JSON query condition
+      for (const [key, value] of Object.entries(filter.metadata)) {
+        if (value !== undefined) {
+          // SQLite JSON query: json_extract(metadata, '$.key') = value
+          const jsonPath = `$.${key}`;
+          whereConditions.push(
+            sql`json_extract(${entities.metadata}, ${jsonPath}) = ${value}`
+          );
+        }
+      }
     }
 
     // Query database
@@ -371,17 +364,18 @@ export class EntityService {
         // Extract entity-specific fields from markdown
         const parsedContent = adapter.fromMarkdown(entityData.content);
 
-        // Merge database fields with parsed content
+        // Merge database fields with parsed content and metadata
         const entity = {
           // Core fields from database
           id: entityData.id,
           entityType: entityData.entityType,
-          title: entityData.title,
           created: new Date(entityData.created).toISOString(),
           updated: new Date(entityData.updated).toISOString(),
-          tags: entityData.tags,
 
-          // Entity-specific fields from adapter
+          // Fields from metadata (includes title, tags, entity-specific fields)
+          ...entityData.metadata,
+
+          // Entity-specific fields from adapter (override metadata if needed)
           ...parsedContent,
         } as T;
 
@@ -408,99 +402,6 @@ export class EntityService {
     return entityList;
   }
 
-  /**
-   * Search entities by tags
-   */
-  public async searchEntitiesByTags(
-    tags: string[],
-    options: {
-      limit?: number | undefined;
-      offset?: number | undefined;
-      types?: string[] | undefined;
-    } = {},
-  ): Promise<SearchResult[]> {
-    if (tags.length === 0) {
-      return [];
-    }
-
-    const validatedOptions = searchOptionsSchema.parse(options);
-    const { limit, offset, types } = validatedOptions;
-
-    this.logger.debug(`Searching entities by tags: ${tags.join(", ")}`);
-
-    // Query database
-    const query = this.db.select().from(entities).limit(limit).offset(offset);
-
-    // Add type filter if provided
-    if (types.length > 0) {
-      await query.where(inArray(entities.entityType, types));
-    }
-
-    const result = await query;
-
-    // Filter results by tags (we need to post-process since SQLite JSON support is limited)
-    const matchingEntities = result
-      .map((entity) => selectEntitySchema.parse(entity))
-      .filter((entity) => {
-        return tags.some((tag) => entity.tags.includes(tag));
-      });
-
-    // Convert to SearchResult format
-    const searchResults: SearchResult[] = [];
-
-    for (const entityData of matchingEntities) {
-      try {
-        // Count matching tags for scoring
-        const matchingTagCount = tags.filter((tag) =>
-          entityData.tags.includes(tag),
-        ).length;
-        const score = matchingTagCount / tags.length;
-
-        // Reconstruct entity from database and markdown
-        const adapter = this.entityRegistry.getAdapter(entityData.entityType);
-        const parsedContent = adapter.fromMarkdown(entityData.content);
-
-        const entity = this.entityRegistry.validateEntity<BaseEntity>(
-          entityData.entityType,
-          {
-            id: entityData.id,
-            entityType: entityData.entityType,
-            title: entityData.title,
-            created: new Date(entityData.created).toISOString(),
-            updated: new Date(entityData.updated).toISOString(),
-            tags: entityData.tags,
-            ...parsedContent,
-          },
-        );
-
-        // Create excerpt from content
-        const excerpt =
-          entityData.content.slice(0, 200) +
-          (entityData.content.length > 200 ? "..." : "");
-
-        searchResults.push({
-          entity,
-          score,
-          excerpt,
-          highlights: [], // Tag-based search doesn't have highlights
-        });
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        this.logger.error(
-          `Failed to parse entity with ID ${entityData.id}: ${errorMessage}`,
-        );
-        // Skip invalid entities and continue
-      }
-    }
-
-    // Sort by score
-    searchResults.sort((a, b) => b.score - a.score);
-
-    this.logger.info(`Found ${searchResults.length} entities matching tags`);
-
-    return searchResults;
-  }
 
   /**
    * Get supported entity types from registry
@@ -554,11 +455,10 @@ export class EntityService {
     const baseSelect = {
       id: entities.id,
       entityType: entities.entityType,
-      title: entities.title,
       content: entities.content,
       created: entities.created,
       updated: entities.updated,
-      tags: entities.tags,
+      metadata: entities.metadata,
       // Calculate cosine distance (0 = identical, 1 = orthogonal, 2 = opposite)
       distance:
         sql<number>`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)}))`.as(
@@ -591,15 +491,15 @@ export class EntityService {
         const adapter = this.entityRegistry.getAdapter(row.entityType);
         const parsedContent = adapter.fromMarkdown(row.content);
 
+        const metadata = row.metadata as Record<string, unknown>;
         const entity = this.entityRegistry.validateEntity<BaseEntity>(
           row.entityType,
           {
             id: row.id,
             entityType: row.entityType,
-            title: row.title,
             created: new Date(row.created).toISOString(),
             updated: new Date(row.updated).toISOString(),
-            tags: row.tags,
+            ...metadata,
             ...parsedContent,
           },
         );
@@ -698,7 +598,6 @@ export class EntityService {
   public async importRawEntity(data: {
     entityType: string;
     id: string;
-    title: string;
     content: string;
     created: Date;
     updated: Date;
@@ -711,14 +610,12 @@ export class EntityService {
       const existingTime = new Date(existing.updated).getTime();
       const newTime = data.updated.getTime();
       if (existingTime < newTime) {
-        // Build complete entity for update
+        // Build entity for update, preserving any entity-specific fields
         const entity: BaseEntity = {
+          ...existing,
           id: data.id,
           entityType: data.entityType,
-          title: data.title,
           content: data.content,
-          tags: existing.tags, // Preserve existing tags
-          created: existing.created, // Keep original creation date
           updated: data.updated.toISOString(),
         };
         await this.updateEntity(entity);
@@ -728,9 +625,7 @@ export class EntityService {
       await this.createEntity({
         id: data.id,
         entityType: data.entityType,
-        title: data.title,
         content: data.content,
-        tags: [], // Default empty tags
         created: data.created.toISOString(),
         updated: data.updated.toISOString(),
       });

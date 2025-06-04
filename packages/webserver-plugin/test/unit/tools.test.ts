@@ -81,12 +81,10 @@ describe("webserverTools", () => {
       // Verify createEntity was called with correct data
       expect(mockEntityService.createEntity).toHaveBeenCalledWith({
         entityType: "site-content",
-        title: "landing:hero",
         content: "Generated content for landing page, hero section",
         page: "landing",
         section: "hero",
         data: input.data,
-        tags: ["site-content", "landing", "hero", "generated"],
         created: expect.any(String),
         updated: expect.any(String),
       });

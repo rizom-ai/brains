@@ -20,17 +20,13 @@ export class BaseEntityFormatter implements SchemaFormatter {
     const entity = data as BaseEntity;
     let output = "";
 
-    // Display entity title
-    output += `# ${entity.title}\n\n`;
+    // Display entity header
+    output += `# Entity: ${entity.id}\n\n`;
 
-    // Display database fields section
-    output += "## Database Fields\n\n";
+    // Display core fields
+    output += "## Core Fields\n\n";
     output += `- **ID**: ${entity.id}\n`;
     output += `- **Type**: ${entity.entityType}\n`;
-
-    if (entity.tags.length > 0) {
-      output += `- **Tags**: ${entity.tags.join(", ")}\n`;
-    }
 
     if (entity.created) {
       try {
@@ -80,8 +76,7 @@ export class BaseEntityFormatter implements SchemaFormatter {
       typeof data === "object" &&
       data !== null &&
       "id" in data &&
-      "entityType" in data &&
-      "title" in data
+      "entityType" in data
     );
   }
 }
