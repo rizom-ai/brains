@@ -33,7 +33,10 @@ export const siteContentAdapter: EntityAdapter<SiteContent> = {
 
   fromMarkdown: (markdown: string): Partial<SiteContent> => {
     // Parse frontmatter and content
-    const { content, metadata } = parseMarkdownWithFrontmatter(markdown, frontmatterSchema);
+    const { content, metadata } = parseMarkdownWithFrontmatter(
+      markdown,
+      frontmatterSchema,
+    );
 
     // Parse YAML content back to data object
     let parsedData = {};
@@ -60,7 +63,7 @@ export const siteContentAdapter: EntityAdapter<SiteContent> = {
 
   parseFrontMatter: <TFrontmatter>(
     markdown: string,
-    schema: z.ZodSchema<TFrontmatter>
+    schema: z.ZodSchema<TFrontmatter>,
   ): TFrontmatter => {
     const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
     return metadata;

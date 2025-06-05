@@ -101,16 +101,16 @@ Generate content for a specific page/section using the Content Generation Servic
 handler: async (input) => {
   // Get appropriate schema for page/section
   const schema = this.getSchemaForSection(input.page, input.section);
-  
+
   // Use existing plugin context query method
   const content = await this.context.query(
-    `Generate ${input.section} content for ${input.page} page. ${input.context || ''}`,
-    schema
+    `Generate ${input.section} content for ${input.page} page. ${input.context || ""}`,
+    schema,
   );
-  
+
   if (input.save) {
     const entity = await this.entityService.createEntity({
-      entityType: 'site-content',
+      entityType: "site-content",
       page: input.page,
       section: input.section,
       data: content,
@@ -118,9 +118,9 @@ handler: async (input) => {
     });
     return { content, entityId: entity.id };
   }
-  
+
   return { content };
-}
+};
 ```
 
 ### 2. list_site_content
@@ -368,20 +368,24 @@ For existing users:
 ## Implementation Timeline
 
 **Phase 1: Entity Integration (1 day)**
+
 - Update site-content adapter to use frontmatter utility
 - Test entity serialization to markdown
 
 **Phase 2: Tool Updates (1 day)**
+
 - Replace capture_generated_content with generate_site_content
 - Add list_site_content and update_site_content tools
 - Update all tools to use `context.query()`
 
 **Phase 3: ContentGenerator Simplification (1 day)**
+
 - Remove custom AI integration code
 - Use `context.query()` for all content generation
 - Add entity-first reading logic
 
 **Phase 4: Build Integration (1 day)**
+
 - Update build_site to support regenerateMissing
 - Add .astro-work to .gitignore
 - Test full workflow

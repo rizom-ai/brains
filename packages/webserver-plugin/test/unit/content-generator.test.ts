@@ -91,7 +91,10 @@ describe("ContentGenerator", () => {
         },
       ),
       generateContent: mock(
-        async <T>(_options: { schema: z.ZodType<T>; prompt: string }): Promise<T> => {
+        async <T>(_options: {
+          schema: z.ZodType<T>;
+          prompt: string;
+        }): Promise<T> => {
           // Return landing page data matching the schema
           return {
             title: "Test Brain",
@@ -190,7 +193,10 @@ describe("ContentGenerator", () => {
 
       // Mock EntityService to return our site-content
       const mockListEntities = mock(
-        async (entityType: string, options?: { filter?: { metadata?: { title?: string } } }) => {
+        async (
+          entityType: string,
+          options?: { filter?: { metadata?: { title?: string } } },
+        ) => {
           if (
             entityType === "site-content" &&
             options?.filter?.metadata?.title === "landing:hero"

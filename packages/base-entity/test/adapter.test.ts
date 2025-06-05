@@ -72,7 +72,7 @@ This is test content`;
 
     // Should preserve entire markdown including frontmatter
     expect(extracted.content).toBe(markdownWithFrontmatter);
-    
+
     // BaseEntity adapter does not extract frontmatter fields
     expect((extracted as any).title).toBeUndefined();
     expect((extracted as any).customField).toBeUndefined();

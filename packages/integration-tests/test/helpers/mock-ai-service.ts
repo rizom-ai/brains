@@ -7,7 +7,17 @@ import type { z } from "zod";
  */
 export function createMockAIService(): AIService {
   const mockService = {
-    generateText: async (_systemPrompt: string, userPrompt: string): Promise<{ text: string; usage: { promptTokens: number; completionTokens: number; totalTokens: number } }> => {
+    generateText: async (
+      _systemPrompt: string,
+      userPrompt: string,
+    ): Promise<{
+      text: string;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    }> => {
       return {
         text: "Mock AI response for: " + userPrompt.slice(0, 50),
         usage: {

@@ -1,10 +1,9 @@
 import type { QueryProcessor } from "../query/queryProcessor";
-import type { 
-  ContentGenerateOptions, 
+import type {
+  ContentGenerateOptions,
   ContentTemplate,
-  BatchGenerateOptions 
+  BatchGenerateOptions,
 } from "@brains/types";
-
 
 export class ContentGenerationService {
   private static instance: ContentGenerationService | null = null;
@@ -44,7 +43,9 @@ export class ContentGenerationService {
    */
   public async generate<T>(options: ContentGenerateOptions<T>): Promise<T> {
     if (!this.queryProcessor) {
-      throw new Error("ContentGenerationService not initialized with QueryProcessor");
+      throw new Error(
+        "ContentGenerationService not initialized with QueryProcessor",
+      );
     }
 
     const enhancedPrompt = this.buildPrompt(options);
@@ -60,7 +61,9 @@ export class ContentGenerationService {
   /**
    * Generate multiple content pieces
    */
-  public async generateBatch<T>(options: BatchGenerateOptions<T>): Promise<T[]> {
+  public async generateBatch<T>(
+    options: BatchGenerateOptions<T>,
+  ): Promise<T[]> {
     const results: T[] = [];
 
     for (const item of options.items) {
@@ -68,18 +71,17 @@ export class ContentGenerationService {
         schema: options.schema,
         prompt: item.prompt,
       };
-      
+
       if (item.context) {
         generateOptions.context = { data: item.context };
       }
-      
+
       const result = await this.generate(generateOptions);
       results.push(result);
     }
 
     return results;
   }
-
 
   /**
    * Register reusable templates
@@ -135,7 +137,7 @@ export class ContentGenerationService {
    */
   public async generateFromTemplate(
     templateName: string,
-    options: Omit<ContentGenerateOptions<unknown>, "schema">
+    options: Omit<ContentGenerateOptions<unknown>, "schema">,
   ): Promise<unknown> {
     const template = this.getTemplate(templateName);
     if (!template) {
@@ -149,7 +151,7 @@ export class ContentGenerationService {
       schema: template.schema,
       prompt: mergedPrompt,
     };
-    
+
     if (options.context) {
       generateOptions.context = options.context;
     }

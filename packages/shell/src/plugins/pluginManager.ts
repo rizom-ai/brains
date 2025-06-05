@@ -357,9 +357,14 @@ export class PluginManager {
           );
         }
       },
-      generateContent: async <T>(options: ContentGenerateOptions<T>): Promise<T> => {
+      generateContent: async <T>(
+        options: ContentGenerateOptions<T>,
+      ): Promise<T> => {
         try {
-          const contentGenerationService = this.registry.resolve<ContentGenerationService>("contentGenerationService");
+          const contentGenerationService =
+            this.registry.resolve<ContentGenerationService>(
+              "contentGenerationService",
+            );
           return await contentGenerationService.generate<T>(options);
         } catch (error) {
           this.logger.error("Failed to generate content", error);

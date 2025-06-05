@@ -1,7 +1,12 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { webserverTools } from "../../src/tools";
 import type { WebserverManager } from "../../src/webserver-manager";
-import type { Registry, EntityService, BaseEntity, PluginTool } from "@brains/types";
+import type {
+  Registry,
+  EntityService,
+  BaseEntity,
+  PluginTool,
+} from "@brains/types";
 
 describe("webserverTools", () => {
   let mockManager: WebserverManager;

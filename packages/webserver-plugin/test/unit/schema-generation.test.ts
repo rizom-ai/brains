@@ -89,12 +89,7 @@ describe("Schema Generation", () => {
       await manager.generateContentConfig();
 
       // Check that content/config.ts was created
-      const configPath = join(
-        workingDir,
-        "src",
-        "content",
-        "config.ts",
-      );
+      const configPath = join(workingDir, "src", "content", "config.ts");
       expect(existsSync(configPath)).toBe(true);
 
       // Read and verify content
@@ -134,12 +129,7 @@ describe("Schema Generation", () => {
 
       // Both files should exist
       const schemasPath = join(workingDir, "src", "schemas.ts");
-      const configPath = join(
-        workingDir,
-        "src",
-        "content",
-        "config.ts",
-      );
+      const configPath = join(workingDir, "src", "content", "config.ts");
 
       expect(existsSync(schemasPath)).toBe(true);
       expect(existsSync(configPath)).toBe(true);

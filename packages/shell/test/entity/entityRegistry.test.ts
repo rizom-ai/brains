@@ -165,7 +165,7 @@ class NoteAdapter implements EntityAdapter<Note> {
 
   parseFrontMatter<TFrontmatter>(
     markdown: string,
-    schema: z.ZodSchema<TFrontmatter>
+    schema: z.ZodSchema<TFrontmatter>,
   ): TFrontmatter {
     const { data } = matter(markdown);
     return schema.parse(data);

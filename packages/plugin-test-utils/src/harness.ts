@@ -402,7 +402,7 @@ export class PluginTestHarness {
           },
           parseFrontMatter: <TFrontmatter>(
             _markdown: string,
-            schema: z.ZodSchema<TFrontmatter>
+            schema: z.ZodSchema<TFrontmatter>,
           ): TFrontmatter => {
             return schema.parse({});
           },

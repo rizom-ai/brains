@@ -23,7 +23,7 @@ export interface EntityAdapter<T extends BaseEntity> {
   // Parse frontmatter metadata from markdown
   parseFrontMatter<TFrontmatter>(
     markdown: string,
-    schema: z.ZodSchema<TFrontmatter>
+    schema: z.ZodSchema<TFrontmatter>,
   ): TFrontmatter;
 
   // Generate frontmatter for markdown
@@ -64,7 +64,7 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
   fromMarkdown(markdown: string): Partial<BaseEntity> {
     // BaseEntity preserves content exactly as-is
     return {
-      content: markdown
+      content: markdown,
     };
   }
 
@@ -82,7 +82,7 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
    */
   parseFrontMatter<TFrontmatter>(
     markdown: string,
-    schema: z.ZodSchema<TFrontmatter>
+    schema: z.ZodSchema<TFrontmatter>,
   ): TFrontmatter {
     const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
     return metadata;

@@ -1,14 +1,16 @@
 import type { z } from "zod";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { GeneratedContent } from "@brains/types";
-import { 
-  parseMarkdownWithFrontmatter, 
+import {
+  parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
-  generateFrontmatter
+  generateFrontmatter,
 } from "@brains/utils";
 import { generatedContentSchema } from "@brains/types";
 
-export class GeneratedContentAdapter implements EntityAdapter<GeneratedContent> {
+export class GeneratedContentAdapter
+  implements EntityAdapter<GeneratedContent>
+{
   public readonly entityType = "generated-content";
   public readonly schema = generatedContentSchema;
 
@@ -31,7 +33,10 @@ export class GeneratedContentAdapter implements EntityAdapter<GeneratedContent> 
   }
 
   public fromMarkdown(markdown: string): Partial<GeneratedContent> {
-    const { metadata } = parseMarkdownWithFrontmatter(markdown, generatedContentSchema);
+    const { metadata } = parseMarkdownWithFrontmatter(
+      markdown,
+      generatedContentSchema,
+    );
 
     return {
       contentType: metadata.contentType,
@@ -53,7 +58,7 @@ export class GeneratedContentAdapter implements EntityAdapter<GeneratedContent> 
 
   public parseFrontMatter<TFrontmatter>(
     markdown: string,
-    schema: z.ZodSchema<TFrontmatter>
+    schema: z.ZodSchema<TFrontmatter>,
   ): TFrontmatter {
     const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
     return metadata;
@@ -96,8 +101,12 @@ export class GeneratedContentAdapter implements EntityAdapter<GeneratedContent> 
     // Simple summary of what was generated
     lines.push("## Summary");
     lines.push("");
-    lines.push(`This file contains generated content of type "${entity.contentType}".`);
-    lines.push(`The full generated data is stored in the frontmatter of this file.`);
+    lines.push(
+      `This file contains generated content of type "${entity.contentType}".`,
+    );
+    lines.push(
+      `The full generated data is stored in the frontmatter of this file.`,
+    );
 
     return lines.join("\n");
   }

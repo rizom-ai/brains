@@ -116,7 +116,7 @@ export function generateMarkdownWithFrontmatter(
  */
 export function parseMarkdownWithFrontmatter<T>(
   markdown: string,
-  schema: z.ZodSchema<T>
+  schema: z.ZodSchema<T>,
 ): {
   content: string;
   metadata: T;
@@ -153,7 +153,6 @@ export function deserializeMetadata<T extends BaseEntity>(
   return result;
 }
 
-
 /**
  * Generate frontmatter string from metadata
  */
@@ -161,10 +160,10 @@ export function generateFrontmatter(metadata: Record<string, unknown>): string {
   if (Object.keys(metadata).length === 0) {
     return "";
   }
-  
+
   // Use gray-matter to generate frontmatter
   const fullMarkdown = matter.stringify("", metadata);
-  
+
   // Extract just the frontmatter part
   const match = fullMarkdown.match(/^---\n[\s\S]*?\n---/);
   return match ? match[0] : "";

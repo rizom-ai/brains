@@ -290,7 +290,10 @@ export class Shell {
     this.registry.register("entityService", () => this.entityService);
     this.registry.register("queryProcessor", () => this.queryProcessor);
     this.registry.register("aiService", () => this.aiService);
-    this.registry.register("contentGenerationService", () => this.contentGenerationService);
+    this.registry.register(
+      "contentGenerationService",
+      () => this.contentGenerationService,
+    );
     this.registry.register("mcpServer", () => this.mcpServer);
 
     // Listen for plugin tool registration events

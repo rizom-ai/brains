@@ -5,14 +5,15 @@ import type {
   PluginContext,
 } from "@brains/types";
 import {
-  landingPageSchema,
   dashboardSchema,
   type DashboardData,
   type LandingPageData,
 } from "./content-schemas";
 import type { SiteContent } from "./schemas";
 import type { Logger } from "@brains/utils";
+import { generateWithTemplate } from "@brains/utils";
 import { join } from "path";
+import { landingPageTemplate } from "./content-templates";
 import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
 import * as yaml from "js-yaml";
@@ -105,18 +106,22 @@ export class ContentGenerator {
       };
     } else {
       this.logger.info("Generating new landing page content with AI");
-      // Use the schema to get structured landing page content
-      const prompt = `Generate content for the landing page of ${this.options.siteTitle}. 
-      Create an engaging headline, tagline, and call-to-action based on the notes and knowledge in this brain.`;
-
-      // Use the plugin context's generateContent method
-      landingData = await this.context.generateContent({
-        schema: landingPageSchema,
-        prompt,
-        context: {
+      
+      // Use the template helper with additional context
+      // TODO: Refactor to avoid context binding - perhaps expose generateContent as a standalone function
+      landingData = await generateWithTemplate(
+        this.context.generateContent.bind(this.context),
+        landingPageTemplate,
+        {
+          prompt: `This is for "${this.options.siteTitle}" - ${this.options.siteDescription}.
+          Please generate content that reflects this specific brain's purpose.`,
+          data: {
+            siteTitle: this.options.siteTitle,
+            siteDescription: this.options.siteDescription,
+          },
           style: "professional and engaging",
-        },
-      });
+        }
+      );
     }
 
     // Write to landing collection

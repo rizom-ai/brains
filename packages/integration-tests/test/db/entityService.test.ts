@@ -75,13 +75,18 @@ const noteAdapter: EntityAdapter<Note> = {
   extractMetadata: (entity: Note): Record<string, unknown> => ({
     category: entity.category,
   }),
-  parseFrontMatter: <TFrontmatter>(_markdown: string, schema: z.ZodType<TFrontmatter>): TFrontmatter => {
+  parseFrontMatter: <TFrontmatter>(
+    _markdown: string,
+    schema: z.ZodType<TFrontmatter>,
+  ): TFrontmatter => {
     const frontmatterMatch = _markdown.match(/^---\n([\s\S]*?)\n---\n/);
     if (!frontmatterMatch) return schema.parse({});
 
     const frontmatterContent = frontmatterMatch[1];
     const categoryMatch = frontmatterContent?.match(/category:\s*(.+)/);
-    const data = categoryMatch?.[1] ? { category: categoryMatch[1].trim() } : {};
+    const data = categoryMatch?.[1]
+      ? { category: categoryMatch[1].trim() }
+      : {};
     return schema.parse(data);
   },
   generateFrontMatter: (entity: Note): string => {
@@ -354,7 +359,10 @@ describe("EntityService - Database Operations", () => {
           return { content: _markdown.trim() };
         },
         extractMetadata: (_entity: Profile): Record<string, unknown> => ({}),
-        parseFrontMatter: <TFrontmatter>(_markdown: string, schema: z.ZodType<TFrontmatter>): TFrontmatter => schema.parse({}),
+        parseFrontMatter: <TFrontmatter>(
+          _markdown: string,
+          schema: z.ZodType<TFrontmatter>,
+        ): TFrontmatter => schema.parse({}),
         generateFrontMatter: (_entity: Profile): string => "",
       };
 
@@ -469,7 +477,10 @@ describe("EntityService - Database Operations", () => {
           return { content: _markdown.trim() };
         },
         extractMetadata: (_entity: Profile): Record<string, unknown> => ({}),
-        parseFrontMatter: <TFrontmatter>(_markdown: string, schema: z.ZodType<TFrontmatter>): TFrontmatter => schema.parse({}),
+        parseFrontMatter: <TFrontmatter>(
+          _markdown: string,
+          schema: z.ZodType<TFrontmatter>,
+        ): TFrontmatter => schema.parse({}),
         generateFrontMatter: (_entity: Profile): string => "",
       };
 

@@ -221,7 +221,7 @@ describe("EntityService", (): void => {
       }),
       parseFrontMatter: <TFrontmatter>(
         _markdown: string,
-        schema: z.ZodSchema<TFrontmatter>
+        schema: z.ZodSchema<TFrontmatter>,
       ): TFrontmatter => schema.parse({}),
       generateFrontMatter: (entity: Note): string => {
         return `---\ncategory: ${entity.category ?? ""}\n---\n`;
@@ -253,7 +253,7 @@ describe("EntityService", (): void => {
       }),
       parseFrontMatter: <TFrontmatter>(
         _markdown: string,
-        schema: z.ZodSchema<TFrontmatter>
+        schema: z.ZodSchema<TFrontmatter>,
       ): TFrontmatter => schema.parse({}),
       generateFrontMatter: (entity: Note): string => {
         return `---\ncategory: ${entity.category ?? ""}\n---\n`;

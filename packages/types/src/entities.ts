@@ -52,5 +52,7 @@ export const generatedContentSchema = baseEntitySchema.extend({
 /**
  * Generated content types
  */
-export type GeneratedContentMetadata = z.infer<typeof generatedContentMetadataSchema>;
+export type GeneratedContentMetadata = z.infer<
+  typeof generatedContentMetadataSchema
+>;
 export type GeneratedContent = z.infer<typeof generatedContentSchema>;

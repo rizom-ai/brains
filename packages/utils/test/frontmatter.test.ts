@@ -241,7 +241,10 @@ Content here`;
     it("should maintain data through serialization roundtrip", () => {
       // Entity -> Markdown
       const metadata = extractMetadata(testEntity);
-      const markdown = generateMarkdownWithFrontmatter(testEntity.content, metadata);
+      const markdown = generateMarkdownWithFrontmatter(
+        testEntity.content,
+        metadata,
+      );
 
       // Define schema for parsing
       const testNoteSchema = z.object({
@@ -252,7 +255,10 @@ Content here`;
       });
 
       // Markdown -> Parsed data
-      const { content, metadata: parsed } = parseMarkdownWithFrontmatter(markdown, testNoteSchema);
+      const { content, metadata: parsed } = parseMarkdownWithFrontmatter(
+        markdown,
+        testNoteSchema,
+      );
 
       // Check all non-system fields are preserved
       expect(parsed.title).toBe(testEntity.title);
@@ -303,8 +309,14 @@ Content here`;
       });
 
       const metadata = extractMetadata(complexEntity);
-      const markdown = generateMarkdownWithFrontmatter(complexEntity.content, metadata);
-      const { metadata: parsed } = parseMarkdownWithFrontmatter(markdown, complexSchema);
+      const markdown = generateMarkdownWithFrontmatter(
+        complexEntity.content,
+        metadata,
+      );
+      const { metadata: parsed } = parseMarkdownWithFrontmatter(
+        markdown,
+        complexSchema,
+      );
 
       expect(parsed.metadata).toEqual(complexEntity.metadata);
     });

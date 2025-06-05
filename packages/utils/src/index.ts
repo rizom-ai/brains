@@ -29,3 +29,6 @@ export {
   deserializeMetadata,
   type FrontmatterConfig,
 } from "./frontmatter";
+
+// Content generation utilities
+export { generateWithTemplate } from "./content-generation";
