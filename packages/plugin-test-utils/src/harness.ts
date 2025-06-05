@@ -3,12 +3,12 @@ import type {
   PluginContext,
   BaseEntity,
   EntityService,
-  EntityAdapter,
   Registry,
   PluginTool,
   ComponentFactory,
   MessageBus,
 } from "@brains/types";
+import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
 import { z } from "zod";
@@ -245,6 +245,19 @@ export class PluginTestHarness {
         // For test harness, register the entity type in our mock registry
         this.mockEntityRegistry.registerEntityType(entityType, schema, adapter);
       },
+      generateContent: async <T>(options: {
+        schema: z.ZodType<T>;
+        prompt: string;
+        context?: {
+          entities?: BaseEntity[];
+          data?: Record<string, unknown>;
+          examples?: T[];
+          style?: string;
+        };
+      }): Promise<T> => {
+        // For test harness, use the same logic as query
+        return this.getPluginContext().query(options.prompt, options.schema);
+      },
     };
   }
 
@@ -387,8 +400,11 @@ export class PluginTestHarness {
             } = entity as Record<string, unknown>;
             return metadata;
           },
-          parseFrontMatter: (_markdown: string): Record<string, unknown> => {
-            return {};
+          parseFrontMatter: <TFrontmatter>(
+            _markdown: string,
+            schema: z.ZodSchema<TFrontmatter>
+          ): TFrontmatter => {
+            return schema.parse({});
           },
           generateFrontMatter: (_entity: T): string => {
             return "";

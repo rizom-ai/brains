@@ -1,4 +1,5 @@
 import matter from "gray-matter";
+import type { z } from "zod";
 import type { BaseEntity } from "@brains/types";
 
 /**
@@ -113,15 +114,18 @@ export function generateMarkdownWithFrontmatter(
 /**
  * Parse markdown with frontmatter into content and metadata
  */
-export function parseMarkdownWithFrontmatter(markdown: string): {
+export function parseMarkdownWithFrontmatter<T>(
+  markdown: string,
+  schema: z.ZodSchema<T>
+): {
   content: string;
-  metadata: Record<string, unknown>;
+  metadata: T;
 } {
   const { content, data } = matter(markdown);
 
   return {
     content: content.trim(),
-    metadata: data as Record<string, unknown>,
+    metadata: schema.parse(data),
   };
 }
 
@@ -149,77 +153,21 @@ export function deserializeMetadata<T extends BaseEntity>(
   return result;
 }
 
+
 /**
- * Create a frontmatter-aware adapter for an entity type
+ * Generate frontmatter string from metadata
  */
-export function createFrontmatterAdapter<T extends BaseEntity>(
-  config?: FrontmatterConfig<T>,
-): {
-  toMarkdown: (entity: T) => string;
-  fromMarkdown: (markdown: string) => Partial<T>;
-  extractMetadata: (entity: T) => Record<string, unknown>;
-  parseFrontMatter: (markdown: string) => Record<string, unknown>;
-  generateFrontMatter: (entity: T) => string;
-} {
-  return {
-    /**
-     * Convert entity to markdown with frontmatter
-     */
-    toMarkdown: (entity: T): string => {
-      const metadata = extractMetadata(entity, config);
-      return generateMarkdownWithFrontmatter(entity.content, metadata);
-    },
-
-    /**
-     * Parse markdown to extract entity fields
-     */
-    fromMarkdown: (markdown: string): Partial<T> => {
-      const { content, metadata } = parseMarkdownWithFrontmatter(markdown);
-      const deserializedMetadata = deserializeMetadata<T>(metadata, config);
-
-      return {
-        ...deserializedMetadata,
-        content,
-      } as Partial<T>;
-    },
-
-    /**
-     * Extract metadata for database storage
-     */
-    extractMetadata: (entity: T): Record<string, unknown> => {
-      return extractMetadata(entity, config);
-    },
-
-    /**
-     * Parse frontmatter without processing content
-     */
-    parseFrontMatter: (markdown: string): Record<string, unknown> => {
-      const { data } = matter(markdown);
-      return data as Record<string, unknown>;
-    },
-
-    /**
-     * Generate frontmatter string only
-     */
-    generateFrontMatter: (entity: T): string => {
-      const metadata = extractMetadata(entity, config);
-      if (Object.keys(metadata).length === 0) {
-        return "";
-      }
-
-      // Generate markdown with empty content and extract just frontmatter
-      const fullMarkdown = matter.stringify("", metadata);
-      const lines = fullMarkdown.split("\n");
-
-      // Find the closing --- and return everything up to and including it
-      const endIndex = lines.findIndex((line, i) => i > 0 && line === "---");
-      if (endIndex > 0) {
-        return lines.slice(0, endIndex + 1).join("\n");
-      }
-
-      return "";
-    },
-  };
+export function generateFrontmatter(metadata: Record<string, unknown>): string {
+  if (Object.keys(metadata).length === 0) {
+    return "";
+  }
+  
+  // Use gray-matter to generate frontmatter
+  const fullMarkdown = matter.stringify("", metadata);
+  
+  // Extract just the frontmatter part
+  const match = fullMarkdown.match(/^---\n[\s\S]*?\n---/);
+  return match ? match[0] : "";
 }
 
 /**

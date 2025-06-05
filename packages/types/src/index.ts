@@ -6,8 +6,17 @@
  */
 
 // Entity types
-export type { BaseEntity, SearchResult } from "./entities";
-export { baseEntitySchema } from "./entities";
+export type { 
+  BaseEntity, 
+  SearchResult,
+  GeneratedContent,
+  GeneratedContentMetadata
+} from "./entities";
+export { 
+  baseEntitySchema,
+  generatedContentSchema,
+  generatedContentMetadataSchema 
+} from "./entities";
 
 // Plugin types
 export type {
@@ -16,6 +25,9 @@ export type {
   PluginCapabilities,
   PluginTool,
   PluginResource,
+  ContentGenerateOptions,
+  ContentTemplate,
+  BatchGenerateOptions,
 } from "./plugin";
 export { pluginMetadataSchema } from "./plugin";
 
@@ -33,7 +45,6 @@ export type {
 
 // Service interfaces
 export type {
-  EntityAdapter,
   ListOptions,
   SearchOptions,
   EntityService,

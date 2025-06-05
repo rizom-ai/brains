@@ -6,7 +6,7 @@
  */
 
 // Export the adapter and formatter
-export { BaseEntityAdapter } from "./adapter";
+export { BaseEntityAdapter, type EntityAdapter } from "./adapter";
 export { BaseEntityFormatter } from "./formatter";
 
 // Export schema for creating entities

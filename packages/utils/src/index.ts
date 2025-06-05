@@ -24,7 +24,7 @@ export {
   extractMetadata,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
-  createFrontmatterAdapter,
+  generateFrontmatter,
   shouldIncludeInFrontmatter,
   deserializeMetadata,
   type FrontmatterConfig,

@@ -106,14 +106,17 @@ export class ContentGenerator {
     } else {
       this.logger.info("Generating new landing page content with AI");
       // Use the schema to get structured landing page content
-      const query = `Generate content for the landing page of ${this.options.siteTitle}. 
+      const prompt = `Generate content for the landing page of ${this.options.siteTitle}. 
       Create an engaging headline, tagline, and call-to-action based on the notes and knowledge in this brain.`;
 
-      // Use the plugin context's query method
-      // Avoid the type inference issue by not specifying the generic parameter
-      const queryResult = await this.context.query(query, landingPageSchema);
-      // TypeScript knows this matches LandingPageData from the schema
-      landingData = queryResult;
+      // Use the plugin context's generateContent method
+      landingData = await this.context.generateContent({
+        schema: landingPageSchema,
+        prompt,
+        context: {
+          style: "professional and engaging",
+        },
+      });
     }
 
     // Write to landing collection
@@ -172,7 +175,7 @@ export class ContentGenerator {
           title = entity.title;
         } else {
           // Try to extract from content (first line, first 50 chars)
-          const firstLine = entity.content.split("\n")[0] || "";
+          const firstLine = entity.content.split("\n")[0] ?? "";
           title = firstLine.slice(0, 50) + (firstLine.length > 50 ? "..." : "");
         }
 
@@ -261,7 +264,7 @@ export class ContentGenerator {
         return null;
       }
       this.logger.info("Found existing site content", { title: contentTitle });
-      return matchingContent.data || null;
+      return matchingContent.data;
     } catch (error) {
       this.logger.debug("Error looking for site content", {
         page,

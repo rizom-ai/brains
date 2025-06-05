@@ -7,6 +7,7 @@ This document outlines a general content generation service that provides a unif
 ## Core Abstraction
 
 The fundamental pattern is:
+
 ```
 Schema + Prompt + Context → Structured Content
 ```
@@ -81,6 +82,7 @@ interface ContentTemplate {
 ## Use Cases
 
 ### 1. Website Content (Current)
+
 ```typescript
 // Register template
 contentGen.registerTemplate("landing-hero", {
@@ -93,9 +95,9 @@ contentGen.registerTemplate("landing-hero", {
       headline: "Welcome to My Digital Brain",
       subheadline: "A personal knowledge management system",
       ctaText: "Get Started",
-      ctaLink: "/dashboard"
-    }
-  ]
+      ctaLink: "/dashboard",
+    },
+  ],
 });
 
 // Use template
@@ -103,12 +105,13 @@ const heroContent = await contentGen.generate({
   schema: landingHeroSchema,
   prompt: "Generate hero section for AI consulting business",
   context: {
-    style: "professional, innovative"
-  }
+    style: "professional, innovative",
+  },
 });
 ```
 
 ### 2. Weekly Reports
+
 ```typescript
 const weeklyReportSchema = z.object({
   title: z.string(),
@@ -122,15 +125,19 @@ const weeklyReportSchema = z.object({
     notesCreated: z.number(),
     notesUpdated: z.number(),
     tagsUsed: z.array(z.string()),
-    topTags: z.array(z.object({
-      tag: z.string(),
-      count: z.number(),
-    })),
+    topTags: z.array(
+      z.object({
+        tag: z.string(),
+        count: z.number(),
+      }),
+    ),
   }),
-  insights: z.array(z.object({
-    finding: z.string(),
-    evidence: z.array(z.string()),
-  })),
+  insights: z.array(
+    z.object({
+      finding: z.string(),
+      evidence: z.array(z.string()),
+    }),
+  ),
   recommendations: z.array(z.string()),
 });
 
@@ -139,31 +146,36 @@ const report = await contentGen.generate({
   prompt: "Generate weekly activity report with insights",
   context: {
     entities: await entityService.listEntities("note", {
-      filter: { created: { after: lastWeek } }
+      filter: { created: { after: lastWeek } },
     }),
     data: {
       startDate: lastWeek,
       endDate: today,
-    }
-  }
+    },
+  },
 });
 ```
 
 ### 3. Email Newsletters
+
 ```typescript
 const newsletterSchema = z.object({
   subject: z.string(),
   preheader: z.string(),
   greeting: z.string(),
-  sections: z.array(z.object({
-    title: z.string(),
-    content: z.string(),
-    highlights: z.array(z.string()),
-    callToAction: z.object({
-      text: z.string(),
-      link: z.string(),
-    }).optional(),
-  })),
+  sections: z.array(
+    z.object({
+      title: z.string(),
+      content: z.string(),
+      highlights: z.array(z.string()),
+      callToAction: z
+        .object({
+          text: z.string(),
+          link: z.string(),
+        })
+        .optional(),
+    }),
+  ),
   closing: z.string(),
   footer: z.object({
     unsubscribeLink: z.string(),
@@ -179,13 +191,14 @@ const newsletter = await contentGen.generate({
     style: "conversational, engaging, educational",
     data: {
       subscriberName: "Reader",
-      month: "January 2024"
-    }
-  }
+      month: "January 2024",
+    },
+  },
 });
 ```
 
 ### 4. Project Proposals
+
 ```typescript
 const proposalSchema = z.object({
   title: z.string(),
@@ -199,21 +212,25 @@ const proposalSchema = z.object({
   }),
   proposed_solution: z.object({
     overview: z.string(),
-    approach: z.array(z.object({
-      phase: z.string(),
-      description: z.string(),
-      deliverables: z.array(z.string()),
-      timeline: z.string(),
-    })),
+    approach: z.array(
+      z.object({
+        phase: z.string(),
+        description: z.string(),
+        deliverables: z.array(z.string()),
+        timeline: z.string(),
+      }),
+    ),
     benefits: z.array(z.string()),
   }),
   investment: z.object({
     total: z.number(),
-    breakdown: z.array(z.object({
-      item: z.string(),
-      cost: z.number(),
-      justification: z.string(),
-    })),
+    breakdown: z.array(
+      z.object({
+        item: z.string(),
+        cost: z.number(),
+        justification: z.string(),
+      }),
+    ),
     payment_terms: z.string(),
   }),
   next_steps: z.array(z.string()),
@@ -221,6 +238,7 @@ const proposalSchema = z.object({
 ```
 
 ### 5. API Documentation
+
 ```typescript
 const apiDocSchema = z.object({
   title: z.string(),
@@ -232,28 +250,36 @@ const apiDocSchema = z.object({
     description: z.string(),
     example: z.string(),
   }),
-  endpoints: z.array(z.object({
-    method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
-    path: z.string(),
-    description: z.string(),
-    parameters: z.array(z.object({
-      name: z.string(),
-      in: z.enum(["path", "query", "body", "header"]),
-      type: z.string(),
-      required: z.boolean(),
+  endpoints: z.array(
+    z.object({
+      method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
+      path: z.string(),
       description: z.string(),
-    })),
-    requestBody: z.object({
-      contentType: z.string(),
-      schema: z.string(),
-      example: z.string(),
-    }).optional(),
-    responses: z.array(z.object({
-      status: z.number(),
-      description: z.string(),
-      example: z.string(),
-    })),
-  })),
+      parameters: z.array(
+        z.object({
+          name: z.string(),
+          in: z.enum(["path", "query", "body", "header"]),
+          type: z.string(),
+          required: z.boolean(),
+          description: z.string(),
+        }),
+      ),
+      requestBody: z
+        .object({
+          contentType: z.string(),
+          schema: z.string(),
+          example: z.string(),
+        })
+        .optional(),
+      responses: z.array(
+        z.object({
+          status: z.number(),
+          description: z.string(),
+          example: z.string(),
+        }),
+      ),
+    }),
+  ),
 });
 ```
 
@@ -264,16 +290,16 @@ A new entity type for storing generated content:
 ```typescript
 interface GeneratedContent extends BaseEntity {
   entityType: "generated-content";
-  contentType: string;        // e.g., "weekly-report", "newsletter"
-  schemaName: string;         // Reference to schema used
-  schemaVersion?: string;     // For schema evolution
-  data: Record<string, any>;  // The generated content
+  contentType: string; // e.g., "weekly-report", "newsletter"
+  schemaName: string; // Reference to schema used
+  schemaVersion?: string; // For schema evolution
+  data: Record<string, any>; // The generated content
   metadata: {
-    prompt: string;           // Original prompt
-    context?: any;            // Context snapshot
-    generatedAt: string;      // When generated
-    generatedBy?: string;     // Which AI model
-    regenerated?: boolean;    // Is this a regeneration?
+    prompt: string; // Original prompt
+    context?: any; // Context snapshot
+    generatedAt: string; // When generated
+    generatedBy?: string; // Which AI model
+    regenerated?: boolean; // Is this a regeneration?
     previousVersionId?: string; // Link to previous version
   };
 }
@@ -332,7 +358,7 @@ interface GeneratedContent extends BaseEntity {
   },
   handler: async (input) => {
     const templates = contentGen.listTemplates();
-    const filtered = input.category 
+    const filtered = input.category
       ? templates.filter(t => t.category === input.category)
       : templates;
 
@@ -407,6 +433,7 @@ interface GeneratedContent extends BaseEntity {
 ## Integration with Existing Systems
 
 ### 1. Schema Registry Integration
+
 ```typescript
 // Schemas can be registered in the schema registry with metadata
 schemaRegistry.register("content/weekly-report", {
@@ -422,12 +449,13 @@ schemaRegistry.register("content/weekly-report", {
 ```
 
 ### 2. Plugin Integration
+
 ```typescript
 // Plugins can register their content schemas
 export class WebserverPlugin implements Plugin {
   register(context: PluginContext) {
     const contentGen = context.resolve("contentGenerationService");
-    
+
     // Register all website content schemas
     contentGen.registerTemplate("landing-hero", landingHeroTemplate);
     contentGen.registerTemplate("landing-features", landingFeaturesTemplate);
@@ -437,22 +465,21 @@ export class WebserverPlugin implements Plugin {
 ```
 
 ### 3. Query Processor Integration
+
 The content generation service would internally use the query processor:
+
 ```typescript
 class ContentGenerationService {
   async generate<T>(options: GenerateOptions<T>): Promise<T> {
     // Build enhanced prompt with context
     const enhancedPrompt = this.buildPrompt(options);
-    
+
     // Use query processor with schema
-    const result = await this.queryProcessor.processQuery(
-      enhancedPrompt,
-      { 
-        schema: options.schema,
-        streaming: false,
-      }
-    );
-    
+    const result = await this.queryProcessor.processQuery(enhancedPrompt, {
+      schema: options.schema,
+      streaming: false,
+    });
+
     return result as T;
   }
 }
@@ -476,18 +503,21 @@ class ContentGenerationService {
 The good news is that **95% of the required infrastructure already exists**:
 
 1. **QueryProcessor** (`packages/shell/src/query/queryProcessor.ts`)
+
    - Already handles AI-powered query processing with schema validation
    - Uses AIService to generate structured responses matching Zod schemas
    - Automatically includes relevant entities in context
    - Returns schema-validated objects directly
 
 2. **AIService** (`packages/shell/src/ai/aiService.ts`)
+
    - Uses Vercel AI SDK with Anthropic provider
    - Supports both text and structured object generation with schemas
    - Configured for Claude 4 Sonnet by default
    - Handles token usage tracking
 
 3. **Plugin Context**
+
    - Already provides `query: <T>(query: string, schema: z.ZodType<T>) => Promise<T>`
    - Available to all plugins through their context
    - Delegates to QueryProcessor via the registry
@@ -497,7 +527,7 @@ The good news is that **95% of the required infrastructure already exists**:
    // Current usage in ContentGenerator
    const heroData = await this.context.query(
      "Generate compelling hero section content",
-     landingHeroDataSchema
+     landingHeroDataSchema,
    );
    ```
 
@@ -510,14 +540,16 @@ class ContentGenerationService {
   constructor(
     private queryProcessor: QueryProcessor,
     private registry: Registry,
-    private templates: Map<string, ContentTemplate> = new Map()
+    private templates: Map<string, ContentTemplate> = new Map(),
   ) {}
 
   async generate<T>(options: GenerateOptions<T>): Promise<T> {
     // Build enhanced prompt with template and context
-    const template = options.templateName ? this.templates.get(options.templateName) : null;
+    const template = options.templateName
+      ? this.templates.get(options.templateName)
+      : null;
     const enhancedPrompt = this.buildPrompt(options, template);
-    
+
     // Delegate to existing QueryProcessor
     return this.queryProcessor.processQuery(enhancedPrompt, {
       schema: options.schema,
@@ -525,21 +557,24 @@ class ContentGenerationService {
     });
   }
 
-  private buildPrompt(options: GenerateOptions<T>, template?: ContentTemplate): string {
+  private buildPrompt(
+    options: GenerateOptions<T>,
+    template?: ContentTemplate,
+  ): string {
     let prompt = options.prompt;
-    
+
     if (template) {
       prompt = `${template.basePrompt}\n\n${prompt}`;
-      
+
       if (template.examples?.length) {
         prompt += `\n\nExamples:\n${JSON.stringify(template.examples, null, 2)}`;
       }
     }
-    
+
     if (options.context?.style) {
       prompt += `\n\nStyle: ${options.context.style}`;
     }
-    
+
     return prompt;
   }
 
@@ -552,22 +587,26 @@ class ContentGenerationService {
 ### Implementation Timeline
 
 **Phase 1: Core Service (1-2 days)**
+
 - Create ContentGenerationService class
 - Add to shell's service registry
 - Implement basic generate method
 - Add template registration
 
 **Phase 2: Entity Support (1 day)**
+
 - Create generated-content entity type
 - Add adapter using frontmatter utility
 - Implement save/load functionality
 
 **Phase 3: MCP Tools (1 day)**
+
 - Implement generate_content tool
 - Add list_content_schemas tool
 - Create regenerate_content tool
 
 **Phase 4: Migration (1 day)**
+
 - Update webserver plugin to use the service
 - Add content generation templates
 - Test with existing functionality

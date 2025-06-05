@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { z } from "zod";
 import { EntityService } from "@/entity/entityService";
 import { EntityRegistry } from "@/entity/entityRegistry";
-import type { EntityAdapter } from "@/entity/entityRegistry";
+import type { EntityAdapter } from "@brains/base-entity";
 import type { DrizzleDB } from "@brains/db";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
@@ -219,7 +219,10 @@ describe("EntityService", (): void => {
       extractMetadata: (entity: Note): Record<string, unknown> => ({
         category: entity.category,
       }),
-      parseFrontMatter: (_markdown: string): Record<string, unknown> => ({}),
+      parseFrontMatter: <TFrontmatter>(
+        _markdown: string,
+        schema: z.ZodSchema<TFrontmatter>
+      ): TFrontmatter => schema.parse({}),
       generateFrontMatter: (entity: Note): string => {
         return `---\ncategory: ${entity.category ?? ""}\n---\n`;
       },
@@ -248,7 +251,10 @@ describe("EntityService", (): void => {
       extractMetadata: (entity: Note): Record<string, unknown> => ({
         category: entity.category,
       }),
-      parseFrontMatter: (_markdown: string): Record<string, unknown> => ({}),
+      parseFrontMatter: <TFrontmatter>(
+        _markdown: string,
+        schema: z.ZodSchema<TFrontmatter>
+      ): TFrontmatter => schema.parse({}),
       generateFrontMatter: (entity: Note): string => {
         return `---\ncategory: ${entity.category ?? ""}\n---\n`;
       },

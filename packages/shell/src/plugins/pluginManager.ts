@@ -8,13 +8,15 @@ import type {
   PluginTool,
   PluginResource,
   SchemaFormatter,
-  EntityAdapter,
   BaseEntity,
+  ContentGenerateOptions,
 } from "@brains/types";
+import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
 import type { SchemaFormatterRegistry } from "../formatters";
 import type { EntityRegistry } from "../entity/entityRegistry";
 import type { z } from "zod";
+import type { ContentGenerationService } from "../content/contentGenerationService";
 
 /**
  * Plugin lifecycle event types
@@ -317,6 +319,8 @@ export class PluginManager {
           formatterRegistry.register(schemaName, formatter);
         },
       },
+      // TODO: Review if context.query is still needed or can be reimplemented using generateContent
+      // This might be redundant now that we have generateContent
       query: async <T>(query: string, schema: z.ZodType<T>): Promise<T> => {
         try {
           const queryProcessor = this.registry.resolve<{
@@ -350,6 +354,17 @@ export class PluginManager {
           );
           throw new Error(
             `Entity type registration failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      },
+      generateContent: async <T>(options: ContentGenerateOptions<T>): Promise<T> => {
+        try {
+          const contentGenerationService = this.registry.resolve<ContentGenerationService>("contentGenerationService");
+          return await contentGenerationService.generate<T>(options);
+        } catch (error) {
+          this.logger.error("Failed to generate content", error);
+          throw new Error(
+            `Content generation failed: ${error instanceof Error ? error.message : String(error)}`,
           );
         }
       },

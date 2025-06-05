@@ -7,7 +7,7 @@ import type { DrizzleDB } from "@brains/db";
 import { createSilentLogger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
 import type { IEmbeddingService } from "@brains/shell/src/embedding/embeddingService";
-import type { EntityAdapter } from "@brains/shell/src/entity/entityRegistry";
+import type { EntityAdapter } from "@brains/base-entity";
 
 // Create a mock embedding service
 const mockEmbeddingService: IEmbeddingService = {
@@ -75,13 +75,14 @@ const noteAdapter: EntityAdapter<Note> = {
   extractMetadata: (entity: Note): Record<string, unknown> => ({
     category: entity.category,
   }),
-  parseFrontMatter: (_markdown: string): Record<string, unknown> => {
+  parseFrontMatter: <TFrontmatter>(_markdown: string, schema: z.ZodType<TFrontmatter>): TFrontmatter => {
     const frontmatterMatch = _markdown.match(/^---\n([\s\S]*?)\n---\n/);
-    if (!frontmatterMatch) return {};
+    if (!frontmatterMatch) return schema.parse({});
 
     const frontmatterContent = frontmatterMatch[1];
     const categoryMatch = frontmatterContent?.match(/category:\s*(.+)/);
-    return categoryMatch?.[1] ? { category: categoryMatch[1].trim() } : {};
+    const data = categoryMatch?.[1] ? { category: categoryMatch[1].trim() } : {};
+    return schema.parse(data);
   },
   generateFrontMatter: (entity: Note): string => {
     return entity.category ? `---\ncategory: ${entity.category}\n---\n` : "";
@@ -353,7 +354,7 @@ describe("EntityService - Database Operations", () => {
           return { content: _markdown.trim() };
         },
         extractMetadata: (_entity: Profile): Record<string, unknown> => ({}),
-        parseFrontMatter: (_markdown: string): Record<string, unknown> => ({}),
+        parseFrontMatter: <TFrontmatter>(_markdown: string, schema: z.ZodType<TFrontmatter>): TFrontmatter => schema.parse({}),
         generateFrontMatter: (_entity: Profile): string => "",
       };
 
@@ -468,7 +469,7 @@ describe("EntityService - Database Operations", () => {
           return { content: _markdown.trim() };
         },
         extractMetadata: (_entity: Profile): Record<string, unknown> => ({}),
-        parseFrontMatter: (_markdown: string): Record<string, unknown> => ({}),
+        parseFrontMatter: <TFrontmatter>(_markdown: string, schema: z.ZodType<TFrontmatter>): TFrontmatter => schema.parse({}),
         generateFrontMatter: (_entity: Profile): string => "",
       };
 

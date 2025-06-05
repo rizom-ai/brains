@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import { z } from "zod";
-import type { EntityAdapter } from "@/entity/entityRegistry";
 import { EntityRegistry } from "@/entity/entityRegistry";
+import type { EntityAdapter } from "@brains/base-entity";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
@@ -163,9 +163,12 @@ class NoteAdapter implements EntityAdapter<Note> {
     };
   }
 
-  parseFrontMatter(markdown: string): Record<string, unknown> {
+  parseFrontMatter<TFrontmatter>(
+    markdown: string,
+    schema: z.ZodSchema<TFrontmatter>
+  ): TFrontmatter {
     const { data } = matter(markdown);
-    return data;
+    return schema.parse(data);
   }
 
   generateFrontMatter(entity: Note): string {

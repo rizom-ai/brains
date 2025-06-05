@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { webserverTools } from "../../src/tools";
 import type { WebserverManager } from "../../src/webserver-manager";
-import type { Registry, EntityService } from "@brains/types";
+import type { Registry, EntityService, BaseEntity, PluginTool } from "@brains/types";
 
 describe("webserverTools", () => {
   let mockManager: WebserverManager;
@@ -12,7 +12,7 @@ describe("webserverTools", () => {
   beforeEach(() => {
     // Mock EntityService
     mockEntityService = {
-      createEntity: mock(async (entity: any) => ({
+      createEntity: mock(async (entity: Partial<BaseEntity>) => ({
         ...entity,
         id: "generated-id-123",
         created: new Date().toISOString(),
@@ -54,8 +54,11 @@ describe("webserverTools", () => {
   });
 
   describe("capture_generated_content", () => {
-    const captureContentTool = () =>
-      tools.find((t) => t.name === "capture_generated_content")!;
+    const captureContentTool = (): PluginTool => {
+      const tool = tools.find((t) => t.name === "capture_generated_content");
+      if (!tool) throw new Error("capture_generated_content tool not found");
+      return tool;
+    };
 
     test("should capture content successfully", async () => {
       const tool = captureContentTool();
@@ -129,7 +132,11 @@ describe("webserverTools", () => {
   });
 
   describe("build_site", () => {
-    const buildSiteTool = () => tools.find((t) => t.name === "build_site")!;
+    const buildSiteTool = (): PluginTool => {
+      const tool = tools.find((t) => t.name === "build_site");
+      if (!tool) throw new Error("build_site tool not found");
+      return tool;
+    };
 
     test("should build site successfully", async () => {
       const tool = buildSiteTool();
@@ -159,8 +166,11 @@ describe("webserverTools", () => {
   });
 
   describe("get_site_status", () => {
-    const getStatusTool = () =>
-      tools.find((t) => t.name === "get_site_status")!;
+    const getStatusTool = (): PluginTool => {
+      const tool = tools.find((t) => t.name === "get_site_status");
+      if (!tool) throw new Error("get_site_status tool not found");
+      return tool;
+    };
 
     test("should return site status", async () => {
       const tool = getStatusTool();

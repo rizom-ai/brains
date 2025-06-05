@@ -176,9 +176,16 @@ export class WebserverManager {
   }
 
   /**
+   * Get the working directory path (useful for testing)
+   */
+  getWorkingDir(): string {
+    return this.workingDir;
+  }
+
+  /**
    * Generate the content/config.ts file for Astro
    */
-  private async generateContentConfig(): Promise<void> {
+  async generateContentConfig(): Promise<void> {
     const { mkdir } = await import("fs/promises");
 
     // Ensure content directory exists
@@ -213,7 +220,7 @@ export const collections = {
    * Generate the schemas.ts file for the template
    * This writes the imported content-schemas source to the template
    */
-  private async generateSchemas(): Promise<void> {
+  async generateSchemas(): Promise<void> {
     const destSchemaPath = join(this.workingDir, "src", "schemas.ts");
 
     this.logger.debug("Writing schemas.ts to template", { to: destSchemaPath });

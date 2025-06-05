@@ -1,16 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { WebserverManager } from "../../src/webserver-manager";
-import type { Logger } from "@brains/utils";
+import { createSilentLogger } from "@brains/utils";
 import type { Registry, PluginContext } from "@brains/types";
 import { existsSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { mkdtempSync } from "fs";
 
+// Helper to ensure directories exist
+async function ensureWorkingDirStructure(workingDir: string): Promise<void> {
+  const { mkdir } = await import("fs/promises");
+  await mkdir(join(workingDir, "src"), { recursive: true });
+}
+
 describe("Schema Generation", () => {
   let tempDir: string;
   let manager: WebserverManager;
-  let mockLogger: Logger;
   let mockRegistry: Registry;
   let mockContext: PluginContext;
 
@@ -18,22 +23,13 @@ describe("Schema Generation", () => {
     // Create temp directory
     tempDir = mkdtempSync(join(tmpdir(), "schema-gen-test-"));
 
-    // Mock logger
-    mockLogger = {
-      info: () => {},
-      debug: () => {},
-      warn: () => {},
-      error: () => {},
-      child: () => mockLogger,
-    } as any;
-
     // Mock registry and context
-    mockRegistry = {} as any;
-    mockContext = {} as any;
+    mockRegistry = {} as Registry;
+    mockContext = {} as PluginContext;
 
     // Create manager instance
     manager = new WebserverManager({
-      logger: mockLogger,
+      logger: createSilentLogger("schema-gen-test"),
       registry: mockRegistry,
       context: mockContext,
       outputDir: tempDir,
@@ -53,17 +49,14 @@ describe("Schema Generation", () => {
 
   describe("content-schemas.ts file copy", () => {
     it("should copy content-schemas.ts as schemas.ts", async () => {
-      // Mock components
-      (manager as any).contentGenerator = {
-        generateAll: async () => {},
-      };
-      (manager as any).siteBuilder = {
-        build: async () => {},
-      };
+      // Ensure working directory structure exists
+      const workingDir = manager.getWorkingDir();
+      await ensureWorkingDirStructure(workingDir);
 
-      await manager.buildSite();
+      // Test the schema generation directly
+      await manager.generateSchemas();
 
-      const schemasPath = join(tempDir, ".astro-work", "src", "schemas.ts");
+      const schemasPath = join(workingDir, "src", "schemas.ts");
       expect(existsSync(schemasPath)).toBe(true);
 
       const schemaContent = readFileSync(schemasPath, "utf-8");
@@ -88,23 +81,16 @@ describe("Schema Generation", () => {
 
   describe("content/config.ts generation", () => {
     it("should generate config that imports from schemas", async () => {
-      // Mock content generator to avoid complex setup
-      (manager as any).contentGenerator = {
-        generateAll: async () => {},
-      };
+      // Ensure working directory structure exists
+      const workingDir = manager.getWorkingDir();
+      await ensureWorkingDirStructure(workingDir);
 
-      // Mock site builder
-      (manager as any).siteBuilder = {
-        build: async () => {},
-      };
-
-      // Build site to trigger generation
-      await manager.buildSite();
+      // Test the content config generation directly
+      await manager.generateContentConfig();
 
       // Check that content/config.ts was created
       const configPath = join(
-        tempDir,
-        ".astro-work",
+        workingDir,
         "src",
         "content",
         "config.ts",
@@ -138,21 +124,18 @@ describe("Schema Generation", () => {
     });
 
     it("should generate both schemas.ts and config.ts in correct order", async () => {
-      // Mock components
-      (manager as any).contentGenerator = {
-        generateAll: async () => {},
-      };
-      (manager as any).siteBuilder = {
-        build: async () => {},
-      };
+      // Ensure working directory structure exists
+      const workingDir = manager.getWorkingDir();
+      await ensureWorkingDirStructure(workingDir);
 
-      await manager.buildSite();
+      // Generate both files in the correct order
+      await manager.generateSchemas();
+      await manager.generateContentConfig();
 
       // Both files should exist
-      const schemasPath = join(tempDir, ".astro-work", "src", "schemas.ts");
+      const schemasPath = join(workingDir, "src", "schemas.ts");
       const configPath = join(
-        tempDir,
-        ".astro-work",
+        workingDir,
         "src",
         "content",
         "config.ts",

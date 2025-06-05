@@ -25,3 +25,32 @@ export interface SearchResult {
   excerpt: string;
   highlights: string[];
 }
+
+/**
+ * Generated content metadata schema
+ */
+export const generatedContentMetadataSchema = z.object({
+  prompt: z.string(),
+  context: z.unknown(),
+  generatedAt: z.string(),
+  generatedBy: z.string(),
+  regenerated: z.boolean(),
+  previousVersionId: z.string().optional(),
+});
+
+/**
+ * Generated content entity schema
+ */
+export const generatedContentSchema = baseEntitySchema.extend({
+  entityType: z.literal("generated-content"),
+  contentType: z.string(),
+  schemaName: z.string(),
+  data: z.record(z.unknown()),
+  metadata: generatedContentMetadataSchema,
+});
+
+/**
+ * Generated content types
+ */
+export type GeneratedContentMetadata = z.infer<typeof generatedContentMetadataSchema>;
+export type GeneratedContent = z.infer<typeof generatedContentSchema>;

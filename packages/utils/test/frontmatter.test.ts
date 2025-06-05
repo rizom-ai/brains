@@ -1,9 +1,10 @@
 import { describe, it, expect } from "bun:test";
+import { z } from "zod";
 import {
   extractMetadata,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
-  createFrontmatterAdapter,
+  generateFrontmatter,
   shouldIncludeInFrontmatter,
   type FrontmatterConfig,
 } from "../src/frontmatter";
@@ -151,7 +152,12 @@ category: work
 
 This is the content`;
 
-      const result = parseMarkdownWithFrontmatter(markdown);
+      const schema = z.object({
+        title: z.string(),
+        tags: z.array(z.string()),
+        category: z.string().optional(),
+      });
+      const result = parseMarkdownWithFrontmatter(markdown, schema);
 
       expect(result.content).toBe("This is the content");
       expect(result.metadata).toEqual({
@@ -164,7 +170,8 @@ This is the content`;
     it("should handle markdown without frontmatter", () => {
       const markdown = "Just content\n\nMore content";
 
-      const result = parseMarkdownWithFrontmatter(markdown);
+      const schema = z.object({});
+      const result = parseMarkdownWithFrontmatter(markdown, schema);
 
       expect(result.content).toBe("Just content\n\nMore content");
       expect(result.metadata).toEqual({});
@@ -176,73 +183,33 @@ This is the content`;
 
 Content here`;
 
-      const result = parseMarkdownWithFrontmatter(markdown);
+      const schema = z.object({});
+      const result = parseMarkdownWithFrontmatter(markdown, schema);
 
       expect(result.content).toBe("Content here");
       expect(result.metadata).toEqual({});
     });
   });
 
-  describe("createFrontmatterAdapter", () => {
-    it("should create adapter with default config", () => {
-      const adapter = createFrontmatterAdapter<TestNote>();
-
-      // Test toMarkdown
-      const markdown = adapter.toMarkdown(testEntity);
-      expect(markdown).toContain("title: Test Note");
-      expect(markdown).toContain("This is the content");
-      expect(markdown).not.toContain("id:");
-      expect(markdown).not.toContain("created:");
-
-      // Test fromMarkdown
-      const parsed = adapter.fromMarkdown(markdown);
-      expect(parsed.title).toBe("Test Note");
-      expect(parsed.content).toBe("This is the content");
-      expect(parsed.tags).toEqual(["test", "important"]);
-    });
-
-    it("should handle custom deserializers", () => {
-      const config: FrontmatterConfig<TestNote> = {
-        customSerializers: {
-          tags: (tags) => tags.join(", "),
-        },
-        customDeserializers: {
-          tags: (value) =>
-            typeof value === "string" ? value.split(", ") : (value as string[]),
-        },
+  describe("generateFrontmatter", () => {
+    it("should generate frontmatter from metadata", () => {
+      const metadata = {
+        title: "Test Note",
+        tags: ["test", "important"],
+        category: "work",
       };
 
-      const adapter = createFrontmatterAdapter(config);
-
-      const markdown = adapter.toMarkdown(testEntity);
-      expect(markdown).toContain("tags: 'test, important'");
-
-      const parsed = adapter.fromMarkdown(markdown);
-      expect(parsed.tags).toEqual(["test", "important"]);
-    });
-
-    it("should generate frontmatter only", () => {
-      const adapter = createFrontmatterAdapter<TestNote>();
-
-      const frontmatter = adapter.generateFrontMatter(testEntity);
+      const frontmatter = generateFrontmatter(metadata);
 
       expect(frontmatter).toContain("---");
       expect(frontmatter).toContain("title: Test Note");
-      expect(frontmatter).not.toContain("This is the content");
+      expect(frontmatter).toContain("tags:");
+      expect(frontmatter).toContain("category: work");
       expect(frontmatter.endsWith("---")).toBe(true);
     });
 
-    it("should return empty string for empty frontmatter", () => {
-      const adapter = createFrontmatterAdapter<BaseEntity>();
-      const emptyEntity: BaseEntity = {
-        id: "test",
-        entityType: "base",
-        content: "content",
-        created: "2024-01-01",
-        updated: "2024-01-01",
-      };
-
-      const frontmatter = adapter.generateFrontMatter(emptyEntity);
+    it("should return empty string for empty metadata", () => {
+      const frontmatter = generateFrontmatter({});
       expect(frontmatter).toBe("");
     });
   });
@@ -272,22 +239,27 @@ Content here`;
 
   describe("roundtrip testing", () => {
     it("should maintain data through serialization roundtrip", () => {
-      const adapter = createFrontmatterAdapter<TestNote>();
-
       // Entity -> Markdown
-      const markdown = adapter.toMarkdown(testEntity);
+      const metadata = extractMetadata(testEntity);
+      const markdown = generateMarkdownWithFrontmatter(testEntity.content, metadata);
 
-      // Markdown -> Partial Entity
-      const parsed = adapter.fromMarkdown(markdown);
+      // Define schema for parsing
+      const testNoteSchema = z.object({
+        title: z.string(),
+        tags: z.array(z.string()),
+        category: z.string().optional(),
+        priority: z.number().optional(),
+      });
+
+      // Markdown -> Parsed data
+      const { content, metadata: parsed } = parseMarkdownWithFrontmatter(markdown, testNoteSchema);
 
       // Check all non-system fields are preserved
       expect(parsed.title).toBe(testEntity.title);
       expect(parsed.tags).toEqual(testEntity.tags);
-      expect(parsed.category).toBeDefined();
-      expect(parsed.category).toBe("work"); // We know it's defined in testEntity
-      expect(parsed.priority).toBeDefined();
-      expect(parsed.priority).toBe(1); // We know it's defined in testEntity
-      expect(parsed.content).toBe(testEntity.content);
+      expect(parsed.category).toBe("work");
+      expect(parsed.priority).toBe(1);
+      expect(content).toBe(testEntity.content);
     });
 
     it("should handle complex nested data", () => {
@@ -318,10 +290,21 @@ Content here`;
         },
       };
 
-      const adapter = createFrontmatterAdapter<ComplexEntity>();
+      // Define schema for complex entity
+      const complexSchema = z.object({
+        metadata: z.object({
+          author: z.string(),
+          reviewers: z.array(z.string()),
+          stats: z.object({
+            views: z.number(),
+            likes: z.number(),
+          }),
+        }),
+      });
 
-      const markdown = adapter.toMarkdown(complexEntity);
-      const parsed = adapter.fromMarkdown(markdown);
+      const metadata = extractMetadata(complexEntity);
+      const markdown = generateMarkdownWithFrontmatter(complexEntity.content, metadata);
+      const { metadata: parsed } = parseMarkdownWithFrontmatter(markdown, complexSchema);
 
       expect(parsed.metadata).toEqual(complexEntity.metadata);
     });

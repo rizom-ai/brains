@@ -1,21 +1,18 @@
-import type { EntityAdapter } from "@brains/types";
+import type { EntityAdapter } from "@brains/base-entity";
 import { siteContentSchema, type SiteContent } from "./schemas";
 import * as yaml from "js-yaml";
 import {
-  createFrontmatterAdapter,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
-  type FrontmatterConfig,
+  generateFrontmatter,
 } from "@brains/utils";
+import { z } from "zod";
 
-// Configuration for site-content frontmatter
-const siteContentConfig: FrontmatterConfig<SiteContent> = {
-  // Only include entity-specific fields in frontmatter
-  includeFields: ["page", "section"],
-};
-
-// Create frontmatter adapter with site-content config
-const frontmatterAdapter = createFrontmatterAdapter(siteContentConfig);
+// Schema for parsing frontmatter
+const frontmatterSchema = z.object({
+  page: z.string(),
+  section: z.string(),
+});
 
 export const siteContentAdapter: EntityAdapter<SiteContent> = {
   entityType: "site-content",
@@ -24,7 +21,10 @@ export const siteContentAdapter: EntityAdapter<SiteContent> = {
   toMarkdown: (entity: SiteContent): string => {
     // For site-content, the 'data' field is stored as YAML in the content
     // and page/section go in frontmatter
-    const metadata = frontmatterAdapter.extractMetadata(entity);
+    const metadata = {
+      page: entity.page,
+      section: entity.section,
+    };
     const dataYaml = yaml.dump(entity.data, { indent: 2 });
 
     // Use frontmatter utility to generate markdown with metadata
@@ -33,7 +33,7 @@ export const siteContentAdapter: EntityAdapter<SiteContent> = {
 
   fromMarkdown: (markdown: string): Partial<SiteContent> => {
     // Parse frontmatter and content
-    const { content, metadata } = parseMarkdownWithFrontmatter(markdown);
+    const { content, metadata } = parseMarkdownWithFrontmatter(markdown, frontmatterSchema);
 
     // Parse YAML content back to data object
     let parsedData = {};
@@ -45,21 +45,32 @@ export const siteContentAdapter: EntityAdapter<SiteContent> = {
     }
 
     return {
-      page: metadata["page"] as string,
-      section: metadata["section"] as string,
+      page: metadata.page,
+      section: metadata.section,
       data: parsedData,
     };
   },
 
   extractMetadata: (entity: SiteContent): Record<string, unknown> => {
-    return frontmatterAdapter.extractMetadata(entity);
+    return {
+      page: entity.page,
+      section: entity.section,
+    };
   },
 
-  parseFrontMatter: (markdown: string): Record<string, unknown> => {
-    return frontmatterAdapter.parseFrontMatter(markdown);
+  parseFrontMatter: <TFrontmatter>(
+    markdown: string,
+    schema: z.ZodSchema<TFrontmatter>
+  ): TFrontmatter => {
+    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
+    return metadata;
   },
 
   generateFrontMatter: (entity: SiteContent): string => {
-    return frontmatterAdapter.generateFrontMatter(entity);
+    const metadata = {
+      page: entity.page,
+      section: entity.section,
+    };
+    return generateFrontmatter(metadata);
   },
 };

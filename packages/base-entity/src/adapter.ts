@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { BaseEntity } from "@brains/types";
-import { createFrontmatterAdapter } from "@brains/utils";
+import { parseMarkdownWithFrontmatter } from "@brains/utils";
 
 /**
  * Interface for entity adapter - imported here since it's not exported from @brains/types
@@ -21,7 +21,10 @@ export interface EntityAdapter<T extends BaseEntity> {
   extractMetadata(entity: T): Record<string, unknown>;
 
   // Parse frontmatter metadata from markdown
-  parseFrontMatter(markdown: string): Record<string, unknown>;
+  parseFrontMatter<TFrontmatter>(
+    markdown: string,
+    schema: z.ZodSchema<TFrontmatter>
+  ): TFrontmatter;
 
   // Generate frontmatter for markdown
   generateFrontMatter(entity: T): string;
@@ -44,45 +47,53 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
     updated: z.string().datetime(),
   });
 
-  // Use frontmatter utility with default config (excludes system fields)
-  private readonly frontmatterAdapter = createFrontmatterAdapter<BaseEntity>();
-
   /**
-   * Convert entity to markdown with frontmatter
-   * For base entities, this typically results in content only (no frontmatter)
+   * Convert entity to markdown
+   * For base entities, we return the content as-is without adding any frontmatter
    */
   toMarkdown(entity: BaseEntity): string {
-    return this.frontmatterAdapter.toMarkdown(entity);
+    // BaseEntity returns content as-is, no frontmatter added
+    return entity.content;
   }
 
   /**
    * Extract entity fields from markdown
-   * Returns only entity-specific fields (none for BaseEntity)
+   * For BaseEntity, we return the entire markdown as content without any parsing
+   * This preserves the content exactly as-is, including any frontmatter
    */
   fromMarkdown(markdown: string): Partial<BaseEntity> {
-    return this.frontmatterAdapter.fromMarkdown(markdown);
+    // BaseEntity preserves content exactly as-is
+    return {
+      content: markdown
+    };
   }
 
   /**
    * Extract metadata for search/filtering
    * For base entities, no metadata since no entity-specific fields
    */
-  extractMetadata(entity: BaseEntity): Record<string, unknown> {
-    return this.frontmatterAdapter.extractMetadata(entity);
+  extractMetadata(_entity: BaseEntity): Record<string, unknown> {
+    // BaseEntity has no metadata
+    return {};
   }
 
   /**
    * Parse frontmatter metadata from markdown
    */
-  parseFrontMatter(markdown: string): Record<string, unknown> {
-    return this.frontmatterAdapter.parseFrontMatter(markdown);
+  parseFrontMatter<TFrontmatter>(
+    markdown: string,
+    schema: z.ZodSchema<TFrontmatter>
+  ): TFrontmatter {
+    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
+    return metadata;
   }
 
   /**
    * Generate frontmatter for markdown
-   * For base entities, this returns empty string since no entity-specific fields
+   * For base entities, this returns empty string since no frontmatter is added
    */
-  generateFrontMatter(entity: BaseEntity): string {
-    return this.frontmatterAdapter.generateFrontMatter(entity);
+  generateFrontMatter(_entity: BaseEntity): string {
+    // BaseEntity doesn't use frontmatter
+    return "";
   }
 }

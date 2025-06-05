@@ -1,6 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { BaseEntityAdapter } from "../src/adapter";
 import type { BaseEntity } from "@brains/types";
+import { z } from "zod";
 
 describe("BaseEntityAdapter", () => {
   const adapter = new BaseEntityAdapter();
@@ -23,12 +24,12 @@ describe("BaseEntityAdapter", () => {
     expect(markdown).not.toContain("entityType:");
   });
 
-  test("fromMarkdown should extract entity fields from markdown", () => {
+  test("fromMarkdown should return entire markdown as content", () => {
     // Test with plain content (no frontmatter)
     const plainMarkdown = "This is test content";
     const extracted = adapter.fromMarkdown(plainMarkdown);
 
-    // Should extract content
+    // Should return entire markdown as content
     expect(extracted.content).toBe("This is test content");
 
     // Should not have system fields
@@ -38,7 +39,8 @@ describe("BaseEntityAdapter", () => {
 
   test("parseFrontMatter should return empty object for base entities", () => {
     const markdown = "This is test content";
-    const metadata = adapter.parseFrontMatter(markdown);
+    const schema = z.object({});
+    const metadata = adapter.parseFrontMatter(markdown, schema);
 
     expect(metadata).toEqual({});
   });
@@ -57,9 +59,8 @@ describe("BaseEntityAdapter", () => {
     expect(metadata).toEqual({});
   });
 
-  test("should handle markdown with frontmatter from other sources", () => {
-    // If a base entity markdown has frontmatter (e.g., from manual editing),
-    // it should be parsed but not include system fields
+  test("should preserve markdown with frontmatter exactly as-is", () => {
+    // BaseEntity adapter preserves the entire markdown including frontmatter
     const markdownWithFrontmatter = `---
 title: Some Title
 customField: value
@@ -69,9 +70,11 @@ This is test content`;
 
     const extracted = adapter.fromMarkdown(markdownWithFrontmatter);
 
-    expect(extracted.content).toBe("This is test content");
-    // Entity-specific fields from frontmatter should be included
-    expect((extracted as any).title).toBe("Some Title");
-    expect((extracted as any).customField).toBe("value");
+    // Should preserve entire markdown including frontmatter
+    expect(extracted.content).toBe(markdownWithFrontmatter);
+    
+    // BaseEntity adapter does not extract frontmatter fields
+    expect((extracted as any).title).toBeUndefined();
+    expect((extracted as any).customField).toBeUndefined();
   });
 });

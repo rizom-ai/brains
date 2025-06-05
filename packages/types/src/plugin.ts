@@ -4,8 +4,43 @@ import type { EventEmitter } from "events";
 import type { Registry } from "./registry";
 import type { MessageBus } from "./messaging";
 import type { SchemaFormatter } from "./formatters";
-import type { EntityAdapter } from "./services";
+import type { EntityAdapter } from "@brains/base-entity";
 import type { BaseEntity } from "./entities";
+
+/**
+ * Options for content generation
+ */
+export interface ContentGenerateOptions<T> {
+  schema: z.ZodType<T>;
+  prompt: string;
+  context?: {
+    entities?: BaseEntity[];
+    data?: Record<string, unknown>;
+    examples?: T[];
+    style?: string;
+  };
+}
+
+/**
+ * Content template for reusable generation patterns
+ */
+export interface ContentTemplate<T = unknown> {
+  name: string;
+  description: string;
+  schema: z.ZodType<T>;
+  basePrompt: string;
+}
+
+/**
+ * Options for batch content generation
+ */
+export interface BatchGenerateOptions<T> {
+  schema: z.ZodType<T>;
+  items: Array<{
+    prompt: string;
+    context?: Record<string, unknown>;
+  }>;
+}
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -84,4 +119,5 @@ export interface PluginContext {
     schema: z.ZodType<T>,
     adapter: EntityAdapter<T>,
   ) => void;
+  generateContent: <T>(options: ContentGenerateOptions<T>) => Promise<T>;
 }

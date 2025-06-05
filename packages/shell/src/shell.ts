@@ -30,6 +30,8 @@ import {
   UpdateEntityResponseFormatter,
 } from "@brains/formatters";
 import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
+import { ContentGenerationService } from "./content/contentGenerationService";
+import { GeneratedContentAdapter } from "./content/generatedContentAdapter";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -49,6 +51,7 @@ export interface ShellDependencies {
   messageBus?: MessageBus;
   pluginManager?: PluginManager;
   queryProcessor?: QueryProcessor;
+  contentGenerationService?: ContentGenerationService;
 }
 
 /**
@@ -75,6 +78,7 @@ export class Shell {
   private readonly entityService: EntityService;
   private readonly queryProcessor: QueryProcessor;
   private readonly aiService: AIService;
+  private readonly contentGenerationService: ContentGenerationService;
   private readonly mcpServer: McpServer;
   private initialized = false;
 
@@ -136,6 +140,7 @@ export class Shell {
       logger,
       messageBus,
     );
+    const contentGenerationService = ContentGenerationService.createFresh();
 
     // Merge fresh instances with any provided dependencies
     const freshDependencies: ShellDependencies = {
@@ -147,6 +152,7 @@ export class Shell {
       formatterRegistry,
       messageBus,
       pluginManager,
+      contentGenerationService,
     };
 
     return new Shell(fullConfig, freshDependencies);
@@ -248,6 +254,13 @@ export class Shell {
         aiService: this.aiService,
       });
 
+    this.contentGenerationService =
+      dependencies?.contentGenerationService ??
+      ContentGenerationService.getInstance();
+
+    // Initialize content generation service with query processor
+    this.contentGenerationService.initialize(this.queryProcessor);
+
     // Use injected MCP server or create one
     if (dependencies?.mcpServer) {
       this.mcpServer = dependencies.mcpServer;
@@ -277,6 +290,7 @@ export class Shell {
     this.registry.register("entityService", () => this.entityService);
     this.registry.register("queryProcessor", () => this.queryProcessor);
     this.registry.register("aiService", () => this.aiService);
+    this.registry.register("contentGenerationService", () => this.contentGenerationService);
     this.registry.register("mcpServer", () => this.mcpServer);
 
     // Listen for plugin tool registration events
@@ -339,6 +353,9 @@ export class Shell {
 
       // Register base entity support
       this.registerBaseEntitySupport();
+
+      // Register generated content entity support
+      this.registerGeneratedContentSupport();
 
       // Register and initialize plugins if enabled
       if (this.config.features.enablePlugins) {
@@ -414,6 +431,25 @@ export class Shell {
     );
 
     this.logger.debug("Base entity support registered");
+  }
+
+  /**
+   * Register generated content entity support
+   */
+  private registerGeneratedContentSupport(): void {
+    this.logger.debug("Registering generated content entity support");
+
+    // Create generated content adapter
+    const generatedContentAdapter = new GeneratedContentAdapter();
+
+    // Register with entity registry
+    this.entityRegistry.registerEntityType(
+      "generated-content",
+      generatedContentAdapter.schema,
+      generatedContentAdapter,
+    );
+
+    this.logger.debug("Generated content entity support registered");
   }
 
   /**
@@ -505,6 +541,10 @@ export class Shell {
 
   public getPluginManager(): PluginManager {
     return this.pluginManager;
+  }
+
+  public getContentGenerationService(): ContentGenerationService {
+    return this.contentGenerationService;
   }
 
   public getLogger(): Logger {

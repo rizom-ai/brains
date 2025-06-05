@@ -1,7 +1,7 @@
 import type { DrizzleDB } from "@brains/db";
 import { entities, createId } from "@brains/db/schema";
 import { EntityRegistry } from "./entityRegistry";
-import type { EntityAdapter } from "./entityRegistry";
+import type { EntityAdapter } from "@brains/base-entity";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type { IEmbeddingService } from "../embedding/embeddingService";
 import type { BaseEntity, SearchResult } from "@brains/types";

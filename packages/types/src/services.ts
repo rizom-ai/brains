@@ -1,18 +1,5 @@
 import type { BaseEntity, SearchResult } from "./entities";
-import type { z } from "zod";
-
-/**
- * Entity adapter interface for converting between entities and markdown
- */
-export interface EntityAdapter<T extends BaseEntity> {
-  entityType: string;
-  schema: z.ZodSchema<T>;
-  toMarkdown(entity: T): string;
-  fromMarkdown(markdown: string): Partial<T>;
-  extractMetadata(entity: T): Record<string, unknown>;
-  parseFrontMatter(markdown: string): Record<string, unknown>;
-  generateFrontMatter(entity: T): string;
-}
+import type { EntityAdapter } from "@brains/base-entity";
 
 /**
  * List entities options
