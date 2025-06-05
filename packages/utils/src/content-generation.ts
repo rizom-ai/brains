@@ -11,7 +11,7 @@ export async function generateWithTemplate<T>(
     data?: Record<string, unknown>;
     examples?: T[];
     style?: string;
-  }
+  },
 ): Promise<T> {
   // Combine template prompt with additional prompt if provided
   let finalPrompt = template.basePrompt;
@@ -27,7 +27,7 @@ export async function generateWithTemplate<T>(
   // Add context if provided
   if (additionalContext) {
     options.context = {};
-    
+
     if (additionalContext.data !== undefined) {
       options.context.data = additionalContext.data;
     }

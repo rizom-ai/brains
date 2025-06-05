@@ -113,7 +113,6 @@ export interface PluginContext {
   events: EventEmitter;
   messageBus: MessageBus;
   formatters: FormatterRegistry;
-  query: <T>(query: string, schema: z.ZodType<T>) => Promise<T>;
   registerEntityType: <T extends BaseEntity>(
     entityType: string,
     schema: z.ZodType<T>,

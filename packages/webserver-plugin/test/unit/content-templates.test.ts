@@ -10,7 +10,9 @@ describe("Content Templates", () => {
   describe("landingHeroTemplate", () => {
     it("should have correct structure", () => {
       expect(landingHeroTemplate.name).toBe("landing-hero");
-      expect(landingHeroTemplate.description).toBe("Hero section for landing page");
+      expect(landingHeroTemplate.description).toBe(
+        "Hero section for landing page",
+      );
       expect(landingHeroTemplate.schema).toBeDefined();
       expect(landingHeroTemplate.basePrompt).toContain("hero section");
     });
@@ -31,7 +33,9 @@ describe("Content Templates", () => {
   describe("landingPageTemplate", () => {
     it("should have correct structure", () => {
       expect(landingPageTemplate.name).toBe("landing-page");
-      expect(landingPageTemplate.description).toBe("Complete landing page content");
+      expect(landingPageTemplate.description).toBe(
+        "Complete landing page content",
+      );
       expect(landingPageTemplate.schema).toBeDefined();
       expect(landingPageTemplate.basePrompt).toContain("landing page");
     });
@@ -56,7 +60,9 @@ describe("Content Templates", () => {
   describe("dashboardTemplate", () => {
     it("should have correct structure", () => {
       expect(dashboardTemplate.name).toBe("dashboard");
-      expect(dashboardTemplate.description).toBe("Dashboard page content with statistics");
+      expect(dashboardTemplate.description).toBe(
+        "Dashboard page content with statistics",
+      );
       expect(dashboardTemplate.schema).toBeDefined();
       expect(dashboardTemplate.basePrompt).toContain("dashboard");
     });

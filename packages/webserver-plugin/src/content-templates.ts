@@ -1,15 +1,17 @@
-import { z } from "zod";
+import type { z } from "zod";
 import type { ContentTemplate } from "@brains/types";
-import { 
-  landingPageSchema, 
-  landingHeroDataSchema, 
-  dashboardSchema 
+import {
+  landingPageSchema,
+  landingHeroDataSchema,
+  dashboardSchema,
 } from "./content-schemas";
 
 /**
  * Landing page hero section template
  */
-export const landingHeroTemplate: ContentTemplate<z.infer<typeof landingHeroDataSchema>> = {
+export const landingHeroTemplate: ContentTemplate<
+  z.infer<typeof landingHeroDataSchema>
+> = {
   name: "landing-hero",
   description: "Hero section for landing page",
   schema: landingHeroDataSchema,
@@ -26,7 +28,9 @@ Make the content professional, clear, and action-oriented.`,
 /**
  * Full landing page template
  */
-export const landingPageTemplate: ContentTemplate<z.infer<typeof landingPageSchema>> = {
+export const landingPageTemplate: ContentTemplate<
+  z.infer<typeof landingPageSchema>
+> = {
   name: "landing-page",
   description: "Complete landing page content",
   schema: landingPageSchema,
@@ -46,7 +50,9 @@ The tone should be professional yet approachable, focusing on the benefits of or
 /**
  * Dashboard page template
  */
-export const dashboardTemplate: ContentTemplate<z.infer<typeof dashboardSchema>> = {
+export const dashboardTemplate: ContentTemplate<
+  z.infer<typeof dashboardSchema>
+> = {
   name: "dashboard",
   description: "Dashboard page content with statistics",
   schema: dashboardSchema,

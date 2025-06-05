@@ -214,29 +214,6 @@ export class PluginTestHarness {
       formatters: {
         register: (): void => undefined,
       },
-      query: async <T>(query: string, _schema: z.ZodType<T>): Promise<T> => {
-        // For test harness, return mock data based on query
-        if (query.includes("landing page")) {
-          return {
-            title: "Test Brain",
-            tagline: "Test Description",
-            hero: {
-              headline: "Your Personal Knowledge Hub",
-              subheadline:
-                "Organize, connect, and discover your digital thoughts",
-              ctaText: "View Dashboard",
-              ctaLink: "/dashboard",
-            },
-          } as T;
-        }
-
-        // Default response
-        return {
-          query,
-          response: "Mock response from query processor",
-          results: [],
-        } as T;
-      },
       registerEntityType: <T extends BaseEntity>(
         entityType: string,
         schema: z.ZodType<T>,
@@ -255,8 +232,27 @@ export class PluginTestHarness {
           style?: string;
         };
       }): Promise<T> => {
-        // For test harness, use the same logic as query
-        return this.getPluginContext().query(options.prompt, options.schema);
+        // For test harness, return mock data based on prompt
+        if (options.prompt.includes("landing page")) {
+          return {
+            title: "Test Brain",
+            tagline: "Test Description",
+            hero: {
+              headline: "Your Personal Knowledge Hub",
+              subheadline:
+                "Organize, connect, and discover your digital thoughts",
+              ctaText: "View Dashboard",
+              ctaLink: "/dashboard",
+            },
+          } as T;
+        }
+
+        // Default response
+        return {
+          prompt: options.prompt,
+          response: "Mock response from content generation",
+          results: [],
+        } as T;
       },
     };
   }

@@ -106,7 +106,7 @@ export class ContentGenerator {
       };
     } else {
       this.logger.info("Generating new landing page content with AI");
-      
+
       // Use the template helper with additional context
       // TODO: Refactor to avoid context binding - perhaps expose generateContent as a standalone function
       landingData = await generateWithTemplate(
@@ -120,7 +120,7 @@ export class ContentGenerator {
             siteDescription: this.options.siteDescription,
           },
           style: "professional and engaging",
-        }
+        },
       );
     }
 

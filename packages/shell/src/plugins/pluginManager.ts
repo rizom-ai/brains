@@ -319,24 +319,6 @@ export class PluginManager {
           formatterRegistry.register(schemaName, formatter);
         },
       },
-      // TODO: Review if context.query is still needed or can be reimplemented using generateContent
-      // This might be redundant now that we have generateContent
-      query: async <T>(query: string, schema: z.ZodType<T>): Promise<T> => {
-        try {
-          const queryProcessor = this.registry.resolve<{
-            processQuery: <T>(
-              query: string,
-              options: { schema: z.ZodType<T> },
-            ) => Promise<T>;
-          }>("queryProcessor");
-          return await queryProcessor.processQuery<T>(query, { schema });
-        } catch (error) {
-          this.logger.error("Failed to execute query", error);
-          throw new Error(
-            `Query execution failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-      },
       registerEntityType: <T extends BaseEntity>(
         entityType: string,
         schema: z.ZodType<T>,
