@@ -116,9 +116,7 @@ describe("EntityService search with excludeTypes", () => {
     const contentResults = await entityService.search("content", {
       limit: 10,
     });
-    contentResults.some(
-      (r) => r.entity.entityType === "generated-content",
-    );
+    contentResults.some((r) => r.entity.entityType === "generated-content");
 
     // Now search with excludeTypes
     const filteredResults = await entityService.search("content", {
