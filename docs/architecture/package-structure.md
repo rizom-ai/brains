@@ -101,7 +101,7 @@ The repository supports different brain types that share core infrastructure:
 Plugins can be created to extend any brain type with new entity types and functionality. The plugin system supports:
 
 - **Entity Registration**: Define new entity types with custom adapters
-- **Tool Registration**: Add MCP tools for entity operations  
+- **Tool Registration**: Add MCP tools for entity operations
 - **Resource Registration**: Expose entity data as MCP resources
 - **Event Handling**: React to system events via message bus
 - **Service Access**: Use core services like QueryProcessor, EntityService

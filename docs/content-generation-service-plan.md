@@ -285,25 +285,29 @@ const apiDocSchema = z.object({
 
 ## Generated Content Entity
 
-A new entity type for storing generated content:
+The `generated-content` entity type is implemented in the shell package and stores all AI-generated content:
 
 ```typescript
 interface GeneratedContent extends BaseEntity {
   entityType: "generated-content";
-  contentType: string; // e.g., "weekly-report", "newsletter"
+  contentType: string; // e.g., "weekly-report", "newsletter", "landing-hero"
   schemaName: string; // Reference to schema used
-  schemaVersion?: string; // For schema evolution
   data: Record<string, any>; // The generated content
   metadata: {
     prompt: string; // Original prompt
     context?: any; // Context snapshot
     generatedAt: string; // When generated
-    generatedBy?: string; // Which AI model
+    generatedBy?: string; // Which AI model (default: "claude-3-sonnet")
     regenerated?: boolean; // Is this a regeneration?
     previousVersionId?: string; // Link to previous version
   };
 }
 ```
+
+**Note**: This entity type is already implemented with:
+- Schema in `@brains/types`
+- Adapter in `packages/shell/src/content/generatedContentAdapter.ts`
+- Registered in shell initialization
 
 ## MCP Tools
 
@@ -336,10 +340,13 @@ interface GeneratedContent extends BaseEntity {
         contentType: input.schemaName,
         schemaName: input.schemaName,
         data: content,
+        content: JSON.stringify(content, null, 2), // BaseEntity requires content field
         metadata: {
           prompt: input.prompt,
           context: input.context,
           generatedAt: new Date().toISOString(),
+          generatedBy: "claude-3-sonnet",
+          regenerated: false,
         }
       });
 

@@ -4,6 +4,8 @@
 
 This document outlines the simplified content management approach for the webserver plugin that fully integrates with the git-sync functionality and leverages the Content Generation Service. With the existing infrastructure (QueryProcessor, AIService, Plugin Context), this becomes a much simpler implementation focused on entity management and git integration.
 
+**Note**: This document should be read in conjunction with the [Content Generation Integration Plan](./content-generation-integration-plan.md), which describes the two-entity approach (generated-content and site-content) for managing AI-generated content.
+
 ## Core Architecture
 
 ```
@@ -295,7 +297,7 @@ AI: Site rebuilt with latest content from git
 
 1. **Update site-content entity adapter** to use frontmatter utility (already done)
 2. **Simplify ContentGenerator** to use `context.query()` instead of custom AI integration
-3. **Replace capture_generated_content** with generate_site_content tool
+3. **Implement promote_generated_content** tool as designed in [Content Generation Integration Plan](./content-generation-integration-plan.md)
 4. **Add list_site_content and update_site_content tools**
 5. **Update build_site** to support regenerateMissing option
 6. **Update .gitignore** to exclude .astro-work directory
@@ -374,7 +376,7 @@ For existing users:
 
 **Phase 2: Tool Updates (1 day)**
 
-- Replace capture_generated_content with generate_site_content
+- Implement promote_generated_content tool
 - Add list_site_content and update_site_content tools
 - Update all tools to use `context.query()`
 

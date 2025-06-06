@@ -416,61 +416,48 @@ The generated static site can be deployed to:
 
 ### AI-Generated Content Management
 
-When AI generates content for the site (like value propositions, hero text, etc.), we need a workflow to capture and manage it:
+The webserver plugin integrates with the shell's content generation system to provide a fluent workflow for managing AI-generated content. See [Content Generation Integration Plan](./content-generation-integration-plan.md) for full details.
 
-**1. Generation Phase**
+**Key Points:**
 
-- ContentGenerator creates landing page with AI-generated content
-- Content is stored temporarily in Astro content collections
+1. **Two Entity Types**:
+   - `generated-content` (shell): Stores all AI-generated content with context
+   - `site-content` (plugin): Stores human-reviewed/edited website content
 
-**2. Review Phase**
+2. **Content Priority**:
+   - Check site-content first (human edits)
+   - Check generated-content second (AI cache)
+   - Generate new only if neither exists
 
-- User previews the generated content on the site
-- Decides which content to keep/edit
+3. **Promotion Workflow**:
+   - All generated content is saved with an entity ID
+   - Users can list, preview, and selectively promote content
+   - Promoted content becomes site-content entities
 
-**3. Capture Phase**
-
-- MCP tool: `capture_generated_content` promotes content to entities
-- Creates a new entity type: `site-content`
-
-**4. Entity Structure for Site Content**
+4. **Entity Structure for Site Content**:
 
 ```typescript
 // Entity type: site-content
 {
   entityType: "site-content",
-  title: "Landing Page Configuration",
-  content: `
----
-page: landing
-section: hero
----
-
-valueProp: "Your digital brain, always learning"
-heroTitle: "Personal Knowledge OS"
-features:
-  - "Never forget anything"
-  - "AI-powered insights"
-  - "Connect ideas naturally"
-`
+  page: "landing",
+  section: "hero",
+  data: {
+    valueProp: "Your digital brain, always learning",
+    heroTitle: "Personal Knowledge OS",
+    features: [
+      "Never forget anything",
+      "AI-powered insights",
+      "Connect ideas naturally"
+    ]
+  }
 }
 ```
 
-**5. Edit Workflow**
-
-- Once captured as entity, content can be edited like any other
-- Git sync preserves changes
-- ContentGenerator checks for existing site-content entities before generating
-
 **Benefits:**
 
+- Every generation is referenceable by ID
 - Clear separation between generated and curated content
 - Enables iterative improvement of site content
-- Maintains brain as source of truth
-- No pollution of brain with ephemeral build artifacts
-
-**Future Enhancement:**
-
-- Tool to diff generated vs stored content
-- Selective merge of AI improvements
-- Version tracking for site content evolution
+- Full traceability of what prompt created what content
+- No lost work - all generations are saved
