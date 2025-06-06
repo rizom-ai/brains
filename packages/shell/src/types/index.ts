@@ -18,7 +18,7 @@ export const searchOptionsSchema = z.object({
   sortDirection: z.enum(["asc", "desc"]).default("desc"),
 });
 
-export type SearchOptions = z.infer<typeof searchOptionsSchema>;
+export type SearchOptions = z.input<typeof searchOptionsSchema>;
 
 /**
  * Intent analysis result for query processing

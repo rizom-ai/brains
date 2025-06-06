@@ -10,7 +10,11 @@ import type { QueryOptions } from "../types";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { EntityService } from "../entity/entityService";
 import type { ContentGenerationService } from "../content/contentGenerationService";
-import type { ContentGenerateOptions, GeneratedContent, BaseEntity } from "@brains/types";
+import type {
+  ContentGenerateOptions,
+  GeneratedContent,
+  BaseEntity,
+} from "@brains/types";
 import { defaultQueryResponseSchema } from "../schemas/defaults";
 
 /**
@@ -126,35 +130,7 @@ export class EntityServiceAdapter {
     return entity;
   }
 
-  /**
-   * Promote generated content to a target entity type
-   */
-  async promoteGeneratedContent(params: {
-    generatedContentId: string;
-    targetEntityType: string;
-    additionalFields?: Record<string, unknown> | undefined;
-    deleteOriginal?: boolean | undefined;
-  }): Promise<{
-    promotedId: string;
-    promotedType: string;
-    message: string;
-  }> {
-    const promoted = await this.entityService.deriveEntity(
-      params.generatedContentId,
-      "generated-content",
-      params.targetEntityType,
-      params.additionalFields,
-      params.deleteOriginal ? { deleteSource: params.deleteOriginal } : undefined,
-    );
-
-    return {
-      promotedId: promoted.id,
-      promotedType: promoted.entityType,
-      message: `Promoted to ${promoted.entityType}: ${promoted.id}`,
-    };
-  }
 }
-
 
 /**
  * MCP Content generation with template parameters
@@ -186,12 +162,14 @@ export class ContentGenerationAdapter {
   async generateContent(params: {
     prompt: string;
     schemaName: string;
-    context?: {
-      entities?: BaseEntity[] | undefined;
-      data?: Record<string, unknown> | undefined;
-      examples?: unknown[] | undefined;
-      style?: string | undefined;
-    } | undefined;
+    context?:
+      | {
+          entities?: BaseEntity[] | undefined;
+          data?: Record<string, unknown> | undefined;
+          examples?: unknown[] | undefined;
+          style?: string | undefined;
+        }
+      | undefined;
     save?: boolean | undefined;
     contentType?: string | undefined;
   }): Promise<unknown> {
@@ -210,7 +188,7 @@ export class ContentGenerationAdapter {
     // Clean up context to remove undefined values
     if (params.context) {
       const cleanContext: ContentGenerateOptions<unknown>["context"] = {};
-      
+
       if (params.context.entities !== undefined) {
         cleanContext.entities = params.context.entities;
       }
@@ -223,14 +201,15 @@ export class ContentGenerationAdapter {
       if (params.context.style !== undefined) {
         cleanContext.style = params.context.style;
       }
-      
+
       if (Object.keys(cleanContext).length > 0) {
         generateOptions.context = cleanContext;
       }
     }
 
     // Call content generation service
-    const content = await this.contentGenerationService.generate(generateOptions);
+    const content =
+      await this.contentGenerationService.generate(generateOptions);
 
     // Save as generated-content entity if requested
     if (params.save) {
@@ -258,7 +237,7 @@ export class ContentGenerationAdapter {
   ): Promise<{ content: unknown; entityId: string; message: string }> {
     const entity = await this.entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
-      contentType: contentType || schemaName,
+      contentType: contentType ?? schemaName,
       schemaName: schemaName,
       data: content as Record<string, unknown>,
       content: JSON.stringify(content, null, 2),
@@ -321,5 +300,35 @@ export class ContentGenerationAdapter {
       name: t.name,
       description: t.description,
     }));
+  }
+
+  /**
+   * Promote generated content to a target entity type
+   */
+  async promoteGeneratedContent(params: {
+    generatedContentId: string;
+    targetEntityType: string;
+    additionalFields?: Record<string, unknown> | undefined;
+    deleteOriginal?: boolean | undefined;
+  }): Promise<{
+    promotedId: string;
+    promotedType: string;
+    message: string;
+  }> {
+    const promoted = await this.entityService.deriveEntity(
+      params.generatedContentId,
+      "generated-content",
+      params.targetEntityType,
+      params.additionalFields,
+      params.deleteOriginal
+        ? { deleteSource: params.deleteOriginal }
+        : undefined,
+    );
+
+    return {
+      promotedId: promoted.id,
+      promotedType: promoted.entityType,
+      message: `Promoted to ${promoted.entityType}: ${promoted.id}`,
+    };
   }
 }

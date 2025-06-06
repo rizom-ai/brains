@@ -285,7 +285,9 @@ export function registerShellTools(
   server.tool(
     "promote_generated_content",
     {
-      generatedContentId: z.string().describe("ID of the generated-content entity"),
+      generatedContentId: z
+        .string()
+        .describe("ID of the generated-content entity"),
       targetEntityType: z.string().describe("Target entity type to promote to"),
       additionalFields: z
         .record(z.unknown())
@@ -301,7 +303,7 @@ export function registerShellTools(
       try {
         logger.debug("Executing promote_generated_content tool", params);
 
-        const result = await entityAdapter.promoteGeneratedContent(params);
+        const result = await contentAdapter.promoteGeneratedContent(params);
 
         return {
           content: [

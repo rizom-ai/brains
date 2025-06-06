@@ -3,13 +3,13 @@ import type {
   EntityService,
   BaseEntity,
   PluginContext,
+  GeneratedContent,
 } from "@brains/types";
 import {
   dashboardSchema,
   type DashboardData,
   type LandingPageData,
 } from "./content-schemas";
-import type { SiteContent } from "./schemas";
 import type { Logger } from "@brains/utils";
 import { generateWithTemplate } from "@brains/utils";
 import { join } from "path";
@@ -107,7 +107,7 @@ export class ContentGenerator {
     } else {
       this.logger.info("Generating new landing page content with AI");
 
-      // Use the template helper with additional context
+      // Use the template helper with additional context and save the result
       // TODO: Refactor to avoid context binding - perhaps expose generateContent as a standalone function
       landingData = await generateWithTemplate(
         this.context.generateContent.bind(this.context),
@@ -120,6 +120,10 @@ export class ContentGenerator {
             siteDescription: this.options.siteDescription,
           },
           style: "professional and engaging",
+        },
+        {
+          save: true,
+          contentType: "landing:hero",
         },
       );
     }
@@ -215,28 +219,10 @@ export class ContentGenerator {
     });
   }
 
-  /**
-   * Check if site-content entities exist for enhanced content
-   */
-  async checkForSiteContent(): Promise<boolean> {
-    // EntityService is resolved from the registry
-    const entityService = this.registry.resolve<EntityService>("entityService");
-
-    try {
-      const siteContent = await entityService.listEntities<BaseEntity>(
-        "site-content",
-        { limit: 1 },
-      );
-      return siteContent.length > 0;
-    } catch {
-      // Entity type might not exist yet
-      return false;
-    }
-  }
 
   /**
-   * Get existing site content for a specific page and section
-   * Uses a predictable title format: "landing:hero"
+   * Get existing generated content for a specific page and section
+   * Uses contentType format: "landing:hero"
    */
   async getExistingSiteContent(
     page: string,
@@ -244,22 +230,24 @@ export class ContentGenerator {
   ): Promise<unknown | null> {
     const entityService = this.registry.resolve<EntityService>("entityService");
 
-    // Create a unique, predictable title for this content
-    const contentTitle = `${page}:${section}`;
+    // Create a unique contentType for this content
+    const contentType = `${page}:${section}`;
 
     try {
-      // Use metadata filter to query by title
-      const results = await entityService.listEntities<SiteContent>(
-        "site-content",
+      // Look for generated-content entities with matching contentType
+      const results = await entityService.listEntities<GeneratedContent>(
+        "generated-content",
         {
-          filter: { metadata: { title: contentTitle } },
+          filter: { metadata: { contentType } },
           limit: 1,
+          sortBy: "created",
+          sortDirection: "desc",
         },
       );
 
       if (results.length === 0) {
-        this.logger.debug("No existing site content found", {
-          title: contentTitle,
+        this.logger.debug("No existing generated content found", {
+          contentType,
         });
         return null;
       }
@@ -268,10 +256,10 @@ export class ContentGenerator {
       if (!matchingContent) {
         return null;
       }
-      this.logger.info("Found existing site content", { title: contentTitle });
+      this.logger.info("Found existing generated content", { contentType });
       return matchingContent.data;
     } catch (error) {
-      this.logger.debug("Error looking for site content", {
+      this.logger.debug("Error looking for generated content", {
         page,
         section,
         error,

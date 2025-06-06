@@ -12,6 +12,10 @@ export async function generateWithTemplate<T>(
     examples?: T[];
     style?: string;
   },
+  persistenceOptions?: {
+    save?: boolean;
+    contentType?: string;
+  },
 ): Promise<T> {
   // Combine template prompt with additional prompt if provided
   let finalPrompt = template.basePrompt;
@@ -26,17 +30,30 @@ export async function generateWithTemplate<T>(
 
   // Add context if provided
   if (additionalContext) {
-    options.context = {};
+    const context: ContentGenerateOptions<T>["context"] = {};
 
     if (additionalContext.data !== undefined) {
-      options.context.data = additionalContext.data;
+      context.data = additionalContext.data;
     }
     if (additionalContext.examples !== undefined) {
-      options.context.examples = additionalContext.examples;
+      context.examples = additionalContext.examples;
     }
     if (additionalContext.style !== undefined) {
-      options.context.style = additionalContext.style;
+      context.style = additionalContext.style;
     }
+
+    // Only add context to options if it has properties
+    if (Object.keys(context).length > 0) {
+      options.context = context;
+    }
+  }
+
+  // Add persistence options if provided
+  if (persistenceOptions?.save !== undefined) {
+    options.save = persistenceOptions.save;
+  }
+  if (persistenceOptions?.contentType !== undefined) {
+    options.contentType = persistenceOptions.contentType;
   }
 
   return generateContent(options);

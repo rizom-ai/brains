@@ -73,7 +73,7 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
 
       // Return plugin capabilities
       return {
-        tools: webserverTools(manager, registry),
+        tools: webserverTools(manager),
         resources: [],
       };
     },

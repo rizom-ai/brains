@@ -216,9 +216,7 @@ export class EntityService {
       } as T;
 
       // Validate the complete entity
-      return await Promise.resolve(
-        this.entityRegistry.validateEntity(entityType, entity),
-      );
+      return await this.entityRegistry.validateEntity(entityType, entity);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -479,7 +477,12 @@ export class EntityService {
 
     // Add exclude types filter if specified
     if (excludeTypes.length > 0) {
-      whereConditions.push(sql`${entities.entityType} NOT IN (${sql.join(excludeTypes.map(t => sql`${t}`), sql`, `)})`);
+      whereConditions.push(
+        sql`${entities.entityType} NOT IN (${sql.join(
+          excludeTypes.map((t) => sql`${t}`),
+          sql`, `,
+        )})`,
+      );
     }
 
     const results = await this.db
@@ -619,8 +622,14 @@ export class EntityService {
 
     // Create the derived entity by copying source fields
     // Exclude metadata fields that are auto-generated
-    const { id, created, updated, entityType, ...sourceFields } = source;
-    
+    const {
+      id: _id,
+      created: _created,
+      updated: _updated,
+      entityType: _entityType,
+      ...sourceFields
+    } = source;
+
     const derived = await this.createEntity<T>({
       ...sourceFields,
       ...additionalFields,

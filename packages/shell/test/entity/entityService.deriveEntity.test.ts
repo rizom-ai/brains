@@ -6,7 +6,11 @@ import { createId, entities } from "@brains/db/schema";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
 import { GeneratedContentAdapter } from "@/content/generatedContentAdapter";
 import { BaseEntityAdapter } from "@brains/base-entity";
-import { baseEntitySchema, generatedContentSchema } from "@brains/types";
+import {
+  baseEntitySchema,
+  generatedContentSchema,
+  type GeneratedContent,
+} from "@brains/types";
 import { createTestDatabase } from "../helpers/test-db";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { eq } from "drizzle-orm";
@@ -35,8 +39,9 @@ describe("EntityService.deriveEntity", () => {
 
     // Create mock embedding service
     mockEmbeddingService = {
-      generateEmbedding: async () => new Float32Array(384).fill(0.1),
-      generateBatchEmbeddings: async (texts: string[]) =>
+      generateEmbedding: async (): Promise<Float32Array> =>
+        new Float32Array(384).fill(0.1),
+      generateEmbeddings: async (texts: string[]): Promise<Float32Array[]> =>
         texts.map(() => new Float32Array(384).fill(0.1)),
     };
 
@@ -44,7 +49,11 @@ describe("EntityService.deriveEntity", () => {
     entityRegistry = EntityRegistry.createFresh(logger);
     const baseEntityAdapter = new BaseEntityAdapter();
     const generatedContentAdapter = new GeneratedContentAdapter();
-    entityRegistry.registerEntityType("base", baseEntitySchema, baseEntityAdapter);
+    entityRegistry.registerEntityType(
+      "base",
+      baseEntitySchema,
+      baseEntityAdapter,
+    );
     entityRegistry.registerEntityType(
       "generated-content",
       generatedContentSchema,
@@ -53,7 +62,7 @@ describe("EntityService.deriveEntity", () => {
 
     // Create entity service
     entityService = EntityService.createFresh({
-      db: testDb as any,
+      db: testDb,
       embeddingService: mockEmbeddingService,
       entityRegistry,
       logger,
@@ -71,12 +80,12 @@ describe("EntityService.deriveEntity", () => {
       content: "Test base content",
     });
     console.log("Test base entity:", testBase.id, testBase.entityType);
-    
+
     const verifyBase = await entityService.getEntity("base", testBase.id);
     console.log("Verified base:", verifyBase?.id);
-    
+
     // Create a generated-content entity
-    const sourceEntity = await entityService.createEntity({
+    const sourceEntity = await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test-content",
       schemaName: "test-schema",
@@ -95,7 +104,11 @@ describe("EntityService.deriveEntity", () => {
         regenerated: false,
       },
     });
-    console.log("Created source entity:", sourceEntity.id, sourceEntity.entityType);
+    console.log(
+      "Created source entity:",
+      sourceEntity.id,
+      sourceEntity.entityType,
+    );
 
     // Try to get it with just the ID (no type filter)
     console.log("Attempting to retrieve generated-content entity...");
@@ -103,28 +116,37 @@ describe("EntityService.deriveEntity", () => {
     // Verify the source entity exists first
     let verifySource;
     try {
-      verifySource = await entityService.getEntity("generated-content", sourceEntity.id);
+      verifySource = await entityService.getEntity(
+        "generated-content",
+        sourceEntity.id,
+      );
       console.log("Source entity verified:", verifySource?.id);
-      console.log("Full retrieved entity:", JSON.stringify(verifySource, null, 2));
+      console.log(
+        "Full retrieved entity:",
+        JSON.stringify(verifySource, null, 2),
+      );
     } catch (error) {
       console.error("Error retrieving entity:", error);
       throw error;
     }
-    
+
     // If we get here and entity was null - try raw query
     if (!verifySource) {
-      const rawQuery = await testDb.select().from(entities).where(eq(entities.id, sourceEntity.id));
+      const rawQuery = await testDb
+        .select()
+        .from(entities)
+        .where(eq(entities.id, sourceEntity.id));
       console.log("Raw DB query found:", rawQuery.length, "rows");
-      if (rawQuery.length > 0) {
+      if (rawQuery.length > 0 && rawQuery[0]) {
         console.log("Raw entity data:", {
           id: rawQuery[0].id,
           entityType: rawQuery[0].entityType,
           metadata: rawQuery[0].metadata,
-          content: rawQuery[0].content?.substring(0, 100) + "...",
+          content: rawQuery[0].content.substring(0, 100) + "...",
         });
       }
     }
-    
+
     expect(verifySource).toBeDefined();
 
     // Derive to base entity
@@ -132,9 +154,7 @@ describe("EntityService.deriveEntity", () => {
       sourceEntity.id,
       "generated-content",
       "base",
-      {
-        title: "Derived Title",
-      },
+      undefined,
     );
 
     expect(derivedEntity).toBeDefined();
@@ -153,7 +173,7 @@ describe("EntityService.deriveEntity", () => {
 
   it("should delete source entity when deleteSource option is true", async () => {
     // Create a generated-content entity
-    const sourceEntity = await entityService.createEntity({
+    const sourceEntity = await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test-content",
       schemaName: "test-schema",
@@ -196,12 +216,9 @@ describe("EntityService.deriveEntity", () => {
   it("should throw error if source entity does not exist", async () => {
     const nonExistentId = createId();
 
+    // eslint-disable-next-line @typescript-eslint/await-thenable
     await expect(
-      entityService.deriveEntity(
-        nonExistentId,
-        "generated-content",
-        "base",
-      ),
+      entityService.deriveEntity(nonExistentId, "generated-content", "base"),
     ).rejects.toThrow(
       `Source entity not found: generated-content/${nonExistentId}`,
     );
@@ -231,7 +248,7 @@ describe("EntityService.deriveEntity", () => {
 
   it("should extract data field from generated-content when deriving", async () => {
     // Create a generated-content entity with nested data
-    const sourceEntity = await entityService.createEntity({
+    const sourceEntity = await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "complex-content",
       schemaName: "complex-schema",
@@ -267,7 +284,9 @@ describe("EntityService.deriveEntity", () => {
     // The derived entity should preserve the original markdown content
     expect(derivedEntity.entityType).toBe("base");
     expect(derivedEntity.content).toContain("# complex-content");
-    expect(derivedEntity.content).toContain("Generated using schema: complex-schema");
+    expect(derivedEntity.content).toContain(
+      "Generated using schema: complex-schema",
+    );
     // The content field should be the markdown, not JSON
     expect(derivedEntity.content).not.toMatch(/^\{/);
   });

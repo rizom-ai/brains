@@ -172,36 +172,40 @@ describe("ContentGenerator", () => {
     });
 
     it("should use existing site-content for landing page when available", async () => {
-      // Mock existing site-content
-      const mockSiteContent = {
-        id: "test-site-content",
-        entityType: "site-content",
-        title: "landing:hero",
-        content: "Existing hero content",
-        page: "landing",
-        section: "hero",
+      // Mock existing generated-content
+      const mockGeneratedContent = {
+        id: "test-generated-content",
+        entityType: "generated-content",
+        contentType: "landing:hero",
+        schemaName: "landingHero",
         data: {
           headline: "Existing Headline",
           subheadline: "Existing Subheadline",
           ctaText: "Existing CTA",
           ctaLink: "/existing",
         },
-        tags: ["site-content", "landing", "hero"],
+        content: "Existing hero content",
+        metadata: {
+          prompt: "Generate landing page",
+          generatedAt: new Date().toISOString(),
+          generatedBy: "test",
+          regenerated: false,
+        },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
-      // Mock EntityService to return our site-content
+      // Mock EntityService to return our generated-content
       const mockListEntities = mock(
         async (
           entityType: string,
-          options?: { filter?: { metadata?: { title?: string } } },
+          options?: { filter?: { metadata?: { contentType?: string } } },
         ) => {
           if (
-            entityType === "site-content" &&
-            options?.filter?.metadata?.title === "landing:hero"
+            entityType === "generated-content" &&
+            options?.filter?.metadata?.contentType === "landing:hero"
           ) {
-            return [mockSiteContent];
+            return [mockGeneratedContent];
           }
           return [];
         },
@@ -302,64 +306,6 @@ describe("ContentGenerator", () => {
     });
   });
 
-  describe("checkForSiteContent", () => {
-    it("should return true if site-content entities exist", async () => {
-      const siteContentListEntities = async <T extends BaseEntity>(
-        type: string,
-        _options?: Omit<ListOptions, "entityType">,
-      ): Promise<T[]> => {
-        if (type === "site-content") {
-          return [{ id: "sc1", entityType: "site-content" }] as unknown as T[];
-        }
-        return [] as unknown as T[];
-      };
-
-      mockEntityService.listEntities = mock(
-        siteContentListEntities,
-      ) as EntityService["listEntities"];
-
-      const hasSiteContent = await contentGenerator.checkForSiteContent();
-      expect(hasSiteContent).toBe(true);
-    });
-
-    it("should return false if no site-content entities exist", async () => {
-      const noSiteContentListEntities = async <T extends BaseEntity>(
-        type: string,
-        _options?: Omit<ListOptions, "entityType">,
-      ): Promise<T[]> => {
-        if (type === "site-content") {
-          return [] as unknown as T[];
-        }
-        return [] as unknown as T[];
-      };
-
-      mockEntityService.listEntities = mock(
-        noSiteContentListEntities,
-      ) as EntityService["listEntities"];
-
-      const hasSiteContent = await contentGenerator.checkForSiteContent();
-      expect(hasSiteContent).toBe(false);
-    });
-
-    it("should return false if entity type throws error", async () => {
-      const errorListEntities = async <T extends BaseEntity>(
-        type: string,
-        _options?: Omit<ListOptions, "entityType">,
-      ): Promise<T[]> => {
-        if (type === "site-content") {
-          throw new Error("Entity type not registered");
-        }
-        return [] as unknown as T[];
-      };
-
-      mockEntityService.listEntities = mock(
-        errorListEntities,
-      ) as EntityService["listEntities"];
-
-      const hasSiteContent = await contentGenerator.checkForSiteContent();
-      expect(hasSiteContent).toBe(false);
-    });
-  });
 
   // Cleanup
   afterEach(() => {

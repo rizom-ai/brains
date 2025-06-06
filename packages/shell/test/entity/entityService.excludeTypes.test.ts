@@ -2,11 +2,14 @@ import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { EntityService } from "@/entity/entityService";
 import { EntityRegistry } from "@/entity/entityRegistry";
 import { createSilentLogger, type Logger } from "@brains/utils";
-import { createId } from "@brains/db/schema";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
 import { GeneratedContentAdapter } from "@/content/generatedContentAdapter";
 import { BaseEntityAdapter } from "@brains/base-entity";
-import { baseEntitySchema, generatedContentSchema } from "@brains/types";
+import {
+  baseEntitySchema,
+  generatedContentSchema,
+  type GeneratedContent,
+} from "@brains/types";
 import { createTestDatabase } from "../helpers/test-db";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { z } from "zod";
@@ -35,8 +38,9 @@ describe("EntityService search with excludeTypes", () => {
 
     // Create mock embedding service
     mockEmbeddingService = {
-      generateEmbedding: async () => new Float32Array(384).fill(0.1),
-      generateBatchEmbeddings: async (texts: string[]) =>
+      generateEmbedding: async (): Promise<Float32Array> =>
+        new Float32Array(384).fill(0.1),
+      generateEmbeddings: async (texts: string[]): Promise<Float32Array[]> =>
         texts.map(() => new Float32Array(384).fill(0.1)),
     };
 
@@ -44,7 +48,11 @@ describe("EntityService search with excludeTypes", () => {
     entityRegistry = EntityRegistry.createFresh(logger);
     const baseEntityAdapter = new BaseEntityAdapter();
     const generatedContentAdapter = new GeneratedContentAdapter();
-    entityRegistry.registerEntityType("base", baseEntitySchema, baseEntityAdapter);
+    entityRegistry.registerEntityType(
+      "base",
+      baseEntitySchema,
+      baseEntityAdapter,
+    );
     entityRegistry.registerEntityType(
       "generated-content",
       generatedContentSchema,
@@ -53,7 +61,7 @@ describe("EntityService search with excludeTypes", () => {
 
     // Create entity service
     entityService = EntityService.createFresh({
-      db: testDb as any,
+      db: testDb,
       embeddingService: mockEmbeddingService,
       entityRegistry,
       logger,
@@ -66,17 +74,18 @@ describe("EntityService search with excludeTypes", () => {
 
   it("should exclude specified entity types from search results", async () => {
     // Create a mix of entities
-    const entity1 = await entityService.createEntity({
+    await entityService.createEntity({
       entityType: "base",
       content: "This is a regular note about artificial intelligence",
-      title: "Regular Note",
     });
 
-    const entity2 = await entityService.createEntity({
+    await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test",
       schemaName: "test",
-      data: { content: "This is generated content about artificial intelligence" },
+      data: {
+        content: "This is generated content about artificial intelligence",
+      },
       content: "This is generated content about artificial intelligence",
       metadata: {
         prompt: "Generate content about artificial intelligence",
@@ -86,10 +95,9 @@ describe("EntityService search with excludeTypes", () => {
       },
     });
 
-    const entity3 = await entityService.createEntity({
+    await entityService.createEntity({
       entityType: "base",
       content: "Another regular note about artificial intelligence",
-      title: "Another Note",
     });
 
     // Search for "generated" which should find the generated-content entity
@@ -98,7 +106,7 @@ describe("EntityService search with excludeTypes", () => {
     });
 
     console.log("Generated search results:", generatedResults.length);
-    
+
     // Search without excludeTypes - use "note" which is in base entities
     const allResults = await entityService.search("note", {
       limit: 10,
@@ -110,7 +118,9 @@ describe("EntityService search with excludeTypes", () => {
     const contentResults = await entityService.search("content", {
       limit: 10,
     });
-    const hasGeneratedContent = contentResults.some(r => r.entity.entityType === "generated-content");
+    const hasGeneratedContent = contentResults.some(
+      (r) => r.entity.entityType === "generated-content",
+    );
     console.log("Content search has generated-content:", hasGeneratedContent);
 
     // Now search with excludeTypes
@@ -128,7 +138,11 @@ describe("EntityService search with excludeTypes", () => {
   it("should handle multiple excluded types", async () => {
     // Register a third entity type for testing
     const noteAdapter = new BaseEntityAdapter();
-    entityRegistry.registerEntityType("note", baseEntitySchema.extend({ entityType: z.literal("note") }), noteAdapter);
+    entityRegistry.registerEntityType(
+      "note",
+      baseEntitySchema.extend({ entityType: z.literal("note") }),
+      noteAdapter,
+    );
 
     // Create different types of entities
     await entityService.createEntity({
@@ -141,7 +155,7 @@ describe("EntityService search with excludeTypes", () => {
       content: "Note entity about testing",
     });
 
-    await entityService.createEntity({
+    await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test",
       schemaName: "test",
@@ -162,15 +176,23 @@ describe("EntityService search with excludeTypes", () => {
     });
 
     expect(results.length).toBe(1);
-    expect(results[0].entity.entityType).toBe("base");
+    expect(results[0]?.entity.entityType).toBe("base");
   });
 
   it("should work with both types and excludeTypes filters", async () => {
     // Register additional entity types
     const noteAdapter = new BaseEntityAdapter();
     const taskAdapter = new BaseEntityAdapter();
-    entityRegistry.registerEntityType("note", baseEntitySchema.extend({ entityType: z.literal("note") }), noteAdapter);
-    entityRegistry.registerEntityType("task", baseEntitySchema.extend({ entityType: z.literal("task") }), taskAdapter);
+    entityRegistry.registerEntityType(
+      "note",
+      baseEntitySchema.extend({ entityType: z.literal("note") }),
+      noteAdapter,
+    );
+    entityRegistry.registerEntityType(
+      "task",
+      baseEntitySchema.extend({ entityType: z.literal("task") }),
+      taskAdapter,
+    );
 
     // Create various entities
     await entityService.createEntity({
@@ -183,7 +205,7 @@ describe("EntityService search with excludeTypes", () => {
       content: "Task about search functionality",
     });
 
-    await entityService.createEntity({
+    await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "note",
       schemaName: "note",
@@ -210,7 +232,7 @@ describe("EntityService search with excludeTypes", () => {
     });
 
     expect(results.length).toBe(1);
-    expect(results[0].entity.entityType).toBe("note");
+    expect(results[0]?.entity.entityType).toBe("note");
   });
 
   it("should handle empty excludeTypes array", async () => {
@@ -219,7 +241,7 @@ describe("EntityService search with excludeTypes", () => {
       content: "Test entity",
     });
 
-    await entityService.createEntity({
+    await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test",
       schemaName: "test",

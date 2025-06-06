@@ -185,6 +185,85 @@ describe("MCP Registration", () => {
     expect(parsedResult.content).toBe("Generated content");
   });
 
+  it("should handle content generation with save=true", async () => {
+    // Register shell with MCP
+    registerShellMCP(mockServer as unknown as McpServer, mockServices);
+
+    // Get the generate_content tool handler
+    const generateHandler = mockToolHandlers.get("generate_content");
+    expect(generateHandler).toBeDefined();
+    if (!generateHandler || typeof generateHandler !== "function") {
+      throw new Error("Generate handler not found or not a function");
+    }
+
+    // Mock entity service for save functionality
+    mockServices.entityService.createEntity = mock(() => Promise.resolve({
+      id: "saved-entity-123",
+      entityType: "generated-content",
+      content: "",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    })) as unknown as typeof mockServices.entityService.createEntity;
+
+    // Execute the tool with save=true
+    const result = await generateHandler({
+      prompt: "Generate and save test content",
+      schemaName: "entity",
+      save: true,
+    });
+
+    // Check that entity was created
+    expect(mockServices.entityService.createEntity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: "generated-content",
+        schemaName: "entity",
+      }),
+    );
+
+    // Check the result includes entity info
+    expect(result.content[0].type).toBe("text");
+    const parsedResult = JSON.parse(result.content[0].text);
+    expect(parsedResult.entityId).toBe("saved-entity-123");
+    expect(parsedResult.message).toBe("Generated and saved as entity saved-entity-123");
+    expect(parsedResult.content).toBeDefined();
+  });
+
+  it("should handle content generation with custom contentType", async () => {
+    // Register shell with MCP
+    registerShellMCP(mockServer as unknown as McpServer, mockServices);
+
+    // Get the generate_content tool handler
+    const generateHandler = mockToolHandlers.get("generate_content");
+    expect(generateHandler).toBeDefined();
+    if (!generateHandler || typeof generateHandler !== "function") {
+      throw new Error("Generate handler not found or not a function");
+    }
+
+    // Mock entity service
+    mockServices.entityService.createEntity = mock(() => Promise.resolve({
+      id: "saved-entity-123",
+      entityType: "generated-content",
+      content: "",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    })) as unknown as typeof mockServices.entityService.createEntity;
+
+    // Execute the tool with custom contentType
+    await generateHandler({
+      prompt: "Generate test content",
+      schemaName: "entity",
+      save: true,
+      contentType: "custom:type",
+    });
+
+    // Check that entity was created with custom contentType
+    expect(mockServices.entityService.createEntity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentType: "custom:type",
+      }),
+    );
+  });
+
   it("should handle list_content_templates tool execution", async () => {
     // Register shell with MCP
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
@@ -209,5 +288,89 @@ describe("MCP Registration", () => {
     const parsedResult = JSON.parse(result.content[0].text);
     expect(Array.isArray(parsedResult)).toBe(true);
     expect(parsedResult[0].name).toBe("test-template");
+  });
+
+  it("should handle promote_generated_content tool execution", async () => {
+    // Register shell with MCP
+    registerShellMCP(mockServer as unknown as McpServer, mockServices);
+
+    // Get the promote_generated_content tool handler
+    const promoteHandler = mockToolHandlers.get("promote_generated_content");
+    expect(promoteHandler).toBeDefined();
+    if (!promoteHandler || typeof promoteHandler !== "function") {
+      throw new Error("Promote handler not found or not a function");
+    }
+
+    // Mock entity service deriveEntity
+    mockServices.entityService.deriveEntity = mock(() => Promise.resolve({
+      id: "promoted-entity-123",
+      entityType: "note",
+      content: "Promoted content",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    })) as unknown as typeof mockServices.entityService.deriveEntity;
+
+    // Execute the tool
+    const result = await promoteHandler({
+      generatedContentId: "source-entity-123",
+      targetEntityType: "note",
+    });
+
+    // Check that deriveEntity was called
+    expect(mockServices.entityService.deriveEntity).toHaveBeenCalledWith(
+      "source-entity-123",
+      "generated-content",
+      "note",
+      undefined,
+      undefined,
+    );
+
+    // Check the result format
+    expect(result.content[0].type).toBe("text");
+    const parsedResult = JSON.parse(result.content[0].text);
+    expect(parsedResult.promotedId).toBe("promoted-entity-123");
+    expect(parsedResult.promotedType).toBe("note");
+    expect(parsedResult.message).toBe("Promoted to note: promoted-entity-123");
+  });
+
+  it("should handle promote_generated_content with additional fields", async () => {
+    // Register shell with MCP
+    registerShellMCP(mockServer as unknown as McpServer, mockServices);
+
+    // Get the promote_generated_content tool handler
+    const promoteHandler = mockToolHandlers.get("promote_generated_content");
+    expect(promoteHandler).toBeDefined();
+    if (!promoteHandler || typeof promoteHandler !== "function") {
+      throw new Error("Promote handler not found or not a function");
+    }
+
+    // Mock entity service deriveEntity
+    mockServices.entityService.deriveEntity = mock(() => Promise.resolve({
+      id: "promoted-entity-123",
+      entityType: "note",
+      content: "Promoted content",
+      title: "Custom Title",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    })) as unknown as typeof mockServices.entityService.deriveEntity;
+
+    // Execute the tool with additional fields
+    await promoteHandler({
+      generatedContentId: "source-entity-123",
+      targetEntityType: "note",
+      additionalFields: {
+        title: "Custom Title",
+        tags: ["promoted", "test"],
+      },
+    });
+
+    // Check that deriveEntity was called with additional fields
+    expect(mockServices.entityService.deriveEntity).toHaveBeenCalledWith(
+      "source-entity-123",
+      "generated-content",
+      "note",
+      { title: "Custom Title", tags: ["promoted", "test"] },
+      undefined,
+    );
   });
 });
