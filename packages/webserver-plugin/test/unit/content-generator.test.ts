@@ -306,7 +306,6 @@ describe("ContentGenerator", () => {
     });
   });
 
-
   // Cleanup
   afterEach(() => {
     if (existsSync(testDir)) {

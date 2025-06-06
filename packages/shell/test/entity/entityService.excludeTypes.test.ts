@@ -101,11 +101,9 @@ describe("EntityService search with excludeTypes", () => {
     });
 
     // Search for "generated" which should find the generated-content entity
-    const generatedResults = await entityService.search("generated", {
+    await entityService.search("generated", {
       limit: 10,
     });
-
-    console.log("Generated search results:", generatedResults.length);
 
     // Search without excludeTypes - use "note" which is in base entities
     const allResults = await entityService.search("note", {
@@ -118,10 +116,9 @@ describe("EntityService search with excludeTypes", () => {
     const contentResults = await entityService.search("content", {
       limit: 10,
     });
-    const hasGeneratedContent = contentResults.some(
+    contentResults.some(
       (r) => r.entity.entityType === "generated-content",
     );
-    console.log("Content search has generated-content:", hasGeneratedContent);
 
     // Now search with excludeTypes
     const filteredResults = await entityService.search("content", {

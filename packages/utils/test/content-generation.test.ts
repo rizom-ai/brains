@@ -27,7 +27,7 @@ describe("generateWithTemplate", () => {
         title: "Generated Title",
         content: "Generated Content",
       } as unknown as T;
-    }
+    },
   ) as unknown as <T>(options: ContentGenerateOptions<T>) => Promise<T>;
 
   it("should generate content using template with basic prompt", async () => {
@@ -48,29 +48,22 @@ describe("generateWithTemplate", () => {
   });
 
   it("should combine template prompt with additional prompt", async () => {
-    await generateWithTemplate(
-      mockGenerateContent,
-      testTemplate,
-      {
-        prompt: "Make it formal",
-      },
-    );
+    await generateWithTemplate(mockGenerateContent, testTemplate, {
+      prompt: "Make it formal",
+    });
 
     expect(mockGenerateContent).toHaveBeenCalledWith({
       schema: testSchema,
-      prompt: "Generate test content with title and content fields\n\nAdditional instructions: Make it formal",
+      prompt:
+        "Generate test content with title and content fields\n\nAdditional instructions: Make it formal",
     });
   });
 
   it("should pass context data when provided", async () => {
-    await generateWithTemplate(
-      mockGenerateContent,
-      testTemplate,
-      {
-        data: { key: "value" },
-        style: "formal",
-      },
-    );
+    await generateWithTemplate(mockGenerateContent, testTemplate, {
+      data: { key: "value" },
+      style: "formal",
+    });
 
     expect(mockGenerateContent).toHaveBeenCalledWith({
       schema: testSchema,
@@ -88,13 +81,9 @@ describe("generateWithTemplate", () => {
       { title: "Example 2", content: "Content 2" },
     ];
 
-    await generateWithTemplate(
-      mockGenerateContent,
-      testTemplate,
-      {
-        examples,
-      },
-    );
+    await generateWithTemplate(mockGenerateContent, testTemplate, {
+      examples,
+    });
 
     expect(mockGenerateContent).toHaveBeenCalledWith({
       schema: testSchema,
@@ -106,15 +95,10 @@ describe("generateWithTemplate", () => {
   });
 
   it("should pass persistence options when provided", async () => {
-    await generateWithTemplate(
-      mockGenerateContent,
-      testTemplate,
-      undefined,
-      {
-        save: true,
-        contentType: "test:content",
-      },
-    );
+    await generateWithTemplate(mockGenerateContent, testTemplate, undefined, {
+      save: true,
+      contentType: "test:content",
+    });
 
     expect(mockGenerateContent).toHaveBeenCalledWith({
       schema: testSchema,
@@ -142,7 +126,8 @@ describe("generateWithTemplate", () => {
 
     expect(mockGenerateContent).toHaveBeenCalledWith({
       schema: testSchema,
-      prompt: "Generate test content with title and content fields\n\nAdditional instructions: Additional instructions",
+      prompt:
+        "Generate test content with title and content fields\n\nAdditional instructions: Additional instructions",
       context: {
         data: { key: "value" },
         examples: [{ title: "Example", content: "Content" }],
@@ -167,14 +152,9 @@ describe("generateWithTemplate", () => {
   });
 
   it("should only include save option when explicitly set", async () => {
-    await generateWithTemplate(
-      mockGenerateContent,
-      testTemplate,
-      undefined,
-      {
-        save: false,
-      },
-    );
+    await generateWithTemplate(mockGenerateContent, testTemplate, undefined, {
+      save: false,
+    });
 
     expect(mockGenerateContent).toHaveBeenCalledWith({
       schema: testSchema,
@@ -184,14 +164,9 @@ describe("generateWithTemplate", () => {
   });
 
   it("should only include contentType when provided", async () => {
-    await generateWithTemplate(
-      mockGenerateContent,
-      testTemplate,
-      undefined,
-      {
-        contentType: "specific:type",
-      },
-    );
+    await generateWithTemplate(mockGenerateContent, testTemplate, undefined, {
+      contentType: "specific:type",
+    });
 
     expect(mockGenerateContent).toHaveBeenCalledWith({
       schema: testSchema,

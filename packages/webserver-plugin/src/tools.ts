@@ -5,9 +5,7 @@ import { z } from "zod";
 /**
  * Create MCP tools for the webserver plugin
  */
-export function webserverTools(
-  manager: WebserverManager,
-): PluginTool[] {
+export function webserverTools(manager: WebserverManager): PluginTool[] {
   return [
     {
       name: "build_site",

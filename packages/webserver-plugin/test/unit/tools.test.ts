@@ -8,8 +8,6 @@ describe("webserverTools", () => {
   let tools: ReturnType<typeof webserverTools>;
 
   beforeEach(() => {
-
-
     // Mock WebserverManager
     mockManager = {
       buildSite: mock(async () => {}),
@@ -32,7 +30,6 @@ describe("webserverTools", () => {
     // Get tools
     tools = webserverTools(mockManager);
   });
-
 
   describe("build_site", () => {
     const buildSiteTool = (): PluginTool => {

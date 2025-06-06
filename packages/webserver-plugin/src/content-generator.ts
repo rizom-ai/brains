@@ -219,7 +219,6 @@ export class ContentGenerator {
     });
   }
 
-
   /**
    * Get existing generated content for a specific page and section
    * Uses contentType format: "landing:hero"

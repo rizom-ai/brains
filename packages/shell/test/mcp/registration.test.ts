@@ -197,13 +197,15 @@ describe("MCP Registration", () => {
     }
 
     // Mock entity service for save functionality
-    mockServices.entityService.createEntity = mock(() => Promise.resolve({
-      id: "saved-entity-123",
-      entityType: "generated-content",
-      content: "",
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    })) as unknown as typeof mockServices.entityService.createEntity;
+    mockServices.entityService.createEntity = mock(() =>
+      Promise.resolve({
+        id: "saved-entity-123",
+        entityType: "generated-content",
+        content: "",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }),
+    ) as unknown as typeof mockServices.entityService.createEntity;
 
     // Execute the tool with save=true
     const result = await generateHandler({
@@ -224,7 +226,9 @@ describe("MCP Registration", () => {
     expect(result.content[0].type).toBe("text");
     const parsedResult = JSON.parse(result.content[0].text);
     expect(parsedResult.entityId).toBe("saved-entity-123");
-    expect(parsedResult.message).toBe("Generated and saved as entity saved-entity-123");
+    expect(parsedResult.message).toBe(
+      "Generated and saved as entity saved-entity-123",
+    );
     expect(parsedResult.content).toBeDefined();
   });
 
@@ -240,13 +244,15 @@ describe("MCP Registration", () => {
     }
 
     // Mock entity service
-    mockServices.entityService.createEntity = mock(() => Promise.resolve({
-      id: "saved-entity-123",
-      entityType: "generated-content",
-      content: "",
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    })) as unknown as typeof mockServices.entityService.createEntity;
+    mockServices.entityService.createEntity = mock(() =>
+      Promise.resolve({
+        id: "saved-entity-123",
+        entityType: "generated-content",
+        content: "",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }),
+    ) as unknown as typeof mockServices.entityService.createEntity;
 
     // Execute the tool with custom contentType
     await generateHandler({
@@ -302,13 +308,15 @@ describe("MCP Registration", () => {
     }
 
     // Mock entity service deriveEntity
-    mockServices.entityService.deriveEntity = mock(() => Promise.resolve({
-      id: "promoted-entity-123",
-      entityType: "note",
-      content: "Promoted content",
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    })) as unknown as typeof mockServices.entityService.deriveEntity;
+    mockServices.entityService.deriveEntity = mock(() =>
+      Promise.resolve({
+        id: "promoted-entity-123",
+        entityType: "note",
+        content: "Promoted content",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }),
+    ) as unknown as typeof mockServices.entityService.deriveEntity;
 
     // Execute the tool
     const result = await promoteHandler({
@@ -345,14 +353,16 @@ describe("MCP Registration", () => {
     }
 
     // Mock entity service deriveEntity
-    mockServices.entityService.deriveEntity = mock(() => Promise.resolve({
-      id: "promoted-entity-123",
-      entityType: "note",
-      content: "Promoted content",
-      title: "Custom Title",
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    })) as unknown as typeof mockServices.entityService.deriveEntity;
+    mockServices.entityService.deriveEntity = mock(() =>
+      Promise.resolve({
+        id: "promoted-entity-123",
+        entityType: "note",
+        content: "Promoted content",
+        title: "Custom Title",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }),
+    ) as unknown as typeof mockServices.entityService.deriveEntity;
 
     // Execute the tool with additional fields
     await promoteHandler({

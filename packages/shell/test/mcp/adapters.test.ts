@@ -31,20 +31,24 @@ describe("ContentGenerationAdapter", () => {
 
     // Create mock service with type assertions for test purposes
     mockEntityService = {
-      createEntity: mock(() => Promise.resolve({
-        id: "generated-entity-123",
-        entityType: "generated-content",
-        content: "",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      })),
-      deriveEntity: mock(() => Promise.resolve({
-        id: "promoted-entity-123",
-        entityType: "note",
-        content: "Promoted content",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      })),
+      createEntity: mock(() =>
+        Promise.resolve({
+          id: "generated-entity-123",
+          entityType: "generated-content",
+          content: "",
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        }),
+      ),
+      deriveEntity: mock(() =>
+        Promise.resolve({
+          id: "promoted-entity-123",
+          entityType: "note",
+          content: "Promoted content",
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        }),
+      ),
     } as unknown as EntityService;
 
     mockSchemaRegistry = {
@@ -95,7 +99,9 @@ describe("ContentGenerationAdapter", () => {
     });
 
     it("should generate and save content when save=true", async () => {
-      const createEntitySpy = mockEntityService.createEntity as ReturnType<typeof mock>;
+      const createEntitySpy = mockEntityService.createEntity as ReturnType<
+        typeof mock
+      >;
 
       const result = await adapter.generateContent({
         prompt: "Generate test content",
@@ -127,7 +133,9 @@ describe("ContentGenerationAdapter", () => {
     });
 
     it("should use custom contentType when provided", async () => {
-      const createEntitySpy = mockEntityService.createEntity as ReturnType<typeof mock>;
+      const createEntitySpy = mockEntityService.createEntity as ReturnType<
+        typeof mock
+      >;
 
       await adapter.generateContent({
         prompt: "Generate test content",
@@ -144,7 +152,9 @@ describe("ContentGenerationAdapter", () => {
     });
 
     it("should include context in saved metadata", async () => {
-      const createEntitySpy = mockEntityService.createEntity as ReturnType<typeof mock>;
+      const createEntitySpy = mockEntityService.createEntity as ReturnType<
+        typeof mock
+      >;
 
       const context = {
         data: { key: "value" },
@@ -198,7 +208,9 @@ describe("ContentGenerationAdapter", () => {
     });
 
     it("should include generated content in entity content field", async () => {
-      const createEntitySpy = mockEntityService.createEntity as ReturnType<typeof mock>;
+      const createEntitySpy = mockEntityService.createEntity as ReturnType<
+        typeof mock
+      >;
 
       await adapter.generateContent({
         prompt: "Generate test content",
@@ -208,10 +220,14 @@ describe("ContentGenerationAdapter", () => {
 
       expect(createEntitySpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: JSON.stringify({
-            title: "Generated Title",
-            content: "Generated Content",
-          }, null, 2),
+          content: JSON.stringify(
+            {
+              title: "Generated Title",
+              content: "Generated Content",
+            },
+            null,
+            2,
+          ),
         }),
       );
     });
@@ -219,7 +235,9 @@ describe("ContentGenerationAdapter", () => {
 
   describe("promoteGeneratedContent", () => {
     it("should call deriveEntity with correct parameters", async () => {
-      const deriveEntitySpy = mockEntityService.deriveEntity as ReturnType<typeof mock>;
+      const deriveEntitySpy = mockEntityService.deriveEntity as ReturnType<
+        typeof mock
+      >;
 
       const result = await adapter.promoteGeneratedContent({
         generatedContentId: "source-123",
@@ -242,7 +260,9 @@ describe("ContentGenerationAdapter", () => {
     });
 
     it("should pass additional fields when provided", async () => {
-      const deriveEntitySpy = mockEntityService.deriveEntity as ReturnType<typeof mock>;
+      const deriveEntitySpy = mockEntityService.deriveEntity as ReturnType<
+        typeof mock
+      >;
 
       await adapter.promoteGeneratedContent({
         generatedContentId: "source-123",
@@ -260,7 +280,9 @@ describe("ContentGenerationAdapter", () => {
     });
 
     it("should handle deleteOriginal option", async () => {
-      const deriveEntitySpy = mockEntityService.deriveEntity as ReturnType<typeof mock>;
+      const deriveEntitySpy = mockEntityService.deriveEntity as ReturnType<
+        typeof mock
+      >;
 
       await adapter.promoteGeneratedContent({
         generatedContentId: "source-123",

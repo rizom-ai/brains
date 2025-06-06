@@ -129,7 +129,6 @@ export class EntityServiceAdapter {
     }
     return entity;
   }
-
 }
 
 /**

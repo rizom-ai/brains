@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { EntityService } from "@/entity/entityService";
 import { EntityRegistry } from "@/entity/entityRegistry";
 import { createSilentLogger, type Logger } from "@brains/utils";
-import { createId, entities } from "@brains/db/schema";
+import { createId } from "@brains/db/schema";
 import type { IEmbeddingService } from "@/embedding/embeddingService";
 import { GeneratedContentAdapter } from "@/content/generatedContentAdapter";
 import { BaseEntityAdapter } from "@brains/base-entity";
@@ -13,7 +13,6 @@ import {
 } from "@brains/types";
 import { createTestDatabase } from "../helpers/test-db";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { eq } from "drizzle-orm";
 
 describe("EntityService.deriveEntity", () => {
   let entityService: EntityService;
@@ -74,16 +73,6 @@ describe("EntityService.deriveEntity", () => {
   });
 
   it("should derive entity from generated-content to base entity", async () => {
-    // First test that we can create a base entity
-    const testBase = await entityService.createEntity({
-      entityType: "base",
-      content: "Test base content",
-    });
-    console.log("Test base entity:", testBase.id, testBase.entityType);
-
-    const verifyBase = await entityService.getEntity("base", testBase.id);
-    console.log("Verified base:", verifyBase?.id);
-
     // Create a generated-content entity
     const sourceEntity = await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
@@ -104,49 +93,12 @@ describe("EntityService.deriveEntity", () => {
         regenerated: false,
       },
     });
-    console.log(
-      "Created source entity:",
+
+    // Verify the source entity exists
+    const verifySource = await entityService.getEntity(
+      "generated-content",
       sourceEntity.id,
-      sourceEntity.entityType,
     );
-
-    // Try to get it with just the ID (no type filter)
-    console.log("Attempting to retrieve generated-content entity...");
-
-    // Verify the source entity exists first
-    let verifySource;
-    try {
-      verifySource = await entityService.getEntity(
-        "generated-content",
-        sourceEntity.id,
-      );
-      console.log("Source entity verified:", verifySource?.id);
-      console.log(
-        "Full retrieved entity:",
-        JSON.stringify(verifySource, null, 2),
-      );
-    } catch (error) {
-      console.error("Error retrieving entity:", error);
-      throw error;
-    }
-
-    // If we get here and entity was null - try raw query
-    if (!verifySource) {
-      const rawQuery = await testDb
-        .select()
-        .from(entities)
-        .where(eq(entities.id, sourceEntity.id));
-      console.log("Raw DB query found:", rawQuery.length, "rows");
-      if (rawQuery.length > 0 && rawQuery[0]) {
-        console.log("Raw entity data:", {
-          id: rawQuery[0].id,
-          entityType: rawQuery[0].entityType,
-          metadata: rawQuery[0].metadata,
-          content: rawQuery[0].content.substring(0, 100) + "...",
-        });
-      }
-    }
-
     expect(verifySource).toBeDefined();
 
     // Derive to base entity
