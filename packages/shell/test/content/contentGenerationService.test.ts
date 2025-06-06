@@ -28,43 +28,59 @@ describe("ContentGenerationService", () => {
     };
 
     const mockAIService = {
-      generateObject: mock(async <T>(_systemPrompt: string, userPrompt: string, _schema: z.ZodType<T>): Promise<{
-        object: T;
-        usage: { promptTokens: number; completionTokens: number; totalTokens: number };
-      }> => {
-        // Mock AI response based on prompt
-        let object: unknown;
-        if (userPrompt.includes("hero section")) {
-          object = {
-            headline: "Welcome to Your Brain",
-            subheadline: "Organize your knowledge",
-            ctaText: "Get Started",
-            ctaLink: "/dashboard",
-          };
-        } else if (userPrompt.includes("First")) {
-          object = { message: "First response" };
-        } else if (userPrompt.includes("Second")) {
-          object = { message: "Second response" };
-        } else if (userPrompt.includes("Process this request")) {
-          object = { processed: true };
-        } else if (userPrompt.includes("Example 1") && userPrompt.includes("Example 2")) {
-          object = { title: "Generated with examples", content: "Based on examples" };
-        } else if (userPrompt.includes("Generate content")) {
-          // For validation test - return invalid data
-          object = { title: "Hi", count: -1 };
-        } else {
-          object = { message: "Generated content" };
-        }
-        
-        return {
-          object: object as T,
+      generateObject: mock(
+        async <T>(
+          _systemPrompt: string,
+          userPrompt: string,
+          _schema: z.ZodType<T>,
+        ): Promise<{
+          object: T;
           usage: {
-            promptTokens: 100,
-            completionTokens: 50,
-            totalTokens: 150,
-          },
-        };
-      }),
+            promptTokens: number;
+            completionTokens: number;
+            totalTokens: number;
+          };
+        }> => {
+          // Mock AI response based on prompt
+          let object: unknown;
+          if (userPrompt.includes("hero section")) {
+            object = {
+              headline: "Welcome to Your Brain",
+              subheadline: "Organize your knowledge",
+              ctaText: "Get Started",
+              ctaLink: "/dashboard",
+            };
+          } else if (userPrompt.includes("First")) {
+            object = { message: "First response" };
+          } else if (userPrompt.includes("Second")) {
+            object = { message: "Second response" };
+          } else if (userPrompt.includes("Process this request")) {
+            object = { processed: true };
+          } else if (
+            userPrompt.includes("Example 1") &&
+            userPrompt.includes("Example 2")
+          ) {
+            object = {
+              title: "Generated with examples",
+              content: "Based on examples",
+            };
+          } else if (userPrompt.includes("Generate content")) {
+            // For validation test - return invalid data
+            object = { title: "Hi", count: -1 };
+          } else {
+            object = { message: "Generated content" };
+          }
+
+          return {
+            object: object as T,
+            usage: {
+              promptTokens: 100,
+              completionTokens: 50,
+              totalTokens: 150,
+            },
+          };
+        },
+      ),
     };
 
     // Create query processor with mocks
@@ -237,7 +253,9 @@ describe("ContentGenerationService", () => {
       service.initialize(mockQueryProcessor);
 
       // Access private method via array notation
-      const buildPrompt = (service as unknown as { buildPrompt: (options: unknown) => string })["buildPrompt"].bind(service);
+      const buildPrompt = (
+        service as unknown as { buildPrompt: (options: unknown) => string }
+      )["buildPrompt"].bind(service);
 
       const prompt = buildPrompt({
         schema: z.object({ message: z.string() }),
@@ -294,7 +312,7 @@ describe("ContentGenerationService", () => {
       };
 
       service.registerTemplate("test-template", template);
-      
+
       const retrieved = service.getTemplate("test-template");
       expect(retrieved).toBe(template);
     });
@@ -306,7 +324,7 @@ describe("ContentGenerationService", () => {
         schema: z.object({ a: z.string() }),
         basePrompt: "Prompt 1",
       };
-      
+
       const template2 = {
         name: "template2",
         description: "Template 2",
@@ -381,7 +399,7 @@ describe("ContentGenerationService", () => {
           throw new Error("Invalid JSON");
         }),
       };
-      
+
       // Create a new QueryProcessor with the error-throwing AI service
       const errorQueryProcessor = QueryProcessor.createFresh({
         entityService: {
@@ -396,7 +414,7 @@ describe("ContentGenerationService", () => {
         logger: createSilentLogger("test"),
         aiService: errorAIService as unknown as AIService,
       });
-      
+
       service.initialize(errorQueryProcessor);
 
       const schema = z.object({ message: z.string() });

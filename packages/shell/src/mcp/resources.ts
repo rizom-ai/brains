@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { EntityService } from "../entity/entityService";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
+import type { ContentGenerationService } from "../content/contentGenerationService";
 import type { Logger } from "@brains/utils";
 
 /**
@@ -12,10 +13,11 @@ export function registerShellResources(
   options: {
     entityService: EntityService;
     schemaRegistry: SchemaRegistry;
+    contentGenerationService: ContentGenerationService;
     logger: Logger;
   },
 ): void {
-  const { logger, entityService, schemaRegistry } = options;
+  const { logger, entityService, schemaRegistry, contentGenerationService } = options;
 
   logger.info("Registering shell resources with MCP server");
 
@@ -149,6 +151,71 @@ export function registerShellResources(
       }
     },
   );
+
+  // Register content template list resource
+  server.resource(
+    "content-templates",
+    "template://list",
+    { description: "List all available content generation templates" },
+    async (uri: URL) => {
+      try {
+        const templates = contentGenerationService.listTemplates();
+        
+        const templateInfo = templates.map(t => ({
+          name: t.name,
+          description: t.description,
+          schemaType: "zod-schema",
+        }));
+
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({ templates: templateInfo }, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error("Error listing content templates", error);
+        throw error;
+      }
+    },
+  );
+
+  // Register individual template resources
+  const templates = contentGenerationService.listTemplates();
+  
+  for (const template of templates) {
+    server.resource(
+      `template_${template.name}`,
+      `template://${template.name}`,
+      { description: `Content generation template: ${template.description}` },
+      async (uri: URL) => {
+        try {
+          logger.debug("Reading template resource", { templateName: template.name });
+
+          const templateInfo = {
+            name: template.name,
+            description: template.description,
+            basePrompt: template.basePrompt,
+            schemaType: "zod-schema",
+          };
+
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify(templateInfo, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          logger.error("Error reading template resource", error);
+          throw error;
+        }
+      },
+    );
+  }
 
   logger.info("Shell resources registered successfully");
 }

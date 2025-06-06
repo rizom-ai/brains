@@ -1,8 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { registerShellMCP } from "@/mcp";
 import type { ShellMCPOptions } from "@/mcp";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { QueryProcessor } from "@/query/queryProcessor";
+import type { EntityService } from "@/entity/entityService";
+import type { SchemaRegistry } from "@/schema/schemaRegistry";
+import type { ContentGenerationService } from "@/content/contentGenerationService";
+import type { Logger } from "@brains/utils";
+import { z } from "zod";
 
 describe("MCP Registration", () => {
   let mockToolHandlers: Map<string, unknown>;
@@ -20,7 +25,7 @@ describe("MCP Registration", () => {
 
     // Create mock MCP server
     mockServer = {
-      tool: mock((name: string, _schema: any, handler: any) => {
+      tool: mock((name: string, _schema: unknown, handler: unknown) => {
         mockToolHandlers.set(name, handler);
       }),
       resource: mock(
@@ -45,7 +50,7 @@ describe("MCP Registration", () => {
             relatedEntities: [],
           }),
         ),
-      } as any,
+      } as unknown as QueryProcessor,
       entityService: {
         getSupportedEntityTypes: mock(() => ["note", "task"]),
         getEntityTypes: mock(() => ["note", "task"]),
@@ -53,17 +58,38 @@ describe("MCP Registration", () => {
         getEntity: mock(() =>
           Promise.resolve({ id: "1", type: "note", content: "Test" }),
         ),
-      } as any,
+      } as unknown as EntityService,
       schemaRegistry: {
         getAllSchemaNames: mock(() => ["entity", "message"]),
-        get: mock(() => undefined),
-      } as any,
+        get: mock((name: string) => {
+          // Return a simple schema for any requested name
+          if (name === "entity" || name === "message") {
+            return z.object({ 
+              id: z.string(),
+              content: z.string() 
+            });
+          }
+          return undefined;
+        }),
+      } as unknown as SchemaRegistry,
+      contentGenerationService: {
+        generate: mock(() => Promise.resolve({ content: "Generated content" })),
+        generateFromTemplate: mock(() => Promise.resolve({ content: "Template content" })),
+        listTemplates: mock(() => [
+          {
+            name: "test-template",
+            description: "Test template",
+            schema: {} as unknown,
+            basePrompt: "Test prompt",
+          },
+        ]),
+      } as unknown as ContentGenerationService,
       logger: {
         info: mock(() => {}),
         debug: mock(() => {}),
         error: mock(() => {}),
         warn: mock(() => {}),
-      } as any,
+      } as unknown as Logger,
     };
   });
 
@@ -72,13 +98,16 @@ describe("MCP Registration", () => {
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
     // Check that tools were registered
-    expect(mockServer.tool).toHaveBeenCalledTimes(3); // 3 tools (removed brain_command)
+    expect(mockServer.tool).toHaveBeenCalledTimes(6); // 6 tools total
 
     // Verify tool names
     const toolNames = Array.from(mockToolHandlers.keys());
     expect(toolNames).toContain("brain_query");
     expect(toolNames).toContain("entity_search");
     expect(toolNames).toContain("entity_get");
+    expect(toolNames).toContain("generate_content");
+    expect(toolNames).toContain("generate_from_template");
+    expect(toolNames).toContain("list_content_templates");
   });
 
   it("should register shell resources with MCP server", () => {
@@ -94,6 +123,8 @@ describe("MCP Registration", () => {
     expect(resourceNames).toContain("entity_task");
     expect(resourceNames).toContain("schema_entity");
     expect(resourceNames).toContain("schema_message");
+    expect(resourceNames).toContain("content-templates");
+    expect(resourceNames).toContain("template_test-template");
   });
 
   it("should handle tool execution through adapters", async () => {
@@ -120,5 +151,55 @@ describe("MCP Registration", () => {
     expect(result.content[0].type).toBe("text");
     const parsedResult = JSON.parse(result.content[0].text);
     expect(parsedResult.answer).toBe("Test answer");
+  });
+
+  it("should handle content generation tool execution", async () => {
+    // Register shell with MCP
+    registerShellMCP(mockServer as unknown as McpServer, mockServices);
+
+    // Get the generate_content tool handler
+    const generateHandler = mockToolHandlers.get("generate_content");
+    expect(generateHandler).toBeDefined();
+    if (!generateHandler || typeof generateHandler !== "function") {
+      throw new Error("Generate handler not found or not a function");
+    }
+
+    // Execute the tool with parameters
+    const result = await generateHandler({
+      prompt: "Generate test content",
+      schemaName: "entity",
+    });
+
+    // Check that the adapter properly called the content generation service
+    expect(mockServices.contentGenerationService.generate).toHaveBeenCalled();
+
+    // Check the result format
+    expect(result.content[0].type).toBe("text");
+    const parsedResult = JSON.parse(result.content[0].text);
+    expect(parsedResult.content).toBe("Generated content");
+  });
+
+  it("should handle list_content_templates tool execution", async () => {
+    // Register shell with MCP
+    registerShellMCP(mockServer as unknown as McpServer, mockServices);
+
+    // Get the list_content_templates tool handler
+    const listHandler = mockToolHandlers.get("list_content_templates");
+    expect(listHandler).toBeDefined();
+    if (!listHandler || typeof listHandler !== "function") {
+      throw new Error("List handler not found or not a function");
+    }
+
+    // Execute the tool
+    const result = await listHandler({});
+
+    // Check that the adapter properly called the content generation service
+    expect(mockServices.contentGenerationService.listTemplates).toHaveBeenCalled();
+
+    // Check the result format
+    expect(result.content[0].type).toBe("text");
+    const parsedResult = JSON.parse(result.content[0].text);
+    expect(Array.isArray(parsedResult)).toBe(true);
+    expect(parsedResult[0].name).toBe("test-template");
   });
 });

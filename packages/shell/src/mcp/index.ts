@@ -16,12 +16,14 @@ import { registerShellResources } from "./resources";
 import type { QueryProcessor } from "../query/queryProcessor";
 import type { EntityService } from "../entity/entityService";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
+import type { ContentGenerationService } from "../content/contentGenerationService";
 import type { Logger } from "@brains/utils";
 
 export interface ShellMCPOptions {
   queryProcessor: QueryProcessor;
   entityService: EntityService;
   schemaRegistry: SchemaRegistry;
+  contentGenerationService: ContentGenerationService;
   logger: Logger;
 }
 

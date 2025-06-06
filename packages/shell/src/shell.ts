@@ -277,6 +277,7 @@ export class Shell {
       queryProcessor: this.queryProcessor,
       entityService: this.entityService,
       schemaRegistry: this.schemaRegistry,
+      contentGenerationService: this.contentGenerationService,
       logger: this.logger,
     });
 

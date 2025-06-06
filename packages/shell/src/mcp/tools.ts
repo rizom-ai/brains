@@ -3,8 +3,14 @@ import { z } from "zod";
 import type { QueryProcessor } from "../query/queryProcessor";
 import type { EntityService } from "../entity/entityService";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
+import type { ContentGenerationService } from "../content/contentGenerationService";
 import type { Logger } from "@brains/utils";
-import { QueryProcessorAdapter, EntityServiceAdapter } from "./adapters";
+import { baseEntitySchema } from "@brains/types";
+import { 
+  QueryProcessorAdapter, 
+  EntityServiceAdapter,
+  ContentGenerationAdapter 
+} from "./adapters";
 
 /**
  * Register shell tools with an MCP server
@@ -15,10 +21,11 @@ export function registerShellTools(
     queryProcessor: QueryProcessor;
     entityService: EntityService;
     schemaRegistry: SchemaRegistry;
+    contentGenerationService: ContentGenerationService;
     logger: Logger;
   },
 ): void {
-  const { logger, queryProcessor, entityService, schemaRegistry } = options;
+  const { logger, queryProcessor, entityService, schemaRegistry, contentGenerationService } = options;
 
   // Create adapters
   const queryAdapter = new QueryProcessorAdapter(
@@ -26,6 +33,10 @@ export function registerShellTools(
     schemaRegistry,
   );
   const entityAdapter = new EntityServiceAdapter(entityService);
+  const contentAdapter = new ContentGenerationAdapter(
+    contentGenerationService,
+    schemaRegistry,
+  );
 
   logger.info("Registering shell tools with MCP server");
 
@@ -129,6 +140,126 @@ export function registerShellTools(
         };
       } catch (error) {
         logger.error("Error in entity_get tool", error);
+        throw error;
+      }
+    },
+  );
+
+  // Register content generation tool
+  server.tool(
+    "generate_content",
+    {
+      prompt: z.string().describe("The prompt for content generation"),
+      schemaName: z
+        .string()
+        .optional()
+        .describe("Name of the schema to use for structured output"),
+      context: z
+        .object({
+          entities: z
+            .array(baseEntitySchema)
+            .optional()
+            .describe("Entities to include as context"),
+          data: z
+            .record(z.unknown())
+            .optional()
+            .describe("Additional data context for generation"),
+          style: z
+            .string()
+            .optional()
+            .describe("Style guidelines for the generated content"),
+          examples: z
+            .array(z.unknown())
+            .optional()
+            .describe("Example outputs to guide generation"),
+        })
+        .optional()
+        .describe("Additional context for content generation"),
+    },
+    async (params) => {
+      try {
+        logger.debug("Executing generate_content tool", { prompt: params.prompt });
+
+        const result = await contentAdapter.generateContent(params);
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error("Error in generate_content tool", error);
+        throw error;
+      }
+    },
+  );
+
+  // Register generate from template tool
+  server.tool(
+    "generate_from_template",
+    {
+      templateName: z.string().describe("Name of the template to use"),
+      prompt: z.string().describe("Additional prompt to customize the template"),
+      context: z
+        .object({
+          data: z
+            .record(z.unknown())
+            .optional()
+            .describe("Data to populate the template"),
+          style: z
+            .string()
+            .optional()
+            .describe("Style guidelines for the generated content"),
+        })
+        .optional()
+        .describe("Context for template generation"),
+    },
+    async (params) => {
+      try {
+        logger.debug("Executing generate_from_template tool", { 
+          templateName: params.templateName 
+        });
+
+        const result = await contentAdapter.generateFromTemplate(params);
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error("Error in generate_from_template tool", error);
+        throw error;
+      }
+    },
+  );
+
+  // Register list templates tool
+  server.tool(
+    "list_content_templates",
+    {},
+    async () => {
+      try {
+        logger.debug("Executing list_content_templates tool");
+
+        const templates = await contentAdapter.listTemplates();
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(templates, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error("Error in list_content_templates tool", error);
         throw error;
       }
     },
