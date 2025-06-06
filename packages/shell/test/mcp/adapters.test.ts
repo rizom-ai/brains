@@ -198,8 +198,7 @@ describe("ContentGenerationAdapter", () => {
     });
 
     it("should include generated content in entity content field", async () => {
-      const createEntitySpy = mock(mockEntityService.createEntity);
-      mockEntityService.createEntity = createEntitySpy;
+      const createEntitySpy = mockEntityService.createEntity as ReturnType<typeof mock>;
 
       await adapter.generateContent({
         prompt: "Generate test content",
