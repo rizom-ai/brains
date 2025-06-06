@@ -62,25 +62,16 @@ The Brains repository uses a monorepo structure designed to support multiple bra
   - Matrix SDK
 - **Consumers**: Brain app in Matrix mode
 
-### Entity Plugin Packages (Future)
+### Plugin Architecture
 
-#### `packages/note-plugin`
+The shell package provides a plugin system that allows for modular extension without requiring separate packages. Plugins can:
 
-- **Purpose**: Note management plugin
-- **Responsibilities**:
-  - Note entity adapter
-  - Note-specific operations
-  - Note search and indexing
-- **Dependencies**: `packages/shell`
+- Register new entity types via `EntityAdapter` interface
+- Add MCP tools and resources
+- Subscribe to messaging events
+- Extend functionality without modifying core code
 
-#### `packages/task-plugin`
-
-- **Purpose**: Task management plugin
-- **Responsibilities**:
-  - Task entity adapter
-  - Task-specific operations
-  - Task scheduling and reminders
-- **Dependencies**: `packages/shell`
+This approach provides the benefits of modularity while keeping the codebase simple and maintainable.
 
 ## Multiple Brain Architecture
 
@@ -105,19 +96,17 @@ The repository supports different brain types that share core infrastructure:
    - Public contributions
    - Consensus mechanisms
 
-### Shared vs. Specific Plugins
+### Plugin System
 
-Some plugins are shared across all brain types:
+Plugins can be created to extend any brain type with new entity types and functionality. The plugin system supports:
 
-- `@brains/note-plugin` - Notes work the same in all brains
-- `@brains/task-plugin` - Tasks have universal structure
-- `@brains/project-plugin` - Projects follow common patterns
+- **Entity Registration**: Define new entity types with custom adapters
+- **Tool Registration**: Add MCP tools for entity operations  
+- **Resource Registration**: Expose entity data as MCP resources
+- **Event Handling**: React to system events via message bus
+- **Service Access**: Use core services like QueryProcessor, EntityService
 
-Some plugins may be brain-specific:
-
-- `@brains/personal-plugin` - Personal profiles, preferences
-- `@brains/team-plugin` - Team-specific features
-- `@brains/collective-plugin` - Community governance
+Plugins can be developed internally or by third parties, and loaded dynamically based on configuration.
 
 ## Application Structure
 
