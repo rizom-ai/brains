@@ -1,0 +1,260 @@
+/* Button components */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  color: white;
+  font-weight: 600;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  transition: all 0.2s ease-in-out;
+  background-color: var(--accent-orange);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-orange-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-xl);
+}
+
+.btn-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-orange), 0 0 0 4px rgb(234 88 12 / 0.1);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: var(--radius-xl);
+  border: 2px solid var(--primary-purple);
+  color: var(--primary-purple);
+  background-color: transparent;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-secondary:hover {
+  background-color: var(--primary-purple);
+  color: white;
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-purple), 0 0 0 4px rgb(99 102 241 / 0.1);
+}
+
+/* Card components */
+.card {
+  background-color: white;
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #f3f4f6;
+  padding: 1.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.feature-card {
+  background-color: white;
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #f3f4f6;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.feature-card h3 {
+  color: var(--primary-purple);
+  font-size: var(--font-size-xl);
+  margin-bottom: 0.75rem;
+}
+
+.feature-card p {
+  font-size: var(--font-size-base);
+  color: var(--text-gray);
+}
+
+/* Icon container */
+.icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, var(--primary-purple-light), var(--primary-purple));
+}
+
+/* Layout utilities */
+.section {
+  padding: var(--spacing-section) 1rem;
+}
+
+.section-lg {
+  padding: var(--spacing-section-lg) 1rem;
+}
+
+.container-custom {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Hero section with background pattern */
+.hero-section {
+  background: linear-gradient(135deg, var(--background-light) 0%, #f3f4f6 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 1px 1px, var(--primary-purple) 1px, transparent 0);
+  background-size: 20px 20px;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+/* Decorative wave divider */
+.wave-divider {
+  position: relative;
+  height: 60px;
+  background: linear-gradient(to right, var(--background-light), white);
+}
+
+.wave-divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='%23ffffff'%3E%3C/path%3E%3C/svg%3E") no-repeat center center;
+  background-size: cover;
+}
+
+/* Gradient text effect */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary-purple), var(--accent-orange));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Flow diagram components */
+.flow-circle {
+  width: 16rem;
+  height: 16rem;
+  border-radius: 50%;
+  border: 4px solid var(--primary-purple);
+  position: relative;
+  margin-left: auto;
+  margin-right: auto;
+  background: linear-gradient(135deg, rgb(99 102 241 / 0.1), rgb(234 88 12 / 0.1));
+}
+
+.flow-step {
+  position: absolute;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  background-color: var(--primary-purple);
+  border: 3px solid white;
+  box-shadow: 0 4px 12px rgb(99 102 241 / 0.3);
+}
+
+/* Number badge */
+.number-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: white;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  background-color: var(--primary-purple);
+}
+
+/* Purple section with pattern */
+.purple-section {
+  background: linear-gradient(135deg, var(--primary-purple-dark), var(--primary-purple));
+  position: relative;
+  overflow: hidden;
+}
+
+.purple-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* Animated gradient background */
+.animated-bg {
+  background: linear-gradient(-45deg, #6366f1, #a855f7, #ec4899, #f59e0b);
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+/* Shadow utilities */
+.shadow-colored {
+  box-shadow: var(--shadow-colored);
+}
+
+.border-gradient {
+  border: 2px solid transparent;
+  background: 
+    linear-gradient(white, white) padding-box,
+    linear-gradient(135deg, var(--primary-purple), var(--accent-orange)) border-box;
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.2s ease-in-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* Section spacing utilities */
+.space-y-section > * + * {
+  margin-top: var(--spacing-section);
+}

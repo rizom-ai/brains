@@ -19,27 +19,123 @@ const { title, tagline, hero } = landing;
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{title}</title>
   <meta name="description" content={tagline}>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gradient-to-b from-blue-50 to-white min-h-screen">
-  <div class="container mx-auto px-4 py-16 max-w-6xl">
-    <!-- Hero Section -->
-    <div class="text-center mb-16">
-      <h1 class="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
-        {hero.headline}
-      </h1>
-      <p class="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
-        {hero.subheadline}
-      </p>
-      <a 
-        href={hero.ctaLink} 
-        class="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors"
-      >
-        {hero.ctaText}
-      </a>
+<body class="min-h-screen">
+  <!-- Hero Section with Background Pattern -->
+  <section class="relative overflow-hidden bg-gradient-to-br from-background-light to-gray-50">
+    <!-- Decorative background pattern -->
+    <div class="absolute inset-0 opacity-5 pointer-events-none">
+      <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, rgb(99 102 241) 1px, transparent 0); background-size: 20px 20px;"></div>
     </div>
-  </div>
+    
+    <div class="relative max-w-7xl mx-auto px-4 py-section md:py-section-lg">
+      <!-- Hero Content -->
+      <div class="text-center max-w-4xl mx-auto">
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-text-dark mb-6 leading-tight">
+          <span class="block">{hero.headline.split(' ').slice(0, Math.ceil(hero.headline.split(' ').length/2)).join(' ')}</span>
+          <span class="block bg-gradient-to-r from-primary-purple to-accent-orange bg-clip-text text-transparent">
+            {hero.headline.split(' ').slice(Math.ceil(hero.headline.split(' ').length/2)).join(' ')}
+          </span>
+        </h1>
+        
+        <p class="text-xl md:text-2xl text-text-gray mb-10 max-w-3xl mx-auto leading-relaxed">
+          {hero.subheadline}
+        </p>
+        
+        <!-- CTA Button with enhanced styling -->
+        <a 
+          href={hero.ctaLink} 
+          class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-accent-orange rounded-xl shadow-lg hover:bg-accent-orange-dark hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-orange-500/20"
+        >
+          {hero.ctaText}
+          <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+    
+    <!-- Wave divider -->
+    <div class="absolute bottom-0 left-0 right-0 h-16 bg-white">
+      <svg class="absolute bottom-0 w-full h-16" preserveAspectRatio="none" viewBox="0 0 1200 120">
+        <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" 
+              fill="white"></path>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Feature Cards Section (Example) -->
+  <section class="py-section md:py-section-lg">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-text-dark mb-4">
+          Why Choose Us
+        </h2>
+        <p class="text-lg text-text-gray max-w-2xl mx-auto">
+          Discover what makes our solution unique
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        <!-- Feature Card 1 -->
+        <div class="bg-white rounded-2xl shadow border border-border-light p-6 text-center hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary-purple-light to-primary-purple mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-primary-purple mb-3">Fast & Efficient</h3>
+          <p class="text-text-gray">Lightning-fast performance that saves you time and boosts productivity</p>
+        </div>
+        
+        <!-- Feature Card 2 -->
+        <div class="bg-white rounded-2xl shadow border border-border-light p-6 text-center hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary-purple-light to-primary-purple mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-primary-purple mb-3">Secure & Reliable</h3>
+          <p class="text-text-gray">Enterprise-grade security to keep your data safe and protected</p>
+        </div>
+        
+        <!-- Feature Card 3 -->
+        <div class="bg-white rounded-2xl shadow border border-border-light p-6 text-center hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary-purple-light to-primary-purple mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-primary-purple mb-3">Easy to Use</h3>
+          <p class="text-text-gray">Intuitive interface designed for users of all skill levels</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section with Gradient Background -->
+  <section class="relative py-section md:py-section-lg overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-primary-purple-dark to-primary-purple"></div>
+    <div class="absolute inset-0 opacity-10 pointer-events-none">
+      <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0); background-size: 40px 40px;"></div>
+    </div>
+    
+    <div class="relative max-w-7xl mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        Ready to Get Started?
+      </h2>
+      <p class="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
+        Join thousands of satisfied customers who have transformed their workflow
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="#" class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-primary-purple bg-white rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+          Start Free Trial
+        </a>
+        <a href="#" class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white border-2 border-white rounded-xl hover:bg-white hover:text-primary-purple transition-all duration-200">
+          Learn More
+        </a>
+      </div>
+    </div>
+  </section>
 </body>
 </html>
