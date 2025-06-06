@@ -421,15 +421,18 @@ The webserver plugin integrates with the shell's content generation system to pr
 **Key Points:**
 
 1. **Two Entity Types**:
+
    - `generated-content` (shell): Stores all AI-generated content with context
    - `site-content` (plugin): Stores human-reviewed/edited website content
 
 2. **Content Priority**:
+
    - Check site-content first (human edits)
    - Check generated-content second (AI cache)
    - Generate new only if neither exists
 
 3. **Promotion Workflow**:
+
    - All generated content is saved with an entity ID
    - Users can list, preview, and selectively promote content
    - Promoted content becomes site-content entities

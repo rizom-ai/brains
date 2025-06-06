@@ -6,7 +6,7 @@ import {
   generateMarkdownWithFrontmatter,
   generateFrontmatter,
 } from "@brains/utils";
-import { generatedContentSchema } from "@brains/types";
+import { generatedContentSchema, generatedContentMetadataSchema } from "@brains/types";
 
 export class GeneratedContentAdapter
   implements EntityAdapter<GeneratedContent>
@@ -33,26 +33,18 @@ export class GeneratedContentAdapter
   }
 
   public fromMarkdown(markdown: string): Partial<GeneratedContent> {
-    const { metadata } = parseMarkdownWithFrontmatter(
-      markdown,
-      generatedContentSchema,
-    );
-
-    return {
-      contentType: metadata.contentType,
-      schemaName: metadata.schemaName,
-      data: metadata.data,
-      metadata: metadata.metadata,
-    };
+    // For generated-content, all structural data is stored in the database metadata column
+    // The markdown only contains human-readable content
+    // Frontmatter is included for portability but not used for reconstruction
+    return {};
   }
 
   public extractMetadata(entity: GeneratedContent): Record<string, unknown> {
     return {
       contentType: entity.contentType,
       schemaName: entity.schemaName,
-      generatedAt: entity.metadata.generatedAt,
-      generatedBy: entity.metadata.generatedBy,
-      regenerated: entity.metadata.regenerated,
+      data: entity.data,
+      metadata: entity.metadata,
     };
   }
 

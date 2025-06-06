@@ -305,6 +305,7 @@ interface GeneratedContent extends BaseEntity {
 ```
 
 **Note**: This entity type is already implemented with:
+
 - Schema in `@brains/types`
 - Adapter in `packages/shell/src/content/generatedContentAdapter.ts`
 - Registered in shell initialization

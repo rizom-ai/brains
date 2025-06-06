@@ -58,6 +58,9 @@ describe("MCP Registration", () => {
         getEntity: mock(() =>
           Promise.resolve({ id: "1", type: "note", content: "Test" }),
         ),
+        deriveEntity: mock(() =>
+          Promise.resolve({ id: "2", entityType: "note", content: "Derived" }),
+        ),
       } as unknown as EntityService,
       schemaRegistry: {
         getAllSchemaNames: mock(() => ["entity", "message"]),
@@ -100,7 +103,7 @@ describe("MCP Registration", () => {
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
     // Check that tools were registered
-    expect(mockServer.tool).toHaveBeenCalledTimes(6); // 6 tools total
+    expect(mockServer.tool).toHaveBeenCalledTimes(7); // 7 tools total
 
     // Verify tool names
     const toolNames = Array.from(mockToolHandlers.keys());
@@ -110,6 +113,7 @@ describe("MCP Registration", () => {
     expect(toolNames).toContain("generate_content");
     expect(toolNames).toContain("generate_from_template");
     expect(toolNames).toContain("list_content_templates");
+    expect(toolNames).toContain("promote_generated_content");
   });
 
   it("should register shell resources with MCP server", () => {

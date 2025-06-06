@@ -1,9 +1,175 @@
-/* Import Archivo font from Google Fonts - must come BEFORE tailwindcss import */
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@100;200;300;400;500;600;700;800;900&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 @import "tailwindcss";
 
-/* Configure Tailwind theme */
+/* Custom CSS Variables */
+:root {
+  --primary-purple: #6366f1;
+  --primary-purple-dark: #4f46e5;
+  --primary-purple-light: #a5b4fc;
+  --accent-orange: #ea580c;
+  --accent-orange-dark: #c2410c;
+  --background-light: #faf8ff;
+  --background-white: #ffffff;
+  --text-dark: #1e1b4b;
+  --text-gray: #64748b;
+  --border-light: #e2e8f0;
+}
+
 @theme {
-  --font-sans: 'Archivo', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Font family */
+  --font-family-sans: 'DM Sans', 'Inter', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* Custom color palette */
+  --color-primary-purple: var(--primary-purple);
+  --color-primary-purple-dark: var(--primary-purple-dark);
+  --color-primary-purple-light: var(--primary-purple-light);
+  --color-accent-orange: var(--accent-orange);
+  --color-accent-orange-dark: var(--accent-orange-dark);
+  --color-background-light: var(--background-light);
+  --color-background-white: var(--background-white);
+  --color-text-dark: var(--text-dark);
+  --color-text-gray: var(--text-gray);
+  --color-border-light: var(--border-light);
+
+  /* Typography scale */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+  --font-size-6xl: 3.75rem;
+
+  /* Responsive text sizes */
+  --font-size-responsive-xl: clamp(2rem, 5vw, 4rem);
+  --font-size-responsive-lg: clamp(1.5rem, 4vw, 2.5rem);
+  --font-size-responsive-base: clamp(1rem, 2vw, 1.25rem);
+
+  /* Spacing scale */
+  --spacing-section: 4rem;
+  --spacing-section-lg: 6rem;
+
+  /* Border radius */
+  --radius-sm: 0.375rem;
+  --radius: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+
+  /* Box shadows */
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-colored: 0 10px 25px rgb(99 102 241 / 0.15);
+
+  /* Animations */
+  --animate-gradient-shift: gradient-shift 15s ease infinite;
+}
+
+/* Base HTML styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family-sans);
+  background-color: var(--background-white);
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+/* Typography hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-dark);
+}
+
+h1 {
+  font-size: var(--font-size-5xl);
+  font-weight: 800;
+}
+
+h2 {
+  font-size: var(--font-size-4xl);
+  font-weight: 700;
+}
+
+h3 {
+  font-size: var(--font-size-3xl);
+  font-weight: 600;
+}
+
+p {
+  color: var(--text-gray);
+  font-size: var(--font-size-lg);
+  line-height: 1.7;
+}
+
+/* Smooth transitions */
+* {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Button focus states */
+button:focus-visible {
+  outline: 2px solid var(--primary-purple);
+  outline-offset: 2px;
+}
+
+/* Responsive text utilities */
+.text-responsive-xl {
+  font-size: var(--font-size-responsive-xl);
+}
+
+.text-responsive-lg {
+  font-size: var(--font-size-responsive-lg);
+}
+
+.text-responsive-base {
+  font-size: var(--font-size-responsive-base);
+}
+
+/* Utility classes */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Focus utilities */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-purple), 0 0 0 4px rgb(99 102 241 / 0.1);
+}
+
+/* Additional color utilities */
+.text-primary-purple {
+  color: var(--primary-purple);
+}
+
+.bg-primary-purple {
+  background-color: var(--primary-purple);
+}
+
+.text-accent-orange {
+  color: var(--accent-orange);
+}
+
+.bg-accent-orange {
+  background-color: var(--accent-orange);
+}
+
+.bg-background-light {
+  background-color: var(--background-light);
+}
+
+/* Keyframe animations */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }

@@ -140,6 +140,7 @@ export class QueryProcessor {
   ): Promise<Entity[]> {
     const results = await this.entityService.search(query, {
       types: intentAnalysis.entityTypes,
+      excludeTypes: ["generated-content"], // Always exclude generated-content to prevent AI feedback loops
       limit: 5,
       offset: 0,
       sortBy: "relevance" as const,

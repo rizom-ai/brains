@@ -7,12 +7,14 @@ This document describes the integrated flow for content generation, persistence,
 ## Entity Types
 
 ### 1. generated-content
+
 - **Purpose**: Store all AI-generated content with full context
 - **Scope**: Generic, used by any part of the system
 - **Lifetime**: Permanent until explicitly deleted
 - **Location**: Shell package (core functionality)
 
-### 2. site-content  
+### 2. site-content
+
 - **Purpose**: Store human-reviewed/edited website content
 - **Scope**: Specific to webserver plugin
 - **Lifetime**: Permanent, the "source of truth" for website
@@ -52,6 +54,7 @@ graph TD
 ```
 
 Priority order:
+
 1. **site-content** - Always preferred (human overrides AI)
 2. **generated-content** - Good fallback (cached AI results)
 3. **Generate new** - Only if nothing exists
@@ -67,6 +70,7 @@ graph LR
 ```
 
 The promotion process:
+
 1. User reviews generated content (via list tool or preview)
 2. Selects specific generated-content by ID
 3. Tool promotes it to the appropriate entity type
@@ -83,14 +87,17 @@ To prevent AI-generated content from contaminating future queries and generation
 class QueryProcessor {
   async processQuery(query: string, options?: QueryOptions) {
     // Always exclude generated-content from context
-    const excludedTypes = ["generated-content", ...(options?.excludeTypes || [])];
-    
+    const excludedTypes = [
+      "generated-content",
+      ...(options?.excludeTypes || []),
+    ];
+
     // Search for entities to include as context
     const searchResults = await this.entityService.search(query, {
       ...options,
       excludeTypes: excludedTypes,
     });
-    
+
     // Continue with normal processing
   }
 }
@@ -99,7 +106,7 @@ class QueryProcessor {
 interface SearchOptions {
   limit?: number;
   offset?: number;
-  types?: string[];        // Include only these types
+  types?: string[]; // Include only these types
   excludeTypes?: string[]; // Exclude these types (e.g., ["generated-content"])
 }
 ```
@@ -138,7 +145,7 @@ server.tool("generate_content", {
   contentType: z.string().optional(), // For filtering later
 }, async (params) => {
   const result = await contentAdapter.generateContent(params);
-  
+
   if (params.save) {
     const entity = await entityService.createEntity({
       entityType: "generated-content",
@@ -154,14 +161,14 @@ server.tool("generate_content", {
         regenerated: false,
       },
     });
-    
-    return { 
-      content: result, 
+
+    return {
+      content: result,
       entityId: entity.id,
       message: `Generated and saved as entity ${entity.id}`
     };
   }
-  
+
   return { content: result };
 });
 ```
@@ -172,7 +179,9 @@ server.tool("generate_content", {
 class ContentGenerator {
   async generateLandingPage(): Promise<void> {
     // Try to get content with fallback chain
-    const heroContent = await this.getContentWithFallback("landing", "hero", 
+    const heroContent = await this.getContentWithFallback(
+      "landing",
+      "hero",
       async () => {
         // Generate new content
         const result = await this.context.generateContent({
@@ -183,20 +192,20 @@ class ContentGenerator {
           context: {
             siteTitle: this.options.siteTitle,
             siteDescription: this.options.siteDescription,
-          }
+          },
         });
         return result.content;
-      }
+      },
     );
-    
+
     // Write to YAML for Astro
     await this.writeYamlFile("landing", "index.yaml", heroContent);
   }
-  
+
   private async getContentWithFallback(
-    page: string, 
+    page: string,
     section: string,
-    generateFn: () => Promise<any>
+    generateFn: () => Promise<any>,
   ): Promise<any> {
     // 1. Check site-content (human-edited)
     const siteContent = await this.findSiteContent(page, section);
@@ -204,29 +213,38 @@ class ContentGenerator {
       this.logger.info(`Using human-edited content for ${page}/${section}`);
       return siteContent.data;
     }
-    
+
     // 2. Check generated-content (AI-generated)
-    const generatedContent = await this.findGeneratedContent(`${page}-${section}`);
+    const generatedContent = await this.findGeneratedContent(
+      `${page}-${section}`,
+    );
     if (generatedContent) {
-      this.logger.info(`Using previously generated content for ${page}/${section}`);
+      this.logger.info(
+        `Using previously generated content for ${page}/${section}`,
+      );
       return generatedContent.data;
     }
-    
+
     // 3. Generate new
     this.logger.info(`Generating new content for ${page}/${section}`);
     return generateFn();
   }
-  
-  private async findGeneratedContent(contentType: string): Promise<GeneratedContent | null> {
-    const entities = await this.entityService.listEntities("generated-content", {
-      filter: { 
-        metadata: { contentType } 
+
+  private async findGeneratedContent(
+    contentType: string,
+  ): Promise<GeneratedContent | null> {
+    const entities = await this.entityService.listEntities(
+      "generated-content",
+      {
+        filter: {
+          metadata: { contentType },
+        },
+        limit: 1,
+        sortBy: "created",
+        sortDirection: "desc",
       },
-      limit: 1,
-      sortBy: "created",
-      sortDirection: "desc",
-    });
-    
+    );
+
     return entities[0] || null;
   }
 }
@@ -246,12 +264,14 @@ class EntityService {
     sourceEntityType: string,
     targetEntityType: string,
     additionalFields?: Partial<T>,
-    options?: { deleteSource?: boolean }
+    options?: { deleteSource?: boolean },
   ): Promise<T> {
     // Get the source entity
     const source = await this.getEntity(sourceEntityType, sourceEntityId);
     if (!source) {
-      throw new Error(`Source entity not found: ${sourceEntityType}/${sourceEntityId}`);
+      throw new Error(
+        `Source entity not found: ${sourceEntityType}/${sourceEntityId}`,
+      );
     }
 
     // Create the derived entity with merged data
@@ -268,7 +288,7 @@ class EntityService {
     }
 
     this.logger.info(
-      `Derived ${targetEntityType} ${derived.id} from ${sourceEntityType} ${sourceEntityId}`
+      `Derived ${targetEntityType} ${derived.id} from ${sourceEntityType} ${sourceEntityId}`,
     );
 
     return derived;
@@ -280,99 +300,117 @@ class EntityService {
 
 ```typescript
 // List generated content for review
-server.tool("list_generated_content", {
-  contentType: z.string().optional(),
-  limit: z.number().optional().default(10),
-}, async (params) => {
-  const entities = await entityService.listEntities("generated-content", {
-    filter: params.contentType ? { metadata: { contentType: params.contentType } } : {},
-    limit: params.limit,
-    sortBy: "created",
-    sortDirection: "desc",
-  });
-  
-  return entities.map(e => ({
-    id: e.id,
-    contentType: e.contentType,
-    prompt: e.metadata.prompt,
-    generatedAt: e.metadata.generatedAt,
-    preview: JSON.stringify(e.data).substring(0, 200) + "...",
-  }));
-});
+server.tool(
+  "list_generated_content",
+  {
+    contentType: z.string().optional(),
+    limit: z.number().optional().default(10),
+  },
+  async (params) => {
+    const entities = await entityService.listEntities("generated-content", {
+      filter: params.contentType
+        ? { metadata: { contentType: params.contentType } }
+        : {},
+      limit: params.limit,
+      sortBy: "created",
+      sortDirection: "desc",
+    });
+
+    return entities.map((e) => ({
+      id: e.id,
+      contentType: e.contentType,
+      prompt: e.metadata.prompt,
+      generatedAt: e.metadata.generatedAt,
+      preview: JSON.stringify(e.data).substring(0, 200) + "...",
+    }));
+  },
+);
 
 // Promote generated content to target entity type
-server.tool("promote_generated_content", {
-  generatedContentId: z.string(),
-  targetEntityType: z.string(),
-  additionalFields: z.record(z.unknown()).optional(),
-  deleteOriginal: z.boolean().optional().default(false),
-}, async (params) => {
-  const promoted = await entityService.deriveEntity(
-    params.generatedContentId,
-    "generated-content",
-    params.targetEntityType,
-    params.additionalFields,
-    { deleteSource: params.deleteOriginal }
-  );
-  
-  return { 
-    promotedId: promoted.id,
-    promotedType: promoted.entityType,
-    message: `Promoted to ${promoted.entityType}: ${promoted.id}`
-  };
-});
+server.tool(
+  "promote_generated_content",
+  {
+    generatedContentId: z.string(),
+    targetEntityType: z.string(),
+    additionalFields: z.record(z.unknown()).optional(),
+    deleteOriginal: z.boolean().optional().default(false),
+  },
+  async (params) => {
+    const promoted = await entityService.deriveEntity(
+      params.generatedContentId,
+      "generated-content",
+      params.targetEntityType,
+      params.additionalFields,
+      { deleteSource: params.deleteOriginal },
+    );
+
+    return {
+      promotedId: promoted.id,
+      promotedType: promoted.entityType,
+      message: `Promoted to ${promoted.entityType}: ${promoted.id}`,
+    };
+  },
+);
 
 // Preview generated content
-server.tool("preview_generated_content", {
-  generatedContentId: z.string(),
-}, async (params) => {
-  const entity = await entityService.getEntity(
-    "generated-content",
-    params.generatedContentId
-  );
-  
-  if (!entity) {
-    throw new Error("Generated content not found");
-  }
-  
-  return {
-    id: entity.id,
-    contentType: entity.contentType,
-    prompt: entity.metadata.prompt,
-    generatedAt: entity.metadata.generatedAt,
-    data: entity.data,
-  };
-});
+server.tool(
+  "preview_generated_content",
+  {
+    generatedContentId: z.string(),
+  },
+  async (params) => {
+    const entity = await entityService.getEntity(
+      "generated-content",
+      params.generatedContentId,
+    );
+
+    if (!entity) {
+      throw new Error("Generated content not found");
+    }
+
+    return {
+      id: entity.id,
+      contentType: entity.contentType,
+      prompt: entity.metadata.prompt,
+      generatedAt: entity.metadata.generatedAt,
+      data: entity.data,
+    };
+  },
+);
 
 // Regenerate content (creates new version)
-server.tool("regenerate_content", {
-  contentType: z.string(),
-  prompt: z.string().optional(),
-  context: z.object({}).optional(),
-}, async (params) => {
-  // Find existing generated content
-  const existing = await entityService.listEntities("generated-content", {
-    filter: { metadata: { contentType: params.contentType } },
-    limit: 1,
-  });
-  
-  const oldPrompt = existing[0]?.metadata.prompt;
-  const oldContext = existing[0]?.metadata.context;
-  
-  // Generate new version
-  const result = await contentGenerationService.generate({
-    prompt: params.prompt || oldPrompt,
-    context: params.context || oldContext,
-    save: true,
-    contentType: params.contentType,
-  });
-  
-  return {
-    newId: result.entityId,
-    oldId: existing[0]?.id,
-    message: "New version generated",
-  };
-});
+server.tool(
+  "regenerate_content",
+  {
+    contentType: z.string(),
+    prompt: z.string().optional(),
+    context: z.object({}).optional(),
+  },
+  async (params) => {
+    // Find existing generated content
+    const existing = await entityService.listEntities("generated-content", {
+      filter: { metadata: { contentType: params.contentType } },
+      limit: 1,
+    });
+
+    const oldPrompt = existing[0]?.metadata.prompt;
+    const oldContext = existing[0]?.metadata.context;
+
+    // Generate new version
+    const result = await contentGenerationService.generate({
+      prompt: params.prompt || oldPrompt,
+      context: params.context || oldContext,
+      save: true,
+      contentType: params.contentType,
+    });
+
+    return {
+      newId: result.entityId,
+      oldId: existing[0]?.id,
+      message: "New version generated",
+    };
+  },
+);
 ```
 
 ### Plugin-Specific Promotion Tools
@@ -381,39 +419,45 @@ Plugins can create specialized promotion tools that use the generic EntityServic
 
 ```typescript
 // Example: Webserver plugin's specialized tool
-server.tool("promote_to_site_content", {
-  generatedContentId: z.string(),
-  page: z.string(),
-  section: z.string(),
-}, async (params) => {
-  // Use EntityService.deriveEntity with site-content specifics
-  const promoted = await entityService.deriveEntity(
-    params.generatedContentId,
-    "generated-content",
-    "site-content",
-    {
-      page: params.page,
-      section: params.section,
-      title: `${params.page} - ${params.section}`,
-    }
-  );
-  
-  return {
-    siteContentId: promoted.id,
-    message: `Promoted to site-content for ${params.page}/${params.section}`
-  };
-});
+server.tool(
+  "promote_to_site_content",
+  {
+    generatedContentId: z.string(),
+    page: z.string(),
+    section: z.string(),
+  },
+  async (params) => {
+    // Use EntityService.deriveEntity with site-content specifics
+    const promoted = await entityService.deriveEntity(
+      params.generatedContentId,
+      "generated-content",
+      "site-content",
+      {
+        page: params.page,
+        section: params.section,
+        title: `${params.page} - ${params.section}`,
+      },
+    );
+
+    return {
+      siteContentId: promoted.id,
+      message: `Promoted to site-content for ${params.page}/${params.section}`,
+    };
+  },
+);
 ```
 
 ## User Workflows
 
 ### Initial Site Setup
+
 1. Run `build_site`
 2. Plugin generates all content, saving as `generated-content` entities
 3. Site is built with AI-generated content
 4. User previews site
 
 ### Content Refinement
+
 1. Run `list_generated_content` to see all generated content
 2. Run `preview_generated_content` to review specific content
 3. Run `promote_generated_content` to promote content to target entity type
@@ -421,6 +465,7 @@ server.tool("promote_to_site_content", {
 5. Future builds use the promoted content
 
 ### Content Regeneration
+
 1. Run `regenerate_content` with new prompt/context
 2. Compare new vs old with `preview_generated_content`
 3. If better, promote the new version
@@ -438,6 +483,7 @@ server.tool("promote_to_site_content", {
 ## Migration Notes
 
 For existing implementations:
+
 1. The `generated-content` entity type is already registered in shell
 2. Update `generate_content` MCP tool to support `save` parameter
 3. Update webserver plugin to check both entity types

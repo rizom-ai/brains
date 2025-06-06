@@ -300,6 +300,7 @@ describe("QueryProcessor", () => {
 
       expect(mockEntityService.search).toHaveBeenCalledWith("find my notes", {
         types: ["note"],
+        excludeTypes: ["generated-content"],
         limit: 5,
         offset: 0,
         sortBy: "relevance",

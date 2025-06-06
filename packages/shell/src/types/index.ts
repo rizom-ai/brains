@@ -11,6 +11,7 @@ export type Entity = BaseEntity;
  */
 export const searchOptionsSchema = z.object({
   types: z.array(z.string()).optional(),
+  excludeTypes: z.array(z.string()).optional(),
   limit: z.number().positive().default(20),
   offset: z.number().nonnegative().default(0),
   sortBy: z.enum(["relevance", "created", "updated"]).default("relevance"),

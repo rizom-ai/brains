@@ -33,6 +33,7 @@ const searchOptionsSchema = z.object({
   limit: z.number().int().positive().optional().default(20),
   offset: z.number().int().min(0).optional().default(0),
   types: z.array(z.string()).optional().default([]),
+  excludeTypes: z.array(z.string()).optional().default([]),
 });
 
 /**
@@ -203,6 +204,7 @@ export class EntityService {
         // Core fields from database (always authoritative)
         id: entityData.id,
         entityType: entityData.entityType,
+        content: entityData.content,
         created: new Date(entityData.created).toISOString(),
         updated: new Date(entityData.updated).toISOString(),
 
@@ -440,7 +442,7 @@ export class EntityService {
     options?: SearchOptions,
   ): Promise<SearchResult[]> {
     const validatedOptions = searchOptionsSchema.parse(options ?? {});
-    const { limit, offset, types } = validatedOptions;
+    const { limit, offset, types, excludeTypes } = validatedOptions;
 
     this.logger.debug(`Searching entities with query: "${query}"`);
 
@@ -465,19 +467,25 @@ export class EntityService {
         ),
     };
 
-    // Build the query with type filter if specified
-    const whereCondition =
-      types.length > 0
-        ? and(
-            sql`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)})) < 1.0`,
-            inArray(entities.entityType, types),
-          )
-        : sql`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)})) < 1.0`;
+    // Build where conditions
+    const whereConditions = [
+      sql`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)})) < 1.0`,
+    ];
+
+    // Add type filter if specified
+    if (types.length > 0) {
+      whereConditions.push(inArray(entities.entityType, types));
+    }
+
+    // Add exclude types filter if specified
+    if (excludeTypes.length > 0) {
+      whereConditions.push(sql`${entities.entityType} NOT IN (${sql.join(excludeTypes.map(t => sql`${t}`), sql`, `)})`);
+    }
 
     const results = await this.db
       .select(baseSelect)
       .from(entities)
-      .where(whereCondition)
+      .where(and(...whereConditions))
       .orderBy(sql`distance`)
       .limit(limit)
       .offset(offset);
@@ -588,6 +596,47 @@ export class EntityService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Derive a new entity from an existing entity
+   * Useful for creating entities based on generated content or transforming between types
+   */
+  public async deriveEntity<T extends BaseEntity>(
+    sourceEntityId: string,
+    sourceEntityType: string,
+    targetEntityType: string,
+    additionalFields?: Partial<T>,
+    options?: { deleteSource?: boolean },
+  ): Promise<T> {
+    // Get the source entity
+    const source = await this.getEntity(sourceEntityType, sourceEntityId);
+    if (!source) {
+      throw new Error(
+        `Source entity not found: ${sourceEntityType}/${sourceEntityId}`,
+      );
+    }
+
+    // Create the derived entity by copying source fields
+    // Exclude metadata fields that are auto-generated
+    const { id, created, updated, entityType, ...sourceFields } = source;
+    
+    const derived = await this.createEntity<T>({
+      ...sourceFields,
+      ...additionalFields,
+      entityType: targetEntityType,
+    } as T);
+
+    // Optionally delete the source
+    if (options?.deleteSource) {
+      await this.deleteEntity(sourceEntityId);
+    }
+
+    this.logger.info(
+      `Derived ${targetEntityType} ${derived.id} from ${sourceEntityType} ${sourceEntityId}`,
+    );
+
+    return derived;
   }
 
   /**

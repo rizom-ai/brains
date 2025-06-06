@@ -42,6 +42,7 @@ export function registerShellTools(
   const contentAdapter = new ContentGenerationAdapter(
     contentGenerationService,
     schemaRegistry,
+    entityService,
   );
 
   logger.info("Registering shell tools with MCP server");
@@ -158,7 +159,6 @@ export function registerShellTools(
       prompt: z.string().describe("The prompt for content generation"),
       schemaName: z
         .string()
-        .optional()
         .describe("Name of the schema to use for structured output"),
       context: z
         .object({
@@ -181,11 +181,21 @@ export function registerShellTools(
         })
         .optional()
         .describe("Additional context for content generation"),
+      save: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Save as generated-content entity"),
+      contentType: z
+        .string()
+        .optional()
+        .describe("Content type identifier for categorization"),
     },
     async (params) => {
       try {
         logger.debug("Executing generate_content tool", {
           prompt: params.prompt,
+          save: params.save,
         });
 
         const result = await contentAdapter.generateContent(params);
@@ -270,6 +280,43 @@ export function registerShellTools(
       throw error;
     }
   });
+
+  // Register promote generated content tool
+  server.tool(
+    "promote_generated_content",
+    {
+      generatedContentId: z.string().describe("ID of the generated-content entity"),
+      targetEntityType: z.string().describe("Target entity type to promote to"),
+      additionalFields: z
+        .record(z.unknown())
+        .optional()
+        .describe("Additional fields for the target entity"),
+      deleteOriginal: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Delete the source generated-content entity after promotion"),
+    },
+    async (params) => {
+      try {
+        logger.debug("Executing promote_generated_content tool", params);
+
+        const result = await entityAdapter.promoteGeneratedContent(params);
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error("Error in promote_generated_content tool", error);
+        throw error;
+      }
+    },
+  );
 
   logger.info("Shell tools registered successfully");
 }

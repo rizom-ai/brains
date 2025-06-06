@@ -10,10 +10,8 @@ import type { QueryOptions } from "../types";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { EntityService } from "../entity/entityService";
 import type { ContentGenerationService } from "../content/contentGenerationService";
-import type { ContentGenerateOptions } from "@brains/types";
+import type { ContentGenerateOptions, GeneratedContent, BaseEntity } from "@brains/types";
 import { defaultQueryResponseSchema } from "../schemas/defaults";
-import { z } from "zod";
-import type { BaseEntity } from "@brains/types";
 
 /**
  * MCP Query parameters (what users provide via MCP tools)
@@ -127,23 +125,36 @@ export class EntityServiceAdapter {
     }
     return entity;
   }
+
+  /**
+   * Promote generated content to a target entity type
+   */
+  async promoteGeneratedContent(params: {
+    generatedContentId: string;
+    targetEntityType: string;
+    additionalFields?: Record<string, unknown> | undefined;
+    deleteOriginal?: boolean | undefined;
+  }): Promise<{
+    promotedId: string;
+    promotedType: string;
+    message: string;
+  }> {
+    const promoted = await this.entityService.deriveEntity(
+      params.generatedContentId,
+      "generated-content",
+      params.targetEntityType,
+      params.additionalFields,
+      params.deleteOriginal ? { deleteSource: params.deleteOriginal } : undefined,
+    );
+
+    return {
+      promotedId: promoted.id,
+      promotedType: promoted.entityType,
+      message: `Promoted to ${promoted.entityType}: ${promoted.id}`,
+    };
+  }
 }
 
-/**
- * MCP Content generation parameters
- */
-export interface MCPGenerateContentParams {
-  prompt: string;
-  schemaName?: string | undefined;
-  context?:
-    | {
-        entities?: BaseEntity[] | undefined;
-        data?: Record<string, unknown> | undefined;
-        style?: string | undefined;
-        examples?: unknown[] | undefined;
-      }
-    | undefined;
-}
 
 /**
  * MCP Content generation with template parameters
@@ -166,27 +177,28 @@ export class ContentGenerationAdapter {
   constructor(
     private contentGenerationService: ContentGenerationService,
     private schemaRegistry: SchemaRegistry,
+    private entityService: EntityService,
   ) {}
 
   /**
    * Generate content with MCP-style parameters
    */
-  async generateContent(params: MCPGenerateContentParams): Promise<unknown> {
-    // Get schema from registry or use a default
-    let schema: z.ZodType<unknown>;
-
-    if (params.schemaName) {
-      const registeredSchema = this.schemaRegistry.get(params.schemaName);
-      if (!registeredSchema) {
-        throw new Error(`Schema not found: ${params.schemaName}`);
-      }
-      schema = registeredSchema;
-    } else {
-      // Default schema for unstructured content generation
-      schema = z.object({
-        content: z.string(),
-        metadata: z.record(z.unknown()).optional(),
-      });
+  async generateContent(params: {
+    prompt: string;
+    schemaName: string;
+    context?: {
+      entities?: BaseEntity[] | undefined;
+      data?: Record<string, unknown> | undefined;
+      examples?: unknown[] | undefined;
+      style?: string | undefined;
+    } | undefined;
+    save?: boolean | undefined;
+    contentType?: string | undefined;
+  }): Promise<unknown> {
+    // Get schema from registry
+    const schema = this.schemaRegistry.get(params.schemaName);
+    if (!schema) {
+      throw new Error(`Schema not found: ${params.schemaName}`);
     }
 
     // Build the options object for content generation
@@ -195,31 +207,75 @@ export class ContentGenerationAdapter {
       prompt: params.prompt,
     };
 
-    // Only add context if it exists and has defined values
+    // Clean up context to remove undefined values
     if (params.context) {
-      const context: ContentGenerateOptions<unknown>["context"] = {};
-
+      const cleanContext: ContentGenerateOptions<unknown>["context"] = {};
+      
       if (params.context.entities !== undefined) {
-        context.entities = params.context.entities;
+        cleanContext.entities = params.context.entities;
       }
       if (params.context.data !== undefined) {
-        context.data = params.context.data;
-      }
-      if (params.context.style !== undefined) {
-        context.style = params.context.style;
+        cleanContext.data = params.context.data;
       }
       if (params.context.examples !== undefined) {
-        context.examples = params.context.examples;
+        cleanContext.examples = params.context.examples;
       }
-
-      // Only set context if it has at least one property
-      if (Object.keys(context).length > 0) {
-        generateOptions.context = context;
+      if (params.context.style !== undefined) {
+        cleanContext.style = params.context.style;
+      }
+      
+      if (Object.keys(cleanContext).length > 0) {
+        generateOptions.context = cleanContext;
       }
     }
 
     // Call content generation service
-    return this.contentGenerationService.generate(generateOptions);
+    const content = await this.contentGenerationService.generate(generateOptions);
+
+    // Save as generated-content entity if requested
+    if (params.save) {
+      return this.saveGeneratedContent(
+        content,
+        params.prompt,
+        params.schemaName,
+        params.contentType,
+        params.context,
+      );
+    }
+
+    return content;
+  }
+
+  /**
+   * Save generated content as an entity
+   */
+  private async saveGeneratedContent(
+    content: unknown,
+    prompt: string,
+    schemaName: string,
+    contentType?: string,
+    context?: unknown,
+  ): Promise<{ content: unknown; entityId: string; message: string }> {
+    const entity = await this.entityService.createEntity<GeneratedContent>({
+      entityType: "generated-content",
+      contentType: contentType || schemaName,
+      schemaName: schemaName,
+      data: content as Record<string, unknown>,
+      content: JSON.stringify(content, null, 2),
+      metadata: {
+        prompt,
+        context,
+        generatedAt: new Date().toISOString(),
+        generatedBy: "claude-3-sonnet",
+        regenerated: false,
+      },
+    });
+
+    return {
+      content,
+      entityId: entity.id,
+      message: `Generated and saved as entity ${entity.id}`,
+    };
   }
 
   /**
