@@ -6,10 +6,10 @@ import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { ContentGenerationService } from "../content/contentGenerationService";
 import type { Logger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
-import { 
-  QueryProcessorAdapter, 
+import {
+  QueryProcessorAdapter,
   EntityServiceAdapter,
-  ContentGenerationAdapter 
+  ContentGenerationAdapter,
 } from "./adapters";
 
 /**
@@ -25,7 +25,13 @@ export function registerShellTools(
     logger: Logger;
   },
 ): void {
-  const { logger, queryProcessor, entityService, schemaRegistry, contentGenerationService } = options;
+  const {
+    logger,
+    queryProcessor,
+    entityService,
+    schemaRegistry,
+    contentGenerationService,
+  } = options;
 
   // Create adapters
   const queryAdapter = new QueryProcessorAdapter(
@@ -178,7 +184,9 @@ export function registerShellTools(
     },
     async (params) => {
       try {
-        logger.debug("Executing generate_content tool", { prompt: params.prompt });
+        logger.debug("Executing generate_content tool", {
+          prompt: params.prompt,
+        });
 
         const result = await contentAdapter.generateContent(params);
 
@@ -202,7 +210,9 @@ export function registerShellTools(
     "generate_from_template",
     {
       templateName: z.string().describe("Name of the template to use"),
-      prompt: z.string().describe("Additional prompt to customize the template"),
+      prompt: z
+        .string()
+        .describe("Additional prompt to customize the template"),
       context: z
         .object({
           data: z
@@ -219,8 +229,8 @@ export function registerShellTools(
     },
     async (params) => {
       try {
-        logger.debug("Executing generate_from_template tool", { 
-          templateName: params.templateName 
+        logger.debug("Executing generate_from_template tool", {
+          templateName: params.templateName,
         });
 
         const result = await contentAdapter.generateFromTemplate(params);
@@ -241,29 +251,25 @@ export function registerShellTools(
   );
 
   // Register list templates tool
-  server.tool(
-    "list_content_templates",
-    {},
-    async () => {
-      try {
-        logger.debug("Executing list_content_templates tool");
+  server.tool("list_content_templates", {}, async () => {
+    try {
+      logger.debug("Executing list_content_templates tool");
 
-        const templates = await contentAdapter.listTemplates();
+      const templates = await contentAdapter.listTemplates();
 
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(templates, null, 2),
-            },
-          ],
-        };
-      } catch (error) {
-        logger.error("Error in list_content_templates tool", error);
-        throw error;
-      }
-    },
-  );
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(templates, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      logger.error("Error in list_content_templates tool", error);
+      throw error;
+    }
+  });
 
   logger.info("Shell tools registered successfully");
 }

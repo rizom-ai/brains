@@ -17,7 +17,8 @@ export function registerShellResources(
     logger: Logger;
   },
 ): void {
-  const { logger, entityService, schemaRegistry, contentGenerationService } = options;
+  const { logger, entityService, schemaRegistry, contentGenerationService } =
+    options;
 
   logger.info("Registering shell resources with MCP server");
 
@@ -160,8 +161,8 @@ export function registerShellResources(
     async (uri: URL) => {
       try {
         const templates = contentGenerationService.listTemplates();
-        
-        const templateInfo = templates.map(t => ({
+
+        const templateInfo = templates.map((t) => ({
           name: t.name,
           description: t.description,
           schemaType: "zod-schema",
@@ -184,7 +185,7 @@ export function registerShellResources(
 
   // Register individual template resources
   const templates = contentGenerationService.listTemplates();
-  
+
   for (const template of templates) {
     server.resource(
       `template_${template.name}`,
@@ -192,7 +193,9 @@ export function registerShellResources(
       { description: `Content generation template: ${template.description}` },
       async (uri: URL) => {
         try {
-          logger.debug("Reading template resource", { templateName: template.name });
+          logger.debug("Reading template resource", {
+            templateName: template.name,
+          });
 
           const templateInfo = {
             name: template.name,

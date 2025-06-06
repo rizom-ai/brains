@@ -64,9 +64,9 @@ describe("MCP Registration", () => {
         get: mock((name: string) => {
           // Return a simple schema for any requested name
           if (name === "entity" || name === "message") {
-            return z.object({ 
+            return z.object({
               id: z.string(),
-              content: z.string() 
+              content: z.string(),
             });
           }
           return undefined;
@@ -74,7 +74,9 @@ describe("MCP Registration", () => {
       } as unknown as SchemaRegistry,
       contentGenerationService: {
         generate: mock(() => Promise.resolve({ content: "Generated content" })),
-        generateFromTemplate: mock(() => Promise.resolve({ content: "Template content" })),
+        generateFromTemplate: mock(() =>
+          Promise.resolve({ content: "Template content" }),
+        ),
         listTemplates: mock(() => [
           {
             name: "test-template",
@@ -194,7 +196,9 @@ describe("MCP Registration", () => {
     const result = await listHandler({});
 
     // Check that the adapter properly called the content generation service
-    expect(mockServices.contentGenerationService.listTemplates).toHaveBeenCalled();
+    expect(
+      mockServices.contentGenerationService.listTemplates,
+    ).toHaveBeenCalled();
 
     // Check the result format
     expect(result.content[0].type).toBe("text");

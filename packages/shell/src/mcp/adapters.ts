@@ -135,12 +135,14 @@ export class EntityServiceAdapter {
 export interface MCPGenerateContentParams {
   prompt: string;
   schemaName?: string | undefined;
-  context?: {
-    entities?: BaseEntity[] | undefined;
-    data?: Record<string, unknown> | undefined;
-    style?: string | undefined;
-    examples?: unknown[] | undefined;
-  } | undefined;
+  context?:
+    | {
+        entities?: BaseEntity[] | undefined;
+        data?: Record<string, unknown> | undefined;
+        style?: string | undefined;
+        examples?: unknown[] | undefined;
+      }
+    | undefined;
 }
 
 /**
@@ -149,10 +151,12 @@ export interface MCPGenerateContentParams {
 export interface MCPGenerateFromTemplateParams {
   templateName: string;
   prompt: string;
-  context?: {
-    data?: Record<string, unknown> | undefined;
-    style?: string | undefined;
-  } | undefined;
+  context?:
+    | {
+        data?: Record<string, unknown> | undefined;
+        style?: string | undefined;
+      }
+    | undefined;
 }
 
 /**
@@ -170,7 +174,7 @@ export class ContentGenerationAdapter {
   async generateContent(params: MCPGenerateContentParams): Promise<unknown> {
     // Get schema from registry or use a default
     let schema: z.ZodType<unknown>;
-    
+
     if (params.schemaName) {
       const registeredSchema = this.schemaRegistry.get(params.schemaName);
       if (!registeredSchema) {
@@ -193,8 +197,8 @@ export class ContentGenerationAdapter {
 
     // Only add context if it exists and has defined values
     if (params.context) {
-      const context: ContentGenerateOptions<unknown>['context'] = {};
-      
+      const context: ContentGenerateOptions<unknown>["context"] = {};
+
       if (params.context.entities !== undefined) {
         context.entities = params.context.entities;
       }
@@ -207,7 +211,7 @@ export class ContentGenerationAdapter {
       if (params.context.examples !== undefined) {
         context.examples = params.context.examples;
       }
-      
+
       // Only set context if it has at least one property
       if (Object.keys(context).length > 0) {
         generateOptions.context = context;
@@ -221,7 +225,9 @@ export class ContentGenerationAdapter {
   /**
    * Generate content from a template
    */
-  async generateFromTemplate(params: MCPGenerateFromTemplateParams): Promise<unknown> {
+  async generateFromTemplate(
+    params: MCPGenerateFromTemplateParams,
+  ): Promise<unknown> {
     // Build the options object - starting with required prompt
     const options: Omit<ContentGenerateOptions<unknown>, "schema"> = {
       prompt: params.prompt,
@@ -229,15 +235,15 @@ export class ContentGenerationAdapter {
 
     // Only add context if it exists and has defined values
     if (params.context) {
-      const context: ContentGenerateOptions<unknown>['context'] = {};
-      
+      const context: ContentGenerateOptions<unknown>["context"] = {};
+
       if (params.context.data !== undefined) {
         context.data = params.context.data;
       }
       if (params.context.style !== undefined) {
         context.style = params.context.style;
       }
-      
+
       // Only set context if it has at least one property
       if (Object.keys(context).length > 0) {
         options.context = context;
@@ -246,7 +252,7 @@ export class ContentGenerationAdapter {
 
     return this.contentGenerationService.generateFromTemplate(
       params.templateName,
-      options
+      options,
     );
   }
 
@@ -255,7 +261,7 @@ export class ContentGenerationAdapter {
    */
   async listTemplates(): Promise<Array<{ name: string; description: string }>> {
     const templates = this.contentGenerationService.listTemplates();
-    return templates.map(t => ({
+    return templates.map((t) => ({
       name: t.name,
       description: t.description,
     }));
