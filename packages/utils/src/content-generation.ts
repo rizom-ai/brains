@@ -6,6 +6,7 @@ import type { ContentTemplate, ContentGenerateOptions } from "@brains/types";
 export async function generateWithTemplate<T>(
   generateContent: <T>(options: ContentGenerateOptions<T>) => Promise<T>,
   template: ContentTemplate<T>,
+  contentType: string,
   additionalContext?: {
     prompt?: string;
     data?: Record<string, unknown>;
@@ -14,7 +15,6 @@ export async function generateWithTemplate<T>(
   },
   persistenceOptions?: {
     save?: boolean;
-    contentType?: string;
   },
 ): Promise<T> {
   // Combine template prompt with additional prompt if provided
@@ -26,6 +26,7 @@ export async function generateWithTemplate<T>(
   const options: ContentGenerateOptions<T> = {
     schema: template.schema,
     prompt: finalPrompt,
+    contentType: contentType,
   };
 
   // Add context if provided
@@ -51,9 +52,6 @@ export async function generateWithTemplate<T>(
   // Add persistence options if provided
   if (persistenceOptions?.save !== undefined) {
     options.save = persistenceOptions.save;
-  }
-  if (persistenceOptions?.contentType !== undefined) {
-    options.contentType = persistenceOptions.contentType;
   }
 
   return generateContent(options);

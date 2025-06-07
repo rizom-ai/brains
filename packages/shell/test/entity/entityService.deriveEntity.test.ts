@@ -77,7 +77,6 @@ describe("EntityService.deriveEntity", () => {
     const sourceEntity = await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test-content",
-      schemaName: "test-schema",
       data: {
         title: "Test Title",
         content: "Test content body",
@@ -128,7 +127,6 @@ describe("EntityService.deriveEntity", () => {
     const sourceEntity = await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test-content",
-      schemaName: "test-schema",
       data: {
         title: "Test Title",
         content: "Test content body",
@@ -203,7 +201,6 @@ describe("EntityService.deriveEntity", () => {
     const sourceEntity = await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "complex-content",
-      schemaName: "complex-schema",
       data: {
         hero: {
           title: "Hero Title",
@@ -237,7 +234,7 @@ describe("EntityService.deriveEntity", () => {
     expect(derivedEntity.entityType).toBe("base");
     expect(derivedEntity.content).toContain("# complex-content");
     expect(derivedEntity.content).toContain(
-      "Generated using schema: complex-schema",
+      'This file contains generated content of type "complex-content"',
     );
     // The content field should be the markdown, not JSON
     expect(derivedEntity.content).not.toMatch(/^\{/);

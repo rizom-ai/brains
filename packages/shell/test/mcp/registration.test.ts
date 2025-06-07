@@ -64,15 +64,13 @@ describe("MCP Registration", () => {
       } as unknown as EntityService,
       schemaRegistry: {
         getAllSchemaNames: mock(() => ["entity", "message"]),
-        get: mock((name: string) => {
+        get: mock((_name: string) => {
           // Return a simple schema for any requested name
-          if (name === "entity" || name === "message") {
-            return z.object({
-              id: z.string(),
-              content: z.string(),
-            });
-          }
-          return undefined;
+          // This includes custom content types for testing
+          return z.object({
+            id: z.string(),
+            content: z.string(),
+          });
         }),
       } as unknown as SchemaRegistry,
       contentGenerationService: {
@@ -173,7 +171,7 @@ describe("MCP Registration", () => {
     // Execute the tool with parameters
     const result = await generateHandler({
       prompt: "Generate test content",
-      schemaName: "entity",
+      contentType: "entity",
     });
 
     // Check that the adapter properly called the content generation service
@@ -210,7 +208,7 @@ describe("MCP Registration", () => {
     // Execute the tool with save=true
     const result = await generateHandler({
       prompt: "Generate and save test content",
-      schemaName: "entity",
+      contentType: "entity",
       save: true,
     });
 
@@ -218,7 +216,7 @@ describe("MCP Registration", () => {
     expect(mockServices.entityService.createEntity).toHaveBeenCalledWith(
       expect.objectContaining({
         entityType: "generated-content",
-        schemaName: "entity",
+        contentType: "entity",
       }),
     );
 
@@ -257,9 +255,8 @@ describe("MCP Registration", () => {
     // Execute the tool with custom contentType
     await generateHandler({
       prompt: "Generate test content",
-      schemaName: "entity",
-      save: true,
       contentType: "custom:type",
+      save: true,
     });
 
     // Check that entity was created with custom contentType

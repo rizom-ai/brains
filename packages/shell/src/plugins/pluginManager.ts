@@ -17,6 +17,7 @@ import type { SchemaFormatterRegistry } from "../formatters";
 import type { EntityRegistry } from "../entity/entityRegistry";
 import type { z } from "zod";
 import type { ContentGenerationService } from "../content/contentGenerationService";
+import type { ContentTypeRegistry } from "../content/contentTypeRegistry";
 
 /**
  * Plugin lifecycle event types
@@ -303,6 +304,7 @@ export class PluginManager {
 
     // Create plugin context
     const context: PluginContext = {
+      pluginId,
       registry: this.registry,
       logger: this.logger.child(`Plugin:${pluginId}`),
       getPlugin: this.getPlugin.bind(this),
@@ -347,13 +349,53 @@ export class PluginManager {
             this.registry.resolve<ContentGenerationService>(
               "contentGenerationService",
             );
-          return await contentGenerationService.generate<T>(options);
+          
+          // Always namespace the contentType with the plugin ID
+          const processedOptions = {
+            ...options,
+            contentType: `${pluginId}:${options.contentType}`
+          };
+          
+          return await contentGenerationService.generate<T>(processedOptions);
         } catch (error) {
           this.logger.error("Failed to generate content", error);
           throw new Error(
             `Content generation failed: ${error instanceof Error ? error.message : String(error)}`,
           );
         }
+      },
+      contentTypes: {
+        register: (contentType: string, schema: z.ZodType<unknown>) => {
+          try {
+            const contentTypeRegistry =
+              this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
+            
+            // Always prefix with plugin ID to ensure proper namespacing
+            const namespacedType = `${pluginId}:${contentType}`;
+            
+            contentTypeRegistry.register(namespacedType, schema);
+            this.logger.debug(`Registered content type: ${namespacedType}`);
+          } catch (error) {
+            this.logger.error("Failed to register content type", error);
+            throw new Error(
+              `Content type registration failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        },
+        list: (): string[] => {
+          try {
+            const contentTypeRegistry =
+              this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
+            
+            // List only this plugin's content types
+            return contentTypeRegistry.list(pluginId);
+          } catch (error) {
+            this.logger.error("Failed to list content types", error);
+            throw new Error(
+              `Content type listing failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        },
       },
     };
 

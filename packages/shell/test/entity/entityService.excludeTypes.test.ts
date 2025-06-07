@@ -82,7 +82,6 @@ describe("EntityService search with excludeTypes", () => {
     await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test",
-      schemaName: "test",
       data: {
         content: "This is generated content about artificial intelligence",
       },
@@ -153,7 +152,6 @@ describe("EntityService search with excludeTypes", () => {
     await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test",
-      schemaName: "test",
       data: { content: "Generated content about testing" },
       content: "Generated content about testing",
       metadata: {
@@ -203,7 +201,6 @@ describe("EntityService search with excludeTypes", () => {
     await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "note",
-      schemaName: "note",
       data: { content: "Generated note about search functionality" },
       content: "Generated note about search functionality",
       metadata: {
@@ -239,7 +236,6 @@ describe("EntityService search with excludeTypes", () => {
     await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test",
-      schemaName: "test",
       data: { content: "Generated test entity" },
       content: "Generated test entity",
       metadata: {

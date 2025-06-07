@@ -72,6 +72,7 @@ describe("ContentGenerator", () => {
 
     // Mock Plugin Context
     const mockContext = {
+      pluginId: "webserver",
       registry: mockRegistry,
       logger: createSilentLogger("test"),
       query: mock(
@@ -176,13 +177,16 @@ describe("ContentGenerator", () => {
       const mockGeneratedContent = {
         id: "test-generated-content",
         entityType: "generated-content",
-        contentType: "landing:hero",
-        schemaName: "landingHero",
+        contentType: "webserver:landing:page",
         data: {
-          headline: "Existing Headline",
-          subheadline: "Existing Subheadline",
-          ctaText: "Existing CTA",
-          ctaLink: "/existing",
+          title: "Existing Title",
+          tagline: "Existing Tagline",
+          hero: {
+            headline: "Existing Headline",
+            subheadline: "Existing Subheadline",
+            ctaText: "Existing CTA",
+            ctaLink: "/existing",
+          },
         },
         content: "Existing hero content",
         metadata: {
@@ -203,7 +207,7 @@ describe("ContentGenerator", () => {
         ) => {
           if (
             entityType === "generated-content" &&
-            options?.filter?.metadata?.contentType === "landing:hero"
+            options?.filter?.metadata?.contentType === "webserver:landing:page"
           ) {
             return [mockGeneratedContent];
           }
@@ -221,7 +225,11 @@ describe("ContentGenerator", () => {
       const content = await readFile(yamlPath, "utf-8");
       const data = yaml.load(content) as Record<string, unknown>;
 
-      // Should have hero section (either from existing content or query)
+      // Should use current title/tagline but existing hero
+      expect(data["title"]).toBe("Test Brain");
+      expect(data["tagline"]).toBe("Test Description");
+      
+      // Should have hero section from existing content
       const hero = data["hero"] as Record<string, unknown>;
       expect(hero).toBeDefined();
       expect(hero["headline"]).toBe("Existing Headline");
@@ -273,6 +281,62 @@ describe("ContentGenerator", () => {
       expect((data["stats"] as Record<string, unknown>)["entityCount"]).toBe(0);
       // No tagCount in new schema
       expect(data["recentEntities"] as unknown[]).toHaveLength(0);
+    });
+
+    it("should reject invalid existing content and generate new", async () => {
+      // Mock existing generated-content with invalid structure
+      const mockInvalidContent = {
+        id: "test-generated-content",
+        entityType: "generated-content",
+        contentType: "webserver:landing:page",
+        data: {
+          // Missing required fields: title, tagline, hero
+          someField: "value",
+        },
+        content: "Invalid hero content",
+        metadata: {
+          prompt: "Generate landing page",
+          generatedAt: new Date().toISOString(),
+          generatedBy: "test",
+          regenerated: false,
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      // Mock EntityService to return our invalid generated-content
+      const mockListEntities = mock(
+        async (
+          entityType: string,
+          options?: { filter?: { contentType?: string } },
+        ) => {
+          if (
+            entityType === "generated-content" &&
+            options?.filter?.contentType === "webserver:landing:hero"
+          ) {
+            return [mockInvalidContent];
+          }
+          return [];
+        },
+      );
+
+      // Replace the mock EntityService's listEntities method
+      mockEntityService.listEntities =
+        mockListEntities as EntityService["listEntities"];
+
+      await contentGenerator.generateAll();
+
+      const yamlPath = join(testDir, "src/content/landing/index.yaml");
+      const content = await readFile(yamlPath, "utf-8");
+      const data = yaml.load(content) as Record<string, unknown>;
+
+      // Should have generated new hero content instead of using invalid existing
+      const hero = data["hero"] as Record<string, unknown>;
+      expect(hero).toBeDefined();
+      expect(hero["headline"]).toBe("Your Personal Knowledge Hub");
+      expect(hero["subheadline"]).toBe(
+        "Organize, connect, and discover your digital thoughts",
+      );
     });
 
     it("should limit recent notes to 5", async () => {

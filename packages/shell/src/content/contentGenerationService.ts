@@ -5,10 +5,16 @@ import type {
   BatchGenerateOptions,
 } from "@brains/types";
 
+import type { EntityService } from "../entity/entityService";
+import type { GeneratedContent } from "@brains/types";
+import type { ContentTypeRegistry } from "./contentTypeRegistry";
+
 export class ContentGenerationService {
   private static instance: ContentGenerationService | null = null;
   private templates: Map<string, ContentTemplate<unknown>> = new Map();
   private queryProcessor: QueryProcessor | null = null;
+  private entityService: EntityService | null = null;
+  private contentTypeRegistry: ContentTypeRegistry | null = null;
 
   // Singleton access
   public static getInstance(): ContentGenerationService {
@@ -34,8 +40,14 @@ export class ContentGenerationService {
   /**
    * Initialize with dependencies
    */
-  public initialize(queryProcessor: QueryProcessor): void {
+  public initialize(
+    queryProcessor: QueryProcessor,
+    entityService: EntityService,
+    contentTypeRegistry: ContentTypeRegistry,
+  ): void {
     this.queryProcessor = queryProcessor;
+    this.entityService = entityService;
+    this.contentTypeRegistry = contentTypeRegistry;
   }
 
   /**
@@ -55,7 +67,38 @@ export class ContentGenerationService {
       schema: options.schema,
     });
 
-    return result as T;
+    // Check that content type is registered
+    if (!this.contentTypeRegistry) {
+      throw new Error(
+        "ContentGenerationService not initialized with ContentTypeRegistry",
+      );
+    }
+    if (!this.contentTypeRegistry.has(options.contentType)) {
+      throw new Error(
+        `No schema registered for content type: ${options.contentType}`,
+      );
+    }
+    
+    // Validate using the provided schema
+    const validatedResult = options.schema.parse(result);
+
+    // Save as generated-content entity if requested
+    if (options.save) {
+      if (!this.entityService) {
+        throw new Error(
+          "ContentGenerationService not initialized with EntityService - cannot save content",
+        );
+      }
+      
+      await this.saveGeneratedContent(
+        validatedResult,
+        options.prompt,
+        options.contentType,
+        options.context,
+      );
+    }
+
+    return validatedResult;
   }
 
   /**
@@ -70,6 +113,7 @@ export class ContentGenerationService {
       const generateOptions: ContentGenerateOptions<T> = {
         schema: options.schema,
         prompt: item.prompt,
+        contentType: options.contentType,
       };
 
       if (item.context) {
@@ -150,6 +194,7 @@ export class ContentGenerationService {
     const generateOptions: ContentGenerateOptions<unknown> = {
       schema: template.schema,
       prompt: mergedPrompt,
+      contentType: options.contentType,
     };
 
     if (options.context) {
@@ -157,5 +202,76 @@ export class ContentGenerationService {
     }
 
     return this.generate(generateOptions);
+  }
+
+  /**
+   * Retrieve and validate generated content
+   */
+  public async getGeneratedContent(contentType: string, id?: string): Promise<unknown | null> {
+    if (!this.entityService) {
+      throw new Error("EntityService not available for retrieving content");
+    }
+
+    // If ID is provided, get specific entity
+    if (id) {
+      const entity = await this.entityService.getEntity<GeneratedContent>("generated-content", id);
+      if (!entity) {
+        return null;
+      }
+      
+      return entity.data;
+    }
+
+    // Otherwise, list entities filtered by contentType
+    const entities = await this.entityService.listEntities<GeneratedContent>(
+      "generated-content",
+      {
+        filter: {
+          metadata: { contentType }
+        },
+        limit: 1,
+        sortBy: "updated",
+        sortDirection: "desc"
+      }
+    );
+    
+    if (entities.length === 0) {
+      return null;
+    }
+
+    const entity = entities[0];
+    if (!entity) {
+      return null;
+    }
+
+    return entity.data;
+  }
+
+  /**
+   * Save generated content as an entity
+   */
+  private async saveGeneratedContent(
+    content: unknown,
+    prompt: string,
+    contentType: string,
+    context?: unknown,
+  ): Promise<void> {
+    if (!this.entityService) {
+      throw new Error("EntityService not available for saving content");
+    }
+
+    await this.entityService.createEntity<GeneratedContent>({
+      entityType: "generated-content",
+      contentType: contentType,
+      data: content as Record<string, unknown>,
+      content: JSON.stringify(content, null, 2),
+      metadata: {
+        prompt,
+        context,
+        generatedAt: new Date().toISOString(),
+        generatedBy: "claude-3-sonnet",
+        regenerated: false,
+      },
+    });
   }
 }

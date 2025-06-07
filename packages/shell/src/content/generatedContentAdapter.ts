@@ -19,7 +19,6 @@ export class GeneratedContentAdapter
       id: entity.id,
       entityType: entity.entityType,
       contentType: entity.contentType,
-      schemaName: entity.schemaName,
       data: entity.data, // Store the actual data in frontmatter
       metadata: entity.metadata,
       created: entity.created,
@@ -42,7 +41,6 @@ export class GeneratedContentAdapter
   public extractMetadata(entity: GeneratedContent): Record<string, unknown> {
     return {
       contentType: entity.contentType,
-      schemaName: entity.schemaName,
       data: entity.data,
       metadata: entity.metadata,
     };
@@ -61,7 +59,6 @@ export class GeneratedContentAdapter
       id: entity.id,
       entityType: entity.entityType,
       contentType: entity.contentType,
-      schemaName: entity.schemaName,
       data: entity.data,
       metadata: entity.metadata,
       created: entity.created,
@@ -77,7 +74,6 @@ export class GeneratedContentAdapter
     // Header
     lines.push(`# ${entity.contentType}`);
     lines.push("");
-    lines.push(`Generated using schema: ${entity.schemaName}`);
     lines.push(`Date: ${entity.metadata.generatedAt}`);
     if (entity.metadata.generatedBy) {
       lines.push(`Model: ${entity.metadata.generatedBy}`);

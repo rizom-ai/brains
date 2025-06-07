@@ -7,6 +7,7 @@ import type {
 } from "@brains/types";
 import {
   dashboardSchema,
+  landingPageSchema,
   type DashboardData,
   type LandingPageData,
 } from "./content-schemas";
@@ -91,20 +92,34 @@ export class ContentGenerator {
   async generateLandingPage(): Promise<void> {
     this.logger.info("Generating landing page data");
 
-    // Check for existing hero content first
-    const existingHero = await this.getExistingSiteContent("landing", "hero");
+    // Check for existing landing page content first
+    const existingContent = await this.getExistingSiteContent("landing", "page");
 
-    let landingData: LandingPageData;
+    let landingData: LandingPageData | undefined;
+    let validExistingContent = false;
 
-    if (existingHero) {
-      this.logger.info("Using existing site content for landing page hero");
-      // Use existing content - merge with default structure
-      landingData = {
-        title: this.options.siteTitle,
-        tagline: this.options.siteDescription,
-        hero: existingHero as LandingPageData["hero"],
-      };
-    } else {
+    if (existingContent) {
+      // Validate that existing content has all required fields
+      const contentValidation = landingPageSchema.safeParse(existingContent);
+      
+      if (contentValidation.success) {
+        this.logger.info("Using existing site content for landing page");
+        // Use existing content - but update title and tagline to current values
+        landingData = {
+          ...contentValidation.data,
+          title: this.options.siteTitle,
+          tagline: this.options.siteDescription,
+        };
+        validExistingContent = true;
+      } else {
+        this.logger.warn(
+          "Existing landing page content is invalid, generating new content",
+          { errors: contentValidation.error.errors }
+        );
+      }
+    }
+    
+    if (!validExistingContent) {
       this.logger.info("Generating new landing page content with AI");
 
       // Use the template helper with additional context and save the result
@@ -112,6 +127,7 @@ export class ContentGenerator {
       landingData = await generateWithTemplate(
         this.context.generateContent.bind(this.context),
         landingPageTemplate,
+        "landing:page",
         {
           prompt: `This is for "${this.options.siteTitle}" - ${this.options.siteDescription}.
           Please generate content that reflects this specific brain's purpose.`,
@@ -123,9 +139,21 @@ export class ContentGenerator {
         },
         {
           save: true,
-          contentType: "landing:hero",
         },
       );
+    }
+
+    if (!landingData) {
+      throw new Error("Failed to generate landing page data");
+    }
+
+    // Validate final data before writing
+    const finalValidation = landingPageSchema.safeParse(landingData);
+    if (!finalValidation.success) {
+      this.logger.error("Generated landing page data is invalid", {
+        errors: finalValidation.error.errors,
+      });
+      throw new Error("Failed to generate valid landing page data");
     }
 
     // Write to landing collection
@@ -229,15 +257,16 @@ export class ContentGenerator {
   ): Promise<unknown | null> {
     const entityService = this.registry.resolve<EntityService>("entityService");
 
-    // Create a unique contentType for this content
+    // Create a content type and add the plugin namespace for querying
     const contentType = `${page}:${section}`;
+    const namespacedContentType = `${this.context.pluginId}:${contentType}`;
 
     try {
       // Look for generated-content entities with matching contentType
       const results = await entityService.listEntities<GeneratedContent>(
         "generated-content",
         {
-          filter: { metadata: { contentType } },
+          filter: { metadata: { contentType: namespacedContentType } },
           limit: 1,
           sortBy: "created",
           sortDirection: "desc",
@@ -246,7 +275,7 @@ export class ContentGenerator {
 
       if (results.length === 0) {
         this.logger.debug("No existing generated content found", {
-          contentType,
+          contentType: namespacedContentType,
         });
         return null;
       }
@@ -255,7 +284,9 @@ export class ContentGenerator {
       if (!matchingContent) {
         return null;
       }
-      this.logger.info("Found existing generated content", { contentType });
+      this.logger.info("Found existing generated content", { 
+        contentType: namespacedContentType 
+      });
       return matchingContent.data;
     } catch (error) {
       this.logger.debug("Error looking for generated content", {

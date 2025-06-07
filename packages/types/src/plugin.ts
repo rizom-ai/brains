@@ -13,6 +13,7 @@ import type { BaseEntity } from "./entities";
 export interface ContentGenerateOptions<T> {
   schema: z.ZodType<T>;
   prompt: string;
+  contentType: string;
   context?: {
     entities?: BaseEntity[];
     data?: Record<string, unknown>;
@@ -20,7 +21,6 @@ export interface ContentGenerateOptions<T> {
     style?: string;
   };
   save?: boolean;
-  contentType?: string;
 }
 
 /**
@@ -38,6 +38,7 @@ export interface ContentTemplate<T = unknown> {
  */
 export interface BatchGenerateOptions<T> {
   schema: z.ZodType<T>;
+  contentType: string;
   items: Array<{
     prompt: string;
     context?: Record<string, unknown>;
@@ -109,12 +110,17 @@ export interface FormatterRegistry {
  * Provides access to the registry and other shared services
  */
 export interface PluginContext {
+  pluginId: string;
   registry: Registry;
   logger: Logger;
   getPlugin: (id: string) => Plugin | undefined;
   events: EventEmitter;
   messageBus: MessageBus;
   formatters: FormatterRegistry;
+  contentTypes: {
+    register(contentType: string, schema: z.ZodType<unknown>): void;
+    list(): string[];
+  };
   registerEntityType: <T extends BaseEntity>(
     entityType: string,
     schema: z.ZodType<T>,

@@ -7,6 +7,11 @@ import {
 import { siteContentSchema } from "./schemas";
 import { siteContentAdapter } from "./site-content-adapter";
 import { SiteContentFormatter } from "./site-content-formatter";
+import {
+  landingHeroDataSchema,
+  landingPageSchema,
+  dashboardSchema,
+} from "./content-schemas";
 
 export interface WebserverPluginOptions {
   // Output directory for generated site
@@ -30,20 +35,25 @@ export interface WebserverPluginOptions {
  */
 export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
   return {
-    id: "webserver-plugin",
+    id: "webserver",
     version: "1.0.0",
     name: "Webserver Plugin",
     description:
       "Generates and serves static websites from Personal Brain content",
 
     async register(context: PluginContext): Promise<PluginCapabilities> {
-      const { registry, logger, formatters, registerEntityType } = context;
+      const { registry, logger, formatters, registerEntityType, contentTypes } = context;
 
       // Register site-content entity type
       registerEntityType("site-content", siteContentSchema, siteContentAdapter);
 
       // Register site-content formatter
       formatters.register("site-content", new SiteContentFormatter());
+
+      // Register content type schemas (plugin ID will be prefixed automatically)
+      contentTypes.register("landing:hero", landingHeroDataSchema);
+      contentTypes.register("landing:page", landingPageSchema);
+      contentTypes.register("dashboard:main", dashboardSchema);
 
       // Create webserver manager instance
       const managerOptions: WebserverManagerOptions = {

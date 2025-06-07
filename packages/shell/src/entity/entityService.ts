@@ -369,6 +369,7 @@ export class EntityService {
           // Core fields from database
           id: entityData.id,
           entityType: entityData.entityType,
+          content: entityData.content,
           created: new Date(entityData.created).toISOString(),
           updated: new Date(entityData.updated).toISOString(),
 
@@ -507,6 +508,7 @@ export class EntityService {
           {
             id: row.id,
             entityType: row.entityType,
+            content: row.content,
             created: new Date(row.created).toISOString(),
             updated: new Date(row.updated).toISOString(),
             ...metadata,

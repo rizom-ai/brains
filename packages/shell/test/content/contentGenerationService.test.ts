@@ -6,10 +6,13 @@ import { z } from "zod";
 import type { EntityService } from "../../src/entity/entityService";
 import type { AIService } from "../../src/ai/aiService";
 import type { BaseEntity } from "@brains/types";
+import type { ContentTypeRegistry } from "../../src/content/contentTypeRegistry";
 
 describe("ContentGenerationService", () => {
   let service: ContentGenerationService;
   let mockQueryProcessor: QueryProcessor;
+  let mockEntityService: EntityService;
+  let mockContentTypeRegistry: ContentTypeRegistry;
 
   beforeEach(() => {
     // Reset singletons
@@ -17,7 +20,7 @@ describe("ContentGenerationService", () => {
     QueryProcessor.resetInstance();
 
     // Create minimal mocks for what QueryProcessor needs
-    const mockEntityService = {
+    mockEntityService = {
       search: mock(async () => []),
       getEntityTypes: mock(() => ["base", "generated-content"]),
       hasAdapter: mock(() => true),
@@ -25,7 +28,19 @@ describe("ContentGenerationService", () => {
         fromMarkdown: mock(() => ({})),
         extractMetadata: mock(() => ({})),
       })),
-    };
+      createEntity: mock(async () => ({ id: "test-id" })),
+      getEntity: mock(async () => null),
+      listEntities: mock(async () => []),
+    } as unknown as EntityService;
+
+    // Create mock for ContentTypeRegistry
+    mockContentTypeRegistry = {
+      has: mock(() => true), // Default to true since we're mocking registered types
+      register: mock(() => {}),
+      get: mock(() => null),
+      list: mock(() => []),
+      clear: mock(() => {}),
+    } as unknown as ContentTypeRegistry;
 
     const mockAIService = {
       generateObject: mock(
@@ -122,7 +137,7 @@ describe("ContentGenerationService", () => {
 
   describe("Initialization", () => {
     it("should initialize with QueryProcessor", () => {
-      expect(() => service.initialize(mockQueryProcessor)).not.toThrow();
+      expect(() => service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry)).not.toThrow();
     });
 
     it("should throw error when generating without initialization", async () => {
@@ -134,6 +149,7 @@ describe("ContentGenerationService", () => {
         uninitializedService.generate({
           schema,
           prompt: "Test prompt",
+          contentType: "test:content",
         }),
       ).rejects.toThrow("ContentGenerationService not initialized");
     });
@@ -141,7 +157,7 @@ describe("ContentGenerationService", () => {
 
   describe("Content Generation", () => {
     beforeEach(() => {
-      service.initialize(mockQueryProcessor);
+      service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry);
     });
 
     it("should generate content with basic prompt", async () => {
@@ -152,6 +168,7 @@ describe("ContentGenerationService", () => {
       const result = await service.generate({
         schema,
         prompt: "Generate a welcome message",
+        contentType: "test:message",
       });
 
       expect(result).toEqual({ message: "Generated content" });
@@ -168,6 +185,7 @@ describe("ContentGenerationService", () => {
       const result = await service.generate({
         schema,
         prompt: "Generate a hero section",
+        contentType: "test:hero",
         context: {
           data: {
             siteTitle: "My Brain",
@@ -201,6 +219,7 @@ describe("ContentGenerationService", () => {
       const result = await service.generate({
         schema,
         prompt: "Process this request",
+        contentType: "test:context",
         context: {
           entities: testEntities,
           data: { test: true },
@@ -222,6 +241,7 @@ describe("ContentGenerationService", () => {
       const result = await service.generate({
         schema,
         prompt: "Generate similar content",
+        contentType: "test:examples",
         context: {
           examples,
         },
@@ -237,20 +257,18 @@ describe("ContentGenerationService", () => {
       });
 
       // The mock returns invalid data for "Generate content" prompt
-      // which should be caught by QueryProcessor's schema validation
-      const result = await service.generate({
-        schema: strictSchema,
-        prompt: "Generate content",
-      });
-
-      // If we get here, the schema parsing in QueryProcessor should have thrown
-      // But our mock doesn't simulate that, so let's test the actual values
-      expect(result.title).toBe("Hi"); // Too short for schema
-      expect(result.count).toBe(-1); // Negative, not positive
+      // which should be caught by schema validation
+      expect(
+        service.generate({
+          schema: strictSchema,
+          prompt: "Generate content",
+          contentType: "test:validation",
+        })
+      ).rejects.toThrow(); // Schema validation should throw ZodError
     });
 
     it("should build enhanced prompt with all context", () => {
-      service.initialize(mockQueryProcessor);
+      service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry);
 
       // Access private method via array notation
       const buildPrompt = (
@@ -278,7 +296,7 @@ describe("ContentGenerationService", () => {
 
   describe("Batch Generation", () => {
     beforeEach(() => {
-      service.initialize(mockQueryProcessor);
+      service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry);
     });
 
     it("should generate multiple content pieces", async () => {
@@ -286,6 +304,7 @@ describe("ContentGenerationService", () => {
 
       const results = await service.generateBatch({
         schema,
+        contentType: "test:batch",
         items: [
           { prompt: "First prompt" },
           { prompt: "Second prompt", context: { key: "value" } },
@@ -300,7 +319,7 @@ describe("ContentGenerationService", () => {
 
   describe("Template Management", () => {
     beforeEach(() => {
-      service.initialize(mockQueryProcessor);
+      service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry);
     });
 
     it("should register and retrieve templates", () => {
@@ -356,6 +375,7 @@ describe("ContentGenerationService", () => {
 
       const result = await service.generateFromTemplate("hero-template", {
         prompt: "for a knowledge management tool",
+        contentType: "test:hero",
         context: { style: "professional" },
       });
 
@@ -366,6 +386,7 @@ describe("ContentGenerationService", () => {
       expect(
         service.generateFromTemplate("non-existent", {
           prompt: "test",
+          contentType: "test:missing",
         }),
       ).rejects.toThrow("Template not found: non-existent");
     });
@@ -373,7 +394,7 @@ describe("ContentGenerationService", () => {
 
   describe("Error Handling", () => {
     beforeEach(() => {
-      service.initialize(mockQueryProcessor);
+      service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry);
     });
 
     it("should handle QueryProcessor errors gracefully", async () => {
@@ -388,6 +409,7 @@ describe("ContentGenerationService", () => {
         service.generate({
           schema,
           prompt: "Test prompt",
+          contentType: "test:error",
         }),
       ).rejects.toThrow("Query processing failed");
     });
@@ -415,7 +437,7 @@ describe("ContentGenerationService", () => {
         aiService: errorAIService as unknown as AIService,
       });
 
-      service.initialize(errorQueryProcessor);
+      service.initialize(errorQueryProcessor, mockEntityService, mockContentTypeRegistry);
 
       const schema = z.object({ message: z.string() });
 
@@ -423,6 +445,7 @@ describe("ContentGenerationService", () => {
         service.generate({
           schema,
           prompt: "Test prompt",
+          contentType: "test:json-error",
         }),
       ).rejects.toThrow();
     });

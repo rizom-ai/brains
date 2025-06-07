@@ -2,7 +2,6 @@ import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
 import { ContentGenerationAdapter } from "@/mcp/adapters";
 import type { ContentGenerationService } from "@/content/contentGenerationService";
 import type { EntityService } from "@/entity/entityService";
-import type { SchemaRegistry } from "@/schema/schemaRegistry";
 import { z } from "zod";
 import type { ContentGenerateOptions } from "@brains/types";
 
@@ -10,7 +9,6 @@ describe("ContentGenerationAdapter", () => {
   let adapter: ContentGenerationAdapter;
   let mockContentGenerationService: ContentGenerationService;
   let mockEntityService: EntityService;
-  let mockSchemaRegistry: SchemaRegistry;
 
   const testSchema = z.object({
     title: z.string(),
@@ -51,19 +49,10 @@ describe("ContentGenerationAdapter", () => {
       ),
     } as unknown as EntityService;
 
-    mockSchemaRegistry = {
-      get: (schemaName: string): z.ZodType<unknown> | null => {
-        if (schemaName === "testSchema") {
-          return testSchema;
-        }
-        return null;
-      },
-    } as unknown as SchemaRegistry;
 
     // Create adapter
     adapter = new ContentGenerationAdapter(
       mockContentGenerationService,
-      mockSchemaRegistry,
       mockEntityService,
     );
   });
@@ -76,7 +65,8 @@ describe("ContentGenerationAdapter", () => {
     it("should generate content without saving when save is not specified", async () => {
       const result = await adapter.generateContent({
         prompt: "Generate test content",
-        schemaName: "testSchema",
+        contentType: "test:content",
+        schema: testSchema,
       });
 
       expect(result).toEqual({
@@ -88,7 +78,8 @@ describe("ContentGenerationAdapter", () => {
     it("should generate content without saving when save=false", async () => {
       const result = await adapter.generateContent({
         prompt: "Generate test content",
-        schemaName: "testSchema",
+        contentType: "test:content",
+        schema: testSchema,
         save: false,
       });
 
@@ -105,7 +96,8 @@ describe("ContentGenerationAdapter", () => {
 
       const result = await adapter.generateContent({
         prompt: "Generate test content",
-        schemaName: "testSchema",
+        contentType: "test:content",
+        schema: testSchema,
         save: true,
       });
 
@@ -123,7 +115,7 @@ describe("ContentGenerationAdapter", () => {
       expect(createEntitySpy).toHaveBeenCalledWith(
         expect.objectContaining({
           entityType: "generated-content",
-          schemaName: "testSchema",
+          contentType: "test:content",
           data: {
             title: "Generated Title",
             content: "Generated Content",
@@ -139,9 +131,9 @@ describe("ContentGenerationAdapter", () => {
 
       await adapter.generateContent({
         prompt: "Generate test content",
-        schemaName: "testSchema",
-        save: true,
         contentType: "custom:type",
+        schema: testSchema,
+        save: true,
       });
 
       expect(createEntitySpy).toHaveBeenCalledWith(
@@ -163,7 +155,8 @@ describe("ContentGenerationAdapter", () => {
 
       await adapter.generateContent({
         prompt: "Generate test content",
-        schemaName: "testSchema",
+        contentType: "test:content",
+        schema: testSchema,
         context,
         save: true,
       });
@@ -188,7 +181,8 @@ describe("ContentGenerationAdapter", () => {
       expect(
         adapter.generateContent({
           prompt: "Generate test content",
-          schemaName: "testSchema",
+          contentType: "test:content",
+          schema: testSchema,
         }),
       ).rejects.toThrow("Generation failed");
     });
@@ -201,7 +195,8 @@ describe("ContentGenerationAdapter", () => {
       expect(
         adapter.generateContent({
           prompt: "Generate test content",
-          schemaName: "testSchema",
+          contentType: "test:content",
+          schema: testSchema,
           save: true,
         }),
       ).rejects.toThrow("Entity creation failed");
@@ -214,7 +209,8 @@ describe("ContentGenerationAdapter", () => {
 
       await adapter.generateContent({
         prompt: "Generate test content",
-        schemaName: "testSchema",
+        contentType: "test:content",
+        schema: testSchema,
         save: true,
       });
 

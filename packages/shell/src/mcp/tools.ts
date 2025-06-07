@@ -41,7 +41,6 @@ export function registerShellTools(
   const entityAdapter = new EntityServiceAdapter(entityService);
   const contentAdapter = new ContentGenerationAdapter(
     contentGenerationService,
-    schemaRegistry,
     entityService,
   );
 
@@ -157,9 +156,9 @@ export function registerShellTools(
     "generate_content",
     {
       prompt: z.string().describe("The prompt for content generation"),
-      schemaName: z
+      contentType: z
         .string()
-        .describe("Name of the schema to use for structured output"),
+        .describe("Content type identifier for the generated content"),
       context: z
         .object({
           entities: z
@@ -186,10 +185,6 @@ export function registerShellTools(
         .optional()
         .default(false)
         .describe("Save as generated-content entity"),
-      contentType: z
-        .string()
-        .optional()
-        .describe("Content type identifier for categorization"),
     },
     async (params) => {
       try {
@@ -198,7 +193,16 @@ export function registerShellTools(
           save: params.save,
         });
 
-        const result = await contentAdapter.generateContent(params);
+        // Get schema from registry using contentType
+        const schema = schemaRegistry.get(params.contentType);
+        if (!schema) {
+          throw new Error(`Schema not found for content type: ${params.contentType}`);
+        }
+
+        const result = await contentAdapter.generateContent({
+          ...params,
+          schema,
+        });
 
         return {
           content: [
@@ -219,7 +223,7 @@ export function registerShellTools(
   server.tool(
     "generate_from_template",
     {
-      templateName: z.string().describe("Name of the template to use"),
+      contentType: z.string().describe("Content type of the template to use"),
       prompt: z
         .string()
         .describe("Additional prompt to customize the template"),
@@ -240,7 +244,7 @@ export function registerShellTools(
     async (params) => {
       try {
         logger.debug("Executing generate_from_template tool", {
-          templateName: params.templateName,
+          contentType: params.contentType,
         });
 
         const result = await contentAdapter.generateFromTemplate(params);

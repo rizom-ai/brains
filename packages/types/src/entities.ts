@@ -44,7 +44,6 @@ export const generatedContentMetadataSchema = z.object({
 export const generatedContentSchema = baseEntitySchema.extend({
   entityType: z.literal("generated-content"),
   contentType: z.string(),
-  schemaName: z.string(),
   data: z.record(z.unknown()),
   metadata: generatedContentMetadataSchema,
 });

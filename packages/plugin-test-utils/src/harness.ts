@@ -197,6 +197,7 @@ export class PluginTestHarness {
    */
   getPluginContext(): PluginContext {
     return {
+      pluginId: "test-plugin",
       registry: this.createMockRegistry(),
       logger: this.logger,
       getPlugin: (id: string): Plugin | undefined => {
@@ -253,6 +254,15 @@ export class PluginTestHarness {
           response: "Mock response from content generation",
           results: [],
         } as T;
+      },
+      contentTypes: {
+        register: (): void => {
+          // Mock implementation for test harness
+        },
+        list: (): string[] => {
+          // Return empty list for test harness
+          return [];
+        },
       },
     };
   }

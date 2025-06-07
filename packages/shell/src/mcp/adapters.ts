@@ -16,6 +16,7 @@ import type {
   BaseEntity,
 } from "@brains/types";
 import { defaultQueryResponseSchema } from "../schemas/defaults";
+import { z } from "zod";
 
 /**
  * MCP Query parameters (what users provide via MCP tools)
@@ -135,7 +136,7 @@ export class EntityServiceAdapter {
  * MCP Content generation with template parameters
  */
 export interface MCPGenerateFromTemplateParams {
-  templateName: string;
+  contentType: string;
   prompt: string;
   context?:
     | {
@@ -151,7 +152,6 @@ export interface MCPGenerateFromTemplateParams {
 export class ContentGenerationAdapter {
   constructor(
     private contentGenerationService: ContentGenerationService,
-    private schemaRegistry: SchemaRegistry,
     private entityService: EntityService,
   ) {}
 
@@ -160,7 +160,8 @@ export class ContentGenerationAdapter {
    */
   async generateContent(params: {
     prompt: string;
-    schemaName: string;
+    contentType: string;
+    schema: z.ZodType<unknown>;
     context?:
       | {
           entities?: BaseEntity[] | undefined;
@@ -170,18 +171,13 @@ export class ContentGenerationAdapter {
         }
       | undefined;
     save?: boolean | undefined;
-    contentType?: string | undefined;
   }): Promise<unknown> {
-    // Get schema from registry
-    const schema = this.schemaRegistry.get(params.schemaName);
-    if (!schema) {
-      throw new Error(`Schema not found: ${params.schemaName}`);
-    }
 
     // Build the options object for content generation
     const generateOptions: ContentGenerateOptions<unknown> = {
-      schema,
+      schema: params.schema,
       prompt: params.prompt,
+      contentType: params.contentType,
     };
 
     // Clean up context to remove undefined values
@@ -215,7 +211,6 @@ export class ContentGenerationAdapter {
       return this.saveGeneratedContent(
         content,
         params.prompt,
-        params.schemaName,
         params.contentType,
         params.context,
       );
@@ -230,14 +225,12 @@ export class ContentGenerationAdapter {
   private async saveGeneratedContent(
     content: unknown,
     prompt: string,
-    schemaName: string,
-    contentType?: string,
+    contentType: string,
     context?: unknown,
   ): Promise<{ content: unknown; entityId: string; message: string }> {
     const entity = await this.entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
-      contentType: contentType ?? schemaName,
-      schemaName: schemaName,
+      contentType: contentType,
       data: content as Record<string, unknown>,
       content: JSON.stringify(content, null, 2),
       metadata: {
@@ -265,6 +258,7 @@ export class ContentGenerationAdapter {
     // Build the options object - starting with required prompt
     const options: Omit<ContentGenerateOptions<unknown>, "schema"> = {
       prompt: params.prompt,
+      contentType: params.contentType,
     };
 
     // Only add context if it exists and has defined values
@@ -285,7 +279,7 @@ export class ContentGenerationAdapter {
     }
 
     return this.contentGenerationService.generateFromTemplate(
-      params.templateName,
+      params.contentType,
       options,
     );
   }

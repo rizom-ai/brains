@@ -30,7 +30,7 @@ import {
   UpdateEntityResponseFormatter,
 } from "@brains/formatters";
 import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
-import { ContentGenerationService } from "./content/contentGenerationService";
+import { ContentGenerationService, ContentTypeRegistry } from "./content";
 import { GeneratedContentAdapter } from "./content/generatedContentAdapter";
 
 /**
@@ -47,6 +47,7 @@ export interface ShellDependencies {
   registry?: Registry;
   entityRegistry?: EntityRegistry;
   schemaRegistry?: SchemaRegistry;
+  contentTypeRegistry?: ContentTypeRegistry;
   formatterRegistry?: SchemaFormatterRegistry;
   messageBus?: MessageBus;
   pluginManager?: PluginManager;
@@ -79,6 +80,7 @@ export class Shell {
   private readonly queryProcessor: QueryProcessor;
   private readonly aiService: AIService;
   private readonly contentGenerationService: ContentGenerationService;
+  private readonly contentTypeRegistry: ContentTypeRegistry;
   private readonly mcpServer: McpServer;
   private initialized = false;
 
@@ -254,12 +256,20 @@ export class Shell {
         aiService: this.aiService,
       });
 
+    this.contentTypeRegistry =
+      dependencies?.contentTypeRegistry ??
+      ContentTypeRegistry.getInstance();
+
     this.contentGenerationService =
       dependencies?.contentGenerationService ??
       ContentGenerationService.getInstance();
 
-    // Initialize content generation service with query processor
-    this.contentGenerationService.initialize(this.queryProcessor);
+    // Initialize content generation service with dependencies
+    this.contentGenerationService.initialize(
+      this.queryProcessor,
+      this.entityService,
+      this.contentTypeRegistry
+    );
 
     // Use injected MCP server or create one
     if (dependencies?.mcpServer) {
@@ -295,6 +305,7 @@ export class Shell {
       "contentGenerationService",
       () => this.contentGenerationService,
     );
+    this.registry.register("contentTypeRegistry", () => this.contentTypeRegistry);
     this.registry.register("mcpServer", () => this.mcpServer);
 
     // Listen for plugin tool registration events
