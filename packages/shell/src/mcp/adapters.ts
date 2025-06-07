@@ -16,7 +16,7 @@ import type {
   BaseEntity,
 } from "@brains/types";
 import { defaultQueryResponseSchema } from "../schemas/defaults";
-import { z } from "zod";
+import type { z } from "zod";
 
 /**
  * MCP Query parameters (what users provide via MCP tools)
@@ -172,7 +172,6 @@ export class ContentGenerationAdapter {
       | undefined;
     save?: boolean | undefined;
   }): Promise<unknown> {
-
     // Build the options object for content generation
     const generateOptions: ContentGenerateOptions<unknown> = {
       schema: params.schema,

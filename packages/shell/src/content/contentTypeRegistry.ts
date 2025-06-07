@@ -31,8 +31,10 @@ export class ContentTypeRegistry {
    */
   public register(contentType: string, schema: z.ZodType<unknown>): void {
     // Validate namespace format
-    if (!contentType.includes(':')) {
-      throw new Error(`Content type must be namespaced (e.g., "plugin:category:type"): ${contentType}`);
+    if (!contentType.includes(":")) {
+      throw new Error(
+        `Content type must be namespaced (e.g., "plugin:category:type"): ${contentType}`,
+      );
     }
     this.schemas.set(contentType, schema);
   }
@@ -44,7 +46,6 @@ export class ContentTypeRegistry {
     return this.schemas.get(contentType) ?? null;
   }
 
-
   /**
    * List all registered content types
    * Optionally filter by namespace
@@ -52,7 +53,7 @@ export class ContentTypeRegistry {
   public list(namespace?: string): string[] {
     const types = Array.from(this.schemas.keys());
     if (namespace) {
-      return types.filter(t => t.startsWith(`${namespace}:`));
+      return types.filter((t) => t.startsWith(`${namespace}:`));
     }
     return types;
   }

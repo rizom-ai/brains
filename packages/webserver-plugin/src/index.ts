@@ -42,7 +42,8 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       "Generates and serves static websites from Personal Brain content",
 
     async register(context: PluginContext): Promise<PluginCapabilities> {
-      const { registry, logger, formatters, registerEntityType, contentTypes } = context;
+      const { registry, logger, formatters, registerEntityType, contentTypes } =
+        context;
 
       // Register site-content entity type
       registerEntityType("site-content", siteContentSchema, siteContentAdapter);

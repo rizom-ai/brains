@@ -228,7 +228,7 @@ describe("ContentGenerator", () => {
       // Should use current title/tagline but existing hero
       expect(data["title"]).toBe("Test Brain");
       expect(data["tagline"]).toBe("Test Description");
-      
+
       // Should have hero section from existing content
       const hero = data["hero"] as Record<string, unknown>;
       expect(hero).toBeDefined();

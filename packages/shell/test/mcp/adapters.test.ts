@@ -49,7 +49,6 @@ describe("ContentGenerationAdapter", () => {
       ),
     } as unknown as EntityService;
 
-
     // Create adapter
     adapter = new ContentGenerationAdapter(
       mockContentGenerationService,

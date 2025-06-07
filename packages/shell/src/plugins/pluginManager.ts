@@ -349,13 +349,13 @@ export class PluginManager {
             this.registry.resolve<ContentGenerationService>(
               "contentGenerationService",
             );
-          
+
           // Always namespace the contentType with the plugin ID
           const processedOptions = {
             ...options,
-            contentType: `${pluginId}:${options.contentType}`
+            contentType: `${pluginId}:${options.contentType}`,
           };
-          
+
           return await contentGenerationService.generate<T>(processedOptions);
         } catch (error) {
           this.logger.error("Failed to generate content", error);
@@ -369,10 +369,10 @@ export class PluginManager {
           try {
             const contentTypeRegistry =
               this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
-            
+
             // Always prefix with plugin ID to ensure proper namespacing
             const namespacedType = `${pluginId}:${contentType}`;
-            
+
             contentTypeRegistry.register(namespacedType, schema);
             this.logger.debug(`Registered content type: ${namespacedType}`);
           } catch (error) {
@@ -386,7 +386,7 @@ export class PluginManager {
           try {
             const contentTypeRegistry =
               this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
-            
+
             // List only this plugin's content types
             return contentTypeRegistry.list(pluginId);
           } catch (error) {

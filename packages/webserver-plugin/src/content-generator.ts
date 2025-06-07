@@ -93,7 +93,10 @@ export class ContentGenerator {
     this.logger.info("Generating landing page data");
 
     // Check for existing landing page content first
-    const existingContent = await this.getExistingSiteContent("landing", "page");
+    const existingContent = await this.getExistingSiteContent(
+      "landing",
+      "page",
+    );
 
     let landingData: LandingPageData | undefined;
     let validExistingContent = false;
@@ -101,7 +104,7 @@ export class ContentGenerator {
     if (existingContent) {
       // Validate that existing content has all required fields
       const contentValidation = landingPageSchema.safeParse(existingContent);
-      
+
       if (contentValidation.success) {
         this.logger.info("Using existing site content for landing page");
         // Use existing content - but update title and tagline to current values
@@ -114,11 +117,11 @@ export class ContentGenerator {
       } else {
         this.logger.warn(
           "Existing landing page content is invalid, generating new content",
-          { errors: contentValidation.error.errors }
+          { errors: contentValidation.error.errors },
         );
       }
     }
-    
+
     if (!validExistingContent) {
       this.logger.info("Generating new landing page content with AI");
 
@@ -284,8 +287,8 @@ export class ContentGenerator {
       if (!matchingContent) {
         return null;
       }
-      this.logger.info("Found existing generated content", { 
-        contentType: namespacedContentType 
+      this.logger.info("Found existing generated content", {
+        contentType: namespacedContentType,
       });
       return matchingContent.data;
     } catch (error) {

@@ -78,7 +78,7 @@ export class ContentGenerationService {
         `No schema registered for content type: ${options.contentType}`,
       );
     }
-    
+
     // Validate using the provided schema
     const validatedResult = options.schema.parse(result);
 
@@ -89,7 +89,7 @@ export class ContentGenerationService {
           "ContentGenerationService not initialized with EntityService - cannot save content",
         );
       }
-      
+
       await this.saveGeneratedContent(
         validatedResult,
         options.prompt,
@@ -207,18 +207,24 @@ export class ContentGenerationService {
   /**
    * Retrieve and validate generated content
    */
-  public async getGeneratedContent(contentType: string, id?: string): Promise<unknown | null> {
+  public async getGeneratedContent(
+    contentType: string,
+    id?: string,
+  ): Promise<unknown | null> {
     if (!this.entityService) {
       throw new Error("EntityService not available for retrieving content");
     }
 
     // If ID is provided, get specific entity
     if (id) {
-      const entity = await this.entityService.getEntity<GeneratedContent>("generated-content", id);
+      const entity = await this.entityService.getEntity<GeneratedContent>(
+        "generated-content",
+        id,
+      );
       if (!entity) {
         return null;
       }
-      
+
       return entity.data;
     }
 
@@ -227,14 +233,14 @@ export class ContentGenerationService {
       "generated-content",
       {
         filter: {
-          metadata: { contentType }
+          metadata: { contentType },
         },
         limit: 1,
         sortBy: "updated",
-        sortDirection: "desc"
-      }
+        sortDirection: "desc",
+      },
     );
-    
+
     if (entities.length === 0) {
       return null;
     }

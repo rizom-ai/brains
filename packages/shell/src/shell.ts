@@ -257,8 +257,7 @@ export class Shell {
       });
 
     this.contentTypeRegistry =
-      dependencies?.contentTypeRegistry ??
-      ContentTypeRegistry.getInstance();
+      dependencies?.contentTypeRegistry ?? ContentTypeRegistry.getInstance();
 
     this.contentGenerationService =
       dependencies?.contentGenerationService ??
@@ -268,7 +267,7 @@ export class Shell {
     this.contentGenerationService.initialize(
       this.queryProcessor,
       this.entityService,
-      this.contentTypeRegistry
+      this.contentTypeRegistry,
     );
 
     // Use injected MCP server or create one
@@ -305,7 +304,10 @@ export class Shell {
       "contentGenerationService",
       () => this.contentGenerationService,
     );
-    this.registry.register("contentTypeRegistry", () => this.contentTypeRegistry);
+    this.registry.register(
+      "contentTypeRegistry",
+      () => this.contentTypeRegistry,
+    );
     this.registry.register("mcpServer", () => this.mcpServer);
 
     // Listen for plugin tool registration events

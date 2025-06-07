@@ -196,7 +196,9 @@ export function registerShellTools(
         // Get schema from registry using contentType
         const schema = schemaRegistry.get(params.contentType);
         if (!schema) {
-          throw new Error(`Schema not found for content type: ${params.contentType}`);
+          throw new Error(
+            `Schema not found for content type: ${params.contentType}`,
+          );
         }
 
         const result = await contentAdapter.generateContent({

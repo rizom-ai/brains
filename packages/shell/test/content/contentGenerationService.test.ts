@@ -137,7 +137,13 @@ describe("ContentGenerationService", () => {
 
   describe("Initialization", () => {
     it("should initialize with QueryProcessor", () => {
-      expect(() => service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry)).not.toThrow();
+      expect(() =>
+        service.initialize(
+          mockQueryProcessor,
+          mockEntityService,
+          mockContentTypeRegistry,
+        ),
+      ).not.toThrow();
     });
 
     it("should throw error when generating without initialization", async () => {
@@ -157,7 +163,11 @@ describe("ContentGenerationService", () => {
 
   describe("Content Generation", () => {
     beforeEach(() => {
-      service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry);
+      service.initialize(
+        mockQueryProcessor,
+        mockEntityService,
+        mockContentTypeRegistry,
+      );
     });
 
     it("should generate content with basic prompt", async () => {
@@ -263,12 +273,16 @@ describe("ContentGenerationService", () => {
           schema: strictSchema,
           prompt: "Generate content",
           contentType: "test:validation",
-        })
+        }),
       ).rejects.toThrow(); // Schema validation should throw ZodError
     });
 
     it("should build enhanced prompt with all context", () => {
-      service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry);
+      service.initialize(
+        mockQueryProcessor,
+        mockEntityService,
+        mockContentTypeRegistry,
+      );
 
       // Access private method via array notation
       const buildPrompt = (
@@ -296,7 +310,11 @@ describe("ContentGenerationService", () => {
 
   describe("Batch Generation", () => {
     beforeEach(() => {
-      service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry);
+      service.initialize(
+        mockQueryProcessor,
+        mockEntityService,
+        mockContentTypeRegistry,
+      );
     });
 
     it("should generate multiple content pieces", async () => {
@@ -319,7 +337,11 @@ describe("ContentGenerationService", () => {
 
   describe("Template Management", () => {
     beforeEach(() => {
-      service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry);
+      service.initialize(
+        mockQueryProcessor,
+        mockEntityService,
+        mockContentTypeRegistry,
+      );
     });
 
     it("should register and retrieve templates", () => {
@@ -394,7 +416,11 @@ describe("ContentGenerationService", () => {
 
   describe("Error Handling", () => {
     beforeEach(() => {
-      service.initialize(mockQueryProcessor, mockEntityService, mockContentTypeRegistry);
+      service.initialize(
+        mockQueryProcessor,
+        mockEntityService,
+        mockContentTypeRegistry,
+      );
     });
 
     it("should handle QueryProcessor errors gracefully", async () => {
@@ -437,7 +463,11 @@ describe("ContentGenerationService", () => {
         aiService: errorAIService as unknown as AIService,
       });
 
-      service.initialize(errorQueryProcessor, mockEntityService, mockContentTypeRegistry);
+      service.initialize(
+        errorQueryProcessor,
+        mockEntityService,
+        mockContentTypeRegistry,
+      );
 
       const schema = z.object({ message: z.string() });
 
