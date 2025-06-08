@@ -91,6 +91,7 @@ describe("EntityService search with excludeTypes", () => {
         generatedAt: new Date().toISOString(),
         generatedBy: "test",
         regenerated: false,
+        validationStatus: "valid",
       },
     });
 
@@ -159,6 +160,7 @@ describe("EntityService search with excludeTypes", () => {
         generatedAt: new Date().toISOString(),
         generatedBy: "test",
         regenerated: false,
+        validationStatus: "valid",
       },
     });
 
@@ -208,6 +210,7 @@ describe("EntityService search with excludeTypes", () => {
         generatedAt: new Date().toISOString(),
         generatedBy: "test",
         regenerated: false,
+        validationStatus: "valid",
       },
     });
 
@@ -243,6 +246,7 @@ describe("EntityService search with excludeTypes", () => {
         generatedAt: new Date().toISOString(),
         generatedBy: "test",
         regenerated: false,
+        validationStatus: "valid",
       },
     });
 

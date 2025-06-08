@@ -90,6 +90,7 @@ describe("EntityService.deriveEntity", () => {
         generatedAt: new Date().toISOString(),
         generatedBy: "test",
         regenerated: false,
+        validationStatus: "valid",
       },
     });
 
@@ -140,6 +141,7 @@ describe("EntityService.deriveEntity", () => {
         generatedAt: new Date().toISOString(),
         generatedBy: "test",
         regenerated: false,
+        validationStatus: "valid",
       },
     });
 
@@ -220,6 +222,7 @@ describe("EntityService.deriveEntity", () => {
         generatedAt: new Date().toISOString(),
         generatedBy: "test",
         regenerated: false,
+        validationStatus: "valid",
       },
     });
 
@@ -232,10 +235,10 @@ describe("EntityService.deriveEntity", () => {
 
     // The derived entity should preserve the original markdown content
     expect(derivedEntity.entityType).toBe("base");
-    expect(derivedEntity.content).toContain("# complex-content");
-    expect(derivedEntity.content).toContain(
-      'This file contains generated content of type "complex-content"',
-    );
+    expect(derivedEntity.content).toContain("# Content Data");
+    expect(derivedEntity.content).toContain("```yaml");
+    expect(derivedEntity.content).toContain("hero:");
+    expect(derivedEntity.content).toContain("Hero Title");
     // The content field should be the markdown, not JSON
     expect(derivedEntity.content).not.toMatch(/^\{/);
   });

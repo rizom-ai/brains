@@ -277,6 +277,7 @@ export class ContentGenerationService {
         generatedAt: new Date().toISOString(),
         generatedBy: "claude-3-sonnet",
         regenerated: false,
+        validationStatus: "valid",
       },
     });
   }

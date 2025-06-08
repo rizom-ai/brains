@@ -167,6 +167,7 @@ describe("ContentGenerationAdapter", () => {
             context,
             generatedBy: "claude-3-sonnet",
             regenerated: false,
+            validationStatus: "valid",
           }),
         }),
       );

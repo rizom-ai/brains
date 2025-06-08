@@ -139,6 +139,24 @@ Based on our design decisions, we're implementing a pattern where:
 - ContentTypeRegistry coordinates schemas and formatters
 - Single markdown representation for both storage and editing
 
+### Key Design Decision: Separated Methods
+
+The adapter provides two distinct methods for different use cases:
+
+1. **`parseContent(content, contentType)`** - For editing existing content
+   - Used when user edits the markdown body
+   - Only parses the content, not frontmatter
+   - Returns just the data and validation status
+   - Clean and focused on the editing use case
+
+2. **`fromMarkdown(markdown)`** - For import/sync operations
+   - Used when importing files from git or other sources
+   - Parses both frontmatter and content
+   - Returns a full Partial<GeneratedContent>
+   - Handles entity reconstruction from files
+
+This separation avoids mixing concerns and makes each method's purpose clear.
+
 ### Design Details
 
 1. **ContentFormatter Interface**
@@ -170,9 +188,11 @@ Based on our design decisions, we're implementing a pattern where:
    ```typescript
    class GeneratedContentAdapter implements EntityAdapter<GeneratedContent> {
      private formatters = new Map<string, ContentFormatter<any>>();
+     private defaultFormatter = new DefaultYamlFormatter();
 
+     // For converting entities to markdown (always uses formatters)
      toMarkdown(entity: GeneratedContent): string {
-       const formatter = this.formatters.get(entity.contentType);
+       const formatter = this.formatters.get(entity.contentType) || this.defaultFormatter;
 
        const frontmatter = {
          id: entity.id,
@@ -184,58 +204,66 @@ Based on our design decisions, we're implementing a pattern where:
          // Note: data is NOT in frontmatter anymore
        };
 
-       // Use formatter if available, otherwise fall back to YAML
-       const content = formatter
-         ? formatter.format(entity.data)
-         : this.defaultFormat(entity.data);
-
+       const content = formatter.format(entity.data);
        return generateMarkdownWithFrontmatter(content, frontmatter);
      }
 
+     // For editing existing content (parse just the body)
+     parseContent(content: string, contentType: string): ParseResult {
+       const formatter = this.formatters.get(contentType) || this.defaultFormatter;
+       
+       try {
+         const data = formatter.parse(content);
+         return {
+           data,
+           validationStatus: "valid" as const,
+         };
+       } catch (error) {
+         return {
+           data: {}, // Return empty object instead of partial data
+           validationStatus: "invalid" as const,
+           validationErrors: [{
+             message: error instanceof Error ? error.message : String(error)
+           }],
+         };
+       }
+     }
+
+     // For import/sync operations (parse full markdown file)
      fromMarkdown(markdown: string): Partial<GeneratedContent> {
        const { frontmatter, content } = parseMarkdownWithFrontmatter(markdown);
-       const formatter = this.formatters.get(frontmatter.contentType);
-
-       let data: Record<string, unknown>;
-       let validationStatus: "valid" | "invalid" = "valid";
-       let validationErrors: unknown[] = [];
-
-       try {
-         // Parse content
-         data = formatter
-           ? formatter.parse(content)
-           : this.defaultParse(content);
-
-         // Validate against schema
-         const template = this.contentTypeRegistry.get(frontmatter.contentType);
-         if (template?.schema) {
-           const result = template.schema.safeParse(data);
-           if (!result.success) {
-             validationStatus = "invalid";
-             validationErrors = result.error.errors;
-           }
-         }
-       } catch (error) {
-         // Parsing failed - store raw content and mark invalid
-         validationStatus = "invalid";
-         validationErrors = [{ message: error.message }];
-         data = { _rawContent: content };
-       }
+       
+       // Use parseContent to handle the body
+       const parseResult = this.parseContent(
+         content, 
+         frontmatter.contentType as string || "unknown"
+       );
 
        return {
-         ...frontmatter,
-         data,
-         content: JSON.stringify(data, null, 2),
+         id: frontmatter.id as string,
+         entityType: "generated-content",
+         contentType: frontmatter.contentType as string,
+         data: parseResult.data,
+         content: markdown, // Store the full markdown
          metadata: {
-           ...frontmatter.metadata,
-           validationStatus,
-           validationErrors:
-             validationErrors.length > 0 ? validationErrors : undefined,
-           lastValidData: frontmatter.metadata?.lastValidData,
+           ...(frontmatter.metadata as Record<string, unknown> || {}),
+           validationStatus: parseResult.validationStatus,
+           validationErrors: parseResult.validationErrors,
+           lastValidData: parseResult.validationStatus === "valid" 
+             ? parseResult.data 
+             : (frontmatter.metadata as any)?.lastValidData,
          },
+         created: frontmatter.created as Date,
+         updated: frontmatter.updated as Date,
        };
      }
    }
+
+   type ParseResult = {
+     data: Record<string, unknown>;
+     validationStatus: "valid" | "invalid";
+     validationErrors?: Array<{ message: string }>;
+   };
    ```
 
 4. **Default YAML Formatter**

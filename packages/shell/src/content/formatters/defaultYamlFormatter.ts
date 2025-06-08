@@ -3,17 +3,21 @@ import * as yaml from "js-yaml";
 
 /**
  * Default YAML formatter for generic content types
- * 
+ *
  * Formats data as YAML within a markdown code block, making it easy
  * for humans to edit structured data in a familiar format.
  */
-export class DefaultYamlFormatter implements ContentFormatter<Record<string, unknown>> {
+export class DefaultYamlFormatter
+  implements ContentFormatter<Record<string, unknown>>
+{
   format(data: Record<string, unknown>): string {
-    const yamlContent = yaml.dump(data, { 
-      indent: 2,
-      lineWidth: -1, // Disable line wrapping
-      sortKeys: false, // Preserve key order
-    }).trim(); // Trim to handle empty object case
+    const yamlContent = yaml
+      .dump(data, {
+        indent: 2,
+        lineWidth: -1, // Disable line wrapping
+        sortKeys: false, // Preserve key order
+      })
+      .trim(); // Trim to handle empty object case
 
     return `# Content Data
 
@@ -28,24 +32,28 @@ Edit the YAML above to modify the content.`;
     // Extract YAML from code block
     const yamlMatch = content.match(/```yaml\n([\s\S]*?)\n```/);
     if (!yamlMatch) {
-      throw new Error('No YAML code block found in content');
+      throw new Error("No YAML code block found in content");
     }
-    
+
     const yamlContent = yamlMatch[1];
     if (!yamlContent) {
-      throw new Error('YAML code block is empty');
+      throw new Error("YAML code block is empty");
     }
-    
+
     try {
       const parsed = yaml.load(yamlContent);
-      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-        throw new Error('YAML content must be an object');
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        throw new Error("YAML content must be an object");
       }
       return parsed as Record<string, unknown>;
     } catch (error) {
       if (error instanceof Error) {
         // If it's our custom error, re-throw as is
-        if (error.message === 'YAML content must be an object') {
+        if (error.message === "YAML content must be an object") {
           throw error;
         }
         throw new Error(`Failed to parse YAML: ${error.message}`);

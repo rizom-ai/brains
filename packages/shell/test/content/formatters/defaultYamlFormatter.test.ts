@@ -80,10 +80,10 @@ describe("DefaultYamlFormatter", () => {
       };
 
       const result = formatter.format(data);
-      
-      const yamlContent = result.match(/```yaml\n([\s\S]*?)\n```/)?.[1] || "";
-      const lines = yamlContent.split("\n").filter(line => line.trim());
-      
+
+      const yamlContent = result.match(/```yaml\n([\s\S]*?)\n```/)?.[1] ?? "";
+      const lines = yamlContent.split("\n").filter((line) => line.trim());
+
       expect(lines[0]).toContain("zebra");
       expect(lines[1]).toContain("alpha");
       expect(lines[2]).toContain("middle");
@@ -181,7 +181,7 @@ Edit the YAML above to modify the content.`;
       const content = "Just some text without YAML";
 
       expect(() => formatter.parse(content)).toThrow(
-        "No YAML code block found in content"
+        "No YAML code block found in content",
       );
     });
 
@@ -210,7 +210,7 @@ Edit the YAML above to modify the content.`;
 Edit the YAML above to modify the content.`;
 
       expect(() => formatter.parse(content)).toThrow(
-        "YAML content must be an object"
+        "YAML content must be an object",
       );
     });
 

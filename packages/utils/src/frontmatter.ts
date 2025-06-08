@@ -112,6 +112,26 @@ export function generateMarkdownWithFrontmatter(
 }
 
 /**
+ * Helper to convert all Date objects to ISO strings recursively
+ */
+function convertDatesToStrings(obj: unknown): unknown {
+  if (obj instanceof Date) {
+    return obj.toISOString();
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(convertDatesToStrings);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = convertDatesToStrings(value);
+    }
+    return result;
+  }
+  return obj;
+}
+
+/**
  * Parse markdown with frontmatter into content and metadata
  */
 export function parseMarkdownWithFrontmatter<T>(
@@ -122,12 +142,16 @@ export function parseMarkdownWithFrontmatter<T>(
   metadata: T;
 } {
   const { content, data } = matter(markdown);
+  
+  // Convert all Date objects to strings before parsing with Zod
+  const normalizedData = convertDatesToStrings(data);
 
   return {
     content: content.trim(),
-    metadata: schema.parse(data),
+    metadata: schema.parse(normalizedData),
   };
 }
+
 
 /**
  * Apply custom deserializers to metadata
