@@ -25,7 +25,7 @@ export interface SchemaFormatter {
 
 /**
  * Interface for content formatters (human-editable content formatting)
- * 
+ *
  * ContentFormatters handle bidirectional transformation between structured data
  * and human-editable markdown templates. Unlike SchemaFormatters which are for
  * one-way API response formatting, ContentFormatters support parsing edited
