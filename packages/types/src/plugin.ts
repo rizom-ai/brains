@@ -3,7 +3,7 @@ import type { Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
 import type { Registry } from "./registry";
 import type { MessageBus } from "./messaging";
-import type { SchemaFormatter } from "./formatters";
+import type { SchemaFormatter, ContentFormatter } from "./formatters";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { BaseEntity } from "./entities";
 
@@ -31,6 +31,11 @@ export interface ContentTemplate<T = unknown> {
   description: string;
   schema: z.ZodType<T>;
   basePrompt: string;
+  /**
+   * Optional formatter for converting between structured data and human-editable markdown.
+   * If not provided, a default YAML formatter will be used.
+   */
+  formatter?: ContentFormatter<T>;
 }
 
 /**

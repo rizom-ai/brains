@@ -54,7 +54,7 @@ export type {
 } from "./services";
 
 // Formatter types
-export type { SchemaFormatter } from "./formatters";
+export type { SchemaFormatter, ContentFormatter } from "./formatters";
 
 // Re-export commonly used types from utils
 export type { Logger } from "@brains/utils";

@@ -243,13 +243,14 @@ Based on our design decisions, we're implementing a pattern where:
    class DefaultYamlFormatter implements ContentFormatter<Record<string, unknown>> {
      format(data: Record<string, unknown>): string {
        return `# Content Data
+   ```
 
 \`\`\`yaml
 ${yaml.dump(data, { indent: 2 })}
 \`\`\`
 
 Edit the YAML above to modify the content.`;
-     }
+}
 
      parse(content: string): Record<string, unknown> {
        // Extract YAML from code block
@@ -259,8 +260,10 @@ Edit the YAML above to modify the content.`;
        }
        return yaml.load(yamlMatch[1]) as Record<string, unknown>;
      }
-   }
-   ```
+
+}
+
+````
 
 ### Example: Landing Page Content
 
@@ -400,21 +403,25 @@ Everything you learn, safely stored and instantly searchable.
 #### Phase -1: Foundation Work (Current)
 
 1. **Resolve naming conflicts**
+
    - Rename existing `BaseFormatter` to `ResponseFormatter` in `@brains/formatters` package
    - This creates clear distinction: `ResponseFormatter` for API responses vs `ContentFormatter` for human-editable content
    - Update all existing formatters that extend BaseFormatter
 
 2. **Update ContentTemplate interface**
+
    - Add optional `formatter?: ContentFormatter` field
    - Ensure backwards compatibility (undefined = use default)
    - Update type definitions in `@brains/types` package
 
 3. **Design ContentFormatter interface**
+
    - Use generics for type safety: `ContentFormatter<T>`
    - Clear method names: `format()` and `parse()`
    - Consider validation integration
 
 4. **Plan migration strategy**
+
    - Document how to migrate existing content from frontmatter to body
    - Create migration script template
    - Establish versioning strategy for content format
