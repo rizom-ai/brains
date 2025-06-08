@@ -10,6 +10,7 @@ import type {
   SchemaFormatter,
   BaseEntity,
   ContentGenerateOptions,
+  ContentFormatter,
 } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
@@ -17,7 +18,7 @@ import type { SchemaFormatterRegistry } from "../formatters";
 import type { EntityRegistry } from "../entity/entityRegistry";
 import type { z } from "zod";
 import type { ContentGenerationService } from "../content/contentGenerationService";
-import type { ContentTypeRegistry } from "../content/contentTypeRegistry";
+import type { ContentTypeRegistry, IGeneratedContentAdapter } from "../content";
 
 /**
  * Plugin lifecycle event types
@@ -365,7 +366,7 @@ export class PluginManager {
         }
       },
       contentTypes: {
-        register: (contentType: string, schema: z.ZodType<unknown>) => {
+        register: (contentType: string, schema: z.ZodType<unknown>, formatter?: ContentFormatter<unknown>) => {
           try {
             const contentTypeRegistry =
               this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
@@ -373,7 +374,21 @@ export class PluginManager {
             // Always prefix with plugin ID to ensure proper namespacing
             const namespacedType = `${pluginId}:${contentType}`;
 
-            contentTypeRegistry.register(namespacedType, schema);
+            contentTypeRegistry.register(namespacedType, schema, formatter);
+            
+            // If formatter provided, also register with GeneratedContentAdapter
+            if (formatter) {
+              try {
+                const entityRegistry = this.registry.resolve<EntityRegistry>("entityRegistry");
+                // We know generated-content uses IGeneratedContentAdapter
+                const adapter = entityRegistry.getAdapter("generated-content") as IGeneratedContentAdapter;
+                adapter.setFormatter(namespacedType, formatter);
+                this.logger.debug(`Registered formatter for content type: ${namespacedType}`);
+              } catch (error) {
+                this.logger.warn(`Could not register formatter with GeneratedContentAdapter: ${error}`);
+              }
+            }
+            
             this.logger.debug(`Registered content type: ${namespacedType}`);
           } catch (error) {
             this.logger.error("Failed to register content type", error);

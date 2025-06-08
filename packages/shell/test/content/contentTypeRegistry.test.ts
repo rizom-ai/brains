@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { z } from "zod";
 import { ContentTypeRegistry } from "../../src/content/contentTypeRegistry";
+import type { ContentFormatter } from "@brains/types";
 
 describe("ContentTypeRegistry", () => {
   let registry: ContentTypeRegistry;
@@ -101,6 +102,67 @@ describe("ContentTypeRegistry", () => {
       registry.clear();
 
       expect(registry.list()).toHaveLength(0);
+    });
+  });
+
+  describe("Formatter Support", () => {
+    const mockFormatter: ContentFormatter<{ title: string }> = {
+      format: (data) => `# ${data.title}`,
+      parse: (content) => ({ title: content.replace('# ', '') }),
+    };
+
+    it("should register schema with formatter", () => {
+      const schema = z.object({ title: z.string() });
+      
+      expect(() => 
+        registry.register("plugin:test:hero", schema, mockFormatter)
+      ).not.toThrow();
+    });
+
+    it("should retrieve registered formatter", () => {
+      const schema = z.object({ title: z.string() });
+      registry.register("plugin:test:hero", schema, mockFormatter);
+
+      const formatter = registry.getFormatter("plugin:test:hero");
+      expect(formatter).toBe(mockFormatter);
+    });
+
+    it("should return null for content type without formatter", () => {
+      const schema = z.object({ title: z.string() });
+      registry.register("plugin:test:hero", schema); // No formatter
+
+      const formatter = registry.getFormatter("plugin:test:hero");
+      expect(formatter).toBeNull();
+    });
+
+    it("should return null formatter for unregistered content type", () => {
+      const formatter = registry.getFormatter("plugin:test:unknown");
+      expect(formatter).toBeNull();
+    });
+
+    it("should clear formatters when clearing registry", () => {
+      const schema = z.object({ title: z.string() });
+      registry.register("plugin:test:hero", schema, mockFormatter);
+
+      expect(registry.getFormatter("plugin:test:hero")).toBe(mockFormatter);
+
+      registry.clear();
+
+      expect(registry.getFormatter("plugin:test:hero")).toBeNull();
+    });
+
+    it("should overwrite formatter when re-registering", () => {
+      const schema = z.object({ title: z.string() });
+      const formatter2: ContentFormatter<{ title: string }> = {
+        format: (data) => `## ${data.title}`,
+        parse: (content) => ({ title: content.replace('## ', '') }),
+      };
+
+      registry.register("plugin:test:hero", schema, mockFormatter);
+      registry.register("plugin:test:hero", schema, formatter2);
+
+      const formatter = registry.getFormatter("plugin:test:hero");
+      expect(formatter).toBe(formatter2);
     });
   });
 });

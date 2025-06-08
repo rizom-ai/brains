@@ -121,7 +121,7 @@ function convertDatesToStrings(obj: unknown): unknown {
   if (Array.isArray(obj)) {
     return obj.map(convertDatesToStrings);
   }
-  if (obj !== null && typeof obj === 'object') {
+  if (obj !== null && typeof obj === "object") {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       result[key] = convertDatesToStrings(value);
@@ -142,7 +142,7 @@ export function parseMarkdownWithFrontmatter<T>(
   metadata: T;
 } {
   const { content, data } = matter(markdown);
-  
+
   // Convert all Date objects to strings before parsing with Zod
   const normalizedData = convertDatesToStrings(data);
 
@@ -151,7 +151,6 @@ export function parseMarkdownWithFrontmatter<T>(
     metadata: schema.parse(normalizedData),
   };
 }
-
 
 /**
  * Apply custom deserializers to metadata

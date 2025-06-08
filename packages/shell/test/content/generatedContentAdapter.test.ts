@@ -6,13 +6,14 @@ import { z } from "zod";
 
 describe("GeneratedContentAdapter", () => {
   let adapter: GeneratedContentAdapter;
-  
+
   beforeEach(() => {
     adapter = new GeneratedContentAdapter();
   });
 
-
-  const createTestEntity = (overrides?: Partial<GeneratedContent>): GeneratedContent => ({
+  const createTestEntity = (
+    overrides?: Partial<GeneratedContent>,
+  ): GeneratedContent => ({
     id: "test-123",
     entityType: "generated-content",
     contentType: "test:content",
@@ -40,9 +41,9 @@ describe("GeneratedContentAdapter", () => {
       expect(markdown).toContain("entityType: generated-content");
       expect(markdown).toContain("contentType: 'test:content'");
       // Check that data field is not in frontmatter
-      const [, frontmatter, ] = markdown.split('---');
+      const [, frontmatter] = markdown.split("---");
       expect(frontmatter).not.toMatch(/^data:/m); // data: at start of line
-      
+
       // Should use default YAML formatter
       expect(markdown).toContain("# Content Data");
       expect(markdown).toContain("```yaml");
@@ -55,7 +56,7 @@ describe("GeneratedContentAdapter", () => {
         format: (data) => `Custom format: ${JSON.stringify(data)}`,
         parse: () => ({ parsed: true }),
       };
-      
+
       adapter.setFormatter("test:custom", mockFormatter);
       const entity = createTestEntity({ contentType: "test:custom" });
       const markdown = adapter.toMarkdown(entity);
@@ -236,12 +237,17 @@ Invalid content`;
 
       // Convert to markdown
       const markdown = adapter.toMarkdown(originalEntity);
-      
+
       // Extract just the content body using a simple schema
-      const { content } = parseMarkdownWithFrontmatter(markdown, z.object({
-        content: z.string().optional().default(""),
-      }).passthrough());
-      
+      const { content } = parseMarkdownWithFrontmatter(
+        markdown,
+        z
+          .object({
+            content: z.string().optional().default(""),
+          })
+          .passthrough(),
+      );
+
       // Parse the content
       const result = adapter.parseContent(content, originalEntity.contentType);
 
@@ -258,7 +264,7 @@ Invalid content`;
       };
 
       adapter.setFormatter("test:mock", mockFormatter);
-      
+
       // Test that it uses the formatter
       const entity = createTestEntity({
         contentType: "test:mock",
@@ -276,7 +282,7 @@ Invalid content`;
       };
 
       const formatter2: ContentFormatter = {
-        format: () => "Format 2", 
+        format: () => "Format 2",
         parse: () => ({ format: 2 }),
       };
 
@@ -295,7 +301,7 @@ Invalid content`;
     it("should use hardcoded formatter for webserver:landing:page", () => {
       // This test documents the Phase 0 hardcoded behavior
       // In Phase 1, this will be replaced with proper registry integration
-      
+
       const entity = createTestEntity({
         contentType: "webserver:landing:page",
         data: {

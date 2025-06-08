@@ -1,8 +1,10 @@
 import type { z } from "zod";
+import type { ContentFormatter } from "@brains/types";
 
 export class ContentTypeRegistry {
   private static instance: ContentTypeRegistry | null = null;
   private schemas = new Map<string, z.ZodType<unknown>>();
+  private formatters = new Map<string, ContentFormatter<unknown>>();
 
   // Singleton access
   public static getInstance(): ContentTypeRegistry {
@@ -26,10 +28,10 @@ export class ContentTypeRegistry {
   }
 
   /**
-   * Register a schema for a content type
+   * Register a schema for a content type with optional formatter
    * Content types must be namespaced (e.g., "plugin:category:type")
    */
-  public register(contentType: string, schema: z.ZodType<unknown>): void {
+  public register(contentType: string, schema: z.ZodType<unknown>, formatter?: ContentFormatter<unknown>): void {
     // Validate namespace format
     if (!contentType.includes(":")) {
       throw new Error(
@@ -37,6 +39,11 @@ export class ContentTypeRegistry {
       );
     }
     this.schemas.set(contentType, schema);
+    
+    // Store formatter if provided
+    if (formatter) {
+      this.formatters.set(contentType, formatter);
+    }
   }
 
   /**
@@ -66,10 +73,18 @@ export class ContentTypeRegistry {
   }
 
   /**
-   * Clear all registered schemas
+   * Get formatter for a content type
+   */
+  public getFormatter(contentType: string): ContentFormatter<unknown> | null {
+    return this.formatters.get(contentType) ?? null;
+  }
+
+  /**
+   * Clear all registered schemas and formatters
    * Useful for testing
    */
   public clear(): void {
     this.schemas.clear();
+    this.formatters.clear();
   }
 }

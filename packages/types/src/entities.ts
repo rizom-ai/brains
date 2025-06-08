@@ -38,9 +38,13 @@ export const generatedContentMetadataSchema = z.object({
   previousVersionId: z.string().optional(),
   // Validation fields for human-editable content
   validationStatus: z.enum(["valid", "invalid"]),
-  validationErrors: z.array(z.object({
-    message: z.string()
-  })).optional(),
+  validationErrors: z
+    .array(
+      z.object({
+        message: z.string(),
+      }),
+    )
+    .optional(),
   lastValidData: z.record(z.unknown()).optional(),
 });
 

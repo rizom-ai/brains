@@ -12,6 +12,7 @@ import {
   landingPageSchema,
   dashboardSchema,
 } from "./content-schemas";
+import { LandingPageFormatter } from "./formatters/landingPageFormatter";
 
 export interface WebserverPluginOptions {
   // Output directory for generated site
@@ -51,9 +52,9 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       // Register site-content formatter
       formatters.register("site-content", new SiteContentFormatter());
 
-      // Register content type schemas (plugin ID will be prefixed automatically)
+      // Register content type schemas with formatters (plugin ID will be prefixed automatically)
       contentTypes.register("landing:hero", landingHeroDataSchema);
-      contentTypes.register("landing:page", landingPageSchema);
+      contentTypes.register("landing:page", landingPageSchema, new LandingPageFormatter());
       contentTypes.register("dashboard:main", dashboardSchema);
 
       // Create webserver manager instance

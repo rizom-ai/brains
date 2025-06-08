@@ -144,6 +144,7 @@ Based on our design decisions, we're implementing a pattern where:
 The adapter provides two distinct methods for different use cases:
 
 1. **`parseContent(content, contentType)`** - For editing existing content
+
    - Used when user edits the markdown body
    - Only parses the content, not frontmatter
    - Returns just the data and validation status
@@ -156,6 +157,34 @@ The adapter provides two distinct methods for different use cases:
    - Handles entity reconstruction from files
 
 This separation avoids mixing concerns and makes each method's purpose clear.
+
+### Formatter Registration Flow
+
+The system supports two ways to provide formatters:
+
+1. **Via Content Type Registration (Recommended)**
+   ```typescript
+   // In plugin registration
+   contentTypes.register("landing:page", landingPageSchema, new LandingPageFormatter());
+   ```
+   - Formatter is automatically registered with GeneratedContentAdapter
+   - Ensures formatter is available whenever content type is used
+   - Clean, declarative API
+
+2. **Via Content Templates**
+   ```typescript
+   const landingPageTemplate: ContentTemplate = {
+     name: "landing-page",
+     schema: landingPageSchema,
+     formatter: new LandingPageFormatter(),
+     // ...
+   };
+   ```
+   - Formatter is part of the template definition
+   - Used when generating content from templates
+   - Note: This doesn't automatically register with GeneratedContentAdapter
+
+The ContentTypeRegistry serves as the central coordination point, ensuring formatters are properly distributed to all components that need them.
 
 ### Design Details
 
@@ -192,7 +221,8 @@ This separation avoids mixing concerns and makes each method's purpose clear.
 
      // For converting entities to markdown (always uses formatters)
      toMarkdown(entity: GeneratedContent): string {
-       const formatter = this.formatters.get(entity.contentType) || this.defaultFormatter;
+       const formatter =
+         this.formatters.get(entity.contentType) || this.defaultFormatter;
 
        const frontmatter = {
          id: entity.id,
@@ -210,8 +240,9 @@ This separation avoids mixing concerns and makes each method's purpose clear.
 
      // For editing existing content (parse just the body)
      parseContent(content: string, contentType: string): ParseResult {
-       const formatter = this.formatters.get(contentType) || this.defaultFormatter;
-       
+       const formatter =
+         this.formatters.get(contentType) || this.defaultFormatter;
+
        try {
          const data = formatter.parse(content);
          return {
@@ -222,9 +253,11 @@ This separation avoids mixing concerns and makes each method's purpose clear.
          return {
            data: {}, // Return empty object instead of partial data
            validationStatus: "invalid" as const,
-           validationErrors: [{
-             message: error instanceof Error ? error.message : String(error)
-           }],
+           validationErrors: [
+             {
+               message: error instanceof Error ? error.message : String(error),
+             },
+           ],
          };
        }
      }
@@ -232,11 +265,11 @@ This separation avoids mixing concerns and makes each method's purpose clear.
      // For import/sync operations (parse full markdown file)
      fromMarkdown(markdown: string): Partial<GeneratedContent> {
        const { frontmatter, content } = parseMarkdownWithFrontmatter(markdown);
-       
+
        // Use parseContent to handle the body
        const parseResult = this.parseContent(
-         content, 
-         frontmatter.contentType as string || "unknown"
+         content,
+         (frontmatter.contentType as string) || "unknown",
        );
 
        return {
@@ -246,12 +279,13 @@ This separation avoids mixing concerns and makes each method's purpose clear.
          data: parseResult.data,
          content: markdown, // Store the full markdown
          metadata: {
-           ...(frontmatter.metadata as Record<string, unknown> || {}),
+           ...((frontmatter.metadata as Record<string, unknown>) || {}),
            validationStatus: parseResult.validationStatus,
            validationErrors: parseResult.validationErrors,
-           lastValidData: parseResult.validationStatus === "valid" 
-             ? parseResult.data 
-             : (frontmatter.metadata as any)?.lastValidData,
+           lastValidData:
+             parseResult.validationStatus === "valid"
+               ? parseResult.data
+               : (frontmatter.metadata as any)?.lastValidData,
          },
          created: frontmatter.created as Date,
          updated: frontmatter.updated as Date,
@@ -424,7 +458,22 @@ Everything you learn, safely stored and instantly searchable.
 
 ### Implementation Status
 
-**Current State**: Not started. Analysis revealed foundational work needed before implementing Phase 0.
+**Phase -1: Foundation Work** ✅ Complete
+- BaseFormatter renamed to ResponseFormatter
+- ContentTemplate interface updated with optional formatter field
+- ContentFormatter interface implemented
+- Migration strategy documented
+
+**Phase 0: Proof of Concept** ✅ Complete
+- DefaultYamlFormatter implemented
+- GeneratedContentAdapter updated to use formatters
+- LandingPageFormatter created with bidirectional parsing
+- Roundtrip tests passing
+
+**Phase 1: Core Infrastructure** 🚧 In Progress
+- ContentTypeRegistry enhancement needed
+- PluginContext interface update needed
+- Formatter registration flow implementation needed
 
 ### Implementation Plan
 
@@ -468,10 +517,29 @@ Everything you learn, safely stored and instantly searchable.
 
 #### Phase 1: Core Infrastructure
 
-1. Update ContentTemplate interface to include optional formatter
-2. Update GeneratedContentAdapter to use formatter registry
-3. Integrate with ContentTypeRegistry
-4. Add comprehensive roundtrip tests
+1. **Enhance ContentTypeRegistry to support formatters**
+   - Add formatters Map alongside schemas Map
+   - Update register method: `register(contentType: string, schema: z.ZodType<unknown>, formatter?: ContentFormatter<unknown>)`
+   - Add getFormatter method to retrieve formatters by content type
+   - Formatters are optional - content types without formatters use default YAML formatter
+
+2. **Update PluginContext interface**
+   - Modify contentTypes.register to accept optional formatter parameter
+   - This provides a clean API for plugins to register schemas and formatters together
+
+3. **Connect ContentTypeRegistry with GeneratedContentAdapter**
+   - When formatters are registered, automatically register them with GeneratedContentAdapter
+   - PluginManager handles this connection during content type registration
+   - Ensures formatters are available for both generation and storage
+
+4. **Update ContentTemplate interface to include optional formatter**
+   - Already completed in Phase -1
+   - Templates can specify custom formatters for human-editable output
+
+5. **Add comprehensive roundtrip tests**
+   - Test formatter registration through plugin system
+   - Test content generation with custom formatters
+   - Test editing and parsing of formatted content
 
 #### Phase 2: Content Type Formatters
 

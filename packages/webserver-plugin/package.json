@@ -26,6 +26,7 @@
     "gray-matter": "^4.0.3",
     "hono": "^4.0.0",
     "js-yaml": "^4.1.0",
+    "remark": "^15.0.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "@types/js-yaml": "^4.0.9",
+    "@types/mdast": "^4.0.4",
     "eslint": "^8.57.0",
     "typescript": "^5.4.5"
   },

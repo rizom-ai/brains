@@ -5,6 +5,7 @@ import {
   landingHeroDataSchema,
   dashboardSchema,
 } from "./content-schemas";
+import { LandingPageFormatter } from "./formatters/landingPageFormatter";
 
 /**
  * Landing page hero section template
@@ -34,6 +35,7 @@ export const landingPageTemplate: ContentTemplate<
   name: "landing-page",
   description: "Complete landing page content",
   schema: landingPageSchema,
+  formatter: new LandingPageFormatter(),
   basePrompt: `Generate complete landing page content for a personal knowledge management system.
 The content should include:
 - A concise page title
