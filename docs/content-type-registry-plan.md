@@ -126,6 +126,7 @@ The ContentTypeRegistry will be implemented in the Shell because:
    ```
 
 3. Update content retrieval to validate:
+
    ```typescript
    async getExistingSiteContent(page: string, section: string): Promise<unknown | null> {
      const contentType = `webserver:${page}:${section}`;

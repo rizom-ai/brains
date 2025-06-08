@@ -1,4 +1,4 @@
-export { BaseFormatter } from "./base";
+export { ResponseFormatter } from "./base";
 export { DefaultSchemaFormatter } from "./default-schema";
 export { SimpleTextResponseFormatter } from "./simple-text";
 export { DefaultQueryResponseFormatter } from "./default-query";

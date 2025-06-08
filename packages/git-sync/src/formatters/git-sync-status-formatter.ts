@@ -1,9 +1,9 @@
-import { BaseFormatter } from "@brains/formatters";
+import { ResponseFormatter } from "@brains/formatters";
 
 /**
  * Formatter for git sync status
  */
-export class GitSyncStatusFormatter extends BaseFormatter {
+export class GitSyncStatusFormatter extends ResponseFormatter {
   format(data: unknown): string {
     if (!this.canFormat(data)) {
       return JSON.stringify(data, null, 2);

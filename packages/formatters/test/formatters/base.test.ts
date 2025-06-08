@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { BaseFormatter } from "../../src/formatters/base";
+import { ResponseFormatter } from "../../src/formatters/base";
 
-// Test implementation of BaseFormatter
-class TestFormatter extends BaseFormatter {
+// Test implementation of ResponseFormatter
+class TestFormatter extends ResponseFormatter {
   format(data: unknown): string {
     return "test";
   }
@@ -12,7 +12,7 @@ class TestFormatter extends BaseFormatter {
   }
 }
 
-describe("BaseFormatter", () => {
+describe("ResponseFormatter", () => {
   const formatter = new TestFormatter();
 
   describe("formatKeyValue", () => {

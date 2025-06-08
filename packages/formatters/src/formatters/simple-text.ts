@@ -1,11 +1,11 @@
-import { BaseFormatter } from "./base";
+import { ResponseFormatter } from "./base";
 import { z } from "zod";
 
 const simpleTextResponseSchema = z.object({
   message: z.string(),
 });
 
-export class SimpleTextResponseFormatter extends BaseFormatter {
+export class SimpleTextResponseFormatter extends ResponseFormatter {
   format(data: unknown): string {
     const parsed = simpleTextResponseSchema.safeParse(data);
     if (parsed.success) {

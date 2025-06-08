@@ -2,9 +2,9 @@ import type { SchemaFormatter } from "@brains/types";
 import { hasProps } from "./utils";
 
 /**
- * Base formatter with common utilities
+ * Base formatter for API/query responses with common utilities
  */
-export abstract class BaseFormatter implements SchemaFormatter {
+export abstract class ResponseFormatter implements SchemaFormatter {
   abstract format(data: unknown): string;
   abstract canFormat(data: unknown): boolean;
 

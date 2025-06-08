@@ -1,4 +1,4 @@
-import { BaseFormatter } from "./base";
+import { ResponseFormatter } from "./base";
 import { z } from "zod";
 
 const defaultQueryResponseSchema = z.object({
@@ -7,7 +7,7 @@ const defaultQueryResponseSchema = z.object({
   relatedTopics: z.array(z.string()).optional().default([]),
 });
 
-export class DefaultQueryResponseFormatter extends BaseFormatter {
+export class DefaultQueryResponseFormatter extends ResponseFormatter {
   format(data: unknown): string {
     const parsed = defaultQueryResponseSchema.safeParse(data);
     if (!parsed.success) {

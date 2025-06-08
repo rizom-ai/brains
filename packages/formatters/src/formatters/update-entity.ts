@@ -1,4 +1,4 @@
-import { BaseFormatter } from "./base";
+import { ResponseFormatter } from "./base";
 import { z } from "zod";
 
 const updateEntityResponseSchema = z.object({
@@ -9,7 +9,7 @@ const updateEntityResponseSchema = z.object({
   changes: z.array(z.string()).optional(),
 });
 
-export class UpdateEntityResponseFormatter extends BaseFormatter {
+export class UpdateEntityResponseFormatter extends ResponseFormatter {
   format(data: unknown): string {
     const parsed = updateEntityResponseSchema.safeParse(data);
     if (!parsed.success) {

@@ -32,6 +32,7 @@ Through a series of yes/no questions, we've made the following decisions:
 We currently have two types of adapters:
 
 1. **EntityAdapter** (e.g., `BaseEntityAdapter`, `NoteAdapter`)
+
    - Responsible for entity ↔ markdown conversion
    - Lives with the entity type definition
    - Handles frontmatter generation and parsing
@@ -44,11 +45,13 @@ We currently have two types of adapters:
 ### Key Questions
 
 1. **Should content formatting be part of the EntityAdapter or separate?**
+
    - Option A: Keep as-is - EntityAdapter handles everything
    - Option B: EntityAdapter for storage, ContentFormatter for human-readable representation
    - Option C: Merge concepts - all entities have formatters
 
 2. **Where does content-type-specific formatting logic belong?**
+
    - With the plugin that defines the content type?
    - In a central formatting registry?
    - As part of the content type registration?
@@ -60,7 +63,7 @@ We currently have two types of adapters:
 ### Option 1: Dual Adapter Pattern
 
 ```
-Entity (data model) 
+Entity (data model)
   ↓
 EntityAdapter (storage concerns)
   ↓
@@ -72,11 +75,13 @@ Human-Editable Markdown (editing format)
 ```
 
 **Pros:**
+
 - Clear separation of concerns
 - Storage format can remain stable while editing format evolves
 - Can have multiple formatters per entity type
 
 **Cons:**
+
 - More complex
 - Two markdown representations to maintain
 - Potential for confusion about which format is canonical
@@ -92,11 +97,13 @@ Human-Editable Markdown (single format)
 ```
 
 **Pros:**
+
 - Simpler architecture
 - Single source of truth
 - No confusion about formats
 
 **Cons:**
+
 - Mixes storage and presentation concerns
 - Less flexibility for different editing experiences
 
@@ -113,17 +120,20 @@ Human-Editable Markdown
 ```
 
 **Pros:**
+
 - Content types own their formatting logic
 - Extensible through plugin system
 - Co-locates schema and formatting
 
 **Cons:**
+
 - Requires changes to ContentTypeRegistry
 - May duplicate logic across content types
 
 ## Selected Architecture: Content-Type-Driven Pattern with Formatters
 
 Based on our design decisions, we're implementing a pattern where:
+
 - ContentTemplate includes optional formatters
 - GeneratedContentAdapter uses formatters for markdown conversion
 - ContentTypeRegistry coordinates schemas and formatters
@@ -132,35 +142,38 @@ Based on our design decisions, we're implementing a pattern where:
 ### Design Details
 
 1. **ContentFormatter Interface**
+
    ```typescript
-   interface ContentFormatter {
+   interface ContentFormatter<T = unknown> {
      // Format structured data to human-editable markdown
-     formatData(data: Record<string, unknown>): string;
-     
+     format(data: T): string;
+
      // Parse human-editable markdown back to structured data
-     parseData(content: string): Record<string, unknown>;
+     parse(content: string): T;
    }
    ```
 
 2. **ContentTemplate Enhancement**
+
    ```typescript
    interface ContentTemplate<T = unknown> {
      name: string;
      description: string;
      schema: z.ZodType<T>;
      basePrompt: string;
-     formatter?: ContentFormatter; // NEW: optional formatter
+     formatter?: ContentFormatter<T>; // NEW: optional formatter
    }
    ```
 
 3. **GeneratedContentAdapter Updates**
+
    ```typescript
    class GeneratedContentAdapter implements EntityAdapter<GeneratedContent> {
      private formatters = new Map<string, ContentFormatter<any>>();
-     
+
      toMarkdown(entity: GeneratedContent): string {
        const formatter = this.formatters.get(entity.contentType);
-       
+
        const frontmatter = {
          id: entity.id,
          entityType: entity.entityType,
@@ -170,45 +183,45 @@ Based on our design decisions, we're implementing a pattern where:
          updated: entity.updated,
          // Note: data is NOT in frontmatter anymore
        };
-       
+
        // Use formatter if available, otherwise fall back to YAML
-       const content = formatter 
-         ? formatter.formatData(entity.data)
+       const content = formatter
+         ? formatter.format(entity.data)
          : this.defaultFormat(entity.data);
-       
+
        return generateMarkdownWithFrontmatter(content, frontmatter);
      }
-     
+
      fromMarkdown(markdown: string): Partial<GeneratedContent> {
        const { frontmatter, content } = parseMarkdownWithFrontmatter(markdown);
        const formatter = this.formatters.get(frontmatter.contentType);
-       
+
        let data: Record<string, unknown>;
-       let validationStatus: 'valid' | 'invalid' = 'valid';
+       let validationStatus: "valid" | "invalid" = "valid";
        let validationErrors: unknown[] = [];
-       
+
        try {
          // Parse content
          data = formatter
-           ? formatter.parseData(content)
-           : this.defaultParseYaml(content);
-         
+           ? formatter.parse(content)
+           : this.defaultParse(content);
+
          // Validate against schema
-         const schema = this.contentTypeRegistry.get(frontmatter.contentType);
-         if (schema) {
-           const result = schema.safeParse(data);
+         const template = this.contentTypeRegistry.get(frontmatter.contentType);
+         if (template?.schema) {
+           const result = template.schema.safeParse(data);
            if (!result.success) {
-             validationStatus = 'invalid';
+             validationStatus = "invalid";
              validationErrors = result.error.errors;
            }
          }
        } catch (error) {
          // Parsing failed - store raw content and mark invalid
-         validationStatus = 'invalid';
+         validationStatus = "invalid";
          validationErrors = [{ message: error.message }];
          data = { _rawContent: content };
        }
-       
+
        return {
          ...frontmatter,
          data,
@@ -216,7 +229,8 @@ Based on our design decisions, we're implementing a pattern where:
          metadata: {
            ...frontmatter.metadata,
            validationStatus,
-           validationErrors: validationErrors.length > 0 ? validationErrors : undefined,
+           validationErrors:
+             validationErrors.length > 0 ? validationErrors : undefined,
            lastValidData: frontmatter.metadata?.lastValidData,
          },
        };
@@ -226,8 +240,8 @@ Based on our design decisions, we're implementing a pattern where:
 
 4. **Default YAML Formatter**
    ```typescript
-   class DefaultYamlFormatter implements ContentFormatter {
-     formatData(data: Record<string, unknown>): string {
+   class DefaultYamlFormatter implements ContentFormatter<Record<string, unknown>> {
+     format(data: Record<string, unknown>): string {
        return `# Content Data
 
 \`\`\`yaml
@@ -236,8 +250,8 @@ ${yaml.dump(data, { indent: 2 })}
 
 Edit the YAML above to modify the content.`;
      }
-     
-     parseData(content: string): Record<string, unknown> {
+
+     parse(content: string): Record<string, unknown> {
        // Extract YAML from code block
        const yamlMatch = content.match(/```yaml\n([\s\S]*?)\n```/);
        if (!yamlMatch) {
@@ -257,9 +271,9 @@ id: abc123
 entityType: generated-content
 contentType: webserver:landing:page
 metadata:
-  prompt: "Generate landing page for My Brain"
-  generatedAt: "2024-05-23T10:00:00Z"
-  generatedBy: "claude-3-sonnet"
+prompt: "Generate landing page for My Brain"
+generatedAt: "2024-05-23T10:00:00Z"
+generatedBy: "claude-3-sonnet"
 created: "2024-05-23T10:00:00Z"
 updated: "2024-05-23T10:00:00Z"
 ---
@@ -304,9 +318,10 @@ Enhance your ideas with AI-powered insights and suggestions.
 
 ### Stay Organized
 Everything in its place, accessible when you need it.
-```
+````
 
 **Human edits it to:**
+
 ```markdown
 ---
 id: abc123
@@ -327,29 +342,35 @@ updated: "2024-05-24T15:30:00Z"
 ## Hero Section
 
 ### Headline
+
 My Personal Knowledge System
 
 ### Tagline
+
 Where thoughts become insights, powered by AI.
 
 ### Call to Action
+
 Start Building → /get-started
 
 ## Features
 
 ### Smart Organization
+
 - Automatic tagging and categorization
 - Intelligent search across all your content
 - Visual knowledge graphs
 - Custom taxonomies
 
 ### AI Enhancement
+
 - Content generation and expansion
 - Smart summaries and insights
 - Conversational knowledge exploration
 - Multi-model support
 
 ### Seamless Sync
+
 - Git-based version control
 - Multi-device synchronization
 - Collaborative knowledge building
@@ -358,37 +379,74 @@ Start Building → /get-started
 ## Benefits
 
 ### Think Faster
+
 Your second brain, always ready with the right information.
 
 ### Create More
+
 Transform ideas into content with AI assistance.
 
 ### Never Forget
+
 Everything you learn, safely stored and instantly searchable.
 ```
 
+### Implementation Status
+
+**Current State**: Not started. Analysis revealed foundational work needed before implementing Phase 0.
+
 ### Implementation Plan
 
-#### Phase 0: Proof of Concept (Current)
-1. Create ContentFormatter interface
+#### Phase -1: Foundation Work (Current)
+
+1. **Resolve naming conflicts**
+   - Rename existing `BaseFormatter` to `ResponseFormatter` in `@brains/formatters` package
+   - This creates clear distinction: `ResponseFormatter` for API responses vs `ContentFormatter` for human-editable content
+   - Update all existing formatters that extend BaseFormatter
+
+2. **Update ContentTemplate interface**
+   - Add optional `formatter?: ContentFormatter` field
+   - Ensure backwards compatibility (undefined = use default)
+   - Update type definitions in `@brains/types` package
+
+3. **Design ContentFormatter interface**
+   - Use generics for type safety: `ContentFormatter<T>`
+   - Clear method names: `format()` and `parse()`
+   - Consider validation integration
+
+4. **Plan migration strategy**
+   - Document how to migrate existing content from frontmatter to body
+   - Create migration script template
+   - Establish versioning strategy for content format
+
+5. **Update existing tests**
+   - Ensure GeneratedContentAdapter tests still pass
+   - Add test infrastructure for formatter testing
+
+#### Phase 0: Proof of Concept
+
+1. Create ContentFormatter interface implementation
 2. Update GeneratedContentAdapter with hardcoded formatter for landing:page
 3. Implement default YAML formatter
 4. Test roundtrip conversion works
 5. Validate the approach before full implementation
 
 #### Phase 1: Core Infrastructure
+
 1. Update ContentTemplate interface to include optional formatter
 2. Update GeneratedContentAdapter to use formatter registry
 3. Integrate with ContentTypeRegistry
 4. Add comprehensive roundtrip tests
 
 #### Phase 2: Content Type Formatters
+
 1. Create LandingPageFormatter with human-friendly format
 2. Create DashboardFormatter
 3. Update webserver-plugin to provide formatters with templates
 4. Test with real content generation
 
 #### Phase 3: Production Ready
+
 1. Add validation error handling and recovery
 2. Add edit tracking in metadata
 3. Update existing content to new format
@@ -419,7 +477,11 @@ Everything you learn, safely stored and instantly searchable.
 
 ## Next Steps
 
-1. Implement Phase 0 proof of concept
-2. Test with real landing page content
-3. Validate the approach works end-to-end
-4. Proceed with full implementation if successful
+1. Complete Phase -1 foundation work
+   - Resolve naming conflicts and establish clear terminology
+   - Update ContentTemplate interface in @brains/types
+   - Design ContentFormatter interface with proper generics
+2. Implement Phase 0 proof of concept
+3. Test with real landing page content
+4. Validate the approach works end-to-end
+5. Proceed with full implementation if successful

@@ -1,4 +1,4 @@
-import { BaseFormatter } from "./base";
+import { ResponseFormatter } from "./base";
 import { z } from "zod";
 
 const createEntityResponseSchema = z.object({
@@ -8,7 +8,7 @@ const createEntityResponseSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
-export class CreateEntityResponseFormatter extends BaseFormatter {
+export class CreateEntityResponseFormatter extends ResponseFormatter {
   format(data: unknown): string {
     const parsed = createEntityResponseSchema.safeParse(data);
     if (!parsed.success) {
