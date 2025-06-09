@@ -1,9 +1,9 @@
 import type { EntityAdapter } from "@brains/base-entity";
 import { type GeneratedContent, generatedContentSchema } from "@brains/types";
-import { 
-  landingPageReferenceSchema, 
+import {
+  landingPageReferenceSchema,
   landingPageSchema,
-  type LandingPageReferenceData
+  type LandingPageReferenceData,
 } from "./content-schemas";
 import {
   generateMarkdownWithFrontmatter,
@@ -37,11 +37,11 @@ export class LandingPageAdapter implements EntityAdapter<GeneratedContent> {
       const referenceData: LandingPageReferenceData = {
         title: landingPageResult.data.title,
         tagline: landingPageResult.data.tagline,
-        heroId: `hero-section-${landingPageResult.data.title.toLowerCase().replace(/\s+/g, '-')}`,
-        featuresId: `features-section-${landingPageResult.data.title.toLowerCase().replace(/\s+/g, '-')}`,
-        ctaId: `cta-section-${landingPageResult.data.title.toLowerCase().replace(/\s+/g, '-')}`,
+        heroId: `hero-section-${landingPageResult.data.title.toLowerCase().replace(/\s+/g, "-")}`,
+        featuresId: `features-section-${landingPageResult.data.title.toLowerCase().replace(/\s+/g, "-")}`,
+        ctaId: `cta-section-${landingPageResult.data.title.toLowerCase().replace(/\s+/g, "-")}`,
       };
-      
+
       const content = `# Landing Page Configuration
 
 \`\`\`yaml
@@ -53,7 +53,7 @@ ${yaml.dump(referenceData, { indent: 2, lineWidth: -1 })}
         generatedAt: entity.metadata?.generatedAt,
       });
     }
-    
+
     // Otherwise assume it's already reference data
     const referenceResult = landingPageReferenceSchema.safeParse(entity.data);
     if (referenceResult.success) {
@@ -68,7 +68,7 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
         generatedAt: entity.metadata?.generatedAt,
       });
     }
-    
+
     throw new Error("Invalid landing page data");
   }
 
@@ -77,7 +77,7 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
       markdown,
       frontmatterSchema,
     );
-    
+
     // Extract YAML from content
     const yamlMatch = content.match(/```yaml\n([\s\S]*?)\n```/);
     if (!yamlMatch) {
@@ -85,8 +85,10 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
     }
 
     const yamlContent = yamlMatch[1]!;
-    const referenceData = landingPageReferenceSchema.parse(yaml.load(yamlContent));
-    
+    const referenceData = landingPageReferenceSchema.parse(
+      yaml.load(yamlContent),
+    );
+
     // Return as generated content with reference data
     return {
       contentType: metadata.contentType,
@@ -103,7 +105,7 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
         isReference: true,
       };
     }
-    
+
     const landingPageResult = landingPageSchema.safeParse(entity.data);
     if (landingPageResult.success) {
       return {
@@ -116,7 +118,7 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
         },
       };
     }
-    
+
     return {};
   }
 

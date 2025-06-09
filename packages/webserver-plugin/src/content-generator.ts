@@ -14,11 +14,11 @@ import {
 import type { Logger } from "@brains/utils";
 import { generateWithTemplate } from "@brains/utils";
 import { join } from "path";
-import { 
+import {
   landingPageTemplate,
   heroSectionTemplate,
   featuresSectionTemplate,
-  ctaSectionTemplate
+  ctaSectionTemplate,
 } from "./content-templates";
 import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";

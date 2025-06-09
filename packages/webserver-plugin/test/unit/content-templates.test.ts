@@ -33,7 +33,9 @@ describe("Content Templates", () => {
   describe("featuresSectionTemplate", () => {
     it("should have correct structure", () => {
       expect(featuresSectionTemplate.name).toBe("features-section");
-      expect(featuresSectionTemplate.description).toBe("Features section for pages");
+      expect(featuresSectionTemplate.description).toBe(
+        "Features section for pages",
+      );
       expect(featuresSectionTemplate.schema).toBeDefined();
       expect(featuresSectionTemplate.basePrompt).toContain("features section");
     });
@@ -60,7 +62,9 @@ describe("Content Templates", () => {
   describe("ctaSectionTemplate", () => {
     it("should have correct structure", () => {
       expect(ctaSectionTemplate.name).toBe("cta-section");
-      expect(ctaSectionTemplate.description).toBe("Call-to-action section for pages");
+      expect(ctaSectionTemplate.description).toBe(
+        "Call-to-action section for pages",
+      );
       expect(ctaSectionTemplate.schema).toBeDefined();
       expect(ctaSectionTemplate.basePrompt).toContain("call-to-action section");
     });

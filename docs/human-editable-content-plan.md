@@ -752,23 +752,25 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
 #### Phase 4: Composite Content & Entity Resolution
 
 1. **Design composite content pattern**
+
    - Parent entities reference child section entities
    - Adapter resolves references during loading
    - Maintains modular storage while providing complete objects to Astro
 
 2. **Implement entity resolution in adapters**
+
    ```typescript
    // Example: LandingPageAdapter
    async fromMarkdown(markdown: string): Promise<LandingPageData> {
      const base = parseMarkdown(markdown);
-     
+
      // Resolve referenced sections
      const [hero, features, cta] = await Promise.all([
        this.entityService.get(base.heroId),
        this.entityService.get(base.featuresId),
        this.entityService.get(base.ctaId)
      ]);
-     
+
      // Merge into complete object
      return {
        ...base,
@@ -780,6 +782,7 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
    ```
 
 3. **Handle content hierarchy**
+
    - Generated content sections (AI-created, editable)
    - User content overrides (manual edits take precedence)
    - Fallback to defaults if sections missing
@@ -803,11 +806,13 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
 For complex pages with multiple sections, we use a composite pattern:
 
 1. **Section Entities**: Each section (hero, features, CTA) is its own generated-content entity
+
    - `webserver:section:hero` - Hero section with its own formatter
    - `webserver:section:features` - Features section with its own formatter
    - `webserver:section:cta` - CTA section with its own formatter
 
 2. **Page Entity**: The main page entity references section entities
+
    - `webserver:page:landing` - Contains title, tagline, and section IDs
    - Adapter resolves sections during load for Astro
 
@@ -831,7 +836,8 @@ For complex pages with multiple sections, we use a composite pattern:
 #### Example Storage
 
 **Landing Page Entity** (`landing-page-main.md`):
-```markdown
+
+````markdown
 ---
 id: landing-page-main
 entityType: generated-content
@@ -847,7 +853,9 @@ heroId: hero-section-main
 featuresId: features-section-main
 ctaId: cta-section-main
 ```
-```
+````
+
+````
 
 **Hero Section Entity** (`hero-section-main.md`):
 ```markdown
@@ -870,7 +878,7 @@ Get Started
 
 ## CTA Link
 /dashboard
-```
+````
 
 ### Benefits of This Approach
 
@@ -888,15 +896,17 @@ Get Started
 Following the established promote content pattern for user edits:
 
 1. **Generate**: AI creates content as `generated-content` entity
-2. **Edit**: Users edit the generated content directly  
+2. **Edit**: Users edit the generated content directly
 3. **Promote**: Convert to `site-content` when ready for production
 
 For composite pages:
+
 - Each section can be promoted independently
 - Page entity references remain stable (by ID)
 - Adapter resolves current entity regardless of type
 
 Example:
+
 ```bash
 # Generate section
 brain generate --template hero-section --id hero-main

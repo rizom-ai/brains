@@ -55,23 +55,45 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       formatters.register("site-content", new SiteContentFormatter());
 
       // Import section formatters
-      const { HeroSectionFormatter } = await import("./formatters/heroSectionFormatter");
-      const { FeaturesSectionFormatter } = await import("./formatters/featuresSectionFormatter");
-      const { CTASectionFormatter } = await import("./formatters/ctaSectionFormatter");
-      
+      const { HeroSectionFormatter } = await import(
+        "./formatters/heroSectionFormatter"
+      );
+      const { FeaturesSectionFormatter } = await import(
+        "./formatters/featuresSectionFormatter"
+      );
+      const { CTASectionFormatter } = await import(
+        "./formatters/ctaSectionFormatter"
+      );
+
       // Sections are stored as generated-content entities, not custom entity types
       // They are registered as content types for generation purposes
-      
+
       // Register section content types
-      contentTypes.register("section:hero", landingHeroDataSchema, new HeroSectionFormatter());
-      contentTypes.register("section:features", featuresSectionSchema, new FeaturesSectionFormatter());
-      contentTypes.register("section:cta", ctaSectionSchema, new CTASectionFormatter());
-      
+      contentTypes.register(
+        "section:hero",
+        landingHeroDataSchema,
+        new HeroSectionFormatter(),
+      );
+      contentTypes.register(
+        "section:features",
+        featuresSectionSchema,
+        new FeaturesSectionFormatter(),
+      );
+      contentTypes.register(
+        "section:cta",
+        ctaSectionSchema,
+        new CTASectionFormatter(),
+      );
+
       // Landing page uses the generated-content entity type with custom adapter
       // It's not registered as a separate entity type
-      
+
       // Register page content types
-      contentTypes.register("page:landing", landingPageReferenceSchema, new LandingPageFormatter());
+      contentTypes.register(
+        "page:landing",
+        landingPageReferenceSchema,
+        new LandingPageFormatter(),
+      );
       contentTypes.register("page:dashboard", dashboardSchema);
 
       // Create webserver manager instance

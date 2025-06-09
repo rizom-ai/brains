@@ -1,12 +1,18 @@
 import type { ContentFormatter } from "@brains/types";
-import { landingPageReferenceSchema, type LandingPageReferenceData } from "../content-schemas";
+import {
+  landingPageReferenceSchema,
+  type LandingPageReferenceData,
+} from "../content-schemas";
 import { DefaultYamlFormatter } from "@brains/formatters";
 
 /**
  * Formatter for landing page reference data
  * The actual page data is assembled by the adapter from referenced entities
  */
-export class LandingPageFormatter extends DefaultYamlFormatter implements ContentFormatter<LandingPageReferenceData> {
+export class LandingPageFormatter
+  extends DefaultYamlFormatter
+  implements ContentFormatter<LandingPageReferenceData>
+{
   public override format(data: LandingPageReferenceData): string {
     return `# Landing Page Configuration
 

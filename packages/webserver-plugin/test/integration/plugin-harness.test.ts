@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { webserverPlugin } from "../../src/index";
-import {
-  PluginTestHarness,
-  type TestEntity,
-} from "@brains/plugin-test-utils";
+import { PluginTestHarness, type TestEntity } from "@brains/plugin-test-utils";
 import { join } from "path";
 import { rmSync, existsSync, mkdirSync } from "fs";
 
@@ -60,8 +57,8 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       // Check tools are registered via capabilities
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      
-      const toolNames = capabilities.tools.map(t => t.name);
+
+      const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("build_site");
       expect(toolNames).toContain("start_preview_server");
       expect(toolNames).toContain("start_production_server");
@@ -78,7 +75,9 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
 
-      const statusTool = capabilities.tools.find((t) => t.name === "get_site_status");
+      const statusTool = capabilities.tools.find(
+        (t) => t.name === "get_site_status",
+      );
       expect(statusTool).toBeDefined();
 
       if (!statusTool) throw new Error("Status tool not found");

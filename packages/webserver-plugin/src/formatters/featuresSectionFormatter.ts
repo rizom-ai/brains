@@ -1,5 +1,8 @@
 import { StructuredContentFormatter } from "@brains/formatters";
-import { featuresSectionSchema, type FeaturesSection } from "../content-schemas";
+import {
+  featuresSectionSchema,
+  type FeaturesSection,
+} from "../content-schemas";
 
 export class FeaturesSectionFormatter extends StructuredContentFormatter<FeaturesSection> {
   constructor() {
@@ -14,9 +17,9 @@ export class FeaturesSectionFormatter extends StructuredContentFormatter<Feature
           label: "Feature Cards",
           type: "array",
           itemFormat: (item): string => {
-            const feature = item as { 
-              icon: string; 
-              title: string; 
+            const feature = item as {
+              icon: string;
+              title: string;
               description: string;
               colorScheme?: string;
             };

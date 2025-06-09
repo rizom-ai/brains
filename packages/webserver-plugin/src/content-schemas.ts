@@ -48,10 +48,12 @@ export const ctaSectionSchema = z.object({
     text: z.string(),
     link: z.string(),
   }),
-  secondaryButton: z.object({
-    text: z.string(),
-    link: z.string(),
-  }).optional(),
+  secondaryButton: z
+    .object({
+      text: z.string(),
+      link: z.string(),
+    })
+    .optional(),
 });
 
 export type CTASection = z.infer<typeof ctaSectionSchema>;
@@ -67,7 +69,9 @@ export const landingPageReferenceSchema = z.object({
   ctaId: z.string(),
 });
 
-export type LandingPageReferenceData = z.infer<typeof landingPageReferenceSchema>;
+export type LandingPageReferenceData = z.infer<
+  typeof landingPageReferenceSchema
+>;
 
 /**
  * Schema for complete landing page data (after resolution)
