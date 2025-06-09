@@ -19,11 +19,13 @@
   },
   "dependencies": {
     "@brains/types": "workspace:*",
+    "remark": "^15.0.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",
     "@brains/eslint-config": "workspace:*",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/mdast": "^4.0.4"
   }
 }

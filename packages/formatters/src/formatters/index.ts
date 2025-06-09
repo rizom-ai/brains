@@ -9,6 +9,5 @@ export { DefaultQueryResponseFormatter } from "./default-query";
 export { CreateEntityResponseFormatter } from "./create-entity";
 export { UpdateEntityResponseFormatter } from "./update-entity";
 
-// Content formatters - internal utilities, not exported by default
-// Users should import these explicitly if needed:
-// import { StructuredContentFormatter } from "@brains/formatters/src/formatters/structured-content";
+// Content formatters
+export { StructuredContentFormatter } from "./structured-content";

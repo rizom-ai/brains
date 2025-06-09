@@ -479,20 +479,17 @@ After analyzing the LandingPageFormatter implementation, we've identified patter
 class StructuredContentFormatter<T> implements ContentFormatter<T> {
   constructor(
     private schema: z.ZodType<T>,
-    private config: FormatterConfig
+    private config: FormatterConfig,
   ) {}
 
   format(data: T): string {
-    const lines: string[] = [
-      `# ${this.config.title}`,
-      ''
-    ];
-    
+    const lines: string[] = [`# ${this.config.title}`, ""];
+
     for (const mapping of this.config.mappings) {
       this.formatField(data, mapping, lines, 2);
     }
-    
-    return lines.join('\n');
+
+    return lines.join("\n");
   }
 
   parse(content: string): T {
@@ -506,17 +503,17 @@ class StructuredContentFormatter<T> implements ContentFormatter<T> {
     data: any,
     mapping: FieldMapping,
     lines: string[],
-    depth: number
+    depth: number,
   ): void {
-    const heading = '#'.repeat(depth) + ' ' + mapping.label;
+    const heading = "#".repeat(depth) + " " + mapping.label;
     const value = this.getValueByPath(data, mapping.key);
-    
+
     switch (mapping.type) {
-      case 'string':
-      case 'number':
-        lines.push(heading, String(value), '');
+      case "string":
+      case "number":
+        lines.push(heading, String(value), "");
         break;
-      case 'object':
+      case "object":
         lines.push(heading);
         if (mapping.children) {
           for (const child of mapping.children) {
@@ -524,12 +521,12 @@ class StructuredContentFormatter<T> implements ContentFormatter<T> {
           }
         }
         break;
-      case 'array':
-        lines.push(heading, '');
+      case "array":
+        lines.push(heading, "");
         for (const item of value as any[]) {
           lines.push(`- ${this.formatArrayItem(item)}`);
         }
-        lines.push('');
+        lines.push("");
         break;
     }
   }
@@ -540,55 +537,49 @@ class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
 ```typescript
 // Dashboard formatter configuration
-const dashboardFormatter = new StructuredContentFormatter(
-  dashboardSchema,
-  {
-    title: "Dashboard Configuration",
-    mappings: [
-      { key: "title", label: "Title", type: "string" },
-      { key: "description", label: "Description", type: "string" },
-      { 
-        key: "stats", 
-        label: "Statistics", 
-        type: "object",
-        children: [
-          { key: "entityCount", label: "Entity Count", type: "number" },
-          { key: "entityTypeCount", label: "Entity Type Count", type: "number" },
-          { key: "lastUpdated", label: "Last Updated", type: "string" }
-        ]
-      },
-      {
-        key: "recentEntities",
-        label: "Recent Entities",
-        type: "array",
-        itemFormat: (item) => `${item.title} (${item.id}) - ${item.created}`
-      }
-    ]
-  }
-);
+const dashboardFormatter = new StructuredContentFormatter(dashboardSchema, {
+  title: "Dashboard Configuration",
+  mappings: [
+    { key: "title", label: "Title", type: "string" },
+    { key: "description", label: "Description", type: "string" },
+    {
+      key: "stats",
+      label: "Statistics",
+      type: "object",
+      children: [
+        { key: "entityCount", label: "Entity Count", type: "number" },
+        { key: "entityTypeCount", label: "Entity Type Count", type: "number" },
+        { key: "lastUpdated", label: "Last Updated", type: "string" },
+      ],
+    },
+    {
+      key: "recentEntities",
+      label: "Recent Entities",
+      type: "array",
+      itemFormat: (item) => `${item.title} (${item.id}) - ${item.created}`,
+    },
+  ],
+});
 
 // Landing page formatter configuration (refactored)
-const landingPageFormatter = new StructuredContentFormatter(
-  landingPageSchema,
-  {
-    title: "Landing Page Configuration",
-    mappings: [
-      { key: "title", label: "Title", type: "string" },
-      { key: "tagline", label: "Tagline", type: "string" },
-      {
-        key: "hero",
-        label: "Hero",
-        type: "object",
-        children: [
-          { key: "headline", label: "Headline", type: "string" },
-          { key: "subheadline", label: "Subheadline", type: "string" },
-          { key: "ctaText", label: "CTA Text", type: "string" },
-          { key: "ctaLink", label: "CTA Link", type: "string" }
-        ]
-      }
-    ]
-  }
-);
+const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
+  title: "Landing Page Configuration",
+  mappings: [
+    { key: "title", label: "Title", type: "string" },
+    { key: "tagline", label: "Tagline", type: "string" },
+    {
+      key: "hero",
+      label: "Hero",
+      type: "object",
+      children: [
+        { key: "headline", label: "Headline", type: "string" },
+        { key: "subheadline", label: "Subheadline", type: "string" },
+        { key: "ctaText", label: "CTA Text", type: "string" },
+        { key: "ctaLink", label: "CTA Link", type: "string" },
+      ],
+    },
+  ],
+});
 ```
 
 #### Benefits of Generic Approach
@@ -702,22 +693,25 @@ const landingPageFormatter = new StructuredContentFormatter(
 #### Phase 2: Generic Formatter Infrastructure
 
 1. **Create StructuredContentFormatter base class**
+
    - Extract common patterns from LandingPageFormatter
    - Support declarative field mappings
    - Handle nested objects and arrays
    - Provide utilities for markdown parsing/generation
 
 2. **Design the formatter configuration pattern**
+
    ```typescript
    interface FieldMapping {
-     key: string;              // Data field name
-     label: string;            // Markdown heading
-     type: 'string' | 'number' | 'object' | 'array';
+     key: string; // Data field name
+     label: string; // Markdown heading
+     type: "string" | "number" | "object" | "array";
      children?: FieldMapping[]; // For nested objects
    }
    ```
 
 3. **Implement common formatting utilities**
+
    - Section extraction by heading depth
    - Text content extraction
    - Value formatting based on type
@@ -732,18 +726,22 @@ const landingPageFormatter = new StructuredContentFormatter(
 #### Phase 3: Content Type Formatters
 
 1. **Refactor LandingPageFormatter to use StructuredContentFormatter**
+
    - Define field mappings declaratively
    - Reduce code to just configuration
 
 2. **Create DashboardFormatter using generic approach**
+
    - Simple configuration-based implementation
    - Handle stats object and recent entities array
 
 3. **Create LandingHeroFormatter**
+
    - Simpler subset of landing page fields
    - Demonstrate reusability
 
 4. **Update webserver-plugin registrations**
+
    - Register all formatters with content types
    - Update content templates
 

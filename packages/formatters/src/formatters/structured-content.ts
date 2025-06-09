@@ -207,9 +207,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
    */
   private getHeadingText(heading: Heading): string {
     const textNodes = heading.children.filter((child) => child.type === "text");
-    return textNodes
-      .map((node) => (node as { value: string }).value)
-      .join("");
+    return textNodes.map((node) => (node as { value: string }).value).join("");
   }
 
   /**
@@ -223,7 +221,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
     for (const mapping of mappings) {
       const section = sections.get(mapping.label.toLowerCase());
-      
+
       if (mapping.type === "object" && mapping.children && section) {
         // Extract subsections for object type
         const subsections = this.extractSubsections(section, 3);
@@ -239,8 +237,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       } else if (section) {
         // Extract text content for string/number types
         const textValue = this.getTextFromSection(section);
-        const value =
-          mapping.type === "number" ? Number(textValue) : textValue;
+        const value = mapping.type === "number" ? Number(textValue) : textValue;
         this.setValueByPath(result, mapping.key, value);
       }
     }
@@ -262,7 +259,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
       if (!part) continue;
-      
+
       if (!(part in current)) {
         current[part] = {};
       }
@@ -317,9 +314,9 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
     for (const node of content) {
       if (node.type === "list") {
-        const listNode = node as { 
-          type: "list"; 
-          children: Array<{ type: string; children: Content[] }> 
+        const listNode = node as {
+          type: "list";
+          children: Array<{ type: string; children: Content[] }>;
         };
         for (const item of listNode.children) {
           if (item.type === "listItem") {
