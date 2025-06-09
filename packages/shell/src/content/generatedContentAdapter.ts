@@ -10,7 +10,7 @@ import {
   generatedContentSchema,
   generatedContentMetadataSchema,
 } from "@brains/types";
-import { DefaultYamlFormatter } from "./formatters/defaultYamlFormatter";
+import { DefaultYamlFormatter } from "@brains/formatters";
 
 /**
  * Interface for generated content adapter

@@ -11,3 +11,4 @@ export { UpdateEntityResponseFormatter } from "./update-entity";
 
 // Content formatters
 export { StructuredContentFormatter } from "./structured-content";
+export { DefaultYamlFormatter } from "./default-yaml";

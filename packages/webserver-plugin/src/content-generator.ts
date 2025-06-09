@@ -14,7 +14,12 @@ import {
 import type { Logger } from "@brains/utils";
 import { generateWithTemplate } from "@brains/utils";
 import { join } from "path";
-import { landingPageTemplate } from "./content-templates";
+import { 
+  landingPageTemplate,
+  heroSectionTemplate,
+  featuresSectionTemplate,
+  ctaSectionTemplate
+} from "./content-templates";
 import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
 import * as yaml from "js-yaml";
@@ -125,25 +130,70 @@ export class ContentGenerator {
     if (!validExistingContent) {
       this.logger.info("Generating new landing page content with AI");
 
-      // Use the template helper with additional context and save the result
-      // TODO: Refactor to avoid context binding - perhaps expose generateContent as a standalone function
-      landingData = await generateWithTemplate(
+      // Generate sections separately
+      const baseContext = {
+        siteTitle: this.options.siteTitle,
+        siteDescription: this.options.siteDescription,
+      };
+
+      // Generate hero section
+      const heroData = await generateWithTemplate(
+        this.context.generateContent.bind(this.context),
+        heroSectionTemplate,
+        "section:hero",
+        {
+          prompt: `Generate hero section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
+          data: baseContext,
+        },
+        { save: true },
+      );
+
+      // Generate features section
+      const featuresData = await generateWithTemplate(
+        this.context.generateContent.bind(this.context),
+        featuresSectionTemplate,
+        "section:features",
+        {
+          prompt: `Generate features section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
+          data: baseContext,
+        },
+        { save: true },
+      );
+
+      // Generate CTA section
+      const ctaData = await generateWithTemplate(
+        this.context.generateContent.bind(this.context),
+        ctaSectionTemplate,
+        "section:cta",
+        {
+          prompt: `Generate CTA section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
+          data: baseContext,
+        },
+        { save: true },
+      );
+
+      // Generate landing page reference
+      await generateWithTemplate(
         this.context.generateContent.bind(this.context),
         landingPageTemplate,
-        "landing:page",
+        "page:landing",
         {
-          prompt: `This is for "${this.options.siteTitle}" - ${this.options.siteDescription}.
-          Please generate content that reflects this specific brain's purpose.`,
-          data: {
-            siteTitle: this.options.siteTitle,
-            siteDescription: this.options.siteDescription,
-          },
-          style: "professional and engaging",
+          prompt: `Generate landing page configuration for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
+          data: baseContext,
         },
-        {
-          save: true,
-        },
+        { save: true },
       );
+
+      // Assemble full landing page data
+      if (heroData && featuresData && ctaData) {
+        landingData = {
+          title: this.options.siteTitle,
+          tagline: this.options.siteDescription,
+          hero: heroData,
+          features: featuresData,
+          cta: ctaData,
+        };
+      }
     }
 
     if (!landingData) {
@@ -159,7 +209,7 @@ export class ContentGenerator {
       throw new Error("Failed to generate valid landing page data");
     }
 
-    // Write to landing collection
+    // Write to landing collection for Astro to consume
     await this.writeYamlFile("landing", "index.yaml", landingData);
 
     this.logger.info("Landing page data generated");

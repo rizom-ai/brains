@@ -1,22 +1,28 @@
 import type { z } from "zod";
 import type { ContentTemplate } from "@brains/types";
 import {
-  landingPageSchema,
+  landingPageReferenceSchema,
   landingHeroDataSchema,
+  featuresSectionSchema,
+  ctaSectionSchema,
   dashboardSchema,
 } from "./content-schemas";
 import { LandingPageFormatter } from "./formatters/landingPageFormatter";
+import { HeroSectionFormatter } from "./formatters/heroSectionFormatter";
+import { FeaturesSectionFormatter } from "./formatters/featuresSectionFormatter";
+import { CTASectionFormatter } from "./formatters/ctaSectionFormatter";
 
 /**
- * Landing page hero section template
+ * Hero section template
  */
-export const landingHeroTemplate: ContentTemplate<
+export const heroSectionTemplate: ContentTemplate<
   z.infer<typeof landingHeroDataSchema>
 > = {
-  name: "landing-hero",
-  description: "Hero section for landing page",
+  name: "hero-section",
+  description: "Hero section for pages",
   schema: landingHeroDataSchema,
-  basePrompt: `Generate an engaging hero section for a personal knowledge management system landing page. 
+  formatter: new HeroSectionFormatter(),
+  basePrompt: `Generate an engaging hero section for a personal knowledge management system. 
 The hero section should have:
 - A compelling headline that captures the main value proposition
 - A supporting subheadline that provides more context
@@ -27,26 +33,70 @@ Make the content professional, clear, and action-oriented.`,
 };
 
 /**
- * Full landing page template
+ * Features section template
+ */
+export const featuresSectionTemplate: ContentTemplate<
+  z.infer<typeof featuresSectionSchema>
+> = {
+  name: "features-section",
+  description: "Features section for pages",
+  schema: featuresSectionSchema,
+  formatter: new FeaturesSectionFormatter(),
+  basePrompt: `Generate a features section for a personal knowledge management system.
+The features section should have:
+- A label (e.g., "Features")
+- A headline explaining the value proposition
+- A description of what makes these features special
+- 3-4 feature cards, each with:
+  - An icon name (e.g., "lightning", "lock", "check", "chart", "users")
+  - A compelling title
+  - A brief but informative description
+  - Optional color scheme (purple, orange, or teal)
+
+Focus on benefits like speed, security, ease of use, and collaboration.`,
+};
+
+/**
+ * CTA section template
+ */
+export const ctaSectionTemplate: ContentTemplate<
+  z.infer<typeof ctaSectionSchema>
+> = {
+  name: "cta-section",
+  description: "Call-to-action section for pages",
+  schema: ctaSectionSchema,
+  formatter: new CTASectionFormatter(),
+  basePrompt: `Generate a compelling call-to-action section for a personal knowledge management system.
+The CTA section should have:
+- A persuasive headline that creates urgency or excitement
+- A supporting description that reinforces the value
+- A primary button with:
+  - Action-oriented text (e.g., "Start Free Trial", "Get Started Now")
+  - Appropriate link (e.g., "/signup", "/demo")
+- An optional secondary button with:
+  - Alternative action text (e.g., "View Demo", "Learn More")
+  - Appropriate link
+
+Make it compelling and action-oriented.`,
+};
+
+/**
+ * Landing page template (references sections)
  */
 export const landingPageTemplate: ContentTemplate<
-  z.infer<typeof landingPageSchema>
+  z.infer<typeof landingPageReferenceSchema>
 > = {
   name: "landing-page",
-  description: "Complete landing page content",
-  schema: landingPageSchema,
+  description: "Landing page configuration with section references",
+  schema: landingPageReferenceSchema,
   formatter: new LandingPageFormatter(),
-  basePrompt: `Generate complete landing page content for a personal knowledge management system.
-The content should include:
+  basePrompt: `Generate landing page configuration for a personal knowledge management system.
+This should include:
 - A concise page title
 - A memorable tagline that summarizes the product
-- A hero section with:
-  - An attention-grabbing headline
-  - A descriptive subheadline
-  - Compelling call-to-action text
-  - An appropriate CTA link
+- References to the hero, features, and CTA sections (these will be generated separately)
 
-The tone should be professional yet approachable, focusing on the benefits of organizing and discovering knowledge.`,
+Note: The actual sections (hero, features, CTA) are generated as separate entities.`,
 };
 
 /**
@@ -72,7 +122,11 @@ The tone should be informative and focused on providing quick insights.`,
  * All webserver content templates
  */
 export const webserverContentTemplates = [
-  landingHeroTemplate,
+  // Section templates
+  heroSectionTemplate,
+  featuresSectionTemplate,
+  ctaSectionTemplate,
+  // Page templates
   landingPageTemplate,
   dashboardTemplate,
 ] as const;

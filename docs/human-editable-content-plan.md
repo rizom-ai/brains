@@ -749,12 +749,128 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
    - Verify generic formatter handles all cases
    - Test editing and roundtrip conversion
 
-#### Phase 4: Production Ready
+#### Phase 4: Composite Content & Entity Resolution
+
+1. **Design composite content pattern**
+   - Parent entities reference child section entities
+   - Adapter resolves references during loading
+   - Maintains modular storage while providing complete objects to Astro
+
+2. **Implement entity resolution in adapters**
+   ```typescript
+   // Example: LandingPageAdapter
+   async fromMarkdown(markdown: string): Promise<LandingPageData> {
+     const base = parseMarkdown(markdown);
+     
+     // Resolve referenced sections
+     const [hero, features, cta] = await Promise.all([
+       this.entityService.get(base.heroId),
+       this.entityService.get(base.featuresId),
+       this.entityService.get(base.ctaId)
+     ]);
+     
+     // Merge into complete object
+     return {
+       ...base,
+       hero: hero?.data || defaultHero,
+       features: features?.data || defaultFeatures,
+       cta: cta?.data || defaultCta
+     };
+   }
+   ```
+
+3. **Handle content hierarchy**
+   - Generated content sections (AI-created, editable)
+   - User content overrides (manual edits take precedence)
+   - Fallback to defaults if sections missing
+
+4. **Section management tools**
+   - Commands to generate/regenerate individual sections
+   - Section versioning and rollback
+   - Copy sections between pages
+
+#### Phase 5: Production Ready
 
 1. Add validation error handling and recovery
 2. Add edit tracking in metadata
 3. Update existing content to new format
 4. Documentation and examples
+
+### Composite Content Architecture
+
+#### Overview
+
+For complex pages with multiple sections, we use a composite pattern:
+
+1. **Section Entities**: Each section (hero, features, CTA) is its own generated-content entity
+   - `webserver:section:hero` - Hero section with its own formatter
+   - `webserver:section:features` - Features section with its own formatter
+   - `webserver:section:cta` - CTA section with its own formatter
+
+2. **Page Entity**: The main page entity references section entities
+   - `webserver:page:landing` - Contains title, tagline, and section IDs
+   - Adapter resolves sections during load for Astro
+
+3. **Content Hierarchy**:
+   ```
+   Landing Page (page entity)
+   ├── Title & Tagline (inline data)
+   ├── Hero Section (referenced entity)
+   ├── Features Section (referenced entity)
+   └── CTA Section (referenced entity)
+   ```
+
+#### Benefits of Composite Approach
+
+1. **Modular Generation**: AI can generate/regenerate individual sections
+2. **Focused Editing**: Edit one section at a time with simpler formatters
+3. **Reusability**: Share sections across multiple pages
+4. **Version Control**: Track changes to individual sections
+5. **Progressive Enhancement**: Start with defaults, customize sections as needed
+
+#### Example Storage
+
+**Landing Page Entity** (`landing-page-main.md`):
+```markdown
+---
+id: landing-page-main
+entityType: generated-content
+contentType: webserver:page:landing
+---
+
+# Landing Page Configuration
+
+```yaml
+title: My Personal Knowledge System
+tagline: Where thoughts become insights
+heroId: hero-section-main
+featuresId: features-section-main
+ctaId: cta-section-main
+```
+```
+
+**Hero Section Entity** (`hero-section-main.md`):
+```markdown
+---
+id: hero-section-main
+entityType: generated-content
+contentType: webserver:section:hero
+---
+
+# Hero Section
+
+## Headline
+Welcome to Your Digital Brain
+
+## Subheadline
+Organize, connect, and expand your knowledge
+
+## CTA Text
+Get Started
+
+## CTA Link
+/dashboard
+```
 
 ### Benefits of This Approach
 
@@ -764,6 +880,33 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
 4. **Clean Architecture**: Maintains separation between storage and presentation
 5. **Plugin Friendly**: Plugins can provide their own formatters
 6. **Git Friendly**: Human-readable diffs for all changes
+7. **Modular Content**: Complex pages broken into manageable sections
+8. **Flexible Composition**: Mix and match sections across pages
+
+### Content Promotion Pattern
+
+Following the established promote content pattern for user edits:
+
+1. **Generate**: AI creates content as `generated-content` entity
+2. **Edit**: Users edit the generated content directly  
+3. **Promote**: Convert to `site-content` when ready for production
+
+For composite pages:
+- Each section can be promoted independently
+- Page entity references remain stable (by ID)
+- Adapter resolves current entity regardless of type
+
+Example:
+```bash
+# Generate section
+brain generate --template hero-section --id hero-main
+
+# Edit section
+brain edit hero-main
+
+# Promote to site content
+brain promote hero-main --to site-content
+```
 
 ### Resolved Questions
 
@@ -771,6 +914,9 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
 2. **Where do formatters live?** → Part of ContentTemplate definitions
 3. **What's the default format?** → YAML in markdown code blocks
 4. **Do we need backwards compatibility?** → No, breaking changes are OK
+5. **How to handle complex pages?** → Composite pattern with section entities
+6. **How to merge sections for Astro?** → Adapter resolves references during load
+7. **How to handle user edits?** → Use promote pattern (generated → site-content)
 
 ### Open Questions for Later
 

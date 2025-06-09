@@ -1,25 +1,27 @@
-import { StructuredContentFormatter } from "@brains/formatters";
-import { landingPageSchema, type LandingPageData } from "../content-schemas";
+import type { ContentFormatter } from "@brains/types";
+import { landingPageReferenceSchema, type LandingPageReferenceData } from "../content-schemas";
+import { DefaultYamlFormatter } from "@brains/formatters";
 
-export class LandingPageFormatter extends StructuredContentFormatter<LandingPageData> {
-  constructor() {
-    super(landingPageSchema, {
-      title: "Landing Page Configuration",
-      mappings: [
-        { key: "title", label: "Title", type: "string" },
-        { key: "tagline", label: "Tagline", type: "string" },
-        {
-          key: "hero",
-          label: "Hero",
-          type: "object",
-          children: [
-            { key: "headline", label: "Headline", type: "string" },
-            { key: "subheadline", label: "Subheadline", type: "string" },
-            { key: "ctaText", label: "CTA Text", type: "string" },
-            { key: "ctaLink", label: "CTA Link", type: "string" },
-          ],
-        },
-      ],
-    });
+/**
+ * Formatter for landing page reference data
+ * The actual page data is assembled by the adapter from referenced entities
+ */
+export class LandingPageFormatter extends DefaultYamlFormatter implements ContentFormatter<LandingPageReferenceData> {
+  public override format(data: LandingPageReferenceData): string {
+    return `# Landing Page Configuration
+
+\`\`\`yaml
+${this.yaml.dump(data, { indent: 2, lineWidth: -1 })}
+\`\`\`
+
+This page references the following sections:
+- Hero: ${data.heroId}
+- Features: ${data.featuresId}
+- CTA: ${data.ctaId}`;
+  }
+
+  public override parse(content: string): LandingPageReferenceData {
+    const data = super.parse(content);
+    return landingPageReferenceSchema.parse(data);
   }
 }

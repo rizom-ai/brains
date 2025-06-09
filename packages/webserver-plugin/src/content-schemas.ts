@@ -13,12 +13,71 @@ export const landingHeroDataSchema = z.object({
 export type LandingHeroData = z.infer<typeof landingHeroDataSchema>;
 
 /**
- * Schema for landing page content
+ * Schema for feature card
+ */
+export const featureCardSchema = z.object({
+  icon: z.string(), // SVG path or icon name
+  title: z.string(),
+  description: z.string(),
+  link: z.string().optional(),
+  linkText: z.string().optional(),
+  colorScheme: z.enum(["purple", "orange", "teal"]).optional(),
+});
+
+export type FeatureCard = z.infer<typeof featureCardSchema>;
+
+/**
+ * Schema for features section
+ */
+export const featuresSectionSchema = z.object({
+  label: z.string(),
+  headline: z.string(),
+  description: z.string(),
+  features: z.array(featureCardSchema).min(1).max(6),
+});
+
+export type FeaturesSection = z.infer<typeof featuresSectionSchema>;
+
+/**
+ * Schema for CTA section
+ */
+export const ctaSectionSchema = z.object({
+  headline: z.string(),
+  description: z.string(),
+  primaryButton: z.object({
+    text: z.string(),
+    link: z.string(),
+  }),
+  secondaryButton: z.object({
+    text: z.string(),
+    link: z.string(),
+  }).optional(),
+});
+
+export type CTASection = z.infer<typeof ctaSectionSchema>;
+
+/**
+ * Schema for landing page content (using references)
+ */
+export const landingPageReferenceSchema = z.object({
+  title: z.string(),
+  tagline: z.string(),
+  heroId: z.string(),
+  featuresId: z.string(),
+  ctaId: z.string(),
+});
+
+export type LandingPageReferenceData = z.infer<typeof landingPageReferenceSchema>;
+
+/**
+ * Schema for complete landing page data (after resolution)
  */
 export const landingPageSchema = z.object({
   title: z.string(),
   tagline: z.string(),
   hero: landingHeroDataSchema,
+  features: featuresSectionSchema,
+  cta: ctaSectionSchema,
 });
 
 export type LandingPageData = z.infer<typeof landingPageSchema>;

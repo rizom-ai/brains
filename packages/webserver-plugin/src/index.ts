@@ -9,7 +9,9 @@ import { siteContentAdapter } from "./site-content-adapter";
 import { SiteContentFormatter } from "./site-content-formatter";
 import {
   landingHeroDataSchema,
-  landingPageSchema,
+  featuresSectionSchema,
+  ctaSectionSchema,
+  landingPageReferenceSchema,
   dashboardSchema,
 } from "./content-schemas";
 import { LandingPageFormatter } from "./formatters/landingPageFormatter";
@@ -52,14 +54,25 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       // Register site-content formatter
       formatters.register("site-content", new SiteContentFormatter());
 
-      // Register content type schemas with formatters (plugin ID will be prefixed automatically)
-      contentTypes.register("landing:hero", landingHeroDataSchema);
-      contentTypes.register(
-        "landing:page",
-        landingPageSchema,
-        new LandingPageFormatter(),
-      );
-      contentTypes.register("dashboard:main", dashboardSchema);
+      // Import section formatters
+      const { HeroSectionFormatter } = await import("./formatters/heroSectionFormatter");
+      const { FeaturesSectionFormatter } = await import("./formatters/featuresSectionFormatter");
+      const { CTASectionFormatter } = await import("./formatters/ctaSectionFormatter");
+      
+      // Sections are stored as generated-content entities, not custom entity types
+      // They are registered as content types for generation purposes
+      
+      // Register section content types
+      contentTypes.register("section:hero", landingHeroDataSchema, new HeroSectionFormatter());
+      contentTypes.register("section:features", featuresSectionSchema, new FeaturesSectionFormatter());
+      contentTypes.register("section:cta", ctaSectionSchema, new CTASectionFormatter());
+      
+      // Landing page uses the generated-content entity type with custom adapter
+      // It's not registered as a separate entity type
+      
+      // Register page content types
+      contentTypes.register("page:landing", landingPageReferenceSchema, new LandingPageFormatter());
+      contentTypes.register("page:dashboard", dashboardSchema);
 
       // Create webserver manager instance
       const managerOptions: WebserverManagerOptions = {

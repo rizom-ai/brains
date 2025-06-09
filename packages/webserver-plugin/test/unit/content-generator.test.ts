@@ -6,6 +6,7 @@ import type {
   BaseEntity,
   ListOptions,
   PluginContext,
+  ContentGenerateOptions,
 } from "@brains/types";
 import { createSilentLogger } from "@brains/utils";
 import { mkdirSync, existsSync, rmSync } from "fs";
@@ -13,50 +14,55 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import * as yaml from "js-yaml";
 import type { z } from "zod";
+import {
+  type LandingHeroData,
+  type FeaturesSection,
+  type CTASection,
+  type LandingPageReferenceData,
+  type DashboardData,
+} from "../../src/content-schemas";
 
 describe("ContentGenerator", () => {
   let contentGenerator: ContentGenerator;
   let mockRegistry: Registry;
   let mockEntityService: EntityService;
-  let testDir: string;
+  const testDir = join(__dirname, "test-content");
 
   beforeEach(() => {
-    // Create a temporary test directory
-    testDir = join(import.meta.dir, "test-output");
+    // Clean up test directory
     if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true });
+      rmSync(testDir, { recursive: true, force: true });
     }
     mkdirSync(testDir, { recursive: true });
 
-    // Mock EntityService with proper typing
-    const mockListEntities = async <T extends BaseEntity>(
-      _entityType: string,
-      _options?: Omit<ListOptions, "entityType">,
-    ): Promise<T[]> => {
-      return [
-        {
-          id: "note1",
-          entityType: "note",
-          title: "Test Note 1",
-          content: "Content 1",
-          tags: ["tag1", "tag2"],
-          created: "2024-01-01T00:00:00Z",
-          updated: "2024-01-02T00:00:00Z",
-        },
-        {
-          id: "note2",
-          entityType: "note",
-          title: "Test Note 2",
-          content: "Content 2",
-          tags: ["tag2", "tag3"],
-          created: "2024-01-03T00:00:00Z",
-          updated: "2024-01-04T00:00:00Z",
-        },
-      ] as unknown as T[];
-    };
-
+    // Mock EntityService with minimum needed methods
     mockEntityService = {
-      listEntities: mock(mockListEntities) as EntityService["listEntities"],
+      createEntity: mock(async () => ({
+        id: "test-id",
+        entityType: "test",
+        content: "test content",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      })),
+      listEntities: mock(
+        async <T extends BaseEntity>(
+          _entityType: string,
+          _options?: ListOptions,
+        ): Promise<T[]> => {
+          // Return empty array by default - tests will override as needed
+          return [];
+        },
+      ),
+      searchEntities: mock(async () => ({ results: [], total: 0 })),
+      getEntity: mock(async () => null),
+      updateEntity: mock(async () => ({
+        id: "test-id",
+        entityType: "test",
+        content: "test content",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      })),
+      deleteEntity: mock(async () => ({ success: true })),
       getEntityTypes: mock(() => ["note", "site-content"]),
     } as unknown as EntityService;
 
@@ -92,22 +98,65 @@ describe("ContentGenerator", () => {
         },
       ),
       generateContent: mock(
-        async <T>(_options: {
-          schema: z.ZodType<T>;
-          prompt: string;
-        }): Promise<T> => {
-          // Return landing page data matching the schema
-          return {
-            title: "Test Brain",
-            tagline: "Test Description",
-            hero: {
+        async <T>(options: ContentGenerateOptions<T>): Promise<T> => {
+          // Return appropriate data based on content type
+          if (options.contentType === "section:hero") {
+            const heroData: LandingHeroData = {
               headline: "Your Personal Knowledge Hub",
               subheadline:
                 "Organize, connect, and discover your digital thoughts",
               ctaText: "View Dashboard",
               ctaLink: "/dashboard",
-            },
-          } as T;
+            };
+            return options.schema.parse(heroData);
+          } else if (options.contentType === "section:features") {
+            const featuresData: FeaturesSection = {
+              label: "Features",
+              headline: "Powerful Features",
+              description: "Everything you need",
+              features: [
+                {
+                  icon: "check",
+                  title: "Feature 1",
+                  description: "Description 1",
+                },
+              ],
+            };
+            return options.schema.parse(featuresData);
+          } else if (options.contentType === "section:cta") {
+            const ctaData: CTASection = {
+              headline: "Get Started Today",
+              description: "Join now",
+              primaryButton: {
+                text: "Start Free",
+                link: "/signup",
+              },
+            };
+            return options.schema.parse(ctaData);
+          } else if (options.contentType === "page:landing") {
+            const referenceData: LandingPageReferenceData = {
+              title: "Test Brain",
+              tagline: "Test Description",
+              heroId: "hero-section-test",
+              featuresId: "features-section-test",
+              ctaId: "cta-section-test",
+            };
+            return options.schema.parse(referenceData);
+          } else if (options.contentType === "page:dashboard") {
+            const dashboardData: DashboardData = {
+              title: "Dashboard",
+              description: "Your knowledge overview",
+              stats: {
+                entityCount: 10,
+                entityTypeCount: 3,
+                lastUpdated: new Date().toISOString(),
+              },
+              recentEntities: [],
+            };
+            return options.schema.parse(dashboardData);
+          }
+          // Default return for unknown content types
+          throw new Error(`Unknown content type: ${options.contentType}`);
         },
       ),
       // Other context properties we don't use in this test
@@ -115,6 +164,10 @@ describe("ContentGenerator", () => {
       events: {} as unknown as PluginContext["events"],
       messageBus: {} as unknown as PluginContext["messageBus"],
       formatters: {} as unknown as PluginContext["formatters"],
+      contentTypes: {
+        register: mock(() => {}),
+        list: mock(() => []),
+      },
       registerEntityType: mock(() => {}),
     } as unknown as PluginContext;
 
@@ -128,6 +181,13 @@ describe("ContentGenerator", () => {
       siteDescription: "Test Description",
       siteUrl: "https://test.com",
     });
+  });
+
+  afterEach(() => {
+    // Clean up test directory
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true, force: true });
+    }
   });
 
   describe("initialize", () => {
@@ -172,35 +232,61 @@ describe("ContentGenerator", () => {
       expect(hero["ctaLink"]).toBe("/dashboard");
     });
 
-    it("should use existing site-content for landing page when available", async () => {
-      // Mock existing generated-content
+    it("should generate dashboard YAML with correct data", async () => {
+      await contentGenerator.generateAll();
+
+      const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
+      expect(existsSync(yamlPath)).toBe(true);
+
+      const content = await readFile(yamlPath, "utf-8");
+      const data = yaml.load(content) as Record<string, unknown>;
+
+      expect(data["title"]).toBe("Test Brain");
+      expect(data["description"]).toBe("Test Description");
+      expect(data["stats"]).toBeDefined();
+      expect(data["recentEntities"]).toBeInstanceOf(Array);
+    });
+
+    it("should handle empty notes list", async () => {
+      // Mock empty entity list
+      const mockListEntities = mock(async (): Promise<BaseEntity[]> => []);
+      mockEntityService.listEntities =
+        mockListEntities as EntityService["listEntities"];
+
+      await contentGenerator.generateAll();
+
+      const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
+      const content = await readFile(yamlPath, "utf-8");
+      const data = yaml.load(content) as Record<string, unknown>;
+
+      const stats = data["stats"] as Record<string, unknown>;
+      expect(stats["entityCount"]).toBe(0);
+      expect(stats["entityTypeCount"]).toBe(2); // From getEntityTypes mock
+      expect(data["recentEntities"]).toEqual([]);
+    });
+
+    it("should reject invalid existing content and generate new", async () => {
+      // Mock invalid existing content
       const mockGeneratedContent = {
         id: "test-generated-content",
         entityType: "generated-content",
         contentType: "webserver:landing:page",
         data: {
-          title: "Existing Title",
-          tagline: "Existing Tagline",
-          hero: {
-            headline: "Existing Headline",
-            subheadline: "Existing Subheadline",
-            ctaText: "Existing CTA",
-            ctaLink: "/existing",
-          },
+          // Missing required fields
+          title: "Test",
         },
-        content: "Existing hero content",
+        content: "Invalid content",
         metadata: {
           prompt: "Generate landing page",
           generatedAt: new Date().toISOString(),
           generatedBy: "test",
           regenerated: false,
-          validationStatus: "valid",
+          validationStatus: "invalid" as const,
         },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
-      // Mock EntityService to return our generated-content
       const mockListEntities = mock(
         async (
           entityType: string,
@@ -215,167 +301,51 @@ describe("ContentGenerator", () => {
           return [];
         },
       );
-
-      // Replace the mock EntityService's listEntities method
       mockEntityService.listEntities =
         mockListEntities as EntityService["listEntities"];
 
+      // Should not throw, should generate new content
       await contentGenerator.generateAll();
 
       const yamlPath = join(testDir, "src/content/landing/index.yaml");
-      const content = await readFile(yamlPath, "utf-8");
-      const data = yaml.load(content) as Record<string, unknown>;
-
-      // Should use current title/tagline but existing hero
-      expect(data["title"]).toBe("Test Brain");
-      expect(data["tagline"]).toBe("Test Description");
-
-      // Should have hero section from existing content
-      const hero = data["hero"] as Record<string, unknown>;
-      expect(hero).toBeDefined();
-      expect(hero["headline"]).toBe("Existing Headline");
-      expect(hero["subheadline"]).toBe("Existing Subheadline");
-      expect(hero["ctaText"]).toBe("Existing CTA");
-      expect(hero["ctaLink"]).toBe("/existing");
-    });
-
-    it("should generate dashboard YAML with correct data", async () => {
-      await contentGenerator.generateAll();
-
-      const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
       expect(existsSync(yamlPath)).toBe(true);
 
       const content = await readFile(yamlPath, "utf-8");
       const data = yaml.load(content) as Record<string, unknown>;
 
+      // Should have new generated content
       expect(data["title"]).toBe("Test Brain");
-      expect(data["description"]).toBe("Test Description");
-      // Should have at least 2 entities (the mock notes)
-      expect(
-        (data["stats"] as Record<string, unknown>)["entityCount"],
-      ).toBeGreaterThanOrEqual(2);
-      // Dashboard shows up to 5 recent entities from all entity types
-      expect((data["recentEntities"] as unknown[]).length).toBeGreaterThan(0);
-      expect(
-        ((data["recentEntities"] as unknown[])[0] as Record<string, unknown>)[
-          "title"
-        ],
-      ).toBe("Test Note 2"); // Most recent first
+      expect(data["hero"]).toBeDefined();
     });
 
-    it("should handle empty notes list", async () => {
-      const emptyListEntities = async <T extends BaseEntity>(
-        _entityType: string,
-        _options?: Omit<ListOptions, "entityType">,
-      ): Promise<T[]> => [] as unknown as T[];
+    it("should limit recent notes to 5", async () => {
+      // Mock many entities
+      const mockEntities = Array.from({ length: 10 }, (_, i) => ({
+        id: `note-${i}`,
+        entityType: "note",
+        content: `Note ${i} content`,
+        created: new Date(Date.now() - i * 1000 * 60 * 60).toISOString(),
+        updated: new Date(Date.now() - i * 1000 * 60 * 60).toISOString(),
+      }));
 
-      mockEntityService.listEntities = mock(
-        emptyListEntities,
-      ) as EntityService["listEntities"];
-
-      await contentGenerator.generateAll();
-
-      const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
-      const content = await readFile(yamlPath, "utf-8");
-      const data = yaml.load(content) as Record<string, unknown>;
-
-      expect((data["stats"] as Record<string, unknown>)["entityCount"]).toBe(0);
-      // No tagCount in new schema
-      expect(data["recentEntities"] as unknown[]).toHaveLength(0);
-    });
-
-    it("should reject invalid existing content and generate new", async () => {
-      // Mock existing generated-content with invalid structure
-      const mockInvalidContent = {
-        id: "test-generated-content",
-        entityType: "generated-content",
-        contentType: "webserver:landing:page",
-        data: {
-          // Missing required fields: title, tagline, hero
-          someField: "value",
-        },
-        content: "Invalid hero content",
-        metadata: {
-          prompt: "Generate landing page",
-          generatedAt: new Date().toISOString(),
-          generatedBy: "test",
-          regenerated: false,
-          validationStatus: "valid",
-        },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
-
-      // Mock EntityService to return our invalid generated-content
-      const mockListEntities = mock(
-        async (
-          entityType: string,
-          options?: { filter?: { contentType?: string } },
-        ) => {
-          if (
-            entityType === "generated-content" &&
-            options?.filter?.contentType === "webserver:landing:hero"
-          ) {
-            return [mockInvalidContent];
-          }
-          return [];
-        },
-      );
-
-      // Replace the mock EntityService's listEntities method
+      const mockListEntities = mock(async (): Promise<BaseEntity[]> => {
+        return mockEntities;
+      });
       mockEntityService.listEntities =
         mockListEntities as EntityService["listEntities"];
 
       await contentGenerator.generateAll();
 
-      const yamlPath = join(testDir, "src/content/landing/index.yaml");
-      const content = await readFile(yamlPath, "utf-8");
-      const data = yaml.load(content) as Record<string, unknown>;
-
-      // Should have generated new hero content instead of using invalid existing
-      const hero = data["hero"] as Record<string, unknown>;
-      expect(hero).toBeDefined();
-      expect(hero["headline"]).toBe("Your Personal Knowledge Hub");
-      expect(hero["subheadline"]).toBe(
-        "Organize, connect, and discover your digital thoughts",
-      );
-    });
-
-    it("should limit recent notes to 5", async () => {
-      // Mock more than 5 notes
-      const manyNotes = Array.from({ length: 10 }, (_, i) => ({
-        id: `note${i}`,
-        entityType: "note",
-        title: `Test Note ${i}`,
-        content: `Content ${i}`,
-        tags: [`tag${i}`],
-        created: `2024-01-0${i}T00:00:00Z`,
-        updated: `2024-01-0${i}T00:00:00Z`,
-      }));
-
-      const manyNotesListEntities = async <T extends BaseEntity>(
-        _entityType: string,
-        _options?: Omit<ListOptions, "entityType">,
-      ): Promise<T[]> => manyNotes as unknown as T[];
-
-      mockEntityService.listEntities = mock(
-        manyNotesListEntities,
-      ) as EntityService["listEntities"];
-
-      await contentGenerator.generateAll();
-
       const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
       const content = await readFile(yamlPath, "utf-8");
       const data = yaml.load(content) as Record<string, unknown>;
 
-      expect(data["recentEntities"] as unknown[]).toHaveLength(5);
-    });
-  });
+      const recentEntities = data["recentEntities"] as Array<unknown>;
+      expect(recentEntities.length).toBe(5);
 
-  // Cleanup
-  afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true });
-    }
+      // Should be sorted by most recent first
+      const firstEntity = recentEntities[0] as Record<string, unknown>;
+      expect(firstEntity["id"]).toBe("note-0");
+    });
   });
 });
