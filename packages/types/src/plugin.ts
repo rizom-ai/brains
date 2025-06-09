@@ -123,7 +123,11 @@ export interface PluginContext {
   messageBus: MessageBus;
   formatters: FormatterRegistry;
   contentTypes: {
-    register(contentType: string, schema: z.ZodType<unknown>, formatter?: ContentFormatter<unknown>): void;
+    register(
+      contentType: string,
+      schema: z.ZodType<unknown>,
+      formatter?: ContentFormatter<unknown>,
+    ): void;
     list(): string[];
   };
   registerEntityType: <T extends BaseEntity>(

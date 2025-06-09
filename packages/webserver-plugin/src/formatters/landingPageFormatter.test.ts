@@ -10,7 +10,8 @@ describe("LandingPageFormatter", () => {
     tagline: "Where thoughts become insights",
     hero: {
       headline: "Welcome to Your Digital Brain",
-      subheadline: "Organize, connect, and expand your knowledge with AI-powered intelligence.",
+      subheadline:
+        "Organize, connect, and expand your knowledge with AI-powered intelligence.",
       ctaText: "Get Started",
       ctaLink: "/dashboard",
     },
@@ -19,13 +20,15 @@ describe("LandingPageFormatter", () => {
   describe("format", () => {
     it("should format data into structured markdown", () => {
       const result = formatter.format(sampleData);
-      
+
       expect(result).toContain("# Landing Page Configuration");
       expect(result).toContain("## Title\nMy Personal Knowledge System");
       expect(result).toContain("## Tagline\nWhere thoughts become insights");
       expect(result).toContain("## Hero");
       expect(result).toContain("### Headline\nWelcome to Your Digital Brain");
-      expect(result).toContain("### Subheadline\nOrganize, connect, and expand your knowledge with AI-powered intelligence.");
+      expect(result).toContain(
+        "### Subheadline\nOrganize, connect, and expand your knowledge with AI-powered intelligence.",
+      );
       expect(result).toContain("### CTA Text\nGet Started");
       expect(result).toContain("### CTA Link\n/dashboard");
     });
@@ -35,7 +38,7 @@ describe("LandingPageFormatter", () => {
     it("should parse structured markdown back to data", () => {
       const markdown = formatter.format(sampleData);
       const result = formatter.parse(markdown);
-      
+
       expect(result).toEqual(sampleData);
     });
 
@@ -62,13 +65,17 @@ Get Started Now
 ### CTA Link
 /get-started
 `;
-      
+
       const result = formatter.parse(markdown);
-      
+
       expect(result.title).toBe("My Personal Knowledge System");
-      expect(result.tagline).toBe("Where thoughts become insights, powered by AI");
+      expect(result.tagline).toBe(
+        "Where thoughts become insights, powered by AI",
+      );
       expect(result.hero.headline).toBe("Welcome to Your Digital Brain");
-      expect(result.hero.subheadline).toBe("Organize, connect, and expand your knowledge\nwith AI-powered intelligence and smart features.");
+      expect(result.hero.subheadline).toBe(
+        "Organize, connect, and expand your knowledge\nwith AI-powered intelligence and smart features.",
+      );
       expect(result.hero.ctaText).toBe("Get Started Now");
       expect(result.hero.ctaLink).toBe("/get-started");
     });
@@ -82,8 +89,10 @@ My Site
 ## Tagline
 Cool site
 `;
-      
-      expect(() => formatter.parse(invalidMarkdown)).toThrow("Missing Hero section");
+
+      expect(() => formatter.parse(invalidMarkdown)).toThrow(
+        "Missing Hero section",
+      );
     });
 
     it("should throw error for missing subsections", () => {
@@ -99,8 +108,10 @@ Cool site
 ### Headline
 Welcome
 `;
-      
-      expect(() => formatter.parse(invalidMarkdown)).toThrow("Missing section: subheadline");
+
+      expect(() => formatter.parse(invalidMarkdown)).toThrow(
+        "Missing section: subheadline",
+      );
     });
 
     it("should validate parsed data against schema", () => {
@@ -125,7 +136,7 @@ Go
 ### CTA Link
 /test
 `;
-      
+
       // Empty title should fail schema validation
       expect(() => formatter.parse(invalidMarkdown)).toThrow();
     });
@@ -136,7 +147,7 @@ Go
       const formatted = formatter.format(sampleData);
       const parsed = formatter.parse(formatted);
       const reformatted = formatter.format(parsed);
-      
+
       expect(parsed).toEqual(sampleData);
       expect(reformatted).toBe(formatted);
     });
@@ -147,7 +158,8 @@ Go
         tagline: "Transform your organization's collective intelligence",
         hero: {
           headline: "The Future of Knowledge Management",
-          subheadline: "Harness the power of AI to organize, discover, and share knowledge across your entire organization with unprecedented efficiency.",
+          subheadline:
+            "Harness the power of AI to organize, discover, and share knowledge across your entire organization with unprecedented efficiency.",
           ctaText: "Start Your Free Trial",
           ctaLink: "/signup?plan=enterprise",
         },
@@ -155,7 +167,7 @@ Go
 
       const formatted = formatter.format(complexData);
       const parsed = formatter.parse(formatted);
-      
+
       expect(parsed).toEqual(complexData);
     });
   });

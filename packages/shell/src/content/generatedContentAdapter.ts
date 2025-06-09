@@ -16,12 +16,13 @@ import { DefaultYamlFormatter } from "./formatters/defaultYamlFormatter";
  * Interface for generated content adapter
  * Extends EntityAdapter with formatter support
  */
-export interface IGeneratedContentAdapter extends EntityAdapter<GeneratedContent> {
+export interface IGeneratedContentAdapter
+  extends EntityAdapter<GeneratedContent> {
   /**
    * Parse content body for editing existing entities
    */
   parseContent(content: string, contentType: string): ParseResult;
-  
+
   /**
    * Register a formatter for a specific content type
    */
@@ -47,9 +48,7 @@ const generatedContentFrontmatterSchema = z
   })
   .passthrough(); // Allow extra fields
 
-export class GeneratedContentAdapter
-  implements IGeneratedContentAdapter
-{
+export class GeneratedContentAdapter implements IGeneratedContentAdapter {
   public readonly entityType = "generated-content";
   public readonly schema = generatedContentSchema;
 

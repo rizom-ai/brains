@@ -54,7 +54,11 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
 
       // Register content type schemas with formatters (plugin ID will be prefixed automatically)
       contentTypes.register("landing:hero", landingHeroDataSchema);
-      contentTypes.register("landing:page", landingPageSchema, new LandingPageFormatter());
+      contentTypes.register(
+        "landing:page",
+        landingPageSchema,
+        new LandingPageFormatter(),
+      );
       contentTypes.register("dashboard:main", dashboardSchema);
 
       // Create webserver manager instance

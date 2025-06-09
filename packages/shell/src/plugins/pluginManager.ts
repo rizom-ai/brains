@@ -366,7 +366,11 @@ export class PluginManager {
         }
       },
       contentTypes: {
-        register: (contentType: string, schema: z.ZodType<unknown>, formatter?: ContentFormatter<unknown>) => {
+        register: (
+          contentType: string,
+          schema: z.ZodType<unknown>,
+          formatter?: ContentFormatter<unknown>,
+        ) => {
           try {
             const contentTypeRegistry =
               this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
@@ -375,20 +379,27 @@ export class PluginManager {
             const namespacedType = `${pluginId}:${contentType}`;
 
             contentTypeRegistry.register(namespacedType, schema, formatter);
-            
+
             // If formatter provided, also register with GeneratedContentAdapter
             if (formatter) {
               try {
-                const entityRegistry = this.registry.resolve<EntityRegistry>("entityRegistry");
+                const entityRegistry =
+                  this.registry.resolve<EntityRegistry>("entityRegistry");
                 // We know generated-content uses IGeneratedContentAdapter
-                const adapter = entityRegistry.getAdapter("generated-content") as IGeneratedContentAdapter;
+                const adapter = entityRegistry.getAdapter(
+                  "generated-content",
+                ) as IGeneratedContentAdapter;
                 adapter.setFormatter(namespacedType, formatter);
-                this.logger.debug(`Registered formatter for content type: ${namespacedType}`);
+                this.logger.debug(
+                  `Registered formatter for content type: ${namespacedType}`,
+                );
               } catch (error) {
-                this.logger.warn(`Could not register formatter with GeneratedContentAdapter: ${error}`);
+                this.logger.warn(
+                  `Could not register formatter with GeneratedContentAdapter: ${error}`,
+                );
               }
             }
-            
+
             this.logger.debug(`Registered content type: ${namespacedType}`);
           } catch (error) {
             this.logger.error("Failed to register content type", error);

@@ -163,10 +163,16 @@ This separation avoids mixing concerns and makes each method's purpose clear.
 The system supports two ways to provide formatters:
 
 1. **Via Content Type Registration (Recommended)**
+
    ```typescript
    // In plugin registration
-   contentTypes.register("landing:page", landingPageSchema, new LandingPageFormatter());
+   contentTypes.register(
+     "landing:page",
+     landingPageSchema,
+     new LandingPageFormatter(),
+   );
    ```
+
    - Formatter is automatically registered with GeneratedContentAdapter
    - Ensures formatter is available whenever content type is used
    - Clean, declarative API
@@ -456,24 +462,172 @@ Transform ideas into content with AI assistance.
 Everything you learn, safely stored and instantly searchable.
 ```
 
+### Generic Formatter Design
+
+After analyzing the LandingPageFormatter implementation, we've identified patterns that can be abstracted into a reusable generic formatter system.
+
+#### Key Patterns Identified
+
+1. **Hierarchical Structure**: Markdown headings map to object nesting (H2 for top-level, H3 for nested)
+2. **Section-Based Parsing**: Content is organized into sections identified by headings
+3. **Text Extraction**: Common logic for extracting text from markdown paragraphs
+4. **Schema Validation**: Final validation against Zod schema
+
+#### StructuredContentFormatter Design
+
+```typescript
+class StructuredContentFormatter<T> implements ContentFormatter<T> {
+  constructor(
+    private schema: z.ZodType<T>,
+    private config: FormatterConfig
+  ) {}
+
+  format(data: T): string {
+    const lines: string[] = [
+      `# ${this.config.title}`,
+      ''
+    ];
+    
+    for (const mapping of this.config.mappings) {
+      this.formatField(data, mapping, lines, 2);
+    }
+    
+    return lines.join('\n');
+  }
+
+  parse(content: string): T {
+    const tree = this.parseMarkdown(content);
+    const sections = this.extractSections(tree, 2);
+    const data = this.buildDataFromSections(sections);
+    return this.schema.parse(data);
+  }
+
+  private formatField(
+    data: any,
+    mapping: FieldMapping,
+    lines: string[],
+    depth: number
+  ): void {
+    const heading = '#'.repeat(depth) + ' ' + mapping.label;
+    const value = this.getValueByPath(data, mapping.key);
+    
+    switch (mapping.type) {
+      case 'string':
+      case 'number':
+        lines.push(heading, String(value), '');
+        break;
+      case 'object':
+        lines.push(heading);
+        if (mapping.children) {
+          for (const child of mapping.children) {
+            this.formatField(value, child, lines, depth + 1);
+          }
+        }
+        break;
+      case 'array':
+        lines.push(heading, '');
+        for (const item of value as any[]) {
+          lines.push(`- ${this.formatArrayItem(item)}`);
+        }
+        lines.push('');
+        break;
+    }
+  }
+}
+```
+
+#### Example Usage
+
+```typescript
+// Dashboard formatter configuration
+const dashboardFormatter = new StructuredContentFormatter(
+  dashboardSchema,
+  {
+    title: "Dashboard Configuration",
+    mappings: [
+      { key: "title", label: "Title", type: "string" },
+      { key: "description", label: "Description", type: "string" },
+      { 
+        key: "stats", 
+        label: "Statistics", 
+        type: "object",
+        children: [
+          { key: "entityCount", label: "Entity Count", type: "number" },
+          { key: "entityTypeCount", label: "Entity Type Count", type: "number" },
+          { key: "lastUpdated", label: "Last Updated", type: "string" }
+        ]
+      },
+      {
+        key: "recentEntities",
+        label: "Recent Entities",
+        type: "array",
+        itemFormat: (item) => `${item.title} (${item.id}) - ${item.created}`
+      }
+    ]
+  }
+);
+
+// Landing page formatter configuration (refactored)
+const landingPageFormatter = new StructuredContentFormatter(
+  landingPageSchema,
+  {
+    title: "Landing Page Configuration",
+    mappings: [
+      { key: "title", label: "Title", type: "string" },
+      { key: "tagline", label: "Tagline", type: "string" },
+      {
+        key: "hero",
+        label: "Hero",
+        type: "object",
+        children: [
+          { key: "headline", label: "Headline", type: "string" },
+          { key: "subheadline", label: "Subheadline", type: "string" },
+          { key: "ctaText", label: "CTA Text", type: "string" },
+          { key: "ctaLink", label: "CTA Link", type: "string" }
+        ]
+      }
+    ]
+  }
+);
+```
+
+#### Benefits of Generic Approach
+
+1. **Reduced Code Duplication**: Common parsing/formatting logic in one place
+2. **Declarative Configuration**: Easy to understand and maintain
+3. **Consistent Format**: All content types follow same structural patterns
+4. **Type Safety**: Still validated by Zod schemas
+5. **Extensibility**: Easy to add new content types with just configuration
+
 ### Implementation Status
 
 **Phase -1: Foundation Work** ✅ Complete
+
 - BaseFormatter renamed to ResponseFormatter
 - ContentTemplate interface updated with optional formatter field
 - ContentFormatter interface implemented
 - Migration strategy documented
 
 **Phase 0: Proof of Concept** ✅ Complete
+
 - DefaultYamlFormatter implemented
 - GeneratedContentAdapter updated to use formatters
 - LandingPageFormatter created with bidirectional parsing
 - Roundtrip tests passing
 
-**Phase 1: Core Infrastructure** 🚧 In Progress
-- ContentTypeRegistry enhancement needed
-- PluginContext interface update needed
-- Formatter registration flow implementation needed
+**Phase 1: Core Infrastructure** ✅ Complete
+
+- ContentTypeRegistry enhanced to store formatters
+- PluginContext interface updated to accept formatters
+- Formatter registration flow implemented and tested
+- GeneratedContentAdapter supports formatter-based conversion
+
+**Phase 2: Generic Formatter Infrastructure** 🚧 Next
+
+- Create StructuredContentFormatter base class
+- Extract common utilities from LandingPageFormatter
+- Support declarative field mappings
+- Test with existing landing page formatter
 
 ### Implementation Plan
 
@@ -518,21 +672,25 @@ Everything you learn, safely stored and instantly searchable.
 #### Phase 1: Core Infrastructure
 
 1. **Enhance ContentTypeRegistry to support formatters**
+
    - Add formatters Map alongside schemas Map
    - Update register method: `register(contentType: string, schema: z.ZodType<unknown>, formatter?: ContentFormatter<unknown>)`
    - Add getFormatter method to retrieve formatters by content type
    - Formatters are optional - content types without formatters use default YAML formatter
 
 2. **Update PluginContext interface**
+
    - Modify contentTypes.register to accept optional formatter parameter
    - This provides a clean API for plugins to register schemas and formatters together
 
 3. **Connect ContentTypeRegistry with GeneratedContentAdapter**
+
    - When formatters are registered, automatically register them with GeneratedContentAdapter
    - PluginManager handles this connection during content type registration
    - Ensures formatters are available for both generation and storage
 
 4. **Update ContentTemplate interface to include optional formatter**
+
    - Already completed in Phase -1
    - Templates can specify custom formatters for human-editable output
 
@@ -541,14 +699,59 @@ Everything you learn, safely stored and instantly searchable.
    - Test content generation with custom formatters
    - Test editing and parsing of formatted content
 
-#### Phase 2: Content Type Formatters
+#### Phase 2: Generic Formatter Infrastructure
 
-1. Create LandingPageFormatter with human-friendly format
-2. Create DashboardFormatter
-3. Update webserver-plugin to provide formatters with templates
-4. Test with real content generation
+1. **Create StructuredContentFormatter base class**
+   - Extract common patterns from LandingPageFormatter
+   - Support declarative field mappings
+   - Handle nested objects and arrays
+   - Provide utilities for markdown parsing/generation
 
-#### Phase 3: Production Ready
+2. **Design the formatter configuration pattern**
+   ```typescript
+   interface FieldMapping {
+     key: string;              // Data field name
+     label: string;            // Markdown heading
+     type: 'string' | 'number' | 'object' | 'array';
+     children?: FieldMapping[]; // For nested objects
+   }
+   ```
+
+3. **Implement common formatting utilities**
+   - Section extraction by heading depth
+   - Text content extraction
+   - Value formatting based on type
+   - Array/list formatting helpers
+
+4. **Package location decision**
+   - Option A: In `@brains/formatters` package alongside ResponseFormatter
+   - Option B: In `@brains/shell` package with other content utilities
+   - Option C: New `@brains/content-formatters` package
+   - Recommendation: Option A - keeps all formatters together
+
+#### Phase 3: Content Type Formatters
+
+1. **Refactor LandingPageFormatter to use StructuredContentFormatter**
+   - Define field mappings declaratively
+   - Reduce code to just configuration
+
+2. **Create DashboardFormatter using generic approach**
+   - Simple configuration-based implementation
+   - Handle stats object and recent entities array
+
+3. **Create LandingHeroFormatter**
+   - Simpler subset of landing page fields
+   - Demonstrate reusability
+
+4. **Update webserver-plugin registrations**
+   - Register all formatters with content types
+   - Update content templates
+
+5. **Test with real content generation**
+   - Verify generic formatter handles all cases
+   - Test editing and roundtrip conversion
+
+#### Phase 4: Production Ready
 
 1. Add validation error handling and recovery
 2. Add edit tracking in metadata

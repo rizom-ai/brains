@@ -31,7 +31,11 @@ export class ContentTypeRegistry {
    * Register a schema for a content type with optional formatter
    * Content types must be namespaced (e.g., "plugin:category:type")
    */
-  public register(contentType: string, schema: z.ZodType<unknown>, formatter?: ContentFormatter<unknown>): void {
+  public register(
+    contentType: string,
+    schema: z.ZodType<unknown>,
+    formatter?: ContentFormatter<unknown>,
+  ): void {
     // Validate namespace format
     if (!contentType.includes(":")) {
       throw new Error(
@@ -39,7 +43,7 @@ export class ContentTypeRegistry {
       );
     }
     this.schemas.set(contentType, schema);
-    
+
     // Store formatter if provided
     if (formatter) {
       this.formatters.set(contentType, formatter);

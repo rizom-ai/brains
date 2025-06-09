@@ -108,14 +108,14 @@ describe("ContentTypeRegistry", () => {
   describe("Formatter Support", () => {
     const mockFormatter: ContentFormatter<{ title: string }> = {
       format: (data) => `# ${data.title}`,
-      parse: (content) => ({ title: content.replace('# ', '') }),
+      parse: (content) => ({ title: content.replace("# ", "") }),
     };
 
     it("should register schema with formatter", () => {
       const schema = z.object({ title: z.string() });
-      
-      expect(() => 
-        registry.register("plugin:test:hero", schema, mockFormatter)
+
+      expect(() =>
+        registry.register("plugin:test:hero", schema, mockFormatter),
       ).not.toThrow();
     });
 
@@ -155,7 +155,7 @@ describe("ContentTypeRegistry", () => {
       const schema = z.object({ title: z.string() });
       const formatter2: ContentFormatter<{ title: string }> = {
         format: (data) => `## ${data.title}`,
-        parse: (content) => ({ title: content.replace('## ', '') }),
+        parse: (content) => ({ title: content.replace("## ", "") }),
       };
 
       registry.register("plugin:test:hero", schema, mockFormatter);
