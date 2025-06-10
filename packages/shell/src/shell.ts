@@ -486,7 +486,10 @@ export class Shell {
     // Connect the adapter to the content type registry
     // This allows it to get formatters registered by plugins
     generatedContentAdapter.setContentTypeRegistry(this.contentTypeRegistry);
-    this.registry.register("generatedContentAdapter", () => generatedContentAdapter);
+    this.registry.register(
+      "generatedContentAdapter",
+      () => generatedContentAdapter,
+    );
 
     // Register with entity registry
     this.entityRegistry.registerEntityType(

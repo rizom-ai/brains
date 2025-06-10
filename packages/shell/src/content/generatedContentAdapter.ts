@@ -60,30 +60,20 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
 
   private formatters = new Map<string, ContentFormatter<unknown>>();
   private defaultFormatter = new DefaultYamlFormatter();
-  private contentTypeRegistry: { getFormatter(contentType: string): ContentFormatter<unknown> | null } | null = null;
+  private contentTypeRegistry: {
+    getFormatter(contentType: string): ContentFormatter<unknown> | null;
+  } | null = null;
 
   /**
    * Set the content type registry for looking up formatters
    */
-  public setContentTypeRegistry(registry: { getFormatter(contentType: string): ContentFormatter<unknown> | null }): void {
+  public setContentTypeRegistry(registry: {
+    getFormatter(contentType: string): ContentFormatter<unknown> | null;
+  }): void {
     this.contentTypeRegistry = registry;
   }
 
   public toMarkdown(entity: GeneratedContent): string {
-    // Try local formatters first, then content type registry, then default
-    let formatter = this.formatters.get(entity.contentType);
-    
-    if (!formatter && this.contentTypeRegistry) {
-      const registryFormatter = this.contentTypeRegistry.getFormatter(entity.contentType);
-      if (registryFormatter) {
-        formatter = registryFormatter;
-      }
-    }
-    
-    if (!formatter) {
-      formatter = this.defaultFormatter;
-    }
-
     // Data always goes in body, never in frontmatter
     const frontmatter = {
       id: entity.id,
@@ -95,7 +85,42 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
       // Note: data is NOT in frontmatter anymore
     };
 
-    const content = formatter.format(entity.data);
+    let content: string;
+    
+    // Check if we have structured data to format (initial creation)
+    if (entity.data && Object.keys(entity.data).length > 0) {
+      // Try local formatters first, then content type registry, then default
+      let formatter = this.formatters.get(entity.contentType);
+
+      if (!formatter && this.contentTypeRegistry) {
+        const registryFormatter = this.contentTypeRegistry.getFormatter(
+          entity.contentType,
+        );
+        if (registryFormatter) {
+          formatter = registryFormatter;
+        }
+      }
+
+      if (!formatter) {
+        formatter = this.defaultFormatter;
+      }
+
+      content = formatter.format(entity.data);
+    } else {
+      // Use existing formatted content (git sync case)
+      // Extract just the body content (remove frontmatter if present)
+      try {
+        const parsed = parseMarkdownWithFrontmatter(
+          entity.content || "",
+          generatedContentFrontmatterSchema,
+        );
+        content = parsed.content;
+      } catch {
+        // If parsing fails or content is empty, use empty string
+        content = "";
+      }
+    }
+
     return generateMarkdownWithFrontmatter(content, frontmatter);
   }
 
@@ -106,14 +131,15 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
   public parseContent(content: string, contentType: string): ParseResult {
     // Try local formatters first, then content type registry, then default
     let formatter = this.formatters.get(contentType);
-    
+
     if (!formatter && this.contentTypeRegistry) {
-      const registryFormatter = this.contentTypeRegistry.getFormatter(contentType);
+      const registryFormatter =
+        this.contentTypeRegistry.getFormatter(contentType);
       if (registryFormatter) {
         formatter = registryFormatter;
       }
     }
-    
+
     if (!formatter) {
       formatter = this.defaultFormatter;
     }

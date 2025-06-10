@@ -70,14 +70,14 @@ export const ctaSectionTemplate: ContentTemplate<
 The CTA section should have:
 - A persuasive headline that creates urgency or excitement
 - A supporting description that reinforces the value
-- A primary button with:
-  - Action-oriented text (e.g., "Start Free Trial", "Get Started Now")
-  - Appropriate link (e.g., "/signup", "/demo")
-- An optional secondary button with:
-  - Alternative action text (e.g., "View Demo", "Learn More")
-  - Appropriate link
+- A primary button object with:
+  - "text" field: Action-oriented text (e.g., "Start Free Trial", "Get Started Now")
+  - "link" field: Appropriate link (e.g., "/signup", "/demo")
+- An optional secondary button object with:
+  - "text" field: Alternative action text (e.g., "View Demo", "Learn More")
+  - "link" field: Appropriate link
 
-Make it compelling and action-oriented.`,
+Make it compelling and action-oriented. Remember that buttons must be objects with "text" and "link" fields, not strings.`,
 };
 
 /**

@@ -51,6 +51,76 @@ describe("GeneratedContentAdapter", () => {
       expect(markdown).toContain("```");
     });
 
+    it("should use existing content when entity has no data (git sync scenario)", () => {
+      // This simulates the git sync scenario where entity is loaded from DB
+      // with formatted content but no data field
+      const formattedContent = `---
+id: existing-123
+entityType: generated-content
+contentType: 'webserver:section:features'
+metadata:
+  prompt: Generate features
+  generatedAt: '2024-01-01T00:00:00Z'
+  generatedBy: claude
+  regenerated: false
+  validationStatus: valid
+created: '2024-01-01T00:00:00.000Z'
+updated: '2024-01-01T00:00:00.000Z'
+---
+# Features Section
+
+## Label
+Features
+
+## Headline
+Amazing Features
+
+## Description
+Our best features yet
+
+## Feature Cards
+- Lightning fast
+- Secure by default
+- Easy to use`;
+
+      const entity = createTestEntity({
+        id: "existing-123",
+        contentType: "webserver:section:features",
+        data: {}, // Empty data object
+        content: formattedContent, // Pre-formatted content
+      });
+
+      const markdown = adapter.toMarkdown(entity);
+      
+      // Should extract just the body content (without frontmatter)
+      expect(markdown).toContain("# Features Section");
+      expect(markdown).toContain("## Label\nFeatures");
+      expect(markdown).toContain("## Headline\nAmazing Features");
+      expect(markdown).toContain("## Feature Cards");
+      
+      // Should have new frontmatter with current entity data
+      expect(markdown).toContain("id: existing-123");
+      expect(markdown).toContain("contentType: 'webserver:section:features'");
+    });
+
+    it("should handle entity with no data and no content gracefully", () => {
+      const entity = createTestEntity({
+        data: {},
+        content: "",
+      });
+
+      const markdown = adapter.toMarkdown(entity);
+      
+      // Should still generate valid markdown with frontmatter
+      expect(markdown).toContain("---");
+      expect(markdown).toContain("id: test-123");
+      
+      // Content should be empty after frontmatter
+      const parts = markdown.split("---");
+      expect(parts.length).toBe(3); // Two dashes create 3 parts
+      expect(parts[2]?.trim()).toBe(""); // Content after frontmatter should be empty
+    });
+
     it("should use specific formatter when available", () => {
       const mockFormatter: ContentFormatter = {
         format: (data) => `Custom format: ${JSON.stringify(data)}`,

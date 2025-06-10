@@ -88,13 +88,13 @@ export class ContentGenerator {
   ): Promise<void> {
     const filePath = join(this.contentDir, collection, filename);
     const yamlContent = yaml.dump(data);
-    
+
     this.logger.debug(`Writing YAML to ${filePath}`, {
       dataKeys: Object.keys(data as any),
       yamlLength: yamlContent.length,
-      yamlPreview: yamlContent.substring(0, 200) + '...',
+      yamlPreview: yamlContent.substring(0, 200) + "...",
     });
-    
+
     await writeFile(filePath, yamlContent);
     this.logger.debug(`Wrote ${filePath}`);
   }
@@ -166,7 +166,7 @@ export class ContentGenerator {
         },
         { save: true },
       );
-      
+
       this.logger.debug("Generated hero data:", {
         hasData: !!heroData,
         heroData,
@@ -178,7 +178,7 @@ export class ContentGenerator {
         total: 4,
         message: "Generating features section",
       });
-      
+
       let featuresData;
       try {
         featuresData = await generateWithTemplate(
@@ -191,17 +191,17 @@ export class ContentGenerator {
           },
           { save: true },
         );
-        
+
         this.logger.info("Raw features data from AI:", {
           featuresData: JSON.stringify(featuresData, null, 2),
         });
-        
+
         this.logger.debug("Generated features data:", {
           hasData: !!featuresData,
           features: featuresData?.features?.length || 0,
           featuresData,
         });
-        
+
         // Validate the features data
         const validation = featuresSectionSchema.safeParse(featuresData);
         if (!validation.success) {
@@ -214,7 +214,7 @@ export class ContentGenerator {
         this.logger.error("Failed to generate features section", error);
         throw error;
       }
-      
+
       if (!featuresData) {
         this.logger.error("Features data is null after generation!");
         throw new Error("Failed to generate features data");
@@ -263,7 +263,7 @@ export class ContentGenerator {
           features: featuresData,
           cta: ctaData,
         };
-        
+
         this.logger.info("Assembled landing page data", {
           hasHero: !!heroData,
           hasFeatures: !!featuresData,
@@ -276,7 +276,9 @@ export class ContentGenerator {
           hasFeatures: !!featuresData,
           hasCta: !!ctaData,
         });
-        throw new Error("Failed to generate all required landing page sections");
+        throw new Error(
+          "Failed to generate all required landing page sections",
+        );
       }
     }
 
@@ -311,7 +313,7 @@ export class ContentGenerator {
       featuresCount: landingData.features?.features?.length,
       hasCta: !!landingData.cta,
     });
-    
+
     await this.writeYamlFile("landing", "index.yaml", landingData);
 
     this.logger.info("Landing page data generated");

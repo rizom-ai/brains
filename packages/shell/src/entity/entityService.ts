@@ -661,6 +661,12 @@ export class EntityService {
     created: Date;
     updated: Date;
   }): Promise<void> {
+    // Get adapter for entity type
+    const adapter = this.entityRegistry.getAdapter(data.entityType);
+    
+    // Parse the markdown content using the adapter
+    const parsedEntity = adapter.fromMarkdown(data.content);
+    
     // Check if entity exists
     const existing = await this.getEntity(data.entityType, data.id);
 
@@ -670,13 +676,14 @@ export class EntityService {
       const newTime = data.updated.getTime();
       if (existingTime < newTime) {
         // Build entity for update, preserving any entity-specific fields
-        const entity: BaseEntity = {
+        const entity = {
           ...existing,
+          content: data.content,
+          ...parsedEntity,
           id: data.id,
           entityType: data.entityType,
-          content: data.content,
           updated: data.updated.toISOString(),
-        };
+        } as BaseEntity;
         await this.updateEntity(entity);
       }
     } else {
@@ -685,6 +692,7 @@ export class EntityService {
         id: data.id,
         entityType: data.entityType,
         content: data.content,
+        ...parsedEntity,
         created: data.created.toISOString(),
         updated: data.updated.toISOString(),
       });

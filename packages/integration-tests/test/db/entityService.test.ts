@@ -5,9 +5,11 @@ import { EntityRegistry } from "@brains/shell/src/entity/entityRegistry";
 import { createTestDatabase } from "../helpers/test-db";
 import type { DrizzleDB } from "@brains/db";
 import { createSilentLogger } from "@brains/utils";
-import { baseEntitySchema } from "@brains/types";
+import { baseEntitySchema, generatedContentSchema } from "@brains/types";
+import type { GeneratedContent } from "@brains/types";
 import type { IEmbeddingService } from "@brains/shell/src/embedding/embeddingService";
 import type { EntityAdapter } from "@brains/base-entity";
+import { GeneratedContentAdapter } from "@brains/shell/src/content/generatedContentAdapter";
 
 // Create a mock embedding service
 const mockEmbeddingService: IEmbeddingService = {
@@ -122,6 +124,14 @@ describe("EntityService - Database Operations", () => {
 
     // Register note entity type
     entityRegistry.registerEntityType("note", noteSchema, noteAdapter);
+    
+    // Register generated-content entity type for import test
+    const generatedContentAdapter = new GeneratedContentAdapter();
+    entityRegistry.registerEntityType(
+      "generated-content",
+      generatedContentSchema,
+      generatedContentAdapter,
+    );
   });
 
   afterEach(async () => {
@@ -550,8 +560,67 @@ This note was imported`;
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(entityService.importRawEntity(rawData)).rejects.toThrow(
-        "No schema registered for entity type: unknown",
+        "No adapter registered for entity type: unknown",
       );
+    });
+
+    test("imports generated content with formatted body", async () => {
+      // This tests the fix for git sync with generated content
+      const formattedMarkdown = `---
+id: features-123
+entityType: generated-content
+contentType: 'webserver:section:features'
+metadata:
+  prompt: Generate features section
+  generatedAt: '2024-01-01T00:00:00Z'
+  generatedBy: claude
+  regenerated: false
+  validationStatus: valid
+created: '2024-01-01T00:00:00.000Z'
+updated: '2024-01-01T00:00:00.000Z'
+---
+# Features Section
+
+## Label
+Features
+
+## Headline
+Amazing Features
+
+## Description
+Our best features yet
+
+## Feature Cards
+- Lightning fast
+- Secure by default
+- Easy to use`;
+
+      const rawData = {
+        entityType: "generated-content",
+        id: "features-123",
+        content: formattedMarkdown,
+        created: new Date("2024-01-01"),
+        updated: new Date("2024-01-02"),
+      };
+
+      await entityService.importRawEntity(rawData);
+
+      const imported = await entityService.getEntity<GeneratedContent>(
+        "generated-content",
+        rawData.id,
+      );
+      
+      expect(imported).toBeDefined();
+      expect(imported?.id).toBe(rawData.id);
+      expect(imported?.contentType).toBe("webserver:section:features");
+      // The content should contain the formatted markdown
+      expect(imported?.content).toContain("# Features Section");
+      expect(imported?.content).toContain("Features");
+      // Since we're using the default YAML formatter which doesn't know how to parse
+      // the structured features format, the data will be empty
+      // This is expected behavior - the formatter needs to be registered for proper parsing
+      expect(imported?.data).toBeDefined();
+      expect(imported?.data).toEqual({}); // Empty object from failed parsing
     });
   });
 });

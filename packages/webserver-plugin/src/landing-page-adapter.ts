@@ -41,7 +41,7 @@ export class LandingPageAdapter implements EntityAdapter<GeneratedContent> {
         featuresCount: landingPageResult.data.features?.features?.length,
         hasCta: !!landingPageResult.data.cta,
       });
-      
+
       const referenceData: LandingPageReferenceData = {
         title: landingPageResult.data.title,
         tagline: landingPageResult.data.tagline,

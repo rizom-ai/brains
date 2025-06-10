@@ -55,7 +55,7 @@ export class EntityResolver {
         referenceData.ctaId,
       ),
     ]);
-    
+
     console.log("Fetched entities:", {
       hero: heroEntity?.id,
       features: featuresEntity?.id,

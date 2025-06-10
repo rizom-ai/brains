@@ -312,15 +312,20 @@ describe("ContentGenerationService", () => {
         title: "Test Title",
         content: "Test content",
       };
-      
-      mockQueryProcessor.processQuery = mock(async () => generatedContent) as typeof mockQueryProcessor.processQuery;
-      mockEntityService.createEntity = mock(async () => ({
-        id: "test-id",
-        entityType: "generated-content",
-        content: "",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      } as GeneratedContent)) as typeof mockEntityService.createEntity;
+
+      mockQueryProcessor.processQuery = mock(
+        async () => generatedContent,
+      ) as typeof mockQueryProcessor.processQuery;
+      mockEntityService.createEntity = mock(
+        async () =>
+          ({
+            id: "test-id",
+            entityType: "generated-content",
+            content: "",
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          }) as GeneratedContent,
+      ) as typeof mockEntityService.createEntity;
 
       await service.generate({
         schema: z.object({
@@ -357,15 +362,20 @@ describe("ContentGenerationService", () => {
         title: "Test Title",
         content: "Test content",
       };
-      
-      mockQueryProcessor.processQuery = mock(async () => generatedContent) as typeof mockQueryProcessor.processQuery;
-      mockEntityService.createEntity = mock(async () => ({
-        id: "test-id",
-        entityType: "generated-content",
-        content: "",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      } as GeneratedContent)) as typeof mockEntityService.createEntity;
+
+      mockQueryProcessor.processQuery = mock(
+        async () => generatedContent,
+      ) as typeof mockQueryProcessor.processQuery;
+      mockEntityService.createEntity = mock(
+        async () =>
+          ({
+            id: "test-id",
+            entityType: "generated-content",
+            content: "",
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          }) as GeneratedContent,
+      ) as typeof mockEntityService.createEntity;
 
       // Test with save: false
       await service.generate({

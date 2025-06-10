@@ -230,7 +230,7 @@ describe("ContentGenerator", () => {
       );
       expect(hero["ctaText"]).toBe("View Dashboard");
       expect(hero["ctaLink"]).toBe("/dashboard");
-      
+
       // Check features section
       expect(data["features"]).toBeDefined();
       const features = data["features"] as Record<string, unknown>;
@@ -238,10 +238,12 @@ describe("ContentGenerator", () => {
       expect(features["headline"]).toBe("Powerful Features");
       expect(features["description"]).toBe("Everything you need");
       expect(features["features"]).toBeInstanceOf(Array);
-      const featuresList = features["features"] as Array<Record<string, unknown>>;
+      const featuresList = features["features"] as Array<
+        Record<string, unknown>
+      >;
       expect(featuresList).toHaveLength(1);
       expect(featuresList[0]?.["title"]).toBe("Feature 1");
-      
+
       // Check CTA section
       expect(data["cta"]).toBeDefined();
       const cta = data["cta"] as Record<string, unknown>;
