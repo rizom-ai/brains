@@ -48,7 +48,7 @@ describe("webserverTools", () => {
         lastBuild: expect.any(String),
       });
 
-      expect(mockManager.buildSite).toHaveBeenCalledWith(undefined);
+      expect(mockManager.buildSite).toHaveBeenCalledWith(undefined, undefined);
     });
 
     test("should handle clean build option", async () => {
@@ -61,7 +61,10 @@ describe("webserverTools", () => {
         lastBuild: expect.any(String),
       });
 
-      expect(mockManager.buildSite).toHaveBeenCalledWith({ clean: true });
+      expect(mockManager.buildSite).toHaveBeenCalledWith(
+        { clean: true },
+        undefined,
+      );
     });
   });
 

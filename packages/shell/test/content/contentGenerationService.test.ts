@@ -5,7 +5,7 @@ import { createSilentLogger } from "@brains/utils";
 import { z } from "zod";
 import type { EntityService } from "../../src/entity/entityService";
 import type { AIService } from "../../src/ai/aiService";
-import type { BaseEntity } from "@brains/types";
+import type { BaseEntity, GeneratedContent } from "@brains/types";
 import type { ContentTypeRegistry } from "../../src/content/contentTypeRegistry";
 
 describe("ContentGenerationService", () => {
@@ -305,6 +305,92 @@ describe("ContentGenerationService", () => {
       expect(prompt).toContain("key");
       expect(prompt).toContain("value");
       expect(prompt).toContain("Example message");
+    });
+
+    it("should save generated content when save option is true", async () => {
+      const generatedContent = {
+        title: "Test Title",
+        content: "Test content",
+      };
+      
+      mockQueryProcessor.processQuery = mock(async () => generatedContent) as typeof mockQueryProcessor.processQuery;
+      mockEntityService.createEntity = mock(async () => ({
+        id: "test-id",
+        entityType: "generated-content",
+        content: "",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      } as GeneratedContent)) as typeof mockEntityService.createEntity;
+
+      await service.generate({
+        schema: z.object({
+          title: z.string(),
+          content: z.string(),
+        }),
+        prompt: "Generate test content",
+        contentType: "test:content",
+        save: true,
+        context: {
+          data: { topic: "testing" },
+        },
+      });
+
+      // Verify entity service was called to save
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        entityType: "generated-content",
+        contentType: "test:content",
+        data: generatedContent,
+        content: "", // Empty string - adapter handles formatting
+        metadata: {
+          prompt: "Generate test content",
+          context: { data: { topic: "testing" } },
+          generatedAt: expect.any(String),
+          generatedBy: "claude-3-sonnet",
+          regenerated: false,
+          validationStatus: "valid",
+        },
+      });
+    });
+
+    it("should not save generated content when save option is false or undefined", async () => {
+      const generatedContent = {
+        title: "Test Title",
+        content: "Test content",
+      };
+      
+      mockQueryProcessor.processQuery = mock(async () => generatedContent) as typeof mockQueryProcessor.processQuery;
+      mockEntityService.createEntity = mock(async () => ({
+        id: "test-id",
+        entityType: "generated-content",
+        content: "",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      } as GeneratedContent)) as typeof mockEntityService.createEntity;
+
+      // Test with save: false
+      await service.generate({
+        schema: z.object({
+          title: z.string(),
+          content: z.string(),
+        }),
+        prompt: "Generate test content",
+        contentType: "test:content",
+        save: false,
+      });
+
+      expect(mockEntityService.createEntity).not.toHaveBeenCalled();
+
+      // Test without save option (undefined)
+      await service.generate({
+        schema: z.object({
+          title: z.string(),
+          content: z.string(),
+        }),
+        prompt: "Generate test content",
+        contentType: "test:content",
+      });
+
+      expect(mockEntityService.createEntity).not.toHaveBeenCalled();
     });
   });
 

@@ -8,6 +8,7 @@ import type {
 import {
   dashboardSchema,
   landingPageSchema,
+  featuresSectionSchema,
   type DashboardData,
   type LandingPageData,
 } from "./content-schemas";
@@ -87,6 +88,13 @@ export class ContentGenerator {
   ): Promise<void> {
     const filePath = join(this.contentDir, collection, filename);
     const yamlContent = yaml.dump(data);
+    
+    this.logger.debug(`Writing YAML to ${filePath}`, {
+      dataKeys: Object.keys(data as any),
+      yamlLength: yamlContent.length,
+      yamlPreview: yamlContent.substring(0, 200) + '...',
+    });
+    
     await writeFile(filePath, yamlContent);
     this.logger.debug(`Wrote ${filePath}`);
   }
@@ -158,6 +166,11 @@ export class ContentGenerator {
         },
         { save: true },
       );
+      
+      this.logger.debug("Generated hero data:", {
+        hasData: !!heroData,
+        heroData,
+      });
 
       // Generate features section
       await sendProgress?.({
@@ -165,16 +178,47 @@ export class ContentGenerator {
         total: 4,
         message: "Generating features section",
       });
-      const featuresData = await generateWithTemplate(
-        this.context.generateContent.bind(this.context),
-        featuresSectionTemplate,
-        "section:features",
-        {
-          prompt: `Generate features section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
-          data: baseContext,
-        },
-        { save: true },
-      );
+      
+      let featuresData;
+      try {
+        featuresData = await generateWithTemplate(
+          this.context.generateContent.bind(this.context),
+          featuresSectionTemplate,
+          "section:features",
+          {
+            prompt: `Generate features section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
+            data: baseContext,
+          },
+          { save: true },
+        );
+        
+        this.logger.info("Raw features data from AI:", {
+          featuresData: JSON.stringify(featuresData, null, 2),
+        });
+        
+        this.logger.debug("Generated features data:", {
+          hasData: !!featuresData,
+          features: featuresData?.features?.length || 0,
+          featuresData,
+        });
+        
+        // Validate the features data
+        const validation = featuresSectionSchema.safeParse(featuresData);
+        if (!validation.success) {
+          this.logger.error("Features validation failed", {
+            errors: validation.error.errors,
+            data: featuresData,
+          });
+        }
+      } catch (error) {
+        this.logger.error("Failed to generate features section", error);
+        throw error;
+      }
+      
+      if (!featuresData) {
+        this.logger.error("Features data is null after generation!");
+        throw new Error("Failed to generate features data");
+      }
 
       // Generate CTA section
       await sendProgress?.({
@@ -219,6 +263,20 @@ export class ContentGenerator {
           features: featuresData,
           cta: ctaData,
         };
+        
+        this.logger.info("Assembled landing page data", {
+          hasHero: !!heroData,
+          hasFeatures: !!featuresData,
+          featuresCount: featuresData.features?.length || 0,
+          hasCta: !!ctaData,
+        });
+      } else {
+        this.logger.error("Missing required sections", {
+          hasHero: !!heroData,
+          hasFeatures: !!featuresData,
+          hasCta: !!ctaData,
+        });
+        throw new Error("Failed to generate all required landing page sections");
       }
     }
 
@@ -235,7 +293,25 @@ export class ContentGenerator {
       throw new Error("Failed to generate valid landing page data");
     }
 
+    // Log the data that will be written
+    this.logger.info("Writing landing page data to YAML", {
+      hasHero: !!landingData.hero,
+      hasFeatures: !!landingData.features,
+      featuresCount: landingData.features?.features?.length || 0,
+      hasCta: !!landingData.cta,
+      landingData: JSON.stringify(landingData, null, 2),
+    });
+
     // Write to landing collection for Astro to consume
+    this.logger.info("Writing landing page data to YAML", {
+      hasTitle: !!landingData.title,
+      hasTagline: !!landingData.tagline,
+      hasHero: !!landingData.hero,
+      hasFeatures: !!landingData.features,
+      featuresCount: landingData.features?.features?.length,
+      hasCta: !!landingData.cta,
+    });
+    
     await this.writeYamlFile("landing", "index.yaml", landingData);
 
     this.logger.info("Landing page data generated");

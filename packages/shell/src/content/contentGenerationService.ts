@@ -270,7 +270,7 @@ export class ContentGenerationService {
       entityType: "generated-content",
       contentType: contentType,
       data: content as Record<string, unknown>,
-      content: JSON.stringify(content, null, 2),
+      content: "", // Empty string - the adapter will format it using registered formatters
       metadata: {
         prompt,
         context,

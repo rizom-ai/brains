@@ -38,12 +38,30 @@ export class EntityResolver {
   ): Promise<LandingPageData> {
     const entityService = this.getEntityService();
 
+    console.log("Resolving landing page with reference data:", referenceData);
+
     // Sections are stored as generated-content entities
     const [heroEntity, featuresEntity, ctaEntity] = await Promise.all([
-      entityService.getEntity<GeneratedContent>("generated-content", referenceData.heroId),
-      entityService.getEntity<GeneratedContent>("generated-content", referenceData.featuresId),
-      entityService.getEntity<GeneratedContent>("generated-content", referenceData.ctaId),
+      entityService.getEntity<GeneratedContent>(
+        "generated-content",
+        referenceData.heroId,
+      ),
+      entityService.getEntity<GeneratedContent>(
+        "generated-content",
+        referenceData.featuresId,
+      ),
+      entityService.getEntity<GeneratedContent>(
+        "generated-content",
+        referenceData.ctaId,
+      ),
     ]);
+    
+    console.log("Fetched entities:", {
+      hero: heroEntity?.id,
+      features: featuresEntity?.id,
+      cta: ctaEntity?.id,
+      featuresData: featuresEntity?.data,
+    });
 
     // Create default sections as fallbacks
     const defaultHero: LandingHeroData = {

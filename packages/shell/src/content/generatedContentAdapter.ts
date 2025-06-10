@@ -11,6 +11,7 @@ import {
   generatedContentMetadataSchema,
 } from "@brains/types";
 import { DefaultYamlFormatter } from "@brains/formatters";
+import type { ContentTypeRegistry } from "./contentTypeRegistry";
 
 /**
  * Interface for generated content adapter
@@ -27,6 +28,11 @@ export interface IGeneratedContentAdapter
    * Register a formatter for a specific content type
    */
   setFormatter(contentType: string, formatter: ContentFormatter<unknown>): void;
+
+  /**
+   * Set the content type registry for accessing plugin-registered formatters
+   */
+  setContentTypeRegistry(registry: ContentTypeRegistry): void;
 }
 
 // Type for parseContent return value
@@ -54,11 +60,29 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
 
   private formatters = new Map<string, ContentFormatter<unknown>>();
   private defaultFormatter = new DefaultYamlFormatter();
+  private contentTypeRegistry: { getFormatter(contentType: string): ContentFormatter<unknown> | null } | null = null;
+
+  /**
+   * Set the content type registry for looking up formatters
+   */
+  public setContentTypeRegistry(registry: { getFormatter(contentType: string): ContentFormatter<unknown> | null }): void {
+    this.contentTypeRegistry = registry;
+  }
 
   public toMarkdown(entity: GeneratedContent): string {
-    // Always use a formatter - specific or default
-    const formatter =
-      this.formatters.get(entity.contentType) ?? this.defaultFormatter;
+    // Try local formatters first, then content type registry, then default
+    let formatter = this.formatters.get(entity.contentType);
+    
+    if (!formatter && this.contentTypeRegistry) {
+      const registryFormatter = this.contentTypeRegistry.getFormatter(entity.contentType);
+      if (registryFormatter) {
+        formatter = registryFormatter;
+      }
+    }
+    
+    if (!formatter) {
+      formatter = this.defaultFormatter;
+    }
 
     // Data always goes in body, never in frontmatter
     const frontmatter = {
@@ -80,7 +104,19 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
    * Used when user edits the markdown content
    */
   public parseContent(content: string, contentType: string): ParseResult {
-    const formatter = this.formatters.get(contentType) ?? this.defaultFormatter;
+    // Try local formatters first, then content type registry, then default
+    let formatter = this.formatters.get(contentType);
+    
+    if (!formatter && this.contentTypeRegistry) {
+      const registryFormatter = this.contentTypeRegistry.getFormatter(contentType);
+      if (registryFormatter) {
+        formatter = registryFormatter;
+      }
+    }
+    
+    if (!formatter) {
+      formatter = this.defaultFormatter;
+    }
 
     try {
       const data = formatter.parse(content);

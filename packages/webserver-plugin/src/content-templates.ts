@@ -42,16 +42,16 @@ export const featuresSectionTemplate: ContentTemplate<
   description: "Features section for pages",
   schema: featuresSectionSchema,
   formatter: new FeaturesSectionFormatter(),
-  basePrompt: `Generate a features section for a personal knowledge management system.
-The features section should have:
-- A label (e.g., "Features")
-- A headline explaining the value proposition
-- A description of what makes these features special
-- 3-4 feature cards, each with:
-  - An icon name (e.g., "lightning", "lock", "check", "chart", "users")
-  - A compelling title
-  - A brief but informative description
-  - Optional color scheme (purple, orange, or teal)
+  basePrompt: `Generate a features section for a personal knowledge management system with the following structure:
+
+- label: Should be "Features"
+- headline: Create a compelling headline about the product's value proposition
+- description: Write a brief description of what makes these features special
+- features: An array of 3-4 feature objects, each containing:
+  - icon: One of "lightning", "lock", "check", "chart", "users", "brain", "rocket"
+  - title: A short, descriptive feature title
+  - description: A 1-2 sentence description of the feature
+  - colorScheme (optional): One of "purple", "orange", "teal"
 
 Focus on benefits like speed, security, ease of use, and collaboration.`,
 };

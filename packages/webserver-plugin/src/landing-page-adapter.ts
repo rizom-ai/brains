@@ -34,6 +34,14 @@ export class LandingPageAdapter implements EntityAdapter<GeneratedContent> {
     // Check if data is full landing page data and convert to references
     const landingPageResult = landingPageSchema.safeParse(entity.data);
     if (landingPageResult.success) {
+      console.log("LandingPageAdapter: Converting full data to references", {
+        title: landingPageResult.data.title,
+        hasHero: !!landingPageResult.data.hero,
+        hasFeatures: !!landingPageResult.data.features,
+        featuresCount: landingPageResult.data.features?.features?.length,
+        hasCta: !!landingPageResult.data.cta,
+      });
+      
       const referenceData: LandingPageReferenceData = {
         title: landingPageResult.data.title,
         tagline: landingPageResult.data.tagline,
