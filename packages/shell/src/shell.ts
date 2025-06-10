@@ -322,9 +322,33 @@ export class Shell {
         tool.name,
         tool.description,
         tool.inputSchema,
-        async (params) => {
+        async (params, extra) => {
           try {
-            const result = await tool.handler(params);
+            // Create progress context if a progress token is provided
+            let progressContext;
+            if (extra?._meta?.progressToken) {
+              const progressToken = extra._meta.progressToken;
+              progressContext = {
+                progressToken,
+                sendProgress: async (notification: {
+                  progress: number;
+                  total?: number;
+                  message?: string;
+                }) => {
+                  await extra.sendNotification({
+                    method: "notifications/progress" as const,
+                    params: {
+                      progressToken,
+                      progress: notification.progress,
+                      total: notification.total,
+                      message: notification.message,
+                    },
+                  });
+                },
+              };
+            }
+
+            const result = await tool.handler(params, progressContext);
             return {
               content: [
                 {

@@ -1,11 +1,14 @@
-import { EntityService } from "@brains/shell/src/entity/entityService";
-import type { Registry } from "@brains/types";
-import type {
-  LandingPageReferenceData,
-  LandingPageData,
-  LandingHeroData,
-  FeaturesSection,
-  CTASection,
+import type { EntityService } from "@brains/shell/src/entity/entityService";
+import type { Registry, GeneratedContent } from "@brains/types";
+import {
+  type LandingPageReferenceData,
+  type LandingPageData,
+  type LandingHeroData,
+  type FeaturesSection,
+  type CTASection,
+  landingHeroDataSchema,
+  featuresSectionSchema,
+  ctaSectionSchema,
 } from "./content-schemas";
 
 /**
@@ -35,46 +38,63 @@ export class EntityResolver {
   ): Promise<LandingPageData> {
     const entityService = this.getEntityService();
 
+    // Sections are stored as generated-content entities
     const [heroEntity, featuresEntity, ctaEntity] = await Promise.all([
-      entityService.getEntity(referenceData.heroId, "hero-section"),
-      entityService.getEntity(referenceData.featuresId, "features-section"),
-      entityService.getEntity(referenceData.ctaId, "cta-section"),
+      entityService.getEntity<GeneratedContent>("generated-content", referenceData.heroId),
+      entityService.getEntity<GeneratedContent>("generated-content", referenceData.featuresId),
+      entityService.getEntity<GeneratedContent>("generated-content", referenceData.ctaId),
     ]);
+
+    // Create default sections as fallbacks
+    const defaultHero: LandingHeroData = {
+      headline: "Welcome",
+      subheadline: "Get started with your digital brain",
+      ctaText: "Get Started",
+      ctaLink: "/dashboard",
+    };
+
+    const defaultFeatures: FeaturesSection = {
+      label: "Features",
+      headline: "Everything you need",
+      description: "Powerful features to organize and access your knowledge",
+      features: [
+        {
+          title: "Smart Organization",
+          description: "Automatically organize your knowledge",
+          icon: "🧠",
+        },
+      ],
+    };
+
+    const defaultCta: CTASection = {
+      headline: "Ready to get started?",
+      description: "Start building your digital brain today",
+      primaryButton: {
+        text: "Get Started",
+        link: "/dashboard",
+      },
+    };
+
+    // Parse and validate section data using schemas
+    const hero = heroEntity?.data
+      ? landingHeroDataSchema.parse(heroEntity.data)
+      : defaultHero;
+
+    const features = featuresEntity?.data
+      ? featuresSectionSchema.parse(featuresEntity.data)
+      : defaultFeatures;
+
+    const cta = ctaEntity?.data
+      ? ctaSectionSchema.parse(ctaEntity.data)
+      : defaultCta;
 
     const landingPageData: LandingPageData = {
       title: referenceData.title,
       tagline: referenceData.tagline,
-      hero: {} as LandingHeroData,
-      features: {} as FeaturesSection,
-      cta: {} as CTASection,
+      hero,
+      features,
+      cta,
     };
-
-    // Extract section data from entities
-    if (heroEntity) {
-      // Parse the entity content to get the section data
-      const adapter = this.registry
-        .resolve<any>("entityAdapterRegistry")
-        .getAdapter("hero-section");
-      landingPageData.hero = adapter.fromMarkdown(
-        heroEntity.content,
-      ) as LandingHeroData;
-    }
-    if (featuresEntity) {
-      const adapter = this.registry
-        .resolve<any>("entityAdapterRegistry")
-        .getAdapter("features-section");
-      landingPageData.features = adapter.fromMarkdown(
-        featuresEntity.content,
-      ) as FeaturesSection;
-    }
-    if (ctaEntity) {
-      const adapter = this.registry
-        .resolve<any>("entityAdapterRegistry")
-        .getAdapter("cta-section");
-      landingPageData.cta = adapter.fromMarkdown(
-        ctaEntity.content,
-      ) as CTASection;
-    }
 
     return landingPageData;
   }

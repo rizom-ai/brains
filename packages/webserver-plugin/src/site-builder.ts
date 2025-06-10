@@ -22,7 +22,13 @@ export class SiteBuilder {
   /**
    * Install dependencies if needed
    */
-  async ensureDependencies(): Promise<void> {
+  async ensureDependencies(
+    sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<void> {
     const nodeModulesPath = join(this.astroSiteDir, "node_modules");
 
     if (!existsSync(nodeModulesPath)) {
@@ -35,21 +41,47 @@ export class SiteBuilder {
         stderr: "pipe",
       });
 
-      const exitCode = await proc.exited;
-
-      if (exitCode !== 0) {
-        const stderr = await new Response(proc.stderr).text();
-        throw new Error(`Failed to install dependencies: ${stderr}`);
+      // If we have a progress callback, send periodic updates while installing
+      let progressInterval: Timer | undefined;
+      if (sendProgress) {
+        let progressCounter = 0;
+        progressInterval = setInterval(async () => {
+          progressCounter++;
+          await sendProgress({
+            progress: progressCounter,
+            message: `Installing dependencies (${progressCounter * 5}s elapsed)...`,
+          });
+        }, 5000); // Send progress every 5 seconds
       }
 
-      this.logger.info("Dependencies installed successfully");
+      try {
+        const exitCode = await proc.exited;
+
+        if (exitCode !== 0) {
+          const stderr = await new Response(proc.stderr).text();
+          throw new Error(`Failed to install dependencies: ${stderr}`);
+        }
+
+        this.logger.info("Dependencies installed successfully");
+      } finally {
+        // Clean up the progress interval
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
+      }
     }
   }
 
   /**
    * Build the Astro site
    */
-  async build(): Promise<void> {
+  async build(
+    sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<void> {
     this.logger.info("Building Astro site");
 
     // Ensure Astro site exists
@@ -64,7 +96,7 @@ export class SiteBuilder {
     }
 
     // Ensure dependencies are installed
-    await this.ensureDependencies();
+    await this.ensureDependencies(sendProgress);
 
     // Run Astro build
     const proc = Bun.spawn(["bun", "run", "build"], {
@@ -74,14 +106,34 @@ export class SiteBuilder {
       stderr: "pipe",
     });
 
-    const exitCode = await proc.exited;
-
-    if (exitCode !== 0) {
-      const stderr = await new Response(proc.stderr).text();
-      throw new Error(`Astro build failed: ${stderr}`);
+    // If we have a progress callback, send periodic updates while building
+    let progressInterval: Timer | undefined;
+    if (sendProgress) {
+      let progressCounter = 0;
+      progressInterval = setInterval(async () => {
+        progressCounter++;
+        await sendProgress({
+          progress: progressCounter,
+          message: `Building Astro site (${progressCounter * 10}s elapsed)...`,
+        });
+      }, 10000); // Send progress every 10 seconds
     }
 
-    this.logger.info("Astro site built successfully");
+    try {
+      const exitCode = await proc.exited;
+
+      if (exitCode !== 0) {
+        const stderr = await new Response(proc.stderr).text();
+        throw new Error(`Astro build failed: ${stderr}`);
+      }
+
+      this.logger.info("Astro site built successfully");
+    } finally {
+      // Clean up the progress interval
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+    }
   }
 
   /**

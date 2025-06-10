@@ -62,13 +62,28 @@ export const pluginMetadataSchema = z.object({
 });
 
 /**
+ * Progress notification for long-running operations
+ */
+export interface ProgressNotification {
+  progress: number;
+  total?: number;
+  message?: string;
+}
+
+/**
  * Plugin tool definition
  */
 export interface PluginTool {
   name: string;
   description: string;
   inputSchema: ZodRawShape; // Same type as MCP expects
-  handler: (input: unknown) => Promise<unknown>;
+  handler: (
+    input: unknown,
+    context?: {
+      progressToken?: string | number;
+      sendProgress?: (notification: ProgressNotification) => Promise<void>;
+    },
+  ) => Promise<unknown>;
 }
 
 /**

@@ -94,7 +94,13 @@ export class ContentGenerator {
   /**
    * Generate landing page data using query processor
    */
-  async generateLandingPage(): Promise<void> {
+  async generateLandingPage(
+    sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<void> {
     this.logger.info("Generating landing page data");
 
     // Check for existing landing page content first
@@ -137,6 +143,11 @@ export class ContentGenerator {
       };
 
       // Generate hero section
+      await sendProgress?.({
+        progress: 1,
+        total: 4,
+        message: "Generating hero section",
+      });
       const heroData = await generateWithTemplate(
         this.context.generateContent.bind(this.context),
         heroSectionTemplate,
@@ -149,6 +160,11 @@ export class ContentGenerator {
       );
 
       // Generate features section
+      await sendProgress?.({
+        progress: 2,
+        total: 4,
+        message: "Generating features section",
+      });
       const featuresData = await generateWithTemplate(
         this.context.generateContent.bind(this.context),
         featuresSectionTemplate,
@@ -161,6 +177,11 @@ export class ContentGenerator {
       );
 
       // Generate CTA section
+      await sendProgress?.({
+        progress: 3,
+        total: 4,
+        message: "Generating CTA section",
+      });
       const ctaData = await generateWithTemplate(
         this.context.generateContent.bind(this.context),
         ctaSectionTemplate,
@@ -173,6 +194,11 @@ export class ContentGenerator {
       );
 
       // Generate landing page reference
+      await sendProgress?.({
+        progress: 4,
+        total: 4,
+        message: "Generating landing page configuration",
+      });
       await generateWithTemplate(
         this.context.generateContent.bind(this.context),
         landingPageTemplate,
@@ -218,7 +244,13 @@ export class ContentGenerator {
   /**
    * Generate dashboard data from brain content
    */
-  async generateDashboard(): Promise<void> {
+  async generateDashboard(
+    _sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<void> {
     this.logger.info("Generating dashboard data");
 
     // EntityService is resolved from the registry
@@ -354,13 +386,36 @@ export class ContentGenerator {
   /**
    * Generate all content for the site
    */
-  async generateAll(): Promise<void> {
+  async generateAll(
+    sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<void> {
     // Ensure directories exist
     await this.initialize();
 
-    // Generate content
-    await this.generateLandingPage();
-    await this.generateDashboard();
+    // Generate content with progress notifications
+    await sendProgress?.({
+      progress: 1,
+      total: 3,
+      message: "Generating landing page content",
+    });
+    await this.generateLandingPage(sendProgress);
+
+    await sendProgress?.({
+      progress: 2,
+      total: 3,
+      message: "Generating dashboard content",
+    });
+    await this.generateDashboard(sendProgress);
+
+    await sendProgress?.({
+      progress: 3,
+      total: 3,
+      message: "Content generation complete",
+    });
     // Future: generateNotePages(), generateArticlePages(), etc.
   }
 }

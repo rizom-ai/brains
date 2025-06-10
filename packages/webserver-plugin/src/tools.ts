@@ -16,11 +16,15 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
           .optional()
           .describe("Force a clean build by removing previous build artifacts"),
       },
-      handler: async (input): Promise<Record<string, unknown>> => {
+      handler: async (input, context): Promise<Record<string, unknown>> => {
         const { clean } = input as { clean?: boolean };
 
         try {
-          await manager.buildSite(clean ? { clean: true } : undefined);
+          // Pass progress context to buildSite if available
+          await manager.buildSite(
+            clean ? { clean: true } : undefined,
+            context?.sendProgress,
+          );
           const status = manager.getStatus();
 
           return {
@@ -117,9 +121,9 @@ export function webserverTools(manager: WebserverManager): PluginTool[] {
       name: "preview_site",
       description: "Build the site and start preview server in one command",
       inputSchema: {},
-      handler: async (): Promise<Record<string, unknown>> => {
+      handler: async (_, context): Promise<Record<string, unknown>> => {
         try {
-          const url = await manager.preview();
+          const url = await manager.preview(context?.sendProgress);
           return {
             success: true,
             url,

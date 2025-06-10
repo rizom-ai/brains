@@ -80,11 +80,11 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
 
     // Extract YAML from content
     const yamlMatch = content.match(/```yaml\n([\s\S]*?)\n```/);
-    if (!yamlMatch) {
+    if (!yamlMatch?.[1]) {
       throw new Error("No YAML code block found in landing page content");
     }
 
-    const yamlContent = yamlMatch[1]!;
+    const yamlContent = yamlMatch[1];
     const referenceData = landingPageReferenceSchema.parse(
       yaml.load(yamlContent),
     );

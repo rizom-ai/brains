@@ -80,33 +80,74 @@ export class WebserverManager {
   /**
    * Generate and build the site
    */
-  async buildSite(options?: { clean?: boolean }): Promise<void> {
+  async buildSite(
+    options?: { clean?: boolean },
+    sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<void> {
     this.logger.info("Starting site build");
 
     try {
+      // Total steps: clean(1) + copy(1) + schemas(1) + config(1) + content(1) + build(1) = 6
+      const totalSteps = 6;
+      let currentStep = 0;
+
       // Clean working directory if requested
       if (options?.clean) {
         this.logger.debug("Cleaning working directory");
+        await sendProgress?.({
+          progress: currentStep++,
+          total: totalSteps,
+          message: "Cleaning working directory",
+        });
         await cleanDirectory(this.workingDir);
       }
 
       // Copy template to working directory
       this.logger.debug("Copying template to working directory");
+      await sendProgress?.({
+        progress: currentStep++,
+        total: totalSteps,
+        message: "Copying template files",
+      });
       await copyDirectory(this.templateDir, this.workingDir);
 
       // Generate schemas.ts file for the template
       this.logger.debug("Generating schemas.ts file");
+      await sendProgress?.({
+        progress: currentStep++,
+        total: totalSteps,
+        message: "Generating TypeScript schemas",
+      });
       await this.generateSchemas();
 
       // Generate content config for Astro
       this.logger.debug("Generating content config");
+      await sendProgress?.({
+        progress: currentStep++,
+        total: totalSteps,
+        message: "Generating content configuration",
+      });
       await this.generateContentConfig();
 
       // Generate content
-      await this.contentGenerator.generateAll();
+      await sendProgress?.({
+        progress: currentStep++,
+        total: totalSteps,
+        message: "Generating site content",
+      });
+      await this.contentGenerator.generateAll(sendProgress);
 
       // Build site
-      await this.siteBuilder.build();
+      await sendProgress?.({
+        progress: currentStep++,
+        total: totalSteps,
+        message: "Building Astro site",
+      });
+      await this.siteBuilder.build(sendProgress);
 
       this.lastBuildTime = new Date();
       this.logger.info("Site build completed");
@@ -140,8 +181,14 @@ export class WebserverManager {
   /**
    * Build and preview in one command
    */
-  async preview(): Promise<string> {
-    await this.buildSite();
+  async preview(
+    sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<string> {
+    await this.buildSite(undefined, sendProgress);
     return this.startPreviewServer();
   }
 
