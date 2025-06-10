@@ -124,7 +124,7 @@ describe("EntityService - Database Operations", () => {
 
     // Register note entity type
     entityRegistry.registerEntityType("note", noteSchema, noteAdapter);
-    
+
     // Register generated-content entity type for import test
     const generatedContentAdapter = new GeneratedContentAdapter();
     entityRegistry.registerEntityType(
@@ -609,7 +609,7 @@ Our best features yet
         "generated-content",
         rawData.id,
       );
-      
+
       expect(imported).toBeDefined();
       expect(imported?.id).toBe(rawData.id);
       expect(imported?.contentType).toBe("webserver:section:features");

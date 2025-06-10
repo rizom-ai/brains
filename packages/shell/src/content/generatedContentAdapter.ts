@@ -86,7 +86,7 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
     };
 
     let content: string;
-    
+
     // Check if we have structured data to format (initial creation)
     if (entity.data && Object.keys(entity.data).length > 0) {
       // Try local formatters first, then content type registry, then default

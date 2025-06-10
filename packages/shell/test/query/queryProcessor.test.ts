@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, mock, spyOn } from "bun:test";
+import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { z } from "zod";
 import { QueryProcessor } from "@/query/queryProcessor";
 import type { Entity } from "@/types";
@@ -266,20 +266,6 @@ describe("QueryProcessor", () => {
   });
 
   describe("intent analysis", () => {
-    it("should detect create intent", async () => {
-      mockEntityService.search = mock(() => Promise.resolve([]));
-      mockEntityService.getEntityTypes = mock(() => ["note"]);
-
-      const infoSpy = spyOn(logger, "info");
-      await queryProcessor.processQuery("create a new note", {
-        schema: defaultQueryResponseSchema,
-      });
-
-      expect(infoSpy).toHaveBeenCalledWith(
-        "Processing query: create a new note",
-      );
-    });
-
     it("should detect update intent", async () => {
       mockEntityService.search = mock(() => Promise.resolve([]));
       mockEntityService.getEntityTypes = mock(() => ["note"]);

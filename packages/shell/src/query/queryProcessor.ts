@@ -69,7 +69,10 @@ export class QueryProcessor {
     query: string,
     options: QueryOptions<T>,
   ): Promise<QueryResult<T>> {
-    this.logger.info(`Processing query: ${query}`);
+    this.logger.info("Processing query", {
+      queryLength: query.length,
+      firstLine: query.split('\n')[0]?.substring(0, 100) + ((query.split('\n')[0]?.length ?? 0) > 100 ? '...' : '')
+    });
 
     // 1. Analyze query intent
     const intentAnalysis = await this.analyzeQueryIntent(query);
@@ -181,7 +184,10 @@ Intent: ${intentAnalysis.primaryIntent}`;
     userPrompt: string,
     schema: ZodType<T>,
   ): Promise<ModelResponse<T>> {
-    this.logger.debug("Model call", { systemPrompt, userPrompt });
+    this.logger.debug("Model call", {
+      systemPromptLength: systemPrompt.length,
+      userPromptLength: userPrompt.length,
+    });
 
     // Call AI service with structured output
     const result = await this.aiService.generateObject(

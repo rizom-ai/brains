@@ -192,14 +192,9 @@ export class ContentGenerator {
           { save: true },
         );
 
-        this.logger.info("Raw features data from AI:", {
-          featuresData: JSON.stringify(featuresData, null, 2),
-        });
-
         this.logger.debug("Generated features data:", {
           hasData: !!featuresData,
           features: featuresData?.features?.length || 0,
-          featuresData,
         });
 
         // Validate the features data
@@ -264,7 +259,7 @@ export class ContentGenerator {
           cta: ctaData,
         };
 
-        this.logger.info("Assembled landing page data", {
+        this.logger.debug("Assembled landing page data", {
           hasHero: !!heroData,
           hasFeatures: !!featuresData,
           featuresCount: featuresData.features?.length || 0,
@@ -295,17 +290,8 @@ export class ContentGenerator {
       throw new Error("Failed to generate valid landing page data");
     }
 
-    // Log the data that will be written
-    this.logger.info("Writing landing page data to YAML", {
-      hasHero: !!landingData.hero,
-      hasFeatures: !!landingData.features,
-      featuresCount: landingData.features?.features?.length || 0,
-      hasCta: !!landingData.cta,
-      landingData: JSON.stringify(landingData, null, 2),
-    });
-
     // Write to landing collection for Astro to consume
-    this.logger.info("Writing landing page data to YAML", {
+    this.logger.debug("Writing landing page data to YAML", {
       hasTitle: !!landingData.title,
       hasTagline: !!landingData.tagline,
       hasHero: !!landingData.hero,

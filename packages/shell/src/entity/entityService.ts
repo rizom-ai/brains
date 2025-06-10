@@ -663,10 +663,10 @@ export class EntityService {
   }): Promise<void> {
     // Get adapter for entity type
     const adapter = this.entityRegistry.getAdapter(data.entityType);
-    
+
     // Parse the markdown content using the adapter
     const parsedEntity = adapter.fromMarkdown(data.content);
-    
+
     // Check if entity exists
     const existing = await this.getEntity(data.entityType, data.id);
 

@@ -91,13 +91,13 @@ Our best features yet
       });
 
       const markdown = adapter.toMarkdown(entity);
-      
+
       // Should extract just the body content (without frontmatter)
       expect(markdown).toContain("# Features Section");
       expect(markdown).toContain("## Label\nFeatures");
       expect(markdown).toContain("## Headline\nAmazing Features");
       expect(markdown).toContain("## Feature Cards");
-      
+
       // Should have new frontmatter with current entity data
       expect(markdown).toContain("id: existing-123");
       expect(markdown).toContain("contentType: 'webserver:section:features'");
@@ -110,11 +110,11 @@ Our best features yet
       });
 
       const markdown = adapter.toMarkdown(entity);
-      
+
       // Should still generate valid markdown with frontmatter
       expect(markdown).toContain("---");
       expect(markdown).toContain("id: test-123");
-      
+
       // Content should be empty after frontmatter
       const parts = markdown.split("---");
       expect(parts.length).toBe(3); // Two dashes create 3 parts
