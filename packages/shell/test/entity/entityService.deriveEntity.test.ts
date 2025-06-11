@@ -47,7 +47,7 @@ describe("EntityService.deriveEntity", () => {
     // Create and configure entity registry
     entityRegistry = EntityRegistry.createFresh(logger);
     const baseEntityAdapter = new BaseEntityAdapter();
-    const generatedContentAdapter = new GeneratedContentAdapter();
+    const generatedContentAdapter = new GeneratedContentAdapter(logger);
     entityRegistry.registerEntityType(
       "base",
       baseEntitySchema,
@@ -77,21 +77,11 @@ describe("EntityService.deriveEntity", () => {
     const sourceEntity = await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test-content",
-      data: {
-        title: "Test Title",
-        content: "Test content body",
-      },
       content: JSON.stringify({
         title: "Test Title",
         content: "Test content body",
       }),
-      metadata: {
-        prompt: "Generate test content",
-        generatedAt: new Date().toISOString(),
-        generatedBy: "test",
-        regenerated: false,
-        validationStatus: "valid",
-      },
+      generatedBy: "test",
     });
 
     // Verify the source entity exists
@@ -128,21 +118,11 @@ describe("EntityService.deriveEntity", () => {
     const sourceEntity = await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test-content",
-      data: {
-        title: "Test Title",
-        content: "Test content body",
-      },
       content: JSON.stringify({
         title: "Test Title",
         content: "Test content body",
       }),
-      metadata: {
-        prompt: "Generate test content",
-        generatedAt: new Date().toISOString(),
-        generatedBy: "test",
-        regenerated: false,
-        validationStatus: "valid",
-      },
+      generatedBy: "test",
     });
 
     // Derive to base entity with deleteSource
@@ -203,13 +183,6 @@ describe("EntityService.deriveEntity", () => {
     const sourceEntity = await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "complex-content",
-      data: {
-        hero: {
-          title: "Hero Title",
-          subtitle: "Hero Subtitle",
-        },
-        features: ["Feature 1", "Feature 2"],
-      },
       content: JSON.stringify({
         hero: {
           title: "Hero Title",
@@ -217,13 +190,7 @@ describe("EntityService.deriveEntity", () => {
         },
         features: ["Feature 1", "Feature 2"],
       }),
-      metadata: {
-        prompt: "Generate complex content",
-        generatedAt: new Date().toISOString(),
-        generatedBy: "test",
-        regenerated: false,
-        validationStatus: "valid",
-      },
+      generatedBy: "test",
     });
 
     // Derive to base entity
@@ -233,13 +200,15 @@ describe("EntityService.deriveEntity", () => {
       "base",
     );
 
-    // The derived entity should preserve the original markdown content
+    // The derived entity should preserve the original markdown content from GeneratedContentAdapter
     expect(derivedEntity.entityType).toBe("base");
-    expect(derivedEntity.content).toContain("# Content Data");
-    expect(derivedEntity.content).toContain("```yaml");
-    expect(derivedEntity.content).toContain("hero:");
+    // The content will be the frontmatter + JSON content from GeneratedContentAdapter.toMarkdown()
+    expect(derivedEntity.content).toContain("entityType: generated-content");
+    expect(derivedEntity.content).toContain("contentType: complex-content");
     expect(derivedEntity.content).toContain("Hero Title");
-    // The content field should be the markdown, not JSON
-    expect(derivedEntity.content).not.toMatch(/^\{/);
+    expect(derivedEntity.content).toContain("Hero Subtitle");
+    expect(derivedEntity.content).toContain("Feature 1");
+    // The content should include the JSON at the end
+    expect(derivedEntity.content).toMatch(/\{.*\}\s*$/);
   });
 });

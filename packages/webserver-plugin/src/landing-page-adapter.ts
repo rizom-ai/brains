@@ -30,9 +30,25 @@ export class LandingPageAdapter implements EntityAdapter<GeneratedContent> {
   public readonly entityType = "generated-content";
   public readonly schema = generatedContentSchema;
 
+  /**
+   * Parse the content field to extract structured data
+   */
+  private parseContent(entity: GeneratedContent): unknown {
+    // Extract YAML from markdown content
+    const yamlMatch = entity.content.match(/```yaml\n([\s\S]*?)\n```/);
+    if (!yamlMatch?.[1]) {
+      throw new Error("No YAML code block found in landing page content");
+    }
+    
+    return yaml.load(yamlMatch[1]);
+  }
+
   public toMarkdown(entity: GeneratedContent): string {
+    // Parse content to get the data
+    const data = this.parseContent(entity);
+
     // Check if data is full landing page data and convert to references
-    const landingPageResult = landingPageSchema.safeParse(entity.data);
+    const landingPageResult = landingPageSchema.safeParse(data);
     if (landingPageResult.success) {
       // Converting full data to references
 
@@ -52,12 +68,11 @@ ${yaml.dump(referenceData, { indent: 2, lineWidth: -1 })}
 
       return generateMarkdownWithFrontmatter(content, {
         contentType: entity.contentType,
-        generatedAt: entity.metadata?.generatedAt,
       });
     }
 
     // Otherwise assume it's already reference data
-    const referenceResult = landingPageReferenceSchema.safeParse(entity.data);
+    const referenceResult = landingPageReferenceSchema.safeParse(data);
     if (referenceResult.success) {
       const content = `# Landing Page Configuration
 
@@ -67,7 +82,6 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
 
       return generateMarkdownWithFrontmatter(content, {
         contentType: entity.contentType,
-        generatedAt: entity.metadata?.generatedAt,
       });
     }
 
@@ -87,19 +101,20 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
     }
 
     const yamlContent = yamlMatch[1];
-    const referenceData = landingPageReferenceSchema.parse(
-      yaml.load(yamlContent),
-    );
+    // Validate that it's valid reference data
+    landingPageReferenceSchema.parse(yaml.load(yamlContent));
 
-    // Return as generated content with reference data
+    // Return as generated content with markdown content
     return {
       contentType: metadata.contentType,
-      data: referenceData,
+      content: markdown, // Keep the full markdown
     };
   }
 
   public extractMetadata(entity: GeneratedContent): Record<string, unknown> {
-    const referenceResult = landingPageReferenceSchema.safeParse(entity.data);
+    const data = this.parseContent(entity);
+    
+    const referenceResult = landingPageReferenceSchema.safeParse(data);
     if (referenceResult.success) {
       return {
         title: referenceResult.data.title,
@@ -108,7 +123,7 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
       };
     }
 
-    const landingPageResult = landingPageSchema.safeParse(entity.data);
+    const landingPageResult = landingPageSchema.safeParse(data);
     if (landingPageResult.success) {
       return {
         title: landingPageResult.data.title,
@@ -135,7 +150,6 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
   public generateFrontMatter(entity: GeneratedContent): string {
     return generateFrontmatter({
       contentType: entity.contentType,
-      generatedAt: entity.metadata?.generatedAt,
     });
   }
 }

@@ -8,6 +8,7 @@ import type {
 import type { EntityService } from "../entity/entityService";
 import type { GeneratedContent } from "@brains/types";
 import type { ContentTypeRegistry } from "./contentTypeRegistry";
+import type { Logger } from "@brains/utils";
 
 export class ContentGenerationService {
   private static instance: ContentGenerationService | null = null;
@@ -15,6 +16,7 @@ export class ContentGenerationService {
   private queryProcessor: QueryProcessor | null = null;
   private entityService: EntityService | null = null;
   private contentTypeRegistry: ContentTypeRegistry | null = null;
+  private logger: Logger | null = null;
 
   // Singleton access
   public static getInstance(): ContentGenerationService {
@@ -44,10 +46,12 @@ export class ContentGenerationService {
     queryProcessor: QueryProcessor,
     entityService: EntityService,
     contentTypeRegistry: ContentTypeRegistry,
+    logger: Logger,
   ): void {
     this.queryProcessor = queryProcessor;
     this.entityService = entityService;
     this.contentTypeRegistry = contentTypeRegistry;
+    this.logger = logger;
   }
 
   /**
@@ -65,6 +69,13 @@ export class ContentGenerationService {
     // Use query processor with schema
     const result = await this.queryProcessor.processQuery(enhancedPrompt, {
       schema: options.schema,
+    });
+
+    // Debug: Log the raw AI response
+    this.logger?.debug("Raw AI response for content generation", {
+      contentType: options.contentType,
+      result: JSON.stringify(result, null, 2),
+      resultType: typeof result,
     });
 
     // Check that content type is registered
@@ -92,9 +103,7 @@ export class ContentGenerationService {
 
       await this.saveGeneratedContent(
         validatedResult,
-        options.prompt,
         options.contentType,
-        options.context,
       );
     }
 
@@ -205,6 +214,26 @@ export class ContentGenerationService {
   }
 
   /**
+   * Parse generated content entity to structured data
+   */
+  private parseGeneratedContent(entity: GeneratedContent): unknown | null {
+    const formatter = this.contentTypeRegistry?.getFormatter(entity.contentType);
+    if (formatter) {
+      try {
+        return formatter.parse(entity.content);
+      } catch (error) {
+        this.logger?.error("Failed to parse generated content", { 
+          error, 
+          contentType: entity.contentType 
+        });
+        return null;
+      }
+    }
+    
+    return null;
+  }
+
+  /**
    * Retrieve and validate generated content
    */
   public async getGeneratedContent(
@@ -225,7 +254,7 @@ export class ContentGenerationService {
         return null;
       }
 
-      return entity.data;
+      return this.parseGeneratedContent(entity);
     }
 
     // Otherwise, list entities filtered by contentType
@@ -250,7 +279,7 @@ export class ContentGenerationService {
       return null;
     }
 
-    return entity.data;
+    return this.parseGeneratedContent(entity);
   }
 
   /**
@@ -258,27 +287,28 @@ export class ContentGenerationService {
    */
   private async saveGeneratedContent(
     content: unknown,
-    prompt: string,
     contentType: string,
-    context?: unknown,
   ): Promise<void> {
     if (!this.entityService) {
       throw new Error("EntityService not available for saving content");
     }
 
+    // Format the content immediately using the appropriate formatter
+    let formattedContent: string;
+    const formatter = this.contentTypeRegistry?.getFormatter(contentType);
+    
+    if (formatter) {
+      formattedContent = formatter.format(content as Record<string, unknown>);
+    } else {
+      // Fallback to JSON if no formatter available
+      formattedContent = JSON.stringify(content, null, 2);
+    }
+
     await this.entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: contentType,
-      data: content as Record<string, unknown>,
-      content: "", // Empty string - the adapter will format it using registered formatters
-      metadata: {
-        prompt,
-        context,
-        generatedAt: new Date().toISOString(),
-        generatedBy: "claude-3-sonnet",
-        regenerated: false,
-        validationStatus: "valid",
-      },
+      content: formattedContent,
+      generatedBy: "claude-3-sonnet",
     });
   }
 }

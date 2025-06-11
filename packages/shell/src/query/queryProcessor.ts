@@ -71,7 +71,9 @@ export class QueryProcessor {
   ): Promise<QueryResult<T>> {
     this.logger.info("Processing query", {
       queryLength: query.length,
-      firstLine: query.split('\n')[0]?.substring(0, 100) + ((query.split('\n')[0]?.length ?? 0) > 100 ? '...' : '')
+      firstLine:
+        query.split("\n")[0]?.substring(0, 100) +
+        ((query.split("\n")[0]?.length ?? 0) > 100 ? "..." : ""),
     });
 
     // 1. Analyze query intent

@@ -16,21 +16,12 @@ export class FeaturesSectionFormatter extends StructuredContentFormatter<Feature
           key: "features",
           label: "Feature Cards",
           type: "array",
-          itemFormat: (item): string => {
-            const feature = item as {
-              icon: string;
-              title: string;
-              description: string;
-              colorScheme?: string;
-            };
-            let result = `### ${feature.title}\n`;
-            result += `- Icon: ${feature.icon}\n`;
-            result += `- Description: ${feature.description}`;
-            if (feature.colorScheme) {
-              result += `\n- Color: ${feature.colorScheme}`;
-            }
-            return result;
-          },
+          itemType: "object",
+          itemMappings: [
+            { key: "title", label: "Title", type: "string" },
+            { key: "icon", label: "Icon", type: "string" },
+            { key: "description", label: "Description", type: "string" },
+          ],
         },
       ],
     });

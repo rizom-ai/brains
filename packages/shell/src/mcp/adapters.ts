@@ -12,7 +12,6 @@ import type { EntityService } from "../entity/entityService";
 import type { ContentGenerationService } from "../content/contentGenerationService";
 import type {
   ContentGenerateOptions,
-  GeneratedContent,
   BaseEntity,
 } from "@brains/types";
 import { defaultQueryResponseSchema } from "../schemas/defaults";
@@ -178,6 +177,10 @@ export class ContentGenerationAdapter {
       prompt: params.prompt,
       contentType: params.contentType,
     };
+    
+    if (params.save !== undefined) {
+      generateOptions.save = params.save;
+    }
 
     // Clean up context to remove undefined values
     if (params.context) {
@@ -201,53 +204,13 @@ export class ContentGenerationAdapter {
       }
     }
 
-    // Call content generation service
+    // Call content generation service (handles save internally if requested)
     const content =
       await this.contentGenerationService.generate(generateOptions);
-
-    // Save as generated-content entity if requested
-    if (params.save) {
-      return this.saveGeneratedContent(
-        content,
-        params.prompt,
-        params.contentType,
-        params.context,
-      );
-    }
 
     return content;
   }
 
-  /**
-   * Save generated content as an entity
-   */
-  private async saveGeneratedContent(
-    content: unknown,
-    prompt: string,
-    contentType: string,
-    context?: unknown,
-  ): Promise<{ content: unknown; entityId: string; message: string }> {
-    const entity = await this.entityService.createEntity<GeneratedContent>({
-      entityType: "generated-content",
-      contentType: contentType,
-      data: content as Record<string, unknown>,
-      content: JSON.stringify(content, null, 2),
-      metadata: {
-        prompt,
-        context,
-        generatedAt: new Date().toISOString(),
-        generatedBy: "claude-3-sonnet",
-        regenerated: false,
-        validationStatus: "valid",
-      },
-    });
-
-    return {
-      content,
-      entityId: entity.id,
-      message: `Generated and saved as entity ${entity.id}`,
-    };
-  }
 
   /**
    * Generate content from a template

@@ -38,6 +38,30 @@ export function createDatabase(
 }
 
 /**
+ * Enable WAL mode for better concurrent access
+ * This should be called during initialization to prevent SQLITE_READONLY_DBMOVED errors
+ * 
+ * @param client The libSQL client
+ * @param url The database URL (to check if it's a local file)
+ */
+export async function enableWALMode(
+  client: Client,
+  url: string,
+): Promise<void> {
+  // Only enable WAL mode for local SQLite files
+  // Remote Turso connections already use WAL internally
+  if (url.startsWith("file:")) {
+    try {
+      await client.execute("PRAGMA journal_mode = WAL");
+      console.log("Enabled WAL mode for local SQLite database");
+    } catch (error) {
+      // Non-fatal: continue even if WAL mode fails
+      console.warn("Failed to enable WAL mode (non-fatal):", error);
+    }
+  }
+}
+
+/**
  * Run database migrations
  *
  * @param db The database instance

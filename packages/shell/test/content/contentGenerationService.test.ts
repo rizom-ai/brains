@@ -38,6 +38,7 @@ describe("ContentGenerationService", () => {
       has: mock(() => true), // Default to true since we're mocking registered types
       register: mock(() => {}),
       get: mock(() => null),
+      getFormatter: mock(() => null), // Return null to use default formatter
       list: mock(() => []),
       clear: mock(() => {}),
     } as unknown as ContentTypeRegistry;
@@ -142,6 +143,7 @@ describe("ContentGenerationService", () => {
           mockQueryProcessor,
           mockEntityService,
           mockContentTypeRegistry,
+          createSilentLogger("test"),
         ),
       ).not.toThrow();
     });
@@ -167,6 +169,7 @@ describe("ContentGenerationService", () => {
         mockQueryProcessor,
         mockEntityService,
         mockContentTypeRegistry,
+        createSilentLogger("test"),
       );
     });
 
@@ -282,12 +285,13 @@ describe("ContentGenerationService", () => {
         mockQueryProcessor,
         mockEntityService,
         mockContentTypeRegistry,
+        createSilentLogger("test"),
       );
 
       // Access private method via array notation
       const buildPrompt = (
         service as unknown as { buildPrompt: (options: unknown) => string }
-      )["buildPrompt"].bind(service);
+      ).buildPrompt.bind(service);
 
       const prompt = buildPrompt({
         schema: z.object({ message: z.string() }),
@@ -344,16 +348,8 @@ describe("ContentGenerationService", () => {
       expect(mockEntityService.createEntity).toHaveBeenCalledWith({
         entityType: "generated-content",
         contentType: "test:content",
-        data: generatedContent,
-        content: "", // Empty string - adapter handles formatting
-        metadata: {
-          prompt: "Generate test content",
-          context: { data: { topic: "testing" } },
-          generatedAt: expect.any(String),
-          generatedBy: "claude-3-sonnet",
-          regenerated: false,
-          validationStatus: "valid",
-        },
+        content: expect.any(String), // Content is formatted immediately
+        generatedBy: expect.any(String), // Model name varies by configuration
       });
     });
 
@@ -410,6 +406,7 @@ describe("ContentGenerationService", () => {
         mockQueryProcessor,
         mockEntityService,
         mockContentTypeRegistry,
+        createSilentLogger("test"),
       );
     });
 
@@ -437,6 +434,7 @@ describe("ContentGenerationService", () => {
         mockQueryProcessor,
         mockEntityService,
         mockContentTypeRegistry,
+        createSilentLogger("test"),
       );
     });
 
@@ -516,6 +514,7 @@ describe("ContentGenerationService", () => {
         mockQueryProcessor,
         mockEntityService,
         mockContentTypeRegistry,
+        createSilentLogger("test"),
       );
     });
 
@@ -563,6 +562,7 @@ describe("ContentGenerationService", () => {
         errorQueryProcessor,
         mockEntityService,
         mockContentTypeRegistry,
+        createSilentLogger("test"),
       );
 
       const schema = z.object({ message: z.string() });

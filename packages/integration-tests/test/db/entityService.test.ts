@@ -570,12 +570,7 @@ This note was imported`;
 id: features-123
 entityType: generated-content
 contentType: 'webserver:section:features'
-metadata:
-  prompt: Generate features section
-  generatedAt: '2024-01-01T00:00:00Z'
-  generatedBy: claude
-  regenerated: false
-  validationStatus: valid
+generatedBy: claude
 created: '2024-01-01T00:00:00.000Z'
 updated: '2024-01-01T00:00:00.000Z'
 ---
@@ -613,14 +608,13 @@ Our best features yet
       expect(imported).toBeDefined();
       expect(imported?.id).toBe(rawData.id);
       expect(imported?.contentType).toBe("webserver:section:features");
-      // The content should contain the formatted markdown
+      // The content should contain the full markdown including frontmatter
       expect(imported?.content).toContain("# Features Section");
       expect(imported?.content).toContain("Features");
-      // Since we're using the default YAML formatter which doesn't know how to parse
-      // the structured features format, the data will be empty
-      // This is expected behavior - the formatter needs to be registered for proper parsing
-      expect(imported?.data).toBeDefined();
-      expect(imported?.data).toEqual({}); // Empty object from failed parsing
+      // The content should be the complete markdown with frontmatter
+      expect(imported?.content).toContain("entityType: generated-content");
+      expect(imported?.content).toContain("contentType: 'webserver:section:features'");
+      expect(imported?.generatedBy).toBe("claude");
     });
   });
 });

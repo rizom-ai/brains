@@ -1,4 +1,5 @@
 import type { EntityService } from "@brains/shell/src/entity/entityService";
+import type { ContentTypeRegistry } from "@brains/shell/src/content";
 import type { Registry, GeneratedContent } from "@brains/types";
 import {
   type LandingPageReferenceData,
@@ -16,18 +17,38 @@ import {
  */
 export class EntityResolver {
   private entityService?: EntityService;
+  private contentTypeRegistry?: ContentTypeRegistry;
 
   constructor(private registry: Registry) {}
 
   private getEntityService(): EntityService {
-    if (!this.entityService) {
-      this.entityService =
-        this.registry.resolve<EntityService>("entityService");
-    }
-    if (!this.entityService) {
-      throw new Error("EntityService not available");
-    }
+    this.entityService ??= this.registry.resolve<EntityService>("entityService");
     return this.entityService;
+  }
+
+  private getContentTypeRegistry(): ContentTypeRegistry {
+    this.contentTypeRegistry ??= this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
+    return this.contentTypeRegistry;
+  }
+
+  private parseGeneratedContent(entity: GeneratedContent): unknown | null {
+    try {
+      const contentTypeRegistry = this.getContentTypeRegistry();
+      const formatter = contentTypeRegistry.getFormatter(entity.contentType);
+      
+      if (formatter) {
+        return formatter.parse(entity.content);
+      } else {
+        // Try JSON parse as fallback
+        return JSON.parse(entity.content);
+      }
+    } catch (error) {
+      console.error("Failed to parse generated content", { 
+        contentType: entity.contentType,
+        error 
+      });
+      return null;
+    }
   }
 
   /**
@@ -60,7 +81,7 @@ export class EntityResolver {
       hero: heroEntity?.id,
       features: featuresEntity?.id,
       cta: ctaEntity?.id,
-      featuresData: featuresEntity?.data,
+      featuresData: featuresEntity ? this.parseGeneratedContent(featuresEntity) : null,
     });
 
     // Create default sections as fallbacks
@@ -94,16 +115,19 @@ export class EntityResolver {
     };
 
     // Parse and validate section data using schemas
-    const hero = heroEntity?.data
-      ? landingHeroDataSchema.parse(heroEntity.data)
+    const heroData = heroEntity ? this.parseGeneratedContent(heroEntity) : null;
+    const hero = heroData
+      ? landingHeroDataSchema.parse(heroData)
       : defaultHero;
 
-    const features = featuresEntity?.data
-      ? featuresSectionSchema.parse(featuresEntity.data)
+    const featuresData = featuresEntity ? this.parseGeneratedContent(featuresEntity) : null;
+    const features = featuresData
+      ? featuresSectionSchema.parse(featuresData)
       : defaultFeatures;
 
-    const cta = ctaEntity?.data
-      ? ctaSectionSchema.parse(ctaEntity.data)
+    const ctaData = ctaEntity ? this.parseGeneratedContent(ctaEntity) : null;
+    const cta = ctaData
+      ? ctaSectionSchema.parse(ctaData)
       : defaultCta;
 
     const landingPageData: LandingPageData = {

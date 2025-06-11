@@ -5,6 +5,7 @@ import type {
   PluginContext,
   GeneratedContent,
 } from "@brains/types";
+import type { ContentTypeRegistry } from "@brains/shell/src/content";
 import {
   dashboardSchema,
   landingPageSchema,
@@ -44,6 +45,7 @@ export class ContentGenerator {
   private context: PluginContext;
   private options: ContentGeneratorOptions;
   private contentDir: string;
+  private contentTypeRegistry?: ContentTypeRegistry;
 
   constructor(options: ContentGeneratorOptions) {
     this.logger = options.logger;
@@ -51,6 +53,34 @@ export class ContentGenerator {
     this.context = options.context;
     this.options = options;
     this.contentDir = join(options.astroSiteDir, "src", "content");
+  }
+
+  /**
+   * Parse generated content entity to extract structured data
+   */
+  private parseGeneratedContent(entity: GeneratedContent): unknown | null {
+    try {
+      // Get the content type registry if not cached
+      this.contentTypeRegistry ??= this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
+      
+      const formatter = this.contentTypeRegistry.getFormatter(entity.contentType);
+      
+      if (formatter) {
+        return formatter.parse(entity.content);
+      } else {
+        // If no formatter, try to parse as JSON (fallback)
+        this.logger.warn("No formatter found for content type, attempting JSON parse", {
+          contentType: entity.contentType,
+        });
+        return JSON.parse(entity.content);
+      }
+    } catch (error) {
+      this.logger.error("Failed to parse generated content", {
+        contentType: entity.contentType,
+        error,
+      });
+      return null;
+    }
   }
 
   /**
@@ -90,7 +120,7 @@ export class ContentGenerator {
     const yamlContent = yaml.dump(data);
 
     this.logger.debug(`Writing YAML to ${filePath}`, {
-      dataKeys: Object.keys(data as any),
+      dataKeys: Object.keys(data as Record<string, unknown>),
       yamlLength: yamlContent.length,
       yamlPreview: yamlContent.substring(0, 200) + "...",
     });
@@ -194,7 +224,8 @@ export class ContentGenerator {
 
         this.logger.debug("Generated features data:", {
           hasData: !!featuresData,
-          features: featuresData?.features?.length || 0,
+          features: featuresData.features.length || 0,
+          rawData: JSON.stringify(featuresData, null, 2),
         });
 
         // Validate the features data
@@ -203,16 +234,15 @@ export class ContentGenerator {
           this.logger.error("Features validation failed", {
             errors: validation.error.errors,
             data: featuresData,
+            featuresArray: featuresData.features,
+            firstFeature: featuresData.features[0],
+            featuresType: Array.isArray(featuresData.features) ? 'array' : typeof featuresData.features,
+            firstFeatureType: typeof featuresData.features[0],
           });
         }
       } catch (error) {
         this.logger.error("Failed to generate features section", error);
         throw error;
-      }
-
-      if (!featuresData) {
-        this.logger.error("Features data is null after generation!");
-        throw new Error("Failed to generate features data");
       }
 
       // Generate CTA section
@@ -250,31 +280,21 @@ export class ContentGenerator {
       );
 
       // Assemble full landing page data
-      if (heroData && featuresData && ctaData) {
-        landingData = {
-          title: this.options.siteTitle,
-          tagline: this.options.siteDescription,
-          hero: heroData,
-          features: featuresData,
-          cta: ctaData,
-        };
+      // All data is guaranteed to be non-null here due to generateWithTemplate
+      landingData = {
+        title: this.options.siteTitle,
+        tagline: this.options.siteDescription,
+        hero: heroData,
+        features: featuresData,
+        cta: ctaData,
+      };
 
-        this.logger.debug("Assembled landing page data", {
-          hasHero: !!heroData,
-          hasFeatures: !!featuresData,
-          featuresCount: featuresData.features?.length || 0,
-          hasCta: !!ctaData,
-        });
-      } else {
-        this.logger.error("Missing required sections", {
-          hasHero: !!heroData,
-          hasFeatures: !!featuresData,
-          hasCta: !!ctaData,
-        });
-        throw new Error(
-          "Failed to generate all required landing page sections",
-        );
-      }
+      this.logger.debug("Assembled landing page data", {
+        hasHero: true,
+        hasFeatures: true,
+        featuresCount: featuresData.features.length || 0,
+        hasCta: true,
+      });
     }
 
     if (!landingData) {
@@ -296,7 +316,7 @@ export class ContentGenerator {
       hasTagline: !!landingData.tagline,
       hasHero: !!landingData.hero,
       hasFeatures: !!landingData.features,
-      featuresCount: landingData.features?.features?.length,
+      featuresCount: landingData.features.features.length,
       hasCta: !!landingData.cta,
     });
 
@@ -436,7 +456,9 @@ export class ContentGenerator {
       this.logger.info("Found existing generated content", {
         contentType: namespacedContentType,
       });
-      return matchingContent.data;
+      
+      // Parse the content to extract structured data
+      return this.parseGeneratedContent(matchingContent);
     } catch (error) {
       this.logger.debug("Error looking for generated content", {
         page,

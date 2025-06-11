@@ -27,41 +27,16 @@ export interface SearchResult {
 }
 
 /**
- * Generated content metadata schema
- */
-export const generatedContentMetadataSchema = z.object({
-  prompt: z.string(),
-  context: z.unknown(),
-  generatedAt: z.string(),
-  generatedBy: z.string(),
-  regenerated: z.boolean(),
-  previousVersionId: z.string().optional(),
-  // Validation fields for human-editable content
-  validationStatus: z.enum(["valid", "invalid"]),
-  validationErrors: z
-    .array(
-      z.object({
-        message: z.string(),
-      }),
-    )
-    .optional(),
-  lastValidData: z.record(z.unknown()).optional(),
-});
-
-/**
  * Generated content entity schema
+ * Generated content is immutable - to edit, promote to another entity type
  */
 export const generatedContentSchema = baseEntitySchema.extend({
   entityType: z.literal("generated-content"),
   contentType: z.string(),
-  data: z.record(z.unknown()),
-  metadata: generatedContentMetadataSchema,
+  generatedBy: z.string(),
 });
 
 /**
  * Generated content types
  */
-export type GeneratedContentMetadata = z.infer<
-  typeof generatedContentMetadataSchema
->;
 export type GeneratedContent = z.infer<typeof generatedContentSchema>;

@@ -1,6 +1,6 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
-import { createDatabase } from "@brains/db";
+import { createDatabase, enableWALMode } from "@brains/db";
 import { Registry } from "./registry/registry";
 import { EntityRegistry } from "./entity/entityRegistry";
 import { SchemaRegistry } from "./schema/schemaRegistry";
@@ -268,6 +268,7 @@ export class Shell {
       this.queryProcessor,
       this.entityService,
       this.contentTypeRegistry,
+      this.logger,
     );
 
     // Use injected MCP server or create one
@@ -326,6 +327,7 @@ export class Shell {
           try {
             // Create progress context if a progress token is provided
             let progressContext;
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (extra?._meta?.progressToken) {
               const progressToken = extra._meta.progressToken;
               progressContext = {
@@ -334,7 +336,7 @@ export class Shell {
                   progress: number;
                   total?: number;
                   message?: string;
-                }) => {
+                }): Promise<void> => {
                   await extra.sendNotification({
                     method: "notifications/progress" as const,
                     params: {
@@ -389,6 +391,9 @@ export class Shell {
     this.logger.info("Initializing Shell");
 
     try {
+      // Enable WAL mode for better concurrent database access
+      await enableWALMode(this.dbClient, this.config.database.url || "file:./brain.db");
+
       // Register default formatters
       this.registerDefaultFormatters();
 
@@ -481,7 +486,7 @@ export class Shell {
     this.logger.debug("Registering generated content entity support");
 
     // Create generated content adapter
-    const generatedContentAdapter = new GeneratedContentAdapter();
+    const generatedContentAdapter = new GeneratedContentAdapter(this.logger);
 
     // Connect the adapter to the content type registry
     // This allows it to get formatters registered by plugins

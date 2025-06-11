@@ -1,14 +1,14 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { GeneratedContentAdapter } from "../../src/content/generatedContentAdapter";
 import type { GeneratedContent, ContentFormatter } from "@brains/types";
-import { parseMarkdownWithFrontmatter } from "@brains/utils";
-import { z } from "zod";
+import { createSilentLogger } from "@brains/utils";
 
 describe("GeneratedContentAdapter", () => {
   let adapter: GeneratedContentAdapter;
 
   beforeEach(() => {
-    adapter = new GeneratedContentAdapter();
+    const silentLogger = createSilentLogger("test");
+    adapter = new GeneratedContentAdapter(silentLogger);
   });
 
   const createTestEntity = (
@@ -17,22 +17,23 @@ describe("GeneratedContentAdapter", () => {
     id: "test-123",
     entityType: "generated-content",
     contentType: "test:content",
-    content: JSON.stringify({ test: "data" }),
-    data: { test: "data" },
-    metadata: {
-      prompt: "Test prompt",
-      generatedAt: "2024-01-01T00:00:00Z",
-      generatedBy: "test-model",
-      regenerated: false,
-      validationStatus: "valid",
-    },
+    content: `---
+id: test-123
+entityType: generated-content
+contentType: 'test:content'
+generatedBy: test-model
+created: '2024-01-01T00:00:00.000Z'
+updated: '2024-01-01T00:00:00.000Z'
+---
+{ "test": "data" }`,
+    generatedBy: "test-model",
     created: "2024-01-01T00:00:00.000Z",
     updated: "2024-01-01T00:00:00.000Z",
     ...overrides,
   });
 
   describe("toMarkdown", () => {
-    it("should generate markdown without data in frontmatter", () => {
+    it("should generate markdown with only body content", () => {
       const entity = createTestEntity();
       const markdown = adapter.toMarkdown(entity);
 
@@ -44,11 +45,8 @@ describe("GeneratedContentAdapter", () => {
       const [, frontmatter] = markdown.split("---");
       expect(frontmatter).not.toMatch(/^data:/m); // data: at start of line
 
-      // Should use default YAML formatter
-      expect(markdown).toContain("# Content Data");
-      expect(markdown).toContain("```yaml");
-      expect(markdown).toContain("test: data");
-      expect(markdown).toContain("```");
+      // Should contain the body content
+      expect(markdown).toContain('{ "test": "data" }');
     });
 
     it("should use existing content when entity has no data (git sync scenario)", () => {
@@ -58,12 +56,7 @@ describe("GeneratedContentAdapter", () => {
 id: existing-123
 entityType: generated-content
 contentType: 'webserver:section:features'
-metadata:
-  prompt: Generate features
-  generatedAt: '2024-01-01T00:00:00Z'
-  generatedBy: claude
-  regenerated: false
-  validationStatus: valid
+generatedBy: claude
 created: '2024-01-01T00:00:00.000Z'
 updated: '2024-01-01T00:00:00.000Z'
 ---
@@ -86,7 +79,6 @@ Our best features yet
       const entity = createTestEntity({
         id: "existing-123",
         contentType: "webserver:section:features",
-        data: {}, // Empty data object
         content: formattedContent, // Pre-formatted content
       });
 
@@ -103,9 +95,8 @@ Our best features yet
       expect(markdown).toContain("contentType: 'webserver:section:features'");
     });
 
-    it("should handle entity with no data and no content gracefully", () => {
+    it("should handle entity with no content gracefully", () => {
       const entity = createTestEntity({
-        data: {},
         content: "",
       });
 
@@ -128,7 +119,18 @@ Our best features yet
       };
 
       adapter.setFormatter("test:custom", mockFormatter);
-      const entity = createTestEntity({ contentType: "test:custom" });
+      const entity = createTestEntity({ 
+        contentType: "test:custom",
+        content: `---
+id: test-123
+entityType: generated-content
+contentType: 'test:custom'
+generatedBy: test-model
+created: '2024-01-01T00:00:00.000Z'
+updated: '2024-01-01T00:00:00.000Z'
+---
+Custom format: {"test":"data"}`,
+      });
       const markdown = adapter.toMarkdown(entity);
 
       expect(markdown).toContain("Custom format:");
@@ -136,57 +138,6 @@ Our best features yet
     });
   });
 
-  describe("parseContent", () => {
-    it("should parse valid YAML content", () => {
-      const content = `# Content Data
-
-\`\`\`yaml
-name: Test Item
-value: 42
-active: true
-\`\`\`
-
-Edit the YAML above to modify the content.`;
-
-      const result = adapter.parseContent(content, "test:yaml");
-
-      expect(result).toEqual({
-        data: {
-          name: "Test Item",
-          value: 42,
-          active: true,
-        },
-        validationStatus: "valid",
-      });
-    });
-
-    it("should handle invalid content", () => {
-      const content = "This is not valid YAML content";
-      const result = adapter.parseContent(content, "test:yaml");
-
-      expect(result.validationStatus).toBe("invalid");
-      expect(result.validationErrors).toBeDefined();
-      expect(result.validationErrors?.[0]).toEqual({
-        message: "No YAML code block found in content",
-      });
-      expect(result.data).toEqual({}); // Empty object as fallback
-    });
-
-    it("should use custom formatter when available", () => {
-      const mockFormatter: ContentFormatter = {
-        format: () => "mock",
-        parse: (content) => ({ parsed: content }),
-      };
-
-      adapter.setFormatter("test:custom", mockFormatter);
-      const result = adapter.parseContent("test content", "test:custom");
-
-      expect(result).toEqual({
-        data: { parsed: "test content" },
-        validationStatus: "valid",
-      });
-    });
-  });
 
   describe("fromMarkdown", () => {
     it("should parse markdown file for import", () => {
@@ -194,11 +145,7 @@ Edit the YAML above to modify the content.`;
 id: test-123
 entityType: generated-content
 contentType: test:yaml
-metadata:
-  prompt: Test prompt
-  generatedAt: 2024-01-01T00:00:00Z
-  generatedBy: test-model
-  regenerated: false
+generatedBy: test-model
 created: 2024-01-01
 updated: 2024-01-01
 ---
@@ -219,37 +166,19 @@ Edit the YAML above to modify the content.`;
         id: "test-123",
         entityType: "generated-content",
         contentType: "test:yaml",
-        data: {
-          name: "Test Item",
-          value: 42,
-          active: true,
-        },
         content: markdown, // Full markdown is stored
-        metadata: {
-          prompt: "Test prompt",
-          generatedAt: "2024-01-01T00:00:00.000Z",
-          generatedBy: "test-model",
-          regenerated: false,
-          validationStatus: "valid",
-          validationErrors: undefined,
-          lastValidData: {
-            name: "Test Item",
-            value: 42,
-            active: true,
-          },
-        },
+        generatedBy: "test-model",
         created: "2024-01-01T00:00:00.000Z",
         updated: "2024-01-01T00:00:00.000Z",
       });
     });
 
-    it("should handle invalid content in import", () => {
+    it("should handle content that cannot be parsed", () => {
       const markdown = `---
 id: test-123
 entityType: generated-content
 contentType: test:yaml
-metadata:
-  prompt: Test prompt
+generatedBy: test-model
 created: 2024-01-01
 updated: 2024-01-01
 ---
@@ -258,71 +187,49 @@ This is not valid YAML content.`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.metadata?.validationStatus).toBe("invalid");
-      expect(result.metadata?.validationErrors).toBeDefined();
-      expect(result.data).toEqual({}); // Empty object as fallback
       expect(result.content).toBe(markdown); // Original markdown preserved
-    });
-
-    it("should preserve last valid data during import", () => {
-      const markdown = `---
-id: test-123
-entityType: generated-content
-contentType: test:yaml
-metadata:
-  prompt: Test prompt
-  lastValidData:
-    name: Previous Valid
-    value: 100
-created: 2024-01-01
-updated: 2024-01-01
----
-
-Invalid content`;
-
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.metadata?.validationStatus).toBe("invalid");
-      expect(result.data).toEqual({}); // Current data is empty
-      expect(result.metadata?.lastValidData).toEqual({
-        name: "Previous Valid",
-        value: 100,
-      });
     });
   });
 
   describe("roundtrip conversion", () => {
-    it("should maintain data through toMarkdown and parseContent", () => {
+    it("should maintain data through toMarkdown and fromMarkdown", () => {
       const originalEntity = createTestEntity({
         contentType: "test:yaml",
-        data: {
-          title: "Test Document",
-          sections: ["intro", "body", "conclusion"],
-          metadata: {
-            author: "Test User",
-            version: 1.5,
-          },
-        },
+        content: `---
+id: test-123
+entityType: generated-content
+contentType: test:yaml
+generatedBy: test-model
+created: '2024-01-01T00:00:00.000Z'
+updated: '2024-01-01T00:00:00.000Z'
+---
+
+# Content Data
+
+\`\`\`yaml
+title: Test Document
+sections:
+  - intro
+  - body
+  - conclusion
+metadata:
+  author: Test User
+  version: 1.5
+\`\`\``,
       });
 
       // Convert to markdown
       const markdown = adapter.toMarkdown(originalEntity);
 
-      // Extract just the content body using a simple schema
-      const { content } = parseMarkdownWithFrontmatter(
-        markdown,
-        z
-          .object({
-            content: z.string().optional().default(""),
-          })
-          .passthrough(),
-      );
+      // Parse it back
+      const result = adapter.fromMarkdown(markdown);
 
-      // Parse the content
-      const result = adapter.parseContent(content, originalEntity.contentType);
-
-      expect(result.data).toEqual(originalEntity.data);
-      expect(result.validationStatus).toBe("valid");
+      expect(result.contentType).toBe(originalEntity.contentType);
+      expect(result.generatedBy).toBe(originalEntity.generatedBy);
+      
+      // Verify content was preserved correctly
+      expect(result.content).toContain("title: Test Document");
+      expect(result.content).toContain("author: Test User");
     });
   });
 
@@ -338,7 +245,15 @@ Invalid content`;
       // Test that it uses the formatter
       const entity = createTestEntity({
         contentType: "test:mock",
-        data: { test: "value" },
+        content: `---
+id: test-123
+entityType: generated-content
+contentType: 'test:mock'
+generatedBy: test-model
+created: '2024-01-01T00:00:00.000Z'
+updated: '2024-01-01T00:00:00.000Z'
+---
+formatted: {"test":"value"}`,
       });
 
       const markdown = adapter.toMarkdown(entity);
@@ -359,8 +274,30 @@ Invalid content`;
       adapter.setFormatter("type:one", formatter1);
       adapter.setFormatter("type:two", formatter2);
 
-      const entity1 = createTestEntity({ contentType: "type:one" });
-      const entity2 = createTestEntity({ contentType: "type:two" });
+      const entity1 = createTestEntity({ 
+        contentType: "type:one",
+        content: `---
+id: test-123
+entityType: generated-content
+contentType: 'type:one'
+generatedBy: test-model
+created: '2024-01-01T00:00:00.000Z'
+updated: '2024-01-01T00:00:00.000Z'
+---
+Format 1`,
+      });
+      const entity2 = createTestEntity({ 
+        contentType: "type:two",
+        content: `---
+id: test-123
+entityType: generated-content
+contentType: 'type:two'
+generatedBy: test-model
+created: '2024-01-01T00:00:00.000Z'
+updated: '2024-01-01T00:00:00.000Z'
+---
+Format 2`,
+      });
 
       expect(adapter.toMarkdown(entity1)).toContain("Format 1");
       expect(adapter.toMarkdown(entity2)).toContain("Format 2");
@@ -374,16 +311,30 @@ Invalid content`;
 
       const entity = createTestEntity({
         contentType: "webserver:landing:page",
-        data: {
-          hero: {
-            headline: "Welcome",
-            tagline: "Your brain",
-            ctaText: "Start",
-            ctaUrl: "/begin",
-          },
-          features: [],
-          benefits: [],
-        },
+        content: `---
+id: test-123
+entityType: generated-content
+contentType: webserver:landing:page
+generatedBy: test-model
+created: '2024-01-01T00:00:00.000Z'
+updated: '2024-01-01T00:00:00.000Z'
+---
+
+# Hero Section
+
+## Headline
+Welcome
+
+## Tagline
+Your brain
+
+## CTA
+- Text: Start
+- URL: /begin
+
+# Features
+
+# Benefits`,
       });
 
       const markdown = adapter.toMarkdown(entity);

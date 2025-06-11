@@ -58,6 +58,15 @@ describe("MCP Registration", () => {
         getEntity: mock(() =>
           Promise.resolve({ id: "1", type: "note", content: "Test" }),
         ),
+        createEntity: mock(() =>
+          Promise.resolve({
+            id: "saved-entity-123",
+            entityType: "generated-content",
+            content: "",
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          }),
+        ),
         deriveEntity: mock(() =>
           Promise.resolve({ id: "2", entityType: "note", content: "Derived" }),
         ),
@@ -212,22 +221,13 @@ describe("MCP Registration", () => {
       save: true,
     });
 
-    // Check that entity was created
-    expect(mockServices.entityService.createEntity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entityType: "generated-content",
-        contentType: "entity",
-      }),
-    );
+    // Check that content generation service was called (saving is handled internally)
+    expect(mockServices.contentGenerationService.generate).toHaveBeenCalled();
 
-    // Check the result includes entity info
+    // Check the result format - should be the generated content
     expect(result.content[0].type).toBe("text");
     const parsedResult = JSON.parse(result.content[0].text);
-    expect(parsedResult.entityId).toBe("saved-entity-123");
-    expect(parsedResult.message).toBe(
-      "Generated and saved as entity saved-entity-123",
-    );
-    expect(parsedResult.content).toBeDefined();
+    expect(parsedResult.content).toBe("Generated content");
   });
 
   it("should handle content generation with custom contentType", async () => {
@@ -259,12 +259,8 @@ describe("MCP Registration", () => {
       save: true,
     });
 
-    // Check that entity was created with custom contentType
-    expect(mockServices.entityService.createEntity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        contentType: "custom:type",
-      }),
-    );
+    // Check that content generation service was called (saving is handled internally)
+    expect(mockServices.contentGenerationService.generate).toHaveBeenCalled();
   });
 
   it("should handle list_content_templates tool execution", async () => {

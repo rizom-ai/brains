@@ -10,12 +10,10 @@ export type {
   BaseEntity,
   SearchResult,
   GeneratedContent,
-  GeneratedContentMetadata,
 } from "./entities";
 export {
   baseEntitySchema,
   generatedContentSchema,
-  generatedContentMetadataSchema,
 } from "./entities";
 
 // Plugin types

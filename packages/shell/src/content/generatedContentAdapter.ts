@@ -5,25 +5,19 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
   generateFrontmatter,
+  Logger,
 } from "@brains/utils";
-import {
-  generatedContentSchema,
-  generatedContentMetadataSchema,
-} from "@brains/types";
+import { generatedContentSchema } from "@brains/types";
 import { DefaultYamlFormatter } from "@brains/formatters";
 import type { ContentTypeRegistry } from "./contentTypeRegistry";
 
 /**
  * Interface for generated content adapter
  * Extends EntityAdapter with formatter support
+ * Note: Generated content is immutable - no parsing/editing support
  */
 export interface IGeneratedContentAdapter
   extends EntityAdapter<GeneratedContent> {
-  /**
-   * Parse content body for editing existing entities
-   */
-  parseContent(content: string, contentType: string): ParseResult;
-
   /**
    * Register a formatter for a specific content type
    */
@@ -35,24 +29,15 @@ export interface IGeneratedContentAdapter
   setContentTypeRegistry(registry: ContentTypeRegistry): void;
 }
 
-// Type for parseContent return value
-export type ParseResult = {
-  data: Record<string, unknown>;
-  validationStatus: "valid" | "invalid";
-  validationErrors?: Array<{ message: string }>;
-};
-
 // Schema for frontmatter when parsing markdown files (expects strings for dates)
-const generatedContentFrontmatterSchema = z
-  .object({
-    id: z.string(),
-    entityType: z.literal("generated-content"),
-    contentType: z.string(),
-    metadata: generatedContentMetadataSchema.partial().optional().default({}),
-    created: z.string(),
-    updated: z.string(),
-  })
-  .passthrough(); // Allow extra fields
+const generatedContentFrontmatterSchema = z.object({
+  id: z.string(),
+  entityType: z.literal("generated-content"),
+  contentType: z.string(),
+  generatedBy: z.string(),
+  created: z.string(),
+  updated: z.string(),
+});
 
 export class GeneratedContentAdapter implements IGeneratedContentAdapter {
   public readonly entityType = "generated-content";
@@ -63,6 +48,11 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
   private contentTypeRegistry: {
     getFormatter(contentType: string): ContentFormatter<unknown> | null;
   } | null = null;
+  private logger: Logger;
+
+  constructor(logger?: Logger) {
+    this.logger = (logger ?? Logger.getInstance()).child("GeneratedContentAdapter");
+  }
 
   /**
    * Set the content type registry for looking up formatters
@@ -74,94 +64,31 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
   }
 
   public toMarkdown(entity: GeneratedContent): string {
-    // Data always goes in body, never in frontmatter
     const frontmatter = {
       id: entity.id,
       entityType: entity.entityType,
       contentType: entity.contentType,
-      metadata: entity.metadata,
+      generatedBy: entity.generatedBy,
       created: entity.created,
       updated: entity.updated,
-      // Note: data is NOT in frontmatter anymore
     };
 
+    // Extract just the body content (remove frontmatter if present)
     let content: string;
-
-    // Check if we have structured data to format (initial creation)
-    if (entity.data && Object.keys(entity.data).length > 0) {
-      // Try local formatters first, then content type registry, then default
-      let formatter = this.formatters.get(entity.contentType);
-
-      if (!formatter && this.contentTypeRegistry) {
-        const registryFormatter = this.contentTypeRegistry.getFormatter(
-          entity.contentType,
-        );
-        if (registryFormatter) {
-          formatter = registryFormatter;
-        }
-      }
-
-      if (!formatter) {
-        formatter = this.defaultFormatter;
-      }
-
-      content = formatter.format(entity.data);
-    } else {
-      // Use existing formatted content (git sync case)
-      // Extract just the body content (remove frontmatter if present)
-      try {
-        const parsed = parseMarkdownWithFrontmatter(
-          entity.content || "",
-          generatedContentFrontmatterSchema,
-        );
-        content = parsed.content;
-      } catch {
-        // If parsing fails or content is empty, use empty string
-        content = "";
-      }
+    try {
+      const parsed = parseMarkdownWithFrontmatter(
+        entity.content || "",
+        generatedContentFrontmatterSchema,
+      );
+      content = parsed.content;
+    } catch {
+      // If parsing fails, assume the whole content is the body
+      content = entity.content || "";
     }
 
     return generateMarkdownWithFrontmatter(content, frontmatter);
   }
 
-  /**
-   * Parse content body for editing existing entities
-   * Used when user edits the markdown content
-   */
-  public parseContent(content: string, contentType: string): ParseResult {
-    // Try local formatters first, then content type registry, then default
-    let formatter = this.formatters.get(contentType);
-
-    if (!formatter && this.contentTypeRegistry) {
-      const registryFormatter =
-        this.contentTypeRegistry.getFormatter(contentType);
-      if (registryFormatter) {
-        formatter = registryFormatter;
-      }
-    }
-
-    if (!formatter) {
-      formatter = this.defaultFormatter;
-    }
-
-    try {
-      const data = formatter.parse(content);
-      return {
-        data: data as Record<string, unknown>,
-        validationStatus: "valid" as const,
-      };
-    } catch (error) {
-      return {
-        data: {}, // Return empty object as fallback
-        validationStatus: "invalid" as const,
-        validationErrors: [
-          {
-            message: error instanceof Error ? error.message : String(error),
-          },
-        ],
-      };
-    }
-  }
 
   /**
    * Parse full markdown file for import/sync operations
@@ -176,40 +103,37 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
     const frontmatter = parsed.metadata;
     const content = parsed.content;
 
-    // Use parseContent to handle the body
-    const parseResult = this.parseContent(
-      content,
-      frontmatter.contentType || "unknown",
-    );
+    // Validate content can be parsed (but don't return the data)
+    let formatter = this.formatters.get(frontmatter.contentType);
+    
+    if (!formatter && this.contentTypeRegistry) {
+      const registryFormatter = this.contentTypeRegistry.getFormatter(
+        frontmatter.contentType,
+      );
+      if (registryFormatter) {
+        formatter = registryFormatter;
+      }
+    }
+    
+    formatter ??= this.defaultFormatter;
+
+    try {
+      formatter.parse(content); // Validation only
+    } catch (error) {
+      // Content parsing failed, but we still import it
+      // since generated content is immutable
+      this.logger.warn(
+        `Failed to parse content for ${frontmatter.contentType} (${frontmatter.id})`,
+        { contentType: frontmatter.contentType, id: frontmatter.id, error }
+      );
+    }
 
     return {
       id: frontmatter.id,
-      entityType: "generated-content",
+      entityType: "generated-content" as const,
       contentType: frontmatter.contentType,
-      data: parseResult.data,
       content: markdown, // Store the full markdown
-      metadata: {
-        prompt: frontmatter.metadata?.prompt ?? "",
-        generatedAt:
-          frontmatter.metadata?.generatedAt ?? new Date().toISOString(),
-        generatedBy: frontmatter.metadata?.generatedBy ?? "unknown",
-        regenerated: frontmatter.metadata?.regenerated ?? false,
-        validationStatus: parseResult.validationStatus,
-        ...(frontmatter.metadata?.context !== undefined && {
-          context: frontmatter.metadata.context,
-        }),
-        ...(frontmatter.metadata?.previousVersionId !== undefined && {
-          previousVersionId: frontmatter.metadata.previousVersionId,
-        }),
-        ...(parseResult.validationErrors !== undefined && {
-          validationErrors: parseResult.validationErrors,
-        }),
-        ...(parseResult.validationStatus === "valid"
-          ? { lastValidData: parseResult.data }
-          : frontmatter.metadata?.lastValidData !== undefined && {
-              lastValidData: frontmatter.metadata.lastValidData,
-            }),
-      },
+      generatedBy: frontmatter.generatedBy,
       created: frontmatter.created,
       updated: frontmatter.updated,
     };
@@ -218,8 +142,7 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
   public extractMetadata(entity: GeneratedContent): Record<string, unknown> {
     return {
       contentType: entity.contentType,
-      data: entity.data,
-      metadata: entity.metadata,
+      generatedBy: entity.generatedBy,
     };
   }
 
@@ -236,8 +159,7 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
       id: entity.id,
       entityType: entity.entityType,
       contentType: entity.contentType,
-      data: entity.data,
-      metadata: entity.metadata,
+      generatedBy: entity.generatedBy,
       created: entity.created,
       updated: entity.updated,
     };

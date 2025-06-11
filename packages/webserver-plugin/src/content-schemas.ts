@@ -19,9 +19,6 @@ export const featureCardSchema = z.object({
   icon: z.string(), // SVG path or icon name
   title: z.string(),
   description: z.string(),
-  link: z.string().optional(),
-  linkText: z.string().optional(),
-  colorScheme: z.enum(["purple", "orange", "teal"]).optional(),
 });
 
 export type FeatureCard = z.infer<typeof featureCardSchema>;
@@ -33,7 +30,7 @@ export const featuresSectionSchema = z.object({
   label: z.string(),
   headline: z.string(),
   description: z.string(),
-  features: z.array(featureCardSchema).min(1).max(6),
+  features: z.array(featureCardSchema).min(1).max(4), // Reduced max to match prompt
 });
 
 export type FeaturesSection = z.infer<typeof featuresSectionSchema>;

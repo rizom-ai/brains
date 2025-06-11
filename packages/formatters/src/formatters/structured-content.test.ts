@@ -190,7 +190,7 @@ Jane Smith
       ),
     });
 
-    it("should use custom item formatter when provided", () => {
+    it("should format arrays of objects with structure", () => {
       const formatter = new StructuredContentFormatter(schema, {
         title: "Array Test",
         mappings: [
@@ -198,10 +198,11 @@ Jane Smith
             key: "items",
             label: "Items",
             type: "array",
-            itemFormat: (item): string => {
-              const typedItem = item as { id: string; name: string };
-              return `${typedItem.name} (ID: ${typedItem.id})`;
-            },
+            itemType: "object",
+            itemMappings: [
+              { key: "id", label: "ID", type: "string" },
+              { key: "name", label: "Name", type: "string" },
+            ],
           },
         ],
       });
@@ -215,8 +216,12 @@ Jane Smith
 
       const result = formatter.format(data);
 
-      expect(result).toContain("- First Item (ID: 001)");
-      expect(result).toContain("- Second Item (ID: 002)");
+      expect(result).toContain("### Item 1");
+      expect(result).toContain("#### ID\n001");
+      expect(result).toContain("#### Name\nFirst Item");
+      expect(result).toContain("### Item 2");
+      expect(result).toContain("#### ID\n002");
+      expect(result).toContain("#### Name\nSecond Item");
     });
 
     it("should use default formatter for simple arrays", () => {

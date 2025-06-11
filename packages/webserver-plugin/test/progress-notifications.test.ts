@@ -30,6 +30,7 @@ describe("Progress Notifications", () => {
   it("should pass progress callback to buildSite when context is provided", async () => {
     const buildSiteTool = tools.find((t) => t.name === "build_site");
     expect(buildSiteTool).toBeDefined();
+    if (!buildSiteTool) throw new Error("buildSiteTool not found");
 
     const mockSendProgress = mock(() => Promise.resolve());
     const progressContext = {
@@ -37,7 +38,7 @@ describe("Progress Notifications", () => {
       sendProgress: mockSendProgress,
     };
 
-    await buildSiteTool!.handler({ clean: false }, progressContext);
+    await buildSiteTool.handler({ clean: false }, progressContext);
 
     // Verify buildSite was called with the progress callback
     expect(mockManager.buildSite).toHaveBeenCalledWith(
@@ -49,8 +50,9 @@ describe("Progress Notifications", () => {
   it("should work without progress context", async () => {
     const buildSiteTool = tools.find((t) => t.name === "build_site");
     expect(buildSiteTool).toBeDefined();
+    if (!buildSiteTool) throw new Error("buildSiteTool not found");
 
-    const result = await buildSiteTool!.handler({ clean: true });
+    const result = await buildSiteTool.handler({ clean: true });
 
     // Verify buildSite was called without progress callback
     expect(mockManager.buildSite).toHaveBeenCalledWith(
@@ -92,12 +94,15 @@ describe("Progress Notifications", () => {
     });
 
     const buildSiteTool = tools.find((t) => t.name === "build_site");
+    expect(buildSiteTool).toBeDefined();
+    if (!buildSiteTool) throw new Error("buildSiteTool not found");
+    
     const progressContext = {
       progressToken: "test-token",
       sendProgress: mockSendProgress,
     };
 
-    await buildSiteTool!.handler({ clean: false }, progressContext);
+    await buildSiteTool.handler({ clean: false }, progressContext);
 
     // Verify progress notifications were sent
     expect(progressNotifications).toHaveLength(3);
@@ -116,6 +121,7 @@ describe("Progress Notifications", () => {
   it("should pass progress callback to preview method", async () => {
     const previewTool = tools.find((t) => t.name === "preview_site");
     expect(previewTool).toBeDefined();
+    if (!previewTool) throw new Error("previewTool not found");
 
     const mockSendProgress = mock(() => Promise.resolve());
     const progressContext = {
@@ -123,7 +129,7 @@ describe("Progress Notifications", () => {
       sendProgress: mockSendProgress,
     };
 
-    await previewTool!.handler({}, progressContext);
+    await previewTool.handler({}, progressContext);
 
     // Verify preview was called with the progress callback
     expect(mockManager.preview).toHaveBeenCalledWith(mockSendProgress);

@@ -47,7 +47,7 @@ describe("EntityService search with excludeTypes", () => {
     // Create and configure entity registry
     entityRegistry = EntityRegistry.createFresh(logger);
     const baseEntityAdapter = new BaseEntityAdapter();
-    const generatedContentAdapter = new GeneratedContentAdapter();
+    const generatedContentAdapter = new GeneratedContentAdapter(logger);
     entityRegistry.registerEntityType(
       "base",
       baseEntitySchema,
@@ -82,17 +82,8 @@ describe("EntityService search with excludeTypes", () => {
     await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test",
-      data: {
-        content: "This is generated content about artificial intelligence",
-      },
       content: "This is generated content about artificial intelligence",
-      metadata: {
-        prompt: "Generate content about artificial intelligence",
-        generatedAt: new Date().toISOString(),
-        generatedBy: "test",
-        regenerated: false,
-        validationStatus: "valid",
-      },
+      generatedBy: "test",
     });
 
     await entityService.createEntity({
@@ -153,15 +144,8 @@ describe("EntityService search with excludeTypes", () => {
     await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test",
-      data: { content: "Generated content about testing" },
       content: "Generated content about testing",
-      metadata: {
-        prompt: "test",
-        generatedAt: new Date().toISOString(),
-        generatedBy: "test",
-        regenerated: false,
-        validationStatus: "valid",
-      },
+      generatedBy: "test",
     });
 
     // Search excluding multiple types
@@ -203,15 +187,8 @@ describe("EntityService search with excludeTypes", () => {
     await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "note",
-      data: { content: "Generated note about search functionality" },
       content: "Generated note about search functionality",
-      metadata: {
-        prompt: "test",
-        generatedAt: new Date().toISOString(),
-        generatedBy: "test",
-        regenerated: false,
-        validationStatus: "valid",
-      },
+      generatedBy: "test",
     });
 
     await entityService.createEntity({
@@ -239,15 +216,8 @@ describe("EntityService search with excludeTypes", () => {
     await entityService.createEntity<GeneratedContent>({
       entityType: "generated-content",
       contentType: "test",
-      data: { content: "Generated test entity" },
       content: "Generated test entity",
-      metadata: {
-        prompt: "test",
-        generatedAt: new Date().toISOString(),
-        generatedBy: "test",
-        regenerated: false,
-        validationStatus: "valid",
-      },
+      generatedBy: "test",
     });
 
     // Search for "entity" which should be in both

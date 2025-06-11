@@ -45,9 +45,9 @@ export class SiteBuilder {
       let progressInterval: Timer | undefined;
       if (sendProgress) {
         let progressCounter = 0;
-        progressInterval = setInterval(async () => {
+        progressInterval = setInterval(() => {
           progressCounter++;
-          await sendProgress({
+          void sendProgress({
             progress: progressCounter,
             message: `Installing dependencies (${progressCounter * 5}s elapsed)...`,
           });
@@ -110,9 +110,9 @@ export class SiteBuilder {
     let progressInterval: Timer | undefined;
     if (sendProgress) {
       let progressCounter = 0;
-      progressInterval = setInterval(async () => {
+      progressInterval = setInterval(() => {
         progressCounter++;
-        await sendProgress({
+        void sendProgress({
           progress: progressCounter,
           message: `Building Astro site (${progressCounter * 10}s elapsed)...`,
         });

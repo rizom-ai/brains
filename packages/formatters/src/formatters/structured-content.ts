@@ -15,8 +15,10 @@ export interface FieldMapping {
   type: "string" | "number" | "object" | "array";
   /** Child mappings for object types */
   children?: FieldMapping[];
-  /** Custom formatter for array items */
-  itemFormat?: (item: unknown) => string;
+  /** For arrays: the type of each item */
+  itemType?: "string" | "number" | "object";
+  /** For arrays of objects: mappings for each item's fields */
+  itemMappings?: FieldMapping[];
 }
 
 /**
@@ -94,14 +96,27 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       case "array":
         lines.push(heading, "");
         if (Array.isArray(value)) {
-          for (const item of value) {
-            const formatted = mapping.itemFormat
-              ? mapping.itemFormat(item)
-              : this.defaultArrayItemFormat(item);
-            lines.push(`- ${formatted}`);
+          if (mapping.itemType === "object" && mapping.itemMappings) {
+            // Format array of objects with structure
+            value.forEach((item, index) => {
+              lines.push(`${"#".repeat(depth + 1)} ${mapping.label.slice(0, -1)} ${index + 1}`);
+              lines.push("");
+              // Format each field of the object
+              if (mapping.itemMappings) {
+                for (const itemMapping of mapping.itemMappings) {
+                  this.formatField(item, itemMapping, lines, depth + 2);
+                }
+              }
+            });
+          } else {
+            // Format simple array items as a list
+            for (const item of value) {
+              const formatted = this.defaultArrayItemFormat(item);
+              lines.push(`- ${formatted}`);
+            }
+            lines.push("");
           }
         }
-        lines.push("");
         break;
     }
   }
@@ -216,6 +231,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   private buildDataFromSections(
     sections: Map<string, Content[]>,
     mappings: FieldMapping[],
+    depth: number = 2,
   ): Record<string, unknown> {
     const result: Record<string, unknown> = {};
 
@@ -224,16 +240,24 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
       if (mapping.type === "object" && mapping.children && section) {
         // Extract subsections for object type
-        const subsections = this.extractSubsections(section, 3);
+        const subsections = this.extractSubsections(section, depth + 1);
         const objectValue = this.buildDataFromSections(
           subsections,
           mapping.children,
+          depth + 1,
         );
         this.setValueByPath(result, mapping.key, objectValue);
       } else if (mapping.type === "array" && section) {
-        // Extract array items from list
-        const items = this.extractArrayItems(section);
-        this.setValueByPath(result, mapping.key, items);
+        // Extract array items
+        if (mapping.itemType === "object" && mapping.itemMappings) {
+          // Extract structured objects from subsections
+          const items = this.extractObjectArrayItems(section, depth + 1, mapping.itemMappings);
+          this.setValueByPath(result, mapping.key, items);
+        } else {
+          // Extract simple list items
+          const items = this.extractSimpleArrayItems(section);
+          this.setValueByPath(result, mapping.key, items);
+        }
       } else if (section) {
         // Extract text content for string/number types
         const textValue = this.getTextFromSection(section);
@@ -307,11 +331,11 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   }
 
   /**
-   * Extract array items from list nodes in content
+   * Extract simple array items from list nodes
    */
-  private extractArrayItems(content: Content[]): unknown[] {
+  private extractSimpleArrayItems(content: Content[]): string[] {
     const items: string[] = [];
-
+    
     for (const node of content) {
       if (node.type === "list") {
         const listNode = node as {
@@ -328,9 +352,49 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
         }
       }
     }
-
+    
     return items;
   }
+
+  /**
+   * Extract array of objects from structured subsections
+   */
+  private extractObjectArrayItems(
+    content: Content[],
+    targetDepth: number,
+    itemMappings: FieldMapping[]
+  ): Record<string, unknown>[] {
+    const items: Record<string, unknown>[] = [];
+    let currentItemContent: Content[] = [];
+    let inItem = false;
+    
+    for (const node of content) {
+      if (node.type === "heading" && node.depth === targetDepth) {
+        // Save previous item if exists
+        if (inItem && currentItemContent.length > 0) {
+          const subsections = this.extractSubsections(currentItemContent, targetDepth + 1);
+          const item = this.buildDataFromSections(subsections, itemMappings, targetDepth + 1);
+          items.push(item);
+        }
+        
+        // Start new item
+        currentItemContent = [];
+        inItem = true;
+      } else if (inItem) {
+        currentItemContent.push(node);
+      }
+    }
+    
+    // Don't forget the last item
+    if (inItem && currentItemContent.length > 0) {
+      const subsections = this.extractSubsections(currentItemContent, targetDepth + 1);
+      const item = this.buildDataFromSections(subsections, itemMappings, targetDepth + 1);
+      items.push(item);
+    }
+    
+    return items;
+  }
+
 
   /**
    * Extract text from a list item
