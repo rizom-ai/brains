@@ -56,9 +56,7 @@ export class ContentGenerator {
       // Get the content type registry from context
       const contentTypeRegistry = this.context.contentTypeRegistry;
 
-      const formatter = contentTypeRegistry.getFormatter(
-        entity.contentType,
-      );
+      const formatter = contentTypeRegistry.getFormatter(entity.contentType);
 
       if (formatter) {
         return formatter.parse(entity.content);

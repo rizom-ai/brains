@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentGenerator } from "../../src/content-generator";
 import type {
-  Registry,
   EntityService,
   BaseEntity,
   ListOptions,
@@ -24,7 +23,6 @@ import {
 
 describe("ContentGenerator", () => {
   let contentGenerator: ContentGenerator;
-  let mockRegistry: Registry;
   let mockEntityService: EntityService;
   const testDir = join(__dirname, "test-content");
 
@@ -66,20 +64,10 @@ describe("ContentGenerator", () => {
       getEntityTypes: mock(() => ["note", "site-content"]),
     } as unknown as EntityService;
 
-    // Mock Registry
-    mockRegistry = {
-      resolve: mock((serviceName: string) => {
-        if (serviceName === "entityService") {
-          return mockEntityService;
-        }
-        throw new Error(`Unknown service: ${serviceName}`);
-      }),
-    } as unknown as Registry;
 
     // Mock Plugin Context
     const mockContext = {
       pluginId: "webserver",
-      registry: mockRegistry,
       logger: createSilentLogger("test"),
       query: mock(
         async <T>(_query: string, _schema: z.ZodType<T>): Promise<T> => {
@@ -165,19 +153,19 @@ describe("ContentGenerator", () => {
       messageBus: {} as unknown as PluginContext["messageBus"],
       formatters: {} as unknown as PluginContext["formatters"],
       contentTypes: {
-        register: mock(() => { }),
+        register: mock(() => {}),
         list: mock(() => []),
       },
-      registerEntityType: mock(() => { }),
+      registerEntityType: mock(() => {}),
       // Direct service access (added to PluginContext)
       entityService: mockEntityService,
       contentTypeRegistry: {
-        register: mock(() => { }),
+        register: mock(() => {}),
         get: mock(() => null),
         list: mock(() => []),
         has: mock(() => false),
         getFormatter: mock(() => null),
-        clear: mock(() => { }),
+        clear: mock(() => {}),
       },
     } as unknown as PluginContext;
 

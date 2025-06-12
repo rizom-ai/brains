@@ -7,6 +7,7 @@ This document outlines a phased approach to refactoring the webserver plugin to 
 ## Current Problem
 
 The webserver plugin directly imports from shell internals:
+
 ```typescript
 import type { EntityService } from "@brains/shell/src/entity/entityService";
 import type { ContentTypeRegistry } from "@brains/shell/src/content";
@@ -25,31 +26,34 @@ This violates plugin architecture principles and creates tight coupling.
 #### Implementation Steps
 
 1. **Move interfaces to @brains/types**
+
    - Ensure `EntityService` interface is in types (already exists)
    - Add `ContentTypeRegistry` interface to types package
    - Export from types/index.ts
 
 2. **Add integration method to Shell**
+
    ```typescript
    // In packages/shell/src/shell.ts
    export class Shell {
      // ... existing methods ...
-     
+
      public getContentTypeRegistry(): ContentTypeRegistry {
        return this.contentTypeRegistry;
      }
-     
+
      // EntityService getter already exists:
      // public getEntityService(): EntityService
    }
    ```
 
 3. **Update PluginContext interface**
+
    ```typescript
    // In packages/types/src/plugin.ts
    export interface PluginContext {
      // ... existing fields ...
-     
+
      // Integration methods from Shell
      entityService: EntityService;
      contentTypeRegistry: ContentTypeRegistry;
@@ -57,14 +61,15 @@ This violates plugin architecture principles and creates tight coupling.
    ```
 
 4. **Update PluginManager to provide services**
+
    ```typescript
    // In packages/shell/src/plugins/pluginManager.ts
    private createPluginContext(pluginId: string): PluginContext {
      const shell = this.registry.resolve<Shell>("shell");
-     
+
      return {
        // ... existing context ...
-       
+
        // Provide Shell's integration methods
        entityService: shell.getEntityService(),
        contentTypeRegistry: shell.getContentTypeRegistry(),
@@ -73,6 +78,7 @@ This violates plugin architecture principles and creates tight coupling.
    ```
 
 5. **Update webserver plugin to use context**
+
    ```typescript
    // In entity-resolver.ts
    export class EntityResolver {
@@ -81,11 +87,11 @@ This violates plugin architecture principles and creates tight coupling.
        private contentTypeRegistry: ContentTypeRegistry
      ) {}
    }
-   
+
    // In plugin registration
    async register(context: PluginContext): Promise<PluginCapabilities> {
      const { entityService, contentTypeRegistry } = context;
-     
+
      // Pass services to components that need them
      const entityResolver = new EntityResolver(
        entityService,
@@ -99,6 +105,7 @@ This violates plugin architecture principles and creates tight coupling.
    - Ensure `@brains/types` is in dependencies
 
 #### Benefits of Phase 0
+
 - Follows existing Shell patterns (getters for integration)
 - Clean plugin interface through context
 - No direct registry usage in plugins
@@ -114,6 +121,7 @@ After Phase 0 is complete, evaluate two approaches for the long-term architectur
 **Concept**: Introduce a higher-level API that provides controlled access to cross-cutting operations.
 
 ### Design
+
 ```typescript
 interface ContentCompositionAPI {
   queryEntities(options: QueryOptions): Promise<BaseEntity[]>;
@@ -130,12 +138,14 @@ interface PluginContext {
 ```
 
 ### Pros
+
 - Clean abstraction layer
 - Hides internal services from plugins
 - Easy to mock for testing
 - Can add features (caching, permissions) transparently
 
 ### Cons
+
 - New API to design and maintain
 - Another layer of indirection
 - May not fit all use cases
@@ -145,12 +155,13 @@ interface PluginContext {
 **Concept**: Use the existing MessageBus for cross-plugin data access through events.
 
 ### Design
+
 ```typescript
 // Plugin requests data through events
 const response = await messageBus.request("entity.query", {
   entityTypes: ["note", "task"],
   limit: 10,
-  sortBy: "updated"
+  sortBy: "updated",
 });
 
 // Shell or other plugins handle the events
@@ -163,26 +174,28 @@ messageBus.handle("entity.query", async (message) => {
 ### Implementation Using Existing Infrastructure
 
 We already have:
+
 - `MessageBus` with request/response pattern
 - Event emitters in PluginContext
 - Message handlers in plugins
 
 ### Example Implementation
+
 ```typescript
 // Webserver plugin
 export class ContentGenerator {
   constructor(
     private messageBus: MessageBus,
-    private events: EventEmitter
+    private events: EventEmitter,
   ) {}
-  
+
   async generateDashboard() {
     // Request entities through message bus
     const response = await this.messageBus.request("entities.list", {
       entityTypes: ["all"],
-      limit: 100
+      limit: 100,
     });
-    
+
     // Listen for entity updates
     this.events.on("entity.created", this.handleEntityUpdate);
     this.events.on("entity.updated", this.handleEntityUpdate);
@@ -198,6 +211,7 @@ messageBus.handle("entities.list", async (message) => {
 ```
 
 ### Pros
+
 - Uses existing infrastructure (MessageBus, EventEmitter)
 - Loose coupling between plugins
 - Natural async patterns
@@ -205,6 +219,7 @@ messageBus.handle("entities.list", async (message) => {
 - Already follows established patterns in codebase
 
 ### Cons
+
 - Less discoverable than direct API
 - Async complexity for simple operations
 - Need to define message schemas
@@ -216,6 +231,7 @@ After Phase 0 completion, we will:
 
 1. **Prototype both approaches** with a simple use case
 2. **Evaluate based on**:
+
    - Code clarity and maintainability
    - Performance characteristics
    - Developer experience
@@ -229,17 +245,20 @@ After Phase 0 completion, we will:
 ## Implementation Timeline
 
 ### Week 1: Phase 0
+
 - Day 1-2: Update types package with interfaces
 - Day 3: Add Shell integration methods
 - Day 4: Update PluginContext and PluginManager
 - Day 5: Refactor webserver plugin and test
 
 ### Week 2: Phase 1 Evaluation
+
 - Day 1-2: Prototype Composition API
 - Day 3-4: Prototype Event-based approach
 - Day 5: Document findings and recommendation
 
 ### Week 3: Implementation
+
 - Implement chosen approach
 - Migrate webserver plugin
 - Update documentation
@@ -256,6 +275,7 @@ After Phase 0 completion, we will:
 ## Testing Strategy
 
 ### Phase 0 Testing
+
 1. Unit tests for Shell integration methods
 2. Unit tests for updated PluginManager
 3. Integration tests for plugin functionality
@@ -263,6 +283,7 @@ After Phase 0 completion, we will:
 5. Type checking across all packages
 
 ### Phase 1 Testing
+
 1. Prototype testing for both approaches
 2. Performance benchmarks
 3. Developer experience evaluation
@@ -270,6 +291,7 @@ After Phase 0 completion, we will:
 ## Risk Mitigation
 
 ### Phase 0 Risks
+
 - **Risk**: Breaking changes to PluginContext interface
 - **Mitigation**: Add new fields without removing existing ones
 
@@ -277,6 +299,7 @@ After Phase 0 completion, we will:
 - **Mitigation**: Careful interface design, minimal cross-references
 
 ### Phase 1 Risks
+
 - **Risk**: Chosen approach doesn't scale
 - **Mitigation**: Prototype with realistic use cases, consider hybrid approach
 
@@ -304,12 +327,14 @@ After Phase 0 completion, we will:
 ## Appendix: Pattern Comparison
 
 ### Current (Problematic) Pattern
+
 ```typescript
 // Direct import - tight coupling
 import type { EntityService } from "@brains/shell/src/entity/entityService";
 ```
 
 ### Phase 0 Pattern
+
 ```typescript
 // Clean access through context
 export function myPlugin(): Plugin {
@@ -317,10 +342,11 @@ export function myPlugin(): Plugin {
     async register(context: PluginContext) {
       const { entityService, contentTypeRegistry } = context;
       // Use services...
-    }
+    },
   };
 }
 ```
 
 ### Future Pattern (TBD)
+
 Either Composition API or Event-based, to be determined after evaluation.

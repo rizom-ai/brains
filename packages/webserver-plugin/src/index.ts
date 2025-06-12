@@ -45,7 +45,7 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       "Generates and serves static websites from Personal Brain content",
 
     async register(context: PluginContext): Promise<PluginCapabilities> {
-      const { registry, logger, formatters, registerEntityType, contentTypes } =
+      const { logger, formatters, registerEntityType, contentTypes } =
         context;
 
       // Register site-content entity type
@@ -99,7 +99,6 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       // Create webserver manager instance
       const managerOptions: WebserverManagerOptions = {
         logger: logger.child("WebserverPlugin"),
-        registry,
         context,
         outputDir: options.outputDir ?? "./dist",
         previewPort: options.previewPort ?? 4321,
@@ -119,8 +118,6 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
 
       const manager = new WebserverManager(managerOptions);
 
-      // Register the manager for other components to access
-      registry.register("webserverManager", () => manager);
 
       // Return plugin capabilities
       return {

@@ -1,4 +1,4 @@
-import type { Registry, PluginContext } from "@brains/types";
+import type { PluginContext } from "@brains/types";
 import type { Logger } from "@brains/utils";
 import { join } from "path";
 import { fileURLToPath } from "url";
@@ -11,7 +11,6 @@ import contentSchemasSource from "./content-schemas.txt";
 
 export interface WebserverManagerOptions {
   logger: Logger;
-  registry: Registry;
   context: PluginContext;
   outputDir: string;
   astroSiteTemplate?: string;

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { WebserverManager } from "../../src/webserver-manager";
 import { createSilentLogger } from "@brains/utils";
-import type { Registry, PluginContext } from "@brains/types";
+import type { PluginContext } from "@brains/types";
 import { existsSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -16,21 +16,18 @@ async function ensureWorkingDirStructure(workingDir: string): Promise<void> {
 describe("Schema Generation", () => {
   let tempDir: string;
   let manager: WebserverManager;
-  let mockRegistry: Registry;
   let mockContext: PluginContext;
 
   beforeEach(() => {
     // Create temp directory
     tempDir = mkdtempSync(join(tmpdir(), "schema-gen-test-"));
 
-    // Mock registry and context
-    mockRegistry = {} as Registry;
+    // Mock context
     mockContext = {} as PluginContext;
 
     // Create manager instance
     manager = new WebserverManager({
       logger: createSilentLogger("schema-gen-test"),
-      registry: mockRegistry,
       context: mockContext,
       outputDir: tempDir,
       previewPort: 4321,
