@@ -28,7 +28,11 @@ import {
 export type WebserverPluginOptions = WebserverConfigInput;
 
 // Export configuration types
-export { webserverConfigSchema, type WebserverConfig, type WebserverConfigInput } from "./config";
+export {
+  webserverConfigSchema,
+  type WebserverConfig,
+  type WebserverConfigInput,
+} from "./config";
 
 /**
  * Create a webserver plugin instance
@@ -108,7 +112,7 @@ export function webserverPlugin(options: WebserverConfigInput = {}): Plugin {
         siteTitle: config.siteTitle,
         siteDescription: config.siteDescription,
       };
-      
+
       // Add optional fields if present
       if (config.astroSiteTemplate !== undefined) {
         managerOptions.astroSiteTemplate = config.astroSiteTemplate;

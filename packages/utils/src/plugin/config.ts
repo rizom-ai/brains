@@ -6,22 +6,26 @@ import { z } from "zod";
  */
 export const basePluginConfigSchema = z.object({
   enabled: z.boolean().default(true).describe("Whether the plugin is enabled"),
-  debug: z.boolean().default(false).describe("Enable debug logging for this plugin"),
+  debug: z
+    .boolean()
+    .default(false)
+    .describe("Enable debug logging for this plugin"),
 });
 
 /**
  * Helper to create a plugin configuration with defaults
  */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types
 export function createPluginConfig<T extends z.ZodRawShape>(
   schema: T,
   description?: string,
 ) {
   const fullSchema = basePluginConfigSchema.extend(schema);
-  
+
   if (description) {
     return fullSchema.describe(description);
   }
-  
+
   return fullSchema;
 }
 
@@ -40,7 +44,7 @@ export function validatePluginConfig<TOutput, TInput = TOutput>(
       const issues = error.errors
         .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
         .join("\n");
-      
+
       throw new Error(
         `Invalid configuration for ${pluginName} plugin:\n${issues}`,
       );

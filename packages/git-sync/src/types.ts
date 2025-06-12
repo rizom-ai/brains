@@ -7,7 +7,11 @@ export const gitSyncConfigSchema = createPluginConfig(
     remote: z.string().optional().describe("Remote repository URL"),
     branch: z.string().default("main").describe("Git branch to sync"),
     autoSync: z.boolean().default(false).describe("Enable automatic syncing"),
-    syncInterval: z.number().min(1).default(30).describe("Sync interval in minutes"),
+    syncInterval: z
+      .number()
+      .min(1)
+      .default(30)
+      .describe("Sync interval in minutes"),
   },
   "Configuration for the git-sync plugin",
 );

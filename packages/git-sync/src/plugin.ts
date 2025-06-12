@@ -25,11 +25,7 @@ export class GitSyncPlugin implements Plugin {
 
   constructor(config: GitSyncConfigInput) {
     // Validate config with helpful error messages
-    this.config = validatePluginConfig(
-      gitSyncConfigSchema,
-      config,
-      "git-sync",
-    );
+    this.config = validatePluginConfig(gitSyncConfigSchema, config, "git-sync");
   }
 
   async register(context: PluginContext): Promise<PluginCapabilities> {
