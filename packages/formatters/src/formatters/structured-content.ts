@@ -99,7 +99,9 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
           if (mapping.itemType === "object" && mapping.itemMappings) {
             // Format array of objects with structure
             value.forEach((item, index) => {
-              lines.push(`${"#".repeat(depth + 1)} ${mapping.label.slice(0, -1)} ${index + 1}`);
+              lines.push(
+                `${"#".repeat(depth + 1)} ${mapping.label.slice(0, -1)} ${index + 1}`,
+              );
               lines.push("");
               // Format each field of the object
               if (mapping.itemMappings) {
@@ -251,7 +253,11 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
         // Extract array items
         if (mapping.itemType === "object" && mapping.itemMappings) {
           // Extract structured objects from subsections
-          const items = this.extractObjectArrayItems(section, depth + 1, mapping.itemMappings);
+          const items = this.extractObjectArrayItems(
+            section,
+            depth + 1,
+            mapping.itemMappings,
+          );
           this.setValueByPath(result, mapping.key, items);
         } else {
           // Extract simple list items
@@ -335,7 +341,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
    */
   private extractSimpleArrayItems(content: Content[]): string[] {
     const items: string[] = [];
-    
+
     for (const node of content) {
       if (node.type === "list") {
         const listNode = node as {
@@ -352,7 +358,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
         }
       }
     }
-    
+
     return items;
   }
 
@@ -362,21 +368,28 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   private extractObjectArrayItems(
     content: Content[],
     targetDepth: number,
-    itemMappings: FieldMapping[]
+    itemMappings: FieldMapping[],
   ): Record<string, unknown>[] {
     const items: Record<string, unknown>[] = [];
     let currentItemContent: Content[] = [];
     let inItem = false;
-    
+
     for (const node of content) {
       if (node.type === "heading" && node.depth === targetDepth) {
         // Save previous item if exists
         if (inItem && currentItemContent.length > 0) {
-          const subsections = this.extractSubsections(currentItemContent, targetDepth + 1);
-          const item = this.buildDataFromSections(subsections, itemMappings, targetDepth + 1);
+          const subsections = this.extractSubsections(
+            currentItemContent,
+            targetDepth + 1,
+          );
+          const item = this.buildDataFromSections(
+            subsections,
+            itemMappings,
+            targetDepth + 1,
+          );
           items.push(item);
         }
-        
+
         // Start new item
         currentItemContent = [];
         inItem = true;
@@ -384,17 +397,23 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
         currentItemContent.push(node);
       }
     }
-    
+
     // Don't forget the last item
     if (inItem && currentItemContent.length > 0) {
-      const subsections = this.extractSubsections(currentItemContent, targetDepth + 1);
-      const item = this.buildDataFromSections(subsections, itemMappings, targetDepth + 1);
+      const subsections = this.extractSubsections(
+        currentItemContent,
+        targetDepth + 1,
+      );
+      const item = this.buildDataFromSections(
+        subsections,
+        itemMappings,
+        targetDepth + 1,
+      );
       items.push(item);
     }
-    
+
     return items;
   }
-
 
   /**
    * Extract text from a list item

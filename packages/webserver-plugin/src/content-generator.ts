@@ -61,17 +61,24 @@ export class ContentGenerator {
   private parseGeneratedContent(entity: GeneratedContent): unknown | null {
     try {
       // Get the content type registry if not cached
-      this.contentTypeRegistry ??= this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
-      
-      const formatter = this.contentTypeRegistry.getFormatter(entity.contentType);
-      
+      this.contentTypeRegistry ??= this.registry.resolve<ContentTypeRegistry>(
+        "contentTypeRegistry",
+      );
+
+      const formatter = this.contentTypeRegistry.getFormatter(
+        entity.contentType,
+      );
+
       if (formatter) {
         return formatter.parse(entity.content);
       } else {
         // If no formatter, try to parse as JSON (fallback)
-        this.logger.warn("No formatter found for content type, attempting JSON parse", {
-          contentType: entity.contentType,
-        });
+        this.logger.warn(
+          "No formatter found for content type, attempting JSON parse",
+          {
+            contentType: entity.contentType,
+          },
+        );
         return JSON.parse(entity.content);
       }
     } catch (error) {
@@ -236,7 +243,9 @@ export class ContentGenerator {
             data: featuresData,
             featuresArray: featuresData.features,
             firstFeature: featuresData.features[0],
-            featuresType: Array.isArray(featuresData.features) ? 'array' : typeof featuresData.features,
+            featuresType: Array.isArray(featuresData.features)
+              ? "array"
+              : typeof featuresData.features,
             firstFeatureType: typeof featuresData.features[0],
           });
         }
@@ -456,7 +465,7 @@ export class ContentGenerator {
       this.logger.info("Found existing generated content", {
         contentType: namespacedContentType,
       });
-      
+
       // Parse the content to extract structured data
       return this.parseGeneratedContent(matchingContent);
     } catch (error) {

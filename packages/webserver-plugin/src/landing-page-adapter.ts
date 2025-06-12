@@ -39,7 +39,7 @@ export class LandingPageAdapter implements EntityAdapter<GeneratedContent> {
     if (!yamlMatch?.[1]) {
       throw new Error("No YAML code block found in landing page content");
     }
-    
+
     return yaml.load(yamlMatch[1]);
   }
 
@@ -113,7 +113,7 @@ ${yaml.dump(referenceResult.data, { indent: 2, lineWidth: -1 })}
 
   public extractMetadata(entity: GeneratedContent): Record<string, unknown> {
     const data = this.parseContent(entity);
-    
+
     const referenceResult = landingPageReferenceSchema.safeParse(data);
     if (referenceResult.success) {
       return {

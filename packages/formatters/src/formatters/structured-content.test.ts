@@ -241,6 +241,112 @@ Jane Smith
       expect(result).toContain("- two");
       expect(result).toContain("- three");
     });
+
+    it("should handle roundtrip for arrays of objects", () => {
+      const formatter = new StructuredContentFormatter(schema, {
+        title: "Array Test",
+        mappings: [
+          {
+            key: "items",
+            label: "Items",
+            type: "array",
+            itemType: "object",
+            itemMappings: [
+              { key: "id", label: "ID", type: "string" },
+              { key: "name", label: "Name", type: "string" },
+            ],
+          },
+        ],
+      });
+
+      const originalData = {
+        items: [
+          { id: "001", name: "First Item" },
+          { id: "002", name: "Second Item" },
+          { id: "003", name: "Third Item" },
+        ],
+      };
+
+      // Format to markdown
+      const markdown = formatter.format(originalData);
+      
+      // Parse back to data
+      const parsedData = formatter.parse(markdown);
+
+      // Verify the roundtrip
+      expect(parsedData).toEqual(originalData);
+      expect(parsedData.items).toHaveLength(3);
+      expect(parsedData.items[0]).toEqual({ id: "001", name: "First Item" });
+      expect(parsedData.items[1]).toEqual({ id: "002", name: "Second Item" });
+      expect(parsedData.items[2]).toEqual({ id: "003", name: "Third Item" });
+    });
+
+    it("should handle complex nested objects in arrays", () => {
+      const complexSchema = z.object({
+        products: z.array(
+          z.object({
+            id: z.string(),
+            name: z.string(),
+            price: z.number(),
+            features: z.array(z.string()),
+          }),
+        ),
+      });
+
+      const formatter = new StructuredContentFormatter(complexSchema, {
+        title: "Product Catalog",
+        mappings: [
+          {
+            key: "products",
+            label: "Products",
+            type: "array",
+            itemType: "object",
+            itemMappings: [
+              { key: "id", label: "Product ID", type: "string" },
+              { key: "name", label: "Product Name", type: "string" },
+              { key: "price", label: "Price", type: "number" },
+              { key: "features", label: "Features", type: "array" },
+            ],
+          },
+        ],
+      });
+
+      const originalData = {
+        products: [
+          {
+            id: "PRD001",
+            name: "Smart Notebook",
+            price: 29.99,
+            features: ["AI-powered", "Cloud sync", "Handwriting recognition"],
+          },
+          {
+            id: "PRD002",
+            name: "Digital Pen",
+            price: 149.99,
+            features: ["Pressure sensitive", "Bluetooth", "Rechargeable"],
+          },
+        ],
+      };
+
+      // Format to markdown
+      const markdown = formatter.format(originalData);
+      
+      // Verify formatting
+      expect(markdown).toContain("### Product 1");
+      expect(markdown).toContain("#### Product ID\nPRD001");
+      expect(markdown).toContain("#### Price\n29.99");
+      expect(markdown).toContain("- AI-powered");
+      expect(markdown).toContain("- Cloud sync");
+      
+      // Parse back to data
+      const parsedData = formatter.parse(markdown);
+
+      // Verify the roundtrip
+      expect(parsedData).toEqual(originalData);
+      expect(parsedData.products).toHaveLength(2);
+      expect(parsedData.products[0]?.features).toHaveLength(3);
+      expect(parsedData.products[1]?.price).toBe(149.99);
+    });
   });
 
   describe("error handling", () => {

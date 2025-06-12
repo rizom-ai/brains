@@ -10,10 +10,7 @@ import type { QueryOptions } from "../types";
 import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { EntityService } from "../entity/entityService";
 import type { ContentGenerationService } from "../content/contentGenerationService";
-import type {
-  ContentGenerateOptions,
-  BaseEntity,
-} from "@brains/types";
+import type { ContentGenerateOptions, BaseEntity } from "@brains/types";
 import { defaultQueryResponseSchema } from "../schemas/defaults";
 import type { z } from "zod";
 
@@ -177,7 +174,7 @@ export class ContentGenerationAdapter {
       prompt: params.prompt,
       contentType: params.contentType,
     };
-    
+
     if (params.save !== undefined) {
       generateOptions.save = params.save;
     }
@@ -210,7 +207,6 @@ export class ContentGenerationAdapter {
 
     return content;
   }
-
 
   /**
    * Generate content from a template

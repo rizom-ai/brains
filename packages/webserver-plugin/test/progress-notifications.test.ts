@@ -96,7 +96,7 @@ describe("Progress Notifications", () => {
     const buildSiteTool = tools.find((t) => t.name === "build_site");
     expect(buildSiteTool).toBeDefined();
     if (!buildSiteTool) throw new Error("buildSiteTool not found");
-    
+
     const progressContext = {
       progressToken: "test-token",
       sendProgress: mockSendProgress,

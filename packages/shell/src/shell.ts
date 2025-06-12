@@ -392,7 +392,10 @@ export class Shell {
 
     try {
       // Enable WAL mode for better concurrent database access
-      await enableWALMode(this.dbClient, this.config.database.url || "file:./brain.db");
+      await enableWALMode(
+        this.dbClient,
+        this.config.database.url || "file:./brain.db",
+      );
 
       // Register default formatters
       this.registerDefaultFormatters();

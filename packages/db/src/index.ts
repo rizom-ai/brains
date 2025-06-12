@@ -40,7 +40,7 @@ export function createDatabase(
 /**
  * Enable WAL mode for better concurrent access
  * This should be called during initialization to prevent SQLITE_READONLY_DBMOVED errors
- * 
+ *
  * @param client The libSQL client
  * @param url The database URL (to check if it's a local file)
  */

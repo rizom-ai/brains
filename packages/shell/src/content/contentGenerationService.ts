@@ -101,10 +101,7 @@ export class ContentGenerationService {
         );
       }
 
-      await this.saveGeneratedContent(
-        validatedResult,
-        options.contentType,
-      );
+      await this.saveGeneratedContent(validatedResult, options.contentType);
     }
 
     return validatedResult;
@@ -217,19 +214,21 @@ export class ContentGenerationService {
    * Parse generated content entity to structured data
    */
   private parseGeneratedContent(entity: GeneratedContent): unknown | null {
-    const formatter = this.contentTypeRegistry?.getFormatter(entity.contentType);
+    const formatter = this.contentTypeRegistry?.getFormatter(
+      entity.contentType,
+    );
     if (formatter) {
       try {
         return formatter.parse(entity.content);
       } catch (error) {
-        this.logger?.error("Failed to parse generated content", { 
-          error, 
-          contentType: entity.contentType 
+        this.logger?.error("Failed to parse generated content", {
+          error,
+          contentType: entity.contentType,
         });
         return null;
       }
     }
-    
+
     return null;
   }
 
@@ -296,7 +295,7 @@ export class ContentGenerationService {
     // Format the content immediately using the appropriate formatter
     let formattedContent: string;
     const formatter = this.contentTypeRegistry?.getFormatter(contentType);
-    
+
     if (formatter) {
       formattedContent = formatter.format(content as Record<string, unknown>);
     } else {

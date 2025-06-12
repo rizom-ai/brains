@@ -613,7 +613,9 @@ Our best features yet
       expect(imported?.content).toContain("Features");
       // The content should be the complete markdown with frontmatter
       expect(imported?.content).toContain("entityType: generated-content");
-      expect(imported?.content).toContain("contentType: 'webserver:section:features'");
+      expect(imported?.content).toContain(
+        "contentType: 'webserver:section:features'",
+      );
       expect(imported?.generatedBy).toBe("claude");
     });
   });

@@ -6,15 +6,8 @@
  */
 
 // Entity types
-export type {
-  BaseEntity,
-  SearchResult,
-  GeneratedContent,
-} from "./entities";
-export {
-  baseEntitySchema,
-  generatedContentSchema,
-} from "./entities";
+export type { BaseEntity, SearchResult, GeneratedContent } from "./entities";
+export { baseEntitySchema, generatedContentSchema } from "./entities";
 
 // Plugin types
 export type {

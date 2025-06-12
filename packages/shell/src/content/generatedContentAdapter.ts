@@ -51,7 +51,9 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
   private logger: Logger;
 
   constructor(logger?: Logger) {
-    this.logger = (logger ?? Logger.getInstance()).child("GeneratedContentAdapter");
+    this.logger = (logger ?? Logger.getInstance()).child(
+      "GeneratedContentAdapter",
+    );
   }
 
   /**
@@ -89,7 +91,6 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
     return generateMarkdownWithFrontmatter(content, frontmatter);
   }
 
-
   /**
    * Parse full markdown file for import/sync operations
    * Used when importing from git or other sources
@@ -105,7 +106,7 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
 
     // Validate content can be parsed (but don't return the data)
     let formatter = this.formatters.get(frontmatter.contentType);
-    
+
     if (!formatter && this.contentTypeRegistry) {
       const registryFormatter = this.contentTypeRegistry.getFormatter(
         frontmatter.contentType,
@@ -114,7 +115,7 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
         formatter = registryFormatter;
       }
     }
-    
+
     formatter ??= this.defaultFormatter;
 
     try {
@@ -124,7 +125,7 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
       // since generated content is immutable
       this.logger.warn(
         `Failed to parse content for ${frontmatter.contentType} (${frontmatter.id})`,
-        { contentType: frontmatter.contentType, id: frontmatter.id, error }
+        { contentType: frontmatter.contentType, id: frontmatter.id, error },
       );
     }
 

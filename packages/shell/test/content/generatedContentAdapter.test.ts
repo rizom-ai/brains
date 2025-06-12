@@ -119,7 +119,7 @@ Our best features yet
       };
 
       adapter.setFormatter("test:custom", mockFormatter);
-      const entity = createTestEntity({ 
+      const entity = createTestEntity({
         contentType: "test:custom",
         content: `---
 id: test-123
@@ -137,7 +137,6 @@ Custom format: {"test":"data"}`,
       expect(markdown).not.toContain("```yaml");
     });
   });
-
 
   describe("fromMarkdown", () => {
     it("should parse markdown file for import", () => {
@@ -226,7 +225,7 @@ metadata:
 
       expect(result.contentType).toBe(originalEntity.contentType);
       expect(result.generatedBy).toBe(originalEntity.generatedBy);
-      
+
       // Verify content was preserved correctly
       expect(result.content).toContain("title: Test Document");
       expect(result.content).toContain("author: Test User");
@@ -274,7 +273,7 @@ formatted: {"test":"value"}`,
       adapter.setFormatter("type:one", formatter1);
       adapter.setFormatter("type:two", formatter2);
 
-      const entity1 = createTestEntity({ 
+      const entity1 = createTestEntity({
         contentType: "type:one",
         content: `---
 id: test-123
@@ -286,7 +285,7 @@ updated: '2024-01-01T00:00:00.000Z'
 ---
 Format 1`,
       });
-      const entity2 = createTestEntity({ 
+      const entity2 = createTestEntity({
         contentType: "type:two",
         content: `---
 id: test-123

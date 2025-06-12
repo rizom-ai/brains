@@ -22,12 +22,15 @@ export class EntityResolver {
   constructor(private registry: Registry) {}
 
   private getEntityService(): EntityService {
-    this.entityService ??= this.registry.resolve<EntityService>("entityService");
+    this.entityService ??=
+      this.registry.resolve<EntityService>("entityService");
     return this.entityService;
   }
 
   private getContentTypeRegistry(): ContentTypeRegistry {
-    this.contentTypeRegistry ??= this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
+    this.contentTypeRegistry ??= this.registry.resolve<ContentTypeRegistry>(
+      "contentTypeRegistry",
+    );
     return this.contentTypeRegistry;
   }
 
@@ -35,7 +38,7 @@ export class EntityResolver {
     try {
       const contentTypeRegistry = this.getContentTypeRegistry();
       const formatter = contentTypeRegistry.getFormatter(entity.contentType);
-      
+
       if (formatter) {
         return formatter.parse(entity.content);
       } else {
@@ -43,9 +46,9 @@ export class EntityResolver {
         return JSON.parse(entity.content);
       }
     } catch (error) {
-      console.error("Failed to parse generated content", { 
+      console.error("Failed to parse generated content", {
         contentType: entity.contentType,
-        error 
+        error,
       });
       return null;
     }
@@ -81,7 +84,9 @@ export class EntityResolver {
       hero: heroEntity?.id,
       features: featuresEntity?.id,
       cta: ctaEntity?.id,
-      featuresData: featuresEntity ? this.parseGeneratedContent(featuresEntity) : null,
+      featuresData: featuresEntity
+        ? this.parseGeneratedContent(featuresEntity)
+        : null,
     });
 
     // Create default sections as fallbacks
@@ -116,19 +121,17 @@ export class EntityResolver {
 
     // Parse and validate section data using schemas
     const heroData = heroEntity ? this.parseGeneratedContent(heroEntity) : null;
-    const hero = heroData
-      ? landingHeroDataSchema.parse(heroData)
-      : defaultHero;
+    const hero = heroData ? landingHeroDataSchema.parse(heroData) : defaultHero;
 
-    const featuresData = featuresEntity ? this.parseGeneratedContent(featuresEntity) : null;
+    const featuresData = featuresEntity
+      ? this.parseGeneratedContent(featuresEntity)
+      : null;
     const features = featuresData
       ? featuresSectionSchema.parse(featuresData)
       : defaultFeatures;
 
     const ctaData = ctaEntity ? this.parseGeneratedContent(ctaEntity) : null;
-    const cta = ctaData
-      ? ctaSectionSchema.parse(ctaData)
-      : defaultCta;
+    const cta = ctaData ? ctaSectionSchema.parse(ctaData) : defaultCta;
 
     const landingPageData: LandingPageData = {
       title: referenceData.title,
