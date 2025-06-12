@@ -32,3 +32,6 @@ export {
 
 // Content generation utilities
 export { generateWithTemplate } from "./content-generation";
+
+// Plugin utilities
+export * from "./plugin";

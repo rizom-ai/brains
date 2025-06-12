@@ -1,4 +1,5 @@
 import type { Plugin, PluginContext, PluginCapabilities } from "@brains/types";
+import { validatePluginConfig } from "@brains/utils";
 import { webserverTools } from "./tools";
 import {
   WebserverManager,
@@ -15,28 +16,30 @@ import {
   dashboardSchema,
 } from "./content-schemas";
 import { LandingPageFormatter } from "./formatters/landingPageFormatter";
+import {
+  webserverConfigSchema,
+  type WebserverConfig,
+  type WebserverConfigInput,
+} from "./config";
 
-export interface WebserverPluginOptions {
-  // Output directory for generated site
-  outputDir?: string;
+/**
+ * @deprecated Use WebserverConfigInput from './config' instead
+ */
+export type WebserverPluginOptions = WebserverConfigInput;
 
-  // Path to the Astro site template
-  astroSiteTemplate?: string;
-
-  // Server configuration
-  previewPort?: number;
-  productionPort?: number;
-
-  // Site metadata
-  siteTitle?: string;
-  siteDescription?: string;
-  siteUrl?: string;
-}
+// Export configuration types
+export { webserverConfigSchema, type WebserverConfig, type WebserverConfigInput } from "./config";
 
 /**
  * Create a webserver plugin instance
  */
-export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
+export function webserverPlugin(options: WebserverConfigInput = {}): Plugin {
+  // Validate configuration
+  const config: WebserverConfig = validatePluginConfig(
+    webserverConfigSchema,
+    options,
+    "webserver",
+  );
   return {
     id: "webserver",
     version: "1.0.0",
@@ -99,20 +102,19 @@ export function webserverPlugin(options: WebserverPluginOptions = {}): Plugin {
       const managerOptions: WebserverManagerOptions = {
         logger: logger.child("WebserverPlugin"),
         context,
-        outputDir: options.outputDir ?? "./dist",
-        previewPort: options.previewPort ?? 4321,
-        productionPort: options.productionPort ?? 8080,
-        siteTitle: options.siteTitle ?? "Personal Brain",
-        siteDescription:
-          options.siteDescription ?? "A digital knowledge repository",
+        outputDir: config.outputDir,
+        previewPort: config.previewPort,
+        productionPort: config.productionPort,
+        siteTitle: config.siteTitle,
+        siteDescription: config.siteDescription,
       };
-
-      // Only add optional properties if they have values
-      if (options.astroSiteTemplate !== undefined) {
-        managerOptions.astroSiteTemplate = options.astroSiteTemplate;
+      
+      // Add optional fields if present
+      if (config.astroSiteTemplate !== undefined) {
+        managerOptions.astroSiteTemplate = config.astroSiteTemplate;
       }
-      if (options.siteUrl !== undefined) {
-        managerOptions.siteUrl = options.siteUrl;
+      if (config.siteUrl !== undefined) {
+        managerOptions.siteUrl = config.siteUrl;
       }
 
       const manager = new WebserverManager(managerOptions);

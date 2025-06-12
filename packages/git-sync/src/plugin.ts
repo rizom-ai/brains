@@ -3,8 +3,8 @@ import type {
   PluginContext,
   PluginCapabilities,
   PluginTool,
-  EntityService,
 } from "@brains/types";
+import { validatePluginConfig } from "@brains/utils";
 import { GitSync } from "./gitSync";
 import {
   gitSyncConfigSchema,
@@ -24,15 +24,16 @@ export class GitSyncPlugin implements Plugin {
   private config: GitSyncConfig;
 
   constructor(config: GitSyncConfigInput) {
-    // Validate config with Zod
-    this.config = gitSyncConfigSchema.parse(config);
+    // Validate config with helpful error messages
+    this.config = validatePluginConfig(
+      gitSyncConfigSchema,
+      config,
+      "git-sync",
+    );
   }
 
   async register(context: PluginContext): Promise<PluginCapabilities> {
-    const { logger, registry, formatters } = context;
-
-    // Get required services from registry
-    const entityService = registry.resolve<EntityService>("entityService");
+    const { logger, entityService, formatters } = context;
 
     // Register our custom formatter
     formatters.register("gitSyncStatus", new GitSyncStatusFormatter());
