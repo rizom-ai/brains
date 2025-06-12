@@ -92,16 +92,29 @@ describe("PluginManager", (): void => {
 
     // Register a mock shell with required services
     const mockShell = {
-      getFormatterRegistry: (): { register: (schemaName: string, formatter: unknown) => void } => ({
+      getFormatterRegistry: (): {
+        register: (schemaName: string, formatter: unknown) => void;
+      } => ({
         register: (): void => undefined,
       }),
       getEntityService: (): {
-        createEntity: <T extends BaseEntity>(data: Partial<T>) => Promise<{ id: string }>;
-        getEntity: <T extends BaseEntity>(entityType: string, id: string) => Promise<T | null>;
+        createEntity: <T extends BaseEntity>(
+          data: Partial<T>,
+        ) => Promise<{ id: string }>;
+        getEntity: <T extends BaseEntity>(
+          entityType: string,
+          id: string,
+        ) => Promise<T | null>;
         updateEntity: <T extends BaseEntity>(entity: T) => Promise<T>;
         deleteEntity: (entityType: string, id: string) => Promise<boolean>;
-        listEntities: <T extends BaseEntity>(entityType: string, options?: unknown) => Promise<T[]>;
-        search: <T extends BaseEntity>(query: string, options?: unknown) => Promise<T[]>;
+        listEntities: <T extends BaseEntity>(
+          entityType: string,
+          options?: unknown,
+        ) => Promise<T[]>;
+        search: <T extends BaseEntity>(
+          query: string,
+          options?: unknown,
+        ) => Promise<T[]>;
         getEntityTypes: () => string[];
         getAdapter: (entityType: string) => unknown;
         hasAdapter: (entityType: string) => boolean;
@@ -109,7 +122,8 @@ describe("PluginManager", (): void => {
       } => ({
         createEntity: async (): Promise<{ id: string }> => ({ id: "test-id" }),
         getEntity: async (): Promise<null> => null,
-        updateEntity: async <T extends BaseEntity>(entity: T): Promise<T> => entity,
+        updateEntity: async <T extends BaseEntity>(entity: T): Promise<T> =>
+          entity,
         deleteEntity: async (): Promise<boolean> => true,
         listEntities: async <T extends BaseEntity>(): Promise<T[]> => [] as T[],
         search: async <T extends BaseEntity>(): Promise<T[]> => [] as T[],
@@ -119,7 +133,11 @@ describe("PluginManager", (): void => {
         importRawEntity: async (): Promise<void> => undefined,
       }),
       getContentTypeRegistry: (): {
-        register: (contentType: string, schema: unknown, formatter?: unknown) => void;
+        register: (
+          contentType: string,
+          schema: unknown,
+          formatter?: unknown,
+        ) => void;
         get: (contentType: string) => unknown;
         list: (pluginId?: string) => string[];
         has: (contentType: string) => boolean;

@@ -340,13 +340,14 @@ export class PluginManager {
 
           // Always namespace the contentType with the plugin ID if not already namespaced
           // Check if it's already properly namespaced (has exactly one colon with plugin prefix)
-          const parts = options.contentType.split(':');
-          const isProperlyNamespaced = parts.length >= 2 && parts[0] === pluginId;
-          
+          const parts = options.contentType.split(":");
+          const isProperlyNamespaced =
+            parts.length >= 2 && parts[0] === pluginId;
+
           const processedOptions = {
             ...options,
-            contentType: isProperlyNamespaced 
-              ? options.contentType 
+            contentType: isProperlyNamespaced
+              ? options.contentType
               : `${pluginId}:${options.contentType}`,
           };
 
