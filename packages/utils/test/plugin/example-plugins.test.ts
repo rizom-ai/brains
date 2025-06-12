@@ -23,7 +23,13 @@ class ExamplePlugin extends BasePlugin {
       })
       .build();
 
-    super("example-plugin", "Example Plugin", "A simple example plugin", config, configSchema);
+    super(
+      "example-plugin",
+      "Example Plugin",
+      "A simple example plugin",
+      config,
+      configSchema,
+    );
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
@@ -39,7 +45,11 @@ class ExamplePlugin extends BasePlugin {
         "Search for items",
         inputSchema,
         async (input) => {
-          const typedInput = input as { query: string; limit?: number; includeMetadata: boolean };
+          const typedInput = input as {
+            query: string;
+            limit?: number;
+            includeMetadata: boolean;
+          };
           this.debug("Searching", typedInput);
           // Simulate API call with timeout
           await new Promise((resolve) => setTimeout(resolve, 100));
@@ -67,7 +77,13 @@ class BlogPlugin extends ContentGeneratingPlugin {
       .requiredString("author", "Default author name")
       .build();
 
-    super("blog-plugin", "Blog Plugin", "Generate blog posts", config, configSchema);
+    super(
+      "blog-plugin",
+      "Blog Plugin",
+      "Generate blog posts",
+      config,
+      configSchema,
+    );
 
     // Register content types
     this.registerContentType("post", {
@@ -82,7 +98,11 @@ class BlogPlugin extends ContentGeneratingPlugin {
       saveByDefault: true,
       formatter: this.createStructuredFormatter(
         (data: unknown) => {
-          const typedData = data as { title: string; author: string; content: string };
+          const typedData = data as {
+            title: string;
+            author: string;
+            content: string;
+          };
           return `# ${typedData.title}\n\nBy ${typedData.author}\n\n${typedData.content}`;
         },
         (content: string) => {
@@ -119,7 +139,11 @@ class BlogPlugin extends ContentGeneratingPlugin {
         "Generate a blog post",
         generateInputSchema,
         async (input) => {
-          const typedInput = input as { topic: string; style: string; save?: boolean };
+          const typedInput = input as {
+            topic: string;
+            style: string;
+            save?: boolean;
+          };
           return {
             title: `Understanding ${typedInput.topic}`,
             content: `This is a ${typedInput.style} post about ${typedInput.topic}.`,
@@ -135,7 +159,11 @@ class BlogPlugin extends ContentGeneratingPlugin {
         "Generate a series of blog posts",
         batchInputSchema,
         async (input) => {
-          const typedInput = input as { category: string; count: number; save?: boolean };
+          const typedInput = input as {
+            category: string;
+            count: number;
+            save?: boolean;
+          };
           const posts = [];
           for (let i = 1; i <= typedInput.count; i++) {
             posts.push({
@@ -159,26 +187,29 @@ describe("Example Plugins", () => {
     it("should create and use a simple plugin", async () => {
       const plugin = new ExamplePlugin({ apiKey: "test-key" });
       const harness = new PluginTestHarness();
-      
+
       await harness.installPlugin(plugin);
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      
+
       expect(capabilities.tools).toHaveLength(1);
       expect(capabilities.tools[0]?.name).toBe("example-plugin:search");
-      
+
       // Execute tool
       const tool = capabilities.tools[0];
       expect(tool).toBeDefined();
-      const result = await tool?.handler(
-        { query: "test", includeMetadata: true },
-      );
+      const result = await tool?.handler({
+        query: "test",
+        includeMetadata: true,
+      });
       expect(result).toHaveProperty("results");
     });
 
     it("should handle configuration validation", () => {
       expect(() => new ExamplePlugin({})).toThrow(/Invalid configuration/);
-      expect(() => new ExamplePlugin({ apiKey: 123 })).toThrow(/Expected string/);
+      expect(() => new ExamplePlugin({ apiKey: 123 })).toThrow(
+        /Expected string/,
+      );
     });
   });
 
@@ -186,44 +217,50 @@ describe("Example Plugins", () => {
     it("should generate and save content", async () => {
       const plugin = new BlogPlugin({ author: "Test Author" });
       const harness = new PluginTestHarness();
-      
+
       await harness.installPlugin(plugin);
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      
+
       // Find generate_post tool
       const generateTool = capabilities.tools.find(
         (t) => t.name === "blog-plugin:generate_post",
       );
       expect(generateTool).toBeDefined();
-      
+
       // Generate without saving
-      const result = await generateTool?.handler(
-        { topic: "TypeScript", style: "technical", save: false },
-      );
-      
+      const result = await generateTool?.handler({
+        topic: "TypeScript",
+        style: "technical",
+        save: false,
+      });
+
       expect(result).toHaveProperty("content");
       expect(result).toHaveProperty("saved", false);
-      expect((result as { content: { title: string } }).content.title).toBe("Understanding TypeScript");
+      expect((result as { content: { title: string } }).content.title).toBe(
+        "Understanding TypeScript",
+      );
     });
 
     it("should generate batch content", async () => {
       const plugin = new BlogPlugin({ author: "Test Author" });
       const harness = new PluginTestHarness();
-      
+
       await harness.installPlugin(plugin);
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      
+
       // Find generate_series tool
       const batchTool = capabilities.tools.find(
         (t) => t.name === "blog-plugin:generate_series",
       );
-      
-      const result = await batchTool?.handler(
-        { category: "Testing", count: 3, save: false },
-      );
-      
+
+      const result = await batchTool?.handler({
+        category: "Testing",
+        count: 3,
+        save: false,
+      });
+
       expect(result).toHaveProperty("count", 3);
       expect((result as { items: unknown[] }).items).toHaveLength(3);
     });
@@ -233,7 +270,7 @@ describe("Example Plugins", () => {
     it("should support lifecycle hooks", async () => {
       const events: string[] = [];
       const plugin = new ExamplePlugin({ apiKey: "test" });
-      
+
       const wrappedPlugin = withLifecycle(plugin)
         .on("beforeRegister", () => {
           events.push("beforeRegister");
@@ -247,18 +284,18 @@ describe("Example Plugins", () => {
         .on("afterShutdown", () => {
           events.push("afterShutdown");
         });
-      
+
       const harness = new PluginTestHarness();
       const context = harness.getPluginContext();
-      
+
       await wrappedPlugin.register(context);
       expect(events).toEqual(["beforeRegister", "afterRegister"]);
-      
+
       if (wrappedPlugin.shutdown) {
         await wrappedPlugin.shutdown();
         expect(events).toEqual([
           "beforeRegister",
-          "afterRegister", 
+          "afterRegister",
           "beforeShutdown",
           "afterShutdown",
         ]);

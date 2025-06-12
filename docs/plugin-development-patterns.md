@@ -25,16 +25,16 @@ class MyPlugin extends BasePlugin<MyConfig> {
       .requiredString("apiKey", "API key for the service")
       .numberWithDefault("timeout", 5000, {
         min: 0,
-        description: "Request timeout in ms"
+        description: "Request timeout in ms",
       })
       .build();
 
     super(
-      "my-plugin",           // plugin ID
-      "My Plugin",           // plugin name  
-      "Plugin description",  // description
-      config,                // user config
-      configSchema          // validation schema
+      "my-plugin", // plugin ID
+      "My Plugin", // plugin name
+      "Plugin description", // description
+      config, // user config
+      configSchema, // validation schema
     );
   }
 
@@ -48,7 +48,7 @@ class MyPlugin extends BasePlugin<MyConfig> {
           this.debug("Processing", input);
           // Tool implementation
           return { result: "success" };
-        }
+        },
       ),
     ];
   }
@@ -99,7 +99,7 @@ class BlogPlugin extends ContentGeneratingPlugin<BlogConfig> {
           content: `Article about ${input.topic}...`,
           tags: [input.topic],
         }),
-        "post" // content type key
+        "post", // content type key
       ),
     ];
   }
@@ -121,11 +121,11 @@ const configSchema = pluginConfig()
   .boolean("debug", false, "Enable debug logging")
   .enum("environment", ["dev", "staging", "prod"], {
     default: "prod",
-    description: "Target environment"
+    description: "Target environment",
   })
   .array("allowedDomains", z.string(), {
     default: [],
-    description: "Allowed domains"
+    description: "Allowed domains",
   })
   .build();
 

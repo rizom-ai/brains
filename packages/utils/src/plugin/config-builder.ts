@@ -75,11 +75,7 @@ export class PluginConfigBuilder {
   /**
    * Add a boolean field with default
    */
-  boolean(
-    name: string,
-    defaultValue: boolean,
-    description?: string,
-  ): this {
+  boolean(name: string, defaultValue: boolean, description?: string): this {
     this.fields[name] = description
       ? z.boolean().default(defaultValue).describe(description)
       : z.boolean().default(defaultValue);
@@ -159,10 +155,7 @@ export class PluginConfigBuilder {
   /**
    * Add a custom field
    */
-  custom<U extends z.ZodType>(
-    name: string,
-    schema: U,
-  ): this {
+  custom<U extends z.ZodType>(name: string, schema: U): this {
     this.fields[name] = schema;
     return this;
   }
@@ -180,7 +173,9 @@ export class PluginConfigBuilder {
    */
   build(): z.ZodObject<z.ZodRawShape> {
     const fullSchema = basePluginConfigSchema.extend(this.fields);
-    return this.description ? fullSchema.describe(this.description) : fullSchema;
+    return this.description
+      ? fullSchema.describe(this.description)
+      : fullSchema;
   }
 }
 
@@ -232,10 +227,7 @@ export class ToolInputBuilder {
   /**
    * Add a boolean parameter
    */
-  boolean(
-    name: string,
-    defaultValue?: boolean,
-  ): this {
+  boolean(name: string, defaultValue?: boolean): this {
     this.fields[name] = defaultValue
       ? z.boolean().default(defaultValue)
       : z.boolean();
@@ -259,10 +251,7 @@ export class ToolInputBuilder {
   /**
    * Add a custom parameter
    */
-  custom<U extends z.ZodType>(
-    name: string,
-    schema: U,
-  ): this {
+  custom<U extends z.ZodType>(name: string, schema: U): this {
     this.fields[name] = schema;
     return this;
   }

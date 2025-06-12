@@ -126,7 +126,7 @@ describe("EntityService - Database Operations", () => {
     entityRegistry.registerEntityType("note", noteSchema, noteAdapter);
 
     // Register generated-content entity type for import test
-    const generatedContentAdapter = new GeneratedContentAdapter();
+    const generatedContentAdapter = new GeneratedContentAdapter(logger);
     entityRegistry.registerEntityType(
       "generated-content",
       generatedContentSchema,

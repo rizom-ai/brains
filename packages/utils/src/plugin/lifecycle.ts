@@ -67,7 +67,9 @@ export class PluginWithLifecycle implements Plugin {
    * Shutdown with lifecycle hooks
    */
   async shutdown?(): Promise<void> {
-    const pluginWithShutdown = this.plugin as Plugin & { shutdown?: () => Promise<void> };
+    const pluginWithShutdown = this.plugin as Plugin & {
+      shutdown?: () => Promise<void>;
+    };
     if (!pluginWithShutdown.shutdown) return;
 
     // Run beforeShutdown hooks
@@ -128,7 +130,7 @@ export async function retryPluginOperation<T>(
       return await operation();
     } catch (error) {
       lastError = error as Error;
-      
+
       if (attempt === maxRetries) {
         throw lastError;
       }
@@ -157,7 +159,7 @@ export function requiresInitialization<T extends Plugin>(
   const handler = {
     get(target: T, prop: string): unknown {
       const value = target[prop as keyof T];
-      
+
       // Only wrap methods that need initialization
       if (prop === methodName && typeof value === "function") {
         return function (this: unknown, ...args: unknown[]): unknown {
@@ -169,7 +171,7 @@ export function requiresInitialization<T extends Plugin>(
           return (value as (...args: unknown[]) => unknown).apply(target, args);
         };
       }
-      
+
       return value;
     },
   };

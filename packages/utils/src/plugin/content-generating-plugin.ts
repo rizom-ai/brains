@@ -83,7 +83,11 @@ export abstract class ContentGeneratingPlugin<
 
         // Report progress if available
         if (context?.sendProgress) {
-          await context.sendProgress({ progress: 0, total: 100, message: "Generating content..." });
+          await context.sendProgress({
+            progress: 0,
+            total: 100,
+            message: "Generating content...",
+          });
         }
 
         // Generate the content
@@ -145,7 +149,11 @@ export abstract class ContentGeneratingPlugin<
 
         // Report progress if available
         if (context?.sendProgress) {
-          await context.sendProgress({ progress: 0, total: 100, message: "Generating batch content..." });
+          await context.sendProgress({
+            progress: 0,
+            total: 100,
+            message: "Generating batch content...",
+          });
         }
 
         // Generate the batch
