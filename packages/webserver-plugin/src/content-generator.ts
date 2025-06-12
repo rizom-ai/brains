@@ -1,11 +1,8 @@
 import type {
-  Registry,
-  EntityService,
   BaseEntity,
   PluginContext,
   GeneratedContent,
 } from "@brains/types";
-import type { ContentTypeRegistry } from "@brains/shell/src/content";
 import {
   dashboardSchema,
   landingPageSchema,
@@ -28,7 +25,6 @@ import * as yaml from "js-yaml";
 
 export interface ContentGeneratorOptions {
   logger: Logger;
-  registry: Registry;
   context: PluginContext;
   astroSiteDir: string;
   siteTitle: string;
@@ -41,15 +37,12 @@ export interface ContentGeneratorOptions {
  */
 export class ContentGenerator {
   private logger: Logger;
-  private registry: Registry;
   private context: PluginContext;
   private options: ContentGeneratorOptions;
   private contentDir: string;
-  private contentTypeRegistry?: ContentTypeRegistry;
 
   constructor(options: ContentGeneratorOptions) {
     this.logger = options.logger;
-    this.registry = options.registry;
     this.context = options.context;
     this.options = options;
     this.contentDir = join(options.astroSiteDir, "src", "content");
@@ -60,12 +53,10 @@ export class ContentGenerator {
    */
   private parseGeneratedContent(entity: GeneratedContent): unknown | null {
     try {
-      // Get the content type registry if not cached
-      this.contentTypeRegistry ??= this.registry.resolve<ContentTypeRegistry>(
-        "contentTypeRegistry",
-      );
+      // Get the content type registry from context
+      const contentTypeRegistry = this.context.contentTypeRegistry;
 
-      const formatter = this.contentTypeRegistry.getFormatter(
+      const formatter = contentTypeRegistry.getFormatter(
         entity.contentType,
       );
 
@@ -346,8 +337,8 @@ export class ContentGenerator {
   ): Promise<void> {
     this.logger.info("Generating dashboard data");
 
-    // EntityService is resolved from the registry
-    const entityService = this.registry.resolve<EntityService>("entityService");
+    // Use EntityService from context
+    const entityService = this.context.entityService;
 
     // Get all entity types in the system
     const entityTypes = entityService.getEntityTypes();
@@ -433,7 +424,7 @@ export class ContentGenerator {
     page: string,
     section: string,
   ): Promise<unknown | null> {
-    const entityService = this.registry.resolve<EntityService>("entityService");
+    const entityService = this.context.entityService;
 
     // Create a content type and add the plugin namespace for querying
     const contentType = `${page}:${section}`;

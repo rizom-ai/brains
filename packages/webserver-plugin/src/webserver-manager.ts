@@ -56,7 +56,6 @@ export class WebserverManager {
     // Initialize components with working directory
     this.contentGenerator = new ContentGenerator({
       logger: options.logger.child("ContentGenerator"),
-      registry: options.registry,
       context: options.context,
       astroSiteDir: this.workingDir,
       siteTitle: options.siteTitle,

@@ -6,6 +6,8 @@ import type { MessageBus } from "./messaging";
 import type { SchemaFormatter, ContentFormatter } from "./formatters";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { BaseEntity } from "./entities";
+import type { EntityService } from "./services";
+import type { ContentTypeRegistry } from "./content";
 
 /**
  * Options for content generation
@@ -151,4 +153,7 @@ export interface PluginContext {
     adapter: EntityAdapter<T>,
   ) => void;
   generateContent: <T>(options: ContentGenerateOptions<T>) => Promise<T>;
+  // Direct service access
+  entityService: EntityService;
+  contentTypeRegistry: ContentTypeRegistry;
 }

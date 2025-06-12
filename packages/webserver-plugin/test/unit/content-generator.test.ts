@@ -165,17 +165,26 @@ describe("ContentGenerator", () => {
       messageBus: {} as unknown as PluginContext["messageBus"],
       formatters: {} as unknown as PluginContext["formatters"],
       contentTypes: {
-        register: mock(() => {}),
+        register: mock(() => { }),
         list: mock(() => []),
       },
-      registerEntityType: mock(() => {}),
+      registerEntityType: mock(() => { }),
+      // Direct service access (added to PluginContext)
+      entityService: mockEntityService,
+      contentTypeRegistry: {
+        register: mock(() => { }),
+        get: mock(() => null),
+        list: mock(() => []),
+        has: mock(() => false),
+        getFormatter: mock(() => null),
+        clear: mock(() => { }),
+      },
     } as unknown as PluginContext;
 
     // Create ContentGenerator instance
     contentGenerator = new ContentGenerator({
       logger: createSilentLogger("test"),
-      registry: mockRegistry,
-      context: mockContext as PluginContext,
+      context: mockContext,
       astroSiteDir: testDir,
       siteTitle: "Test Brain",
       siteDescription: "Test Description",

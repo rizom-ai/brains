@@ -11,14 +11,14 @@ import type {
   BaseEntity,
   ContentGenerateOptions,
   ContentFormatter,
+  ContentTypeRegistry,
 } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
-import type { SchemaFormatterRegistry } from "../formatters";
 import type { EntityRegistry } from "../entity/entityRegistry";
 import type { z } from "zod";
 import type { ContentGenerationService } from "../content/contentGenerationService";
-import type { ContentTypeRegistry, IGeneratedContentAdapter } from "../content";
+import type { IGeneratedContentAdapter } from "../content";
 
 /**
  * Plugin lifecycle event types
@@ -290,18 +290,11 @@ export class PluginManager {
     // Emit before initialize event
     this.events.emit(PluginEvent.BEFORE_INITIALIZE, pluginId, plugin);
 
-    // Get formatter registry from shell via registry (if available)
-    let formatterRegistry: SchemaFormatterRegistry | null = null;
-    try {
-      if (this.registry.has("shell")) {
-        const shell = this.registry.resolve<Shell>("shell");
-        formatterRegistry = shell.getFormatterRegistry();
-      }
-    } catch {
-      this.logger.debug(
-        "Shell not available, formatter registry will be unavailable",
-      );
-    }
+    // Get services from shell - shell should always be available
+    const shell = this.registry.resolve<Shell>("shell");
+    const formatterRegistry = shell.getFormatterRegistry();
+    const entityService = shell.getEntityService();
+    const contentTypeRegistry = shell.getContentTypeRegistry();
 
     // Create plugin context
     const context: PluginContext = {
@@ -423,6 +416,9 @@ export class PluginManager {
           }
         },
       },
+      // Direct service access
+      entityService,
+      contentTypeRegistry,
     };
 
     // Register the plugin

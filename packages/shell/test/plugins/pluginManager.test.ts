@@ -1,11 +1,12 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import type { Plugin, PluginContext, PluginCapabilities } from "@brains/types";
+import type { Plugin, PluginContext, PluginCapabilities, BaseEntity } from "@brains/types";
 import {
   PluginEvent,
   PluginManager,
   PluginStatus,
 } from "@/plugins/pluginManager";
 import { Registry } from "@/registry/registry";
+import { Shell } from "@/shell";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 import { MessageBus } from "@/messaging/messageBus";
@@ -83,6 +84,35 @@ describe("PluginManager", (): void => {
     logger = createSilentLogger();
     registry = Registry.createFresh(logger);
     messageBus = MessageBus.createFresh(logger);
+    
+    // Register a mock shell with required services
+    const mockShell = {
+      getFormatterRegistry: () => ({
+        register: () => undefined,
+      }),
+      getEntityService: () => ({
+        createEntity: async () => ({ id: "test-id" }),
+        getEntity: async () => null,
+        updateEntity: async (entity: BaseEntity) => entity,
+        deleteEntity: async () => true,
+        listEntities: async () => [],
+        search: async () => [],
+        getEntityTypes: () => [],
+        getAdapter: () => null,
+        hasAdapter: () => false,
+        importRawEntity: async () => undefined,
+      }),
+      getContentTypeRegistry: () => ({
+        register: () => undefined,
+        get: () => null,
+        list: () => [],
+        has: () => false,
+        getFormatter: () => null,
+        clear: () => undefined,
+      }),
+    };
+    registry.register("shell", () => mockShell as unknown as Shell);
+    
     pluginManager = PluginManager.createFresh(registry, logger, messageBus);
   });
 

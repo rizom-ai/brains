@@ -264,6 +264,16 @@ export class PluginTestHarness {
           return [];
         },
       },
+      // Direct service access
+      entityService: this.getEntityService() as EntityService,
+      contentTypeRegistry: {
+        register: (): void => undefined,
+        get: (): null => null,
+        list: (): string[] => [],
+        has: (): boolean => false,
+        getFormatter: (): null => null,
+        clear: (): void => undefined,
+      },
     };
   }
 
@@ -340,7 +350,11 @@ export class PluginTestHarness {
   private createMockEntityService(): Partial<EntityService> {
     return {
       createEntity: async <T extends BaseEntity>(
-        entity: Omit<T, "id"> & { id?: string },
+        entity: Omit<T, "id" | "created" | "updated"> & {
+          id?: string;
+          created?: string;
+          updated?: string;
+        },
       ): Promise<T> => {
         const entityType =
           ((entity as Record<string, unknown>)["entityType"] as string) ||

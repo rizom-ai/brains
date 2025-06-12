@@ -47,5 +47,8 @@ export type {
 // Formatter types
 export type { SchemaFormatter, ContentFormatter } from "./formatters";
 
+// Content types
+export type { ContentTypeRegistry } from "./content";
+
 // Re-export commonly used types from utils
 export type { Logger } from "@brains/utils";

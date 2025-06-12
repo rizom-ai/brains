@@ -604,6 +604,10 @@ export class Shell {
     return this.contentGenerationService;
   }
 
+  public getContentTypeRegistry(): ContentTypeRegistry {
+    return this.contentTypeRegistry;
+  }
+
   public getLogger(): Logger {
     return this.logger;
   }

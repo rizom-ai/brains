@@ -30,7 +30,11 @@ export interface SearchOptions {
 export interface EntityService {
   // Create, read, update, delete
   createEntity<T extends BaseEntity>(
-    entity: Omit<T, "id"> & { id?: string },
+    entity: Omit<T, "id" | "created" | "updated"> & {
+      id?: string;
+      created?: string;
+      updated?: string;
+    },
   ): Promise<T>;
 
   getEntity<T extends BaseEntity>(
@@ -40,7 +44,7 @@ export interface EntityService {
 
   updateEntity<T extends BaseEntity>(entity: T): Promise<T>;
 
-  deleteEntity(entityType: string, id: string): Promise<void>;
+  deleteEntity(id: string): Promise<boolean>;
 
   // List and search
   listEntities<T extends BaseEntity>(

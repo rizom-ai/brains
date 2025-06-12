@@ -269,7 +269,7 @@ Jane Smith
 
       // Format to markdown
       const markdown = formatter.format(originalData);
-      
+
       // Parse back to data
       const parsedData = formatter.parse(markdown);
 
@@ -330,14 +330,14 @@ Jane Smith
 
       // Format to markdown
       const markdown = formatter.format(originalData);
-      
+
       // Verify formatting
       expect(markdown).toContain("### Product 1");
       expect(markdown).toContain("#### Product ID\nPRD001");
       expect(markdown).toContain("#### Price\n29.99");
       expect(markdown).toContain("- AI-powered");
       expect(markdown).toContain("- Cloud sync");
-      
+
       // Parse back to data
       const parsedData = formatter.parse(markdown);
 
