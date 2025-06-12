@@ -92,28 +92,46 @@ describe("PluginManager", (): void => {
 
     // Register a mock shell with required services
     const mockShell = {
-      getFormatterRegistry: () => ({
-        register: () => undefined,
+      getFormatterRegistry: (): { register: (schemaName: string, formatter: unknown) => void } => ({
+        register: (): void => undefined,
       }),
-      getEntityService: () => ({
-        createEntity: async () => ({ id: "test-id" }),
-        getEntity: async () => null,
-        updateEntity: async (entity: BaseEntity) => entity,
-        deleteEntity: async () => true,
-        listEntities: async () => [],
-        search: async () => [],
-        getEntityTypes: () => [],
-        getAdapter: () => null,
-        hasAdapter: () => false,
-        importRawEntity: async () => undefined,
+      getEntityService: (): {
+        createEntity: <T extends BaseEntity>(data: Partial<T>) => Promise<{ id: string }>;
+        getEntity: <T extends BaseEntity>(entityType: string, id: string) => Promise<T | null>;
+        updateEntity: <T extends BaseEntity>(entity: T) => Promise<T>;
+        deleteEntity: (entityType: string, id: string) => Promise<boolean>;
+        listEntities: <T extends BaseEntity>(entityType: string, options?: unknown) => Promise<T[]>;
+        search: <T extends BaseEntity>(query: string, options?: unknown) => Promise<T[]>;
+        getEntityTypes: () => string[];
+        getAdapter: (entityType: string) => unknown;
+        hasAdapter: (entityType: string) => boolean;
+        importRawEntity: (entityType: string, data: unknown) => Promise<void>;
+      } => ({
+        createEntity: async (): Promise<{ id: string }> => ({ id: "test-id" }),
+        getEntity: async (): Promise<null> => null,
+        updateEntity: async <T extends BaseEntity>(entity: T): Promise<T> => entity,
+        deleteEntity: async (): Promise<boolean> => true,
+        listEntities: async <T extends BaseEntity>(): Promise<T[]> => [] as T[],
+        search: async <T extends BaseEntity>(): Promise<T[]> => [] as T[],
+        getEntityTypes: (): string[] => [],
+        getAdapter: (): null => null,
+        hasAdapter: (): boolean => false,
+        importRawEntity: async (): Promise<void> => undefined,
       }),
-      getContentTypeRegistry: () => ({
-        register: () => undefined,
-        get: () => null,
-        list: () => [],
-        has: () => false,
-        getFormatter: () => null,
-        clear: () => undefined,
+      getContentTypeRegistry: (): {
+        register: (contentType: string, schema: unknown, formatter?: unknown) => void;
+        get: (contentType: string) => unknown;
+        list: (pluginId?: string) => string[];
+        has: (contentType: string) => boolean;
+        getFormatter: (contentType: string) => unknown;
+        clear: () => void;
+      } => ({
+        register: (): void => undefined,
+        get: (): null => null,
+        list: (): string[] => [],
+        has: (): boolean => false,
+        getFormatter: (): null => null,
+        clear: (): void => undefined,
       }),
     };
     registry.register("shell", () => mockShell as unknown as Shell);

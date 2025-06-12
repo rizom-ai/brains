@@ -34,13 +34,14 @@ export abstract class ContentGeneratingPlugin<
     this.contentTypeRegistry = context.contentTypeRegistry;
 
     // Register all content types
-    for (const [, config] of this.contentTypes) {
-      this.debug(`Registering content type: ${config.contentType}`);
+    for (const [key, config] of this.contentTypes) {
+      this.debug(`Registering content type: ${config.contentType}`, { key });
       this.contentTypeRegistry.register(
         config.contentType,
         config.schema,
         config.formatter,
       );
+      this.info(`Registered content type: ${config.contentType}`);
     }
   }
 
@@ -52,8 +53,8 @@ export abstract class ContentGeneratingPlugin<
     config: ContentGenerationConfig,
   ): void {
     // Ensure contentType includes plugin namespace
-    if (!config.contentType.includes("/")) {
-      config.contentType = `${this.id}/${config.contentType}`;
+    if (!config.contentType.startsWith(`${this.id}:`)) {
+      config.contentType = `${this.id}:${config.contentType}`;
     }
 
     this.contentTypes.set(key, config);

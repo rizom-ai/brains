@@ -306,12 +306,6 @@ export class PluginManager {
       messageBus: this.messageBus,
       formatters: {
         register: (schemaName: string, formatter: SchemaFormatter) => {
-          if (!formatterRegistry) {
-            this.logger.warn(
-              `Cannot register formatter "${schemaName}" - formatter registry not available`,
-            );
-            return;
-          }
           formatterRegistry.register(schemaName, formatter);
         },
       },
@@ -344,10 +338,16 @@ export class PluginManager {
               "contentGenerationService",
             );
 
-          // Always namespace the contentType with the plugin ID
+          // Always namespace the contentType with the plugin ID if not already namespaced
+          // Check if it's already properly namespaced (has exactly one colon with plugin prefix)
+          const parts = options.contentType.split(':');
+          const isProperlyNamespaced = parts.length >= 2 && parts[0] === pluginId;
+          
           const processedOptions = {
             ...options,
-            contentType: `${pluginId}:${options.contentType}`,
+            contentType: isProperlyNamespaced 
+              ? options.contentType 
+              : `${pluginId}:${options.contentType}`,
           };
 
           return await contentGenerationService.generate<T>(processedOptions);

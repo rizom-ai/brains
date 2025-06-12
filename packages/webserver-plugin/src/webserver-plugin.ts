@@ -52,15 +52,8 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
    * Initialize the plugin
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
-    const { logger, registerEntityType, formatters } = context;
-
-    // Register site-content entity type
-    registerEntityType("site-content", siteContentSchema, siteContentAdapter);
-
-    // Register site-content formatter
-    formatters.register("site-content", new SiteContentFormatter());
-
-    // Register content types for sections
+    // Register content types BEFORE calling super.onRegister()
+    // This ensures they're available when the parent class tries to register them
     this.registerContentType("section:hero", {
       contentType: "section:hero",
       schema: landingHeroDataSchema,
@@ -90,6 +83,17 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
       contentType: "page:dashboard",
       schema: dashboardSchema,
     });
+
+    // Call parent's onRegister to actually register the content types
+    await super.onRegister(context);
+
+    const { logger, registerEntityType, formatters } = context;
+
+    // Register site-content entity type
+    registerEntityType("site-content", siteContentSchema, siteContentAdapter);
+
+    // Register site-content formatter
+    formatters.register("site-content", new SiteContentFormatter());
 
     // Create webserver manager instance
     const managerOptions: WebserverManagerOptions = {

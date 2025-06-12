@@ -19,6 +19,7 @@ The plugin system provides two base classes that handle common functionality and
 ### BasePlugin
 
 The `BasePlugin` class is the foundation for all plugins. It provides:
+
 - Configuration validation
 - Logging helpers
 - Tool creation utilities
@@ -41,23 +42,23 @@ export class MyPlugin extends BasePlugin<MyPluginConfig> {
     );
 
     super(
-      "my-plugin",              // plugin ID
-      "My Plugin",              // display name
-      "Plugin description",     // description
-      validatedConfig,          // validated config
+      "my-plugin", // plugin ID
+      "My Plugin", // display name
+      "Plugin description", // description
+      validatedConfig, // validated config
     );
   }
 
   // Lifecycle: Initialize plugin
   protected override async onRegister(context: PluginContext): Promise<void> {
     const { logger, entityService } = context;
-    
+
     // Initialize services
     this.myService = new MyService({
       apiKey: this.config.apiKey,
       logger: logger.child("MyPlugin"),
     });
-    
+
     this.info("Plugin initialized successfully");
   }
 
@@ -67,7 +68,7 @@ export class MyPlugin extends BasePlugin<MyPluginConfig> {
       this.createTool(
         "fetch_data",
         "Fetch data from service",
-        {},  // Empty object for no parameters
+        {}, // Empty object for no parameters
         async (): Promise<{ data: string }> => {
           if (!this.myService) {
             throw new Error("Service not initialized");
@@ -90,6 +91,7 @@ export class MyPlugin extends BasePlugin<MyPluginConfig> {
 ### ContentGeneratingPlugin
 
 The `ContentGeneratingPlugin` extends `BasePlugin` with content generation capabilities:
+
 - Content type registration
 - Generated content management
 - Automatic tool creation for content generation
@@ -120,49 +122,47 @@ export class BlogPlugin extends ContentGeneratingPlugin<BlogConfig> {
 
   protected override async onRegister(context: PluginContext): Promise<void> {
     const { formatters } = context;
-    
+
     // Register content types with schemas and formatters
     this.registerContentType("post", {
       contentType: "post",
       schema: blogPostSchema,
       formatter: new BlogPostFormatter(),
     });
-    
+
     this.registerContentType("outline", {
       contentType: "outline",
       schema: blogOutlineSchema,
       // Formatter is optional
     });
-    
+
     this.info("Blog plugin initialized with content types");
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
     // Get content generation tools from parent class
     const contentTools = await super.getTools();
-    
+
     // Add custom tools specific to this plugin
     const customTools = [
       this.createTool(
         "import_markdown",
         "Import existing markdown files as blog posts",
-        toolInput()
-          .string("filePath")
-          .boolean("publish", false)
-          .build(),
+        toolInput().string("filePath").boolean("publish", false).build(),
         async (input): Promise<{ imported: number }> => {
           // Implementation
           return { imported: 1 };
         },
       ),
     ];
-    
+
     return [...contentTools, ...customTools];
   }
 }
 ```
 
 The parent class automatically provides tools for generating content based on registered types:
+
 - `blog:generate_post` - Generate content of type "post"
 - `blog:generate_outline` - Generate content of type "outline"
 - `blog:list_generated` - List all generated content
@@ -236,10 +236,15 @@ const searchToolInput = toolInput()
 const exportToolInput = toolInput()
   .enum("format", ["json", "csv", "xml"] as const)
   .optionalString("filename")
-  .custom("options", z.object({
-    headers: z.boolean().default(true),
-    compress: z.boolean().default(false),
-  }).optional())
+  .custom(
+    "options",
+    z
+      .object({
+        headers: z.boolean().default(true),
+        compress: z.boolean().default(false),
+      })
+      .optional(),
+  )
   .build();
 ```
 
@@ -248,57 +253,61 @@ const exportToolInput = toolInput()
 Plugins follow a well-defined lifecycle managed by the base classes:
 
 ### 1. Construction Phase
+
 ```typescript
 constructor(config: unknown) {
   // Validate configuration
   const validatedConfig = validatePluginConfig(schema, config, "plugin-id");
-  
+
   // Call parent constructor
   super("plugin-id", "Plugin Name", "Description", validatedConfig);
-  
+
   // Do NOT initialize services here - wait for onRegister
 }
 ```
 
 ### 2. Registration Phase
+
 ```typescript
 protected override async onRegister(context: PluginContext): Promise<void> {
   // Access services from context
   const { logger, entityService, formatters } = context;
-  
+
   // Initialize plugin services
   this.myService = new MyService({ logger });
-  
+
   // Register formatters, content types, etc.
   formatters.register("myFormat", new MyFormatter());
-  
+
   // Subscribe to events if needed
   this.unsubscribe = messageBus.subscribe("event", this.handleEvent);
 }
 ```
 
 ### 3. Active Phase
+
 During this phase, the plugin's tools are available and can be called:
+
 - Tools are accessed via `plugin-id:tool-name`
 - Logging helpers are available: `this.debug()`, `this.info()`, `this.warn()`, `this.error()`
 - Access to configuration via `this.config`
 
 ### 4. Shutdown Phase
+
 ```typescript
 protected override async onShutdown(): Promise<void> {
   // Stop any running processes
   this.myService?.stop();
-  
+
   // Unsubscribe from events
   this.unsubscribe?.();
-  
+
   // Clean up resources
   await this.cleanup();
-  
+
   this.info("Plugin shutdown complete");
 }
 ```
-
 
 ## Direct Service Access
 
@@ -319,7 +328,7 @@ protected override async onRegister(context: PluginContext): Promise<void> {
 
   // Store references if needed throughout plugin lifecycle
   this.entityService = entityService;
-  
+
   // Use services directly
   const entities = await entityService.search({
     entityType: "note",
@@ -328,7 +337,7 @@ protected override async onRegister(context: PluginContext): Promise<void> {
 
   // Register formatters
   formatters.register("myFormat", new MyFormatter());
-  
+
   // For content plugins, additional context is available
   if (this instanceof ContentGeneratingPlugin) {
     const { contentTypeRegistry } = context;
@@ -349,7 +358,7 @@ The following services are available through `PluginContext`:
 
 ### Service Usage Examples
 
-```typescript
+````typescript
 // EntityService usage
 const notes = await entityService.search({
   entityType: "note",
@@ -444,7 +453,7 @@ describe("MyPlugin", () => {
     expect(result).toBeDefined();
   });
 });
-```
+````
 
 ### Testing Tool Validation
 
@@ -504,19 +513,24 @@ export class BackupPlugin extends BasePlugin<BackupConfig> {
       config,
       "backup",
     );
-    
-    super("backup", "Backup Plugin", "Automated backup system", validatedConfig);
+
+    super(
+      "backup",
+      "Backup Plugin",
+      "Automated backup system",
+      validatedConfig,
+    );
   }
 
   protected override async onRegister(context: PluginContext): Promise<void> {
     const { entityService, logger } = context;
-    
+
     this.backupService = new BackupService({
       entityService,
       logger: logger.child("backup"),
       destination: this.config.destination,
     });
-    
+
     if (this.config.autoBackup) {
       this.backupService.startScheduled(this.config.interval);
     }
@@ -527,9 +541,7 @@ export class BackupPlugin extends BasePlugin<BackupConfig> {
       this.createTool(
         "backup",
         "Create a backup of all entities",
-        toolInput()
-          .boolean("compress", true)
-          .build(),
+        toolInput().boolean("compress", true).build(),
         async (input) => {
           const result = await this.backupService!.createBackup(input);
           return { success: true, path: result.path };
@@ -559,13 +571,13 @@ export class DocumentPlugin extends ContentGeneratingPlugin<DocumentConfig> {
       schema: reportSchema,
       formatter: new ReportFormatter(),
     });
-    
+
     this.registerContentType("summary", {
-      contentType: "summary", 
+      contentType: "summary",
       schema: summarySchema,
     });
   }
-  
+
   // Parent class automatically provides:
   // - document:generate_report
   // - document:generate_summary
@@ -613,9 +625,9 @@ export class AnalyzerPlugin extends BasePlugin<AnalyzerConfig> {
 
           for (const entity of entities) {
             this.debug(`Analyzing entity ${entity.id}`);
-            
+
             // Perform analysis
-            analysis.byType[entity.entityType] = 
+            analysis.byType[entity.entityType] =
               (analysis.byType[entity.entityType] || 0) + 1;
           }
 
@@ -646,7 +658,7 @@ export class MonitorPlugin extends BasePlugin<MonitorConfig> {
         this.info("Entity created", { id: message.payload.id });
         await this.handleEntityCreated(message.payload);
       }),
-      
+
       messageBus.subscribe("entity:updated", async (message) => {
         this.debug("Entity updated", { id: message.payload.id });
         await this.handleEntityUpdated(message.payload);

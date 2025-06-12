@@ -84,6 +84,13 @@ export class ContentGenerationService {
         "ContentGenerationService not initialized with ContentTypeRegistry",
       );
     }
+    
+    // Debug logging
+    this.logger?.debug("Checking for content type", {
+      contentType: options.contentType,
+      registeredTypes: this.contentTypeRegistry.list(),
+    });
+    
     if (!this.contentTypeRegistry.has(options.contentType)) {
       throw new Error(
         `No schema registered for content type: ${options.contentType}`,

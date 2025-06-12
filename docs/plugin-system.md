@@ -57,7 +57,7 @@ export interface Plugin {
 
   // Register plugin components and capabilities
   register(context: PluginContext): Promise<PluginCapabilities>;
-  
+
   // Optional shutdown hook for cleanup
   shutdown?(): Promise<void>;
 }
@@ -196,7 +196,7 @@ export class MyPlugin extends BasePlugin<MyPluginConfig> {
     const validatedConfig = validatePluginConfig(
       myPluginConfigSchema,
       config,
-      "my-plugin"
+      "my-plugin",
     );
     super("my-plugin", "My Plugin", "A sample plugin", validatedConfig);
   }
@@ -209,7 +209,7 @@ export class MyPlugin extends BasePlugin<MyPluginConfig> {
         { input: z.string() },
         async (input) => {
           return { result: `Processed: ${input.input}` };
-        }
+        },
       ),
     ];
   }
