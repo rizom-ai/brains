@@ -36,7 +36,7 @@ Alternative ways to access the brain beyond MCP:
 
 ### Plugin Interface
 
-All plugins must implement a standard interface:
+All plugins must implement the standard Plugin interface. The framework provides base classes that implement this interface and provide common functionality:
 
 ```typescript
 export interface Plugin {
@@ -57,8 +57,20 @@ export interface Plugin {
 
   // Register plugin components and capabilities
   register(context: PluginContext): Promise<PluginCapabilities>;
+  
+  // Optional shutdown hook for cleanup
+  shutdown?(): Promise<void>;
 }
 ```
+
+### Base Classes
+
+The framework provides two base classes that implement the Plugin interface:
+
+- **BasePlugin**: Foundation for all plugins, provides configuration validation, logging, and lifecycle management
+- **ContentGeneratingPlugin**: Extends BasePlugin for plugins that generate content, adds content type registration and management
+
+See the [Plugin Development Patterns](./plugin-development-patterns.md) documentation for detailed usage.
 
 ### Plugin Capabilities
 
@@ -165,7 +177,53 @@ enum PluginEvent {
 
 ## Creating a Plugin
 
-### Basic Plugin Structure
+### Using the Base Classes (Recommended)
+
+The framework provides base classes that handle common plugin functionality:
+
+```typescript
+import { BasePlugin, validatePluginConfig, pluginConfig } from "@brains/utils";
+import type { PluginContext, PluginTool } from "@brains/types";
+
+// 1. Define configuration schema
+const myPluginConfigSchema = pluginConfig()
+  .requiredString("apiKey", "API key for the service")
+  .build();
+
+// 2. Create plugin class extending BasePlugin
+export class MyPlugin extends BasePlugin<MyPluginConfig> {
+  constructor(config: unknown) {
+    const validatedConfig = validatePluginConfig(
+      myPluginConfigSchema,
+      config,
+      "my-plugin"
+    );
+    super("my-plugin", "My Plugin", "A sample plugin", validatedConfig);
+  }
+
+  protected override async getTools(): Promise<PluginTool[]> {
+    return [
+      this.createTool(
+        "my_tool",
+        "Does something useful",
+        { input: z.string() },
+        async (input) => {
+          return { result: `Processed: ${input.input}` };
+        }
+      ),
+    ];
+  }
+}
+
+// 3. Export factory function
+export const myPlugin = (config: unknown) => new MyPlugin(config);
+```
+
+See [Plugin Development Patterns](./plugin-development-patterns.md) for complete examples using `BasePlugin` and `ContentGeneratingPlugin`.
+
+### Basic Plugin Structure (Low-Level)
+
+If you need direct control, you can implement the Plugin interface directly:
 
 ```typescript
 import type { Plugin, PluginContext, PluginCapabilities } from "@brains/types";
@@ -177,14 +235,14 @@ export const myPlugin: Plugin = {
   description: "A sample plugin",
 
   async register(context: PluginContext): Promise<PluginCapabilities> {
-    const { logger, registry } = context;
+    const { logger } = context;
 
     logger.info("Registering My Plugin");
 
     return {
       tools: [
         {
-          name: "my_tool",
+          name: "my-plugin:my_tool",
           description: "Does something useful",
           inputSchema: {
             input: z.string().describe("The input to process"),

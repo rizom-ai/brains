@@ -6,215 +6,333 @@ This document outlines the standardized patterns for developing plugins in the P
 
 1. [Base Plugin Classes](#base-plugin-classes)
 2. [Plugin Configuration](#plugin-configuration)
-3. [Direct Service Access](#direct-service-access)
-4. [Testing Patterns](#testing-patterns)
-5. [Common Plugin Patterns](#common-plugin-patterns)
+3. [Plugin Lifecycle](#plugin-lifecycle)
+4. [Direct Service Access](#direct-service-access)
+5. [Testing Patterns](#testing-patterns)
+6. [Common Plugin Patterns](#common-plugin-patterns)
+7. [Migration Guide](#migration-guide)
 
 ## Base Plugin Classes
 
+The plugin system provides two base classes that handle common functionality and patterns.
+
 ### BasePlugin
 
-The `BasePlugin` class provides common functionality for all plugins:
+The `BasePlugin` class is the foundation for all plugins. It provides:
+- Configuration validation
+- Logging helpers
+- Tool creation utilities
+- Lifecycle management
 
 ```typescript
-import { BasePlugin, pluginConfig } from "@brains/utils";
+import type { Plugin, PluginContext, PluginTool } from "@brains/types";
+import { BasePlugin, validatePluginConfig } from "@brains/utils";
+import { myPluginConfigSchema, type MyPluginConfig } from "./config";
 
-class MyPlugin extends BasePlugin<MyConfig> {
+export class MyPlugin extends BasePlugin<MyPluginConfig> {
+  private myService?: MyService;
+
   constructor(config: unknown) {
-    const configSchema = pluginConfig()
-      .requiredString("apiKey", "API key for the service")
-      .numberWithDefault("timeout", 5000, {
-        min: 0,
-        description: "Request timeout in ms",
-      })
-      .build();
+    // Validate config first
+    const validatedConfig = validatePluginConfig(
+      myPluginConfigSchema,
+      config,
+      "my-plugin",
+    );
 
     super(
-      "my-plugin", // plugin ID
-      "My Plugin", // plugin name
-      "Plugin description", // description
-      config, // user config
-      configSchema, // validation schema
+      "my-plugin",              // plugin ID
+      "My Plugin",              // display name
+      "Plugin description",     // description
+      validatedConfig,          // validated config
     );
   }
 
-  protected async getTools() {
+  // Lifecycle: Initialize plugin
+  protected override async onRegister(context: PluginContext): Promise<void> {
+    const { logger, entityService } = context;
+    
+    // Initialize services
+    this.myService = new MyService({
+      apiKey: this.config.apiKey,
+      logger: logger.child("MyPlugin"),
+    });
+    
+    this.info("Plugin initialized successfully");
+  }
+
+  // Define plugin tools
+  protected override async getTools(): Promise<PluginTool[]> {
     return [
       this.createTool(
-        "my-tool",
-        "Tool description",
-        { input: z.string() },
-        async (input) => {
-          this.debug("Processing", input);
-          // Tool implementation
-          return { result: "success" };
+        "fetch_data",
+        "Fetch data from service",
+        {},  // Empty object for no parameters
+        async (): Promise<{ data: string }> => {
+          if (!this.myService) {
+            throw new Error("Service not initialized");
+          }
+          const data = await this.myService.fetchData();
+          return { data };
         },
       ),
     ];
   }
 
-  protected async onShutdown() {
-    this.info("Cleaning up resources");
-    // Cleanup logic
+  // Lifecycle: Cleanup
+  protected override async onShutdown(): Promise<void> {
+    this.myService?.disconnect();
+    this.info("Plugin shutdown complete");
   }
 }
 ```
 
 ### ContentGeneratingPlugin
 
-For plugins that generate content:
+The `ContentGeneratingPlugin` extends `BasePlugin` with content generation capabilities:
+- Content type registration
+- Generated content management
+- Automatic tool creation for content generation
 
 ```typescript
-import { ContentGeneratingPlugin, pluginConfig } from "@brains/utils";
-import { z } from "zod";
+import type { PluginContext, PluginTool } from "@brains/types";
+import { ContentGeneratingPlugin, validatePluginConfig } from "@brains/utils";
+import { blogConfigSchema, type BlogConfig } from "./config";
+import { BlogPostFormatter } from "./formatters";
+import { blogPostSchema } from "./schemas";
 
-class BlogPlugin extends ContentGeneratingPlugin<BlogConfig> {
+export class BlogPlugin extends ContentGeneratingPlugin<BlogConfig> {
   constructor(config: unknown) {
-    const schema = pluginConfig()
-      .requiredString("author", "Default author name")
-      .build();
+    // Validate config first
+    const validatedConfig = validatePluginConfig(
+      blogConfigSchema,
+      config,
+      "blog",
+    );
 
-    super("blog-plugin", "Blog Plugin", "Generate blog posts", config, schema);
-
-    // Register content types
-    this.registerContentType("post", {
-      schema: z.object({
-        title: z.string(),
-        content: z.string(),
-        tags: z.array(z.string()),
-      }),
-      contentType: "blog-post",
-      saveByDefault: true,
-    });
+    super(
+      "blog",
+      "Blog Plugin",
+      "Generate and manage blog posts",
+      validatedConfig,
+    );
   }
 
-  protected async getTools() {
-    return [
-      this.createContentGenerationTool(
-        "generate_post",
-        "Generate a blog post",
-        { topic: z.string(), save: z.boolean().optional() },
-        async (input) => ({
-          title: `Understanding ${input.topic}`,
-          content: `Article about ${input.topic}...`,
-          tags: [input.topic],
-        }),
-        "post", // content type key
+  protected override async onRegister(context: PluginContext): Promise<void> {
+    const { formatters } = context;
+    
+    // Register content types with schemas and formatters
+    this.registerContentType("post", {
+      contentType: "post",
+      schema: blogPostSchema,
+      formatter: new BlogPostFormatter(),
+    });
+    
+    this.registerContentType("outline", {
+      contentType: "outline",
+      schema: blogOutlineSchema,
+      // Formatter is optional
+    });
+    
+    this.info("Blog plugin initialized with content types");
+  }
+
+  protected override async getTools(): Promise<PluginTool[]> {
+    // Get content generation tools from parent class
+    const contentTools = await super.getTools();
+    
+    // Add custom tools specific to this plugin
+    const customTools = [
+      this.createTool(
+        "import_markdown",
+        "Import existing markdown files as blog posts",
+        toolInput()
+          .string("filePath")
+          .boolean("publish", false)
+          .build(),
+        async (input): Promise<{ imported: number }> => {
+          // Implementation
+          return { imported: 1 };
+        },
       ),
     ];
+    
+    return [...contentTools, ...customTools];
   }
 }
 ```
 
-### Configuration Builders
+The parent class automatically provides tools for generating content based on registered types:
+- `blog:generate_post` - Generate content of type "post"
+- `blog:generate_outline` - Generate content of type "outline"
+- `blog:list_generated` - List all generated content
+- `blog:get_generated` - Get specific generated content
+- `blog:save_generated` - Save generated content as an entity
 
-Use the fluent configuration builder for type-safe config:
+## Plugin Configuration
+
+### Configuration Schema Pattern
+
+All plugins must define their configuration using Zod schemas and validate it in the constructor:
 
 ```typescript
-import { pluginConfig, toolInput } from "@brains/utils";
+// config.ts
+import { z } from "zod";
+import { pluginConfig } from "@brains/utils";
 
-// Plugin configuration
-const configSchema = pluginConfig()
-  .requiredString("apiKey", "API key")
-  .optionalString("endpoint", "API endpoint")
-  .numberWithDefault("timeout", 5000, { min: 0, max: 30000 })
-  .boolean("debug", false, "Enable debug logging")
-  .enum("environment", ["dev", "staging", "prod"], {
+// Define schema using the configuration builder
+export const myPluginConfigSchema = pluginConfig()
+  .requiredString("apiKey", "API key for the service")
+  .optionalString("endpoint", "API endpoint URL")
+  .numberWithDefault("timeout", 5000, {
+    min: 0,
+    max: 30000,
+    description: "Request timeout in milliseconds",
+  })
+  .enum("environment", ["dev", "staging", "prod"] as const, {
     default: "prod",
     description: "Target environment",
   })
   .array("allowedDomains", z.string(), {
     default: [],
-    description: "Allowed domains",
+    description: "List of allowed domains",
   })
+  .boolean("debug", false, "Enable debug logging")
+  .describe("Configuration for My Plugin")
   .build();
 
-// Tool input schema
-const inputSchema = toolInput()
+// Export types
+export type MyPluginConfig = z.infer<typeof myPluginConfigSchema>;
+export type MyPluginConfigInput = z.input<typeof myPluginConfigSchema>;
+
+// Export config builder function for users
+export const myPluginConfig = (): ReturnType<typeof pluginConfig> =>
+  pluginConfig()
+    .requiredString("apiKey", "API key for the service")
+    .optionalString("endpoint", "API endpoint URL")
+    .numberWithDefault("timeout", 5000, {
+      min: 0,
+      max: 30000,
+      description: "Request timeout in milliseconds",
+    })
+    .describe("Configuration for My Plugin");
+```
+
+### Tool Input Schemas
+
+Use the `toolInput` builder for tool parameters:
+
+```typescript
+import { toolInput } from "@brains/utils";
+
+// Simple tool with basic inputs
+const searchToolInput = toolInput()
   .string("query")
   .optionalNumber("limit")
   .boolean("includeMetadata", false)
-  .enum("format", ["json", "csv", "xml"])
+  .build();
+
+// Complex tool with enum and custom validation
+const exportToolInput = toolInput()
+  .enum("format", ["json", "csv", "xml"] as const)
+  .optionalString("filename")
+  .custom("options", z.object({
+    headers: z.boolean().default(true),
+    compress: z.boolean().default(false),
+  }).optional())
   .build();
 ```
 
-## Plugin Configuration
+## Plugin Lifecycle
 
-### Using Zod for Configuration Validation
+Plugins follow a well-defined lifecycle managed by the base classes:
 
-All plugins should use Zod schemas for configuration validation. This provides:
-
-- Type safety
-- Runtime validation
-- Helpful error messages
-- Auto-generated TypeScript types
-
+### 1. Construction Phase
 ```typescript
-import { z } from "zod";
-import { createPluginConfig, validatePluginConfig } from "@brains/utils";
-
-// Define your plugin-specific configuration
-const configSchema = createPluginConfig({
-  apiKey: z.string().describe("API key for the service"),
-  endpoint: z.string().url().optional().describe("API endpoint"),
-  timeout: z.number().min(0).default(5000).describe("Request timeout in ms"),
-});
-
-// Extract the type
-type PluginConfig = z.infer<typeof configSchema>;
-
-// In your plugin class
-class MyPlugin implements Plugin {
-  private config: PluginConfig;
-
-  constructor(config: unknown) {
-    // Validate and parse configuration
-    this.config = validatePluginConfig(configSchema, config, "my-plugin");
-  }
+constructor(config: unknown) {
+  // Validate configuration
+  const validatedConfig = validatePluginConfig(schema, config, "plugin-id");
+  
+  // Call parent constructor
+  super("plugin-id", "Plugin Name", "Description", validatedConfig);
+  
+  // Do NOT initialize services here - wait for onRegister
 }
 ```
 
-### Base Configuration Fields
+### 2. Registration Phase
+```typescript
+protected override async onRegister(context: PluginContext): Promise<void> {
+  // Access services from context
+  const { logger, entityService, formatters } = context;
+  
+  // Initialize plugin services
+  this.myService = new MyService({ logger });
+  
+  // Register formatters, content types, etc.
+  formatters.register("myFormat", new MyFormatter());
+  
+  // Subscribe to events if needed
+  this.unsubscribe = messageBus.subscribe("event", this.handleEvent);
+}
+```
 
-All plugins automatically inherit these base configuration fields:
+### 3. Active Phase
+During this phase, the plugin's tools are available and can be called:
+- Tools are accessed via `plugin-id:tool-name`
+- Logging helpers are available: `this.debug()`, `this.info()`, `this.warn()`, `this.error()`
+- Access to configuration via `this.config`
 
-- `enabled`: Whether the plugin is enabled (default: true)
-- `debug`: Enable debug logging for this plugin (default: false)
+### 4. Shutdown Phase
+```typescript
+protected override async onShutdown(): Promise<void> {
+  // Stop any running processes
+  this.myService?.stop();
+  
+  // Unsubscribe from events
+  this.unsubscribe?.();
+  
+  // Clean up resources
+  await this.cleanup();
+  
+  this.info("Plugin shutdown complete");
+}
+```
+
 
 ## Direct Service Access
 
 ### Accessing Services Through Context
 
-Plugins should access services directly through the `PluginContext` rather than using registry lookups:
+Services are provided through the `PluginContext` during the registration phase:
 
 ```typescript
-class MyPlugin implements Plugin {
-  async register(context: PluginContext): Promise<PluginCapabilities> {
-    const {
-      logger,
-      entityService,
-      contentTypeRegistry,
-      formatters,
-      messageBus,
-    } = context;
+protected override async onRegister(context: PluginContext): Promise<void> {
+  // Destructure the services you need
+  const {
+    logger,
+    entityService,
+    formatters,
+    messageBus,
+    registerEntityType,  // For registering new entity types
+  } = context;
 
-    // Use services directly
-    const entities = await entityService.search({
-      entityType: "note",
-      query: "example",
-    });
+  // Store references if needed throughout plugin lifecycle
+  this.entityService = entityService;
+  
+  // Use services directly
+  const entities = await entityService.search({
+    entityType: "note",
+    query: "example",
+  });
 
-    // Register content types
-    contentTypeRegistry.register(
-      "my-plugin/custom-type",
-      mySchema,
-      myFormatter,
-    );
-
-    return {
-      tools: this.getTools(),
-      resources: [],
-    };
+  // Register formatters
+  formatters.register("myFormat", new MyFormatter());
+  
+  // For content plugins, additional context is available
+  if (this instanceof ContentGeneratingPlugin) {
+    const { contentTypeRegistry } = context;
+    // contentTypeRegistry is used internally by registerContentType
   }
 }
 ```
@@ -223,11 +341,46 @@ class MyPlugin implements Plugin {
 
 The following services are available through `PluginContext`:
 
+- `logger`: Logger instance with plugin-specific context
 - `entityService`: CRUD operations on entities
-- `contentTypeRegistry`: Register and manage content types
-- `formatters`: Access to formatting utilities
-- `messageBus`: Publish/subscribe to system events
-- `logger`: Logging with plugin-specific context
+- `formatters`: Formatter registry for content formatting
+- `messageBus`: Event publish/subscribe system
+- `registerEntityType`: Function to register new entity types
+
+### Service Usage Examples
+
+```typescript
+// EntityService usage
+const notes = await entityService.search({
+  entityType: "note",
+  query: "meeting",
+  limit: 10,
+});
+
+const note = await entityService.getEntity("note-123");
+
+await entityService.createEntity({
+  entityType: "note",
+  content: "New note content",
+  metadata: { tags: ["important"] },
+});
+
+// MessageBus usage
+messageBus.publish({
+  type: "plugin:event",
+  payload: { data: "something happened" },
+});
+
+const unsubscribe = messageBus.subscribe(
+  "entity:created",
+  async (message) => {
+    this.info("New entity created", message.payload);
+  },
+);
+
+// Formatter usage
+const formatter = formatters.get("markdown");
+const formatted = await formatter.format(content);
 
 ## Testing Patterns
 
@@ -335,141 +488,192 @@ it("should report progress", async () => {
 
 ## Common Plugin Patterns
 
-### Content Generation Plugin
+### Feature Plugin Pattern
 
-Plugins that generate content should:
-
-1. Define content schemas using Zod
-2. Register content types with the registry
-3. Provide appropriate formatters
+Feature plugins add functionality to the system. See `git-sync` for a complete example:
 
 ```typescript
-class ContentPlugin implements Plugin {
-  async register(context: PluginContext): Promise<PluginCapabilities> {
-    const { contentTypeRegistry } = context;
+import { BasePlugin, validatePluginConfig, toolInput } from "@brains/utils";
 
-    // Define schema
-    const articleSchema = z.object({
-      title: z.string(),
-      summary: z.string(),
-      sections: z.array(
-        z.object({
-          heading: z.string(),
-          content: z.string(),
-        }),
-      ),
-    });
+export class BackupPlugin extends BasePlugin<BackupConfig> {
+  private backupService?: BackupService;
 
-    // Register with formatter
-    contentTypeRegistry.register(
-      "content-plugin/article",
-      articleSchema,
-      new ArticleFormatter(),
+  constructor(config: unknown) {
+    const validatedConfig = validatePluginConfig(
+      backupConfigSchema,
+      config,
+      "backup",
     );
+    
+    super("backup", "Backup Plugin", "Automated backup system", validatedConfig);
+  }
 
-    return {
-      tools: [
-        {
-          name: "generate_article",
-          description: "Generate an article",
-          inputSchema: {
-            topic: z.string(),
-            style: z.enum(["technical", "casual"]).optional(),
-          },
-          handler: async (input) => {
-            // Implementation
-          },
+  protected override async onRegister(context: PluginContext): Promise<void> {
+    const { entityService, logger } = context;
+    
+    this.backupService = new BackupService({
+      entityService,
+      logger: logger.child("backup"),
+      destination: this.config.destination,
+    });
+    
+    if (this.config.autoBackup) {
+      this.backupService.startScheduled(this.config.interval);
+    }
+  }
+
+  protected override async getTools(): Promise<PluginTool[]> {
+    return [
+      this.createTool(
+        "backup",
+        "Create a backup of all entities",
+        toolInput()
+          .boolean("compress", true)
+          .build(),
+        async (input) => {
+          const result = await this.backupService!.createBackup(input);
+          return { success: true, path: result.path };
         },
-      ],
-      resources: [],
-    };
+      ),
+    ];
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.backupService?.stop();
   }
 }
 ```
 
-### Entity Processing Plugin
+### Content Generation Plugin Pattern
 
-Plugins that process entities should:
-
-1. Use EntityService for all entity operations
-2. Handle entity types properly
-3. Respect system conventions
+Content plugins generate and manage content. See `webserver-plugin` for a complete example:
 
 ```typescript
-class ProcessorPlugin implements Plugin {
-  async register(context: PluginContext): Promise<PluginCapabilities> {
-    const { entityService, logger } = context;
+import { ContentGeneratingPlugin } from "@brains/utils";
 
-    return {
-      tools: [
-        {
-          name: "process_entities",
-          description: "Process entities of a specific type",
-          inputSchema: {
-            entityType: z.string(),
-            filter: z.string().optional(),
-          },
-          handler: async (input) => {
-            const entities = await entityService.search({
-              entityType: input.entityType,
-              query: input.filter,
-            });
+export class DocumentPlugin extends ContentGeneratingPlugin<DocumentConfig> {
+  protected override async onRegister(context: PluginContext): Promise<void> {
+    // Register content types
+    this.registerContentType("report", {
+      contentType: "report",
+      schema: reportSchema,
+      formatter: new ReportFormatter(),
+    });
+    
+    this.registerContentType("summary", {
+      contentType: "summary", 
+      schema: summarySchema,
+    });
+  }
+  
+  // Parent class automatically provides:
+  // - document:generate_report
+  // - document:generate_summary
+  // - document:list_generated
+  // - document:get_generated
+  // - document:save_generated
+}
+```
 
-            for (const entity of entities) {
-              logger.debug(`Processing entity ${entity.id}`);
-              // Process entity
+### Entity Processing Plugin Pattern
 
-              // Update if needed
-              await entityService.updateEntity(entity.id, {
-                processed: true,
-                processedAt: new Date().toISOString(),
-              });
-            }
+Plugins that process entities using the new base class:
 
-            return {
-              processed: entities.length,
-              message: `Processed ${entities.length} entities`,
-            };
-          },
+```typescript
+import { BasePlugin, toolInput } from "@brains/utils";
+
+export class AnalyzerPlugin extends BasePlugin<AnalyzerConfig> {
+  private entityService?: EntityService;
+
+  protected override async onRegister(context: PluginContext): Promise<void> {
+    this.entityService = context.entityService;
+  }
+
+  protected override async getTools(): Promise<PluginTool[]> {
+    return [
+      this.createTool(
+        "analyze_entities",
+        "Analyze entities and generate insights",
+        toolInput()
+          .string("entityType")
+          .optionalString("filter")
+          .boolean("detailed", false)
+          .build(),
+        async (input) => {
+          const entities = await this.entityService!.search({
+            entityType: input.entityType,
+            query: input.filter,
+          });
+
+          const analysis = {
+            total: entities.length,
+            byType: {} as Record<string, number>,
+            insights: [] as string[],
+          };
+
+          for (const entity of entities) {
+            this.debug(`Analyzing entity ${entity.id}`);
+            
+            // Perform analysis
+            analysis.byType[entity.entityType] = 
+              (analysis.byType[entity.entityType] || 0) + 1;
+          }
+
+          return analysis;
         },
-      ],
-      resources: [],
-    };
+      ),
+    ];
   }
 }
 ```
 
-### Event-Driven Plugin
+### Event-Driven Plugin Pattern
 
 Plugins that respond to system events:
 
 ```typescript
-class EventPlugin implements Plugin {
-  private unsubscribe?: () => void;
+import { BasePlugin } from "@brains/utils";
 
-  async register(context: PluginContext): Promise<PluginCapabilities> {
-    const { messageBus, logger } = context;
+export class MonitorPlugin extends BasePlugin<MonitorConfig> {
+  private unsubscribers: Array<() => void> = [];
 
-    // Subscribe to events
-    this.unsubscribe = messageBus.subscribe(
-      "entity:created",
-      async (message) => {
-        logger.info(`New entity created: ${message.payload.id}`);
-        // Handle the event
-      },
+  protected override async onRegister(context: PluginContext): Promise<void> {
+    const { messageBus } = context;
+
+    // Subscribe to multiple events
+    this.unsubscribers.push(
+      messageBus.subscribe("entity:created", async (message) => {
+        this.info("Entity created", { id: message.payload.id });
+        await this.handleEntityCreated(message.payload);
+      }),
+      
+      messageBus.subscribe("entity:updated", async (message) => {
+        this.debug("Entity updated", { id: message.payload.id });
+        await this.handleEntityUpdated(message.payload);
+      }),
     );
 
-    return {
-      tools: [],
-      resources: [],
-    };
+    // Publish custom events
+    messageBus.publish({
+      type: "monitor:started",
+      payload: { pluginId: this.id },
+    });
   }
 
-  async shutdown(): Promise<void> {
-    // Clean up subscriptions
-    if (this.unsubscribe) {
-      this.unsubscribe();
+  protected override async onShutdown(): Promise<void> {
+    // Clean up all subscriptions
+    for (const unsubscribe of this.unsubscribers) {
+      unsubscribe();
     }
+    this.unsubscribers = [];
+  }
+
+  private async handleEntityCreated(payload: any): Promise<void> {
+    // Handle the event
+  }
+
+  private async handleEntityUpdated(payload: any): Promise<void> {
+    // Handle the event
   }
 }
 ```
@@ -483,46 +687,3 @@ class EventPlugin implements Plugin {
 5. **Cleanup**: Implement shutdown() to clean up resources
 6. **Type Safety**: Leverage TypeScript's type system fully
 7. **Documentation**: Document your plugin's configuration and tools
-
-## Migration Guide
-
-If you're updating an existing plugin to use these patterns:
-
-1. **Configuration Migration**:
-
-   ```typescript
-   // Old
-   interface Config {
-     apiKey: string;
-   }
-
-   // New
-   const configSchema = createPluginConfig({
-     apiKey: z.string(),
-   });
-   ```
-
-2. **Service Access Migration**:
-
-   ```typescript
-   // Old
-   const shell = this.registry.resolve<Shell>("shell");
-   const entityService = shell.getEntityService();
-
-   // New
-   const { entityService } = context;
-   ```
-
-3. **Testing Migration**:
-
-   ```typescript
-   // Old - manual mocking
-   const mockEntityService = {
-     search: jest.fn(),
-     // ...
-   };
-
-   // New - use test harness
-   const harness = new PluginTestHarness();
-   await harness.installPlugin(plugin);
-   ```
