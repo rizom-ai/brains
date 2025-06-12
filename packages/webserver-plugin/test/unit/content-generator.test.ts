@@ -64,7 +64,6 @@ describe("ContentGenerator", () => {
       getEntityTypes: mock(() => ["note", "site-content"]),
     } as unknown as EntityService;
 
-
     // Mock Plugin Context
     const mockContext = {
       pluginId: "webserver",
