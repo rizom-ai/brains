@@ -5,6 +5,14 @@
  * - Configuration validation with Zod
  * - Builder patterns for tools and entities
  * - Common plugin patterns and helpers
+ * - Base classes for common plugin types
+ * - Lifecycle management utilities
+ * - Testing utilities for plugins
  */
 
 export * from "./config";
+export * from "./base-plugin";
+export * from "./content-generating-plugin";
+export * from "./config-builder";
+export * from "./lifecycle";
+export * from "./test-utils";

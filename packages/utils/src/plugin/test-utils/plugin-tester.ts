@@ -46,7 +46,7 @@ export class PluginTester {
     if (!this.capabilities) {
       throw new Error("Plugin not registered yet");
     }
-    
+
     for (const tool of this.capabilities.tools) {
       expect(tool.name).toBeString();
       expect(tool.description).toBeString();
@@ -68,10 +68,10 @@ export class PluginTester {
 
     const tool = this.findTool(toolName);
     const result = await tool.handler(input);
-    
+
     // Basic validation - result should not throw
     expect(result).toBeDefined();
-    
+
     return result;
   }
 
@@ -87,7 +87,7 @@ export class PluginTester {
     }
 
     const tool = this.findTool(toolName);
-    
+
     // Should throw validation error
     // eslint-disable-next-line @typescript-eslint/await-thenable
     await expect(tool.handler(invalidInput)).rejects.toThrow();
@@ -102,7 +102,10 @@ export class PluginTester {
     }
 
     // If plugin has shutdown method, test it
-    if ('shutdown' in this.plugin && typeof this.plugin.shutdown === 'function') {
+    if (
+      "shutdown" in this.plugin &&
+      typeof this.plugin.shutdown === "function"
+    ) {
       // Just call shutdown and ensure it doesn't throw
       await this.plugin.shutdown();
     }

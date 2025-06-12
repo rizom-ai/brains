@@ -70,7 +70,9 @@ export function createMockTool(
     name,
     description: options.description ?? `Mock tool: ${name}`,
     inputSchema: options.inputSchema ?? {},
-    handler: options.handler ?? (async (input): Promise<unknown> => ({ success: true, input })),
+    handler:
+      options.handler ??
+      (async (input): Promise<unknown> => ({ success: true, input })),
   };
 }
 
@@ -118,13 +120,13 @@ export function createErrorPlugin(options: {
     id: options.id ?? "error-plugin",
     name: "Error Plugin",
     description: "A plugin that throws errors for testing",
-    
+
     ...(options.errorOnRegister && {
       onRegister: async (): Promise<void> => {
         throw new Error(errorMessage);
-      }
+      },
     }),
-    
+
     tools: options.errorOnToolExecution
       ? [
           createMockTool("error_tool", {
@@ -146,7 +148,7 @@ export function createProgressPlugin(): Plugin {
     id: "progress-plugin",
     name: "Progress Plugin",
     description: "A plugin with progress reporting",
-    
+
     tools: [
       {
         name: "progress_tool",
@@ -168,7 +170,7 @@ export function createProgressPlugin(): Plugin {
                 total: steps,
                 message: `Step ${i + 1} of ${steps}`,
               });
-              
+
               // Simulate work
               await new Promise((resolve) => setTimeout(resolve, delay));
             }

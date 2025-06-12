@@ -1,5 +1,5 @@
 import { webserverPlugin } from "../src/index";
-import { PluginTestHarness, type TestEntity } from "@brains/plugin-test-utils";
+import { PluginTestHarness, type TestEntity } from "@brains/utils";
 
 async function testWebserverPlugin(): Promise<void> {
   console.log("Testing webserver plugin with test harness...");

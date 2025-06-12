@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { webserverPlugin } from "../../src/index";
-import { PluginTestHarness, type TestEntity } from "@brains/plugin-test-utils";
+import { PluginTestHarness, type TestEntity } from "@brains/utils";
 import { join } from "path";
 import { rmSync, existsSync, mkdirSync } from "fs";
 

@@ -4,7 +4,7 @@ import {
   PluginTestHarness,
   TestDataGenerator,
   FileTestUtils,
-} from "@brains/plugin-test-utils";
+} from "@brains/utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import { rmSync, existsSync, readFileSync } from "fs";

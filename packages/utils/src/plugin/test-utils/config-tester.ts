@@ -32,7 +32,7 @@ export class ConfigTester<TConfig> {
       // Should parse successfully
       const result = this.schema.safeParse(config);
       expect(result.success).toBe(true);
-      
+
       if (result.success && expectedValue !== undefined) {
         expect(result.data).toEqual(expectedValue);
       }
@@ -40,12 +40,12 @@ export class ConfigTester<TConfig> {
       // Should fail validation
       const result = this.schema.safeParse(config);
       expect(result.success).toBe(false);
-      
+
       if (!result.success && expectedError) {
         const errorMessage = result.error.errors
           .map((e) => e.message)
           .join(", ");
-        
+
         if (typeof expectedError === "string") {
           expect(errorMessage).toContain(expectedError);
         } else {
@@ -73,7 +73,7 @@ export class ConfigTester<TConfig> {
   ): void {
     const result = this.schema.safeParse(minimalConfig);
     expect(result.success).toBe(true);
-    
+
     if (result.success) {
       for (const [key, value] of Object.entries(expectedDefaults)) {
         const actualValue = (result.data as Record<string, unknown>)[key];
@@ -88,12 +88,12 @@ export class ConfigTester<TConfig> {
   testRequiredFields(requiredFields: Array<keyof TConfig>): void {
     const emptyConfig = {};
     const result = this.schema.safeParse(emptyConfig);
-    
+
     if (!result.success) {
       const missingFields = result.error.errors
         .filter((e) => e.code === "invalid_type" && e.received === "undefined")
         .map((e) => e.path[0]);
-      
+
       for (const field of requiredFields) {
         expect(missingFields).toContain(field);
       }
@@ -166,7 +166,9 @@ export class ConfigTester<TConfig> {
 /**
  * Helper to test plugin constructor with configuration
  */
-export function testPluginConstructor<T extends new (config: unknown) => unknown>(
+export function testPluginConstructor<
+  T extends new (config: unknown) => unknown,
+>(
   PluginClass: T,
   validConfig: unknown,
   invalidConfigs: Array<{ config: unknown; error?: string | RegExp }> = [],
