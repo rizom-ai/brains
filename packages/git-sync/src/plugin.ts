@@ -1,7 +1,11 @@
 import type { Plugin, PluginContext, PluginTool } from "@brains/types";
 import { BasePlugin, pluginConfig, validatePluginConfig } from "@brains/utils";
 import { GitSync } from "./gitSync";
-import { gitSyncConfigSchema, type GitSyncConfig, type GitSyncConfigInput } from "./types";
+import {
+  gitSyncConfigSchema,
+  type GitSyncConfig,
+  type GitSyncConfigInput,
+} from "./types";
 import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
 import { gitSyncStatusSchema } from "./schemas";
 
@@ -14,8 +18,12 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
 
   constructor(config: unknown) {
     // Validate config first
-    const validatedConfig = validatePluginConfig(gitSyncConfigSchema, config, "git-sync");
-    
+    const validatedConfig = validatePluginConfig(
+      gitSyncConfigSchema,
+      config,
+      "git-sync",
+    );
+
     super(
       "git-sync",
       "Git Sync",
@@ -139,7 +147,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
 /**
  * Configuration builder for git-sync plugin
  */
-export const gitSyncPluginConfig = () =>
+export const gitSyncPluginConfig = (): ReturnType<typeof pluginConfig> =>
   pluginConfig()
     .requiredString("repoPath", "Path to the git repository")
     .optionalString("remote", "Git remote URL (e.g., origin)")

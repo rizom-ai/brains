@@ -1,6 +1,14 @@
 import type { PluginContext, PluginTool } from "@brains/types";
-import { ContentGeneratingPlugin, pluginConfig, toolInput, validatePluginConfig } from "@brains/utils";
-import { WebserverManager, type WebserverManagerOptions } from "./webserver-manager";
+import {
+  ContentGeneratingPlugin,
+  pluginConfig,
+  toolInput,
+  validatePluginConfig,
+} from "@brains/utils";
+import {
+  WebserverManager,
+  type WebserverManagerOptions,
+} from "./webserver-manager";
 import { siteContentSchema } from "./schemas";
 import { siteContentAdapter } from "./site-content-adapter";
 import { SiteContentFormatter } from "./site-content-formatter";
@@ -26,8 +34,12 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
 
   constructor(config: unknown) {
     // Validate config first
-    const validatedConfig = validatePluginConfig(webserverConfigSchema, config, "webserver");
-    
+    const validatedConfig = validatePluginConfig(
+      webserverConfigSchema,
+      config,
+      "webserver",
+    );
+
     super(
       "webserver",
       "Webserver Plugin",
@@ -116,18 +128,19 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
       this.createTool(
         "build_site",
         "Generate and build the static website",
-        toolInput()
-          .boolean("clean", false)
-          .build(),
+        toolInput().boolean("clean", false).build(),
         async (input, context): Promise<Record<string, unknown>> => {
           const { clean } = input as { clean?: boolean };
 
           try {
-            await this.manager!.buildSite(
+            if (!this.manager) {
+              throw new Error("WebserverPlugin manager not initialized");
+            }
+            await this.manager.buildSite(
               clean ? { clean: true } : undefined,
               context?.sendProgress,
             );
-            const status = this.manager!.getStatus();
+            const status = this.manager.getStatus();
 
             return {
               success: true,
@@ -154,7 +167,10 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
         {},
         async (): Promise<Record<string, unknown>> => {
           try {
-            const url = await this.manager!.startPreviewServer();
+            if (!this.manager) {
+              throw new Error("WebserverPlugin manager not initialized");
+            }
+            const url = await this.manager.startPreviewServer();
             return {
               success: true,
               url,
@@ -180,7 +196,10 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
         {},
         async (): Promise<Record<string, unknown>> => {
           try {
-            const url = await this.manager!.startProductionServer();
+            if (!this.manager) {
+              throw new Error("WebserverPlugin manager not initialized");
+            }
+            const url = await this.manager.startProductionServer();
             return {
               success: true,
               url,
@@ -210,7 +229,10 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
           const { type } = input as { type: "preview" | "production" };
 
           try {
-            await this.manager!.stopServer(type);
+            if (!this.manager) {
+              throw new Error("WebserverPlugin manager not initialized");
+            }
+            await this.manager.stopServer(type);
             return {
               success: true,
               message: `${type} server stopped`,
@@ -235,7 +257,10 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
         {},
         async (_, context): Promise<Record<string, unknown>> => {
           try {
-            const url = await this.manager!.preview(context?.sendProgress);
+            if (!this.manager) {
+              throw new Error("WebserverPlugin manager not initialized");
+            }
+            const url = await this.manager.preview(context?.sendProgress);
             return {
               success: true,
               url,
@@ -260,7 +285,10 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
         "Get the current status of the site and servers",
         {},
         async (): Promise<Record<string, unknown>> => {
-          const status = this.manager!.getStatus();
+          if (!this.manager) {
+            throw new Error("WebserverPlugin manager not initialized");
+          }
+          const status = this.manager.getStatus();
 
           return {
             hasBuild: status.hasBuild,
@@ -300,7 +328,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
 /**
  * Configuration builder for webserver plugin
  */
-export const webserverPluginConfig = () =>
+export const webserverPluginConfig = (): ReturnType<typeof pluginConfig> =>
   pluginConfig()
     .optionalString("outputDir", "Directory to output the generated site")
     .numberWithDefault("previewPort", 3000, {
@@ -315,6 +343,9 @@ export const webserverPluginConfig = () =>
     })
     .optionalString("siteTitle", "Title for the generated site")
     .optionalString("siteDescription", "Description for the generated site")
-    .optionalString("siteUrl", "Base URL for the site (e.g., https://example.com)")
+    .optionalString(
+      "siteUrl",
+      "Base URL for the site (e.g., https://example.com)",
+    )
     .optionalString("astroSiteTemplate", "Path to custom Astro site template")
     .describe("Configuration for the webserver plugin");

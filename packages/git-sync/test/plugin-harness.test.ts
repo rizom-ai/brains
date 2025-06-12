@@ -132,7 +132,9 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Get sync tool
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      const syncTool = capabilities.tools.find((t) => t.name === "git-sync:sync");
+      const syncTool = capabilities.tools.find(
+        (t) => t.name === "git-sync:sync",
+      );
 
       // Execute sync
       const result = (await syncTool!.handler({})) as any;

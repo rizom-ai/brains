@@ -108,7 +108,9 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
 
-      const stopTool = capabilities.tools.find((t) => t.name === "webserver:stop_server");
+      const stopTool = capabilities.tools.find(
+        (t) => t.name === "webserver:stop_server",
+      );
       expect(stopTool).toBeDefined();
 
       if (!stopTool) throw new Error("Stop tool not found");
