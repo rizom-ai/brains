@@ -57,10 +57,10 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
 
       // Verify tools
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("git_sync");
-      expect(toolNames).toContain("git_sync_pull");
-      expect(toolNames).toContain("git_sync_push");
-      expect(toolNames).toContain("git_sync_status");
+      expect(toolNames).toContain("git-sync:sync");
+      expect(toolNames).toContain("git-sync:pull");
+      expect(toolNames).toContain("git-sync:push");
+      expect(toolNames).toContain("git-sync:status");
 
       // Verify git repo was initialized
       FileTestUtils.assertExists(join(testRepoPath, ".git"));
@@ -78,7 +78,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
       const statusTool = capabilities.tools.find(
-        (t) => t.name === "git_sync_status",
+        (t) => t.name === "git-sync:status",
       );
 
       const status = (await statusTool!.handler({})) as any;
@@ -99,7 +99,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
       const pushTool = capabilities.tools.find(
-        (t) => t.name === "git_sync_push",
+        (t) => t.name === "git-sync:push",
       );
 
       // Execute push
@@ -132,7 +132,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       // Get sync tool
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
-      const syncTool = capabilities.tools.find((t) => t.name === "git_sync");
+      const syncTool = capabilities.tools.find((t) => t.name === "git-sync:sync");
 
       // Execute sync
       const result = (await syncTool!.handler({})) as any;
@@ -140,7 +140,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
 
       // Verify status
       const statusTool = capabilities.tools.find(
-        (t) => t.name === "git_sync_status",
+        (t) => t.name === "git-sync:status",
       );
       const status = (await statusTool!.handler({})) as any;
       expect(status.isRepo).toBe(true);
@@ -166,7 +166,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
       const pullTool = capabilities.tools.find(
-        (t) => t.name === "git_sync_pull",
+        (t) => t.name === "git-sync:pull",
       );
 
       // Execute pull
@@ -197,7 +197,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
       const pullTool = capabilities.tools.find(
-        (t) => t.name === "git_sync_pull",
+        (t) => t.name === "git-sync:pull",
       );
 
       await pullTool!.handler({});
@@ -232,7 +232,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
       const pullTool = capabilities.tools.find(
-        (t) => t.name === "git_sync_pull",
+        (t) => t.name === "git-sync:pull",
       );
 
       await pullTool!.handler({});
@@ -267,7 +267,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
       const pushTool = capabilities.tools.find(
-        (t) => t.name === "git_sync_push",
+        (t) => t.name === "git-sync:push",
       );
 
       await pushTool!.handler({});
@@ -301,7 +301,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
       const pushTool = capabilities.tools.find(
-        (t) => t.name === "git_sync_push",
+        (t) => t.name === "git-sync:push",
       );
 
       await pushTool!.handler({});
@@ -328,7 +328,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
       const statusTool = capabilities.tools.find(
-        (t) => t.name === "git_sync_status",
+        (t) => t.name === "git-sync:status",
       );
 
       const status = (await statusTool!.handler({})) as any;

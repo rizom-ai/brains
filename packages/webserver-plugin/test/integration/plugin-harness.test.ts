@@ -59,11 +59,11 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       const capabilities = await plugin.register(context);
 
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("build_site");
-      expect(toolNames).toContain("start_preview_server");
-      expect(toolNames).toContain("start_production_server");
-      expect(toolNames).toContain("stop_server");
-      expect(toolNames).toContain("get_site_status");
+      expect(toolNames).toContain("webserver:build_site");
+      expect(toolNames).toContain("webserver:start_preview_server");
+      expect(toolNames).toContain("webserver:start_production_server");
+      expect(toolNames).toContain("webserver:stop_server");
+      expect(toolNames).toContain("webserver:get_site_status");
     });
 
     it("should handle get_site_status tool", async () => {
@@ -76,7 +76,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       const capabilities = await plugin.register(context);
 
       const statusTool = capabilities.tools.find(
-        (t) => t.name === "get_site_status",
+        (t) => t.name === "webserver:get_site_status",
       );
       expect(statusTool).toBeDefined();
 
@@ -108,7 +108,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
 
-      const stopTool = capabilities.tools.find((t) => t.name === "stop_server");
+      const stopTool = capabilities.tools.find((t) => t.name === "webserver:stop_server");
       expect(stopTool).toBeDefined();
 
       if (!stopTool) throw new Error("Stop tool not found");
