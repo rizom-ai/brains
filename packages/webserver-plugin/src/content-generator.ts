@@ -140,7 +140,7 @@ export class ContentGenerator {
     // Check for existing landing page content first
     const existingContent = await this.getExistingSiteContent(
       "landing",
-      "page",
+      "index",
     );
 
     let landingData: LandingPageData | undefined;
@@ -185,7 +185,7 @@ export class ContentGenerator {
       const heroData = await generateWithTemplate(
         this.context.generateContent.bind(this.context),
         heroSectionTemplate,
-        "section:hero",
+        "landing:hero",
         {
           prompt: `Generate hero section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
           data: baseContext,
@@ -210,7 +210,7 @@ export class ContentGenerator {
         featuresData = await generateWithTemplate(
           this.context.generateContent.bind(this.context),
           featuresSectionTemplate,
-          "section:features",
+          "landing:features",
           {
             prompt: `Generate features section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
             data: baseContext,
@@ -252,7 +252,7 @@ export class ContentGenerator {
       const ctaData = await generateWithTemplate(
         this.context.generateContent.bind(this.context),
         ctaSectionTemplate,
-        "section:cta",
+        "landing:cta",
         {
           prompt: `Generate CTA section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
           data: baseContext,
@@ -269,7 +269,7 @@ export class ContentGenerator {
       await generateWithTemplate(
         this.context.generateContent.bind(this.context),
         landingPageTemplate,
-        "page:landing",
+        "landing:index",
         {
           prompt: `Generate landing page configuration for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
           data: baseContext,

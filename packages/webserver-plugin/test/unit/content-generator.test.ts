@@ -87,7 +87,7 @@ describe("ContentGenerator", () => {
       generateContent: mock(
         async <T>(options: ContentGenerateOptions<T>): Promise<T> => {
           // Return appropriate data based on content type
-          if (options.contentType === "section:hero") {
+          if (options.contentType === "landing:hero") {
             const heroData: LandingHeroData = {
               headline: "Your Personal Knowledge Hub",
               subheadline:
@@ -96,7 +96,7 @@ describe("ContentGenerator", () => {
               ctaLink: "/dashboard",
             };
             return options.schema.parse(heroData);
-          } else if (options.contentType === "section:features") {
+          } else if (options.contentType === "landing:features") {
             const featuresData: FeaturesSection = {
               label: "Features",
               headline: "Powerful Features",
@@ -110,7 +110,7 @@ describe("ContentGenerator", () => {
               ],
             };
             return options.schema.parse(featuresData);
-          } else if (options.contentType === "section:cta") {
+          } else if (options.contentType === "landing:cta") {
             const ctaData: CTASection = {
               headline: "Get Started Today",
               description: "Join now",
@@ -120,7 +120,7 @@ describe("ContentGenerator", () => {
               },
             };
             return options.schema.parse(ctaData);
-          } else if (options.contentType === "page:landing") {
+          } else if (options.contentType === "landing:index") {
             const referenceData: LandingPageReferenceData = {
               title: "Test Brain",
               tagline: "Test Description",
@@ -129,7 +129,7 @@ describe("ContentGenerator", () => {
               ctaId: "cta-section-test",
             };
             return options.schema.parse(referenceData);
-          } else if (options.contentType === "page:dashboard") {
+          } else if (options.contentType === "dashboard:index") {
             const dashboardData: DashboardData = {
               title: "Dashboard",
               description: "Your knowledge overview",

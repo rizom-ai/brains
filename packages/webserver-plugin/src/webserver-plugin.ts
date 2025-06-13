@@ -54,40 +54,44 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
   protected override async onRegister(context: PluginContext): Promise<void> {
     // Register content types BEFORE calling super.onRegister()
     // This ensures they're available when the parent class tries to register them
-    this.registerContentType("section:hero", {
-      contentType: "section:hero",
+    // Landing page sections
+    this.registerContentType("landing:hero", {
+      contentType: "landing:hero",
       schema: landingHeroDataSchema,
       formatter: new HeroSectionFormatter(),
     });
 
-    this.registerContentType("section:features", {
-      contentType: "section:features",
+    this.registerContentType("landing:features", {
+      contentType: "landing:features",
       schema: featuresSectionSchema,
       formatter: new FeaturesSectionFormatter(),
     });
 
-    this.registerContentType("section:cta", {
-      contentType: "section:cta",
+    this.registerContentType("landing:cta", {
+      contentType: "landing:cta",
       schema: ctaSectionSchema,
       formatter: new CTASectionFormatter(),
     });
 
-    // Register content types for pages
-    this.registerContentType("page:landing", {
-      contentType: "page:landing",
+    // Register content types for pages (using :index suffix)
+    this.registerContentType("landing:index", {
+      contentType: "landing:index",
       schema: landingPageReferenceSchema,
       formatter: new LandingPageFormatter(),
     });
 
-    this.registerContentType("page:dashboard", {
-      contentType: "page:dashboard",
+    this.registerContentType("dashboard:index", {
+      contentType: "dashboard:index",
       schema: dashboardSchema,
     });
 
     // Call parent's onRegister to actually register the content types
     await super.onRegister(context);
 
-    const { logger, registerEntityType, formatters } = context;
+    const { logger, registerEntityType, formatters, contentTypeRegistry } = context;
+
+    // Wire content type registry to site content adapter for validation
+    siteContentAdapter.setContentTypeRegistry(contentTypeRegistry);
 
     // Register site-content entity type
     registerEntityType("site-content", siteContentSchema, siteContentAdapter);

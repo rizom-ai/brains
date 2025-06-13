@@ -569,7 +569,7 @@ This note was imported`;
       const formattedMarkdown = `---
 id: features-123
 entityType: generated-content
-contentType: 'webserver:section:features'
+contentType: 'webserver:landing:features'
 generatedBy: claude
 created: '2024-01-01T00:00:00.000Z'
 updated: '2024-01-01T00:00:00.000Z'
@@ -607,14 +607,14 @@ Our best features yet
 
       expect(imported).toBeDefined();
       expect(imported?.id).toBe(rawData.id);
-      expect(imported?.contentType).toBe("webserver:section:features");
+      expect(imported?.contentType).toBe("webserver:landing:features");
       // The content should contain the full markdown including frontmatter
       expect(imported?.content).toContain("# Features Section");
       expect(imported?.content).toContain("Features");
       // The content should be the complete markdown with frontmatter
       expect(imported?.content).toContain("entityType: generated-content");
       expect(imported?.content).toContain(
-        "contentType: 'webserver:section:features'",
+        "contentType: 'webserver:landing:features'",
       );
       expect(imported?.generatedBy).toBe("claude");
     });
