@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 import type { ContentTemplate } from "@brains/types";
 import {
   landingPageReferenceSchema,

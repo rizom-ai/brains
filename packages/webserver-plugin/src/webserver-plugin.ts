@@ -18,6 +18,11 @@ import {
   ctaSectionSchema,
   landingPageReferenceSchema,
   dashboardSchema,
+  type LandingHeroData,
+  type FeaturesSection,
+  type CTASection,
+  type LandingPageReferenceData,
+  type DashboardData,
 } from "./content-schemas";
 import { LandingPageFormatter } from "./formatters/landingPageFormatter";
 import { HeroSectionFormatter } from "./formatters/heroSectionFormatter";
@@ -55,32 +60,32 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
     // Register content types BEFORE calling super.onRegister()
     // This ensures they're available when the parent class tries to register them
     // Landing page sections
-    this.registerContentType("landing:hero", {
+    this.registerContentType<LandingHeroData>("landing:hero", {
       contentType: "landing:hero",
       schema: landingHeroDataSchema,
       formatter: new HeroSectionFormatter(),
     });
 
-    this.registerContentType("landing:features", {
+    this.registerContentType<FeaturesSection>("landing:features", {
       contentType: "landing:features",
       schema: featuresSectionSchema,
       formatter: new FeaturesSectionFormatter(),
     });
 
-    this.registerContentType("landing:cta", {
+    this.registerContentType<CTASection>("landing:cta", {
       contentType: "landing:cta",
       schema: ctaSectionSchema,
       formatter: new CTASectionFormatter(),
     });
 
     // Register content types for pages (using :index suffix)
-    this.registerContentType("landing:index", {
+    this.registerContentType<LandingPageReferenceData>("landing:index", {
       contentType: "landing:index",
       schema: landingPageReferenceSchema,
       formatter: new LandingPageFormatter(),
     });
 
-    this.registerContentType("dashboard:index", {
+    this.registerContentType<DashboardData>("dashboard:index", {
       contentType: "dashboard:index",
       schema: dashboardSchema,
     });

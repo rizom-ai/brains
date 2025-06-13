@@ -115,6 +115,7 @@ Use the existing preview/production server architecture to handle content promot
 - **Production Environment** (port 8080): Where approved content is published
 
 This approach:
+
 - Leverages existing webserver plugin infrastructure
 - Provides a familiar workflow for web developers
 - Allows natural staging and review processes
@@ -122,6 +123,7 @@ This approach:
 - Enables easy rollback by keeping previous production versions
 
 Implementation:
+
 1. Generate content directly into the preview environment
 2. Review and edit content while viewing it in the preview server
 3. "Promote" by copying content from preview to production
@@ -205,7 +207,7 @@ const content = await contentGenService.generate({
 
 await entityService.createEntity({
   entityType: "site-content",
-  environment: "preview",  // Goes to preview
+  environment: "preview", // Goes to preview
   page: "landing",
   section: "hero",
   data: content,

@@ -1,5 +1,5 @@
-import { StructuredContentFormatter } from "@brains/formatters";
-import {
+import { StructuredContentFormatter } from "@brains/structured-content";
+import { 
   featuresSectionSchema,
   type FeaturesSection,
 } from "../content-schemas";

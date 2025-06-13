@@ -1,5 +1,8 @@
-import { StructuredContentFormatter } from "@brains/formatters";
-import { ctaSectionSchema, type CTASection } from "../content-schemas";
+import { StructuredContentFormatter } from "@brains/structured-content";
+import { 
+  ctaSectionSchema, 
+  type CTASection 
+} from "../content-schemas";
 
 export class CTASectionFormatter extends StructuredContentFormatter<CTASection> {
   constructor() {

@@ -10,10 +10,10 @@ import { BasePlugin } from "./base-plugin";
 /**
  * Configuration for content generation
  */
-export interface ContentGenerationConfig {
-  schema: z.ZodType<unknown>;
+export interface ContentGenerationConfig<T = unknown> {
+  schema: z.ZodType<T>;
   contentType: string;
-  formatter?: ContentFormatter<unknown>;
+  formatter?: ContentFormatter<T>;
   saveByDefault?: boolean;
 }
 
@@ -23,7 +23,7 @@ export interface ContentGenerationConfig {
 export abstract class ContentGeneratingPlugin<
   TConfig = unknown,
 > extends BasePlugin<TConfig> {
-  protected contentTypes: Map<string, ContentGenerationConfig> = new Map();
+  protected contentTypes: Map<string, ContentGenerationConfig<unknown>> = new Map();
   protected contentTypeRegistry?: ContentTypeRegistry;
 
   /**
@@ -48,9 +48,9 @@ export abstract class ContentGeneratingPlugin<
   /**
    * Register a content type that this plugin can generate
    */
-  protected registerContentType(
+  protected registerContentType<T>(
     key: string,
-    config: ContentGenerationConfig,
+    config: ContentGenerationConfig<T>,
   ): void {
     // Ensure contentType includes plugin namespace
     if (!config.contentType.startsWith(`${this.id}:`)) {
