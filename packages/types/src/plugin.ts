@@ -22,7 +22,6 @@ export interface ContentGenerateOptions<T> {
     examples?: T[];
     style?: string;
   };
-  save?: boolean;
 }
 
 /**

@@ -13,9 +13,6 @@ export async function generateWithTemplate<T>(
     examples?: T[];
     style?: string;
   },
-  persistenceOptions?: {
-    save?: boolean;
-  },
 ): Promise<T> {
   // Combine template prompt with additional prompt if provided
   let finalPrompt = template.basePrompt;
@@ -49,10 +46,6 @@ export async function generateWithTemplate<T>(
     }
   }
 
-  // Add persistence options if provided
-  if (persistenceOptions?.save !== undefined) {
-    options.save = persistenceOptions.save;
-  }
 
   return generateContent(options);
 }

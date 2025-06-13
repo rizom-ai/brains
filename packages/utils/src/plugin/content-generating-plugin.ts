@@ -14,7 +14,6 @@ export interface ContentGenerationConfig<T = unknown> {
   schema: z.ZodType<T>;
   contentType: string;
   formatter?: ContentFormatter<T>;
-  saveByDefault?: boolean;
 }
 
 /**
@@ -23,7 +22,8 @@ export interface ContentGenerationConfig<T = unknown> {
 export abstract class ContentGeneratingPlugin<
   TConfig = unknown,
 > extends BasePlugin<TConfig> {
-  protected contentTypes: Map<string, ContentGenerationConfig<unknown>> = new Map();
+  protected contentTypes: Map<string, ContentGenerationConfig<unknown>> =
+    new Map();
   protected contentTypeRegistry?: ContentTypeRegistry;
 
   /**
@@ -66,9 +66,7 @@ export abstract class ContentGeneratingPlugin<
   protected createContentGenerationTool(
     name: string,
     description: string,
-    inputSchema: z.ZodRawShape & {
-      save?: z.ZodOptional<z.ZodBoolean>;
-    },
+    inputSchema: z.ZodRawShape,
     generateContent: (input: unknown) => Promise<unknown>,
     contentTypeKey: string,
   ): PluginTool {
@@ -97,29 +95,8 @@ export abstract class ContentGeneratingPlugin<
         // Validate against schema
         const validatedContent = config.schema.parse(content);
 
-        // Determine if we should save
-        const inputWithSave = input as { save?: boolean };
-        const shouldSave = inputWithSave.save ?? config.saveByDefault ?? false;
-
-        if (shouldSave === true) {
-          // Save the content as an entity
-          const entityService = this.getContext().entityService;
-          const entity = await entityService.createEntity({
-            entityType: "generated-content",
-            content: JSON.stringify(validatedContent),
-          });
-
-          return {
-            content: validatedContent,
-            saved: true,
-            entityId: entity.id,
-            message: `Content saved with ID: ${entity.id}`,
-          };
-        }
-
         return {
           content: validatedContent,
-          saved: false,
         };
       },
     );
@@ -132,7 +109,6 @@ export abstract class ContentGeneratingPlugin<
     name: string,
     description: string,
     inputSchema: z.ZodRawShape & {
-      save?: z.ZodOptional<z.ZodBoolean>;
       count?: z.ZodOptional<z.ZodNumber>;
     },
     generateBatch: (input: unknown) => Promise<unknown[]>,
@@ -161,37 +137,9 @@ export abstract class ContentGeneratingPlugin<
         const items = await generateBatch(input);
         const validatedItems = items.map((item) => config.schema.parse(item));
 
-        // Determine if we should save
-        const inputWithSave = input as { save?: boolean };
-        const shouldSave = inputWithSave.save ?? config.saveByDefault ?? false;
-
-        if (shouldSave === true) {
-          const entityService = this.getContext().entityService;
-          const savedItems = await Promise.all(
-            validatedItems.map(async (item) => {
-              const entity = await entityService.createEntity({
-                entityType: "generated-content",
-                content: JSON.stringify(item),
-              });
-              return {
-                content: item,
-                entityId: entity.id,
-              };
-            }),
-          );
-
-          return {
-            items: savedItems,
-            count: savedItems.length,
-            saved: true,
-            message: `Saved ${savedItems.length} items`,
-          };
-        }
-
         return {
           items: validatedItems.map((content) => ({ content })),
           count: validatedItems.length,
-          saved: false,
         };
       },
     );

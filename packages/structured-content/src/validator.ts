@@ -64,17 +64,13 @@ export class ContentValidator {
   /**
    * Safe validation that returns null on failure
    */
-  public safeParse(
-    contentType: string,
-    content: unknown,
-  ): unknown | null {
+  public safeParse(contentType: string, content: unknown): unknown | null {
     try {
       return this.validate(contentType, content);
     } catch (error) {
-      this.logger?.warn(
-        `Safe parse failed for content type: ${contentType}`,
-        { error },
-      );
+      this.logger?.warn(`Safe parse failed for content type: ${contentType}`, {
+        error,
+      });
       return null;
     }
   }

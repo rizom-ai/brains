@@ -5,8 +5,6 @@ import type {
   BatchGenerateOptions,
 } from "@brains/types";
 
-import type { EntityService } from "../entity/entityService";
-import type { GeneratedContent } from "@brains/types";
 import type { ContentTypeRegistry } from "./contentTypeRegistry";
 import type { Logger } from "@brains/utils";
 
@@ -14,7 +12,6 @@ export class ContentGenerationService {
   private static instance: ContentGenerationService | null = null;
   private templates: Map<string, ContentTemplate<unknown>> = new Map();
   private queryProcessor: QueryProcessor | null = null;
-  private entityService: EntityService | null = null;
   private contentTypeRegistry: ContentTypeRegistry | null = null;
   private logger: Logger | null = null;
 
@@ -44,12 +41,10 @@ export class ContentGenerationService {
    */
   public initialize(
     queryProcessor: QueryProcessor,
-    entityService: EntityService,
     contentTypeRegistry: ContentTypeRegistry,
     logger: Logger,
   ): void {
     this.queryProcessor = queryProcessor;
-    this.entityService = entityService;
     this.contentTypeRegistry = contentTypeRegistry;
     this.logger = logger;
   }
@@ -100,16 +95,6 @@ export class ContentGenerationService {
     // Validate using the provided schema
     const validatedResult = options.schema.parse(result);
 
-    // Save as generated-content entity if requested
-    if (options.save) {
-      if (!this.entityService) {
-        throw new Error(
-          "ContentGenerationService not initialized with EntityService - cannot save content",
-        );
-      }
-
-      await this.saveGeneratedContent(validatedResult, options.contentType);
-    }
 
     return validatedResult;
   }
@@ -217,104 +202,4 @@ export class ContentGenerationService {
     return this.generate(generateOptions);
   }
 
-  /**
-   * Parse generated content entity to structured data
-   */
-  private parseGeneratedContent(entity: GeneratedContent): unknown | null {
-    const formatter = this.contentTypeRegistry?.getFormatter(
-      entity.contentType,
-    );
-    if (formatter) {
-      try {
-        return formatter.parse(entity.content);
-      } catch (error) {
-        this.logger?.error("Failed to parse generated content", {
-          error,
-          contentType: entity.contentType,
-        });
-        return null;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Retrieve and validate generated content
-   */
-  public async getGeneratedContent(
-    contentType: string,
-    id?: string,
-  ): Promise<unknown | null> {
-    if (!this.entityService) {
-      throw new Error("EntityService not available for retrieving content");
-    }
-
-    // If ID is provided, get specific entity
-    if (id) {
-      const entity = await this.entityService.getEntity<GeneratedContent>(
-        "generated-content",
-        id,
-      );
-      if (!entity) {
-        return null;
-      }
-
-      return this.parseGeneratedContent(entity);
-    }
-
-    // Otherwise, list entities filtered by contentType
-    const entities = await this.entityService.listEntities<GeneratedContent>(
-      "generated-content",
-      {
-        filter: {
-          metadata: { contentType },
-        },
-        limit: 1,
-        sortBy: "updated",
-        sortDirection: "desc",
-      },
-    );
-
-    if (entities.length === 0) {
-      return null;
-    }
-
-    const entity = entities[0];
-    if (!entity) {
-      return null;
-    }
-
-    return this.parseGeneratedContent(entity);
-  }
-
-  /**
-   * Save generated content as an entity
-   */
-  private async saveGeneratedContent(
-    content: unknown,
-    contentType: string,
-  ): Promise<void> {
-    if (!this.entityService) {
-      throw new Error("EntityService not available for saving content");
-    }
-
-    // Format the content immediately using the appropriate formatter
-    let formattedContent: string;
-    const formatter = this.contentTypeRegistry?.getFormatter(contentType);
-
-    if (formatter) {
-      formattedContent = formatter.format(content as Record<string, unknown>);
-    } else {
-      // Fallback to JSON if no formatter available
-      formattedContent = JSON.stringify(content, null, 2);
-    }
-
-    await this.entityService.createEntity<GeneratedContent>({
-      entityType: "generated-content",
-      contentType: contentType,
-      content: formattedContent,
-      generatedBy: "claude-3-sonnet",
-    });
-  }
 }

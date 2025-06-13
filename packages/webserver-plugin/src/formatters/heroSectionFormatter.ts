@@ -1,5 +1,5 @@
 import { StructuredContentFormatter } from "@brains/structured-content";
-import { 
+import {
   landingHeroDataSchema,
   type LandingHeroData,
 } from "../content-schemas";

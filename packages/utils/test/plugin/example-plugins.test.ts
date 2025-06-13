@@ -95,7 +95,6 @@ class BlogPlugin extends ContentGeneratingPlugin {
         publishedAt: z.string(),
       }),
       contentType: "blog-post",
-      saveByDefault: true,
       formatter: this.createStructuredFormatter(
         (data: unknown) => {
           const typedData = data as {
@@ -214,7 +213,7 @@ describe("Example Plugins", () => {
   });
 
   describe("ContentGeneratingPlugin Example", () => {
-    it("should generate and save content", async () => {
+    it("should generate content", async () => {
       const plugin = new BlogPlugin({ author: "Test Author" });
       const harness = new PluginTestHarness();
 
@@ -228,15 +227,13 @@ describe("Example Plugins", () => {
       );
       expect(generateTool).toBeDefined();
 
-      // Generate without saving
+      // Generate content
       const result = await generateTool?.handler({
         topic: "TypeScript",
         style: "technical",
-        save: false,
       });
 
       expect(result).toHaveProperty("content");
-      expect(result).toHaveProperty("saved", false);
       expect((result as { content: { title: string } }).content.title).toBe(
         "Understanding TypeScript",
       );

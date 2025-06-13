@@ -175,9 +175,6 @@ export class ContentGenerationAdapter {
       contentType: params.contentType,
     };
 
-    if (params.save !== undefined) {
-      generateOptions.save = params.save;
-    }
 
     // Clean up context to remove undefined values
     if (params.context) {

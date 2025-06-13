@@ -266,7 +266,6 @@ export class Shell {
     // Initialize content generation service with dependencies
     this.contentGenerationService.initialize(
       this.queryProcessor,
-      this.entityService,
       this.contentTypeRegistry,
       this.logger,
     );

@@ -114,22 +114,17 @@ describe("generateWithTemplate", () => {
     });
   });
 
-  it("should pass persistence options when provided", async () => {
+  it("should work without persistence options", async () => {
     await generateWithTemplate(
       mockGenerateContent,
       testTemplate,
       "test:content",
-      undefined,
-      {
-        save: true,
-      },
     );
 
     expect(mockGenerateContent).toHaveBeenCalledWith({
       schema: testSchema,
       prompt: "Generate test content with title and content fields",
       contentType: "test:content",
-      save: true,
     });
   });
 
@@ -144,9 +139,6 @@ describe("generateWithTemplate", () => {
         examples: [{ title: "Example", content: "Content" }],
         style: "formal",
       },
-      {
-        save: true,
-      },
     );
 
     expect(mockGenerateContent).toHaveBeenCalledWith({
@@ -159,7 +151,6 @@ describe("generateWithTemplate", () => {
         examples: [{ title: "Example", content: "Content" }],
         style: "formal",
       },
-      save: true,
     });
   });
 
@@ -178,24 +169,6 @@ describe("generateWithTemplate", () => {
     });
   });
 
-  it("should only include save option when explicitly set", async () => {
-    await generateWithTemplate(
-      mockGenerateContent,
-      testTemplate,
-      "test:content",
-      undefined,
-      {
-        save: false,
-      },
-    );
-
-    expect(mockGenerateContent).toHaveBeenCalledWith({
-      schema: testSchema,
-      prompt: "Generate test content with title and content fields",
-      contentType: "test:content",
-      save: false,
-    });
-  });
 
   it("should use provided contentType", async () => {
     await generateWithTemplate(

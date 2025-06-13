@@ -5,13 +5,12 @@ import { createSilentLogger } from "@brains/utils";
 import { z } from "zod";
 import type { EntityService } from "../../src/entity/entityService";
 import type { AIService } from "../../src/ai/aiService";
-import type { BaseEntity, GeneratedContent } from "@brains/types";
+import type { BaseEntity } from "@brains/types";
 import type { ContentTypeRegistry } from "../../src/content/contentTypeRegistry";
 
 describe("ContentGenerationService", () => {
   let service: ContentGenerationService;
   let mockQueryProcessor: QueryProcessor;
-  let mockEntityService: EntityService;
   let mockContentTypeRegistry: ContentTypeRegistry;
 
   beforeEach(() => {
@@ -19,19 +18,6 @@ describe("ContentGenerationService", () => {
     ContentGenerationService.resetInstance();
     QueryProcessor.resetInstance();
 
-    // Create minimal mocks for what QueryProcessor needs
-    mockEntityService = {
-      search: mock(async () => []),
-      getEntityTypes: mock(() => ["base", "generated-content"]),
-      hasAdapter: mock(() => true),
-      getAdapter: mock(() => ({
-        fromMarkdown: mock(() => ({})),
-        extractMetadata: mock(() => ({})),
-      })),
-      createEntity: mock(async () => ({ id: "test-id" })),
-      getEntity: mock(async () => null),
-      listEntities: mock(async () => []),
-    } as unknown as EntityService;
 
     // Create mock for ContentTypeRegistry
     mockContentTypeRegistry = {
@@ -99,9 +85,23 @@ describe("ContentGenerationService", () => {
       ),
     };
 
+    // Create minimal mock for EntityService that QueryProcessor needs
+    const mockEntityService = {
+      search: mock(async () => []),
+      getEntityTypes: mock(() => ["base", "generated-content"]),
+      hasAdapter: mock(() => true),
+      getAdapter: mock(() => ({
+        fromMarkdown: mock(() => ({})),
+        extractMetadata: mock(() => ({})),
+      })),
+      createEntity: mock(async () => ({ id: "test-id" })),
+      getEntity: mock(async () => null),
+      listEntities: mock(async () => []),
+    } as unknown as EntityService;
+
     // Create query processor with mocks
     mockQueryProcessor = QueryProcessor.createFresh({
-      entityService: mockEntityService as unknown as EntityService,
+      entityService: mockEntityService,
       logger: createSilentLogger("test"),
       aiService: mockAIService as unknown as AIService,
     });
@@ -141,7 +141,6 @@ describe("ContentGenerationService", () => {
       expect(() =>
         service.initialize(
           mockQueryProcessor,
-          mockEntityService,
           mockContentTypeRegistry,
           createSilentLogger("test"),
         ),
@@ -167,7 +166,6 @@ describe("ContentGenerationService", () => {
     beforeEach(() => {
       service.initialize(
         mockQueryProcessor,
-        mockEntityService,
         mockContentTypeRegistry,
         createSilentLogger("test"),
       );
@@ -283,7 +281,6 @@ describe("ContentGenerationService", () => {
     it("should build enhanced prompt with all context", () => {
       service.initialize(
         mockQueryProcessor,
-        mockEntityService,
         mockContentTypeRegistry,
         createSilentLogger("test"),
       );
@@ -311,100 +308,12 @@ describe("ContentGenerationService", () => {
       expect(prompt).toContain("Example message");
     });
 
-    it("should save generated content when save option is true", async () => {
-      const generatedContent = {
-        title: "Test Title",
-        content: "Test content",
-      };
-
-      mockQueryProcessor.processQuery = mock(
-        async () => generatedContent,
-      ) as typeof mockQueryProcessor.processQuery;
-      mockEntityService.createEntity = mock(
-        async () =>
-          ({
-            id: "test-id",
-            entityType: "generated-content",
-            content: "",
-            created: new Date().toISOString(),
-            updated: new Date().toISOString(),
-          }) as GeneratedContent,
-      ) as typeof mockEntityService.createEntity;
-
-      await service.generate({
-        schema: z.object({
-          title: z.string(),
-          content: z.string(),
-        }),
-        prompt: "Generate test content",
-        contentType: "test:content",
-        save: true,
-        context: {
-          data: { topic: "testing" },
-        },
-      });
-
-      // Verify entity service was called to save
-      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
-        entityType: "generated-content",
-        contentType: "test:content",
-        content: expect.any(String), // Content is formatted immediately
-        generatedBy: expect.any(String), // Model name varies by configuration
-      });
-    });
-
-    it("should not save generated content when save option is false or undefined", async () => {
-      const generatedContent = {
-        title: "Test Title",
-        content: "Test content",
-      };
-
-      mockQueryProcessor.processQuery = mock(
-        async () => generatedContent,
-      ) as typeof mockQueryProcessor.processQuery;
-      mockEntityService.createEntity = mock(
-        async () =>
-          ({
-            id: "test-id",
-            entityType: "generated-content",
-            content: "",
-            created: new Date().toISOString(),
-            updated: new Date().toISOString(),
-          }) as GeneratedContent,
-      ) as typeof mockEntityService.createEntity;
-
-      // Test with save: false
-      await service.generate({
-        schema: z.object({
-          title: z.string(),
-          content: z.string(),
-        }),
-        prompt: "Generate test content",
-        contentType: "test:content",
-        save: false,
-      });
-
-      expect(mockEntityService.createEntity).not.toHaveBeenCalled();
-
-      // Test without save option (undefined)
-      await service.generate({
-        schema: z.object({
-          title: z.string(),
-          content: z.string(),
-        }),
-        prompt: "Generate test content",
-        contentType: "test:content",
-      });
-
-      expect(mockEntityService.createEntity).not.toHaveBeenCalled();
-    });
   });
 
   describe("Batch Generation", () => {
     beforeEach(() => {
       service.initialize(
         mockQueryProcessor,
-        mockEntityService,
         mockContentTypeRegistry,
         createSilentLogger("test"),
       );
@@ -432,7 +341,6 @@ describe("ContentGenerationService", () => {
     beforeEach(() => {
       service.initialize(
         mockQueryProcessor,
-        mockEntityService,
         mockContentTypeRegistry,
         createSilentLogger("test"),
       );
@@ -512,7 +420,6 @@ describe("ContentGenerationService", () => {
     beforeEach(() => {
       service.initialize(
         mockQueryProcessor,
-        mockEntityService,
         mockContentTypeRegistry,
         createSilentLogger("test"),
       );
@@ -560,7 +467,6 @@ describe("ContentGenerationService", () => {
 
       service.initialize(
         errorQueryProcessor,
-        mockEntityService,
         mockContentTypeRegistry,
         createSilentLogger("test"),
       );

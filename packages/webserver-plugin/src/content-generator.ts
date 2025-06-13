@@ -3,6 +3,7 @@ import type {
   PluginContext,
   GeneratedContent,
 } from "@brains/types";
+import type { SiteContent } from "./schemas";
 import {
   dashboardSchema,
   landingPageSchema,
@@ -22,6 +23,7 @@ import {
 import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
 import * as yaml from "js-yaml";
+import { getDefaultContentFormatter } from "@brains/formatters";
 
 export interface ContentGeneratorOptions {
   logger: Logger;
@@ -190,8 +192,22 @@ export class ContentGenerator {
           prompt: `Generate hero section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
           data: baseContext,
         },
-        { save: true },
       );
+      
+      // Format the content using the registered formatter or default
+      const heroFormatter = this.context.contentTypeRegistry.getFormatter("webserver:landing:hero");
+      const formattedHeroContent = heroFormatter 
+        ? heroFormatter.format(heroData) 
+        : getDefaultContentFormatter().format(heroData);
+      
+      // Save as site-content entity with formatted content
+      await this.context.entityService.createEntity<SiteContent>({
+        entityType: "site-content",
+        content: formattedHeroContent,
+        page: "landing",
+        section: "hero",
+        data: heroData,
+      });
 
       this.logger.debug("Generated hero data:", {
         hasData: !!heroData,
@@ -215,7 +231,6 @@ export class ContentGenerator {
             prompt: `Generate features section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
             data: baseContext,
           },
-          { save: true },
         );
 
         this.logger.debug("Generated features data:", {
@@ -238,6 +253,21 @@ export class ContentGenerator {
             firstFeatureType: typeof featuresData.features[0],
           });
         }
+        
+        // Format the content using the registered formatter or default
+        const featuresFormatter = this.context.contentTypeRegistry.getFormatter("webserver:landing:features");
+        const formattedFeaturesContent = featuresFormatter 
+          ? featuresFormatter.format(featuresData) 
+          : getDefaultContentFormatter().format(featuresData);
+        
+        // Save as site-content entity with formatted content
+        await this.context.entityService.createEntity<SiteContent>({
+          entityType: "site-content",
+          content: formattedFeaturesContent,
+          page: "landing",
+          section: "features",
+          data: featuresData,
+        });
       } catch (error) {
         this.logger.error("Failed to generate features section", error);
         throw error;
@@ -257,8 +287,22 @@ export class ContentGenerator {
           prompt: `Generate CTA section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
           data: baseContext,
         },
-        { save: true },
       );
+      
+      // Format the content using the registered formatter or default
+      const ctaFormatter = this.context.contentTypeRegistry.getFormatter("webserver:landing:cta");
+      const formattedCtaContent = ctaFormatter 
+        ? ctaFormatter.format(ctaData) 
+        : getDefaultContentFormatter().format(ctaData);
+      
+      // Save as site-content entity with formatted content
+      await this.context.entityService.createEntity<SiteContent>({
+        entityType: "site-content",
+        content: formattedCtaContent,
+        page: "landing",
+        section: "cta",
+        data: ctaData,
+      });
 
       // Generate landing page reference
       await sendProgress?.({
@@ -266,7 +310,7 @@ export class ContentGenerator {
         total: 4,
         message: "Generating landing page configuration",
       });
-      await generateWithTemplate(
+      const landingPageData = await generateWithTemplate(
         this.context.generateContent.bind(this.context),
         landingPageTemplate,
         "landing:index",
@@ -274,8 +318,22 @@ export class ContentGenerator {
           prompt: `Generate landing page configuration for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
           data: baseContext,
         },
-        { save: true },
       );
+      
+      // Format the content using the registered formatter or default
+      const landingFormatter = this.context.contentTypeRegistry.getFormatter("webserver:landing:index");
+      const formattedLandingContent = landingFormatter 
+        ? landingFormatter.format(landingPageData) 
+        : getDefaultContentFormatter().format(landingPageData);
+      
+      // Save as site-content entity with formatted content
+      await this.context.entityService.createEntity<SiteContent>({
+        entityType: "site-content",
+        content: formattedLandingContent,
+        page: "landing",
+        section: "index",
+        data: landingPageData,
+      });
 
       // Assemble full landing page data
       // All data is guaranteed to be non-null here due to generateWithTemplate
