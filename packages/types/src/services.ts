@@ -67,6 +67,14 @@ export interface EntityService {
     created: Date;
     updated: Date;
   }): Promise<void>;
+
+  // Derive entities
+  deriveEntity<T extends BaseEntity>(
+    sourceEntityId: string,
+    sourceEntityType: string,
+    targetEntityType: string,
+    options?: { deleteSource?: boolean },
+  ): Promise<T>;
 }
 
 /**

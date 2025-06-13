@@ -88,7 +88,8 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
     // Call parent's onRegister to actually register the content types
     await super.onRegister(context);
 
-    const { logger, registerEntityType, formatters, contentTypeRegistry } = context;
+    const { logger, registerEntityType, formatters, contentTypeRegistry } =
+      context;
 
     // Wire content type registry to site content adapter for validation
     siteContentAdapter.setContentTypeRegistry(contentTypeRegistry);
@@ -312,6 +313,57 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               },
             },
           };
+        },
+      ),
+    );
+
+    // Add promotion tool
+    tools.push(
+      this.createTool(
+        "promote_section",
+        "Promote a generated content section to editable site content",
+        toolInput()
+          .string("generatedContentId")
+          .build(),
+        async (input, _context): Promise<Record<string, unknown>> => {
+          const { generatedContentId } = input as {
+            generatedContentId: string;
+          };
+
+          try {
+            // Get the plugin context to access entityService
+            const pluginContext = this.getContext();
+            
+            // Get the source entity to extract page/section info
+            const source = await pluginContext.entityService.getEntity(
+              "generated-content",
+              generatedContentId,
+            );
+            
+            if (!source) {
+              throw new Error(`Generated content not found: ${generatedContentId}`);
+            }
+            
+            // Use entity service to derive the entity
+            const promoted = await pluginContext.entityService.deriveEntity(
+              generatedContentId,
+              "generated-content",
+              "site-content",
+            );
+
+            return {
+              success: true,
+              message: `Promoted section to site-content`,
+              promotedId: promoted.id,
+            };
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
+            return {
+              success: false,
+              error: `Failed to promote section: ${message}`,
+            };
+          }
         },
       ),
     );

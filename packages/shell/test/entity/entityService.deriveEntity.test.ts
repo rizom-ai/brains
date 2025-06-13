@@ -47,7 +47,7 @@ describe("EntityService.deriveEntity", () => {
     // Create and configure entity registry
     entityRegistry = EntityRegistry.createFresh(logger);
     const baseEntityAdapter = new BaseEntityAdapter();
-    const generatedContentAdapter = new GeneratedContentAdapter(logger);
+    const generatedContentAdapter = GeneratedContentAdapter.createFresh(logger);
     entityRegistry.registerEntityType(
       "base",
       baseEntitySchema,
@@ -130,7 +130,6 @@ describe("EntityService.deriveEntity", () => {
       sourceEntity.id,
       "generated-content",
       "base",
-      undefined,
       { deleteSource: true },
     );
 
@@ -156,24 +155,21 @@ describe("EntityService.deriveEntity", () => {
     );
   });
 
-  it("should merge additional fields into derived entity", async () => {
+  it("should copy all fields from source entity when deriving", async () => {
     // Create a base entity
     const sourceEntity = await entityService.createEntity({
       entityType: "base",
       content: "Original content",
     });
 
-    // Derive to another base entity with modified content
+    // Derive to another base entity
     const derivedEntity = await entityService.deriveEntity(
       sourceEntity.id,
       "base",
       "base",
-      {
-        content: "New content with modifications",
-      },
     );
 
-    expect(derivedEntity.content).toBe("New content with modifications");
+    expect(derivedEntity.content).toBe("Original content");
     expect(derivedEntity.id).not.toBe(sourceEntity.id); // Should have new ID
     expect(derivedEntity.entityType).toBe("base");
   });

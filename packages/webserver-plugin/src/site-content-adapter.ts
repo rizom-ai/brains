@@ -16,14 +16,13 @@ const frontmatterSchema = z.object({
   section: z.string(),
 });
 
-
 /**
  * Entity adapter for site content with schema validation support
  */
 export class SiteContentAdapter implements EntityAdapter<SiteContent> {
   public readonly entityType = "site-content";
   public readonly schema = siteContentSchema;
-  
+
   private contentTypeRegistry: Pick<ContentTypeRegistry, "get"> | null = null;
   private logger: Logger;
 
@@ -34,7 +33,9 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
   /**
    * Set the content type registry for schema validation
    */
-  public setContentTypeRegistry(registry: Pick<ContentTypeRegistry, "get">): void {
+  public setContentTypeRegistry(
+    registry: Pick<ContentTypeRegistry, "get">,
+  ): void {
     this.contentTypeRegistry = registry;
     this.logger.debug("ContentTypeRegistry set for schema validation");
   }
@@ -75,16 +76,19 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
 
     // Validate against registered schema if available
     if (this.contentTypeRegistry && metadata.page && metadata.section) {
-      const contentType = this.resolveContentType(metadata.page, metadata.section);
+      const contentType = this.resolveContentType(
+        metadata.page,
+        metadata.section,
+      );
       const schema = this.contentTypeRegistry.get(contentType);
-      
+
       if (schema) {
         this.logger.debug("Validating content against schema", {
           contentType,
           page: metadata.page,
           section: metadata.section,
         });
-        
+
         try {
           // Validate and parse with proper schema
           parsedData = schema.parse(parsedData) as Record<string, unknown>;

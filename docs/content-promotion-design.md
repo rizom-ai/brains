@@ -7,10 +7,12 @@ The content promotion system enables the transformation of immutable generated c
 ## Problem Statement
 
 Currently, the system has:
+
 - **Generated Content**: Immutable content created by AI (stored as `generated-content` entities)
 - **User Content**: Editable content (e.g., `site-content` entities)
 
 The challenge is that generated content cannot be edited directly. Users need a way to "promote" generated content to become editable while:
+
 1. Preserving the original generated version
 2. Maintaining formatting consistency
 3. Tracking the relationship between generated and promoted content
@@ -21,6 +23,7 @@ The challenge is that generated content cannot be edited directly. Users need a 
 ### 1. Content Promotion Service
 
 Create a new `ContentPromotionService` in the shell that handles:
+
 - Converting `generated-content` entities to appropriate editable entity types
 - Tracking promotion relationships through metadata
 - Validating content compatibility between types
@@ -29,14 +32,14 @@ Create a new `ContentPromotionService` in the shell that handles:
 ```typescript
 // packages/shell/src/content/contentPromotionService.ts
 export interface PromotionOptions {
-  sourceId: string;              // Generated content entity ID
-  targetEntityType: string;      // Target entity type (e.g., "site-content")
+  sourceId: string; // Generated content entity ID
+  targetEntityType: string; // Target entity type (e.g., "site-content")
   targetMetadata?: Record<string, unknown>; // Additional metadata for target
 }
 
 export interface PromotionResult {
-  promotedEntity: BaseEntity;    // The newly created editable entity
-  relationshipId: string;        // Tracking ID for the promotion relationship
+  promotedEntity: BaseEntity; // The newly created editable entity
+  relationshipId: string; // Tracking ID for the promotion relationship
 }
 ```
 
@@ -48,13 +51,13 @@ Extract common formatting logic to enable code reuse:
 // packages/shell/src/content/formatters/sharedFormatterBase.ts
 export abstract class SharedFormatterBase<T> implements ContentFormatter<T> {
   // Common parsing logic
-  protected parseYamlContent(content: string): unknown { }
-  
+  protected parseYamlContent(content: string): unknown {}
+
   // Common formatting logic
-  protected formatToYaml(data: T): string { }
-  
+  protected formatToYaml(data: T): string {}
+
   // Common validation
-  protected validateContent(data: unknown, schema: ZodSchema): T { }
+  protected validateContent(data: unknown, schema: ZodSchema): T {}
 }
 ```
 
@@ -100,7 +103,7 @@ export const promoteContentTool: McpTool = {
   }),
   handler: async (input, context) => {
     // Use ContentPromotionService to promote content
-  }
+  },
 };
 ```
 
@@ -109,6 +112,7 @@ export const promoteContentTool: McpTool = {
 The roundtrip pattern leverages the fact that each content section is stored as an independent entity:
 
 ### Content Structure
+
 - Each section (hero, features, cta, etc.) is a separate entity
 - Content types follow pattern: `plugin:section:name` (e.g., `webserver:section:hero`)
 - Sections can be generated, promoted, and regenerated independently
@@ -116,6 +120,7 @@ The roundtrip pattern leverages the fact that each content section is stored as 
 ### Roundtrip Flow
 
 1. **Initial Generation**
+
    ```
    Generate sections → Multiple generated-content entities
    - webserver:section:hero → generated-content-123
@@ -124,6 +129,7 @@ The roundtrip pattern leverages the fact that each content section is stored as 
    ```
 
 2. **Promotion**
+
    ```
    Promote each section → Multiple site-content entities
    - generated-content-123 → site-content-abc (page: landing, section: hero)
@@ -132,6 +138,7 @@ The roundtrip pattern leverages the fact that each content section is stored as 
    ```
 
 3. **User Edits**
+
    - User edits markdown files via git
    - Changes sync back to site-content entities
    - Each section remains independent
@@ -163,7 +170,7 @@ export const regenerateSectionsTask: McpTool = {
   }),
   handler: async (input, context) => {
     const results = [];
-    
+
     for (const section of input.sections) {
       // 1. Generate new content for this section
       const generated = await context.generateContent({
@@ -172,12 +179,12 @@ export const regenerateSectionsTask: McpTool = {
         schema: sectionSchemas[section],
         save: true,
       });
-      
+
       // 2. Get the generated content entity ID
       const generatedEntity = await findLatestGeneratedContent(
-        `webserver:section:${section}`
+        `webserver:section:${section}`,
       );
-      
+
       // 3. Promote to replace existing site-content
       const promoted = await context.promoteContent({
         sourceId: generatedEntity.id,
@@ -187,10 +194,10 @@ export const regenerateSectionsTask: McpTool = {
           section: section,
         },
       });
-      
+
       results.push(promoted);
     }
-    
+
     return results;
   },
 };
@@ -199,21 +206,25 @@ export const regenerateSectionsTask: McpTool = {
 ## Implementation Plan
 
 ### Phase 1: Core Infrastructure
+
 1. Create `ContentPromotionService` with basic promotion logic
 2. Add promotion relationship tracking to entity metadata
 3. Create shared formatter base class
 
 ### Phase 2: Adapter Updates
+
 1. Update `GeneratedContentAdapter` to track promotions
 2. Update `SiteContentAdapter` to track origin
 3. Ensure both adapters use shared formatting logic
 
 ### Phase 3: Plugin Integration
+
 1. Add `promote-content` tool to webserver plugin
 2. Add `regenerate-sections` tool for selective regeneration
 3. Create UI/CLI commands for content promotion
 
 ### Phase 4: Advanced Features
+
 1. Bulk operations (promote/regenerate multiple sections)
 2. Section templates and variations
 3. A/B testing support (multiple versions of sections)
@@ -229,18 +240,22 @@ export const regenerateSectionsTask: McpTool = {
 ## Technical Considerations
 
 ### Content Type Compatibility
+
 - Promotion service validates that source content type can be promoted to target entity type
 - Plugins register promotion mappings (e.g., `webserver:section:hero` → `site-content`)
 
 ### Data Transformation
+
 - Content structure remains the same during promotion
 - Only entity metadata changes (type, page, section)
 
 ### Metadata Preservation
+
 - Important metadata (creation date, generator) is preserved in promotion relationship
 - New metadata (promotion date, user) is added to promoted entity
 
 ### Immutability Enforcement
+
 - Generated content remains immutable after promotion
 - Only the promoted copy can be edited
 - Clear visual/API distinction between generated and promoted content

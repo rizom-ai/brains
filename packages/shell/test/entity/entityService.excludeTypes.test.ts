@@ -47,7 +47,7 @@ describe("EntityService search with excludeTypes", () => {
     // Create and configure entity registry
     entityRegistry = EntityRegistry.createFresh(logger);
     const baseEntityAdapter = new BaseEntityAdapter();
-    const generatedContentAdapter = new GeneratedContentAdapter(logger);
+    const generatedContentAdapter = GeneratedContentAdapter.createFresh(logger);
     entityRegistry.registerEntityType(
       "base",
       baseEntitySchema,

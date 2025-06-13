@@ -611,7 +611,6 @@ export class EntityService {
     sourceEntityId: string,
     sourceEntityType: string,
     targetEntityType: string,
-    additionalFields?: Partial<T>,
     options?: { deleteSource?: boolean },
   ): Promise<T> {
     // Get the source entity
@@ -634,7 +633,6 @@ export class EntityService {
 
     const derived = await this.createEntity<T>({
       ...sourceFields,
-      ...additionalFields,
       entityType: targetEntityType,
     } as T);
 

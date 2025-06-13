@@ -204,7 +204,6 @@ describe("ContentGenerationAdapter", () => {
         "generated-content",
         "note",
         undefined,
-        undefined,
       );
 
       expect(result).toEqual({
@@ -214,7 +213,7 @@ describe("ContentGenerationAdapter", () => {
       });
     });
 
-    it("should pass additional fields when provided", async () => {
+    it("should ignore additional fields", async () => {
       const deriveEntitySpy = mockEntityService.deriveEntity as ReturnType<
         typeof mock
       >;
@@ -229,7 +228,6 @@ describe("ContentGenerationAdapter", () => {
         "source-123",
         "generated-content",
         "note",
-        { title: "Custom Title", tags: ["promoted", "test"] },
         undefined,
       );
     });
@@ -249,7 +247,6 @@ describe("ContentGenerationAdapter", () => {
         "source-123",
         "generated-content",
         "note",
-        undefined,
         { deleteSource: true },
       );
     });

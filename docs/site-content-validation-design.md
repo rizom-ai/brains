@@ -7,11 +7,13 @@ This document outlines the design for adding schema validation to user-editable 
 ## Problem Statement
 
 Currently, the system has a critical gap:
+
 - **Content Generation**: Uses strongly-typed schemas (e.g., `landingHeroDataSchema`)
 - **Site Content Storage**: Uses untyped `data: z.record(z.unknown())`
 - **Result**: When content is promoted or edited, we lose type validation
 
 This means:
+
 1. User edits via markdown files are not validated
 2. Malformed content can break the website build
 3. No compile-time or runtime guarantees about content structure
@@ -48,9 +50,12 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
 
     // Validate against registered schema if available
     if (this.contentTypeRegistry && metadata.page && metadata.section) {
-      const contentType = this.resolveContentType(metadata.page, metadata.section);
+      const contentType = this.resolveContentType(
+        metadata.page,
+        metadata.section,
+      );
       const schema = this.contentTypeRegistry.get(contentType);
-      
+
       if (schema) {
         // Validate and parse with proper schema
         parsedData = schema.parse(parsedData);
@@ -83,11 +88,13 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
 ### Phase 1: Core Validation
 
 1. **Update SiteContentAdapter**
+
    - Add ContentTypeRegistry dependency
    - Implement schema lookup based on page/section
    - Validate data during fromMarkdown
 
 2. **Update Webserver Plugin**
+
    - Wire ContentTypeRegistry to adapter during registration
    - Ensure all content types are registered before adapter is used
 
@@ -98,6 +105,7 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
 ### Phase 2: Type Safety Improvements
 
 1. **Typed Site Content**
+
    ```typescript
    // Instead of generic Record<string, unknown>
    export interface TypedSiteContent<T = unknown> extends SiteContent {
@@ -110,13 +118,14 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
    // Register page/section mappings
    contentTypeRegistry.registerMapping(
      { page: "landing", section: "hero" },
-     "webserver:section:hero"
+     "webserver:section:hero",
    );
    ```
 
 ### Phase 3: Developer Experience
 
 1. **Validation Commands**
+
    - Tool to validate all site-content entities
    - Pre-commit hooks for markdown validation
 

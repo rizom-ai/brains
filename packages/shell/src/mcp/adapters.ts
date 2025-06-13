@@ -271,7 +271,6 @@ export class ContentGenerationAdapter {
       params.generatedContentId,
       "generated-content",
       params.targetEntityType,
-      params.additionalFields,
       params.deleteOriginal
         ? { deleteSource: params.deleteOriginal }
         : undefined,

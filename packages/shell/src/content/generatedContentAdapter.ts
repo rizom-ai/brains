@@ -40,6 +40,8 @@ const generatedContentFrontmatterSchema = z.object({
 });
 
 export class GeneratedContentAdapter implements IGeneratedContentAdapter {
+  private static instance: GeneratedContentAdapter | null = null;
+  
   public readonly entityType = "generated-content";
   public readonly schema = generatedContentSchema;
 
@@ -50,7 +52,26 @@ export class GeneratedContentAdapter implements IGeneratedContentAdapter {
   } | null = null;
   private logger: Logger;
 
-  constructor(logger?: Logger) {
+  // Singleton access with optional logger
+  public static getInstance(logger?: Logger): GeneratedContentAdapter {
+    if (!GeneratedContentAdapter.instance) {
+      GeneratedContentAdapter.instance = new GeneratedContentAdapter(logger);
+    }
+    return GeneratedContentAdapter.instance;
+  }
+
+  // Testing reset
+  public static resetInstance(): void {
+    GeneratedContentAdapter.instance = null;
+  }
+
+  // Isolated instance creation
+  public static createFresh(logger?: Logger): GeneratedContentAdapter {
+    return new GeneratedContentAdapter(logger);
+  }
+
+  // Private constructor to enforce factory methods
+  private constructor(logger?: Logger) {
     this.logger = (logger ?? Logger.getInstance()).child(
       "GeneratedContentAdapter",
     );

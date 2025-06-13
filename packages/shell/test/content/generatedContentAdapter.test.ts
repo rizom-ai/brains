@@ -8,7 +8,7 @@ describe("GeneratedContentAdapter", () => {
 
   beforeEach(() => {
     const silentLogger = createSilentLogger("test");
-    adapter = new GeneratedContentAdapter(silentLogger);
+    adapter = GeneratedContentAdapter.createFresh(silentLogger);
   });
 
   const createTestEntity = (

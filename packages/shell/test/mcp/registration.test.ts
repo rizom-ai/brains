@@ -323,7 +323,6 @@ describe("MCP Registration", () => {
       "generated-content",
       "note",
       undefined,
-      undefined,
     );
 
     // Check the result format
@@ -334,7 +333,7 @@ describe("MCP Registration", () => {
     expect(parsedResult.message).toBe("Promoted to note: promoted-entity-123");
   });
 
-  it("should handle promote_generated_content with additional fields", async () => {
+  it("should handle promote_generated_content ignoring additional fields", async () => {
     // Register shell with MCP
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
@@ -367,12 +366,11 @@ describe("MCP Registration", () => {
       },
     });
 
-    // Check that deriveEntity was called with additional fields
+    // Check that deriveEntity was called WITHOUT additional fields (they are ignored now)
     expect(mockServices.entityService.deriveEntity).toHaveBeenCalledWith(
       "source-entity-123",
       "generated-content",
       "note",
-      { title: "Custom Title", tags: ["promoted", "test"] },
       undefined,
     );
   });

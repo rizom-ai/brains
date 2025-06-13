@@ -20,7 +20,7 @@ describe("SiteContentAdapter Validation", () => {
     } as unknown as Logger;
 
     adapter = new SiteContentAdapter(mockLogger);
-    
+
     // Create mock registry
     mockRegistry = {
       get: mock((contentType: string) => {
