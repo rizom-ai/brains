@@ -489,7 +489,9 @@ export class Shell {
     this.logger.debug("Registering generated content entity support");
 
     // Create generated content adapter
-    const generatedContentAdapter = GeneratedContentAdapter.getInstance(this.logger);
+    const generatedContentAdapter = GeneratedContentAdapter.getInstance(
+      this.logger,
+    );
 
     // Connect the adapter to the content type registry
     // This allows it to get formatters registered by plugins

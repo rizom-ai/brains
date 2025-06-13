@@ -322,9 +322,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
       this.createTool(
         "promote_section",
         "Promote a generated content section to editable site content",
-        toolInput()
-          .string("generatedContentId")
-          .build(),
+        toolInput().string("generatedContentId").build(),
         async (input, _context): Promise<Record<string, unknown>> => {
           const { generatedContentId } = input as {
             generatedContentId: string;
@@ -333,17 +331,19 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
           try {
             // Get the plugin context to access entityService
             const pluginContext = this.getContext();
-            
+
             // Get the source entity to extract page/section info
             const source = await pluginContext.entityService.getEntity(
               "generated-content",
               generatedContentId,
             );
-            
+
             if (!source) {
-              throw new Error(`Generated content not found: ${generatedContentId}`);
+              throw new Error(
+                `Generated content not found: ${generatedContentId}`,
+              );
             }
-            
+
             // Use entity service to derive the entity
             const promoted = await pluginContext.entityService.deriveEntity(
               generatedContentId,

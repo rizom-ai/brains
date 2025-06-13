@@ -41,7 +41,7 @@ const generatedContentFrontmatterSchema = z.object({
 
 export class GeneratedContentAdapter implements IGeneratedContentAdapter {
   private static instance: GeneratedContentAdapter | null = null;
-  
+
   public readonly entityType = "generated-content";
   public readonly schema = generatedContentSchema;
 
