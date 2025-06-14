@@ -37,6 +37,13 @@ export interface ContentTemplate<T = unknown> {
    * If not provided, a default YAML formatter will be used.
    */
   formatter?: ContentFormatter<T>;
+  /**
+   * For collection content types that contain multiple items.
+   * Each item is itself a ContentTemplate.
+   */
+  items?: {
+    [itemKey: string]: ContentTemplate<unknown>;
+  };
 }
 
 /**

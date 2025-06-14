@@ -213,7 +213,106 @@ Implement preview/production environment separation for content workflow:
    - Add rollback tool to revert to previous versions
    - Track promotion history in metadata
 
-### Phase 6: Content Editing Features
+### Phase 6: Collection-Based Content Architecture
+
+Implement a collection-based content model to eliminate hardcoded template imports and enable generic content generation:
+
+1. **Collection Model**
+
+   Collections are content types that contain multiple related items, where each item is itself a ContentTemplate. We use a single interface to keep the registry simple:
+
+   ```typescript
+   interface ContentTemplate<T> {
+     schema: z.ZodType<T>;
+     basePrompt?: string;
+     formatter?: ContentFormatter<T>;
+     // For collection content types (validated at registration)
+     items?: {
+       [itemKey: string]: ContentTemplate<any>;
+     };
+   }
+   ```
+
+2. **Generic Content Generation**
+
+   Move content generation from plugins to shell:
+
+   - Create ContentGenerationService in shell package
+   - Service discovers collection structure from ContentTypeRegistry
+   - Handles both simple templates and collections:
+     ```typescript
+     async generate(contentType: string) {
+       const template = registry.get(contentType);
+       if (template.items) {
+         // Collection: generate each item
+         for (const [key, itemTemplate] of Object.entries(template.items)) {
+           const data = await generateWithTemplate(itemTemplate);
+           // Save with collection/item metadata
+         }
+       } else {
+         // Simple content generation
+       }
+     }
+     ```
+   - Manages environments and persistence generically
+   - No knowledge of specific content types needed
+
+3. **Plugin Simplification**
+
+   Plugins only declare content structure:
+
+   ```typescript
+   // Define item templates
+   const heroTemplate: ContentTemplate<HeroData> = {
+     schema: heroSchema,
+     formatter: heroFormatter,
+     basePrompt: "Generate a hero section...",
+   };
+
+   const featuresTemplate: ContentTemplate<FeaturesData> = {
+     schema: featuresSchema,
+     formatter: featuresFormatter,
+     basePrompt: "Generate features section...",
+   };
+
+   // Register collection with its items
+   registry.register("webserver:landing", {
+     schema: landingCollectionSchema,
+     items: {
+       hero: heroTemplate,
+       features: featuresTemplate,
+       cta: ctaTemplate,
+     },
+   });
+   ```
+
+4. **Benefits**
+
+   - **No Hardcoded Imports**: Collections dynamically declare their structure
+   - **Reusable Templates**: Items are full ContentTemplates with all capabilities
+   - **Generic Operations**: Shell can generate any collection without specific knowledge
+   - **Clean Separation**: Plugins declare content, shell handles generation
+   - **Simple Registry**: Single interface keeps ContentTypeRegistry unchanged
+   - **Extensible**: Easy to add new collections or items
+
+5. **Implementation Details**
+
+   - **Naming Convention**:
+     - Items: `plugin:collection:item` (e.g., `webserver:landing:hero`)
+     - Collections: `plugin:collection` (e.g., `webserver:landing`)
+   - **Storage**: Items stored as individual entities with collection/item metadata
+   - **Assembly**: Collections assembled from items when needed (e.g., for YAML)
+   - **Validation**: Registry validates that collections have required `items` field
+
+6. **Migration Path**
+
+   - Phase 6a: Update ContentTemplate interface in @brains/types
+   - Phase 6b: Create ContentGenerationService in shell
+   - Phase 6c: Refactor webserver plugin to use collections
+   - Phase 6d: Remove ContentGenerator from webserver
+   - Phase 6e: Update tools to use shell's content generation
+
+### Phase 7: Content Editing Features
 
 Add comprehensive content editing capabilities:
 
