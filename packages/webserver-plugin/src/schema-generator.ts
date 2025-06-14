@@ -34,7 +34,8 @@ export async function generateContentConfigFile(
       });
 
       // Convert JSON Schema back to Zod code
-      const zodCode = await jsonSchemaToZod(jsonSchema as any, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const zodCode = jsonSchemaToZod(jsonSchema as any, {
         name: schemaName,
         type: false, // Don't generate TypeScript types
       });

@@ -34,14 +34,14 @@ export class ContentRegistry {
   /**
    * Get a template by key
    */
-  getTemplate<T = any>(key: string): ContentTemplate<T> | undefined {
+  getTemplate<T = unknown>(key: string): ContentTemplate<T> | undefined {
     return this.templates.get(key) as ContentTemplate<T> | undefined;
   }
 
   /**
    * Get all templates
    */
-  getAllTemplates(): ContentTemplate<any>[] {
+  getAllTemplates(): ContentTemplate<unknown>[] {
     return Array.from(this.templates.values());
   }
 

@@ -79,7 +79,9 @@ export class ContentTypeRegistry {
   /**
    * Get formatter for a content type
    */
-  public getFormatter<T = unknown>(contentType: string): ContentFormatter<T> | null {
+  public getFormatter<T = unknown>(
+    contentType: string,
+  ): ContentFormatter<T> | null {
     const formatter = this.formatters.get(contentType);
     return formatter ? (formatter as ContentFormatter<T>) : null;
   }

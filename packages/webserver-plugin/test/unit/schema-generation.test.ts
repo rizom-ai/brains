@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { generateContentConfigFile } from "../../src/schema-generator";
+import type { ContentRegistry } from "../../src/content/registry";
 import { contentRegistry } from "../../src/content/registry";
 import { z } from "zod";
 
@@ -94,7 +95,7 @@ describe("Schema Generation", () => {
           }
           return null;
         },
-      } as any;
+      } as unknown as ContentRegistry;
 
       const config = await generateContentConfigFile(testRegistry);
 

@@ -15,6 +15,15 @@ import { contentRegistry } from "./content";
 import { webserverConfigSchema, type WebserverConfig } from "./config";
 
 /**
+ * Filter type for site content queries
+ */
+interface SiteContentFilter extends Record<string, unknown> {
+  page: string;
+  section?: string;
+  environment: "preview" | "production";
+}
+
+/**
  * Webserver plugin that extends ContentGeneratingPlugin
  * Generates and serves static websites from Personal Brain content
  */
@@ -48,14 +57,14 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
     for (const key of contentRegistry.getTemplateKeys()) {
       const template = contentRegistry.getTemplate(key);
       if (template) {
-        const config: any = {
-          contentType: key,
-          schema: template.schema,
-        };
         if (template.formatter) {
-          config.formatter = template.formatter;
+          const config = {
+            contentType: key,
+            schema: template.schema,
+            formatter: template.formatter,
+          };
+          this.registerContentType(key, config);
         }
-        this.registerContentType(key, config);
       }
     }
 
@@ -348,7 +357,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
             const entityService = this.context.entityService;
 
             // Find all preview content for the page/section
-            const filter: any = { page, environment: "preview" };
+            const filter: SiteContentFilter = { page, environment: "preview" };
             if (section) {
               filter.section = section;
             }
@@ -432,7 +441,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
             const previewSummary = preview.reduce(
               (acc, c) => {
                 const key = `${c.page}:${c.section}`;
-                acc[key] = (acc[key] || 0) + 1;
+                acc[key] = (acc[key] ?? 0) + 1;
                 return acc;
               },
               {} as Record<string, number>,
@@ -441,7 +450,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
             const productionSummary = production.reduce(
               (acc, c) => {
                 const key = `${c.page}:${c.section}`;
-                acc[key] = (acc[key] || 0) + 1;
+                acc[key] = (acc[key] ?? 0) + 1;
                 return acc;
               },
               {} as Record<string, number>,
@@ -477,10 +486,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
       this.createTool(
         "rollback_content",
         "Rollback production content to preview (reverts promotion)",
-        toolInput()
-          .string("page")
-          .optionalString("section")
-          .build(),
+        toolInput().string("page").optionalString("section").build(),
         async (input): Promise<Record<string, unknown>> => {
           const { page, section } = input as { page: string; section?: string };
 
@@ -489,17 +495,20 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               throw new Error("Plugin context not initialized");
             }
             const entityService = this.context.entityService;
-            
+
             // Find all production content for the page/section
-            const filter: any = { page, environment: "production" };
+            const filter: SiteContentFilter = {
+              page,
+              environment: "production",
+            };
             if (section) {
               filter.section = section;
             }
 
-            const productionContent = await entityService.listEntities<SiteContent>(
-              "site-content",
-              { filter: { metadata: filter } }
-            );
+            const productionContent =
+              await entityService.listEntities<SiteContent>("site-content", {
+                filter: { metadata: filter },
+              });
 
             if (productionContent.length === 0) {
               return {
@@ -509,7 +518,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
             }
 
             const rolledBack: string[] = [];
-            
+
             // Delete production content to effectively rollback
             for (const content of productionContent) {
               await entityService.deleteEntity(content.id);
@@ -523,7 +532,8 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               hint: "Production content removed. Preview content remains unchanged.",
             };
           } catch (error) {
-            const message = error instanceof Error ? error.message : "Unknown error";
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
             return {
               success: false,
               error: message,
@@ -544,8 +554,8 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
           .boolean("force", false)
           .build(),
         async (input, context): Promise<Record<string, unknown>> => {
-          const { page, section, force } = input as { 
-            page?: string; 
+          const { page, section, force } = input as {
+            page?: string;
             section?: string;
             force?: boolean;
           };
@@ -560,7 +570,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               await this.manager.generateContent(context?.sendProgress, force);
               return {
                 success: true,
-                message: force 
+                message: force
                   ? "Regenerated all content to preview environment"
                   : "Generated missing content to preview environment",
                 hint: "Use 'promote_content' to move content to production",
@@ -569,7 +579,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
 
             // Generate specific page/section
             const sectionsToGenerate: string[] = [];
-            
+
             if (section) {
               // Generate specific section
               sectionsToGenerate.push(`${page}:${section}`);
@@ -577,7 +587,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               // Generate all sections for the page
               const registry = contentRegistry;
               const allKeys = registry.getTemplateKeys();
-              
+
               for (const key of allKeys) {
                 if (key.startsWith(`${page}:`)) {
                   sectionsToGenerate.push(key);
@@ -602,16 +612,16 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               await context?.sendProgress?.({
                 progress: currentStep++,
                 total: totalSteps,
-                message: `${force ? 'Regenerating' : 'Checking'} ${templateKey}`,
+                message: `${force ? "Regenerating" : "Checking"} ${templateKey}`,
               });
 
               const result = await this.manager.generateContentForSection(
-                templateKey, 
+                templateKey,
                 "preview",
                 force,
-                context?.sendProgress
+                context?.sendProgress,
               );
-              
+
               if (result.generated) {
                 generated.push(templateKey);
               } else {

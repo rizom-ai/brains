@@ -1,10 +1,11 @@
 import type { BaseEntity, PluginContext } from "@brains/types";
 import type { SiteContent } from "./schemas";
-import { z } from "zod";
+import type { z } from "zod";
 import type { DashboardData } from "./content/dashboard/index/schema";
 import type { LandingHeroData } from "./content/landing/hero/schema";
 import type { FeaturesSection } from "./content/landing/features/schema";
 import type { CTASection } from "./content/landing/cta/schema";
+import type { LandingPageData } from "./content/landing/index/schema";
 import type { Logger } from "@brains/utils";
 import { generateWithTemplate } from "@brains/utils";
 import { join } from "path";
@@ -100,19 +101,25 @@ export class ContentGenerator {
     this.logger.info("Generating landing page data");
 
     // Check for existing sections individually
-    const existingHero = await this.getExistingSiteContent<LandingHeroData>("landing", "hero");
+    const existingHero = await this.getExistingSiteContent<LandingHeroData>(
+      "landing",
+      "hero",
+    );
     const existingFeatures = await this.getExistingSiteContent<FeaturesSection>(
       "landing",
       "features",
     );
-    const existingCta = await this.getExistingSiteContent<CTASection>("landing", "cta");
+    const existingCta = await this.getExistingSiteContent<CTASection>(
+      "landing",
+      "cta",
+    );
 
     // Get the landing page schema from registry for validation
-    const landingTemplate = contentRegistry.getTemplate("landing:index");
+    const landingTemplate =
+      contentRegistry.getTemplate<LandingPageData>("landing:index");
     if (!landingTemplate) {
       throw new Error("Landing page template not found in registry");
     }
-    type LandingPageData = z.infer<typeof landingTemplate.schema>;
 
     let landingData: LandingPageData | undefined;
     let validExistingContent = false;
@@ -123,9 +130,9 @@ export class ContentGenerator {
         landingData = {
           title: this.options.siteTitle,
           tagline: this.options.siteDescription,
-          hero: existingHero as any,
-          features: existingFeatures as any,
-          cta: existingCta as any,
+          hero: existingHero,
+          features: existingFeatures,
+          cta: existingCta,
         };
 
         // Validate the assembled data
@@ -166,9 +173,9 @@ export class ContentGenerator {
         siteDescription: this.options.siteDescription,
       };
 
-      let heroData = existingHero;
-      let featuresData = existingFeatures;
-      let ctaData = existingCta;
+      let heroData: LandingHeroData | null = existingHero;
+      let featuresData: FeaturesSection | null = existingFeatures;
+      let ctaData: CTASection | null = existingCta;
       let currentStep = 0;
       const totalSteps = 4;
 
@@ -177,13 +184,17 @@ export class ContentGenerator {
         await sendProgress?.({
           progress: ++currentStep,
           total: totalSteps,
-          message: force && heroData ? "Regenerating hero section" : "Generating hero section",
+          message:
+            force && heroData
+              ? "Regenerating hero section"
+              : "Generating hero section",
         });
-        const heroTemplate = contentRegistry.getTemplate("landing:hero");
+        const heroTemplate =
+          contentRegistry.getTemplate<LandingHeroData>("landing:hero");
         if (!heroTemplate) {
           throw new Error("Hero template not found in registry");
         }
-        heroData = await generateWithTemplate<z.infer<typeof heroTemplate.schema>>(
+        heroData = await generateWithTemplate<LandingHeroData>(
           this.context.generateContent.bind(this.context),
           heroTemplate,
           "landing:hero",
@@ -223,16 +234,19 @@ export class ContentGenerator {
         await sendProgress?.({
           progress: ++currentStep,
           total: totalSteps,
-          message: force && featuresData ? "Regenerating features section" : "Generating features section",
+          message:
+            force && featuresData
+              ? "Regenerating features section"
+              : "Generating features section",
         });
 
         try {
           const featuresTemplate =
-            contentRegistry.getTemplate("landing:features");
+            contentRegistry.getTemplate<FeaturesSection>("landing:features");
           if (!featuresTemplate) {
             throw new Error("Features template not found in registry");
           }
-          featuresData = await generateWithTemplate<z.infer<typeof featuresTemplate.schema>>(
+          featuresData = await generateWithTemplate<FeaturesSection>(
             this.context.generateContent.bind(this.context),
             featuresTemplate,
             "landing:features",
@@ -242,45 +256,37 @@ export class ContentGenerator {
             },
           );
 
-        this.logger.debug("Generated features data:", {
-          hasData: !!featuresData,
-          features: featuresData!.features.length || 0,
-          rawData: JSON.stringify(featuresData, null, 2),
-        });
+          this.logger.debug("Generated features data:", {
+            hasData: !!featuresData,
+            features: featuresData.features.length,
+            rawData: JSON.stringify(featuresData, null, 2),
+          });
 
-        // Validate the features data
-        if (featuresTemplate) {
+          // Validate the features data
           const validation = featuresTemplate.schema.safeParse(featuresData);
           if (!validation.success) {
             this.logger.error("Features validation failed", {
               errors: validation.error.errors,
-              data: featuresData,
-              featuresArray: featuresData!.features,
-              firstFeature: featuresData!.features[0],
-              featuresType: Array.isArray(featuresData!.features)
-                ? "array"
-                : typeof featuresData!.features,
-              firstFeatureType: typeof featuresData!.features[0],
             });
           }
-        }
 
-        // Format the content using the registered formatter or default
-        const featuresFormatter = this.context.contentTypeRegistry.getFormatter(
-          "webserver:landing:features",
-        );
-        const formattedFeaturesContent = featuresFormatter
-          ? featuresFormatter.format(featuresData)
-          : getDefaultContentFormatter().format(featuresData);
+          // Format the content using the registered formatter or default
+          const featuresFormatter =
+            this.context.contentTypeRegistry.getFormatter(
+              "webserver:landing:features",
+            );
+          const formattedFeaturesContent = featuresFormatter
+            ? featuresFormatter.format(featuresData)
+            : getDefaultContentFormatter().format(featuresData);
 
-        // Save as site-content entity with formatted content
-        await this.context.entityService.createEntity<SiteContent>({
-          entityType: "site-content",
-          content: formattedFeaturesContent,
-          page: "landing",
-          section: "features",
-          environment: "preview", // Always generate to preview
-        });
+          // Save as site-content entity with formatted content
+          await this.context.entityService.createEntity<SiteContent>({
+            entityType: "site-content",
+            content: formattedFeaturesContent,
+            page: "landing",
+            section: "features",
+            environment: "preview", // Always generate to preview
+          });
         } catch (error) {
           this.logger.error("Failed to generate features section", error);
           throw error;
@@ -294,13 +300,17 @@ export class ContentGenerator {
         await sendProgress?.({
           progress: ++currentStep,
           total: totalSteps,
-          message: force && ctaData ? "Regenerating CTA section" : "Generating CTA section",
+          message:
+            force && ctaData
+              ? "Regenerating CTA section"
+              : "Generating CTA section",
         });
-        const ctaTemplate = contentRegistry.getTemplate("landing:cta");
+        const ctaTemplate =
+          contentRegistry.getTemplate<CTASection>("landing:cta");
         if (!ctaTemplate) {
           throw new Error("CTA template not found in registry");
         }
-        ctaData = await generateWithTemplate<z.infer<typeof ctaTemplate.schema>>(
+        ctaData = await generateWithTemplate<CTASection>(
           this.context.generateContent.bind(this.context),
           ctaTemplate,
           "landing:cta",
@@ -350,7 +360,7 @@ export class ContentGenerator {
       this.logger.debug("Assembled landing page data", {
         hasHero: true,
         hasFeatures: true,
-        featuresCount: featuresData!.features.length || 0,
+        featuresCount: featuresData.features.length,
         hasCta: true,
       });
     }
@@ -398,9 +408,14 @@ export class ContentGenerator {
 
     // Check for existing dashboard content
     if (!force) {
-      const existingDashboard = await this.getExistingSiteContent("dashboard", "index");
+      const existingDashboard = await this.getExistingSiteContent(
+        "dashboard",
+        "index",
+      );
       if (existingDashboard) {
-        this.logger.info("Dashboard content already exists, skipping generation");
+        this.logger.info(
+          "Dashboard content already exists, skipping generation",
+        );
         return;
       }
     }
@@ -537,7 +552,7 @@ export class ContentGenerator {
       const formatter = this.context.contentTypeRegistry.getFormatter<T>(
         namespacedContentType,
       );
-      if (formatter && formatter.parse) {
+      if (formatter?.parse) {
         try {
           return formatter.parse(matchingContent.content);
         } catch (error) {
@@ -578,14 +593,18 @@ export class ContentGenerator {
     await sendProgress?.({
       progress: 1,
       total: 3,
-      message: force ? "Regenerating landing page content" : "Generating landing page content",
+      message: force
+        ? "Regenerating landing page content"
+        : "Generating landing page content",
     });
     await this.generateLandingPage(sendProgress, force);
 
     await sendProgress?.({
       progress: 2,
       total: 3,
-      message: force ? "Regenerating dashboard content" : "Generating dashboard content",
+      message: force
+        ? "Regenerating dashboard content"
+        : "Generating dashboard content",
     });
     await this.generateDashboard(sendProgress, force);
 
@@ -617,15 +636,19 @@ export class ContentGenerator {
 
     const parts = templateKey.split(":");
     if (parts.length !== 2) {
-      throw new Error(`Invalid template key format: ${templateKey}. Expected format: page:section`);
+      throw new Error(
+        `Invalid template key format: ${templateKey}. Expected format: page:section`,
+      );
     }
     const [page, section] = parts as [string, string];
-    
+
     // Check if content already exists
     if (!force) {
       const existing = await this.getExistingSiteContent(page, section);
       if (existing) {
-        this.logger.info(`Content already exists for ${page}:${section}, skipping`);
+        this.logger.info(
+          `Content already exists for ${page}:${section}, skipping`,
+        );
         return { generated: false };
       }
     }
@@ -646,7 +669,7 @@ export class ContentGenerator {
     const baseContext = {
       siteTitle: this.options.siteTitle,
       siteDescription: this.options.siteDescription,
-      siteUrl: this.options.siteUrl || "https://example.com",
+      siteUrl: this.options.siteUrl ?? "https://example.com",
     };
 
     const data = await generateWithTemplate<z.infer<typeof template.schema>>(
@@ -661,7 +684,9 @@ export class ContentGenerator {
 
     // Format the content
     const namespacedContentType = `${this.context.pluginId}:${templateKey}`;
-    const formatter = this.context.contentTypeRegistry.getFormatter(namespacedContentType);
+    const formatter = this.context.contentTypeRegistry.getFormatter(
+      namespacedContentType,
+    );
     const formattedContent = formatter
       ? formatter.format(data)
       : getDefaultContentFormatter().format(data);
@@ -817,7 +842,7 @@ export class ContentGenerator {
         namespacedContentType,
       );
 
-      if (formatter && formatter.parse) {
+      if (formatter?.parse) {
         try {
           return formatter.parse(matchingContent.content);
         } catch (error) {

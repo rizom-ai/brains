@@ -6,7 +6,10 @@ bun run typecheck
 echo "🧪 Running tests..."
 bun run test
 
-# Run linting and formatting
-echo "🎨 Running lint and format..."
-bun run lint:fix
-bun run format
+# Check linting (don't auto-fix)
+echo "🎨 Checking lint..."
+bun run lint
+
+# Check formatting (don't auto-fix)
+echo "📐 Checking format..."
+bun run format:check

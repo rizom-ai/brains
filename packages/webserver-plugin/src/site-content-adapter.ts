@@ -81,7 +81,7 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
       page: metadata.page,
       section: metadata.section,
       content: markdown, // Store the full markdown including frontmatter
-      environment: metadata.environment || "preview", // Use stored environment or default to preview
+      environment: metadata.environment ?? "preview", // Use stored environment or default to preview
     };
 
     // Include promotion metadata if present
