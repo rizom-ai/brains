@@ -148,7 +148,6 @@ export interface MCPGenerateFromTemplateParams {
 export class ContentGenerationAdapter {
   constructor(
     private contentGenerationService: ContentGenerationService,
-    private entityService: EntityService,
   ) {}
 
   /**
@@ -174,7 +173,6 @@ export class ContentGenerationAdapter {
       prompt: params.prompt,
       contentType: params.contentType,
     };
-
 
     // Clean up context to remove undefined values
     if (params.context) {
@@ -249,34 +247,5 @@ export class ContentGenerationAdapter {
       name: t.name,
       description: t.description,
     }));
-  }
-
-  /**
-   * Promote generated content to a target entity type
-   */
-  async promoteGeneratedContent(params: {
-    generatedContentId: string;
-    targetEntityType: string;
-    additionalFields?: Record<string, unknown> | undefined;
-    deleteOriginal?: boolean | undefined;
-  }): Promise<{
-    promotedId: string;
-    promotedType: string;
-    message: string;
-  }> {
-    const promoted = await this.entityService.deriveEntity(
-      params.generatedContentId,
-      "generated-content",
-      params.targetEntityType,
-      params.deleteOriginal
-        ? { deleteSource: params.deleteOriginal }
-        : undefined,
-    );
-
-    return {
-      promotedId: promoted.id,
-      promotedType: promoted.entityType,
-      message: `Promoted to ${promoted.entityType}: ${promoted.id}`,
-    };
   }
 }

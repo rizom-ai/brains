@@ -95,7 +95,6 @@ export class ContentGenerationService {
     // Validate using the provided schema
     const validatedResult = options.schema.parse(result);
 
-
     return validatedResult;
   }
 
@@ -201,5 +200,4 @@ export class ContentGenerationService {
 
     return this.generate(generateOptions);
   }
-
 }

@@ -169,7 +169,6 @@ describe("generateWithTemplate", () => {
     });
   });
 
-
   it("should use provided contentType", async () => {
     await generateWithTemplate(
       mockGenerateContent,

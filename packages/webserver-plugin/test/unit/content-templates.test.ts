@@ -3,7 +3,6 @@ import {
   heroSectionTemplate,
   featuresSectionTemplate,
   ctaSectionTemplate,
-  landingPageTemplate,
   dashboardTemplate,
   webserverContentTemplates,
 } from "../../src/content-templates";
@@ -84,30 +83,6 @@ describe("Content Templates", () => {
     });
   });
 
-  describe("landingPageTemplate", () => {
-    it("should have correct structure", () => {
-      expect(landingPageTemplate.name).toBe("landing-page");
-      expect(landingPageTemplate.description).toBe(
-        "Landing page configuration with section references",
-      );
-      expect(landingPageTemplate.schema).toBeDefined();
-      expect(landingPageTemplate.basePrompt).toContain("landing page");
-    });
-
-    it("should have valid schema with references", () => {
-      const testData = {
-        title: "My Brain",
-        tagline: "Knowledge Management",
-        heroId: "hero-section-1",
-        featuresId: "features-section-1",
-        ctaId: "cta-section-1",
-      };
-
-      const result = landingPageTemplate.schema.parse(testData);
-      expect(result).toEqual(testData);
-    });
-  });
-
   describe("dashboardTemplate", () => {
     it("should have correct structure", () => {
       expect(dashboardTemplate.name).toBe("dashboard");
@@ -137,12 +112,11 @@ describe("Content Templates", () => {
 
   describe("webserverContentTemplates", () => {
     it("should include all templates", () => {
-      expect(webserverContentTemplates).toHaveLength(5);
+      expect(webserverContentTemplates).toHaveLength(4);
       const names = webserverContentTemplates.map((t) => t.name);
       expect(names).toContain("hero-section");
       expect(names).toContain("features-section");
       expect(names).toContain("cta-section");
-      expect(names).toContain("landing-page");
       expect(names).toContain("dashboard");
     });
   });

@@ -18,7 +18,6 @@ describe("ContentGenerationService", () => {
     ContentGenerationService.resetInstance();
     QueryProcessor.resetInstance();
 
-
     // Create mock for ContentTypeRegistry
     mockContentTypeRegistry = {
       has: mock(() => true), // Default to true since we're mocking registered types
@@ -307,7 +306,6 @@ describe("ContentGenerationService", () => {
       expect(prompt).toContain("value");
       expect(prompt).toContain("Example message");
     });
-
   });
 
   describe("Batch Generation", () => {

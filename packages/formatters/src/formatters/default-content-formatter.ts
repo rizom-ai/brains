@@ -18,7 +18,7 @@ export class DefaultContentFormatter implements ContentFormatter<unknown> {
 
     // For objects and arrays, use YAML formatting
     try {
-      return yaml.dump(data, { 
+      return yaml.dump(data, {
         indent: 2,
         lineWidth: -1, // Disable line wrapping
         sortKeys: false, // Preserve key order

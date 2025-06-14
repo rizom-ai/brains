@@ -13,9 +13,6 @@ export const siteContentSchema = baseEntitySchema.extend({
 
   // Which section of the page (e.g., "hero", "features")
   section: z.string(),
-
-  // The actual content data as structured object
-  data: z.record(z.unknown()),
 });
 
 export type SiteContent = z.infer<typeof siteContentSchema>;

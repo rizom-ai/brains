@@ -46,6 +46,5 @@ export async function generateWithTemplate<T>(
     }
   }
 
-
   return generateContent(options);
 }

@@ -55,20 +55,6 @@ export const ctaSectionSchema = z.object({
 
 export type CTASection = z.infer<typeof ctaSectionSchema>;
 
-/**
- * Schema for landing page content (using references)
- */
-export const landingPageReferenceSchema = z.object({
-  title: z.string(),
-  tagline: z.string(),
-  heroId: z.string(),
-  featuresId: z.string(),
-  ctaId: z.string(),
-});
-
-export type LandingPageReferenceData = z.infer<
-  typeof landingPageReferenceSchema
->;
 
 /**
  * Schema for complete landing page data (after resolution)

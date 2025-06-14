@@ -120,7 +120,6 @@ describe("MCP Registration", () => {
     expect(toolNames).toContain("generate_content");
     expect(toolNames).toContain("generate_from_template");
     expect(toolNames).toContain("list_content_templates");
-    expect(toolNames).toContain("promote_generated_content");
   });
 
   it("should register shell resources with MCP server", () => {
@@ -289,89 +288,4 @@ describe("MCP Registration", () => {
     expect(parsedResult[0].name).toBe("test-template");
   });
 
-  it("should handle promote_generated_content tool execution", async () => {
-    // Register shell with MCP
-    registerShellMCP(mockServer as unknown as McpServer, mockServices);
-
-    // Get the promote_generated_content tool handler
-    const promoteHandler = mockToolHandlers.get("promote_generated_content");
-    expect(promoteHandler).toBeDefined();
-    if (!promoteHandler || typeof promoteHandler !== "function") {
-      throw new Error("Promote handler not found or not a function");
-    }
-
-    // Mock entity service deriveEntity
-    mockServices.entityService.deriveEntity = mock(() =>
-      Promise.resolve({
-        id: "promoted-entity-123",
-        entityType: "note",
-        content: "Promoted content",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      }),
-    ) as unknown as typeof mockServices.entityService.deriveEntity;
-
-    // Execute the tool
-    const result = await promoteHandler({
-      generatedContentId: "source-entity-123",
-      targetEntityType: "note",
-    });
-
-    // Check that deriveEntity was called
-    expect(mockServices.entityService.deriveEntity).toHaveBeenCalledWith(
-      "source-entity-123",
-      "generated-content",
-      "note",
-      undefined,
-    );
-
-    // Check the result format
-    expect(result.content[0].type).toBe("text");
-    const parsedResult = JSON.parse(result.content[0].text);
-    expect(parsedResult.promotedId).toBe("promoted-entity-123");
-    expect(parsedResult.promotedType).toBe("note");
-    expect(parsedResult.message).toBe("Promoted to note: promoted-entity-123");
-  });
-
-  it("should handle promote_generated_content ignoring additional fields", async () => {
-    // Register shell with MCP
-    registerShellMCP(mockServer as unknown as McpServer, mockServices);
-
-    // Get the promote_generated_content tool handler
-    const promoteHandler = mockToolHandlers.get("promote_generated_content");
-    expect(promoteHandler).toBeDefined();
-    if (!promoteHandler || typeof promoteHandler !== "function") {
-      throw new Error("Promote handler not found or not a function");
-    }
-
-    // Mock entity service deriveEntity
-    mockServices.entityService.deriveEntity = mock(() =>
-      Promise.resolve({
-        id: "promoted-entity-123",
-        entityType: "note",
-        content: "Promoted content",
-        title: "Custom Title",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      }),
-    ) as unknown as typeof mockServices.entityService.deriveEntity;
-
-    // Execute the tool with additional fields
-    await promoteHandler({
-      generatedContentId: "source-entity-123",
-      targetEntityType: "note",
-      additionalFields: {
-        title: "Custom Title",
-        tags: ["promoted", "test"],
-      },
-    });
-
-    // Check that deriveEntity was called WITHOUT additional fields (they are ignored now)
-    expect(mockServices.entityService.deriveEntity).toHaveBeenCalledWith(
-      "source-entity-123",
-      "generated-content",
-      "note",
-      undefined,
-    );
-  });
 });

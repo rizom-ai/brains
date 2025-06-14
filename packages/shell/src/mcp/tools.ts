@@ -41,7 +41,6 @@ export function registerShellTools(
   const entityAdapter = new EntityServiceAdapter(entityService);
   const contentAdapter = new ContentGenerationAdapter(
     contentGenerationService,
-    entityService,
   );
 
   logger.info("Registering shell tools with MCP server");
@@ -184,7 +183,7 @@ export function registerShellTools(
         .boolean()
         .optional()
         .default(false)
-        .describe("Save as generated-content entity"),
+        .describe("Save generated content as entity"),
     },
     async (params) => {
       try {
@@ -286,45 +285,6 @@ export function registerShellTools(
       throw error;
     }
   });
-
-  // Register promote generated content tool
-  server.tool(
-    "promote_generated_content",
-    {
-      generatedContentId: z
-        .string()
-        .describe("ID of the generated-content entity"),
-      targetEntityType: z.string().describe("Target entity type to promote to"),
-      additionalFields: z
-        .record(z.unknown())
-        .optional()
-        .describe("Additional fields for the target entity"),
-      deleteOriginal: z
-        .boolean()
-        .optional()
-        .default(false)
-        .describe("Delete the source generated-content entity after promotion"),
-    },
-    async (params) => {
-      try {
-        logger.debug("Executing promote_generated_content tool", params);
-
-        const result = await contentAdapter.promoteGeneratedContent(params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      } catch (error) {
-        logger.error("Error in promote_generated_content tool", error);
-        throw error;
-      }
-    },
-  );
 
   logger.info("Shell tools registered successfully");
 }

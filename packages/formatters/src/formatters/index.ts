@@ -12,4 +12,7 @@ export { UpdateEntityResponseFormatter } from "./update-entity";
 // Content formatters
 export { StructuredContentFormatter } from "./structured-content";
 export { DefaultYamlFormatter } from "./default-yaml";
-export { DefaultContentFormatter, getDefaultContentFormatter } from "./default-content-formatter";
+export {
+  DefaultContentFormatter,
+  getDefaultContentFormatter,
+} from "./default-content-formatter";

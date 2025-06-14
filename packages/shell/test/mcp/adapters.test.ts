@@ -1,14 +1,12 @@
-import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { ContentGenerationAdapter } from "@/mcp/adapters";
 import type { ContentGenerationService } from "@/content/contentGenerationService";
-import type { EntityService } from "@/entity/entityService";
 import { z } from "zod";
 import type { ContentGenerateOptions } from "@brains/types";
 
 describe("ContentGenerationAdapter", () => {
   let adapter: ContentGenerationAdapter;
   let mockContentGenerationService: ContentGenerationService;
-  let mockEntityService: EntityService;
 
   const testSchema = z.object({
     title: z.string(),
@@ -16,27 +14,6 @@ describe("ContentGenerationAdapter", () => {
   });
 
   beforeEach(() => {
-    // Create mock service with type assertions for test purposes
-    mockEntityService = {
-      createEntity: mock(() =>
-        Promise.resolve({
-          id: "generated-entity-123",
-          entityType: "generated-content",
-          content: "",
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        }),
-      ),
-      deriveEntity: mock(() =>
-        Promise.resolve({
-          id: "promoted-entity-123",
-          entityType: "note",
-          content: "Promoted content",
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        }),
-      ),
-    } as unknown as EntityService;
 
     // Create mock content generation service
     mockContentGenerationService = {
@@ -52,7 +29,6 @@ describe("ContentGenerationAdapter", () => {
     // Create adapter
     adapter = new ContentGenerationAdapter(
       mockContentGenerationService,
-      mockEntityService,
     );
   });
 
@@ -188,80 +164,4 @@ describe("ContentGenerationAdapter", () => {
     });
   });
 
-  describe("promoteGeneratedContent", () => {
-    it("should call deriveEntity with correct parameters", async () => {
-      const deriveEntitySpy = mockEntityService.deriveEntity as ReturnType<
-        typeof mock
-      >;
-
-      const result = await adapter.promoteGeneratedContent({
-        generatedContentId: "source-123",
-        targetEntityType: "note",
-      });
-
-      expect(deriveEntitySpy).toHaveBeenCalledWith(
-        "source-123",
-        "generated-content",
-        "note",
-        undefined,
-      );
-
-      expect(result).toEqual({
-        promotedId: "promoted-entity-123",
-        promotedType: "note",
-        message: "Promoted to note: promoted-entity-123",
-      });
-    });
-
-    it("should ignore additional fields", async () => {
-      const deriveEntitySpy = mockEntityService.deriveEntity as ReturnType<
-        typeof mock
-      >;
-
-      await adapter.promoteGeneratedContent({
-        generatedContentId: "source-123",
-        targetEntityType: "note",
-        additionalFields: { title: "Custom Title", tags: ["promoted", "test"] },
-      });
-
-      expect(deriveEntitySpy).toHaveBeenCalledWith(
-        "source-123",
-        "generated-content",
-        "note",
-        undefined,
-      );
-    });
-
-    it("should handle deleteOriginal option", async () => {
-      const deriveEntitySpy = mockEntityService.deriveEntity as ReturnType<
-        typeof mock
-      >;
-
-      await adapter.promoteGeneratedContent({
-        generatedContentId: "source-123",
-        targetEntityType: "note",
-        deleteOriginal: true,
-      });
-
-      expect(deriveEntitySpy).toHaveBeenCalledWith(
-        "source-123",
-        "generated-content",
-        "note",
-        { deleteSource: true },
-      );
-    });
-
-    it("should handle derive errors gracefully", async () => {
-      mockEntityService.deriveEntity = (async (): Promise<never> => {
-        throw new Error("Derive failed");
-      }) as unknown as typeof mockEntityService.deriveEntity;
-
-      expect(
-        adapter.promoteGeneratedContent({
-          generatedContentId: "source-123",
-          targetEntityType: "note",
-        }),
-      ).rejects.toThrow("Derive failed");
-    });
-  });
 });

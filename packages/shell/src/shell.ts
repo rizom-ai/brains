@@ -31,7 +31,6 @@ import {
 } from "@brains/formatters";
 import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
 import { ContentGenerationService, ContentTypeRegistry } from "./content";
-import { GeneratedContentAdapter } from "./content/generatedContentAdapter";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -402,9 +401,6 @@ export class Shell {
       // Register base entity support
       this.registerBaseEntitySupport();
 
-      // Register generated content entity support
-      this.registerGeneratedContentSupport();
-
       // Register and initialize plugins if enabled
       if (this.config.features.enablePlugins) {
         this.logger.info(
@@ -481,34 +477,6 @@ export class Shell {
     this.logger.debug("Base entity support registered");
   }
 
-  /**
-   * Register generated content entity support
-   */
-  private registerGeneratedContentSupport(): void {
-    this.logger.debug("Registering generated content entity support");
-
-    // Create generated content adapter
-    const generatedContentAdapter = GeneratedContentAdapter.getInstance(
-      this.logger,
-    );
-
-    // Connect the adapter to the content type registry
-    // This allows it to get formatters registered by plugins
-    generatedContentAdapter.setContentTypeRegistry(this.contentTypeRegistry);
-    this.registry.register(
-      "generatedContentAdapter",
-      () => generatedContentAdapter,
-    );
-
-    // Register with entity registry
-    this.entityRegistry.registerEntityType(
-      "generated-content",
-      generatedContentAdapter.schema,
-      generatedContentAdapter,
-    );
-
-    this.logger.debug("Generated content entity support registered");
-  }
 
   /**
    * Shutdown the Shell and clean up resources

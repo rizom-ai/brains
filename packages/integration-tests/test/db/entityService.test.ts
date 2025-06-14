@@ -5,11 +5,9 @@ import { EntityRegistry } from "@brains/shell/src/entity/entityRegistry";
 import { createTestDatabase } from "../helpers/test-db";
 import type { DrizzleDB } from "@brains/db";
 import { createSilentLogger } from "@brains/utils";
-import { baseEntitySchema, generatedContentSchema } from "@brains/types";
-import type { GeneratedContent } from "@brains/types";
+import { baseEntitySchema } from "@brains/types";
 import type { IEmbeddingService } from "@brains/shell/src/embedding/embeddingService";
 import type { EntityAdapter } from "@brains/base-entity";
-import { GeneratedContentAdapter } from "@brains/shell/src/content/generatedContentAdapter";
 
 // Create a mock embedding service
 const mockEmbeddingService: IEmbeddingService = {
@@ -124,14 +122,6 @@ describe("EntityService - Database Operations", () => {
 
     // Register note entity type
     entityRegistry.registerEntityType("note", noteSchema, noteAdapter);
-
-    // Register generated-content entity type for import test
-    const generatedContentAdapter = new GeneratedContentAdapter(logger);
-    entityRegistry.registerEntityType(
-      "generated-content",
-      generatedContentSchema,
-      generatedContentAdapter,
-    );
   });
 
   afterEach(async () => {
@@ -564,59 +554,5 @@ This note was imported`;
       );
     });
 
-    test("imports generated content with formatted body", async () => {
-      // This tests the fix for git sync with generated content
-      const formattedMarkdown = `---
-id: features-123
-entityType: generated-content
-contentType: 'webserver:landing:features'
-generatedBy: claude
-created: '2024-01-01T00:00:00.000Z'
-updated: '2024-01-01T00:00:00.000Z'
----
-# Features Section
-
-## Label
-Features
-
-## Headline
-Amazing Features
-
-## Description
-Our best features yet
-
-## Feature Cards
-- Lightning fast
-- Secure by default
-- Easy to use`;
-
-      const rawData = {
-        entityType: "generated-content",
-        id: "features-123",
-        content: formattedMarkdown,
-        created: new Date("2024-01-01"),
-        updated: new Date("2024-01-02"),
-      };
-
-      await entityService.importRawEntity(rawData);
-
-      const imported = await entityService.getEntity<GeneratedContent>(
-        "generated-content",
-        rawData.id,
-      );
-
-      expect(imported).toBeDefined();
-      expect(imported?.id).toBe(rawData.id);
-      expect(imported?.contentType).toBe("webserver:landing:features");
-      // The content should contain the full markdown including frontmatter
-      expect(imported?.content).toContain("# Features Section");
-      expect(imported?.content).toContain("Features");
-      // The content should be the complete markdown with frontmatter
-      expect(imported?.content).toContain("entityType: generated-content");
-      expect(imported?.content).toContain(
-        "contentType: 'webserver:landing:features'",
-      );
-      expect(imported?.generatedBy).toBe("claude");
-    });
   });
 });

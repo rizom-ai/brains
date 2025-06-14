@@ -85,11 +85,61 @@ Update `ContentGenerationService` to:
 - Update site-content and other adapters to use structured-content package
 - Add metadata fields for tracking content origin
 
+### Phase 3.5: Simplify Landing Page Architecture
+
+During implementation, we discovered that the landing page reference pattern adds unnecessary complexity:
+
+**Issue Identified:**
+- Landing page stored as reference data (with heroId, featuresId, ctaId) 
+- Validation expects full data (with hero, features, cta objects)
+- This mismatch causes constant regeneration of content
+
+**Clarification - Astro Requirements:**
+- Astro's static site generator needs a complete landing page YAML file
+- The YAML must contain all sections (hero, features, cta) assembled together
+- Individual section files won't work for the current Astro template
+
+**Solution:**
+Remove the landing page reference entity while maintaining YAML generation:
+
+1. **Store only individual sections as entities**
+   - Hero, features, and CTA sections exist as independent site-content entities
+   - No separate landing page "index" entity in the database
+   - Each section uses its own formatter for proper content structure
+
+2. **YAML generation remains unchanged**
+   - ContentGenerator still assembles the full landing page data
+   - Writes complete landing/index.yaml for Astro
+   - This YAML file is generated from the individual section entities
+
+3. **Simplify content checking**
+   - Check for existing hero, features, and cta sections individually
+   - If all sections exist, skip generation
+   - If any section is missing, regenerate all sections for consistency
+   - No validation against landingPageSchema for existing content
+
+4. **Benefits**
+   - No duplication of data (sections are the single source of truth)
+   - No complex reference resolution
+   - Sections remain independent and editable
+   - Astro still gets the complete YAML file it needs
+   - Clear separation: database stores sections, YAML file is for Astro
+
+5. **Implementation Changes**
+   - Remove `landingPageReferenceSchema` and related types
+   - Remove `LandingPageFormatter` 
+   - Remove code that creates landing:index entity
+   - Update `generateLandingPage` to check for sections individually
+   - Keep YAML assembly and writing logic unchanged
+
 ### Phase 4: Update Plugins
 
 - Modify plugins to save generated content directly
 - Remove promotion tools
 - Add editing capabilities for all content
+- Remove landing page reference handling from webserver plugin
+- Update content generation to work with individual sections
+- Ensure formatters properly support round-trip parsing
 
 ## Migration Strategy
 
@@ -194,6 +244,31 @@ const entity = await entityService.createEntity({
     generatedAt: new Date(),
   },
 });
+```
+
+### After (Section-Based Content)
+
+```typescript
+// Generate individual sections
+const heroData = await contentGenService.generate({
+  prompt: "Create hero section",
+  schema: heroSectionSchema,
+});
+
+await entityService.createEntity({
+  entityType: "site-content",
+  page: "landing",
+  section: "hero",
+  content: heroFormatter.format(heroData), // Formatted content is source of truth
+});
+
+// Astro assembles page from sections
+const hero = await entityService.getEntity("site-content", { page: "landing", section: "hero" });
+const features = await entityService.getEntity("site-content", { page: "landing", section: "features" });
+const cta = await entityService.getEntity("site-content", { page: "landing", section: "cta" });
+
+// Round-trip parsing when needed
+const heroData = heroFormatter.parse(hero.content);
 ```
 
 ## Example: Environment-Based Workflow

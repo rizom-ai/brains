@@ -25,18 +25,3 @@ export interface SearchResult {
   excerpt: string;
   highlights: string[];
 }
-
-/**
- * Generated content entity schema
- * Generated content is immutable - to edit, promote to another entity type
- */
-export const generatedContentSchema = baseEntitySchema.extend({
-  entityType: z.literal("generated-content"),
-  contentType: z.string(),
-  generatedBy: z.string(),
-});
-
-/**
- * Generated content types
- */
-export type GeneratedContent = z.infer<typeof generatedContentSchema>;

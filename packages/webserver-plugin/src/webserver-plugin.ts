@@ -11,20 +11,16 @@ import {
 } from "./webserver-manager";
 import { siteContentSchema } from "./schemas";
 import { siteContentAdapter } from "./site-content-adapter";
-import { SiteContentFormatter } from "./site-content-formatter";
 import {
   landingHeroDataSchema,
   featuresSectionSchema,
   ctaSectionSchema,
-  landingPageReferenceSchema,
   dashboardSchema,
   type LandingHeroData,
   type FeaturesSection,
   type CTASection,
-  type LandingPageReferenceData,
   type DashboardData,
 } from "./content-schemas";
-import { LandingPageFormatter } from "./formatters/landingPageFormatter";
 import { HeroSectionFormatter } from "./formatters/heroSectionFormatter";
 import { FeaturesSectionFormatter } from "./formatters/featuresSectionFormatter";
 import { CTASectionFormatter } from "./formatters/ctaSectionFormatter";
@@ -79,12 +75,6 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
     });
 
     // Register content types for pages (using :index suffix)
-    this.registerContentType<LandingPageReferenceData>("landing:index", {
-      contentType: "landing:index",
-      schema: landingPageReferenceSchema,
-      formatter: new LandingPageFormatter(),
-    });
-
     this.registerContentType<DashboardData>("dashboard:index", {
       contentType: "dashboard:index",
       schema: dashboardSchema,
@@ -93,17 +83,10 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
     // Call parent's onRegister to actually register the content types
     await super.onRegister(context);
 
-    const { logger, registerEntityType, formatters, contentTypeRegistry } =
-      context;
-
-    // Wire content type registry to site content adapter for validation
-    siteContentAdapter.setContentTypeRegistry(contentTypeRegistry);
+    const { logger, registerEntityType } = context;
 
     // Register site-content entity type
     registerEntityType("site-content", siteContentSchema, siteContentAdapter);
-
-    // Register site-content formatter
-    formatters.register("site-content", new SiteContentFormatter());
 
     // Create webserver manager instance
     const managerOptions: WebserverManagerOptions = {
@@ -322,56 +305,6 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
       ),
     );
 
-    // Add promotion tool
-    tools.push(
-      this.createTool(
-        "promote_section",
-        "Promote a generated content section to editable site content",
-        toolInput().string("generatedContentId").build(),
-        async (input, _context): Promise<Record<string, unknown>> => {
-          const { generatedContentId } = input as {
-            generatedContentId: string;
-          };
-
-          try {
-            // Get the plugin context to access entityService
-            const pluginContext = this.getContext();
-
-            // Get the source entity to extract page/section info
-            const source = await pluginContext.entityService.getEntity(
-              "generated-content",
-              generatedContentId,
-            );
-
-            if (!source) {
-              throw new Error(
-                `Generated content not found: ${generatedContentId}`,
-              );
-            }
-
-            // Use entity service to derive the entity
-            const promoted = await pluginContext.entityService.deriveEntity(
-              generatedContentId,
-              "generated-content",
-              "site-content",
-            );
-
-            return {
-              success: true,
-              message: `Promoted section to site-content`,
-              promotedId: promoted.id,
-            };
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            return {
-              success: false,
-              error: `Failed to promote section: ${message}`,
-            };
-          }
-        },
-      ),
-    );
 
     // Add content generation tools
     const contentTools = await super.getTools();

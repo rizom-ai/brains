@@ -1,13 +1,11 @@
-import { z } from "zod";
+import type { z } from "zod";
 import type { ContentTemplate } from "@brains/types";
 import {
-  landingPageReferenceSchema,
   landingHeroDataSchema,
   featuresSectionSchema,
   ctaSectionSchema,
   dashboardSchema,
 } from "./content-schemas";
-import { LandingPageFormatter } from "./formatters/landingPageFormatter";
 import { HeroSectionFormatter } from "./formatters/heroSectionFormatter";
 import { FeaturesSectionFormatter } from "./formatters/featuresSectionFormatter";
 import { CTASectionFormatter } from "./formatters/ctaSectionFormatter";
@@ -81,25 +79,6 @@ Make it compelling and action-oriented. Remember that buttons must be objects wi
 };
 
 /**
- * Landing page template (references sections)
- */
-export const landingPageTemplate: ContentTemplate<
-  z.infer<typeof landingPageReferenceSchema>
-> = {
-  name: "landing-page",
-  description: "Landing page configuration with section references",
-  schema: landingPageReferenceSchema,
-  formatter: new LandingPageFormatter(),
-  basePrompt: `Generate landing page configuration for a personal knowledge management system.
-This should include:
-- A concise page title
-- A memorable tagline that summarizes the product
-- References to the hero, features, and CTA sections (these will be generated separately)
-
-Note: The actual sections (hero, features, CTA) are generated as separate entities.`,
-};
-
-/**
  * Dashboard page template
  */
 export const dashboardTemplate: ContentTemplate<
@@ -127,6 +106,5 @@ export const webserverContentTemplates = [
   featuresSectionTemplate,
   ctaSectionTemplate,
   // Page templates
-  landingPageTemplate,
   dashboardTemplate,
 ] as const;

@@ -17,7 +17,6 @@ import {
   type LandingHeroData,
   type FeaturesSection,
   type CTASection,
-  type LandingPageReferenceData,
   type DashboardData,
 } from "../../src/content-schemas";
 
@@ -120,15 +119,6 @@ describe("ContentGenerator", () => {
               },
             };
             return options.schema.parse(ctaData);
-          } else if (options.contentType === "landing:index") {
-            const referenceData: LandingPageReferenceData = {
-              title: "Test Brain",
-              tagline: "Test Description",
-              heroId: "hero-section-test",
-              featuresId: "features-section-test",
-              ctaId: "cta-section-test",
-            };
-            return options.schema.parse(referenceData);
           } else if (options.contentType === "dashboard:index") {
             const dashboardData: DashboardData = {
               title: "Dashboard",
