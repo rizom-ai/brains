@@ -68,6 +68,19 @@ describe("ContentGenerationService", () => {
           } else if (userPrompt.includes("Generate content")) {
             // For validation test - return invalid data
             object = { title: "Hi", count: -1 };
+          } else if (userPrompt.includes("Generate a title")) {
+            object = { title: "Generated Title" };
+          } else if (userPrompt.includes("generate something")) {
+            object = { value: "Generated value" };
+          } else if (userPrompt.includes("features section")) {
+            object = {
+              features: [
+                { title: "Feature 1", description: "Description 1" },
+                { title: "Feature 2", description: "Description 2" },
+              ],
+            };
+          } else if (userPrompt.includes("Generate item 1")) {
+            object = { value: "Generated value for item 1" };
           } else {
             object = { message: "Generated content" };
           }
@@ -478,6 +491,195 @@ describe("ContentGenerationService", () => {
           contentType: "test:json-error",
         }),
       ).rejects.toThrow();
+    });
+  });
+
+  describe("generateContent with Collections", () => {
+    beforeEach(() => {
+      service.initialize(
+        mockQueryProcessor,
+        mockContentTypeRegistry,
+        createSilentLogger("test"),
+      );
+    });
+
+    it("should throw error when no template is registered", async () => {
+      // No template registered for this content type
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      await expect(
+        service.generateContent("test:simple", {
+          prompt: "Generate a message",
+        }),
+      ).rejects.toThrow("No template registered for content type: test:simple");
+    });
+
+    it("should generate content using registered template", async () => {
+      const template = {
+        name: "test:template",
+        description: "Test template",
+        schema: z.object({ title: z.string() }),
+        basePrompt: "Generate a title",
+      };
+
+      service.registerTemplate("test:template", template);
+
+      const result = await service.generateContent("test:template", {
+        prompt: "for a blog post",
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it("should generate collection content when template has items", async () => {
+      // Define item templates
+      const heroTemplate = {
+        name: "hero",
+        description: "Hero section",
+        schema: z.object({
+          headline: z.string(),
+          subheadline: z.string(),
+        }),
+        basePrompt: "Generate a hero section",
+      };
+
+      const featuresTemplate = {
+        name: "features",
+        description: "Features section",
+        schema: z.object({
+          features: z.array(
+            z.object({
+              title: z.string(),
+              description: z.string(),
+            }),
+          ),
+        }),
+        basePrompt: "Generate features section",
+      };
+
+      // Define collection template with items
+      const landingTemplate = {
+        name: "test:landing",
+        description: "Landing page",
+        schema: z.object({
+          hero: z.object({
+            headline: z.string(),
+            subheadline: z.string(),
+          }),
+          features: z.object({
+            features: z.array(
+              z.object({
+                title: z.string(),
+                description: z.string(),
+              }),
+            ),
+          }),
+        }),
+        basePrompt: "Generate landing page",
+        items: {
+          hero: heroTemplate,
+          features: featuresTemplate,
+        },
+      };
+
+      service.registerTemplate("test:landing", landingTemplate);
+
+      // Mock AI to return appropriate responses for each item
+      const mockAI = mockQueryProcessor as unknown as {
+        processQuery: ReturnType<typeof mock>;
+      };
+      let callCount = 0;
+      mockAI.processQuery = mock(async () => {
+        callCount++;
+        if (callCount === 1) {
+          // First call for hero
+          return {
+            headline: "Welcome to Your Brain",
+            subheadline: "Organize your knowledge",
+          };
+        } else {
+          // Second call for features
+          return {
+            features: [
+              { title: "Feature 1", description: "Description 1" },
+              { title: "Feature 2", description: "Description 2" },
+            ],
+          };
+        }
+      });
+
+      const result = await service.generateContent("test:landing", {
+        prompt: "for a knowledge management app",
+        context: { siteTitle: "My Brain" },
+      });
+
+      expect(result).toEqual({
+        hero: {
+          headline: "Welcome to Your Brain",
+          subheadline: "Organize your knowledge",
+        },
+        features: {
+          features: [
+            { title: "Feature 1", description: "Description 1" },
+            { title: "Feature 2", description: "Description 2" },
+          ],
+        },
+      });
+    });
+
+    it("should validate collection data against schema", async () => {
+      const collectionTemplate = {
+        name: "test:collection",
+        description: "Collection with schema",
+        schema: z.object({
+          item1: z.object({ value: z.string() }),
+        }),
+        basePrompt: "Generate collection",
+        items: {
+          item1: {
+            name: "item1",
+            description: "Item 1",
+            schema: z.object({ value: z.string() }),
+            basePrompt: "Generate item 1",
+          },
+        },
+      };
+
+      service.registerTemplate("test:collection", collectionTemplate);
+
+      const result = await service.generateContent("test:collection");
+
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty("item1");
+    });
+
+    it("should generate simple content when template has no items", async () => {
+      const simpleTemplate = {
+        name: "test:simple",
+        description: "Simple template",
+        schema: z.object({ value: z.string() }),
+        basePrompt: "Generate value",
+        // No items property - this is a simple template
+      };
+
+      service.registerTemplate("test:simple", simpleTemplate);
+
+      // Should work fine as simple content
+      const result = await service.generateContent("test:simple", {
+        prompt: "generate something",
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty("value");
+    });
+
+    it("should throw error when content type is not registered", async () => {
+      // No template registered
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      await expect(
+        service.generateContent("test:unregistered"),
+      ).rejects.toThrow(
+        "No template registered for content type: test:unregistered",
+      );
     });
   });
 });

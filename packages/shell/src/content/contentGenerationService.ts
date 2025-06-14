@@ -7,6 +7,7 @@ import type {
 
 import type { ContentTypeRegistry } from "./contentTypeRegistry";
 import type { Logger } from "@brains/utils";
+import { generateWithTemplate } from "@brains/utils";
 
 export class ContentGenerationService {
   private static instance: ContentGenerationService | null = null;
@@ -199,5 +200,99 @@ export class ContentGenerationService {
     }
 
     return this.generate(generateOptions);
+  }
+
+  /**
+   * Generate content for a specific content type, handling collections automatically
+   */
+  public async generateContent(
+    contentType: string,
+    options: {
+      prompt?: string;
+      context?: Record<string, unknown>;
+    } = {},
+  ): Promise<unknown> {
+    // Get the template - templates are required
+    const template = this.getTemplate(contentType);
+    if (!template) {
+      throw new Error(
+        `No template registered for content type: ${contentType}`,
+      );
+    }
+
+    if (template.items) {
+      // This is a collection - generate each item
+      return this.generateCollection(contentType, template, options);
+    } else {
+      // Simple content generation using template
+      const additionalContext: {
+        prompt?: string;
+        data?: Record<string, unknown>;
+      } = {};
+
+      if (options.prompt !== undefined) {
+        additionalContext.prompt = options.prompt;
+      }
+      if (options.context !== undefined) {
+        additionalContext.data = options.context;
+      }
+
+      return generateWithTemplate(
+        this.generate.bind(this),
+        template,
+        contentType,
+        additionalContext,
+      );
+    }
+  }
+
+  /**
+   * Generate a collection of content items
+   */
+  private async generateCollection(
+    collectionType: string,
+    template: ContentTemplate<unknown>,
+    options: {
+      prompt?: string;
+      context?: Record<string, unknown>;
+    },
+  ): Promise<unknown> {
+    if (!template.items) {
+      throw new Error(`Template ${collectionType} is not a collection`);
+    }
+
+    const collectionData: Record<string, unknown> = {};
+
+    // Generate each item in the collection
+    for (const [itemKey, itemTemplate] of Object.entries(template.items)) {
+      this.logger?.debug(
+        `Generating item ${itemKey} for collection ${collectionType}`,
+      );
+
+      // Use generateWithTemplate for each item
+      const additionalContext: {
+        prompt?: string;
+        data?: Record<string, unknown>;
+      } = {};
+
+      if (options.prompt !== undefined) {
+        additionalContext.prompt = options.prompt;
+      }
+      if (options.context !== undefined) {
+        additionalContext.data = options.context;
+      }
+
+      const itemData = await generateWithTemplate(
+        this.generate.bind(this),
+        itemTemplate,
+        `${collectionType}:${itemKey}`,
+        additionalContext,
+      );
+
+      collectionData[itemKey] = itemData;
+    }
+
+    // Always validate the complete collection against the collection schema
+    return template.schema.parse(collectionData);
   }
 }
