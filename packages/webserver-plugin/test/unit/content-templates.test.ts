@@ -1,11 +1,9 @@
 import { describe, it, expect } from "bun:test";
-import {
-  heroSectionTemplate,
-  featuresSectionTemplate,
-  ctaSectionTemplate,
-  dashboardTemplate,
-  webserverContentTemplates,
-} from "../../src/content-templates";
+import { contentRegistry } from "../../src/content/registry";
+import { heroSectionTemplate } from "../../src/content/landing/hero";
+import { featuresSectionTemplate } from "../../src/content/landing/features";
+import { ctaSectionTemplate } from "../../src/content/landing/cta";
+import { dashboardTemplate } from "../../src/content/dashboard/index";
 
 describe("Content Templates", () => {
   describe("heroSectionTemplate", () => {
@@ -110,14 +108,28 @@ describe("Content Templates", () => {
     });
   });
 
-  describe("webserverContentTemplates", () => {
+  describe("contentRegistry", () => {
     it("should include all templates", () => {
-      expect(webserverContentTemplates).toHaveLength(4);
-      const names = webserverContentTemplates.map((t) => t.name);
-      expect(names).toContain("hero-section");
-      expect(names).toContain("features-section");
-      expect(names).toContain("cta-section");
-      expect(names).toContain("dashboard");
+      const keys = contentRegistry.getTemplateKeys();
+      expect(keys).toContain("landing:hero");
+      expect(keys).toContain("landing:features");
+      expect(keys).toContain("landing:cta");
+      expect(keys).toContain("landing:index");
+      expect(keys).toContain("dashboard:index");
+    });
+
+    it("should retrieve templates correctly", () => {
+      const hero = contentRegistry.getTemplate("landing:hero");
+      expect(hero).toBe(heroSectionTemplate);
+
+      const features = contentRegistry.getTemplate("landing:features");
+      expect(features).toBe(featuresSectionTemplate);
+
+      const cta = contentRegistry.getTemplate("landing:cta");
+      expect(cta).toBe(ctaSectionTemplate);
+
+      const dashboard = contentRegistry.getTemplate("dashboard:index");
+      expect(dashboard).toBe(dashboardTemplate);
     });
   });
 });

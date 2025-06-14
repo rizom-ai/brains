@@ -12,7 +12,6 @@
     }
   },
   "scripts": {
-    "precompile": "cp src/content-schemas.ts src/content-schemas.txt",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint src test --fix"
@@ -30,13 +29,17 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@anatine/zod-openapi": "^2.2.8",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "@types/js-yaml": "^4.0.9",
     "@types/mdast": "^4.0.4",
     "eslint": "^8.57.0",
-    "typescript": "^5.4.5"
+    "json-schema-to-zod": "^2.6.1",
+    "typescript": "^5.8.3",
+    "zod-to-json-schema": "^3.24.5",
+    "zod-to-ts": "^1.2.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

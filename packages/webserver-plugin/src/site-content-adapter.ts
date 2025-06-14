@@ -34,11 +34,14 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
       page: entity.page,
       section: entity.section,
     };
-    
+
     // If content already has frontmatter, preserve the body and update metadata
     // Otherwise, use the content as-is
     try {
-      const { content: body } = parseMarkdownWithFrontmatter(entity.content, z.object({}));
+      const { content: body } = parseMarkdownWithFrontmatter(
+        entity.content,
+        z.object({}),
+      );
       return generateMarkdownWithFrontmatter(body, metadata);
     } catch {
       // Content doesn't have valid frontmatter, use as-is
@@ -84,7 +87,6 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
     };
     return generateFrontmatter(metadata);
   }
-
 }
 
 // Create a default instance for backward compatibility

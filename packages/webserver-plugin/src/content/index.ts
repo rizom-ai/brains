@@ -1,0 +1,1 @@
+export { contentRegistry, ContentRegistry } from "./registry";

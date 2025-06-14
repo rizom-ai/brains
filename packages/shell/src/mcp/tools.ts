@@ -39,9 +39,7 @@ export function registerShellTools(
     schemaRegistry,
   );
   const entityAdapter = new EntityServiceAdapter(entityService);
-  const contentAdapter = new ContentGenerationAdapter(
-    contentGenerationService,
-  );
+  const contentAdapter = new ContentGenerationAdapter(contentGenerationService);
 
   logger.info("Registering shell tools with MCP server");
 

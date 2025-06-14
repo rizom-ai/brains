@@ -13,12 +13,10 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import * as yaml from "js-yaml";
 import type { z } from "zod";
-import {
-  type LandingHeroData,
-  type FeaturesSection,
-  type CTASection,
-  type DashboardData,
-} from "../../src/content-schemas";
+import type { LandingHeroData } from "../../src/content/landing/hero/schema";
+import type { FeaturesSection } from "../../src/content/landing/features/schema";
+import type { CTASection } from "../../src/content/landing/cta/schema";
+import type { DashboardData } from "../../src/content/dashboard/index/schema";
 
 describe("ContentGenerator", () => {
   let contentGenerator: ContentGenerator;

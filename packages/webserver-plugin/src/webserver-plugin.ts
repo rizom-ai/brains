@@ -11,19 +11,7 @@ import {
 } from "./webserver-manager";
 import { siteContentSchema } from "./schemas";
 import { siteContentAdapter } from "./site-content-adapter";
-import {
-  landingHeroDataSchema,
-  featuresSectionSchema,
-  ctaSectionSchema,
-  dashboardSchema,
-  type LandingHeroData,
-  type FeaturesSection,
-  type CTASection,
-  type DashboardData,
-} from "./content-schemas";
-import { HeroSectionFormatter } from "./formatters/heroSectionFormatter";
-import { FeaturesSectionFormatter } from "./formatters/featuresSectionFormatter";
-import { CTASectionFormatter } from "./formatters/ctaSectionFormatter";
+import { contentRegistry } from "./content";
 import { webserverConfigSchema, type WebserverConfig } from "./config";
 
 /**
@@ -55,30 +43,21 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
   protected override async onRegister(context: PluginContext): Promise<void> {
     // Register content types BEFORE calling super.onRegister()
     // This ensures they're available when the parent class tries to register them
-    // Landing page sections
-    this.registerContentType<LandingHeroData>("landing:hero", {
-      contentType: "landing:hero",
-      schema: landingHeroDataSchema,
-      formatter: new HeroSectionFormatter(),
-    });
-
-    this.registerContentType<FeaturesSection>("landing:features", {
-      contentType: "landing:features",
-      schema: featuresSectionSchema,
-      formatter: new FeaturesSectionFormatter(),
-    });
-
-    this.registerContentType<CTASection>("landing:cta", {
-      contentType: "landing:cta",
-      schema: ctaSectionSchema,
-      formatter: new CTASectionFormatter(),
-    });
-
-    // Register content types for pages (using :index suffix)
-    this.registerContentType<DashboardData>("dashboard:index", {
-      contentType: "dashboard:index",
-      schema: dashboardSchema,
-    });
+    
+    // Register all content types from the registry
+    for (const key of contentRegistry.getTemplateKeys()) {
+      const template = contentRegistry.getTemplate(key);
+      if (template) {
+        const config: any = {
+          contentType: key,
+          schema: template.schema,
+        };
+        if (template.formatter) {
+          config.formatter = template.formatter;
+        }
+        this.registerContentType(key, config);
+      }
+    }
 
     // Call parent's onRegister to actually register the content types
     await super.onRegister(context);
@@ -304,7 +283,6 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
         },
       ),
     );
-
 
     // Add content generation tools
     const contentTools = await super.getTools();

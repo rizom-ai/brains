@@ -477,7 +477,6 @@ export class Shell {
     this.logger.debug("Base entity support registered");
   }
 
-
   /**
    * Shutdown the Shell and clean up resources
    */

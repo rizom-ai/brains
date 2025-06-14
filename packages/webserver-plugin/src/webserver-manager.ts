@@ -7,7 +7,8 @@ import { SiteBuilder } from "./site-builder";
 import { ServerManager } from "./server-manager";
 import { copyDirectory, cleanDirectory } from "./template-utils";
 import { writeFile } from "fs/promises";
-import contentSchemasSource from "./content-schemas.txt";
+import { contentRegistry } from "./content";
+import { generateContentConfigFile } from "./schema-generator";
 
 export interface WebserverManagerOptions {
   logger: Logger;
@@ -89,8 +90,8 @@ export class WebserverManager {
     this.logger.info("Starting site build");
 
     try {
-      // Total steps: clean(1) + copy(1) + schemas(1) + config(1) + content(1) + build(1) = 6
-      const totalSteps = 6;
+      // Total steps: clean(1) + copy(1) + config(1) + content(1) + build(1) = 5
+      const totalSteps = 5;
       let currentStep = 0;
 
       // Clean working directory if requested
@@ -113,17 +114,8 @@ export class WebserverManager {
       });
       await copyDirectory(this.templateDir, this.workingDir);
 
-      // Generate schemas.ts file for the template
-      this.logger.debug("Generating schemas.ts file");
-      await sendProgress?.({
-        progress: currentStep++,
-        total: totalSteps,
-        message: "Generating TypeScript schemas",
-      });
-      await this.generateSchemas();
-
-      // Generate content config for Astro
-      this.logger.debug("Generating content config");
+      // Generate content config for Astro (includes schemas)
+      this.logger.debug("Generating content config with schemas");
       await sendProgress?.({
         progress: currentStep++,
         total: totalSteps,
@@ -237,38 +229,11 @@ export class WebserverManager {
     const contentDir = join(this.workingDir, "src", "content");
     await mkdir(contentDir, { recursive: true });
 
-    // Generate content config that imports from the generated schemas
-    const contentConfig = `import { defineCollection } from "astro:content";
-import { landingPageSchema, dashboardSchema } from "../schemas";
-
-const landingCollection = defineCollection({
-  type: "data",
-  schema: landingPageSchema,
-});
-
-const dashboardCollection = defineCollection({
-  type: "data",
-  schema: dashboardSchema,
-});
-
-export const collections = {
-  landing: landingCollection,
-  dashboard: dashboardCollection,
-};
-`;
+    // Generate content config with inline schemas
+    const contentConfig = await generateContentConfigFile(contentRegistry);
 
     const configPath = join(contentDir, "config.ts");
     await writeFile(configPath, contentConfig);
   }
 
-  /**
-   * Generate the schemas.ts file for the template
-   * This writes the imported content-schemas source to the template
-   */
-  async generateSchemas(): Promise<void> {
-    const destSchemaPath = join(this.workingDir, "src", "schemas.ts");
-
-    this.logger.debug("Writing schemas.ts to template", { to: destSchemaPath });
-    await writeFile(destSchemaPath, contentSchemasSource);
-  }
 }

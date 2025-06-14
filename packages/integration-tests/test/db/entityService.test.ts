@@ -553,6 +553,5 @@ This note was imported`;
         "No adapter registered for entity type: unknown",
       );
     });
-
   });
 });

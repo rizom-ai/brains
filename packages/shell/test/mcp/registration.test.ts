@@ -61,7 +61,7 @@ describe("MCP Registration", () => {
         createEntity: mock(() =>
           Promise.resolve({
             id: "saved-entity-123",
-            entityType: "generated-content",
+            entityType: "note",
             content: "",
             created: new Date().toISOString(),
             updated: new Date().toISOString(),
@@ -110,7 +110,7 @@ describe("MCP Registration", () => {
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
     // Check that tools were registered
-    expect(mockServer.tool).toHaveBeenCalledTimes(7); // 7 tools total
+    expect(mockServer.tool).toHaveBeenCalledTimes(6); // 6 tools total
 
     // Verify tool names
     const toolNames = Array.from(mockToolHandlers.keys());
@@ -206,7 +206,7 @@ describe("MCP Registration", () => {
     mockServices.entityService.createEntity = mock(() =>
       Promise.resolve({
         id: "saved-entity-123",
-        entityType: "generated-content",
+        entityType: "note",
         content: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -244,7 +244,7 @@ describe("MCP Registration", () => {
     mockServices.entityService.createEntity = mock(() =>
       Promise.resolve({
         id: "saved-entity-123",
-        entityType: "generated-content",
+        entityType: "note",
         content: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -287,5 +287,4 @@ describe("MCP Registration", () => {
     expect(Array.isArray(parsedResult)).toBe(true);
     expect(parsedResult[0].name).toBe("test-template");
   });
-
 });

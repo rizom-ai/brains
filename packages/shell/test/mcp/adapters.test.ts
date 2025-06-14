@@ -14,7 +14,6 @@ describe("ContentGenerationAdapter", () => {
   });
 
   beforeEach(() => {
-
     // Create mock content generation service
     mockContentGenerationService = {
       generate: async <T>(_options: ContentGenerateOptions<T>) => {
@@ -27,9 +26,7 @@ describe("ContentGenerationAdapter", () => {
     } as ContentGenerationService;
 
     // Create adapter
-    adapter = new ContentGenerationAdapter(
-      mockContentGenerationService,
-    );
+    adapter = new ContentGenerationAdapter(mockContentGenerationService);
   });
 
   afterEach(() => {
@@ -163,5 +160,4 @@ describe("ContentGenerationAdapter", () => {
       });
     });
   });
-
 });

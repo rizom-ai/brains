@@ -90,11 +90,13 @@ Update `ContentGenerationService` to:
 During implementation, we discovered that the landing page reference pattern adds unnecessary complexity:
 
 **Issue Identified:**
-- Landing page stored as reference data (with heroId, featuresId, ctaId) 
+
+- Landing page stored as reference data (with heroId, featuresId, ctaId)
 - Validation expects full data (with hero, features, cta objects)
 - This mismatch causes constant regeneration of content
 
 **Clarification - Astro Requirements:**
+
 - Astro's static site generator needs a complete landing page YAML file
 - The YAML must contain all sections (hero, features, cta) assembled together
 - Individual section files won't work for the current Astro template
@@ -103,22 +105,26 @@ During implementation, we discovered that the landing page reference pattern add
 Remove the landing page reference entity while maintaining YAML generation:
 
 1. **Store only individual sections as entities**
+
    - Hero, features, and CTA sections exist as independent site-content entities
    - No separate landing page "index" entity in the database
    - Each section uses its own formatter for proper content structure
 
 2. **YAML generation remains unchanged**
+
    - ContentGenerator still assembles the full landing page data
    - Writes complete landing/index.yaml for Astro
    - This YAML file is generated from the individual section entities
 
 3. **Simplify content checking**
+
    - Check for existing hero, features, and cta sections individually
    - If all sections exist, skip generation
    - If any section is missing, regenerate all sections for consistency
    - No validation against landingPageSchema for existing content
 
 4. **Benefits**
+
    - No duplication of data (sections are the single source of truth)
    - No complex reference resolution
    - Sections remain independent and editable
@@ -127,19 +133,124 @@ Remove the landing page reference entity while maintaining YAML generation:
 
 5. **Implementation Changes**
    - Remove `landingPageReferenceSchema` and related types
-   - Remove `LandingPageFormatter` 
+   - Remove `LandingPageFormatter`
    - Remove code that creates landing:index entity
    - Update `generateLandingPage` to check for sections individually
    - Keep YAML assembly and writing logic unchanged
 
-### Phase 4: Update Plugins
+### Phase 4: Content Structure Reorganization
 
-- Modify plugins to save generated content directly
-- Remove promotion tools
-- Add editing capabilities for all content
-- Remove landing page reference handling from webserver plugin
-- Update content generation to work with individual sections
-- Ensure formatters properly support round-trip parsing
+Reorganize content-related files into a hierarchical page/section structure:
+
+1. **Create Folder Structure**
+   - Move from flat file organization to nested page/section folders
+   - Each content type gets its own folder with schema, formatter, and prompt
+   - Example: `content/landing/hero/` contains schema.ts, formatter.ts, prompt.txt, and index.ts
+   - The index.ts exports the complete template configuration
+   - Composite schemas (like landing page) are also defined in the registry
+   - Example: `content/landing/index/` contains the composite landing page schema
+
+2. **Implement Content Registry**
+   - Create a registry for dynamic content loading
+   - Support content lookup by "page:section" pattern
+   - Provide unified interface for accessing schemas, formatters, and templates
+
+3. **Dynamic Schema Generation for Astro**
+   - Replace content-schemas.txt workaround with runtime schema generation
+   - Use zod-to-json-schema to convert runtime Zod schemas to JSON Schema
+   - Use json-schema-to-zod to generate TypeScript code from JSON Schema
+   - Generate complete content/config.ts file for Astro with all schemas inline
+   - Maintain Zod as single source of truth - no hardcoded schema strings
+   - Composite schemas (e.g., landingPageSchema) are defined once in the content registry
+   - Generator is completely generic - just converts all registered schemas
+
+4. **Update Dependencies**
+   - ContentGenerator imports only the registry
+   - WebserverPlugin uses registry for content type registration
+   - Remove precompile script and manual schema copying
+   - Reduce coupling between components
+
+5. **Handling Composite Schemas**
+   - Astro requires composite schemas for pages with multiple sections
+   - Example: landing page needs title, tagline, plus all section data
+   - Define composite schemas as regular templates in the registry
+   - `content/landing/index/` contains landingPageSchema that combines sections
+   - ContentGenerator validates against composite schema before writing YAML
+   - No special cases in schema generator - treats all schemas equally
+
+6. **Benefits**
+   - Better organization and discoverability
+   - Easier to add new content types
+   - No more schema duplication or manual synchronization
+   - Composite schemas are explicit and versioned
+   - Supports future features like versioning and environments
+   - Cleaner imports and reduced file sizes
+
+### Phase 5: Environment-Based Content Management
+
+Implement preview/production environment separation for content workflow:
+
+1. **Environment Separation**
+   - Add environment field to site-content entities ("preview" | "production")
+   - Update ContentGenerator to write to specific environment
+   - Modify queries to filter by environment
+
+2. **Promotion Workflow**
+   - Create promotion tool in webserver plugin
+   - Copy content from preview to production environment
+   - Track promotion metadata (promoted by, promoted at)
+   - Support bulk promotion of related content
+
+3. **Rollback Capability**
+   - Keep version history when promoting
+   - Add rollback tool to revert to previous versions
+   - Track promotion history in metadata
+
+### Phase 6: Content Editing Features
+
+Add comprehensive content editing capabilities:
+
+1. **Direct Content Editing**
+   - Add edit_content tool to modify existing site-content
+   - Support partial updates (edit specific fields)
+   - Preserve formatting with round-trip parser support
+
+2. **AI-Assisted Editing**
+   - Add regenerate_section tool for specific content pieces
+   - Support "improve" prompts that enhance existing content
+   - Mix manual edits with AI suggestions
+   - Track edit history in metadata
+
+3. **Content Validation**
+   - Validate edited content against schemas
+   - Ensure consistency across related sections
+   - Preview changes before saving
+
+### Phase 7: Clean Up and Documentation
+
+Finalize the refactoring with cleanup and documentation:
+
+1. **Code Cleanup**
+   - Remove any deprecated code paths
+   - Optimize performance where needed
+   - Ensure consistent error handling
+
+2. **Documentation Updates**
+   - Update README files for affected packages
+   - Create user guides for new workflows
+   - Document API changes
+   - Add architecture diagrams
+
+3. **Testing Improvements**
+   - Add integration tests for full workflows
+   - Test environment promotion scenarios
+   - Add performance benchmarks
+   - Ensure backward compatibility where needed
+
+4. **Migration Support**
+   - Create migration scripts if needed
+   - Document breaking changes
+   - Provide upgrade guides
 
 ## Migration Strategy
 
@@ -263,9 +374,18 @@ await entityService.createEntity({
 });
 
 // Astro assembles page from sections
-const hero = await entityService.getEntity("site-content", { page: "landing", section: "hero" });
-const features = await entityService.getEntity("site-content", { page: "landing", section: "features" });
-const cta = await entityService.getEntity("site-content", { page: "landing", section: "cta" });
+const hero = await entityService.getEntity("site-content", {
+  page: "landing",
+  section: "hero",
+});
+const features = await entityService.getEntity("site-content", {
+  page: "landing",
+  section: "features",
+});
+const cta = await entityService.getEntity("site-content", {
+  page: "landing",
+  section: "cta",
+});
 
 // Round-trip parsing when needed
 const heroData = heroFormatter.parse(hero.content);

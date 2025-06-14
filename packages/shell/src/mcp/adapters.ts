@@ -146,9 +146,7 @@ export interface MCPGenerateFromTemplateParams {
  * Adapter for ContentGenerationService that provides MCP interface
  */
 export class ContentGenerationAdapter {
-  constructor(
-    private contentGenerationService: ContentGenerationService,
-  ) {}
+  constructor(private contentGenerationService: ContentGenerationService) {}
 
   /**
    * Generate content with MCP-style parameters
