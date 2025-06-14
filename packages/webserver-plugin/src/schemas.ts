@@ -18,11 +18,13 @@ export const siteContentSchema = baseEntitySchema.extend({
   environment: z.enum(["preview", "production"]),
 
   // Promotion metadata
-  promotionMetadata: z.object({
-    promotedAt: z.string().optional(),
-    promotedBy: z.string().optional(),
-    promotedFrom: z.string().optional(), // Entity ID of the preview version
-  }).optional(),
+  promotionMetadata: z
+    .object({
+      promotedAt: z.string().optional(),
+      promotedBy: z.string().optional(),
+      promotedFrom: z.string().optional(), // Entity ID of the preview version
+    })
+    .optional(),
 });
 
 export type SiteContent = z.infer<typeof siteContentSchema>;

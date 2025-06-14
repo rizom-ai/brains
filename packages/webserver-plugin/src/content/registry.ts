@@ -9,7 +9,7 @@ import { dashboardTemplate } from "./dashboard/index";
  * Registry of all content templates organized by page:section
  */
 export class ContentRegistry {
-  private templates = new Map<string, ContentTemplate<any>>();
+  private templates = new Map<string, ContentTemplate<unknown>>();
 
   constructor() {
     // Register landing page sections
@@ -27,15 +27,15 @@ export class ContentRegistry {
   /**
    * Register a content template
    */
-  private register(key: string, template: ContentTemplate<any>): void {
-    this.templates.set(key, template);
+  private register<T>(key: string, template: ContentTemplate<T>): void {
+    this.templates.set(key, template as ContentTemplate<unknown>);
   }
 
   /**
    * Get a template by key
    */
-  getTemplate(key: string): ContentTemplate<any> | undefined {
-    return this.templates.get(key);
+  getTemplate<T = any>(key: string): ContentTemplate<T> | undefined {
+    return this.templates.get(key) as ContentTemplate<T> | undefined;
   }
 
   /**

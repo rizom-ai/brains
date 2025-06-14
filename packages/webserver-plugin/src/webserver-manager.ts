@@ -80,7 +80,7 @@ export class WebserverManager {
    * Generate and build the site
    */
   async buildSite(
-    options?: { 
+    options?: {
       clean?: boolean;
       environment?: "preview" | "production";
     },
@@ -133,7 +133,10 @@ export class WebserverManager {
         total: totalSteps,
         message: `Writing ${environment} content to site`,
       });
-      await this.contentGenerator.writeContentForEnvironment(environment, sendProgress);
+      await this.contentGenerator.writeContentForEnvironment(
+        environment,
+        sendProgress,
+      );
 
       // Build site
       await sendProgress?.({
@@ -249,7 +252,29 @@ export class WebserverManager {
       total?: number;
       message?: string;
     }) => Promise<void>,
+    force = false,
   ): Promise<void> {
-    await this.contentGenerator.generateAll(sendProgress);
+    await this.contentGenerator.generateAll(sendProgress, force);
+  }
+
+  /**
+   * Generate content for a specific section
+   */
+  async generateContentForSection(
+    templateKey: string,
+    environment: "preview" | "production",
+    force = false,
+    sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<{ generated: boolean }> {
+    return this.contentGenerator.generateSection(
+      templateKey,
+      environment,
+      force,
+      sendProgress,
+    );
   }
 }

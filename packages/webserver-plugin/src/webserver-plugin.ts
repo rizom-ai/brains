@@ -109,7 +109,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
           .enum("environment", ["preview", "production"] as const, "preview")
           .build(),
         async (input, context): Promise<Record<string, unknown>> => {
-          const { clean, environment } = input as { 
+          const { clean, environment } = input as {
             clean?: boolean;
             environment?: "preview" | "production";
           };
@@ -119,9 +119,9 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               throw new Error("WebserverPlugin manager not initialized");
             }
             await this.manager.buildSite(
-              { 
+              {
                 clean: clean ?? false,
-                environment: environment ?? "preview"
+                environment: environment ?? "preview",
               },
               context?.sendProgress,
             );
@@ -275,16 +275,16 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
             if (!this.manager) {
               throw new Error("WebserverPlugin manager not initialized");
             }
-            
+
             // Build with production content
             await this.manager.buildSite(
               { environment: "production" },
               context?.sendProgress,
             );
-            
+
             // Start production server
             const url = await this.manager.startProductionServer();
-            
+
             return {
               success: true,
               url,
@@ -337,10 +337,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
       this.createTool(
         "promote_content",
         "Promote content from preview to production environment",
-        toolInput()
-          .string("page")
-          .optionalString("section")
-          .build(),
+        toolInput().string("page").optionalString("section").build(),
         async (input): Promise<Record<string, unknown>> => {
           const { page, section } = input as { page: string; section?: string };
 
@@ -349,17 +346,17 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               throw new Error("Plugin context not initialized");
             }
             const entityService = this.context.entityService;
-            
+
             // Find all preview content for the page/section
             const filter: any = { page, environment: "preview" };
             if (section) {
               filter.section = section;
             }
 
-            const previewContent = await entityService.listEntities<SiteContent>(
-              "site-content",
-              { filter: { metadata: filter } }
-            );
+            const previewContent =
+              await entityService.listEntities<SiteContent>("site-content", {
+                filter: { metadata: filter },
+              });
 
             if (previewContent.length === 0) {
               return {
@@ -369,7 +366,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
             }
 
             const promoted: string[] = [];
-            
+
             // Promote each piece of content
             for (const content of previewContent) {
               // Create production version - only copy essential fields
@@ -385,7 +382,7 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
                   promotedFrom: content.id,
                 },
               });
-              
+
               promoted.push(`${content.page}:${content.section}`);
             }
 
@@ -395,7 +392,8 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               promoted,
             };
           } catch (error) {
-            const message = error instanceof Error ? error.message : "Unknown error";
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
             return {
               success: false,
               error: message,
@@ -417,26 +415,37 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               throw new Error("Plugin context not initialized");
             }
             const entityService = this.context.entityService;
-            
+
             // Get all site content
-            const allContent = await entityService.listEntities<SiteContent>("site-content");
-            
+            const allContent =
+              await entityService.listEntities<SiteContent>("site-content");
+
             // Group by environment
-            const preview = allContent.filter(c => c.environment === "preview");
-            const production = allContent.filter(c => c.environment === "production");
-            
+            const preview = allContent.filter(
+              (c) => c.environment === "preview",
+            );
+            const production = allContent.filter(
+              (c) => c.environment === "production",
+            );
+
             // Create summary
-            const previewSummary = preview.reduce((acc, c) => {
-              const key = `${c.page}:${c.section}`;
-              acc[key] = (acc[key] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>);
-            
-            const productionSummary = production.reduce((acc, c) => {
-              const key = `${c.page}:${c.section}`;
-              acc[key] = (acc[key] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>);
+            const previewSummary = preview.reduce(
+              (acc, c) => {
+                const key = `${c.page}:${c.section}`;
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            );
+
+            const productionSummary = production.reduce(
+              (acc, c) => {
+                const key = `${c.page}:${c.section}`;
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            );
 
             return {
               success: true,
@@ -452,6 +461,68 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
               },
             };
           } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
+            return {
+              success: false,
+              error: message,
+            };
+          }
+        },
+      ),
+    );
+
+    // Rollback content tool
+    tools.push(
+      this.createTool(
+        "rollback_content",
+        "Rollback production content to preview (reverts promotion)",
+        toolInput()
+          .string("page")
+          .optionalString("section")
+          .build(),
+        async (input): Promise<Record<string, unknown>> => {
+          const { page, section } = input as { page: string; section?: string };
+
+          try {
+            if (!this.context) {
+              throw new Error("Plugin context not initialized");
+            }
+            const entityService = this.context.entityService;
+            
+            // Find all production content for the page/section
+            const filter: any = { page, environment: "production" };
+            if (section) {
+              filter.section = section;
+            }
+
+            const productionContent = await entityService.listEntities<SiteContent>(
+              "site-content",
+              { filter: { metadata: filter } }
+            );
+
+            if (productionContent.length === 0) {
+              return {
+                success: false,
+                error: `No production content found for ${page}${section ? `:${section}` : ""}`,
+              };
+            }
+
+            const rolledBack: string[] = [];
+            
+            // Delete production content to effectively rollback
+            for (const content of productionContent) {
+              await entityService.deleteEntity(content.id);
+              rolledBack.push(`${content.page}:${content.section}`);
+            }
+
+            return {
+              success: true,
+              message: `Rolled back ${rolledBack.length} content item(s) from production`,
+              rolledBack,
+              hint: "Production content removed. Preview content remains unchanged.",
+            };
+          } catch (error) {
             const message = error instanceof Error ? error.message : "Unknown error";
             return {
               success: false,
@@ -462,28 +533,104 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
       ),
     );
 
-    // Generate content tool (always generates to preview)
+    // Generate content tool (enhanced to support selective generation)
     tools.push(
       this.createTool(
         "generate_site_content",
         "Generate AI content for the website (always creates in preview environment)",
-        {},
-        async (_, context): Promise<Record<string, unknown>> => {
+        toolInput()
+          .optionalString("page")
+          .optionalString("section")
+          .boolean("force", false)
+          .build(),
+        async (input, context): Promise<Record<string, unknown>> => {
+          const { page, section, force } = input as { 
+            page?: string; 
+            section?: string;
+            force?: boolean;
+          };
+
           try {
             if (!this.manager) {
               throw new Error("WebserverPlugin manager not initialized");
             }
+
+            // If no page specified, generate all content
+            if (!page) {
+              await this.manager.generateContent(context?.sendProgress, force);
+              return {
+                success: true,
+                message: force 
+                  ? "Regenerated all content to preview environment"
+                  : "Generated missing content to preview environment",
+                hint: "Use 'promote_content' to move content to production",
+              };
+            }
+
+            // Generate specific page/section
+            const sectionsToGenerate: string[] = [];
             
-            // This generates new content to preview environment
-            await this.manager.generateContent(context?.sendProgress);
-            
+            if (section) {
+              // Generate specific section
+              sectionsToGenerate.push(`${page}:${section}`);
+            } else {
+              // Generate all sections for the page
+              const registry = contentRegistry;
+              const allKeys = registry.getTemplateKeys();
+              
+              for (const key of allKeys) {
+                if (key.startsWith(`${page}:`)) {
+                  sectionsToGenerate.push(key);
+                }
+              }
+            }
+
+            if (sectionsToGenerate.length === 0) {
+              return {
+                success: false,
+                error: `No content templates found for page: ${page}`,
+              };
+            }
+
+            // Generate content for each section
+            const generated: string[] = [];
+            const skipped: string[] = [];
+            let currentStep = 0;
+            const totalSteps = sectionsToGenerate.length;
+
+            for (const templateKey of sectionsToGenerate) {
+              await context?.sendProgress?.({
+                progress: currentStep++,
+                total: totalSteps,
+                message: `${force ? 'Regenerating' : 'Checking'} ${templateKey}`,
+              });
+
+              const result = await this.manager.generateContentForSection(
+                templateKey, 
+                "preview",
+                force,
+                context?.sendProgress
+              );
+              
+              if (result.generated) {
+                generated.push(templateKey);
+              } else {
+                skipped.push(templateKey);
+              }
+            }
+
             return {
               success: true,
-              message: "Generated content to preview environment",
+              message: force
+                ? `Regenerated ${generated.length} content section(s) in preview`
+                : `Generated ${generated.length} new content section(s), skipped ${skipped.length} existing`,
+              generated,
+              skipped: force ? undefined : skipped,
               hint: "Use 'promote_content' to move content to production",
             };
           } catch (error) {
-            const message = error instanceof Error ? error.message : "Unknown error";
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
             return {
               success: false,
               error: message,

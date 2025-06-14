@@ -44,13 +44,13 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
     // Add promotion metadata if present
     if (entity.promotionMetadata) {
       if (entity.promotionMetadata.promotedAt) {
-        metadata['promotedAt'] = entity.promotionMetadata.promotedAt;
+        metadata["promotedAt"] = entity.promotionMetadata.promotedAt;
       }
       if (entity.promotionMetadata.promotedBy) {
-        metadata['promotedBy'] = entity.promotionMetadata.promotedBy;
+        metadata["promotedBy"] = entity.promotionMetadata.promotedBy;
       }
       if (entity.promotionMetadata.promotedFrom) {
-        metadata['promotedFrom'] = entity.promotionMetadata.promotedFrom;
+        metadata["promotedFrom"] = entity.promotionMetadata.promotedFrom;
       }
     }
 
@@ -106,13 +106,13 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
     // Include promotion metadata if present
     if (entity.promotionMetadata) {
       if (entity.promotionMetadata.promotedAt) {
-        metadata['promotedAt'] = entity.promotionMetadata.promotedAt;
+        metadata["promotedAt"] = entity.promotionMetadata.promotedAt;
       }
       if (entity.promotionMetadata.promotedBy) {
-        metadata['promotedBy'] = entity.promotionMetadata.promotedBy;
+        metadata["promotedBy"] = entity.promotionMetadata.promotedBy;
       }
       if (entity.promotionMetadata.promotedFrom) {
-        metadata['promotedFrom'] = entity.promotionMetadata.promotedFrom;
+        metadata["promotedFrom"] = entity.promotionMetadata.promotedFrom;
       }
     }
 
@@ -137,13 +137,13 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
     // Include promotion metadata if present
     if (entity.promotionMetadata) {
       if (entity.promotionMetadata.promotedAt) {
-        metadata['promotedAt'] = entity.promotionMetadata.promotedAt;
+        metadata["promotedAt"] = entity.promotionMetadata.promotedAt;
       }
       if (entity.promotionMetadata.promotedBy) {
-        metadata['promotedBy'] = entity.promotionMetadata.promotedBy;
+        metadata["promotedBy"] = entity.promotionMetadata.promotedBy;
       }
       if (entity.promotionMetadata.promotedFrom) {
-        metadata['promotedFrom'] = entity.promotionMetadata.promotedFrom;
+        metadata["promotedFrom"] = entity.promotionMetadata.promotedFrom;
       }
     }
 

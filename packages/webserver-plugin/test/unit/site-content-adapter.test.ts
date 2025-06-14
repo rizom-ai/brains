@@ -19,7 +19,7 @@ describe("SiteContentAdapter", () => {
       };
 
       const markdown = adapter.toMarkdown(entity);
-      
+
       expect(markdown).toContain("page: landing");
       expect(markdown).toContain("section: hero");
       expect(markdown).toContain("environment: preview");
@@ -44,7 +44,7 @@ describe("SiteContentAdapter", () => {
       };
 
       const markdown = adapter.toMarkdown(entity);
-      
+
       expect(markdown).toContain("environment: production");
       expect(markdown).toContain("promotedAt: '2024-01-01T00:00:00Z'");
       expect(markdown).toContain("promotedBy: test-user");
@@ -62,7 +62,7 @@ environment: production
 # Test Content`;
 
       const result = adapter.fromMarkdown(markdown);
-      
+
       expect(result.page).toBe("landing");
       expect(result.section).toBe("hero");
       expect(result.environment).toBe("production");
@@ -76,7 +76,7 @@ section: hero
 # Test Content`;
 
       const result = adapter.fromMarkdown(markdown);
-      
+
       expect(result.environment).toBe("preview");
     });
 
@@ -92,7 +92,7 @@ promotedFrom: preview-id
 # Test Content`;
 
       const result = adapter.fromMarkdown(markdown);
-      
+
       expect(result.environment).toBe("production");
       expect(result.promotionMetadata).toEqual({
         promotedAt: "2024-01-01T00:00:00Z",

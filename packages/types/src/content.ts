@@ -34,7 +34,7 @@ export interface ContentTypeRegistry {
   /**
    * Get formatter for a content type
    */
-  getFormatter(contentType: string): ContentFormatter<unknown> | null;
+  getFormatter<T = unknown>(contentType: string): ContentFormatter<T> | null;
 
   /**
    * Clear all registered schemas and formatters
