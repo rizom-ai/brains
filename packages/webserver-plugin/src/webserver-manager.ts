@@ -80,14 +80,18 @@ export class WebserverManager {
    * Generate and build the site
    */
   async buildSite(
-    options?: { clean?: boolean },
+    options?: { 
+      clean?: boolean;
+      environment?: "preview" | "production";
+    },
     sendProgress?: (notification: {
       progress: number;
       total?: number;
       message?: string;
     }) => Promise<void>,
   ): Promise<void> {
-    this.logger.info("Starting site build");
+    const environment = options?.environment ?? "preview";
+    this.logger.info(`Starting site build for ${environment} environment`);
 
     try {
       // Total steps: clean(1) + copy(1) + config(1) + content(1) + build(1) = 5
@@ -123,13 +127,13 @@ export class WebserverManager {
       });
       await this.generateContentConfig();
 
-      // Generate content
+      // Write content from specified environment to YAML files
       await sendProgress?.({
         progress: currentStep++,
         total: totalSteps,
-        message: "Generating site content",
+        message: `Writing ${environment} content to site`,
       });
-      await this.contentGenerator.generateAll(sendProgress);
+      await this.contentGenerator.writeContentForEnvironment(environment, sendProgress);
 
       // Build site
       await sendProgress?.({
@@ -236,4 +240,16 @@ export class WebserverManager {
     await writeFile(configPath, contentConfig);
   }
 
+  /**
+   * Generate new content (always to preview environment)
+   */
+  async generateContent(
+    sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<void> {
+    await this.contentGenerator.generateAll(sendProgress);
+  }
 }

@@ -11,9 +11,14 @@ import { z } from "zod";
 const frontmatterSchema = z.object({
   page: z.string(),
   section: z.string(),
+  environment: z.enum(["preview", "production"]).optional(),
   // Content origin metadata
   generatedBy: z.string().optional(),
   generatedAt: z.string().datetime().optional(),
+  // Promotion metadata
+  promotedAt: z.string().optional(),
+  promotedBy: z.string().optional(),
+  promotedFrom: z.string().optional(),
 });
 
 /**
@@ -33,7 +38,21 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
     const metadata: Record<string, unknown> = {
       page: entity.page,
       section: entity.section,
+      environment: entity.environment,
     };
+
+    // Add promotion metadata if present
+    if (entity.promotionMetadata) {
+      if (entity.promotionMetadata.promotedAt) {
+        metadata['promotedAt'] = entity.promotionMetadata.promotedAt;
+      }
+      if (entity.promotionMetadata.promotedBy) {
+        metadata['promotedBy'] = entity.promotionMetadata.promotedBy;
+      }
+      if (entity.promotionMetadata.promotedFrom) {
+        metadata['promotedFrom'] = entity.promotionMetadata.promotedFrom;
+      }
+    }
 
     // If content already has frontmatter, preserve the body and update metadata
     // Otherwise, use the content as-is
@@ -58,18 +77,46 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
 
     // The content is the formatted markdown
     // For import, we store the full markdown as the source of truth
-    return {
+    const result: Partial<SiteContent> = {
       page: metadata.page,
       section: metadata.section,
       content: markdown, // Store the full markdown including frontmatter
+      environment: metadata.environment || "preview", // Use stored environment or default to preview
     };
+
+    // Include promotion metadata if present
+    if (metadata.promotedAt || metadata.promotedBy || metadata.promotedFrom) {
+      result.promotionMetadata = {
+        promotedAt: metadata.promotedAt,
+        promotedBy: metadata.promotedBy,
+        promotedFrom: metadata.promotedFrom,
+      };
+    }
+
+    return result;
   }
 
   public extractMetadata(entity: SiteContent): Record<string, unknown> {
-    return {
+    const metadata: Record<string, unknown> = {
       page: entity.page,
       section: entity.section,
+      environment: entity.environment,
     };
+
+    // Include promotion metadata if present
+    if (entity.promotionMetadata) {
+      if (entity.promotionMetadata.promotedAt) {
+        metadata['promotedAt'] = entity.promotionMetadata.promotedAt;
+      }
+      if (entity.promotionMetadata.promotedBy) {
+        metadata['promotedBy'] = entity.promotionMetadata.promotedBy;
+      }
+      if (entity.promotionMetadata.promotedFrom) {
+        metadata['promotedFrom'] = entity.promotionMetadata.promotedFrom;
+      }
+    }
+
+    return metadata;
   }
 
   public parseFrontMatter<TFrontmatter>(
@@ -81,10 +128,25 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
   }
 
   public generateFrontMatter(entity: SiteContent): string {
-    const metadata = {
+    const metadata: Record<string, unknown> = {
       page: entity.page,
       section: entity.section,
+      environment: entity.environment,
     };
+
+    // Include promotion metadata if present
+    if (entity.promotionMetadata) {
+      if (entity.promotionMetadata.promotedAt) {
+        metadata['promotedAt'] = entity.promotionMetadata.promotedAt;
+      }
+      if (entity.promotionMetadata.promotedBy) {
+        metadata['promotedBy'] = entity.promotionMetadata.promotedBy;
+      }
+      if (entity.promotionMetadata.promotedFrom) {
+        metadata['promotedFrom'] = entity.promotionMetadata.promotedFrom;
+      }
+    }
+
     return generateFrontmatter(metadata);
   }
 }

@@ -16,10 +16,10 @@ export class ContentRegistry {
     this.register("landing:hero", heroSectionTemplate);
     this.register("landing:features", featuresSectionTemplate);
     this.register("landing:cta", ctaSectionTemplate);
-    
+
     // Register composite landing page (for Astro)
     this.register("landing:index", landingPageTemplate);
-    
+
     // Register dashboard
     this.register("dashboard:index", dashboardTemplate);
   }

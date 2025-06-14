@@ -7,45 +7,51 @@ describe("Schema Generation", () => {
   describe("generateContentConfigFile", () => {
     it("should generate valid Astro content config", async () => {
       const config = await generateContentConfigFile(contentRegistry);
-      
+
       // Check for required imports
-      expect(config).toContain('import { defineCollection, z } from "astro:content"');
-      
+      expect(config).toContain(
+        'import { defineCollection, z } from "astro:content"',
+      );
+
       // Check for auto-generated comment
-      expect(config).toContain('// This file is auto-generated. Do not edit manually.');
-      
+      expect(config).toContain(
+        "// This file is auto-generated. Do not edit manually.",
+      );
+
       // Check for schema definitions
-      expect(config).toContain('// Schema for landing hero');
-      expect(config).toContain('const landingHeroSchema =');
-      expect(config).toContain('// Schema for landing features');
-      expect(config).toContain('const landingFeaturesSchema =');
-      expect(config).toContain('// Schema for landing cta');
-      expect(config).toContain('const landingCtaSchema =');
-      expect(config).toContain('// Schema for landing index');
-      expect(config).toContain('const landingIndexSchema =');
-      expect(config).toContain('// Schema for dashboard index');
-      expect(config).toContain('const dashboardIndexSchema =');
-      
+      expect(config).toContain("// Schema for landing hero");
+      expect(config).toContain("const landingHeroSchema =");
+      expect(config).toContain("// Schema for landing features");
+      expect(config).toContain("const landingFeaturesSchema =");
+      expect(config).toContain("// Schema for landing cta");
+      expect(config).toContain("const landingCtaSchema =");
+      expect(config).toContain("// Schema for landing index");
+      expect(config).toContain("const landingIndexSchema =");
+      expect(config).toContain("// Schema for dashboard index");
+      expect(config).toContain("const dashboardIndexSchema =");
+
       // Check for collection definitions
-      expect(config).toContain('const landingCollection = defineCollection({');
-      expect(config).toContain('const dashboardCollection = defineCollection({');
+      expect(config).toContain("const landingCollection = defineCollection({");
+      expect(config).toContain(
+        "const dashboardCollection = defineCollection({",
+      );
       expect(config).toContain('type: "data"');
-      expect(config).toContain('schema: landingIndexSchema');
-      expect(config).toContain('schema: dashboardIndexSchema');
-      
+      expect(config).toContain("schema: landingIndexSchema");
+      expect(config).toContain("schema: dashboardIndexSchema");
+
       // Check for exports
-      expect(config).toContain('export const collections = {');
-      expect(config).toContain('landing: landingCollection,');
-      expect(config).toContain('dashboard: dashboardCollection,');
+      expect(config).toContain("export const collections = {");
+      expect(config).toContain("landing: landingCollection,");
+      expect(config).toContain("dashboard: dashboardCollection,");
     });
 
     it("should handle schema conversion correctly", async () => {
       const config = await generateContentConfigFile(contentRegistry);
-      
+
       // Check that schemas are properly converted to Zod code
-      expect(config).toContain('z.object({');
-      expect(config).toContain('z.string()');
-      
+      expect(config).toContain("z.object({");
+      expect(config).toContain("z.string()");
+
       // Check specific field definitions (with quotes as per JSON Schema conversion)
       expect(config).toContain('"headline"'); // From hero schema
       expect(config).toContain('"features"'); // From features schema
@@ -55,57 +61,61 @@ describe("Schema Generation", () => {
 
     it("should handle composite schemas correctly", async () => {
       const config = await generateContentConfigFile(contentRegistry);
-      
+
       // Landing page composite schema should include all sections
       // Look for the complete schema definition including nested objects
-      const landingSchemaMatch = config.match(/const landingIndexSchema = z\.object\({[^}]+}\)[^}]*}\)[^}]*}\)/s);
+      const landingSchemaMatch = config.match(
+        /const landingIndexSchema = z\.object\({[^}]+}\)[^}]*}\)[^}]*}\)/s,
+      );
       expect(landingSchemaMatch).toBeTruthy();
-      
+
       if (landingSchemaMatch) {
         const landingSchema = landingSchemaMatch[0];
         expect(landingSchema).toContain('"title"');
         expect(landingSchema).toContain('"tagline"');
         expect(landingSchema).toContain('"hero"');
         // The full schema is flattened, so we check that it contains nested properties
-        expect(landingSchema).toContain('z.object({'); // Multiple nested objects
+        expect(landingSchema).toContain("z.object({"); // Multiple nested objects
       }
     });
 
     it("should handle invalid schemas gracefully", async () => {
       // Create a test registry with an invalid schema
       const testRegistry = {
-        getTemplateKeys: () => ['test:invalid'],
+        getTemplateKeys: () => ["test:invalid"],
         getTemplate: (key: string) => {
-          if (key === 'test:invalid') {
+          if (key === "test:invalid") {
             return {
-              name: 'test-invalid',
-              description: 'Test',
+              name: "test-invalid",
+              description: "Test",
               schema: z.function(), // Invalid schema type for JSON Schema conversion
-              basePrompt: '',
+              basePrompt: "",
             };
           }
           return null;
-        }
+        },
       } as any;
 
       const config = await generateContentConfigFile(testRegistry);
-      
+
       // Should generate fallback schema or use z.any() for functions
-      expect(config).toContain('// Schema for test invalid');
-      expect(config).toContain('const testInvalidSchema = z.');
+      expect(config).toContain("// Schema for test invalid");
+      expect(config).toContain("const testInvalidSchema = z.");
     });
 
     it("should only create collections for index schemas", async () => {
       const config = await generateContentConfigFile(contentRegistry);
-      
+
       // Should have collections for landing and dashboard (which have index schemas)
-      expect(config).toContain('const landingCollection = defineCollection({');
-      expect(config).toContain('const dashboardCollection = defineCollection({');
-      
+      expect(config).toContain("const landingCollection = defineCollection({");
+      expect(config).toContain(
+        "const dashboardCollection = defineCollection({",
+      );
+
       // Should NOT have collections for individual sections
-      expect(config).not.toContain('const heroCollection');
-      expect(config).not.toContain('const featuresCollection');
-      expect(config).not.toContain('const ctaCollection');
+      expect(config).not.toContain("const heroCollection");
+      expect(config).not.toContain("const featuresCollection");
+      expect(config).not.toContain("const ctaCollection");
     });
   });
 });

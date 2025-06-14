@@ -143,6 +143,7 @@ Remove the landing page reference entity while maintaining YAML generation:
 Reorganize content-related files into a hierarchical page/section structure:
 
 1. **Create Folder Structure**
+
    - Move from flat file organization to nested page/section folders
    - Each content type gets its own folder with schema, formatter, and prompt
    - Example: `content/landing/hero/` contains schema.ts, formatter.ts, prompt.txt, and index.ts
@@ -151,11 +152,13 @@ Reorganize content-related files into a hierarchical page/section structure:
    - Example: `content/landing/index/` contains the composite landing page schema
 
 2. **Implement Content Registry**
+
    - Create a registry for dynamic content loading
    - Support content lookup by "page:section" pattern
    - Provide unified interface for accessing schemas, formatters, and templates
 
 3. **Dynamic Schema Generation for Astro**
+
    - Replace content-schemas.txt workaround with runtime schema generation
    - Use zod-to-json-schema to convert runtime Zod schemas to JSON Schema
    - Use json-schema-to-zod to generate TypeScript code from JSON Schema
@@ -165,12 +168,14 @@ Reorganize content-related files into a hierarchical page/section structure:
    - Generator is completely generic - just converts all registered schemas
 
 4. **Update Dependencies**
+
    - ContentGenerator imports only the registry
    - WebserverPlugin uses registry for content type registration
    - Remove precompile script and manual schema copying
    - Reduce coupling between components
 
 5. **Handling Composite Schemas**
+
    - Astro requires composite schemas for pages with multiple sections
    - Example: landing page needs title, tagline, plus all section data
    - Define composite schemas as regular templates in the registry
@@ -191,11 +196,13 @@ Reorganize content-related files into a hierarchical page/section structure:
 Implement preview/production environment separation for content workflow:
 
 1. **Environment Separation**
+
    - Add environment field to site-content entities ("preview" | "production")
    - Update ContentGenerator to write to specific environment
    - Modify queries to filter by environment
 
 2. **Promotion Workflow**
+
    - Create promotion tool in webserver plugin
    - Copy content from preview to production environment
    - Track promotion metadata (promoted by, promoted at)
@@ -211,11 +218,13 @@ Implement preview/production environment separation for content workflow:
 Add comprehensive content editing capabilities:
 
 1. **Direct Content Editing**
+
    - Add edit_content tool to modify existing site-content
    - Support partial updates (edit specific fields)
    - Preserve formatting with round-trip parser support
 
 2. **AI-Assisted Editing**
+
    - Add regenerate_section tool for specific content pieces
    - Support "improve" prompts that enhance existing content
    - Mix manual edits with AI suggestions
@@ -231,17 +240,20 @@ Add comprehensive content editing capabilities:
 Finalize the refactoring with cleanup and documentation:
 
 1. **Code Cleanup**
+
    - Remove any deprecated code paths
    - Optimize performance where needed
    - Ensure consistent error handling
 
 2. **Documentation Updates**
+
    - Update README files for affected packages
    - Create user guides for new workflows
    - Document API changes
    - Add architecture diagrams
 
 3. **Testing Improvements**
+
    - Add integration tests for full workflows
    - Test environment promotion scenarios
    - Add performance benchmarks

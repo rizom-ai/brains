@@ -22,6 +22,7 @@ export interface ContentGeneratorOptions {
 
 /**
  * Generates content files for the static site
+ * Always generates content to the "preview" environment
  */
 export class ContentGenerator {
   private logger: Logger;
@@ -108,7 +109,7 @@ export class ContentGenerator {
       throw new Error("Landing page template not found in registry");
     }
     type LandingPageData = z.infer<typeof landingTemplate.schema>;
-    
+
     let landingData: LandingPageData | undefined;
     let validExistingContent = false;
 
@@ -194,6 +195,7 @@ export class ContentGenerator {
         content: formattedHeroContent,
         page: "landing",
         section: "hero",
+        environment: "preview", // Always generate to preview
       });
 
       this.logger.debug("Generated hero data:", {
@@ -210,7 +212,8 @@ export class ContentGenerator {
 
       let featuresData;
       try {
-        const featuresTemplate = contentRegistry.getTemplate("landing:features");
+        const featuresTemplate =
+          contentRegistry.getTemplate("landing:features");
         if (!featuresTemplate) {
           throw new Error("Features template not found in registry");
         }
@@ -261,6 +264,7 @@ export class ContentGenerator {
           content: formattedFeaturesContent,
           page: "landing",
           section: "features",
+          environment: "preview", // Always generate to preview
         });
       } catch (error) {
         this.logger.error("Failed to generate features section", error);
@@ -301,6 +305,7 @@ export class ContentGenerator {
         content: formattedCtaContent,
         page: "landing",
         section: "cta",
+        environment: "preview", // Always generate to preview
       });
 
       // Update progress for final step
@@ -440,7 +445,7 @@ export class ContentGenerator {
     if (!dashboardTemplate) {
       throw new Error("Dashboard template not found in registry");
     }
-    
+
     // Validate data against schema
     const validatedData = dashboardTemplate.schema.parse(dashboardData);
 
@@ -468,12 +473,12 @@ export class ContentGenerator {
     const namespacedContentType = `${this.context.pluginId}:${contentType}`;
 
     try {
-      // Look for site-content entities with matching page and section
+      // Look for site-content entities with matching page and section in preview environment
       const results = await entityService.listEntities<SiteContent>(
         "site-content",
         {
           filter: {
-            metadata: { page, section },
+            metadata: { page, section, environment: "preview" },
           },
           limit: 1,
           sortBy: "created",
@@ -523,7 +528,7 @@ export class ContentGenerator {
   }
 
   /**
-   * Generate all content for the site
+   * Generate all content for the site (always generates to preview environment)
    */
   async generateAll(
     sendProgress?: (notification: {
@@ -556,5 +561,164 @@ export class ContentGenerator {
       message: "Content generation complete",
     });
     // Future: generateNotePages(), generateArticlePages(), etc.
+  }
+
+  /**
+   * Write content from a specific environment to YAML files for Astro
+   */
+  async writeContentForEnvironment(
+    environment: "preview" | "production",
+    sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<void> {
+    this.logger.info(`Writing content for ${environment} environment`);
+    
+    // Ensure directories exist
+    await this.initialize();
+
+    // Write landing page content
+    await sendProgress?.({
+      progress: 1,
+      total: 3,
+      message: `Writing ${environment} landing page content`,
+    });
+    await this.writeLandingPageForEnvironment(environment);
+
+    // Write dashboard content
+    await sendProgress?.({
+      progress: 2,
+      total: 3,
+      message: `Writing ${environment} dashboard content`,
+    });
+    await this.writeDashboardForEnvironment(environment);
+
+    await sendProgress?.({
+      progress: 3,
+      total: 3,
+      message: `Content writing complete for ${environment}`,
+    });
+  }
+
+  /**
+   * Write landing page content for a specific environment
+   */
+  private async writeLandingPageForEnvironment(
+    environment: "preview" | "production",
+  ): Promise<void> {
+    // Get sections from the specified environment
+    const hero = await this.getExistingSiteContentForEnvironment(
+      "landing",
+      "hero",
+      environment,
+    );
+    const features = await this.getExistingSiteContentForEnvironment(
+      "landing",
+      "features",
+      environment,
+    );
+    const cta = await this.getExistingSiteContentForEnvironment(
+      "landing",
+      "cta",
+      environment,
+    );
+
+    if (!hero || !features || !cta) {
+      this.logger.warn(`Missing landing page sections for ${environment} environment`, {
+        hasHero: !!hero,
+        hasFeatures: !!features,
+        hasCta: !!cta,
+      });
+      return;
+    }
+
+    // Assemble landing page data
+    const landingData = {
+      title: this.options.siteTitle,
+      tagline: this.options.siteDescription,
+      hero,
+      features,
+      cta,
+    };
+
+    // Write to YAML
+    await this.writeYamlFile("landing", "index.yaml", landingData);
+    this.logger.info(`Landing page written for ${environment} environment`);
+  }
+
+  /**
+   * Write dashboard content for a specific environment
+   */
+  private async writeDashboardForEnvironment(
+    _environment: "preview" | "production",
+  ): Promise<void> {
+    // For dashboard, we generate fresh data from entities
+    // This is the same for both environments as it reflects current state
+    await this.generateDashboard();
+  }
+
+  /**
+   * Get existing site content for a specific environment
+   */
+  private async getExistingSiteContentForEnvironment(
+    page: string,
+    section: string,
+    environment: "preview" | "production",
+  ): Promise<unknown | null> {
+    const entityService = this.context.entityService;
+
+    try {
+      const results = await entityService.listEntities<SiteContent>(
+        "site-content",
+        {
+          filter: {
+            metadata: { page, section, environment },
+          },
+          limit: 1,
+          sortBy: "updated",
+          sortDirection: "desc",
+        },
+      );
+
+      if (results.length === 0) {
+        return null;
+      }
+
+      const matchingContent = results[0];
+      if (!matchingContent) {
+        return null;
+      }
+
+      // Parse the formatted content back to structured data
+      const contentType = `${page}:${section}`;
+      const namespacedContentType = `${this.context.pluginId}:${contentType}`;
+      const formatter = this.context.contentTypeRegistry.getFormatter(
+        namespacedContentType,
+      );
+      
+      if (formatter && formatter.parse) {
+        try {
+          return formatter.parse(matchingContent.content);
+        } catch (error) {
+          this.logger.warn("Failed to parse content", {
+            contentType: namespacedContentType,
+            environment,
+            error,
+          });
+        }
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.debug("Error looking for content", {
+        page,
+        section,
+        environment,
+        error,
+      });
+      return null;
+    }
   }
 }

@@ -6,11 +6,13 @@ import type { ContentRegistry } from "./content/registry";
  * Generate the content/config.ts file for Astro with inline schema definitions
  * This uses runtime Zod schemas as the single source of truth
  */
-export async function generateContentConfigFile(registry: ContentRegistry): Promise<string> {
+export async function generateContentConfigFile(
+  registry: ContentRegistry,
+): Promise<string> {
   const lines: string[] = [
-    '// This file is auto-generated. Do not edit manually.',
+    "// This file is auto-generated. Do not edit manually.",
     'import { defineCollection, z } from "astro:content";',
-    '',
+    "",
   ];
 
   const schemaDefinitions: string[] = [];
@@ -21,7 +23,7 @@ export async function generateContentConfigFile(registry: ContentRegistry): Prom
     const template = registry.getTemplate(key);
     if (!template) continue;
 
-    const [page, section] = key.split(':');
+    const [page, section] = key.split(":");
     if (!section) continue; // Skip malformed keys
     const schemaName = `${page}${capitalize(section)}Schema`;
 
@@ -39,17 +41,17 @@ export async function generateContentConfigFile(registry: ContentRegistry): Prom
 
       // Clean up the generated code
       const cleanedCode = zodCode
-        .split('\n')
-        .filter(line => !line.startsWith('import'))
-        .join('\n')
+        .split("\n")
+        .filter((line) => !line.startsWith("import"))
+        .join("\n")
         .trim();
 
       schemaDefinitions.push(`// Schema for ${page} ${section}`);
       schemaDefinitions.push(cleanedCode);
-      schemaDefinitions.push('');
+      schemaDefinitions.push("");
 
       // Track which collections we need
-      if (section === 'index' && page) {
+      if (section === "index" && page) {
         collections.set(page, schemaName);
       }
     } catch (error) {
@@ -57,7 +59,7 @@ export async function generateContentConfigFile(registry: ContentRegistry): Prom
       // Fallback to a simple object schema
       schemaDefinitions.push(`// Schema for ${page} ${section} (fallback)`);
       schemaDefinitions.push(`const ${schemaName} = z.object({});`);
-      schemaDefinitions.push('');
+      schemaDefinitions.push("");
     }
   }
 
@@ -65,23 +67,23 @@ export async function generateContentConfigFile(registry: ContentRegistry): Prom
   lines.push(...schemaDefinitions);
 
   // Generate collection definitions
-  lines.push('// Collection definitions');
+  lines.push("// Collection definitions");
   for (const [page, schemaName] of collections.entries()) {
     lines.push(`const ${page}Collection = defineCollection({`);
     lines.push(`  type: "data",`);
     lines.push(`  schema: ${schemaName},`);
     lines.push(`});`);
-    lines.push('');
+    lines.push("");
   }
 
   // Export collections
-  lines.push('export const collections = {');
+  lines.push("export const collections = {");
   for (const [page] of collections.entries()) {
     lines.push(`  ${page}: ${page}Collection,`);
   }
-  lines.push('};');
+  lines.push("};");
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 function capitalize(str: string): string {

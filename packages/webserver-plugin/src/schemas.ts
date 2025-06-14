@@ -13,6 +13,16 @@ export const siteContentSchema = baseEntitySchema.extend({
 
   // Which section of the page (e.g., "hero", "features")
   section: z.string(),
+
+  // Environment this content belongs to
+  environment: z.enum(["preview", "production"]),
+
+  // Promotion metadata
+  promotionMetadata: z.object({
+    promotedAt: z.string().optional(),
+    promotedBy: z.string().optional(),
+    promotedFrom: z.string().optional(), // Entity ID of the preview version
+  }).optional(),
 });
 
 export type SiteContent = z.infer<typeof siteContentSchema>;

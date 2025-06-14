@@ -7,7 +7,7 @@ import ctaPrompt from "./prompt.txt";
  * CTA section template
  */
 export const ctaSectionTemplate: ContentTemplate<CTASection> = {
-  name: "cta-section", 
+  name: "cta-section",
   description: "Call-to-action section for pages",
   schema: ctaSectionSchema,
   formatter: new CTASectionFormatter(),
