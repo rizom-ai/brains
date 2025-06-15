@@ -91,6 +91,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
           await this.gitSync.sync();
           return { message: "Sync completed" };
         },
+        "anchor", // Only anchor user can sync
       ),
 
       this.createTool(
@@ -104,6 +105,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
           await this.gitSync.importFromGit();
           return { message: "Pull completed" };
         },
+        "anchor", // Only anchor user can pull
       ),
 
       this.createTool(
@@ -117,6 +119,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
           await this.gitSync.exportToGit();
           return { message: "Push completed" };
         },
+        "anchor", // Only anchor user can push
       ),
 
       this.createTool(
@@ -132,6 +135,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
           // and the schema description will hint at using gitSyncStatus formatter
           return gitSyncStatusSchema.parse(status);
         },
+        "anchor", // Only anchor user can check status
       ),
     ];
   }

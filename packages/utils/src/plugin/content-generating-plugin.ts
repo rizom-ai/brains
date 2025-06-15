@@ -69,6 +69,7 @@ export abstract class ContentGeneratingPlugin<
     inputSchema: z.ZodRawShape,
     generateContent: (input: unknown) => Promise<unknown>,
     contentTypeKey: string,
+    visibility: PluginTool["visibility"] = "anchor",
   ): PluginTool {
     return this.createTool(
       name,
@@ -99,6 +100,7 @@ export abstract class ContentGeneratingPlugin<
           content: validatedContent,
         };
       },
+      visibility,
     );
   }
 
@@ -113,6 +115,7 @@ export abstract class ContentGeneratingPlugin<
     },
     generateBatch: (input: unknown) => Promise<unknown[]>,
     contentTypeKey: string,
+    visibility: PluginTool["visibility"] = "anchor",
   ): PluginTool {
     return this.createTool(
       name,
@@ -142,6 +145,7 @@ export abstract class ContentGeneratingPlugin<
           count: validatedItems.length,
         };
       },
+      visibility,
     );
   }
 
