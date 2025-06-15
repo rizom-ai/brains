@@ -167,6 +167,7 @@ See `docs/cleanup-inventory.md` for detailed cleanup tasks. Key items:
 ## Phase 5: Article Plugin Implementation (1-2 weeks)
 
 - [ ] Create Article Plugin Package
+
   - [ ] Set up project structure at packages/article-plugin
   - [ ] Configure dependencies
 

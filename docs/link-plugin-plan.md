@@ -96,23 +96,27 @@ packages/link-plugin/
 ## Implementation Details
 
 ### Content Fetching
+
 - Use the shell's WebFetch tool to retrieve page content
 - Extract title from HTML if available
 - Convert HTML to markdown for storage
 
 ### AI Processing
+
 - Use QueryProcessor to generate summary
 - Extract relevant tags based on content
 - Prompt template:
+
   ```
   Summarize this web page content in 2-3 sentences.
   Also suggest 3-5 relevant tags for categorization.
-  
+
   URL: {url}
   Content: {content}
   ```
 
 ### Storage Format
+
 ```markdown
 ---
 url: https://example.com/article
@@ -132,43 +136,46 @@ tags: [web-development, javascript, tutorial]
 ## Example Usage
 
 ### Saving a Link
+
 ```typescript
 // Save a new link
 await linkPlugin.tools.save_link({
-  url: "https://example.com/interesting-article"
+  url: "https://example.com/interesting-article",
 });
 
 // Save with custom title and tags
 await linkPlugin.tools.save_link({
   url: "https://example.com/interesting-article",
   customTitle: "Must Read: AI Development",
-  customTags: ["important", "ai"]
+  customTags: ["important", "ai"],
 });
 ```
 
 ### Querying Links
+
 ```typescript
 // List unread links
 const unreadLinks = await linkPlugin.tools.list_links({
-  unread: true
+  unread: true,
 });
 
 // Search for specific content
 const aiLinks = await linkPlugin.tools.search_links({
-  query: "machine learning"
+  query: "machine learning",
 });
 
 // Get links from specific domain
 const githubLinks = await linkPlugin.tools.list_links({
-  domain: "github.com"
+  domain: "github.com",
 });
 ```
 
 ### Managing Read Status
+
 ```typescript
 // Mark link as read
 await linkPlugin.tools.mark_link_read({
-  linkId: "link-123"
+  linkId: "link-123",
 });
 ```
 

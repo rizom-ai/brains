@@ -598,7 +598,9 @@ export class EntityService {
     try {
       this.entityRegistry.getAdapter(entityType);
       return true;
-    } catch {
+    } catch (error) {
+      // Expected error when adapter doesn't exist
+      this.logger.debug("Adapter not found", { entityType, error });
       return false;
     }
   }

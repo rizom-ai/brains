@@ -183,7 +183,7 @@ export class GitSync {
         const filePath = this.getEntityFilePath(entity);
 
         // Ensure directory exists (only for non-base entities)
-        if (entityType !== 'base') {
+        if (entityType !== "base") {
           const dir = join(this.repoPath, entityType);
           if (!existsSync(dir)) {
             mkdirSync(dir, { recursive: true });
@@ -414,7 +414,7 @@ export class GitSync {
    */
   private getEntityFilePath(entity: BaseEntity): string {
     // Base entities go in root directory, others in subdirectories
-    if (entity.entityType === 'base') {
+    if (entity.entityType === "base") {
       return join(this.repoPath, `${entity.id}.md`);
     } else {
       // Other entity types go in their own directories
