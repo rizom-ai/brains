@@ -235,10 +235,18 @@ export class MatrixInterface extends BaseInterface {
    */
   private async processMessageWithContext(
     message: string,
-    _senderId: string,
+    senderId: string,
     _permissionLevel: string,
     messageContext: MessageContext,
   ): Promise<string> {
+    // Check if message is an anchor-only command
+    if (message.startsWith(this.config.anchorPrefix)) {
+      // Only process if sender is the anchor user
+      if (senderId !== this.config.anchorUserId) {
+        throw new Error("This command is restricted to the anchor user");
+      }
+    }
+
     // For Phase 1, use the processQuery method from BaseInterface
     // In future phases, we'll filter tools based on permission level
     return this.processQuery(message, messageContext);
