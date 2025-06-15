@@ -1,2 +1,2 @@
-export * from "./retry-handler.js";
-export * from "./rate-limiter.js";
+export * from "./retry-handler";
+export * from "./rate-limiter";

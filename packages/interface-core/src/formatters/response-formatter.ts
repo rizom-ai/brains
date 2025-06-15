@@ -1,4 +1,4 @@
-import type { MessageContext } from "../types.js";
+import type { MessageContext } from "../types";
 
 export interface ResponseFormatOptions {
   showTimestamp?: boolean;

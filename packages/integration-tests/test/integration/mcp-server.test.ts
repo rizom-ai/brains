@@ -47,9 +47,9 @@ describe("MCP Server Integration Tests", () => {
     expect(result.tools.length).toBeGreaterThan(0);
 
     const toolNames = result.tools.map((t) => t.name);
-    expect(toolNames).toContain("brain_query");
-    expect(toolNames).toContain("entity_search");
-    expect(toolNames).toContain("entity_get");
+    expect(toolNames).toContain("shell:query");
+    expect(toolNames).toContain("shell:search");
+    expect(toolNames).toContain("shell:get");
   });
 
   it("should list available resources", async () => {
@@ -63,9 +63,9 @@ describe("MCP Server Integration Tests", () => {
     expect(resourceUris).toContain("schema://list");
   });
 
-  it("should execute entity_search tool", async () => {
+  it("should execute shell:search tool", async () => {
     const result = await client.callTool({
-      name: "entity_search",
+      name: "shell:search",
       arguments: {
         entityType: "note",
         query: "test",

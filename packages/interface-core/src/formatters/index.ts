@@ -1,2 +1,2 @@
-export * from "./markdown-formatter.js";
-export * from "./response-formatter.js";
+export * from "./markdown-formatter";
+export * from "./response-formatter";

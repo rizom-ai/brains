@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { MessageContext } from "./types.js";
+import type { MessageContext } from "./types";
 import PQueue from "p-queue";
 
 export interface InterfaceContext {
