@@ -182,10 +182,12 @@ export class GitSync {
         const markdown = adapter.toMarkdown(entity);
         const filePath = this.getEntityFilePath(entity);
 
-        // Ensure directory exists
-        const dir = join(this.repoPath, entityType);
-        if (!existsSync(dir)) {
-          mkdirSync(dir, { recursive: true });
+        // Ensure directory exists (only for non-base entities)
+        if (entityType !== 'base') {
+          const dir = join(this.repoPath, entityType);
+          if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+          }
         }
 
         // Write markdown file
@@ -411,8 +413,12 @@ export class GitSync {
    * Get entity file path
    */
   private getEntityFilePath(entity: BaseEntity): string {
-    // Use entityType as directory and id as filename
-    // Since BaseEntity no longer has title, we use the id
-    return join(this.repoPath, entity.entityType, `${entity.id}.md`);
+    // Base entities go in root directory, others in subdirectories
+    if (entity.entityType === 'base') {
+      return join(this.repoPath, `${entity.id}.md`);
+    } else {
+      // Other entity types go in their own directories
+      return join(this.repoPath, entity.entityType, `${entity.id}.md`);
+    }
   }
 }

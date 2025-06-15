@@ -12,9 +12,11 @@ The plugin system follows a **tool-first architecture** where plugins expose the
 
 Plugins that add new entity types and related functionality:
 
-- **Note Plugin**: Notes, journaling, documentation
+- **Link Plugin**: Web content capture with AI summarization and tagging (first priority after cleanup)
+- **Article Plugin**: Long-form content with draft/publish workflow
 - **Task Plugin**: Tasks, todos, project management
 - **Profile Plugin**: People, contacts, relationships
+- **Note Plugin**: Extended note features beyond BaseEntity (deprioritized - BaseEntity provides core functionality)
 
 ### Feature Plugins
 

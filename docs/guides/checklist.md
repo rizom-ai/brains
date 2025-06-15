@@ -123,40 +123,63 @@ This checklist provides a step-by-step guide for implementing the new Personal B
   - [ ] Implement CRUD operations
   - [ ] Add search capabilities
 
-## Phase 3: Note Context Implementation (1-2 weeks)
+## Phase 3: Cleanup Phase (1-2 weeks)
 
-- [ ] Create Note Context Package
+See `docs/cleanup-inventory.md` for detailed cleanup tasks. Key items:
 
-  - [ ] Set up project structure
+- [ ] Fix critical issues (empty catch, TODOs)
+- [ ] Add async embedding generation
+- [ ] Add component disposal methods
+- [ ] Extract service interfaces
+- [ ] Standardize error handling
+- [ ] Add missing tests for critical components
+
+## Phase 4: Link Plugin Implementation (1 week)
+
+- [ ] Create Link Plugin Package
+
+  - [ ] Set up project structure at packages/link-plugin
   - [ ] Configure dependencies
 
-- [ ] Implement Note Entity
+- [ ] Implement Link Entity
 
-  - [ ] Define Note schema
-  - [ ] Create NoteAdapter implementation
-  - [ ] Implement markdown generation
+  - [ ] Define Link schema with URL and read tracking
+  - [ ] Create LinkAdapter implementation
+  - [ ] Implement markdown serialization
 
-- [ ] Implement Note Tools
+- [ ] Implement Link Tools
 
-  - [ ] Create tool definitions
-  - [ ] Implement tool handlers
+  - [ ] Create MCP tool definitions
+  - [ ] Implement save_link with AI summarization
+  - [ ] Implement mark_link_read functionality
 
-- [ ] Implement Note Services
+- [ ] Implement Link Service
 
-  - [ ] Create NoteService
-  - [ ] Implement note operations
-  - [ ] Add search functionality
+  - [ ] Create LinkService for business logic
+  - [ ] Integrate with WebFetch for content retrieval
+  - [ ] Add AI summarization and tagging
 
-- [ ] Set up Note Message Handlers
-
-  - [ ] Create message schema
-  - [ ] Implement message handlers
-  - [ ] Connect to repository
-
-- [ ] Register Note Context with Skeleton
+- [ ] Register Link Plugin with Shell
   - [ ] Implement plugin registration
-  - [ ] Connect tools and message handlers
-  - [ ] Add lifecycle hooks
+  - [ ] Connect tools to shell
+  - [ ] Add tests
+
+## Phase 5: Article Plugin Implementation (1-2 weeks)
+
+- [ ] Create Article Plugin Package
+  - [ ] Set up project structure at packages/article-plugin
+  - [ ] Configure dependencies
+
+- [ ] Implement Article Entity
+  - [ ] Define Article schema with draft/publish workflow
+  - [ ] Create ArticleAdapter implementation
+  - [ ] Implement markdown generation with series support
+
+## Phase 3.5: Note Plugin Implementation (Lower Priority)
+
+**Note**: Deprioritized since BaseEntity provides most core functionality. Will implement later for extended features.
+
+- [ ] Create Note Context Package (when needed for advanced features beyond BaseEntity)
 
 ## Phase 4: Additional Context Implementation (2-3 weeks)
 

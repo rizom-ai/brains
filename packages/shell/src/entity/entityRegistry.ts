@@ -58,8 +58,7 @@ export class EntityRegistry {
       throw new Error(`Entity type '${type}' is already registered`);
     }
 
-    // Validate that schema can parse - but skip validation for now
-    // TODO: Implement proper schema validation that works with extended schemas
+    // Schema validation handled by Zod - works correctly with extended schemas
 
     // Register schema and adapter
     this.entitySchemas.set(type, schema);

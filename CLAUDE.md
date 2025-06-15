@@ -110,9 +110,12 @@ Refer to these documents for detailed architecture information:
 
 1. Shell app core
 2. Entity model infrastructure
-3. Note context as first plugin
-4. Additional contexts as plugins
-5. CLI and Matrix interfaces
+3. Cleanup phase (see cleanup-inventory.md)
+4. Link plugin as first plugin (web content capture with AI)
+5. Article plugin (long-form content)
+6. Additional contexts as plugins (Task, Profile, Project)
+7. CLI and Matrix interfaces
+8. Note plugin (extended features - deprioritized since BaseEntity provides core functionality)
 
 ## Code Quality Checklist
 

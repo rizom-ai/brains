@@ -244,7 +244,9 @@ Entity plugins are the primary plugin type, representing domains of functionalit
 
 **Current Entity Plugins (planned):**
 
-- **Note Plugin**: Note management with markdown support
+- **Link Plugin**: Web content capture with AI summarization (first priority after cleanup)
+- **Article Plugin**: Long-form content with draft/publish workflow
+- **Note Plugin**: Extended note features beyond BaseEntity (deprioritized - BaseEntity provides core functionality)
 - **Task Plugin**: Task tracking and management
 - **Profile Plugin**: User profiles and preferences
 - **Project Plugin**: Project organization
