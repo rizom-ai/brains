@@ -2,6 +2,7 @@ import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
+import type { Logger } from "@brains/utils";
 
 /**
  * Database connection type
@@ -43,20 +44,22 @@ export function createDatabase(
  *
  * @param client The libSQL client
  * @param url The database URL (to check if it's a local file)
+ * @param logger Logger for output
  */
 export async function enableWALMode(
   client: Client,
   url: string,
+  logger: Logger,
 ): Promise<void> {
   // Only enable WAL mode for local SQLite files
   // Remote Turso connections already use WAL internally
   if (url.startsWith("file:")) {
     try {
       await client.execute("PRAGMA journal_mode = WAL");
-      console.log("Enabled WAL mode for local SQLite database");
+      logger.debug("Enabled WAL mode for local SQLite database");
     } catch (error) {
       // Non-fatal: continue even if WAL mode fails
-      console.warn("Failed to enable WAL mode (non-fatal):", error);
+      logger.warn("Failed to enable WAL mode (non-fatal)", error);
     }
   }
 }

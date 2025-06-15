@@ -19,6 +19,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@brains/utils": "workspace:*",
     "@libsql/client": "^0.15.7",
     "drizzle-orm": "^0.29.4",
     "nanoid": "^5.1.5"

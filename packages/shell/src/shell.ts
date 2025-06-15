@@ -394,6 +394,7 @@ export class Shell {
       await enableWALMode(
         this.dbClient,
         this.config.database.url || "file:./brain.db",
+        this.logger,
       );
 
       // Register default formatters

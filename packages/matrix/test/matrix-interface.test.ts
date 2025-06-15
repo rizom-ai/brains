@@ -147,7 +147,10 @@ describe("MatrixInterface", () => {
         (call: any[]) => call[0] === "room.message",
       );
       if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1] as (roomId: string, event: unknown) => void;
+      messageHandler = messageCall[1] as (
+        roomId: string,
+        event: unknown,
+      ) => void;
     });
 
     it("should process valid messages", async () => {
@@ -250,7 +253,10 @@ describe("MatrixInterface", () => {
         (call: any[]) => call[0] === "room.message",
       );
       if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1] as (roomId: string, event: unknown) => void;
+      messageHandler = messageCall[1] as (
+        roomId: string,
+        event: unknown,
+      ) => void;
 
       const event = {
         sender: "@user:example.org",
@@ -272,7 +278,7 @@ describe("MatrixInterface", () => {
       // Clear all mocks and handlers
       mockMatrixClient.sendMessage.mockClear();
       mockMatrixClient.on.mockClear();
-      
+
       // Create a fresh interface with the error-throwing mock
       const errorContext = {
         name: "matrix",
@@ -282,7 +288,7 @@ describe("MatrixInterface", () => {
           Promise.reject(new Error("Processing failed")),
         ),
       };
-      
+
       const errorInterface = new MatrixInterface(errorContext, config);
       await errorInterface.start();
 
@@ -293,7 +299,10 @@ describe("MatrixInterface", () => {
         (call: any[]) => call[0] === "room.message",
       );
       if (!messageCall) throw new Error("Message handler not found");
-      const errorMessageHandler = messageCall[1] as (roomId: string, event: unknown) => void;
+      const errorMessageHandler = messageCall[1] as (
+        roomId: string,
+        event: unknown,
+      ) => void;
 
       const event = {
         sender: "@user:example.org",
@@ -335,7 +344,10 @@ describe("MatrixInterface", () => {
         (call: any[]) => call[0] === "room.message",
       );
       if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1] as (roomId: string, event: unknown) => void;
+      messageHandler = messageCall[1] as (
+        roomId: string,
+        event: unknown,
+      ) => void;
     });
 
     it("should identify anchor user correctly", async () => {

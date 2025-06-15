@@ -24,7 +24,9 @@ globalThis.mockMatrixClient = {
   getUserId: mock(() => Promise.resolve("@bot:example.org")),
   sendEvent: mock(() => Promise.resolve("event_123")),
   setDisplayName: mock(() => Promise.resolve()),
-  getJoinedRooms: mock(() => Promise.resolve(["!room1:example.org", "!room2:example.org"])),
+  getJoinedRooms: mock(() =>
+    Promise.resolve(["!room1:example.org", "!room2:example.org"]),
+  ),
   _lastSentContent: null,
 };
 
