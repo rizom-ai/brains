@@ -156,6 +156,7 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
     description: string,
     inputSchema: z.ZodRawShape,
     handler: PluginTool["handler"],
+    visibility: PluginTool["visibility"] = "anchor",
   ): PluginTool {
     return {
       name: `${this.id}:${name}`,
@@ -172,6 +173,7 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
           throw error;
         }
       },
+      visibility,
     };
   }
 

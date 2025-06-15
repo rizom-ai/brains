@@ -79,6 +79,11 @@ export interface ProgressNotification {
 }
 
 /**
+ * Tool visibility levels for permission control
+ */
+export type ToolVisibility = "public" | "anchor";
+
+/**
  * Plugin tool definition
  */
 export interface PluginTool {
@@ -92,6 +97,7 @@ export interface PluginTool {
       sendProgress?: (notification: ProgressNotification) => Promise<void>;
     },
   ) => Promise<unknown>;
+  visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
 }
 
 /**

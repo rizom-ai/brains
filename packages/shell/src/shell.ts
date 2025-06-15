@@ -31,6 +31,7 @@ import {
 } from "@brains/formatters";
 import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
 import { ContentGenerationService, ContentTypeRegistry } from "./content";
+import { queryResponseTemplate } from "./templates/query-response";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -398,6 +399,9 @@ export class Shell {
       // Register default formatters
       this.registerDefaultFormatters();
 
+      // Register default templates
+      this.registerDefaultTemplates();
+
       // Register base entity support
       this.registerBaseEntitySupport();
 
@@ -455,6 +459,21 @@ export class Shell {
     this.formatterRegistry.register("baseEntity", new BaseEntityFormatter());
 
     this.logger.debug("Default formatters registered");
+  }
+
+  /**
+   * Register default templates for shell tools
+   */
+  private registerDefaultTemplates(): void {
+    this.logger.debug("Registering default templates");
+
+    // Register query response template for public queries
+    this.contentGenerationService.registerTemplate(
+      "shell:query_response",
+      queryResponseTemplate,
+    );
+
+    this.logger.debug("Default templates registered");
   }
 
   /**

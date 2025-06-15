@@ -1,17 +1,20 @@
 # Matrix Interface Implementation Plan - Full-Featured Bot
 
 ## Overview
+
 Create a comprehensive Matrix interface that provides a rich, interactive experience with all essential bot features including E2E encryption, reactions, threading, and file sharing.
 
 ## Core Features
 
 ### 1. Authentication & Setup
+
 - **Access Token Authentication** - Users provide a long-lived access token
 - **Device Management** - Proper device ID handling for E2E encryption
 - **Auto-join Rooms** - Automatically accept room invites
 - **Homeserver Discovery** - Support well-known delegation
 
 ### 2. Message Handling
+
 - **Text Messages** - Full markdown support with proper HTML rendering
 - **Typing Indicators** - Show when bot is processing
 - **Reactions** - Add 🤔 when thinking, ✅ when done
@@ -20,12 +23,14 @@ Create a comprehensive Matrix interface that provides a rich, interactive experi
 - **Replies** - Properly thread replies to maintain context
 
 ### 3. E2E Encryption
+
 - **Rust Crypto SDK** - Use matrix-bot-sdk's Rust crypto for performance
 - **Key Management** - Secure storage of encryption keys
 - **Device Verification** - Support cross-signing (future enhancement)
 - **Fallback** - Graceful degradation if crypto fails
 
 ### 4. Rich Content
+
 - **File Uploads** - Share generated documents, images
 - **Code Blocks** - Syntax highlighted code snippets
 - **Tables** - Properly formatted markdown tables
@@ -33,12 +38,14 @@ Create a comprehensive Matrix interface that provides a rich, interactive experi
 - **Quotes** - Block quotes for citations
 
 ### 5. Room Management
+
 - **Per-Room Settings** - Different behavior per room
 - **Room State** - Track conversation context per room
 - **Permissions** - Respect power levels and permissions
 - **Room Types** - Different behavior for DMs vs rooms
 
 ### 6. User Experience
+
 - **Command Shortcuts** - Quick commands like !help, !search
 - **Natural Language** - No need for special syntax
 - **Context Awareness** - Remember recent conversations
@@ -46,8 +53,9 @@ Create a comprehensive Matrix interface that provides a rich, interactive experi
 - **Help System** - Interactive help with examples
 
 ### 7. Permission System
+
 - **Anchor User** - Primary user with full tool access
-- **Trusted Users** - Intermediate access to safe tools  
+- **Trusted Users** - Intermediate access to safe tools
 - **Public Users** - Limited to read-only and safe operations
 - **Per-Tool Visibility** - Tools declare their access level at registration
 - **Context-Aware Filtering** - QueryProcessor filters tools based on user permissions
@@ -55,6 +63,7 @@ Create a comprehensive Matrix interface that provides a rich, interactive experi
 ## Technical Architecture
 
 ### Package Structure
+
 ```
 packages/matrix/
 ├── src/
@@ -98,7 +107,7 @@ export class MatrixInterface extends BaseInterface {
   private contextManager: ContextManager;
   private reactionHandler: ReactionHandler;
   private permissionHandler: PermissionHandler;
-  
+
   async start(): Promise<void>;
   async stop(): Promise<void>;
   protected handleLocalCommand(): Promise<string | null>;
@@ -107,7 +116,7 @@ export class MatrixInterface extends BaseInterface {
 // Context manager for conversation state
 export class ContextManager {
   private roomContexts: Map<string, RoomContext>;
-  
+
   getContext(roomId: string): RoomContext;
   updateContext(roomId: string, message: string): void;
   clearContext(roomId: string): void;
@@ -117,7 +126,11 @@ export class ContextManager {
 export class ReactionHandler {
   async addThinking(roomId: string, eventId: string): Promise<void>;
   async addComplete(roomId: string, eventId: string): Promise<void>;
-  async removeReaction(roomId: string, eventId: string, key: string): Promise<void>;
+  async removeReaction(
+    roomId: string,
+    eventId: string,
+    key: string,
+  ): Promise<void>;
 }
 
 // Permission management
@@ -132,6 +145,7 @@ export class PermissionHandler {
 ## Implementation Phases
 
 ### Phase 1: Core Setup & Permission Foundation (Week 1)
+
 1. Create matrix package structure
 2. Implement basic MatrixClient wrapper
 3. Set up authentication and connection
@@ -140,7 +154,9 @@ export class PermissionHandler {
 6. **Permission system foundation** - Build PermissionHandler from the start
 
 ### Phase 2: Public Features (Week 2)
+
 **Features available to everyone:**
+
 1. Natural language queries
 2. Search functionality
 3. Read-only operations
@@ -148,6 +164,7 @@ export class PermissionHandler {
 5. Basic Q&A interactions
 
 **Public Tools:**
+
 - `search` - Search notes and knowledge base
 - `list` - List available content
 - `help` - Get help on using the bot
@@ -155,7 +172,9 @@ export class PermissionHandler {
 - `summarize` - Summarize content
 
 ### Phase 3: Anchor-Only Features (Week 3)
+
 **Features restricted to anchor user:**
+
 1. Create/Update/Delete operations
 2. File system access
 3. Git operations
@@ -163,6 +182,7 @@ export class PermissionHandler {
 5. System configuration
 
 **Anchor Tools:**
+
 - `create_note` - Create new notes
 - `update_note` - Modify existing notes
 - `delete` - Remove content
@@ -172,6 +192,7 @@ export class PermissionHandler {
 - `configure` - Change system settings
 
 ### Phase 4: Rich Interaction Features (Week 4)
+
 1. Typing indicators
 2. Reaction system (🤔 while thinking, ✅ when done)
 3. Threading support
@@ -179,6 +200,7 @@ export class PermissionHandler {
 5. Edit support
 
 ### Phase 5: E2E Encryption (Week 5)
+
 1. Rust crypto setup
 2. Key storage
 3. Encrypted room support
@@ -186,6 +208,7 @@ export class PermissionHandler {
 5. Testing with encrypted rooms
 
 ### Phase 6: Advanced Features (Week 6)
+
 1. File upload/download
 2. Room settings management
 3. Context persistence
@@ -193,6 +216,7 @@ export class PermissionHandler {
 5. Per-room permission overrides
 
 ### Phase 7: Polish & Testing (Week 7)
+
 1. Error handling improvements
 2. Performance optimization
 3. Integration tests
@@ -207,32 +231,32 @@ interface MatrixConfig {
   homeserver: string;
   accessToken: string;
   userId: string;
-  anchorUserId: string;          // The primary user with full access
-  
+  anchorUserId: string; // The primary user with full access
+
   // Optional
   deviceId?: string;
   deviceDisplayName?: string;
   storageDir?: string;
   cryptoStorageDir?: string;
-  
+
   // Permission System
-  trustedUsers?: string[];       // Additional trusted users
-  publicToolsOnly?: boolean;     // Force public-only mode
-  
+  trustedUsers?: string[]; // Additional trusted users
+  publicToolsOnly?: boolean; // Force public-only mode
+
   // Features
   autoJoinRooms?: boolean;
   enableEncryption?: boolean;
   enableReactions?: boolean;
   enableThreading?: boolean;
   enableTypingNotifications?: boolean;
-  
+
   // Behavior
-  commandPrefix?: string;        // Default: "!"
-  anchorPrefix?: string;         // Default: "!!" for anchor-only commands
-  maxContextMessages?: number;   // Default: 10
-  typingTimeout?: number;        // Default: 30000ms
-  reactionTimeout?: number;      // Default: 60000ms
-  
+  commandPrefix?: string; // Default: "!"
+  anchorPrefix?: string; // Default: "!!" for anchor-only commands
+  maxContextMessages?: number; // Default: 10
+  typingTimeout?: number; // Default: 30000ms
+  reactionTimeout?: number; // Default: 60000ms
+
   // Rate limiting (beyond base interface)
   perRoomRateLimit?: {
     messages: number;
@@ -244,6 +268,7 @@ interface MatrixConfig {
 ## Testing Strategy
 
 ### Unit Tests
+
 - Client wrapper methods
 - Message formatting
 - Command parsing
@@ -252,12 +277,14 @@ interface MatrixConfig {
 - Tool filtering by user level
 
 ### Integration Tests
+
 - Real Matrix server (Synapse in Docker)
 - E2E encryption flows
 - Multi-room scenarios
 - Threading conversations
 
 ### Manual Testing Checklist
+
 - [ ] Bot joins room when invited
 - [ ] Responds to messages in rooms
 - [ ] Responds to DMs
@@ -296,7 +323,7 @@ interface MatrixConfig {
 ## Future Enhancements
 
 1. **Voice Messages** - Transcribe and respond to voice
-2. **Space Support** - Hierarchical room management  
+2. **Space Support** - Hierarchical room management
 3. **Bridges** - Support bridged networks
 4. **Widgets** - Interactive widgets for complex queries
 5. **Presence** - Show online/busy/away status
@@ -325,8 +352,8 @@ const matrixInterface = new MatrixInterface(context, {
   homeserver: "https://matrix.example.com",
   accessToken: process.env.MATRIX_TOKEN,
   userId: "@bot:example.com",
-  anchorUserId: "@youruser:example.com",  // Your personal Matrix ID
-  trustedUsers: ["@friend:example.com"],   // Optional trusted users
+  anchorUserId: "@youruser:example.com", // Your personal Matrix ID
+  trustedUsers: ["@friend:example.com"], // Optional trusted users
   enableEncryption: true,
   autoJoinRooms: true,
 });
@@ -353,7 +380,7 @@ export function myPlugin(): Plugin {
     id: "my-plugin",
     name: "My Plugin",
     version: "1.0.0",
-    
+
     register(context: PluginContext) {
       return {
         tools: [
@@ -363,32 +390,38 @@ export function myPlugin(): Plugin {
             description: "Search through notes",
             visibility: "public",
             inputSchema: z.object({ query: z.string() }),
-            handler: async (args) => { /* ... */ }
+            handler: async (args) => {
+              /* ... */
+            },
           },
-          
+
           // Trusted tool - anchor + trusted users
           {
             name: "create_note",
             description: "Create a new note",
             visibility: "trusted",
-            inputSchema: z.object({ 
+            inputSchema: z.object({
               title: z.string(),
-              content: z.string() 
+              content: z.string(),
             }),
-            handler: async (args) => { /* ... */ }
+            handler: async (args) => {
+              /* ... */
+            },
           },
-          
+
           // Anchor-only tool
           {
             name: "delete_all",
             description: "Delete all notes",
             visibility: "anchor",
             inputSchema: z.object({ confirm: z.boolean() }),
-            handler: async (args) => { /* ... */ }
-          }
-        ]
+            handler: async (args) => {
+              /* ... */
+            },
+          },
+        ],
       };
-    }
+    },
   };
 }
 ```

@@ -43,9 +43,9 @@ export function registerShellTools(
 
   logger.info("Registering shell tools with MCP server");
 
-  // Register query tool
+  // Register query tool (PUBLIC)
   server.tool(
-    "brain_query",
+    "shell:query",
     {
       query: z.string().describe("The query to execute"),
       options: z
@@ -65,7 +65,7 @@ export function registerShellTools(
     },
     async (params) => {
       try {
-        logger.debug("Executing brain_query tool", { query: params.query });
+        logger.debug("Executing shell:query tool", { query: params.query });
 
         const result = await queryAdapter.executeQuery(params);
 
@@ -78,15 +78,15 @@ export function registerShellTools(
           ],
         };
       } catch (error) {
-        logger.error("Error in brain_query tool", error);
+        logger.error("Error in shell:query tool", error);
         throw error;
       }
     },
   );
 
-  // Register entity search tool
+  // Register entity search tool (PUBLIC)
   server.tool(
-    "entity_search",
+    "shell:search",
     {
       entityType: z.string().describe("The type of entity to search for"),
       query: z.string().describe("Search query"),
@@ -98,7 +98,7 @@ export function registerShellTools(
     },
     async (params) => {
       try {
-        logger.debug("Executing entity_search tool", params);
+        logger.debug("Executing shell:search tool", params);
 
         const results = await entityAdapter.searchEntities(params);
 
@@ -111,22 +111,22 @@ export function registerShellTools(
           ],
         };
       } catch (error) {
-        logger.error("Error in entity_search tool", error);
+        logger.error("Error in shell:search tool", error);
         throw error;
       }
     },
   );
 
-  // Register entity get tool
+  // Register entity get tool (PUBLIC)
   server.tool(
-    "entity_get",
+    "shell:get",
     {
       entityType: z.string().describe("The type of entity"),
       entityId: z.string().describe("The entity ID"),
     },
     async (params) => {
       try {
-        logger.debug("Executing entity_get tool", params);
+        logger.debug("Executing shell:get tool", params);
 
         const entity = await entityAdapter.getEntity(
           params.entityType,
@@ -142,15 +142,15 @@ export function registerShellTools(
           ],
         };
       } catch (error) {
-        logger.error("Error in entity_get tool", error);
+        logger.error("Error in shell:get tool", error);
         throw error;
       }
     },
   );
 
-  // Register content generation tool
+  // Register content generation tool (ANCHOR ONLY)
   server.tool(
-    "generate_content",
+    "shell:generate",
     {
       prompt: z.string().describe("The prompt for content generation"),
       contentType: z
@@ -185,7 +185,7 @@ export function registerShellTools(
     },
     async (params) => {
       try {
-        logger.debug("Executing generate_content tool", {
+        logger.debug("Executing shell:generate tool", {
           prompt: params.prompt,
           save: params.save,
         });
@@ -212,61 +212,16 @@ export function registerShellTools(
           ],
         };
       } catch (error) {
-        logger.error("Error in generate_content tool", error);
+        logger.error("Error in shell:generate tool", error);
         throw error;
       }
     },
   );
 
-  // Register generate from template tool
-  server.tool(
-    "generate_from_template",
-    {
-      contentType: z.string().describe("Content type of the template to use"),
-      prompt: z
-        .string()
-        .describe("Additional prompt to customize the template"),
-      context: z
-        .object({
-          data: z
-            .record(z.unknown())
-            .optional()
-            .describe("Data to populate the template"),
-          style: z
-            .string()
-            .optional()
-            .describe("Style guidelines for the generated content"),
-        })
-        .optional()
-        .describe("Context for template generation"),
-    },
-    async (params) => {
-      try {
-        logger.debug("Executing generate_from_template tool", {
-          contentType: params.contentType,
-        });
-
-        const result = await contentAdapter.generateFromTemplate(params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      } catch (error) {
-        logger.error("Error in generate_from_template tool", error);
-        throw error;
-      }
-    },
-  );
-
-  // Register list templates tool
-  server.tool("list_content_templates", {}, async () => {
+  // Register list templates tool (PUBLIC)
+  server.tool("shell:list_templates", {}, async () => {
     try {
-      logger.debug("Executing list_content_templates tool");
+      logger.debug("Executing shell:list_templates tool");
 
       const templates = await contentAdapter.listTemplates();
 
@@ -279,7 +234,7 @@ export function registerShellTools(
         ],
       };
     } catch (error) {
-      logger.error("Error in list_content_templates tool", error);
+      logger.error("Error in shell:list_templates tool", error);
       throw error;
     }
   });

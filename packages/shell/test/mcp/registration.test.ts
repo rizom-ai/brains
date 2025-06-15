@@ -110,16 +110,16 @@ describe("MCP Registration", () => {
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
     // Check that tools were registered
-    expect(mockServer.tool).toHaveBeenCalledTimes(6); // 6 tools total
+    expect(mockServer.tool).toHaveBeenCalledTimes(5); // 5 tools total
 
     // Verify tool names
     const toolNames = Array.from(mockToolHandlers.keys());
-    expect(toolNames).toContain("brain_query");
-    expect(toolNames).toContain("entity_search");
-    expect(toolNames).toContain("entity_get");
-    expect(toolNames).toContain("generate_content");
-    expect(toolNames).toContain("generate_from_template");
-    expect(toolNames).toContain("list_content_templates");
+    expect(toolNames).toContain("shell:query");
+    expect(toolNames).toContain("shell:search");
+    expect(toolNames).toContain("shell:get");
+    expect(toolNames).toContain("shell:generate");
+    // generate_from_template was removed as redundant
+    expect(toolNames).toContain("shell:list_templates");
   });
 
   it("should register shell resources with MCP server", () => {
@@ -143,8 +143,8 @@ describe("MCP Registration", () => {
     // Register shell with MCP
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
-    // Get the brain_query tool handler
-    const queryHandler = mockToolHandlers.get("brain_query");
+    // Get the shell:query tool handler
+    const queryHandler = mockToolHandlers.get("shell:query");
     expect(queryHandler).toBeDefined();
     if (!queryHandler || typeof queryHandler !== "function") {
       throw new Error("Query handler not found or not a function");
@@ -169,8 +169,8 @@ describe("MCP Registration", () => {
     // Register shell with MCP
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
-    // Get the generate_content tool handler
-    const generateHandler = mockToolHandlers.get("generate_content");
+    // Get the shell:generate tool handler
+    const generateHandler = mockToolHandlers.get("shell:generate");
     expect(generateHandler).toBeDefined();
     if (!generateHandler || typeof generateHandler !== "function") {
       throw new Error("Generate handler not found or not a function");
@@ -195,8 +195,8 @@ describe("MCP Registration", () => {
     // Register shell with MCP
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
-    // Get the generate_content tool handler
-    const generateHandler = mockToolHandlers.get("generate_content");
+    // Get the shell:generate tool handler
+    const generateHandler = mockToolHandlers.get("shell:generate");
     expect(generateHandler).toBeDefined();
     if (!generateHandler || typeof generateHandler !== "function") {
       throw new Error("Generate handler not found or not a function");
@@ -233,8 +233,8 @@ describe("MCP Registration", () => {
     // Register shell with MCP
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
-    // Get the generate_content tool handler
-    const generateHandler = mockToolHandlers.get("generate_content");
+    // Get the shell:generate tool handler
+    const generateHandler = mockToolHandlers.get("shell:generate");
     expect(generateHandler).toBeDefined();
     if (!generateHandler || typeof generateHandler !== "function") {
       throw new Error("Generate handler not found or not a function");
@@ -262,12 +262,12 @@ describe("MCP Registration", () => {
     expect(mockServices.contentGenerationService.generate).toHaveBeenCalled();
   });
 
-  it("should handle list_content_templates tool execution", async () => {
+  it("should handle shell:list_templates tool execution", async () => {
     // Register shell with MCP
     registerShellMCP(mockServer as unknown as McpServer, mockServices);
 
-    // Get the list_content_templates tool handler
-    const listHandler = mockToolHandlers.get("list_content_templates");
+    // Get the shell:list_templates tool handler
+    const listHandler = mockToolHandlers.get("shell:list_templates");
     expect(listHandler).toBeDefined();
     if (!listHandler || typeof listHandler !== "function") {
       throw new Error("List handler not found or not a function");
