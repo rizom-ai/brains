@@ -39,6 +39,7 @@ export type {
   ListOptions,
   SearchOptions,
   EntityService,
+  ContentGenerationService,
   Command,
   CommandResponse,
   BrainProtocol,

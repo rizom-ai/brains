@@ -23,9 +23,15 @@ export async function generateContentConfigFile(
     const template = registry.getTemplate(key);
     if (!template) continue;
 
-    const [page, section] = key.split(":");
-    if (!section) continue; // Skip malformed keys
-    const schemaName = `${page}${capitalize(section)}Schema`;
+    // Handle new namespaced keys like "webserver:landing"
+    const parts = key.split(":");
+    const plugin = parts.length > 1 ? parts[0] : "";
+    const collection = parts[parts.length - 1];
+
+    if (!collection || !plugin) continue; // Skip malformed keys
+
+    // Create schema name like "webserverLandingSchema"
+    const schemaName = `${plugin}${capitalize(collection)}Schema`;
 
     try {
       // Convert Zod schema to JSON Schema
@@ -47,20 +53,22 @@ export async function generateContentConfigFile(
         .join("\n")
         .trim();
 
-      schemaDefinitions.push(`// Schema for ${page} ${section}`);
+      schemaDefinitions.push(`// Schema for ${plugin} ${collection}`);
       schemaDefinitions.push(cleanedCode);
       schemaDefinitions.push("");
 
-      // Track which collections we need
-      if (section === "index" && page) {
-        collections.set(page, schemaName);
-      }
+      // All templates now define collections
+      collections.set(collection, schemaName);
     } catch (error) {
       console.error(`Error generating schema for ${key}:`, error);
       // Fallback to a simple object schema
-      schemaDefinitions.push(`// Schema for ${page} ${section} (fallback)`);
+      schemaDefinitions.push(
+        `// Schema for ${plugin} ${collection} (fallback)`,
+      );
       schemaDefinitions.push(`const ${schemaName} = z.object({});`);
       schemaDefinitions.push("");
+
+      collections.set(collection, schemaName);
     }
   }
 
@@ -69,8 +77,8 @@ export async function generateContentConfigFile(
 
   // Generate collection definitions
   lines.push("// Collection definitions");
-  for (const [page, schemaName] of collections.entries()) {
-    lines.push(`const ${page}Collection = defineCollection({`);
+  for (const [collection, schemaName] of collections.entries()) {
+    lines.push(`const ${collection}Collection = defineCollection({`);
     lines.push(`  type: "data",`);
     lines.push(`  schema: ${schemaName},`);
     lines.push(`});`);
@@ -79,8 +87,8 @@ export async function generateContentConfigFile(
 
   // Export collections
   lines.push("export const collections = {");
-  for (const [page] of collections.entries()) {
-    lines.push(`  ${page}: ${page}Collection,`);
+  for (const [collection] of collections.entries()) {
+    lines.push(`  ${collection}: ${collection}Collection,`);
   }
   lines.push("};");
 

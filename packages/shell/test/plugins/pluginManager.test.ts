@@ -151,6 +151,29 @@ describe("PluginManager", (): void => {
         getFormatter: (): null => null,
         clear: (): void => undefined,
       }),
+      getContentGenerationService: (): {
+        generate: (options: unknown) => Promise<unknown>;
+        generateBatch: (options: unknown) => Promise<unknown[]>;
+        registerTemplate: (name: string, template: unknown) => void;
+        getTemplate: (name: string) => unknown;
+        listTemplates: () => unknown[];
+        generateFromTemplate: (
+          templateName: string,
+          options: unknown,
+        ) => Promise<unknown>;
+        generateContent: (
+          contentType: string,
+          options: unknown,
+        ) => Promise<unknown>;
+      } => ({
+        generate: async (): Promise<unknown> => ({}),
+        generateBatch: async (): Promise<unknown[]> => [],
+        registerTemplate: (): void => undefined,
+        getTemplate: (): null => null,
+        listTemplates: (): unknown[] => [],
+        generateFromTemplate: async (): Promise<unknown> => ({}),
+        generateContent: async (): Promise<unknown> => ({}),
+      }),
     };
     registry.register("shell", () => mockShell as unknown as Shell);
 

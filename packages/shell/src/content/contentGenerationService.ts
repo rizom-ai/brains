@@ -3,13 +3,14 @@ import type {
   ContentGenerateOptions,
   ContentTemplate,
   BatchGenerateOptions,
+  ContentGenerationService as IContentGenerationService,
 } from "@brains/types";
 
 import type { ContentTypeRegistry } from "./contentTypeRegistry";
 import type { Logger } from "@brains/utils";
 import { generateWithTemplate } from "@brains/utils";
 
-export class ContentGenerationService {
+export class ContentGenerationService implements IContentGenerationService {
   private static instance: ContentGenerationService | null = null;
   private templates: Map<string, ContentTemplate<unknown>> = new Map();
   private queryProcessor: QueryProcessor | null = null;
@@ -87,7 +88,14 @@ export class ContentGenerationService {
       registeredTypes: this.contentTypeRegistry.list(),
     });
 
-    if (!this.contentTypeRegistry.has(options.contentType)) {
+    // Check if this is a collection item (has 3 parts: plugin:collection:item)
+    const parts = options.contentType.split(":");
+    const isCollectionItem = parts.length === 3;
+
+    if (
+      !isCollectionItem &&
+      !this.contentTypeRegistry.has(options.contentType)
+    ) {
       throw new Error(
         `No schema registered for content type: ${options.contentType}`,
       );
@@ -282,6 +290,8 @@ export class ContentGenerationService {
         additionalContext.data = options.context;
       }
 
+      // For collection items, just use the existing generate method
+      // with the item's schema directly
       const itemData = await generateWithTemplate(
         this.generate.bind(this),
         itemTemplate,
@@ -290,6 +300,21 @@ export class ContentGenerationService {
       );
 
       collectionData[itemKey] = itemData;
+    }
+
+    // Special handling for 'metadata' items - merge them into root level
+    if (
+      "metadata" in collectionData &&
+      typeof collectionData["metadata"] === "object" &&
+      collectionData["metadata"] !== null
+    ) {
+      const metadata = collectionData["metadata"] as Record<string, unknown>;
+      // Merge metadata fields into root
+      for (const [key, value] of Object.entries(metadata)) {
+        collectionData[key] = value;
+      }
+      // Remove the metadata object itself since its fields are now at root
+      delete collectionData["metadata"];
     }
 
     // Always validate the complete collection against the collection schema

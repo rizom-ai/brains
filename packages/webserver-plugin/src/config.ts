@@ -51,5 +51,5 @@ export const webserverConfigSchema = createPluginConfig(
 /**
  * Type definitions for webserver configuration
  */
-export type WebserverConfig = z.infer<typeof webserverConfigSchema>;
+export type WebserverConfig = z.output<typeof webserverConfigSchema>;
 export type WebserverConfigInput = z.input<typeof webserverConfigSchema>;

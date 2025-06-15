@@ -19,17 +19,11 @@ describe("Schema Generation", () => {
         "// This file is auto-generated. Do not edit manually.",
       );
 
-      // Check for schema definitions
-      expect(config).toContain("// Schema for landing hero");
-      expect(config).toContain("const landingHeroSchema =");
-      expect(config).toContain("// Schema for landing features");
-      expect(config).toContain("const landingFeaturesSchema =");
-      expect(config).toContain("// Schema for landing cta");
-      expect(config).toContain("const landingCtaSchema =");
-      expect(config).toContain("// Schema for landing index");
-      expect(config).toContain("const landingIndexSchema =");
-      expect(config).toContain("// Schema for dashboard index");
-      expect(config).toContain("const dashboardIndexSchema =");
+      // Check for schema definitions with new naming
+      expect(config).toContain("// Schema for webserver landing");
+      expect(config).toContain("const webserverLandingSchema =");
+      expect(config).toContain("// Schema for webserver dashboard");
+      expect(config).toContain("const webserverDashboardSchema =");
 
       // Check for collection definitions
       expect(config).toContain("const landingCollection = defineCollection({");
@@ -37,8 +31,8 @@ describe("Schema Generation", () => {
         "const dashboardCollection = defineCollection({",
       );
       expect(config).toContain('type: "data"');
-      expect(config).toContain("schema: landingIndexSchema");
-      expect(config).toContain("schema: dashboardIndexSchema");
+      expect(config).toContain("schema: webserverLandingSchema");
+      expect(config).toContain("schema: webserverDashboardSchema");
 
       // Check for exports
       expect(config).toContain("export const collections = {");
@@ -66,7 +60,7 @@ describe("Schema Generation", () => {
       // Landing page composite schema should include all sections
       // Look for the complete schema definition including nested objects
       const landingSchemaMatch = config.match(
-        /const landingIndexSchema = z\.object\({[^}]+}\)[^}]*}\)[^}]*}\)/s,
+        /const webserverLandingSchema = z\.object\({[^}]+}\)[^}]*}\)[^}]*}\)/s,
       );
       expect(landingSchemaMatch).toBeTruthy();
 
@@ -104,19 +98,22 @@ describe("Schema Generation", () => {
       expect(config).toContain("const testInvalidSchema = z.");
     });
 
-    it("should only create collections for index schemas", async () => {
+    it("should create collections for all registered templates", async () => {
       const config = await generateContentConfigFile(contentRegistry);
 
-      // Should have collections for landing and dashboard (which have index schemas)
+      // Should have collections for landing and dashboard
       expect(config).toContain("const landingCollection = defineCollection({");
       expect(config).toContain(
         "const dashboardCollection = defineCollection({",
       );
 
-      // Should NOT have collections for individual sections
-      expect(config).not.toContain("const heroCollection");
-      expect(config).not.toContain("const featuresCollection");
-      expect(config).not.toContain("const ctaCollection");
+      // Check that collections use the correct schemas
+      expect(config).toMatch(/landing: landingCollection/);
+      expect(config).toMatch(/dashboard: dashboardCollection/);
+
+      // Verify we only have two templates registered
+      const keys = contentRegistry.getTemplateKeys();
+      expect(keys).toEqual(["webserver:landing", "webserver:dashboard"]);
     });
   });
 });

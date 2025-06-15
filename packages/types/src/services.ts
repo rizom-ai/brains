@@ -1,5 +1,10 @@
 import type { BaseEntity, SearchResult } from "./entities";
 import type { EntityAdapter } from "@brains/base-entity";
+import type {
+  ContentTemplate,
+  ContentGenerateOptions,
+  BatchGenerateOptions,
+} from "./plugin";
 
 /**
  * List entities options
@@ -115,4 +120,62 @@ export interface BrainProtocol {
   ): void;
 
   executeCommand(command: Command): Promise<CommandResponse>;
+}
+
+/**
+ * Content generation service interface
+ */
+export interface ContentGenerationService {
+  /**
+   * Initialize with dependencies
+   */
+  initialize(
+    queryProcessor: unknown, // We don't want circular dependency with shell types
+    contentTypeRegistry: unknown,
+    logger: unknown,
+  ): void;
+
+  /**
+   * Generate content matching a schema
+   */
+  generate<T>(options: ContentGenerateOptions<T>): Promise<T>;
+
+  /**
+   * Generate multiple content pieces
+   */
+  generateBatch<T>(options: BatchGenerateOptions<T>): Promise<T[]>;
+
+  /**
+   * Register reusable templates
+   */
+  registerTemplate<T>(name: string, template: ContentTemplate<T>): void;
+
+  /**
+   * Get registered template
+   */
+  getTemplate(name: string): ContentTemplate<unknown> | null;
+
+  /**
+   * List all templates
+   */
+  listTemplates(): ContentTemplate<unknown>[];
+
+  /**
+   * Generate content using a registered template
+   */
+  generateFromTemplate(
+    templateName: string,
+    options: Omit<ContentGenerateOptions<unknown>, "schema">,
+  ): Promise<unknown>;
+
+  /**
+   * Generate content for a specific content type, handling collections automatically
+   */
+  generateContent(
+    contentType: string,
+    options?: {
+      prompt?: string;
+      context?: Record<string, unknown>;
+    },
+  ): Promise<unknown>;
 }

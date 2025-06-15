@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { contentRegistry } from "../../src/content/registry";
+import { landingMetadataTemplate } from "../../src/content/landing/metadata";
 import { heroSectionTemplate } from "../../src/content/landing/hero";
 import { featuresSectionTemplate } from "../../src/content/landing/features";
 import { ctaSectionTemplate } from "../../src/content/landing/cta";
@@ -109,27 +110,30 @@ describe("Content Templates", () => {
   });
 
   describe("contentRegistry", () => {
-    it("should include all templates", () => {
+    it("should include collection templates", () => {
       const keys = contentRegistry.getTemplateKeys();
-      expect(keys).toContain("landing:hero");
-      expect(keys).toContain("landing:features");
-      expect(keys).toContain("landing:cta");
-      expect(keys).toContain("landing:index");
-      expect(keys).toContain("dashboard:index");
+      expect(keys).toEqual(["webserver:landing", "webserver:dashboard"]);
     });
 
-    it("should retrieve templates correctly", () => {
-      const hero = contentRegistry.getTemplate("landing:hero");
-      expect(hero).toBe(heroSectionTemplate);
+    it("should retrieve collection templates correctly", () => {
+      const landing = contentRegistry.getTemplate("webserver:landing");
+      expect(landing).toBeDefined();
+      expect(landing?.name).toBe("landing-page");
+      expect(landing?.items).toBeDefined();
+      expect(landing?.items?.["metadata"]).toBe(landingMetadataTemplate);
+      expect(landing?.items?.["hero"]).toBe(heroSectionTemplate);
+      expect(landing?.items?.["features"]).toBe(featuresSectionTemplate);
+      expect(landing?.items?.["cta"]).toBe(ctaSectionTemplate);
 
-      const features = contentRegistry.getTemplate("landing:features");
-      expect(features).toBe(featuresSectionTemplate);
-
-      const cta = contentRegistry.getTemplate("landing:cta");
-      expect(cta).toBe(ctaSectionTemplate);
-
-      const dashboard = contentRegistry.getTemplate("dashboard:index");
+      const dashboard = contentRegistry.getTemplate("webserver:dashboard");
       expect(dashboard).toBe(dashboardTemplate);
+    });
+
+    it("should not have individual section templates", () => {
+      // Individual sections are now part of the collection items
+      expect(contentRegistry.getTemplate("landing:hero")).toBeUndefined();
+      expect(contentRegistry.getTemplate("landing:features")).toBeUndefined();
+      expect(contentRegistry.getTemplate("landing:cta")).toBeUndefined();
     });
   });
 });

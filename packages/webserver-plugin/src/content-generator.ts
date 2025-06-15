@@ -1,19 +1,10 @@
 import type { BaseEntity, PluginContext } from "@brains/types";
-import type { SiteContent } from "./schemas";
-import type { z } from "zod";
-import type { DashboardData } from "./content/dashboard/index/schema";
-import type { LandingHeroData } from "./content/landing/hero/schema";
-import type { FeaturesSection } from "./content/landing/features/schema";
-import type { CTASection } from "./content/landing/cta/schema";
-import type { LandingPageData } from "./content/landing/index/schema";
 import type { Logger } from "@brains/utils";
-import { generateWithTemplate } from "@brains/utils";
 import { join } from "path";
-import { contentRegistry } from "./content";
 import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
 import * as yaml from "js-yaml";
-import { getDefaultContentFormatter } from "@brains/formatters";
+import type { SiteContent } from "./schemas";
 
 export interface ContentGeneratorOptions {
   logger: Logger;
@@ -88,7 +79,253 @@ export class ContentGenerator {
   }
 
   /**
-   * Generate landing page data using query processor
+   * Generate content using shell's content generation service
+   */
+  async generateContent(
+    contentType: string,
+    options: {
+      prompt?: string;
+      context?: Record<string, unknown>;
+      force?: boolean;
+    } = {},
+    sendProgress?: (notification: {
+      progress: number;
+      total?: number;
+      message?: string;
+    }) => Promise<void>,
+  ): Promise<void> {
+    this.logger.info(`Generating content for ${contentType}`);
+
+    const { force = false } = options;
+
+    // TODO: Check if content already exists and skip if not forcing
+    // This would require a way to query what content exists for a collection
+    if (!force) {
+      // TODO: Currently we always generate, but in the future we should check if content exists
+    }
+
+    await sendProgress?.({
+      progress: 1,
+      total: 3,
+      message: `Generating ${contentType} content`,
+    });
+
+    // Use the ContentGenerationService to generate the collection
+    const contentGenerationService = this.context.contentGenerationService;
+    const generateOptions: {
+      prompt?: string;
+      context?: Record<string, unknown>;
+    } = {};
+
+    if (options.prompt !== undefined) {
+      generateOptions.prompt = options.prompt;
+    }
+    if (options.context !== undefined) {
+      generateOptions.context = options.context;
+    }
+
+    const generatedContent = await contentGenerationService.generateContent(
+      contentType,
+      generateOptions,
+    );
+
+    await sendProgress?.({
+      progress: 2,
+      total: 3,
+      message: "Writing content files",
+    });
+
+    // Save the generated content based on whether it's a collection or individual section
+    const parts = contentType.split(":");
+    const isCollection = parts.length === 2; // e.g., "webserver:landing"
+
+    if (isCollection) {
+      // For collections, save each section as a separate entity
+      await this.saveCollectionAsEntities(contentType, generatedContent);
+      // Then write the composed YAML
+      await this.writeContentYaml(contentType, generatedContent);
+    } else {
+      // For individual sections, save as a single entity
+      await this.saveAsEntity(contentType, generatedContent);
+    }
+
+    await sendProgress?.({
+      progress: 3,
+      total: 3,
+      message: "Content generation complete",
+    });
+
+    this.logger.info(`${contentType} generation complete`);
+  }
+
+  /**
+   * Save a collection's sections as individual entities
+   */
+  private async saveCollectionAsEntities(
+    collectionType: string,
+    generatedContent: unknown,
+  ): Promise<void> {
+    if (typeof generatedContent !== "object" || generatedContent === null) {
+      throw new Error(`Invalid collection content for ${collectionType}`);
+    }
+
+    const content = generatedContent as Record<string, unknown>;
+    const parts = collectionType.split(":");
+    if (parts.length < 2) {
+      throw new Error(`Invalid collection type format: ${collectionType}`);
+    }
+
+    const page = parts[1];
+    if (!page) {
+      throw new Error(
+        `Invalid collection type format - missing page: ${collectionType}`,
+      );
+    }
+
+    // The ContentGenerationService already handles metadata merging,
+    // so we need to reconstruct the sections including metadata
+    const contentGenerationService = this.context.contentGenerationService;
+    const template = contentGenerationService.getTemplate(collectionType);
+
+    if (template?.items) {
+      // Save each item as its own entity
+      for (const [sectionKey] of Object.entries(template.items)) {
+        if (sectionKey === "metadata") {
+          // Metadata contains title and tagline from root level
+          const metadata = {
+            title: content["title"],
+            tagline: content["tagline"],
+          };
+          const sectionContentType = `${collectionType}:metadata`;
+          await this.saveAsEntity(sectionContentType, metadata);
+        } else if (sectionKey in content) {
+          // Regular sections
+          const sectionContentType = `${collectionType}:${sectionKey}`;
+          await this.saveAsEntity(sectionContentType, content[sectionKey]);
+        }
+      }
+    }
+  }
+
+  /**
+   * Save generated content as an entity in the database
+   */
+  private async saveAsEntity(
+    contentType: string,
+    generatedContent: unknown,
+  ): Promise<void> {
+    const contentTypeRegistry = this.context.contentTypeRegistry;
+
+    // Parse content type to get page and section
+    const parts = contentType.split(":");
+    if (parts.length < 3) {
+      throw new Error(
+        `Invalid content type format, expected plugin:page:section: ${contentType}`,
+      );
+    }
+
+    const page = parts[1];
+    const section = parts[2];
+
+    if (!page) {
+      throw new Error(
+        `Invalid content type format - missing page: ${contentType}`,
+      );
+    }
+
+    if (!section) {
+      throw new Error(
+        `Invalid content type format - missing section: ${contentType}`,
+      );
+    }
+
+    // Get the formatter for this content type
+    const formatter = contentTypeRegistry.getFormatter(contentType);
+    if (!formatter) {
+      this.logger.warn(
+        `No formatter found for ${contentType}, using YAML representation`,
+      );
+      // Fallback to YAML if no formatter
+      const yamlContent = yaml.dump(generatedContent);
+      await this.createOrUpdateEntity(page, section, yamlContent);
+      return;
+    }
+
+    // Use the formatter to convert to markdown
+    const markdownContent = formatter.format(generatedContent);
+
+    await this.createOrUpdateEntity(page, section, markdownContent);
+  }
+
+  private async createOrUpdateEntity(
+    page: string,
+    section: string,
+    content: string,
+  ): Promise<void> {
+    const entityService = this.context.entityService;
+
+    // Check if entity already exists
+    const existingEntities = await entityService.listEntities<SiteContent>(
+      "site-content",
+      {
+        filter: {
+          metadata: {
+            page,
+            section,
+            environment: "preview",
+          },
+        },
+      },
+    );
+
+    if (existingEntities.length > 0) {
+      // Update existing entity
+      const existing = existingEntities[0];
+      if (!existing) {
+        throw new Error(`Invalid existing entity for ${page}:${section}`);
+      }
+      await entityService.updateEntity({ ...existing, content });
+      this.logger.debug(`Updated site-content entity for ${page}:${section}`);
+    } else {
+      // Create new entity
+      await entityService.createEntity<SiteContent>({
+        entityType: "site-content",
+        content,
+        page,
+        section,
+        environment: "preview",
+      });
+      this.logger.debug(`Created site-content entity for ${page}:${section}`);
+    }
+  }
+
+  /**
+   * Write content YAML for Astro by composing from individual entities
+   */
+  private async writeContentYaml(
+    contentType: string,
+    generatedContent: unknown,
+  ): Promise<void> {
+    // Determine collection name from content type
+    // e.g., "webserver:landing" -> "landing"
+    const parts = contentType.split(":");
+    if (parts.length < 2) {
+      throw new Error(`Invalid content type format: ${contentType}`);
+    }
+
+    const page = parts[1];
+    if (!page) {
+      throw new Error(`Invalid content type: ${contentType}`);
+    }
+
+    // For now, just write the generated content directly
+    // TODO: In the future, we might want to compose this from the individual entities
+    // to ensure consistency between what's in the DB and what's in the YAML files
+    await this.writeYamlFile(page, "index.yaml", generatedContent);
+  }
+
+  /**
+   * Generate landing page (for backward compatibility)
    */
   async generateLandingPage(
     sendProgress?: (notification: {
@@ -98,303 +335,23 @@ export class ContentGenerator {
     }) => Promise<void>,
     force = false,
   ): Promise<void> {
-    this.logger.info("Generating landing page data");
-
-    // Check for existing sections individually
-    const existingHero = await this.getExistingSiteContent<LandingHeroData>(
-      "landing",
-      "hero",
-    );
-    const existingFeatures = await this.getExistingSiteContent<FeaturesSection>(
-      "landing",
-      "features",
-    );
-    const existingCta = await this.getExistingSiteContent<CTASection>(
-      "landing",
-      "cta",
-    );
-
-    // Get the landing page schema from registry for validation
-    const landingTemplate =
-      contentRegistry.getTemplate<LandingPageData>("landing:index");
-    if (!landingTemplate) {
-      throw new Error("Landing page template not found in registry");
-    }
-
-    let landingData: LandingPageData | undefined;
-    let validExistingContent = false;
-
-    // If all sections exist and not forcing regeneration, use them to assemble the landing page
-    if (!force && existingHero && existingFeatures && existingCta) {
-      try {
-        landingData = {
-          title: this.options.siteTitle,
-          tagline: this.options.siteDescription,
-          hero: existingHero,
-          features: existingFeatures,
-          cta: existingCta,
-        };
-
-        // Validate the assembled data
-        const validation = landingTemplate.schema.safeParse(landingData);
-        if (validation.success) {
-          this.logger.info("Using existing sections to assemble landing page");
-          landingData = validation.data;
-          validExistingContent = true;
-        } else {
-          this.logger.warn(
-            "Existing sections do not form valid landing page data",
-            {
-              errors: validation.error.errors,
-            },
-          );
-        }
-      } catch (error) {
-        this.logger.warn(
-          "Error assembling landing page from existing sections",
-          error,
-        );
-      }
-    } else {
-      this.logger.info("Will generate missing sections", {
+    await this.generateContent(
+      "webserver:landing",
+      {
+        prompt: `Create a landing page for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
+        context: {
+          siteTitle: this.options.siteTitle,
+          siteDescription: this.options.siteDescription,
+          siteUrl: this.options.siteUrl,
+        },
         force,
-        hasHero: !!existingHero,
-        hasFeatures: !!existingFeatures,
-        hasCta: !!existingCta,
-      });
-    }
-
-    if (!validExistingContent) {
-      this.logger.info("Generating landing page content");
-
-      // Generate sections separately
-      const baseContext = {
-        siteTitle: this.options.siteTitle,
-        siteDescription: this.options.siteDescription,
-      };
-
-      let heroData: LandingHeroData | null = existingHero;
-      let featuresData: FeaturesSection | null = existingFeatures;
-      let ctaData: CTASection | null = existingCta;
-      let currentStep = 0;
-      const totalSteps = 4;
-
-      // Generate hero section if missing or forced
-      if (!heroData || force) {
-        await sendProgress?.({
-          progress: ++currentStep,
-          total: totalSteps,
-          message:
-            force && heroData
-              ? "Regenerating hero section"
-              : "Generating hero section",
-        });
-        const heroTemplate =
-          contentRegistry.getTemplate<LandingHeroData>("landing:hero");
-        if (!heroTemplate) {
-          throw new Error("Hero template not found in registry");
-        }
-        heroData = await generateWithTemplate<LandingHeroData>(
-          this.context.generateContent.bind(this.context),
-          heroTemplate,
-          "landing:hero",
-          {
-            prompt: `Generate hero section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
-            data: baseContext,
-          },
-        );
-
-        // Format the content using the registered formatter or default
-        const heroFormatter = this.context.contentTypeRegistry.getFormatter(
-          "webserver:landing:hero",
-        );
-        const formattedHeroContent = heroFormatter
-          ? heroFormatter.format(heroData)
-          : getDefaultContentFormatter().format(heroData);
-
-        // Save as site-content entity with formatted content
-        await this.context.entityService.createEntity<SiteContent>({
-          entityType: "site-content",
-          content: formattedHeroContent,
-          page: "landing",
-          section: "hero",
-          environment: "preview", // Always generate to preview
-        });
-
-        this.logger.debug("Generated hero data:", {
-          hasData: !!heroData,
-          heroData,
-        });
-      } else {
-        currentStep++;
-      }
-
-      // Generate features section if missing or forced
-      if (!featuresData || force) {
-        await sendProgress?.({
-          progress: ++currentStep,
-          total: totalSteps,
-          message:
-            force && featuresData
-              ? "Regenerating features section"
-              : "Generating features section",
-        });
-
-        try {
-          const featuresTemplate =
-            contentRegistry.getTemplate<FeaturesSection>("landing:features");
-          if (!featuresTemplate) {
-            throw new Error("Features template not found in registry");
-          }
-          featuresData = await generateWithTemplate<FeaturesSection>(
-            this.context.generateContent.bind(this.context),
-            featuresTemplate,
-            "landing:features",
-            {
-              prompt: `Generate features section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
-              data: baseContext,
-            },
-          );
-
-          this.logger.debug("Generated features data:", {
-            hasData: !!featuresData,
-            features: featuresData.features.length,
-            rawData: JSON.stringify(featuresData, null, 2),
-          });
-
-          // Validate the features data
-          const validation = featuresTemplate.schema.safeParse(featuresData);
-          if (!validation.success) {
-            this.logger.error("Features validation failed", {
-              errors: validation.error.errors,
-            });
-          }
-
-          // Format the content using the registered formatter or default
-          const featuresFormatter =
-            this.context.contentTypeRegistry.getFormatter(
-              "webserver:landing:features",
-            );
-          const formattedFeaturesContent = featuresFormatter
-            ? featuresFormatter.format(featuresData)
-            : getDefaultContentFormatter().format(featuresData);
-
-          // Save as site-content entity with formatted content
-          await this.context.entityService.createEntity<SiteContent>({
-            entityType: "site-content",
-            content: formattedFeaturesContent,
-            page: "landing",
-            section: "features",
-            environment: "preview", // Always generate to preview
-          });
-        } catch (error) {
-          this.logger.error("Failed to generate features section", error);
-          throw error;
-        }
-      } else {
-        currentStep++;
-      }
-
-      // Generate CTA section if missing or forced
-      if (!ctaData || force) {
-        await sendProgress?.({
-          progress: ++currentStep,
-          total: totalSteps,
-          message:
-            force && ctaData
-              ? "Regenerating CTA section"
-              : "Generating CTA section",
-        });
-        const ctaTemplate =
-          contentRegistry.getTemplate<CTASection>("landing:cta");
-        if (!ctaTemplate) {
-          throw new Error("CTA template not found in registry");
-        }
-        ctaData = await generateWithTemplate<CTASection>(
-          this.context.generateContent.bind(this.context),
-          ctaTemplate,
-          "landing:cta",
-          {
-            prompt: `Generate CTA section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
-            data: baseContext,
-          },
-        );
-
-        // Format the content using the registered formatter or default
-        const ctaFormatter = this.context.contentTypeRegistry.getFormatter(
-          "webserver:landing:cta",
-        );
-        const formattedCtaContent = ctaFormatter
-          ? ctaFormatter.format(ctaData)
-          : getDefaultContentFormatter().format(ctaData);
-
-        // Save as site-content entity with formatted content
-        await this.context.entityService.createEntity<SiteContent>({
-          entityType: "site-content",
-          content: formattedCtaContent,
-          page: "landing",
-          section: "cta",
-          environment: "preview", // Always generate to preview
-        });
-      } else {
-        currentStep++;
-      }
-
-      // Update progress for final step
-      await sendProgress?.({
-        progress: ++currentStep,
-        total: totalSteps,
-        message: "Assembling landing page data",
-      });
-
-      // Assemble full landing page data
-      // All data is guaranteed to be non-null here due to generateWithTemplate
-      landingData = {
-        title: this.options.siteTitle,
-        tagline: this.options.siteDescription,
-        hero: heroData,
-        features: featuresData,
-        cta: ctaData,
-      };
-
-      this.logger.debug("Assembled landing page data", {
-        hasHero: true,
-        hasFeatures: true,
-        featuresCount: featuresData.features.length,
-        hasCta: true,
-      });
-    }
-
-    if (!landingData) {
-      throw new Error("Failed to generate landing page data");
-    }
-
-    // Validate final data before writing
-    const finalValidation = landingTemplate.schema.safeParse(landingData);
-    if (!finalValidation.success) {
-      this.logger.error("Generated landing page data is invalid", {
-        errors: finalValidation.error.errors,
-      });
-      throw new Error("Failed to generate valid landing page data");
-    }
-
-    // Write to landing collection for Astro to consume
-    this.logger.debug("Writing landing page data to YAML", {
-      hasTitle: !!landingData.title,
-      hasTagline: !!landingData.tagline,
-      hasHero: !!landingData.hero,
-      hasFeatures: !!landingData.features,
-      featuresCount: landingData.features.features.length,
-      hasCta: !!landingData.cta,
-    });
-
-    await this.writeYamlFile("landing", "index.yaml", landingData);
-
-    this.logger.info("Landing page data generated");
+      },
+      sendProgress,
+    );
   }
 
   /**
-   * Generate dashboard data from brain content
+   * Generate dashboard (for backward compatibility)
    */
   async generateDashboard(
     _sendProgress?: (notification: {
@@ -402,23 +359,11 @@ export class ContentGenerator {
       total?: number;
       message?: string;
     }) => Promise<void>,
-    force = false,
+    _force = false,
   ): Promise<void> {
+    // Dashboard is special - it shows real-time stats from the brain
+    // So we generate it differently
     this.logger.info("Generating dashboard data");
-
-    // Check for existing dashboard content
-    if (!force) {
-      const existingDashboard = await this.getExistingSiteContent(
-        "dashboard",
-        "index",
-      );
-      if (existingDashboard) {
-        this.logger.info(
-          "Dashboard content already exists, skipping generation",
-        );
-        return;
-      }
-    }
 
     // Use EntityService from context
     const entityService = this.context.entityService;
@@ -476,7 +421,7 @@ export class ContentGenerator {
       });
 
     // Create dashboard data
-    const dashboardData: DashboardData = {
+    const dashboardData = {
       title: this.options.siteTitle,
       description: this.options.siteDescription,
       stats: {
@@ -487,92 +432,13 @@ export class ContentGenerator {
       recentEntities,
     };
 
-    // Get dashboard schema from registry
-    const dashboardTemplate = contentRegistry.getTemplate("dashboard:index");
-    if (!dashboardTemplate) {
-      throw new Error("Dashboard template not found in registry");
-    }
-
-    // Validate data against schema
-    const validatedData = dashboardTemplate.schema.parse(dashboardData);
-
     // Write to dashboard collection
-    await this.writeYamlFile("dashboard", "index.yaml", validatedData);
+    await this.writeYamlFile("dashboard", "index.yaml", dashboardData);
 
     this.logger.info("Dashboard data generated", {
       entityCount: totalEntityCount,
       entityTypeCount: entityTypes.length,
     });
-  }
-
-  /**
-   * Get existing generated content for a specific page and section
-   * Uses contentType format: "landing:hero"
-   */
-  async getExistingSiteContent<T = unknown>(
-    page: string,
-    section: string,
-  ): Promise<T | null> {
-    const entityService = this.context.entityService;
-
-    // Create a content type and add the plugin namespace for querying
-    const contentType = `${page}:${section}`;
-    const namespacedContentType = `${this.context.pluginId}:${contentType}`;
-
-    try {
-      // Look for site-content entities with matching page and section in preview environment
-      const results = await entityService.listEntities<SiteContent>(
-        "site-content",
-        {
-          filter: {
-            metadata: { page, section, environment: "preview" },
-          },
-          limit: 1,
-          sortBy: "created",
-          sortDirection: "desc",
-        },
-      );
-
-      if (results.length === 0) {
-        this.logger.debug("No existing generated content found", {
-          contentType: namespacedContentType,
-        });
-        return null;
-      }
-
-      const matchingContent = results[0];
-      if (!matchingContent) {
-        return null;
-      }
-      this.logger.info("Found existing generated content", {
-        contentType: namespacedContentType,
-      });
-
-      // Parse the formatted content back to structured data using the formatter
-      const formatter = this.context.contentTypeRegistry.getFormatter<T>(
-        namespacedContentType,
-      );
-      if (formatter?.parse) {
-        try {
-          return formatter.parse(matchingContent.content);
-        } catch (error) {
-          this.logger.warn("Failed to parse existing content", {
-            contentType: namespacedContentType,
-            error,
-          });
-          return null;
-        }
-      }
-
-      return null;
-    } catch (error) {
-      this.logger.debug("Error looking for generated content", {
-        page,
-        section,
-        error,
-      });
-      return null;
-    }
   }
 
   /**
@@ -614,256 +480,5 @@ export class ContentGenerator {
       message: "Content generation complete",
     });
     // Future: generateNotePages(), generateArticlePages(), etc.
-  }
-
-  /**
-   * Generate content for a specific section
-   */
-  async generateSection(
-    templateKey: string,
-    environment: "preview" | "production",
-    force = false,
-    sendProgress?: (notification: {
-      progress: number;
-      total?: number;
-      message?: string;
-    }) => Promise<void>,
-  ): Promise<{ generated: boolean }> {
-    // Only allow generation to preview environment
-    if (environment !== "preview") {
-      throw new Error("Content can only be generated to preview environment");
-    }
-
-    const parts = templateKey.split(":");
-    if (parts.length !== 2) {
-      throw new Error(
-        `Invalid template key format: ${templateKey}. Expected format: page:section`,
-      );
-    }
-    const [page, section] = parts as [string, string];
-
-    // Check if content already exists
-    if (!force) {
-      const existing = await this.getExistingSiteContent(page, section);
-      if (existing) {
-        this.logger.info(
-          `Content already exists for ${page}:${section}, skipping`,
-        );
-        return { generated: false };
-      }
-    }
-
-    // Get template from registry
-    const template = contentRegistry.getTemplate(templateKey);
-    if (!template) {
-      throw new Error(`Template not found: ${templateKey}`);
-    }
-
-    // Generate content
-    await sendProgress?.({
-      progress: 1,
-      total: 1,
-      message: `Generating ${templateKey}`,
-    });
-
-    const baseContext = {
-      siteTitle: this.options.siteTitle,
-      siteDescription: this.options.siteDescription,
-      siteUrl: this.options.siteUrl ?? "https://example.com",
-    };
-
-    const data = await generateWithTemplate<z.infer<typeof template.schema>>(
-      this.context.generateContent.bind(this.context),
-      template,
-      templateKey,
-      {
-        prompt: `Generate ${section} section for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
-        data: baseContext,
-      },
-    );
-
-    // Format the content
-    const namespacedContentType = `${this.context.pluginId}:${templateKey}`;
-    const formatter = this.context.contentTypeRegistry.getFormatter(
-      namespacedContentType,
-    );
-    const formattedContent = formatter
-      ? formatter.format(data)
-      : getDefaultContentFormatter().format(data);
-
-    // Save as site-content entity
-    await this.context.entityService.createEntity<SiteContent>({
-      entityType: "site-content",
-      content: formattedContent,
-      page,
-      section,
-      environment: "preview",
-    });
-
-    this.logger.info(`Generated content for ${page}:${section}`);
-    return { generated: true };
-  }
-
-  /**
-   * Write content from a specific environment to YAML files for Astro
-   */
-  async writeContentForEnvironment(
-    environment: "preview" | "production",
-    sendProgress?: (notification: {
-      progress: number;
-      total?: number;
-      message?: string;
-    }) => Promise<void>,
-  ): Promise<void> {
-    this.logger.info(`Writing content for ${environment} environment`);
-
-    // Ensure directories exist
-    await this.initialize();
-
-    // Write landing page content
-    await sendProgress?.({
-      progress: 1,
-      total: 3,
-      message: `Writing ${environment} landing page content`,
-    });
-    await this.writeLandingPageForEnvironment(environment);
-
-    // Write dashboard content
-    await sendProgress?.({
-      progress: 2,
-      total: 3,
-      message: `Writing ${environment} dashboard content`,
-    });
-    await this.writeDashboardForEnvironment(environment);
-
-    await sendProgress?.({
-      progress: 3,
-      total: 3,
-      message: `Content writing complete for ${environment}`,
-    });
-  }
-
-  /**
-   * Write landing page content for a specific environment
-   */
-  private async writeLandingPageForEnvironment(
-    environment: "preview" | "production",
-  ): Promise<void> {
-    // Get sections from the specified environment
-    const hero = await this.getExistingSiteContentForEnvironment(
-      "landing",
-      "hero",
-      environment,
-    );
-    const features = await this.getExistingSiteContentForEnvironment(
-      "landing",
-      "features",
-      environment,
-    );
-    const cta = await this.getExistingSiteContentForEnvironment(
-      "landing",
-      "cta",
-      environment,
-    );
-
-    if (!hero || !features || !cta) {
-      this.logger.warn(
-        `Missing landing page sections for ${environment} environment`,
-        {
-          hasHero: !!hero,
-          hasFeatures: !!features,
-          hasCta: !!cta,
-        },
-      );
-      return;
-    }
-
-    // Assemble landing page data
-    const landingData = {
-      title: this.options.siteTitle,
-      tagline: this.options.siteDescription,
-      hero,
-      features,
-      cta,
-    };
-
-    // Write to YAML
-    await this.writeYamlFile("landing", "index.yaml", landingData);
-    this.logger.info(`Landing page written for ${environment} environment`);
-  }
-
-  /**
-   * Write dashboard content for a specific environment
-   */
-  private async writeDashboardForEnvironment(
-    _environment: "preview" | "production",
-  ): Promise<void> {
-    // For dashboard, we generate fresh data from entities
-    // This is the same for both environments as it reflects current state
-    await this.generateDashboard();
-  }
-
-  /**
-   * Get existing site content for a specific environment
-   */
-  private async getExistingSiteContentForEnvironment<T = unknown>(
-    page: string,
-    section: string,
-    environment: "preview" | "production",
-  ): Promise<T | null> {
-    const entityService = this.context.entityService;
-
-    try {
-      const results = await entityService.listEntities<SiteContent>(
-        "site-content",
-        {
-          filter: {
-            metadata: { page, section, environment },
-          },
-          limit: 1,
-          sortBy: "updated",
-          sortDirection: "desc",
-        },
-      );
-
-      if (results.length === 0) {
-        return null;
-      }
-
-      const matchingContent = results[0];
-      if (!matchingContent) {
-        return null;
-      }
-
-      // Parse the formatted content back to structured data
-      const contentType = `${page}:${section}`;
-      const namespacedContentType = `${this.context.pluginId}:${contentType}`;
-      const formatter = this.context.contentTypeRegistry.getFormatter<T>(
-        namespacedContentType,
-      );
-
-      if (formatter?.parse) {
-        try {
-          return formatter.parse(matchingContent.content);
-        } catch (error) {
-          this.logger.warn("Failed to parse content", {
-            contentType: namespacedContentType,
-            environment,
-            error,
-          });
-          return null;
-        }
-      }
-
-      return null;
-    } catch (error) {
-      this.logger.debug("Error looking for content", {
-        page,
-        section,
-        environment,
-        error,
-      });
-      return null;
-    }
   }
 }

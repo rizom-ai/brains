@@ -3,6 +3,7 @@ import type {
   PluginContext,
   BaseEntity,
   EntityService,
+  ContentGenerationService,
   Registry,
   PluginTool,
   ComponentFactory,
@@ -264,6 +265,11 @@ export class PluginTestHarness {
           return [];
         },
       },
+      templates: {
+        register: (): void => {
+          // Mock implementation for test harness
+        },
+      },
       // Direct service access
       entityService: this.getEntityService() as EntityService,
       contentTypeRegistry: {
@@ -274,6 +280,16 @@ export class PluginTestHarness {
         getFormatter: (): null => null,
         clear: (): void => undefined,
       },
+      contentGenerationService: {
+        initialize: (): void => undefined,
+        generate: async (): Promise<unknown> => ({}),
+        generateBatch: async (): Promise<unknown[]> => [],
+        registerTemplate: (): void => undefined,
+        getTemplate: (): null => null,
+        listTemplates: (): unknown[] => [],
+        generateFromTemplate: async (): Promise<unknown> => ({}),
+        generateContent: async (): Promise<unknown> => ({}),
+      } as ContentGenerationService,
     };
   }
 

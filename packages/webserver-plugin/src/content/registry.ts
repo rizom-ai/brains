@@ -1,4 +1,5 @@
 import type { ContentTemplate } from "@brains/types";
+import { landingMetadataTemplate } from "./landing/metadata";
 import { heroSectionTemplate } from "./landing/hero";
 import { featuresSectionTemplate } from "./landing/features";
 import { ctaSectionTemplate } from "./landing/cta";
@@ -12,16 +13,20 @@ export class ContentRegistry {
   private templates = new Map<string, ContentTemplate<unknown>>();
 
   constructor() {
-    // Register landing page sections
-    this.register("landing:hero", heroSectionTemplate);
-    this.register("landing:features", featuresSectionTemplate);
-    this.register("landing:cta", ctaSectionTemplate);
+    // Register landing page as a collection with its items
+    const landingCollection: ContentTemplate<unknown> = {
+      ...landingPageTemplate,
+      items: {
+        metadata: landingMetadataTemplate,
+        hero: heroSectionTemplate,
+        features: featuresSectionTemplate,
+        cta: ctaSectionTemplate,
+      },
+    };
+    this.register("webserver:landing", landingCollection);
 
-    // Register composite landing page (for Astro)
-    this.register("landing:index", landingPageTemplate);
-
-    // Register dashboard
-    this.register("dashboard:index", dashboardTemplate);
+    // Register dashboard (simple content, not a collection)
+    this.register("webserver:dashboard", dashboardTemplate);
   }
 
   /**

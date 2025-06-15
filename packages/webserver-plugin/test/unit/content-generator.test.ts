@@ -6,6 +6,7 @@ import type {
   ListOptions,
   PluginContext,
   ContentGenerateOptions,
+  ContentGenerationService,
 } from "@brains/types";
 import { createSilentLogger } from "@brains/utils";
 import { mkdirSync, existsSync, rmSync } from "fs";
@@ -60,6 +61,66 @@ describe("ContentGenerator", () => {
       deleteEntity: mock(async () => ({ success: true })),
       getEntityTypes: mock(() => ["note", "site-content"]),
     } as unknown as EntityService;
+
+    // Mock ContentGenerationService
+    const mockContentGenerationService = {
+      initialize: mock(() => {}),
+      generate: mock(async () => ({})),
+      generateBatch: mock(async () => []),
+      registerTemplate: mock(() => {}),
+      getTemplate: mock(() => null),
+      listTemplates: mock(() => []),
+      generateFromTemplate: mock(async () => ({})),
+      generateContent: mock(async (contentType: string) => {
+        // Return appropriate data based on content type
+        if (contentType === "webserver:landing") {
+          return {
+            title: "Test Brain",
+            tagline: "Test Description",
+            hero: {
+              headline: "Your Personal Knowledge Hub",
+              subheadline:
+                "Organize, connect, and discover your digital thoughts",
+              ctaText: "View Dashboard",
+              ctaLink: "/dashboard",
+            },
+            features: {
+              label: "Features",
+              headline: "Powerful Features",
+              description: "Everything you need",
+              features: [
+                {
+                  icon: "check",
+                  title: "Feature 1",
+                  description: "Description 1",
+                },
+              ],
+            },
+            cta: {
+              headline: "Get Started Today",
+              description: "Join now",
+              primaryButton: {
+                text: "Start Free",
+                link: "/signup",
+              },
+            },
+          };
+        } else if (contentType === "webserver:dashboard") {
+          return {
+            title: "Dashboard",
+            description: "Your knowledge overview",
+            stats: {
+              entityCount: 10,
+              entityTypeCount: 3,
+              lastUpdated: new Date().toISOString(),
+            },
+            recentEntities: [],
+          };
+        }
+        // Default return for unknown content types
+        throw new Error(`Unknown content type: ${contentType}`);
+      }),
+    } as ContentGenerationService;
 
     // Mock Plugin Context
     const mockContext = {
@@ -143,9 +204,13 @@ describe("ContentGenerator", () => {
         register: mock(() => {}),
         list: mock(() => []),
       },
+      templates: {
+        register: mock(() => {}),
+      },
       registerEntityType: mock(() => {}),
       // Direct service access (added to PluginContext)
       entityService: mockEntityService,
+      contentGenerationService: mockContentGenerationService,
       contentTypeRegistry: {
         register: mock(() => {}),
         get: mock(() => null),

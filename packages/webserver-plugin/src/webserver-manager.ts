@@ -127,16 +127,13 @@ export class WebserverManager {
       });
       await this.generateContentConfig();
 
-      // Write content from specified environment to YAML files
+      // Generate content (always goes to preview environment)
       await sendProgress?.({
         progress: currentStep++,
         total: totalSteps,
-        message: `Writing ${environment} content to site`,
+        message: `Generating content`,
       });
-      await this.contentGenerator.writeContentForEnvironment(
-        environment,
-        sendProgress,
-      );
+      await this.contentGenerator.generateAll(sendProgress, false);
 
       // Build site
       await sendProgress?.({
@@ -270,11 +267,18 @@ export class WebserverManager {
       message?: string;
     }) => Promise<void>,
   ): Promise<{ generated: boolean }> {
-    return this.contentGenerator.generateSection(
+    // Content generation always goes to preview environment
+    if (environment !== "preview") {
+      throw new Error("Content can only be generated to preview environment");
+    }
+
+    // Generate using the new API
+    await this.contentGenerator.generateContent(
       templateKey,
-      environment,
-      force,
+      { force },
       sendProgress,
     );
+
+    return { generated: true };
   }
 }

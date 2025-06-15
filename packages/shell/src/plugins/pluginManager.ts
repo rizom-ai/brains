@@ -11,6 +11,7 @@ import type {
   BaseEntity,
   ContentGenerateOptions,
   ContentFormatter,
+  ContentTemplate,
   ContentTypeRegistry,
 } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
@@ -294,6 +295,7 @@ export class PluginManager {
     const formatterRegistry = shell.getFormatterRegistry();
     const entityService = shell.getEntityService();
     const contentTypeRegistry = shell.getContentTypeRegistry();
+    const contentGenerationService = shell.getContentGenerationService();
 
     // Create plugin context
     const context: PluginContext = {
@@ -396,9 +398,32 @@ export class PluginManager {
           }
         },
       },
+      templates: {
+        register: <T>(name: string, template: ContentTemplate<T>) => {
+          try {
+            const contentGenerationService =
+              this.registry.resolve<ContentGenerationService>(
+                "contentGenerationService",
+              );
+
+            // Always prefix with plugin ID to ensure proper namespacing
+            const namespacedName = `${pluginId}:${name}`;
+
+            contentGenerationService.registerTemplate(namespacedName, template);
+
+            this.logger.debug(`Registered template: ${namespacedName}`);
+          } catch (error) {
+            this.logger.error("Failed to register template", error);
+            throw new Error(
+              `Template registration failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        },
+      },
       // Direct service access
       entityService,
       contentTypeRegistry,
+      contentGenerationService,
     };
 
     // Register the plugin

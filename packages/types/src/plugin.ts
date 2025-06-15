@@ -6,7 +6,7 @@ import type { MessageBus } from "./messaging";
 import type { SchemaFormatter, ContentFormatter } from "./formatters";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { BaseEntity } from "./entities";
-import type { EntityService } from "./services";
+import type { EntityService, ContentGenerationService } from "./services";
 import type { ContentTypeRegistry } from "./content";
 
 /**
@@ -153,6 +153,9 @@ export interface PluginContext {
     ): void;
     list(): string[];
   };
+  templates: {
+    register<T>(name: string, template: ContentTemplate<T>): void;
+  };
   registerEntityType: <T extends BaseEntity>(
     entityType: string,
     schema: z.ZodType<T>,
@@ -162,4 +165,5 @@ export interface PluginContext {
   // Direct service access
   entityService: EntityService;
   contentTypeRegistry: ContentTypeRegistry;
+  contentGenerationService: ContentGenerationService;
 }

@@ -1,10 +1,6 @@
 import type { PluginContext, PluginTool } from "@brains/types";
-import {
-  ContentGeneratingPlugin,
-  pluginConfig,
-  toolInput,
-  validatePluginConfig,
-} from "@brains/utils";
+import { BasePlugin, pluginConfig, toolInput } from "@brains/utils";
+import type { z } from "zod";
 import {
   WebserverManager,
   type WebserverManagerOptions,
@@ -24,25 +20,19 @@ interface SiteContentFilter extends Record<string, unknown> {
 }
 
 /**
- * Webserver plugin that extends ContentGeneratingPlugin
+ * Webserver plugin that extends BasePlugin
  * Generates and serves static websites from Personal Brain content
  */
-export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
+export class WebserverPlugin extends BasePlugin<WebserverConfig> {
   private manager?: WebserverManager;
 
   constructor(config: unknown) {
-    // Validate config first
-    const validatedConfig = validatePluginConfig(
-      webserverConfigSchema,
-      config,
-      "webserver",
-    );
-
     super(
       "webserver",
       "Webserver Plugin",
       "Generates and serves static websites from Personal Brain content",
-      validatedConfig,
+      config,
+      webserverConfigSchema as z.ZodType<WebserverConfig>,
     );
   }
 
@@ -50,26 +40,51 @@ export class WebserverPlugin extends ContentGeneratingPlugin<WebserverConfig> {
    * Initialize the plugin
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
-    // Register content types BEFORE calling super.onRegister()
-    // This ensures they're available when the parent class tries to register them
+    await super.onRegister(context);
 
-    // Register all content types from the registry
+    // Register all templates from the registry
     for (const key of contentRegistry.getTemplateKeys()) {
       const template = contentRegistry.getTemplate(key);
       if (template) {
+        // Extract the collection name (e.g., "webserver:landing" -> "landing")
+        const parts = key.split(":");
+        const collectionName = parts[parts.length - 1];
+
+        if (!collectionName) {
+          context.logger.warn(`Invalid template key: ${key}`);
+          continue;
+        }
+
+        // Register template with ContentGenerationService
+        // The plugin manager will automatically prefix with "webserver:"
+        context.templates.register(collectionName, template);
+
+        // Also register content type if formatter is available
         if (template.formatter) {
-          const config = {
-            contentType: key,
-            schema: template.schema,
-            formatter: template.formatter,
-          };
-          this.registerContentType(key, config);
+          context.contentTypes.register(
+            collectionName,
+            template.schema,
+            template.formatter,
+          );
+        }
+
+        // Register formatters for collection items
+        if (template.items) {
+          for (const [itemKey, itemTemplate] of Object.entries(
+            template.items,
+          )) {
+            if (itemTemplate.formatter) {
+              // Register with full path: plugin:collection:item
+              context.contentTypes.register(
+                `${collectionName}:${itemKey}`,
+                itemTemplate.schema,
+                itemTemplate.formatter,
+              );
+            }
+          }
         }
       }
     }
-
-    // Call parent's onRegister to actually register the content types
-    await super.onRegister(context);
 
     const { logger, registerEntityType } = context;
 
