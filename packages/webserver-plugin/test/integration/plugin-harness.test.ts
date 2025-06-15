@@ -59,14 +59,15 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       const capabilities = await plugin.register(context);
 
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("webserver:build_site");
-      expect(toolNames).toContain("webserver:start_preview_server");
-      expect(toolNames).toContain("webserver:start_production_server");
-      expect(toolNames).toContain("webserver:stop_server");
-      expect(toolNames).toContain("webserver:get_site_status");
+      expect(toolNames).toContain("webserver:status");
+      expect(toolNames).toContain("webserver:build");
+      expect(toolNames).toContain("webserver:serve");
+      expect(toolNames).toContain("webserver:stop");
+      expect(toolNames).toContain("webserver:generate");
+      expect(toolNames).toContain("webserver:promote");
     });
 
-    it("should handle get_site_status tool", async () => {
+    it("should handle status tool", async () => {
       const plugin = webserverPlugin({
         outputDir: testOutputDir,
       });
@@ -76,7 +77,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       const capabilities = await plugin.register(context);
 
       const statusTool = capabilities.tools.find(
-        (t) => t.name === "webserver:get_site_status",
+        (t) => t.name === "webserver:status",
       );
       expect(statusTool).toBeDefined();
 
@@ -84,17 +85,22 @@ describe("WebserverPlugin with PluginTestHarness", () => {
 
       const result = await statusTool.handler({});
       const typedResult = result as {
-        hasBuild: boolean;
-        lastBuild?: string;
-        servers: {
+        success: boolean;
+        site?: { hasBuild: boolean; lastBuild?: string };
+        servers?: {
           preview: { running: boolean; url?: string };
           production: { running: boolean; url?: string };
         };
+        environments?: {
+          preview: { total: number; content: Record<string, number> };
+          production: { total: number; content: Record<string, number> };
+        };
       };
 
-      expect(typedResult.hasBuild).toBe(false);
-      expect(typedResult.servers.preview.running).toBe(false);
-      expect(typedResult.servers.production.running).toBe(false);
+      expect(typedResult.success).toBe(true);
+      expect(typedResult.site?.hasBuild).toBe(false);
+      expect(typedResult.servers?.preview.running).toBe(false);
+      expect(typedResult.servers?.production.running).toBe(false);
     });
   });
 
@@ -109,7 +115,7 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       const capabilities = await plugin.register(context);
 
       const stopTool = capabilities.tools.find(
-        (t) => t.name === "webserver:stop_server",
+        (t) => t.name === "webserver:stop",
       );
       expect(stopTool).toBeDefined();
 

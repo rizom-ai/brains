@@ -123,324 +123,26 @@ export class WebserverPlugin extends BasePlugin<WebserverConfig> {
 
     const tools: PluginTool[] = [];
 
-    // Build site tool
+    // Status tool - combines get_site_status and list_content_environments
     tools.push(
       this.createTool(
-        "build_site",
-        "Build the static website from content",
-        toolInput()
-          .boolean("clean", false)
-          .enum("environment", ["preview", "production"] as const, "preview")
-          .build(),
-        async (input, context): Promise<Record<string, unknown>> => {
-          const { clean, environment } = input as {
-            clean?: boolean;
-            environment?: "preview" | "production";
-          };
-
+        "status",
+        "Get comprehensive status of the site, servers, and content environments",
+        {},
+        async (): Promise<Record<string, unknown>> => {
           try {
             if (!this.manager) {
               throw new Error("WebserverPlugin manager not initialized");
             }
-            await this.manager.buildSite(
-              {
-                clean: clean ?? false,
-                environment: environment ?? "preview",
-              },
-              context?.sendProgress,
-            );
+            if (!this.context) {
+              throw new Error("Plugin context not initialized");
+            }
+
+            // Get server status
             const status = this.manager.getStatus();
 
-            return {
-              success: true,
-              message: `Site built successfully from ${environment ?? "preview"} content`,
-              lastBuild: status.lastBuild,
-              environment: environment ?? "preview",
-            };
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            return {
-              success: false,
-              error: message,
-            };
-          }
-        },
-      ),
-    );
-
-    // Start preview server tool
-    tools.push(
-      this.createTool(
-        "start_preview_server",
-        "Start the preview server to test the site locally",
-        {},
-        async (): Promise<Record<string, unknown>> => {
-          try {
-            if (!this.manager) {
-              throw new Error("WebserverPlugin manager not initialized");
-            }
-            const url = await this.manager.startPreviewServer();
-            return {
-              success: true,
-              url,
-              message: `Preview server started at ${url}`,
-            };
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            return {
-              success: false,
-              error: message,
-            };
-          }
-        },
-      ),
-    );
-
-    // Start production server tool
-    tools.push(
-      this.createTool(
-        "start_production_server",
-        "Start the production server to serve the site",
-        {},
-        async (): Promise<Record<string, unknown>> => {
-          try {
-            if (!this.manager) {
-              throw new Error("WebserverPlugin manager not initialized");
-            }
-            const url = await this.manager.startProductionServer();
-            return {
-              success: true,
-              url,
-              message: `Production server started at ${url}`,
-            };
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            return {
-              success: false,
-              error: message,
-            };
-          }
-        },
-      ),
-    );
-
-    // Stop server tool
-    tools.push(
-      this.createTool(
-        "stop_server",
-        "Stop a running server",
-        toolInput()
-          .enum("type", ["preview", "production"] as const)
-          .build(),
-        async (input): Promise<Record<string, unknown>> => {
-          const { type } = input as { type: "preview" | "production" };
-
-          try {
-            if (!this.manager) {
-              throw new Error("WebserverPlugin manager not initialized");
-            }
-            await this.manager.stopServer(type);
-            return {
-              success: true,
-              message: `${type} server stopped`,
-            };
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            return {
-              success: false,
-              error: message,
-            };
-          }
-        },
-      ),
-    );
-
-    // Preview site tool
-    tools.push(
-      this.createTool(
-        "preview_site",
-        "Build the site and start preview server in one command",
-        {},
-        async (_, context): Promise<Record<string, unknown>> => {
-          try {
-            if (!this.manager) {
-              throw new Error("WebserverPlugin manager not initialized");
-            }
-            const url = await this.manager.preview(context?.sendProgress);
-            return {
-              success: true,
-              url,
-              message: `Site built and preview server started at ${url}`,
-            };
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            return {
-              success: false,
-              error: message,
-            };
-          }
-        },
-      ),
-    );
-
-    // Build production site tool
-    tools.push(
-      this.createTool(
-        "build_production_site",
-        "Build site with production content and start production server",
-        {},
-        async (_, context): Promise<Record<string, unknown>> => {
-          try {
-            if (!this.manager) {
-              throw new Error("WebserverPlugin manager not initialized");
-            }
-
-            // Build with production content
-            await this.manager.buildSite(
-              { environment: "production" },
-              context?.sendProgress,
-            );
-
-            // Start production server
-            const url = await this.manager.startProductionServer();
-
-            return {
-              success: true,
-              url,
-              message: `Production site built and server started at ${url}`,
-            };
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            return {
-              success: false,
-              error: message,
-            };
-          }
-        },
-      ),
-    );
-
-    // Get site status tool
-    tools.push(
-      this.createTool(
-        "get_site_status",
-        "Get the current status of the site and servers",
-        {},
-        async (): Promise<Record<string, unknown>> => {
-          if (!this.manager) {
-            throw new Error("WebserverPlugin manager not initialized");
-          }
-          const status = this.manager.getStatus();
-
-          return {
-            hasBuild: status.hasBuild,
-            lastBuild: status.lastBuild,
-            servers: {
-              preview: {
-                running: status.servers.preview,
-                url: status.servers.previewUrl,
-              },
-              production: {
-                running: status.servers.production,
-                url: status.servers.productionUrl,
-              },
-            },
-          };
-        },
-      ),
-    );
-
-    // Promote content tool
-    tools.push(
-      this.createTool(
-        "promote_content",
-        "Promote content from preview to production environment",
-        toolInput().string("page").optionalString("section").build(),
-        async (input): Promise<Record<string, unknown>> => {
-          const { page, section } = input as { page: string; section?: string };
-
-          try {
-            if (!this.context) {
-              throw new Error("Plugin context not initialized");
-            }
+            // Get content environment information
             const entityService = this.context.entityService;
-
-            // Find all preview content for the page/section
-            const filter: SiteContentFilter = { page, environment: "preview" };
-            if (section) {
-              filter.section = section;
-            }
-
-            const previewContent =
-              await entityService.listEntities<SiteContent>("site-content", {
-                filter: { metadata: filter },
-              });
-
-            if (previewContent.length === 0) {
-              return {
-                success: false,
-                error: `No preview content found for ${page}${section ? `:${section}` : ""}`,
-              };
-            }
-
-            const promoted: string[] = [];
-
-            // Promote each piece of content
-            for (const content of previewContent) {
-              // Create production version - only copy essential fields
-              await entityService.createEntity<SiteContent>({
-                entityType: "site-content",
-                content: content.content,
-                page: content.page,
-                section: content.section,
-                environment: "production",
-                promotionMetadata: {
-                  promotedAt: new Date().toISOString(),
-                  promotedBy: "webserver-plugin",
-                  promotedFrom: content.id,
-                },
-              });
-
-              promoted.push(`${content.page}:${content.section}`);
-            }
-
-            return {
-              success: true,
-              message: `Promoted ${promoted.length} content item(s) to production`,
-              promoted,
-            };
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            return {
-              success: false,
-              error: message,
-            };
-          }
-        },
-      ),
-    );
-
-    // List environments tool
-    tools.push(
-      this.createTool(
-        "list_content_environments",
-        "List content available in each environment",
-        {},
-        async (): Promise<Record<string, unknown>> => {
-          try {
-            if (!this.context) {
-              throw new Error("Plugin context not initialized");
-            }
-            const entityService = this.context.entityService;
-
-            // Get all site content
             const allContent =
               await entityService.listEntities<SiteContent>("site-content");
 
@@ -473,6 +175,20 @@ export class WebserverPlugin extends BasePlugin<WebserverConfig> {
 
             return {
               success: true,
+              site: {
+                hasBuild: status.hasBuild,
+                lastBuild: status.lastBuild,
+              },
+              servers: {
+                preview: {
+                  running: status.servers.preview,
+                  url: status.servers.previewUrl,
+                },
+                production: {
+                  running: status.servers.production,
+                  url: status.servers.productionUrl,
+                },
+              },
               environments: {
                 preview: {
                   total: preview.length,
@@ -493,58 +209,60 @@ export class WebserverPlugin extends BasePlugin<WebserverConfig> {
             };
           }
         },
+        "anchor", // Anchor only - not useful for public users
       ),
     );
 
-    // Rollback content tool
+    // Build tool - combines build_site, build_production_site, and preview_site
     tools.push(
       this.createTool(
-        "rollback_content",
-        "Rollback production content to preview (reverts promotion)",
-        toolInput().string("page").optionalString("section").build(),
-        async (input): Promise<Record<string, unknown>> => {
-          const { page, section } = input as { page: string; section?: string };
+        "build",
+        "Build the site and optionally start a server",
+        toolInput()
+          .enum("environment", ["preview", "production"] as const, "preview")
+          .boolean("clean", false)
+          .boolean("serve", false)
+          .build(),
+        async (input, context): Promise<Record<string, unknown>> => {
+          const { environment, clean, serve } = input as {
+            environment?: "preview" | "production";
+            clean?: boolean;
+            serve?: boolean;
+          };
 
           try {
-            if (!this.context) {
-              throw new Error("Plugin context not initialized");
-            }
-            const entityService = this.context.entityService;
-
-            // Find all production content for the page/section
-            const filter: SiteContentFilter = {
-              page,
-              environment: "production",
-            };
-            if (section) {
-              filter.section = section;
+            if (!this.manager) {
+              throw new Error("WebserverPlugin manager not initialized");
             }
 
-            const productionContent =
-              await entityService.listEntities<SiteContent>("site-content", {
-                filter: { metadata: filter },
-              });
+            const env = environment ?? "preview";
 
-            if (productionContent.length === 0) {
-              return {
-                success: false,
-                error: `No production content found for ${page}${section ? `:${section}` : ""}`,
-              };
-            }
+            // Build the site
+            await this.manager.buildSite(
+              {
+                clean: clean ?? false,
+                environment: env,
+              },
+              context?.sendProgress,
+            );
 
-            const rolledBack: string[] = [];
-
-            // Delete production content to effectively rollback
-            for (const content of productionContent) {
-              await entityService.deleteEntity(content.id);
-              rolledBack.push(`${content.page}:${content.section}`);
+            let url: string | undefined;
+            if (serve) {
+              // Start the appropriate server
+              url =
+                env === "preview"
+                  ? await this.manager.startPreviewServer()
+                  : await this.manager.startProductionServer();
             }
 
             return {
               success: true,
-              message: `Rolled back ${rolledBack.length} content item(s) from production`,
-              rolledBack,
-              hint: "Production content removed. Preview content remains unchanged.",
+              message: serve
+                ? `Site built and ${env} server started at ${url}`
+                : `Site built successfully from ${env} content`,
+              environment: env,
+              url,
+              lastBuild: this.manager.getStatus().lastBuild,
             };
           } catch (error) {
             const message =
@@ -555,13 +273,90 @@ export class WebserverPlugin extends BasePlugin<WebserverConfig> {
             };
           }
         },
+        "anchor", // Anchor only
       ),
     );
 
-    // Generate content tool (enhanced to support selective generation)
+    // Serve tool - combines start_preview_server and start_production_server
     tools.push(
       this.createTool(
-        "generate_site_content",
+        "serve",
+        "Start a server to serve the built site",
+        toolInput()
+          .enum("environment", ["preview", "production"] as const, "preview")
+          .build(),
+        async (input): Promise<Record<string, unknown>> => {
+          const { environment } = input as {
+            environment?: "preview" | "production";
+          };
+
+          try {
+            if (!this.manager) {
+              throw new Error("WebserverPlugin manager not initialized");
+            }
+
+            const env = environment ?? "preview";
+            const url =
+              env === "preview"
+                ? await this.manager.startPreviewServer()
+                : await this.manager.startProductionServer();
+
+            return {
+              success: true,
+              url,
+              message: `${env} server started at ${url}`,
+              environment: env,
+            };
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
+            return {
+              success: false,
+              error: message,
+            };
+          }
+        },
+        "anchor", // Anchor only
+      ),
+    );
+
+    // Stop server tool - renamed from stop_server
+    tools.push(
+      this.createTool(
+        "stop",
+        "Stop a running server",
+        toolInput()
+          .enum("type", ["preview", "production"] as const)
+          .build(),
+        async (input): Promise<Record<string, unknown>> => {
+          const { type } = input as { type: "preview" | "production" };
+
+          try {
+            if (!this.manager) {
+              throw new Error("WebserverPlugin manager not initialized");
+            }
+            await this.manager.stopServer(type);
+            return {
+              success: true,
+              message: `${type} server stopped`,
+            };
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
+            return {
+              success: false,
+              error: message,
+            };
+          }
+        },
+        "anchor", // Anchor only
+      ),
+    );
+
+    // Generate content tool - renamed from generate_site_content
+    tools.push(
+      this.createTool(
+        "generate",
         "Generate AI content for the website (always creates in preview environment)",
         toolInput()
           .optionalString("page")
@@ -588,7 +383,7 @@ export class WebserverPlugin extends BasePlugin<WebserverConfig> {
                 message: force
                   ? "Regenerated all content to preview environment"
                   : "Generated missing content to preview environment",
-                hint: "Use 'promote_content' to move content to production",
+                hint: "Use 'promote' to move content to production",
               };
             }
 
@@ -651,7 +446,7 @@ export class WebserverPlugin extends BasePlugin<WebserverConfig> {
                 : `Generated ${generated.length} new content section(s), skipped ${skipped.length} existing`,
               generated,
               skipped: force ? undefined : skipped,
-              hint: "Use 'promote_content' to move content to production",
+              hint: "Use 'promote' to move content to production",
             };
           } catch (error) {
             const message =
@@ -662,10 +457,133 @@ export class WebserverPlugin extends BasePlugin<WebserverConfig> {
             };
           }
         },
+        "anchor", // Anchor only
       ),
     );
 
-    // Add content generation tools
+    // Promote content tool - possibly merge with rollback_content
+    tools.push(
+      this.createTool(
+        "promote",
+        "Promote content between environments (preview to production, or rollback)",
+        toolInput()
+          .string("page")
+          .optionalString("section")
+          .enum("direction", ["promote", "rollback"] as const, "promote")
+          .build(),
+        async (input): Promise<Record<string, unknown>> => {
+          const { page, section, direction } = input as {
+            page: string;
+            section?: string;
+            direction?: "promote" | "rollback";
+          };
+
+          try {
+            if (!this.context) {
+              throw new Error("Plugin context not initialized");
+            }
+            const entityService = this.context.entityService;
+            const dir = direction ?? "promote";
+
+            if (dir === "promote") {
+              // Find all preview content for the page/section
+              const filter: SiteContentFilter = {
+                page,
+                environment: "preview",
+              };
+              if (section) {
+                filter.section = section;
+              }
+
+              const previewContent =
+                await entityService.listEntities<SiteContent>("site-content", {
+                  filter: { metadata: filter },
+                });
+
+              if (previewContent.length === 0) {
+                return {
+                  success: false,
+                  error: `No preview content found for ${page}${section ? `:${section}` : ""}`,
+                };
+              }
+
+              const promoted: string[] = [];
+
+              // Promote each piece of content
+              for (const content of previewContent) {
+                // Create production version - only copy essential fields
+                await entityService.createEntity<SiteContent>({
+                  entityType: "site-content",
+                  content: content.content,
+                  page: content.page,
+                  section: content.section,
+                  environment: "production",
+                  promotionMetadata: {
+                    promotedAt: new Date().toISOString(),
+                    promotedBy: "webserver-plugin",
+                    promotedFrom: content.id,
+                  },
+                });
+
+                promoted.push(`${content.page}:${content.section}`);
+              }
+
+              return {
+                success: true,
+                message: `Promoted ${promoted.length} content item(s) to production`,
+                promoted,
+              };
+            } else {
+              // Rollback: delete production content
+              const filter: SiteContentFilter = {
+                page,
+                environment: "production",
+              };
+              if (section) {
+                filter.section = section;
+              }
+
+              const productionContent =
+                await entityService.listEntities<SiteContent>("site-content", {
+                  filter: { metadata: filter },
+                });
+
+              if (productionContent.length === 0) {
+                return {
+                  success: false,
+                  error: `No production content found for ${page}${section ? `:${section}` : ""}`,
+                };
+              }
+
+              const rolledBack: string[] = [];
+
+              // Delete production content to effectively rollback
+              for (const content of productionContent) {
+                await entityService.deleteEntity(content.id);
+                rolledBack.push(`${content.page}:${content.section}`);
+              }
+
+              return {
+                success: true,
+                message: `Rolled back ${rolledBack.length} content item(s) from production`,
+                rolledBack,
+                hint: "Production content removed. Preview content remains unchanged.",
+              };
+            }
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
+            return {
+              success: false,
+              error: message,
+            };
+          }
+        },
+        "anchor", // Anchor only
+      ),
+    );
+
+    // Add content generation tools from base class
     const contentTools = await super.getTools();
     tools.push(...contentTools);
 
