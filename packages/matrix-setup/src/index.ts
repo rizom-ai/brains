@@ -58,7 +58,10 @@ export async function registerMatrixAccount(
     throw new Error(`Failed to verify admin access: ${versionResponse.status}`);
   }
 
-  const versionData = await versionResponse.json() as { server_version: string; python_version: string };
+  const versionData = (await versionResponse.json()) as {
+    server_version: string;
+    python_version: string;
+  };
   logger.debug("Server version", versionData);
 
   // Check who owns this admin token
@@ -75,7 +78,10 @@ export async function registerMatrixAccount(
     throw new Error("Failed to identify admin user");
   }
 
-  const whoamiData = await whoamiResponse.json() as { user_id: string; device_id?: string };
+  const whoamiData = (await whoamiResponse.json()) as {
+    user_id: string;
+    device_id?: string;
+  };
   const adminUserId = whoamiData.user_id;
   const serverName = adminUserId.split(":")[1];
 
@@ -158,7 +164,11 @@ export async function registerMatrixAccount(
     throw new Error(`Failed to login as new user: ${error}`);
   }
 
-  const loginData = await loginResponse.json() as { user_id: string; access_token: string; device_id: string };
+  const loginData = (await loginResponse.json()) as {
+    user_id: string;
+    access_token: string;
+    device_id: string;
+  };
 
   logger.info("Successfully created Matrix account", { user_id: userId });
 
