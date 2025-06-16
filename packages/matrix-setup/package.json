@@ -1,0 +1,27 @@
+{
+  "name": "@brains/matrix-setup",
+  "version": "0.1.0",
+  "description": "Matrix bot setup utility for Brain applications",
+  "type": "module",
+  "bin": {
+    "brain-matrix-setup": "./src/cli.ts"
+  },
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "dependencies": {
+    "@brains/utils": "workspace:*",
+    "@clack/prompts": "^0.8.2"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest"
+  }
+}

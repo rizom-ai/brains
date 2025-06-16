@@ -3,6 +3,7 @@ import { pluginMetadataSchema, type Plugin } from "@brains/types";
 import type { Shell } from "@brains/shell";
 import type { BaseInterface } from "@brains/interface-core";
 import type { CLIConfig } from "@brains/cli";
+import { matrixConfigSchema } from "@brains/matrix";
 
 export const transportConfigSchema = z.discriminatedUnion("type", [
   z.object({
@@ -26,9 +27,7 @@ export const interfaceConfigSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("matrix"),
     enabled: z.boolean().default(true),
-    homeserver: z.string(),
-    accessToken: z.string(),
-    userId: z.string(),
+    config: matrixConfigSchema,
   }),
 ]);
 

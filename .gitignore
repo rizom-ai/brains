@@ -186,6 +186,9 @@ old-code-reference/
 # Temporary files
 .tmp/
 brain.db
+*.db
+*.db-shm
+*.db-wal
 
 # direnv
 .envrc

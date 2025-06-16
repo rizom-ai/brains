@@ -1,4 +1,4 @@
-import { App } from "@brains/app";
+import { App, getMatrixInterfaceFromEnv } from "@brains/app";
 import { gitSync } from "@brains/git-sync";
 import { webserverPlugin } from "@brains/webserver-plugin";
 
@@ -9,6 +9,9 @@ import { webserverPlugin } from "@brains/webserver-plugin";
 //   bun run src/index.ts --matrix     # MCP server + Matrix interface
 //   bun run src/index.ts --cli --matrix # All interfaces
 async function main(): Promise<void> {
+  // Get Matrix config from environment if available
+  const matrixInterface = getMatrixInterfaceFromEnv();
+
   await App.run({
     name: "test-brain",
     version: "1.0.0",
@@ -30,6 +33,8 @@ async function main(): Promise<void> {
     },
     // Interfaces can also be explicitly configured here
     interfaces: [
+      // Add Matrix interface if configured in environment
+      ...(matrixInterface ? [matrixInterface] : []),
       // Example: Always enable a specific interface
       // { type: "cli", enabled: true, config: { /* ... */ } }
     ],

@@ -38,22 +38,8 @@ export class App {
       args.includes("--matrix") &&
       !interfaces.some((i) => i.type === "matrix")
     ) {
-      const matrixConfig = {
-        type: "matrix" as const,
-        enabled: true,
-        homeserver: process.env["MATRIX_HOMESERVER"] ?? "",
-        accessToken: process.env["MATRIX_ACCESS_TOKEN"] ?? "",
-        userId: process.env["MATRIX_USER_ID"] ?? "",
-      };
-
-      // Only add if credentials are available
-      if (
-        matrixConfig.homeserver &&
-        matrixConfig.accessToken &&
-        matrixConfig.userId
-      ) {
-        interfaces.push(matrixConfig);
-      }
+      // Matrix interface should be configured via getMatrixInterfaceFromEnv()
+      // This is handled in the app's index.ts file
     }
 
     // Follow Shell's pattern: validate schema then add full Plugin objects
@@ -214,9 +200,8 @@ export class App {
         return new CLIInterface(interfaceContext, config.config);
       }
       case "matrix": {
-        // Matrix interface will be implemented later
-        logger.warn("Matrix interface not yet implemented");
-        return null;
+        const { MatrixInterface } = await import("@brains/matrix");
+        return new MatrixInterface(interfaceContext, config.config);
       }
       default:
         return null;
