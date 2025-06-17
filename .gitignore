@@ -203,3 +203,7 @@ website/
 # Generated files
 packages/webserver-plugin/src/content-schemas.txt
 .matrix-storage/
+
+# Deployment secrets
+deploy/providers/*/config.env
+apps/*/deploy/.env.production

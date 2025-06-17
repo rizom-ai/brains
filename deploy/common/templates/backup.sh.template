@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# Backup script for {{name}} brain app
+# Generated from template
+
+set -euo pipefail
+
+# Configuration
+APP_NAME="{{name}}"
+INSTALL_PATH="{{installPath}}"
+DATA_PATH="{{dataPath}}"
+BACKUP_DIR="$INSTALL_PATH/backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_NAME="${APP_NAME}-backup-${TIMESTAMP}"
+
+# Create backup directory
+mkdir -p "$BACKUP_DIR"
+
+# Create temporary directory for backup
+TEMP_DIR="/tmp/$BACKUP_NAME"
+mkdir -p "$TEMP_DIR"
+
+echo "Starting backup for $APP_NAME..."
+
+# Backup database
+if [ -f "$DATA_PATH/brain.db" ]; then
+    echo "Backing up database..."
+    cp "$DATA_PATH/brain.db" "$TEMP_DIR/"
+    
+    # Also backup WAL files if they exist (for SQLite)
+    if [ -f "$DATA_PATH/brain.db-wal" ]; then
+        cp "$DATA_PATH/brain.db-wal" "$TEMP_DIR/"
+    fi
+    if [ -f "$DATA_PATH/brain.db-shm" ]; then
+        cp "$DATA_PATH/brain.db-shm" "$TEMP_DIR/"
+    fi
+fi
+
+# Backup environment configuration
+if [ -f "$INSTALL_PATH/.env" ]; then
+    echo "Backing up environment configuration..."
+    cp "$INSTALL_PATH/.env" "$TEMP_DIR/"
+fi
+
+# Backup git repository if configured
+if [ -d "$INSTALL_PATH/brain-repo" ]; then
+    echo "Backing up git repository..."
+    cd "$INSTALL_PATH/brain-repo"
+    git bundle create "$TEMP_DIR/brain-repo.bundle" --all
+    cd - > /dev/null
+fi
+
+# Create version info
+echo "$APP_NAME backup created on $(date)" > "$TEMP_DIR/backup-info.txt"
+if [ -f "$INSTALL_PATH/version.txt" ]; then
+    echo "App version: $(cat $INSTALL_PATH/version.txt)" >> "$TEMP_DIR/backup-info.txt"
+fi
+
+# Create archive
+echo "Creating backup archive..."
+cd /tmp
+tar -czf "$BACKUP_DIR/$BACKUP_NAME.tar.gz" "$BACKUP_NAME"
+cd - > /dev/null
+
+# Cleanup
+rm -rf "$TEMP_DIR"
+
+# Keep only last 7 backups
+echo "Cleaning old backups..."
+cd "$BACKUP_DIR"
+ls -t *.tar.gz | tail -n +8 | xargs -r rm
+
+echo "Backup completed: $BACKUP_DIR/$BACKUP_NAME.tar.gz"
+
+# Optional: Upload to external storage
+# Uncomment and configure as needed:
+# if [ -n "${S3_BACKUP_BUCKET:-}" ]; then
+#     echo "Uploading to S3..."
+#     aws s3 cp "$BACKUP_DIR/$BACKUP_NAME.tar.gz" "s3://$S3_BACKUP_BUCKET/brain-backups/"
+# fi

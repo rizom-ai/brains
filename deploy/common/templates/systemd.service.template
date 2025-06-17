@@ -1,0 +1,41 @@
+[Unit]
+Description={{description}}
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={{installPath}}/{{binaryName}}
+Restart=always
+RestartSec=10
+User={{user}}
+Group={{group}}
+
+# Environment
+Environment="NODE_ENV=production"
+EnvironmentFile={{installPath}}/.env
+
+# Working directory
+WorkingDirectory={{installPath}}
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{dataPath}} {{installPath}}/logs {{installPath}}/backups
+
+# Resource limits (if specified)
+{{#if resources.maxMemory}}
+MemoryMax={{resources.maxMemory}}
+{{/if}}
+{{#if resources.cpuQuota}}
+CPUQuota={{resources.cpuQuota}}
+{{/if}}
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{serviceName}}
+
+[Install]
+WantedBy=multi-user.target

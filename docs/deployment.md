@@ -41,6 +41,7 @@ ssh user@your-server
 ```
 
 This script will:
+
 - Create the `personal-brain` system user
 - Set up directory structure at `/opt/personal-brain`
 - Configure systemd service
@@ -87,6 +88,7 @@ sudo nano /opt/personal-brain/.env
 ```
 
 Required configuration:
+
 ```bash
 # AI Provider Key (required)
 ANTHROPIC_API_KEY=sk-ant-api03-YOUR-KEY-HERE
@@ -100,6 +102,7 @@ BRAIN_SERVER_PORT=3333
 ```
 
 Optional features:
+
 ```bash
 # Matrix Bot Interface
 MATRIX_HOMESERVER=https://matrix.org
@@ -136,6 +139,7 @@ To update to a new version:
 2. Deploy: `./scripts/deploy.sh user@server apps/test-brain/dist/test-brain-vX.X.X-linux-x64.tar.gz`
 
 The deploy script automatically:
+
 - Backs up the current binary
 - Stops the service
 - Deploys the new binary
@@ -145,6 +149,7 @@ The deploy script automatically:
 ## Management Commands
 
 ### Service Management
+
 ```bash
 # Start/Stop/Restart
 sudo systemctl start personal-brain
@@ -166,16 +171,19 @@ brain-logs    # Live log tail
 ### Backup and Restore
 
 Manual backup:
+
 ```bash
 sudo /opt/personal-brain/backup.sh
 ```
 
 Backups are stored in `/opt/personal-brain/backups/` and include:
+
 - Database file
 - Environment configuration
 - Git repository (if configured)
 
 To restore:
+
 ```bash
 # Stop service
 sudo systemctl stop personal-brain
@@ -228,6 +236,7 @@ server {
 ## Troubleshooting
 
 ### Service won't start
+
 ```bash
 # Check logs for errors
 sudo journalctl -u personal-brain -n 50
@@ -240,10 +249,12 @@ sudo -u personal-brain /opt/personal-brain/brain
 ```
 
 ### Database locked error
+
 - Ensure only one instance is running
 - Check for zombie processes: `ps aux | grep brain`
 
 ### Port already in use
+
 ```bash
 # Find what's using the port
 sudo netstat -tlnp | grep 3333
@@ -253,6 +264,7 @@ sudo kill <PID>
 ```
 
 ### Permission denied
+
 - Check file ownership: `chown -R personal-brain:personal-brain /opt/personal-brain`
 - Verify systemd service user configuration
 
@@ -266,6 +278,7 @@ The build script supports multiple platforms:
 - `darwin-arm64`: macOS Apple Silicon (M1/M2/M3)
 
 Example:
+
 ```bash
 # Build for Raspberry Pi
 ./scripts/build-release.sh test-brain linux-arm64
@@ -294,6 +307,7 @@ For critical deployments:
 ## Support
 
 For issues or questions:
+
 - Check logs: `sudo journalctl -u personal-brain -f`
 - Review this guide's troubleshooting section
 - Open an issue on GitHub
