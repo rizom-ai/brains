@@ -7,17 +7,23 @@ This directory contains the generic deployment infrastructure for all brain apps
 Deploy any brain app to any provider:
 
 ```bash
-# Deploy test-brain to Hetzner
+# Deploy to Hetzner Cloud VM
 ./scripts/deploy-brain.sh test-brain hetzner deploy
+
+# Deploy to Docker (local)
+./scripts/deploy-brain.sh test-brain docker deploy
+
+# Deploy to Docker (remote server)
+./scripts/deploy-brain.sh test-brain docker deploy user@server.com
 
 # Update existing deployment
 ./scripts/deploy-brain.sh test-brain hetzner update
 
 # Check status
-./scripts/deploy-brain.sh test-brain hetzner status
+./scripts/deploy-brain.sh test-brain docker status
 
 # Destroy deployment
-./scripts/deploy-brain.sh test-brain hetzner destroy
+./scripts/deploy-brain.sh test-brain docker destroy
 ```
 
 ## Directory Structure
@@ -28,10 +34,11 @@ deploy/
 ├── common/            # Shared resources
 │   └── templates/     # Template files for all providers
 ├── providers/         # Provider implementations
+│   ├── docker/       # Docker container deployment
 │   ├── hetzner/      # Hetzner Cloud provider
 │   ├── digitalocean/ # DigitalOcean (future)
 │   ├── aws/          # AWS EC2 (future)
-│   └── local/        # Local deployment (future)
+│   └── local/        # Local systemd (future)
 └── apps/             # App-specific overrides (optional)
 ```
 

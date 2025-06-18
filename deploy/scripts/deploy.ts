@@ -9,7 +9,7 @@ import { existsSync } from "fs";
 import { join } from "path";
 
 // Type definitions
-type Provider = "hetzner" | "digitalocean" | "aws" | "local";
+type Provider = "docker" | "hetzner" | "digitalocean" | "aws" | "local";
 type Action = "deploy" | "update" | "destroy" | "status";
 
 interface DeployConfig {
@@ -29,6 +29,7 @@ interface DeployOptions {
   app: string;
   provider?: Provider;
   action?: Action;
+  server?: string; // For Docker deployments
 }
 
 // Color codes for output
@@ -159,10 +160,17 @@ async function interactiveMode(): Promise<DeployOptions> {
     error("Invalid action selection");
   }
   
+  // For Docker provider, ask for server
+  let server: string | undefined;
+  if (selectedProvider === "docker") {
+    server = prompt("\nServer address (default: local): ") || "local";
+  }
+  
   return {
     app,
     provider: selectedProvider as Provider,
     action: selectedAction as Action,
+    server,
   };
 }
 
@@ -198,7 +206,13 @@ async function deploy(options: DeployOptions) {
   info(`Executing ${action}...`);
   
   try {
-    const result = await $`./scripts/deploy-brain.sh ${app} ${selectedProvider} ${action}`;
+    // Build command with optional server argument for Docker
+    const args = [app, selectedProvider, action];
+    if (selectedProvider === "docker" && options.server) {
+      args.push(options.server);
+    }
+    
+    const result = await $`./scripts/deploy-brain.sh ${args}`;
     
     if (result.exitCode === 0) {
       success(`${action} completed successfully!`);
@@ -239,18 +253,23 @@ async function parseArgs(): Promise<DeployOptions | null> {
 🧠 Brain Deployment Tool
 
 Usage:
-  bun scripts/deploy.ts [app] [provider] [action]
+  bun scripts/deploy.ts [app] [provider] [action] [server]
+  bun scripts/deploy.ts [app] local              # Docker local deployment
   bun scripts/deploy.ts --help
   bun scripts/deploy.ts --list
 
 Arguments:
   app       Name of the app to deploy
-  provider  Deployment provider (hetzner, aws, etc.)
+  provider  Deployment provider (docker, hetzner, aws, etc.)
   action    Action to perform (deploy, update, status, destroy)
+  server    Server address for Docker deployments (optional, defaults to local)
 
 Examples:
   bun scripts/deploy.ts                           # Interactive mode
   bun scripts/deploy.ts test-brain                # Deploy test-brain with defaults
+  bun scripts/deploy.ts test-brain local          # Deploy to local Docker
+  bun scripts/deploy.ts test-brain docker deploy  # Deploy to local Docker (explicit)
+  bun scripts/deploy.ts test-brain docker deploy user@server  # Deploy to remote Docker
   bun scripts/deploy.ts test-brain hetzner        # Deploy to Hetzner
   bun scripts/deploy.ts test-brain hetzner deploy # Full command
   bun scripts/deploy.ts --list                    # List available apps
@@ -274,11 +293,29 @@ Shortcuts:
     process.exit(0);
   }
   
-  return {
+  // Handle special case: "local" as provider means docker deploy local
+  if (args[1] === "local") {
+    return {
+      app: args[0],
+      provider: "docker" as Provider,
+      action: "deploy" as Action,
+      server: "local"
+    };
+  }
+  
+  // Standard parsing
+  const options: DeployOptions = {
     app: args[0],
     provider: args[1] as Provider,
-    action: args[2] as Action,
+    action: args[2] as Action || "deploy",
   };
+  
+  // For Docker, check if there's a server argument
+  if (options.provider === "docker" && args[3]) {
+    options.server = args[3];
+  }
+  
+  return options;
 }
 
 // Main execution

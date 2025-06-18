@@ -1,0 +1,29 @@
+# Ignore unnecessary files for Docker build
+node_modules
+**/node_modules
+**/dist
+.git
+.github
+*.log
+*.db
+*.db-*
+.env.*
+!.env.example
+!.env.production
+coverage
+.nyc_output
+.DS_Store
+*.swp
+*.swo
+terraform
+*.tfstate*
+*.tfplan
+.terraform
+backups
+# Don't ignore these - needed for workspace
+!package.json
+!bun.lock
+# Don't ignore these - they're build artifacts we copy separately
+# brain
+# brain-wrapper.sh
+# .bun-build

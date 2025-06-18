@@ -27,6 +27,7 @@ log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
 # Hetzner-specific configuration
 TERRAFORM_DIR="$PROJECT_ROOT/deploy/providers/hetzner/terraform"
 HETZNER_CONFIG_FILE="$PROJECT_ROOT/deploy/providers/hetzner/config.env"
+DEPLOY_DIR="$PROJECT_ROOT/deploy"
 
 # Load Hetzner configuration if exists
 if [ -f "$HETZNER_CONFIG_FILE" ]; then
@@ -54,11 +55,28 @@ check_prerequisites() {
         exit 1
     fi
     
-    # Check for SSH key
-    SSH_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-$HOME/.ssh/id_rsa.pub}"
-    if [ ! -f "$SSH_KEY_PATH" ]; then
-        log_error "SSH public key not found at $SSH_KEY_PATH"
-        exit 1
+    # Check for SSH key - auto-detect if not specified
+    if [ -z "${SSH_PUBLIC_KEY_PATH:-}" ]; then
+        # Try common SSH key locations in order of preference
+        for key_type in id_ed25519.pub id_rsa.pub id_ecdsa.pub; do
+            if [ -f "$HOME/.ssh/$key_type" ]; then
+                SSH_KEY_PATH="$HOME/.ssh/$key_type"
+                log_info "Auto-detected SSH key: $SSH_KEY_PATH"
+                break
+            fi
+        done
+        
+        if [ -z "$SSH_KEY_PATH" ]; then
+            log_error "No SSH public key found. Checked for: id_ed25519.pub, id_rsa.pub, id_ecdsa.pub in ~/.ssh/"
+            log_error "Generate one with: ssh-keygen -t ed25519"
+            exit 1
+        fi
+    else
+        SSH_KEY_PATH="$SSH_PUBLIC_KEY_PATH"
+        if [ ! -f "$SSH_KEY_PATH" ]; then
+            log_error "SSH public key not found at specified path: $SSH_KEY_PATH"
+            exit 1
+        fi
     fi
     
     log_info "✅ Prerequisites checked"
@@ -159,7 +177,7 @@ variable "app_port" {
 variable "server_type" {
   description = "Server type"
   type        = string
-  default     = "cx11"
+  default     = "cx22"
 }
 
 variable "location" {
@@ -184,7 +202,7 @@ deploy_infrastructure() {
     
     # Extract app configuration
     APP_PORT=$(jq -r '.defaultPort // 3333' "$APP_CONFIG_PATH")
-    SERVER_TYPE=$(jq -r '.deployment.serverSize.hetzner // "cx11"' "$APP_CONFIG_PATH" 2>/dev/null || echo "cx11")
+    SERVER_TYPE=$(jq -r '.deployment.serverSize.hetzner // "cx22"' "$APP_CONFIG_PATH" 2>/dev/null || echo "cx22")
     
     cd "$TERRAFORM_DIR"
     
@@ -195,7 +213,7 @@ deploy_infrastructure() {
         -var="app_name=$APP_NAME" \
         -var="app_port=$APP_PORT" \
         -var="server_type=$SERVER_TYPE" \
-        -var="ssh_public_key_path=${SSH_PUBLIC_KEY_PATH:-$HOME/.ssh/id_rsa.pub}" \
+        -var="ssh_public_key_path=$SSH_KEY_PATH" \
         -out=tfplan
     
     # Apply deployment
@@ -245,19 +263,19 @@ setup_application() {
     
     # Run server setup script
     log_info "Running server setup..."
-    scp "$SCRIPT_DIR/setup-server.sh" "root@$server_ip:~/"
+    scp "$DEPLOY_DIR/scripts/setup-server.sh" "root@$server_ip:~/"
     ssh "root@$server_ip" "./setup-server.sh"
     
     # Build and deploy application
     log_info "Building application..."
-    "$SCRIPT_DIR/build-release.sh" "$APP_NAME" linux-x64
+    "$PROJECT_ROOT/scripts/build-release.sh" "$APP_NAME" linux-x64
     
     # Find latest release
     RELEASE_FILE=$(ls -t "$PROJECT_ROOT/apps/$APP_NAME/dist/"*.tar.gz | head -1)
     
     # Deploy using standard deploy script
     log_info "Deploying application..."
-    "$SCRIPT_DIR/deploy.sh" "deploy@$server_ip" "$RELEASE_FILE"
+    "$DEPLOY_DIR/scripts/deploy.sh" "deploy@$server_ip" "$RELEASE_FILE"
     
     # Copy environment configuration if exists
     ENV_FILE="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
@@ -294,7 +312,7 @@ update_application() {
     
     # Build new release
     log_info "Building new release..."
-    "$SCRIPT_DIR/build-release.sh" "$APP_NAME" linux-x64
+    "$PROJECT_ROOT/scripts/build-release.sh" "$APP_NAME" linux-x64
     
     # Find latest release
     RELEASE_FILE=$(ls -t "$PROJECT_ROOT/apps/$APP_NAME/dist/"*.tar.gz | head -1)

@@ -24,8 +24,9 @@ log_error() {
 
 # Check if app name is provided
 if [ $# -eq 0 ]; then
-    log_error "Usage: $0 <app-name> [platform]"
+    log_error "Usage: $0 <app-name> [platform] [--docker]"
     log_error "Example: $0 test-brain linux-x64"
+    log_error "Example: $0 test-brain linux-x64 --docker"
     log_error "Available apps:"
     ls -1 apps/
     exit 1
@@ -34,6 +35,15 @@ fi
 APP_NAME="$1"
 APP_DIR="apps/$APP_NAME"
 PLATFORM="${2:-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)}"
+USE_DOCKER=false
+
+# Check for --docker flag
+if [ "${3:-}" = "--docker" ] || [ "${2:-}" = "--docker" ]; then
+    USE_DOCKER=true
+    if [ "${2:-}" = "--docker" ]; then
+        PLATFORM="linux-x64"  # Default to linux-x64 for Docker builds
+    fi
+fi
 
 # Normalize platform names
 case "$PLATFORM" in
@@ -87,19 +97,73 @@ cd "$APP_DIR"
 # Run database migrations if needed
 if [ -f "../../packages/db/src/migrate.ts" ]; then
     log_info "Running database migrations..."
-    DATABASE_URL="file:./build-test.db" bun run db:migrate || true
+    # Run migration directly without going through npm scripts to avoid dependency issues
+    DATABASE_URL="file:./build-test.db" bun ../../packages/db/src/migrate.ts || true
     rm -f build-test.db*
 fi
 
 # Build the binary
 log_info "Compiling binary..."
-TEMP_BINARY="$DIST_DIR/temp-binary"
+
+# Use Docker build if requested (for NixOS compatibility)
+if [ "$USE_DOCKER" = true ] && [ ! -f /.dockerenv ]; then
+    log_info "Using Docker build environment..."
+    
+    # Find project root - look for the monorepo root
+    CURRENT_DIR=$(pwd)
+    while [ "$CURRENT_DIR" != "/" ]; do
+        if [ -f "$CURRENT_DIR/turbo.json" ] && [ -f "$CURRENT_DIR/package.json" ]; then
+            PROJECT_ROOT="$CURRENT_DIR"
+            break
+        fi
+        CURRENT_DIR=$(dirname "$CURRENT_DIR")
+    done
+    
+    if [ -z "${PROJECT_ROOT:-}" ]; then
+        log_error "Could not find project root (looking for turbo.json)"
+        exit 1
+    fi
+    
+    # Build Docker image if needed
+    if ! docker images | grep -q "personal-brain-builder"; then
+        docker build -f "$PROJECT_ROOT/deploy/docker/build/Dockerfile.build" -t personal-brain-builder:latest "$PROJECT_ROOT"
+    fi
+    
+    # Run build in Docker
+    docker run --rm \
+        -v "$PROJECT_ROOT:/app" \
+        -w "/app" \
+        personal-brain-builder:latest \
+        -c "cd /app && ./scripts/build-release.sh $APP_NAME $PLATFORM"
+    
+    exit 0
+fi
+TEMP_BINARY="temp-binary"
+
+# Log Bun version for debugging
+log_info "Bun version: $(bun --version)"
+
+# Clean and install dependencies
+# Remove node_modules to avoid conflicts
+log_info "Cleaning build environment..."
+rm -rf node_modules
+
+# Install with a fresh cache to avoid corruption issues
+log_info "Installing dependencies..."
+BUN_INSTALL_CACHE_DIR="$(mktemp -d)" bun install --no-save
+
+# Compile with native modules as external dependencies
+log_info "Compiling with external native modules..."
+
 case "$PLATFORM" in
     linux-*)
         bun build "$ENTRY_POINT" \
             --compile \
             --minify \
             --target=bun-linux-x64 \
+            --external=@libsql/client \
+            --external=libsql \
+            --external=@matrix-org/matrix-sdk-crypto-nodejs \
             --outfile "$TEMP_BINARY"
         ;;
     darwin-x64)
@@ -107,6 +171,9 @@ case "$PLATFORM" in
             --compile \
             --minify \
             --target=bun-darwin-x64 \
+            --external=@libsql/client \
+            --external=libsql \
+            --external=@matrix-org/matrix-sdk-crypto-nodejs \
             --outfile "$TEMP_BINARY"
         ;;
     darwin-arm64)
@@ -114,6 +181,9 @@ case "$PLATFORM" in
             --compile \
             --minify \
             --target=bun-darwin-arm64 \
+            --external=@libsql/client \
+            --external=libsql \
+            --external=@matrix-org/matrix-sdk-crypto-nodejs \
             --outfile "$TEMP_BINARY"
         ;;
     *)
@@ -134,10 +204,57 @@ if [ ! -f "$TEMP_BINARY" ]; then
     log_error "Binary not found: $TEMP_BINARY"
     exit 1
 fi
-mv "$TEMP_BINARY" "$RELEASE_DIR/$BINARY_NAME"
+cp "$TEMP_BINARY" "$RELEASE_DIR/$BINARY_NAME"
+rm -f "$TEMP_BINARY"
 cp deploy/.env.production.example "$RELEASE_DIR/.env.example"
 cp deploy/personal-brain.service "$RELEASE_DIR/"
-log_info "Files copied to release directory"
+
+# Generate minimal package.json with native module dependencies
+log_info "Generating package.json for native modules..."
+
+# Use our extraction script to generate the package.json
+# We're already in $APP_DIR from line 95
+bun "$PROJECT_ROOT/scripts/extract-native-deps.js" "$APP_NAME" "$VERSION" > "$RELEASE_DIR/package.json" 2>/dev/null || {
+    log_error "Failed to generate package.json"
+    exit 1
+}
+
+
+log_info "Generated package.json with native module dependencies"
+
+# package.json is already generated above with exact versions
+
+# Create wrapper script that handles native modules
+cat > "$RELEASE_DIR/${BINARY_NAME}-wrapper.sh" << EOF
+#!/usr/bin/env bash
+# Wrapper script for Personal Brain with native module support
+
+# Get the directory where this script is located
+SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+
+# Check if node_modules exists, if not, install dependencies
+if [ ! -d "\$SCRIPT_DIR/node_modules" ]; then
+    echo "Installing native dependencies..."
+    cd "\$SCRIPT_DIR"
+    if command -v bun >/dev/null 2>&1; then
+        bun install --production
+    elif command -v npm >/dev/null 2>&1; then
+        npm install --production
+    else
+        echo "ERROR: Neither bun nor npm found. Please install dependencies manually."
+        exit 1
+    fi
+fi
+
+# Set NODE_PATH to include our modules
+export NODE_PATH="\$SCRIPT_DIR/node_modules:\$NODE_PATH"
+
+# Execute the binary from its directory
+cd "\$SCRIPT_DIR"
+exec "./$BINARY_NAME" "\$@"
+EOF
+
+chmod +x "$RELEASE_DIR/${BINARY_NAME}-wrapper.sh"
 
 # Create setup script
 cat > "$RELEASE_DIR/setup.sh" << 'EOF'

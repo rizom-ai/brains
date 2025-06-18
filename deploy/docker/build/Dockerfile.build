@@ -1,0 +1,23 @@
+# Build container for Personal Brain apps
+# Uses official Bun image with glibc for better compatibility
+FROM oven/bun:1.2.13-debian AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    jq \
+    bash \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy entire workspace for monorepo support
+COPY . .
+
+# Install dependencies for the workspace
+RUN bun install
+
+# Build script will be called with specific app and platform
+# Example: docker run ... ./scripts/build-release.sh test-brain linux-x64
+ENTRYPOINT ["/bin/bash"]
