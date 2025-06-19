@@ -50,6 +50,7 @@ bun brain:deploy test-brain hetzner
 ```
 
 The deployment will:
+
 1. Build your Docker image
 2. Push it to `ghcr.io/yourusername/personal-brain-test-brain:latest`
 3. Pull it on the Hetzner server

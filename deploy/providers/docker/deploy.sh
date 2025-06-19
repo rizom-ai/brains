@@ -28,7 +28,7 @@ log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
 # - APP_DEFAULT_PORT: Default port
 
 # Docker-specific configuration
-DOCKER_DEPLOY_SCRIPT="$PROJECT_ROOT/deploy/scripts/deploy-docker.sh"
+DOCKER_DEPLOY_SCRIPT="$PROJECT_ROOT/deploy/scripts/deploy-docker-v2.sh"
 DOCKER_CONFIG_FILE="$PROJECT_ROOT/deploy/providers/docker/config.env"
 
 # Load Docker configuration if exists

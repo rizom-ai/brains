@@ -101,6 +101,7 @@ In your app's `deploy/deploy.config.json`:
 ### GitHub Container Registry (Recommended)
 
 1. Create a Personal Access Token:
+
    - Go to GitHub Settings → Developer settings → Personal access tokens
    - Create token with `write:packages` scope
 
@@ -125,11 +126,13 @@ In your app's `deploy/deploy.config.json`:
 ## Deployment Process
 
 1. **Docker Image Build**
+
    - Builds optimized Docker image with Bun runtime
    - Includes all dependencies and native modules
    - Pushes to configured registry (if set)
 
 2. **Infrastructure Creation**
+
    - Creates SSH key in Hetzner
    - Sets up firewall rules
    - Provisions Ubuntu 22.04 server

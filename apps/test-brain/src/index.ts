@@ -40,24 +40,32 @@ async function main(): Promise<void> {
     ],
     plugins: [
       // Git sync plugin for version control (if configured)
-      ...(process.env["GIT_REPO_PATH"] ? [
-        gitSync({
-          repoPath: process.env["GIT_REPO_PATH"],
-          branch: process.env["GIT_BRANCH"] ?? "main",
-          remote: process.env["GIT_REMOTE_URL"],
-          autoSync: process.env["GIT_AUTO_SYNC"] === "true",
-        })
-      ] : []),
+      ...(process.env["GIT_REPO_PATH"]
+        ? [
+            gitSync({
+              repoPath: process.env["GIT_REPO_PATH"],
+              branch: process.env["GIT_BRANCH"] ?? "main",
+              remote: process.env["GIT_REMOTE_URL"],
+              autoSync: process.env["GIT_AUTO_SYNC"] === "true",
+            }),
+          ]
+        : []),
       // Webserver plugin for generating and serving websites (if configured)
-      ...(process.env["WEBSITE_OUTPUT_DIR"] ? [
-        webserverPlugin({
-          outputDir: process.env["WEBSITE_OUTPUT_DIR"],
-          siteTitle: process.env["WEBSITE_SITE_TITLE"] ?? "Test Brain",
-          siteDescription: process.env["WEBSITE_SITE_DESCRIPTION"] ?? "A test instance of Personal Brain",
-          previewPort: Number(process.env["WEBSITE_PREVIEW_PORT"] ?? 4321),
-          productionPort: Number(process.env["WEBSITE_PRODUCTION_PORT"] ?? 8080),
-        })
-      ] : []),
+      ...(process.env["WEBSITE_OUTPUT_DIR"]
+        ? [
+            webserverPlugin({
+              outputDir: process.env["WEBSITE_OUTPUT_DIR"],
+              siteTitle: process.env["WEBSITE_SITE_TITLE"] ?? "Test Brain",
+              siteDescription:
+                process.env["WEBSITE_SITE_DESCRIPTION"] ??
+                "A test instance of Personal Brain",
+              previewPort: Number(process.env["WEBSITE_PREVIEW_PORT"] ?? 4321),
+              productionPort: Number(
+                process.env["WEBSITE_PRODUCTION_PORT"] ?? 8080,
+              ),
+            }),
+          ]
+        : []),
       // Future: noteContext(), taskContext(), etc.
     ],
   });

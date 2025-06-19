@@ -22,7 +22,10 @@
     "prepare": "husky install",
     "version:sync": "bun scripts/sync-versions.ts",
     "version:set": "bun scripts/sync-versions.ts && git add -A && git commit -m 'chore: sync package versions'",
-    "brain:deploy": "bun deploy/scripts/deploy.ts"
+    "brain:deploy": "bun deploy/scripts/deploy.ts",
+    "brain:deploy:v2": "./deploy/scripts/deploy-brain-v2.sh",
+    "brain:build": "./scripts/build-release-v2.sh",
+    "brain:docker": "./deploy/scripts/deploy-docker-v2.sh"
   },
   "devDependencies": {
     "eslint": "^8.48.0",

@@ -47,7 +47,7 @@ async function main(): Promise<void> {
   // Run migrations from the drizzle directory
   console.log("Starting migrations...");
   // Allow overriding migration folder via environment variable
-  const migrationsFolder = process.env["DRIZZLE_MIGRATION_FOLDER"] 
+  const migrationsFolder = process.env["DRIZZLE_MIGRATION_FOLDER"]
     ? process.env["DRIZZLE_MIGRATION_FOLDER"]
     : new URL("../drizzle", import.meta.url).pathname;
   console.log(`Using migrations folder: ${migrationsFolder}`);
