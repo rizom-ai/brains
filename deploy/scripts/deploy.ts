@@ -234,7 +234,7 @@ async function deploy(options: DeployOptions) {
       args.push(options.server);
     }
 
-    const result = await $`./deploy/scripts/deploy-brain-v2.sh ${args}`;
+    const result = await $`./deploy/scripts/deploy-brain.sh ${args}`;
 
     if (result.exitCode === 0) {
       success(`${action} completed successfully!`);
@@ -249,16 +249,16 @@ async function deploy(options: DeployOptions) {
 // Pre-flight checks
 async function preflightChecks() {
   // Check if we're in the right directory
-  if (!existsSync("deploy/scripts/deploy-brain-v2.sh")) {
+  if (!existsSync("deploy/scripts/deploy-brain.sh")) {
     error("Please run this script from the project root directory");
   }
 
-  // Check if deploy-brain-v2.sh is executable
+  // Check if deploy-brain.sh is executable
   try {
-    await $`test -x deploy/scripts/deploy-brain-v2.sh`.quiet();
+    await $`test -x deploy/scripts/deploy-brain.sh`.quiet();
   } catch {
-    info("Making deploy-brain-v2.sh executable...");
-    await $`chmod +x deploy/scripts/deploy-brain-v2.sh`;
+    info("Making deploy-brain.sh executable...");
+    await $`chmod +x deploy/scripts/deploy-brain.sh`;
   }
 }
 

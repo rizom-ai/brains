@@ -116,7 +116,7 @@ build_image() {
     
     # Build release first
     log_info "Building release binary..."
-    if ! "./scripts/build-release-v2.sh" "$APP_NAME" linux-x64 --docker; then
+    if ! "./scripts/build-release.sh" "$APP_NAME" linux-x64 --docker; then
         log_error "Failed to build release"
         return 1
     fi

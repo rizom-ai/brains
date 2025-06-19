@@ -247,7 +247,7 @@ deploy_infrastructure() {
             GITHUB_USER="$REGISTRY_USER" \
             DOCKER_TOKEN="$REGISTRY_TOKEN" \
             DOCKER_USER="$REGISTRY_USER" \
-            "$PROJECT_ROOT/deploy/scripts/deploy-docker-v2.sh" "$APP_NAME" "dummy-server" \
+            "$PROJECT_ROOT/deploy/scripts/deploy-docker.sh" "$APP_NAME" "dummy-server" \
             --registry "$DOCKER_REGISTRY" --tag latest; then
             log_error "Docker build/push failed"
             exit 1
@@ -401,7 +401,7 @@ update_application() {
     # Build new release
     log_info "Building new release..."
     # Use Docker build for compatibility with target server
-    "$PROJECT_ROOT/scripts/build-release-v2.sh" "$APP_NAME" linux-x64 --docker
+    "$PROJECT_ROOT/scripts/build-release.sh" "$APP_NAME" linux-x64 --docker
     
     # Find latest release
     RELEASE_FILE=$(ls -t "$PROJECT_ROOT/apps/$APP_NAME/dist/"*.tar.gz | head -1)

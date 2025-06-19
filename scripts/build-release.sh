@@ -120,7 +120,7 @@ if [ "$USE_DOCKER" = true ] && [ ! -f /.dockerenv ]; then
         -v "$(pwd):/app" \
         -w "/app" \
         personal-brain-builder:latest \
-        "./scripts/build-release-v2.sh" "$APP_NAME" "$PLATFORM"
+        "./scripts/build-release.sh" "$APP_NAME" "$PLATFORM"
     
     exit $?
 fi
