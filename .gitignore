@@ -210,3 +210,6 @@ packages/webserver-plugin/src/content-schemas.txt
 # Deployment secrets
 deploy/providers/*/config.env
 apps/*/deploy/.env.production
+
+# Git sync temporary repositories
+.brain-repo/

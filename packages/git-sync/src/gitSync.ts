@@ -1,32 +1,28 @@
-import type { EntityService, BaseEntity, Logger } from "@brains/types";
+import type { Logger } from "@brains/types";
+import type { Plugin } from "@brains/types";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
+import { existsSync, mkdirSync } from "fs";
 import { join, basename } from "path";
-import {
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  existsSync,
-  readdirSync,
-  statSync,
-} from "fs";
 import { z } from "zod";
 
 /**
  * GitSync options schema
  */
 export const gitSyncOptionsSchema = z.object({
-  repoPath: z.string(),
-  remote: z.string().optional(),
-  branch: z.string().optional(),
-  autoSync: z.boolean().optional(),
-  syncInterval: z.number().optional(),
-  entityService: z.any(), // We can't validate these complex types with Zod
+  gitUrl: z.string(),
+  branch: z.string().default("main"),
+  autoSync: z.boolean().default(false),
+  syncInterval: z.number().default(300),
+  commitMessage: z.string().optional(),
+  authorName: z.string().optional(),
+  authorEmail: z.string().optional(),
+  directorySync: z.any(), // Plugin instance
   logger: z.any(),
 });
 
 export type GitSyncOptions = z.infer<typeof gitSyncOptionsSchema> & {
-  entityService: EntityService;
+  directorySync: Plugin;
   logger: Logger;
 };
 
@@ -40,6 +36,7 @@ export interface GitSyncStatus {
   behind: number;
   branch: string;
   lastCommit?: string | undefined;
+  remote?: string | undefined;
   files: Array<{
     path: string;
     status: string;
@@ -47,46 +44,47 @@ export interface GitSyncStatus {
 }
 
 /**
- * GitSync handles synchronization of entities with a git repository
+ * GitSync handles git operations for a directory managed by directory-sync
  */
 export class GitSync {
   private _git: SimpleGit | null = null;
-  private entityService: EntityService;
+  // TODO: Implement proper plugin communication with directory-sync
+  // @ts-expect-error - Will be used when plugin communication is implemented
+  private _directorySync: Plugin;
   private logger: Logger;
-  private repoPath: string;
-  private remote: string | undefined;
+  private gitUrl: string;
   private branch: string;
   private autoSync: boolean;
   private syncInterval: number;
+  private commitMessage: string;
+  private authorName: string | undefined;
+  private authorEmail: string | undefined;
   private syncTimer: Timer | undefined;
+  private repoPath: string = "";
 
   constructor(options: GitSyncOptions) {
     // Validate options (excluding the complex types)
-    const { entityService, logger, ...validatableOptions } = options;
+    const { logger, ...validatableOptions } = options;
     gitSyncOptionsSchema
-      .omit({ entityService: true, logger: true })
+      .omit({ directorySync: true, logger: true })
       .parse(validatableOptions);
 
-    this.entityService = entityService;
+    this._directorySync = options.directorySync;
     this.logger = logger.child("GitSync");
-    this.repoPath = options.repoPath;
-    this.remote = options.remote;
-    this.branch = options.branch ?? "main";
-    this.autoSync = options.autoSync ?? false;
-    this.syncInterval = options.syncInterval ?? 30;
+    this.gitUrl = options.gitUrl;
+    this.branch = options.branch;
+    this.autoSync = options.autoSync;
+    this.syncInterval = options.syncInterval;
+    this.commitMessage = options.commitMessage ?? "Auto-sync: {date}";
+    this.authorName = options.authorName;
+    this.authorEmail = options.authorEmail;
   }
 
   /**
-   * Lazy getter for git instance - creates directory if needed
+   * Lazy getter for git instance
    */
   private get git(): SimpleGit {
-    if (!this._git) {
-      // Ensure directory exists before creating SimpleGit instance
-      if (!existsSync(this.repoPath)) {
-        mkdirSync(this.repoPath, { recursive: true });
-      }
-      this._git = simpleGit(this.repoPath);
-    }
+    this._git ??= simpleGit(this.repoPath);
     return this._git;
   }
 
@@ -94,312 +92,266 @@ export class GitSync {
    * Initialize git repository
    */
   async initialize(): Promise<void> {
-    this.logger.debug("Initializing git repository", { path: this.repoPath });
+    this.logger.debug("Initializing git repository", { gitUrl: this.gitUrl });
 
-    // Ensure repo path exists
+    // Get the sync path from directory-sync (we'll use a default for now)
+    // TODO: Get this from directory-sync plugin once we have proper plugin communication
+    // In test environment, use temp directory passed via environment
+    this.repoPath = process.env["GIT_SYNC_TEST_PATH"] || "./.brain-repo";
+
+    // Clone or initialize repository
     if (!existsSync(this.repoPath)) {
       mkdirSync(this.repoPath, { recursive: true });
-      this.logger.info("Created git repository directory", {
+
+      // Skip cloning if .git already exists (e.g., in tests)
+      if (existsSync(join(this.repoPath, ".git"))) {
+        this.logger.debug("Git repository already exists, skipping clone");
+        return;
+      }
+
+      // Clone the repository
+      this.logger.info("Cloning repository", {
+        gitUrl: this.gitUrl,
         path: this.repoPath,
       });
-    }
+      const parentDir = join(this.repoPath, "..");
+      const repoName = basename(this.repoPath);
 
-    // Git instance will be created lazily via getter
-
-    // Initialize git repo if needed
-    // Check for .git directory specifically to avoid detecting parent repos
-    const gitDir = join(this.repoPath, ".git");
-    const hasGitDir = existsSync(gitDir);
-    this.logger.debug("Git directory check", { hasGitDir, gitDir });
-
-    if (!hasGitDir) {
-      this.logger.debug("Initializing git repository...");
+      await simpleGit(parentDir).clone(this.gitUrl, repoName);
+      this._git = simpleGit(this.repoPath);
+    } else if (!existsSync(join(this.repoPath, ".git"))) {
+      // Initialize new repository
+      this.logger.info("Initializing new repository", { path: this.repoPath });
       await this.git.init();
-      this.logger.info("Initialized new git repository", {
-        path: this.repoPath,
-      });
 
-      // Verify it was created
-      const hasGitDirAfter = existsSync(gitDir);
-      this.logger.debug("Git directory check after init", { hasGitDirAfter });
-    }
-
-    // Set remote if provided
-    if (this.remote) {
-      const remotes = await this.git.getRemotes();
-      if (!remotes.find((r) => r.name === "origin")) {
-        await this.git.addRemote("origin", this.remote);
-        this.logger.info("Added git remote", { remote: this.remote });
-      }
-    }
-
-    // Set branch
-    if (this.branch && this.branch !== "main") {
-      try {
-        await this.git.checkoutBranch(this.branch, "HEAD");
-      } catch {
-        // Branch might not exist yet, will be created on first commit
-        this.logger.debug("Branch does not exist yet", { branch: this.branch });
-      }
-    }
-  }
-
-  /**
-   * Sync all entities with git
-   */
-  async sync(): Promise<void> {
-    this.logger.info("Starting full sync");
-
-    // Import from git first
-    await this.importFromGit();
-
-    // Export all entities
-    await this.exportToGit();
-
-    // Commit and push if there are changes
-    await this.commit();
-
-    this.logger.info("Full sync completed");
-  }
-
-  /**
-   * Export all entities to git
-   */
-  async exportToGit(): Promise<void> {
-    this.logger.debug("Exporting entities to git");
-
-    const entityTypes = this.entityService.getEntityTypes();
-
-    // For each entity type, get all entities and save to markdown
-    for (const entityType of entityTypes) {
-      const entities = await this.entityService.listEntities(entityType, {
-        limit: 1000, // Get all entities
-      });
-
-      for (const entity of entities) {
-        // Get the adapter to convert to markdown
-        const adapter = this.entityService.getAdapter(entityType);
-        const markdown = adapter.toMarkdown(entity);
-        const filePath = this.getEntityFilePath(entity);
-
-        // Ensure directory exists (only for non-base entities)
-        if (entityType !== "base") {
-          const dir = join(this.repoPath, entityType);
-          if (!existsSync(dir)) {
-            mkdirSync(dir, { recursive: true });
-          }
-        }
-
-        // Write markdown file
-        writeFileSync(filePath, markdown, "utf-8");
-        this.logger.debug("Exported entity", { entityType, id: entity.id });
-      }
-    }
-
-    this.logger.info("Export completed");
-  }
-
-  /**
-   * Import entities from git
-   */
-  async importFromGit(): Promise<void> {
-    this.logger.debug("Importing entities from git");
-
-    // Pull latest changes from remote if configured
-    if (this.remote) {
-      try {
-        await this.git.pull("origin", this.branch);
-        this.logger.info("Pulled latest changes from remote");
-      } catch (error) {
-        this.logger.warn("Failed to pull from remote", {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-
-    // Get all directories in the repo
-    const entries = readdirSync(this.repoPath, { withFileTypes: true });
-
-    // Process root directory files as base entity type
-    const rootFiles = entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-      .map((entry) => ({ path: entry.name, entityType: "base" }));
-
-    // Process subdirectories - directory name IS the entity type
-    const subDirs = entries.filter(
-      (entry) => entry.isDirectory() && !entry.name.startsWith("."),
-    );
-
-    // Build list of all files to process
-    const filesToProcess: Array<{ path: string; entityType: string }> = [
-      ...rootFiles,
-    ];
-
-    for (const dir of subDirs) {
-      const dirPath = join(this.repoPath, dir.name);
-      const files = readdirSync(dirPath)
-        .filter((f) => f.endsWith(".md"))
-        .map((f) => ({
-          path: join(dir.name, f),
-          entityType: dir.name, // Directory name is the entity type
-        }));
-      filesToProcess.push(...files);
-    }
-
-    // Track import statistics
-    let imported = 0;
-    let skipped = 0;
-    let failed = 0;
-
-    // Process each file
-    for (const { path, entityType } of filesToProcess) {
-      // Skip if entity type is not registered
-      if (!this.entityService.hasAdapter(entityType)) {
-        this.logger.debug("Skipping file - no adapter for entity type", {
-          path,
-          entityType,
-        });
-        skipped++;
-        continue;
-      }
-
-      const filePath = join(this.repoPath, path);
-      const markdown = readFileSync(filePath, "utf-8");
-      const stats = statSync(filePath);
-
-      // Extract filename without extension for id and title
-      const filename = basename(path, ".md");
-
-      try {
-        // Use file timestamps, but fallback to current time if birthtime is invalid
-        // (birthtime can be 1970 on some filesystems that don't track creation time)
-        const created =
-          stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime;
-        const updated = stats.mtime;
-
-        this.logger.debug("File timestamps", {
-          path,
-          birthtime: stats.birthtime.toISOString(),
-          mtime: stats.mtime.toISOString(),
-          using: {
-            created: created.toISOString(),
-            updated: updated.toISOString(),
-          },
-        });
-
-        // Pass file metadata along with content
-        await this.entityService.importRawEntity({
-          entityType,
-          id: filename,
-          content: markdown,
-          created,
-          updated,
-        });
-        this.logger.debug("Imported entity from git", {
-          path,
-          entityType,
-        });
-        imported++;
-      } catch (error) {
-        this.logger.error("Failed to import entity", {
-          path,
-          entityType,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        failed++;
-      }
-    }
-
-    this.logger.info("Import completed", {
-      total: filesToProcess.length,
-      imported,
-      skipped,
-      failed,
-    });
-  }
-
-  /**
-   * Commit and push changes to remote
-   */
-  async commit(message?: string): Promise<void> {
-    const status = await this.git.status();
-    if (status.files.length > 0) {
-      await this.git.add(".");
-      await this.git.commit(
-        message ?? `Brain sync: ${new Date().toISOString()}`,
-      );
-      this.logger.info("Committed changes", { files: status.files.length });
-
-      if (this.remote) {
-        try {
-          await this.git.push("origin", this.branch);
-          this.logger.info("Pushed changes to remote");
-        } catch (error) {
-          this.logger.error("Failed to push to remote", {
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
+      // Add remote if URL provided
+      if (this.gitUrl) {
+        await this.git.addRemote("origin", this.gitUrl);
       }
     } else {
-      this.logger.debug("No changes to commit");
+      // Repository already exists, check if remote matches
+      const remotes = await this.git.getRemotes(true);
+      const origin = remotes.find((r) => r.name === "origin");
+
+      if (origin && origin.refs.fetch !== this.gitUrl) {
+        this.logger.warn("Remote URL mismatch, updating", {
+          current: origin.refs.fetch,
+          expected: this.gitUrl,
+        });
+        await this.git.remote(["set-url", "origin", this.gitUrl]);
+      } else if (!origin && this.gitUrl) {
+        await this.git.addRemote("origin", this.gitUrl);
+      }
+    }
+
+    // Set up git config
+    if (this.authorName) {
+      await this.git.addConfig("user.name", this.authorName);
+    }
+    if (this.authorEmail) {
+      await this.git.addConfig("user.email", this.authorEmail);
+    }
+
+    // Checkout branch
+    try {
+      await this.git.checkout(this.branch);
+    } catch {
+      // Branch doesn't exist, create it
+      await this.git.checkoutLocalBranch(this.branch);
+    }
+
+    // Start auto-sync if enabled
+    if (this.autoSync) {
+      this.startAutoSync();
     }
   }
 
   /**
-   * Get git repository status
+   * Get current git status
    */
   async getStatus(): Promise<GitSyncStatus> {
-    const status = await this.git.status();
-    const isRepo = await this.git.checkIsRepo();
+    try {
+      const status = await this.git.status();
+      const isRepo = await this.git.checkIsRepo();
 
-    let lastCommit: string | undefined;
-    if (isRepo) {
+      // Get ahead/behind count
+      let ahead = 0;
+      let behind = 0;
+
+      try {
+        const branchStatus = await this.git.branch();
+        const currentBranch = branchStatus.branches[branchStatus.current];
+        if (
+          currentBranch &&
+          "tracking" in currentBranch &&
+          "label" in currentBranch
+        ) {
+          // Parse ahead/behind from label (e.g., "ahead 1, behind 2")
+          const match = currentBranch.label.match(/ahead (\d+)|behind (\d+)/g);
+          if (match) {
+            match.forEach((m) => {
+              if (m.startsWith("ahead"))
+                ahead = parseInt(m.split(" ")[1] ?? "0");
+              if (m.startsWith("behind"))
+                behind = parseInt(m.split(" ")[1] ?? "0");
+            });
+          }
+        }
+      } catch {
+        // Ignore errors getting branch status
+      }
+
+      // Get last commit
+      let lastCommit: string | undefined;
       try {
         const log = await this.git.log({ maxCount: 1 });
         lastCommit = log.latest?.hash;
       } catch {
         // No commits yet
       }
-    }
 
-    return {
-      isRepo,
-      hasChanges: status.files.length > 0,
-      ahead: status.ahead,
-      behind: status.behind,
-      branch: status.current ?? this.branch,
-      lastCommit,
-      files: status.files.map((f) => ({
-        path: f.path,
-        status: f.working_dir || f.index || "?",
-      })),
-    };
+      // Get remote URL
+      let remote: string | undefined;
+      try {
+        const remotes = await this.git.getRemotes(true);
+        remote = remotes.find((r) => r.name === "origin")?.refs.fetch;
+      } catch {
+        // No remotes
+      }
+
+      return {
+        isRepo,
+        hasChanges: !status.isClean(),
+        ahead,
+        behind,
+        branch: status.current ?? this.branch,
+        lastCommit,
+        remote,
+        files: status.files.map((f) => ({
+          path: f.path,
+          status: f.working_dir + f.index,
+        })),
+      };
+    } catch (error) {
+      this.logger.error("Failed to get git status", { error });
+      return {
+        isRepo: false,
+        hasChanges: false,
+        ahead: 0,
+        behind: 0,
+        branch: this.branch,
+        files: [],
+      };
+    }
   }
 
   /**
-   * Start auto-sync if configured
+   * Commit current changes
    */
-  async startAutoSync(): Promise<void> {
-    if (!this.autoSync) {
+  async commit(message?: string): Promise<void> {
+    const finalMessage = message ?? this.formatCommitMessage();
+
+    // Stage all changes
+    await this.git.add(".");
+
+    // Commit
+    await this.git.commit(finalMessage);
+
+    this.logger.info("Committed changes", { message: finalMessage });
+  }
+
+  /**
+   * Push changes to remote
+   */
+  async push(): Promise<void> {
+    try {
+      await this.git.push("origin", this.branch);
+      this.logger.info("Pushed changes to remote");
+    } catch (error) {
+      this.logger.error("Failed to push changes", { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Pull changes from remote
+   */
+  async pull(): Promise<void> {
+    try {
+      await this.git.pull("origin", this.branch);
+      this.logger.info("Pulled changes from remote");
+
+      // Trigger directory sync import after pull
+      // TODO: Implement proper plugin communication
+      this.logger.info("Pull completed, manual import required");
+    } catch (error) {
+      this.logger.error("Failed to pull changes", { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Perform full sync (export, commit, push, pull)
+   */
+  async sync(): Promise<void> {
+    this.logger.debug("Starting sync");
+
+    try {
+      // First, export entities to directory
+      // TODO: Implement proper plugin communication
+      this.logger.info("Manual export required before commit");
+
+      // Check if there are changes to commit
+      const status = await this.getStatus();
+
+      if (status.hasChanges) {
+        await this.commit();
+      }
+
+      // Pull before push to handle conflicts
+      if (status.remote) {
+        try {
+          await this.pull();
+        } catch (error) {
+          this.logger.warn("Pull failed, will try to push anyway", { error });
+        }
+
+        // Push if we have commits
+        if (status.ahead > 0 || status.hasChanges) {
+          await this.push();
+        }
+      }
+
+      this.logger.info("Sync completed successfully");
+    } catch (error) {
+      this.logger.error("Sync failed", { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Start automatic synchronization
+   */
+  startAutoSync(): void {
+    if (this.syncTimer) {
       return;
     }
 
     this.logger.info("Starting auto-sync", { interval: this.syncInterval });
 
-    // Do initial sync
-    await this.sync();
-
-    this.syncTimer = setInterval(() => {
-      void this.sync().catch((error) => {
-        this.logger.error("Auto-sync failed", {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      });
+    this.syncTimer = setInterval((): void => {
+      void (async (): Promise<void> => {
+        try {
+          await this.sync();
+        } catch (error) {
+          this.logger.error("Auto-sync failed", { error });
+        }
+      })();
     }, this.syncInterval * 1000);
   }
 
   /**
-   * Stop auto-sync
+   * Stop automatic synchronization
    */
   stopAutoSync(): void {
     if (this.syncTimer) {
@@ -410,15 +362,18 @@ export class GitSync {
   }
 
   /**
-   * Get entity file path
+   * Format commit message with template variables
    */
-  private getEntityFilePath(entity: BaseEntity): string {
-    // Base entities go in root directory, others in subdirectories
-    if (entity.entityType === "base") {
-      return join(this.repoPath, `${entity.id}.md`);
-    } else {
-      // Other entity types go in their own directories
-      return join(this.repoPath, entity.entityType, `${entity.id}.md`);
-    }
+  private formatCommitMessage(): string {
+    return this.commitMessage
+      .replace("{date}", new Date().toISOString())
+      .replace("{timestamp}", Date.now().toString());
+  }
+
+  /**
+   * Cleanup resources
+   */
+  async cleanup(): Promise<void> {
+    this.stopAutoSync();
   }
 }

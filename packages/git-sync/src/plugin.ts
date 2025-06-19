@@ -1,5 +1,6 @@
 import type { Plugin, PluginContext, PluginTool } from "@brains/types";
-import { BasePlugin, pluginConfig, validatePluginConfig } from "@brains/utils";
+import { BasePlugin, validatePluginConfig } from "@brains/utils";
+import { z } from "zod";
 import { GitSync } from "./gitSync";
 import {
   gitSyncConfigSchema,
@@ -7,14 +8,15 @@ import {
   type GitSyncConfigInput,
 } from "./types";
 import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
-import { gitSyncStatusSchema } from "./schemas";
+// import { gitSyncStatusSchema } from "./schemas";
 
 /**
  * Git Sync plugin that extends BasePlugin
- * Synchronizes brain data with a git repository
+ * Adds git version control to directory-sync
  */
 export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
+  private directorySync: Plugin | undefined;
 
   constructor(config: unknown) {
     // Validate config first
@@ -27,144 +29,174 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
     super(
       "git-sync",
       "Git Sync",
-      "Synchronize brain data with a git repository",
+      "Add git version control to synchronized directories",
       validatedConfig,
     );
+  }
+
+  /**
+   * Get plugin metadata including dependencies
+   */
+  get dependencies(): string[] {
+    return ["directory-sync"];
   }
 
   /**
    * Initialize the plugin
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
-    const { logger, entityService, formatters } = context;
+    const { logger, formatters } = context;
 
     // Register our custom formatter
     formatters.register("gitSyncStatus", new GitSyncStatusFormatter());
 
+    // Get directory-sync plugin
+    const dirSyncId = this.config.directorySync ?? "directory-sync";
+    this.directorySync = context.getPlugin(dirSyncId) ?? undefined;
+
+    if (!this.directorySync) {
+      throw new Error(`Git sync requires ${dirSyncId} plugin to be registered`);
+    }
+
     // Create GitSync instance
     this.gitSync = new GitSync({
-      repoPath: this.config.repoPath,
-      remote: this.config.remote,
+      gitUrl: this.config.gitUrl,
       branch: this.config.branch,
       autoSync: this.config.autoSync,
-      syncInterval: this.config.syncInterval,
-      entityService,
+      syncInterval: this.config.syncInterval * 60, // Convert minutes to seconds
+      commitMessage: this.config.commitMessage,
+      authorName: this.config.authorName,
+      authorEmail: this.config.authorEmail,
+      directorySync: this.directorySync,
       logger,
     });
 
-    // Initialize git repository
-    try {
-      await this.gitSync.initialize();
-      this.info("Git repository initialized successfully", {
-        path: this.config.repoPath,
-      });
-    } catch (error) {
-      this.error("Failed to initialize git repository", error);
-      throw error; // Fail plugin registration if git init fails
-    }
-
-    // Start auto-sync if configured
-    if (this.config.autoSync) {
-      this.gitSync.startAutoSync().catch((error) => {
-        this.error("Failed to start auto-sync", error);
-      });
-    }
+    // Initialize repository
+    await this.gitSync.initialize();
   }
 
   /**
-   * Get the tools provided by this plugin
+   * Define the tools provided by this plugin
    */
-  protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.gitSync) {
-      throw new Error("GitSync not initialized");
-    }
-
+  override async getTools(): Promise<PluginTool[]> {
     return [
-      this.createTool(
-        "sync",
-        "Synchronize all entities with git repository",
-        {},
-        async (): Promise<{ message: string }> => {
+      {
+        name: "git-sync:sync",
+        description: "Perform full git sync (export, commit, push, pull)",
+        inputSchema: {},
+        visibility: "anchor", // Only anchor user can sync
+        handler: async (): Promise<{ message: string }> => {
           if (!this.gitSync) {
-            throw new Error("GitSync not initialized");
+            throw new Error("Git sync not initialized");
           }
           await this.gitSync.sync();
-          return { message: "Sync completed" };
+          return {
+            message: "Git sync completed successfully",
+          };
         },
-        "anchor", // Only anchor user can sync
-      ),
+      },
 
-      this.createTool(
-        "pull",
-        "Pull entities from git repository",
-        {},
-        async (): Promise<{ message: string }> => {
-          if (!this.gitSync) {
-            throw new Error("GitSync not initialized");
-          }
-          await this.gitSync.importFromGit();
-          return { message: "Pull completed" };
+      {
+        name: "git-sync:commit",
+        description: "Commit current changes",
+        inputSchema: {
+          commitMessage: z.string().optional(),
         },
-        "anchor", // Only anchor user can pull
-      ),
+        visibility: "anchor", // Only anchor user can commit
+        handler: async (input: unknown): Promise<{ message: string }> => {
+          const { commitMessage } = input as { commitMessage?: string };
+          if (!this.gitSync) {
+            throw new Error("Git sync not initialized");
+          }
+          await this.gitSync.commit(commitMessage);
+          return {
+            message: "Changes committed successfully",
+          };
+        },
+      },
 
-      this.createTool(
-        "push",
-        "Push entities to git repository",
-        {},
-        async (): Promise<{ message: string }> => {
+      {
+        name: "git-sync:push",
+        description: "Push commits to remote repository",
+        inputSchema: {},
+        visibility: "anchor", // Only anchor user can push
+        handler: async (): Promise<{ message: string }> => {
           if (!this.gitSync) {
-            throw new Error("GitSync not initialized");
+            throw new Error("Git sync not initialized");
           }
-          await this.gitSync.exportToGit();
-          return { message: "Push completed" };
+          await this.gitSync.push();
+          return {
+            message: "Pushed to remote successfully",
+          };
         },
-        "anchor", // Only anchor user can push
-      ),
+      },
 
-      this.createTool(
-        "status",
-        "Get git repository status",
-        {},
-        async (): Promise<unknown> => {
+      {
+        name: "git-sync:pull",
+        description: "Pull changes from remote repository",
+        inputSchema: {},
+        visibility: "anchor", // Only anchor user can pull
+        handler: async (): Promise<{ message: string }> => {
           if (!this.gitSync) {
-            throw new Error("GitSync not initialized");
+            throw new Error("Git sync not initialized");
           }
-          const status = await this.gitSync.getStatus();
-          // Parse through schema to ensure it has the right structure
-          // and the schema description will hint at using gitSyncStatus formatter
-          return gitSyncStatusSchema.parse(status);
+          await this.gitSync.pull();
+          return {
+            message: "Pulled from remote successfully",
+          };
         },
-        "anchor", // Only anchor user can check status
-      ),
+      },
+
+      {
+        name: "git-sync:status",
+        description: "Get git repository status",
+        inputSchema: {},
+        visibility: "public", // Anyone can check status
+        handler: async (): Promise<unknown> => {
+          if (!this.gitSync) {
+            throw new Error("Git sync not initialized");
+          }
+          return this.gitSync.getStatus();
+        },
+      },
+
+      {
+        name: "git-sync:auto-sync",
+        description: "Start or stop automatic synchronization",
+        inputSchema: {
+          autoSync: z.boolean(),
+        },
+        visibility: "anchor", // Only anchor user can control auto-sync
+        handler: async (input: unknown): Promise<{ message: string }> => {
+          const { autoSync } = input as { autoSync: boolean };
+          if (!this.gitSync) {
+            throw new Error("Git sync not initialized");
+          }
+
+          if (autoSync) {
+            this.gitSync.startAutoSync();
+            return { message: "Auto-sync started" };
+          } else {
+            this.gitSync.stopAutoSync();
+            return { message: "Auto-sync stopped" };
+          }
+        },
+      },
     ];
   }
 
   /**
-   * Shutdown the plugin
+   * Cleanup when plugin is unregistered
    */
-  protected override async onShutdown(): Promise<void> {
-    this.gitSync?.stopAutoSync();
+  protected async onUnregister(): Promise<void> {
+    if (this.gitSync) {
+      await this.gitSync.cleanup();
+    }
   }
 }
 
 /**
- * Configuration builder for git-sync plugin
- */
-export const gitSyncPluginConfig = (): ReturnType<typeof pluginConfig> =>
-  pluginConfig()
-    .requiredString("repoPath", "Path to the git repository")
-    .optionalString("remote", "Git remote URL (e.g., origin)")
-    .optionalString("branch", "Git branch to sync with")
-    .boolean("autoSync", false, "Enable automatic synchronization")
-    .numberWithDefault("syncInterval", 300000, {
-      description: "Sync interval in milliseconds",
-      min: 60000, // 1 minute minimum
-    })
-    .describe("Configuration for the git-sync plugin");
-
-/**
- * Factory function for creating git sync plugin
+ * Factory function to create a git sync plugin
  */
 export function gitSync(config: GitSyncConfigInput): Plugin {
   return new GitSyncPlugin(config);

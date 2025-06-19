@@ -148,6 +148,7 @@
       "name": "@brains/git-sync",
       "version": "0.1.0",
       "dependencies": {
+        "@brains/directory-sync": "workspace:*",
         "@brains/formatters": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",

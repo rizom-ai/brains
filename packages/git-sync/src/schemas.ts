@@ -11,6 +11,7 @@ export const gitSyncStatusSchema = z
     behind: z.number(),
     branch: z.string(),
     lastCommit: z.string().optional(),
+    remote: z.string().optional(),
     files: z.array(
       z.object({
         path: z.string(),

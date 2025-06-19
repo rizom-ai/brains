@@ -270,7 +270,8 @@ export class DirectorySync {
     // Determine entity type from path
     const relativePath = fullPath.replace(this.syncPath + "/", "");
     const pathParts = relativePath.split("/");
-    const entityType = pathParts.length > 1 && pathParts[0] ? pathParts[0] : "base";
+    const entityType =
+      pathParts.length > 1 && pathParts[0] ? pathParts[0] : "base";
 
     // Extract filename without extension for id
     const filename = basename(fullPath, ".md");
@@ -351,7 +352,8 @@ export class DirectorySync {
           const fullPath = join(this.syncPath, filePath);
           const fileStat = statSync(fullPath);
           const pathParts = filePath.split("/");
-          const entityType = pathParts.length > 1 && pathParts[0] ? pathParts[0] : "base";
+          const entityType =
+            pathParts.length > 1 && pathParts[0] ? pathParts[0] : "base";
 
           files.push({
             path: filePath,

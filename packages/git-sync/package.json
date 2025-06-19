@@ -11,6 +11,7 @@
     "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
+    "@brains/directory-sync": "workspace:*",
     "@brains/formatters": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
