@@ -242,13 +242,12 @@ deploy_infrastructure() {
         esac
         
         # Build and push
-        if ! env DOCKER_BUILD_ONLY=1 \
-            GITHUB_TOKEN="$REGISTRY_TOKEN" \
+        if ! env GITHUB_TOKEN="$REGISTRY_TOKEN" \
             GITHUB_USER="$REGISTRY_USER" \
             DOCKER_TOKEN="$REGISTRY_TOKEN" \
             DOCKER_USER="$REGISTRY_USER" \
-            "$PROJECT_ROOT/deploy/scripts/deploy-docker.sh" "$APP_NAME" "dummy-server" \
-            --registry "$DOCKER_REGISTRY" --tag latest; then
+            "$PROJECT_ROOT/deploy/scripts/deploy-docker.sh" "$APP_NAME" local \
+            --registry "$DOCKER_REGISTRY" --tag latest --push-only; then
             log_error "Docker build/push failed"
             exit 1
         fi

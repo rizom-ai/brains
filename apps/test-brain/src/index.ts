@@ -1,5 +1,5 @@
 import { App, getMatrixInterfaceFromEnv } from "@brains/app";
-import { gitSync } from "@brains/git-sync";
+import { directorySync } from "@brains/directory-sync";
 import { webserverPlugin } from "@brains/webserver-plugin";
 
 // Run the app - command line args are parsed automatically by App
@@ -39,14 +39,15 @@ async function main(): Promise<void> {
       // { type: "cli", enabled: true, config: { /* ... */ } }
     ],
     plugins: [
-      // Git sync plugin for version control (if configured)
-      ...(process.env["GIT_REPO_PATH"]
+      // Directory sync plugin for file-based storage (if configured)
+      ...(process.env["SYNC_PATH"]
         ? [
-            gitSync({
-              repoPath: process.env["GIT_REPO_PATH"],
-              branch: process.env["GIT_BRANCH"] ?? "main",
-              remote: process.env["GIT_REMOTE_URL"],
-              autoSync: process.env["GIT_AUTO_SYNC"] === "true",
+            directorySync({
+              syncPath: process.env["SYNC_PATH"],
+              watchEnabled: process.env["WATCH_ENABLED"] === "true",
+              watchInterval: process.env["WATCH_INTERVAL"]
+                ? Number(process.env["WATCH_INTERVAL"])
+                : 5000,
             }),
           ]
         : []),

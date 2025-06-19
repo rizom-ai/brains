@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -r -s /bin/false -d /app personal-brain
 
 # Create necessary directories
-RUN mkdir -p /app/data /app/brain-repo /app/website \
+RUN mkdir -p /app/data /app/brain-repo /app/website /app/brain-data \
     && chown -R personal-brain:personal-brain /app
 
 # Set working directory

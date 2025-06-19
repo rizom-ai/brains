@@ -198,6 +198,12 @@ create_release() {
     cp "$APP_DIR/deploy/.env.production.example" "$RELEASE_DIR/.env.example"
     cp "$APP_DIR/deploy/personal-brain.service" "$RELEASE_DIR/"
     
+    # Copy brain-data directory if it exists
+    if [ -d "$APP_DIR/brain-data" ]; then
+        log_info "Including brain-data directory..."
+        cp -r "$APP_DIR/brain-data" "$RELEASE_DIR/"
+    fi
+    
     # Generate minimal package.json
     log_info "Generating package.json..."
     bun "$PROJECT_ROOT/scripts/extract-native-deps.js" "$APP_NAME" "$APP_VERSION" > "$RELEASE_DIR/package.json"
@@ -271,7 +277,7 @@ BINARY_NAME=$(ls brain* 2>/dev/null | grep -v wrapper | head -1 || echo "brain")
 echo "Installing Personal Brain..."
 
 # Create directories
-sudo mkdir -p /opt/personal-brain/{data,brain-repo,website}
+sudo mkdir -p /opt/personal-brain/{data,brain-repo,website,brain-data}
 
 # Create user if doesn't exist
 if ! id "personal-brain" &>/dev/null; then
@@ -284,6 +290,13 @@ sudo chown -R personal-brain:personal-brain /opt/personal-brain
 # Copy files
 sudo cp "$BINARY_NAME" "${BINARY_NAME}-wrapper.sh" /opt/personal-brain/
 sudo chmod +x "/opt/personal-brain/$BINARY_NAME" "/opt/personal-brain/${BINARY_NAME}-wrapper.sh"
+
+# Copy brain-data if it exists
+if [ -d "brain-data" ]; then
+    echo "Copying brain-data files..."
+    sudo cp -r brain-data /opt/personal-brain/
+    sudo chown -R personal-brain:personal-brain /opt/personal-brain/brain-data
+fi
 
 # Copy and install dependencies
 sudo cp package.json /opt/personal-brain/

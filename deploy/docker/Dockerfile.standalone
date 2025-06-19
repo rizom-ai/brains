@@ -37,9 +37,9 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -r -s /bin/false -d /app personal-brain
 
 # Create necessary directories with proper permissions
-RUN mkdir -p /app/data /app/brain-repo /app/website /app/.matrix-storage \
+RUN mkdir -p /app/data /app/brain-repo /app/website /app/.matrix-storage /app/brain-data \
     && chown -R personal-brain:personal-brain /app \
-    && chmod 755 /app /app/data /app/brain-repo /app/website /app/.matrix-storage
+    && chmod 755 /app /app/data /app/brain-repo /app/website /app/.matrix-storage /app/brain-data
 
 # Set working directory
 WORKDIR /app
@@ -64,6 +64,10 @@ COPY --chown=personal-brain:personal-brain .env.example /app/.env
 # Copy migration files (deploy-docker.sh ensures these exist in build context)
 COPY --chown=personal-brain:personal-brain migrate.ts /app/migrate.ts
 COPY --chown=personal-brain:personal-brain drizzle /app/drizzle
+
+# Copy brain-data directory if it exists (pre-populated content)
+# Use conditional copy pattern - if brain-data doesn't exist, just copy .env.example as placeholder
+COPY --chown=personal-brain:personal-brain brain-dat[a] /app/brain-data/
 
 # Switch to non-root user
 USER personal-brain

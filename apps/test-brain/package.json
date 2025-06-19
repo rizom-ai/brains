@@ -27,7 +27,7 @@
     "@brains/app": "workspace:*",
     "@brains/cli": "workspace:*",
     "@brains/db": "workspace:*",
-    "@brains/git-sync": "workspace:*",
+    "@brains/directory-sync": "workspace:*",
     "@brains/webserver-plugin": "workspace:*"
   },
   "devDependencies": {

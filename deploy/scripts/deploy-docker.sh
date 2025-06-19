@@ -158,6 +158,12 @@ build_image() {
         [ -d "packages/db/drizzle" ] && cp -r "packages/db/drizzle" "$DOCKER_BUILD_DIR/"
     fi
     
+    # Copy brain-data if it exists in the release
+    if [ -d "$release_dir/brain-data" ]; then
+        log_info "Including brain-data directory in Docker build..."
+        cp -r "$release_dir/brain-data" "$DOCKER_BUILD_DIR/"
+    fi
+    
     # Build Docker image
     build_docker_image \
         "deploy/docker/Dockerfile.standalone" \
@@ -182,7 +188,7 @@ deploy_local() {
     cleanup_docker "$APP_NAME"
     
     # Create directories
-    mkdir -p "$HOME/personal-brain-data/"{data,brain-repo,website,matrix-storage}
+    mkdir -p "$HOME/personal-brain-data/"{data,brain-repo,website,matrix-storage,brain-data}
     
     # Get environment file
     local env_file="$APP_DIR/deploy/.env.production"
@@ -198,6 +204,7 @@ deploy_local() {
         -v "$HOME/personal-brain-data/brain-repo:/app/brain-repo" \
         -v "$HOME/personal-brain-data/website:/app/website" \
         -v "$HOME/personal-brain-data/matrix-storage:/app/.matrix-storage" \
+        -v "$HOME/personal-brain-data/brain-data:/app/brain-data" \
         -v "$env_file:/app/.env:ro" \
         --user "$(id -u):$(id -g)" \
         "$LOCAL_IMAGE_NAME"

@@ -1,0 +1,14 @@
+{
+  "name": "test-brain",
+  "version": "0.1.0",
+  "description": "Test instance of Personal Brain with directory sync",
+  "binaryName": "test-brain",
+  "defaultPort": 3333,
+  "build": {
+    "entryPoint": "./src/index.ts"
+  },
+  "deployment": {
+    "memory": "512M",
+    "disk": "1G"
+  }
+}
