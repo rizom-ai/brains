@@ -63,8 +63,10 @@ function info(message: string) {
 async function getAvailableApps(): Promise<string[]> {
   const appsDir = join(process.cwd(), "apps");
   if (!existsSync(appsDir)) return [];
-  
-  const entries = await Bun.file(appsDir).text().catch(() => "");
+
+  const entries = await Bun.file(appsDir)
+    .text()
+    .catch(() => "");
   const proc = await $`ls -1 ${appsDir}`.quiet();
   return proc.stdout.toString().trim().split("\n").filter(Boolean);
 }
@@ -73,27 +75,38 @@ async function getAvailableApps(): Promise<string[]> {
 async function getAvailableProviders(): Promise<Provider[]> {
   const providersDir = join(process.cwd(), "deploy/providers");
   if (!existsSync(providersDir)) return [];
-  
+
   const proc = await $`ls -1 ${providersDir}`.quiet();
-  return proc.stdout.toString().trim().split("\n").filter(Boolean) as Provider[];
+  return proc.stdout
+    .toString()
+    .trim()
+    .split("\n")
+    .filter(Boolean) as Provider[];
 }
 
 // Validate app configuration
 async function validateApp(appName: string): Promise<DeployConfig> {
-  const configPath = join(process.cwd(), "apps", appName, "deploy/deploy.config.json");
-  
+  const configPath = join(
+    process.cwd(),
+    "apps",
+    appName,
+    "deploy/deploy.config.json",
+  );
+
   if (!existsSync(configPath)) {
     error(`App '${appName}' is missing deploy/deploy.config.json`);
   }
-  
+
   try {
-    const config = await Bun.file(configPath).json() as DeployConfig;
-    
+    const config = (await Bun.file(configPath).json()) as DeployConfig;
+
     // Validate required fields
     if (!config.name || !config.serviceName || !config.binaryName) {
-      error(`Invalid deploy.config.json for ${appName}: missing required fields`);
+      error(
+        `Invalid deploy.config.json for ${appName}: missing required fields`,
+      );
     }
-    
+
     return config;
   } catch (e) {
     error(`Failed to parse deploy.config.json for ${appName}: ${e}`);
@@ -104,68 +117,74 @@ async function validateApp(appName: string): Promise<DeployConfig> {
 async function interactiveMode(): Promise<DeployOptions> {
   const apps = await getAvailableApps();
   const providers = await getAvailableProviders();
-  
+
   if (apps.length === 0) {
     error("No apps found in apps/ directory");
   }
-  
+
   console.log("\n🧠 Brain Deployment Tool\n");
-  
+
   // Select app
   console.log("Available apps:");
   apps.forEach((app, i) => console.log(`  ${i + 1}. ${app}`));
-  
+
   const appChoice = prompt("\nSelect app (number or name): ");
   const appIndex = parseInt(appChoice || "0") - 1;
-  const app = appIndex >= 0 && appIndex < apps.length ? apps[appIndex] : appChoice;
-  
+  const app =
+    appIndex >= 0 && appIndex < apps.length ? apps[appIndex] : appChoice;
+
   if (!app || !apps.includes(app)) {
     error("Invalid app selection");
   }
-  
+
   // Validate app
   const config = await validateApp(app);
-  
+
   // Select provider
   console.log("\nAvailable providers:");
   providers.forEach((provider, i) => console.log(`  ${i + 1}. ${provider}`));
-  
+
   const defaultProvider = config.deployment?.preferredProvider || providers[0];
-  const providerChoice = prompt(`\nSelect provider (default: ${defaultProvider}): `) || defaultProvider;
-  
+  const providerChoice =
+    prompt(`\nSelect provider (default: ${defaultProvider}): `) ||
+    defaultProvider;
+
   // Handle numeric selection
   const providerIndex = parseInt(providerChoice) - 1;
-  const selectedProvider = providerIndex >= 0 && providerIndex < providers.length 
-    ? providers[providerIndex] 
-    : providerChoice;
-  
+  const selectedProvider =
+    providerIndex >= 0 && providerIndex < providers.length
+      ? providers[providerIndex]
+      : providerChoice;
+
   if (!providers.includes(selectedProvider as Provider)) {
     error("Invalid provider selection");
   }
-  
+
   // Select action
   const actions: Action[] = ["deploy", "update", "status", "destroy"];
   console.log("\nAvailable actions:");
   actions.forEach((action, i) => console.log(`  ${i + 1}. ${action}`));
-  
-  const actionChoice = prompt("\nSelect action (default: status): ") || "status";
-  
+
+  const actionChoice =
+    prompt("\nSelect action (default: status): ") || "status";
+
   // Handle numeric selection
   const actionIndex = parseInt(actionChoice) - 1;
-  const selectedAction = actionIndex >= 0 && actionIndex < actions.length
-    ? actions[actionIndex]
-    : actionChoice;
-  
+  const selectedAction =
+    actionIndex >= 0 && actionIndex < actions.length
+      ? actions[actionIndex]
+      : actionChoice;
+
   if (!actions.includes(selectedAction as Action)) {
     error("Invalid action selection");
   }
-  
+
   // For Docker provider, ask for server
   let server: string | undefined;
   if (selectedProvider === "docker") {
     server = prompt("\nServer address (default: local): ") || "local";
   }
-  
+
   return {
     app,
     provider: selectedProvider as Provider,
@@ -177,13 +196,14 @@ async function interactiveMode(): Promise<DeployOptions> {
 // Execute deployment
 async function deploy(options: DeployOptions) {
   const { app, provider, action = "status" } = options;
-  
+
   // Validate before running
   const config = await validateApp(app);
-  
+
   // Use preferred provider if not specified
-  const selectedProvider = provider || config.deployment?.preferredProvider || "local";
-  
+  const selectedProvider =
+    provider || config.deployment?.preferredProvider || "local";
+
   // Show deployment plan
   console.log("\n📋 Deployment Plan:");
   console.log(`  App: ${app}`);
@@ -192,28 +212,30 @@ async function deploy(options: DeployOptions) {
   console.log(`  Service: ${config.serviceName}`);
   console.log(`  Port: ${config.defaultPort}`);
   console.log();
-  
+
   // Confirm destructive actions
   if (action === "destroy") {
-    const confirm = prompt("⚠️  This will destroy the infrastructure. Type 'yes' to confirm: ");
+    const confirm = prompt(
+      "⚠️  This will destroy the infrastructure. Type 'yes' to confirm: ",
+    );
     if (confirm !== "yes") {
       info("Cancelled");
       return;
     }
   }
-  
+
   // Execute shell script
   info(`Executing ${action}...`);
-  
+
   try {
     // Build command with optional server argument for Docker
     const args = [app, selectedProvider, action];
     if (selectedProvider === "docker" && options.server) {
       args.push(options.server);
     }
-    
+
     const result = await $`./scripts/deploy-brain.sh ${args}`;
-    
+
     if (result.exitCode === 0) {
       success(`${action} completed successfully!`);
     } else {
@@ -230,7 +252,7 @@ async function preflightChecks() {
   if (!existsSync("scripts/deploy-brain.sh")) {
     error("Please run this script from the project root directory");
   }
-  
+
   // Check if deploy-brain.sh is executable
   try {
     await $`test -x scripts/deploy-brain.sh`.quiet();
@@ -243,11 +265,11 @@ async function preflightChecks() {
 // CLI argument parsing
 async function parseArgs(): Promise<DeployOptions | null> {
   const args = process.argv.slice(2);
-  
+
   if (args.length === 0) {
     return null; // Interactive mode
   }
-  
+
   if (args[0] === "--help" || args[0] === "-h") {
     console.log(`
 🧠 Brain Deployment Tool
@@ -279,42 +301,42 @@ Shortcuts:
 `);
     process.exit(0);
   }
-  
+
   if (args[0] === "--list") {
     const apps = await getAvailableApps();
     const providers = await getAvailableProviders();
-    
+
     console.log("\nAvailable apps:");
-    apps.forEach(app => console.log(`  - ${app}`));
-    
+    apps.forEach((app) => console.log(`  - ${app}`));
+
     console.log("\nAvailable providers:");
-    providers.forEach(provider => console.log(`  - ${provider}`));
-    
+    providers.forEach((provider) => console.log(`  - ${provider}`));
+
     process.exit(0);
   }
-  
+
   // Handle special case: "local" as provider means docker deploy local
   if (args[1] === "local") {
     return {
       app: args[0],
       provider: "docker" as Provider,
       action: "deploy" as Action,
-      server: "local"
+      server: "local",
     };
   }
-  
+
   // Standard parsing
   const options: DeployOptions = {
     app: args[0],
     provider: args[1] as Provider,
-    action: args[2] as Action || "deploy",
+    action: (args[2] as Action) || "deploy",
   };
-  
+
   // For Docker, check if there's a server argument
   if (options.provider === "docker" && args[3]) {
     options.server = args[3];
   }
-  
+
   return options;
 }
 
@@ -322,9 +344,9 @@ Shortcuts:
 async function main() {
   try {
     await preflightChecks();
-    
+
     const options = await parseArgs();
-    
+
     if (!options) {
       // Interactive mode
       const selected = await interactiveMode();

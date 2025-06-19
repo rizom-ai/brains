@@ -61,6 +61,7 @@ check_prerequisites() {
         for key_type in id_ed25519.pub id_rsa.pub id_ecdsa.pub; do
             if [ -f "$HOME/.ssh/$key_type" ]; then
                 SSH_KEY_PATH="$HOME/.ssh/$key_type"
+                SSH_PRIVATE_KEY_PATH="$HOME/.ssh/${key_type%.pub}"
                 log_info "Auto-detected SSH key: $SSH_KEY_PATH"
                 break
             fi
@@ -73,10 +74,17 @@ check_prerequisites() {
         fi
     else
         SSH_KEY_PATH="$SSH_PUBLIC_KEY_PATH"
+        SSH_PRIVATE_KEY_PATH="${SSH_KEY_PATH%.pub}"
         if [ ! -f "$SSH_KEY_PATH" ]; then
             log_error "SSH public key not found at specified path: $SSH_KEY_PATH"
             exit 1
         fi
+    fi
+    
+    # Verify private key exists
+    if [ ! -f "$SSH_PRIVATE_KEY_PATH" ]; then
+        log_error "SSH private key not found at: $SSH_PRIVATE_KEY_PATH"
+        exit 1
     fi
     
     log_info "✅ Prerequisites checked"
@@ -204,16 +212,89 @@ deploy_infrastructure() {
     APP_PORT=$(jq -r '.defaultPort // 3333' "$APP_CONFIG_PATH")
     SERVER_TYPE=$(jq -r '.deployment.serverSize.hetzner // "cx22"' "$APP_CONFIG_PATH" 2>/dev/null || echo "cx22")
     
-    cd "$TERRAFORM_DIR"
+    # Check if registry is configured
+    DOCKER_REGISTRY="${DOCKER_REGISTRY:-}"
+    REGISTRY_USER="${REGISTRY_USER:-}"
+    REGISTRY_TOKEN="${REGISTRY_TOKEN:-}"
+    
+    # Build Docker image using deploy-docker.sh
+    log_info "Building Docker image..."
+    cd "$PROJECT_ROOT"
+    
+    if [ -n "$DOCKER_REGISTRY" ]; then
+        # Build and push to registry
+        log_info "Using Docker registry: $DOCKER_REGISTRY"
+        
+        # Set full image name with registry
+        case "$DOCKER_REGISTRY" in
+            ghcr.io)
+                # For ghcr.io, we need to include the username
+                DOCKER_IMAGE="$DOCKER_REGISTRY/$REGISTRY_USER/personal-brain-$APP_NAME:latest"
+                ;;
+            docker.io)
+                # For Docker Hub, include username
+                DOCKER_IMAGE="$REGISTRY_USER/personal-brain-$APP_NAME:latest"
+                ;;
+            *)
+                # For other registries
+                DOCKER_IMAGE="$DOCKER_REGISTRY/personal-brain-$APP_NAME:latest"
+                ;;
+        esac
+        
+        # Build and push
+        if ! env DOCKER_BUILD_ONLY=1 \
+            GITHUB_TOKEN="$REGISTRY_TOKEN" \
+            GITHUB_USER="$REGISTRY_USER" \
+            DOCKER_TOKEN="$REGISTRY_TOKEN" \
+            DOCKER_USER="$REGISTRY_USER" \
+            "$PROJECT_ROOT/deploy/scripts/deploy-docker.sh" "$APP_NAME" "dummy-server" \
+            --registry "$DOCKER_REGISTRY" --tag latest; then
+            log_error "Docker build/push failed"
+            exit 1
+        fi
+    else
+        # Registry is required
+        log_error "Docker registry not configured!"
+        log_error ""
+        log_error "Please configure a Docker registry in $HETZNER_CONFIG_FILE:"
+        log_error ""
+        log_error "For GitHub Container Registry (recommended):"
+        log_error "  DOCKER_REGISTRY=ghcr.io/yourusername"
+        log_error "  REGISTRY_USER=yourusername"
+        log_error "  REGISTRY_TOKEN=your-github-personal-access-token"
+        log_error ""
+        log_error "For Docker Hub:"
+        log_error "  DOCKER_REGISTRY=docker.io"
+        log_error "  REGISTRY_USER=yourdockerhubusername"
+        log_error "  REGISTRY_TOKEN=your-dockerhub-access-token"
+        log_error ""
+        log_error "See deploy/providers/hetzner/README.md for detailed instructions"
+        exit 1
+    fi
+    
+    # Get environment file path
+    ENV_FILE="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
+    if [ ! -f "$ENV_FILE" ]; then
+        log_error "Environment file not found: $ENV_FILE"
+        log_info "Please create the file with your configuration"
+        exit 1
+    fi
     
     # Plan deployment
     log_info "Planning infrastructure..."
+    cd "$TERRAFORM_DIR"
     terraform plan \
         -var="hcloud_token=$HCLOUD_TOKEN" \
         -var="app_name=$APP_NAME" \
         -var="app_port=$APP_PORT" \
         -var="server_type=$SERVER_TYPE" \
         -var="ssh_public_key_path=$SSH_KEY_PATH" \
+        -var="ssh_private_key_path=$SSH_PRIVATE_KEY_PATH" \
+        -var="docker_image=$DOCKER_IMAGE" \
+        -var="docker_registry=$DOCKER_REGISTRY" \
+        -var="registry_user=$REGISTRY_USER" \
+        -var="registry_token=$REGISTRY_TOKEN" \
+        -var="env_file_path=$ENV_FILE" \
         -out=tfplan
     
     # Apply deployment
@@ -236,13 +317,14 @@ deploy_infrastructure() {
 # Wait for server to be ready
 wait_for_server() {
     local server_ip="$1"
+    local user="${2:-root}"
     log_info "Waiting for server to be ready..."
     
     local max_attempts=30
     local attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "root@$server_ip" "echo 'SSH ready'" &> /dev/null; then
+        if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$user@$server_ip" "echo 'SSH ready'" &> /dev/null; then
             log_info "✅ Server is ready"
             return 0
         fi
@@ -263,27 +345,33 @@ setup_application() {
     
     # Run server setup script
     log_info "Running server setup..."
-    scp "$DEPLOY_DIR/scripts/setup-server.sh" "root@$server_ip:~/"
-    ssh "root@$server_ip" "./setup-server.sh"
     
-    # Build and deploy application
-    log_info "Building application..."
-    "$PROJECT_ROOT/scripts/build-release.sh" "$APP_NAME" linux-x64
+    # First, create deploy user as root
+    log_info "Creating deploy user..."
+    ssh "root@$server_ip" << 'EOF'
+# Create deploy user if it doesn't exist
+if ! id "deploy" &>/dev/null; then
+    useradd -m -s /bin/bash deploy
+    usermod -aG sudo deploy
+    echo "deploy ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/deploy
+    chmod 440 /etc/sudoers.d/deploy
+fi
+
+# Set up SSH for deploy user
+mkdir -p /home/deploy/.ssh
+cp /root/.ssh/authorized_keys /home/deploy/.ssh/
+chown -R deploy:deploy /home/deploy/.ssh
+chmod 700 /home/deploy/.ssh
+chmod 600 /home/deploy/.ssh/authorized_keys
+EOF
     
-    # Find latest release
-    RELEASE_FILE=$(ls -t "$PROJECT_ROOT/apps/$APP_NAME/dist/"*.tar.gz | head -1)
+    # Wait for deploy user SSH to be ready
+    log_info "Waiting for deploy user SSH access..."
+    wait_for_server "$server_ip" "deploy"
     
-    # Deploy using standard deploy script
-    log_info "Deploying application..."
-    "$DEPLOY_DIR/scripts/deploy.sh" "deploy@$server_ip" "$RELEASE_FILE"
-    
-    # Copy environment configuration if exists
-    ENV_FILE="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
-    if [ -f "$ENV_FILE" ]; then
-        log_info "Configuring environment..."
-        scp "$ENV_FILE" "deploy@$server_ip:~/.env.tmp"
-        ssh "deploy@$server_ip" "sudo mv ~/.env.tmp $APP_INSTALL_PATH/.env && sudo chown $APP_SERVICE_NAME:$APP_SERVICE_NAME $APP_INSTALL_PATH/.env && sudo chmod 600 $APP_INSTALL_PATH/.env"
-    fi
+    # Docker deployment is handled entirely by Terraform
+    log_info "Docker deployment configured in Terraform..."
+    log_info "Container will be deployed automatically"
     
     log_info "✅ Application deployed successfully"
     log_info ""
@@ -312,7 +400,8 @@ update_application() {
     
     # Build new release
     log_info "Building new release..."
-    "$PROJECT_ROOT/scripts/build-release.sh" "$APP_NAME" linux-x64
+    # Use Docker build for compatibility with target server
+    "$PROJECT_ROOT/scripts/build-release.sh" "$APP_NAME" linux-x64 --docker
     
     # Find latest release
     RELEASE_FILE=$(ls -t "$PROJECT_ROOT/apps/$APP_NAME/dist/"*.tar.gz | head -1)
@@ -327,6 +416,9 @@ update_application() {
 # Destroy infrastructure
 destroy_infrastructure() {
     log_step "Destroying Hetzner Infrastructure"
+    
+    # Check prerequisites to get SSH key paths
+    check_prerequisites
     
     cd "$TERRAFORM_DIR"
     if [ ! -f "terraform.tfstate" ]; then
@@ -351,11 +443,19 @@ destroy_infrastructure() {
     
     # Destroy infrastructure
     log_info "Destroying infrastructure..."
+    
+    # Set defaults for destroy to avoid prompts
     terraform destroy \
         -var="hcloud_token=$HCLOUD_TOKEN" \
         -var="app_name=$APP_NAME" \
         -var="app_port=${APP_DEFAULT_PORT:-3333}" \
-        -var="ssh_public_key_path=${SSH_PUBLIC_KEY_PATH:-$HOME/.ssh/id_rsa.pub}" \
+        -var="ssh_public_key_path=$SSH_KEY_PATH" \
+        -var="ssh_private_key_path=$SSH_PRIVATE_KEY_PATH" \
+        -var="docker_image=ghcr.io/$REGISTRY_USER/personal-brain-$APP_NAME:latest" \
+        -var="docker_registry=${DOCKER_REGISTRY:-ghcr.io}" \
+        -var="registry_user=${REGISTRY_USER:-}" \
+        -var="registry_token=${REGISTRY_TOKEN:-}" \
+        -var="env_file_path=" \
         -auto-approve
     
     cd - > /dev/null

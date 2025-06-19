@@ -268,6 +268,7 @@ AWS_REGION=us-west-2 ./scripts/deploy-generic.sh personal-brain aws deploy
 ## Adding New Apps
 
 1. Create app structure:
+
    ```bash
    apps/my-brain/
    └── deploy/
@@ -286,6 +287,7 @@ AWS_REGION=us-west-2 ./scripts/deploy-generic.sh personal-brain aws deploy
 ## Adding New Providers
 
 1. Create provider directory:
+
    ```bash
    deploy/providers/mynewcloud/
    ├── deploy.sh          # Implements standard interface
@@ -331,7 +333,7 @@ To migrate existing scripts:
 This generic deployment strategy provides:
 
 - ✅ **True reusability** across all brain apps
-- ✅ **Provider flexibility** without vendor lock-in  
+- ✅ **Provider flexibility** without vendor lock-in
 - ✅ **Consistent experience** regardless of deployment target
 - ✅ **Easy extensibility** for new apps and providers
 - ✅ **Gradual adoption** without breaking existing scripts

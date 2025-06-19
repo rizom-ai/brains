@@ -232,20 +232,6 @@ cat > "$RELEASE_DIR/${BINARY_NAME}-wrapper.sh" << EOF
 # Get the directory where this script is located
 SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 
-# Check if node_modules exists, if not, install dependencies
-if [ ! -d "\$SCRIPT_DIR/node_modules" ]; then
-    echo "Installing native dependencies..."
-    cd "\$SCRIPT_DIR"
-    if command -v bun >/dev/null 2>&1; then
-        bun install --production
-    elif command -v npm >/dev/null 2>&1; then
-        npm install --production
-    else
-        echo "ERROR: Neither bun nor npm found. Please install dependencies manually."
-        exit 1
-    fi
-fi
-
 # Set NODE_PATH to include our modules
 export NODE_PATH="\$SCRIPT_DIR/node_modules:\$NODE_PATH"
 

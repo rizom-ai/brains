@@ -43,6 +43,9 @@ resource "hcloud_server" "main" {
   firewall_ids = [hcloud_firewall.main.id]
 }
 
+# Use the docker.tf file for Docker deployment
+# This keeps the main.tf clean and separates concerns
+
 output "server_ip" {
   value = hcloud_server.main.ipv4_address
 }

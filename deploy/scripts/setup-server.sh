@@ -3,6 +3,12 @@
 
 set -euo pipefail
 
+# Check for non-interactive mode
+NON_INTERACTIVE=false
+if [ "${1:-}" = "-y" ] || [ "${1:-}" = "--yes" ] || [ "${BRAIN_SETUP_NON_INTERACTIVE:-}" = "true" ]; then
+    NON_INTERACTIVE=true
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -51,10 +57,14 @@ echo "  User/Group: $APP_USER:$APP_GROUP"
 echo "  Install Path: $INSTALL_PATH"
 echo "  Data Path: $DATA_PATH"
 echo ""
-read -p "Continue with setup? (y/N) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    exit 1
+if [ "$NON_INTERACTIVE" = false ]; then
+    read -p "Continue with setup? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+else
+    log_info "Running in non-interactive mode"
 fi
 
 # System updates
@@ -70,27 +80,84 @@ sudo apt-get install -y -qq \
     unzip \
     build-essential \
     python3 \
-    python3-pip
+    python3-pip \
+    nodejs
+
+# Install ONNX Runtime (required for embeddings)
+log_step "Installing ONNX Runtime"
+if [ ! -f "/usr/lib/libonnxruntime.so.1" ]; then
+    log_info "Downloading ONNX Runtime..."
+    cd /tmp
+    curl -L https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-linux-x64-1.21.0.tgz -o onnxruntime.tgz
+    tar -xzf onnxruntime.tgz
+    sudo cp onnxruntime-linux-x64-1.21.0/lib/libonnxruntime.so.1.21.0 /usr/lib/libonnxruntime.so.1.21.0
+    sudo ln -sf /usr/lib/libonnxruntime.so.1.21.0 /usr/lib/libonnxruntime.so.1
+    sudo ln -sf /usr/lib/libonnxruntime.so.1.21.0 /usr/lib/libonnxruntime.so
+    sudo ldconfig
+    rm -rf /tmp/onnxruntime*
+    log_info "ONNX Runtime installed successfully"
+else
+    log_info "ONNX Runtime already installed"
+fi
+
+# Install Bun if not present
+if ! command -v bun &> /dev/null && [ ! -x "/opt/bun/bin/bun" ]; then
+    log_info "Installing Bun system-wide..."
+    # Install bun in a system location accessible to all users
+    export BUN_INSTALL="/opt/bun"
+    curl -fsSL https://bun.sh/install | sudo -E bash
+    # Create symlink in /usr/local/bin for system-wide access
+    sudo ln -sf /opt/bun/bin/bun /usr/local/bin/bun
+    # Make sure it's executable and accessible
+    sudo chmod 755 /opt/bun/bin/bun
+    sudo chmod -R 755 /opt/bun
+    # Verify installation
+    if [ -x "/usr/local/bin/bun" ]; then
+        log_info "Bun installed successfully"
+        /usr/local/bin/bun --version
+    else
+        log_warn "Bun installation may have failed"
+    fi
+elif [ -L "/usr/local/bin/bun" ] && [ ! -r "$(readlink /usr/local/bin/bun)" ]; then
+    # Fix broken symlink pointing to inaccessible location
+    log_info "Fixing bun installation..."
+    if [ -x "/root/.bun/bin/bun" ]; then
+        # Copy bun to system location
+        sudo mkdir -p /opt/bun/bin
+        sudo cp /root/.bun/bin/bun /opt/bun/bin/
+        sudo chmod 755 /opt/bun/bin/bun
+        sudo ln -sf /opt/bun/bin/bun /usr/local/bin/bun
+        log_info "Bun relocated to /opt/bun/bin/bun"
+    fi
+else
+    log_info "Bun is already installed"
+    which bun || log_info "Bun path: $(ls -la /usr/local/bin/bun 2>/dev/null || echo 'not found')"
+fi
 
 # Create user
 log_step "User Setup"
 if id "$APP_USER" &>/dev/null; then
     log_info "User $APP_USER already exists"
+    # Ensure user has a shell for running commands
+    sudo usermod -s /bin/bash "$APP_USER"
 else
     log_info "Creating user $APP_USER..."
-    sudo useradd -r -s /bin/false -d "$INSTALL_PATH" "$APP_USER"
+    # Create with bash shell to allow running commands
+    sudo useradd -r -s /bin/bash -d "$INSTALL_PATH" "$APP_USER"
 fi
 
 # Create directory structure
 log_step "Directory Setup"
 log_info "Creating directory structure..."
-sudo mkdir -p "$INSTALL_PATH"/{data,brain-repo,website,logs,backups}
+sudo mkdir -p "$INSTALL_PATH"/{data,brain-repo,website,logs,backups,.npm,.bun,.matrix-storage}
 
 # Set up permissions
 log_info "Setting permissions..."
 sudo chown -R "$APP_USER:$APP_GROUP" "$INSTALL_PATH"
 sudo chmod 750 "$INSTALL_PATH"
 sudo chmod 700 "$INSTALL_PATH/data" "$INSTALL_PATH/backups"
+# Ensure npm/bun cache directories are writable
+sudo chmod 755 "$INSTALL_PATH/.npm" "$INSTALL_PATH/.bun"
 
 # Set up log rotation
 log_step "Log Rotation Setup"
@@ -197,13 +264,17 @@ if command -v ufw &> /dev/null; then
     log_info "Configuring firewall..."
     
     # Only open port if explicitly requested
-    read -p "Open port 3333 in firewall? (y/N) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sudo ufw allow 3333/tcp comment "Personal Brain MCP Server"
-        log_info "Port 3333 opened in firewall"
+    if [ "$NON_INTERACTIVE" = false ]; then
+        read -p "Open port 3333 in firewall? (y/N) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            sudo ufw allow 3333/tcp comment "Personal Brain MCP Server"
+            log_info "Port 3333 opened in firewall"
+        else
+            log_info "Firewall not modified. Access through reverse proxy recommended."
+        fi
     else
-        log_info "Firewall not modified. Access through reverse proxy recommended."
+        log_info "Skipping firewall configuration (non-interactive mode)"
     fi
 fi
 

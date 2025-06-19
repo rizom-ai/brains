@@ -15,6 +15,7 @@ Group=personal-brain
 
 # Environment
 Environment="NODE_ENV=production"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:/root/.bun/bin"
 EnvironmentFile=/opt/personal-brain/.env
 
 # Working directory
@@ -25,7 +26,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/personal-brain/data /opt/personal-brain/brain-repo /opt/personal-brain/website
+ReadWritePaths=/opt/personal-brain/data /opt/personal-brain/brain-repo /opt/personal-brain/website /opt/personal-brain/.matrix-storage /opt/personal-brain/node_modules /opt/personal-brain/.bun /opt/personal-brain/.npm
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

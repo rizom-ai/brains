@@ -5,6 +5,7 @@ This guide explains how the deployment system manages environment variables for 
 ## Overview
 
 Each app can have different environment configurations for different contexts:
+
 - **Development**: `.env` in app root (git-ignored)
 - **Production**: `.env.production` in `deploy/` directory (git-ignored)
 - **Examples**: `.env.example` and `.env.production.example` (committed to git)
@@ -94,6 +95,7 @@ GIT_REMOTE_URL=git@github.com:user/brain-data.git
 ### 2. Use Examples as Templates
 
 Always provide `.env.example` and `.env.production.example` with:
+
 - All required variables
 - Dummy values or clear placeholders
 - Comments explaining each variable
@@ -147,6 +149,7 @@ apps/
 ```
 
 Each can have different:
+
 - API keys
 - Database paths
 - Port numbers
@@ -190,6 +193,7 @@ sudo systemctl restart personal-brain
 ### App Not Starting
 
 Check if environment file exists and has correct permissions:
+
 ```bash
 ssh deploy@server "ls -la /opt/personal-brain/.env"
 # Should show: -rw------- 1 personal-brain personal-brain
@@ -198,6 +202,7 @@ ssh deploy@server "ls -la /opt/personal-brain/.env"
 ### Missing Variables
 
 Check systemd logs for environment errors:
+
 ```bash
 ssh deploy@server "sudo journalctl -u personal-brain -n 50"
 ```
@@ -205,6 +210,7 @@ ssh deploy@server "sudo journalctl -u personal-brain -n 50"
 ### Wrong Values
 
 Verify loaded environment:
+
 ```bash
 ssh deploy@server "sudo -u personal-brain env | grep BRAIN"
 ```
@@ -212,11 +218,13 @@ ssh deploy@server "sudo -u personal-brain env | grep BRAIN"
 ## Provider-Specific Notes
 
 ### Hetzner
+
 - Looks for: `apps/{app}/deploy/.env.production`
 - Deploys to: `/opt/{app}/.env`
 - Auto-sets permissions and ownership
 
 ### Future Providers
+
 - Will follow same pattern
 - May support provider-specific env files
 - Could integrate with secret managers (AWS Secrets, Vault, etc.)

@@ -58,18 +58,25 @@ usage() {
 }
 
 # Parse arguments
-if [ $# -lt 2 ]; then
+if [ $# -lt 1 ]; then
     usage
 fi
 
 APP_NAME="$1"
-SERVER="$2"
-shift 2
+SERVER="${2:-build-only}"
+
+# Handle build-only mode
+if [ "$SERVER" = "build-only" ]; then
+    shift 1
+else
+    shift 2
+fi
 
 # Default options
 REGISTRY=""
 TAG="latest"
 SKIP_BUILD=false
+PUSH_ONLY=false
 
 # Parse options
 while [ $# -gt 0 ]; do
@@ -86,12 +93,16 @@ while [ $# -gt 0 ]; do
             SKIP_BUILD=true
             shift
             ;;
+        --push-only)
+            PUSH_ONLY=true
+            shift
+            ;;
         --help)
             usage
             ;;
         *)
-            log_error "Unknown option: $1"
-            usage
+            # If no more options, break
+            break
             ;;
     esac
 done
@@ -118,10 +129,35 @@ DEFAULT_PORT=$(jq -r '.defaultPort' "$DEPLOY_CONFIG")
 
 # Image naming
 if [ -n "$REGISTRY" ]; then
-    IMAGE_NAME="$REGISTRY/$SERVICE_NAME:$TAG"
+    # Handle different registry formats
+    case "$REGISTRY" in
+        ghcr.io)
+            # GitHub Container Registry - needs username
+            IMAGE_NAME="$REGISTRY/${GITHUB_USER:-$USER}/personal-brain-$APP_NAME:$TAG"
+            ;;
+        docker.io)
+            # Docker Hub - just username/image
+            IMAGE_NAME="${DOCKER_USER:-$USER}/personal-brain-$APP_NAME:$TAG"
+            ;;
+        ghcr.io/*)
+            # If already includes username
+            IMAGE_NAME="$REGISTRY/personal-brain-$APP_NAME:$TAG"
+            ;;
+        */*)
+            # Other registries with namespace
+            IMAGE_NAME="$REGISTRY/personal-brain-$APP_NAME:$TAG"
+            ;;
+        *)
+            # Just registry URL, add image name
+            IMAGE_NAME="$REGISTRY/personal-brain-$APP_NAME:$TAG"
+            ;;
+    esac
 else
-    IMAGE_NAME="$SERVICE_NAME:$TAG"
+    IMAGE_NAME="personal-brain-$APP_NAME:$TAG"
 fi
+
+# Local image name for building (always the same)
+LOCAL_IMAGE_NAME="personal-brain-$APP_NAME:$TAG"
 
 # Build Docker image
 build_docker_image() {
@@ -149,36 +185,100 @@ build_docker_image() {
     
     # Copy required files for Docker build
     cp "$RELEASE_DIR/$BINARY_NAME" "$DOCKER_DIR/brain"
-    cp "$RELEASE_DIR/${BINARY_NAME}-wrapper.sh" "$DOCKER_DIR/brain-wrapper.sh"
+    # Use Docker-specific wrapper if it exists, otherwise use the standard wrapper
+    if [ -f "$DOCKER_DIR/brain-wrapper-docker.sh" ]; then
+        cp "$DOCKER_DIR/brain-wrapper-docker.sh" "$DOCKER_DIR/brain-wrapper.sh"
+    else
+        cp "$RELEASE_DIR/${BINARY_NAME}-wrapper.sh" "$DOCKER_DIR/brain-wrapper.sh"
+    fi
     cp "$RELEASE_DIR/package.json" "$DOCKER_DIR/"
     
-    # Copy production environment file if it exists
-    if [ -f "$APP_DIR/deploy/.env.production" ]; then
-        cp "$APP_DIR/deploy/.env.production" "$DOCKER_DIR/.env.production"
+    # Copy the .env.example file which will be used during build
+    # The real .env.production will be mounted as a volume at runtime
+    if [ -f "$APP_DIR/deploy/.env.production.example" ]; then
+        cp "$APP_DIR/deploy/.env.production.example" "$DOCKER_DIR/.env.example"
     else
-        log_warn "No .env.production found at $APP_DIR/deploy/.env.production"
-        # Create empty .env.production so Docker build doesn't fail
-        touch "$DOCKER_DIR/.env.production"
+        log_error "No .env.production.example found at $APP_DIR/deploy/.env.production.example"
+        exit 1
+    fi
+    
+    # Copy migration files for database initialization
+    if [ -f "$PROJECT_ROOT/packages/db/src/migrate.ts" ]; then
+        cp "$PROJECT_ROOT/packages/db/src/migrate.ts" "$DOCKER_DIR/"
+        # Also copy the drizzle migrations directory
+        if [ -d "$PROJECT_ROOT/packages/db/drizzle" ]; then
+            cp -r "$PROJECT_ROOT/packages/db/drizzle" "$DOCKER_DIR/"
+        fi
+        log_info "Copied migration files for database initialization"
     fi
     
     # Debug: Check files before Docker build
     log_info "Files in Docker directory before build:"
-    ls -la "$DOCKER_DIR" | grep -E "brain|package.json|.env" || true
+    ls -la "$DOCKER_DIR" || true
     
-    # Build Docker image
-    log_info "Building Docker image: $IMAGE_NAME"
-    docker build -f "$DOCKER_DIR/Dockerfile.standalone" -t "$IMAGE_NAME" "$DOCKER_DIR" || {
+    # Build Docker image with local name first
+    log_info "Building Docker image: $LOCAL_IMAGE_NAME"
+    docker build -f "$DOCKER_DIR/Dockerfile.standalone" -t "$LOCAL_IMAGE_NAME" "$DOCKER_DIR" || {
         # Clean up on failure
         rm -rf "$TEMP_BUILD"
-        rm -f "$DOCKER_DIR/brain" "$DOCKER_DIR/brain-wrapper.sh" "$DOCKER_DIR/package.json" "$DOCKER_DIR/.env.production"
+        rm -f "$DOCKER_DIR/brain" "$DOCKER_DIR/brain-wrapper.sh" "$DOCKER_DIR/package.json" "$DOCKER_DIR/.env.example"
         exit 1
     }
     
     # Clean up after successful build
     rm -rf "$TEMP_BUILD"
-    rm -f "$DOCKER_DIR/brain" "$DOCKER_DIR/brain-wrapper.sh" "$DOCKER_DIR/package.json" "$DOCKER_DIR/.env.production"
+    rm -f "$DOCKER_DIR/migrate.ts"
+    rm -rf "$DOCKER_DIR/drizzle"
+    rm -f "$DOCKER_DIR/brain" "$DOCKER_DIR/brain-wrapper.sh" "$DOCKER_DIR/package.json" "$DOCKER_DIR/.env.example"
     
     log_info "✅ Docker image built successfully"
+    
+    # Tag with registry name if using registry
+    if [ -n "$REGISTRY" ]; then
+        log_info "Tagging image for registry: $IMAGE_NAME"
+        docker tag "$LOCAL_IMAGE_NAME" "$IMAGE_NAME"
+    fi
+}
+
+# Push image to registry
+push_to_registry() {
+    if [ -z "$REGISTRY" ]; then
+        log_error "No registry specified for push operation"
+        exit 1
+    fi
+    
+    log_step "Pushing Docker image to registry"
+    
+    # Check if we need to login to registry
+    case "$REGISTRY" in
+        ghcr.io/*)
+            # GitHub Container Registry
+            if [ -n "${GITHUB_TOKEN:-}" ]; then
+                log_info "Logging into GitHub Container Registry..."
+                echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${GITHUB_USER:-$USER}" --password-stdin
+            else
+                log_warn "GITHUB_TOKEN not set. Assuming already logged in to ghcr.io"
+            fi
+            ;;
+        docker.io/* | hub.docker.com/*)
+            # Docker Hub
+            if [ -n "${DOCKER_TOKEN:-}" ] && [ -n "${DOCKER_USER:-}" ]; then
+                log_info "Logging into Docker Hub..."
+                echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
+            else
+                log_warn "DOCKER_TOKEN/DOCKER_USER not set. Assuming already logged in to Docker Hub"
+            fi
+            ;;
+    esac
+    
+    # Push the image
+    log_info "Pushing image: $IMAGE_NAME"
+    if docker push "$IMAGE_NAME"; then
+        log_info "✅ Image pushed successfully to $REGISTRY"
+    else
+        log_error "Failed to push image to registry"
+        exit 1
+    fi
 }
 
 # Transfer image to server
@@ -313,13 +413,49 @@ EOF
 
 # Main execution
 main() {
-    log_step "Docker Deployment: $APP_NAME → $SERVER"
-    
     # Check Docker availability
     if ! command -v docker &> /dev/null; then
         log_error "Docker is not installed"
         exit 1
     fi
+    
+    # Handle build-only mode (via environment variable)
+    if [ "${DOCKER_BUILD_ONLY:-}" = "1" ]; then
+        log_step "Docker Build: $APP_NAME"
+        build_docker_image
+        if [ -n "$REGISTRY" ]; then
+            push_to_registry
+        fi
+        log_info "🎉 Docker image built successfully: $IMAGE_NAME"
+        exit 0
+    fi
+    
+    # Handle push-only mode
+    if [ "$PUSH_ONLY" = true ]; then
+        if [ -z "$REGISTRY" ]; then
+            log_error "Registry must be specified for push-only mode"
+            exit 1
+        fi
+        # Tag existing local image if needed
+        if [ "$LOCAL_IMAGE_NAME" != "$IMAGE_NAME" ]; then
+            docker tag "$LOCAL_IMAGE_NAME" "$IMAGE_NAME"
+        fi
+        push_to_registry
+        exit 0
+    fi
+    
+    # Handle build-only mode
+    if [ "$SERVER" = "build-only" ]; then
+        log_step "Docker Build: $APP_NAME"
+        build_docker_image
+        if [ -n "$REGISTRY" ]; then
+            push_to_registry
+        fi
+        log_info "🎉 Docker image built successfully: $IMAGE_NAME"
+        return
+    fi
+    
+    log_step "Docker Deployment: $APP_NAME → $SERVER"
     
     # Build image (unless skipped)
     if [ "$SKIP_BUILD" = false ]; then
@@ -328,11 +464,20 @@ main() {
         log_info "Skipping build, using existing image: $IMAGE_NAME"
     fi
     
-    # Transfer image
-    transfer_image
+    # Push to registry if specified
+    if [ -n "$REGISTRY" ]; then
+        push_to_registry
+    fi
     
-    # Deploy
-    deploy_on_server
+    # Deploy based on registry or direct transfer
+    if [ -n "$REGISTRY" ]; then
+        # Registry-based deployment - no transfer needed
+        deploy_on_server
+    else
+        # Legacy direct transfer method
+        transfer_image
+        deploy_on_server
+    fi
     
     log_info ""
     log_info "🎉 Docker deployment completed successfully!"

@@ -31,6 +31,7 @@ Deploy Personal Brain apps as Docker containers locally or on remote servers.
 ## Architecture
 
 The Docker provider:
+
 - Uses the standard provider interface from deploy-brain.sh
 - Delegates to `deploy/scripts/deploy-docker.sh` for actual deployment
 - Supports both local and remote Docker deployments
@@ -56,12 +57,14 @@ DOCKER_SERVER=docker.example.com
 ### App Configuration
 
 Each app needs:
+
 1. `apps/<name>/deploy/deploy.config.json` - Standard deployment config
 2. `apps/<name>/deploy/.env.production` - Production environment variables
 
 ## Deployment Methods
 
 ### Local Docker
+
 ```bash
 ./scripts/deploy-brain.sh test-brain docker deploy
 # or explicitly:
@@ -71,16 +74,19 @@ Each app needs:
 Deploys to Docker on your local machine.
 
 ### Remote Docker
+
 ```bash
 ./scripts/deploy-brain.sh test-brain docker deploy user@server.com
 ```
 
 Requirements:
+
 - SSH access to server
 - Docker and docker-compose installed on server
 - User has Docker permissions
 
 ### With Registry
+
 ```bash
 # Set registry in config.env or environment
 export DOCKER_REGISTRY=ghcr.io/myorg
@@ -90,6 +96,7 @@ export DOCKER_REGISTRY=ghcr.io/myorg
 ## Native Modules
 
 Native modules (LibSQL, Matrix crypto) are handled automatically:
+
 - Build process marks them as external
 - Docker build installs them in first stage
 - Final image has pre-installed dependencies
@@ -98,6 +105,7 @@ Native modules (LibSQL, Matrix crypto) are handled automatically:
 ## Volumes
 
 The deployment creates volumes for:
+
 - `/app/data` - Database and persistent data
 - `/app/brain-repo` - Git repository for brain content
 - `/app/website` - Generated website files
@@ -111,6 +119,7 @@ The app's default port (from deploy.config.json) is mapped to the container's po
 ## Health Checks
 
 Containers include health checks:
+
 - Endpoint: `http://localhost:3333/health`
 - Interval: 30s
 - Timeout: 3s
@@ -119,6 +128,7 @@ Containers include health checks:
 ## Troubleshooting
 
 ### View Logs
+
 ```bash
 # Local
 docker logs personal-brain
@@ -128,6 +138,7 @@ ssh user@server.com 'docker logs personal-brain'
 ```
 
 ### Shell Access
+
 ```bash
 # Local
 docker exec -it personal-brain /bin/bash
@@ -144,11 +155,11 @@ ssh user@server.com 'docker exec -it personal-brain /bin/bash'
 
 ## Comparison with Hetzner Provider
 
-| Feature | Docker Provider | Hetzner Provider |
-|---------|----------------|------------------|
-| Infrastructure | Existing server | Creates new VPS |
-| Cost | $0 (uses existing) | ~€5/month |
-| Setup Time | ~1 minute | ~5 minutes |
-| Isolation | Container | Full VM |
-| Resource Usage | Shared | Dedicated |
-| Best For | Development, small deployments | Production, isolation needed |
+| Feature        | Docker Provider                | Hetzner Provider             |
+| -------------- | ------------------------------ | ---------------------------- |
+| Infrastructure | Existing server                | Creates new VPS              |
+| Cost           | $0 (uses existing)             | ~€5/month                    |
+| Setup Time     | ~1 minute                      | ~5 minutes                   |
+| Isolation      | Container                      | Full VM                      |
+| Resource Usage | Shared                         | Dedicated                    |
+| Best For       | Development, small deployments | Production, isolation needed |

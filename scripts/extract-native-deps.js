@@ -11,6 +11,12 @@ const NATIVE_MODULES = [
   '@matrix-org/matrix-sdk-crypto-nodejs'
 ];
 
+// Additional dependencies needed for migrations and other functionality
+const ADDITIONAL_DEPS = [
+  'drizzle-orm',
+  'drizzle-kit'
+];
+
 function findNodeModules() {
   // Check common locations
   const locations = [
@@ -53,7 +59,19 @@ function generateMinimalPackageJson(appName, appVersion, verbose = false) {
   
   const dependencies = {};
   
+  // Add native modules
   for (const moduleName of NATIVE_MODULES) {
+    const version = getPackageVersion(nodeModulesPath, moduleName);
+    if (version) {
+      dependencies[moduleName] = version;
+      if (verbose) {
+        console.log(`  ${moduleName}: ${version}`);
+      }
+    }
+  }
+  
+  // Add additional dependencies
+  for (const moduleName of ADDITIONAL_DEPS) {
     const version = getPackageVersion(nodeModulesPath, moduleName);
     if (version) {
       dependencies[moduleName] = version;
@@ -86,4 +104,4 @@ if (import.meta.main) {
   }
 }
 
-export { generateMinimalPackageJson, NATIVE_MODULES };
+export { generateMinimalPackageJson, NATIVE_MODULES, ADDITIONAL_DEPS };

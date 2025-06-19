@@ -69,11 +69,13 @@ COPY --from=modules /app/node_modules /app/node_modules
 ```
 
 **Pros:**
+
 - Efficient layer caching
 - Clean separation of concerns
 - Smaller final image
 
 **Cons:**
+
 - Requires network during build
 
 ### Option 2: Runtime Installation
@@ -89,10 +91,12 @@ RUN curl -fsSL https://bun.sh/install | bash && \
 ```
 
 **Pros:**
+
 - Single stage build
 - Direct installation
 
 **Cons:**
+
 - Larger image (includes bun temporarily)
 - Slower builds
 
@@ -108,10 +112,12 @@ fi
 ```
 
 **Pros:**
+
 - Smallest Docker image
 - Flexible deployment
 
 **Cons:**
+
 - Slower first startup
 - Requires bun/npm at runtime
 
@@ -162,11 +168,13 @@ For environments without internet:
 ### Native Module Errors
 
 If you see errors like:
+
 ```
 Cannot find module '@libsql/linux-x64-gnu'
 ```
 
 Ensure:
+
 1. package.json includes the module
 2. Dependencies are installed for the correct platform
 3. NODE_PATH includes the node_modules directory
@@ -174,12 +182,14 @@ Ensure:
 ### Platform Mismatches
 
 Build and runtime platforms must match:
+
 - Linux x64 → linux-x64-gnu modules
 - macOS ARM64 → darwin-arm64 modules
 
 ### Permission Issues
 
 Ensure the personal-brain user owns:
+
 - `/app/node_modules`
 - `/app/brain`
 - `/app/data`

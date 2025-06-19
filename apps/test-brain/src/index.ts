@@ -39,20 +39,25 @@ async function main(): Promise<void> {
       // { type: "cli", enabled: true, config: { /* ... */ } }
     ],
     plugins: [
-      // Git sync plugin for version control
-      gitSync({
-        repoPath: "/home/yeehaa/Documents/brain",
-        branch: "main",
-        autoSync: false, // Manual sync for testing
-      }),
-      // Webserver plugin for generating and serving websites
-      webserverPlugin({
-        outputDir: "./website",
-        siteTitle: "Test Brain",
-        siteDescription: "A test instance of Personal Brain",
-        previewPort: 4321,
-        productionPort: 8080,
-      }),
+      // Git sync plugin for version control (if configured)
+      ...(process.env["GIT_REPO_PATH"] ? [
+        gitSync({
+          repoPath: process.env["GIT_REPO_PATH"],
+          branch: process.env["GIT_BRANCH"] ?? "main",
+          remote: process.env["GIT_REMOTE_URL"],
+          autoSync: process.env["GIT_AUTO_SYNC"] === "true",
+        })
+      ] : []),
+      // Webserver plugin for generating and serving websites (if configured)
+      ...(process.env["WEBSITE_OUTPUT_DIR"] ? [
+        webserverPlugin({
+          outputDir: process.env["WEBSITE_OUTPUT_DIR"],
+          siteTitle: process.env["WEBSITE_SITE_TITLE"] ?? "Test Brain",
+          siteDescription: process.env["WEBSITE_SITE_DESCRIPTION"] ?? "A test instance of Personal Brain",
+          previewPort: Number(process.env["WEBSITE_PREVIEW_PORT"] ?? 4321),
+          productionPort: Number(process.env["WEBSITE_PRODUCTION_PORT"] ?? 8080),
+        })
+      ] : []),
       // Future: noteContext(), taskContext(), etc.
     ],
   });

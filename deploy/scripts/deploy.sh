@@ -95,25 +95,188 @@ if [ "$SKIP_BACKUP" != "--skip-backup" ] && [ -f "/opt/personal-brain/brain" ]; 
 fi
 
 # Find binary name
-BINARY_NAME=\$(ls brain* 2>/dev/null | head -1 || echo "brain")
+BINARY_NAME=\$(ls brain* 2>/dev/null | grep -v wrapper | head -1 || echo "brain")
+# Wrapper is always named brain-wrapper.sh
+WRAPPER_NAME="brain-wrapper.sh"
 echo "Deploying binary: \$BINARY_NAME"
+echo "Looking for wrapper: \$WRAPPER_NAME"
+ls -la | grep wrapper || echo "No wrapper found"
 
-# Copy new binary
+# Copy binary and related files
 sudo cp "\$BINARY_NAME" "/opt/personal-brain/brain"
 sudo chmod +x "/opt/personal-brain/brain"
-sudo chown personal-brain:personal-brain "/opt/personal-brain/brain"
+
+# Copy package.json if it exists (for native dependencies)
+if [ -f "package.json" ]; then
+    echo "Installing native dependencies..."
+    sudo cp "package.json" "/opt/personal-brain/"
+    
+    # Create node_modules directory with proper permissions
+    sudo mkdir -p "/opt/personal-brain/node_modules"
+    sudo chown -R personal-brain:personal-brain "/opt/personal-brain"
+    
+    # Install dependencies as personal-brain user
+    # First check which package manager is available
+    echo "Checking for package managers..."
+    echo "  Checking /usr/local/bin/bun..."
+    ls -la /usr/local/bin/bun 2>/dev/null || echo "    Not found"
+    echo "  Checking /root/.bun/bin/bun..."
+    sudo ls -la /root/.bun/bin/bun 2>/dev/null || echo "    Not found"
+    echo "  Checking for bun in PATH..."
+    which bun || echo "    Not in PATH"
+    echo "  Checking for npm..."
+    which npm || echo "    Not in PATH"
+    
+    # Try to find bun in common locations
+    if [ -L "/usr/local/bin/bun" ]; then
+        # Check if symlink target is accessible
+        TARGET=\$(readlink /usr/local/bin/bun)
+        echo "  /usr/local/bin/bun points to: \$TARGET"
+        if ! sudo -u personal-brain test -x "\$TARGET"; then
+            echo "  Target not accessible by personal-brain user, fixing..."
+            if sudo test -x "/root/.bun/bin/bun"; then
+                sudo mkdir -p /opt/bun/bin
+                sudo cp /root/.bun/bin/bun /opt/bun/bin/
+                sudo chmod 755 /opt/bun/bin/bun
+                sudo ln -sf /opt/bun/bin/bun /usr/local/bin/bun
+                echo "  Bun relocated to /opt/bun/bin/bun"
+            fi
+        fi
+    fi
+    
+    if [ -x "/usr/local/bin/bun" ] && sudo -u personal-brain test -x "/usr/local/bin/bun"; then
+        echo "Using bun from /usr/local/bin/bun..."
+        sudo -u personal-brain bash -c "cd /opt/personal-brain && /usr/local/bin/bun install --production"
+        # Check if Matrix SDK crypto binary exists
+        if [ -d "/opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs" ]; then
+            echo "Checking Matrix SDK crypto module..."
+            if ! sudo test -f "/opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs/matrix-sdk-crypto.linux-x64-gnu.node"; then
+                echo "Matrix crypto binary missing, downloading..."
+                # Run download-lib.js if it exists
+                if [ -f "/opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs/download-lib.js" ]; then
+                    if command -v node >/dev/null 2>&1; then
+                        sudo -u personal-brain bash -c "cd /opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs && node download-lib.js"
+                    else
+                        echo "ERROR: Node.js required to download Matrix crypto binary"
+                        echo "Install with: sudo apt-get install nodejs"
+                    fi
+                fi
+            else
+                echo "Matrix crypto binary already present"
+            fi
+        fi
+    elif sudo test -x "/root/.bun/bin/bun"; then
+        echo "Found bun in /root/.bun, copying to accessible location..."
+        # Copy bun to a location accessible by all users
+        sudo mkdir -p /opt/bun/bin
+        sudo cp /root/.bun/bin/bun /opt/bun/bin/
+        sudo chmod 755 /opt/bun/bin/bun
+        sudo ln -sf /opt/bun/bin/bun /usr/local/bin/bun
+        echo "Using bun from /opt/bun/bin/bun..."
+        sudo -u personal-brain bash -c "cd /opt/personal-brain && /usr/local/bin/bun install --production"
+        # Check if Matrix SDK crypto binary exists
+        if [ -d "/opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs" ]; then
+            echo "Checking Matrix SDK crypto module..."
+            if ! sudo test -f "/opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs/matrix-sdk-crypto.linux-x64-gnu.node"; then
+                echo "Matrix crypto binary missing, downloading..."
+                # Run download-lib.js if it exists
+                if [ -f "/opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs/download-lib.js" ]; then
+                    if command -v node >/dev/null 2>&1; then
+                        sudo -u personal-brain bash -c "cd /opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs && node download-lib.js"
+                    else
+                        echo "ERROR: Node.js required to download Matrix crypto binary"
+                        echo "Install with: sudo apt-get install nodejs"
+                    fi
+                fi
+            else
+                echo "Matrix crypto binary already present"
+            fi
+        fi
+    elif command -v npm >/dev/null 2>&1; then
+        echo "Using npm..."
+        NPM_PATH=\$(which npm)
+        sudo -u personal-brain bash -c "cd /opt/personal-brain && \$NPM_PATH install --production --no-audit --no-fund"
+        # Check if Matrix SDK crypto binary exists
+        if [ -d "/opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs" ]; then
+            echo "Checking Matrix SDK crypto module..."
+            if ! sudo test -f "/opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs/matrix-sdk-crypto.linux-x64-gnu.node"; then
+                echo "Matrix crypto binary missing, downloading..."
+                # Run download-lib.js if it exists
+                if [ -f "/opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs/download-lib.js" ]; then
+                    if command -v node >/dev/null 2>&1; then
+                        sudo -u personal-brain bash -c "cd /opt/personal-brain/node_modules/@matrix-org/matrix-sdk-crypto-nodejs && node download-lib.js"
+                    else
+                        echo "ERROR: Node.js required to download Matrix crypto binary"
+                        echo "Install with: sudo apt-get install nodejs"
+                    fi
+                fi
+            else
+                echo "Matrix crypto binary already present"
+            fi
+        fi
+    else
+        echo "ERROR: Neither bun nor npm found"
+        echo "Current PATH: \$PATH"
+        echo "To install bun, run: curl -fsSL https://bun.sh/install | sudo bash"
+        exit 1
+    fi
+fi
+
+# Copy wrapper script if it exists
+if [ -f "\$WRAPPER_NAME" ]; then
+    echo "Using wrapper script for native module support"
+    sudo cp "\$WRAPPER_NAME" "/opt/personal-brain/brain-wrapper.sh"
+    sudo chmod +x "/opt/personal-brain/brain-wrapper.sh"
+    # Update systemd to use wrapper
+    EXEC_PATH="/opt/personal-brain/brain-wrapper.sh"
+else
+    EXEC_PATH="/opt/personal-brain/brain"
+fi
+
+# Set ownership
+sudo chown -R personal-brain:personal-brain /opt/personal-brain/
 
 # Update systemd service if needed
 if [ -f "personal-brain.service" ]; then
-    if ! diff -q "personal-brain.service" "/etc/systemd/system/personal-brain.service" > /dev/null 2>&1; then
+    # If using wrapper, update the service file
+    if [ "\$EXEC_PATH" = "/opt/personal-brain/brain-wrapper.sh" ]; then
+        echo "Updating systemd service for wrapper script..."
+        # Create temporary service file with updated ExecStart
+        sed "s|ExecStart=/opt/personal-brain/brain|ExecStart=/opt/personal-brain/brain-wrapper.sh|g" personal-brain.service > personal-brain.service.tmp
+        sudo cp personal-brain.service.tmp /etc/systemd/system/personal-brain.service
+        rm personal-brain.service.tmp
+        sudo systemctl daemon-reload
+    elif ! diff -q "personal-brain.service" "/etc/systemd/system/personal-brain.service" > /dev/null 2>&1; then
         echo "Updating systemd service..."
         sudo cp "personal-brain.service" "/etc/systemd/system/"
         sudo systemctl daemon-reload
     fi
 fi
 
+# Debug: Show what's in the directory
+echo "Contents of /opt/personal-brain:"
+sudo ls -la /opt/personal-brain/
+
+# Debug: Show systemd service
+echo "Current systemd service:"
+sudo cat /etc/systemd/system/personal-brain.service | grep ExecStart
+
 # Run any database migrations
 # The binary will handle this on startup
+
+# Check for ONNX Runtime (required for embeddings)
+if ! sudo test -f "/usr/lib/libonnxruntime.so.1"; then
+    echo "Installing ONNX Runtime..."
+    cd /tmp
+    sudo curl -L https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-linux-x64-1.21.0.tgz -o onnxruntime.tgz
+    sudo tar -xzf onnxruntime.tgz
+    sudo cp onnxruntime-linux-x64-1.21.0/lib/libonnxruntime.so.1.21.0 /usr/lib/libonnxruntime.so.1.21.0
+    sudo ln -sf /usr/lib/libonnxruntime.so.1.21.0 /usr/lib/libonnxruntime.so.1
+    sudo ln -sf /usr/lib/libonnxruntime.so.1.21.0 /usr/lib/libonnxruntime.so
+    sudo ldconfig
+    sudo rm -rf /tmp/onnxruntime*
+    cd - > /dev/null
+fi
 
 # Start service
 echo "Starting service..."

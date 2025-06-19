@@ -7,11 +7,13 @@ This document outlines the complete plan for integrating Docker deployment into 
 ## Current State
 
 ### Issues
+
 1. **Root directory clutter** - Docker files scattered in root
 2. **Inconsistent deployment** - Docker deployment is separate from provider system
 3. **Native modules handling** - Recently solved but needs integration
 
 ### Existing Structure
+
 ```
 brains/
 ├── Dockerfile.optimized        # In root (needs moving)
@@ -110,31 +112,38 @@ esac
 ### 3. Deployment Flows
 
 #### A. Traditional Deployment (Existing)
+
 ```bash
 ./scripts/deploy-brain.sh test-brain hetzner deploy
 ```
+
 - Provisions VM with Terraform
 - Builds release with external native modules
 - Deploys tarball
 - First run auto-installs dependencies
 
 #### B. Docker Deployment (New Integration)
+
 ```bash
 ./scripts/deploy-brain.sh test-brain docker deploy server.com
 ```
+
 - Builds release with external native modules
 - Creates Docker image with pre-installed deps
 - Deploys container to specified server
 
 #### C. Local Docker Deployment
+
 ```bash
 ./scripts/deploy-brain.sh test-brain docker deploy local
 ```
+
 - Builds and runs container locally
 
 ### 4. Native Modules Strategy
 
 Both deployment methods use the same approach:
+
 - Build marks native modules as external
 - Generate package.json with exact versions
 - Traditional: wrapper script installs on first run
@@ -149,15 +158,18 @@ Both deployment methods use the same approach:
 ### 6. Implementation Steps
 
 1. **Clean root directory**
+
    - Move Dockerfile.optimized → deploy/docker/Dockerfile.standalone
    - Remove test-docker directory
    - Remove scripts/deploy-docker.sh wrapper
 
 2. **Create Docker provider**
+
    - Create deploy/providers/docker/deploy.sh
    - Add README.md with Docker-specific docs
 
 3. **Update references**
+
    - Update any hardcoded paths
    - Ensure all scripts use correct locations
 

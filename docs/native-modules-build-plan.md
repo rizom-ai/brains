@@ -20,6 +20,7 @@ Use a generated `package.json` that includes only the required native modules, a
 ### 1. Build Script Changes (`scripts/build-release.sh`)
 
 #### Phase 1: Compile with External Modules
+
 ```bash
 # Always use external flags for native modules
 bun build "$ENTRY_POINT" \
@@ -33,32 +34,36 @@ bun build "$ENTRY_POINT" \
 ```
 
 #### Phase 2: Generate Minimal package.json
+
 Instead of copying node_modules, generate a package.json with exact versions:
 
 ```javascript
 // Extract actual versions from the monorepo
-const rootPackageJson = require('../../package.json');
-const workspacePackageJson = require('./package.json');
+const rootPackageJson = require("../../package.json");
+const workspacePackageJson = require("./package.json");
 
 // Combine dependencies that are marked as external
 const externalDeps = {
   "@libsql/client": getVersion("@libsql/client"),
-  "libsql": getVersion("libsql"),
-  "@matrix-org/matrix-sdk-crypto-nodejs": getVersion("@matrix-org/matrix-sdk-crypto-nodejs")
+  libsql: getVersion("libsql"),
+  "@matrix-org/matrix-sdk-crypto-nodejs": getVersion(
+    "@matrix-org/matrix-sdk-crypto-nodejs",
+  ),
 };
 
 // Generate minimal package.json
 const minimalPackage = {
-  "name": appName,
-  "version": version,
-  "type": "module",
-  "dependencies": externalDeps
+  name: appName,
+  version: version,
+  type: "module",
+  dependencies: externalDeps,
 };
 ```
 
 ### 2. Release Package Structure
 
 The release tarball will contain:
+
 ```
 test-brain-v0.1.0-linux-x64/
 ├── brain                    # Compiled binary
@@ -73,6 +78,7 @@ test-brain-v0.1.0-linux-x64/
 ### 3. Docker Build Strategy
 
 #### Option A: Install at Docker Build Time
+
 ```dockerfile
 # Copy the binary and package.json
 COPY --chown=personal-brain:personal-brain brain /app/brain
@@ -83,6 +89,7 @@ RUN cd /app && bun install --production
 ```
 
 #### Option B: Multi-stage Build
+
 ```dockerfile
 # Stage 1: Install native modules
 FROM oven/bun:1-debian AS modules
@@ -99,6 +106,7 @@ COPY --from=modules /app/node_modules /app/node_modules
 ### 4. Wrapper Script Updates
 
 The wrapper script needs to ensure node_modules can be found:
+
 ```bash
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -173,6 +181,7 @@ EOF
 ## Decision Required
 
 Should we:
+
 1. Install dependencies at Docker build time (cleaner, requires network)
 2. Install dependencies at first run (faster build, slower first start)
 3. Provide both options with a build flag

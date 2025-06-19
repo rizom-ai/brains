@@ -90,7 +90,7 @@ resource "hcloud_server" "main" {
   image       = var.os_image
   ssh_keys    = [hcloud_ssh_key.main.id]
   firewall_ids = [hcloud_firewall.main.id]
-  
+
   user_data = templatefile("${path.module}/cloud-init.yaml", {
     deploy_user = var.deploy_user
     ssh_public_key = file(var.ssh_public_key_path)
@@ -221,7 +221,7 @@ users:
   - name: ${deploy_user}
     groups: sudo
     shell: /bin/bash
-    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
     ssh_authorized_keys:
       - ${ssh_public_key}
 
@@ -258,19 +258,19 @@ runcmd:
   - ufw allow http
   - ufw allow https
   - ufw --force enable
-  
+
   # Enable fail2ban
   - systemctl enable fail2ban
   - systemctl start fail2ban
-  
+
   # Configure automatic updates
   - apt install -y unattended-upgrades
   - dpkg-reconfigure -plow unattended-upgrades
-  
+
   # Disable root SSH login
   - sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
   - systemctl restart sshd
-  
+
   # Create application directory
   - mkdir -p /opt/personal-brain
   - chown ${deploy_user}:${deploy_user} /opt/personal-brain
@@ -306,26 +306,26 @@ log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
 # Check prerequisites
 check_prerequisites() {
     log_step "Checking Prerequisites"
-    
+
     # Check Terraform
     if ! command -v terraform &> /dev/null; then
         log_error "Terraform not found. Please install: https://www.terraform.io/downloads"
         exit 1
     fi
-    
+
     # Check for configuration
     if [ ! -f "$TERRAFORM_DIR/terraform.tfvars" ]; then
         log_error "terraform.tfvars not found!"
         log_info "Copy and configure: cp $TERRAFORM_DIR/terraform.tfvars.example $TERRAFORM_DIR/terraform.tfvars"
         exit 1
     fi
-    
+
     # Check for Hetzner token
     if ! grep -q "hcloud_token" "$TERRAFORM_DIR/terraform.tfvars"; then
         log_error "hcloud_token not set in terraform.tfvars"
         exit 1
     fi
-    
+
     log_info "✅ Prerequisites checked"
 }
 
@@ -341,21 +341,21 @@ init_terraform() {
 deploy_infrastructure() {
     log_step "Deploying Infrastructure"
     cd "$TERRAFORM_DIR"
-    
+
     # Plan
     log_info "Planning infrastructure changes..."
     terraform plan -out=tfplan
-    
+
     # Apply
     log_info "Applying infrastructure..."
     terraform apply tfplan
-    
+
     # Get outputs
     SERVER_IP=$(terraform output -raw server_ip)
     SSH_COMMAND=$(terraform output -raw ssh_command)
-    
+
     cd - > /dev/null
-    
+
     log_info "✅ Infrastructure deployed"
     log_info "Server IP: $SERVER_IP"
     log_info "SSH: $SSH_COMMAND"
@@ -364,25 +364,25 @@ deploy_infrastructure() {
 # Wait for server to be ready
 wait_for_server() {
     log_step "Waiting for Server"
-    
+
     log_info "Waiting for cloud-init to complete..."
     sleep 30  # Initial wait
-    
+
     # Wait for SSH to be available
     local max_attempts=30
     local attempt=0
-    
+
     while [ $attempt -lt $max_attempts ]; do
         if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "deploy@$SERVER_IP" "echo 'SSH ready'" &> /dev/null; then
             log_info "✅ Server is ready"
             return 0
         fi
-        
+
         attempt=$((attempt + 1))
         log_info "Waiting for SSH... (attempt $attempt/$max_attempts)"
         sleep 10
     done
-    
+
     log_error "Server failed to become ready"
     exit 1
 }
@@ -390,15 +390,15 @@ wait_for_server() {
 # Setup Personal Brain
 setup_personal_brain() {
     log_step "Setting up Personal Brain"
-    
+
     # Copy setup script
     log_info "Copying setup script..."
     scp scripts/setup-server.sh "deploy@$SERVER_IP:~/"
-    
+
     # Run setup
     log_info "Running server setup..."
     ssh "deploy@$SERVER_IP" "./setup-server.sh"
-    
+
     # Copy environment configuration
     log_info "Configuring environment..."
     scp "$TERRAFORM_DIR/.env.production" "deploy@$SERVER_IP:~/.env.tmp"
@@ -408,14 +408,14 @@ setup_personal_brain() {
 # Deploy application
 deploy_application() {
     log_step "Deploying Application"
-    
+
     # Build release
     log_info "Building release..."
     ./scripts/build-release.sh "$APP_NAME" linux-x64
-    
+
     # Find latest release
     RELEASE_FILE=$(ls -t "apps/$APP_NAME/dist/"*.tar.gz | head -1)
-    
+
     # Deploy
     log_info "Deploying application..."
     ./scripts/deploy.sh "deploy@$SERVER_IP" "$RELEASE_FILE"
@@ -424,14 +424,14 @@ deploy_application() {
 # Setup Caddy (optional)
 setup_caddy() {
     local domain="$1"
-    
+
     if [ -z "$domain" ]; then
         log_warn "No domain specified, skipping Caddy setup"
         return
     fi
-    
+
     log_step "Setting up Caddy"
-    
+
     ssh "deploy@$SERVER_IP" << EOF
 # Install Caddy
 sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
@@ -448,7 +448,7 @@ echo "$domain {
 # Restart Caddy
 sudo systemctl reload caddy
 EOF
-    
+
     log_info "✅ Caddy configured for $domain"
 }
 
@@ -460,11 +460,11 @@ deploy() {
     wait_for_server
     setup_personal_brain
     deploy_application
-    
+
     # Get domain from terraform
     DOMAIN=$(cd "$TERRAFORM_DIR" && terraform output -raw domain 2>/dev/null || echo "")
     setup_caddy "$DOMAIN"
-    
+
     log_step "Deployment Complete!"
     log_info "🎉 Personal Brain is now running!"
     log_info ""
@@ -483,42 +483,42 @@ deploy() {
 # Update existing deployment
 update() {
     log_step "Updating Deployment"
-    
+
     # Get server IP from Terraform state
     cd "$TERRAFORM_DIR"
     SERVER_IP=$(terraform output -raw server_ip)
     cd - > /dev/null
-    
+
     # Deploy new version
     deploy_application
-    
+
     log_info "✅ Update complete"
 }
 
 # Destroy infrastructure
 destroy() {
     log_step "Destroying Infrastructure"
-    
+
     read -p "Are you sure you want to destroy the infrastructure? (yes/no) " -r
     if [[ ! $REPLY =~ ^yes$ ]]; then
         log_info "Cancelled"
         exit 0
     fi
-    
+
     # Backup data first
     log_info "Creating backup..."
     cd "$TERRAFORM_DIR"
     SERVER_IP=$(terraform output -raw server_ip)
     cd - > /dev/null
-    
+
     ssh "deploy@$SERVER_IP" "sudo /opt/personal-brain/backup.sh"
     scp "deploy@$SERVER_IP:/opt/personal-brain/backups/brain-backup-*.tar.gz" ./
-    
+
     # Destroy infrastructure
     cd "$TERRAFORM_DIR"
     terraform destroy
     cd - > /dev/null
-    
+
     log_info "✅ Infrastructure destroyed"
     log_info "Backup saved to current directory"
 }
@@ -605,10 +605,11 @@ LOG_LEVEL=info
 ### Initial Setup
 
 1. **Install Terraform**:
+
    ```bash
    # macOS
    brew install terraform
-   
+
    # Linux
    wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
@@ -616,16 +617,18 @@ LOG_LEVEL=info
    ```
 
 2. **Get Hetzner API Token**:
+
    - Log in to [Hetzner Cloud Console](https://console.hetzner.cloud/)
    - Go to Security → API Tokens
    - Generate new token with Read & Write permissions
 
 3. **Configure Deployment**:
+
    ```bash
    # Copy example configurations
    cp deploy/hetzner/terraform.tfvars.example deploy/hetzner/terraform.tfvars
    cp deploy/hetzner/.env.production.template deploy/hetzner/.env.production
-   
+
    # Edit with your values
    nano deploy/hetzner/terraform.tfvars
    nano deploy/hetzner/.env.production
@@ -725,14 +728,17 @@ EOF
 ### Common Issues
 
 1. **Terraform init fails**:
+
    - Check Hetzner API token
    - Ensure terraform version >= 1.0
 
 2. **Server not accessible**:
+
    - Check firewall rules in Hetzner Console
    - Verify SSH key is correct
 
 3. **Application won't start**:
+
    - Check logs: `journalctl -u personal-brain -n 100`
    - Verify environment variables in `/opt/personal-brain/.env`
 
