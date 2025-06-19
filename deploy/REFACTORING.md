@@ -7,7 +7,9 @@ The deployment scripts have been refactored to eliminate duplication and improve
 ## Key Improvements
 
 ### 1. Common Libraries
+
 Created reusable libraries in `deploy/scripts/lib/`:
+
 - `common.sh` - Logging, error handling, and utilities
 - `config.sh` - Configuration loading and validation
 - `platform.sh` - Platform detection and normalization
@@ -15,7 +17,9 @@ Created reusable libraries in `deploy/scripts/lib/`:
 - `ssh.sh` - SSH connection utilities
 
 ### 2. Simplified Scripts
+
 New scripts with cleaner structure:
+
 - `deploy-brain-v2.sh` - Main deployment entry point
 - `deploy-docker-v2.sh` - Docker-specific deployment
 - `build-release-v2.sh` - Simplified build process
@@ -23,12 +27,14 @@ New scripts with cleaner structure:
 ## Code Reduction
 
 ### Before
+
 - Multiple scripts with ~500-800 lines each
 - Duplicated logging functions in 7+ files
 - Complex nested conditionals
 - Repeated configuration parsing
 
 ### After
+
 - Common libraries: ~400 lines total
 - Main scripts: ~200-300 lines each
 - Single source of truth for common operations
@@ -37,6 +43,7 @@ New scripts with cleaner structure:
 ## Usage Examples
 
 ### Old Way
+
 ```bash
 # Complex, inconsistent interfaces
 ./scripts/deploy.sh user@server apps/test-brain/dist/release.tar.gz
@@ -45,6 +52,7 @@ New scripts with cleaner structure:
 ```
 
 ### New Way
+
 ```bash
 # Consistent, intuitive interface
 ./deploy/scripts/deploy-brain-v2.sh test-brain local deploy
