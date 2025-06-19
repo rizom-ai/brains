@@ -190,6 +190,9 @@ brain.db
 *.db-shm
 *.db-wal
 
+# Data directories
+data/
+
 # direnv
 .envrc
 .direnv/
