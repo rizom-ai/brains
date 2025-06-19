@@ -213,3 +213,4 @@ apps/*/deploy/.env.production
 
 # Git sync temporary repositories
 .brain-repo/
+apps/test-brain/.brain-repo/

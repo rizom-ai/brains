@@ -16,7 +16,6 @@ import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
  */
 export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
-  private directorySync: Plugin | undefined;
 
   constructor(config: unknown) {
     // Validate config first
@@ -35,13 +34,6 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
   }
 
   /**
-   * Get plugin metadata including dependencies
-   */
-  get dependencies(): string[] {
-    return ["directory-sync"];
-  }
-
-  /**
    * Initialize the plugin
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
@@ -49,14 +41,6 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
 
     // Register our custom formatter
     formatters.register("gitSyncStatus", new GitSyncStatusFormatter());
-
-    // Get directory-sync plugin
-    const dirSyncId = this.config.directorySync ?? "directory-sync";
-    this.directorySync = context.getPlugin(dirSyncId) ?? undefined;
-
-    if (!this.directorySync) {
-      throw new Error(`Git sync requires ${dirSyncId} plugin to be registered`);
-    }
 
     // Create GitSync instance
     this.gitSync = new GitSync({
@@ -67,7 +51,8 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
       commitMessage: this.config.commitMessage,
       authorName: this.config.authorName,
       authorEmail: this.config.authorEmail,
-      directorySync: this.directorySync,
+      authToken: this.config.authToken,
+      messageBus: context.messageBus,
       logger,
     });
 

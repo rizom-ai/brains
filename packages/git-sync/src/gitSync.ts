@@ -1,5 +1,4 @@
-import type { Logger } from "@brains/types";
-import type { Plugin } from "@brains/types";
+import type { Logger, MessageBus } from "@brains/types";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 import { existsSync, mkdirSync } from "fs";
@@ -17,12 +16,13 @@ export const gitSyncOptionsSchema = z.object({
   commitMessage: z.string().optional(),
   authorName: z.string().optional(),
   authorEmail: z.string().optional(),
-  directorySync: z.any(), // Plugin instance
+  authToken: z.string().optional(),
+  messageBus: z.any(), // MessageBus instance
   logger: z.any(),
 });
 
 export type GitSyncOptions = z.infer<typeof gitSyncOptionsSchema> & {
-  directorySync: Plugin;
+  messageBus: MessageBus;
   logger: Logger;
 };
 
@@ -48,9 +48,7 @@ export interface GitSyncStatus {
  */
 export class GitSync {
   private _git: SimpleGit | null = null;
-  // TODO: Implement proper plugin communication with directory-sync
-  // @ts-expect-error - Will be used when plugin communication is implemented
-  private _directorySync: Plugin;
+  private messageBus: MessageBus;
   private logger: Logger;
   private gitUrl: string;
   private branch: string;
@@ -59,17 +57,18 @@ export class GitSync {
   private commitMessage: string;
   private authorName: string | undefined;
   private authorEmail: string | undefined;
+  private authToken: string | undefined;
   private syncTimer: Timer | undefined;
   private repoPath: string = "";
 
   constructor(options: GitSyncOptions) {
     // Validate options (excluding the complex types)
-    const { logger, ...validatableOptions } = options;
+    const { logger, messageBus, ...validatableOptions } = options;
     gitSyncOptionsSchema
-      .omit({ directorySync: true, logger: true })
+      .omit({ messageBus: true, logger: true })
       .parse(validatableOptions);
 
-    this._directorySync = options.directorySync;
+    this.messageBus = messageBus;
     this.logger = logger.child("GitSync");
     this.gitUrl = options.gitUrl;
     this.branch = options.branch;
@@ -78,6 +77,7 @@ export class GitSync {
     this.commitMessage = options.commitMessage ?? "Auto-sync: {date}";
     this.authorName = options.authorName;
     this.authorEmail = options.authorEmail;
+    this.authToken = options.authToken;
   }
 
   /**
@@ -89,15 +89,32 @@ export class GitSync {
   }
 
   /**
+   * Get authenticated git URL
+   */
+  private getAuthenticatedUrl(): string {
+    if (!this.authToken || !this.gitUrl.startsWith("https://")) {
+      return this.gitUrl;
+    }
+
+    // Parse the URL and insert authentication
+    const url = new URL(this.gitUrl);
+    // For GitHub, GitLab, etc., use token as username with 'x-oauth-basic' as password
+    // or just the token as password with any username
+    url.username = this.authToken;
+    url.password = "x-oauth-basic"; // GitHub convention
+    return url.toString();
+  }
+
+  /**
    * Initialize git repository
    */
   async initialize(): Promise<void> {
     this.logger.debug("Initializing git repository", { gitUrl: this.gitUrl });
 
-    // Get the sync path from directory-sync (we'll use a default for now)
-    // TODO: Get this from directory-sync plugin once we have proper plugin communication
-    // In test environment, use temp directory passed via environment
-    this.repoPath = process.env["GIT_SYNC_TEST_PATH"] || "./.brain-repo";
+    // Git-sync manages its own repository directory
+    // Don't use directory-sync's path as that would create nested git repos
+    this.repoPath = process.env["GIT_SYNC_TEST_PATH"] ?? "./.brain-repo";
+    this.logger.info("Using git repository path", { path: this.repoPath });
 
     // Clone or initialize repository
     if (!existsSync(this.repoPath)) {
@@ -117,7 +134,7 @@ export class GitSync {
       const parentDir = join(this.repoPath, "..");
       const repoName = basename(this.repoPath);
 
-      await simpleGit(parentDir).clone(this.gitUrl, repoName);
+      await simpleGit(parentDir).clone(this.getAuthenticatedUrl(), repoName);
       this._git = simpleGit(this.repoPath);
     } else if (!existsSync(join(this.repoPath, ".git"))) {
       // Initialize new repository
@@ -126,7 +143,7 @@ export class GitSync {
 
       // Add remote if URL provided
       if (this.gitUrl) {
-        await this.git.addRemote("origin", this.gitUrl);
+        await this.git.addRemote("origin", this.getAuthenticatedUrl());
       }
     } else {
       // Repository already exists, check if remote matches
@@ -138,9 +155,9 @@ export class GitSync {
           current: origin.refs.fetch,
           expected: this.gitUrl,
         });
-        await this.git.remote(["set-url", "origin", this.gitUrl]);
+        await this.git.remote(["set-url", "origin", this.getAuthenticatedUrl()]);
       } else if (!origin && this.gitUrl) {
-        await this.git.addRemote("origin", this.gitUrl);
+        await this.git.addRemote("origin", this.getAuthenticatedUrl());
       }
     }
 
@@ -151,6 +168,9 @@ export class GitSync {
     if (this.authorEmail) {
       await this.git.addConfig("user.email", this.authorEmail);
     }
+    
+    // Set pull strategy to avoid divergent branches error
+    await this.git.addConfig("pull.rebase", "false");
 
     // Checkout branch
     try {
@@ -158,6 +178,24 @@ export class GitSync {
     } catch {
       // Branch doesn't exist, create it
       await this.git.checkoutLocalBranch(this.branch);
+    }
+
+    // Configure directory-sync to use our repository path
+    const configResponse = await this.messageBus.send(
+      "sync:configure:request",
+      { syncPath: this.repoPath },
+      "git-sync",
+    );
+
+    if (!configResponse.success) {
+      this.logger.warn("Could not configure directory-sync", { 
+        error: configResponse.error,
+        repoPath: this.repoPath 
+      });
+    } else {
+      this.logger.info("Configured directory-sync to use git repository", { 
+        path: this.repoPath 
+      });
     }
 
     // Start auto-sync if enabled
@@ -278,12 +316,25 @@ export class GitSync {
    */
   async pull(): Promise<void> {
     try {
-      await this.git.pull("origin", this.branch);
+      // Pull with merge strategy (not rebase) and allow unrelated histories
+      await this.git.pull("origin", this.branch, { 
+        "--no-rebase": null,
+        "--allow-unrelated-histories": null 
+      });
       this.logger.info("Pulled changes from remote");
 
-      // Trigger directory sync import after pull
-      // TODO: Implement proper plugin communication
-      this.logger.info("Pull completed, manual import required");
+      // After pull, import entities via message bus
+      const importResponse = await this.messageBus.send(
+        "entity:import:request",
+        {},
+        "git-sync",
+      );
+
+      if (!importResponse.success) {
+        this.logger.warn("No directory sync plugin available for import");
+      } else {
+        this.logger.info("Imported entities after pull", { result: importResponse.data });
+      }
     } catch (error) {
       this.logger.error("Failed to pull changes", { error });
       throw error;
@@ -297,9 +348,18 @@ export class GitSync {
     this.logger.debug("Starting sync");
 
     try {
-      // First, export entities to directory
-      // TODO: Implement proper plugin communication
-      this.logger.info("Manual export required before commit");
+      // First, export entities to directory via message bus
+      const exportResponse = await this.messageBus.send(
+        "entity:export:request",
+        {},
+        "git-sync",
+      );
+
+      if (!exportResponse.success) {
+        this.logger.warn("No directory sync plugin available for export");
+      } else {
+        this.logger.info("Exported entities", { result: exportResponse.data });
+      }
 
       // Check if there are changes to commit
       const status = await this.getStatus();

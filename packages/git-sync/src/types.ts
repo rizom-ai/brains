@@ -17,10 +17,10 @@ export const gitSyncConfigSchema = createPluginConfig(
       .describe("Custom commit message template"),
     authorName: z.string().optional().describe("Git author name"),
     authorEmail: z.string().optional().describe("Git author email"),
-    directorySync: z
+    authToken: z
       .string()
       .optional()
-      .describe("ID of directory-sync plugin to use"),
+      .describe("Authentication token for private repositories"),
   },
   "Configuration for the git-sync plugin",
 );

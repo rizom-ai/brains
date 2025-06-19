@@ -152,6 +152,52 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
     // Create test harness
     harness = new PluginTestHarness();
 
+    // Override the message bus to include send method
+    const originalGetContext = harness.getPluginContext.bind(harness);
+    harness.getPluginContext = () => {
+      const context = originalGetContext();
+      return {
+        ...context,
+        messageBus: {
+          ...context.messageBus,
+          send: async (type: string) => {
+            if (type === "sync:status:request") {
+              return {
+                success: true,
+                data: {
+                  syncPath: testRepoPath,
+                  isInitialized: true,
+                  watchEnabled: false,
+                },
+              };
+            }
+            if (type === "entity:export:request") {
+              return {
+                success: true,
+                data: {
+                  exported: 0,
+                  failed: 0,
+                  errors: [],
+                },
+              };
+            }
+            if (type === "entity:import:request") {
+              return {
+                success: true,
+                data: {
+                  imported: 0,
+                  skipped: 0,
+                  failed: 0,
+                  errors: [],
+                },
+              };
+            }
+            return { success: false, error: "Unknown message type" };
+          },
+        },
+      };
+    };
+
     // Install mock directory-sync plugin first
     const mockDirSync = createMockDirectorySync(testRepoPath);
     await harness.installPlugin(mockDirSync);
@@ -351,12 +397,31 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
         directorySync: "directory-sync", // Explicitly specify the dependency
       });
 
-      expect(plugin.dependencies).toContain("directory-sync");
+      // GitSync no longer has hard dependencies with message-based communication
+      // expect(plugin.dependencies).toContain("directory-sync");
 
       const context = harness.getPluginContext();
       const capabilities = await plugin.register(context);
 
       expect(capabilities.tools.length).toBeGreaterThan(0);
+    });
+
+    it("should handle authentication token", async () => {
+      const plugin = gitSync({
+        gitUrl: "https://github.com/test/repo.git",
+        branch: "main",
+        autoSync: false,
+        authToken: "github_pat_test_token",
+      });
+
+      const context = harness.getPluginContext();
+      const capabilities = await plugin.register(context);
+
+      // Verify the plugin accepts the auth token configuration
+      expect(capabilities.tools.length).toBeGreaterThan(0);
+      
+      // The actual authentication URL formatting is tested internally
+      // We just verify the plugin initializes properly with the token
     });
   });
 });

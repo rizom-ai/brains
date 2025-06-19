@@ -1,4 +1,4 @@
-import type { Plugin, PluginContext, PluginTool } from "@brains/types";
+import type { Plugin, PluginContext, PluginTool, MessageBus } from "@brains/types";
 import {
   BasePlugin,
   pluginConfig,
@@ -47,7 +47,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
    * Initialize the plugin
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
-    const { logger, entityService, formatters } = context;
+    const { logger, entityService, formatters, messageBus } = context;
 
     // Register our custom formatter
     formatters.register(
@@ -76,6 +76,9 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
       this.error("Failed to initialize directory sync", error);
       throw error; // Fail plugin registration if init fails
     }
+
+    // Register message handlers for plugin communication
+    this.registerMessageHandlers(messageBus);
   }
 
   /**
@@ -238,6 +241,121 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
 
     await this.directorySync.initialize();
     this.info("Directory sync reconfigured", { path: options.syncPath });
+  }
+
+  /**
+   * Register message handlers for inter-plugin communication
+   */
+  private registerMessageHandlers(messageBus: MessageBus): void {
+    // Handler for export requests
+    messageBus.subscribe("entity:export:request", async (message) => {
+      if (!this.directorySync) {
+        return {
+          success: false,
+          error: "DirectorySync not initialized",
+        };
+      }
+
+      try {
+        const payload = message.payload as { entityTypes?: string[] };
+        const result = await this.directorySync.exportEntities(payload.entityTypes);
+        
+        return {
+          success: true,
+          data: result,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Export failed",
+        };
+      }
+    });
+
+    // Handler for import requests
+    messageBus.subscribe("entity:import:request", async (message) => {
+      if (!this.directorySync) {
+        return {
+          success: false,
+          error: "DirectorySync not initialized",
+        };
+      }
+
+      try {
+        const payload = message.payload as { paths?: string[] };
+        const result = await this.directorySync.importEntities(payload.paths);
+        
+        return {
+          success: true,
+          data: result,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Import failed",
+        };
+      }
+    });
+
+    // Handler for status requests
+    messageBus.subscribe("sync:status:request", async () => {
+      if (!this.directorySync) {
+        return {
+          success: false,
+          error: "DirectorySync not initialized",
+        };
+      }
+
+      try {
+        const status = await this.directorySync.getStatus();
+        
+        return {
+          success: true,
+          data: {
+            syncPath: status.syncPath,
+            isInitialized: status.exists,
+            watchEnabled: status.watching,
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Status check failed",
+        };
+      }
+    });
+
+    // Handler for configuration requests
+    messageBus.subscribe("sync:configure:request", async (message) => {
+      if (!this.directorySync) {
+        return {
+          success: false,
+          error: "DirectorySync not initialized",
+        };
+      }
+
+      try {
+        const payload = message.payload as { syncPath: string };
+        
+        // Reconfigure directory sync with new path
+        await this.configure({ syncPath: payload.syncPath });
+        
+        return {
+          success: true,
+          data: {
+            syncPath: payload.syncPath,
+            configured: true,
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Configuration failed",
+        };
+      }
+    });
+
+    this.info("Registered message handlers for inter-plugin communication");
   }
 }
 

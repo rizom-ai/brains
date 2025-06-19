@@ -277,6 +277,114 @@ async register(context: PluginContext): Promise<PluginCapabilities> {
 }
 ```
 
+## Plugin Communication Architecture Decision
+
+### Background
+When implementing the git-sync and directory-sync split, we need to decide how these plugins will communicate with each other. This decision will set a pattern for future plugin interactions.
+
+### Options Considered
+
+#### Option 1: Direct Plugin Reference (Tight Coupling)
+```typescript
+// In GitSyncPlugin
+this.directorySync = context.getPlugin("directory-sync");
+const result = await this.directorySync.exportEntities();
+```
+
+**Pros:**
+- Simple and straightforward
+- Type-safe with proper casting
+- Immediate feedback and error handling
+- Easy to debug
+
+**Cons:**
+- Tight coupling between plugins
+- GitSync must know about DirectorySync's interface
+- Harder to swap implementations
+- Doesn't scale well with many plugin interactions
+
+#### Option 2: Message Bus (Loose Coupling) - RECOMMENDED
+```typescript
+// DirectorySync registers handlers
+messageBus.registerHandler("entity:export:request", async (msg) => {
+  const result = await this.exportEntities(msg.payload.entityTypes);
+  return { success: true, data: result };
+});
+
+// GitSync sends messages
+const response = await messageBus.send("entity:export:request", { 
+  entityTypes: ["note"] 
+});
+```
+
+**Pros:**
+- Loose coupling - plugins don't know about each other
+- Can have multiple handlers for same message
+- Easier to add middleware/logging/monitoring
+- More scalable architecture
+- Follows established patterns (VS Code, WordPress, Kubernetes)
+
+**Cons:**
+- More complex initial implementation
+- Async by nature
+- Requires careful schema design for type safety
+
+#### Option 3: Service Registry Pattern
+```typescript
+// DirectorySync registers a service
+context.registry.register("directory-sync-service", {
+  exportEntities: async (types) => { ... },
+  importEntities: async (paths) => { ... }
+});
+
+// GitSync uses the service
+const dirSync = context.registry.get("directory-sync-service");
+```
+
+**Pros:**
+- Balance between coupling and flexibility
+- Clear service interfaces
+- Type-safe with interfaces
+
+**Cons:**
+- Still some coupling through interfaces
+- Need to manage service registry
+
+#### Option 4: Tool-Based Communication
+```typescript
+// GitSync calls DirectorySync's tools
+const result = await context.invokeTool("directory-sync:export", {
+  entityTypes: ["note"]
+});
+```
+
+**Pros:**
+- Uses existing MCP infrastructure
+- Tools are already the public API
+
+**Cons:**
+- Tools designed for external use
+- May add unnecessary overhead
+
+### Decision: Message Bus Architecture
+
+We will implement **Option 2: Message Bus** for the following reasons:
+
+1. **Future-Oriented**: Builds scalable patterns for plugin ecosystem
+2. **True Plugin Independence**: GitSync depends on "file operations", not specifically DirectorySync
+3. **Flexibility**: Could have multiple storage providers (S3, FTP, Database)
+4. **Proven Pattern**: Used by successful plugin systems (VS Code, WordPress)
+5. **App Responsibility**: The app decides which plugins provide which capabilities
+
+### Implementation Approach
+
+1. **Define Generic Messages**: Entity export/import messages that any storage plugin could handle
+2. **Directory-Sync Registers Handlers**: Implements the file-based storage strategy
+3. **Git-Sync Sends Messages**: Requests storage operations without knowing the provider
+4. **App Orchestrates**: Ensures both plugins are loaded when git functionality is needed
+
+This approach means git-sync could work with any storage provider that handles the entity messages, not just directory-sync.
+
 ## Implementation Plan
 
 ### Phase 1: Create Directory Sync Plugin
