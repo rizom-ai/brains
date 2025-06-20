@@ -33,5 +33,9 @@ export {
 // Content generation utilities
 export { generateWithTemplate } from "./content-generation";
 
+// Progress utilities
+export { ProgressReporter } from "./progress";
+export type { ProgressCallback } from "./progress";
+
 // Plugin utilities
 export * from "./plugin";

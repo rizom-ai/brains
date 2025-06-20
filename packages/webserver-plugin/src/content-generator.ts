@@ -1,5 +1,6 @@
 import type { BaseEntity, PluginContext } from "@brains/types";
 import type { Logger } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
@@ -467,15 +468,10 @@ export class ContentGenerator {
     // Ensure directories exist
     await this.initialize();
 
-    const totalSteps = 4; // general context + landing + dashboard + complete
-    let currentStep = 0;
+    const progress = ProgressReporter.from(sendProgress);
 
     // Step 1: Get or generate general context
-    await sendProgress?.({
-      progress: ++currentStep,
-      total: totalSteps,
-      message: "Checking organizational context",
-    });
+    await progress?.report("Checking organizational context");
 
     const entityService = this.context.entityService;
 
@@ -512,23 +508,32 @@ export class ContentGenerator {
       }
     } else {
       // Generate new general context
-      await sendProgress?.({
-        progress: currentStep,
-        total: totalSteps,
-        message: force
-          ? "Regenerating organizational context"
-          : "Generating organizational context",
-      });
 
-      await this.generateContent("webserver:general", {
-        prompt: `Create organizational context for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
-        context: {
-          siteTitle: this.options.siteTitle,
-          siteDescription: this.options.siteDescription,
-          siteUrl: this.options.siteUrl,
-        },
-        force,
-      });
+      await progress?.report("Generating organizational context");
+
+      // Create a sub-progress for this operation
+      const generalProgress = progress?.createSub("Organizational context");
+      generalProgress?.startHeartbeat(
+        "Still generating organizational context...",
+      );
+
+      try {
+        await this.generateContent(
+          "webserver:general",
+          {
+            prompt: `Create organizational context for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
+            context: {
+              siteTitle: this.options.siteTitle,
+              siteDescription: this.options.siteDescription,
+              siteUrl: this.options.siteUrl,
+            },
+            force,
+          },
+          generalProgress?.toCallback(),
+        );
+      } finally {
+        generalProgress?.stopHeartbeat();
+      }
 
       // Retrieve the newly generated general context
       const generalEntities = await entityService.listEntities<SiteContent>(
@@ -560,45 +565,42 @@ export class ContentGenerator {
     }
 
     // Step 2: Generate landing page with general context
-    await sendProgress?.({
-      progress: ++currentStep,
-      total: totalSteps,
-      message: force
+    await progress?.report(
+      force
         ? "Regenerating landing page content"
         : "Generating landing page content",
-    });
-
-    await this.generateContent(
-      "webserver:landing",
-      {
-        prompt: `Create a landing page for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
-        context: {
-          siteTitle: this.options.siteTitle,
-          siteDescription: this.options.siteDescription,
-          siteUrl: this.options.siteUrl,
-          generalContext, // Pass general context
-        },
-        force,
-      },
-      sendProgress,
     );
 
+    const landingProgress = progress?.createSub("Landing page");
+    landingProgress?.startHeartbeat("Still generating landing page...");
+
+    try {
+      await this.generateContent(
+        "webserver:landing",
+        {
+          prompt: `Create a landing page for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
+          context: {
+            siteTitle: this.options.siteTitle,
+            siteDescription: this.options.siteDescription,
+            siteUrl: this.options.siteUrl,
+            generalContext, // Pass general context
+          },
+          force,
+        },
+        landingProgress?.toCallback(),
+      );
+    } finally {
+      landingProgress?.stopHeartbeat();
+    }
+
     // Step 3: Generate dashboard
-    await sendProgress?.({
-      progress: ++currentStep,
-      total: totalSteps,
-      message: force
-        ? "Regenerating dashboard content"
-        : "Generating dashboard content",
-    });
-    await this.generateDashboard(sendProgress, force);
+    await progress?.report(
+      force ? "Regenerating dashboard content" : "Generating dashboard content",
+    );
+    await this.generateDashboard(undefined, force);
 
     // Step 4: Complete
-    await sendProgress?.({
-      progress: ++currentStep,
-      total: totalSteps,
-      message: "Content generation complete",
-    });
+    await progress?.report("Content generation complete");
     // Future: generateNotePages(), generateArticlePages(), etc.
   }
 }

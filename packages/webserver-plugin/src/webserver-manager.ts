@@ -1,5 +1,6 @@
 import type { PluginContext } from "@brains/types";
 import type { Logger } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils";
 import { join } from "path";
 import { fileURLToPath } from "url";
 import { ContentGenerator } from "./content-generator";
@@ -133,7 +134,14 @@ export class WebserverManager {
         total: totalSteps,
         message: `Generating content`,
       });
-      await this.contentGenerator.generateAll(sendProgress, false);
+
+      const progress = ProgressReporter.from(sendProgress);
+      const contentProgress = progress?.createSub("Generating content");
+
+      await this.contentGenerator.generateAll(
+        contentProgress?.toCallback(),
+        false,
+      );
 
       // Build site
       await sendProgress?.({
@@ -141,7 +149,10 @@ export class WebserverManager {
         total: totalSteps,
         message: "Building Astro site",
       });
-      await this.siteBuilder.build(sendProgress);
+
+      const buildProgress = progress?.createSub("Building site");
+
+      await this.siteBuilder.build(buildProgress?.toCallback());
 
       this.lastBuildTime = new Date();
       this.logger.info("Site build completed");
