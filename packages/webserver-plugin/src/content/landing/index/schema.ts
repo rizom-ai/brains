@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { landingHeroDataSchema } from "../hero/schema";
 import { featuresSectionSchema } from "../features/schema";
+import { productsSectionSchema } from "../products/schema";
 import { ctaSectionSchema } from "../cta/schema";
 
 /**
@@ -12,6 +13,7 @@ export const landingPageSchema = z.object({
   tagline: z.string(),
   hero: landingHeroDataSchema,
   features: featuresSectionSchema,
+  products: productsSectionSchema,
   cta: ctaSectionSchema,
 });
 

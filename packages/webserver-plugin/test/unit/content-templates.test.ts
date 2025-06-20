@@ -112,7 +112,11 @@ describe("Content Templates", () => {
   describe("contentRegistry", () => {
     it("should include collection templates", () => {
       const keys = contentRegistry.getTemplateKeys();
-      expect(keys).toEqual(["webserver:landing", "webserver:dashboard"]);
+      expect(keys).toEqual([
+        "webserver:general",
+        "webserver:landing",
+        "webserver:dashboard",
+      ]);
     });
 
     it("should retrieve collection templates correctly", () => {

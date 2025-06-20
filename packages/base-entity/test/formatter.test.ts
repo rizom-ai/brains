@@ -62,8 +62,10 @@ This content has frontmatter.`,
     expect(formatted).toContain("This content has frontmatter");
   });
 
-  test("format should handle non-entity data gracefully", () => {
-    const result = formatter.format("not an entity");
-    expect(result).toBe("not an entity");
+  test("canFormat should return false for non-entity data", () => {
+    expect(formatter.canFormat("not an entity")).toBe(false);
+    expect(formatter.canFormat(123)).toBe(false);
+    expect(formatter.canFormat(null)).toBe(false);
+    expect(formatter.canFormat(undefined)).toBe(false);
   });
 });

@@ -8,8 +8,10 @@ const createEntityResponseSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
-export class CreateEntityResponseFormatter extends ResponseFormatter {
-  format(data: unknown): string {
+type CreateEntityResponse = z.infer<typeof createEntityResponseSchema>;
+
+export class CreateEntityResponseFormatter extends ResponseFormatter<CreateEntityResponse> {
+  format(data: CreateEntityResponse): string {
     const parsed = createEntityResponseSchema.safeParse(data);
     if (!parsed.success) {
       return JSON.stringify(data, null, 2);

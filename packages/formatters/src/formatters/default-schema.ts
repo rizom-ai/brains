@@ -6,7 +6,7 @@ import type { SchemaFormatter } from "@brains/types";
  * Checks for common display fields, otherwise returns JSON.
  * Specific formatters should handle rich formatting.
  */
-export class DefaultSchemaFormatter implements SchemaFormatter {
+export class DefaultSchemaFormatter implements SchemaFormatter<unknown> {
   /**
    * Format any data into readable text
    */

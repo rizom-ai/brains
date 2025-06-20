@@ -8,16 +8,12 @@ import { parseMarkdown } from "@brains/utils";
  * Provides a basic formatter for BaseEntity instances,
  * displaying database fields and frontmatter separately.
  */
-export class BaseEntityFormatter implements SchemaFormatter {
+export class BaseEntityFormatter implements SchemaFormatter<BaseEntity> {
   /**
    * Format a base entity as markdown
    */
-  format(data: unknown): string {
-    if (!this.canFormat(data)) {
-      return String(data);
-    }
-
-    const entity = data as BaseEntity;
+  format(data: BaseEntity): string {
+    const entity = data;
     let output = "";
 
     // Display entity header

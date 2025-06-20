@@ -1,10 +1,13 @@
 import type { ContentTemplate } from "@brains/types";
 import { generalContextSchema, type GeneralContext } from "./schema";
+import { GeneralContextFormatter } from "./formatter";
 
 export const generalContextTemplate: ContentTemplate<GeneralContext> = {
   name: "general-context",
-  description: "General organizational context that informs all content generation",
+  description:
+    "General organizational context that informs all content generation",
   schema: generalContextSchema,
+  formatter: new GeneralContextFormatter(),
   basePrompt: `You are creating the foundational context for an organization's website.
   
 Analyze the available content and generate:
@@ -22,3 +25,4 @@ Make it authentic and aligned with the organization's actual work.`,
 
 export { generalContextSchema } from "./schema";
 export type { GeneralContext } from "./schema";
+export { GeneralContextFormatter } from "./formatter";

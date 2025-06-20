@@ -5,7 +5,9 @@ import { directorySyncStatusSchema } from "../schemas";
 /**
  * Formatter for directory sync status
  */
-export class DirectorySyncStatusFormatter implements SchemaFormatter {
+export class DirectorySyncStatusFormatter
+  implements SchemaFormatter<DirectorySyncStatus>
+{
   canFormat(data: unknown): boolean {
     return directorySyncStatusSchema.safeParse(data).success;
   }

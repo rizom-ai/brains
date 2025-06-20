@@ -4,8 +4,10 @@ import { hasProps } from "./utils";
 /**
  * Base formatter for API/query responses with common utilities
  */
-export abstract class ResponseFormatter implements SchemaFormatter {
-  abstract format(data: unknown): string;
+export abstract class ResponseFormatter<T = unknown>
+  implements SchemaFormatter<T>
+{
+  abstract format(data: T): string;
   abstract canFormat(data: unknown): boolean;
 
   /**

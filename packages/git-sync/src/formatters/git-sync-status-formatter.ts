@@ -1,15 +1,12 @@
 import { ResponseFormatter } from "@brains/formatters";
+import type { GitSyncStatus } from "../schemas";
 
 /**
  * Formatter for git sync status
  */
-export class GitSyncStatusFormatter extends ResponseFormatter {
-  format(data: unknown): string {
-    if (!this.canFormat(data)) {
-      return JSON.stringify(data, null, 2);
-    }
-
-    const status = data as GitSyncStatus;
+export class GitSyncStatusFormatter extends ResponseFormatter<GitSyncStatus> {
+  format(data: GitSyncStatus): string {
+    const status = data;
     const parts: string[] = [];
 
     // Header
@@ -94,17 +91,4 @@ export class GitSyncStatusFormatter extends ResponseFormatter {
     };
     return statusMap[status] ?? status;
   }
-}
-
-interface GitSyncStatus {
-  isRepo: boolean;
-  hasChanges: boolean;
-  ahead: number;
-  behind: number;
-  branch: string;
-  lastCommit?: string | undefined;
-  files: Array<{
-    path: string;
-    status: string;
-  }>;
 }

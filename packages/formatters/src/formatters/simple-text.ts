@@ -5,8 +5,10 @@ const simpleTextResponseSchema = z.object({
   message: z.string(),
 });
 
-export class SimpleTextResponseFormatter extends ResponseFormatter {
-  format(data: unknown): string {
+type SimpleTextResponse = z.infer<typeof simpleTextResponseSchema>;
+
+export class SimpleTextResponseFormatter extends ResponseFormatter<SimpleTextResponse> {
+  format(data: SimpleTextResponse): string {
     const parsed = simpleTextResponseSchema.safeParse(data);
     if (parsed.success) {
       return parsed.data.message;

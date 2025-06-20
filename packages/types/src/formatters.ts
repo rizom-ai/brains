@@ -7,13 +7,13 @@
 /**
  * Base interface for schema formatters (API response formatting)
  */
-export interface SchemaFormatter {
+export interface SchemaFormatter<T = unknown> {
   /**
    * Format data into human-readable markdown text
    * @param data - The data to format
    * @returns Formatted markdown string
    */
-  format(data: unknown): string;
+  format(data: T): string;
 
   /**
    * Check if this formatter can handle the given data

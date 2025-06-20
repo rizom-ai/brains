@@ -7,8 +7,10 @@ const defaultQueryResponseSchema = z.object({
   relatedTopics: z.array(z.string()).optional().default([]),
 });
 
-export class DefaultQueryResponseFormatter extends ResponseFormatter {
-  format(data: unknown): string {
+type DefaultQueryResponse = z.infer<typeof defaultQueryResponseSchema>;
+
+export class DefaultQueryResponseFormatter extends ResponseFormatter<DefaultQueryResponse> {
+  format(data: DefaultQueryResponse): string {
     const parsed = defaultQueryResponseSchema.safeParse(data);
     if (!parsed.success) {
       return JSON.stringify(data, null, 2);

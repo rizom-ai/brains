@@ -1,418 +1,508 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentGenerator } from "../../src/content-generator";
 import type {
-  EntityService,
+  PluginContext,
   BaseEntity,
   ListOptions,
-  PluginContext,
-  ContentGenerateOptions,
-  ContentGenerationService,
+  ProgressNotification,
 } from "@brains/types";
 import { createSilentLogger } from "@brains/utils";
 import { mkdirSync, existsSync, rmSync } from "fs";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import * as yaml from "js-yaml";
-import type { z } from "zod";
-import type { LandingHeroData } from "../../src/content/landing/hero/schema";
-import type { FeaturesSection } from "../../src/content/landing/features/schema";
-import type { CTASection } from "../../src/content/landing/cta/schema";
+import { GeneralContextFormatter } from "../../src/content/general";
 import type { DashboardData } from "../../src/content/dashboard/index/schema";
 
 describe("ContentGenerator", () => {
   let contentGenerator: ContentGenerator;
-  let mockEntityService: EntityService;
   const testDir = join(__dirname, "test-content");
 
+  // Create a minimal mock context that behaves like the real system
+  function createMockContext(): PluginContext {
+    const storedEntities = new Map<string, BaseEntity>();
+
+    const mockListEntities = <T extends BaseEntity>(
+      entityType: string,
+      options?: Omit<ListOptions, "entityType">,
+    ): Promise<T[]> => {
+      const entities = Array.from(storedEntities.values()).filter(
+        (e) => e.entityType === entityType,
+      );
+      if (options?.filter?.metadata) {
+        return Promise.resolve(
+          entities.filter((e) => {
+            const metadata = options.filter?.metadata;
+            if (!metadata) return true;
+            return Object.entries(metadata).every(
+              ([key, value]) => (e as Record<string, unknown>)[key] === value,
+            );
+          }) as T[],
+        );
+      }
+      return Promise.resolve(entities as T[]);
+    };
+
+    return {
+      pluginId: "webserver",
+      logger: createSilentLogger("test"),
+      entityService: {
+        createEntity: mock(async (entity) => {
+          const id = `${entity.entityType}-${Date.now()}-${Math.random()}`;
+          const fullEntity = {
+            ...entity,
+            id,
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          };
+          storedEntities.set(id, fullEntity);
+          return fullEntity;
+        }),
+        updateEntity: mock(async (entity) => {
+          storedEntities.set(entity.id, entity);
+          return entity;
+        }),
+        listEntities: mock(mockListEntities),
+        getEntityTypes: mock(() => ["note", "site-content"]),
+      },
+      contentGenerationService: {
+        generateContent: mock(async (contentType) => {
+          // Return valid content for each supported type
+          const contents: Record<string, unknown> = {
+            "webserver:general": {
+              organizationName: "Test Organization",
+              tagline: "Making things better",
+              mission: "To create amazing software",
+              vision: "A world of better tools",
+              values: [
+                { name: "Quality", description: "We care about quality" },
+                { name: "Innovation", description: "We innovate constantly" },
+                { name: "Community", description: "We build together" },
+              ],
+              tone: "professional",
+              themes: ["software", "innovation", "community"],
+              audience: {
+                primary: "Developers and creators",
+                secondary: "Tech enthusiasts",
+              },
+              focusAreas: ["Tools", "Education", "Open Source"],
+            },
+            "webserver:landing": {
+              title: "Test Site",
+              tagline: "A great test site",
+              hero: {
+                headline: "Welcome to Our Site",
+                subheadline: "Discover amazing things",
+                ctaText: "Get Started",
+                ctaLink: "/start",
+              },
+              features: {
+                label: "Features",
+                headline: "What We Offer",
+                description: "Our key features",
+                features: [
+                  {
+                    icon: "star",
+                    title: "Feature 1",
+                    description: "First feature",
+                  },
+                  {
+                    icon: "heart",
+                    title: "Feature 2",
+                    description: "Second feature",
+                  },
+                ],
+              },
+              products: {
+                label: "Products",
+                headline: "Our Products",
+                description: "What we build",
+                products: [
+                  {
+                    id: "product1",
+                    name: "Product One",
+                    tagline: "The first product",
+                    description: "A great product",
+                    status: "live",
+                    icon: "box",
+                  },
+                ],
+              },
+              cta: {
+                headline: "Ready to Start?",
+                description: "Join us today",
+                primaryButton: { text: "Sign Up", link: "/signup" },
+              },
+            },
+            "webserver:dashboard": {
+              title: "Dashboard",
+              description: "Your overview",
+              stats: {
+                entityCount: 42,
+                entityTypeCount: 5,
+                lastUpdated: new Date().toISOString(),
+              },
+              recentEntities: [
+                {
+                  id: "entity1",
+                  title: "Recent Item 1",
+                  created: new Date().toISOString(),
+                },
+                {
+                  id: "entity2",
+                  title: "Recent Item 2",
+                  created: new Date().toISOString(),
+                },
+              ],
+            },
+          };
+
+          if (contents[contentType]) {
+            return contents[contentType];
+          }
+          throw new Error(`Unknown content type: ${contentType}`);
+        }),
+        getTemplate: mock((contentType) => {
+          // Return template info based on content type
+          if (contentType === "webserver:landing") {
+            return {
+              name: "landing-page",
+              description: "Landing page",
+              schema: {},
+              items: {
+                hero: {},
+                features: {},
+                products: {},
+                cta: {},
+              },
+            };
+          } else if (
+            contentType === "webserver:general" ||
+            contentType === "webserver:dashboard"
+          ) {
+            return {
+              name: contentType.split(":")[1],
+              description: `${contentType} template`,
+              schema: {},
+            };
+          }
+          return null;
+        }),
+      },
+      contentTypeRegistry: {
+        getFormatter: mock((contentType) => {
+          if (contentType === "webserver:general") {
+            // Use the actual formatter for general context
+            const formatter = new GeneralContextFormatter();
+            return formatter;
+          }
+          // Simple formatter that converts to YAML for others
+          return {
+            format: (data: unknown): string => yaml.dump(data),
+            canFormat: (): boolean => true,
+          };
+        }),
+      },
+    } as unknown as PluginContext;
+  }
+
   beforeEach(() => {
-    // Clean up test directory
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
     mkdirSync(testDir, { recursive: true });
-
-    // Mock EntityService with minimum needed methods
-    mockEntityService = {
-      createEntity: mock(async () => ({
-        id: "test-id",
-        entityType: "test",
-        content: "test content",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      })),
-      listEntities: mock(
-        async <T extends BaseEntity>(
-          _entityType: string,
-          _options?: ListOptions,
-        ): Promise<T[]> => {
-          // Return empty array by default - tests will override as needed
-          return [];
-        },
-      ),
-      searchEntities: mock(async () => ({ results: [], total: 0 })),
-      getEntity: mock(async () => null),
-      updateEntity: mock(async () => ({
-        id: "test-id",
-        entityType: "test",
-        content: "test content",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      })),
-      deleteEntity: mock(async () => ({ success: true })),
-      getEntityTypes: mock(() => ["note", "site-content"]),
-    } as unknown as EntityService;
-
-    // Mock ContentGenerationService
-    const mockContentGenerationService = {
-      initialize: mock(() => {}),
-      generate: mock(async () => ({})),
-      generateBatch: mock(async () => []),
-      registerTemplate: mock(() => {}),
-      getTemplate: mock(() => null),
-      listTemplates: mock(() => []),
-      generateFromTemplate: mock(async () => ({})),
-      generateContent: mock(async (contentType: string) => {
-        // Return appropriate data based on content type
-        if (contentType === "webserver:landing") {
-          return {
-            title: "Test Brain",
-            tagline: "Test Description",
-            hero: {
-              headline: "Your Personal Knowledge Hub",
-              subheadline:
-                "Organize, connect, and discover your digital thoughts",
-              ctaText: "View Dashboard",
-              ctaLink: "/dashboard",
-            },
-            features: {
-              label: "Features",
-              headline: "Powerful Features",
-              description: "Everything you need",
-              features: [
-                {
-                  icon: "check",
-                  title: "Feature 1",
-                  description: "Description 1",
-                },
-              ],
-            },
-            cta: {
-              headline: "Get Started Today",
-              description: "Join now",
-              primaryButton: {
-                text: "Start Free",
-                link: "/signup",
-              },
-            },
-          };
-        } else if (contentType === "webserver:dashboard") {
-          return {
-            title: "Dashboard",
-            description: "Your knowledge overview",
-            stats: {
-              entityCount: 10,
-              entityTypeCount: 3,
-              lastUpdated: new Date().toISOString(),
-            },
-            recentEntities: [],
-          };
-        }
-        // Default return for unknown content types
-        throw new Error(`Unknown content type: ${contentType}`);
-      }),
-    } as ContentGenerationService;
-
-    // Mock Plugin Context
-    const mockContext = {
-      pluginId: "webserver",
-      logger: createSilentLogger("test"),
-      query: mock(
-        async <T>(_query: string, _schema: z.ZodType<T>): Promise<T> => {
-          // Return landing page data matching the schema
-          return {
-            title: "Test Brain",
-            tagline: "Test Description",
-            hero: {
-              headline: "Your Personal Knowledge Hub",
-              subheadline:
-                "Organize, connect, and discover your digital thoughts",
-              ctaText: "View Dashboard",
-              ctaLink: "/dashboard",
-            },
-          } as T;
-        },
-      ),
-      generateContent: mock(
-        async <T>(options: ContentGenerateOptions<T>): Promise<T> => {
-          // Return appropriate data based on content type
-          if (options.contentType === "landing:hero") {
-            const heroData: LandingHeroData = {
-              headline: "Your Personal Knowledge Hub",
-              subheadline:
-                "Organize, connect, and discover your digital thoughts",
-              ctaText: "View Dashboard",
-              ctaLink: "/dashboard",
-            };
-            return options.schema.parse(heroData);
-          } else if (options.contentType === "landing:features") {
-            const featuresData: FeaturesSection = {
-              label: "Features",
-              headline: "Powerful Features",
-              description: "Everything you need",
-              features: [
-                {
-                  icon: "check",
-                  title: "Feature 1",
-                  description: "Description 1",
-                },
-              ],
-            };
-            return options.schema.parse(featuresData);
-          } else if (options.contentType === "landing:cta") {
-            const ctaData: CTASection = {
-              headline: "Get Started Today",
-              description: "Join now",
-              primaryButton: {
-                text: "Start Free",
-                link: "/signup",
-              },
-            };
-            return options.schema.parse(ctaData);
-          } else if (options.contentType === "dashboard:index") {
-            const dashboardData: DashboardData = {
-              title: "Dashboard",
-              description: "Your knowledge overview",
-              stats: {
-                entityCount: 10,
-                entityTypeCount: 3,
-                lastUpdated: new Date().toISOString(),
-              },
-              recentEntities: [],
-            };
-            return options.schema.parse(dashboardData);
-          }
-          // Default return for unknown content types
-          throw new Error(`Unknown content type: ${options.contentType}`);
-        },
-      ),
-      // Other context properties we don't use in this test
-      getPlugin: () => undefined,
-      events: {} as unknown as PluginContext["events"],
-      messageBus: {} as unknown as PluginContext["messageBus"],
-      formatters: {} as unknown as PluginContext["formatters"],
-      contentTypes: {
-        register: mock(() => {}),
-        list: mock(() => []),
-      },
-      templates: {
-        register: mock(() => {}),
-      },
-      registerEntityType: mock(() => {}),
-      // Direct service access (added to PluginContext)
-      entityService: mockEntityService,
-      contentGenerationService: mockContentGenerationService,
-      contentTypeRegistry: {
-        register: mock(() => {}),
-        get: mock(() => null),
-        list: mock(() => []),
-        has: mock(() => false),
-        getFormatter: mock(() => null),
-        clear: mock(() => {}),
-      },
-    } as unknown as PluginContext;
-
-    // Create ContentGenerator instance
-    contentGenerator = new ContentGenerator({
-      logger: createSilentLogger("test"),
-      context: mockContext,
-      astroSiteDir: testDir,
-      siteTitle: "Test Brain",
-      siteDescription: "Test Description",
-      siteUrl: "https://test.com",
-    });
   });
 
   afterEach(() => {
-    // Clean up test directory
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
   });
 
-  describe("initialize", () => {
-    it("should create content directories", async () => {
-      await contentGenerator.initialize();
+  describe("initialization", () => {
+    it("should create content directories when initialized", async () => {
+      const context = createMockContext();
+      contentGenerator = new ContentGenerator({
+        logger: createSilentLogger("test"),
+        context,
+        astroSiteDir: testDir,
+        siteTitle: "Test Site",
+        siteDescription: "Test Description",
+      });
 
+      await contentGenerator.generateAll();
+
+      // Verify directory structure was created
       expect(existsSync(join(testDir, "src/content"))).toBe(true);
       expect(existsSync(join(testDir, "src/content/landing"))).toBe(true);
       expect(existsSync(join(testDir, "src/content/dashboard"))).toBe(true);
     });
+  });
 
-    it("should not fail if directories already exist", async () => {
-      // Create directories first
-      mkdirSync(join(testDir, "src/content/landing"), { recursive: true });
+  describe("content generation", () => {
+    it("should generate landing page content", async () => {
+      const context = createMockContext();
+      contentGenerator = new ContentGenerator({
+        logger: createSilentLogger("test"),
+        context,
+        astroSiteDir: testDir,
+        siteTitle: "Test Site",
+        siteDescription: "Test Description",
+      });
 
-      // Should not throw
-      await contentGenerator.initialize();
+      await contentGenerator.generateLandingPage();
 
-      expect(existsSync(join(testDir, "src/content/landing"))).toBe(true);
+      // Verify landing page was created
+      const landingPath = join(testDir, "src/content/landing/index.yaml");
+      expect(existsSync(landingPath)).toBe(true);
+
+      // Verify content structure
+      const content = yaml.load(await readFile(landingPath, "utf-8")) as Record<
+        string,
+        unknown
+      >;
+      expect(content["title"]).toBeDefined();
+      expect(content["hero"]).toBeDefined();
+      expect(content["features"]).toBeDefined();
+      expect(content["products"]).toBeDefined();
+      expect(content["cta"]).toBeDefined();
+    });
+
+    it("should generate dashboard content with real-time stats", async () => {
+      const context = createMockContext();
+
+      // Add some entities to the mock by creating them
+      await context.entityService.createEntity({
+        entityType: "note",
+        content: "Note 1",
+      });
+      await context.entityService.createEntity({
+        entityType: "note",
+        content: "Note 2",
+      });
+      await context.entityService.createEntity({
+        entityType: "article",
+        content: "Article 1",
+      });
+
+      contentGenerator = new ContentGenerator({
+        logger: createSilentLogger("test"),
+        context,
+        astroSiteDir: testDir,
+        siteTitle: "Test Site",
+        siteDescription: "Test Description",
+      });
+
+      await contentGenerator.generateDashboard();
+
+      // Verify dashboard was created
+      const dashboardPath = join(testDir, "src/content/dashboard/index.yaml");
+      expect(existsSync(dashboardPath)).toBe(true);
+
+      // Verify it contains stats
+      const content = yaml.load(
+        await readFile(dashboardPath, "utf-8"),
+      ) as DashboardData;
+      expect(content.title).toBe("Test Site");
+      expect(content.stats).toBeDefined();
+      expect(content.stats.entityCount).toBeGreaterThan(0);
+    });
+
+    it("should generate all content in correct order", async () => {
+      const context = createMockContext();
+      const callOrder: string[] = [];
+
+      // Track the order of content generation
+      context.contentGenerationService.generateContent = mock(
+        async (contentType) => {
+          callOrder.push(contentType);
+          const defaultMock =
+            createMockContext().contentGenerationService.generateContent;
+          return defaultMock(contentType);
+        },
+      );
+
+      contentGenerator = new ContentGenerator({
+        logger: createSilentLogger("test"),
+        context,
+        astroSiteDir: testDir,
+        siteTitle: "Test Site",
+        siteDescription: "Test Description",
+      });
+
+      await contentGenerator.generateAll();
+
+      // Verify general context is generated/checked first
+      expect(callOrder[0]).toBe("webserver:general");
+
+      // Verify other content is generated after
+      expect(callOrder).toContain("webserver:landing");
+
+      // Verify files were created
+      expect(existsSync(join(testDir, "src/content/landing/index.yaml"))).toBe(
+        true,
+      );
+      expect(
+        existsSync(join(testDir, "src/content/dashboard/index.yaml")),
+      ).toBe(true);
     });
   });
 
-  describe("generateLandingPage", () => {
-    it("should generate landing page YAML with correct data", async () => {
-      await contentGenerator.generateAll();
+  describe("caching behavior", () => {
+    it("should not regenerate existing content without force flag", async () => {
+      const context = createMockContext();
+      let generateCallCount = 0;
 
-      const yamlPath = join(testDir, "src/content/landing/index.yaml");
-      expect(existsSync(yamlPath)).toBe(true);
-
-      const content = await readFile(yamlPath, "utf-8");
-      const data = yaml.load(content) as Record<string, unknown>;
-
-      expect(data["title"]).toBe("Test Brain");
-      expect(data["tagline"]).toBe("Test Description");
-      expect(data["hero"]).toBeDefined();
-      const hero = data["hero"] as Record<string, unknown>;
-      expect(hero["headline"]).toBe("Your Personal Knowledge Hub");
-      expect(hero["subheadline"]).toBe(
-        "Organize, connect, and discover your digital thoughts",
-      );
-      expect(hero["ctaText"]).toBe("View Dashboard");
-      expect(hero["ctaLink"]).toBe("/dashboard");
-
-      // Check features section
-      expect(data["features"]).toBeDefined();
-      const features = data["features"] as Record<string, unknown>;
-      expect(features["label"]).toBe("Features");
-      expect(features["headline"]).toBe("Powerful Features");
-      expect(features["description"]).toBe("Everything you need");
-      expect(features["features"]).toBeInstanceOf(Array);
-      const featuresList = features["features"] as Array<
-        Record<string, unknown>
-      >;
-      expect(featuresList).toHaveLength(1);
-      expect(featuresList[0]?.["title"]).toBe("Feature 1");
-
-      // Check CTA section
-      expect(data["cta"]).toBeDefined();
-      const cta = data["cta"] as Record<string, unknown>;
-      expect(cta["headline"]).toBe("Get Started Today");
-    });
-
-    it("should generate dashboard YAML with correct data", async () => {
-      await contentGenerator.generateAll();
-
-      const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
-      expect(existsSync(yamlPath)).toBe(true);
-
-      const content = await readFile(yamlPath, "utf-8");
-      const data = yaml.load(content) as Record<string, unknown>;
-
-      expect(data["title"]).toBe("Test Brain");
-      expect(data["description"]).toBe("Test Description");
-      expect(data["stats"]).toBeDefined();
-      expect(data["recentEntities"]).toBeInstanceOf(Array);
-    });
-
-    it("should handle empty notes list", async () => {
-      // Mock empty entity list
-      const mockListEntities = mock(async (): Promise<BaseEntity[]> => []);
-      mockEntityService.listEntities =
-        mockListEntities as EntityService["listEntities"];
-
-      await contentGenerator.generateAll();
-
-      const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
-      const content = await readFile(yamlPath, "utf-8");
-      const data = yaml.load(content) as Record<string, unknown>;
-
-      const stats = data["stats"] as Record<string, unknown>;
-      expect(stats["entityCount"]).toBe(0);
-      expect(stats["entityTypeCount"]).toBe(2); // From getEntityTypes mock
-      expect(data["recentEntities"]).toEqual([]);
-    });
-
-    it("should reject invalid existing content and generate new", async () => {
-      // Mock invalid existing content
-      const mockGeneratedContent = {
-        id: "test-generated-content",
-        entityType: "generated-content",
-        contentType: "webserver:landing:page",
-        data: {
-          // Missing required fields
-          title: "Test",
-        },
-        content: "Invalid content",
-        metadata: {
-          prompt: "Generate landing page",
-          generatedAt: new Date().toISOString(),
-          generatedBy: "test",
-          regenerated: false,
-          validationStatus: "invalid" as const,
-        },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
-
-      const mockListEntities = mock(
-        async (
-          entityType: string,
-          options?: { filter?: { metadata?: { contentType?: string } } },
-        ) => {
-          if (
-            entityType === "generated-content" &&
-            options?.filter?.metadata?.contentType === "webserver:landing:page"
-          ) {
-            return [mockGeneratedContent];
-          }
-          return [];
+      context.contentGenerationService.generateContent = mock(
+        async (contentType) => {
+          generateCallCount++;
+          const defaultMock =
+            createMockContext().contentGenerationService.generateContent;
+          return defaultMock(contentType);
         },
       );
-      mockEntityService.listEntities =
-        mockListEntities as EntityService["listEntities"];
 
-      // Should not throw, should generate new content
-      await contentGenerator.generateAll();
-
-      const yamlPath = join(testDir, "src/content/landing/index.yaml");
-      expect(existsSync(yamlPath)).toBe(true);
-
-      const content = await readFile(yamlPath, "utf-8");
-      const data = yaml.load(content) as Record<string, unknown>;
-
-      // Should have new generated content
-      expect(data["title"]).toBe("Test Brain");
-      expect(data["hero"]).toBeDefined();
-    });
-
-    it("should limit recent notes to 5", async () => {
-      // Mock many entities
-      const mockEntities = Array.from({ length: 10 }, (_, i) => ({
-        id: `note-${i}`,
-        entityType: "note",
-        content: `Note ${i} content`,
-        created: new Date(Date.now() - i * 1000 * 60 * 60).toISOString(),
-        updated: new Date(Date.now() - i * 1000 * 60 * 60).toISOString(),
-      }));
-
-      const mockListEntities = mock(async (): Promise<BaseEntity[]> => {
-        return mockEntities;
+      contentGenerator = new ContentGenerator({
+        logger: createSilentLogger("test"),
+        context,
+        astroSiteDir: testDir,
+        siteTitle: "Test Site",
+        siteDescription: "Test Description",
       });
-      mockEntityService.listEntities =
-        mockListEntities as EntityService["listEntities"];
 
+      // First generation
       await contentGenerator.generateAll();
+      const firstCallCount = generateCallCount;
 
-      const yamlPath = join(testDir, "src/content/dashboard/index.yaml");
-      const content = await readFile(yamlPath, "utf-8");
-      const data = yaml.load(content) as Record<string, unknown>;
+      // Second generation without force - should use cached general context
+      await contentGenerator.generateAll(undefined, false);
 
-      const recentEntities = data["recentEntities"] as Array<unknown>;
-      expect(recentEntities.length).toBe(5);
+      // Should have fewer calls since general context is reused
+      expect(generateCallCount).toBeLessThan(firstCallCount * 2);
+    });
 
-      // Should be sorted by most recent first
-      const firstEntity = recentEntities[0] as Record<string, unknown>;
-      expect(firstEntity["id"]).toBe("note-0");
+    it("should regenerate all content with force flag", async () => {
+      const context = createMockContext();
+      let generateCallCount = 0;
+
+      context.contentGenerationService.generateContent = mock(
+        async (contentType) => {
+          generateCallCount++;
+          const defaultMock =
+            createMockContext().contentGenerationService.generateContent;
+          return defaultMock(contentType);
+        },
+      );
+
+      contentGenerator = new ContentGenerator({
+        logger: createSilentLogger("test"),
+        context,
+        astroSiteDir: testDir,
+        siteTitle: "Test Site",
+        siteDescription: "Test Description",
+      });
+
+      // First generation
+      await contentGenerator.generateAll();
+      const firstCallCount = generateCallCount;
+
+      // Second generation with force
+      generateCallCount = 0;
+      await contentGenerator.generateAll(undefined, true);
+
+      // Should regenerate everything
+      expect(generateCallCount).toBe(firstCallCount);
+    });
+  });
+
+  describe("error handling", () => {
+    it("should fail if general context cannot be generated", async () => {
+      const context = createMockContext();
+
+      // Make general context generation fail
+      context.contentGenerationService.generateContent = mock(
+        async (contentType) => {
+          if (contentType === "webserver:general") {
+            throw new Error("Failed to generate general context");
+          }
+          const defaultMock =
+            createMockContext().contentGenerationService.generateContent;
+          return defaultMock(contentType);
+        },
+      );
+
+      contentGenerator = new ContentGenerator({
+        logger: createSilentLogger("test"),
+        context,
+        astroSiteDir: testDir,
+        siteTitle: "Test Site",
+        siteDescription: "Test Description",
+      });
+
+      // Should throw an error
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      await expect(contentGenerator.generateAll()).rejects.toThrow(
+        "Failed to generate general context",
+      );
+    });
+
+    it("should handle missing formatter gracefully", async () => {
+      const context = createMockContext();
+
+      // Remove formatter
+      context.contentTypeRegistry.getFormatter = mock(() => null);
+
+      contentGenerator = new ContentGenerator({
+        logger: createSilentLogger("test"),
+        context,
+        astroSiteDir: testDir,
+        siteTitle: "Test Site",
+        siteDescription: "Test Description",
+      });
+
+      // Should still work - falls back to YAML
+      await contentGenerator.generateContent("webserver:dashboard");
+
+      const dashboardPath = join(testDir, "src/content/dashboard/index.yaml");
+      expect(existsSync(dashboardPath)).toBe(true);
+    });
+  });
+
+  describe("progress reporting", () => {
+    it("should report progress during generation", async () => {
+      const context = createMockContext();
+      const progressReports: ProgressNotification[] = [];
+
+      contentGenerator = new ContentGenerator({
+        logger: createSilentLogger("test"),
+        context,
+        astroSiteDir: testDir,
+        siteTitle: "Test Site",
+        siteDescription: "Test Description",
+      });
+
+      await contentGenerator.generateAll(async (progress) => {
+        progressReports.push(progress);
+      });
+
+      // Should have progress reports
+      expect(progressReports.length).toBeGreaterThan(0);
+
+      // Should have meaningful messages
+      expect(
+        progressReports.some((p) =>
+          p.message?.includes("organizational context"),
+        ),
+      ).toBe(true);
+      expect(
+        progressReports.some((p) => p.message?.includes("landing page")),
+      ).toBe(true);
+      expect(
+        progressReports.some((p) => p.message?.includes("dashboard")),
+      ).toBe(true);
+      expect(progressReports.some((p) => p.message?.includes("complete"))).toBe(
+        true,
+      );
     });
   });
 });

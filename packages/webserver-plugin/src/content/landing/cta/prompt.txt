@@ -9,4 +9,18 @@ The CTA section should have:
   - "text" field: Alternative action text (e.g., "View Demo", "Learn More")
   - "link" field: Appropriate link
 
-Make it compelling and action-oriented. Remember that buttons must be objects with "text" and "link" fields, not strings.
+IMPORTANT: Buttons must be proper JSON objects. Example format:
+{
+  "headline": "Ready to Transform Your Knowledge?",
+  "description": "Join thousands who are already building their second brain",
+  "primaryButton": {
+    "text": "Start Free Trial",
+    "link": "/signup"
+  },
+  "secondaryButton": {
+    "text": "View Demo",
+    "link": "/demo"
+  }
+}
+
+Make it compelling and action-oriented. Ensure all button fields are properly formatted JSON objects with "text" and "link" properties.

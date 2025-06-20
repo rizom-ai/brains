@@ -2,9 +2,11 @@ import type { ContentTemplate } from "@brains/types";
 import { landingMetadataTemplate } from "./landing/metadata";
 import { heroSectionTemplate } from "./landing/hero";
 import { featuresSectionTemplate } from "./landing/features";
+import { productsSectionTemplate } from "./landing/products";
 import { ctaSectionTemplate } from "./landing/cta";
 import { landingPageTemplate } from "./landing/index";
 import { dashboardTemplate } from "./dashboard/index";
+import { generalContextTemplate } from "./general";
 
 /**
  * Registry of all content templates organized by page:section
@@ -13,6 +15,9 @@ export class ContentRegistry {
   private templates = new Map<string, ContentTemplate<unknown>>();
 
   constructor() {
+    // Register general context (not displayed, but used by other sections)
+    this.register("webserver:general", generalContextTemplate);
+
     // Register landing page as a collection with its items
     const landingCollection: ContentTemplate<unknown> = {
       ...landingPageTemplate,
@@ -20,6 +25,7 @@ export class ContentRegistry {
         metadata: landingMetadataTemplate,
         hero: heroSectionTemplate,
         features: featuresSectionTemplate,
+        products: productsSectionTemplate,
         cta: ctaSectionTemplate,
       },
     };

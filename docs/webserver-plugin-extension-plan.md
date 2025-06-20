@@ -3,6 +3,7 @@
 ## Overview
 
 Extend the webserver plugin to support:
+
 1. **General Section** - Context provider that generates data for other sections
 2. **Products Section** - Showcase products/projects dynamically
 3. **Better Content Flow** - General context informs all other sections
@@ -10,6 +11,7 @@ Extend the webserver plugin to support:
 ## Architecture
 
 ### Content Generation Flow
+
 ```
 1. Generate General Context (not displayed)
    ↓
@@ -23,6 +25,7 @@ Extend the webserver plugin to support:
 ### 1. Add General Context Section
 
 #### Schema Definition
+
 ```typescript
 // packages/webserver-plugin/src/content/general/schema.ts
 import { z } from "zod";
@@ -33,29 +36,38 @@ export const generalContextSchema = z.object({
   tagline: z.string().describe("Short memorable tagline"),
   mission: z.string().describe("Mission statement"),
   vision: z.string().describe("Vision statement"),
-  
+
   // Key values/principles
-  values: z.array(z.object({
-    name: z.string(),
-    description: z.string(),
-  })).min(3).max(5).describe("Core values"),
-  
+  values: z
+    .array(
+      z.object({
+        name: z.string(),
+        description: z.string(),
+      }),
+    )
+    .min(3)
+    .max(5)
+    .describe("Core values"),
+
   // Brand voice/tone
-  tone: z.enum(["professional", "casual", "academic", "playful"])
+  tone: z
+    .enum(["professional", "casual", "academic", "playful"])
     .describe("Brand voice and tone"),
-  
+
   // Key themes
-  themes: z.array(z.string()).min(3).max(6)
-    .describe("Key themes and topics"),
-  
+  themes: z.array(z.string()).min(3).max(6).describe("Key themes and topics"),
+
   // Target audience
   audience: z.object({
     primary: z.string().describe("Primary target audience"),
     secondary: z.string().optional().describe("Secondary audience"),
   }),
-  
+
   // Core offerings/focus areas
-  focusAreas: z.array(z.string()).min(3).max(6)
+  focusAreas: z
+    .array(z.string())
+    .min(3)
+    .max(6)
     .describe("Main focus areas or offerings"),
 });
 
@@ -63,6 +75,7 @@ export type GeneralContext = z.infer<typeof generalContextSchema>;
 ```
 
 #### Content Template
+
 ```typescript
 // packages/webserver-plugin/src/content/general/index.ts
 import type { ContentTemplate } from "@brains/types";
@@ -70,7 +83,8 @@ import { generalContextSchema, type GeneralContext } from "./schema";
 
 export const generalContextTemplate: ContentTemplate<GeneralContext> = {
   name: "general-context",
-  description: "General organizational context that informs all content generation",
+  description:
+    "General organizational context that informs all content generation",
   schema: generalContextSchema,
   basePrompt: `You are creating the foundational context for an organization's website.
   
@@ -91,6 +105,7 @@ Make it authentic and aligned with the organization's actual work.`,
 ### 2. Add Products Section
 
 #### Schema Definition
+
 ```typescript
 // packages/webserver-plugin/src/content/landing/products/schema.ts
 import { z } from "zod";
@@ -100,7 +115,8 @@ export const productSchema = z.object({
   name: z.string().describe("Product name"),
   tagline: z.string().describe("Short memorable tagline"),
   description: z.string().describe("Brief description"),
-  status: z.enum(["live", "beta", "alpha", "concept"])
+  status: z
+    .enum(["live", "beta", "alpha", "concept"])
     .describe("Development status"),
   link: z.string().optional().describe("Link to product or docs"),
   icon: z.string().describe("Icon identifier"),
@@ -110,7 +126,10 @@ export const productsSectionSchema = z.object({
   label: z.string().describe("Section label"),
   headline: z.string().describe("Section headline"),
   description: z.string().describe("Section description"),
-  products: z.array(productSchema).min(1).max(6)
+  products: z
+    .array(productSchema)
+    .min(1)
+    .max(6)
     .describe("Product showcase items"),
 });
 
@@ -119,6 +138,7 @@ export type ProductsSection = z.infer<typeof productsSectionSchema>;
 ```
 
 #### Content Template
+
 ```typescript
 // packages/webserver-plugin/src/content/landing/products/index.ts
 import type { ContentTemplate } from "@brains/types";
@@ -154,16 +174,19 @@ Make them concrete and understandable to the target audience.`,
 ```
 
 #### Formatter
+
 ```typescript
 // packages/webserver-plugin/src/content/landing/products/formatter.ts
 import type { SchemaFormatter } from "@brains/types";
 import type { ProductsSection } from "./schema";
 
-export class ProductsSectionFormatter implements SchemaFormatter<ProductsSection> {
+export class ProductsSectionFormatter
+  implements SchemaFormatter<ProductsSection>
+{
   format(data: ProductsSection): string {
     let output = `## ${data.headline}\n\n`;
     output += `${data.description}\n\n`;
-    
+
     for (const product of data.products) {
       output += `### ${product.name}\n`;
       output += `*${product.tagline}*\n\n`;
@@ -174,10 +197,10 @@ export class ProductsSectionFormatter implements SchemaFormatter<ProductsSection
       }
       output += `\n`;
     }
-    
+
     return output;
   }
-  
+
   canFormat(data: unknown): boolean {
     return (
       typeof data === "object" &&
@@ -222,7 +245,7 @@ export class ContentRegistry {
   constructor() {
     // Register general context (not displayed, but used by other sections)
     this.register("webserver:general", generalContextTemplate);
-    
+
     // Register landing page as a collection with its items
     const landingCollection: ContentTemplate<unknown> = {
       ...landingPageTemplate,
@@ -235,7 +258,7 @@ export class ContentRegistry {
       },
     };
     this.register("webserver:landing", landingCollection);
-    
+
     // Register dashboard
     this.register("webserver:dashboard", dashboardTemplate);
   }
@@ -352,6 +375,7 @@ Focus on the primary audience: {generalContext.audience.primary}`,
 ## Example Content for Rizom
 
 ### General Context
+
 ```yaml
 organizationName: "Rizom Collective"
 tagline: "Decentralized Collective Intelligence"
@@ -388,6 +412,7 @@ focusAreas:
 ```
 
 ### Products Section
+
 ```yaml
 label: "Our Ecosystem"
 headline: "Tools for Collective Intelligence"
@@ -400,14 +425,14 @@ products:
     status: "beta"
     link: "https://github.com/rizom/personal-brain"
     icon: "brain"
-    
+
   - id: "collective-graph"
     name: "Collective Graph"
     tagline: "Connect minds across the network"
     description: "Protocol for federated knowledge sharing that preserves privacy while enabling collective intelligence."
     status: "concept"
     icon: "network"
-    
+
   - id: "think-together"
     name: "Think Together"
     tagline: "Real-time collaborative thinking"
@@ -415,7 +440,7 @@ products:
     status: "alpha"
     link: "https://think.rizom.io"
     icon: "users"
-    
+
   - id: "knowledge-commons"
     name: "Knowledge Commons"
     tagline: "Shared wisdom repository"

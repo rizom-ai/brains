@@ -169,7 +169,7 @@ export class App {
       logger: logger.child(config.type),
       processQuery: async (
         query: string,
-        context: MessageContext,
+        _context: MessageContext,
       ): Promise<string> => {
         // Use a simple text response schema
         const simpleTextSchema = z
@@ -179,12 +179,6 @@ export class App {
           .describe("simpleTextResponse");
 
         const result = await queryProcessor.processQuery(query, {
-          userId: context.userId,
-          metadata: {
-            channelId: context.channelId,
-            messageId: context.messageId,
-            timestamp: context.timestamp,
-          },
           schema: simpleTextSchema,
         });
 

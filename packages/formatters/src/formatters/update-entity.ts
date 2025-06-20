@@ -9,8 +9,10 @@ const updateEntityResponseSchema = z.object({
   changes: z.array(z.string()).optional(),
 });
 
-export class UpdateEntityResponseFormatter extends ResponseFormatter {
-  format(data: unknown): string {
+type UpdateEntityResponse = z.infer<typeof updateEntityResponseSchema>;
+
+export class UpdateEntityResponseFormatter extends ResponseFormatter<UpdateEntityResponse> {
+  format(data: UpdateEntityResponse): string {
     const parsed = updateEntityResponseSchema.safeParse(data);
     if (!parsed.success) {
       return JSON.stringify(data, null, 2);

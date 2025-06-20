@@ -5,6 +5,10 @@ import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
 import * as yaml from "js-yaml";
 import type { SiteContent } from "./schemas";
+import {
+  type GeneralContext,
+  GeneralContextFormatter,
+} from "./content/general";
 
 export interface ContentGeneratorOptions {
   logger: Logger;
@@ -65,7 +69,12 @@ export class ContentGenerator {
     filename: string,
     data: unknown,
   ): Promise<void> {
-    const filePath = join(this.contentDir, collection, filename);
+    const collectionDir = join(this.contentDir, collection);
+    const filePath = join(collectionDir, filename);
+
+    // Ensure the collection directory exists
+    await this.ensureDirectory(collectionDir);
+
     const yamlContent = yaml.dump(data);
 
     this.logger.debug(`Writing YAML to ${filePath}`, {
@@ -135,19 +144,22 @@ export class ContentGenerator {
       message: "Writing content files",
     });
 
-    // Save the generated content based on whether it's a collection or individual section
-    const parts = contentType.split(":");
-    const isCollection = parts.length === 2; // e.g., "webserver:landing"
+    // Get the template to check if it's a collection
+    const template = contentGenerationService.getTemplate(contentType);
+    const isCollection = template?.items !== undefined;
 
+    // Always save as entity for persistence
     if (isCollection) {
       // For collections, save each section as a separate entity
       await this.saveCollectionAsEntities(contentType, generatedContent);
-      // Then write the composed YAML
-      await this.writeContentYaml(contentType, generatedContent);
     } else {
-      // For individual sections, save as a single entity
+      // For individual content, save as a single entity
       await this.saveAsEntity(contentType, generatedContent);
     }
+
+    // Always write YAML for all content types (collections and individual)
+    // This ensures everything can be edited and is visible in the file system
+    await this.writeContentYaml(contentType, generatedContent);
 
     await sendProgress?.({
       progress: 3,
@@ -218,24 +230,24 @@ export class ContentGenerator {
 
     // Parse content type to get page and section
     const parts = contentType.split(":");
-    if (parts.length < 3) {
-      throw new Error(
-        `Invalid content type format, expected plugin:page:section: ${contentType}`,
-      );
+    let page: string;
+    let section: string;
+
+    if (parts.length === 2) {
+      // For 2-part types like "webserver:general", page = section = second part
+      page = parts[1] ?? "";
+      section = parts[1] ?? "";
+    } else if (parts.length >= 3) {
+      // For 3-part types like "webserver:landing:hero"
+      page = parts[1] ?? "";
+      section = parts[2] ?? "";
+    } else {
+      throw new Error(`Invalid content type format: ${contentType}`);
     }
 
-    const page = parts[1];
-    const section = parts[2];
-
-    if (!page) {
+    if (!page || !section) {
       throw new Error(
-        `Invalid content type format - missing page: ${contentType}`,
-      );
-    }
-
-    if (!section) {
-      throw new Error(
-        `Invalid content type format - missing section: ${contentType}`,
+        `Invalid content type format - missing page or section: ${contentType}`,
       );
     }
 
@@ -455,28 +467,136 @@ export class ContentGenerator {
     // Ensure directories exist
     await this.initialize();
 
-    // Generate content with progress notifications
+    const totalSteps = 4; // general context + landing + dashboard + complete
+    let currentStep = 0;
+
+    // Step 1: Get or generate general context
     await sendProgress?.({
-      progress: 1,
-      total: 3,
+      progress: ++currentStep,
+      total: totalSteps,
+      message: "Checking organizational context",
+    });
+
+    const entityService = this.context.entityService;
+
+    // Check if general context already exists
+    const existingGeneralEntities =
+      await entityService.listEntities<SiteContent>("site-content", {
+        filter: {
+          metadata: {
+            page: "general",
+            section: "general",
+            environment: "preview",
+          },
+        },
+      });
+
+    let generalContext: GeneralContext;
+    const generalContextFormatter = new GeneralContextFormatter();
+
+    if (
+      !force &&
+      existingGeneralEntities.length > 0 &&
+      existingGeneralEntities[0]
+    ) {
+      // Use existing general context - parse from markdown
+      try {
+        generalContext = generalContextFormatter.parse(
+          existingGeneralEntities[0].content,
+        );
+        this.logger.info("Using existing general context");
+      } catch (error) {
+        throw new Error(
+          `Failed to parse existing general context: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    } else {
+      // Generate new general context
+      await sendProgress?.({
+        progress: currentStep,
+        total: totalSteps,
+        message: force
+          ? "Regenerating organizational context"
+          : "Generating organizational context",
+      });
+
+      await this.generateContent("webserver:general", {
+        prompt: `Create organizational context for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
+        context: {
+          siteTitle: this.options.siteTitle,
+          siteDescription: this.options.siteDescription,
+          siteUrl: this.options.siteUrl,
+        },
+        force,
+      });
+
+      // Retrieve the newly generated general context
+      const generalEntities = await entityService.listEntities<SiteContent>(
+        "site-content",
+        {
+          filter: {
+            metadata: {
+              page: "general",
+              section: "general",
+              environment: "preview",
+            },
+          },
+        },
+      );
+
+      if (generalEntities.length === 0 || !generalEntities[0]) {
+        throw new Error("Failed to generate general context - no entity found");
+      }
+
+      try {
+        generalContext = generalContextFormatter.parse(
+          generalEntities[0].content,
+        );
+      } catch (error) {
+        throw new Error(
+          `Failed to parse general context: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    // Step 2: Generate landing page with general context
+    await sendProgress?.({
+      progress: ++currentStep,
+      total: totalSteps,
       message: force
         ? "Regenerating landing page content"
         : "Generating landing page content",
     });
-    await this.generateLandingPage(sendProgress, force);
 
+    await this.generateContent(
+      "webserver:landing",
+      {
+        prompt: `Create a landing page for "${this.options.siteTitle}" - ${this.options.siteDescription}`,
+        context: {
+          siteTitle: this.options.siteTitle,
+          siteDescription: this.options.siteDescription,
+          siteUrl: this.options.siteUrl,
+          generalContext, // Pass general context
+        },
+        force,
+      },
+      sendProgress,
+    );
+
+    // Step 3: Generate dashboard
     await sendProgress?.({
-      progress: 2,
-      total: 3,
+      progress: ++currentStep,
+      total: totalSteps,
       message: force
         ? "Regenerating dashboard content"
         : "Generating dashboard content",
     });
     await this.generateDashboard(sendProgress, force);
 
+    // Step 4: Complete
     await sendProgress?.({
-      progress: 3,
-      total: 3,
+      progress: ++currentStep,
+      total: totalSteps,
       message: "Content generation complete",
     });
     // Future: generateNotePages(), generateArticlePages(), etc.

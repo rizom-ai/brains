@@ -111,9 +111,13 @@ describe("Schema Generation", () => {
       expect(config).toMatch(/landing: landingCollection/);
       expect(config).toMatch(/dashboard: dashboardCollection/);
 
-      // Verify we only have two templates registered
+      // Verify we have three templates registered
       const keys = contentRegistry.getTemplateKeys();
-      expect(keys).toEqual(["webserver:landing", "webserver:dashboard"]);
+      expect(keys).toEqual([
+        "webserver:general",
+        "webserver:landing",
+        "webserver:dashboard",
+      ]);
     });
   });
 });
