@@ -92,7 +92,6 @@ export class MessageBus implements IMessageBus {
     return () => this.clearHandlers(type);
   }
 
-
   /**
    * Send a message and get response (implements IMessageBus interface)
    */
@@ -244,7 +243,6 @@ export class MessageBus implements IMessageBus {
     // This is a limitation of the current design
     this.clearHandlers(type);
   }
-
 
   /**
    * Clear all handlers for a specific message type

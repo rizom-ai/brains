@@ -38,7 +38,7 @@ describe("MessageBus", () => {
 
       const unsubscribe = messageBus.subscribe("test.message", handler);
       expect(messageBus.getHandlerCount("test.message")).toBe(1);
-      
+
       unsubscribe();
       expect(messageBus.hasHandlers("test.message")).toBe(false);
     });
@@ -69,7 +69,11 @@ describe("MessageBus", () => {
       const handler = mock(() => ({ success: true, data: { result: "test" } }));
 
       messageBus.subscribe("test.message", handler);
-      const result = await messageBus.send("test.message", { value: "test" }, "test-source");
+      const result = await messageBus.send(
+        "test.message",
+        { value: "test" },
+        "test-source",
+      );
 
       expect(handler).toHaveBeenCalled();
       expect(result.success).toBe(true);
@@ -84,8 +88,14 @@ describe("MessageBus", () => {
     });
 
     it("should return first handler's response", async () => {
-      const handler1 = mock(() => ({ success: false, error: "handler1 error" }));
-      const handler2 = mock(() => ({ success: true, data: { result: "handler2" } }));
+      const handler1 = mock(() => ({
+        success: false,
+        error: "handler1 error",
+      }));
+      const handler2 = mock(() => ({
+        success: true,
+        data: { result: "handler2" },
+      }));
 
       messageBus.subscribe("test.message", handler1);
       messageBus.subscribe("test.message", handler2);
@@ -104,7 +114,10 @@ describe("MessageBus", () => {
       const errorHandler = mock(() => {
         throw new Error("Handler error");
       });
-      const successHandler = mock(() => ({ success: true, data: { result: "success" } }));
+      const successHandler = mock(() => ({
+        success: true,
+        data: { result: "success" },
+      }));
 
       messageBus.subscribe("test.message", errorHandler);
       messageBus.subscribe("test.message", successHandler);
@@ -138,7 +151,10 @@ describe("MessageBus", () => {
 
   describe("message processing", () => {
     it("should process valid messages through message bus", async () => {
-      const handler = mock(() => ({ success: true, data: { result: "handled" } }));
+      const handler = mock(() => ({
+        success: true,
+        data: { result: "handled" },
+      }));
       messageBus.subscribe("test.message", handler);
 
       const message = {

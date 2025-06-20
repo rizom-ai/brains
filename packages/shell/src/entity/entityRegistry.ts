@@ -1,13 +1,13 @@
 import type { z } from "zod";
 import type { Logger } from "@brains/utils";
-import type { BaseEntity } from "@brains/types";
+import type { BaseEntity, EntityRegistry as IEntityRegistry } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 
 /**
  * Registry for entity types
  * Implements Component Interface Standardization pattern
  */
-export class EntityRegistry {
+export class EntityRegistry implements IEntityRegistry {
   private static instance: EntityRegistry | null = null;
 
   private entitySchemas = new Map<string, z.ZodType<unknown>>();

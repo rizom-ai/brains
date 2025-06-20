@@ -123,18 +123,18 @@ The A2A functionality will be implemented as a feature plugin with the following
 interface A2APlugin extends Plugin {
   id: "a2a-protocol";
   version: "1.0.0";
-  
+
   // Configuration
   config: {
-    agentName: string;              // Human-readable agent name
-    agentDescription: string;       // Agent description
-    publicUrl: string;              // Public URL for agent card
+    agentName: string; // Human-readable agent name
+    agentDescription: string; // Agent description
+    publicUrl: string; // Public URL for agent card
     authMethod?: "none" | "apikey" | "oauth";
-    apiKey?: string;                // For authentication
+    apiKey?: string; // For authentication
     discoveryMethod: "mdns" | "dht" | "registry" | "manual";
-    trustedAgents: string[];        // Whitelist of agent URLs
+    trustedAgents: string[]; // Whitelist of agent URLs
   };
-  
+
   // Core services
   services: {
     agentRegistry: AgentRegistry;
@@ -173,28 +173,28 @@ class AgentCardManager {
   // Generate agent card from current plugins and tools
   async generateAgentCard(): Promise<A2AAgentCard> {
     const skills = await this.generateSkillsFromTools();
-    
+
     return {
       name: this.config.agentName,
       description: this.config.agentDescription,
       url: this.config.publicUrl + "/a2a/v1",
       version: this.plugin.version,
       capabilities: {
-        streaming: false // Could be true if we implement SSE
+        streaming: false, // Could be true if we implement SSE
       },
-      skills
+      skills,
     };
   }
-  
+
   // Convert MCP tools to A2A skills
   private async generateSkillsFromTools(): Promise<A2ASkill[]> {
     const tools = await this.shell.getAvailableTools();
-    return tools.map(tool => ({
+    return tools.map((tool) => ({
       id: tool.name,
       name: this.humanizeToolName(tool.name),
       description: tool.description,
       tags: this.extractTags(tool),
-      examples: tool.examples || []
+      examples: tool.examples || [],
     }));
   }
 }
@@ -217,7 +217,7 @@ interface AgentRegistry {
   async discoverAgent(baseUrl: string): Promise<AgentInfo> {
     const response = await fetch(`${baseUrl}/.well-known/agent.json`);
     const agentCard = await response.json();
-    
+
     return this.storeAgentInfo({
       agentCard,
       endpoint: agentCard.url,
@@ -225,7 +225,7 @@ interface AgentRegistry {
       trustLevel: "unknown"
     });
   }
-  
+
   // Find agents by skill
   async findAgentsWithSkill(skillTags: string[]): Promise<AgentInfo[]> {
     const agents = await this.getAllAgents();
@@ -235,7 +235,7 @@ interface AgentRegistry {
       )
     );
   }
-  
+
   // Status tracking
   getAgentStatus(agentUrl: string): Promise<AgentStatus>;
   subscribeToAgentUpdates(agentUrl: string): AsyncIterator<AgentUpdate>;
@@ -262,16 +262,16 @@ interface ProtocolHandler {
       },
       id: generateId()
     };
-    
+
     const response = await fetch(agentUrl, {
       method: "POST",
       headers: this.getAuthHeaders(),
       body: JSON.stringify(request)
     });
-    
+
     return this.processTaskResponse(response);
   }
-  
+
   // Handle incoming A2A requests
   async handleIncomingRequest(request: A2ARequest): Promise<A2AResponse> {
     switch (request.method) {
@@ -332,7 +332,7 @@ async register(context: PluginContext): Promise<PluginCapabilities> {
   if (!webServer) {
     throw new Error('A2A plugin requires webserver plugin for agent card serving');
   }
-  
+
   // Register agent card endpoint
   webServer.registerRoute({
     method: 'GET',
@@ -342,7 +342,7 @@ async register(context: PluginContext): Promise<PluginCapabilities> {
       return { json: agentCard };
     }
   });
-  
+
   // Register A2A endpoint
   webServer.registerRoute({
     method: 'POST',
@@ -362,13 +362,13 @@ The existing MessageBus will be extended to handle A2A routing:
 // Extended message bus for A2A
 class ExtendedMessageBus extends MessageBus {
   private a2aBroker?: A2AMessageBroker;
-  
+
   async publish(message: Message): Promise<MessageResponse | null> {
     // Check if this should be routed to an external agent
     if (message.type.startsWith("a2a:") && message.targetAgent) {
       return this.a2aBroker.routeToAgent(message);
     }
-    
+
     // Otherwise use normal routing
     return super.publish(message);
   }
@@ -435,16 +435,20 @@ const agentCardSchema = baseEntitySchema.extend({
     description: z.string(),
     url: z.string(),
     version: z.string(),
-    capabilities: z.object({
-      streaming: z.boolean().optional(),
-    }).optional(),
-    skills: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string(),
-      tags: z.array(z.string()),
-      examples: z.array(z.string()).optional(),
-    })),
+    capabilities: z
+      .object({
+        streaming: z.boolean().optional(),
+      })
+      .optional(),
+    skills: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        description: z.string(),
+        tags: z.array(z.string()),
+        examples: z.array(z.string()).optional(),
+      }),
+    ),
   }),
   trustLevel: z.enum(["unknown", "verified", "trusted"]),
   lastSeen: z.string().datetime(),
@@ -458,7 +462,7 @@ agentUrl: ${entity.agentUrl}
 name: ${entity.agentCard.name}
 trustLevel: ${entity.trustLevel}
 lastSeen: ${entity.lastSeen}
-skills: ${entity.agentCard.skills.map(s => s.id).join(", ")}
+skills: ${entity.agentCard.skills.map((s) => s.id).join(", ")}
 ---
 
 # ${entity.agentCard.name}
@@ -467,13 +471,17 @@ ${entity.agentCard.description}
 
 ## Skills
 
-${entity.agentCard.skills.map(skill => `
+${entity.agentCard.skills
+  .map(
+    (skill) => `
 ### ${skill.name}
 - **ID**: ${skill.id}
 - **Tags**: ${skill.tags.join(", ")}
 - **Description**: ${skill.description}
-${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join("\n")}` : ""}
-`).join("\n")}
+${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).join("\n")}` : ""}
+`,
+  )
+  .join("\n")}
 
 ## Connection Details
 - **Endpoint**: ${entity.agentCard.url}
@@ -490,12 +498,14 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Phase 1: Foundation (2-3 months)
 
 1. **Core Protocol Implementation**
+
    - A2A JSON-RPC message handling
    - Agent card generation and serving
    - Basic protocol handler
    - WebServer plugin integration
 
 2. **Plugin Scaffold**
+
    - Create a2a-protocol package
    - Basic plugin structure
    - Configuration management
@@ -509,6 +519,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Phase 2: Agent Discovery (1-2 months)
 
 1. **Agent Card Management**
+
    - Dynamic skill generation from MCP tools
    - Agent card caching
    - Version management
@@ -523,12 +534,14 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Phase 3: Core Features (2-3 months)
 
 1. **Task Execution**
+
    - Remote task creation
    - Task status tracking
    - Result retrieval
    - Error handling
 
 2. **Skill-Based Routing**
+
    - Analyze tasks to extract required skills
    - Find agents with matching capabilities
    - Intelligent agent selection
@@ -543,12 +556,14 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Phase 4: Advanced Features (2-3 months)
 
 1. **Authentication**
+
    - API key support
    - OAuth integration
    - Mutual authentication
    - Token management
 
 2. **Streaming Support**
+
    - Server-Sent Events (SSE)
    - Real-time task updates
    - Progress notifications
@@ -563,6 +578,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Phase 5: Ecosystem Integration (Ongoing)
 
 1. **Registry Integration**
+
    - Connect to A2A registries
    - Publish agent cards
    - Discover other agents
@@ -579,6 +595,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Authentication and Authorization
 
 1. **API Key Authentication**
+
    - Secure key storage
    - Key rotation
    - Rate limiting
@@ -593,6 +610,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Data Protection
 
 1. **HTTPS Only**
+
    - Enforce TLS 1.3+
    - Certificate validation
    - HSTS headers
@@ -609,6 +627,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Unit Testing
 
 1. **Agent Card Generation**
+
    - Dynamic skill creation
    - Version management
    - Capability updates
@@ -623,6 +642,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Integration Testing
 
 1. **Agent Discovery**
+
    - Card fetching
    - Trust assignment
    - Error scenarios
@@ -637,6 +657,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### End-to-End Testing
 
 1. **Multi-Agent Scenarios**
+
    - Agent discovery
    - Task delegation
    - Result aggregation
@@ -653,6 +674,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Technical Metrics
 
 1. **Performance**
+
    - Agent discovery < 1 second
    - Task creation < 200ms
    - Agent card generation < 50ms
@@ -667,6 +689,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Adoption Metrics
 
 1. **Usage**
+
    - Number of discovered agents
    - Tasks executed per day
    - Success rate
@@ -683,6 +706,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Advanced Agent Cards
 
 1. **Dynamic Capabilities**
+
    - Real-time skill updates
    - Load-based availability
    - Performance metrics
@@ -697,6 +721,7 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map(e => `  - ${e}`).join(
 ### Protocol Extensions
 
 1. **Batch Operations**
+
    - Multiple task execution
    - Bulk queries
    - Transaction support
@@ -715,6 +740,7 @@ The A2A protocol integration represents a significant evolution of the Personal 
 The integration builds on existing infrastructure (plugins, message bus, entity storage) while adding new capabilities through the A2A plugin and required webserver plugin. The phased approach ensures stable implementation while gradually expanding functionality.
 
 This integration enables exciting use cases:
+
 - Distributed knowledge queries across multiple brains
 - Specialized agent collaboration
 - Task delegation to expert agents

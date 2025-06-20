@@ -2,17 +2,8 @@ import { generateText, generateObject } from "ai";
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import type { LanguageModelV1 } from "@ai-sdk/provider";
 import type { Logger } from "@brains/utils";
+import type { AIService as IAIService, AIModelConfig } from "@brains/types";
 import type { z } from "zod";
-
-/**
- * AI model configuration
- */
-export interface AIModelConfig {
-  model?: string;
-  apiKey?: string;
-  temperature?: number;
-  maxTokens?: number;
-}
 
 /**
  * Default model configuration
@@ -22,7 +13,7 @@ const DEFAULT_MODEL = "claude-4-sonnet-20250514";
 /**
  * AI Service for generating responses using Vercel AI SDK
  */
-export class AIService {
+export class AIService implements IAIService {
   private static instance: AIService | null = null;
   private config: AIModelConfig;
   private logger: Logger;

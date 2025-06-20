@@ -1,11 +1,12 @@
 import { z } from "zod";
 import type { Logger } from "@brains/utils";
+import type { SchemaRegistry as ISchemaRegistry } from "@brains/types";
 
 /**
  * Registry for managing Zod schemas across the application
  * Implements Component Interface Standardization pattern
  */
-export class SchemaRegistry {
+export class SchemaRegistry implements ISchemaRegistry {
   private static instance: SchemaRegistry | null = null;
 
   private schemas = new Map<string, z.ZodType<unknown>>();

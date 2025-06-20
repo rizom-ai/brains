@@ -190,18 +190,18 @@ Instead of plugins directly referencing each other, they communicate through typ
 const response = await context.messageBus.send(
   "some:operation:request",
   { data: "example" },
-  "plugin-a" // source plugin
+  "plugin-a", // source plugin
 );
 
 // Plugin B handles the request
 context.messageBus.subscribe("some:operation:request", async (message) => {
   // Process the request
   const result = await performOperation(message.data);
-  
+
   // Return response
   return {
     success: true,
-    data: result
+    data: result,
   };
 });
 ```
@@ -238,7 +238,7 @@ async sync() {
     {},
     "git-sync"
   );
-  
+
   if (exportResponse.success) {
     // Proceed with git operations
     await this.commit();
@@ -257,6 +257,7 @@ Follow these conventions for message types:
 - `plugin-name:*` - Plugin-specific messages
 
 Format: `<domain>:<operation>:<type>`
+
 - `domain`: The general area (entity, sync, etc.)
 - `operation`: The specific action (export, import, configure)
 - `type`: request, response, or event
@@ -269,7 +270,7 @@ When a plugin has a hard dependency on another plugin:
 {
   id: "git-sync",
   dependencies: ["webserver"], // Required for operation
-  
+
   async register(context) {
     // Will fail if webserver is not available
     const webserver = context.getPlugin("webserver");
@@ -286,7 +287,7 @@ When a plugin can work with any provider of a capability:
 {
   id: "git-sync",
   // No hard dependency on directory-sync
-  
+
   async register(context) {
     // Will work with any plugin that handles these messages
     // Falls back gracefully if no handler available

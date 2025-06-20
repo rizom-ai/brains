@@ -5,11 +5,9 @@ import type { AIService } from "../ai/aiService";
 import type {
   Entity,
   IntentAnalysis,
-  QueryOptions,
-  QueryResult,
   ModelResponse,
 } from "../types";
-import type { SearchResult } from "@brains/types";
+import type { SearchResult, QueryProcessor as IQueryProcessor, QueryOptions, QueryResult } from "@brains/types";
 
 /**
  * Configuration for QueryProcessor
@@ -24,7 +22,7 @@ export interface QueryProcessorConfig {
  * Processes queries using the entity model and schema validation
  * Implements Component Interface Standardization pattern
  */
-export class QueryProcessor {
+export class QueryProcessor implements IQueryProcessor {
   private static instance: QueryProcessor | null = null;
 
   private readonly entityService: EntityService;

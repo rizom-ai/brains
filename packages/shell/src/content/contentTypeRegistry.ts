@@ -1,7 +1,7 @@
 import type { z } from "zod";
-import type { ContentFormatter } from "@brains/types";
+import type { ContentFormatter, ContentTypeRegistry as IContentTypeRegistry } from "@brains/types";
 
-export class ContentTypeRegistry {
+export class ContentTypeRegistry implements IContentTypeRegistry {
   private static instance: ContentTypeRegistry | null = null;
   private schemas = new Map<string, z.ZodType<unknown>>();
   private formatters = new Map<string, ContentFormatter<unknown>>();

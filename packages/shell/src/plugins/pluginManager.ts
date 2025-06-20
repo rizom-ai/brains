@@ -5,90 +5,33 @@ import type { MessageBus } from "../messaging/messageBus";
 import type {
   Plugin,
   PluginContext,
-  PluginTool,
-  PluginResource,
   SchemaFormatter,
   BaseEntity,
   ContentGenerateOptions,
   ContentFormatter,
   ContentTemplate,
   ContentTypeRegistry,
+  PluginManager as IPluginManager,
+  PluginInfo,
+  PluginManagerEventMap,
+  PluginToolRegisterEvent,
+  PluginResourceRegisterEvent,
 } from "@brains/types";
+import { PluginStatus, PluginEvent } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "../entity/entityRegistry";
 import type { z } from "zod";
 import type { ContentGenerationService } from "../content/contentGenerationService";
 
-/**
- * Plugin lifecycle event types
- */
-export enum PluginEvent {
-  REGISTERED = "plugin:registered",
-  BEFORE_INITIALIZE = "plugin:before_initialize",
-  INITIALIZED = "plugin:initialized",
-  ERROR = "plugin:error",
-  DISABLED = "plugin:disabled",
-  ENABLED = "plugin:enabled",
-  TOOL_REGISTER = "plugin:tool:register",
-  RESOURCE_REGISTER = "plugin:resource:register",
-}
-
-/**
- * Event data for plugin tool registration
- */
-export interface PluginToolRegisterEvent {
-  pluginId: string;
-  tool: PluginTool;
-}
-
-/**
- * Event data for plugin resource registration
- */
-export interface PluginResourceRegisterEvent {
-  pluginId: string;
-  resource: PluginResource;
-}
-
-/**
- * Plugin status types
- */
-export enum PluginStatus {
-  REGISTERED = "registered",
-  INITIALIZED = "initialized",
-  ERROR = "error",
-  DISABLED = "disabled",
-}
-
-/**
- * Plugin metadata with status
- */
-export interface PluginInfo {
-  plugin: Plugin;
-  status: PluginStatus;
-  error?: Error;
-  dependencies: string[];
-}
-
-/**
- * Typed event map for PluginManager events
- */
-interface PluginManagerEventMap {
-  [PluginEvent.REGISTERED]: [pluginId: string, plugin: Plugin];
-  [PluginEvent.BEFORE_INITIALIZE]: [pluginId: string, plugin: Plugin];
-  [PluginEvent.INITIALIZED]: [pluginId: string, plugin: Plugin];
-  [PluginEvent.ERROR]: [pluginId: string, error: Error];
-  [PluginEvent.DISABLED]: [pluginId: string];
-  [PluginEvent.ENABLED]: [pluginId: string];
-  [PluginEvent.TOOL_REGISTER]: [event: PluginToolRegisterEvent];
-  [PluginEvent.RESOURCE_REGISTER]: [event: PluginResourceRegisterEvent];
-}
+// Re-export enums for convenience
+export { PluginEvent, PluginStatus } from "@brains/types";
 
 /**
  * Plugin manager that handles plugin registration, initialization, and lifecycle
  * Implements Component Interface Standardization pattern
  */
-export class PluginManager {
+export class PluginManager implements IPluginManager {
   private static instance: PluginManager | null = null;
 
   private plugins: Map<string, PluginInfo> = new Map();

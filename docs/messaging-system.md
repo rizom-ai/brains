@@ -29,11 +29,11 @@ export class MessageBus {
    */
   subscribe<T = unknown, R = unknown>(
     type: string,
-    handler: MessageHandler<T, R>
+    handler: MessageHandler<T, R>,
   ): () => void {
     // Register the handler
     this.addHandler(type, handler);
-    
+
     // Return unsubscribe function
     return () => this.removeHandler(type, handler);
   }
@@ -44,7 +44,7 @@ export class MessageBus {
   async send<T = unknown, R = unknown>(
     type: string,
     payload: T,
-    sender?: string
+    sender?: string,
   ): Promise<{ success: boolean; data?: R; error?: string }> {
     const message = {
       id: generateId(),
@@ -55,7 +55,7 @@ export class MessageBus {
     };
 
     const response = await this.processMessage(message);
-    
+
     if (response?.success) {
       return {
         success: true,
@@ -65,7 +65,9 @@ export class MessageBus {
 
     return {
       success: false,
-      error: response?.error?.message ?? `No handler found for message type: ${type}`,
+      error:
+        response?.error?.message ??
+        `No handler found for message type: ${type}`,
     };
   }
 
@@ -246,14 +248,14 @@ const notePlugin: Plugin = {
       const { id } = message.payload;
       const entityService = context.registry.get<EntityService>("entityService");
       const note = await entityService.getEntity(id);
-      
+
       if (!note) {
         return {
           success: false,
           error: "Note not found",
         };
       }
-      
+
       return {
         success: true,
         data: note,
@@ -311,7 +313,7 @@ async function saveProfileWithNotes(
         content: noteText,
         tags: ["profile", profile.id],
       },
-      "profile-plugin"
+      "profile-plugin",
     );
 
     if (!response.success) {
@@ -397,7 +399,7 @@ describe("Note message handlers", () => {
         content: "This is a test note",
         tags: ["test"],
       },
-      "test"
+      "test",
     );
 
     // Verify response
@@ -417,7 +419,7 @@ describe("Note message handlers", () => {
 
   test("should handle missing handler", async () => {
     const response = await messageBus.send("unknown:message", {});
-    
+
     expect(response.success).toBe(false);
     expect(response.error).toContain("No handler found");
   });

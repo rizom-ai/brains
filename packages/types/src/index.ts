@@ -43,7 +43,22 @@ export type {
   Command,
   CommandResponse,
   BrainProtocol,
+  EntityRegistry,
+  AIService,
+  AIModelConfig,
+  QueryProcessor,
+  QueryOptions,
+  QueryResult,
+  PluginManager,
+  PluginInfo,
+  PluginManagerEventMap,
+  PluginToolRegisterEvent,
+  PluginResourceRegisterEvent,
+  SchemaRegistry,
 } from "./services";
+
+// Export enums separately
+export { PluginStatus, PluginEvent } from "./services";
 
 // Formatter types
 export type { SchemaFormatter, ContentFormatter } from "./formatters";

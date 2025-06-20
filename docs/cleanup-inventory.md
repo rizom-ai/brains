@@ -17,8 +17,9 @@ This document tracks technical debt and cleanup tasks that should be addressed b
 - **Base Entity Directory Structure** - Base entities save to root directory
 - **Legacy MessageBus Methods** - Removed registerHandler/unregisterHandler, made publish private
 - **Plugin Communication Architecture** - Implemented message-based communication
-- **Directory Sync Plugin** - Created for file-based entity storage  
+- **Directory Sync Plugin** - Created for file-based entity storage
 - **Git Sync Refactoring** - Split into two plugins with proper separation of concerns
+- **Extract Service Interfaces** - Created interfaces for EntityService, QueryProcessor, AIService, EntityRegistry, PluginManager, SchemaRegistry, and ContentTypeRegistry
 
 ## Cleanup Tasks
 
@@ -28,13 +29,8 @@ None remaining - all critical issues have been resolved!
 
 ### 🟡 High Priority
 
-1. **Extract Service Interfaces**
-   - Issue: Core services are concrete classes, hard to test
-   - Solution: Create interfaces for EntityService, QueryProcessor, etc.
-   - Impact: Blocks proper testing of all components that use these services
-   - **Why High**: Foundation for all testing efforts
+1. **Add Missing Tests**
 
-2. **Add Missing Tests**
    - Critical untested files:
      - `packages/shell/src/ai/aiService.ts`
      - `packages/shell/src/embedding/embeddingService.ts`
@@ -45,13 +41,14 @@ None remaining - all critical issues have been resolved!
      - Integration tests for git-sync with directory-sync
    - **Why High**: Critical components lack test coverage, risk of regressions
 
-3. **Add Async Embedding Generation**
+2. **Add Async Embedding Generation**
+
    - Issue: Synchronous embedding generation blocks operations
    - Solution: Queue embeddings for background processing
    - Impact: Every entity creation blocks for ~200-500ms
    - **Why High**: Direct impact on user experience
 
-4. **Standardize Error Handling**
+3. **Standardize Error Handling**
    - Issue: Mix of Error objects and strings, no error codes
    - Solution: Create custom error classes with codes
    - Impact: Poor debugging experience, inconsistent error messages
@@ -60,25 +57,30 @@ None remaining - all critical issues have been resolved!
 ### 🟢 Medium Priority
 
 5. **Add Component Disposal Methods**
+
    - Issue: Only Shell has shutdown; other components can't cleanup
    - Solution: Add dispose() method to all major components
    - Impact: Memory leaks and resource cleanup issues
 
 6. **Plugin Lifecycle Hooks**
+
    - Issue: Plugins only have init, no cleanup
    - Solution: Add dispose/shutdown hooks for plugins
    - Related to: Component disposal methods (#5)
 
 7. **Implement Search Highlights**
+
    - Location: `packages/shell/src/entity/entityService.ts:529`
    - TODO: Search results should include text highlights
    - Impact: Users can't see why results matched their query
 
 8. **Implement Caching Layer**
+
    - Issue: No caching for embeddings or query results
    - Solution: Add simple in-memory cache with TTL
 
 9. **Add Batch Operations**
+
    - Issue: Entity operations are one-at-a-time
    - Solution: Add batch create/update/delete methods
 
@@ -90,6 +92,7 @@ None remaining - all critical issues have been resolved!
 ### 🔵 Low Priority
 
 11. **Add Retry Logic**
+
     - Issue: No retry for external service failures
     - Solution: Implement exponential backoff for AI/embedding calls
 
@@ -102,26 +105,26 @@ None remaining - all critical issues have been resolved!
 ### Phase 1: Critical Fixes ✅ COMPLETED
 
 - [x] Fix empty catch block
-- [x] Fix base entity directory structure 
+- [x] Fix base entity directory structure
 - [x] Remove legacy MessageBus methods
 - [x] Implement plugin communication architecture
 
 ### Phase 2: Architecture Improvements (3-4 days)
 
-- [ ] Add component disposal methods (#1)
-- [ ] Extract service interfaces (#2)
-- [ ] Add async embedding generation (#4)
+- [ ] Add component disposal methods (#5)
+- [x] Extract service interfaces (✅ COMPLETED)
+- [ ] Add async embedding generation (#2)
 
 ### Phase 3: Quality & Testing (2-3 days)
 
-- [ ] Standardize error handling (#5)
-- [ ] Add critical missing tests (#6)
+- [ ] Standardize error handling (#3)
+- [ ] Add critical missing tests (#1)
 
 ### Phase 4: Performance (2-3 days)
 
-- [ ] Implement caching layer (#7)
-- [ ] Add batch operations (#8)
-- [ ] Improve message bus handler management (#9)
+- [ ] Implement caching layer (#8)
+- [ ] Add batch operations (#9)
+- [ ] Improve message bus handler management (#10)
 
 ## Implementation Notes
 
