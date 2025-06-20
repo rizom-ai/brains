@@ -11,106 +11,117 @@ This document tracks technical debt and cleanup tasks that should be addressed b
 - 🟢 **Medium** - Nice-to-have improvements
 - 🔵 **Low** - Future enhancements
 
+## Recently Completed ✅
+
+- **Fixed Empty Catch Block** - Added proper error logging with debug level
+- **Base Entity Directory Structure** - Base entities save to root directory
+- **Legacy MessageBus Methods** - Removed registerHandler/unregisterHandler, made publish private
+- **Plugin Communication Architecture** - Implemented message-based communication
+- **Directory Sync Plugin** - Created for file-based entity storage  
+- **Git Sync Refactoring** - Split into two plugins with proper separation of concerns
+
 ## Cleanup Tasks
 
 ### 🔴 Critical Issues
 
-1. **Fix Empty Catch Block**
-   - Location: `packages/shell/src/entity/entityService.ts:601`
-   - Issue: Catch block without error parameter swallows errors
-   - Fix: Add proper error logging
+None remaining - all critical issues have been resolved!
 
 ### 🟡 High Priority
 
-2. **Base Entity Directory Structure** ✅ DONE
-   - Fixed: Base entities now save to root directory instead of `base/` subdirectory
-   - Other entity types continue to use subdirectories
-
-### 🟢 Medium Priority
-
-3. **Implement Search Highlights** (moved from high priority)
-
-   - Location: `packages/shell/src/entity/entityService.ts:529`
-   - TODO: Search results should include text highlights
-   - Impact: Users can't see why results matched their query
-
-4. **Add Async Embedding Generation** (moved from high priority)
-
-   - Issue: Synchronous embedding generation blocks operations
-   - Solution: Queue embeddings for background processing
-
-5. **Add Component Disposal Methods**
-   - Issue: Only Shell has shutdown; other components can't cleanup
-   - Solution: Add dispose() method to all major components
-
-### 🟢 Medium Priority
-
-6. **Extract Service Interfaces**
-
+1. **Extract Service Interfaces**
    - Issue: Core services are concrete classes, hard to test
    - Solution: Create interfaces for EntityService, QueryProcessor, etc.
+   - Impact: Blocks proper testing of all components that use these services
+   - **Why High**: Foundation for all testing efforts
 
-7. **Standardize Error Handling**
-
-   - Issue: Mix of Error objects and strings, no error codes
-   - Solution: Create custom error classes with codes
-
-8. **Add Missing Tests**
-
+2. **Add Missing Tests**
    - Critical untested files:
      - `packages/shell/src/ai/aiService.ts`
      - `packages/shell/src/embedding/embeddingService.ts`
      - `packages/shell/src/mcp/resources.ts`
      - `packages/shell/src/mcp/tools.ts`
+   - New plugin test coverage:
+     - More comprehensive tests for directory-sync
+     - Integration tests for git-sync with directory-sync
+   - **Why High**: Critical components lack test coverage, risk of regressions
 
-9. **Implement Caching Layer**
+3. **Add Async Embedding Generation**
+   - Issue: Synchronous embedding generation blocks operations
+   - Solution: Queue embeddings for background processing
+   - Impact: Every entity creation blocks for ~200-500ms
+   - **Why High**: Direct impact on user experience
 
+4. **Standardize Error Handling**
+   - Issue: Mix of Error objects and strings, no error codes
+   - Solution: Create custom error classes with codes
+   - Impact: Poor debugging experience, inconsistent error messages
+   - **Why High**: Affects debugging and user experience
+
+### 🟢 Medium Priority
+
+5. **Add Component Disposal Methods**
+   - Issue: Only Shell has shutdown; other components can't cleanup
+   - Solution: Add dispose() method to all major components
+   - Impact: Memory leaks and resource cleanup issues
+
+6. **Plugin Lifecycle Hooks**
+   - Issue: Plugins only have init, no cleanup
+   - Solution: Add dispose/shutdown hooks for plugins
+   - Related to: Component disposal methods (#5)
+
+7. **Implement Search Highlights**
+   - Location: `packages/shell/src/entity/entityService.ts:529`
+   - TODO: Search results should include text highlights
+   - Impact: Users can't see why results matched their query
+
+8. **Implement Caching Layer**
    - Issue: No caching for embeddings or query results
    - Solution: Add simple in-memory cache with TTL
 
-10. **Add Batch Operations**
-    - Issue: Entity operations are one-at-a-time
-    - Solution: Add batch create/update/delete methods
+9. **Add Batch Operations**
+   - Issue: Entity operations are one-at-a-time
+   - Solution: Add batch create/update/delete methods
+
+10. **Message Bus Handler Management**
+    - Issue: Current design wraps handlers, making individual unsubscribe challenging
+    - Solution: Refactor to track original handlers for proper unsubscribe
+    - Impact: Minor limitation in current implementation
 
 ### 🔵 Low Priority
 
 11. **Add Retry Logic**
-
     - Issue: No retry for external service failures
     - Solution: Implement exponential backoff for AI/embedding calls
 
 12. **Add Metrics/Telemetry**
-
     - Issue: No performance tracking
     - Solution: Add basic operation timing and counters
 
-13. **Plugin Lifecycle Hooks**
-    - Issue: Plugins only have init, no cleanup
-    - Solution: Add dispose/shutdown hooks for plugins
-
 ## Cleanup Phases
 
-### Phase 1: Critical Fixes (1 day)
+### Phase 1: Critical Fixes ✅ COMPLETED
 
-- [ ] Fix empty catch block (#1)
-- [x] Fix base entity directory structure (DONE)
-- [x] Remove outdated schema validation TODO (DONE)
+- [x] Fix empty catch block
+- [x] Fix base entity directory structure 
+- [x] Remove legacy MessageBus methods
+- [x] Implement plugin communication architecture
 
 ### Phase 2: Architecture Improvements (3-4 days)
 
+- [ ] Add component disposal methods (#1)
+- [ ] Extract service interfaces (#2)
 - [ ] Add async embedding generation (#4)
-- [ ] Add component disposal methods (#5)
-- [ ] Extract service interfaces (#6)
 
 ### Phase 3: Quality & Testing (2-3 days)
 
-- [ ] Standardize error handling (#7)
-- [ ] Add critical missing tests (#8)
+- [ ] Standardize error handling (#5)
+- [ ] Add critical missing tests (#6)
 
 ### Phase 4: Performance (2-3 days)
 
-- [ ] Implement caching layer (#9)
-- [ ] Add batch operations (#10)
+- [ ] Implement caching layer (#7)
+- [ ] Add batch operations (#8)
+- [ ] Improve message bus handler management (#9)
 
 ## Implementation Notes
 
@@ -168,4 +179,14 @@ await embeddingQueue.add({ entityId, text });
 
 ## Timeline
 
-Estimated total time: 8-12 days of cleanup work before starting Link Plugin implementation.
+- **Phase 1**: ✅ Completed
+- **Phases 2-4**: 8-11 days remaining
+- **Total elapsed**: ~3-4 days of cleanup completed
+- **Remaining**: ~8 days of cleanup work before starting Link Plugin implementation
+
+## Next Steps
+
+1. Begin Phase 2 with component disposal methods
+2. Extract service interfaces for better testability
+3. Continue with async embedding generation
+4. Consider starting Link Plugin development in parallel with Phase 3/4 cleanup
