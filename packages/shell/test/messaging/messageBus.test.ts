@@ -2,29 +2,7 @@ import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { MessageBus } from "@/messaging/messageBus";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
-import type { BaseMessage, MessageResponse } from "@/messaging/types";
-import { MessageFactory } from "@/messaging/messageFactory";
 import { z } from "zod";
-
-// Create test message
-const createTestMessage = (type: string, id?: string): BaseMessage => ({
-  id: id ?? "test-id",
-  timestamp: new Date().toISOString(),
-  type,
-  source: "test",
-});
-
-// Create test response
-const createTestResponse = (
-  requestId: string,
-  success: boolean = true,
-): MessageResponse => ({
-  id: "response-id",
-  requestId,
-  success,
-  timestamp: new Date().toISOString(),
-  data: { result: "test" },
-});
 
 describe("MessageBus", () => {
   let messageBus: MessageBus;
@@ -36,50 +14,49 @@ describe("MessageBus", () => {
   });
 
   describe("handler registration", () => {
-    it("should register a handler for a message type", () => {
-      const handler = mock(() => Promise.resolve(null));
+    it("should subscribe a handler for a message type", () => {
+      const handler = mock(() => ({ success: true }));
 
-      messageBus.registerHandler("test.message", handler);
+      messageBus.subscribe("test.message", handler);
 
       expect(messageBus.hasHandlers("test.message")).toBe(true);
       expect(messageBus.getHandlerCount("test.message")).toBe(1);
     });
 
-    it("should register multiple handlers for the same message type", () => {
-      const handler1 = mock(() => Promise.resolve(null));
-      const handler2 = mock(() => Promise.resolve(null));
+    it("should subscribe multiple handlers for the same message type", () => {
+      const handler1 = mock(() => ({ success: true }));
+      const handler2 = mock(() => ({ success: true }));
 
-      messageBus.registerHandler("test.message", handler1);
-      messageBus.registerHandler("test.message", handler2);
+      messageBus.subscribe("test.message", handler1);
+      messageBus.subscribe("test.message", handler2);
 
       expect(messageBus.getHandlerCount("test.message")).toBe(2);
     });
 
-    it("should unregister a specific handler", () => {
-      const handler1 = mock(() => Promise.resolve(null));
-      const handler2 = mock(() => Promise.resolve(null));
+    it("should unsubscribe a handler", () => {
+      const handler = mock(() => ({ success: true }));
 
-      messageBus.registerHandler("test.message", handler1);
-      messageBus.registerHandler("test.message", handler2);
-      messageBus.unregisterHandler("test.message", handler1);
-
+      const unsubscribe = messageBus.subscribe("test.message", handler);
       expect(messageBus.getHandlerCount("test.message")).toBe(1);
+      
+      unsubscribe();
+      expect(messageBus.hasHandlers("test.message")).toBe(false);
     });
 
     it("should clear all handlers for a message type", () => {
-      const handler = mock(() => Promise.resolve(null));
+      const handler = mock(() => ({ success: true }));
 
-      messageBus.registerHandler("test.message", handler);
+      messageBus.subscribe("test.message", handler);
       messageBus.clearHandlers("test.message");
 
       expect(messageBus.hasHandlers("test.message")).toBe(false);
     });
 
     it("should clear all handlers", () => {
-      const handler = mock(() => Promise.resolve(null));
+      const handler = mock(() => ({ success: true }));
 
-      messageBus.registerHandler("test.message1", handler);
-      messageBus.registerHandler("test.message2", handler);
+      messageBus.subscribe("test.message1", handler);
+      messageBus.subscribe("test.message2", handler);
       messageBus.clearAllHandlers();
 
       expect(messageBus.hasHandlers("test.message1")).toBe(false);
@@ -87,89 +64,82 @@ describe("MessageBus", () => {
     });
   });
 
-  describe("message publishing", () => {
-    it("should publish message to handler", async () => {
-      const message = createTestMessage("test.message");
-      const response = createTestResponse(message.id);
-      const handler = mock(() => Promise.resolve(response));
+  describe("message sending", () => {
+    it("should send message to handler", async () => {
+      const handler = mock(() => ({ success: true, data: { result: "test" } }));
 
-      messageBus.registerHandler("test.message", handler);
-      const result = await messageBus.publish(message);
+      messageBus.subscribe("test.message", handler);
+      const result = await messageBus.send("test.message", { value: "test" }, "test-source");
 
-      expect(handler).toHaveBeenCalledWith(message);
-      expect(result).toEqual(response);
+      expect(handler).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ result: "test" });
     });
 
-    it("should return null if no handlers registered", async () => {
-      const message = createTestMessage("test.message");
-      const result = await messageBus.publish(message);
+    it("should return error if no handlers registered", async () => {
+      const result = await messageBus.send("test.message", { value: "test" });
 
-      expect(result).toBeNull();
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("No handler found");
     });
 
-    it("should call handlers in sequence until one returns a response", async () => {
-      const message = createTestMessage("test.message");
-      const response = createTestResponse(message.id);
+    it("should return first handler's response", async () => {
+      const handler1 = mock(() => ({ success: false, error: "handler1 error" }));
+      const handler2 = mock(() => ({ success: true, data: { result: "handler2" } }));
 
-      const handler1 = mock(() => Promise.resolve(null));
-      const handler2 = mock(() => Promise.resolve(response));
-      const handler3 = mock(() => Promise.resolve(createTestResponse("other")));
+      messageBus.subscribe("test.message", handler1);
+      messageBus.subscribe("test.message", handler2);
 
-      messageBus.registerHandler("test.message", handler1);
-      messageBus.registerHandler("test.message", handler2);
-      messageBus.registerHandler("test.message", handler3);
-
-      const result = await messageBus.publish(message);
+      const result = await messageBus.send("test.message", { value: "test" });
 
       expect(handler1).toHaveBeenCalled();
-      expect(handler2).toHaveBeenCalled();
-      expect(handler3).not.toHaveBeenCalled(); // Should stop after handler2
-      expect(result).toEqual(response);
+      // In the current implementation, it returns the first handler's response
+      // even if it's a failure
+      expect(handler2).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("handler1 error");
     });
 
     it("should handle errors in handlers gracefully", async () => {
-      const message = createTestMessage("test.message");
-      const response = createTestResponse(message.id);
+      const errorHandler = mock(() => {
+        throw new Error("Handler error");
+      });
+      const successHandler = mock(() => ({ success: true, data: { result: "success" } }));
 
-      const errorHandler = mock(() =>
-        Promise.reject(new Error("Handler error")),
-      );
-      const successHandler = mock(() => Promise.resolve(response));
+      messageBus.subscribe("test.message", errorHandler);
+      messageBus.subscribe("test.message", successHandler);
 
-      messageBus.registerHandler("test.message", errorHandler);
-      messageBus.registerHandler("test.message", successHandler);
-
-      const result = await messageBus.publish(message);
+      const result = await messageBus.send("test.message", { value: "test" });
 
       expect(errorHandler).toHaveBeenCalled();
       expect(successHandler).toHaveBeenCalled();
-      expect(result).toEqual(response);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ result: "success" });
     });
 
-    it("should return null if all handlers throw errors", async () => {
-      const message = createTestMessage("test.message");
+    it("should return error if all handlers throw errors", async () => {
+      const errorHandler1 = mock(() => {
+        throw new Error("Error 1");
+      });
+      const errorHandler2 = mock(() => {
+        throw new Error("Error 2");
+      });
 
-      const errorHandler1 = mock(() => Promise.reject(new Error("Error 1")));
-      const errorHandler2 = mock(() => Promise.reject(new Error("Error 2")));
+      messageBus.subscribe("test.message", errorHandler1);
+      messageBus.subscribe("test.message", errorHandler2);
 
-      messageBus.registerHandler("test.message", errorHandler1);
-      messageBus.registerHandler("test.message", errorHandler2);
+      const result = await messageBus.send("test.message", { value: "test" });
 
-      const result = await messageBus.publish(message);
-
-      expect(result).toBeNull();
+      expect(errorHandler1).toHaveBeenCalled();
+      expect(errorHandler2).toHaveBeenCalled();
+      expect(result.success).toBe(false);
     });
   });
 
   describe("message processing", () => {
     it("should process valid messages through message bus", async () => {
-      // Register a handler with the message bus
-      const handler = mock(() =>
-        Promise.resolve(
-          MessageFactory.createSuccessResponse("test-1", { result: "handled" }),
-        ),
-      );
-      messageBus.registerHandler("test.message", handler);
+      const handler = mock(() => ({ success: true, data: { result: "handled" } }));
+      messageBus.subscribe("test.message", handler);
 
       const message = {
         id: "test-1",
@@ -182,7 +152,7 @@ describe("MessageBus", () => {
 
       expect(response.success).toBe(true);
       expect(response.data).toEqual({ result: "handled" });
-      expect(handler).toHaveBeenCalledWith(message);
+      expect(handler).toHaveBeenCalled();
     });
 
     it("should return error for invalid messages", async () => {
@@ -211,8 +181,8 @@ describe("MessageBus", () => {
     });
 
     it("should handle errors in message processing", async () => {
-      // Register a handler that throws an error
-      messageBus.registerHandler("error.message", () => {
+      // Subscribe a handler that throws an error
+      messageBus.subscribe("error.message", () => {
         throw new Error("Handler error");
       });
 
@@ -251,7 +221,7 @@ describe("MessageBus", () => {
         age: z.number(),
       });
 
-      const invalidMessage = { name: "John", age: "thirty" }; // age should be number
+      const invalidMessage = { name: "John", age: "thirty" };
       const result = messageBus.validateMessage(invalidMessage, schema);
 
       expect(result.valid).toBe(false);

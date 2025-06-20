@@ -92,23 +92,6 @@ export class MessageBus implements IMessageBus {
     return () => this.clearHandlers(type);
   }
 
-  /**
-   * Register a handler for a specific message type (legacy method)
-   */
-  registerHandler(
-    messageType: string,
-    handler: (message: BaseMessage) => Promise<MessageResponse | null>,
-  ): void {
-    if (!this.handlers.has(messageType)) {
-      this.handlers.set(messageType, new Set());
-    }
-
-    const handlers = this.handlers.get(messageType);
-    if (handlers) {
-      handlers.add(handler);
-    }
-    this.logger.info(`Registered handler for message type: ${messageType}`);
-  }
 
   /**
    * Send a message and get response (implements IMessageBus interface)
@@ -146,7 +129,7 @@ export class MessageBus implements IMessageBus {
   /**
    * Publish a message to all handlers (internal method)
    */
-  async publish(message: BaseMessage): Promise<MessageResponse | null> {
+  private async publish(message: BaseMessage): Promise<MessageResponse | null> {
     // Validate message structure
     if (typeof message !== "object" || !message.type || !message.id) {
       this.logger.error(
@@ -262,19 +245,6 @@ export class MessageBus implements IMessageBus {
     this.clearHandlers(type);
   }
 
-  /**
-   * Unregister a handler for a specific message type (legacy method)
-   */
-  unregisterHandler(
-    messageType: string,
-    handler: (message: BaseMessage) => Promise<MessageResponse | null>,
-  ): void {
-    const handlers = this.handlers.get(messageType);
-    if (handlers) {
-      handlers.delete(handler);
-      this.logger.info(`Unregistered handler for message type: ${messageType}`);
-    }
-  }
 
   /**
    * Clear all handlers for a specific message type

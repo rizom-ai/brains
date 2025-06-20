@@ -177,6 +177,123 @@ enum PluginEvent {
 }
 ```
 
+## Plugin Communication
+
+Plugins communicate with each other using the Message Bus, which provides loose coupling and enables plugins to work together without direct dependencies.
+
+### Message-Based Communication
+
+Instead of plugins directly referencing each other, they communicate through typed messages:
+
+```typescript
+// Plugin A sends a request
+const response = await context.messageBus.send(
+  "some:operation:request",
+  { data: "example" },
+  "plugin-a" // source plugin
+);
+
+// Plugin B handles the request
+context.messageBus.subscribe("some:operation:request", async (message) => {
+  // Process the request
+  const result = await performOperation(message.data);
+  
+  // Return response
+  return {
+    success: true,
+    data: result
+  };
+});
+```
+
+### Benefits of Message-Based Architecture
+
+1. **Loose Coupling**: Plugins don't need to know about each other's implementation
+2. **Flexibility**: Multiple plugins can handle the same message type
+3. **Substitutability**: Different plugins can provide the same functionality
+4. **Testability**: Easy to mock message responses in tests
+5. **Scalability**: New plugins can join the message flow without changes
+
+### Real-World Example: Git Sync and Directory Sync
+
+The git-sync and directory-sync plugins demonstrate this pattern:
+
+```typescript
+// directory-sync registers message handlers
+messageBus.subscribe("entity:export:request", async (message) => {
+  const result = await this.exportEntities(message.data?.entityTypes);
+  return { success: true, data: result };
+});
+
+messageBus.subscribe("sync:configure:request", async (message) => {
+  this.updateConfig({ syncPath: message.data.syncPath });
+  return { success: true };
+});
+
+// git-sync sends messages instead of direct calls
+async sync() {
+  // Request entity export from whoever handles it
+  const exportResponse = await this.messageBus.send(
+    "entity:export:request",
+    {},
+    "git-sync"
+  );
+  
+  if (exportResponse.success) {
+    // Proceed with git operations
+    await this.commit();
+    await this.push();
+  }
+}
+```
+
+### Message Naming Conventions
+
+Follow these conventions for message types:
+
+- `entity:*` - Entity-related operations
+- `sync:*` - Synchronization operations
+- `a2a:*` - Agent-to-agent communication
+- `plugin-name:*` - Plugin-specific messages
+
+Format: `<domain>:<operation>:<type>`
+- `domain`: The general area (entity, sync, etc.)
+- `operation`: The specific action (export, import, configure)
+- `type`: request, response, or event
+
+### Plugin Dependencies vs Message Handlers
+
+When a plugin has a hard dependency on another plugin:
+
+```typescript
+{
+  id: "git-sync",
+  dependencies: ["webserver"], // Required for operation
+  
+  async register(context) {
+    // Will fail if webserver is not available
+    const webserver = context.getPlugin("webserver");
+    if (!webserver) {
+      throw new Error("webserver plugin required");
+    }
+  }
+}
+```
+
+When a plugin can work with any provider of a capability:
+
+```typescript
+{
+  id: "git-sync",
+  // No hard dependency on directory-sync
+  
+  async register(context) {
+    // Will work with any plugin that handles these messages
+    // Falls back gracefully if no handler available
+  }
+}
+```
+
 ## Creating a Plugin
 
 ### Using the Base Classes (Recommended)

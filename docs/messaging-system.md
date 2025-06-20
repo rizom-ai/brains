@@ -24,50 +24,49 @@ export class MessageBus {
   private handlers: Map<string, Set<MessageHandler>> = new Map();
   private logger: Logger;
 
-  constructor(logger: Logger) {
-    this.logger = logger;
+  /**
+   * Subscribe to messages of a specific type
+   */
+  subscribe<T = unknown, R = unknown>(
+    type: string,
+    handler: MessageHandler<T, R>
+  ): () => void {
+    // Register the handler
+    this.addHandler(type, handler);
+    
+    // Return unsubscribe function
+    return () => this.removeHandler(type, handler);
   }
 
   /**
-   * Register a handler for a specific message type
+   * Send a message and get response
    */
-  registerHandler(messageType: string, handler: MessageHandler): void {
-    if (!this.handlers.has(messageType)) {
-      this.handlers.set(messageType, new Set());
+  async send<T = unknown, R = unknown>(
+    type: string,
+    payload: T,
+    sender?: string
+  ): Promise<{ success: boolean; data?: R; error?: string }> {
+    const message = {
+      id: generateId(),
+      type,
+      timestamp: new Date().toISOString(),
+      source: sender,
+      payload,
+    };
+
+    const response = await this.processMessage(message);
+    
+    if (response?.success) {
+      return {
+        success: true,
+        data: response.data as R,
+      };
     }
 
-    this.handlers.get(messageType)!.add(handler);
-    this.logger.info(`Registered handler for message type: ${messageType}`);
-  }
-
-  /**
-   * Publish a message to all handlers
-   */
-  async publish(message: Message): Promise<MessageResponse | null> {
-    const { type } = message;
-    const handlers = this.handlers.get(type) || new Set();
-
-    this.logger.debug(`Publishing message of type: ${type}`);
-
-    // If no handlers, log warning and return null
-    if (handlers.size === 0) {
-      this.logger.warn(`No handlers found for message type: ${type}`);
-      return null;
-    }
-
-    // Call handlers in sequence until one returns a response
-    for (const handler of handlers) {
-      try {
-        const response = await handler(message);
-        if (response) {
-          return response;
-        }
-      } catch (error) {
-        this.logger.error(`Error in message handler for ${type}`, { error });
-      }
-    }
-
-    return null;
+    return {
+      success: false,
+      error: response?.error?.message ?? `No handler found for message type: ${type}`,
+    };
   }
 
   /**
@@ -77,16 +76,6 @@ export class MessageBus {
     return (
       this.handlers.has(messageType) && this.handlers.get(messageType)!.size > 0
     );
-  }
-
-  /**
-   * Unregister a handler for a specific message type
-   */
-  unregisterHandler(messageType: string, handler: MessageHandler): void {
-    if (this.handlers.has(messageType)) {
-      this.handlers.get(messageType)!.delete(handler);
-      this.logger.info(`Unregistered handler for message type: ${messageType}`);
-    }
   }
 }
 ```
@@ -221,53 +210,59 @@ export class MessageFactory {
 Plugins register message handlers during initialization:
 
 ```typescript
-// In note-context/src/index.ts
-const noteContext: ContextPlugin = {
-  id: "note-context",
+// In note-plugin/src/index.ts
+const notePlugin: Plugin = {
+  id: "note-plugin",
   version: "1.0.0",
   dependencies: ["core"],
 
-  register(context: PluginContext): PluginLifecycle {
+  async register(context: PluginContext): Promise<PluginCapabilities> {
     const { messageBus, logger } = context;
 
-    // Register message handlers
-    messageBus.registerHandler("note.create", async (message) => {
-      logger.info("Handling note.create message");
-      const parsed = createNoteMessageSchema.parse(message);
+    // Subscribe to message handlers
+    messageBus.subscribe("note:create", async (message) => {
+      logger.info("Handling note:create message");
+      const { title, content, tags } = message.payload;
 
       // Create note using entity service
-      const entityService =
-        context.registry.resolve<EntityService>("entityService");
-      const note = {
-        id: crypto.randomUUID(),
-        entityType: "note",
-        title: parsed.payload.title,
-        content: parsed.payload.content,
-        tags: parsed.payload.tags || [],
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-
-        toMarkdown() {
-          return this.content;
-        },
-      };
+      const entityService = context.registry.get<EntityService>("entityService");
+      const note = createNote({
+        title,
+        content,
+        tags: tags || [],
+      });
 
       const savedNote = await entityService.saveEntity(note);
 
       // Return response
       return {
-        id: crypto.randomUUID(),
-        requestId: message.id,
         success: true,
         data: savedNote,
-        timestamp: new Date().toISOString(),
       };
     });
 
-    // Register more handlers...
+    // Subscribe to more message types...
+    messageBus.subscribe("note:get", async (message) => {
+      const { id } = message.payload;
+      const entityService = context.registry.get<EntityService>("entityService");
+      const note = await entityService.getEntity(id);
+      
+      if (!note) {
+        return {
+          success: false,
+          error: "Note not found",
+        };
+      }
+      
+      return {
+        success: true,
+        data: note,
+      };
+    });
 
     return {
-      // Lifecycle hooks...
+      tools: [...],
+      resources: [...],
     };
   },
 };
@@ -298,8 +293,9 @@ export function validateMessage<T extends z.ZodType>(
 Contexts communicate with each other through messages:
 
 ```typescript
-// ProfileContext using NoteContext
+// ProfilePlugin using NotePlugin via messages
 async function saveProfileWithNotes(
+  messageBus: MessageBus,
   profile: Profile,
   notes: string[],
 ): Promise<Profile> {
@@ -308,13 +304,19 @@ async function saveProfileWithNotes(
 
   // Create notes linked to the profile
   for (const noteText of notes) {
-    const createNoteMessage = MessageFactory.createNoteMessage(
-      `Note for ${profile.name}`,
-      noteText,
-      ["profile", profile.id],
+    const response = await messageBus.send(
+      "note:create",
+      {
+        title: `Note for ${profile.name}`,
+        content: noteText,
+        tags: ["profile", profile.id],
+      },
+      "profile-plugin"
     );
 
-    await messageBus.publish(createNoteMessage);
+    if (!response.success) {
+      logger.warn("Failed to create note", { error: response.error });
+    }
   }
 
   return savedProfile;
@@ -326,55 +328,41 @@ async function saveProfileWithNotes(
 Messages include standard error handling patterns:
 
 ```typescript
-// Error response creation
-function createErrorResponse(
-  requestId: string,
-  code: string,
-  message: string,
-): MessageResponse {
-  return {
-    id: crypto.randomUUID(),
-    requestId,
-    success: false,
-    error: {
-      code,
-      message,
-    },
-    timestamp: new Date().toISOString(),
-  };
-}
-
 // Handler with error handling
-messageBus.registerHandler("note.get", async (message) => {
+messageBus.subscribe("note:get", async (message) => {
   try {
-    const parsed = getNoteMessageSchema.parse(message);
-    const entityService = registry.resolve<EntityService>("entityService");
+    const { id } = message.payload;
+    const entityService = registry.get<EntityService>("entityService");
 
-    const note = await entityService.getEntity(parsed.payload.id);
+    const note = await entityService.getEntity(id);
 
     if (!note) {
-      return createErrorResponse(
-        message.id,
-        "NOTE_NOT_FOUND",
-        "Note not found",
-      );
+      return {
+        success: false,
+        error: "Note not found",
+      };
     }
 
     return {
-      id: crypto.randomUUID(),
-      requestId: message.id,
       success: true,
       data: note,
-      timestamp: new Date().toISOString(),
     };
   } catch (error) {
-    return createErrorResponse(
-      message.id,
-      "INVALID_MESSAGE",
-      `Invalid message format: ${error.message}`,
-    );
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 });
+
+// Using the message bus with error handling
+const response = await messageBus.send("note:get", { id: "123" });
+
+if (response.success) {
+  console.log("Note found:", response.data);
+} else {
+  console.error("Error:", response.error);
+}
 ```
 
 ## Testing
@@ -389,29 +377,33 @@ describe("Note message handlers", () => {
 
   beforeEach(() => {
     const logger = createMockLogger();
-    messageBus = new MessageBus(logger);
+    messageBus = MessageBus.createFresh(logger);
     entityService = createMockEntityService();
 
-    // Register handler
-    messageBus.registerHandler("note.create", createNoteHandler(entityService));
+    // Subscribe handler
+    messageBus.subscribe("note:create", async (message) => {
+      const note = createNote(message.payload);
+      const savedNote = await entityService.saveEntity(note);
+      return { success: true, data: savedNote };
+    });
   });
 
   test("should create a note", async () => {
-    // Create test message
-    const message = MessageFactory.createNoteMessage(
-      "Test Note",
-      "This is a test note",
-      ["test"],
+    // Send message
+    const response = await messageBus.send(
+      "note:create",
+      {
+        title: "Test Note",
+        content: "This is a test note",
+        tags: ["test"],
+      },
+      "test"
     );
 
-    // Publish message
-    const response = await messageBus.publish(message);
-
     // Verify response
-    expect(response).toBeDefined();
-    expect(response?.success).toBe(true);
-    expect(response?.data).toHaveProperty("id");
-    expect(response?.data.title).toBe("Test Note");
+    expect(response.success).toBe(true);
+    expect(response.data).toHaveProperty("id");
+    expect(response.data.title).toBe("Test Note");
 
     // Verify entity service was called
     expect(entityService.saveEntity).toHaveBeenCalledWith(
@@ -421,6 +413,13 @@ describe("Note message handlers", () => {
         content: "This is a test note",
       }),
     );
+  });
+
+  test("should handle missing handler", async () => {
+    const response = await messageBus.send("unknown:message", {});
+    
+    expect(response.success).toBe(false);
+    expect(response.error).toContain("No handler found");
   });
 });
 ```
