@@ -1,5 +1,8 @@
 import type { z } from "zod";
-import type { ContentFormatter, ContentTypeRegistry as IContentTypeRegistry } from "@brains/types";
+import type {
+  ContentFormatter,
+  ContentTypeRegistry as IContentTypeRegistry,
+} from "@brains/types";
 
 export class ContentTypeRegistry implements IContentTypeRegistry {
   private static instance: ContentTypeRegistry | null = null;

@@ -279,37 +279,37 @@ export type QueryResult<T> = T;
  */
 export interface PluginManager {
   registerPlugin(plugin: Plugin): void;
-  
+
   initializePlugins(): Promise<void>;
-  
+
   getPlugin(id: string): Plugin | undefined;
-  
+
   getPluginStatus(id: string): PluginStatus | undefined;
-  
+
   hasPlugin(id: string): boolean;
-  
+
   isPluginInitialized(id: string): boolean;
-  
+
   getAllPluginIds(): string[];
-  
+
   getAllPlugins(): Map<string, PluginInfo>;
-  
+
   getFailedPlugins(): Array<{ id: string; error: Error }>;
-  
+
   disablePlugin(id: string): void;
-  
+
   enablePlugin(id: string): void;
-  
+
   on<E extends PluginEvent>(
     event: E,
     listener: (...args: PluginManagerEventMap[E]) => void,
   ): void;
-  
+
   once<E extends PluginEvent>(
     event: E,
     listener: (...args: PluginManagerEventMap[E]) => void,
   ): void;
-  
+
   off<E extends PluginEvent>(
     event: E,
     listener: (...args: PluginManagerEventMap[E]) => void,
@@ -385,22 +385,22 @@ export interface PluginResourceRegisterEvent {
  */
 export interface SchemaRegistry {
   register(name: string, schema: z.ZodType<unknown>): void;
-  
+
   get<T = unknown>(name: string): z.ZodType<T> | undefined;
-  
+
   has(name: string): boolean;
-  
+
   remove(name: string): boolean;
-  
+
   getSchemaNames(): string[];
-  
+
   getAllSchemaNames(): string[];
-  
+
   validate<T = unknown>(
     name: string,
     data: unknown,
   ): { success: true; data: T } | { success: false; error: z.ZodError };
-  
+
   clear(): void;
 }
 
@@ -413,14 +413,14 @@ export interface ContentTypeRegistry {
     schema: z.ZodType<unknown>,
     formatter?: ContentFormatter<unknown>,
   ): void;
-  
+
   get(contentType: string): z.ZodType<unknown> | null;
-  
+
   list(namespace?: string): string[];
-  
+
   has(contentType: string): boolean;
-  
+
   getFormatter<T = unknown>(contentType: string): ContentFormatter<T> | null;
-  
+
   clear(): void;
 }

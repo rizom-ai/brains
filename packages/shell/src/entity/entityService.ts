@@ -4,7 +4,11 @@ import { EntityRegistry } from "./entityRegistry";
 import type { EntityAdapter } from "@brains/base-entity";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type { IEmbeddingService } from "../embedding/embeddingService";
-import type { BaseEntity, SearchResult, EntityService as IEntityService } from "@brains/types";
+import type {
+  BaseEntity,
+  SearchResult,
+  EntityService as IEntityService,
+} from "@brains/types";
 import type { SearchOptions } from "../types";
 import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
 import { z } from "zod";

@@ -2,12 +2,13 @@ import type { ZodType } from "zod";
 import type { Logger } from "@brains/utils";
 import type { EntityService } from "../entity/entityService";
 import type { AIService } from "../ai/aiService";
+import type { Entity, IntentAnalysis, ModelResponse } from "../types";
 import type {
-  Entity,
-  IntentAnalysis,
-  ModelResponse,
-} from "../types";
-import type { SearchResult, QueryProcessor as IQueryProcessor, QueryOptions, QueryResult } from "@brains/types";
+  SearchResult,
+  QueryProcessor as IQueryProcessor,
+  QueryOptions,
+  QueryResult,
+} from "@brains/types";
 
 /**
  * Configuration for QueryProcessor
