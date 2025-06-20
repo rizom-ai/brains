@@ -113,7 +113,7 @@ export class GitSync {
 
     // Git-sync manages its own repository directory
     // Don't use directory-sync's path as that would create nested git repos
-    this.repoPath = process.env["GIT_SYNC_TEST_PATH"] ?? "./.brain-repo";
+    this.repoPath = process.env["GIT_SYNC_TEST_PATH"] ?? "./brain-repo";
     this.logger.info("Using git repository path", { path: this.repoPath });
 
     // Clone or initialize repository
@@ -155,7 +155,11 @@ export class GitSync {
           current: origin.refs.fetch,
           expected: this.gitUrl,
         });
-        await this.git.remote(["set-url", "origin", this.getAuthenticatedUrl()]);
+        await this.git.remote([
+          "set-url",
+          "origin",
+          this.getAuthenticatedUrl(),
+        ]);
       } else if (!origin && this.gitUrl) {
         await this.git.addRemote("origin", this.getAuthenticatedUrl());
       }
@@ -168,7 +172,7 @@ export class GitSync {
     if (this.authorEmail) {
       await this.git.addConfig("user.email", this.authorEmail);
     }
-    
+
     // Set pull strategy to avoid divergent branches error
     await this.git.addConfig("pull.rebase", "false");
 
@@ -188,13 +192,13 @@ export class GitSync {
     );
 
     if (!configResponse.success) {
-      this.logger.warn("Could not configure directory-sync", { 
+      this.logger.warn("Could not configure directory-sync", {
         error: configResponse.error,
-        repoPath: this.repoPath 
+        repoPath: this.repoPath,
       });
     } else {
-      this.logger.info("Configured directory-sync to use git repository", { 
-        path: this.repoPath 
+      this.logger.info("Configured directory-sync to use git repository", {
+        path: this.repoPath,
       });
     }
 
@@ -317,9 +321,9 @@ export class GitSync {
   async pull(): Promise<void> {
     try {
       // Pull with merge strategy (not rebase) and allow unrelated histories
-      await this.git.pull("origin", this.branch, { 
+      await this.git.pull("origin", this.branch, {
         "--no-rebase": null,
-        "--allow-unrelated-histories": null 
+        "--allow-unrelated-histories": null,
       });
       this.logger.info("Pulled changes from remote");
 
@@ -333,7 +337,9 @@ export class GitSync {
       if (!importResponse.success) {
         this.logger.warn("No directory sync plugin available for import");
       } else {
-        this.logger.info("Imported entities after pull", { result: importResponse.data });
+        this.logger.info("Imported entities after pull", {
+          result: importResponse.data,
+        });
       }
     } catch (error) {
       this.logger.error("Failed to pull changes", { error });

@@ -419,7 +419,7 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
 
       // Verify the plugin accepts the auth token configuration
       expect(capabilities.tools.length).toBeGreaterThan(0);
-      
+
       // The actual authentication URL formatting is tested internally
       // We just verify the plugin initializes properly with the token
     });

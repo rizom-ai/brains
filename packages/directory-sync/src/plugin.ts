@@ -1,4 +1,9 @@
-import type { Plugin, PluginContext, PluginTool, MessageBus } from "@brains/types";
+import type {
+  Plugin,
+  PluginContext,
+  PluginTool,
+  MessageBus,
+} from "@brains/types";
 import {
   BasePlugin,
   pluginConfig,
@@ -258,8 +263,10 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
 
       try {
         const payload = message.payload as { entityTypes?: string[] };
-        const result = await this.directorySync.exportEntities(payload.entityTypes);
-        
+        const result = await this.directorySync.exportEntities(
+          payload.entityTypes,
+        );
+
         return {
           success: true,
           data: result,
@@ -284,7 +291,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
       try {
         const payload = message.payload as { paths?: string[] };
         const result = await this.directorySync.importEntities(payload.paths);
-        
+
         return {
           success: true,
           data: result,
@@ -308,7 +315,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
 
       try {
         const status = await this.directorySync.getStatus();
-        
+
         return {
           success: true,
           data: {
@@ -336,10 +343,10 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
 
       try {
         const payload = message.payload as { syncPath: string };
-        
+
         // Reconfigure directory sync with new path
         await this.configure({ syncPath: payload.syncPath });
-        
+
         return {
           success: true,
           data: {
@@ -350,7 +357,8 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Configuration failed",
+          error:
+            error instanceof Error ? error.message : "Configuration failed",
         };
       }
     });

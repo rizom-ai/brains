@@ -280,11 +280,13 @@ async register(context: PluginContext): Promise<PluginCapabilities> {
 ## Plugin Communication Architecture Decision
 
 ### Background
+
 When implementing the git-sync and directory-sync split, we need to decide how these plugins will communicate with each other. This decision will set a pattern for future plugin interactions.
 
 ### Options Considered
 
 #### Option 1: Direct Plugin Reference (Tight Coupling)
+
 ```typescript
 // In GitSyncPlugin
 this.directorySync = context.getPlugin("directory-sync");
@@ -292,18 +294,21 @@ const result = await this.directorySync.exportEntities();
 ```
 
 **Pros:**
+
 - Simple and straightforward
 - Type-safe with proper casting
 - Immediate feedback and error handling
 - Easy to debug
 
 **Cons:**
+
 - Tight coupling between plugins
 - GitSync must know about DirectorySync's interface
 - Harder to swap implementations
 - Doesn't scale well with many plugin interactions
 
 #### Option 2: Message Bus (Loose Coupling) - RECOMMENDED
+
 ```typescript
 // DirectorySync registers handlers
 messageBus.registerHandler("entity:export:request", async (msg) => {
@@ -312,12 +317,13 @@ messageBus.registerHandler("entity:export:request", async (msg) => {
 });
 
 // GitSync sends messages
-const response = await messageBus.send("entity:export:request", { 
-  entityTypes: ["note"] 
+const response = await messageBus.send("entity:export:request", {
+  entityTypes: ["note"],
 });
 ```
 
 **Pros:**
+
 - Loose coupling - plugins don't know about each other
 - Can have multiple handlers for same message
 - Easier to add middleware/logging/monitoring
@@ -325,11 +331,13 @@ const response = await messageBus.send("entity:export:request", {
 - Follows established patterns (VS Code, WordPress, Kubernetes)
 
 **Cons:**
+
 - More complex initial implementation
 - Async by nature
 - Requires careful schema design for type safety
 
 #### Option 3: Service Registry Pattern
+
 ```typescript
 // DirectorySync registers a service
 context.registry.register("directory-sync-service", {
@@ -342,27 +350,32 @@ const dirSync = context.registry.get("directory-sync-service");
 ```
 
 **Pros:**
+
 - Balance between coupling and flexibility
 - Clear service interfaces
 - Type-safe with interfaces
 
 **Cons:**
+
 - Still some coupling through interfaces
 - Need to manage service registry
 
 #### Option 4: Tool-Based Communication
+
 ```typescript
 // GitSync calls DirectorySync's tools
 const result = await context.invokeTool("directory-sync:export", {
-  entityTypes: ["note"]
+  entityTypes: ["note"],
 });
 ```
 
 **Pros:**
+
 - Uses existing MCP infrastructure
 - Tools are already the public API
 
 **Cons:**
+
 - Tools designed for external use
 - May add unnecessary overhead
 
@@ -557,7 +570,7 @@ plugins: [
 ```typescript
 plugins: [
   directorySync({
-    syncPath: "./.brain-repo", // Will be managed by git-sync
+    syncPath: "./brain-repo", // Will be managed by git-sync
     includeMetadata: true,
   }),
   gitSync({
@@ -579,7 +592,7 @@ plugins: [
   // Primary sync to git
   directorySync({
     id: "directory-sync-git",
-    syncPath: "./.git-brain",
+    syncPath: "./git-brain",
   }),
   gitSync({
     gitUrl: "https://github.com/user/brain.git",
