@@ -81,13 +81,26 @@ const createMockMcpServer = (): {
 
   return {
     resource: mock(
-      (name: string, template: unknown, metadata: unknown, handler: ResourceHandler) => {
-        resources.set(name, { template, metadata: metadata as { description?: string; [key: string]: unknown } });
+      (
+        name: string,
+        template: unknown,
+        metadata: unknown,
+        handler: ResourceHandler,
+      ) => {
+        resources.set(name, {
+          template,
+          metadata: metadata as {
+            description?: string;
+            [key: string]: unknown;
+          },
+        });
         resourceHandlers.set(name, handler);
       },
     ),
-    getResource: (name: string): ResourceConfig | undefined => resources.get(name),
-    getHandler: (name: string): ResourceHandler | undefined => resourceHandlers.get(name),
+    getResource: (name: string): ResourceConfig | undefined =>
+      resources.get(name),
+    getHandler: (name: string): ResourceHandler | undefined =>
+      resourceHandlers.get(name),
     getRegisteredResources: (): string[] => Array.from(resources.keys()),
   };
 };
@@ -152,14 +165,17 @@ describe("MCP Resources", () => {
       if (!handler) throw new Error("Handler not found");
       const uri = new URL("entity://note/test-id");
 
-      const result = await handler(uri, { id: "test-id" }) as ResourceResult;
+      const result = (await handler(uri, { id: "test-id" })) as ResourceResult;
 
       expect(result.contents).toHaveLength(1);
       expect(result.contents[0]?.uri).toBe("entity://note/test-id");
-      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<string, unknown>;
-      expect(data['id']).toBe("test-id");
-      expect(data['entityType']).toBe("note");
-      expect(data['title']).toBe("Test note");
+      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      expect(data["id"]).toBe("test-id");
+      expect(data["entityType"]).toBe("note");
+      expect(data["title"]).toBe("Test note");
     });
 
     it("should handle entity not found", async () => {
@@ -222,13 +238,16 @@ describe("MCP Resources", () => {
       if (!handler) throw new Error("Handler not found");
       const uri = new URL("schema://testSchema");
 
-      const result = await handler(uri) as ResourceResult;
+      const result = (await handler(uri)) as ResourceResult;
 
       expect(result.contents).toHaveLength(1);
       expect(result.contents[0]?.uri).toBe("schema://testSchema");
-      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<string, unknown>;
-      expect(data['name']).toBe("testSchema");
-      expect(data['type']).toBe("zod-schema");
+      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      expect(data["name"]).toBe("testSchema");
+      expect(data["type"]).toBe("zod-schema");
     });
 
     it("should handle schema not found", async () => {
@@ -240,9 +259,7 @@ describe("MCP Resources", () => {
         undefined,
       );
 
-      void expect(handler(uri)).rejects.toThrow(
-        "Schema not found: testSchema",
-      );
+      void expect(handler(uri)).rejects.toThrow("Schema not found: testSchema");
     });
 
     it("should register resources for all schemas", () => {
@@ -275,11 +292,14 @@ describe("MCP Resources", () => {
       if (!handler) throw new Error("Handler not found");
       const uri = new URL("entity://types");
 
-      const result = await handler(uri) as ResourceResult;
+      const result = (await handler(uri)) as ResourceResult;
 
       expect(result.contents).toHaveLength(1);
-      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<string, unknown>;
-      expect(data['entityTypes']).toEqual(["note", "article"]);
+      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      expect(data["entityTypes"]).toEqual(["note", "article"]);
     });
 
     it("should list schemas", async () => {
@@ -287,11 +307,14 @@ describe("MCP Resources", () => {
       if (!handler) throw new Error("Handler not found");
       const uri = new URL("schema://list");
 
-      const result = await handler(uri) as ResourceResult;
+      const result = (await handler(uri)) as ResourceResult;
 
       expect(result.contents).toHaveLength(1);
-      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<string, unknown>;
-      expect(data['schemaNames']).toEqual(["testSchema", "noteSchema"]);
+      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      expect(data["schemaNames"]).toEqual(["testSchema", "noteSchema"]);
     });
 
     it("should list content templates", async () => {
@@ -299,14 +322,17 @@ describe("MCP Resources", () => {
       if (!handler) throw new Error("Handler not found");
       const uri = new URL("template://list");
 
-      const result = await handler(uri) as ResourceResult;
+      const result = (await handler(uri)) as ResourceResult;
 
       expect(result.contents).toHaveLength(1);
-      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<string, unknown>;
-      const templates = data['templates'] as Array<Record<string, unknown>>;
+      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      const templates = data["templates"] as Array<Record<string, unknown>>;
       expect(templates).toHaveLength(2);
-      expect(templates[0]?.['name']).toBe("blog-post");
-      expect(templates[1]?.['name']).toBe("summary");
+      expect(templates[0]?.["name"]).toBe("blog-post");
+      expect(templates[1]?.["name"]).toBe("summary");
     });
   });
 
@@ -325,15 +351,18 @@ describe("MCP Resources", () => {
       if (!handler) throw new Error("Handler not found");
       const uri = new URL("template://blog-post");
 
-      const result = await handler(uri) as ResourceResult;
+      const result = (await handler(uri)) as ResourceResult;
 
       expect(result.contents).toHaveLength(1);
       expect(result.contents[0]?.uri).toBe("template://blog-post");
-      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<string, unknown>;
-      expect(data['name']).toBe("blog-post");
-      expect(data['description']).toBe("Generate a blog post");
-      expect(data['basePrompt']).toBe("Write a blog post");
-      expect(data['schemaType']).toBe("zod-schema");
+      const data = JSON.parse(result.contents[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      expect(data["name"]).toBe("blog-post");
+      expect(data["description"]).toBe("Generate a blog post");
+      expect(data["basePrompt"]).toBe("Write a blog post");
+      expect(data["schemaType"]).toBe("zod-schema");
     });
 
     it("should register resources for all templates", () => {

@@ -34,17 +34,19 @@ const createMockEntityService = (): EntityService =>
         },
       ],
     ),
-    getEntity: mock(async (entityType: string, id: string): Promise<unknown> => {
-      if (id === "not-found") return null;
-      return {
-        id,
-        entityType,
-        title: `Test ${entityType}`,
-        content: "Test content",
-        created: "2024-01-01T00:00:00.000Z",
-        updated: "2024-01-01T00:00:00.000Z",
-      };
-    }),
+    getEntity: mock(
+      async (entityType: string, id: string): Promise<unknown> => {
+        if (id === "not-found") return null;
+        return {
+          id,
+          entityType,
+          title: `Test ${entityType}`,
+          content: "Test content",
+          created: "2024-01-01T00:00:00.000Z",
+          updated: "2024-01-01T00:00:00.000Z",
+        };
+      },
+    ),
     createEntity: mock(async (entity: unknown) => {
       const entityRecord = entity as Record<string, unknown>;
       return {
@@ -107,7 +109,8 @@ const createMockMcpServer = (): {
       toolHandlers.set(name, handler);
     }),
     getTool: (name: string): ToolConfig | undefined => tools.get(name),
-    getHandler: (name: string): ToolHandler | undefined => toolHandlers.get(name),
+    getHandler: (name: string): ToolHandler | undefined =>
+      toolHandlers.get(name),
     getRegisteredTools: (): string[] => Array.from(tools.keys()),
   };
 };
@@ -160,29 +163,29 @@ describe("MCP Tools", () => {
       const queryTool = mockServer.getTool("shell:query");
       if (!queryTool) throw new Error("Tool not found");
       const querySchema = queryTool.schema as Record<string, unknown>;
-      expect(querySchema['query']).toBeDefined();
-      expect(querySchema['options']).toBeDefined();
+      expect(querySchema["query"]).toBeDefined();
+      expect(querySchema["options"]).toBeDefined();
 
       const searchTool = mockServer.getTool("shell:search");
       if (!searchTool) throw new Error("Tool not found");
       const searchSchema = searchTool.schema as Record<string, unknown>;
-      expect(searchSchema['entityType']).toBeDefined();
-      expect(searchSchema['query']).toBeDefined();
-      expect(searchSchema['limit']).toBeDefined();
+      expect(searchSchema["entityType"]).toBeDefined();
+      expect(searchSchema["query"]).toBeDefined();
+      expect(searchSchema["limit"]).toBeDefined();
 
       const getTool = mockServer.getTool("shell:get");
       if (!getTool) throw new Error("Tool not found");
       const getSchema = getTool.schema as Record<string, unknown>;
-      expect(getSchema['entityType']).toBeDefined();
-      expect(getSchema['entityId']).toBeDefined();
+      expect(getSchema["entityType"]).toBeDefined();
+      expect(getSchema["entityId"]).toBeDefined();
 
       const generateTool = mockServer.getTool("shell:generate");
       if (!generateTool) throw new Error("Tool not found");
       const generateSchema = generateTool.schema as Record<string, unknown>;
-      expect(generateSchema['prompt']).toBeDefined();
-      expect(generateSchema['contentType']).toBeDefined();
-      expect(generateSchema['context']).toBeDefined();
-      expect(generateSchema['save']).toBeDefined();
+      expect(generateSchema["prompt"]).toBeDefined();
+      expect(generateSchema["contentType"]).toBeDefined();
+      expect(generateSchema["context"]).toBeDefined();
+      expect(generateSchema["save"]).toBeDefined();
     });
   });
 
@@ -201,34 +204,40 @@ describe("MCP Tools", () => {
       const handler = mockServer.getHandler("shell:query");
       if (!handler) throw new Error("Handler not found");
 
-      const result = await handler({
+      const result = (await handler({
         query: "What is the meaning of life?",
-      }) as { content: Array<{ type: string; text: string }> };
+      })) as { content: Array<{ type: string; text: string }> };
 
       expect(result.content).toHaveLength(1);
       expect(result.content[0]?.type).toBe("text");
-      const data = JSON.parse(result.content[0]?.text ?? "{}") as Record<string, unknown>;
-      expect(data['results']).toBeDefined();
-      const metadata = data['metadata'] as Record<string, unknown>;
-      expect(metadata['processed']).toBe(true);
+      const data = JSON.parse(result.content[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      expect(data["results"]).toBeDefined();
+      const metadata = data["metadata"] as Record<string, unknown>;
+      expect(metadata["processed"]).toBe(true);
     });
 
     it("should handle query options", async () => {
       const handler = mockServer.getHandler("shell:query");
       if (!handler) throw new Error("Handler not found");
 
-      const result = await handler({
+      const result = (await handler({
         query: "Find all articles",
         options: {
           limit: 5,
           context: { author: "John" },
           responseSchema: "articleList",
         },
-      }) as { content: Array<{ type: string; text: string }> };
+      })) as { content: Array<{ type: string; text: string }> };
 
       expect(result.content).toHaveLength(1);
-      const data = JSON.parse(result.content[0]?.text ?? "{}") as Record<string, unknown>;
-      expect(data['results']).toBeDefined();
+      const data = JSON.parse(result.content[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      expect(data["results"]).toBeDefined();
     });
 
     it("should handle query errors", async () => {
@@ -259,19 +268,19 @@ describe("MCP Tools", () => {
       const handler = mockServer.getHandler("shell:search");
       if (!handler) throw new Error("Handler not found");
 
-      const result = await handler({
+      const result = (await handler({
         entityType: "note",
         query: "test query",
-      }) as { content: Array<{ type: string; text: string }> };
+      })) as { content: Array<{ type: string; text: string }> };
 
       expect(result.content).toHaveLength(1);
       expect(result.content[0]?.type).toBe("text");
       const data = JSON.parse(result.content[0]?.text ?? "{}") as unknown[];
       expect(data.length).toBe(1);
       const firstItem = data[0] as Record<string, unknown>;
-      const entity = firstItem['entity'] as Record<string, unknown>;
-      expect(entity['entityType']).toBe("note");
-      expect(entity['title']).toContain("test query");
+      const entity = firstItem["entity"] as Record<string, unknown>;
+      expect(entity["entityType"]).toBe("note");
+      expect(entity["title"]).toContain("test query");
     });
 
     it("should handle limit parameter", async () => {
@@ -337,16 +346,19 @@ describe("MCP Tools", () => {
       const handler = mockServer.getHandler("shell:get");
       if (!handler) throw new Error("Handler not found");
 
-      const result = await handler({
+      const result = (await handler({
         entityType: "note",
         entityId: "test-id",
-      }) as { content: Array<{ type: string; text: string }> };
+      })) as { content: Array<{ type: string; text: string }> };
 
       expect(result.content).toHaveLength(1);
       expect(result.content[0]?.type).toBe("text");
-      const data = JSON.parse(result.content[0]?.text ?? "{}") as Record<string, unknown>;
-      expect(data['id']).toBe("test-id");
-      expect(data['entityType']).toBe("note");
+      const data = JSON.parse(result.content[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      expect(data["id"]).toBe("test-id");
+      expect(data["entityType"]).toBe("note");
     });
 
     it("should handle entity not found", async () => {
@@ -391,22 +403,25 @@ describe("MCP Tools", () => {
       const handler = mockServer.getHandler("shell:generate");
       if (!handler) throw new Error("Handler not found");
 
-      const result = await handler({
+      const result = (await handler({
         prompt: "Write a blog post about AI",
         contentType: "blogPost",
-      }) as { content: Array<{ type: string; text: string }> };
+      })) as { content: Array<{ type: string; text: string }> };
 
       expect(result.content).toHaveLength(1);
       expect(result.content[0]?.type).toBe("text");
-      const data = JSON.parse(result.content[0]?.text ?? "{}") as Record<string, unknown>;
-      expect(data['content']).toContain("Generated content for:");
+      const data = JSON.parse(result.content[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      expect(data["content"]).toContain("Generated content for:");
     });
 
     it("should handle context parameter", async () => {
       const handler = mockServer.getHandler("shell:generate");
       if (!handler) throw new Error("Handler not found");
 
-      const result = await handler({
+      const result = (await handler({
         prompt: "Write about AI",
         contentType: "article",
         context: {
@@ -415,11 +430,14 @@ describe("MCP Tools", () => {
           style: "academic",
           examples: ["Example 1", "Example 2"],
         },
-      }) as { content: Array<{ type: string; text: string }> };
+      })) as { content: Array<{ type: string; text: string }> };
 
       expect(result.content).toHaveLength(1);
-      const data = JSON.parse(result.content[0]?.text ?? "{}") as Record<string, unknown>;
-      expect(data['content']).toBeDefined();
+      const data = JSON.parse(result.content[0]?.text ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      expect(data["content"]).toBeDefined();
     });
 
     it("should handle save parameter", async () => {
@@ -484,14 +502,18 @@ describe("MCP Tools", () => {
       const handler = mockServer.getHandler("shell:list_templates");
       if (!handler) throw new Error("Handler not found");
 
-      const result = await handler({}) as { content: Array<{ type: string; text: string }> };
+      const result = (await handler({})) as {
+        content: Array<{ type: string; text: string }>;
+      };
 
       expect(result.content).toHaveLength(1);
       expect(result.content[0]?.type).toBe("text");
-      const data = JSON.parse(result.content[0]?.text ?? "{}") as Array<Record<string, unknown>>;
+      const data = JSON.parse(result.content[0]?.text ?? "{}") as Array<
+        Record<string, unknown>
+      >;
       expect(data.length).toBe(2);
-      expect(data[0]?.['name']).toBe("blog-post");
-      expect(data[1]?.['name']).toBe("summary");
+      expect(data[0]?.["name"]).toBe("blog-post");
+      expect(data[1]?.["name"]).toBe("summary");
     });
 
     it("should handle empty template list", async () => {
@@ -502,7 +524,9 @@ describe("MCP Tools", () => {
         contentGenerationService.listTemplates as ReturnType<typeof mock>
       ).mockReturnValueOnce([]);
 
-      const result = await handler({}) as { content: Array<{ type: string; text: string }> };
+      const result = (await handler({})) as {
+        content: Array<{ type: string; text: string }>;
+      };
 
       const data = JSON.parse(result.content[0]?.text ?? "{}") as unknown[];
       expect(data).toEqual([]);

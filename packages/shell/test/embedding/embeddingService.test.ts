@@ -197,7 +197,11 @@ describe("EmbeddingService", () => {
       // Mock embed to return empty batch
       (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
         (): AsyncGenerator<number[][], void, unknown> => {
-          return (async function* (): AsyncGenerator<number[][], void, unknown> {
+          return (async function* (): AsyncGenerator<
+            number[][],
+            void,
+            unknown
+          > {
             yield [];
           })();
         },
@@ -214,7 +218,11 @@ describe("EmbeddingService", () => {
       // Mock embed to return wrong dimensions
       (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
         (): AsyncGenerator<number[][], void, unknown> => {
-          return (async function* (): AsyncGenerator<number[][], void, unknown> {
+          return (async function* (): AsyncGenerator<
+            number[][],
+            void,
+            unknown
+          > {
             yield [new Array(256).fill(0.1)]; // Wrong dimensions
           })();
         },
@@ -280,7 +288,11 @@ describe("EmbeddingService", () => {
       // Mock to return embeddings in multiple batches
       (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
         (): AsyncGenerator<number[][], void, unknown> => {
-          return (async function* (): AsyncGenerator<number[][], void, unknown> {
+          return (async function* (): AsyncGenerator<
+            number[][],
+            void,
+            unknown
+          > {
             // Yield in batches of 25
             for (let i = 0; i < 100; i += 25) {
               const batch = Array(25).fill(new Array(384).fill(0.1));
