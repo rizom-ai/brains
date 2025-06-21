@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import {
-  PageRegistry,
-  LayoutRegistry,
-  SiteBuilder,
-} from "../src";
+import { PageRegistry, LayoutRegistry, SiteBuilder } from "../src";
 import type { PageDefinition } from "../src";
 
 describe("SiteBuilder", () => {

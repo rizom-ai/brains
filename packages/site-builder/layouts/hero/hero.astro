@@ -1,0 +1,32 @@
+---
+import type { HeroLayoutProps } from './schema';
+
+export type Props = HeroLayoutProps;
+
+const { headline, subheadline, ctaText, ctaLink, backgroundImage } = Astro.props;
+---
+
+<section 
+  class="hero-section py-20 md:py-32 text-center relative overflow-hidden"
+  style={backgroundImage ? `background-image: url(${backgroundImage})` : undefined}
+>
+  <div class="container mx-auto px-4 max-w-5xl relative z-10">
+    <h1 class="text-4xl md:text-6xl font-bold mb-6 text-text-dark">
+      {headline}
+    </h1>
+    <p class="text-xl md:text-2xl text-text-gray mb-8 max-w-3xl mx-auto">
+      {subheadline}
+    </p>
+    {ctaText && ctaLink && (
+      <a 
+        href={ctaLink}
+        class="inline-block bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200"
+      >
+        {ctaText}
+      </a>
+    )}
+  </div>
+  {backgroundImage && (
+    <div class="absolute inset-0 bg-black opacity-10 z-0"></div>
+  )}
+</section>
