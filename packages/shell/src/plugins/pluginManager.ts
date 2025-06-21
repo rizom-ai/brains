@@ -239,6 +239,7 @@ export class PluginManager implements IPluginManager {
     const entityService = shell.getEntityService();
     const contentTypeRegistry = shell.getContentTypeRegistry();
     const contentGenerationService = shell.getContentGenerationService();
+    const siteBuilder = shell.getSiteBuilder();
 
     // Create plugin context
     const context: PluginContext = {
@@ -359,6 +360,54 @@ export class PluginManager implements IPluginManager {
             this.logger.error("Failed to register template", error);
             throw new Error(
               `Template registration failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        },
+      },
+      pages: {
+        register: (page) => {
+          try {
+            // Add pluginId to the page definition
+            const pageWithPlugin = { ...page, pluginId };
+            siteBuilder.getPageRegistry().register(pageWithPlugin);
+            this.logger.debug(`Registered page: ${page.path}`);
+          } catch (error) {
+            this.logger.error("Failed to register page", error);
+            throw new Error(
+              `Page registration failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        },
+        list: () => {
+          try {
+            return siteBuilder.getPageRegistry().list();
+          } catch (error) {
+            this.logger.error("Failed to list pages", error);
+            throw new Error(
+              `Page listing failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        },
+      },
+      layouts: {
+        register: (layout) => {
+          try {
+            siteBuilder.getLayoutRegistry().register(layout);
+            this.logger.debug(`Registered layout: ${layout.name}`);
+          } catch (error) {
+            this.logger.error("Failed to register layout", error);
+            throw new Error(
+              `Layout registration failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        },
+        list: () => {
+          try {
+            return siteBuilder.getLayoutRegistry().list();
+          } catch (error) {
+            this.logger.error("Failed to list layouts", error);
+            throw new Error(
+              `Layout listing failed: ${error instanceof Error ? error.message : String(error)}`,
             );
           }
         },

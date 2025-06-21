@@ -6,7 +6,7 @@ import type {
   BuildResult,
   PageDefinition,
   ContentGenerationRequest,
-} from "./types";
+} from "@brains/types";
 import { PageRegistry } from "./page-registry";
 import { LayoutRegistry } from "./layout-registry";
 import { builtInLayouts } from "./layout-schemas";
@@ -192,5 +192,13 @@ export class SiteBuilder implements ISiteBuilder {
         `Would generate content for section ${section.id} using template ${request.template}`,
       );
     }
+  }
+
+  public getPageRegistry(): PageRegistry {
+    return this.pageRegistry;
+  }
+
+  public getLayoutRegistry(): LayoutRegistry {
+    return this.layoutRegistry;
   }
 }

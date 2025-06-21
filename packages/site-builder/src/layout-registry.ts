@@ -1,8 +1,8 @@
 import type {
   LayoutDefinition,
   LayoutRegistry as ILayoutRegistry,
-} from "./types";
-import { LayoutDefinitionSchema } from "./types";
+} from "@brains/types";
+import { LayoutDefinitionSchema } from "@brains/types";
 
 export class LayoutRegistry implements ILayoutRegistry {
   private static instance: LayoutRegistry | null = null;

@@ -67,5 +67,26 @@ export type { SchemaFormatter, ContentFormatter } from "./formatters";
 // Content types
 export type { ContentTypeRegistry } from "./content";
 
+// Site builder types and schemas
+export type {
+  PageDefinition,
+  SectionDefinition,
+  LayoutDefinition,
+  SiteBuilderOptions,
+  BuildResult,
+  ContentGenerationRequest,
+  PageRegistry,
+  LayoutRegistry,
+  SiteBuilder,
+} from "./site-builder";
+export {
+  PageDefinitionSchema,
+  SectionDefinitionSchema,
+  LayoutDefinitionSchema,
+  SiteBuilderOptionsSchema,
+  BuildResultSchema,
+  ContentGenerationRequestSchema,
+} from "./site-builder";
+
 // Re-export commonly used types from utils
 export type { Logger } from "@brains/utils";

@@ -174,6 +174,33 @@ describe("PluginManager", (): void => {
         generateFromTemplate: async (): Promise<unknown> => ({}),
         generateContent: async (): Promise<unknown> => ({}),
       }),
+      getSiteBuilder: (): {
+        getPageRegistry: () => {
+          register: (page: unknown) => void;
+          unregister: (path: string) => void;
+          get: (path: string) => unknown;
+          list: () => unknown[];
+        };
+        getLayoutRegistry: () => {
+          register: (layout: unknown) => void;
+          unregister: (name: string) => void;
+          get: (name: string) => unknown;
+          list: () => unknown[];
+        };
+      } => ({
+        getPageRegistry: () => ({
+          register: (): void => undefined,
+          unregister: (): void => undefined,
+          get: (): undefined => undefined,
+          list: (): unknown[] => [],
+        }),
+        getLayoutRegistry: () => ({
+          register: (): void => undefined,
+          unregister: (): void => undefined,
+          get: (): undefined => undefined,
+          list: (): unknown[] => [],
+        }),
+      }),
     };
     registry.register("shell", () => mockShell as unknown as Shell);
 

@@ -8,6 +8,8 @@ import type {
   PluginTool,
   ComponentFactory,
   MessageBus,
+  PageDefinition,
+  LayoutDefinition,
 } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
@@ -268,6 +270,24 @@ export class PluginTestHarness {
       templates: {
         register: (): void => {
           // Mock implementation for test harness
+        },
+      },
+      pages: {
+        register: (): void => {
+          // Mock implementation for test harness
+        },
+        list: (): PageDefinition[] => {
+          // Return empty list for test harness
+          return [];
+        },
+      },
+      layouts: {
+        register: (): void => {
+          // Mock implementation for test harness
+        },
+        list: (): LayoutDefinition[] => {
+          // Return empty list for test harness
+          return [];
         },
       },
       // Direct service access

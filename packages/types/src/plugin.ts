@@ -8,6 +8,7 @@ import type { EntityAdapter } from "@brains/base-entity";
 import type { BaseEntity } from "./entities";
 import type { EntityService, ContentGenerationService } from "./services";
 import type { ContentTypeRegistry } from "./content";
+import type { PageDefinition, LayoutDefinition } from "./site-builder";
 
 /**
  * Options for content generation
@@ -161,6 +162,14 @@ export interface PluginContext {
   };
   templates: {
     register<T>(name: string, template: ContentTemplate<T>): void;
+  };
+  pages: {
+    register(page: PageDefinition): void;
+    list(): PageDefinition[];
+  };
+  layouts: {
+    register(layout: LayoutDefinition): void;
+    list(): LayoutDefinition[];
   };
   registerEntityType: <T extends BaseEntity>(
     entityType: string,

@@ -1,5 +1,8 @@
-import type { PageDefinition, PageRegistry as IPageRegistry } from "./types";
-import { PageDefinitionSchema } from "./types";
+import type {
+  PageDefinition,
+  PageRegistry as IPageRegistry,
+} from "@brains/types";
+import { PageDefinitionSchema } from "@brains/types";
 
 export class PageRegistry implements IPageRegistry {
   private static instance: PageRegistry | null = null;

@@ -1,4 +1,4 @@
-import type { LayoutDefinition } from "./types";
+import type { LayoutDefinition } from "@brains/types";
 
 // Import schemas from the layout directories
 import { HeroLayoutSchema } from "../layouts/hero/schema";
