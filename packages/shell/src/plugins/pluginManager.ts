@@ -16,6 +16,9 @@ import type {
   PluginManagerEventMap,
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
+  PageDefinition,
+  LayoutDefinition,
+  SiteBuilder,
 } from "@brains/types";
 import { PluginStatus, PluginEvent } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
@@ -239,10 +242,9 @@ export class PluginManager implements IPluginManager {
     const entityService = shell.getEntityService();
     const contentTypeRegistry = shell.getContentTypeRegistry();
     const contentGenerationService = shell.getContentGenerationService();
-    const siteBuilder = shell.getSiteBuilder();
 
-    // Create plugin context
-    const context: PluginContext = {
+    // Create base plugin context
+    const baseContext = {
       pluginId,
       registry: this.registry,
       logger: this.logger.child(`Plugin:${pluginId}`),
@@ -364,59 +366,49 @@ export class PluginManager implements IPluginManager {
           }
         },
       },
-      pages: {
-        register: (page) => {
-          try {
-            // Add pluginId to the page definition
-            const pageWithPlugin = { ...page, pluginId };
-            siteBuilder.getPageRegistry().register(pageWithPlugin);
-            this.logger.debug(`Registered page: ${page.path}`);
-          } catch (error) {
-            this.logger.error("Failed to register page", error);
-            throw new Error(
-              `Page registration failed: ${error instanceof Error ? error.message : String(error)}`,
-            );
-          }
-        },
-        list: () => {
-          try {
-            return siteBuilder.getPageRegistry().list();
-          } catch (error) {
-            this.logger.error("Failed to list pages", error);
-            throw new Error(
-              `Page listing failed: ${error instanceof Error ? error.message : String(error)}`,
-            );
-          }
-        },
-      },
-      layouts: {
-        register: (layout) => {
-          try {
-            siteBuilder.getLayoutRegistry().register(layout);
-            this.logger.debug(`Registered layout: ${layout.name}`);
-          } catch (error) {
-            this.logger.error("Failed to register layout", error);
-            throw new Error(
-              `Layout registration failed: ${error instanceof Error ? error.message : String(error)}`,
-            );
-          }
-        },
-        list: () => {
-          try {
-            return siteBuilder.getLayoutRegistry().list();
-          } catch (error) {
-            this.logger.error("Failed to list layouts", error);
-            throw new Error(
-              `Layout listing failed: ${error instanceof Error ? error.message : String(error)}`,
-            );
-          }
-        },
-      },
       // Direct service access
       entityService,
       contentTypeRegistry,
       contentGenerationService,
     };
+
+    // Add pages and layouts if site builder is available
+    const context: PluginContext = this.registry.has("siteBuilder")
+      ? {
+          ...baseContext,
+          pages: {
+            register: (page: PageDefinition) => {
+              const siteBuilder =
+                this.registry.resolve<SiteBuilder>("siteBuilder");
+              const pageRegistry = siteBuilder.getPageRegistry();
+              const pageWithPlugin = { ...page, pluginId };
+              pageRegistry.register(pageWithPlugin);
+              this.logger.debug(`Registered page: ${page.path}`);
+            },
+            list: () => {
+              const siteBuilder =
+                this.registry.resolve<SiteBuilder>("siteBuilder");
+              const pageRegistry = siteBuilder.getPageRegistry();
+              return pageRegistry.list();
+            },
+          },
+          layouts: {
+            register: (layout: LayoutDefinition) => {
+              const siteBuilder =
+                this.registry.resolve<SiteBuilder>("siteBuilder");
+              const layoutRegistry = siteBuilder.getLayoutRegistry();
+              layoutRegistry.register(layout);
+              this.logger.debug(`Registered layout: ${layout.name}`);
+            },
+            list: () => {
+              const siteBuilder =
+                this.registry.resolve<SiteBuilder>("siteBuilder");
+              const layoutRegistry = siteBuilder.getLayoutRegistry();
+              return layoutRegistry.list();
+            },
+          },
+        }
+      : baseContext;
 
     // Register the plugin
     try {

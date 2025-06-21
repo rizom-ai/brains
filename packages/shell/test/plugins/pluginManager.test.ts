@@ -187,6 +187,9 @@ describe("PluginManager", (): void => {
           get: (name: string) => unknown;
           list: () => unknown[];
         };
+        build: (
+          options: unknown,
+        ) => Promise<{ success: boolean; pagesBuilt: number }>;
       } => ({
         getPageRegistry: () => ({
           register: (): void => undefined,
@@ -199,6 +202,10 @@ describe("PluginManager", (): void => {
           unregister: (): void => undefined,
           get: (): undefined => undefined,
           list: (): unknown[] => [],
+        }),
+        build: async (): Promise<{ success: boolean; pagesBuilt: number }> => ({
+          success: true,
+          pagesBuilt: 0,
         }),
       }),
     };

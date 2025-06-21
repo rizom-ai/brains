@@ -39,3 +39,6 @@ export type { ProgressCallback } from "./progress";
 
 // Plugin utilities
 export * from "./plugin";
+
+// YAML utilities
+export { toYaml, fromYaml, isValidYaml } from "./yaml";

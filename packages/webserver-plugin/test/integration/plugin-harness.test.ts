@@ -63,8 +63,6 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       expect(toolNames).toContain("webserver:build");
       expect(toolNames).toContain("webserver:serve");
       expect(toolNames).toContain("webserver:stop");
-      expect(toolNames).toContain("webserver:generate");
-      expect(toolNames).toContain("webserver:promote");
     });
 
     it("should handle status tool", async () => {
@@ -86,7 +84,6 @@ describe("WebserverPlugin with PluginTestHarness", () => {
       const result = await statusTool.handler({});
       const typedResult = result as {
         success: boolean;
-        site?: { hasBuild: boolean; lastBuild?: string };
         servers?: {
           preview: { running: boolean; url?: string };
           production: { running: boolean; url?: string };
@@ -97,8 +94,10 @@ describe("WebserverPlugin with PluginTestHarness", () => {
         };
       };
 
+      if (!typedResult.success) {
+        console.error("Status tool failed:", result);
+      }
       expect(typedResult.success).toBe(true);
-      expect(typedResult.site?.hasBuild).toBe(false);
       expect(typedResult.servers?.preview.running).toBe(false);
       expect(typedResult.servers?.production.running).toBe(false);
     });

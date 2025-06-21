@@ -163,11 +163,11 @@ export interface PluginContext {
   templates: {
     register<T>(name: string, template: ContentTemplate<T>): void;
   };
-  pages: {
+  pages?: {
     register(page: PageDefinition): void;
     list(): PageDefinition[];
   };
-  layouts: {
+  layouts?: {
     register(layout: LayoutDefinition): void;
     list(): LayoutDefinition[];
   };

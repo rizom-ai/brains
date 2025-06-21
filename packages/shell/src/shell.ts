@@ -32,7 +32,6 @@ import {
 import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
 import { ContentGenerationService, ContentTypeRegistry } from "./content";
 import { queryResponseTemplate } from "./templates/query-response";
-import { SiteBuilder } from "@brains/site-builder";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -54,7 +53,6 @@ export interface ShellDependencies {
   pluginManager?: PluginManager;
   queryProcessor?: QueryProcessor;
   contentGenerationService?: ContentGenerationService;
-  siteBuilder?: SiteBuilder;
 }
 
 /**
@@ -83,7 +81,6 @@ export class Shell {
   private readonly aiService: AIService;
   private readonly contentGenerationService: ContentGenerationService;
   private readonly contentTypeRegistry: ContentTypeRegistry;
-  private readonly siteBuilder: SiteBuilder;
   private readonly mcpServer: McpServer;
   private initialized = false;
 
@@ -146,7 +143,6 @@ export class Shell {
       messageBus,
     );
     const contentGenerationService = ContentGenerationService.createFresh();
-    const siteBuilder = SiteBuilder.createFresh();
 
     // Merge fresh instances with any provided dependencies
     const freshDependencies: ShellDependencies = {
@@ -159,7 +155,6 @@ export class Shell {
       messageBus,
       pluginManager,
       contentGenerationService,
-      siteBuilder,
     };
 
     return new Shell(fullConfig, freshDependencies);
@@ -275,8 +270,6 @@ export class Shell {
       this.logger,
     );
 
-    this.siteBuilder = dependencies?.siteBuilder ?? SiteBuilder.getInstance();
-
     // Use injected MCP server or create one
     if (dependencies?.mcpServer) {
       this.mcpServer = dependencies.mcpServer;
@@ -315,7 +308,6 @@ export class Shell {
       "contentTypeRegistry",
       () => this.contentTypeRegistry,
     );
-    this.registry.register("siteBuilder", () => this.siteBuilder);
     this.registry.register("mcpServer", () => this.mcpServer);
 
     // Listen for plugin tool registration events
@@ -602,10 +594,6 @@ export class Shell {
 
   public getContentTypeRegistry(): ContentTypeRegistry {
     return this.contentTypeRegistry;
-  }
-
-  public getSiteBuilder(): SiteBuilder {
-    return this.siteBuilder;
   }
 
   public getLogger(): Logger {

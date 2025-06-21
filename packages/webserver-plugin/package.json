@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@brains/formatters": "workspace:*",
+    "@brains/site-builder-plugin": "workspace:*",
     "@brains/structured-content": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",

@@ -1,15 +1,8 @@
 import type { PluginContext } from "@brains/types";
 import type { Logger } from "@brains/utils";
-import { ProgressReporter } from "@brains/utils";
-import { join } from "path";
-import { fileURLToPath } from "url";
-import { ContentGenerator } from "./content-generator";
-import { SiteBuilder } from "./site-builder";
+import type { SiteBuilder } from "@brains/site-builder-plugin";
 import { ServerManager } from "./server-manager";
-import { copyDirectory, cleanDirectory } from "./template-utils";
-import { writeFile } from "fs/promises";
-import { contentRegistry } from "./content";
-import { generateContentConfigFile } from "./schema-generator";
+import { join } from "path";
 
 export interface WebserverManagerOptions {
   logger: Logger;
@@ -24,54 +17,23 @@ export interface WebserverManagerOptions {
 }
 
 /**
- * Orchestrates website generation, building, and serving
+ * Orchestrates website building (via site-builder) and serving
  */
 export class WebserverManager {
   private logger: Logger;
-  private contentGenerator: ContentGenerator;
-  private siteBuilder: SiteBuilder;
+  private context: PluginContext;
   private serverManager: ServerManager;
-  private lastBuildTime?: Date;
-  private workingDir: string;
-  private templateDir: string;
+  private options: WebserverManagerOptions;
 
   constructor(options: WebserverManagerOptions) {
     this.logger = options.logger;
+    this.context = options.context;
+    this.options = options;
 
-    // Template directory - use provided path or resolve relative to this module
-    if (options.astroSiteTemplate) {
-      this.templateDir = options.astroSiteTemplate;
-    } else {
-      const templateUrl = import.meta.resolve(
-        "@brains/webserver-template/package.json",
-      );
-      const templatePath = fileURLToPath(templateUrl);
-      this.templateDir = join(templatePath, "..");
-    }
-
-    this.logger.debug(`Template directory resolved to: ${this.templateDir}`);
-
-    // Working directory where we'll copy the template
-    this.workingDir = join(options.outputDir, ".astro-work");
-
-    // Initialize components with working directory
-    this.contentGenerator = new ContentGenerator({
-      logger: options.logger.child("ContentGenerator"),
-      context: options.context,
-      astroSiteDir: this.workingDir,
-      siteTitle: options.siteTitle,
-      siteDescription: options.siteDescription,
-      siteUrl: options.siteUrl,
-    });
-
-    this.siteBuilder = new SiteBuilder({
-      logger: options.logger.child("SiteBuilder"),
-      astroSiteDir: this.workingDir,
-    });
-
+    // Initialize server manager for serving built sites
     this.serverManager = new ServerManager({
       logger: options.logger.child("ServerManager"),
-      distDir: this.siteBuilder.getDistDir(),
+      distDir: join(options.outputDir, "dist"),
       previewPort: options.previewPort,
       productionPort: options.productionPort,
     });
@@ -84,6 +46,7 @@ export class WebserverManager {
     options?: {
       clean?: boolean;
       environment?: "preview" | "production";
+      force?: boolean;
     },
     sendProgress?: (notification: {
       progress: number;
@@ -95,66 +58,36 @@ export class WebserverManager {
     this.logger.info(`Starting site build for ${environment} environment`);
 
     try {
-      // Total steps: clean(1) + copy(1) + config(1) + content(1) + build(1) = 5
-      const totalSteps = 5;
-      let currentStep = 0;
-
-      // Clean working directory if requested
-      if (options?.clean) {
-        this.logger.debug("Cleaning working directory");
-        await sendProgress?.({
-          progress: currentStep++,
-          total: totalSteps,
-          message: "Cleaning working directory",
-        });
-        await cleanDirectory(this.workingDir);
+      // Get site builder from registry
+      if (!this.context.registry.has("siteBuilder")) {
+        throw new Error(
+          "SiteBuilder not found in registry. Make sure site-builder-plugin is loaded.",
+        );
       }
 
-      // Copy template to working directory
-      this.logger.debug("Copying template to working directory");
-      await sendProgress?.({
-        progress: currentStep++,
-        total: totalSteps,
-        message: "Copying template files",
-      });
-      await copyDirectory(this.templateDir, this.workingDir);
+      const siteBuilder =
+        this.context.registry.resolve<SiteBuilder>("siteBuilder");
 
-      // Generate content config for Astro (includes schemas)
-      this.logger.debug("Generating content config with schemas");
-      await sendProgress?.({
-        progress: currentStep++,
-        total: totalSteps,
-        message: "Generating content configuration",
-      });
-      await this.generateContentConfig();
-
-      // Generate content (always goes to preview environment)
-      await sendProgress?.({
-        progress: currentStep++,
-        total: totalSteps,
-        message: `Generating content`,
-      });
-
-      const progress = ProgressReporter.from(sendProgress);
-      const contentProgress = progress?.createSub("Generating content");
-
-      await this.contentGenerator.generateAll(
-        contentProgress?.toCallback(),
-        false,
+      // Build the site using site-builder
+      const buildResult = await siteBuilder.build(
+        {
+          outputDir: this.options.outputDir,
+          enableContentGeneration: true,
+          siteConfig: {
+            title: this.options.siteTitle,
+            description: this.options.siteDescription,
+            url: this.options.siteUrl,
+          },
+        },
+        sendProgress,
       );
 
-      // Build site
-      await sendProgress?.({
-        progress: currentStep++,
-        total: totalSteps,
-        message: "Building Astro site",
-      });
+      if (!buildResult.success) {
+        throw new Error(
+          `Site build failed: ${buildResult.errors?.join(", ") || "Unknown error"}`,
+        );
+      }
 
-      const buildProgress = progress?.createSub("Building site");
-
-      await this.siteBuilder.build(buildProgress?.toCallback());
-
-      this.lastBuildTime = new Date();
       this.logger.info("Site build completed");
     } catch (error) {
       this.logger.error("Site build failed", error);
@@ -198,11 +131,9 @@ export class WebserverManager {
   }
 
   /**
-   * Get status of all components
+   * Get server status
    */
   getStatus(): {
-    hasBuild: boolean;
-    lastBuild: string | undefined;
     servers: {
       preview: boolean;
       production: boolean;
@@ -210,86 +141,22 @@ export class WebserverManager {
       productionUrl: string | undefined;
     };
   } {
-    const serverStatus = this.serverManager.getStatus();
-
     return {
-      hasBuild: this.siteBuilder.hasBuild(),
-      lastBuild: this.lastBuildTime?.toISOString(),
-      servers: serverStatus,
+      servers: this.serverManager.getStatus(),
     };
   }
 
   /**
-   * Cleanup - stop all servers
+   * Stop all servers
    */
-  async cleanup(): Promise<void> {
-    this.logger.info("Cleaning up webserver manager");
+  async stopAll(): Promise<void> {
     await this.serverManager.stopAll();
   }
 
   /**
-   * Get the working directory path (useful for testing)
+   * Cleanup resources
    */
-  getWorkingDir(): string {
-    return this.workingDir;
-  }
-
-  /**
-   * Generate the content/config.ts file for Astro
-   */
-  async generateContentConfig(): Promise<void> {
-    const { mkdir } = await import("fs/promises");
-
-    // Ensure content directory exists
-    const contentDir = join(this.workingDir, "src", "content");
-    await mkdir(contentDir, { recursive: true });
-
-    // Generate content config with inline schemas
-    const contentConfig = await generateContentConfigFile(contentRegistry);
-
-    const configPath = join(contentDir, "config.ts");
-    await writeFile(configPath, contentConfig);
-  }
-
-  /**
-   * Generate new content (always to preview environment)
-   */
-  async generateContent(
-    sendProgress?: (notification: {
-      progress: number;
-      total?: number;
-      message?: string;
-    }) => Promise<void>,
-    force = false,
-  ): Promise<void> {
-    await this.contentGenerator.generateAll(sendProgress, force);
-  }
-
-  /**
-   * Generate content for a specific section
-   */
-  async generateContentForSection(
-    templateKey: string,
-    environment: "preview" | "production",
-    force = false,
-    sendProgress?: (notification: {
-      progress: number;
-      total?: number;
-      message?: string;
-    }) => Promise<void>,
-  ): Promise<{ generated: boolean }> {
-    // Content generation always goes to preview environment
-    if (environment !== "preview") {
-      throw new Error("Content can only be generated to preview environment");
-    }
-
-    // Generate using the new API
-    await this.contentGenerator.generateContent(
-      templateKey,
-      { force },
-      sendProgress,
-    );
-
-    return { generated: true };
+  async cleanup(): Promise<void> {
+    await this.stopAll();
   }
 }

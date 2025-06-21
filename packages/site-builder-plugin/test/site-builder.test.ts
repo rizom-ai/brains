@@ -1,16 +1,28 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { PageRegistry, LayoutRegistry, SiteBuilder } from "../src";
 import type { PageDefinition } from "@brains/types";
+import { createSilentLogger, PluginTestHarness } from "@brains/utils";
+import { createMockStaticSiteBuilder } from "./mocks/mock-static-site-builder";
 
 describe("SiteBuilder", () => {
+  const logger = createSilentLogger();
+  const harness = new PluginTestHarness();
+
   beforeEach(() => {
     PageRegistry.resetInstance();
     LayoutRegistry.resetInstance();
     SiteBuilder.resetInstance();
+    // Set mock as default for all tests
+    SiteBuilder.setDefaultStaticSiteBuilderFactory(createMockStaticSiteBuilder);
+  });
+
+  afterEach(async () => {
+    await harness.cleanup();
   });
 
   it("should register built-in layouts on initialization", () => {
-    SiteBuilder.getInstance();
+    const context = harness.getPluginContext();
+    SiteBuilder.getInstance(logger, context);
     const layoutRegistry = LayoutRegistry.getInstance();
 
     const layouts = layoutRegistry.list();
@@ -21,7 +33,8 @@ describe("SiteBuilder", () => {
   });
 
   it("should build pages successfully", async () => {
-    const siteBuilder = SiteBuilder.getInstance();
+    const context = harness.getPluginContext();
+    const siteBuilder = SiteBuilder.getInstance(logger, context);
     const pageRegistry = PageRegistry.getInstance();
 
     // Register a test page
@@ -55,7 +68,8 @@ describe("SiteBuilder", () => {
   });
 
   it("should report errors for invalid layouts", async () => {
-    const siteBuilder = SiteBuilder.getInstance();
+    const context = harness.getPluginContext();
+    const siteBuilder = SiteBuilder.getInstance(logger, context);
     const pageRegistry = PageRegistry.getInstance();
 
     // Register a page with invalid layout

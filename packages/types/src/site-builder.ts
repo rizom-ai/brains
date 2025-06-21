@@ -49,7 +49,14 @@ export type LayoutDefinition = z.infer<typeof LayoutDefinitionSchema>;
  */
 export const SiteBuilderOptionsSchema = z.object({
   enableContentGeneration: z.boolean().default(false),
-  outputDir: z.string().optional(),
+  outputDir: z.string(),
+  siteConfig: z
+    .object({
+      title: z.string(),
+      description: z.string(),
+      url: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema>;

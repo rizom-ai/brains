@@ -9,6 +9,7 @@ import { productsSectionTemplate } from "./content/landing/products";
 import { ctaSectionTemplate } from "./content/landing/cta";
 import { landingMetadataTemplate } from "./content/landing/metadata";
 import { dashboardTemplate } from "./content/dashboard";
+import { PAGES } from "./pages";
 
 // Define content template configuration
 const CONTENT_TEMPLATES = [
@@ -56,17 +57,31 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
     await this.registerPages(context);
   }
 
-  private async registerPages(_context: PluginContext): Promise<void> {
-    // TODO: Register pages once plugin context has pages support
-    // Will register:
-    // - Landing page (/) with hero, features, products, and cta sections
-    // - Dashboard page (/dashboard)
+  private async registerPages(context: PluginContext): Promise<void> {
+    // Check if site builder is available
+    if (!context.pages) {
+      this.logger?.warn(
+        "Site builder not available, skipping page registration",
+      );
+      return;
+    }
+
+    // Register all pages from the PAGES array
+    for (const page of PAGES) {
+      context.pages.register(page);
+    }
   }
 
   /**
-   * No tools needed for this plugin
+   * Get tools provided by this plugin
    */
   protected override async getTools(): Promise<PluginTool[]> {
+    // TODO: Extract a base SitePlugin class that provides common site management tools:
+    // - promote_content - promote content from preview to production
+    // - rollback_content - rollback content from production
+    // These tools should manage the site-content entity environments
+    // and trigger site rebuilds as needed
+    // Different site plugins (blog-site, docs-site, etc.) could then extend this base class
     return [];
   }
 

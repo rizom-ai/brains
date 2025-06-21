@@ -1,5 +1,5 @@
 {
-  "name": "@brains/site-builder",
+  "name": "@brains/site-builder-plugin",
   "version": "0.0.1",
   "type": "module",
   "exports": {
@@ -13,6 +13,7 @@
   "dependencies": {
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@brains/webserver-template": "workspace:*",
     "astro": "^5.0.0",
     "zod": "^3.24.1"
   },
