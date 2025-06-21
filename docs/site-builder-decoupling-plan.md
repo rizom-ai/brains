@@ -86,16 +86,15 @@ This plugin provides the default website structure currently hardcoded in webser
    - Dashboard template
    - General organizational context template
 
-3. **Built-in Layouts** (in site-builder package):
+3. **Provides Layouts** (plugin-provided layouts):
 
    - `hero` - Hero section with headline/CTA
    - `features` - Feature grid
    - `products` - Product cards
    - `cta` - Call to action
-   - `text` - Simple text content
    - `dashboard` - Stats and recent items
-   - `grid` - Generic grid layout
-   - `markdown` - Render markdown content
+   
+   Note: Site-builder only provides a generic `object` layout as fallback
 
 4. **Landing Page** registration example:
 
@@ -122,6 +121,10 @@ interface PluginContext {
   pages: {
     register(page: PageDefinition): void;
     list(): PageDefinition[];
+  };
+  layouts: {
+    register(layout: LayoutDefinition): void;
+    list(): LayoutDefinition[];
   };
 }
 ```
@@ -164,10 +167,10 @@ Transform webserver-plugin into webserver interface:
 ## Phase 5: Migration Path
 
 1. **Step 1**: Create site-builder package with registries
-2. **Step 2**: Add built-in layouts to site-builder
-3. **Step 3**: Create default-site-plugin with current webserver content/templates
+2. **Step 2**: Add minimal fallback layout to site-builder (generic object renderer)
+3. **Step 3**: Create default-site-plugin with current webserver content/templates and layouts
 4. **Step 4**: Update shell to initialize site-builder
-5. **Step 5**: Update plugin context to expose page registry
+5. **Step 5**: Update plugin context to expose page registry and layout registry
 6. **Step 6**: Migrate webserver plugin to use site-builder for generation
 7. **Step 7**: Extract webserver as interface package
 8. **Step 8**: Update app to include default-site-plugin
@@ -199,28 +202,38 @@ packages/site-builder/
 │   ├── site-builder.ts
 │   └── types.ts
 ├── layouts/
-│   ├── hero.astro
-│   ├── features.astro
-│   ├── products.astro
-│   ├── cta.astro
-│   ├── grid.astro
-│   ├── text.astro
-│   ├── markdown.astro
-│   └── dashboard.astro
+│   └── object.astro  # Generic fallback layout
 └── package.json
 
 packages/default-site-plugin/
 ├── src/
 │   ├── index.ts
 │   ├── plugin.ts
-│   └── content/
+│   └── sections/
 │       ├── landing/
 │       │   ├── hero/
+│       │   │   ├── layout.astro
+│       │   │   ├── schema.ts
+│       │   │   └── template.ts
 │       │   ├── features/
+│       │   │   ├── layout.astro
+│       │   │   ├── schema.ts
+│       │   │   └── template.ts
 │       │   ├── products/
+│       │   │   ├── layout.astro
+│       │   │   ├── schema.ts
+│       │   │   └── template.ts
 │       │   └── cta/
+│       │       ├── layout.astro
+│       │       ├── schema.ts
+│       │       └── template.ts
 │       ├── dashboard/
+│       │   ├── layout.astro
+│       │   ├── schema.ts
+│       │   └── template.ts
 │       └── general/
+│           ├── schema.ts
+│           └── template.ts
 └── package.json
 
 packages/webserver/
@@ -250,6 +263,26 @@ packages/webserver/
 3. **Layout System**: Flexible sections with reusable layouts
 4. **Progressive Enhancement**: Start simple, add features over time
 5. **Content Generation**: Site-builder orchestrates, plugins define templates
+6. **Co-located Sections**: Each section bundles its layout, schema, and template together
+
+### Layout Architecture
+
+The layout system follows a plugin-first approach:
+
+1. **Site-builder provides minimal fallback**:
+   - Only a generic `object` layout that can render any data structure
+   - Acts as a safety net for unregistered layouts
+
+2. **Plugins provide specialized layouts**:
+   - Each plugin registers its own layouts with the LayoutRegistry
+   - Layouts are co-located with their schemas and templates in section directories
+   - This enables domain-specific UI components
+
+3. **Benefits of plugin-provided layouts**:
+   - Plugins control their complete UI experience
+   - Easy to add new layouts without modifying core
+   - Natural bundling of related concerns (layout + schema + template)
+   - Future path to fully custom components per plugin
 
 ### Registry Architecture
 
