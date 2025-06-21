@@ -93,7 +93,7 @@ This plugin provides the default website structure currently hardcoded in webser
    - `products` - Product cards
    - `cta` - Call to action
    - `dashboard` - Stats and recent items
-   
+
    Note: Site-builder only provides a generic `object` layout as fallback
 
 4. **Landing Page** registration example:
@@ -270,10 +270,12 @@ packages/webserver/
 The layout system follows a plugin-first approach:
 
 1. **Site-builder provides minimal fallback**:
+
    - Only a generic `object` layout that can render any data structure
    - Acts as a safety net for unregistered layouts
 
 2. **Plugins provide specialized layouts**:
+
    - Each plugin registers its own layouts with the LayoutRegistry
    - Layouts are co-located with their schemas and templates in section directories
    - This enables domain-specific UI components

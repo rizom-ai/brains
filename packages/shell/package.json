@@ -20,6 +20,7 @@
     "@brains/db": "workspace:*",
     "@brains/formatters": "workspace:*",
     "@brains/mcp-server": "workspace:*",
+    "@brains/site-builder": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.15.7",

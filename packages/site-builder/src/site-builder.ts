@@ -17,7 +17,10 @@ export class SiteBuilder implements ISiteBuilder {
   private layoutRegistry: LayoutRegistry;
 
   public static getInstance(): SiteBuilder {
-    SiteBuilder.instance ??= new SiteBuilder();
+    SiteBuilder.instance ??= new SiteBuilder(
+      PageRegistry.getInstance(),
+      LayoutRegistry.getInstance(),
+    );
     return SiteBuilder.instance;
   }
 
@@ -26,12 +29,18 @@ export class SiteBuilder implements ISiteBuilder {
   }
 
   public static createFresh(): SiteBuilder {
-    return new SiteBuilder();
+    return new SiteBuilder(
+      PageRegistry.createFresh(),
+      LayoutRegistry.createFresh(),
+    );
   }
 
-  private constructor() {
-    this.pageRegistry = PageRegistry.getInstance();
-    this.layoutRegistry = LayoutRegistry.getInstance();
+  private constructor(
+    pageRegistry: PageRegistry,
+    layoutRegistry: LayoutRegistry,
+  ) {
+    this.pageRegistry = pageRegistry;
+    this.layoutRegistry = layoutRegistry;
 
     // Register built-in layouts
     this.registerBuiltInLayouts();
