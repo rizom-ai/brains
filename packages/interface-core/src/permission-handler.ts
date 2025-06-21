@@ -71,11 +71,8 @@ export class PermissionHandler {
       return userLevel === "trusted" || userLevel === "anchor";
     }
 
-    if (requiredLevel === "anchor") {
-      return userLevel === "anchor";
-    }
-
-    return false;
+    // At this point, requiredLevel must be "anchor" (the only remaining option)
+    return userLevel === "anchor";
   }
 
   /**
