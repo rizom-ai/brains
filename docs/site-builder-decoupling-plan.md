@@ -1,7 +1,9 @@
 # Site Builder Decoupling Plan
 
 ## Overview
+
 Transform the current tightly-coupled webserver plugin into a flexible system where:
+
 - Site building becomes a core capability in the shell
 - Webserver becomes an interface that serves built sites
 - Plugins can register pages as collections of sections
@@ -11,50 +13,92 @@ Transform the current tightly-coupled webserver plugin into a flexible system wh
 ## Phase 1: Create Site Builder Core Package
 
 **New Package: `@brains/site-builder`**
-Location: `packages/shell/src/site` (follows pattern of formatters, content, etc.)
+Location: `packages/site-builder` (standalone package)
 
 Core components:
+
 1. **PageRegistry** - Plugins register pages here
 2. **LayoutRegistry** - Maps layout names to Astro components
-3. **SiteBuilder** - Orchestrates site generation
+3. **SiteBuilder** - Orchestrates site generation and content management
 4. **Types** - Page, Section, Layout definitions
 
 Key interfaces:
+
 ```typescript
 interface PageDefinition {
-  path: string;           // e.g., "/", "/products", "/blog"
+  path: string; // e.g., "/", "/products", "/blog"
   title: string;
   description?: string;
   sections: SectionDefinition[];
+  pluginId?: string; // Track which plugin registered the page
 }
 
 interface SectionDefinition {
   id: string;
-  layout: string;         // e.g., "hero", "features", "grid", "text"
-  content: unknown;       // Layout-specific content
+  layout: string; // e.g., "hero", "features", "grid", "text"
+  content?: unknown; // Static layout-specific content
+  contentEntity?: {
+    // Dynamic content from entities
+    entityType: string; // e.g., "site-content"
+    template?: string; // Content template for generation
+    query?: Record<string, unknown>; // Query to find entity
+  };
   order?: number;
 }
 
 interface LayoutDefinition {
   name: string;
-  schema: ZodType;        // Schema for content validation
-  component: string;      // Path to Astro component
+  schema: ZodType; // Schema for content validation
+  component: string; // Path to Astro component
 }
 ```
 
-## Phase 2: Refactor Current Content
+### Content Generation Flow
 
-Transform existing hardcoded pages into the new system:
+The site builder orchestrates content generation:
 
-1. **Built-in Layouts** (in site-builder):
+1. **During site build**:
+
+   - For each section, check if it needs content from an entity
+   - Query for existing content entity using the section's query
+   - If not found and template specified, generate content via ContentGenerationService
+   - Store generated content as entity for future editing
+   - Pass content (from entity or static) to layout component
+
+2. **Content persistence**:
+   - All AI-generated content is stored as entities
+   - Users can edit content through entity updates
+   - Content persists across builds
+   - Regeneration only happens when explicitly requested or entity is missing
+
+## Phase 2: Create Default Site Plugin
+
+**New Plugin: `@brains/default-site-plugin`**
+
+This plugin provides the default website structure currently hardcoded in webserver:
+
+1. **Registers default pages**:
+   - Landing page (/)
+   - Dashboard (/dashboard)
+2. **Registers content templates**:
+
+   - All landing page section templates (hero, features, products, cta)
+   - Dashboard template
+   - General organizational context template
+
+3. **Built-in Layouts** (in site-builder package):
+
    - `hero` - Hero section with headline/CTA
    - `features` - Feature grid
    - `products` - Product cards
    - `cta` - Call to action
    - `text` - Simple text content
    - `dashboard` - Stats and recent items
+   - `grid` - Generic grid layout
+   - `markdown` - Render markdown content
 
-2. **Landing Page** becomes:
+4. **Landing Page** registration example:
+
 ```typescript
 {
   path: "/",
@@ -71,6 +115,7 @@ Transform existing hardcoded pages into the new system:
 ## Phase 3: Plugin Integration
 
 Update plugin context to include:
+
 ```typescript
 interface PluginContext {
   // ... existing
@@ -82,6 +127,7 @@ interface PluginContext {
 ```
 
 Example plugin usage:
+
 ```typescript
 class BlogPlugin extends BasePlugin {
   async onRegister(context: PluginContext) {
@@ -93,14 +139,14 @@ class BlogPlugin extends BasePlugin {
         {
           id: "header",
           layout: "hero",
-          content: { headline: "Our Blog", subheadline: "Latest thoughts" }
+          content: { headline: "Our Blog", subheadline: "Latest thoughts" },
         },
         {
           id: "posts",
           layout: "grid",
-          content: await this.getRecentPosts()
-        }
-      ]
+          content: await this.getRecentPosts(),
+        },
+      ],
     });
   }
 }
@@ -109,6 +155,7 @@ class BlogPlugin extends BasePlugin {
 ## Phase 4: Webserver as Interface
 
 Transform webserver-plugin into webserver interface:
+
 1. Move to `packages/webserver`
 2. Remove content generation logic
 3. Focus on serving built sites
@@ -117,12 +164,13 @@ Transform webserver-plugin into webserver interface:
 ## Phase 5: Migration Path
 
 1. **Step 1**: Create site-builder package with registries
-2. **Step 2**: Add built-in layouts
-3. **Step 3**: Update shell to initialize site-builder
-4. **Step 4**: Migrate webserver content to use page registry
-5. **Step 5**: Update plugin context
-6. **Step 6**: Extract webserver as interface
-7. **Step 7**: Update existing plugins to register pages
+2. **Step 2**: Add built-in layouts to site-builder
+3. **Step 3**: Create default-site-plugin with current webserver content/templates
+4. **Step 4**: Update shell to initialize site-builder
+5. **Step 5**: Update plugin context to expose page registry
+6. **Step 6**: Migrate webserver plugin to use site-builder for generation
+7. **Step 7**: Extract webserver as interface package
+8. **Step 8**: Update app to include default-site-plugin
 
 ## Future Enhancements (Post-MVP)
 
@@ -143,18 +191,37 @@ Transform webserver-plugin into webserver interface:
 ## Example File Structure
 
 ```
-packages/shell/src/site/
-├── index.ts
-├── page-registry.ts
-├── layout-registry.ts
-├── site-builder.ts
-├── types.ts
-└── layouts/
-    ├── hero.astro
-    ├── features.astro
-    ├── grid.astro
-    ├── text.astro
-    └── dashboard.astro
+packages/site-builder/
+├── src/
+│   ├── index.ts
+│   ├── page-registry.ts
+│   ├── layout-registry.ts
+│   ├── site-builder.ts
+│   └── types.ts
+├── layouts/
+│   ├── hero.astro
+│   ├── features.astro
+│   ├── products.astro
+│   ├── cta.astro
+│   ├── grid.astro
+│   ├── text.astro
+│   ├── markdown.astro
+│   └── dashboard.astro
+└── package.json
+
+packages/default-site-plugin/
+├── src/
+│   ├── index.ts
+│   ├── plugin.ts
+│   └── content/
+│       ├── landing/
+│       │   ├── hero/
+│       │   ├── features/
+│       │   ├── products/
+│       │   └── cta/
+│       ├── dashboard/
+│       └── general/
+└── package.json
 
 packages/webserver/
 ├── src/
@@ -167,18 +234,67 @@ packages/webserver/
 ## Implementation Notes
 
 ### Current State
+
 - Webserver plugin tightly couples content generation with serving
 - Pages are hardcoded (landing, dashboard)
 - Only the webserver plugin can define pages
 - Content is generated via AI into specific structures
 
 ### Key Changes
-1. **Separation of Concerns**: Site building moves to shell core
+
+1. **Separation of Concerns**:
+   - Site building becomes standalone package
+   - Default site structure moves to plugin
+   - Webserver focuses only on serving
 2. **Plugin Extensibility**: Any plugin can register pages
 3. **Layout System**: Flexible sections with reusable layouts
 4. **Progressive Enhancement**: Start simple, add features over time
+5. **Content Generation**: Site-builder orchestrates, plugins define templates
+
+### Registry Architecture
+
+The system will use focused registries with clear separation:
+
+1. **EntityRegistry** (existing) - Data layer for storage/retrieval
+
+   - Maps entity types to schemas and adapters
+   - Handles persistence of all entities including generated content
+
+2. **SchemaRegistry** (existing) - Validation layer
+
+   - Central repository of Zod schemas
+   - Used across the system for validation
+
+3. **TemplateRegistry** (renamed from ContentTypeRegistry) - Generation layer
+
+   - Stores AI content generation templates
+   - Includes formatters for each template
+   - Clearer naming to avoid confusion with page content
+
+4. **PageRegistry** (new) - Presentation layer
+   - Maps URL paths to page definitions
+   - Tracks which plugin registered each page
+   - Used by site-builder to generate site structure
+
+**Registry Flow Example:**
+
+```
+1. Plugin registers AI template → TemplateRegistry
+2. Plugin registers page with sections → PageRegistry
+3. Section references template for content generation
+4. Generated content stored as entity → EntityRegistry
+5. Site builder queries entity and renders with layout
+```
+
+This architecture provides:
+
+- Clear separation of concerns
+- Single responsibility per registry
+- Clean dependency flow: Data → Generation → Presentation
+- Easy extension points for future features
 
 ### Compatibility Considerations
+
 - Existing webserver plugin API should continue working during migration
 - Current content generation can be wrapped in the new page registry
 - Gradual migration path for existing deployments

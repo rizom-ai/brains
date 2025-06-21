@@ -1,0 +1,25 @@
+{
+  "name": "@brains/site-builder",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@brains/types": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.1.17",
+    "eslint": "^9.18.0",
+    "typescript": "^5.7.3"
+  }
+}
