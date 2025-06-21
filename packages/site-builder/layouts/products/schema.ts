@@ -11,7 +11,7 @@ export const ProductsLayoutSchema = z.object({
       category: z.string(),
       status: z.string(),
       link: z.string().optional(),
-    })
+    }),
   ),
 });
 

@@ -1,0 +1,28 @@
+{
+  "name": "@brains/default-site-plugin",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@brains/base-entity": "workspace:*",
+    "@brains/shell": "workspace:*",
+    "@brains/site-builder": "workspace:*",
+    "@brains/types": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.1.17",
+    "eslint": "^8.48.0",
+    "typescript": "^5.7.3"
+  }
+}

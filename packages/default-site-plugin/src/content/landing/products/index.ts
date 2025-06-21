@@ -1,12 +1,10 @@
 import type { ContentTemplate } from "@brains/types";
 import { productsSectionSchema, type ProductsSection } from "./schema";
-import { ProductsSectionFormatter } from "./formatter";
 
 export const productsSectionTemplate: ContentTemplate<ProductsSection> = {
   name: "products-section",
   description: "Products and projects showcase section",
   schema: productsSectionSchema,
-  formatter: new ProductsSectionFormatter(),
   basePrompt: `Generate a products section showcasing the organization's key offerings.
 
 Context will be provided about:

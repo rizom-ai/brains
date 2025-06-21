@@ -8,7 +8,7 @@ export const FeaturesLayoutSchema = z.object({
       icon: z.string(),
       title: z.string(),
       description: z.string(),
-    })
+    }),
   ),
 });
 

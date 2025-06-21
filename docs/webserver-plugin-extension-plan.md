@@ -467,3 +467,43 @@ products:
 5. Create Astro components for products section
 6. Test with Rizom content
 7. Deploy and iterate
+
+## Future Improvements
+
+### Content Generation Plugin Refactoring
+
+After completing the site-builder decoupling, we should:
+
+1. **Extract ContentGeneratingPlugin to its own package** (`@brains/content-generation`)
+
+   - Move from `@brains/utils` to dedicated package
+   - Better separation of concerns
+   - Easier to maintain and version
+
+2. **Add array-based template registration pattern** to ContentGeneratingPlugin:
+
+   ```typescript
+   // In ContentGeneratingPlugin base class
+   protected registerContentTemplates(templates: Array<{
+     key: string;
+     template: ContentTemplate<any>;
+   }>): void {
+     for (const { key, template } of templates) {
+       if (template.formatter) {
+         this.registerContentType(key, {
+           schema: template.schema,
+           contentType: key,
+           formatter: template.formatter,
+         });
+       }
+     }
+   }
+   ```
+
+3. **Benefits**:
+   - Reduces boilerplate in plugins that register many templates
+   - Consistent pattern across all content-generating plugins
+   - Easier to add/remove templates
+   - Better type safety with const arrays
+
+This refactoring should be done after the current site-builder decoupling is complete to avoid disrupting the current work.

@@ -1,0 +1,26 @@
+Generate a compelling call-to-action section for a personal knowledge management system.
+The CTA section should have:
+- A persuasive headline that creates urgency or excitement
+- A supporting description that reinforces the value
+- A primary button object with:
+  - "text" field: Action-oriented text (e.g., "Start Free Trial", "Get Started Now")
+  - "link" field: Appropriate link (e.g., "/signup", "/demo")
+- An optional secondary button object with:
+  - "text" field: Alternative action text (e.g., "View Demo", "Learn More")
+  - "link" field: Appropriate link
+
+IMPORTANT: Buttons must be proper JSON objects. Example format:
+{
+  "headline": "Ready to Transform Your Knowledge?",
+  "description": "Join thousands who are already building their second brain",
+  "primaryButton": {
+    "text": "Start Free Trial",
+    "link": "/signup"
+  },
+  "secondaryButton": {
+    "text": "View Demo",
+    "link": "/demo"
+  }
+}
+
+Make it compelling and action-oriented. Ensure all button fields are properly formatted JSON objects with "text" and "link" properties.

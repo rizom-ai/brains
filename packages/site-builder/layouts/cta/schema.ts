@@ -8,7 +8,7 @@ export const CTALayoutSchema = z.object({
       text: z.string(),
       link: z.string(),
       variant: z.enum(["primary", "secondary"]).optional(),
-    })
+    }),
   ),
 });
 
