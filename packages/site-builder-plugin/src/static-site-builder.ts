@@ -1,4 +1,5 @@
 import type { Logger } from "@brains/utils";
+import type { z } from "zod";
 
 /**
  * Interface for static site builders (Astro, Next.js, etc.)
@@ -12,7 +13,9 @@ export interface StaticSiteBuilder {
   /**
    * Generate content configuration
    */
-  generateContentConfig(schemas: Map<string, unknown>): Promise<void>;
+  generateContentConfig(
+    schemas: Map<string, z.ZodType<unknown>>,
+  ): Promise<void>;
 
   /**
    * Write content file

@@ -5,6 +5,7 @@ import type {
   PluginResource,
   LayoutDefinition,
   ComponentType,
+  ContentTemplate,
 } from "@brains/types";
 
 // Import content templates and layouts
@@ -77,6 +78,9 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
     // Register site-content entity type
     await this.registerEntityTypes(context);
 
+    // Register templates with the ContentGenerationService
+    await this.registerTemplates(context);
+
     // Register layouts if available
     if (context.layouts) {
       await this.registerLayouts(context);
@@ -94,6 +98,20 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
       siteContentAdapter,
     );
     this.logger?.debug("Registered site-content entity type");
+  }
+
+  private async registerTemplates(context: PluginContext): Promise<void> {
+    // Register templates with ContentGenerationService
+    for (const { key, template } of CONTENT_TEMPLATES) {
+      // Use the prefixed content type name that matches what was registered
+      const contentTypeName = `${this.id}:${key}`;
+      // Cast to unknown since we're storing heterogeneous templates in a single registry
+      context.contentGenerationService.registerTemplate(
+        contentTypeName,
+        template as ContentTemplate<unknown>,
+      );
+      this.logger?.debug(`Registered template: ${contentTypeName}`);
+    }
   }
 
   private async registerLayouts(context: PluginContext): Promise<void> {

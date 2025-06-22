@@ -17,7 +17,8 @@ import type {
 } from "./static-site-builder";
 import { createAstroBuilder } from "./astro-builder";
 import { join } from "path";
-import { toYaml, fromYaml } from "@brains/utils";
+import { toYaml, fromYaml, parseMarkdownWithFrontmatter } from "@brains/utils";
+import { z } from "zod";
 
 export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
@@ -165,12 +166,14 @@ export class SiteBuilder implements ISiteBuilder {
         try {
           await this.buildPage(page, options, staticSiteBuilder, reporter);
           pagesBuilt++;
+          this.logger.info(`Successfully built page: ${page.path}`);
         } catch (error) {
           errors.push(
             `Failed to build page ${page.path}: ${
               error instanceof Error ? error.message : String(error)
             }`,
           );
+          this.logger.error(`Failed to build page ${page.path}:`, error);
         }
       }
 
@@ -246,6 +249,10 @@ export class SiteBuilder implements ISiteBuilder {
       filename = `${page.path.slice(1)}.yaml`;
     }
 
+    this.logger.info(
+      `Writing ${collection}/${filename} with data:`,
+      JSON.stringify(pageData, null, 2),
+    );
     await staticSiteBuilder.writeContentFile(collection, filename, pageData);
   }
 
@@ -301,24 +308,35 @@ export class SiteBuilder implements ISiteBuilder {
   /**
    * Collect content schemas from registered content types
    */
-  private collectContentSchemas(): Map<string, unknown> {
-    const schemas = new Map<string, unknown>();
+  private collectContentSchemas(): Map<string, z.ZodType<unknown>> {
+    const schemas = new Map<string, z.ZodType<unknown>>();
 
-    // Add page schema
-    schemas.set("pages", {
-      title: "string",
-      path: "string",
-      sections: "array",
-    });
+    // Create landing collection schema by combining section schemas from layouts
+    const layouts = this.layoutRegistry.list();
+    const landingSchemaObj: Record<string, z.ZodType<unknown>> = {
+      title: z.string(),
+      tagline: z.string(),
+    };
 
-    // Add schemas from content type registry
-    const contentTypes = this.context.contentTypeRegistry.list();
-    for (const contentType of contentTypes) {
-      const schema = this.context.contentTypeRegistry.get(contentType);
-      if (schema) {
-        schemas.set(contentType, schema);
+    // Add each layout's schema as a property
+    for (const layout of layouts) {
+      if (layout.schema) {
+        landingSchemaObj[layout.name] = layout.schema;
       }
     }
+
+    schemas.set("landing", z.object(landingSchemaObj));
+
+    // Add generic pages schema
+    schemas.set(
+      "pages",
+      z.object({
+        title: z.string(),
+        path: z.string(),
+        description: z.string().optional(),
+        sections: z.record(z.unknown()).optional(),
+      }),
+    );
 
     return schemas;
   }
@@ -403,8 +421,22 @@ export class SiteBuilder implements ISiteBuilder {
           );
 
           if (formatter?.parse) {
-            // Use formatter's parse method if available
-            sections[section.id] = formatter.parse(entities[0].content);
+            // Extract content part without frontmatter for structured formatters
+            let contentToParse = entities[0].content;
+            try {
+              // Try to extract just the markdown content without frontmatter
+              const { content: markdownContent } = parseMarkdownWithFrontmatter(
+                entities[0].content,
+                z.object({}), // Don't validate frontmatter, just extract content
+              );
+              contentToParse = markdownContent;
+            } catch {
+              // If parsing fails, use content as-is
+              contentToParse = entities[0].content;
+            }
+
+            // Use formatter's parse method with clean content
+            sections[section.id] = formatter.parse(contentToParse);
           } else {
             // Fallback - try to parse as YAML
             try {
@@ -426,7 +458,7 @@ export class SiteBuilder implements ISiteBuilder {
         ...sections,
       };
     }
-    
+
     return {
       path: page.path,
       title: page.title,

@@ -6,7 +6,7 @@ import { LayoutDefinitionSchema } from "@brains/types";
 
 export class LayoutRegistry implements ILayoutRegistry {
   private static instance: LayoutRegistry | null = null;
-  private layouts = new Map<string, LayoutDefinition>();
+  private layouts = new Map<string, LayoutDefinition<unknown>>();
 
   public static getInstance(): LayoutRegistry {
     LayoutRegistry.instance ??= new LayoutRegistry();
@@ -23,7 +23,7 @@ export class LayoutRegistry implements ILayoutRegistry {
 
   private constructor() {}
 
-  register(layout: LayoutDefinition): void {
+  register(layout: LayoutDefinition<unknown>): void {
     // Validate layout definition
     const validated = LayoutDefinitionSchema.parse(layout);
 
@@ -33,10 +33,10 @@ export class LayoutRegistry implements ILayoutRegistry {
     }
 
     // Ensure the layout matches our interface (schema is required)
-    const layoutDef: LayoutDefinition = {
+    const layoutDef: LayoutDefinition<unknown> = {
       name: validated.name,
-      schema: validated.schema,
-      component: validated.component,
+      schema: layout.schema,
+      component: layout.component,
       ...(validated.description && { description: validated.description }),
     };
 
@@ -47,11 +47,11 @@ export class LayoutRegistry implements ILayoutRegistry {
     this.layouts.delete(name);
   }
 
-  get(name: string): LayoutDefinition | undefined {
+  get(name: string): LayoutDefinition<unknown> | undefined {
     return this.layouts.get(name);
   }
 
-  list(): LayoutDefinition[] {
+  list(): LayoutDefinition<unknown>[] {
     return Array.from(this.layouts.values());
   }
 

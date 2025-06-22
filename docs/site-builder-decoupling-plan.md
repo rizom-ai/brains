@@ -440,4 +440,93 @@ This architecture provides:
 - Gradual migration path for existing deployments
 - React components are opt-in, Astro components still supported
 
+### Template Injection Architecture
+
+To make the site-builder plugin truly generic and reusable, content templates and schemas should be injected rather than hard-coded dependencies:
+
+1. **Current Problem**:
+
+   - Site-builder plugin tries to find templates by name (e.g., "landing-hero")
+   - Templates are registered by default-site plugin with prefixed names (e.g., "default-site:landing-hero")
+   - This creates tight coupling and namespace issues
+
+2. **Proposed Solution - Template Provider Pattern**:
+
+   ```typescript
+   interface TemplateProvider {
+     // Register templates that can be used for content generation
+     registerTemplate(name: string, template: ContentTemplate): void;
+
+     // Register schemas for content validation
+     registerSchema(contentType: string, schema: ZodType): void;
+   }
+
+   // Site-builder exposes template provider during initialization
+   interface SiteBuilderContext extends PluginContext {
+     templates: TemplateProvider;
+   }
+   ```
+
+3. **Plugin Registration Flow**:
+
+   ```typescript
+   // Default-site plugin registers its templates with site-builder
+   class DefaultSitePlugin extends BasePlugin {
+     async onRegister(context: PluginContext) {
+       // Wait for site-builder to be available
+       const siteBuilder = context.registry.get("siteBuilder");
+
+       if (siteBuilder?.templates) {
+         // Register templates without namespace prefix
+         siteBuilder.templates.registerTemplate("landing-hero", heroTemplate);
+         siteBuilder.templates.registerTemplate(
+           "landing-features",
+           featuresTemplate,
+         );
+
+         // Register associated schemas
+         siteBuilder.templates.registerSchema("landing-hero", heroSchema);
+         siteBuilder.templates.registerSchema(
+           "landing-features",
+           featuresSchema,
+         );
+       }
+     }
+   }
+   ```
+
+4. **Benefits**:
+
+   - Site-builder remains generic - no knowledge of specific templates
+   - Plugins can provide templates without namespace conflicts
+   - Clear separation between template provider (default-site) and consumer (site-builder)
+   - Other plugins can register their own templates for their pages
+   - Templates and schemas are co-located with their providers
+
+5. **Alternative Approach - Direct Service Access**:
+
+   Instead of using the plugin context's `generateContent` (which auto-prefixes), site-builder could:
+
+   - Access ContentGenerationService directly
+   - Use the registered template names as-is
+   - Avoid namespace prefixing issues entirely
+
+   ```typescript
+   // In site-builder plugin
+   const contentService = context.contentGenerationService;
+   const generatedContent = await contentService.generate({
+     schema: template.schema,
+     prompt: template.basePrompt,
+     contentType: template.name, // Use registered name directly
+     context: { ... }
+   });
+   ```
+
+6. **Migration Strategy**:
+   - Phase 1: Use direct service access (simpler, immediate fix)
+   - Phase 2: Implement template provider pattern (cleaner architecture)
+   - Phase 3: Full decoupling with injectable template registry
+
+This architecture ensures that site-builder can work with any set of templates, making it truly reusable across different types of sites and content structures.
+
 This approach provides a clean path from the current implementation to a fully extensible system while maintaining working functionality throughout the migration.

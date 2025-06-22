@@ -65,34 +65,218 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
   protected override async getTools(): Promise<PluginTool[]> {
     const tools: PluginTool[] = [];
 
-    // Build tool - uses plugin configuration, no parameters needed
+    // Generate tool - generates content for pages without building
+    tools.push(
+      this.createTool(
+        "generate",
+        "Generate content for pages that don't have it",
+        {},
+        async (_input, context): Promise<Record<string, unknown>> => {
+          if (!this.siteBuilder || !this.context) {
+            throw new Error("Site builder not initialized");
+          }
+
+          const config = this.config;
+          let sectionsGenerated = 0;
+
+          try {
+            // Report initial progress
+            await context?.sendProgress?.({
+              message: "Starting content generation",
+              progress: 0,
+              total: 100,
+            });
+
+            // Get all registered pages
+            const pageRegistry = this.siteBuilder.getPageRegistry();
+            const pages = pageRegistry.list();
+
+            // Count total sections to generate
+            let totalSections = 0;
+            for (const page of pages) {
+              totalSections += page.sections.filter(
+                (section) => section.contentEntity && !section.content,
+              ).length;
+            }
+
+            if (totalSections === 0) {
+              await context?.sendProgress?.({
+                message: "No content to generate",
+                progress: 100,
+                total: 100,
+              });
+              return {
+                success: true,
+                sectionsGenerated: 0,
+                message: "No sections need content generation",
+              };
+            }
+
+            let processedSections = 0;
+
+            for (const page of pages) {
+              const sectionsNeedingContent = page.sections.filter(
+                (section) => section.contentEntity && !section.content,
+              );
+
+              for (const section of sectionsNeedingContent) {
+                if (!section.contentEntity) continue;
+
+                // Report progress for this section
+                await context?.sendProgress?.({
+                  message: `Generating content for ${page.title} - ${section.id}`,
+                  progress: Math.floor(
+                    (processedSections / totalSections) * 100,
+                  ),
+                  total: 100,
+                });
+
+                // Check if content already exists
+                const existingEntities =
+                  await this.context.entityService.listEntities(
+                    section.contentEntity.entityType,
+                    section.contentEntity.query
+                      ? { filter: { metadata: section.contentEntity.query } }
+                      : undefined,
+                  );
+
+                if (existingEntities.length > 0) {
+                  continue; // Content already exists
+                }
+
+                // Get the content template
+                if (!section.contentEntity.template) {
+                  this.logger?.warn(
+                    `No template specified for section ${section.id}`,
+                  );
+                  continue;
+                }
+
+                // Templates are registered with plugin prefix, so construct the full name
+                const templateName = section.contentEntity.template.includes(
+                  ":",
+                )
+                  ? section.contentEntity.template
+                  : `default-site:${section.contentEntity.template}`;
+
+                const template =
+                  this.context.contentGenerationService.getTemplate(
+                    templateName,
+                  );
+
+                if (!template) {
+                  this.logger?.warn(`Template not found: ${templateName}`);
+                  continue;
+                }
+
+                // Use the plugin context's generateContent method with fully qualified name
+                const generatedContent = await this.context.generateContent({
+                  schema: template.schema,
+                  prompt: template.basePrompt,
+                  contentType: templateName, // Use the fully qualified name (e.g., "default-site:landing-hero")
+                  context: {
+                    data: {
+                      pageTitle: page.title,
+                      pageDescription: page.description,
+                      sectionId: section.id,
+                      ...(config.siteConfig || {
+                        title: "Personal Brain",
+                        description: "A knowledge management system",
+                      }),
+                    },
+                  },
+                });
+
+                // Format content using the template's formatter
+                const formattedContent = template.formatter
+                  ? template.formatter.format(generatedContent)
+                  : typeof generatedContent === "string"
+                    ? generatedContent
+                    : JSON.stringify(generatedContent);
+
+                // Save as entity with required metadata
+                // For site-content entities, we need to include the required fields
+                if (
+                  section.contentEntity.entityType === "site-content" &&
+                  section.contentEntity.query
+                ) {
+                  // Generate markdown with frontmatter for site-content
+                  const { generateMarkdownWithFrontmatter } = await import("@brains/utils");
+                  const metadata = {
+                    page: section.contentEntity.query["page"] as string,
+                    section: section.contentEntity.query["section"] as string,
+                    environment: (section.contentEntity.query["environment"] as string) ?? "preview",
+                  };
+                  const contentWithFrontmatter = generateMarkdownWithFrontmatter(formattedContent, metadata);
+                  
+                  await this.context.entityService.createEntity({
+                    entityType: section.contentEntity.entityType,
+                    content: contentWithFrontmatter,
+                  });
+                } else {
+                  // For other entity types, save as-is
+                  await this.context.entityService.createEntity({
+                    entityType: section.contentEntity.entityType,
+                    content: formattedContent,
+                  });
+                }
+
+                sectionsGenerated++;
+                processedSections++;
+
+                // Report progress after completing this section
+                await context?.sendProgress?.({
+                  message: `Completed ${section.id} (${sectionsGenerated}/${totalSections})`,
+                  progress: Math.floor(
+                    (processedSections / totalSections) * 100,
+                  ),
+                  total: 100,
+                });
+              }
+            }
+
+            // Final progress report
+            await context?.sendProgress?.({
+              message: `Content generation complete`,
+              progress: 100,
+              total: 100,
+            });
+
+            return {
+              success: true,
+              sectionsGenerated,
+              message: `Generated content for ${sectionsGenerated} sections`,
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : "Unknown error",
+            };
+          }
+        },
+      ),
+    );
+
+    // Build tool - builds the site without content generation
     tools.push(
       this.createTool(
         "build",
         "Build a static site from registered pages",
-        {
-          enableContentGeneration: z
-            .boolean()
-            .optional()
-            .describe("Generate content for pages that don't have it"),
-        },
-        async (input, context): Promise<Record<string, unknown>> => {
+        {},
+        async (_input, context): Promise<Record<string, unknown>> => {
           if (!this.siteBuilder) {
             throw new Error("Site builder not initialized");
           }
 
           // Use the plugin's configuration
           const config = this.config;
-          const { enableContentGeneration } = input as {
-            enableContentGeneration?: boolean;
-          };
 
           try {
             const result = await this.siteBuilder.build(
               {
                 outputDir: config.outputDir,
                 workingDir: config.workingDir,
-                enableContentGeneration: enableContentGeneration ?? false,
+                enableContentGeneration: false,
                 siteConfig: config.siteConfig || {
                   title: "Personal Brain",
                   description: "A knowledge management system",
