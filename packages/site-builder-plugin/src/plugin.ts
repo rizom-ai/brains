@@ -1,5 +1,10 @@
 import { BasePlugin } from "@brains/utils";
-import type { PluginContext, PluginTool, PluginResource, SiteContent } from "@brains/types";
+import type {
+  PluginContext,
+  PluginTool,
+  PluginResource,
+  SiteContent,
+} from "@brains/types";
 import { SiteBuilder } from "./site-builder";
 import { PageRegistry } from "./page-registry";
 import { LayoutRegistry } from "./layout-registry";
@@ -201,17 +206,23 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                   section.contentEntity.query
                 ) {
                   // For site-content, construct the entity with all required fields
-                  const siteContentEntity: Omit<SiteContent, "id" | "created" | "updated"> = {
+                  const siteContentEntity: Omit<
+                    SiteContent,
+                    "id" | "created" | "updated"
+                  > = {
                     entityType: "site-content",
                     content: formattedContent,
                     page: section.contentEntity.query["page"] as string,
                     section: section.contentEntity.query["section"] as string,
                     environment:
-                      (section.contentEntity.query["environment"] as "preview" | "production") ??
-                      "preview",
+                      (section.contentEntity.query["environment"] as
+                        | "preview"
+                        | "production") ?? "preview",
                   };
 
-                  await this.context.entityService.createEntity(siteContentEntity);
+                  await this.context.entityService.createEntity(
+                    siteContentEntity,
+                  );
                 } else {
                   // For other entity types, save as-is
                   await this.context.entityService.createEntity({
