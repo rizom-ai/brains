@@ -44,7 +44,7 @@ async function main(): Promise<void> {
               type: "webserver" as const,
               enabled: true,
               config: {
-                distDir: process.env["WEBSITE_OUTPUT_DIR"] + "/dist",
+                distDir: process.env["WEBSITE_OUTPUT_DIR"],
                 previewPort: Number(
                   process.env["WEBSITE_PREVIEW_PORT"] ?? 4321,
                 ),
