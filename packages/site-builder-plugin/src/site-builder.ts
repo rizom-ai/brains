@@ -112,7 +112,8 @@ export class SiteBuilder implements ISiteBuilder {
 
       // Create static site builder instance
       // Use provided workingDir or default to .astro-work inside outputDir
-      const workingDir = options.workingDir ?? join(options.outputDir, ".astro-work");
+      const workingDir =
+        options.workingDir ?? join(options.outputDir, ".astro-work");
       const staticSiteBuilder = this.staticSiteBuilderFactory({
         logger: this.logger.child("StaticSiteBuilder"),
         workingDir,
@@ -232,9 +233,20 @@ export class SiteBuilder implements ISiteBuilder {
 
     // Write page data as YAML for Astro
     const pageData = await this.assemblePageData(page);
-    const filename =
-      page.path === "/" ? "index.yaml" : `${page.path.slice(1)}.yaml`;
-    await staticSiteBuilder.writeContentFile("pages", filename, pageData);
+    
+    // Determine collection name based on page path
+    let collection: string;
+    let filename: string;
+    
+    if (page.path === "/") {
+      collection = "landing";
+      filename = "index.yaml";
+    } else {
+      collection = "pages";
+      filename = `${page.path.slice(1)}.yaml`;
+    }
+    
+    await staticSiteBuilder.writeContentFile(collection, filename, pageData);
   }
 
   private async generatePageContent(

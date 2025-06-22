@@ -12,14 +12,17 @@ const siteBuilderConfigSchema = z.object({
   outputDir: z.string().describe("Output directory for built sites"),
   workingDir: z.string().optional().describe("Working directory for builds"),
   enableContentGeneration: z.boolean().default(false).optional(),
-  siteConfig: z.object({
-    title: z.string(),
-    description: z.string(),
-    url: z.string().optional(),
-  }).default({
-    title: "Personal Brain",
-    description: "A knowledge management system",
-  }).optional(),
+  siteConfig: z
+    .object({
+      title: z.string(),
+      description: z.string(),
+      url: z.string().optional(),
+    })
+    .default({
+      title: "Personal Brain",
+      description: "A knowledge management system",
+    })
+    .optional(),
 });
 
 type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema>;
@@ -82,7 +85,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               {
                 outputDir: config.outputDir,
                 workingDir: config.workingDir,
-                enableContentGeneration: config.enableContentGeneration ?? false,
+                enableContentGeneration:
+                  config.enableContentGeneration ?? false,
                 siteConfig: config.siteConfig || {
                   title: "Personal Brain",
                   description: "A knowledge management system",

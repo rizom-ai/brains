@@ -21,7 +21,6 @@ import {
 import { ctaSectionTemplate, CTALayout } from "./content/landing/cta";
 
 import { landingMetadataTemplate } from "./content/landing/metadata";
-import { dashboardTemplate, DashboardLayout } from "./content/dashboard";
 import { PAGES } from "./pages";
 
 // Import schemas for layouts
@@ -29,7 +28,6 @@ import { landingHeroDataSchema } from "./content/landing/hero/schema";
 import { featuresSectionSchema } from "./content/landing/features/schema";
 import { productsSectionSchema } from "./content/landing/products/schema";
 import { ctaSectionSchema } from "./content/landing/cta/schema";
-import { dashboardSchema } from "./content/dashboard/schema";
 
 // Import site-content entity
 import { siteContentSchema } from "./entities/site-content-schema";
@@ -43,7 +41,6 @@ const CONTENT_TEMPLATES = [
   { key: "landing-products", template: productsSectionTemplate },
   { key: "landing-cta", template: ctaSectionTemplate },
   { key: "landing-metadata", template: landingMetadataTemplate },
-  { key: "dashboard", template: dashboardTemplate },
 ] as const;
 
 /**
@@ -91,7 +88,11 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
 
   private async registerEntityTypes(context: PluginContext): Promise<void> {
     // Register site-content entity type
-    context.registerEntityType("site-content", siteContentSchema, siteContentAdapter);
+    context.registerEntityType(
+      "site-content",
+      siteContentSchema,
+      siteContentAdapter,
+    );
     this.logger?.debug("Registered site-content entity type");
   }
 
@@ -125,12 +126,6 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
         component: CTALayout as ComponentType,
         schema: ctaSectionSchema,
         description: "Call-to-action section",
-      },
-      {
-        name: "dashboard",
-        component: DashboardLayout as ComponentType,
-        schema: dashboardSchema,
-        description: "Dashboard with metrics and activity",
       },
     ];
 
