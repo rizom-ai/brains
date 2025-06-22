@@ -58,6 +58,7 @@ export interface LayoutDefinition<T = unknown> {
 export const SiteBuilderOptionsSchema = z.object({
   enableContentGeneration: z.boolean().default(false),
   outputDir: z.string(),
+  workingDir: z.string().optional(),
   siteConfig: z
     .object({
       title: z.string(),

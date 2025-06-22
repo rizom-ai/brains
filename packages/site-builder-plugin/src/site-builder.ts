@@ -111,7 +111,8 @@ export class SiteBuilder implements ISiteBuilder {
       await reporter?.report("Starting site build", 0, 100);
 
       // Create static site builder instance
-      const workingDir = join(options.outputDir, ".astro-work");
+      // Use provided workingDir or default to .astro-work inside outputDir
+      const workingDir = options.workingDir ?? join(options.outputDir, ".astro-work");
       const staticSiteBuilder = this.staticSiteBuilderFactory({
         logger: this.logger.child("StaticSiteBuilder"),
         workingDir,

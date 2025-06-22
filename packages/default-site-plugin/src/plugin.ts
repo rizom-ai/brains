@@ -21,7 +21,7 @@ import {
 import { ctaSectionTemplate, CTALayout } from "./content/landing/cta";
 
 import { landingMetadataTemplate } from "./content/landing/metadata";
-import { dashboardTemplate } from "./content/dashboard";
+import { dashboardTemplate, DashboardLayout } from "./content/dashboard";
 import { PAGES } from "./pages";
 
 // Import schemas for layouts
@@ -29,6 +29,11 @@ import { landingHeroDataSchema } from "./content/landing/hero/schema";
 import { featuresSectionSchema } from "./content/landing/features/schema";
 import { productsSectionSchema } from "./content/landing/products/schema";
 import { ctaSectionSchema } from "./content/landing/cta/schema";
+import { dashboardSchema } from "./content/dashboard/schema";
+
+// Import site-content entity
+import { siteContentSchema } from "./entities/site-content-schema";
+import { siteContentAdapter } from "./entities/site-content-adapter";
 
 // Define content template configuration
 const CONTENT_TEMPLATES = [
@@ -72,6 +77,9 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
 
+    // Register site-content entity type
+    await this.registerEntityTypes(context);
+
     // Register layouts if available
     if (context.layouts) {
       await this.registerLayouts(context);
@@ -79,6 +87,12 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
 
     // Register default pages
     await this.registerPages(context);
+  }
+
+  private async registerEntityTypes(context: PluginContext): Promise<void> {
+    // Register site-content entity type
+    context.registerEntityType("site-content", siteContentSchema, siteContentAdapter);
+    this.logger?.debug("Registered site-content entity type");
   }
 
   private async registerLayouts(context: PluginContext): Promise<void> {
@@ -111,6 +125,12 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
         component: CTALayout as ComponentType,
         schema: ctaSectionSchema,
         description: "Call-to-action section",
+      },
+      {
+        name: "dashboard",
+        component: DashboardLayout as ComponentType,
+        schema: dashboardSchema,
+        description: "Dashboard with metrics and activity",
       },
     ];
 

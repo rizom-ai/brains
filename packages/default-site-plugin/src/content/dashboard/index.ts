@@ -11,3 +11,5 @@ export const dashboardTemplate: ContentTemplate<DashboardData> = {
   schema: dashboardSchema,
   basePrompt: dashboardPrompt,
 };
+
+export { DashboardLayout } from "./layout";

@@ -6,10 +6,29 @@ import { LayoutRegistry } from "./layout-registry";
 import { z } from "zod";
 
 /**
+ * Configuration schema for the site builder plugin
+ */
+const siteBuilderConfigSchema = z.object({
+  outputDir: z.string().describe("Output directory for built sites"),
+  workingDir: z.string().optional().describe("Working directory for builds"),
+  enableContentGeneration: z.boolean().default(false).optional(),
+  siteConfig: z.object({
+    title: z.string(),
+    description: z.string(),
+    url: z.string().optional(),
+  }).default({
+    title: "Personal Brain",
+    description: "A knowledge management system",
+  }).optional(),
+});
+
+type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema>;
+
+/**
  * Site Builder Plugin
  * Provides static site generation capabilities
  */
-export class SiteBuilderPlugin extends BasePlugin<Record<string, never>> {
+export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
   private siteBuilder?: SiteBuilder;
 
   constructor(config: unknown = {}) {
@@ -18,6 +37,7 @@ export class SiteBuilderPlugin extends BasePlugin<Record<string, never>> {
       "Site Builder Plugin",
       "Provides static site generation capabilities",
       config,
+      siteBuilderConfigSchema,
     );
   }
 
@@ -43,43 +63,30 @@ export class SiteBuilderPlugin extends BasePlugin<Record<string, never>> {
   protected override async getTools(): Promise<PluginTool[]> {
     const tools: PluginTool[] = [];
 
-    // Build tool
+    // Build tool - uses plugin configuration, no parameters needed
     tools.push(
       this.createTool(
         "build",
         "Build a static site from registered pages",
-        {
-          outputDir: z.string().describe("Output directory for the built site"),
-          enableContentGeneration: z.boolean().default(false).optional(),
-          siteConfig: z
-            .object({
-              title: z.string(),
-              description: z.string(),
-              url: z.string().optional(),
-            })
-            .optional(),
-        },
-        async (input, context): Promise<Record<string, unknown>> => {
+        {}, // No parameters needed - uses plugin config
+        async (_input, context): Promise<Record<string, unknown>> => {
           if (!this.siteBuilder) {
             throw new Error("Site builder not initialized");
           }
 
-          const { outputDir, enableContentGeneration, siteConfig } = input as {
-            outputDir: string;
-            enableContentGeneration?: boolean;
-            siteConfig?: {
-              title: string;
-              description: string;
-              url?: string;
-            };
-          };
+          // Use the plugin's configuration
+          const config = this.config;
 
           try {
             const result = await this.siteBuilder.build(
               {
-                outputDir,
-                enableContentGeneration: enableContentGeneration ?? false,
-                siteConfig,
+                outputDir: config.outputDir,
+                workingDir: config.workingDir,
+                enableContentGeneration: config.enableContentGeneration ?? false,
+                siteConfig: config.siteConfig || {
+                  title: "Personal Brain",
+                  description: "A knowledge management system",
+                },
               },
               context?.sendProgress,
             );
@@ -87,6 +94,7 @@ export class SiteBuilderPlugin extends BasePlugin<Record<string, never>> {
             return {
               success: result.success,
               pagesBuilt: result.pagesBuilt,
+              outputDir: config.outputDir,
               errors: result.errors,
               warnings: result.warnings,
             };
@@ -99,7 +107,7 @@ export class SiteBuilderPlugin extends BasePlugin<Record<string, never>> {
             };
           }
         },
-        "anchor", // Internal tool
+        "anchor", // Internal tool - modifies filesystem
       ),
     );
 
