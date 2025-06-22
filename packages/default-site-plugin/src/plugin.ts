@@ -31,7 +31,7 @@ import { productsSectionSchema } from "./content/landing/products/schema";
 import { ctaSectionSchema } from "./content/landing/cta/schema";
 
 // Import site-content entity
-import { siteContentSchema } from "./entities/site-content-schema";
+import { siteContentSchema } from "@brains/types";
 import { siteContentAdapter } from "./entities/site-content-adapter";
 
 // Define content template configuration

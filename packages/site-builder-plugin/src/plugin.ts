@@ -1,5 +1,5 @@
 import { BasePlugin } from "@brains/utils";
-import type { PluginContext, PluginTool, PluginResource } from "@brains/types";
+import type { PluginContext, PluginTool, PluginResource, SiteContent } from "@brains/types";
 import { SiteBuilder } from "./site-builder";
 import { PageRegistry } from "./page-registry";
 import { LayoutRegistry } from "./layout-registry";
@@ -200,19 +200,18 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                   section.contentEntity.entityType === "site-content" &&
                   section.contentEntity.query
                 ) {
-                  // Generate markdown with frontmatter for site-content
-                  const { generateMarkdownWithFrontmatter } = await import("@brains/utils");
-                  const metadata = {
+                  // For site-content, construct the entity with all required fields
+                  const siteContentEntity: Omit<SiteContent, "id" | "created" | "updated"> = {
+                    entityType: "site-content",
+                    content: formattedContent,
                     page: section.contentEntity.query["page"] as string,
                     section: section.contentEntity.query["section"] as string,
-                    environment: (section.contentEntity.query["environment"] as string) ?? "preview",
+                    environment:
+                      (section.contentEntity.query["environment"] as "preview" | "production") ??
+                      "preview",
                   };
-                  const contentWithFrontmatter = generateMarkdownWithFrontmatter(formattedContent, metadata);
-                  
-                  await this.context.entityService.createEntity({
-                    entityType: section.contentEntity.entityType,
-                    content: contentWithFrontmatter,
-                  });
+
+                  await this.context.entityService.createEntity(siteContentEntity);
                 } else {
                   // For other entity types, save as-is
                   await this.context.entityService.createEntity({

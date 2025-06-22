@@ -1,5 +1,6 @@
 import type { EntityAdapter } from "@brains/base-entity";
-import { siteContentSchema, type SiteContent } from "./site-content-schema";
+import type { SiteContent } from "@brains/types";
+import { siteContentSchema } from "@brains/types";
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,

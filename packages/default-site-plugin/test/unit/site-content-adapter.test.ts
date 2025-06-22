@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { SiteContentAdapter } from "../../src/entities/site-content-adapter";
-import type { SiteContent } from "../../src/entities/site-content-schema";
+import type { SiteContent } from "@brains/types";
 
 describe("SiteContentAdapter", () => {
   const adapter = new SiteContentAdapter();
