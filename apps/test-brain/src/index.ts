@@ -1,7 +1,8 @@
 import { App, getMatrixInterfaceFromEnv } from "@brains/app";
 import { directorySync } from "@brains/directory-sync";
 import { gitSync } from "@brains/git-sync";
-import { webserverPlugin } from "@brains/webserver-plugin";
+import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import { DefaultSitePlugin } from "@brains/default-site-plugin";
 
 // Run the app - command line args are parsed automatically by App
 // Usage:
@@ -36,8 +37,24 @@ async function main(): Promise<void> {
     interfaces: [
       // Add Matrix interface if configured in environment
       ...(matrixInterface ? [matrixInterface] : []),
-      // Example: Always enable a specific interface
-      // { type: "cli", enabled: true, config: { /* ... */ } }
+      // Add Webserver interface if website output is configured
+      ...(process.env["WEBSITE_OUTPUT_DIR"]
+        ? [
+            {
+              type: "webserver" as const,
+              enabled: true,
+              config: {
+                distDir: process.env["WEBSITE_OUTPUT_DIR"] + "/dist",
+                previewPort: Number(
+                  process.env["WEBSITE_PREVIEW_PORT"] ?? 4321,
+                ),
+                productionPort: Number(
+                  process.env["WEBSITE_PRODUCTION_PORT"] ?? 8080,
+                ),
+              },
+            },
+          ]
+        : []),
     ],
     plugins: [
       // Directory sync plugin for file-based storage (if configured)
@@ -69,20 +86,16 @@ async function main(): Promise<void> {
             }),
           ]
         : []),
-      // Webserver plugin for generating and serving websites (if configured)
+      // Site builder plugin for generating static sites
       ...(process.env["WEBSITE_OUTPUT_DIR"]
         ? [
-            webserverPlugin({
+            siteBuilderPlugin({
               outputDir: process.env["WEBSITE_OUTPUT_DIR"],
-              siteTitle: process.env["WEBSITE_SITE_TITLE"] ?? "Test Brain",
-              siteDescription:
-                process.env["WEBSITE_SITE_DESCRIPTION"] ??
-                "A test instance of Personal Brain",
-              previewPort: Number(process.env["WEBSITE_PREVIEW_PORT"] ?? 4321),
-              productionPort: Number(
-                process.env["WEBSITE_PRODUCTION_PORT"] ?? 8080,
-              ),
+              workingDir:
+                process.env["WEBSITE_WORKING_DIR"] ?? "/tmp/site-builder",
             }),
+            // Default site plugin provides the default website structure
+            new DefaultSitePlugin(),
           ]
         : []),
       // Future: noteContext(), taskContext(), etc.

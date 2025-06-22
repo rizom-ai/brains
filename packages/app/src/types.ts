@@ -29,6 +29,11 @@ export const interfaceConfigSchema = z.discriminatedUnion("type", [
     enabled: z.boolean().default(true),
     config: matrixConfigSchema,
   }),
+  z.object({
+    type: z.literal("webserver"),
+    enabled: z.boolean().default(true),
+    config: z.any().optional(), // Webserver-specific config
+  }),
 ]);
 
 export type InterfaceConfig = z.infer<typeof interfaceConfigSchema>;

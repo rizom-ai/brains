@@ -1,15 +1,34 @@
 import { ContentGeneratingPlugin } from "@brains/utils";
-import type { PluginContext, PluginTool, PluginResource } from "@brains/types";
+import type {
+  PluginContext,
+  PluginTool,
+  PluginResource,
+  LayoutDefinition,
+  ComponentType,
+} from "@brains/types";
 
-// Import content templates
+// Import content templates and layouts
 import { generalContextTemplate } from "./content/general";
-import { heroSectionTemplate } from "./content/landing/hero";
-import { featuresSectionTemplate } from "./content/landing/features";
-import { productsSectionTemplate } from "./content/landing/products";
-import { ctaSectionTemplate } from "./content/landing/cta";
+import { heroSectionTemplate, HeroLayout } from "./content/landing/hero";
+import {
+  featuresSectionTemplate,
+  FeaturesLayout,
+} from "./content/landing/features";
+import {
+  productsSectionTemplate,
+  ProductsLayout,
+} from "./content/landing/products";
+import { ctaSectionTemplate, CTALayout } from "./content/landing/cta";
+
 import { landingMetadataTemplate } from "./content/landing/metadata";
 import { dashboardTemplate } from "./content/dashboard";
 import { PAGES } from "./pages";
+
+// Import schemas for layouts
+import { landingHeroDataSchema } from "./content/landing/hero/schema";
+import { featuresSectionSchema } from "./content/landing/features/schema";
+import { productsSectionSchema } from "./content/landing/products/schema";
+import { ctaSectionSchema } from "./content/landing/cta/schema";
 
 // Define content template configuration
 const CONTENT_TEMPLATES = [
@@ -53,11 +72,53 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
 
-    // TODO: Register layouts when layout registry is available
-    // await this.registerLayouts(context);
+    // Register layouts if available
+    if (context.layouts) {
+      await this.registerLayouts(context);
+    }
 
     // Register default pages
     await this.registerPages(context);
+  }
+
+  private async registerLayouts(context: PluginContext): Promise<void> {
+    if (!context.layouts) {
+      return;
+    }
+
+    // Define layout configurations
+    const layouts: LayoutDefinition<unknown>[] = [
+      {
+        name: "hero",
+        component: HeroLayout as ComponentType,
+        schema: landingHeroDataSchema,
+        description: "Hero section with headline and call-to-action",
+      },
+      {
+        name: "features",
+        component: FeaturesLayout as ComponentType,
+        schema: featuresSectionSchema,
+        description: "Feature grid with icons",
+      },
+      {
+        name: "products",
+        component: ProductsLayout as ComponentType,
+        schema: productsSectionSchema,
+        description: "Product card grid",
+      },
+      {
+        name: "cta",
+        component: CTALayout as ComponentType,
+        schema: ctaSectionSchema,
+        description: "Call-to-action section",
+      },
+    ];
+
+    // Register each layout
+    for (const layout of layouts) {
+      context.layouts.register(layout);
+      this.logger?.debug(`Registered layout: ${layout.name}`);
+    }
   }
 
   private async registerPages(context: PluginContext): Promise<void> {

@@ -137,7 +137,9 @@ export class ContentGenerationService implements IContentGenerationService {
    * Register reusable templates
    */
   public registerTemplate<T>(name: string, template: ContentTemplate<T>): void {
-    this.templates.set(name, template);
+    // When storing in a heterogeneous map, we lose specific type information
+    // This is safe because templates are retrieved by name and used with appropriate types
+    this.templates.set(name, template as ContentTemplate<unknown>);
   }
 
   /**

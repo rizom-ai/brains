@@ -45,10 +45,10 @@ export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
 export type PageDefinition = z.infer<typeof PageDefinitionSchema>;
 
 // Manually define LayoutDefinition to use ComponentType
-export interface LayoutDefinition {
+export interface LayoutDefinition<T = unknown> {
   name: string;
-  schema: z.ZodType<unknown>;
-  component: ComponentType | string;
+  schema: z.ZodType<T>;
+  component: ComponentType<T> | string;
   description?: string;
 }
 
@@ -109,10 +109,10 @@ export interface PageRegistry {
  * Layout registry interface
  */
 export interface LayoutRegistry {
-  register(layout: LayoutDefinition): void;
+  register(layout: LayoutDefinition<unknown>): void;
   unregister(name: string): void;
-  get(name: string): LayoutDefinition | undefined;
-  list(): LayoutDefinition[];
+  get(name: string): LayoutDefinition<unknown> | undefined;
+  list(): LayoutDefinition<unknown>[];
   validate(layoutName: string, content: unknown): boolean;
 }
 

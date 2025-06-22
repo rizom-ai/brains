@@ -197,6 +197,10 @@ export class App {
         const { MatrixInterface } = await import("@brains/matrix");
         return new MatrixInterface(interfaceContext, config.config);
       }
+      case "webserver": {
+        const { WebserverInterface } = await import("@brains/webserver");
+        return new WebserverInterface(interfaceContext, config.config);
+      }
       default:
         return null;
     }

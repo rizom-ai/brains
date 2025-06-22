@@ -56,7 +56,7 @@ export interface ContentTemplate<T = unknown> {
    * If provided, the template can be used as a section layout.
    */
   layout?: {
-    component: ComponentType | string; // Component function or path string
+    component: ComponentType<T> | string; // Component function or path string
     description?: string;
   };
 }
@@ -182,8 +182,8 @@ export interface PluginContext {
     list(): PageDefinition[];
   };
   layouts?: {
-    register(layout: LayoutDefinition): void;
-    list(): LayoutDefinition[];
+    register(layout: LayoutDefinition<unknown>): void;
+    list(): LayoutDefinition<unknown>[];
   };
   registerEntityType: <T extends BaseEntity>(
     entityType: string,
