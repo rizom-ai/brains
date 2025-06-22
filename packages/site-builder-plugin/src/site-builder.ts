@@ -17,7 +17,7 @@ import type {
 } from "./static-site-builder";
 import { createAstroBuilder } from "./astro-builder";
 import { join } from "path";
-import { toYaml, fromYaml, parseMarkdownWithFrontmatter } from "@brains/utils";
+import { toYaml, parseMarkdownWithFrontmatter } from "@brains/utils";
 import { z } from "zod";
 
 export class SiteBuilder implements ISiteBuilder {
@@ -253,6 +253,17 @@ export class SiteBuilder implements ISiteBuilder {
       `Writing ${collection}/${filename} with data:`,
       JSON.stringify(pageData, null, 2),
     );
+
+    // Debug: Check the structure
+    if (collection === "landing") {
+      this.logger.info("Landing page structure check:");
+      for (const [key, value] of Object.entries(
+        pageData as Record<string, unknown>,
+      )) {
+        this.logger.info(`  ${key}: ${typeof value}`);
+      }
+    }
+
     await staticSiteBuilder.writeContentFile(collection, filename, pageData);
   }
 
@@ -416,9 +427,15 @@ export class SiteBuilder implements ISiteBuilder {
         if (entities.length > 0 && entities[0]) {
           // Parse content from entity using the formatter
           const contentTypeRegistry = this.context.contentTypeRegistry;
-          const formatter = contentTypeRegistry.getFormatter(
-            section.contentEntity.template ?? "",
-          );
+
+          // Template names need to be fully qualified with plugin prefix
+          const templateName = section.contentEntity.template || "";
+          const fullyQualifiedName = templateName.includes(":")
+            ? templateName
+            : `default-site:${templateName}`;
+
+          const formatter =
+            contentTypeRegistry.getFormatter(fullyQualifiedName);
 
           if (formatter?.parse) {
             // Extract content part without frontmatter for structured formatters
@@ -438,14 +455,16 @@ export class SiteBuilder implements ISiteBuilder {
             // Use formatter's parse method with clean content
             sections[section.id] = formatter.parse(contentToParse);
           } else {
-            // Fallback - try to parse as YAML
-            try {
-              sections[section.id] = fromYaml(entities[0].content);
-            } catch {
-              // If not valid YAML, use as-is
-              sections[section.id] = entities[0].content;
-            }
+            throw new Error(
+              `No formatter with parse method found for template: ${fullyQualifiedName}`,
+            );
           }
+        } else {
+          // No entity found - log this for debugging
+          this.logger.warn(
+            `No content entity found for section ${section.id} with query:`,
+            section.contentEntity.query,
+          );
         }
       }
     }

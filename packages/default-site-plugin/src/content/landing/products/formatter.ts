@@ -1,32 +1,30 @@
-import type { ContentFormatter } from "@brains/types";
-import type { ProductsSection } from "./schema";
+import { StructuredContentFormatter } from "@brains/structured-content";
+import { productsSectionSchema, type ProductsSection } from "./schema";
 
-export class ProductsSectionFormatter
-  implements ContentFormatter<ProductsSection>
-{
-  format(data: ProductsSection): string {
-    let output = `## ${data.headline}\n\n`;
-    output += `${data.description}\n\n`;
-
-    for (const product of data.products) {
-      output += `### ${product.name}\n`;
-      output += `*${product.tagline}*\n\n`;
-      output += `${product.description}\n\n`;
-      output += `**Status:** ${product.status}\n`;
-      if (product.link) {
-        output += `**Link:** [View →](${product.link})\n`;
-      }
-      output += `\n`;
-    }
-
-    return output;
-  }
-
-  parse(_content: string): ProductsSection {
-    // For now, throw an error as parsing markdown back to structured data
-    // would require complex parsing logic
-    throw new Error(
-      "Parsing products section from markdown not yet implemented",
-    );
+export class ProductsSectionFormatter extends StructuredContentFormatter<ProductsSection> {
+  constructor() {
+    super(productsSectionSchema, {
+      title: "Products Section",
+      mappings: [
+        { key: "label", label: "Label", type: "string" },
+        { key: "headline", label: "Headline", type: "string" },
+        { key: "description", label: "Description", type: "string" },
+        {
+          key: "products",
+          label: "Products",
+          type: "array",
+          itemType: "object",
+          itemMappings: [
+            { key: "id", label: "ID", type: "string" },
+            { key: "name", label: "Name", type: "string" },
+            { key: "tagline", label: "Tagline", type: "string" },
+            { key: "description", label: "Description", type: "string" },
+            { key: "status", label: "Status", type: "string" },
+            { key: "link", label: "Link", type: "string" },
+            { key: "icon", label: "Icon", type: "string" },
+          ],
+        },
+      ],
+    });
   }
 }

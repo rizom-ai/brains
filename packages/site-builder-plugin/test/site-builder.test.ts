@@ -3,6 +3,7 @@ import { PageRegistry, LayoutRegistry, SiteBuilder } from "../src";
 import type { PageDefinition } from "@brains/types";
 import { createSilentLogger, PluginTestHarness } from "@brains/utils";
 import { createMockStaticSiteBuilder } from "./mocks/mock-static-site-builder";
+import { z } from "zod";
 
 describe("SiteBuilder", () => {
   const logger = createSilentLogger();
@@ -20,20 +21,33 @@ describe("SiteBuilder", () => {
     await harness.cleanup();
   });
 
-  it("should register built-in layouts on initialization", () => {
+  it("should initialize without built-in layouts", () => {
     const context = harness.getPluginContext();
     SiteBuilder.getInstance(logger, context);
     const layoutRegistry = LayoutRegistry.getInstance();
 
+    // Site-builder should start with no layouts
+    // Layouts are registered by plugins
     const layouts = layoutRegistry.list();
-    expect(layouts.length).toBeGreaterThan(0);
-    expect(layoutRegistry.get("object")).toBeDefined();
+    expect(layouts.length).toBe(0);
   });
 
   it("should build pages successfully", async () => {
     const context = harness.getPluginContext();
     const siteBuilder = SiteBuilder.getInstance(logger, context);
     const pageRegistry = PageRegistry.getInstance();
+    const layoutRegistry = LayoutRegistry.getInstance();
+
+    // Register a test layout first
+    layoutRegistry.register({
+      name: "test-layout",
+      component: "@test/layouts/test.astro",
+      description: "Test layout",
+      schema: z.object({
+        headline: z.string(),
+        subheadline: z.string(),
+      }),
+    });
 
     // Register a test page
     const testPage: PageDefinition = {
@@ -43,7 +57,7 @@ describe("SiteBuilder", () => {
       sections: [
         {
           id: "test-section",
-          layout: "object",
+          layout: "test-layout",
           content: {
             headline: "Test Headline",
             subheadline: "Test Subheadline",
