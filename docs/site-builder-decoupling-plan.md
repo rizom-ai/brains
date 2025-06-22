@@ -49,7 +49,8 @@ interface SectionDefinition {
 interface LayoutDefinition {
   name: string;
   schema: ZodType; // Schema for content validation
-  component: string; // Path to Astro component
+  component: React.ComponentType<any> | string; // React component or path to Astro component
+  description?: string;
 }
 ```
 
@@ -172,6 +173,9 @@ Transform webserver-plugin into webserver interface:
 4. **Step 4**: Update shell to initialize site-builder
 5. **Step 5**: Update plugin context to expose page registry and layout registry
 6. **Step 6**: Migrate webserver plugin to use site-builder for generation
+   - **Step 6a**: Configure Astro to use React/Preact integration
+   - **Step 6b**: Convert layout components from .astro to .tsx
+   - **Step 6c**: Update layout registration to use component references
 7. **Step 7**: Extract webserver as interface package
 8. **Step 8**: Update app to include default-site-plugin
 
@@ -209,26 +213,31 @@ packages/default-site-plugin/
 ├── src/
 │   ├── index.ts
 │   ├── plugin.ts
-│   └── sections/
+│   └── content/
 │       ├── landing/
 │       │   ├── hero/
-│       │   │   ├── layout.astro
+│       │   │   ├── index.ts
+│       │   │   ├── layout.tsx
 │       │   │   ├── schema.ts
 │       │   │   └── template.ts
 │       │   ├── features/
-│       │   │   ├── layout.astro
+│       │   │   ├── index.ts
+│       │   │   ├── layout.tsx
 │       │   │   ├── schema.ts
 │       │   │   └── template.ts
 │       │   ├── products/
-│       │   │   ├── layout.astro
+│       │   │   ├── index.ts
+│       │   │   ├── layout.tsx
 │       │   │   ├── schema.ts
 │       │   │   └── template.ts
 │       │   └── cta/
-│       │       ├── layout.astro
+│       │       ├── index.ts
+│       │       ├── layout.tsx
 │       │       ├── schema.ts
 │       │       └── template.ts
 │       ├── dashboard/
-│       │   ├── layout.astro
+│       │   ├── index.ts
+│       │   ├── layout.tsx
 │       │   ├── schema.ts
 │       │   └── template.ts
 │       └── general/
@@ -286,6 +295,68 @@ The layout system follows a plugin-first approach:
    - Natural bundling of related concerns (layout + schema + template)
    - Future path to fully custom components per plugin
 
+### React Component Architecture
+
+To solve cross-package component resolution issues, layouts will be implemented as React/Preact components:
+
+1. **Technology Stack**:
+
+   - Astro remains the static site generator
+   - React/Preact components for all layouts
+   - TypeScript for full type safety
+   - Tailwind CSS for styling
+
+2. **Component Structure**:
+
+   ```typescript
+   // default-site-plugin/src/content/landing/hero/layout.tsx
+   export interface HeroLayoutProps {
+     headline: string;
+     subheadline: string;
+     ctaText?: string;
+     ctaLink?: string;
+   }
+
+   export const HeroLayout = ({ headline, subheadline, ctaText, ctaLink }: HeroLayoutProps) => {
+     return (
+       <section className="hero-section py-20 md:py-32 text-center">
+         <h1 className="text-4xl md:text-6xl font-bold">{headline}</h1>
+         <p className="text-xl md:text-2xl">{subheadline}</p>
+         {ctaText && ctaLink && (
+           <a href={ctaLink} className="btn-primary">{ctaText}</a>
+         )}
+       </section>
+     );
+   };
+   ```
+
+3. **Registration Pattern**:
+
+   ```typescript
+   // default-site-plugin/src/content/landing/hero/index.ts
+   import { HeroLayout } from "./layout";
+   import { HeroSchema } from "./schema";
+   import { heroTemplate } from "./template";
+
+   export const heroSection = {
+     layout: {
+       name: "hero",
+       component: HeroLayout, // Direct component reference
+       schema: HeroSchema,
+       description: "Hero section with headline and CTA",
+     },
+     template: heroTemplate,
+   };
+   ```
+
+4. **Benefits**:
+   - Direct component imports across packages
+   - No build-time path resolution needed
+   - Full TypeScript support for props
+   - Easier testing with React testing tools
+   - Familiar ecosystem for developers
+   - Components are rendered at build time (no client-side hydration unless needed)
+
 ### Registry Architecture
 
 The system will use focused registries with clear separation:
@@ -328,10 +399,45 @@ This architecture provides:
 - Clean dependency flow: Data → Generation → Presentation
 - Easy extension points for future features
 
+### Technical Implementation Details
+
+**Astro + React Integration**:
+
+1. **Astro Configuration**:
+
+   ```javascript
+   // astro.config.mjs
+   import { defineConfig } from "astro/config";
+   import react from "@astrojs/react";
+
+   export default defineConfig({
+     integrations: [react()],
+   });
+   ```
+
+2. **Component Rendering in Astro**:
+
+   ```astro
+   ---
+   // In Astro page/layout
+   import { HeroLayout } from '@brains/default-site-plugin';
+   const heroData = { headline: "Welcome", subheadline: "To our site" };
+   ---
+
+   <HeroLayout {...heroData} client:load={false} />
+   ```
+
+3. **Build Process**:
+   - React components are compiled at build time
+   - No client-side JavaScript unless explicitly needed
+   - Full static HTML output maintained
+   - TypeScript compilation handles cross-package imports
+
 ### Compatibility Considerations
 
 - Existing webserver plugin API should continue working during migration
 - Current content generation can be wrapped in the new page registry
 - Gradual migration path for existing deployments
+- React components are opt-in, Astro components still supported
 
 This approach provides a clean path from the current implementation to a fully extensible system while maintaining working functionality throughout the migration.

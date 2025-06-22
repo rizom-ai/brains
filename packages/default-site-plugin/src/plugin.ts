@@ -53,6 +53,9 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
 
+    // TODO: Register layouts when layout registry is available
+    // await this.registerLayouts(context);
+
     // Register default pages
     await this.registerPages(context);
   }

@@ -27,9 +27,7 @@ describe("SiteBuilder", () => {
 
     const layouts = layoutRegistry.list();
     expect(layouts.length).toBeGreaterThan(0);
-    expect(layoutRegistry.get("hero")).toBeDefined();
-    expect(layoutRegistry.get("features")).toBeDefined();
-    expect(layoutRegistry.get("products")).toBeDefined();
+    expect(layoutRegistry.get("object")).toBeDefined();
   });
 
   it("should build pages successfully", async () => {
@@ -44,8 +42,8 @@ describe("SiteBuilder", () => {
       pluginId: "test-plugin",
       sections: [
         {
-          id: "hero-section",
-          layout: "hero",
+          id: "test-section",
+          layout: "object",
           content: {
             headline: "Test Headline",
             subheadline: "Test Subheadline",

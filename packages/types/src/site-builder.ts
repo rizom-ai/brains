@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ProgressCallback } from "@brains/utils";
+import type { ComponentType } from "./plugin";
 
 /**
  * Section definition schema
@@ -35,14 +36,21 @@ export const PageDefinitionSchema = z.object({
 export const LayoutDefinitionSchema = z.object({
   name: z.string(),
   schema: z.any(), // ZodType can't be validated at runtime
-  component: z.string(),
+  component: z.union([z.function(), z.string()]), // Component function or path
   description: z.string().optional(),
 });
 
 // Type exports
 export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
 export type PageDefinition = z.infer<typeof PageDefinitionSchema>;
-export type LayoutDefinition = z.infer<typeof LayoutDefinitionSchema>;
+
+// Manually define LayoutDefinition to use ComponentType
+export interface LayoutDefinition {
+  name: string;
+  schema: z.ZodType<unknown>;
+  component: ComponentType | string;
+  description?: string;
+}
 
 /**
  * Site builder options

@@ -1,8 +1,8 @@
-import type { SchemaFormatter } from "@brains/types";
-import { productsSectionSchema, type ProductsSection } from "./schema";
+import type { ContentFormatter } from "@brains/types";
+import type { ProductsSection } from "./schema";
 
 export class ProductsSectionFormatter
-  implements SchemaFormatter<ProductsSection>
+  implements ContentFormatter<ProductsSection>
 {
   format(data: ProductsSection): string {
     let output = `## ${data.headline}\n\n`;
@@ -22,8 +22,11 @@ export class ProductsSectionFormatter
     return output;
   }
 
-  canFormat(data: unknown): boolean {
-    const result = productsSectionSchema.safeParse(data);
-    return result.success;
+  parse(_content: string): ProductsSection {
+    // For now, throw an error as parsing markdown back to structured data
+    // would require complex parsing logic
+    throw new Error(
+      "Parsing products section from markdown not yet implemented",
+    );
   }
 }

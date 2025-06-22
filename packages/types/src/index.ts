@@ -20,6 +20,7 @@ export type {
   ContentTemplate,
   BatchGenerateOptions,
   ProgressNotification,
+  ComponentType,
 } from "./plugin";
 export { pluginMetadataSchema } from "./plugin";
 

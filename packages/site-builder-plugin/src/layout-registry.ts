@@ -32,7 +32,15 @@ export class LayoutRegistry implements ILayoutRegistry {
       throw new Error(`Layout "${validated.name}" is already registered`);
     }
 
-    this.layouts.set(validated.name, validated);
+    // Ensure the layout matches our interface (schema is required)
+    const layoutDef: LayoutDefinition = {
+      name: validated.name,
+      schema: validated.schema,
+      component: validated.component,
+      ...(validated.description && { description: validated.description }),
+    };
+
+    this.layouts.set(validated.name, layoutDef);
   }
 
   unregister(name: string): void {

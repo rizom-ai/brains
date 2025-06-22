@@ -8,6 +8,12 @@ import type { EntityAdapter } from "@brains/base-entity";
 import type { BaseEntity } from "./entities";
 import type { EntityService, ContentGenerationService } from "./services";
 import type { ContentTypeRegistry } from "./content";
+
+/**
+ * Component type for layouts - framework agnostic
+ * Compatible with React, Preact, Solid, etc.
+ */
+export type ComponentType<P = unknown> = (props: P) => unknown;
 import type { PageDefinition, LayoutDefinition } from "./site-builder";
 
 /**
@@ -44,6 +50,14 @@ export interface ContentTemplate<T = unknown> {
    */
   items?: {
     [itemKey: string]: ContentTemplate<unknown>;
+  };
+  /**
+   * Optional layout definition for rendering this content type.
+   * If provided, the template can be used as a section layout.
+   */
+  layout?: {
+    component: ComponentType | string; // Component function or path string
+    description?: string;
   };
 }
 

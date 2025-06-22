@@ -1,6 +1,7 @@
 import type { ContentTemplate } from "@brains/types";
 import { featuresSectionSchema, type FeaturesSection } from "./schema";
 import { FeaturesSectionFormatter } from "./formatter";
+import { FeaturesLayout } from "./layout";
 import featuresPrompt from "./prompt.txt";
 
 /**
@@ -12,4 +13,11 @@ export const featuresSectionTemplate: ContentTemplate<FeaturesSection> = {
   schema: featuresSectionSchema,
   formatter: new FeaturesSectionFormatter(),
   basePrompt: featuresPrompt,
+  layout: {
+    component: FeaturesLayout,
+    description: "Feature grid with icons",
+  },
 };
+
+// Export for direct use
+export { FeaturesLayout } from "./layout";

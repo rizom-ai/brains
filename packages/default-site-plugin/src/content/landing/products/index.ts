@@ -1,10 +1,13 @@
 import type { ContentTemplate } from "@brains/types";
 import { productsSectionSchema, type ProductsSection } from "./schema";
+import { ProductsSectionFormatter } from "./formatter";
+import { ProductsLayout } from "./layout";
 
 export const productsSectionTemplate: ContentTemplate<ProductsSection> = {
   name: "products-section",
   description: "Products and projects showcase section",
   schema: productsSectionSchema,
+  formatter: new ProductsSectionFormatter(),
   basePrompt: `Generate a products section showcasing the organization's key offerings.
 
 Context will be provided about:
@@ -27,7 +30,14 @@ Based on this context and available content, create:
 
 Ensure products align with the organization's mission and values.
 Make them concrete and understandable to the target audience.`,
+  layout: {
+    component: ProductsLayout,
+    description: "Product card grid",
+  },
 };
 
 export { productsSectionSchema } from "./schema";
 export type { Product, ProductsSection } from "./schema";
+
+// Export for direct use
+export { ProductsLayout } from "./layout";
