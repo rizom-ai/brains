@@ -252,7 +252,7 @@ export class PluginManager implements IPluginManager {
       events: this.events,
       messageBus: this.messageBus,
       formatters: {
-        register: (schemaName: string, formatter: SchemaFormatter) => {
+        register: (schemaName: string, formatter: SchemaFormatter): void => {
           formatterRegistry.register(schemaName, formatter);
         },
       },
@@ -311,7 +311,7 @@ export class PluginManager implements IPluginManager {
           contentType: string,
           schema: z.ZodType<unknown>,
           formatter?: ContentFormatter<unknown>,
-        ) => {
+        ): void => {
           try {
             const contentTypeRegistry =
               this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
@@ -345,7 +345,7 @@ export class PluginManager implements IPluginManager {
         },
       },
       templates: {
-        register: <T>(name: string, template: ContentTemplate<T>) => {
+        register: <T>(name: string, template: ContentTemplate<T>): void => {
           try {
             const contentGenerationService =
               this.registry.resolve<ContentGenerationService>(
@@ -377,7 +377,7 @@ export class PluginManager implements IPluginManager {
       ? {
           ...baseContext,
           pages: {
-            register: (page: PageDefinition) => {
+            register: (page: PageDefinition): void => {
               const siteBuilder =
                 this.registry.resolve<SiteBuilder>("siteBuilder");
               const pageRegistry = siteBuilder.getPageRegistry();
@@ -385,7 +385,7 @@ export class PluginManager implements IPluginManager {
               pageRegistry.register(pageWithPlugin);
               this.logger.debug(`Registered page: ${page.path}`);
             },
-            list: () => {
+            list: (): PageDefinition[] => {
               const siteBuilder =
                 this.registry.resolve<SiteBuilder>("siteBuilder");
               const pageRegistry = siteBuilder.getPageRegistry();
@@ -393,14 +393,14 @@ export class PluginManager implements IPluginManager {
             },
           },
           layouts: {
-            register: (layout: LayoutDefinition) => {
+            register: (layout: LayoutDefinition): void => {
               const siteBuilder =
                 this.registry.resolve<SiteBuilder>("siteBuilder");
               const layoutRegistry = siteBuilder.getLayoutRegistry();
               layoutRegistry.register(layout);
               this.logger.debug(`Registered layout: ${layout.name}`);
             },
-            list: () => {
+            list: (): LayoutDefinition[] => {
               const siteBuilder =
                 this.registry.resolve<SiteBuilder>("siteBuilder");
               const layoutRegistry = siteBuilder.getLayoutRegistry();
