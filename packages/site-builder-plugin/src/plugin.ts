@@ -11,7 +11,6 @@ import { z } from "zod";
 const siteBuilderConfigSchema = z.object({
   outputDir: z.string().describe("Output directory for built sites"),
   workingDir: z.string().optional().describe("Working directory for builds"),
-  enableContentGeneration: z.boolean().default(false).optional(),
   siteConfig: z
     .object({
       title: z.string(),
@@ -71,22 +70,29 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
       this.createTool(
         "build",
         "Build a static site from registered pages",
-        {}, // No parameters needed - uses plugin config
-        async (_input, context): Promise<Record<string, unknown>> => {
+        {
+          enableContentGeneration: z
+            .boolean()
+            .optional()
+            .describe("Generate content for pages that don't have it"),
+        },
+        async (input, context): Promise<Record<string, unknown>> => {
           if (!this.siteBuilder) {
             throw new Error("Site builder not initialized");
           }
 
           // Use the plugin's configuration
           const config = this.config;
+          const { enableContentGeneration } = input as {
+            enableContentGeneration?: boolean;
+          };
 
           try {
             const result = await this.siteBuilder.build(
               {
                 outputDir: config.outputDir,
                 workingDir: config.workingDir,
-                enableContentGeneration:
-                  config.enableContentGeneration ?? false,
+                enableContentGeneration: enableContentGeneration ?? false,
                 siteConfig: config.siteConfig || {
                   title: "Personal Brain",
                   description: "A knowledge management system",

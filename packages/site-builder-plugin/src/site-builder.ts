@@ -233,11 +233,11 @@ export class SiteBuilder implements ISiteBuilder {
 
     // Write page data as YAML for Astro
     const pageData = await this.assemblePageData(page);
-    
+
     // Determine collection name based on page path
     let collection: string;
     let filename: string;
-    
+
     if (page.path === "/") {
       collection = "landing";
       filename = "index.yaml";
@@ -245,7 +245,7 @@ export class SiteBuilder implements ISiteBuilder {
       collection = "pages";
       filename = `${page.path.slice(1)}.yaml`;
     }
-    
+
     await staticSiteBuilder.writeContentFile(collection, filename, pageData);
   }
 

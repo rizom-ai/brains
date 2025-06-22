@@ -46,7 +46,7 @@ export function createMockAIService(): AIService {
             headline: "Mock Headline",
             subheadline: "Mock Subheadline",
             ctaText: "Get Started",
-            ctaLink: "/dashboard",
+            ctaLink: "#features",
           },
         };
       } else if (

@@ -41,10 +41,14 @@ export class AstroBuilder implements StaticSiteBuilder {
   async prepare(): Promise<void> {
     this.logger.debug("Preparing Astro working directory");
 
-    // Ensure working directory exists
-    if (!existsSync(this.workingDir)) {
-      mkdirSync(this.workingDir, { recursive: true });
+    // Clean existing working directory if it exists
+    if (existsSync(this.workingDir)) {
+      this.logger.debug("Cleaning existing working directory");
+      await rm(this.workingDir, { recursive: true, force: true });
     }
+
+    // Ensure working directory exists
+    mkdirSync(this.workingDir, { recursive: true });
 
     // Copy template to working directory
     await copyDirectory(this.templateDir, this.workingDir);
