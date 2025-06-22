@@ -1,5 +1,7 @@
 # Site Builder Decoupling Plan
 
+> **Note**: The remaining implementation work for site-builder (React integration, registry consolidation) has been moved to the comprehensive [Architecture Improvements Plan](./architecture-improvements-plan.md). This document is kept for historical reference and completed work tracking.
+
 ## Overview
 
 Transform the current tightly-coupled webserver plugin into a flexible system where:
@@ -9,6 +11,31 @@ Transform the current tightly-coupled webserver plugin into a flexible system wh
 - Plugins can register pages as collections of sections
 - Each section has a layout that maps to a component
 - Start with simple built-in layouts, evolve to custom components
+
+## Completed Work
+
+### ✅ Phase 1: Site Builder as Plugin
+- Created `@brains/site-builder-plugin` package
+- Implemented PageRegistry and LayoutRegistry
+- Integrated with plugin system
+
+### ✅ Phase 2: Default Site Plugin
+- Created `@brains/default-site-plugin`
+- Moved all landing page content and templates
+- Removed dashboard functionality (per requirements)
+- Defined React components for layouts
+
+### ✅ Phase 3: Webserver Interface
+- Created `@brains/webserver` package
+- Separated serving from content generation
+- Successfully serves built sites
+
+### ❌ Incomplete Work
+The following items have been moved to [Architecture Improvements Plan](./architecture-improvements-plan.md):
+- React/Preact Astro integration (components defined but not used)
+- Registry consolidation and optimization
+- Multi-format output support
+- Removal of deprecated webserver-plugin package
 
 ## Phase 1: Create Site Builder Core Package
 
