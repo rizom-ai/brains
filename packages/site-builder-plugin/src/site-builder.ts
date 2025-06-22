@@ -418,6 +418,15 @@ export class SiteBuilder implements ISiteBuilder {
       }
     }
 
+    // For landing page, flatten sections into expected structure
+    if (page.path === "/") {
+      return {
+        title: page.title,
+        tagline: page.description,
+        ...sections,
+      };
+    }
+    
     return {
       path: page.path,
       title: page.title,
