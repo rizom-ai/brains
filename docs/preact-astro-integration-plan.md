@@ -7,12 +7,14 @@ This document outlines the plan for integrating Preact components into the site-
 ## Current State
 
 ### What We Have
+
 - **ViewRegistry**: Centralized registry for routes and view templates in shell
 - **ViewTemplate Interface**: Supports component registration with schemas
 - **Site-builder**: Generates static sites using Astro
 - **React Components**: Existing layouts written as TSX components in default-site-plugin
 
 ### The Gap
+
 - Astro needs component imports at build time
 - ViewRegistry registers components at runtime
 - No mechanism to bridge runtime registrations to build-time imports
@@ -21,9 +23,11 @@ This document outlines the plan for integrating Preact components into the site-
 ## Proposed Solution: Component File Copying
 
 ### Core Approach
+
 Copy component files from plugins to the Astro working directory during build, maintaining the ability to use them as real components while solving the package accessibility issue.
 
 ### Key Principles
+
 1. **Static First**: All components render to static HTML initially
 2. **Progressive Enhancement Ready**: Easy to add client-side interactivity later
 3. **Type Safety**: Maintain TypeScript support throughout
@@ -32,9 +36,11 @@ Copy component files from plugins to the Astro working directory during build, m
 ## Implementation Phases
 
 ### Phase 1: Component Source Tracking
+
 **Goal**: Track the file path of each registered component
 
 1. Extend ViewTemplate to include source information:
+
    ```typescript
    interface ViewTemplate<T = unknown> {
      name: string;
@@ -52,14 +58,16 @@ Copy component files from plugins to the Astro working directory during build, m
      name: "hero",
      component: HeroLayout,
      componentPath: __filename, // or resolve to the actual component file
-     schema: heroSchema
+     schema: heroSchema,
    });
    ```
 
 ### Phase 2: Dependency Analysis
+
 **Goal**: Identify all files that a component depends on
 
 1. Create a dependency analyzer:
+
    ```typescript
    class ComponentDependencyAnalyzer {
      async analyzeDependencies(componentPath: string): Promise<Set<string>> {
@@ -77,15 +85,17 @@ Copy component files from plugins to the Astro working directory during build, m
    - Type imports: Include for TypeScript compilation
 
 ### Phase 3: File Copying System
+
 **Goal**: Copy components and their dependencies to working directory
 
 1. Create component copier:
+
    ```typescript
    class ComponentFileCopier {
      async copyComponent(
        componentPath: string,
        dependencies: Set<string>,
-       targetDir: string
+       targetDir: string,
      ): Promise<string> {
        // Copy component file
        // Copy all dependencies
@@ -112,15 +122,17 @@ Copy component files from plugins to the Astro working directory during build, m
    ```
 
 ### Phase 4: Import Path Rewriting
+
 **Goal**: Update imports in copied files to work in new location
 
 1. Create import rewriter:
+
    ```typescript
    class ImportRewriter {
      rewriteImports(
        fileContent: string,
        originalPath: string,
-       newPath: string
+       newPath: string,
      ): string {
        // Parse imports
        // Calculate new relative paths
@@ -131,23 +143,26 @@ Copy component files from plugins to the Astro working directory during build, m
    ```
 
 2. Transform imports:
+
    ```typescript
    // Original in plugin
-   import { formatDate } from '../../../utils/date';
-   
+   import { formatDate } from "../../../utils/date";
+
    // Rewritten in working directory
-   import { formatDate } from './utils/date';
+   import { formatDate } from "./utils/date";
    ```
 
 ### Phase 5: Generate View Templates Module
+
 **Goal**: Create module that imports copied components
 
 1. Generate after copying all components:
+
    ```typescript
    // src/generated/view-templates.ts
-   import { HeroLayout } from '../components/hero/layout';
-   import { FeaturesLayout } from '../components/features/layout';
-   
+   import { HeroLayout } from "../components/hero/layout";
+   import { FeaturesLayout } from "../components/features/layout";
+
    export const viewTemplates = new Map([
      ["hero", HeroLayout],
      ["features", FeaturesLayout],
@@ -155,17 +170,19 @@ Copy component files from plugins to the Astro working directory during build, m
    ```
 
 ### Phase 6: Update Astro Pages
+
 **Goal**: Use the copied components in Astro
 
 1. Create dynamic page that uses generated module:
+
    ```astro
    ---
    import { viewTemplates } from '../generated/view-templates';
    import BaseLayout from '../layouts/BaseLayout.astro';
-   
+
    const route = await getRouteData();
    ---
-   
+
    <BaseLayout title={route.title}>
      {route.sections.map((section) => {
        const Component = viewTemplates.get(section.template);
@@ -177,18 +194,21 @@ Copy component files from plugins to the Astro working directory during build, m
 ## Technical Considerations
 
 ### Dependency Resolution
+
 1. **AST Parsing**: Use TypeScript compiler API or Babel to parse files
 2. **Import Resolution**: Follow Node.js resolution algorithm
 3. **Circular Dependencies**: Track visited files to avoid infinite loops
 4. **External Packages**: Skip node_modules imports
 
 ### File Copying
+
 1. **Preserve Structure**: Maintain relative paths between files
 2. **Handle Binary Files**: Copy images, fonts if referenced
 3. **Source Maps**: Consider copying for debugging
 4. **File Watching**: In dev mode, watch for changes
 
 ### Import Rewriting
+
 1. **Path Calculation**: Use path.relative() for new paths
 2. **Preserve Syntax**: Maintain import style (named, default, etc.)
 3. **Dynamic Imports**: Handle import() expressions
@@ -203,25 +223,25 @@ private async copyComponentsToWorkingDir(
 ): Promise<Map<string, string>> {
   const componentMap = new Map<string, string>();
   const templates = this.context.viewRegistry.listViewTemplates();
-  
+
   for (const template of templates) {
     if (template.componentPath) {
       // Analyze dependencies
       const deps = await this.analyzer.analyzeDependencies(
         template.componentPath
       );
-      
+
       // Copy files
       const newPath = await this.copier.copyComponent(
         template.componentPath,
         deps,
         path.join(workingDir, 'src/components', template.name)
       );
-      
+
       componentMap.set(template.name, newPath);
     }
   }
-  
+
   return componentMap;
 }
 ```
@@ -229,20 +249,25 @@ private async copyComponentsToWorkingDir(
 ## Challenges and Solutions
 
 ### Challenge: Complex Dependencies
+
 **Solution**: Start with simple components, add dependency analysis incrementally
 
 ### Challenge: Performance
+
 **Solution**: Cache dependency analysis, parallelize file copying
 
 ### Challenge: Type Definitions
+
 **Solution**: Copy .d.ts files, ensure tsconfig.json includes them
 
 ### Challenge: CSS/Assets
+
 **Solution**: Parse for asset imports, copy referenced files
 
 ## Testing Strategy
 
 1. **Unit Tests**:
+
    - Test dependency analyzer with various import patterns
    - Test import rewriter with edge cases
    - Test file copier with different structures

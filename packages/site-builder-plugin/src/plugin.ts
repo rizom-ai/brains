@@ -364,7 +364,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             templates: templates.map((t) => ({
               name: t.name,
               description: t.description,
-              component: t.component,
+              renderers: t.renderers,
             })),
           };
         },

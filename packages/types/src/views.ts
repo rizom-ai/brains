@@ -36,20 +36,44 @@ export const RouteDefinitionSchema = z.object({
 export const ViewTemplateSchema = z.object({
   name: z.string(),
   schema: z.any(), // ZodType can't be validated at runtime
-  component: z.union([z.function(), z.string()]), // Component function or path
   description: z.string().optional(),
+  renderers: z.object({
+    web: z.union([z.function(), z.string()]).optional(),
+    // Future formats can be added here
+  }),
 });
 
 // Type exports
 export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
 export type RouteDefinition = z.infer<typeof RouteDefinitionSchema>;
 
-// Manually define ViewTemplate to use ComponentType
+/**
+ * Renderer types for different output formats
+ */
+export type WebRenderer<T = unknown> = ComponentType<T> | string;
+// Future: export type PDFRenderer<T = unknown> = ...
+// Future: export type EmailRenderer<T = unknown> = ...
+
+/**
+ * Output format types
+ */
+export type OutputFormat = 'web'; // | 'pdf' | 'email' in future
+
+/**
+ * View template with support for multiple output formats
+ */
 export interface ViewTemplate<T = unknown> {
   name: string;
   schema: z.ZodType<T>;
-  component: ComponentType<T> | string;
   description?: string;
+  
+  // Format-specific renderers
+  renderers: {
+    web?: WebRenderer<T>;
+    // Future formats can be added here
+    // pdf?: PDFRenderer<T>;
+    // email?: EmailRenderer<T>;
+  };
 }
 
 /**
@@ -87,6 +111,11 @@ export interface ViewRegistry {
   getViewTemplate(name: string): ViewTemplate<unknown> | undefined;
   listViewTemplates(): ViewTemplate<unknown>[];
   validateViewTemplate(templateName: string, content: unknown): boolean;
+  
+  // Renderer access methods
+  getRenderer(templateName: string, format: OutputFormat): WebRenderer | undefined;
+  hasRenderer(templateName: string, format: OutputFormat): boolean;
+  listFormats(templateName: string): OutputFormat[];
 }
 
 /**

@@ -1,6 +1,8 @@
 import type {
   RouteDefinition,
   ViewTemplate,
+  OutputFormat,
+  WebRenderer,
   ViewRegistry as IViewRegistry,
 } from "@brains/types";
 import { RouteRegistry } from "./route-registry";
@@ -69,5 +71,33 @@ export class ViewRegistry implements IViewRegistry {
 
   validateViewTemplate(templateName: string, content: unknown): boolean {
     return this.viewTemplateRegistry.validate(templateName, content);
+  }
+
+  // ===== Renderer Access Methods =====
+
+  getRenderer(templateName: string, format: OutputFormat): WebRenderer | undefined {
+    const template = this.viewTemplateRegistry.get(templateName);
+    if (!template) {
+      return undefined;
+    }
+    
+    return template.renderers[format];
+  }
+
+  hasRenderer(templateName: string, format: OutputFormat): boolean {
+    return this.getRenderer(templateName, format) !== undefined;
+  }
+
+  listFormats(templateName: string): OutputFormat[] {
+    const template = this.viewTemplateRegistry.get(templateName);
+    if (!template) {
+      return [];
+    }
+    
+    const formats: OutputFormat[] = [];
+    if (template.renderers.web) formats.push('web');
+    // Future: if (template.renderers.pdf) formats.push('pdf');
+    // Future: if (template.renderers.email) formats.push('email');
+    return formats;
   }
 }

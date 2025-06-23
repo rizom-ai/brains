@@ -118,31 +118,39 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
     // site-builder receives via constructor configuration.
     // See architecture-improvements-plan.md for details.
 
-    // Define view template configurations
+    // Define view template configurations with multi-format approach
     const viewTemplates: ViewTemplate<unknown>[] = [
       {
         name: "hero",
-        component: HeroLayout as ComponentType,
         schema: landingHeroDataSchema,
         description: "Hero section with headline and call-to-action",
+        renderers: {
+          web: HeroLayout as ComponentType,
+        },
       },
       {
         name: "features",
-        component: FeaturesLayout as ComponentType,
         schema: featuresSectionSchema,
         description: "Feature grid with icons",
+        renderers: {
+          web: FeaturesLayout as ComponentType,
+        },
       },
       {
         name: "products",
-        component: ProductsLayout as ComponentType,
         schema: productsSectionSchema,
         description: "Product card grid",
+        renderers: {
+          web: ProductsLayout as ComponentType,
+        },
       },
       {
         name: "cta",
-        component: CTALayout as ComponentType,
         schema: ctaSectionSchema,
         description: "Call-to-action section",
+        renderers: {
+          web: CTALayout as ComponentType,
+        },
       },
     ];
 

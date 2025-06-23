@@ -288,6 +288,10 @@ export class PluginTestHarness {
           return [];
         },
         validateViewTemplate: (): boolean => true,
+        // Renderer access methods
+        getRenderer: (): undefined => undefined,
+        hasRenderer: (): boolean => false,
+        listFormats: (): ('web')[] => [],
       },
       // Direct service access
       entityService: this.getEntityService() as EntityService,

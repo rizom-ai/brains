@@ -73,6 +73,8 @@ export type {
   RouteDefinition,
   SectionDefinition,
   ViewTemplate,
+  OutputFormat,
+  WebRenderer,
   SiteBuilderOptions,
   BuildResult,
   ContentGenerationRequest,
