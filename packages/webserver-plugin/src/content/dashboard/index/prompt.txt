@@ -1,8 +1,0 @@
-Generate dashboard page content for a knowledge management system.
-The content should include:
-- An appropriate dashboard title
-- A brief description of what the dashboard shows
-- Statistics object with realistic placeholder values
-- A list of 3-5 recent entities with sample data
-
-The tone should be informative and focused on providing quick insights.
