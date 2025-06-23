@@ -29,7 +29,6 @@
     "@brains/db": "workspace:*",
     "@brains/default-site-plugin": "workspace:*",
     "@brains/directory-sync": "workspace:*",
-    "@brains/git-sync": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/webserver": "workspace:*"
   },

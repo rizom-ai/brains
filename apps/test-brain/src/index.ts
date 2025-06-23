@@ -1,6 +1,5 @@
 import { App, getMatrixInterfaceFromEnv } from "@brains/app";
 import { directorySync } from "@brains/directory-sync";
-import { gitSync } from "@brains/git-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { DefaultSitePlugin } from "@brains/default-site-plugin";
 
@@ -66,23 +65,6 @@ async function main(): Promise<void> {
               watchInterval: process.env["WATCH_INTERVAL"]
                 ? Number(process.env["WATCH_INTERVAL"])
                 : 5000,
-            }),
-          ]
-        : []),
-      // Git sync plugin for version control (if configured)
-      ...(process.env["GIT_URL"]
-        ? [
-            gitSync({
-              gitUrl: process.env["GIT_URL"],
-              branch: process.env["GIT_BRANCH"] ?? "main",
-              autoSync: process.env["GIT_AUTO_SYNC"] === "true",
-              syncInterval: process.env["GIT_SYNC_INTERVAL"]
-                ? Number(process.env["GIT_SYNC_INTERVAL"])
-                : 300,
-              commitMessage: process.env["GIT_COMMIT_MESSAGE"],
-              authorName: process.env["GIT_AUTHOR_NAME"],
-              authorEmail: process.env["GIT_AUTHOR_EMAIL"],
-              authToken: process.env["GIT_AUTH_TOKEN"],
             }),
           ]
         : []),
