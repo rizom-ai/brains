@@ -2,37 +2,48 @@
 
 ## Overview
 
-This plan outlines a comprehensive refactoring to create a clean separation between content and build systems, eliminating unnecessary abstractions and complexity.
+This plan outlines a simplified architecture that allows plugins to be self-contained with their own components while avoiding circular dependencies.
 
-## New Architecture
+## Updated Architecture
 
-### Package Structure
+### Core Principles
+
+1. **Self-contained plugins** - Each plugin can include its own Preact components
+2. **String-based component paths** - Components are registered by their import path
+3. **Component discovery** - Builder discovers components from ViewRegistry at build time
+4. **One component per file** - Each Preact component is a default export in its own file
+
+### Component Registration
+
+```typescript
+// Updated ViewTemplate interface
+export interface ViewTemplate<T = unknown> {
+  name: string;
+  schema: z.ZodType<T>;
+  description?: string;
+  renderers: {
+    web?: string;  // Always a module path, e.g., "@brains/notes-plugin/components/NoteCard"
+  };
+}
+```
+
+### Plugin Structure Example
 
 ```
-@brains/default-site-content/     # Content package (new)
+@brains/notes-plugin/
 ├── src/
-│   ├── routes/                   # Route definitions
-│   │   └── landing.ts
-│   ├── templates/                # Template configurations
-│   │   ├── hero.ts
-│   │   ├── features.ts
-│   │   └── ...
-│   ├── components/               # Preact/React components
-│   │   ├── hero/
-│   │   │   ├── HeroLayout.tsx
-│   │   │   └── index.ts
-│   │   ├── features/
-│   │   │   ├── FeaturesLayout.tsx
-│   │   │   └── index.ts
-│   │   └── ...
-│   ├── schemas/                  # Zod schemas
-│   └── index.ts                  # Exports everything
-└── package.json                  # Dependencies: preact, zod, @brains/types
+│   ├── components/               # One component per file
+│   │   ├── NoteCard.tsx         # export default function NoteCard() {...}
+│   │   ├── NotesListing.tsx     # export default function NotesListing() {...}
+│   │   └── NoteDetail.tsx       # export default function NoteDetail() {...}
+│   ├── plugin.ts                # Plugin registration
+│   └── index.ts
+└── package.json
 
 @brains/astro-builder-plugin/     # Renamed from site-builder-plugin
 ├── src/
 │   ├── build/                    # Astro-specific build logic
-│   │   ├── astro.config.ts      # Astro configuration with Preact
+│   │   ├── component-discovery.ts # Discovers components from registry
 │   │   └── builder.ts           # Build orchestration
 │   ├── tools/                    # Plugin tools
 │   │   ├── promote-content.ts
@@ -43,153 +54,230 @@ This plan outlines a comprehensive refactoring to create a clean separation betw
 └── package.json                 # Dependencies: astro, @astrojs/preact, @brains/utils
 ```
 
-### Key Architecture Decisions
+### Key Architecture Changes
 
-1. **No base classes** - Each builder plugin is independent
-2. **Content packages are pure data** - Just routes, templates, components
-3. **Builder plugins are regular plugins** - Extend BasePlugin directly
-4. **Maximum flexibility** - No forced interfaces or inheritance
+1. **WebRenderer is always a string** - No more function references
+2. **Direct import paths** - Components are referenced by their module path
+3. **No separate content packages needed** - Plugins are self-contained
+4. **Simple component discovery** - Builder generates imports from registry
 
 ## Implementation Plan
 
-### Phase 1: Create Content Package (Day 1)
+### Phase 1: Update Type Definitions
 
-1. Create `@brains/default-site-content`:
+1. Update `@brains/types` ViewTemplate interface:
    ```typescript
-   // src/index.ts
-   export { routes } from './routes';
-   export { templates } from './templates';
-   export * from './components';
-   export * from './schemas';
+   export type WebRenderer = string;  // Always a module path
+   
+   export interface ViewTemplate<T = unknown> {
+     name: string;
+     schema: z.ZodType<T>;
+     description?: string;
+     renderers: {
+       web?: string;  // Module path to component
+     };
+   }
    ```
 
-2. Move from default-site-plugin:
-   - All route definitions
-   - All Preact components
-   - All schemas
-   - Template configurations
+### Phase 2: Update Existing Plugin
 
-### Phase 2: Transform Site Builder (Days 2-3)
+1. Refactor `default-site-plugin` components:
+   - Move each component to its own file
+   - Ensure default exports
+   - Update registrations to use module paths:
+   
+   ```typescript
+   context.viewRegistry.registerViewTemplate({
+     name: "hero",
+     schema: heroSchema,
+     renderers: {
+       web: "@brains/default-site-plugin/components/HeroLayout"
+     }
+   });
+   ```
+
+### Phase 3: Transform Site Builder
 
 1. Rename to `@brains/astro-builder-plugin`
-2. Remove all abstractions, just make it a plugin that builds sites:
+2. Implement component discovery:
+
    ```typescript
-   export class AstroBuilderPlugin extends BasePlugin {
-     constructor() {
-       super('astro-builder', 'Astro Site Builder', 'Builds static sites with Astro');
+   async generateComponentRegistry() {
+     const templates = this.context.viewRegistry.listViewTemplates();
+     const imports: string[] = [];
+     const exports: string[] = [];
+     
+     for (const template of templates) {
+       if (template.renderers.web) {
+         imports.push(`import ${template.name} from '${template.renderers.web}';`);
+         exports.push(`'${template.name}': ${template.name}`);
+       }
      }
      
-     protected async getTools(): Promise<PluginTool[]> {
-       return [
-         this.createBuildTool(),
-         this.createPromoteTool(),
-         this.createRollbackTool(),
-       ];
+     return `
+       // Auto-generated component registry
+       ${imports.join('\n')}
+       export const components = { ${exports.join(', ')} };
+     `;
+   }
+   ```
+
+### Phase 4: Handle Package Dependencies
+
+1. **For Development (Workspace builds)**:
+   ```json
+   // Generated Astro project package.json
+   {
+     "dependencies": {
+       "@brains/*": "workspace:*",
+       "astro": "^5.8.1",
+       "@astrojs/preact": "^3.0.0",
+       "preact": "^10.0.0"
      }
    }
    ```
 
-3. Import content directly:
-   ```typescript
-   import { routes, components } from '@brains/default-site-content';
+2. **For Production (External builds)**:
+   - Astro builder discovers all plugin dependencies
+   - Generates package.json with explicit versions
+   - Or use bundling approach for self-contained output
+
+### Phase 5: Update Astro Templates
+
+1. Create dynamic component loader:
+   ```astro
+   ---
+   // DynamicSection.astro
+   import { components } from '../generated/components';
+   
+   const { template, content } = Astro.props;
+   const Component = components[template];
+   ---
+   {Component && <Component {...content} />}
    ```
 
-### Phase 3: Implement Build Logic (Day 4)
+2. Update page templates to use dynamic components
 
-1. Move Astro config into plugin
-2. Configure Preact integration
-3. Build process:
-   ```typescript
-   async build(options: BuildOptions) {
-     // 1. Query existing content entities
-     // 2. Generate missing content
-     // 3. Write to Astro content directory
-     // 4. Run Astro build
-     // 5. Copy output to final destination
-   }
-   ```
+### Phase 6: Content Management Tools
 
-### Phase 4: Content Management Tools (Day 5)
+Implement as plugin tools:
 
-Implement as simple tool functions:
 - `promote-content.ts` - Update entity environment tags
 - `rollback-content.ts` - Revert to previous version
 - `regenerate-content.ts` - Force content regeneration
 
-### Phase 5: Cleanup (Day 6)
+### Phase 7: Migration and Cleanup
 
-1. Delete `packages/default-site-plugin/`
-2. Delete `packages/webserver-plugin/` (if exists)
-3. Update all imports
-4. Fix tests
-5. Update documentation
+1. Update existing plugins to new component path format
+2. Remove old abstractions and base classes
+3. Update tests for new architecture
+4. Update documentation
 
 ## Benefits
 
-1. **Simplicity**
-   - No unnecessary abstractions
-   - Clear, direct code
-   - Easy to understand
+1. **Self-contained plugins**
+   - Each plugin manages its own components
+   - No separate content packages needed
+   - True plugin independence
 
-2. **Flexibility**
-   - Content packages work with any builder
-   - Builders work with any content
-   - No coupling
+2. **Simple component discovery**
+   - Components referenced by import path
+   - No complex registration logic
+   - Builder generates imports automatically
 
-3. **Maintainability**
-   - Each package has one clear purpose
-   - No complex inheritance
-   - Easy to test
+3. **No circular dependencies**
+   - Shell doesn't depend on plugins
+   - Generated code imports from plugins
+   - Clean dependency graph
+
+4. **Flexibility**
+   - Plugins can contribute components and routes
+   - Any plugin can extend the site
+   - Easy to add new functionality
 
 ## Example Usage
 
+### Plugin Registration
 ```typescript
-// In astro-builder-plugin
-import { routes, components } from '@brains/default-site-content';
+// In notes-plugin
+context.viewRegistry.registerViewTemplate({
+  name: "note-card",
+  schema: noteCardSchema,
+  renderers: {
+    web: "@brains/notes-plugin/components/NoteCard"
+  }
+});
 
-// Use directly in build
-const astroPages = routes.map(route => ({
-  path: route.path,
-  component: components[route.template],
-  data: route.data,
-}));
+context.viewRegistry.registerRoute({
+  path: "/notes",
+  title: "Notes",
+  sections: [{
+    id: "notes-list",
+    template: "notes-listing",
+    contentEntity: { entityType: "note" }
+  }]
+});
+```
+
+### Generated Component Registry
+```typescript
+// Auto-generated by astro-builder
+import hero from '@brains/default-site-plugin/components/HeroLayout';
+import features from '@brains/default-site-plugin/components/FeaturesLayout';
+import noteCard from '@brains/notes-plugin/components/NoteCard';
+import notesListing from '@brains/notes-plugin/components/NotesListing';
+
+export const components = { hero, features, noteCard, notesListing };
 ```
 
 ## File Operations
 
-### Create
-1. `docs/site-builder-architecture-refactoring.md` (this document)
-2. `packages/default-site-content/` (new package)
-
 ### Update
-1. `packages/site-builder-plugin/` → `packages/astro-builder-plugin/`
+
+1. `packages/types/src/views.ts` - Change WebRenderer to string type
+2. `packages/default-site-plugin/` - Refactor components and update registrations
+3. `packages/site-builder-plugin/` → `packages/astro-builder-plugin/`
+4. `packages/webserver-template/` - Update to use dynamic component loading
 
 ### Archive
+
 1. `docs/preact-astro-integration-plan.md` → `docs/archive/`
 2. `docs/site-builder-decoupling-plan.md` → `docs/archive/`
 3. `docs/webserver-plugin-plan.md` → `docs/archive/`
 4. `docs/webserver-plugin-extension-plan.md` → `docs/archive/`
 
-### Delete
-1. `packages/default-site-plugin/` (entire directory)
-2. `packages/webserver-plugin/` (if exists)
+### No Longer Needed
+
+1. Separate content packages - plugins are now self-contained
+2. Complex component registration - just use import paths
 
 ## Success Criteria
 
-- [ ] Content package exports work correctly
-- [ ] Astro builder can import and use Preact components
-- [ ] Build process generates working site
-- [ ] Content promotion/rollback tools function
+- [ ] WebRenderer type updated to string-only
+- [ ] Plugins can register components with import paths
+- [ ] Astro builder discovers and imports components dynamically
+- [ ] Generated site includes components from multiple plugins
+- [ ] No circular dependencies in build
 - [ ] All tests pass
 - [ ] Documentation is updated
 
 ## Current Status
 
 - [x] Plan created and approved
-- [ ] Phase 1: Create Content Package
-- [ ] Phase 2: Transform Site Builder
-- [ ] Phase 3: Implement Build Logic
-- [ ] Phase 4: Content Management Tools
-- [ ] Phase 5: Cleanup
+- [x] Architecture simplified based on discussion
+- [ ] Phase 1: Update Type Definitions
+- [ ] Phase 2: Update Existing Plugin
+- [ ] Phase 3: Transform Site Builder
+- [ ] Phase 4: Handle Package Dependencies
+- [ ] Phase 5: Update Astro Templates
+- [ ] Phase 6: Content Management Tools
+- [ ] Phase 7: Migration and Cleanup
 
-This final architecture is clean, simple, and highly flexible.
+## Key Insights from Discussion
+
+1. **Circular dependency concern was unfounded** - Shell doesn't depend on plugins
+2. **String-based paths are simpler** - No need for complex component discovery
+3. **Workspace resolution solves deps** - Use `workspace:*` for development
+4. **One component per file** - Makes imports predictable and clean
+
+This architecture enables true plugin independence while keeping the implementation simple.
