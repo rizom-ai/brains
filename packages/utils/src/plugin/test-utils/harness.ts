@@ -8,8 +8,8 @@ import type {
   PluginTool,
   ComponentFactory,
   MessageBus,
-  PageDefinition,
-  LayoutDefinition,
+  RouteDefinition,
+  ViewTemplate,
 } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
@@ -267,28 +267,27 @@ export class PluginTestHarness {
           return [];
         },
       },
-      templates: {
+      contentTemplates: {
         register: (): void => {
           // Mock implementation for test harness
         },
       },
-      pages: {
-        register: (): void => {
+      viewRegistry: {
+        registerRoute: (): void => {
           // Mock implementation for test harness
         },
-        list: (): PageDefinition[] => {
-          // Return empty list for test harness
+        getRoute: (): undefined => undefined,
+        listRoutes: (): RouteDefinition[] => {
           return [];
         },
-      },
-      layouts: {
-        register: (): void => {
+        registerViewTemplate: (): void => {
           // Mock implementation for test harness
         },
-        list: (): LayoutDefinition[] => {
-          // Return empty list for test harness
+        getViewTemplate: (): undefined => undefined,
+        listViewTemplates: (): ViewTemplate[] => {
           return [];
         },
+        validateViewTemplate: (): boolean => true,
       },
       // Direct service access
       entityService: this.getEntityService() as EntityService,

@@ -15,23 +15,28 @@ Transform the current tightly-coupled webserver plugin into a flexible system wh
 ## Completed Work
 
 ### ✅ Phase 1: Site Builder as Plugin
+
 - Created `@brains/site-builder-plugin` package
 - Implemented PageRegistry and LayoutRegistry
 - Integrated with plugin system
 
 ### ✅ Phase 2: Default Site Plugin
+
 - Created `@brains/default-site-plugin`
 - Moved all landing page content and templates
 - Removed dashboard functionality (per requirements)
 - Defined React components for layouts
 
 ### ✅ Phase 3: Webserver Interface
+
 - Created `@brains/webserver` package
 - Separated serving from content generation
 - Successfully serves built sites
 
 ### ❌ Incomplete Work
+
 The following items have been moved to [Architecture Improvements Plan](./architecture-improvements-plan.md):
+
 - React/Preact Astro integration (components defined but not used)
 - Registry consolidation and optimization
 - Multi-format output support

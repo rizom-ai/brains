@@ -174,39 +174,25 @@ describe("PluginManager", (): void => {
         generateFromTemplate: async (): Promise<unknown> => ({}),
         generateContent: async (): Promise<unknown> => ({}),
       }),
-      getSiteBuilder: (): {
-        getPageRegistry: () => {
-          register: (page: unknown) => void;
-          unregister: (path: string) => void;
-          get: (path: string) => unknown;
-          list: () => unknown[];
-        };
-        getLayoutRegistry: () => {
-          register: (layout: unknown) => void;
-          unregister: (name: string) => void;
-          get: (name: string) => unknown;
-          list: () => unknown[];
-        };
-        build: (
-          options: unknown,
-        ) => Promise<{ success: boolean; pagesBuilt: number }>;
+      getViewRegistry: (): {
+        registerRoute: (route: unknown) => void;
+        getRoute: (path: string) => unknown;
+        listRoutes: () => unknown[];
+        registerViewTemplate: (template: unknown) => void;
+        getViewTemplate: (name: string) => unknown;
+        listViewTemplates: () => unknown[];
+        validateViewTemplate: (
+          templateName: string,
+          content: unknown,
+        ) => boolean;
       } => ({
-        getPageRegistry: () => ({
-          register: (): void => undefined,
-          unregister: (): void => undefined,
-          get: (): undefined => undefined,
-          list: (): unknown[] => [],
-        }),
-        getLayoutRegistry: () => ({
-          register: (): void => undefined,
-          unregister: (): void => undefined,
-          get: (): undefined => undefined,
-          list: (): unknown[] => [],
-        }),
-        build: async (): Promise<{ success: boolean; pagesBuilt: number }> => ({
-          success: true,
-          pagesBuilt: 0,
-        }),
+        registerRoute: (): void => undefined,
+        getRoute: (): undefined => undefined,
+        listRoutes: (): unknown[] => [],
+        registerViewTemplate: (): void => undefined,
+        getViewTemplate: (): undefined => undefined,
+        listViewTemplates: (): unknown[] => [],
+        validateViewTemplate: (): boolean => true,
       }),
     };
     registry.register("shell", () => mockShell as unknown as Shell);

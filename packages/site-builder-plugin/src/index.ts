@@ -1,8 +1,8 @@
 // Site builder plugin - provides static site generation capabilities
 export { SiteBuilderPlugin, siteBuilderPlugin } from "./plugin";
-export { PageRegistry } from "./page-registry";
-export { LayoutRegistry } from "./layout-registry";
-export { builtInLayouts } from "./layout-schemas";
+export { RouteRegistry } from "./route-registry";
+export { ViewTemplateRegistry } from "./view-template-registry";
+export { builtInTemplates } from "./view-template-schemas";
 export { SiteBuilder } from "./site-builder";
 export type {
   StaticSiteBuilder,

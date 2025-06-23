@@ -22,6 +22,7 @@ import { defaultQueryResponseSchema } from "./schemas/defaults";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
 import { SchemaFormatterRegistry } from "./formatters";
+import { ViewRegistry } from "./views/view-registry";
 import {
   DefaultSchemaFormatter,
   SimpleTextResponseFormatter,
@@ -50,6 +51,7 @@ export interface ShellDependencies {
   contentTypeRegistry?: ContentTypeRegistry;
   formatterRegistry?: SchemaFormatterRegistry;
   messageBus?: MessageBus;
+  viewRegistry?: ViewRegistry;
   pluginManager?: PluginManager;
   queryProcessor?: QueryProcessor;
   contentGenerationService?: ContentGenerationService;
@@ -75,6 +77,7 @@ export class Shell {
   private readonly formatterRegistry: SchemaFormatterRegistry;
   private readonly messageBus: MessageBus;
   private readonly pluginManager: PluginManager;
+  private readonly viewRegistry: ViewRegistry;
   private readonly embeddingService: IEmbeddingService;
   private readonly entityService: EntityService;
   private readonly queryProcessor: QueryProcessor;
@@ -235,6 +238,8 @@ export class Shell {
       });
     this.messageBus =
       dependencies?.messageBus ?? MessageBus.getInstance(this.logger);
+    this.viewRegistry =
+      dependencies?.viewRegistry ?? ViewRegistry.getInstance();
     this.pluginManager =
       dependencies?.pluginManager ??
       PluginManager.getInstance(this.registry, this.logger, this.messageBus);
@@ -308,6 +313,7 @@ export class Shell {
       "contentTypeRegistry",
       () => this.contentTypeRegistry,
     );
+    this.registry.register("viewRegistry", () => this.viewRegistry);
     this.registry.register("mcpServer", () => this.mcpServer);
 
     // Listen for plugin tool registration events
@@ -594,6 +600,10 @@ export class Shell {
 
   public getContentTypeRegistry(): ContentTypeRegistry {
     return this.contentTypeRegistry;
+  }
+
+  public getViewRegistry(): ViewRegistry {
+    return this.viewRegistry;
   }
 
   public getLogger(): Logger {

@@ -3,7 +3,7 @@ import type {
   PluginContext,
   PluginTool,
   PluginResource,
-  LayoutDefinition,
+  ViewTemplate,
   ComponentType,
   ContentTemplate,
 } from "@brains/types";
@@ -22,7 +22,7 @@ import {
 import { ctaSectionTemplate, CTALayout } from "./content/landing/cta";
 
 import { landingMetadataTemplate } from "./content/landing/metadata";
-import { PAGES } from "./pages";
+import { ROUTES } from "./pages";
 
 // Import schemas for layouts
 import { landingHeroDataSchema } from "./content/landing/hero/schema";
@@ -81,13 +81,11 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
     // Register templates with the ContentGenerationService
     await this.registerTemplates(context);
 
-    // Register layouts if available
-    if (context.layouts) {
-      await this.registerLayouts(context);
-    }
+    // Register view templates
+    await this.registerViewTemplates(context);
 
-    // Register default pages
-    await this.registerPages(context);
+    // Register default routes
+    await this.registerRoutes(context);
   }
 
   private async registerEntityTypes(context: PluginContext): Promise<void> {
@@ -114,13 +112,14 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
     }
   }
 
-  private async registerLayouts(context: PluginContext): Promise<void> {
-    if (!context.layouts) {
-      return;
-    }
+  private async registerViewTemplates(context: PluginContext): Promise<void> {
+    // TODO: This is an anti-pattern. Instead of registering directly,
+    // we should export static ROUTES and TEMPLATES arrays that the
+    // site-builder receives via constructor configuration.
+    // See architecture-improvements-plan.md for details.
 
-    // Define layout configurations
-    const layouts: LayoutDefinition<unknown>[] = [
+    // Define view template configurations
+    const viewTemplates: ViewTemplate<unknown>[] = [
       {
         name: "hero",
         component: HeroLayout as ComponentType,
@@ -147,25 +146,21 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
       },
     ];
 
-    // Register each layout
-    for (const layout of layouts) {
-      context.layouts.register(layout);
-      this.logger?.debug(`Registered layout: ${layout.name}`);
+    // Register each view template
+    for (const template of viewTemplates) {
+      context.viewRegistry.registerViewTemplate(template);
+      this.logger?.debug(`Registered view template: ${template.name}`);
     }
   }
 
-  private async registerPages(context: PluginContext): Promise<void> {
-    // Check if site builder is available
-    if (!context.pages) {
-      this.logger?.warn(
-        "Site builder not available, skipping page registration",
-      );
-      return;
-    }
+  private async registerRoutes(context: PluginContext): Promise<void> {
+    // TODO: This is an anti-pattern. Routes should be exported as static
+    // configuration and passed to site-builder at construction time.
+    // See architecture-improvements-plan.md for details.
 
-    // Register all pages from the PAGES array
-    for (const page of PAGES) {
-      context.pages.register(page);
+    // Register all routes from the ROUTES array
+    for (const route of ROUTES) {
+      context.viewRegistry.registerRoute(route);
     }
   }
 

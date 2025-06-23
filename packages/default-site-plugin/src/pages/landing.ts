@@ -1,13 +1,13 @@
-import type { PageDefinition } from "@brains/types";
+import type { RouteDefinition } from "@brains/types";
 
-export const landingPage: PageDefinition = {
+export const landingRoute: RouteDefinition = {
   path: "/",
   title: "Home",
   description: "Welcome to your Personal Brain",
   sections: [
     {
       id: "hero",
-      layout: "hero",
+      template: "hero",
       contentEntity: {
         entityType: "site-content",
         template: "landing-hero",
@@ -20,7 +20,7 @@ export const landingPage: PageDefinition = {
     },
     {
       id: "features",
-      layout: "features",
+      template: "features",
       contentEntity: {
         entityType: "site-content",
         template: "landing-features",
@@ -33,7 +33,7 @@ export const landingPage: PageDefinition = {
     },
     {
       id: "products",
-      layout: "products",
+      template: "products",
       contentEntity: {
         entityType: "site-content",
         template: "landing-products",
@@ -46,7 +46,7 @@ export const landingPage: PageDefinition = {
     },
     {
       id: "cta",
-      layout: "cta",
+      template: "cta",
       contentEntity: {
         entityType: "site-content",
         template: "landing-cta",

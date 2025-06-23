@@ -68,26 +68,27 @@ export type { SchemaFormatter, ContentFormatter } from "./formatters";
 // Content types
 export type { ContentTypeRegistry } from "./content";
 
-// Site builder types and schemas
+// View types and schemas
 export type {
-  PageDefinition,
+  RouteDefinition,
   SectionDefinition,
-  LayoutDefinition,
+  ViewTemplate,
   SiteBuilderOptions,
   BuildResult,
   ContentGenerationRequest,
-  PageRegistry,
-  LayoutRegistry,
+  RouteRegistry,
+  ViewTemplateRegistry,
+  ViewRegistry,
   SiteBuilder,
-} from "./site-builder";
+} from "./views";
 export {
-  PageDefinitionSchema,
+  RouteDefinitionSchema,
   SectionDefinitionSchema,
-  LayoutDefinitionSchema,
+  ViewTemplateSchema,
   SiteBuilderOptionsSchema,
   BuildResultSchema,
   ContentGenerationRequestSchema,
-} from "./site-builder";
+} from "./views";
 
 // Re-export commonly used types from utils
 export type { Logger } from "@brains/utils";

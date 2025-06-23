@@ -4,13 +4,11 @@ import type {
   SiteBuilder as ISiteBuilder,
   SiteBuilderOptions,
   BuildResult,
-  PageDefinition,
+  RouteDefinition,
   ContentGenerationRequest,
   PluginContext,
 } from "@brains/types";
-import { PageRegistry } from "./page-registry";
-import { LayoutRegistry } from "./layout-registry";
-import { builtInLayouts } from "./layout-schemas";
+import { builtInTemplates } from "./view-template-schemas";
 import type {
   StaticSiteBuilder,
   StaticSiteBuilderFactory,
@@ -24,8 +22,6 @@ export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
   private static defaultStaticSiteBuilderFactory: StaticSiteBuilderFactory =
     createAstroBuilder;
-  private pageRegistry: PageRegistry;
-  private layoutRegistry: LayoutRegistry;
   private logger: Logger;
   private context: PluginContext;
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
@@ -44,8 +40,6 @@ export class SiteBuilder implements ISiteBuilder {
     context: PluginContext,
   ): SiteBuilder {
     SiteBuilder.instance ??= new SiteBuilder(
-      PageRegistry.getInstance(),
-      LayoutRegistry.getInstance(),
       logger,
       SiteBuilder.defaultStaticSiteBuilderFactory,
       context,
@@ -63,8 +57,6 @@ export class SiteBuilder implements ISiteBuilder {
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
   ): SiteBuilder {
     return new SiteBuilder(
-      PageRegistry.createFresh(),
-      LayoutRegistry.createFresh(),
       logger,
       staticSiteBuilderFactory ?? SiteBuilder.defaultStaticSiteBuilderFactory,
       context,
@@ -72,14 +64,10 @@ export class SiteBuilder implements ISiteBuilder {
   }
 
   private constructor(
-    pageRegistry: PageRegistry,
-    layoutRegistry: LayoutRegistry,
     logger: Logger,
     staticSiteBuilderFactory: StaticSiteBuilderFactory,
     context: PluginContext,
   ) {
-    this.pageRegistry = pageRegistry;
-    this.layoutRegistry = layoutRegistry;
     this.logger = logger;
     this.context = context;
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
@@ -90,13 +78,13 @@ export class SiteBuilder implements ISiteBuilder {
       () => this.staticSiteBuilderFactory,
     );
 
-    // Register built-in layouts
-    this.registerBuiltInLayouts();
+    // Register built-in templates
+    this.registerBuiltInTemplates();
   }
 
-  private registerBuiltInLayouts(): void {
-    for (const layout of builtInLayouts) {
-      this.layoutRegistry.register(layout);
+  private registerBuiltInTemplates(): void {
+    for (const template of builtInTemplates) {
+      this.context.viewRegistry.registerViewTemplate(template);
     }
   }
 
@@ -140,40 +128,40 @@ export class SiteBuilder implements ISiteBuilder {
         });
       }
 
-      // Get all registered pages
-      const pages = this.pageRegistry.list();
-      if (pages.length === 0) {
-        warnings.push("No pages registered for site build");
+      // Get all registered routes
+      const routes = this.context.viewRegistry.listRoutes();
+      if (routes.length === 0) {
+        warnings.push("No routes registered for site build");
       }
 
-      await reporter?.report(`Building ${pages.length} pages`, 20, 100);
+      await reporter?.report(`Building ${routes.length} routes`, 20, 100);
 
-      // Build each page
-      let pagesBuilt = 0;
-      for (let i = 0; i < pages.length; i++) {
-        const page = pages[i];
-        if (!page) {
+      // Build each route
+      let routesBuilt = 0;
+      for (let i = 0; i < routes.length; i++) {
+        const route = routes[i];
+        if (!route) {
           continue;
         }
-        const pageProgress = 20 + (i / pages.length) * 60;
+        const routeProgress = 20 + (i / routes.length) * 60;
 
         await reporter?.report(
-          `Building page: ${page.path}`,
-          pageProgress,
+          `Building route: ${route.path}`,
+          routeProgress,
           100,
         );
 
         try {
-          await this.buildPage(page, options, staticSiteBuilder, reporter);
-          pagesBuilt++;
-          this.logger.info(`Successfully built page: ${page.path}`);
+          await this.buildPage(route, options, staticSiteBuilder, reporter);
+          routesBuilt++;
+          this.logger.info(`Successfully built route: ${route.path}`);
         } catch (error) {
           errors.push(
-            `Failed to build page ${page.path}: ${
+            `Failed to build route ${route.path}: ${
               error instanceof Error ? error.message : String(error)
             }`,
           );
-          this.logger.error(`Failed to build page ${page.path}:`, error);
+          this.logger.error(`Failed to build route ${route.path}:`, error);
         }
       }
 
@@ -187,7 +175,7 @@ export class SiteBuilder implements ISiteBuilder {
 
       const result: BuildResult = {
         success: errors.length === 0,
-        pagesBuilt,
+        routesBuilt,
       };
 
       if (errors.length > 0) {
@@ -207,71 +195,73 @@ export class SiteBuilder implements ISiteBuilder {
       );
       return {
         success: false,
-        pagesBuilt: 0,
+        routesBuilt: 0,
         errors,
       };
     }
   }
 
   private async buildPage(
-    page: PageDefinition,
+    route: RouteDefinition,
     options: SiteBuilderOptions,
     staticSiteBuilder: StaticSiteBuilder,
     reporter?: ProgressReporter,
   ): Promise<void> {
-    // Validate all sections have valid layouts
-    for (const section of page.sections) {
-      const layout = this.layoutRegistry.get(section.layout);
-      if (!layout) {
+    // Validate all sections have valid templates
+    for (const section of route.sections) {
+      const template = this.context.viewRegistry.getViewTemplate(
+        section.template,
+      );
+      if (!template) {
         throw new Error(
-          `Unknown layout "${section.layout}" in section "${section.id}"`,
+          `Unknown template "${section.template}" in section "${section.id}"`,
         );
       }
     }
 
     // Process sections that need content generation
     if (options.enableContentGeneration) {
-      await this.generatePageContent(page, reporter);
+      await this.generatePageContent(route, reporter);
     }
 
-    // Write page data as YAML for Astro
-    const pageData = await this.assemblePageData(page);
+    // Write route data as YAML for Astro
+    const routeData = await this.assemblePageData(route);
 
-    // Determine collection name based on page path
+    // Determine collection name based on route path
     let collection: string;
     let filename: string;
 
-    if (page.path === "/") {
+    if (route.path === "/") {
       collection = "landing";
       filename = "index.yaml";
     } else {
-      collection = "pages";
-      filename = `${page.path.slice(1)}.yaml`;
+      collection = "routes";
+      filename = `${route.path.slice(1)}.yaml`;
     }
 
     this.logger.info(
       `Writing ${collection}/${filename} with data:`,
-      JSON.stringify(pageData, null, 2),
+      JSON.stringify(routeData, null, 2),
     );
 
     // Debug: Check the structure
     if (collection === "landing") {
-      this.logger.info("Landing page structure check:");
+      this.logger.info("Landing route structure check:");
       for (const [key, value] of Object.entries(
-        pageData as Record<string, unknown>,
+        routeData as Record<string, unknown>,
       )) {
         this.logger.info(`  ${key}: ${typeof value}`);
       }
     }
 
-    await staticSiteBuilder.writeContentFile(collection, filename, pageData);
+    await staticSiteBuilder.writeContentFile(collection, filename, routeData);
   }
 
   private async generatePageContent(
-    page: PageDefinition,
+    route: RouteDefinition,
     reporter?: ProgressReporter,
   ): Promise<void> {
-    const sectionsNeedingContent = page.sections.filter(
+    const sectionsNeedingContent = route.sections.filter(
       (section) => section.contentEntity && !section.content,
     );
 
@@ -292,12 +282,12 @@ export class SiteBuilder implements ISiteBuilder {
       // For now, this is a placeholder
 
       const request: ContentGenerationRequest = {
-        pageId: page.path,
+        pageId: route.path,
         sectionId: section.id,
         template: section.contentEntity.template,
         context: {
-          pageTitle: page.title,
-          pluginId: page.pluginId,
+          routeTitle: route.title,
+          pluginId: route.pluginId,
         },
       };
 
@@ -308,39 +298,29 @@ export class SiteBuilder implements ISiteBuilder {
     }
   }
 
-  public getPageRegistry(): PageRegistry {
-    return this.pageRegistry;
-  }
-
-  public getLayoutRegistry(): LayoutRegistry {
-    return this.layoutRegistry;
-  }
-
   /**
    * Collect content schemas from registered content types
    */
   private collectContentSchemas(): Map<string, z.ZodType<unknown>> {
     const schemas = new Map<string, z.ZodType<unknown>>();
 
-    // Create landing collection schema by combining section schemas from layouts
-    const layouts = this.layoutRegistry.list();
+    // Create landing collection schema by combining section schemas from templates
+    const templates = this.context.viewRegistry.listViewTemplates();
     const landingSchemaObj: Record<string, z.ZodType<unknown>> = {
       title: z.string(),
       tagline: z.string(),
     };
 
-    // Add each layout's schema as a property
-    for (const layout of layouts) {
-      if (layout.schema) {
-        landingSchemaObj[layout.name] = layout.schema;
-      }
+    // Add each template's schema as a property
+    for (const template of templates) {
+      landingSchemaObj[template.name] = template.schema;
     }
 
     schemas.set("landing", z.object(landingSchemaObj));
 
-    // Add generic pages schema
+    // Add generic routes schema
     schemas.set(
-      "pages",
+      "routes",
       z.object({
         title: z.string(),
         path: z.string(),
@@ -365,7 +345,7 @@ export class SiteBuilder implements ISiteBuilder {
     const existingContext = await entityService.listEntities("site-content", {
       filter: {
         metadata: {
-          page: "general",
+          route: "general",
           section: "general",
           environment: "preview",
         },
@@ -403,12 +383,12 @@ export class SiteBuilder implements ISiteBuilder {
   }
 
   /**
-   * Assemble page data from sections
+   * Assemble route data from sections
    */
-  private async assemblePageData(page: PageDefinition): Promise<unknown> {
+  private async assemblePageData(route: RouteDefinition): Promise<unknown> {
     const sections: Record<string, unknown> = {};
 
-    for (const section of page.sections) {
+    for (const section of route.sections) {
       if (section.content) {
         // Use static content
         sections[section.id] = section.content;
@@ -429,7 +409,7 @@ export class SiteBuilder implements ISiteBuilder {
           const contentTypeRegistry = this.context.contentTypeRegistry;
 
           // Template names need to be fully qualified with plugin prefix
-          const templateName = section.contentEntity.template || "";
+          const templateName = section.contentEntity.template ?? "";
           const fullyQualifiedName = templateName.includes(":")
             ? templateName
             : `default-site:${templateName}`;
@@ -469,19 +449,19 @@ export class SiteBuilder implements ISiteBuilder {
       }
     }
 
-    // For landing page, flatten sections into expected structure
-    if (page.path === "/") {
+    // For landing route, flatten sections into expected structure
+    if (route.path === "/") {
       return {
-        title: page.title,
-        tagline: page.description,
+        title: route.title,
+        tagline: route.description,
         ...sections,
       };
     }
 
     return {
-      path: page.path,
-      title: page.title,
-      description: page.description,
+      path: route.path,
+      title: route.title,
+      description: route.description,
       sections,
     };
   }

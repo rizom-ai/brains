@@ -1,3 +1,3 @@
-import { landingPage } from "./landing";
+import { landingRoute } from "./landing";
 
-export const PAGES = [landingPage] as const;
+export const ROUTES = [landingRoute] as const;

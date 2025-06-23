@@ -16,9 +16,6 @@ import type {
   PluginManagerEventMap,
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
-  PageDefinition,
-  LayoutDefinition,
-  SiteBuilder,
 } from "@brains/types";
 import { PluginStatus, PluginEvent } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
@@ -242,9 +239,10 @@ export class PluginManager implements IPluginManager {
     const entityService = shell.getEntityService();
     const contentTypeRegistry = shell.getContentTypeRegistry();
     const contentGenerationService = shell.getContentGenerationService();
+    const viewRegistry = shell.getViewRegistry();
 
-    // Create base plugin context
-    const baseContext = {
+    // Create plugin context
+    const context: PluginContext = {
       pluginId,
       registry: this.registry,
       logger: this.logger.child(`Plugin:${pluginId}`),
@@ -344,7 +342,7 @@ export class PluginManager implements IPluginManager {
           }
         },
       },
-      templates: {
+      contentTemplates: {
         register: <T>(name: string, template: ContentTemplate<T>): void => {
           try {
             const contentGenerationService =
@@ -370,45 +368,8 @@ export class PluginManager implements IPluginManager {
       entityService,
       contentTypeRegistry,
       contentGenerationService,
+      viewRegistry,
     };
-
-    // Add pages and layouts if site builder is available
-    const context: PluginContext = this.registry.has("siteBuilder")
-      ? {
-          ...baseContext,
-          pages: {
-            register: (page: PageDefinition): void => {
-              const siteBuilder =
-                this.registry.resolve<SiteBuilder>("siteBuilder");
-              const pageRegistry = siteBuilder.getPageRegistry();
-              const pageWithPlugin = { ...page, pluginId };
-              pageRegistry.register(pageWithPlugin);
-              this.logger.debug(`Registered page: ${page.path}`);
-            },
-            list: (): PageDefinition[] => {
-              const siteBuilder =
-                this.registry.resolve<SiteBuilder>("siteBuilder");
-              const pageRegistry = siteBuilder.getPageRegistry();
-              return pageRegistry.list();
-            },
-          },
-          layouts: {
-            register: (layout: LayoutDefinition): void => {
-              const siteBuilder =
-                this.registry.resolve<SiteBuilder>("siteBuilder");
-              const layoutRegistry = siteBuilder.getLayoutRegistry();
-              layoutRegistry.register(layout);
-              this.logger.debug(`Registered layout: ${layout.name}`);
-            },
-            list: (): LayoutDefinition[] => {
-              const siteBuilder =
-                this.registry.resolve<SiteBuilder>("siteBuilder");
-              const layoutRegistry = siteBuilder.getLayoutRegistry();
-              return layoutRegistry.list();
-            },
-          },
-        }
-      : baseContext;
 
     // Register the plugin
     try {

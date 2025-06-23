@@ -7,7 +7,7 @@ import type { ComponentType } from "./plugin";
  */
 export const SectionDefinitionSchema = z.object({
   id: z.string(),
-  layout: z.string(),
+  template: z.string(), // renamed from layout
   content: z.unknown().optional(),
   contentEntity: z
     .object({
@@ -20,9 +20,9 @@ export const SectionDefinitionSchema = z.object({
 });
 
 /**
- * Page definition schema
+ * Route definition schema
  */
-export const PageDefinitionSchema = z.object({
+export const RouteDefinitionSchema = z.object({
   path: z.string(),
   title: z.string(),
   description: z.string().optional(),
@@ -31,9 +31,9 @@ export const PageDefinitionSchema = z.object({
 });
 
 /**
- * Layout definition schema
+ * View template schema
  */
-export const LayoutDefinitionSchema = z.object({
+export const ViewTemplateSchema = z.object({
   name: z.string(),
   schema: z.any(), // ZodType can't be validated at runtime
   component: z.union([z.function(), z.string()]), // Component function or path
@@ -42,14 +42,51 @@ export const LayoutDefinitionSchema = z.object({
 
 // Type exports
 export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
-export type PageDefinition = z.infer<typeof PageDefinitionSchema>;
+export type RouteDefinition = z.infer<typeof RouteDefinitionSchema>;
 
-// Manually define LayoutDefinition to use ComponentType
-export interface LayoutDefinition<T = unknown> {
+// Manually define ViewTemplate to use ComponentType
+export interface ViewTemplate<T = unknown> {
   name: string;
   schema: z.ZodType<T>;
   component: ComponentType<T> | string;
   description?: string;
+}
+
+/**
+ * Route registry interface
+ */
+export interface RouteRegistry {
+  register(route: RouteDefinition): void;
+  unregister(path: string): void;
+  get(path: string): RouteDefinition | undefined;
+  list(): RouteDefinition[];
+}
+
+/**
+ * View template registry interface
+ */
+export interface ViewTemplateRegistry {
+  register(template: ViewTemplate<unknown>): void;
+  unregister(name: string): void;
+  get(name: string): ViewTemplate<unknown> | undefined;
+  list(): ViewTemplate<unknown>[];
+  validate(templateName: string, content: unknown): boolean;
+}
+
+/**
+ * View registry interface - combines routes and templates
+ */
+export interface ViewRegistry {
+  // Route methods
+  registerRoute(route: RouteDefinition): void;
+  getRoute(path: string): RouteDefinition | undefined;
+  listRoutes(): RouteDefinition[];
+
+  // View template methods
+  registerViewTemplate(template: ViewTemplate<unknown>): void;
+  getViewTemplate(name: string): ViewTemplate<unknown> | undefined;
+  listViewTemplates(): ViewTemplate<unknown>[];
+  validateViewTemplate(templateName: string, content: unknown): boolean;
 }
 
 /**
@@ -75,7 +112,7 @@ export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema>;
  */
 export const BuildResultSchema = z.object({
   success: z.boolean(),
-  pagesBuilt: z.number(),
+  routesBuilt: z.number(),
   errors: z.array(z.string()).optional(),
   warnings: z.array(z.string()).optional(),
 });
@@ -97,27 +134,6 @@ export type ContentGenerationRequest = z.infer<
 >;
 
 /**
- * Page registry interface
- */
-export interface PageRegistry {
-  register(page: PageDefinition): void;
-  unregister(path: string): void;
-  get(path: string): PageDefinition | undefined;
-  list(): PageDefinition[];
-}
-
-/**
- * Layout registry interface
- */
-export interface LayoutRegistry {
-  register(layout: LayoutDefinition<unknown>): void;
-  unregister(name: string): void;
-  get(name: string): LayoutDefinition<unknown> | undefined;
-  list(): LayoutDefinition<unknown>[];
-  validate(layoutName: string, content: unknown): boolean;
-}
-
-/**
  * Site builder interface
  */
 export interface SiteBuilder {
@@ -125,6 +141,4 @@ export interface SiteBuilder {
     options: SiteBuilderOptions,
     progress?: ProgressCallback,
   ): Promise<BuildResult>;
-  getPageRegistry(): PageRegistry;
-  getLayoutRegistry(): LayoutRegistry;
 }

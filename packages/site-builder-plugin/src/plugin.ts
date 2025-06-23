@@ -6,8 +6,6 @@ import type {
   SiteContent,
 } from "@brains/types";
 import { SiteBuilder } from "./site-builder";
-import { PageRegistry } from "./page-registry";
-import { LayoutRegistry } from "./layout-registry";
 import { z } from "zod";
 
 /**
@@ -92,15 +90,17 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               total: 100,
             });
 
-            // Get all registered pages
-            const pageRegistry = this.siteBuilder.getPageRegistry();
-            const pages = pageRegistry.list();
+            // Get all registered routes
+            const routes = this.context.viewRegistry.listRoutes();
 
             // Count total sections to generate
             let totalSections = 0;
-            for (const page of pages) {
-              totalSections += page.sections.filter(
-                (section) => section.contentEntity && !section.content,
+            for (const route of routes) {
+              totalSections += route.sections.filter(
+                (section) =>
+                  "contentEntity" in section &&
+                  section.contentEntity &&
+                  !("content" in section && section.content),
               ).length;
             }
 
@@ -119,9 +119,12 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
 
             let processedSections = 0;
 
-            for (const page of pages) {
-              const sectionsNeedingContent = page.sections.filter(
-                (section) => section.contentEntity && !section.content,
+            for (const route of routes) {
+              const sectionsNeedingContent = route.sections.filter(
+                (section) =>
+                  "contentEntity" in section &&
+                  section.contentEntity &&
+                  !("content" in section && section.content),
               );
 
               for (const section of sectionsNeedingContent) {
@@ -129,7 +132,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
 
                 // Report progress for this section
                 await context?.sendProgress?.({
-                  message: `Generating content for ${page.title} - ${section.id}`,
+                  message: `Generating content for ${route.title} - ${section.id}`,
                   progress: Math.floor(
                     (processedSections / totalSections) * 100,
                   ),
@@ -181,10 +184,10 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                   contentType: templateName, // Use the fully qualified name (e.g., "default-site:landing-hero")
                   context: {
                     data: {
-                      pageTitle: page.title,
-                      pageDescription: page.description,
+                      pageTitle: route.title,
+                      pageDescription: route.description,
                       sectionId: section.id,
-                      ...(config.siteConfig || {
+                      ...(config.siteConfig ?? {
                         title: "Personal Brain",
                         description: "A knowledge management system",
                       }),
@@ -206,6 +209,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                   section.contentEntity.query
                 ) {
                   // For site-content, construct the entity with all required fields
+                  // Extract and validate environment value
+                  const envValue = section.contentEntity.query["environment"];
+                  const environment: "preview" | "production" =
+                    envValue === "production" ? "production" : "preview";
+
                   const siteContentEntity: Omit<
                     SiteContent,
                     "id" | "created" | "updated"
@@ -214,10 +222,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                     content: formattedContent,
                     page: section.contentEntity.query["page"] as string,
                     section: section.contentEntity.query["section"] as string,
-                    environment:
-                      (section.contentEntity.query["environment"] as
-                        | "preview"
-                        | "production") ?? "preview",
+                    environment,
                   };
 
                   await this.context.entityService.createEntity(
@@ -287,7 +292,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                 outputDir: config.outputDir,
                 workingDir: config.workingDir,
                 enableContentGeneration: false,
-                siteConfig: config.siteConfig || {
+                siteConfig: config.siteConfig ?? {
                   title: "Personal Brain",
                   description: "A knowledge management system",
                 },
@@ -297,7 +302,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
 
             return {
               success: result.success,
-              pagesBuilt: result.pagesBuilt,
+              routesBuilt: result.routesBuilt,
               outputDir: config.outputDir,
               errors: result.errors,
               warnings: result.warnings,
@@ -318,21 +323,23 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
     // List pages tool
     tools.push(
       this.createTool(
-        "list_pages",
-        "List all registered pages",
+        "list_routes",
+        "List all registered routes",
         {},
         async (): Promise<Record<string, unknown>> => {
-          const pageRegistry = PageRegistry.getInstance();
-          const pages = pageRegistry.list();
+          if (!this.context) {
+            throw new Error("Plugin context not initialized");
+          }
+          const routes = this.context.viewRegistry.listRoutes();
 
           return {
             success: true,
-            pages: pages.map((p) => ({
-              path: p.path,
-              title: p.title,
-              description: p.description,
-              pluginId: p.pluginId,
-              sections: p.sections.length,
+            routes: routes.map((r) => ({
+              path: r.path,
+              title: r.title,
+              description: r.description,
+              pluginId: r.pluginId,
+              sections: r.sections.length,
             })),
           };
         },
@@ -343,19 +350,21 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
     // List layouts tool
     tools.push(
       this.createTool(
-        "list_layouts",
-        "List all registered layouts",
+        "list_templates",
+        "List all registered view templates",
         {},
         async (): Promise<Record<string, unknown>> => {
-          const layoutRegistry = LayoutRegistry.getInstance();
-          const layouts = layoutRegistry.list();
+          if (!this.context) {
+            throw new Error("Plugin context not initialized");
+          }
+          const templates = this.context.viewRegistry.listViewTemplates();
 
           return {
             success: true,
-            layouts: layouts.map((l) => ({
-              name: l.name,
-              description: l.description,
-              component: l.component,
+            templates: templates.map((t) => ({
+              name: t.name,
+              description: t.description,
+              component: t.component,
             })),
           };
         },

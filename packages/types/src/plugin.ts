@@ -14,7 +14,8 @@ import type { ContentTypeRegistry } from "./content";
  * Compatible with React, Preact, Solid, etc.
  */
 export type ComponentType<P = unknown> = (props: P) => unknown;
-import type { PageDefinition, LayoutDefinition } from "./site-builder";
+
+import type { ViewRegistry } from "./views";
 
 /**
  * Options for content generation
@@ -174,16 +175,8 @@ export interface PluginContext {
     ): void;
     list(): string[];
   };
-  templates: {
+  contentTemplates: {
     register<T>(name: string, template: ContentTemplate<T>): void;
-  };
-  pages?: {
-    register(page: PageDefinition): void;
-    list(): PageDefinition[];
-  };
-  layouts?: {
-    register(layout: LayoutDefinition<unknown>): void;
-    list(): LayoutDefinition<unknown>[];
   };
   registerEntityType: <T extends BaseEntity>(
     entityType: string,
@@ -195,4 +188,5 @@ export interface PluginContext {
   entityService: EntityService;
   contentTypeRegistry: ContentTypeRegistry;
   contentGenerationService: ContentGenerationService;
+  viewRegistry: ViewRegistry;
 }
