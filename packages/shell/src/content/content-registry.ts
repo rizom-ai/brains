@@ -83,7 +83,10 @@ export class ContentRegistry implements IContentRegistry {
         ...config.template,
         name: name,
       };
-      this.contentGenerationService.registerTemplate(name, templateWithCorrectName);
+      this.contentGenerationService.registerTemplate(
+        name,
+        templateWithCorrectName,
+      );
     }
 
     this.logger?.debug(`Registered content: ${name}`);

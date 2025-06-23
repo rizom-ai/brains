@@ -1,5 +1,8 @@
 import { ResponseFormatter } from "./base";
-import { updateEntityResponseSchema, type UpdateEntityResponse } from "@brains/types";
+import {
+  updateEntityResponseSchema,
+  type UpdateEntityResponse,
+} from "@brains/types";
 
 export class UpdateEntityResponseFormatter extends ResponseFormatter<UpdateEntityResponse> {
   format(data: UpdateEntityResponse): string {
@@ -13,7 +16,7 @@ export class UpdateEntityResponseFormatter extends ResponseFormatter<UpdateEntit
 
     if (response.success) {
       parts.push(`✅ ${response.message} (ID: ${response.entityId})`);
-      
+
       if (response.changes && response.changes.length > 0) {
         parts.push("\nChanges:");
         response.changes.forEach((change) => {

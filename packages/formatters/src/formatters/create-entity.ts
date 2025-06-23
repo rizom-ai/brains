@@ -1,5 +1,8 @@
 import { ResponseFormatter } from "./base";
-import { createEntityResponseSchema, type CreateEntityResponse } from "@brains/types";
+import {
+  createEntityResponseSchema,
+  type CreateEntityResponse,
+} from "@brains/types";
 
 export class CreateEntityResponseFormatter extends ResponseFormatter<CreateEntityResponse> {
   format(data: CreateEntityResponse): string {
@@ -9,9 +12,9 @@ export class CreateEntityResponseFormatter extends ResponseFormatter<CreateEntit
     }
 
     const response = parsed.data;
-    
+
     if (response.success) {
-      return `✅ ${response.message}${response.entityId ? ` (ID: ${response.entityId})` : ''}`;
+      return `✅ ${response.message}${response.entityId ? ` (ID: ${response.entityId})` : ""}`;
     } else {
       return `❌ ${response.message}`;
     }

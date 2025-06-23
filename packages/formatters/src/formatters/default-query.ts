@@ -1,5 +1,8 @@
 import { ResponseFormatter } from "./base";
-import { defaultQueryResponseSchema, type DefaultQueryResponse } from "@brains/types";
+import {
+  defaultQueryResponseSchema,
+  type DefaultQueryResponse,
+} from "@brains/types";
 
 export class DefaultQueryResponseFormatter extends ResponseFormatter<DefaultQueryResponse> {
   format(data: DefaultQueryResponse): string {
@@ -23,18 +26,20 @@ export class DefaultQueryResponseFormatter extends ResponseFormatter<DefaultQuer
     if (response.sources && response.sources.length > 0) {
       parts.push("\n**Sources:**");
       response.sources.forEach((source) => {
-        const relevanceStr = source.relevance ? ` (${Math.round(source.relevance * 100)}% relevant)` : "";
+        const relevanceStr = source.relevance
+          ? ` (${Math.round(source.relevance * 100)}% relevant)`
+          : "";
         const excerptStr = source.excerpt ? `\n  > ${source.excerpt}` : "";
-        parts.push(`- [${source.type}] ${source.id}${relevanceStr}${excerptStr}`);
+        parts.push(
+          `- [${source.type}] ${source.id}${relevanceStr}${excerptStr}`,
+        );
       });
     }
 
     // Topics
     if (response.topics && response.topics.length > 0) {
       parts.push("\n**Related Topics:**");
-      parts.push(
-        response.topics.map((topic) => `\`${topic}\``).join(" "),
-      );
+      parts.push(response.topics.map((topic) => `\`${topic}\``).join(" "));
     }
 
     return parts.join("\n");

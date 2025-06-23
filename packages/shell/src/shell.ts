@@ -37,7 +37,10 @@ import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
 import { ContentGenerationService, ContentRegistry } from "./content";
 import { GenericYamlFormatter } from "./content/formatters/genericYamlFormatter";
 import { DefaultYamlFormatter } from "./content/formatters/defaultYamlFormatter";
-import { queryResponseTemplate, type QueryResponse } from "./templates/query-response";
+import {
+  queryResponseTemplate,
+  type QueryResponse,
+} from "./templates/query-response";
 
 /**
  * Optional dependencies that can be injected for testing
