@@ -7,12 +7,12 @@
 
 import type { QueryProcessor } from "../query/queryProcessor";
 import type { QueryOptions } from "../types";
-import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { EntityService } from "../entity/entityService";
+import { z } from "zod";
 import type { ContentGenerationService } from "../content/contentGenerationService";
+import type { ContentRegistry } from "../content/content-registry";
 import type { ContentGenerateOptions, BaseEntity } from "@brains/types";
-import { defaultQueryResponseSchema } from "../schemas/defaults";
-import type { z } from "zod";
+import { defaultQueryResponseSchema } from "@brains/types";
 
 /**
  * MCP Query parameters (what users provide via MCP tools)
@@ -34,16 +34,30 @@ export interface MCPQueryParams {
 export class QueryProcessorAdapter {
   constructor(
     private queryProcessor: QueryProcessor,
-    private schemaRegistry: SchemaRegistry,
+    private contentRegistry: ContentRegistry,
   ) {}
 
   /**
    * Execute a query with MCP-style parameters
    */
   async executeQuery(params: MCPQueryParams): Promise<unknown> {
-    // Translate MCP parameters to internal QueryOptions
+    // Determine response schema
+    let responseSchema: z.ZodType<unknown> = defaultQueryResponseSchema;
+    if (params.options?.responseSchema) {
+      const schema = this.contentRegistry.getSchema(
+        params.options.responseSchema,
+      );
+      if (!schema) {
+        throw new Error(
+          `Response schema not found: ${params.options.responseSchema}`,
+        );
+      }
+      responseSchema = schema;
+    }
+
+    // Build query options
     const queryOptions: QueryOptions<unknown> = {
-      schema: defaultQueryResponseSchema, // Default schema, may be overridden below
+      schema: responseSchema,
     };
 
     if (params.options) {
@@ -63,26 +77,13 @@ export class QueryProcessorAdapter {
         queryOptions.metadata = {
           ...metadata,
           limit: params.options.limit,
-          requestedSchema: params.options.responseSchema,
         };
       } else {
         // Just MCP options without context
         queryOptions.metadata = {
           limit: params.options.limit,
-          requestedSchema: params.options.responseSchema,
         };
       }
-
-      // Handle response schema
-      if (params.options.responseSchema) {
-        const schema = this.schemaRegistry.get(params.options.responseSchema);
-        queryOptions.schema = schema ?? defaultQueryResponseSchema;
-      } else {
-        queryOptions.schema = defaultQueryResponseSchema;
-      }
-    } else {
-      // No options provided, use default schema
-      queryOptions.schema = defaultQueryResponseSchema;
     }
 
     // Execute query with translated options

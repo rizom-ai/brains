@@ -3,7 +3,7 @@ import type { Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
 import type { Registry } from "./registry";
 import type { MessageBus } from "./messaging";
-import type { SchemaFormatter, ContentFormatter } from "./formatters";
+import type { ContentFormatter } from "./formatters";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { BaseEntity } from "./entities";
 import type { EntityService, ContentGenerationService } from "./services";
@@ -149,13 +149,6 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
 };
 
 /**
- * Minimal formatter registry interface for plugins
- */
-export interface FormatterRegistry {
-  register(schemaName: string, formatter: SchemaFormatter): void;
-}
-
-/**
  * Plugin context passed to plugins during registration
  * Provides access to the registry and other shared services
  */
@@ -166,7 +159,6 @@ export interface PluginContext {
   getPlugin: (id: string) => Plugin | undefined;
   events: EventEmitter;
   messageBus: MessageBus;
-  formatters: FormatterRegistry;
   contentTemplates: {
     register<T>(name: string, template: ContentTemplate<T>): void;
   };

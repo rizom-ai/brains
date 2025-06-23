@@ -3,7 +3,7 @@ import { registerShellResources } from "@/mcp/resources";
 import { createSilentLogger } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { EntityService } from "@/entity/entityService";
-import type { SchemaRegistry } from "@/schema/schemaRegistry";
+import type { ContentRegistry } from "@/content/content-registry";
 import type { ContentGenerationService } from "@/content/contentGenerationService";
 import { z } from "zod";
 
@@ -24,14 +24,19 @@ const createMockEntityService = (): EntityService =>
     }),
   }) as unknown as EntityService;
 
-const createMockSchemaRegistry = (): SchemaRegistry =>
+const createMockContentRegistry = (): ContentRegistry =>
   ({
-    getAllSchemaNames: mock(() => ["testSchema", "noteSchema"]),
-    get: mock((name: string) => {
-      if (name === "not-found") return undefined;
-      return z.object({ test: z.string() });
+    listContent: mock(() => ["testSchema", "noteSchema"]),
+    getSchema: mock((name: string) => {
+      if (name === "not-found") return null;
+      if (name === "testSchema" || name === "noteSchema") {
+        return z.object({ test: z.string() });
+      }
+      return null;
     }),
-  }) as unknown as SchemaRegistry;
+    getTemplate: mock(() => null),
+    getFormatter: mock(() => null),
+  }) as unknown as ContentRegistry;
 
 const createMockContentGenerationService = (): ContentGenerationService =>
   ({
@@ -108,14 +113,14 @@ const createMockMcpServer = (): {
 describe("MCP Resources", () => {
   let mockServer: ReturnType<typeof createMockMcpServer>;
   let entityService: EntityService;
-  let schemaRegistry: SchemaRegistry;
+  let contentRegistry: ContentRegistry;
   let contentGenerationService: ContentGenerationService;
   let logger: ReturnType<typeof createSilentLogger>;
 
   beforeEach(() => {
     mockServer = createMockMcpServer();
     entityService = createMockEntityService();
-    schemaRegistry = createMockSchemaRegistry();
+    contentRegistry = createMockContentRegistry();
     contentGenerationService = createMockContentGenerationService();
     logger = createSilentLogger();
   });
@@ -124,7 +129,7 @@ describe("MCP Resources", () => {
     it("should register all resources", () => {
       registerShellResources(mockServer as unknown as McpServer, {
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -154,7 +159,7 @@ describe("MCP Resources", () => {
     beforeEach(() => {
       registerShellResources(mockServer as unknown as McpServer, {
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -227,7 +232,7 @@ describe("MCP Resources", () => {
     beforeEach(() => {
       registerShellResources(mockServer as unknown as McpServer, {
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -255,9 +260,9 @@ describe("MCP Resources", () => {
       if (!handler) throw new Error("Handler not found");
       const uri = new URL("schema://testSchema");
 
-      (schemaRegistry.get as ReturnType<typeof mock>).mockReturnValueOnce(
-        undefined,
-      );
+      (
+        contentRegistry.getSchema as ReturnType<typeof mock>
+      ).mockReturnValueOnce(undefined);
 
       void expect(handler(uri)).rejects.toThrow("Schema not found: testSchema");
     });
@@ -281,7 +286,7 @@ describe("MCP Resources", () => {
     beforeEach(() => {
       registerShellResources(mockServer as unknown as McpServer, {
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -340,7 +345,7 @@ describe("MCP Resources", () => {
     beforeEach(() => {
       registerShellResources(mockServer as unknown as McpServer, {
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -384,7 +389,7 @@ describe("MCP Resources", () => {
     beforeEach(() => {
       registerShellResources(mockServer as unknown as McpServer, {
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -411,11 +416,11 @@ describe("MCP Resources", () => {
       const uri = new URL("schema://testSchema");
 
       const error = new Error("Schema error");
-      (schemaRegistry.get as ReturnType<typeof mock>).mockImplementationOnce(
-        () => {
-          throw error;
-        },
-      );
+      (
+        contentRegistry.getSchema as ReturnType<typeof mock>
+      ).mockImplementationOnce(() => {
+        throw error;
+      });
 
       void expect(handler(uri)).rejects.toThrow("Schema error");
     });
@@ -444,7 +449,7 @@ describe("MCP Resources", () => {
 
       registerShellResources(mockServer as unknown as McpServer, {
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -455,13 +460,13 @@ describe("MCP Resources", () => {
     });
 
     it("should handle empty schemas", () => {
-      (
-        schemaRegistry.getAllSchemaNames as ReturnType<typeof mock>
-      ).mockReturnValue([]);
+      (contentRegistry.listContent as ReturnType<typeof mock>).mockReturnValue(
+        [],
+      );
 
       registerShellResources(mockServer as unknown as McpServer, {
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -478,7 +483,7 @@ describe("MCP Resources", () => {
 
       registerShellResources(mockServer as unknown as McpServer, {
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });

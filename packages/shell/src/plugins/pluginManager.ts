@@ -5,7 +5,6 @@ import type { MessageBus } from "../messaging/messageBus";
 import type {
   Plugin,
   PluginContext,
-  SchemaFormatter,
   BaseEntity,
   ContentGenerateOptions,
   ContentTemplate,
@@ -233,7 +232,6 @@ export class PluginManager implements IPluginManager {
 
     // Get services from shell - shell should always be available
     const shell = this.registry.resolve<Shell>("shell");
-    const formatterRegistry = shell.getFormatterRegistry();
     const entityService = shell.getEntityService();
     const contentRegistry = shell.getContentRegistry();
     const contentGenerationService = shell.getContentGenerationService();
@@ -247,11 +245,6 @@ export class PluginManager implements IPluginManager {
       getPlugin: this.getPlugin.bind(this),
       events: this.events,
       messageBus: this.messageBus,
-      formatters: {
-        register: (schemaName: string, formatter: SchemaFormatter): void => {
-          formatterRegistry.register(schemaName, formatter);
-        },
-      },
       registerEntityType: <T extends BaseEntity>(
         entityType: string,
         schema: z.ZodType<T>,

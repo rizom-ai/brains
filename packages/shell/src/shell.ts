@@ -3,7 +3,6 @@ import type { Client } from "@libsql/client";
 import { createDatabase, enableWALMode } from "@brains/db";
 import { Registry } from "./registry/registry";
 import { EntityRegistry } from "./entity/entityRegistry";
-import { SchemaRegistry } from "./schema/schemaRegistry";
 import { MessageBus } from "./messaging/messageBus";
 import { PluginManager, PluginEvent } from "./plugins/pluginManager";
 import { EntityService } from "./entity/entityService";
@@ -18,13 +17,17 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerShellMCP } from "./mcp";
 import type { QueryResult } from "./types";
 import type { Plugin } from "@brains/types";
-import { defaultQueryResponseSchema } from "./schemas/defaults";
+import {
+  baseEntitySchema,
+  defaultQueryResponseSchema,
+  simpleTextResponseSchema,
+  createEntityResponseSchema,
+  updateEntityResponseSchema,
+} from "@brains/types";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
-import { SchemaFormatterRegistry } from "./formatters";
 import { ViewRegistry } from "./views/view-registry";
 import {
-  DefaultSchemaFormatter,
   SimpleTextResponseFormatter,
   DefaultQueryResponseFormatter,
   CreateEntityResponseFormatter,
@@ -32,6 +35,7 @@ import {
 } from "@brains/formatters";
 import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
 import { ContentGenerationService, ContentRegistry } from "./content";
+import { DefaultYamlFormatter } from "./content/formatters/defaultYamlFormatter";
 import { queryResponseTemplate } from "./templates/query-response";
 
 /**
@@ -47,9 +51,7 @@ export interface ShellDependencies {
   entityService?: EntityService;
   registry?: Registry;
   entityRegistry?: EntityRegistry;
-  schemaRegistry?: SchemaRegistry;
   contentRegistry?: ContentRegistry;
-  formatterRegistry?: SchemaFormatterRegistry;
   messageBus?: MessageBus;
   viewRegistry?: ViewRegistry;
   pluginManager?: PluginManager;
@@ -73,8 +75,6 @@ export class Shell {
   private readonly logger: Logger;
   private readonly registry: Registry;
   private readonly entityRegistry: EntityRegistry;
-  private readonly schemaRegistry: SchemaRegistry;
-  private readonly formatterRegistry: SchemaFormatterRegistry;
   private readonly messageBus: MessageBus;
   private readonly pluginManager: PluginManager;
   private readonly viewRegistry: ViewRegistry;
@@ -134,11 +134,6 @@ export class Shell {
 
     const registry = Registry.createFresh(logger);
     const entityRegistry = EntityRegistry.createFresh(logger);
-    const schemaRegistry = SchemaRegistry.createFresh(logger);
-    const formatterRegistry = SchemaFormatterRegistry.createFresh({
-      defaultFormatter: new DefaultSchemaFormatter(),
-      logger,
-    });
     const messageBus = MessageBus.createFresh(logger);
     const pluginManager = PluginManager.createFresh(
       registry,
@@ -153,8 +148,6 @@ export class Shell {
       logger,
       registry,
       entityRegistry,
-      schemaRegistry,
-      formatterRegistry,
       messageBus,
       pluginManager,
       contentGenerationService,
@@ -228,14 +221,6 @@ export class Shell {
     this.registry = dependencies?.registry ?? Registry.getInstance(this.logger);
     this.entityRegistry =
       dependencies?.entityRegistry ?? EntityRegistry.getInstance(this.logger);
-    this.schemaRegistry =
-      dependencies?.schemaRegistry ?? SchemaRegistry.getInstance(this.logger);
-    this.formatterRegistry =
-      dependencies?.formatterRegistry ??
-      SchemaFormatterRegistry.getInstance({
-        defaultFormatter: new DefaultSchemaFormatter(),
-        logger: this.logger,
-      });
     this.messageBus =
       dependencies?.messageBus ?? MessageBus.getInstance(this.logger);
     this.viewRegistry =
@@ -269,10 +254,7 @@ export class Shell {
       ContentGenerationService.getInstance();
 
     // Initialize content registry with dependencies
-    this.contentRegistry.initialize(
-      this.contentGenerationService,
-      this.logger,
-    );
+    this.contentRegistry.initialize(this.contentGenerationService, this.logger);
 
     // Initialize content generation service with dependencies
     this.contentGenerationService.initialize(
@@ -296,7 +278,7 @@ export class Shell {
     registerShellMCP(this.mcpServer, {
       queryProcessor: this.queryProcessor,
       entityService: this.entityService,
-      schemaRegistry: this.schemaRegistry,
+      contentRegistry: this.contentRegistry,
       contentGenerationService: this.contentGenerationService,
       logger: this.logger,
     });
@@ -304,8 +286,6 @@ export class Shell {
     // Register core components in the registry
     this.registry.register("shell", () => this);
     this.registry.register("entityRegistry", () => this.entityRegistry);
-    this.registry.register("schemaRegistry", () => this.schemaRegistry);
-    this.registry.register("formatterRegistry", () => this.formatterRegistry);
     this.registry.register("messageBus", () => this.messageBus);
     this.registry.register("pluginManager", () => this.pluginManager);
     this.registry.register("entityService", () => this.entityService);
@@ -315,10 +295,7 @@ export class Shell {
       "contentGenerationService",
       () => this.contentGenerationService,
     );
-    this.registry.register(
-      "contentRegistry",
-      () => this.contentRegistry,
-    );
+    this.registry.register("contentRegistry", () => this.contentRegistry);
     this.registry.register("viewRegistry", () => this.viewRegistry);
     this.registry.register("mcpServer", () => this.mcpServer);
 
@@ -409,11 +386,11 @@ export class Shell {
         this.logger,
       );
 
-      // Register default formatters
-      this.registerDefaultFormatters();
-
       // Register default templates
       this.registerDefaultTemplates();
+
+      // Register response schemas and formatters
+      this.registerResponseSchemas();
 
       // Register base entity support
       this.registerBaseEntitySupport();
@@ -442,39 +419,6 @@ export class Shell {
   }
 
   /**
-   * Register default formatters for core response schemas
-   */
-  private registerDefaultFormatters(): void {
-    this.logger.debug("Registering default formatters");
-
-    // Register formatters for default response schemas
-    this.formatterRegistry.register(
-      "simpleTextResponse",
-      new SimpleTextResponseFormatter(),
-    );
-
-    this.formatterRegistry.register(
-      "defaultQueryResponse",
-      new DefaultQueryResponseFormatter(),
-    );
-
-    this.formatterRegistry.register(
-      "createEntityResponse",
-      new CreateEntityResponseFormatter(),
-    );
-
-    this.formatterRegistry.register(
-      "updateEntityResponse",
-      new UpdateEntityResponseFormatter(),
-    );
-
-    // Register base entity formatter
-    this.formatterRegistry.register("baseEntity", new BaseEntityFormatter());
-
-    this.logger.debug("Default formatters registered");
-  }
-
-  /**
    * Register default templates for shell tools
    */
   private registerDefaultTemplates(): void {
@@ -487,6 +431,80 @@ export class Shell {
     );
 
     this.logger.debug("Default templates registered");
+  }
+
+  /**
+   * Register response schemas in ContentRegistry
+   */
+  private registerResponseSchemas(): void {
+    this.logger.debug("Registering response schemas");
+
+    // Register default query response schema
+    this.contentRegistry.registerContent("shell:response:default-query", {
+      template: {
+        name: "shell:response:default-query",
+        description: "Default query response format",
+        schema: defaultQueryResponseSchema,
+        basePrompt: "", // Not used for response schemas
+        formatter: new DefaultYamlFormatter(), // Use YAML formatter for template
+      },
+      formatter: new DefaultQueryResponseFormatter(), // Response formatter for output
+      schema: defaultQueryResponseSchema,
+    });
+
+    // Register simple text response
+    this.contentRegistry.registerContent("shell:response:simple-text", {
+      template: {
+        name: "shell:response:simple-text",
+        description: "Simple text response format",
+        schema: simpleTextResponseSchema,
+        basePrompt: "", // Not used for response schemas
+        formatter: new DefaultYamlFormatter(),
+      },
+      formatter: new SimpleTextResponseFormatter(),
+      schema: simpleTextResponseSchema,
+    });
+
+    // Register create entity response
+    this.contentRegistry.registerContent("shell:response:create-entity", {
+      template: {
+        name: "shell:response:create-entity",
+        description: "Entity creation response format",
+        schema: createEntityResponseSchema,
+        basePrompt: "", // Not used for response schemas
+        formatter: new DefaultYamlFormatter(),
+      },
+      formatter: new CreateEntityResponseFormatter(),
+      schema: createEntityResponseSchema,
+    });
+
+    // Register update entity response
+    this.contentRegistry.registerContent("shell:response:update-entity", {
+      template: {
+        name: "shell:response:update-entity",
+        description: "Entity update response format",
+        schema: updateEntityResponseSchema,
+        basePrompt: "", // Not used for response schemas
+        formatter: new DefaultYamlFormatter(),
+      },
+      formatter: new UpdateEntityResponseFormatter(),
+      schema: updateEntityResponseSchema,
+    });
+
+    // Register base entity formatter
+    this.contentRegistry.registerContent("shell:formatter:base-entity", {
+      template: {
+        name: "shell:formatter:base-entity",
+        description: "Base entity format",
+        schema: baseEntitySchema,
+        basePrompt: "", // Not used for response schemas
+        formatter: new DefaultYamlFormatter(),
+      },
+      formatter: new BaseEntityFormatter(),
+      schema: baseEntitySchema,
+    });
+
+    this.logger.debug("Response schemas registered");
   }
 
   /**
@@ -578,14 +596,6 @@ export class Shell {
 
   public getEntityService(): EntityService {
     return this.entityService;
-  }
-
-  public getSchemaRegistry(): SchemaRegistry {
-    return this.schemaRegistry;
-  }
-
-  public getFormatterRegistry(): SchemaFormatterRegistry {
-    return this.formatterRegistry;
   }
 
   public getAIService(): AIService {

@@ -10,12 +10,12 @@ export interface ContentConfig<T = unknown> {
    * Content template with generation configuration
    */
   template: ContentTemplate<T>;
-  
+
   /**
    * Content formatter for bidirectional conversion
    */
   formatter: ContentFormatter<T>;
-  
+
   /**
    * Zod schema for validation (can be derived from template.schema)
    */
@@ -29,10 +29,7 @@ export interface ContentRegistry {
   /**
    * Register a content configuration
    */
-  registerContent<T>(
-    name: string,
-    config: ContentConfig<T>,
-  ): void;
+  registerContent<T>(name: string, config: ContentConfig<T>): void;
 
   /**
    * Get content template
@@ -43,6 +40,11 @@ export interface ContentRegistry {
    * Get content formatter
    */
   getFormatter<T = unknown>(name: string): ContentFormatter<T> | null;
+
+  /**
+   * Get content schema
+   */
+  getSchema<T = unknown>(name: string): z.ZodType<T> | null;
 
   /**
    * Generate content using registered template

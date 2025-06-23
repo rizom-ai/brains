@@ -402,4 +402,3 @@ export interface SchemaRegistry {
 
   clear(): void;
 }
-

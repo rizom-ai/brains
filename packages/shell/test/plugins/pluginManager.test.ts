@@ -92,11 +92,6 @@ describe("PluginManager", (): void => {
 
     // Register a mock shell with required services
     const mockShell = {
-      getFormatterRegistry: (): {
-        register: (schemaName: string, formatter: unknown) => void;
-      } => ({
-        register: (): void => undefined,
-      }),
       getEntityService: (): {
         createEntity: <T extends BaseEntity>(
           data: Partial<T>,
@@ -136,7 +131,10 @@ describe("PluginManager", (): void => {
         registerContent: (name: string, config: unknown) => void;
         getTemplate: (name: string) => unknown;
         getFormatter: (name: string) => unknown;
-        generateContent: (templateName: string, context: unknown) => Promise<unknown>;
+        generateContent: (
+          templateName: string,
+          context: unknown,
+        ) => Promise<unknown>;
         parseContent: (templateName: string, content: string) => unknown;
         formatContent: (templateName: string, data: unknown) => string;
         listContent: (namespace?: string) => string[];

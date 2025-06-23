@@ -1,14 +1,25 @@
-import type { SchemaFormatter } from "@brains/types";
+import type { ContentFormatter } from "@brains/types";
 import { hasProps } from "./utils";
 
 /**
  * Base formatter for API/query responses with common utilities
+ * Implements ContentFormatter but throws on parse() since responses are read-only
  */
 export abstract class ResponseFormatter<T = unknown>
-  implements SchemaFormatter<T>
+  implements ContentFormatter<T>
 {
   abstract format(data: T): string;
   abstract canFormat(data: unknown): boolean;
+
+  /**
+   * Parse is not supported for response formatters
+   * @throws Error always - response formats are read-only
+   */
+  parse(_content: string): T {
+    throw new Error(
+      "This response format is read-only and cannot be parsed back to data",
+    );
+  }
 
   /**
    * Format a key-value pair as markdown

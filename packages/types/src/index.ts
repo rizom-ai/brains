@@ -94,3 +94,17 @@ export {
 
 // Re-export commonly used types from utils
 export type { Logger } from "@brains/utils";
+
+// Response schemas
+export {
+  defaultQueryResponseSchema,
+  simpleTextResponseSchema,
+  createEntityResponseSchema,
+  updateEntityResponseSchema,
+} from "./schemas";
+export type {
+  DefaultQueryResponse,
+  SimpleTextResponse,
+  CreateEntityResponse,
+  UpdateEntityResponse,
+} from "./schemas";

@@ -368,7 +368,9 @@ export class SiteBuilder implements ISiteBuilder {
 
     // Get formatter for general context
     const contentRegistry = this.context.contentRegistry;
-    const formatter = contentRegistry.getFormatter("default-site:general-context");
+    const formatter = contentRegistry.getFormatter(
+      "default-site:general-context",
+    );
 
     // Format content using the appropriate formatter
     const formattedContent = formatter
@@ -414,8 +416,7 @@ export class SiteBuilder implements ISiteBuilder {
             ? templateName
             : `default-site:${templateName}`;
 
-          const formatter =
-            contentRegistry.getFormatter(fullyQualifiedName);
+          const formatter = contentRegistry.getFormatter(fullyQualifiedName);
 
           if (formatter?.parse) {
             // Extract content part without frontmatter for structured formatters

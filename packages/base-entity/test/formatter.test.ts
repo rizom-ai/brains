@@ -51,11 +51,12 @@ This content has frontmatter.`,
 
     const formatted = formatter.format(entityWithFrontmatter);
 
-    // Should contain frontmatter section
-    expect(formatted).toContain("## Frontmatter");
-    expect(formatted).toContain("```json");
-    expect(formatted).toContain(`"custom": "value"`);
-    expect(formatted).toContain(`"priority": "high"`);
+    // Should contain the raw content including frontmatter
+    expect(formatted).toContain("## Content");
+    expect(formatted).toContain("---");
+    expect(formatted).toContain("custom: value");
+    expect(formatted).toContain("priority: high");
+    expect(formatted).toContain("---");
 
     // Should still contain content
     expect(formatted).toContain("# Custom Content");

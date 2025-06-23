@@ -10,7 +10,7 @@ import type { ContentGenerationService } from "./contentGenerationService";
 
 /**
  * Unified content registry that combines templates and formatters
- * 
+ *
  * This registry manages the relationship between content templates
  * (for AI generation) and schema formatters (for parsing/formatting).
  * It ensures that content types have both generation and formatting
@@ -18,7 +18,7 @@ import type { ContentGenerationService } from "./contentGenerationService";
  */
 export class ContentRegistry implements IContentRegistry {
   private static instance: ContentRegistry | null = null;
-  
+
   private configs = new Map<string, ContentConfig<unknown>>();
   private contentGenerationService: ContentGenerationService | null = null;
   private logger: Logger | null = null;
@@ -58,10 +58,7 @@ export class ContentRegistry implements IContentRegistry {
   /**
    * Register a content configuration
    */
-  public registerContent<T>(
-    name: string,
-    config: ContentConfig<T>,
-  ): void {
+  public registerContent<T>(name: string, config: ContentConfig<T>): void {
     // Validate namespace format
     if (!name.includes(":")) {
       throw new Error(
@@ -77,7 +74,7 @@ export class ContentRegistry implements IContentRegistry {
     }
 
     this.configs.set(name, config as ContentConfig<unknown>);
-    
+
     // Also register the template with ContentGenerationService
     if (this.contentGenerationService) {
       this.contentGenerationService.registerTemplate(name, config.template);
@@ -100,6 +97,14 @@ export class ContentRegistry implements IContentRegistry {
   public getFormatter<T = unknown>(name: string): ContentFormatter<T> | null {
     const config = this.configs.get(name);
     return config ? (config.formatter as ContentFormatter<T>) : null;
+  }
+
+  /**
+   * Get content schema
+   */
+  public getSchema<T = unknown>(name: string): z.ZodType<T> | null {
+    const config = this.configs.get(name);
+    return config ? (config.schema as z.ZodType<T>) : null;
   }
 
   /**
@@ -154,7 +159,7 @@ export class ContentRegistry implements IContentRegistry {
 
     // Validate data before formatting
     const validated = config.schema.parse(data);
-    
+
     return config.formatter.format(validated);
   }
 

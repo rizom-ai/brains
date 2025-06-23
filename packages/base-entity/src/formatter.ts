@@ -1,14 +1,13 @@
-import type { SchemaFormatter } from "@brains/types";
+import type { ContentFormatter } from "@brains/types";
 import type { BaseEntity } from "@brains/types";
-import { parseMarkdown } from "@brains/utils";
 
 /**
  * Formatter for base entities
  *
- * Provides a basic formatter for BaseEntity instances,
- * displaying database fields and frontmatter separately.
+ * Provides a bidirectional formatter for BaseEntity instances,
+ * converting between BaseEntity objects and markdown representation.
  */
-export class BaseEntityFormatter implements SchemaFormatter<BaseEntity> {
+export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
   /**
    * Format a base entity as markdown
    */
@@ -42,23 +41,10 @@ export class BaseEntityFormatter implements SchemaFormatter<BaseEntity> {
       }
     }
 
-    // If there's content, extract and display frontmatter and content separately
-    if (entity.content) {
-      const { frontmatter, content } = parseMarkdown(entity.content);
-
-      // Display frontmatter as JSON
-      if (Object.keys(frontmatter).length > 0) {
-        output += "\n## Frontmatter\n\n";
-        output += "```json\n";
-        output += JSON.stringify(frontmatter, null, 2);
-        output += "\n```\n";
-      }
-
-      // Display content
-      if (content.trim().length > 0) {
-        output += "\n## Content\n\n";
-        output += content;
-      }
+    // Display content
+    if (entity.content && entity.content.trim().length > 0) {
+      output += "\n## Content\n\n";
+      output += entity.content;
     }
 
     return output;
@@ -73,6 +59,16 @@ export class BaseEntityFormatter implements SchemaFormatter<BaseEntity> {
       data !== null &&
       "id" in data &&
       "entityType" in data
+    );
+  }
+
+  /**
+   * Parse is not supported for BaseEntityFormatter
+   * @throws Error always - use BaseEntityAdapter for import/export operations
+   */
+  parse(_content: string): BaseEntity {
+    throw new Error(
+      "BaseEntityFormatter is for display only. Use BaseEntityAdapter for import/export operations.",
     );
   }
 }

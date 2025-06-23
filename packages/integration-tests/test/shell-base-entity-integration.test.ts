@@ -81,11 +81,14 @@ describe("Shell and Base Entity Integration", () => {
     // Initialize the shell
     await shell.initialize();
 
-    // Get the formatter registry through the shell
-    const formatterRegistry = shell.getFormatterRegistry();
+    // Get the content registry through the shell
+    const contentRegistry = shell.getContentRegistry();
 
     // Verify base entity formatter is registered
-    expect(formatterRegistry.hasFormatter("baseEntity")).toBe(true);
+    const formatter = contentRegistry.getFormatter(
+      "shell:formatter:base-entity",
+    );
+    expect(formatter).toBeDefined();
   });
 
   test("can create, retrieve, and update base entities through entity service", async () => {
@@ -244,11 +247,13 @@ describe("Shell and Base Entity Integration", () => {
     );
     await shell.initialize();
 
-    const formatterRegistry = shell.getFormatterRegistry();
-    const formatter = formatterRegistry.getFormatter("baseEntity");
+    const contentRegistry = shell.getContentRegistry();
+    const formatter = contentRegistry.getFormatter(
+      "shell:formatter:base-entity",
+    );
 
     // Verify formatter exists
-    expect(formatter).not.toBeNull();
+    expect(formatter).toBeDefined();
 
     if (!formatter) {
       throw new Error("BaseEntity formatter not found");

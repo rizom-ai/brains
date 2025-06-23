@@ -18,7 +18,7 @@ describe("ContentGenerationService", () => {
     ContentGenerationService.resetInstance();
     QueryProcessor.resetInstance();
 
-    // Create mock for ContentRegistry  
+    // Create mock for ContentRegistry
     mockContentRegistry = {
       hasContent: mock(() => true), // Default to true since we're mocking registered types
       registerContent: mock(() => {}),

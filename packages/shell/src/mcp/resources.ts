@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { EntityService } from "../entity/entityService";
-import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { ContentGenerationService } from "../content/contentGenerationService";
+import type { ContentRegistry } from "../content/content-registry";
 import type { Logger } from "@brains/utils";
 
 /**
@@ -12,12 +12,12 @@ export function registerShellResources(
   server: McpServer,
   options: {
     entityService: EntityService;
-    schemaRegistry: SchemaRegistry;
     contentGenerationService: ContentGenerationService;
+    contentRegistry: ContentRegistry;
     logger: Logger;
   },
 ): void {
-  const { logger, entityService, schemaRegistry, contentGenerationService } =
+  const { logger, entityService, contentGenerationService, contentRegistry } =
     options;
 
   logger.info("Registering shell resources with MCP server");
@@ -62,49 +62,6 @@ export function registerShellResources(
     );
   }
 
-  // Register schema resources
-  const schemaNames = schemaRegistry.getAllSchemaNames();
-
-  for (const schemaName of schemaNames) {
-    server.resource(
-      `schema_${schemaName}`,
-      `schema://${schemaName}`,
-      { description: `Schema definition for ${schemaName}` },
-      async (uri: URL) => {
-        try {
-          logger.debug("Reading schema resource", { schemaName });
-
-          const schema = schemaRegistry.get(schemaName);
-
-          if (!schema) {
-            throw new Error(`Schema not found: ${schemaName}`);
-          }
-
-          // Convert Zod schema to a simple representation
-          // In a real implementation, we'd have a proper Zod to JSON Schema converter
-          const schemaInfo = {
-            name: schemaName,
-            type: "zod-schema",
-            description: `Zod schema for ${schemaName}`,
-            // We could add more details here if we had a schema introspection utility
-          };
-
-          return {
-            contents: [
-              {
-                uri: uri.toString(),
-                text: JSON.stringify(schemaInfo, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          logger.error("Error reading schema resource", error);
-          throw error;
-        }
-      },
-    );
-  }
-
   // Register a general entities list resource
   server.resource(
     "entity-types",
@@ -136,7 +93,7 @@ export function registerShellResources(
     { description: "List all registered schemas" },
     async (uri: URL) => {
       try {
-        const names = schemaRegistry.getAllSchemaNames();
+        const names = contentRegistry.listContent();
 
         return {
           contents: [
@@ -152,6 +109,49 @@ export function registerShellResources(
       }
     },
   );
+
+  // Register individual schema resources
+  const schemaNames = contentRegistry.listContent();
+
+  for (const schemaName of schemaNames) {
+    server.resource(
+      `schema_${schemaName}`,
+      `schema://${schemaName}`,
+      { description: `Schema definition for ${schemaName}` },
+      async (uri: URL) => {
+        try {
+          logger.debug("Reading schema resource", { schemaName });
+
+          const schema = contentRegistry.getSchema(schemaName);
+
+          if (!schema) {
+            throw new Error(`Schema not found: ${schemaName}`);
+          }
+
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify(
+                  {
+                    name: schemaName,
+                    type: "zod-schema",
+                    // We can't serialize the actual Zod schema, so we provide metadata
+                    description: `Zod schema for ${schemaName}`,
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        } catch (error) {
+          logger.error("Error reading schema resource", error);
+          throw error;
+        }
+      },
+    );
+  }
 
   // Register content template list resource
   server.resource(

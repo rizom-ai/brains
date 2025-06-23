@@ -4,8 +4,8 @@ import type { ShellMCPOptions } from "@/mcp";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { QueryProcessor } from "@/query/queryProcessor";
 import type { EntityService } from "@/entity/entityService";
-import type { SchemaRegistry } from "@/schema/schemaRegistry";
 import type { ContentGenerationService } from "@/content/contentGenerationService";
+import type { ContentRegistry } from "@/content/content-registry";
 import type { Logger } from "@brains/utils";
 import { z } from "zod";
 
@@ -71,17 +71,6 @@ describe("MCP Registration", () => {
           Promise.resolve({ id: "2", entityType: "note", content: "Derived" }),
         ),
       } as unknown as EntityService,
-      schemaRegistry: {
-        getAllSchemaNames: mock(() => ["entity", "message"]),
-        get: mock((_name: string) => {
-          // Return a simple schema for any requested name
-          // This includes custom content types for testing
-          return z.object({
-            id: z.string(),
-            content: z.string(),
-          });
-        }),
-      } as unknown as SchemaRegistry,
       contentGenerationService: {
         generate: mock(() => Promise.resolve({ content: "Generated content" })),
         generateFromTemplate: mock(() =>
@@ -96,6 +85,16 @@ describe("MCP Registration", () => {
           },
         ]),
       } as unknown as ContentGenerationService,
+      contentRegistry: {
+        getSchema: mock((name: string) => {
+          if (name === "entity" || name === "custom:type") {
+            return z.object({ content: z.string() });
+          }
+          return null;
+        }),
+        getTemplate: mock(() => null),
+        listContent: mock(() => ["entity", "message"]),
+      } as unknown as ContentRegistry,
       logger: {
         info: mock(() => {}),
         debug: mock(() => {}),

@@ -18,6 +18,9 @@
 // Re-export only the main Shell class as it's the primary entry point
 export { Shell } from "./shell";
 
+// Re-export content utilities
+export { GenericYamlFormatter } from "./content";
+
 // Re-export essential types that don't trigger side effects
 export type { ShellConfig } from "./config";
 export type { IEmbeddingService } from "./embedding/embeddingService";

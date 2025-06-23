@@ -2,8 +2,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { QueryProcessor } from "../query/queryProcessor";
 import type { EntityService } from "../entity/entityService";
-import type { SchemaRegistry } from "../schema/schemaRegistry";
 import type { ContentGenerationService } from "../content/contentGenerationService";
+import type { ContentRegistry } from "../content/content-registry";
 import type { Logger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
 import {
@@ -20,7 +20,7 @@ export function registerShellTools(
   options: {
     queryProcessor: QueryProcessor;
     entityService: EntityService;
-    schemaRegistry: SchemaRegistry;
+    contentRegistry: ContentRegistry;
     contentGenerationService: ContentGenerationService;
     logger: Logger;
   },
@@ -29,14 +29,14 @@ export function registerShellTools(
     logger,
     queryProcessor,
     entityService,
-    schemaRegistry,
+    contentRegistry,
     contentGenerationService,
   } = options;
 
   // Create adapters
   const queryAdapter = new QueryProcessorAdapter(
     queryProcessor,
-    schemaRegistry,
+    contentRegistry,
   );
   const entityAdapter = new EntityServiceAdapter(entityService);
   const contentAdapter = new ContentGenerationAdapter(contentGenerationService);
@@ -58,7 +58,9 @@ export function registerShellTools(
           responseSchema: z
             .string()
             .optional()
-            .describe("Name of the response schema to use"),
+            .describe(
+              "Name of response schema (default: shell:query-response)",
+            ),
         })
         .optional()
         .describe("Query execution options"),
@@ -190,8 +192,8 @@ export function registerShellTools(
           save: params.save,
         });
 
-        // Get schema from registry using contentType
-        const schema = schemaRegistry.get(params.contentType);
+        // Get schema from content registry
+        const schema = contentRegistry.getSchema(params.contentType);
         if (!schema) {
           throw new Error(
             `Schema not found for content type: ${params.contentType}`,

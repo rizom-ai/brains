@@ -2,12 +2,12 @@ import { Shell } from "@brains/shell";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { Logger, LogLevel } from "@brains/utils";
 import type { BaseInterface, MessageContext } from "@brains/interface-core";
-import { z } from "zod";
 import {
   appConfigSchema,
   type AppConfig,
   type InterfaceConfig,
 } from "./types.js";
+import { defaultQueryResponseSchema } from "@brains/types";
 
 export class App {
   private shell: Shell;
@@ -161,7 +161,7 @@ export class App {
   ): Promise<BaseInterface | null> {
     const logger = this.createLogger();
     const queryProcessor = this.shell.getQueryProcessor();
-    const formatterRegistry = this.shell.getFormatterRegistry();
+    const contentRegistry = this.shell.getContentRegistry();
 
     const interfaceContext = {
       name: `${this.config.name}-${config.type}`,
@@ -171,20 +171,29 @@ export class App {
         query: string,
         _context: MessageContext,
       ): Promise<string> => {
-        // Use a simple text response schema
-        const simpleTextSchema = z
-          .object({
-            message: z.string(),
-          })
-          .describe("simpleTextResponse");
-
+        // Process query with default response schema
         const result = await queryProcessor.processQuery(query, {
-          schema: simpleTextSchema,
+          schema: defaultQueryResponseSchema,
         });
 
-        // Use formatter registry to format the result
-        const schemaName = queryProcessor.getSchemaName(simpleTextSchema);
-        return formatterRegistry.format(result, schemaName);
+        // Get the appropriate formatter - try default query response first
+        let formatter = contentRegistry.getFormatter(
+          "shell:response:default-query",
+        );
+
+        // Fallback to simple text if default not found
+        if (!formatter) {
+          formatter = contentRegistry.getFormatter(
+            "shell:response:simple-text",
+          );
+        }
+
+        if (!formatter) {
+          // Last resort fallback to JSON
+          return JSON.stringify(result, null, 2);
+        }
+
+        return formatter.format(result);
       },
     };
 

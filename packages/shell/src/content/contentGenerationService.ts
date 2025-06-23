@@ -96,9 +96,7 @@ export class ContentGenerationService implements IContentGenerationService {
       !isCollectionItem &&
       !this.contentRegistry.hasContent(options.contentType)
     ) {
-      throw new Error(
-        `No content registered for type: ${options.contentType}`,
-      );
+      throw new Error(`No content registered for type: ${options.contentType}`);
     }
 
     // Validate using the provided schema

@@ -43,11 +43,39 @@ class TestContentPlugin extends ContentGeneratingPlugin<{ debug: boolean }> {
     this.registerContentType("simple", {
       contentType: "simple",
       schema: testContentSchema,
+      template: {
+        name: "simple",
+        description: "Simple test content",
+        schema: testContentSchema,
+        basePrompt: "Generate simple test content",
+        formatter: {
+          format: (data) => JSON.stringify(data),
+          parse: (content) => JSON.parse(content),
+        },
+      },
+      formatter: {
+        format: (data) => JSON.stringify(data),
+        parse: (content) => JSON.parse(content),
+      },
     });
 
     this.registerContentType("section:test", {
       contentType: "section:test",
       schema: testSectionSchema,
+      template: {
+        name: "section:test",
+        description: "Test section content",
+        schema: testSectionSchema,
+        basePrompt: "Generate test section content",
+        formatter: {
+          format: (data) => JSON.stringify(data),
+          parse: (content) => JSON.parse(content),
+        },
+      },
+      formatter: {
+        format: (data) => JSON.stringify(data),
+        parse: (content) => JSON.parse(content),
+      },
     });
   }
 

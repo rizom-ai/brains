@@ -1,13 +1,11 @@
-import type { SchemaFormatter } from "@brains/types";
+import { ResponseFormatter } from "@brains/formatters";
 import type { DirectorySyncStatus } from "../types";
 import { directorySyncStatusSchema } from "../schemas";
 
 /**
  * Formatter for directory sync status
  */
-export class DirectorySyncStatusFormatter
-  implements SchemaFormatter<DirectorySyncStatus>
-{
+export class DirectorySyncStatusFormatter extends ResponseFormatter<DirectorySyncStatus> {
   canFormat(data: unknown): boolean {
     return directorySyncStatusSchema.safeParse(data).success;
   }

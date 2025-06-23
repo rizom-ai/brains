@@ -38,17 +38,14 @@ export abstract class ContentGeneratingPlugin<
     // Register all content types with the new ContentRegistry
     for (const [key, config] of this.contentTypes) {
       this.debug(`Registering content type: ${config.contentType}`, { key });
-      
+
       const contentConfig: ContentConfig = {
         template: config.template,
         formatter: config.formatter,
         schema: config.schema,
       };
-      
-      this.contentRegistry.registerContent(
-        config.contentType,
-        contentConfig,
-      );
+
+      this.contentRegistry.registerContent(config.contentType, contentConfig);
       this.info(`Registered content type: ${config.contentType}`);
     }
   }

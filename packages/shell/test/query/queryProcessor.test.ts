@@ -8,7 +8,7 @@ import {
   simpleTextResponseSchema,
   createEntityResponseSchema,
   updateEntityResponseSchema,
-} from "@/schemas/defaults";
+} from "@brains/types";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { EntityService } from "@/entity/entityService";

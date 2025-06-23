@@ -4,7 +4,7 @@ import { createSilentLogger } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { QueryProcessor } from "@/query/queryProcessor";
 import type { EntityService } from "@/entity/entityService";
-import type { SchemaRegistry } from "@/schema/schemaRegistry";
+import type { ContentRegistry } from "@/content/content-registry";
 import type { ContentGenerationService } from "@/content/contentGenerationService";
 import { z } from "zod";
 
@@ -58,13 +58,22 @@ const createMockEntityService = (): EntityService =>
     }),
   }) as unknown as EntityService;
 
-const createMockSchemaRegistry = (): SchemaRegistry =>
+const createMockContentRegistry = (): ContentRegistry =>
   ({
-    get: mock((name: string) => {
-      if (name === "not-found") return undefined;
+    getSchema: mock((name: string) => {
+      if (name === "not-found") return null;
       return z.object({ content: z.string() });
     }),
-  }) as unknown as SchemaRegistry;
+    getTemplate: mock((name: string) => {
+      if (name === "not-found") return null;
+      return {
+        name,
+        description: "Test template",
+        schema: z.object({ content: z.string() }),
+        basePrompt: "Test prompt",
+      };
+    }),
+  }) as unknown as ContentRegistry;
 
 const createMockContentGenerationService = (): ContentGenerationService =>
   ({
@@ -119,7 +128,7 @@ describe("MCP Tools", () => {
   let mockServer: ReturnType<typeof createMockMcpServer>;
   let queryProcessor: QueryProcessor;
   let entityService: EntityService;
-  let schemaRegistry: SchemaRegistry;
+  let contentRegistry: ContentRegistry;
   let contentGenerationService: ContentGenerationService;
   let logger: ReturnType<typeof createSilentLogger>;
 
@@ -127,7 +136,7 @@ describe("MCP Tools", () => {
     mockServer = createMockMcpServer();
     queryProcessor = createMockQueryProcessor();
     entityService = createMockEntityService();
-    schemaRegistry = createMockSchemaRegistry();
+    contentRegistry = createMockContentRegistry();
     contentGenerationService = createMockContentGenerationService();
     logger = createSilentLogger();
   });
@@ -137,7 +146,7 @@ describe("MCP Tools", () => {
       registerShellTools(mockServer as unknown as McpServer, {
         queryProcessor,
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -155,7 +164,7 @@ describe("MCP Tools", () => {
       registerShellTools(mockServer as unknown as McpServer, {
         queryProcessor,
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -194,7 +203,7 @@ describe("MCP Tools", () => {
       registerShellTools(mockServer as unknown as McpServer, {
         queryProcessor,
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -258,7 +267,7 @@ describe("MCP Tools", () => {
       registerShellTools(mockServer as unknown as McpServer, {
         queryProcessor,
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -336,7 +345,7 @@ describe("MCP Tools", () => {
       registerShellTools(mockServer as unknown as McpServer, {
         queryProcessor,
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -393,7 +402,7 @@ describe("MCP Tools", () => {
       registerShellTools(mockServer as unknown as McpServer, {
         queryProcessor,
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -492,7 +501,7 @@ describe("MCP Tools", () => {
       registerShellTools(mockServer as unknown as McpServer, {
         queryProcessor,
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });
@@ -552,7 +561,7 @@ describe("MCP Tools", () => {
       registerShellTools(mockServer as unknown as McpServer, {
         queryProcessor,
         entityService,
-        schemaRegistry,
+        contentRegistry,
         contentGenerationService,
         logger,
       });

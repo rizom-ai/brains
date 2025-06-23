@@ -215,9 +215,6 @@ export class PluginTestHarness {
         publish: async (): Promise<void> => undefined,
         subscribe: (): (() => void) => () => undefined,
       } as unknown as MessageBus,
-      formatters: {
-        register: (): void => undefined,
-      },
       registerEntityType: <T extends BaseEntity>(
         entityType: string,
         schema: z.ZodType<T>,
@@ -290,6 +287,7 @@ export class PluginTestHarness {
         registerContent: (): void => undefined,
         getTemplate: (): null => null,
         getFormatter: (): null => null,
+        getSchema: (): null => null,
         generateContent: async <T>(): Promise<T> => {
           throw new Error("generateContent not implemented in test harness");
         },
