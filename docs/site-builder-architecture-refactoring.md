@@ -2,282 +2,445 @@
 
 ## Overview
 
-This plan outlines a simplified architecture that allows plugins to be self-contained with their own components while avoiding circular dependencies.
+This plan outlines a simplified architecture using pure Preact server-side rendering, eliminating the need for Astro and complex import resolution.
 
-## Updated Architecture
+## Final Architecture: Pure Preact Site Builder
 
 ### Core Principles
 
-1. **Self-contained plugins** - Each plugin can include its own Preact components
-2. **String-based component paths** - Components are registered by their import path
-3. **Component discovery** - Builder discovers components from ViewRegistry at build time
-4. **One component per file** - Each Preact component is a default export in its own file
+1. **Self-contained plugins** - Each plugin includes its own Preact components
+2. **Direct component access** - Components are function references in ViewRegistry
+3. **Server-side rendering** - All rendering happens in the shell process
+4. **No build complexity** - Output is static HTML/CSS/JS files
 
 ### Component Registration
 
 ```typescript
-// Updated ViewTemplate interface
+// ViewTemplate interface - WebRenderer can be function or string
 export interface ViewTemplate<T = unknown> {
   name: string;
   schema: z.ZodType<T>;
   description?: string;
   renderers: {
-    web?: string;  // Always a module path, e.g., "@brains/notes-plugin/components/NoteCard"
+    web?: ComponentType<T> | string; // Function reference or path
   };
+  interactive?: boolean; // Mark components that need client-side hydration
 }
 ```
 
-### Plugin Structure Example
+### How It Works
+
+1. **Plugins register components as functions**:
+   ```typescript
+   import { NoteCard } from './components/NoteCard';
+   
+   context.viewRegistry.registerViewTemplate({
+     name: "note-card",
+     schema: noteCardSchema,
+     renderers: {
+       web: NoteCard  // Direct function reference!
+     },
+     interactive: false // Static by default
+   });
+   ```
+
+2. **Site builder accesses components directly**:
+   ```typescript
+   const template = viewRegistry.getViewTemplate('note-card');
+   const Component = template.renderers.web; // The actual function
+   const html = renderToString(<Component {...props} />);
+   ```
+
+3. **No import/export complexity** - Everything runs in the shell process
+
+### Package Structure
 
 ```
-@brains/notes-plugin/
+@brains/default-site-content/     # Pure content package (not a plugin)
 ├── src/
-│   ├── components/               # One component per file
-│   │   ├── NoteCard.tsx         # export default function NoteCard() {...}
-│   │   ├── NotesListing.tsx     # export default function NotesListing() {...}
-│   │   └── NoteDetail.tsx       # export default function NoteDetail() {...}
-│   ├── plugin.ts                # Plugin registration
-│   └── index.ts
-└── package.json
+│   ├── components/               # Preact components
+│   │   ├── HeroLayout.tsx
+│   │   ├── FeaturesLayout.tsx
+│   │   └── ...
+│   ├── schemas/                  # Zod schemas
+│   │   ├── hero.ts
+│   │   └── ...
+│   ├── routes.ts                # Route definitions
+│   ├── templates.ts             # ViewTemplate exports
+│   └── index.ts                 # Export everything
+└── package.json                 # Dependencies: preact, zod
 
-@brains/astro-builder-plugin/     # Renamed from site-builder-plugin
+@brains/site-builder-plugin/      # Site builder (is a plugin)
 ├── src/
-│   ├── build/                    # Astro-specific build logic
-│   │   ├── component-discovery.ts # Discovers components from registry
-│   │   └── builder.ts           # Build orchestration
+│   ├── rendering/                # SSR logic
+│   │   ├── page-renderer.ts     # Renders pages with Preact
+│   │   ├── component-bundler.ts # Bundles interactive components
+│   │   ├── style-processor.ts   # Tailwind CSS processing
+│   │   └── html-generator.ts    # Generates final HTML
 │   ├── tools/                    # Plugin tools
 │   │   ├── promote-content.ts
 │   │   ├── rollback-content.ts
 │   │   └── regenerate-content.ts
+│   ├── styles/                   # Tailwind setup
+│   │   └── global.css           # Global styles with @tailwind directives
 │   ├── plugin.ts                # Regular plugin extending BasePlugin
 │   └── index.ts
-└── package.json                 # Dependencies: astro, @astrojs/preact, @brains/utils
+└── package.json                 # Dependencies: preact, preact-render-to-string, tailwindcss, @brains/default-site-content
+
+@brains/notes-plugin/            # Example plugin (with components)
+├── src/
+│   ├── components/              # Preact components
+│   │   ├── NoteCard.tsx
+│   │   └── NoteEditor.tsx       # Interactive component
+│   ├── plugin.ts                # Registers components via ViewRegistry
+│   └── index.ts
+└── package.json
 ```
-
-### Key Architecture Changes
-
-1. **WebRenderer is always a string** - No more function references
-2. **Direct import paths** - Components are referenced by their module path
-3. **No separate content packages needed** - Plugins are self-contained
-4. **Simple component discovery** - Builder generates imports from registry
 
 ## Implementation Plan
 
 ### Phase 1: Update Type Definitions
 
-1. Update `@brains/types` ViewTemplate interface:
+1. Add `interactive` field to ViewTemplate interface:
    ```typescript
-   export type WebRenderer = string;  // Always a module path
-   
    export interface ViewTemplate<T = unknown> {
      name: string;
      schema: z.ZodType<T>;
      description?: string;
      renderers: {
-       web?: string;  // Module path to component
+       web?: ComponentType<T> | string; // Keep flexible
      };
+     interactive?: boolean; // New field for hydration
    }
    ```
 
-### Phase 2: Update Existing Plugin
+### Phase 2: Transform Default Site to Content Package
 
-1. Refactor `default-site-plugin` components:
-   - Move each component to its own file
-   - Ensure default exports
-   - Update registrations to use module paths:
+1. Convert `default-site-plugin` to `default-site-content` (not a plugin)
+2. Export routes and view templates directly:
+   ```typescript
+   // src/templates.ts
+   import { HeroLayout } from './components/HeroLayout';
+   import { heroSchema } from './schemas/hero';
    
-   ```typescript
-   context.viewRegistry.registerViewTemplate({
-     name: "hero",
-     schema: heroSchema,
-     renderers: {
-       web: "@brains/default-site-plugin/components/HeroLayout"
+   export const viewTemplates: ViewTemplate[] = [
+     {
+       name: "hero",
+       schema: heroSchema,
+       renderers: {
+         web: HeroLayout  // Function reference
+       },
+       interactive: false
+     },
+     // ... other templates
+   ];
+   
+   // src/routes.ts
+   export const routes: RouteDefinition[] = [
+     {
+       path: "/",
+       title: "Home",
+       sections: [
+         { id: "hero", template: "hero", content: {...} }
+       ]
      }
-   });
+   ];
    ```
+3. Site builder imports and uses these directly (no plugin registration needed)
+4. Ensure all components use Tailwind classes
 
-### Phase 3: Transform Site Builder
+### Phase 3: Transform Site Builder Plugin
 
-1. Rename to `@brains/astro-builder-plugin`
-2. Implement component discovery:
-
+1. Remove Astro dependencies
+2. Import default content and register it:
    ```typescript
-   async generateComponentRegistry() {
-     const templates = this.context.viewRegistry.listViewTemplates();
-     const imports: string[] = [];
-     const exports: string[] = [];
-     
-     for (const template of templates) {
-       if (template.renderers.web) {
-         imports.push(`import ${template.name} from '${template.renderers.web}';`);
-         exports.push(`'${template.name}': ${template.name}`);
+   import { render } from 'preact-render-to-string';
+   import { routes, viewTemplates } from '@brains/default-site-content';
+   
+   class SiteBuilderPlugin extends BasePlugin {
+     async onRegister(context: PluginContext) {
+       // Register default site templates
+       for (const template of viewTemplates) {
+         context.viewRegistry.registerViewTemplate(template);
+       }
+       
+       // Register default routes
+       for (const route of routes) {
+         context.viewRegistry.registerRoute(route);
        }
      }
      
-     return `
-       // Auto-generated component registry
-       ${imports.join('\n')}
-       export const components = { ${exports.join(', ')} };
-     `;
-   }
-   ```
-
-### Phase 4: Handle Package Dependencies
-
-1. **For Development (Workspace builds)**:
-   ```json
-   // Generated Astro project package.json
-   {
-     "dependencies": {
-       "@brains/*": "workspace:*",
-       "astro": "^5.8.1",
-       "@astrojs/preact": "^3.0.0",
-       "preact": "^10.0.0"
+     async buildSite(options: BuildOptions) {
+       // Get all routes (default + any from other plugins)
+       const allRoutes = this.context.viewRegistry.listRoutes();
+       
+       for (const route of allRoutes) {
+         const html = await this.renderPage(route);
+         await this.writePage(route.path, html);
+       }
+       
+       // Bundle interactive components if any
+       if (this.hasInteractiveComponents()) {
+         await this.bundleClientCode();
+       }
+     }
+     
+     async renderPage(route: RouteDefinition): Promise<string> {
+       const sections = await this.renderSections(route.sections);
+       
+       return `<!DOCTYPE html>
+         <html>
+           <head>
+             <meta charset="UTF-8">
+             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+             <title>${route.title}</title>
+             <link rel="stylesheet" href="/styles.css">
+           </head>
+           <body>
+             ${sections.join('\n')}
+             ${this.hasInteractiveComponents() ? '<script src="/client.js"></script>' : ''}
+           </body>
+         </html>`;
      }
    }
    ```
 
-2. **For Production (External builds)**:
-   - Astro builder discovers all plugin dependencies
-   - Generates package.json with explicit versions
-   - Or use bundling approach for self-contained output
+### Phase 3: Implement Component Rendering & Styling
 
-### Phase 5: Update Astro Templates
-
-1. Create dynamic component loader:
-   ```astro
-   ---
-   // DynamicSection.astro
-   import { components } from '../generated/components';
-   
-   const { template, content } = Astro.props;
-   const Component = components[template];
-   ---
-   {Component && <Component {...content} />}
+1. Direct component access from ViewRegistry:
+   ```typescript
+   async renderSection(section: SectionDefinition): Promise<string> {
+     const template = this.context.viewRegistry.getViewTemplate(section.template);
+     const Component = template.renderers.web as ComponentType;
+     
+     // Get content (from entities or static)
+     const content = await this.getContent(section);
+     
+     // Render with Preact
+     const html = render(<Component {...content} />);
+     
+     // Wrap interactive components for hydration
+     if (template.interactive) {
+       return `<div data-hydrate="${template.name}" data-props='${JSON.stringify(content)}'>${html}</div>`;
+     }
+     
+     return html;
+   }
    ```
 
-2. Update page templates to use dynamic components
+2. Process Tailwind CSS:
+   ```typescript
+   import { createProcessor } from 'tailwindcss/lib/cli';
+   
+   async processStyles(): Promise<string> {
+     // Read global.css with Tailwind directives
+     const input = await readFile('./styles/global.css', 'utf8');
+     
+     // Process with Tailwind (v4 API)
+     const processor = await createProcessor({
+       content: ['./dist/**/*.html'], // Scan generated HTML
+     });
+     
+     const result = await processor.process(input);
+     return result.css;
+   }
+   ```
 
-### Phase 6: Content Management Tools
+### Phase 4: Optional Client-Side Hydration
 
-Implement as plugin tools:
+1. Bundle interactive components only:
+   ```typescript
+   async bundleClientCode() {
+     const interactive = this.getInteractiveTemplates();
+     
+     // Generate hydration script
+     const clientCode = `
+       import { hydrate } from 'preact';
+       ${interactive.map(t => `import { ${t.name} } from '${t.source}';`).join('\n')}
+       
+       // Hydrate marked elements
+       document.querySelectorAll('[data-hydrate]').forEach(el => {
+         const Component = { ${interactive.map(t => t.name).join(', ')} }[el.dataset.hydrate];
+         const props = JSON.parse(el.dataset.props);
+         hydrate(<Component {...props} />, el);
+       });
+     `;
+     
+     // Bundle with esbuild/rollup
+     await this.bundle(clientCode);
+   }
+   ```
 
-- `promote-content.ts` - Update entity environment tags
-- `rollback-content.ts` - Revert to previous version
-- `regenerate-content.ts` - Force content regeneration
+### Phase 5: Content Management Tools
 
-### Phase 7: Migration and Cleanup
+Implement as plugin tools in site-builder-plugin.
 
-1. Update existing plugins to new component path format
-2. Remove old abstractions and base classes
-3. Update tests for new architecture
-4. Update documentation
+### Phase 6: Build Process & Output
+
+1. Complete build flow:
+   ```typescript
+   async build(options: BuildOptions) {
+     // 1. Render all pages
+     const pages = await this.renderAllPages();
+     
+     // 2. Process Tailwind CSS
+     const styles = await this.processStyles();
+     await writeFile(`${outputDir}/styles.css`, styles);
+     
+     // 3. Bundle interactive components (if any)
+     if (this.hasInteractiveComponents()) {
+       const clientBundle = await this.bundleClientCode();
+       await writeFile(`${outputDir}/client.js`, clientBundle);
+     }
+     
+     // 4. Write HTML files
+     for (const { path, html } of pages) {
+       await writeFile(`${outputDir}${path}/index.html`, html);
+     }
+   }
+   ```
+
+### Phase 7: Cleanup
+
+1. Remove `packages/webserver-template/` (Astro template)
+2. Remove Astro dependencies
+3. Update documentation
+4. Simplify build process
 
 ## Benefits
 
-1. **Self-contained plugins**
-   - Each plugin manages its own components
-   - No separate content packages needed
-   - True plugin independence
+1. **Extreme Simplicity**
+   - No Astro complexity
+   - No import/export gymnastics
+   - Direct component access via function references
+   - Everything runs in one process
 
-2. **Simple component discovery**
-   - Components referenced by import path
-   - No complex registration logic
-   - Builder generates imports automatically
+2. **No Deployment Issues**
+   - Output is just HTML/CSS/JS files
+   - No workspace dependencies
+   - Can be served from anywhere
+   - No npm packages to manage
 
-3. **No circular dependencies**
-   - Shell doesn't depend on plugins
-   - Generated code imports from plugins
-   - Clean dependency graph
+3. **True Plugin Independence**
+   - Plugins are self-contained
+   - Components stay with their plugins
+   - No separate content packages
 
-4. **Flexibility**
-   - Plugins can contribute components and routes
-   - Any plugin can extend the site
-   - Easy to add new functionality
+4. **Modern Styling with Tailwind**
+   - Use Tailwind v4 with just a global.css file
+   - No config file needed
+   - Automatic purging of unused styles
+   - Components use Tailwind classes
+
+5. **Flexibility**
+   - Optional client-side hydration
+   - Progressive enhancement
+   - Full control over output
 
 ## Example Usage
 
 ### Plugin Registration
+
 ```typescript
 // In notes-plugin
+import { NoteCard, NotesListing, NoteEditor } from './components';
+
+// Static component
 context.viewRegistry.registerViewTemplate({
   name: "note-card",
   schema: noteCardSchema,
   renderers: {
-    web: "@brains/notes-plugin/components/NoteCard"
-  }
+    web: NoteCard  // Function reference!
+  },
+  interactive: false
 });
 
+// Interactive component
+context.viewRegistry.registerViewTemplate({
+  name: "note-editor",
+  schema: noteEditorSchema,
+  renderers: {
+    web: NoteEditor
+  },
+  interactive: true  // Will be hydrated on client
+});
+
+// Register a route
 context.viewRegistry.registerRoute({
   path: "/notes",
-  title: "Notes",
-  sections: [{
-    id: "notes-list",
-    template: "notes-listing",
-    contentEntity: { entityType: "note" }
-  }]
+  title: "My Notes",
+  sections: [
+    {
+      id: "notes-list",
+      template: "notes-listing",
+      contentEntity: { entityType: "note" }
+    }
+  ]
 });
 ```
 
-### Generated Component Registry
-```typescript
-// Auto-generated by astro-builder
-import hero from '@brains/default-site-plugin/components/HeroLayout';
-import features from '@brains/default-site-plugin/components/FeaturesLayout';
-import noteCard from '@brains/notes-plugin/components/NoteCard';
-import notesListing from '@brains/notes-plugin/components/NotesListing';
+### Site Builder Usage
 
-export const components = { hero, features, noteCard, notesListing };
+```typescript
+// Direct access to components
+const template = viewRegistry.getViewTemplate('note-card');
+const Component = template.renderers.web;  // The actual function!
+
+// Render it
+const html = render(<Component {...props} />);
+
+// Output: <div class="note-card">...</div>
 ```
 
 ## File Operations
 
-### Update
+### Create
+1. `packages/default-site-content/` - New content package (from default-site-plugin)
 
-1. `packages/types/src/views.ts` - Change WebRenderer to string type
-2. `packages/default-site-plugin/` - Refactor components and update registrations
-3. `packages/site-builder-plugin/` → `packages/astro-builder-plugin/`
-4. `packages/webserver-template/` - Update to use dynamic component loading
+### Update
+1. `packages/types/src/views.ts` - Add `interactive` field to ViewTemplate
+2. `packages/site-builder-plugin/` - Replace Astro with Preact SSR
+
+### Transform
+1. `packages/default-site-plugin/` → `packages/default-site-content/` (convert to pure content package)
+
+### Delete
+1. `packages/webserver-template/` - No longer needed (was Astro template)
+2. Astro-related dependencies from package.json files
 
 ### Archive
-
-1. `docs/preact-astro-integration-plan.md` → `docs/archive/`
-2. `docs/site-builder-decoupling-plan.md` → `docs/archive/`
-3. `docs/webserver-plugin-plan.md` → `docs/archive/`
-4. `docs/webserver-plugin-extension-plan.md` → `docs/archive/`
-
-### No Longer Needed
-
-1. Separate content packages - plugins are now self-contained
-2. Complex component registration - just use import paths
+1. All Astro-related documentation → `docs/archive/`
 
 ## Success Criteria
 
-- [ ] WebRenderer type updated to string-only
-- [ ] Plugins can register components with import paths
-- [ ] Astro builder discovers and imports components dynamically
-- [ ] Generated site includes components from multiple plugins
-- [ ] No circular dependencies in build
+- [ ] Site builder uses Preact SSR directly
+- [ ] Components are registered as function references
+- [ ] Static HTML/CSS/JS output works
+- [ ] No deployment dependencies
+- [ ] Optional hydration for interactive components
 - [ ] All tests pass
-- [ ] Documentation is updated
+- [ ] Documentation updated
 
 ## Current Status
 
 - [x] Plan created and approved
-- [x] Architecture simplified based on discussion
+- [x] Architecture evolved through discussion
+- [x] Final approach: Pure Preact SSR (no Astro)
+- [x] Tailwind CSS integration added
+- [x] Default site as content package (not plugin)
 - [ ] Phase 1: Update Type Definitions
-- [ ] Phase 2: Update Existing Plugin
-- [ ] Phase 3: Transform Site Builder
-- [ ] Phase 4: Handle Package Dependencies
-- [ ] Phase 5: Update Astro Templates
-- [ ] Phase 6: Content Management Tools
-- [ ] Phase 7: Migration and Cleanup
+- [ ] Phase 2: Transform Default Site to Content Package
+- [ ] Phase 3: Transform Site Builder Plugin
+- [ ] Phase 4: Implement Component Rendering & Styling
+- [ ] Phase 5: Content Management Tools
+- [ ] Phase 6: Build Process & Output
+- [ ] Phase 7: Cleanup
 
 ## Key Insights from Discussion
 
-1. **Circular dependency concern was unfounded** - Shell doesn't depend on plugins
-2. **String-based paths are simpler** - No need for complex component discovery
-3. **Workspace resolution solves deps** - Use `workspace:*` for development
-4. **One component per file** - Makes imports predictable and clean
+1. **Deployment killed the import approach** - Can't use workspace imports on server
+2. **Astro adds unnecessary complexity** - We can do SSR ourselves
+3. **Function references are the simplest** - Direct access, no imports
+4. **Hydration can be added later** - Start with pure SSR
 
-This architecture enables true plugin independence while keeping the implementation simple.
+This final architecture is the simplest possible solution that meets all requirements.
