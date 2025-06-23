@@ -75,12 +75,15 @@ export class ViewRegistry implements IViewRegistry {
 
   // ===== Renderer Access Methods =====
 
-  getRenderer(templateName: string, format: OutputFormat): WebRenderer | undefined {
+  getRenderer(
+    templateName: string,
+    format: OutputFormat,
+  ): WebRenderer | undefined {
     const template = this.viewTemplateRegistry.get(templateName);
     if (!template) {
       return undefined;
     }
-    
+
     return template.renderers[format];
   }
 
@@ -93,9 +96,9 @@ export class ViewRegistry implements IViewRegistry {
     if (!template) {
       return [];
     }
-    
+
     const formats: OutputFormat[] = [];
-    if (template.renderers.web) formats.push('web');
+    if (template.renderers.web) formats.push("web");
     // Future: if (template.renderers.pdf) formats.push('pdf');
     // Future: if (template.renderers.email) formats.push('email');
     return formats;

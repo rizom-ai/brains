@@ -86,15 +86,23 @@ class BlogPlugin extends ContentGeneratingPlugin {
     );
 
     // Register content types
+    const postSchema = z.object({
+      title: z.string(),
+      content: z.string(),
+      tags: z.array(z.string()),
+      author: z.string(),
+      publishedAt: z.string(),
+    });
+
     this.registerContentType("post", {
-      schema: z.object({
-        title: z.string(),
-        content: z.string(),
-        tags: z.array(z.string()),
-        author: z.string(),
-        publishedAt: z.string(),
-      }),
+      schema: postSchema,
       contentType: "blog-post",
+      template: {
+        name: "blog-post",
+        description: "Blog post content",
+        schema: postSchema,
+        basePrompt: "Generate a blog post about the given topic",
+      },
       formatter: this.createStructuredFormatter(
         (data: unknown) => {
           const typedData = data as {

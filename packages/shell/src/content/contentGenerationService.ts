@@ -6,7 +6,7 @@ import type {
   ContentGenerationService as IContentGenerationService,
 } from "@brains/types";
 
-import type { ContentTypeRegistry } from "./contentTypeRegistry";
+import type { ContentRegistry } from "./content-registry";
 import type { Logger } from "@brains/utils";
 import { generateWithTemplate } from "@brains/utils";
 
@@ -14,7 +14,7 @@ export class ContentGenerationService implements IContentGenerationService {
   private static instance: ContentGenerationService | null = null;
   private templates: Map<string, ContentTemplate<unknown>> = new Map();
   private queryProcessor: QueryProcessor | null = null;
-  private contentTypeRegistry: ContentTypeRegistry | null = null;
+  private contentRegistry: ContentRegistry | null = null;
   private logger: Logger | null = null;
 
   // Singleton access
@@ -43,11 +43,11 @@ export class ContentGenerationService implements IContentGenerationService {
    */
   public initialize(
     queryProcessor: QueryProcessor,
-    contentTypeRegistry: ContentTypeRegistry,
+    contentRegistry: ContentRegistry,
     logger: Logger,
   ): void {
     this.queryProcessor = queryProcessor;
-    this.contentTypeRegistry = contentTypeRegistry;
+    this.contentRegistry = contentRegistry;
     this.logger = logger;
   }
 
@@ -75,17 +75,17 @@ export class ContentGenerationService implements IContentGenerationService {
       resultType: typeof result,
     });
 
-    // Check that content type is registered
-    if (!this.contentTypeRegistry) {
+    // Check that content registry is initialized
+    if (!this.contentRegistry) {
       throw new Error(
-        "ContentGenerationService not initialized with ContentTypeRegistry",
+        "ContentGenerationService not initialized with ContentRegistry",
       );
     }
 
     // Debug logging
     this.logger?.debug("Checking for content type", {
       contentType: options.contentType,
-      registeredTypes: this.contentTypeRegistry.list(),
+      registeredTypes: this.contentRegistry.listContent(),
     });
 
     // Check if this is a collection item (has 3 parts: plugin:collection:item)
@@ -94,10 +94,10 @@ export class ContentGenerationService implements IContentGenerationService {
 
     if (
       !isCollectionItem &&
-      !this.contentTypeRegistry.has(options.contentType)
+      !this.contentRegistry.hasContent(options.contentType)
     ) {
       throw new Error(
-        `No schema registered for content type: ${options.contentType}`,
+        `No content registered for type: ${options.contentType}`,
       );
     }
 

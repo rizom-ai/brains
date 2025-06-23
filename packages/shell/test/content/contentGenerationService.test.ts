@@ -6,27 +6,30 @@ import { z } from "zod";
 import type { EntityService } from "../../src/entity/entityService";
 import type { AIService } from "../../src/ai/aiService";
 import type { BaseEntity } from "@brains/types";
-import type { ContentTypeRegistry } from "../../src/content/contentTypeRegistry";
+import type { ContentRegistry } from "../../src/content/content-registry";
 
 describe("ContentGenerationService", () => {
   let service: ContentGenerationService;
   let mockQueryProcessor: QueryProcessor;
-  let mockContentTypeRegistry: ContentTypeRegistry;
+  let mockContentRegistry: ContentRegistry;
 
   beforeEach(() => {
     // Reset singletons
     ContentGenerationService.resetInstance();
     QueryProcessor.resetInstance();
 
-    // Create mock for ContentTypeRegistry
-    mockContentTypeRegistry = {
-      has: mock(() => true), // Default to true since we're mocking registered types
-      register: mock(() => {}),
-      get: mock(() => null),
+    // Create mock for ContentRegistry  
+    mockContentRegistry = {
+      hasContent: mock(() => true), // Default to true since we're mocking registered types
+      registerContent: mock(() => {}),
+      getTemplate: mock(() => null),
       getFormatter: mock(() => null), // Return null to use default formatter
-      list: mock(() => []),
+      generateContent: mock(async () => ({})),
+      parseContent: mock(() => ({})),
+      formatContent: mock(() => ""),
+      listContent: mock(() => []),
       clear: mock(() => {}),
-    } as unknown as ContentTypeRegistry;
+    } as unknown as ContentRegistry;
 
     const mockAIService = {
       generateObject: mock(
@@ -118,6 +121,19 @@ describe("ContentGenerationService", () => {
       aiService: mockAIService as unknown as AIService,
     });
 
+    // Create mock ContentRegistry
+    mockContentRegistry = {
+      hasContent: mock(() => true),
+      listContent: mock(() => []),
+      registerContent: mock(() => {}),
+      getTemplate: mock(() => null),
+      getFormatter: mock(() => null),
+      generateContent: mock(async () => ({})),
+      parseContent: mock(() => ({})),
+      formatContent: mock(() => ""),
+      clear: mock(() => {}),
+    } as unknown as ContentRegistry;
+
     // Get service instance
     service = ContentGenerationService.getInstance();
   });
@@ -153,7 +169,7 @@ describe("ContentGenerationService", () => {
       expect(() =>
         service.initialize(
           mockQueryProcessor,
-          mockContentTypeRegistry,
+          mockContentRegistry,
           createSilentLogger("test"),
         ),
       ).not.toThrow();
@@ -178,7 +194,7 @@ describe("ContentGenerationService", () => {
     beforeEach(() => {
       service.initialize(
         mockQueryProcessor,
-        mockContentTypeRegistry,
+        mockContentRegistry,
         createSilentLogger("test"),
       );
     });
@@ -293,7 +309,7 @@ describe("ContentGenerationService", () => {
     it("should build enhanced prompt with all context", () => {
       service.initialize(
         mockQueryProcessor,
-        mockContentTypeRegistry,
+        mockContentRegistry,
         createSilentLogger("test"),
       );
 
@@ -325,7 +341,7 @@ describe("ContentGenerationService", () => {
     beforeEach(() => {
       service.initialize(
         mockQueryProcessor,
-        mockContentTypeRegistry,
+        mockContentRegistry,
         createSilentLogger("test"),
       );
     });
@@ -352,7 +368,7 @@ describe("ContentGenerationService", () => {
     beforeEach(() => {
       service.initialize(
         mockQueryProcessor,
-        mockContentTypeRegistry,
+        mockContentRegistry,
         createSilentLogger("test"),
       );
     });
@@ -431,7 +447,7 @@ describe("ContentGenerationService", () => {
     beforeEach(() => {
       service.initialize(
         mockQueryProcessor,
-        mockContentTypeRegistry,
+        mockContentRegistry,
         createSilentLogger("test"),
       );
     });
@@ -478,7 +494,7 @@ describe("ContentGenerationService", () => {
 
       service.initialize(
         errorQueryProcessor,
-        mockContentTypeRegistry,
+        mockContentRegistry,
         createSilentLogger("test"),
       );
 
@@ -498,7 +514,7 @@ describe("ContentGenerationService", () => {
     beforeEach(() => {
       service.initialize(
         mockQueryProcessor,
-        mockContentTypeRegistry,
+        mockContentRegistry,
         createSilentLogger("test"),
       );
     });

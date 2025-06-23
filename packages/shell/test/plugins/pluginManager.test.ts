@@ -132,23 +132,25 @@ describe("PluginManager", (): void => {
         hasAdapter: (): boolean => false,
         importRawEntity: async (): Promise<void> => undefined,
       }),
-      getContentTypeRegistry: (): {
-        register: (
-          contentType: string,
-          schema: unknown,
-          formatter?: unknown,
-        ) => void;
-        get: (contentType: string) => unknown;
-        list: (pluginId?: string) => string[];
-        has: (contentType: string) => boolean;
-        getFormatter: (contentType: string) => unknown;
+      getContentRegistry: (): {
+        registerContent: (name: string, config: unknown) => void;
+        getTemplate: (name: string) => unknown;
+        getFormatter: (name: string) => unknown;
+        generateContent: (templateName: string, context: unknown) => Promise<unknown>;
+        parseContent: (templateName: string, content: string) => unknown;
+        formatContent: (templateName: string, data: unknown) => string;
+        listContent: (namespace?: string) => string[];
+        hasContent: (name: string) => boolean;
         clear: () => void;
       } => ({
-        register: (): void => undefined,
-        get: (): null => null,
-        list: (): string[] => [],
-        has: (): boolean => false,
+        registerContent: (): void => undefined,
+        getTemplate: (): null => null,
         getFormatter: (): null => null,
+        generateContent: async (): Promise<unknown> => ({}),
+        parseContent: (): unknown => ({}),
+        formatContent: (): string => "",
+        listContent: (): string[] => [],
+        hasContent: (): boolean => false,
         clear: (): void => undefined,
       }),
       getContentGenerationService: (): {

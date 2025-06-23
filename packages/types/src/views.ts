@@ -57,7 +57,7 @@ export type WebRenderer<T = unknown> = ComponentType<T> | string;
 /**
  * Output format types
  */
-export type OutputFormat = 'web'; // | 'pdf' | 'email' in future
+export type OutputFormat = "web"; // | 'pdf' | 'email' in future
 
 /**
  * View template with support for multiple output formats
@@ -66,7 +66,7 @@ export interface ViewTemplate<T = unknown> {
   name: string;
   schema: z.ZodType<T>;
   description?: string;
-  
+
   // Format-specific renderers
   renderers: {
     web?: WebRenderer<T>;
@@ -111,9 +111,12 @@ export interface ViewRegistry {
   getViewTemplate(name: string): ViewTemplate<unknown> | undefined;
   listViewTemplates(): ViewTemplate<unknown>[];
   validateViewTemplate(templateName: string, content: unknown): boolean;
-  
+
   // Renderer access methods
-  getRenderer(templateName: string, format: OutputFormat): WebRenderer | undefined;
+  getRenderer(
+    templateName: string,
+    format: OutputFormat,
+  ): WebRenderer | undefined;
   hasRenderer(templateName: string, format: OutputFormat): boolean;
   listFormats(templateName: string): OutputFormat[];
 }

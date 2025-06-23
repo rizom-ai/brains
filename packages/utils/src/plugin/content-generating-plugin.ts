@@ -1,7 +1,9 @@
 import type {
   PluginContext,
   PluginTool,
-  ContentTypeRegistry,
+  ContentRegistry,
+  ContentConfig,
+  ContentTemplate,
   ContentFormatter,
 } from "@brains/types";
 import type { z } from "zod";
@@ -13,7 +15,8 @@ import { BasePlugin } from "./base-plugin";
 export interface ContentGenerationConfig<T = unknown> {
   schema: z.ZodType<T>;
   contentType: string;
-  formatter?: ContentFormatter<T>;
+  template: ContentTemplate<T>;
+  formatter: ContentFormatter<T>;
 }
 
 /**
@@ -22,24 +25,29 @@ export interface ContentGenerationConfig<T = unknown> {
 export abstract class ContentGeneratingPlugin<
   TConfig = unknown,
 > extends BasePlugin<TConfig> {
-  protected contentTypes: Map<string, ContentGenerationConfig<unknown>> =
-    new Map();
-  protected contentTypeRegistry?: ContentTypeRegistry;
+  protected contentTypes = new Map<string, ContentGenerationConfig<unknown>>();
+  protected contentRegistry?: ContentRegistry;
 
   /**
    * Register content types during plugin initialization
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
-    this.contentTypeRegistry = context.contentTypeRegistry;
+    this.contentRegistry = context.contentRegistry;
 
-    // Register all content types
+    // Register all content types with the new ContentRegistry
     for (const [key, config] of this.contentTypes) {
       this.debug(`Registering content type: ${config.contentType}`, { key });
-      this.contentTypeRegistry.register(
+      
+      const contentConfig: ContentConfig = {
+        template: config.template,
+        formatter: config.formatter,
+        schema: config.schema,
+      };
+      
+      this.contentRegistry.registerContent(
         config.contentType,
-        config.schema,
-        config.formatter,
+        contentConfig,
       );
       this.info(`Registered content type: ${config.contentType}`);
     }
@@ -57,7 +65,7 @@ export abstract class ContentGeneratingPlugin<
       config.contentType = `${this.id}:${config.contentType}`;
     }
 
-    this.contentTypes.set(key, config);
+    this.contentTypes.set(key, config as ContentGenerationConfig<unknown>);
   }
 
   /**
@@ -150,15 +158,15 @@ export abstract class ContentGeneratingPlugin<
   }
 
   /**
-   * Helper to create a formatter for structured content
+   * Helper to create a content formatter for structured content
    */
   protected createStructuredFormatter<T>(
     format: (data: T) => string,
     parse: (content: string) => T,
   ): ContentFormatter<T> {
     return {
-      format: (data: unknown): string => {
-        return format(data as T);
+      format: (data: T): string => {
+        return format(data);
       },
       parse: (content: string): T => {
         return parse(content);

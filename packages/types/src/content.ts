@@ -1,44 +1,76 @@
 import type { z } from "zod";
 import type { ContentFormatter } from "./formatters";
+import type { ContentTemplate } from "./plugin";
 
 /**
- * Registry for content types and their associated schemas and formatters
+ * Unified content configuration that combines template, schema, and formatter
  */
-export interface ContentTypeRegistry {
+export interface ContentConfig<T = unknown> {
   /**
-   * Register a schema for a content type with optional formatter
-   * Content types must be namespaced (e.g., "plugin:category:type")
+   * Content template with generation configuration
    */
-  register(
-    contentType: string,
-    schema: z.ZodType<unknown>,
-    formatter?: ContentFormatter<unknown>,
+  template: ContentTemplate<T>;
+  
+  /**
+   * Content formatter for bidirectional conversion
+   */
+  formatter: ContentFormatter<T>;
+  
+  /**
+   * Zod schema for validation (can be derived from template.schema)
+   */
+  schema: z.ZodType<T>;
+}
+
+/**
+ * Unified content registry that combines templates and formatters
+ */
+export interface ContentRegistry {
+  /**
+   * Register a content configuration
+   */
+  registerContent<T>(
+    name: string,
+    config: ContentConfig<T>,
   ): void;
 
   /**
-   * Get schema for a content type
+   * Get content template
    */
-  get(contentType: string): z.ZodType<unknown> | null;
+  getTemplate<T = unknown>(name: string): ContentTemplate<T> | null;
 
   /**
-   * List all registered content types
-   * Optionally filter by namespace
+   * Get content formatter
    */
-  list(namespace?: string): string[];
+  getFormatter<T = unknown>(name: string): ContentFormatter<T> | null;
 
   /**
-   * Check if a content type is registered
+   * Generate content using registered template
    */
-  has(contentType: string): boolean;
+  generateContent<T>(templateName: string, context: unknown): Promise<T>;
 
   /**
-   * Get formatter for a content type
+   * Parse content using registered formatter
    */
-  getFormatter<T = unknown>(contentType: string): ContentFormatter<T> | null;
+  parseContent<T>(templateName: string, content: string): T;
 
   /**
-   * Clear all registered schemas and formatters
-   * Useful for testing
+   * Format content using registered formatter
+   */
+  formatContent(templateName: string, data: unknown): string;
+
+  /**
+   * List all registered content names
+   */
+  listContent(namespace?: string): string[];
+
+  /**
+   * Check if content is registered
+   */
+  hasContent(name: string): boolean;
+
+  /**
+   * Clear all registrations
    */
   clear(): void;
 }

@@ -31,7 +31,7 @@ import {
   UpdateEntityResponseFormatter,
 } from "@brains/formatters";
 import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
-import { ContentGenerationService, ContentTypeRegistry } from "./content";
+import { ContentGenerationService, ContentRegistry } from "./content";
 import { queryResponseTemplate } from "./templates/query-response";
 
 /**
@@ -48,7 +48,7 @@ export interface ShellDependencies {
   registry?: Registry;
   entityRegistry?: EntityRegistry;
   schemaRegistry?: SchemaRegistry;
-  contentTypeRegistry?: ContentTypeRegistry;
+  contentRegistry?: ContentRegistry;
   formatterRegistry?: SchemaFormatterRegistry;
   messageBus?: MessageBus;
   viewRegistry?: ViewRegistry;
@@ -83,7 +83,7 @@ export class Shell {
   private readonly queryProcessor: QueryProcessor;
   private readonly aiService: AIService;
   private readonly contentGenerationService: ContentGenerationService;
-  private readonly contentTypeRegistry: ContentTypeRegistry;
+  private readonly contentRegistry: ContentRegistry;
   private readonly mcpServer: McpServer;
   private initialized = false;
 
@@ -261,17 +261,23 @@ export class Shell {
         aiService: this.aiService,
       });
 
-    this.contentTypeRegistry =
-      dependencies?.contentTypeRegistry ?? ContentTypeRegistry.getInstance();
+    this.contentRegistry =
+      dependencies?.contentRegistry ?? ContentRegistry.getInstance();
 
     this.contentGenerationService =
       dependencies?.contentGenerationService ??
       ContentGenerationService.getInstance();
 
+    // Initialize content registry with dependencies
+    this.contentRegistry.initialize(
+      this.contentGenerationService,
+      this.logger,
+    );
+
     // Initialize content generation service with dependencies
     this.contentGenerationService.initialize(
       this.queryProcessor,
-      this.contentTypeRegistry,
+      this.contentRegistry,
       this.logger,
     );
 
@@ -310,8 +316,8 @@ export class Shell {
       () => this.contentGenerationService,
     );
     this.registry.register(
-      "contentTypeRegistry",
-      () => this.contentTypeRegistry,
+      "contentRegistry",
+      () => this.contentRegistry,
     );
     this.registry.register("viewRegistry", () => this.viewRegistry);
     this.registry.register("mcpServer", () => this.mcpServer);
@@ -598,8 +604,8 @@ export class Shell {
     return this.contentGenerationService;
   }
 
-  public getContentTypeRegistry(): ContentTypeRegistry {
-    return this.contentTypeRegistry;
+  public getContentRegistry(): ContentRegistry {
+    return this.contentRegistry;
   }
 
   public getViewRegistry(): ViewRegistry {

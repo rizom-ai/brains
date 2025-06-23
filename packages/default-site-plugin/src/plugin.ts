@@ -63,6 +63,7 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
         this.registerContentType(key, {
           schema: template.schema,
           contentType: key,
+          template: template as ContentTemplate<unknown>,
           formatter: template.formatter,
         });
       }

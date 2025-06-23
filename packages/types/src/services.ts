@@ -8,7 +8,6 @@ import type {
   PluginTool,
   PluginResource,
 } from "./plugin";
-import type { ContentFormatter } from "./formatters";
 import type { z } from "zod";
 
 /**
@@ -404,23 +403,3 @@ export interface SchemaRegistry {
   clear(): void;
 }
 
-/**
- * Content Type Registry interface
- */
-export interface ContentTypeRegistry {
-  register(
-    contentType: string,
-    schema: z.ZodType<unknown>,
-    formatter?: ContentFormatter<unknown>,
-  ): void;
-
-  get(contentType: string): z.ZodType<unknown> | null;
-
-  list(namespace?: string): string[];
-
-  has(contentType: string): boolean;
-
-  getFormatter<T = unknown>(contentType: string): ContentFormatter<T> | null;
-
-  clear(): void;
-}

@@ -258,15 +258,6 @@ export class PluginTestHarness {
           results: [],
         } as T;
       },
-      contentTypes: {
-        register: (): void => {
-          // Mock implementation for test harness
-        },
-        list: (): string[] => {
-          // Return empty list for test harness
-          return [];
-        },
-      },
       contentTemplates: {
         register: (): void => {
           // Mock implementation for test harness
@@ -291,16 +282,23 @@ export class PluginTestHarness {
         // Renderer access methods
         getRenderer: (): undefined => undefined,
         hasRenderer: (): boolean => false,
-        listFormats: (): ('web')[] => [],
+        listFormats: (): "web"[] => [],
       },
       // Direct service access
       entityService: this.getEntityService() as EntityService,
-      contentTypeRegistry: {
-        register: (): void => undefined,
-        get: (): null => null,
-        list: (): string[] => [],
-        has: (): boolean => false,
+      contentRegistry: {
+        registerContent: (): void => undefined,
+        getTemplate: (): null => null,
         getFormatter: (): null => null,
+        generateContent: async <T>(): Promise<T> => {
+          throw new Error("generateContent not implemented in test harness");
+        },
+        parseContent: <T>(): T => {
+          throw new Error("parseContent not implemented in test harness");
+        },
+        formatContent: (): string => "",
+        listContent: (): string[] => [],
+        hasContent: (): boolean => false,
         clear: (): void => undefined,
       },
       contentGenerationService: {

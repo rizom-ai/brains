@@ -367,8 +367,8 @@ export class SiteBuilder implements ISiteBuilder {
     );
 
     // Get formatter for general context
-    const contentTypeRegistry = this.context.contentTypeRegistry;
-    const formatter = contentTypeRegistry.getFormatter("general-context");
+    const contentRegistry = this.context.contentRegistry;
+    const formatter = contentRegistry.getFormatter("default-site:general-context");
 
     // Format content using the appropriate formatter
     const formattedContent = formatter
@@ -406,7 +406,7 @@ export class SiteBuilder implements ISiteBuilder {
 
         if (entities.length > 0 && entities[0]) {
           // Parse content from entity using the formatter
-          const contentTypeRegistry = this.context.contentTypeRegistry;
+          const contentRegistry = this.context.contentRegistry;
 
           // Template names need to be fully qualified with plugin prefix
           const templateName = section.contentEntity.template ?? "";
@@ -415,7 +415,7 @@ export class SiteBuilder implements ISiteBuilder {
             : `default-site:${templateName}`;
 
           const formatter =
-            contentTypeRegistry.getFormatter(fullyQualifiedName);
+            contentRegistry.getFormatter(fullyQualifiedName);
 
           if (formatter?.parse) {
             // Extract content part without frontmatter for structured formatters

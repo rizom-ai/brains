@@ -66,7 +66,7 @@ export { PluginStatus, PluginEvent } from "./services";
 export type { SchemaFormatter, ContentFormatter } from "./formatters";
 
 // Content types
-export type { ContentTypeRegistry } from "./content";
+export type { ContentRegistry, ContentConfig } from "./content";
 
 // View types and schemas
 export type {

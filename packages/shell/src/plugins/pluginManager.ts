@@ -8,9 +8,7 @@ import type {
   SchemaFormatter,
   BaseEntity,
   ContentGenerateOptions,
-  ContentFormatter,
   ContentTemplate,
-  ContentTypeRegistry,
   PluginManager as IPluginManager,
   PluginInfo,
   PluginManagerEventMap,
@@ -237,7 +235,7 @@ export class PluginManager implements IPluginManager {
     const shell = this.registry.resolve<Shell>("shell");
     const formatterRegistry = shell.getFormatterRegistry();
     const entityService = shell.getEntityService();
-    const contentTypeRegistry = shell.getContentTypeRegistry();
+    const contentRegistry = shell.getContentRegistry();
     const contentGenerationService = shell.getContentGenerationService();
     const viewRegistry = shell.getViewRegistry();
 
@@ -304,44 +302,6 @@ export class PluginManager implements IPluginManager {
           );
         }
       },
-      contentTypes: {
-        register: (
-          contentType: string,
-          schema: z.ZodType<unknown>,
-          formatter?: ContentFormatter<unknown>,
-        ): void => {
-          try {
-            const contentTypeRegistry =
-              this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
-
-            // Always prefix with plugin ID to ensure proper namespacing
-            const namespacedType = `${pluginId}:${contentType}`;
-
-            contentTypeRegistry.register(namespacedType, schema, formatter);
-
-            this.logger.debug(`Registered content type: ${namespacedType}`);
-          } catch (error) {
-            this.logger.error("Failed to register content type", error);
-            throw new Error(
-              `Content type registration failed: ${error instanceof Error ? error.message : String(error)}`,
-            );
-          }
-        },
-        list: (): string[] => {
-          try {
-            const contentTypeRegistry =
-              this.registry.resolve<ContentTypeRegistry>("contentTypeRegistry");
-
-            // List only this plugin's content types
-            return contentTypeRegistry.list(pluginId);
-          } catch (error) {
-            this.logger.error("Failed to list content types", error);
-            throw new Error(
-              `Content type listing failed: ${error instanceof Error ? error.message : String(error)}`,
-            );
-          }
-        },
-      },
       contentTemplates: {
         register: <T>(name: string, template: ContentTemplate<T>): void => {
           try {
@@ -366,7 +326,7 @@ export class PluginManager implements IPluginManager {
       },
       // Direct service access
       entityService,
-      contentTypeRegistry,
+      contentRegistry,
       contentGenerationService,
       viewRegistry,
     };

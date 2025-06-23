@@ -7,7 +7,7 @@ import type { SchemaFormatter, ContentFormatter } from "./formatters";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { BaseEntity } from "./entities";
 import type { EntityService, ContentGenerationService } from "./services";
-import type { ContentTypeRegistry } from "./content";
+import type { ContentRegistry } from "./content";
 
 /**
  * Component type for layouts - framework agnostic
@@ -167,14 +167,6 @@ export interface PluginContext {
   events: EventEmitter;
   messageBus: MessageBus;
   formatters: FormatterRegistry;
-  contentTypes: {
-    register(
-      contentType: string,
-      schema: z.ZodType<unknown>,
-      formatter?: ContentFormatter<unknown>,
-    ): void;
-    list(): string[];
-  };
   contentTemplates: {
     register<T>(name: string, template: ContentTemplate<T>): void;
   };
@@ -186,7 +178,7 @@ export interface PluginContext {
   generateContent: <T>(options: ContentGenerateOptions<T>) => Promise<T>;
   // Direct service access
   entityService: EntityService;
-  contentTypeRegistry: ContentTypeRegistry;
+  contentRegistry: ContentRegistry;
   contentGenerationService: ContentGenerationService;
   viewRegistry: ViewRegistry;
 }
