@@ -1,15 +1,5 @@
 import { ResponseFormatter } from "./base";
-import { z } from "zod";
-
-const updateEntityResponseSchema = z.object({
-  id: z.string(),
-  entityType: z.string(),
-  title: z.string().optional(),
-  updated: z.union([z.string(), z.number(), z.date()]),
-  changes: z.array(z.string()).optional(),
-});
-
-type UpdateEntityResponse = z.infer<typeof updateEntityResponseSchema>;
+import { updateEntityResponseSchema, type UpdateEntityResponse } from "@brains/types";
 
 export class UpdateEntityResponseFormatter extends ResponseFormatter<UpdateEntityResponse> {
   format(data: UpdateEntityResponse): string {
@@ -21,15 +11,17 @@ export class UpdateEntityResponseFormatter extends ResponseFormatter<UpdateEntit
     const response = parsed.data;
     const parts: string[] = [];
 
-    parts.push(
-      `✅ Updated ${response.entityType}: **${response.title ?? response.id}**`,
-    );
-
-    if (response.changes && response.changes.length > 0) {
-      parts.push("\nChanges:");
-      response.changes.forEach((change) => {
-        parts.push(`- ${change}`);
-      });
+    if (response.success) {
+      parts.push(`✅ ${response.message} (ID: ${response.entityId})`);
+      
+      if (response.changes && response.changes.length > 0) {
+        parts.push("\nChanges:");
+        response.changes.forEach((change) => {
+          parts.push(`- ${change}`);
+        });
+      }
+    } else {
+      parts.push(`❌ ${response.message}`);
     }
 
     return parts.join("\n");

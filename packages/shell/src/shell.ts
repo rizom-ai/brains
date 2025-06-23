@@ -35,8 +35,9 @@ import {
 } from "@brains/formatters";
 import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
 import { ContentGenerationService, ContentRegistry } from "./content";
+import { GenericYamlFormatter } from "./content/formatters/genericYamlFormatter";
 import { DefaultYamlFormatter } from "./content/formatters/defaultYamlFormatter";
-import { queryResponseTemplate } from "./templates/query-response";
+import { queryResponseTemplate, type QueryResponse } from "./templates/query-response";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -425,10 +426,11 @@ export class Shell {
     this.logger.debug("Registering default templates");
 
     // Register query response template for public queries
-    this.contentGenerationService.registerTemplate(
-      "shell:query_response",
-      queryResponseTemplate,
-    );
+    this.contentRegistry.registerContent("shell:query_response", {
+      template: queryResponseTemplate,
+      formatter: new GenericYamlFormatter<QueryResponse>(), // Use typed generic YAML formatter
+      schema: queryResponseTemplate.schema,
+    });
 
     this.logger.debug("Default templates registered");
   }

@@ -1,14 +1,5 @@
 import { ResponseFormatter } from "./base";
-import { z } from "zod";
-
-const createEntityResponseSchema = z.object({
-  id: z.string(),
-  entityType: z.string(),
-  title: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-});
-
-type CreateEntityResponse = z.infer<typeof createEntityResponseSchema>;
+import { createEntityResponseSchema, type CreateEntityResponse } from "@brains/types";
 
 export class CreateEntityResponseFormatter extends ResponseFormatter<CreateEntityResponse> {
   format(data: CreateEntityResponse): string {
@@ -18,17 +9,12 @@ export class CreateEntityResponseFormatter extends ResponseFormatter<CreateEntit
     }
 
     const response = parsed.data;
-    const parts: string[] = [];
-
-    parts.push(
-      `✅ Created ${response.entityType}: **${response.title ?? response.id}**`,
-    );
-
-    if (response.tags && response.tags.length > 0) {
-      parts.push(`Tags: ${response.tags.map((t) => `\`${t}\``).join(" ")}`);
+    
+    if (response.success) {
+      return `✅ ${response.message}${response.entityId ? ` (ID: ${response.entityId})` : ''}`;
+    } else {
+      return `❌ ${response.message}`;
     }
-
-    return parts.join("\n");
   }
 
   canFormat(data: unknown): boolean {

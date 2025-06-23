@@ -79,8 +79,8 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
     // Register site-content entity type
     await this.registerEntityTypes(context);
 
-    // Register templates with the ContentGenerationService
-    await this.registerTemplates(context);
+    // Note: Templates are already registered by ContentGeneratingPlugin base class
+    // No need to register them again with ContentGenerationService
 
     // Register view templates
     await this.registerViewTemplates(context);
@@ -97,20 +97,6 @@ export class DefaultSitePlugin extends ContentGeneratingPlugin {
       siteContentAdapter,
     );
     this.logger?.debug("Registered site-content entity type");
-  }
-
-  private async registerTemplates(context: PluginContext): Promise<void> {
-    // Register templates with ContentGenerationService
-    for (const { key, template } of CONTENT_TEMPLATES) {
-      // Use the prefixed content type name that matches what was registered
-      const contentTypeName = `${this.id}:${key}`;
-      // Cast to unknown since we're storing heterogeneous templates in a single registry
-      context.contentGenerationService.registerTemplate(
-        contentTypeName,
-        template as ContentTemplate<unknown>,
-      );
-      this.logger?.debug(`Registered template: ${contentTypeName}`);
-    }
   }
 
   private async registerViewTemplates(context: PluginContext): Promise<void> {

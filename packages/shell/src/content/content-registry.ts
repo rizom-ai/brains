@@ -73,11 +73,17 @@ export class ContentRegistry implements IContentRegistry {
       );
     }
 
+    // Store config with type erasure for heterogeneous storage
     this.configs.set(name, config as ContentConfig<unknown>);
 
     // Also register the template with ContentGenerationService
     if (this.contentGenerationService) {
-      this.contentGenerationService.registerTemplate(name, config.template);
+      // Update template name to match the namespaced registration key
+      const templateWithCorrectName = {
+        ...config.template,
+        name: name,
+      };
+      this.contentGenerationService.registerTemplate(name, templateWithCorrectName);
     }
 
     this.logger?.debug(`Registered content: ${name}`);

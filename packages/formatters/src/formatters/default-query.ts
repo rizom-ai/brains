@@ -1,13 +1,5 @@
 import { ResponseFormatter } from "./base";
-import { z } from "zod";
-
-const defaultQueryResponseSchema = z.object({
-  message: z.string(),
-  sources: z.array(z.string()).optional().default([]),
-  relatedTopics: z.array(z.string()).optional().default([]),
-});
-
-type DefaultQueryResponse = z.infer<typeof defaultQueryResponseSchema>;
+import { defaultQueryResponseSchema, type DefaultQueryResponse } from "@brains/types";
 
 export class DefaultQueryResponseFormatter extends ResponseFormatter<DefaultQueryResponse> {
   format(data: DefaultQueryResponse): string {
@@ -22,19 +14,26 @@ export class DefaultQueryResponseFormatter extends ResponseFormatter<DefaultQuer
     // Main message
     parts.push(response.message);
 
+    // Summary
+    if (response.summary) {
+      parts.push(`\n*${response.summary}*`);
+    }
+
     // Sources
-    if (response.sources.length > 0) {
+    if (response.sources && response.sources.length > 0) {
       parts.push("\n**Sources:**");
       response.sources.forEach((source) => {
-        parts.push(`- ${source}`);
+        const relevanceStr = source.relevance ? ` (${Math.round(source.relevance * 100)}% relevant)` : "";
+        const excerptStr = source.excerpt ? `\n  > ${source.excerpt}` : "";
+        parts.push(`- [${source.type}] ${source.id}${relevanceStr}${excerptStr}`);
       });
     }
 
-    // Related topics
-    if (response.relatedTopics.length > 0) {
+    // Topics
+    if (response.topics && response.topics.length > 0) {
       parts.push("\n**Related Topics:**");
       parts.push(
-        response.relatedTopics.map((topic) => `\`${topic}\``).join(" "),
+        response.topics.map((topic) => `\`${topic}\``).join(" "),
       );
     }
 
