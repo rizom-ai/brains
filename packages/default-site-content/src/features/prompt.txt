@@ -4,9 +4,10 @@ The features section should have:
 - A compelling headline that highlights the key benefits
 - A brief description that summarizes what the system offers
 - Exactly 3 feature cards, where each feature includes:
-  - An icon (choose from: brain, lightning, lock, check, chart, users, rocket)
+  - An icon using Lucide icon names (examples: Brain, Search, Lock, Zap, BarChart3, Users, Rocket, Database, FileText, Shield, Star, Heart, etc.)
   - A concise title (2-4 words)
   - A brief description (1-2 sentences explaining the benefit)
 
+For icons, use actual Lucide React icon names (PascalCase). Choose icons that semantically match the feature.
 Focus on the core value propositions of knowledge management: organization, searchability, security, and intelligence.
 Make the features concrete and benefit-oriented.

@@ -15,8 +15,9 @@ Based on this context and available content, create:
   - Clear taglines that explain value
   - Concise descriptions (1-2 sentences)
   - Appropriate development status
-  - Relevant icon names (use simple identifiers like "brain", "network", "tools")
+  - Lucide icon names (examples: Brain, Network, Wrench, Globe, Database, Cpu, FileText, Zap, etc.)
   - Optional links if mentioned in content
 
+For icons, use actual Lucide React icon names (PascalCase) that semantically match each product.
 Ensure products align with the organization's mission and values.
 Make them concrete and understandable to the target audience.

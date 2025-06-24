@@ -108,6 +108,8 @@
       "dependencies": {
         "@brains/structured-content": "workspace:*",
         "@brains/types": "workspace:*",
+        "lucide-preact": "^0.460.0",
+        "preact": "^10.19.3",
         "zod": "^3.24.1",
       },
       "devDependencies": {
@@ -1584,6 +1586,8 @@
     "lru-cache": ["lru-cache@10.4.3", "", {}, "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ=="],
 
     "lru-queue": ["lru-queue@0.1.0", "", { "dependencies": { "es5-ext": "~0.10.2" } }, "sha512-BpdYkt9EvGl8OfWHDQPISVpcl5xZthb+XPsbELj5AQXxIC8IriDZIQYjBJPEm5rS420sjZ0TLEzRcq5KdBhYrQ=="],
+
+    "lucide-preact": ["lucide-preact@0.460.0", "", { "peerDependencies": { "preact": "^10.5.13" } }, "sha512-5wjHmK5PZrCg4wjlRUZOyhNSnUEMNW42f4fIn11s0K5COeSQpRLuPaH+QFrjz+1Me5DBgfBBL528rgD9ClFqCA=="],
 
     "magic-string": ["magic-string@0.30.17", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0" } }, "sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA=="],
 

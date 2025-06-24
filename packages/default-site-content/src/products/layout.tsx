@@ -1,4 +1,14 @@
 import type { ProductsSection } from "./schema";
+import * as LucideIcons from "lucide-preact";
+import type { LucideIcon } from "lucide-preact";
+
+const getIcon = (iconName: string): LucideIcon => {
+  // Get the icon component from Lucide, fallback to HelpCircle if not found
+  const IconComponent =
+    (LucideIcons as unknown as Record<string, LucideIcon>)[iconName] ??
+    LucideIcons.HelpCircle;
+  return IconComponent;
+};
 
 export const ProductsLayout = ({
   headline,
@@ -25,53 +35,46 @@ export const ProductsLayout = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="bg-theme-subtle rounded-2xl p-8 hover:bg-theme hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-brand-light"
-            >
-              <div className="flex items-start justify-between mb-6">
-                <div className="text-4xl">{product.icon}</div>
-                <span
-                  className={`px-3 py-1 text-xs font-semibold rounded-full ${statusColors[product.status]}`}
-                >
-                  {product.status}
-                </span>
-              </div>
-
-              <h3 className="text-2xl font-bold text-theme mb-2">
-                {product.name}
-              </h3>
-              <p className="text-sm font-semibold text-brand mb-4">
-                {product.tagline}
-              </p>
-              <p className="text-theme-muted leading-relaxed mb-6">
-                {product.description}
-              </p>
-
-              {product.link && (
-                <a
-                  href={product.link}
-                  className="inline-flex items-center text-brand font-semibold hover:text-brand transition-colors"
-                >
-                  Learn more
-                  <svg
-                    className="ml-1 w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+          {products.map((product) => {
+            const IconComponent = getIcon(product.icon);
+            return (
+              <div
+                key={product.id}
+                className="bg-theme-subtle rounded-2xl p-8 hover:bg-theme hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-brand-light"
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <div className="text-brand">
+                    <IconComponent size={48} />
+                  </div>
+                  <span
+                    className={`px-3 py-1 text-xs font-semibold rounded-full ${statusColors[product.status]}`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 5l7 7-7 7"
-                    ></path>
-                  </svg>
-                </a>
-              )}
-            </div>
-          ))}
+                    {product.status}
+                  </span>
+                </div>
+
+                <h3 className="text-2xl font-bold text-theme mb-2">
+                  {product.name}
+                </h3>
+                <p className="text-sm font-semibold text-brand mb-4">
+                  {product.tagline}
+                </p>
+                <p className="text-theme-muted leading-relaxed mb-6">
+                  {product.description}
+                </p>
+
+                {product.link && (
+                  <a
+                    href={product.link}
+                    className="inline-flex items-center text-brand font-semibold hover:text-brand transition-colors"
+                  >
+                    Learn more
+                    <LucideIcons.ChevronRight className="ml-1 w-4 h-4" />
+                  </a>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -180,7 +180,7 @@ export class PreactBuilder implements StaticSiteBuilder {
 
   private async processStyles(): Promise<void> {
     this.logger.info("Processing Tailwind CSS v4");
-    
+
     // Create the CSS input with Tailwind v4's import and theme variables
     const inputCSS = `@import "tailwindcss";
 
@@ -232,45 +232,58 @@ export class PreactBuilder implements StaticSiteBuilder {
   .border-brand-light { border-color: var(--color-brand-light); }
   .hover\\:border-brand-light:hover { border-color: var(--color-brand-light); }
   
-  /* Gradients */
-  .from-brand-dark { --tw-gradient-from: var(--color-brand-dark); }
-  .to-brand { --tw-gradient-to: var(--color-brand); }
+  /* Gradients - Tailwind v4 format */
+  .from-brand-dark { 
+    --tw-gradient-from: var(--color-brand-dark);
+    --tw-gradient-to: rgb(from var(--color-brand-dark) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .from-brand-light { 
+    --tw-gradient-from: var(--color-brand-light);
+    --tw-gradient-to: rgb(from var(--color-brand-light) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-brand { 
+    --tw-gradient-to: var(--color-brand);
+  }
+  .to-theme { 
+    --tw-gradient-to: var(--color-bg);
+  }
 }`;
-    
+
     // Create input file
     const inputPath = join(this.workingDir, "input.css");
     await fs.mkdir(this.workingDir, { recursive: true });
     await fs.writeFile(inputPath, inputCSS, "utf-8");
-    
+
     // Output path
     const outputPath = join(this.outputDir, "styles", "main.css");
-    
+
     try {
       // Use Tailwind CLI - this is the recommended approach for v4
       const { execSync } = await import("child_process");
-      
+
       // Build the command - v4 has automatic content detection
       // Run from the output directory so Tailwind can find the HTML files
       const relativeInputPath = join("..", relative(this.outputDir, inputPath));
       const relativeOutputPath = "styles/main.css";
       const command = `bunx @tailwindcss/cli -i "${relativeInputPath}" -o "${relativeOutputPath}"`;
-      
+
       this.logger.info(`Running Tailwind CSS v4 from ${this.outputDir}`);
       this.logger.debug(`Command: ${command}`);
-      
-      execSync(command, { 
+
+      execSync(command, {
         stdio: "inherit", // Let's see the output
-        cwd: this.outputDir // Run from output directory
+        cwd: this.outputDir, // Run from output directory
       });
-      
+
       this.logger.info("Tailwind CSS processed successfully");
-      
+
       // Clean up temp file
       await fs.unlink(inputPath).catch(() => {});
-      
     } catch (error) {
       this.logger.warn("Failed to process Tailwind CSS:", error);
-      
+
       // Fallback: write basic CSS that imports Tailwind
       // This won't have the optimizations but will work for development
       const fallbackCSS = `/* Tailwind CSS v4 - Fallback Mode */

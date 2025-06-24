@@ -30,7 +30,7 @@ export const CTALayout = ({
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
             href={primaryButton.link}
-            className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-brand bg-theme-inverse rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+            className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-theme bg-theme-inverse rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
           >
             {primaryButton.text}
             <svg
