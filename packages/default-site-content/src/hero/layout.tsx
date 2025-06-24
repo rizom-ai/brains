@@ -5,7 +5,7 @@ export const HeroLayout = ({
   subheadline,
   ctaText,
   ctaLink,
-}: LandingHeroData) => {
+}: LandingHeroData): JSX.Element => {
   return (
     <section className="hero-section py-20 md:py-32 text-center relative overflow-hidden">
       <div className="container mx-auto px-4 max-w-5xl relative z-10">

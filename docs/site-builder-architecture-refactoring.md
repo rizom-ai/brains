@@ -565,9 +565,9 @@ const app = App.create({
 - [x] Final approach: Pure Preact SSR (no Astro)
 - [x] Tailwind CSS integration added
 - [x] Default site as content package (not plugin)
-- [ ] Phase 1: Update Type Definitions
-- [ ] Phase 2: Transform Default Site to Content Package
-- [ ] Phase 3: Transform Site Builder Plugin
+- [x] Phase 1: Update Type Definitions
+- [x] Phase 2: Transform Default Site to Content Package
+- [x] Phase 3: Transform Site Builder Plugin
 - [ ] Phase 4: Implement Component Rendering & Styling
 - [ ] Phase 5: Content Management Tools
 - [ ] Phase 6: Build Process & Output

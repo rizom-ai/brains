@@ -23,7 +23,7 @@ export const SectionDefinitionSchema = z.object({
  * Route definition schema
  */
 export const RouteDefinitionSchema = z.object({
-  id: z.string().optional(), // Used for page in contentEntity queries
+  id: z.string(), // Used for page in contentEntity queries (required)
   path: z.string(),
   title: z.string(),
   description: z.string(),

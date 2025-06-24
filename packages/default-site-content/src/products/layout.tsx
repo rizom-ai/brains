@@ -4,7 +4,7 @@ export const ProductsLayout = ({
   headline,
   description,
   products,
-}: ProductsSection) => {
+}: ProductsSection): JSX.Element => {
   const statusColors = {
     live: "bg-green-100 text-green-800",
     beta: "bg-blue-100 text-blue-800",

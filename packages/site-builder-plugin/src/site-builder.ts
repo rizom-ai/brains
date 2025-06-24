@@ -212,18 +212,28 @@ export class SiteBuilder implements ISiteBuilder {
               z.object({}).passthrough(),
             );
 
-            // Get the formatter for this template
-            if (section.contentEntity.template) {
-              const templateName = section.contentEntity.template.includes(":")
-                ? section.contentEntity.template
-                : `site-builder:${section.contentEntity.template}`;
+            // Get the formatter for this template using section.template
+            if (section.template) {
+              // Templates are registered with site-builder prefix
+              const templateName = section.template.includes(":")
+                ? section.template
+                : `site-builder:${section.template}`;
 
               const formatter =
                 this.context.contentRegistry.getFormatter(templateName);
+
               if (formatter) {
                 // Use the formatter to parse markdown back to structured data
                 return formatter.parse(markdownBody);
+              } else {
+                this.logger.warn(
+                  `No formatter found for template: ${templateName}`,
+                );
               }
+            } else {
+              this.logger.warn(
+                `No template specified for section ${section.id}`,
+              );
             }
 
             // If no formatter found, return the markdown body

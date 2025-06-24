@@ -5,9 +5,14 @@ import type {
   PluginResource,
   SiteContent,
 } from "@brains/types";
-import { RouteDefinitionSchema, TemplateDefinitionSchema } from "@brains/types";
+import {
+  RouteDefinitionSchema,
+  TemplateDefinitionSchema,
+  siteContentSchema,
+} from "@brains/types";
 import { SiteBuilder } from "./site-builder";
 import { z } from "zod";
+import { siteContentAdapter } from "./entities/site-content-adapter";
 
 /**
  * Configuration schema for the site builder plugin
@@ -62,6 +67,14 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
 
+    // Register site-content entity type
+    context.registerEntityType(
+      "site-content",
+      siteContentSchema,
+      siteContentAdapter,
+    );
+    this.logger?.debug("Registered site-content entity type");
+
     // TODO: Move this registration logic to shell
     // The shell should handle template and route registration directly,
     // making this plugin purely focused on site building functionality
@@ -106,9 +119,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             contentEntity: {
               entityType: "site-content",
               query: {
-                page: route.id || "landing",
+                page: route.id,
                 section: section.id,
-                environment: this.config.environment || "preview",
+                environment: this.config.environment ?? "preview",
               },
             },
           })),
@@ -217,19 +230,17 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                 }
 
                 // Get the content template
-                if (!section.contentEntity.template) {
+                if (!section.template) {
                   this.logger?.warn(
                     `No template specified for section ${section.id}`,
                   );
                   continue;
                 }
 
-                // Templates are registered with plugin prefix, so construct the full name
-                const templateName = section.contentEntity.template.includes(
-                  ":",
-                )
-                  ? section.contentEntity.template
-                  : `default-site:${section.contentEntity.template}`;
+                // Templates are registered with site-builder prefix
+                const templateName = section.template.includes(":")
+                  ? section.template
+                  : `site-builder:${section.template}`;
 
                 const template =
                   this.context.contentGenerationService.getTemplate(

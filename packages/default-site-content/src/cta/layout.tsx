@@ -5,7 +5,7 @@ export const CTALayout = ({
   description,
   primaryButton,
   secondaryButton,
-}: CTASection) => {
+}: CTASection): JSX.Element => {
   return (
     <section className="relative py-16 md:py-24 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary-purple-dark to-primary-purple"></div>
