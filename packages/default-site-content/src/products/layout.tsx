@@ -13,13 +13,13 @@ export const ProductsLayout = ({
   };
 
   return (
-    <section className="py-16 md:py-24 bg-white">
+    <section className="py-16 md:py-24 bg-theme">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-text-dark mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-theme mb-4">
             {headline}
           </h2>
-          <p className="text-xl text-text-gray max-w-3xl mx-auto">
+          <p className="text-xl text-theme-muted max-w-3xl mx-auto">
             {description}
           </p>
         </div>
@@ -28,7 +28,7 @@ export const ProductsLayout = ({
           {products.map((product) => (
             <div
               key={product.id}
-              className="bg-gray-50 rounded-2xl p-8 hover:bg-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-primary-purple-light"
+              className="bg-theme-subtle rounded-2xl p-8 hover:bg-theme hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-brand-light"
             >
               <div className="flex items-start justify-between mb-6">
                 <div className="text-4xl">{product.icon}</div>
@@ -39,20 +39,20 @@ export const ProductsLayout = ({
                 </span>
               </div>
 
-              <h3 className="text-2xl font-bold text-text-dark mb-2">
+              <h3 className="text-2xl font-bold text-theme mb-2">
                 {product.name}
               </h3>
-              <p className="text-sm font-semibold text-primary-purple mb-4">
+              <p className="text-sm font-semibold text-brand mb-4">
                 {product.tagline}
               </p>
-              <p className="text-text-gray leading-relaxed mb-6">
+              <p className="text-theme-muted leading-relaxed mb-6">
                 {product.description}
               </p>
 
               {product.link && (
                 <a
                   href={product.link}
-                  className="inline-flex items-center text-primary-purple font-semibold hover:text-primary-purple-dark transition-colors"
+                  className="inline-flex items-center text-brand font-semibold hover:text-brand transition-colors"
                 >
                   Learn more
                   <svg

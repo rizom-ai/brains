@@ -6,13 +6,13 @@ export const FeaturesLayout = ({
   features,
 }: FeaturesSection): JSX.Element => {
   return (
-    <section className="py-16 md:py-24 bg-gray-50">
+    <section className="py-16 md:py-24 bg-theme-subtle">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-text-dark mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-theme mb-4">
             {headline}
           </h2>
-          <p className="text-xl text-text-gray max-w-3xl mx-auto">
+          <p className="text-xl text-theme-muted max-w-3xl mx-auto">
             {description}
           </p>
         </div>
@@ -21,13 +21,13 @@ export const FeaturesLayout = ({
           {features.map((feature, index) => (
             <div
               key={index}
-              className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
+              className="bg-theme rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="text-4xl mb-4">{feature.icon}</div>
-              <h3 className="text-xl font-semibold text-text-dark mb-2">
+              <h3 className="text-xl font-semibold text-theme mb-2">
                 {feature.title}
               </h3>
-              <p className="text-text-gray">{feature.description}</p>
+              <p className="text-theme-muted">{feature.description}</p>
             </div>
           ))}
         </div>

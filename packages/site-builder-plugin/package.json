@@ -16,7 +16,8 @@
     "preact": "^10.19.3",
     "preact-render-to-string": "^6.3.1",
     "esbuild": "^0.19.11",
-    "tailwindcss": "^3.4.0",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/cli": "^4.0.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

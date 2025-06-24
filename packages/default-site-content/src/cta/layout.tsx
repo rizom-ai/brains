@@ -8,7 +8,7 @@ export const CTALayout = ({
 }: CTASection): JSX.Element => {
   return (
     <section className="relative py-16 md:py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-purple-dark to-primary-purple"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-brand-dark to-brand"></div>
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div
           className="absolute inset-0"
@@ -21,16 +21,16 @@ export const CTALayout = ({
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 text-center">
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-theme-inverse mb-6">
           {headline}
         </h2>
-        <p className="text-xl md:text-2xl text-purple-100 mb-10 max-w-3xl mx-auto leading-relaxed">
+        <p className="text-xl md:text-2xl text-brand-light mb-10 max-w-3xl mx-auto leading-relaxed">
           {description}
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
             href={primaryButton.link}
-            className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-primary-purple bg-white rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+            className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-brand bg-theme-inverse rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
           >
             {primaryButton.text}
             <svg
@@ -50,7 +50,7 @@ export const CTALayout = ({
           {secondaryButton && (
             <a
               href={secondaryButton.link}
-              className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-white border-2 border-white/80 rounded-2xl hover:bg-white hover:text-primary-purple hover:border-white transition-all duration-300"
+              className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-theme-inverse border-2 border-white/80 rounded-2xl hover:bg-theme-inverse hover:text-brand hover:border-theme-inverse transition-all duration-300"
             >
               {secondaryButton.text}
               <svg

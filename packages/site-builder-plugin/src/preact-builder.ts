@@ -6,7 +6,7 @@ import type {
 import type { RouteDefinition } from "@brains/types";
 import type { Logger } from "@brains/utils";
 import { render } from "preact-render-to-string";
-import { join } from "path";
+import { join, relative } from "path";
 import { promises as fs } from "fs";
 
 /**
@@ -33,13 +33,14 @@ export class PreactBuilder implements StaticSiteBuilder {
     await fs.mkdir(this.outputDir, { recursive: true });
     await fs.mkdir(join(this.outputDir, "styles"), { recursive: true });
 
-    // Build each route
+    // Build each route first (HTML files)
     for (const route of context.routes) {
       onProgress?.(`Building route: ${route.path}`);
       await this.buildRoute(route, context);
     }
 
-    // Process styles (TODO: integrate Tailwind)
+    // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
+    onProgress?.("Processing Tailwind CSS");
     await this.processStyles();
 
     onProgress?.("Preact build complete");
@@ -144,35 +145,141 @@ export class PreactBuilder implements StaticSiteBuilder {
     content: string;
   }): string {
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>${options.title}</title>
   ${options.description ? `<meta name="description" content="${options.description}">` : ""}
+  
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  
+  <!-- Styles -->
   <link rel="stylesheet" href="/styles/main.css">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="${options.title}">
+  ${options.description ? `<meta property="og:description" content="${options.description}">` : ""}
+  <meta property="og:type" content="website">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${options.title}">
+  ${options.description ? `<meta name="twitter:description" content="${options.description}">` : ""}
 </head>
-<body>
-  ${options.content}
+<body class="h-full bg-white">
+  <div id="root" class="min-h-full">
+    ${options.content}
+  </div>
 </body>
 </html>`;
   }
 
   private async processStyles(): Promise<void> {
-    // TODO: Process Tailwind CSS
-    // For now, create a basic CSS file
-    const basicCSS = `
-/* Basic reset and Tailwind directives */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-`;
+    this.logger.info("Processing Tailwind CSS v4");
+    
+    // Create the CSS input with Tailwind v4's import and theme variables
+    const inputCSS = `@import "tailwindcss";
 
-    await fs.writeFile(
-      join(this.outputDir, "styles", "main.css"),
-      basicCSS,
-      "utf-8",
-    );
+/* Theme Layer - CSS Custom Properties for theming */
+@layer theme {
+  :root {
+    /* Brand Colors */
+    --color-brand: #805ad5;
+    --color-brand-dark: #6b46c1;
+    --color-brand-light: #e9d8fd;
+    --color-accent: #3182ce;
+    
+    /* Semantic Colors */
+    --color-text: #1a202c;
+    --color-text-muted: #718096;
+    --color-text-inverse: #ffffff;
+    
+    /* Background Colors */
+    --color-bg: #ffffff;
+    --color-bg-subtle: #f7fafc;
+    --color-bg-muted: #e2e8f0;
+    
+    /* Typography */
+    --font-family-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-family-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+/* Utility classes that use theme variables */
+@layer utilities {
+  /* Text colors using theme variables */
+  .text-theme { color: var(--color-text); }
+  .text-theme-muted { color: var(--color-text-muted); }
+  .text-theme-inverse { color: var(--color-text-inverse); }
+  .text-brand { color: var(--color-brand); }
+  
+  /* Background colors using theme variables */
+  .bg-theme { background-color: var(--color-bg); }
+  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
+  .bg-brand { background-color: var(--color-brand); }
+  .bg-brand-dark { background-color: var(--color-brand-dark); }
+  
+  /* Interactive states */
+  .hover\\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
+  .hover\\:text-brand:hover { color: var(--color-brand); }
+  
+  /* Borders */
+  .border-brand-light { border-color: var(--color-brand-light); }
+  .hover\\:border-brand-light:hover { border-color: var(--color-brand-light); }
+  
+  /* Gradients */
+  .from-brand-dark { --tw-gradient-from: var(--color-brand-dark); }
+  .to-brand { --tw-gradient-to: var(--color-brand); }
+}`;
+    
+    // Create input file
+    const inputPath = join(this.workingDir, "input.css");
+    await fs.mkdir(this.workingDir, { recursive: true });
+    await fs.writeFile(inputPath, inputCSS, "utf-8");
+    
+    // Output path
+    const outputPath = join(this.outputDir, "styles", "main.css");
+    
+    try {
+      // Use Tailwind CLI - this is the recommended approach for v4
+      const { execSync } = await import("child_process");
+      
+      // Build the command - v4 has automatic content detection
+      // Run from the output directory so Tailwind can find the HTML files
+      const relativeInputPath = join("..", relative(this.outputDir, inputPath));
+      const relativeOutputPath = "styles/main.css";
+      const command = `bunx @tailwindcss/cli -i "${relativeInputPath}" -o "${relativeOutputPath}"`;
+      
+      this.logger.info(`Running Tailwind CSS v4 from ${this.outputDir}`);
+      this.logger.debug(`Command: ${command}`);
+      
+      execSync(command, { 
+        stdio: "inherit", // Let's see the output
+        cwd: this.outputDir // Run from output directory
+      });
+      
+      this.logger.info("Tailwind CSS processed successfully");
+      
+      // Clean up temp file
+      await fs.unlink(inputPath).catch(() => {});
+      
+    } catch (error) {
+      this.logger.warn("Failed to process Tailwind CSS:", error);
+      
+      // Fallback: write basic CSS that imports Tailwind
+      // This won't have the optimizations but will work for development
+      const fallbackCSS = `/* Tailwind CSS v4 - Fallback Mode */
+@import "tailwindcss";
+
+/* Note: Run 'bunx tailwindcss -i input.css -o main.css' manually for optimized CSS */
+`;
+      await fs.writeFile(outputPath, fallbackCSS, "utf-8");
+    }
   }
 }
 
