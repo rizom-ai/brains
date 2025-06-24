@@ -1,0 +1,13 @@
+{
+  "extends": "@brains/typescript-config/base.json",
+  "compilerOptions": {
+    "jsx": "preserve"
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

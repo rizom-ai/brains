@@ -102,6 +102,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "packages/default-site-content": {
+      "name": "@brains/default-site-content",
+      "version": "0.0.1",
+      "dependencies": {
+        "@brains/structured-content": "workspace:*",
+        "@brains/types": "workspace:*",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.1.17",
+        "eslint": "^8.48.0",
+        "typescript": "^5.7.3",
+      },
+    },
     "packages/default-site-plugin": {
       "name": "@brains/default-site-plugin",
       "version": "0.0.1",
@@ -473,6 +489,8 @@
     "@brains/cli": ["@brains/cli@workspace:packages/cli"],
 
     "@brains/db": ["@brains/db@workspace:packages/db"],
+
+    "@brains/default-site-content": ["@brains/default-site-content@workspace:packages/default-site-content"],
 
     "@brains/default-site-plugin": ["@brains/default-site-plugin@workspace:packages/default-site-plugin"],
 

@@ -23,6 +23,7 @@ export const SectionDefinitionSchema = z.object({
  * Route definition schema
  */
 export const RouteDefinitionSchema = z.object({
+  id: z.string().optional(), // Used for page in contentEntity queries
   path: z.string(),
   title: z.string(),
   description: z.string().optional(),
@@ -74,6 +75,9 @@ export interface ViewTemplate<T = unknown> {
     // pdf?: PDFRenderer<T>;
     // email?: EmailRenderer<T>;
   };
+
+  // Mark components that need client-side hydration
+  interactive?: boolean;
 }
 
 /**

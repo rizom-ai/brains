@@ -1,0 +1,12 @@
+Generate a features section for a personal knowledge management system.
+The features section should have:
+- A clear label (typically "Features")
+- A compelling headline that highlights the key benefits
+- A brief description that summarizes what the system offers
+- Exactly 3 feature cards, where each feature includes:
+  - An icon (choose from: brain, lightning, lock, check, chart, users, rocket)
+  - A concise title (2-4 words)
+  - A brief description (1-2 sentences explaining the benefit)
+
+Focus on the core value propositions of knowledge management: organization, searchability, security, and intelligence.
+Make the features concrete and benefit-oriented.

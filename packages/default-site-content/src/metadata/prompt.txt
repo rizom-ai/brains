@@ -1,0 +1,5 @@
+Generate metadata for a landing page. Include:
+- A compelling title that captures the essence of the site
+- A tagline that summarizes the value proposition
+
+Keep it concise and impactful.
