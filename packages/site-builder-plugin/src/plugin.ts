@@ -5,6 +5,7 @@ import type {
   PluginResource,
   SiteContent,
 } from "@brains/types";
+import { RouteDefinitionSchema, TemplateDefinitionSchema } from "@brains/types";
 import { SiteBuilder } from "./site-builder";
 import { z } from "zod";
 
@@ -25,6 +26,15 @@ const siteBuilderConfigSchema = z.object({
       description: "A knowledge management system",
     })
     .optional(),
+  templates: z
+    .record(TemplateDefinitionSchema)
+    .optional()
+    .describe("Template definitions to register"),
+  routes: z
+    .array(RouteDefinitionSchema)
+    .optional()
+    .describe("Routes to register"),
+  environment: z.enum(["preview", "production"]).default("preview").optional(),
 });
 
 type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema>;
@@ -51,6 +61,60 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
+
+    // TODO: Move this registration logic to shell
+    // The shell should handle template and route registration directly,
+    // making this plugin purely focused on site building functionality
+
+    // Register templates if provided
+    if (this.config.templates) {
+      Object.values(this.config.templates).forEach((template) => {
+        // Register with ContentRegistry (for AI generation)
+        context.contentRegistry.registerContent(`${this.id}:${template.name}`, {
+          template: {
+            name: template.name,
+            description: template.description,
+            schema: template.schema,
+            basePrompt: template.prompt,
+            formatter: template.formatter,
+          },
+          formatter: template.formatter,
+          schema: template.schema,
+        });
+
+        // Register with ViewRegistry (for rendering)
+        if (template.component) {
+          context.viewRegistry.registerViewTemplate({
+            name: template.name,
+            schema: template.schema,
+            description: template.description,
+            renderers: { web: template.component },
+            interactive: template.interactive,
+          });
+        }
+      });
+    }
+
+    // Register routes if provided
+    if (this.config.routes) {
+      this.config.routes.forEach((route) => {
+        // Add convention-based contentEntity
+        context.viewRegistry.registerRoute({
+          ...route,
+          sections: route.sections.map((section) => ({
+            ...section,
+            contentEntity: {
+              entityType: "site-content",
+              query: {
+                page: route.id || "landing",
+                section: section.id,
+                environment: this.config.environment || "preview",
+              },
+            },
+          })),
+        });
+      });
+    }
 
     // Initialize the site builder with plugin context
     this.siteBuilder = SiteBuilder.getInstance(

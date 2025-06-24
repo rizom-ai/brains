@@ -134,11 +134,11 @@ export interface ViewTemplate<T = unknown> {
 
    ```typescript
    // src/hero/index.ts
-   import { HeroLayout } from './layout';
-   import { LandingHeroDataSchema } from './schema';
-   import { HeroSectionFormatter } from './formatter';
+   import { HeroLayout } from "./layout";
+   import { LandingHeroDataSchema } from "./schema";
+   import { HeroSectionFormatter } from "./formatter";
    // Read prompt.txt and include as string
-   
+
    export const heroTemplate = {
      name: "hero",
      description: "Hero section with headline and call-to-action",
@@ -148,12 +148,12 @@ export interface ViewTemplate<T = unknown> {
      prompt: `Generate a hero section...`,
      interactive: false,
    };
-   
+
    // src/templates.ts - Collect all templates
-   import { heroTemplate } from './hero';
-   import { featuresTemplate } from './features';
-   import { productsTemplate } from './products';
-   
+   import { heroTemplate } from "./hero";
+   import { featuresTemplate } from "./features";
+   import { productsTemplate } from "./products";
+
    export const templates = {
      hero: heroTemplate,
      features: featuresTemplate,
@@ -163,7 +163,7 @@ export interface ViewTemplate<T = unknown> {
    // src/routes.ts - Simplified route structure
    export const routes: RouteDefinition[] = [
      {
-       id: "landing",     // Used for page in contentEntity query
+       id: "landing", // Used for page in contentEntity query
        path: "/",
        title: "Home",
        description: "Welcome to your Personal Brain",
@@ -172,12 +172,13 @@ export interface ViewTemplate<T = unknown> {
          { id: "features", template: "features" },
          { id: "products", template: "products" },
          { id: "cta", template: "cta" },
-       ]
-     }
+       ],
+     },
    ];
    ```
 
 3. Each template directory contains:
+
    - `layout.tsx` - Preact component for rendering
    - `schema.ts` - Zod schema for validation
    - `formatter.ts` - Markdown/structured data conversion
@@ -190,59 +191,69 @@ export interface ViewTemplate<T = unknown> {
 ### Phase 3: Transform Site Builder Plugin
 
 1. Remove Astro dependencies
-2. Import default content and register it:
+2. Update plugin to accept templates and routes as configuration:
 
    ```typescript
-   import { render } from "preact-render-to-string";
-   import { templates, routes } from "@brains/default-site-content";
+   // Plugin configuration schema
+   const siteBuilderConfigSchema = z.object({
+     outputDir: z.string(),
+     workingDir: z.string().optional(),
+     siteConfig: z.object({...}).optional(),
+     templates: z.record(z.any()).optional(),        // Template definitions
+     routes: z.array(RouteDefinitionSchema).optional(), // Route definitions
+   });
 
    class SiteBuilderPlugin extends BasePlugin {
      async onRegister(context: PluginContext) {
-       // Register content templates (for AI generation)
-       Object.values(templates).forEach(template => {
-         context.contentRegistry.registerTemplate(template.name, {
-           template: {
-             name: template.name,
-             description: template.description,
-             schema: template.schema,
-             basePrompt: template.prompt,
+       // Register templates if provided in config
+       if (this.config.templates) {
+         Object.values(this.config.templates).forEach((template) => {
+           // Register with ContentRegistry (for AI generation)
+           context.contentRegistry.registerTemplate(template.name, {
+             template: {
+               name: template.name,
+               description: template.description,
+               schema: template.schema,
+               basePrompt: template.prompt,
+               formatter: template.formatter,
+             },
              formatter: template.formatter,
-           },
-           formatter: template.formatter,
-           schema: template.schema,
-         });
-       });
-       
-       // Register view templates (for rendering)
-       Object.values(templates).forEach(template => {
-         if (template.component) {
-           context.viewRegistry.registerViewTemplate({
-             name: template.name,
              schema: template.schema,
-             description: template.description,
-             renderers: { web: template.component },
-             interactive: template.interactive,
            });
-         }
-       });
 
-       // Register routes with convention-based contentEntity
-       routes.forEach(route => {
-         context.viewRegistry.registerRoute({
-           ...route,
-           sections: route.sections.map(section => ({
-             ...section,
-             contentEntity: {
-               entityType: "site-content",
-               query: {
-                 page: route.id,
-                 section: section.id,
-                 environment: this.config.environment || "preview",
-               }
-             }
-           }))
+           // Register with ViewRegistry (for rendering)
+           if (template.component) {
+             context.viewRegistry.registerViewTemplate({
+               name: template.name,
+               schema: template.schema,
+               description: template.description,
+               renderers: { web: template.component },
+               interactive: template.interactive,
+             });
+           }
          });
-       });
+       }
+
+       // Register routes if provided in config
+       if (this.config.routes) {
+         this.config.routes.forEach((route) => {
+           // Add convention-based contentEntity
+           context.viewRegistry.registerRoute({
+             ...route,
+             sections: route.sections.map((section) => ({
+               ...section,
+               contentEntity: {
+                 entityType: "site-content",
+                 query: {
+                   page: route.id || "landing",
+                   section: section.id,
+                   environment: this.config.environment || "preview",
+                 },
+               },
+             })),
+           });
+         });
+       }
      }
 
      async buildSite(options: BuildOptions) {
@@ -326,6 +337,7 @@ export interface ViewTemplate<T = unknown> {
 ### Phase 4: Optional Client-Side Hydration
 
 1. Bundle interactive components only:
+
    ```typescript
    async bundleClientCode() {
      const interactive = this.getInteractiveTemplates();
@@ -355,6 +367,7 @@ Implement as plugin tools in site-builder-plugin.
 ### Phase 6: Build Process & Output
 
 1. Complete build flow:
+
    ```typescript
    async build(options: BuildOptions) {
      // 1. Render all pages
@@ -421,9 +434,17 @@ Implement as plugin tools in site-builder-plugin.
    - Components use Tailwind classes
 
 6. **Flexibility**
+
    - Optional client-side hydration
    - Progressive enhancement
    - Full control over output
+
+7. **Clean App Configuration**
+
+   - Apps control which templates to use
+   - Site-builder plugin remains generic
+   - Easy to swap different template sets
+   - No need for separate registration logic
 
 ## Example Usage
 
@@ -478,6 +499,29 @@ const Component = template.renderers.web;  // The actual function!
 const html = render(<Component {...props} />);
 
 // Output: <div class="note-card">...</div>
+```
+
+### App Configuration
+
+```typescript
+// In test-brain or other apps
+import { templates, routes } from "@brains/default-site-content";
+import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+
+// Configure the app with plugins
+const app = App.create({
+  name: "test-brain",
+  plugins: [
+    // Site builder with default content
+    siteBuilderPlugin({
+      outputDir: process.env["WEBSITE_OUTPUT_DIR"],
+      workingDir: process.env["WEBSITE_WORKING_DIR"],
+      templates, // Pass templates from default-site-content
+      routes, // Pass routes from default-site-content
+    }),
+    // No longer need DefaultSitePlugin!
+  ],
+});
 ```
 
 ## File Operations

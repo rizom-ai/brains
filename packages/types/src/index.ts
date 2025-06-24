@@ -72,6 +72,7 @@ export type { ContentRegistry, ContentConfig } from "./content";
 export type {
   RouteDefinition,
   SectionDefinition,
+  TemplateDefinition,
   ViewTemplate,
   OutputFormat,
   WebRenderer,
@@ -86,6 +87,7 @@ export type {
 export {
   RouteDefinitionSchema,
   SectionDefinitionSchema,
+  TemplateDefinitionSchema,
   ViewTemplateSchema,
   SiteBuilderOptionsSchema,
   BuildResultSchema,

@@ -27,7 +27,7 @@
     "@brains/app": "workspace:*",
     "@brains/cli": "workspace:*",
     "@brains/db": "workspace:*",
-    "@brains/default-site-plugin": "workspace:*",
+    "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/webserver": "workspace:*"

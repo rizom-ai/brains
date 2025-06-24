@@ -9,11 +9,13 @@ import type { BaseEntity } from "./entities";
 import type { EntityService, ContentGenerationService } from "./services";
 import type { ContentRegistry } from "./content";
 
+import type { VNode } from "preact";
+
 /**
- * Component type for layouts - framework agnostic
- * Compatible with React, Preact, Solid, etc.
+ * Component type for layouts - using Preact
+ * Returns a Preact VNode
  */
-export type ComponentType<P = unknown> = (props: P) => unknown;
+export type ComponentType<P = unknown> = (props: P) => VNode;
 
 import type { ViewRegistry } from "./views";
 

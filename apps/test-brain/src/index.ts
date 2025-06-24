@@ -1,7 +1,7 @@
 import { App, getMatrixInterfaceFromEnv } from "@brains/app";
 import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
-import { DefaultSitePlugin } from "@brains/default-site-plugin";
+import { templates, routes } from "@brains/default-site-content";
 
 // Run the app - command line args are parsed automatically by App
 // Usage:
@@ -75,9 +75,9 @@ async function main(): Promise<void> {
               outputDir: process.env["WEBSITE_OUTPUT_DIR"],
               workingDir:
                 process.env["WEBSITE_WORKING_DIR"] ?? "/tmp/site-builder",
+              templates, // Pass templates from default-site-content
+              routes, // Pass routes from default-site-content
             }),
-            // Default site plugin provides the default website structure
-            new DefaultSitePlugin(),
           ]
         : []),
       // Future: noteContext(), taskContext(), etc.

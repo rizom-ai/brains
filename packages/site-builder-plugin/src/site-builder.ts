@@ -1,27 +1,26 @@
 import type { ProgressCallback, Logger } from "@brains/utils";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter, parseMarkdownWithFrontmatter } from "@brains/utils";
 import type {
   SiteBuilder as ISiteBuilder,
   SiteBuilderOptions,
   BuildResult,
-  RouteDefinition,
-  ContentGenerationRequest,
   PluginContext,
+  SectionDefinition,
+  BaseEntity,
 } from "@brains/types";
 import { builtInTemplates } from "./view-template-schemas";
 import type {
-  StaticSiteBuilder,
   StaticSiteBuilderFactory,
+  BuildContext,
 } from "./static-site-builder";
-import { createAstroBuilder } from "./astro-builder";
+import { createPreactBuilder } from "./preact-builder";
 import { join } from "path";
-import { toYaml, parseMarkdownWithFrontmatter } from "@brains/utils";
 import { z } from "zod";
 
 export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
   private static defaultStaticSiteBuilderFactory: StaticSiteBuilderFactory =
-    createAstroBuilder;
+    createPreactBuilder;
   private logger: Logger;
   private context: PluginContext;
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
@@ -100,33 +99,13 @@ export class SiteBuilder implements ISiteBuilder {
       await reporter?.report("Starting site build", 0, 100);
 
       // Create static site builder instance
-      // Use provided workingDir or default to .astro-work inside outputDir
       const workingDir =
-        options.workingDir ?? join(options.outputDir, ".astro-work");
+        options.workingDir ?? join(options.outputDir, ".preact-work");
       const staticSiteBuilder = this.staticSiteBuilderFactory({
         logger: this.logger.child("StaticSiteBuilder"),
         workingDir,
         outputDir: options.outputDir,
       });
-
-      // Prepare working directory
-      await reporter?.report("Preparing build environment", 5, 100);
-      await staticSiteBuilder.prepare();
-
-      // Generate content configuration
-      await reporter?.report("Generating content configuration", 10, 100);
-      const schemas = this.collectContentSchemas();
-      await staticSiteBuilder.generateContentConfig(schemas);
-
-      // Generate general context if enabled
-      if (options.enableContentGeneration && options.siteConfig) {
-        await reporter?.report("Generating general context", 15, 100);
-        await this.generateGeneralContext({
-          title: options.siteConfig.title,
-          description: options.siteConfig.description,
-          ...(options.siteConfig.url && { url: options.siteConfig.url }),
-        });
-      }
 
       // Get all registered routes
       const routes = this.context.viewRegistry.listRoutes();
@@ -136,38 +115,28 @@ export class SiteBuilder implements ISiteBuilder {
 
       await reporter?.report(`Building ${routes.length} routes`, 20, 100);
 
-      // Build each route
-      let routesBuilt = 0;
-      for (let i = 0; i < routes.length; i++) {
-        const route = routes[i];
-        if (!route) {
-          continue;
-        }
-        const routeProgress = 20 + (i / routes.length) * 60;
+      // Create build context
+      const siteConfig = options.siteConfig ?? {
+        title: "Personal Brain",
+        description: "A knowledge management system",
+      };
 
-        await reporter?.report(
-          `Building route: ${route.path}`,
-          routeProgress,
-          100,
-        );
-
-        try {
-          await this.buildPage(route, options, staticSiteBuilder, reporter);
-          routesBuilt++;
-          this.logger.info(`Successfully built route: ${route.path}`);
-        } catch (error) {
-          errors.push(
-            `Failed to build route ${route.path}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          );
-          this.logger.error(`Failed to build route ${route.path}:`, error);
-        }
-      }
+      const buildContext: BuildContext = {
+        routes,
+        viewRegistry: this.context.viewRegistry,
+        siteConfig: {
+          title: siteConfig.title,
+          description: siteConfig.description,
+          ...(siteConfig.url && { url: siteConfig.url }),
+        },
+        getContent: async (section: SectionDefinition) => {
+          return this.getContentForSection(section);
+        },
+      };
 
       // Run static site build
       await reporter?.report("Running static site build", 85, 100);
-      await staticSiteBuilder.build((message) => {
+      await staticSiteBuilder.build(buildContext, (message) => {
         void reporter?.report(message);
       });
 
@@ -175,7 +144,7 @@ export class SiteBuilder implements ISiteBuilder {
 
       const result: BuildResult = {
         success: errors.length === 0,
-        routesBuilt,
+        routesBuilt: routes.length,
       };
 
       if (errors.length > 0) {
@@ -201,269 +170,75 @@ export class SiteBuilder implements ISiteBuilder {
     }
   }
 
-  private async buildPage(
-    route: RouteDefinition,
-    options: SiteBuilderOptions,
-    staticSiteBuilder: StaticSiteBuilder,
-    reporter?: ProgressReporter,
-  ): Promise<void> {
-    // Validate all sections have valid templates
-    for (const section of route.sections) {
-      const template = this.context.viewRegistry.getViewTemplate(
-        section.template,
+  /**
+   * Get content for a section, either from provided content or from entity
+   */
+  private async getContentForSection(
+    section: SectionDefinition,
+  ): Promise<unknown> {
+    // If content is provided directly, use it
+    if (section.content) {
+      return section.content;
+    }
+
+    // If contentEntity is specified, fetch from entity service
+    if (section.contentEntity) {
+      const entities = await this.context.entityService.listEntities(
+        section.contentEntity.entityType,
+        section.contentEntity.query
+          ? { filter: { metadata: section.contentEntity.query } }
+          : undefined,
       );
-      if (!template) {
-        throw new Error(
-          `Unknown template "${section.template}" in section "${section.id}"`,
-        );
-      }
-    }
 
-    // Process sections that need content generation
-    if (options.enableContentGeneration) {
-      await this.generatePageContent(route, reporter);
-    }
+      if (entities.length > 0) {
+        const entity = entities[0] as BaseEntity;
 
-    // Write route data as YAML for Astro
-    const routeData = await this.assemblePageData(route);
+        // TODO: Future refactoring - create a StructuredContentEntityAdapter that
+        // handles both formatting and parsing in one place. This would:
+        // - Take entity type as a parameter (not hardcoded to site-content)
+        // - Return already-parsed structured data from entityService
+        // - Sunset the need for SiteContentAdapter
+        // - Eliminate the need for manual parsing here
 
-    // Determine collection name based on route path
-    let collection: string;
-    let filename: string;
+        // For now, we need to parse site-content entities manually
+        if (
+          entity.entityType === "site-content" &&
+          typeof entity.content === "string"
+        ) {
+          try {
+            // Parse the markdown with frontmatter
+            const { content: markdownBody } = parseMarkdownWithFrontmatter(
+              entity.content,
+              z.object({}).passthrough(),
+            );
 
-    if (route.path === "/") {
-      collection = "landing";
-      filename = "index.yaml";
-    } else {
-      collection = "routes";
-      filename = `${route.path.slice(1)}.yaml`;
-    }
+            // Get the formatter for this template
+            if (section.contentEntity.template) {
+              const templateName = section.contentEntity.template.includes(":")
+                ? section.contentEntity.template
+                : `site-builder:${section.contentEntity.template}`;
 
-    this.logger.info(
-      `Writing ${collection}/${filename} with data:`,
-      JSON.stringify(routeData, null, 2),
-    );
-
-    // Debug: Check the structure
-    if (collection === "landing") {
-      this.logger.info("Landing route structure check:");
-      for (const [key, value] of Object.entries(
-        routeData as Record<string, unknown>,
-      )) {
-        this.logger.info(`  ${key}: ${typeof value}`);
-      }
-    }
-
-    await staticSiteBuilder.writeContentFile(collection, filename, routeData);
-  }
-
-  private async generatePageContent(
-    route: RouteDefinition,
-    reporter?: ProgressReporter,
-  ): Promise<void> {
-    const sectionsNeedingContent = route.sections.filter(
-      (section) => section.contentEntity && !section.content,
-    );
-
-    if (sectionsNeedingContent.length === 0) {
-      return;
-    }
-
-    await reporter?.report(
-      `Generating content for ${sectionsNeedingContent.length} sections`,
-    );
-
-    for (const section of sectionsNeedingContent) {
-      if (!section.contentEntity) continue;
-
-      // TODO: Query for existing content entity
-      // TODO: If not found, generate via ContentGenerationService
-      // TODO: Store generated content as entity
-      // For now, this is a placeholder
-
-      const request: ContentGenerationRequest = {
-        pageId: route.path,
-        sectionId: section.id,
-        template: section.contentEntity.template,
-        context: {
-          routeTitle: route.title,
-          pluginId: route.pluginId,
-        },
-      };
-
-      // Placeholder for actual content generation
-      await reporter?.report(
-        `Would generate content for section ${section.id} using template ${request.template}`,
-      );
-    }
-  }
-
-  /**
-   * Collect content schemas from registered content types
-   */
-  private collectContentSchemas(): Map<string, z.ZodType<unknown>> {
-    const schemas = new Map<string, z.ZodType<unknown>>();
-
-    // Create landing collection schema by combining section schemas from templates
-    const templates = this.context.viewRegistry.listViewTemplates();
-    const landingSchemaObj: Record<string, z.ZodType<unknown>> = {
-      title: z.string(),
-      tagline: z.string(),
-    };
-
-    // Add each template's schema as a property
-    for (const template of templates) {
-      landingSchemaObj[template.name] = template.schema;
-    }
-
-    schemas.set("landing", z.object(landingSchemaObj));
-
-    // Add generic routes schema
-    schemas.set(
-      "routes",
-      z.object({
-        title: z.string(),
-        path: z.string(),
-        description: z.string().optional(),
-        sections: z.record(z.unknown()).optional(),
-      }),
-    );
-
-    return schemas;
-  }
-
-  /**
-   * Generate general context for the site
-   */
-  private async generateGeneralContext(siteConfig: {
-    title: string;
-    description: string;
-    url?: string;
-  }): Promise<void> {
-    // Check if general context already exists
-    const entityService = this.context.entityService;
-    const existingContext = await entityService.listEntities("site-content", {
-      filter: {
-        metadata: {
-          route: "general",
-          section: "general",
-          environment: "preview",
-        },
-      },
-    });
-
-    if (existingContext.length > 0) {
-      return; // Already exists
-    }
-
-    // Generate general context
-    const contentGenerationService = this.context.contentGenerationService;
-    const generalContext = await contentGenerationService.generateContent(
-      "general-context",
-      {
-        prompt: `Create organizational context for "${siteConfig.title}" - ${siteConfig.description}`,
-        context: siteConfig,
-      },
-    );
-
-    // Get formatter for general context
-    const contentRegistry = this.context.contentRegistry;
-    const formatter = contentRegistry.getFormatter(
-      "default-site:general-context",
-    );
-
-    // Format content using the appropriate formatter
-    const formattedContent = formatter
-      ? formatter.format(generalContext)
-      : toYaml(generalContext);
-
-    // Save as entity - use generic object type since we don't have access to SiteContent type
-    await entityService.createEntity({
-      entityType: "site-content",
-      content: formattedContent,
-    }); // TODO: Fix this when site-content is moved to a shared location
-  }
-
-  /**
-   * Assemble route data from sections
-   */
-  private async assemblePageData(route: RouteDefinition): Promise<unknown> {
-    const sections: Record<string, unknown> = {};
-
-    for (const section of route.sections) {
-      if (section.content) {
-        // Use static content
-        sections[section.id] = section.content;
-      } else if (section.contentEntity) {
-        // Load content from entity
-        const entityService = this.context.entityService;
-        const entities = await entityService.listEntities(
-          section.contentEntity.entityType,
-          section.contentEntity.query
-            ? {
-                filter: { metadata: section.contentEntity.query },
+              const formatter =
+                this.context.contentRegistry.getFormatter(templateName);
+              if (formatter) {
+                // Use the formatter to parse markdown back to structured data
+                return formatter.parse(markdownBody);
               }
-            : undefined,
-        );
-
-        if (entities.length > 0 && entities[0]) {
-          // Parse content from entity using the formatter
-          const contentRegistry = this.context.contentRegistry;
-
-          // Template names need to be fully qualified with plugin prefix
-          const templateName = section.contentEntity.template ?? "";
-          const fullyQualifiedName = templateName.includes(":")
-            ? templateName
-            : `default-site:${templateName}`;
-
-          const formatter = contentRegistry.getFormatter(fullyQualifiedName);
-
-          if (formatter?.parse) {
-            // Extract content part without frontmatter for structured formatters
-            let contentToParse = entities[0].content;
-            try {
-              // Try to extract just the markdown content without frontmatter
-              const { content: markdownContent } = parseMarkdownWithFrontmatter(
-                entities[0].content,
-                z.object({}), // Don't validate frontmatter, just extract content
-              );
-              contentToParse = markdownContent;
-            } catch {
-              // If parsing fails, use content as-is
-              contentToParse = entities[0].content;
             }
 
-            // Use formatter's parse method with clean content
-            sections[section.id] = formatter.parse(contentToParse);
-          } else {
-            throw new Error(
-              `No formatter with parse method found for template: ${fullyQualifiedName}`,
-            );
+            // If no formatter found, return the markdown body
+            return markdownBody;
+          } catch (error) {
+            this.logger.warn(`Failed to parse site-content entity: ${error}`);
+            return entity.content;
           }
-        } else {
-          // No entity found - log this for debugging
-          this.logger.warn(
-            `No content entity found for section ${section.id} with query:`,
-            section.contentEntity.query,
-          );
         }
+
+        // For other entities, return the content as-is
+        return entity.content;
       }
     }
 
-    // For landing route, flatten sections into expected structure
-    if (route.path === "/") {
-      return {
-        title: route.title,
-        tagline: route.description,
-        ...sections,
-      };
-    }
-
-    return {
-      path: route.path,
-      title: route.title,
-      description: route.description,
-      sections,
-    };
+    return null;
   }
 }

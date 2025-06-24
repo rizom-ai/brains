@@ -1,40 +1,31 @@
 import type { Logger } from "@brains/utils";
-import type { z } from "zod";
+import type { RouteDefinition, ViewRegistry } from "@brains/types";
 
 /**
- * Interface for static site builders (Astro, Next.js, etc.)
+ * Build context passed to static site builders
+ */
+export interface BuildContext {
+  routes: RouteDefinition[];
+  viewRegistry: ViewRegistry;
+  siteConfig: {
+    title: string;
+    description: string;
+    url?: string;
+  };
+  getContent: (section: RouteDefinition["sections"][0]) => Promise<unknown>;
+}
+
+/**
+ * Interface for static site builders (Preact, React, etc.)
  */
 export interface StaticSiteBuilder {
   /**
-   * Prepare the working directory with template
+   * Build all routes
    */
-  prepare(): Promise<void>;
-
-  /**
-   * Generate content configuration
-   */
-  generateContentConfig(
-    schemas: Map<string, z.ZodType<unknown>>,
+  build(
+    context: BuildContext,
+    onProgress?: (message: string) => void,
   ): Promise<void>;
-
-  /**
-   * Write content file
-   */
-  writeContentFile(
-    collection: string,
-    filename: string,
-    content: unknown,
-  ): Promise<void>;
-
-  /**
-   * Build the static site
-   */
-  build(onProgress?: (message: string) => void): Promise<void>;
-
-  /**
-   * Check if a build exists
-   */
-  hasBuild(): boolean;
 
   /**
    * Clean build artifacts

@@ -8,5 +8,6 @@ export type {
   StaticSiteBuilder,
   StaticSiteBuilderOptions,
   StaticSiteBuilderFactory,
+  BuildContext,
 } from "./static-site-builder";
-export { createAstroBuilder } from "./astro-builder";
+export { createPreactBuilder } from "./preact-builder";
