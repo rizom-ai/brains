@@ -15,9 +15,9 @@ import {
 } from "@brains/types";
 import { SiteBuilder } from "./site-builder";
 import { z } from "zod";
-import { 
-  siteContentPreviewAdapter, 
-  siteContentProductionAdapter 
+import {
+  siteContentPreviewAdapter,
+  siteContentProductionAdapter,
 } from "./entities/site-content-adapter";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
@@ -283,12 +283,16 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                 // Save as entity with required metadata
                 try {
                   // Try to parse as site content entity type
-                  const entityType = SiteContentEntityTypeSchema.parse(section.contentEntity.entityType);
-                  
+                  const entityType = SiteContentEntityTypeSchema.parse(
+                    section.contentEntity.entityType,
+                  );
+
                   if (!section.contentEntity.query) {
-                    throw new Error(`Site content entity requires query data for page and section`);
+                    throw new Error(
+                      `Site content entity requires query data for page and section`,
+                    );
                   }
-                  
+
                   // For site-content, construct the entity with all required fields
                   const siteContentEntity: Omit<
                     SiteContentPreview | SiteContentProduction,
@@ -305,7 +309,10 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                   );
                 } catch (error) {
                   // Log the error and skip this section
-                  this.logger?.error(`Failed to create entity for section ${section.id}`, { error });
+                  this.logger?.error(
+                    `Failed to create entity for section ${section.id}`,
+                    { error },
+                  );
                   continue;
                 }
 

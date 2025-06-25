@@ -726,6 +726,54 @@ export const siteContentProductionSchema = baseEntitySchema.extend({
 });
 ```
 
+#### SiteContent Management Module
+
+**Module Structure within Site-Builder Plugin:**
+
+```
+packages/site-builder-plugin/src/
+├── content-management/
+│   ├── index.ts                    # Export all content management APIs
+│   ├── manager.ts                  # SiteContentManager class
+│   ├── types.ts                    # SiteContent union type and interfaces
+│   ├── operations/                 # Individual operations
+│   │   ├── promote.ts             # Promotion logic
+│   │   ├── rollback.ts            # Rollback logic
+│   │   └── regenerate.ts          # Regeneration logic
+│   └── utils/                     # Helper utilities
+│       ├── id-generator.ts        # Deterministic ID generation
+│       └── comparator.ts          # Content comparison
+```
+
+**SiteContent Union Type:**
+
+```typescript
+// Unified type for both preview and production
+export type SiteContent = SiteContentPreview | SiteContentProduction;
+
+// Type guards for safe discrimination
+export function isPreviewContent(content: SiteContent): content is SiteContentPreview
+export function isProductionContent(content: SiteContent): content is SiteContentProduction
+```
+
+**SiteContentManager Class:**
+
+```typescript
+export class SiteContentManager {
+  constructor(private entityService: EntityService, private logger?: Logger)
+  
+  // Content lifecycle operations
+  async promote(options: PromoteOptions): Promise<PromoteResult>
+  async rollback(options: RollbackOptions): Promise<RollbackResult>
+  async regenerate(options: RegenerateOptions): Promise<RegenerateResult>
+  
+  // Utility operations
+  async compare(page: string, section: string): Promise<ContentComparison>
+  async exists(page: string, section: string, type: 'preview' | 'production'): Promise<boolean>
+  generateId(type: SiteContentEntityType, page: string, section: string): string
+}
+```
+
 #### Content Management Tools
 
 **1. promote-content Tool**
@@ -809,6 +857,13 @@ Generates fresh content with three operational modes.
 
 #### Implementation Approach
 
+**Module-Based Architecture:**
+
+- **Clean separation within plugin**: Content management operations grouped in dedicated module
+- **SiteContentManager handles lifecycle**: Promote, rollback, regenerate operations encapsulated
+- **Plugin tools as thin wrappers**: Tools delegate to SiteContentManager methods
+- **Unified SiteContent type**: Single type works with both preview and production entities
+
 **Tool Design Principles:**
 
 - **CLI-first**: Efficient tools for technical users
@@ -816,6 +871,29 @@ Generates fresh content with three operational modes.
 - **One-click operations**: Direct execution with optional dry-run safety
 - **Separation of concerns**: Tools focus on content, deployment is separate layer
 - **Infrequent update optimization**: Prioritize thoroughness over speed
+
+**Plugin Integration:**
+
+```typescript
+// In SiteBuilderPlugin
+import { SiteContentManager } from './content-management';
+
+export class SiteBuilderPlugin {
+  private siteContentManager: SiteContentManager;
+  
+  async onRegister(context: PluginContext) {
+    this.siteContentManager = new SiteContentManager(
+      context.entityService,
+      this.logger?.child('SiteContentManager')
+    );
+  }
+  
+  // Tools delegate to manager
+  createTool('promote-content', ..., async (input) => {
+    return this.siteContentManager.promote(input);
+  })
+}
+```
 
 **Entity Service Integration:**
 
@@ -877,6 +955,12 @@ await entityService.createEntity(productionEntity);
    - Web UI can easily layer on top of CLI tools
    - Each tool has clean, focused responsibility
    - Good design naturally supports future enhancements
+
+6. **Cohesive Plugin Architecture**
+   - Content management operations grouped in dedicated module
+   - Clear separation between site building and content lifecycle
+   - Easy to test content operations independently
+   - Future extraction to separate package remains simple
 
 ### Phase 8: Build Process & Output
 

@@ -5,7 +5,10 @@ import type { ComponentType } from "./plugin";
 /**
  * Site content entity types
  */
-export const SiteContentEntityTypeSchema = z.enum(["site-content-preview", "site-content-production"]);
+export const SiteContentEntityTypeSchema = z.enum([
+  "site-content-preview",
+  "site-content-production",
+]);
 export type SiteContentEntityType = z.infer<typeof SiteContentEntityTypeSchema>;
 
 /**

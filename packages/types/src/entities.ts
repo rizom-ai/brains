@@ -51,7 +51,7 @@ export const siteContentPreviewSchema = baseSiteContentSchema.extend({
  */
 export const siteContentProductionSchema = baseSiteContentSchema.extend({
   entityType: z.literal("site-content-production"),
-  
+
   // Future enhancement: Add promotion metadata when audit trails are needed
   // promotionMetadata: z.object({
   //   promotedAt: z.string(),

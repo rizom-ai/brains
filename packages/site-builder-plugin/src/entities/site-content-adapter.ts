@@ -1,6 +1,9 @@
 import type { EntityAdapter } from "@brains/base-entity";
 import type { SiteContentPreview, SiteContentProduction } from "@brains/types";
-import { siteContentPreviewSchema, siteContentProductionSchema } from "@brains/types";
+import {
+  siteContentPreviewSchema,
+  siteContentProductionSchema,
+} from "@brains/types";
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
@@ -20,7 +23,10 @@ const frontmatterSchema = z.object({
 /**
  * Base entity adapter for site content with shared functionality
  */
-abstract class SiteContentAdapter<T extends SiteContentPreview | SiteContentProduction> implements EntityAdapter<T> {
+abstract class SiteContentAdapter<
+  T extends SiteContentPreview | SiteContentProduction,
+> implements EntityAdapter<T>
+{
   public abstract readonly entityType: string;
   public abstract readonly schema: z.ZodSchema<T>;
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import { 
+import {
   SiteContentPreviewAdapter,
-  SiteContentProductionAdapter 
+  SiteContentProductionAdapter,
 } from "../../src/entities/site-content-adapter";
 import type { SiteContentPreview, SiteContentProduction } from "@brains/types";
 
