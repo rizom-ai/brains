@@ -499,7 +499,7 @@ export class Shell {
       environment?: string;
     },
   ): void {
-    const { pluginId, environment = "preview" } = options ?? {};
+    const { pluginId } = options ?? {};
     this.logger.debug("Registering routes", { pluginId, count: routes.length });
 
     routes.forEach((route) => {
@@ -510,11 +510,10 @@ export class Shell {
         sections: route.sections.map((section) => ({
           ...section,
           contentEntity: section.contentEntity ?? {
-            entityType: "site-content",
+            entityType: "site-content-preview",
             query: {
               page: route.id,
               section: section.id,
-              environment,
             },
           },
         })),

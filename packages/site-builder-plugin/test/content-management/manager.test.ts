@@ -405,16 +405,12 @@ describe("SiteContentManager", () => {
       route: RouteDefinition,
       section: SectionDefinition,
     ): Promise<{
-      entityId: string;
-      entityType: string;
       content: string;
     }> => {
       if (!section.contentEntity) {
         throw new Error("contentEntity is required");
       }
       return {
-        entityId: `${section.contentEntity.entityType}:${route.path.slice(1)}:${section.id}`,
-        entityType: section.contentEntity.entityType,
         content: `Generated content for ${route.title} - ${section.id}`,
       };
     };
@@ -534,8 +530,6 @@ describe("SiteContentManager", () => {
         route: RouteDefinition,
         section: SectionDefinition,
       ): Promise<{
-        entityId: string;
-        entityType: string;
         content: string;
       }> => {
         if (section.id === "hero") {
@@ -644,6 +638,7 @@ describe("SiteContentManager", () => {
       page: string,
       section: string,
       mode: "leave" | "new" | "with-current",
+      _progress: { current: number; total: number; message: string },
       currentContent?: string,
     ) => {
       let newContent = `Regenerated content for ${page} - ${section}`;
@@ -810,7 +805,14 @@ describe("SiteContentManager", () => {
     });
 
     it("should handle callback errors gracefully", async () => {
-      const failingCallback = async () => {
+      const failingCallback = async (
+        _entityType: string,
+        _page: string,
+        _section: string,
+        _mode: "leave" | "new" | "with-current",
+        _progress: { current: number; total: number; message: string },
+        _currentContent?: string,
+      ) => {
         throw new Error("Template not found");
       };
 

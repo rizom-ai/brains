@@ -3,8 +3,6 @@ import type {
   PluginContext,
   PluginTool,
   PluginResource,
-  SiteContentPreview,
-  SiteContentProduction,
   RouteDefinition,
   SectionDefinition,
   ContentTemplate,
@@ -199,8 +197,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             route: RouteDefinition,
             section: SectionDefinition,
           ): Promise<{
-            entityId: string;
-            entityType: string;
             content: string;
           }> => {
             const config = this.config;
@@ -271,30 +267,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               );
             }
 
-            // Always generate preview content
-            const targetEntityType = "site-content-preview" as const;
-
-            // For site-content, construct the entity with all required fields
-            const siteContentEntity: Omit<
-              SiteContentPreview | SiteContentProduction,
-              "id" | "created" | "updated"
-            > = {
-              entityType: targetEntityType,
-              content: formattedContent,
-              page: contentEntity.query["page"] as string,
-              section: contentEntity.query["section"] as string,
-            };
-
-            if (!this.context) {
-              throw new Error("Plugin context not available");
-            }
-
-            const createdEntity =
-              await this.context.entityService.createEntity(siteContentEntity);
-
             return {
-              entityId: createdEntity.id,
-              entityType: targetEntityType,
               content: formattedContent,
             };
           };
@@ -514,12 +487,19 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             .default(false)
             .describe("Optional: preview changes without executing"),
         },
-        async (input): Promise<Record<string, unknown>> => {
+        async (input, context): Promise<Record<string, unknown>> => {
           if (!this.siteContentManager || !this.context) {
             throw new Error("Site content manager not initialized");
           }
 
-          // Parse and validate input
+          // Create a safe progress reporter
+          const reportProgress = async (notification: { message: string; progress: number; total: number }) => {
+            if (context?.sendProgress) {
+              await context.sendProgress(notification);
+            }
+          };
+
+          // Parse and validated input
           const options = RegenerateOptionsSchema.parse(input);
 
           // Create the regeneration callback
@@ -528,11 +508,19 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             page: string,
             section: string,
             mode: "leave" | "new" | "with-current",
+            progress: { current: number; total: number; message: string },
             currentContent?: string,
           ): Promise<{
             entityId: string;
             content: string;
           }> => {
+            // Report progress
+            const progressPercent = Math.round((progress.current / progress.total) * 100);
+            await reportProgress({
+              message: progress.message,
+              progress: progressPercent,
+              total: 100,
+            });
             const config = this.config;
 
             if (!this.context) {
@@ -622,10 +610,17 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
         "generate-all",
         "Generate content for all sections across all pages",
         {},
-        async (): Promise<Record<string, unknown>> => {
+        async (_input, context): Promise<Record<string, unknown>> => {
           if (!this.siteContentManager || !this.context) {
             throw new Error("Site content manager not initialized");
           }
+
+          // Create a safe progress reporter
+          const reportProgress = async (notification: { message: string; progress: number; total: number }) => {
+            if (context?.sendProgress) {
+              await context.sendProgress(notification);
+            }
+          };
 
           // Get all registered routes
           const routes = this.context.viewRegistry.listRoutes();
@@ -634,11 +629,17 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           const generateCallback = async (
             route: RouteDefinition,
             section: SectionDefinition,
+            progress: { current: number; total: number; message: string },
           ): Promise<{
-            entityId: string;
-            entityType: string;
             content: string;
           }> => {
+            // Report progress
+            const progressPercent = Math.round((progress.current / progress.total) * 100);
+            await reportProgress({
+              message: progress.message,
+              progress: progressPercent,
+              total: 100,
+            });
             const config = this.config;
 
             // Get the content template
@@ -707,30 +708,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               );
             }
 
-            // Always generate preview content
-            const targetEntityType = "site-content-preview" as const;
-
-            // For site-content, construct the entity with all required fields
-            const siteContentEntity: Omit<
-              SiteContentPreview | SiteContentProduction,
-              "id" | "created" | "updated"
-            > = {
-              entityType: targetEntityType,
-              content: formattedContent,
-              page: contentEntity.query["page"] as string,
-              section: contentEntity.query["section"] as string,
-            };
-
-            if (!this.context) {
-              throw new Error("Plugin context not available");
-            }
-
-            const createdEntity =
-              await this.context.entityService.createEntity(siteContentEntity);
-
             return {
-              entityId: createdEntity.id,
-              entityType: targetEntityType,
               content: formattedContent,
             };
           };
@@ -760,10 +738,17 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             .default(false)
             .describe("Optional: preview changes without executing"),
         },
-        async (input): Promise<Record<string, unknown>> => {
+        async (input, context): Promise<Record<string, unknown>> => {
           if (!this.siteContentManager || !this.context) {
             throw new Error("Site content manager not initialized");
           }
+
+          // Create a safe progress reporter
+          const reportProgress = async (notification: { message: string; progress: number; total: number }) => {
+            if (context?.sendProgress) {
+              await context.sendProgress(notification);
+            }
+          };
 
           const { mode, dryRun } = input as {
             mode: "leave" | "new" | "with-current";
@@ -776,11 +761,19 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             page: string,
             section: string,
             mode: "leave" | "new" | "with-current",
+            progress: { current: number; total: number; message: string },
             currentContent?: string,
           ): Promise<{
             entityId: string;
             content: string;
           }> => {
+            // Report progress
+            const progressPercent = Math.round((progress.current / progress.total) * 100);
+            await reportProgress({
+              message: progress.message,
+              progress: progressPercent,
+              total: 100,
+            });
             const config = this.config;
 
             if (!this.context) {

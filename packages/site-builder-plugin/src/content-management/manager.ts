@@ -240,8 +240,6 @@ export class SiteContentManager {
       route: RouteDefinition,
       section: SectionDefinition,
     ) => Promise<{
-      entityId: string;
-      entityType: string;
       content: string;
     }>,
   ): Promise<GenerateResult> {
@@ -301,9 +299,9 @@ export class SiteContentManager {
         for (const section of sectionsNeedingContent) {
           if (!section.contentEntity) continue;
 
-          // Check if content already exists
+          // Check if content already exists - always check preview content for generation
           const existingEntities = await this.entityService.listEntities(
-            section.contentEntity.entityType,
+            "site-content-preview",
             section.contentEntity.query
               ? { filter: { metadata: section.contentEntity.query } }
               : undefined,
@@ -338,18 +336,43 @@ export class SiteContentManager {
             // Use the callback to generate content
             const generated = await generateCallback(route, section);
 
+            // Always generate preview content with deterministic ID
+            const targetEntityType = "site-content-preview" as const;
+            const page = section.contentEntity.query?.["page"] as string;
+            const sectionId = section.contentEntity.query?.["section"] as string;
+            
+            const deterministic_id = this.generateId(
+              targetEntityType,
+              page,
+              sectionId,
+            );
+
+            // Create the entity with deterministic ID
+            const siteContentEntity: Omit<
+              SiteContentPreview,
+              "created" | "updated"
+            > = {
+              id: deterministic_id,
+              entityType: targetEntityType,
+              content: generated.content,
+              page,
+              section: sectionId,
+            };
+
+            await this.entityService.createEntity(siteContentEntity);
+
             result.generated.push({
               page: route.path,
               section: section.id,
-              entityId: generated.entityId,
-              entityType: generated.entityType,
+              entityId: deterministic_id,
+              entityType: targetEntityType,
             });
             result.sectionsGenerated++;
 
             this.logger?.debug("Generated content for section", {
               page: route.path,
               section: section.id,
-              entityId: generated.entityId,
+              entityId: deterministic_id,
             });
           } catch (error) {
             const errorMessage =
@@ -402,6 +425,7 @@ export class SiteContentManager {
       page: string,
       section: string,
       mode: "leave" | "new" | "with-current",
+      progress: { current: number; total: number; message: string },
       currentContent?: string,
     ) => Promise<{
       entityId: string;
@@ -430,6 +454,10 @@ export class SiteContentManager {
         entityTypes.push("site-content-production");
       }
 
+      // Count total entities to process for progress tracking
+      let totalEntities = 0;
+      const entityTypeMap = new Map<SiteContentEntityType, (SiteContentPreview | SiteContentProduction)[]>();
+
       for (const entityType of entityTypes) {
         // Build filter for finding entities
         const filter: Record<string, unknown> = {
@@ -445,10 +473,25 @@ export class SiteContentManager {
           filter: { metadata: filter },
         });
 
+        entityTypeMap.set(entityType, entities as (SiteContentPreview | SiteContentProduction)[]);
+        totalEntities += entities.length;
+      }
+
+      let processedEntities = 0;
+
+      for (const entityType of entityTypes) {
+        const entities = entityTypeMap.get(entityType) || [];
+
         for (const entity of entities) {
           const siteContent = entity as
             | SiteContentPreview
             | SiteContentProduction;
+
+          const progressInfo = {
+            current: processedEntities,
+            total: totalEntities,
+            message: `Regenerating ${entityType}:${siteContent.page}:${siteContent.section}...`,
+          };
 
           try {
             // Skip if dry run
@@ -465,6 +508,7 @@ export class SiteContentManager {
                 entityId: siteContent.id,
                 mode: options.mode,
               });
+              processedEntities++;
               continue;
             }
 
@@ -476,6 +520,7 @@ export class SiteContentManager {
                 section: siteContent.section,
                 reason: "Mode 'leave' - content kept as-is",
               });
+              processedEntities++;
               continue;
             }
 
@@ -488,6 +533,7 @@ export class SiteContentManager {
               siteContent.page,
               siteContent.section,
               options.mode,
+              progressInfo,
               currentContent,
             );
 
@@ -527,6 +573,8 @@ export class SiteContentManager {
               error: errorMessage,
             });
           }
+
+          processedEntities++;
         }
       }
 
@@ -562,15 +610,218 @@ export class SiteContentManager {
     generateCallback: (
       route: RouteDefinition,
       section: SectionDefinition,
+      progress: { current: number; total: number; message: string },
     ) => Promise<{
-      entityId: string;
-      entityType: string;
       content: string;
     }>,
   ): Promise<GenerateResult> {
     this.logger?.info("Starting generate all operation");
 
-    return this.generate({ dryRun: false }, routes, generateCallback);
+    return this.generateWithProgress(
+      { dryRun: false },
+      routes,
+      generateCallback,
+    );
+  }
+
+  /**
+   * Generate content with progress tracking
+   */
+  private async generateWithProgress(
+    options: GenerateOptions,
+    routes: RouteDefinition[],
+    generateCallback: (
+      route: RouteDefinition,
+      section: SectionDefinition,
+      progress: { current: number; total: number; message: string },
+    ) => Promise<{
+      content: string;
+    }>,
+  ): Promise<GenerateResult> {
+    this.logger?.info("Starting generate operation with progress tracking", { options });
+
+    const result: GenerateResult = {
+      success: true,
+      sectionsGenerated: 0,
+      totalSections: 0,
+      generated: [],
+      skipped: [],
+      errors: [],
+    };
+
+    try {
+      // Filter routes by page if specified
+      const { page } = options;
+      const filteredRoutes = page
+        ? routes.filter((route) => route.path.includes(page))
+        : routes;
+
+      // Count total sections to generate
+      let totalSections = 0;
+      for (const route of filteredRoutes) {
+        const sectionsToCheck = options.section
+          ? route.sections.filter((section) => section.id === options.section)
+          : route.sections;
+
+        totalSections += sectionsToCheck.filter(
+          (section) =>
+            "contentEntity" in section &&
+            section.contentEntity &&
+            !(("content" in section) && section.content),
+        ).length;
+      }
+
+      result.totalSections = totalSections;
+
+      if (totalSections === 0) {
+        result.message = "No sections need content generation";
+        this.logger?.info("Generate operation completed - no content needed");
+        return result;
+      }
+
+      let processedSections = 0;
+
+      for (const route of filteredRoutes) {
+        const sectionsToProcess = options.section
+          ? route.sections.filter((section) => section.id === options.section)
+          : route.sections;
+
+        const sectionsNeedingContent = sectionsToProcess.filter(
+          (section) =>
+            "contentEntity" in section &&
+            section.contentEntity &&
+            !(("content" in section) && section.content),
+        );
+
+        for (const section of sectionsNeedingContent) {
+          if (!section.contentEntity) continue;
+
+          const progressInfo = {
+            current: processedSections,
+            total: totalSections,
+            message: `Processing ${route.path}:${section.id}...`,
+          };
+
+          // Check if content already exists - always check preview content for generation
+          const existingEntities = await this.entityService.listEntities(
+            "site-content-preview",
+            section.contentEntity.query
+              ? { filter: { metadata: section.contentEntity.query } }
+              : undefined,
+          );
+
+          if (existingEntities.length > 0) {
+            result.skipped.push({
+              page: route.path,
+              section: section.id,
+              reason: "Content already exists",
+            });
+            processedSections++;
+            continue;
+          }
+
+          // Skip if dry run
+          if (options.dryRun) {
+            this.logger?.debug("Dry run: would generate content", {
+              page: route.path,
+              section: section.id,
+            });
+            result.generated.push({
+              page: route.path,
+              section: section.id,
+              entityId: "dry-run-entity-id",
+              entityType: section.contentEntity.entityType,
+            });
+            result.sectionsGenerated++;
+            processedSections++;
+            continue;
+          }
+
+          try {
+            // Use the callback to generate content
+            const generated = await generateCallback(route, section, progressInfo);
+
+            // Always generate preview content with deterministic ID
+            const targetEntityType = "site-content-preview" as const;
+            const page = section.contentEntity.query?.["page"] as string;
+            const sectionId = section.contentEntity.query?.["section"] as string;
+            
+            const deterministic_id = this.generateId(
+              targetEntityType,
+              page,
+              sectionId,
+            );
+
+            // Create the entity with deterministic ID
+            const siteContentEntity: Omit<
+              SiteContentPreview,
+              "created" | "updated"
+            > = {
+              id: deterministic_id,
+              entityType: targetEntityType,
+              content: generated.content,
+              page,
+              section: sectionId,
+            };
+
+            await this.entityService.createEntity(siteContentEntity);
+
+            result.generated.push({
+              page: route.path,
+              section: section.id,
+              entityId: deterministic_id,
+              entityType: targetEntityType,
+            });
+            result.sectionsGenerated++;
+
+            this.logger?.debug("Generated content for section", {
+              page: route.path,
+              section: section.id,
+              entityId: deterministic_id,
+            });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : "Unknown error";
+            result.errors?.push(
+              `Failed to generate content for ${route.path}:${section.id}: ${errorMessage}`,
+            );
+            this.logger?.error("Failed to generate section content", {
+              page: route.path,
+              section: section.id,
+              error: errorMessage,
+            });
+          }
+
+          processedSections++;
+        }
+      }
+
+      // Final progress is reported by the last callback
+
+      result.success = (result.errors?.length ?? 0) === 0;
+      result.message = `Generated content for ${result.sectionsGenerated} sections`;
+
+      this.logger?.info("Generate operation with progress completed", {
+        sectionsGenerated: result.sectionsGenerated,
+        totalSections: result.totalSections,
+        skipped: result.skipped.length,
+        errors: result.errors?.length ?? 0,
+      });
+
+      return result;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      this.logger?.error("Generate operation with progress failed", { error: errorMessage });
+      return {
+        success: false,
+        sectionsGenerated: 0,
+        totalSections: 0,
+        generated: [],
+        skipped: [],
+        errors: [errorMessage],
+      };
+    }
   }
 
   /**
@@ -583,6 +834,7 @@ export class SiteContentManager {
       page: string,
       section: string,
       mode: "leave" | "new" | "with-current",
+      progress: { current: number; total: number; message: string },
       currentContent?: string,
     ) => Promise<{
       entityId: string;
@@ -682,6 +934,7 @@ export class SiteContentManager {
           });
         }
       }
+
 
       result.success = result.errors.length === 0;
 
