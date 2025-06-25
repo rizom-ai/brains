@@ -1,14 +1,19 @@
 {
   "name": "@brains/site-builder-plugin",
   "version": "0.0.1",
+  "description": "Static site generation plugin for Brain system",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./dist/*": "./dist/*"
   },
   "scripts": {
+    "build": "bun run build:hydration",
+    "build:hydration": "bun build:hydration.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@brains/types": "workspace:*",

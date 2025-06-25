@@ -1,5 +1,5 @@
 import type { Plugin, PluginContext, PluginTool } from "@brains/types";
-import { BasePlugin, validatePluginConfig } from "@brains/utils";
+import { BasePlugin } from "@brains/utils";
 import { z } from "zod";
 import { GitSync } from "./gitSync";
 import {
@@ -10,6 +10,7 @@ import {
 import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
 import { gitSyncStatusSchema } from "./schemas";
 import { GenericYamlFormatter } from "@brains/shell";
+import packageJson from "../package.json";
 
 /**
  * Git Sync plugin that extends BasePlugin
@@ -19,19 +20,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
 
   constructor(config: unknown) {
-    // Validate config first
-    const validatedConfig = validatePluginConfig(
-      gitSyncConfigSchema,
-      config,
-      "git-sync",
-    );
-
-    super(
-      "git-sync",
-      "Git Sync",
-      "Add git version control to synchronized directories",
-      validatedConfig,
-    );
+    super("git-sync", packageJson, config, gitSyncConfigSchema);
   }
 
   /**

@@ -25,8 +25,11 @@ class ExamplePlugin extends BasePlugin {
 
     super(
       "example-plugin",
-      "Example Plugin",
-      "A simple example plugin",
+      {
+        name: "@test/example-plugin",
+        version: "1.0.0",
+        description: "A simple example plugin",
+      },
       config,
       configSchema,
     );
@@ -79,8 +82,11 @@ class BlogPlugin extends ContentGeneratingPlugin {
 
     super(
       "blog-plugin",
-      "Blog Plugin",
-      "Generate blog posts",
+      {
+        name: "@test/blog-plugin",
+        version: "1.0.0",
+        description: "Generate blog posts",
+      },
       config,
       configSchema,
     );
@@ -192,7 +198,11 @@ class BlogPlugin extends ContentGeneratingPlugin {
 describe("Example Plugins", () => {
   describe("BasePlugin Example", () => {
     it("should create and use a simple plugin", async () => {
-      const plugin = new ExamplePlugin({ apiKey: "test-key" });
+      const plugin = new ExamplePlugin({
+        enabled: true,
+        debug: false,
+        apiKey: "test-key",
+      });
       const harness = new PluginTestHarness();
 
       await harness.installPlugin(plugin);
@@ -214,15 +224,19 @@ describe("Example Plugins", () => {
 
     it("should handle configuration validation", () => {
       expect(() => new ExamplePlugin({})).toThrow(/Invalid configuration/);
-      expect(() => new ExamplePlugin({ apiKey: 123 })).toThrow(
-        /Expected string/,
-      );
+      expect(
+        () => new ExamplePlugin({ enabled: true, debug: false, apiKey: 123 }),
+      ).toThrow(/Expected string/);
     });
   });
 
   describe("ContentGeneratingPlugin Example", () => {
     it("should generate content", async () => {
-      const plugin = new BlogPlugin({ author: "Test Author" });
+      const plugin = new BlogPlugin({
+        enabled: true,
+        debug: false,
+        author: "Test Author",
+      });
       const harness = new PluginTestHarness();
 
       await harness.installPlugin(plugin);
@@ -248,7 +262,11 @@ describe("Example Plugins", () => {
     });
 
     it("should generate batch content", async () => {
-      const plugin = new BlogPlugin({ author: "Test Author" });
+      const plugin = new BlogPlugin({
+        enabled: true,
+        debug: false,
+        author: "Test Author",
+      });
       const harness = new PluginTestHarness();
 
       await harness.installPlugin(plugin);
@@ -274,7 +292,11 @@ describe("Example Plugins", () => {
   describe("Plugin Lifecycle", () => {
     it("should support lifecycle hooks", async () => {
       const events: string[] = [];
-      const plugin = new ExamplePlugin({ apiKey: "test" });
+      const plugin = new ExamplePlugin({
+        enabled: true,
+        debug: false,
+        apiKey: "test",
+      });
 
       const wrappedPlugin = withLifecycle(plugin)
         .on("beforeRegister", () => {

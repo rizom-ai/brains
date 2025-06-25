@@ -1,5 +1,10 @@
 import type { Logger } from "@brains/utils";
-import type { RouteDefinition, ViewRegistry } from "@brains/types";
+import type {
+  RouteDefinition,
+  ViewRegistry,
+  PluginContext,
+} from "@brains/types";
+import type { CSSProcessor } from "./css/css-processor";
 
 /**
  * Build context passed to static site builders
@@ -7,6 +12,7 @@ import type { RouteDefinition, ViewRegistry } from "@brains/types";
 export interface BuildContext {
   routes: RouteDefinition[];
   viewRegistry: ViewRegistry;
+  pluginContext: PluginContext;
   siteConfig: {
     title: string;
     description: string;
@@ -40,6 +46,7 @@ export interface StaticSiteBuilderOptions {
   logger: Logger;
   workingDir: string;
   outputDir: string;
+  cssProcessor?: CSSProcessor;
 }
 
 /**

@@ -27,6 +27,7 @@ import { match, P } from "ts-pattern";
 class TestPlugin implements Plugin {
   public id: string;
   public version: string;
+  public packageName: string;
   public name: string;
   public dependencies: string[];
   public registerCalled = false;
@@ -35,12 +36,14 @@ class TestPlugin implements Plugin {
   constructor(opts: {
     id: string;
     version: string;
+    packageName?: string;
     name?: string;
     dependencies?: string[];
     registerError?: boolean;
   }) {
     this.id = opts.id;
     this.version = opts.version;
+    this.packageName = opts.packageName ?? `@test/${opts.id}`;
     this.name = opts.name ?? this.id;
     this.dependencies = opts.dependencies ?? [];
     this.registerError = opts.registerError ?? false;
@@ -441,6 +444,7 @@ describe("PluginManager", (): void => {
     const asyncPlugin = {
       id: "async-plugin",
       version: "1.0.0",
+      packageName: "@test/async-plugin",
       name: "Async Test Plugin",
       async register(_context: PluginContext): Promise<PluginCapabilities> {
         // Simulate async work (e.g., initializing a database)

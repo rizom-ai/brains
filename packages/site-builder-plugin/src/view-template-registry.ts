@@ -36,7 +36,9 @@ export class ViewTemplateRegistry implements IViewTemplateRegistry {
     const templateDef: ViewTemplate<unknown> = {
       name: validated.name,
       schema: template.schema,
+      pluginId: validated.pluginId,
       renderers: template.renderers,
+      interactive: validated.interactive,
       ...(validated.description && { description: validated.description }),
     };
 

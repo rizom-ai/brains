@@ -309,6 +309,13 @@ export class PluginTestHarness {
         generateFromTemplate: async (): Promise<unknown> => ({}),
         generateContent: async (): Promise<unknown> => ({}),
       } as ContentGenerationService,
+      // Template and route registration
+      registerTemplates: (): void => {
+        // Mock implementation for test harness
+      },
+      registerRoutes: (): void => {
+        // Mock implementation for test harness
+      },
     };
   }
 

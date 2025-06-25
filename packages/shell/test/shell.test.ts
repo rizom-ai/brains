@@ -254,6 +254,7 @@ describe("Shell", () => {
 
       const mockPlugin = {
         id: "test-plugin",
+        packageName: "@test/test-plugin",
         name: "Test Plugin",
         version: "1.0.0",
         register: async (): Promise<PluginCapabilities> => ({
@@ -273,6 +274,7 @@ describe("Shell", () => {
 
       const mockPlugin = {
         id: "test-plugin",
+        packageName: "@test/test-plugin",
         name: "Test Plugin",
         version: "1.0.0",
         register: async (): Promise<PluginCapabilities> => ({

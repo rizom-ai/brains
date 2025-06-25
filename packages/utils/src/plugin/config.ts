@@ -5,11 +5,8 @@ import { z } from "zod";
  * Provides common fields like enabled, debug, etc.
  */
 export const basePluginConfigSchema = z.object({
-  enabled: z.boolean().default(true).describe("Whether the plugin is enabled"),
-  debug: z
-    .boolean()
-    .default(false)
-    .describe("Enable debug logging for this plugin"),
+  enabled: z.boolean().describe("Whether the plugin is enabled"),
+  debug: z.boolean().describe("Enable debug logging for this plugin"),
 });
 
 /**

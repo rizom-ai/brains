@@ -5,15 +5,9 @@ import { z } from "zod";
  */
 export const directorySyncConfigSchema = z.object({
   syncPath: z.string().describe("Directory path for synchronization"),
-  watchEnabled: z.boolean().default(false).describe("Enable file watching"),
-  watchInterval: z
-    .number()
-    .default(5000)
-    .describe("Watch polling interval in ms"),
-  includeMetadata: z
-    .boolean()
-    .default(true)
-    .describe("Include frontmatter metadata"),
+  watchEnabled: z.boolean().describe("Enable file watching"),
+  watchInterval: z.number().describe("Watch polling interval in ms"),
+  includeMetadata: z.boolean().describe("Include frontmatter metadata"),
   entityTypes: z
     .array(z.string())
     .optional()

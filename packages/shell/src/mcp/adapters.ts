@@ -8,7 +8,7 @@
 import type { QueryProcessor } from "../query/queryProcessor";
 import type { QueryOptions } from "../types";
 import type { EntityService } from "../entity/entityService";
-import { z } from "zod";
+import type { z } from "zod";
 import type { ContentGenerationService } from "../content/contentGenerationService";
 import type { ContentRegistry } from "../content/content-registry";
 import type { ContentGenerateOptions, BaseEntity } from "@brains/types";

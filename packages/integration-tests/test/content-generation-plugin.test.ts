@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import {
   PluginTestHarness,
   ContentGeneratingPlugin,
-  validatePluginConfig,
   pluginConfig,
 } from "@brains/utils";
 import type { PluginContext, PluginTool } from "@brains/types";
@@ -20,19 +19,17 @@ const testSectionSchema = z.object({
 });
 
 // Test plugin that uses ContentGeneratingPlugin
-class TestContentPlugin extends ContentGeneratingPlugin<{ debug: boolean }> {
+class TestContentPlugin extends ContentGeneratingPlugin {
   constructor(config: unknown) {
-    const validatedConfig = validatePluginConfig(
-      pluginConfig().build(),
-      config,
-      "test-content",
-    );
-
     super(
       "test-content",
-      "Test Content Plugin",
-      "Plugin for testing content generation",
-      validatedConfig,
+      {
+        name: "@test/test-content",
+        version: "1.0.0",
+        description: "Plugin for testing content generation",
+      },
+      config,
+      pluginConfig().build(),
     );
   }
 
@@ -127,7 +124,7 @@ describe("ContentGeneratingPlugin Integration", () => {
   });
 
   it("should handle content generation without double prefixing", async () => {
-    const plugin = new TestContentPlugin({});
+    const plugin = new TestContentPlugin({ enabled: true, debug: false });
     await harness.installPlugin(plugin);
 
     // Get the custom tool that uses context.generateContent

@@ -29,7 +29,6 @@
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.1.14",
     "@types/react": "^18.3.16",
-    "react-devtools-core": "^6.1.2",
     "typescript": "^5.7.2"
   }
 }

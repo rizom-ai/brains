@@ -3,11 +3,15 @@ import type {
   StaticSiteBuilderOptions,
   BuildContext,
 } from "./static-site-builder";
-import type { RouteDefinition } from "@brains/types";
+import type { RouteDefinition, ComponentType } from "@brains/types";
 import type { Logger } from "@brains/utils";
 import { render } from "preact-render-to-string";
-import { join, relative } from "path";
+import { h } from "preact";
+import { join } from "path";
 import { promises as fs } from "fs";
+import { HydrationManager } from "./hydration/hydration-manager";
+import type { CSSProcessor } from "./css/css-processor";
+import { TailwindCSSProcessor } from "./css/css-processor";
 
 /**
  * Preact-based static site builder
@@ -16,11 +20,13 @@ export class PreactBuilder implements StaticSiteBuilder {
   private logger: Logger;
   private workingDir: string;
   private outputDir: string;
+  private cssProcessor: CSSProcessor;
 
   constructor(options: StaticSiteBuilderOptions) {
     this.logger = options.logger;
     this.workingDir = options.workingDir;
     this.outputDir = options.outputDir;
+    this.cssProcessor = options.cssProcessor ?? new TailwindCSSProcessor();
   }
 
   async build(
@@ -42,6 +48,23 @@ export class PreactBuilder implements StaticSiteBuilder {
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
     onProgress?.("Processing Tailwind CSS");
     await this.processStyles();
+
+    // Set up hydration for interactive components
+    onProgress?.("Setting up component hydration");
+    const hydrationManager = new HydrationManager(
+      this.logger.child("HydrationManager"),
+      context.viewRegistry,
+      context.pluginContext,
+      this.outputDir,
+    );
+
+    const interactiveTemplates = await hydrationManager.processRoutes(
+      context.routes,
+    );
+
+    if (interactiveTemplates.length > 0) {
+      await hydrationManager.updateHTMLFiles(context.routes);
+    }
 
     onProgress?.("Preact build complete");
   }
@@ -127,9 +150,23 @@ export class PreactBuilder implements StaticSiteBuilder {
       // Validate content against schema
       try {
         const validatedContent = template.schema.parse(content);
-        // Render component to string
-        const component = renderer(validatedContent);
+
+        // Create component using h() to pass props correctly
+        // renderer is already checked to be a function, so we can cast it to ComponentType
+        // We cast validatedContent to Record<string, unknown> since we know it's an object after schema validation
+        const ComponentFunc = renderer as ComponentType<
+          Record<string, unknown>
+        >;
+        const component = h(
+          ComponentFunc,
+          validatedContent as Record<string, unknown>,
+        );
+
         const html = render(component);
+        this.logger.info(
+          `Rendered HTML length for ${section.id}: ${html.length}`,
+        );
+
         renderedSections.push(html);
       } catch (error) {
         this.logger.error(`Failed to render section ${section.id}:`, error);
@@ -179,10 +216,23 @@ export class PreactBuilder implements StaticSiteBuilder {
   }
 
   private async processStyles(): Promise<void> {
-    this.logger.info("Processing Tailwind CSS v4");
+    this.logger.info("Processing CSS styles");
 
-    // Create the CSS input with Tailwind v4's import and theme variables
-    const inputCSS = `@import "tailwindcss";
+    const inputCSS = this.createTailwindInput();
+    const outputPath = join(this.outputDir, "styles", "main.css");
+
+    await this.cssProcessor.process(
+      inputCSS,
+      outputPath,
+      this.workingDir,
+      this.outputDir,
+      this.logger,
+    );
+    this.logger.info("CSS processed successfully");
+  }
+
+  private createTailwindInput(): string {
+    return `@import "tailwindcss";
 
 /* Theme Layer - CSS Custom Properties for theming */
 @layer theme {
@@ -250,49 +300,6 @@ export class PreactBuilder implements StaticSiteBuilder {
     --tw-gradient-to: var(--color-bg);
   }
 }`;
-
-    // Create input file
-    const inputPath = join(this.workingDir, "input.css");
-    await fs.mkdir(this.workingDir, { recursive: true });
-    await fs.writeFile(inputPath, inputCSS, "utf-8");
-
-    // Output path
-    const outputPath = join(this.outputDir, "styles", "main.css");
-
-    try {
-      // Use Tailwind CLI - this is the recommended approach for v4
-      const { execSync } = await import("child_process");
-
-      // Build the command - v4 has automatic content detection
-      // Run from the output directory so Tailwind can find the HTML files
-      const relativeInputPath = join("..", relative(this.outputDir, inputPath));
-      const relativeOutputPath = "styles/main.css";
-      const command = `bunx @tailwindcss/cli -i "${relativeInputPath}" -o "${relativeOutputPath}"`;
-
-      this.logger.info(`Running Tailwind CSS v4 from ${this.outputDir}`);
-      this.logger.debug(`Command: ${command}`);
-
-      execSync(command, {
-        stdio: "inherit", // Let's see the output
-        cwd: this.outputDir, // Run from output directory
-      });
-
-      this.logger.info("Tailwind CSS processed successfully");
-
-      // Clean up temp file
-      await fs.unlink(inputPath).catch(() => {});
-    } catch (error) {
-      this.logger.warn("Failed to process Tailwind CSS:", error);
-
-      // Fallback: write basic CSS that imports Tailwind
-      // This won't have the optimizations but will work for development
-      const fallbackCSS = `/* Tailwind CSS v4 - Fallback Mode */
-@import "tailwindcss";
-
-/* Note: Run 'bunx tailwindcss -i input.css -o main.css' manually for optimized CSS */
-`;
-      await fs.writeFile(outputPath, fallbackCSS, "utf-8");
-    }
   }
 }
 

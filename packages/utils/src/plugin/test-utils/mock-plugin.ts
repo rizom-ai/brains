@@ -12,7 +12,7 @@ import { z } from "zod";
  */
 export interface MockPluginOptions {
   id?: string;
-  name?: string;
+  packageName?: string;
   version?: string;
   description?: string;
   tools?: PluginTool[];
@@ -27,7 +27,7 @@ export interface MockPluginOptions {
 export function createMockPlugin(options: MockPluginOptions = {}): Plugin {
   const plugin: Plugin & { shutdown?: () => Promise<void> } = {
     id: options.id ?? "mock-plugin",
-    name: options.name ?? "Mock Plugin",
+    packageName: options.packageName ?? "@test/mock-plugin",
     version: options.version ?? "1.0.0",
     description: options.description ?? "A mock plugin for testing",
 
@@ -118,7 +118,7 @@ export function createErrorPlugin(options: {
 
   return createMockPlugin({
     id: options.id ?? "error-plugin",
-    name: "Error Plugin",
+    packageName: "@test/error-plugin",
     description: "A plugin that throws errors for testing",
 
     ...(options.errorOnRegister && {
@@ -146,7 +146,7 @@ export function createErrorPlugin(options: {
 export function createProgressPlugin(): Plugin {
   return createMockPlugin({
     id: "progress-plugin",
-    name: "Progress Plugin",
+    packageName: "@test/progress-plugin",
     description: "A plugin with progress reporting",
 
     tools: [

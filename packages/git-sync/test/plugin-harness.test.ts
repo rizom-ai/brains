@@ -224,9 +224,12 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
   describe("Basic Plugin Tests", () => {
     it("should register plugin and provide tools", async () => {
       const plugin = gitSync({
+        enabled: true,
+        debug: false,
         gitUrl: "https://github.com/test/repo.git",
         branch: "main",
         autoSync: false,
+        syncInterval: 30,
       });
 
       // Get plugin capabilities
@@ -250,9 +253,12 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
 
     it("should get initial git status", async () => {
       const plugin = gitSync({
+        enabled: true,
+        debug: false,
         gitUrl: "https://github.com/test/repo.git",
         branch: "main",
         autoSync: false,
+        syncInterval: 30,
       });
 
       const context = harness.getPluginContext();
@@ -277,9 +283,12 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
   describe("With Test Data", () => {
     it("should handle auto-sync configuration", async () => {
       const plugin = gitSync({
+        enabled: true,
+        debug: false,
         gitUrl: "https://github.com/test/repo.git",
         branch: "main",
         autoSync: false,
+        syncInterval: 30,
       });
 
       const context = harness.getPluginContext();
@@ -305,9 +314,12 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
 
     it("should handle git operations", async () => {
       const plugin = gitSync({
+        enabled: true,
+        debug: false,
         gitUrl: "https://github.com/test/repo.git",
         branch: "main",
         autoSync: false,
+        syncInterval: 30,
       });
 
       const context = harness.getPluginContext();
@@ -336,9 +348,12 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
 
     it("should validate tool inputs", async () => {
       const plugin = gitSync({
+        enabled: true,
+        debug: false,
         gitUrl: "https://github.com/test/repo.git",
         branch: "main",
         autoSync: false,
+        syncInterval: 30,
       });
 
       const context = harness.getPluginContext();
@@ -365,6 +380,8 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
   describe("Plugin Configuration", () => {
     it("should handle custom git configuration", async () => {
       const plugin = gitSync({
+        enabled: true,
+        debug: false,
         gitUrl: "git@github.com:user/repo.git",
         branch: "develop",
         autoSync: true,
@@ -391,9 +408,12 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
 
     it("should use directory-sync plugin dependency", async () => {
       const plugin = gitSync({
+        enabled: true,
+        debug: false,
         gitUrl: "https://github.com/test/repo.git",
         branch: "main",
         autoSync: false,
+        syncInterval: 30,
         directorySync: "directory-sync", // Explicitly specify the dependency
       });
 
@@ -408,9 +428,12 @@ describe("GitSyncPlugin with PluginTestHarness", () => {
 
     it("should handle authentication token", async () => {
       const plugin = gitSync({
+        enabled: true,
+        debug: false,
         gitUrl: "https://github.com/test/repo.git",
         branch: "main",
         autoSync: false,
+        syncInterval: 30,
         authToken: "github_pat_test_token",
       });
 

@@ -4,12 +4,7 @@ import type {
   PluginTool,
   MessageBus,
 } from "@brains/types";
-import {
-  BasePlugin,
-  pluginConfig,
-  validatePluginConfig,
-  toolInput,
-} from "@brains/utils";
+import { BasePlugin, pluginConfig, toolInput } from "@brains/utils";
 import { z } from "zod";
 import { DirectorySync } from "./directorySync";
 import {
@@ -25,6 +20,7 @@ import {
   importResultSchema,
   syncResultSchema,
 } from "./schemas";
+import packageJson from "../package.json";
 
 /**
  * Directory Sync plugin that extends BasePlugin
@@ -34,19 +30,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
   private directorySync?: DirectorySync;
 
   constructor(config: unknown) {
-    // Validate config first
-    const validatedConfig = validatePluginConfig(
-      directorySyncConfigSchema,
-      config,
-      "directory-sync",
-    );
-
-    super(
-      "directory-sync",
-      "Directory Sync",
-      "Synchronize brain entities with a directory structure",
-      validatedConfig,
-    );
+    super("directory-sync", packageJson, config, directorySyncConfigSchema);
   }
 
   /**

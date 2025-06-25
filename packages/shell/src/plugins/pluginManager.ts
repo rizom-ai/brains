@@ -13,6 +13,8 @@ import type {
   PluginManagerEventMap,
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
+  RouteDefinition,
+  TemplateDefinition,
 } from "@brains/types";
 import { PluginStatus, PluginEvent } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
@@ -316,6 +318,65 @@ export class PluginManager implements IPluginManager {
             );
           }
         },
+      },
+      // Template and route registration
+      registerTemplates: (
+        templates: Record<string, TemplateDefinition>,
+      ): void => {
+        try {
+          // Add plugin prefix to template names
+          const processedTemplates: Record<string, TemplateDefinition> = {};
+          for (const [key, template] of Object.entries(templates)) {
+            processedTemplates[key] = {
+              ...template,
+              name: `${pluginId}:${template.name}`,
+            };
+          }
+
+          shell.registerTemplates(processedTemplates, pluginId);
+          this.logger.debug(
+            `Registered ${Object.keys(templates).length} templates for plugin ${pluginId}`,
+          );
+        } catch (error) {
+          this.logger.error("Failed to register templates", error);
+          throw new Error(
+            `Template registration failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      },
+      registerRoutes: (
+        routes: RouteDefinition[],
+        options?: { environment?: string },
+      ): void => {
+        try {
+          // Add plugin prefix to template references in routes
+          const processedRoutes = routes.map((route) => ({
+            ...route,
+            sections: route.sections.map((section) => ({
+              ...section,
+              // Add plugin prefix to template name
+              template: section.template
+                ? `${pluginId}:${section.template}`
+                : section.template,
+            })),
+          }));
+
+          const routeOptions: { pluginId?: string; environment?: string } = {
+            pluginId,
+          };
+          if (options?.environment !== undefined) {
+            routeOptions.environment = options.environment;
+          }
+          shell.registerRoutes(processedRoutes, routeOptions);
+          this.logger.debug(
+            `Registered ${routes.length} routes for plugin ${pluginId}`,
+          );
+        } catch (error) {
+          this.logger.error("Failed to register routes", error);
+          throw new Error(
+            `Route registration failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
       },
       // Direct service access
       entityService,

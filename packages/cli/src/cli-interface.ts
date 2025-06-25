@@ -104,8 +104,12 @@ Type any message to interact with the brain.`;
 
     try {
       const { render } = await import("ink");
-      const { default: App } = await import("./components/App.js");
       const React = await import("react");
+
+      // Completely opaque import to prevent TypeScript from following the path
+      const componentPath = "./components/App.js";
+      const AppModule = await import(componentPath);
+      const App = AppModule.default as any;
 
       this.inkApp = render(React.createElement(App, { interface: this }));
 

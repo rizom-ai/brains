@@ -5,13 +5,15 @@ import type {
   ViewTemplate,
   RouteDefinition,
   OutputFormat,
+  PluginContext,
 } from "@brains/types";
-import { Logger } from "@brains/utils";
+import { Logger, createMockPlugin } from "@brains/utils";
 import { z } from "zod";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { h, type VNode } from "preact";
+import { MockCSSProcessor } from "../mocks/mock-css-processor";
 
 describe("PreactBuilder", () => {
   let testDir: string;
@@ -41,6 +43,7 @@ describe("PreactBuilder", () => {
       logger,
       outputDir,
       workingDir,
+      cssProcessor: new MockCSSProcessor(),
     });
 
     // Create test component using Preact h function
@@ -56,7 +59,9 @@ describe("PreactBuilder", () => {
           return {
             name: "test",
             schema: z.object({ title: z.string() }),
+            pluginId: "test-plugin",
             renderers: { web: TestComponent },
+            interactive: false,
           };
         }
         return undefined;
@@ -71,6 +76,12 @@ describe("PreactBuilder", () => {
       hasRenderer: (): boolean => false,
       listFormats: (): OutputFormat[] => [],
     };
+
+    // Create a minimal mock pluginContext with only necessary fields
+    const mockPluginContext = {
+      getPlugin: (id: string) =>
+        createMockPlugin({ id, packageName: `@test/${id}` }),
+    } as unknown as PluginContext;
 
     const buildContext: BuildContext = {
       routes: [
@@ -89,6 +100,7 @@ describe("PreactBuilder", () => {
         },
       ],
       viewRegistry,
+      pluginContext: mockPluginContext,
       siteConfig: {
         title: "Test Site",
         description: "Test Site Description",
@@ -119,18 +131,21 @@ describe("PreactBuilder", () => {
       logger,
       outputDir,
       workingDir,
+      cssProcessor: new MockCSSProcessor(),
     });
 
     const viewRegistry = {
       getViewTemplate: (): ViewTemplate => ({
         name: "test",
         schema: z.object({ content: z.string() }),
+        pluginId: "test-plugin",
         renderers: {
           web: (props: unknown): VNode => {
             const { content } = props as { content: string };
             return h("div", {}, content);
           },
         },
+        interactive: false,
       }),
       registerRoute: (): void => {},
       getRoute: (): undefined => undefined,
@@ -142,6 +157,11 @@ describe("PreactBuilder", () => {
       hasRenderer: (): boolean => false,
       listFormats: (): OutputFormat[] => [],
     };
+
+    const mockPluginContext = {
+      getPlugin: (id: string) =>
+        createMockPlugin({ id, packageName: `@test/${id}` }),
+    } as unknown as PluginContext;
 
     const buildContext: BuildContext = {
       routes: [
@@ -160,6 +180,7 @@ describe("PreactBuilder", () => {
         },
       ],
       viewRegistry,
+      pluginContext: mockPluginContext,
       siteConfig: {
         title: "Test Site",
         description: "Test",
@@ -182,6 +203,7 @@ describe("PreactBuilder", () => {
       logger,
       outputDir,
       workingDir,
+      cssProcessor: new MockCSSProcessor(),
     });
 
     const viewRegistry = {
@@ -196,6 +218,11 @@ describe("PreactBuilder", () => {
       hasRenderer: (): boolean => false,
       listFormats: (): OutputFormat[] => [],
     };
+
+    const mockPluginContext = {
+      getPlugin: (id: string) =>
+        createMockPlugin({ id, packageName: `@test/${id}` }),
+    } as unknown as PluginContext;
 
     const buildContext: BuildContext = {
       routes: [
@@ -214,6 +241,7 @@ describe("PreactBuilder", () => {
         },
       ],
       viewRegistry,
+      pluginContext: mockPluginContext,
       siteConfig: {
         title: "Test Site",
         description: "Test",
@@ -234,6 +262,7 @@ describe("PreactBuilder", () => {
       logger,
       outputDir,
       workingDir,
+      cssProcessor: new MockCSSProcessor(),
     });
 
     const mockContent = { title: "Entity Content" };
@@ -243,12 +272,14 @@ describe("PreactBuilder", () => {
       getViewTemplate: (): ViewTemplate => ({
         name: "test",
         schema: z.object({ title: z.string() }),
+        pluginId: "test-plugin",
         renderers: {
           web: (props: unknown): VNode => {
             const { title } = props as { title: string };
             return h("div", {}, title);
           },
         },
+        interactive: false,
       }),
       registerRoute: (): void => {},
       getRoute: (): undefined => undefined,
@@ -260,6 +291,11 @@ describe("PreactBuilder", () => {
       hasRenderer: (): boolean => false,
       listFormats: (): OutputFormat[] => [],
     };
+
+    const mockPluginContext = {
+      getPlugin: (id: string) =>
+        createMockPlugin({ id, packageName: `@test/${id}` }),
+    } as unknown as PluginContext;
 
     const buildContext: BuildContext = {
       routes: [
@@ -282,6 +318,7 @@ describe("PreactBuilder", () => {
         },
       ],
       viewRegistry,
+      pluginContext: mockPluginContext,
       siteConfig: {
         title: "Test Site",
         description: "Test",
@@ -306,6 +343,7 @@ describe("PreactBuilder", () => {
       logger,
       outputDir,
       workingDir,
+      cssProcessor: new MockCSSProcessor(),
     });
 
     // Create some test files

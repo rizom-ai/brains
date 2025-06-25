@@ -14,23 +14,23 @@ import { validatePluginConfig } from "./config";
  */
 export abstract class BasePlugin<TConfig = unknown> implements Plugin {
   public readonly id: string;
-  public readonly version: string = "1.0.0";
-  public readonly name: string;
+  public readonly version: string;
   public readonly description: string;
+  public readonly packageName: string;
   protected config: TConfig;
   protected logger?: Logger;
   protected context?: PluginContext;
 
   constructor(
     id: string,
-    name: string,
-    description: string,
+    packageJson: { name: string; version: string; description?: string },
     config: unknown,
     configSchema?: z.ZodType<TConfig>,
   ) {
     this.id = id;
-    this.name = name;
-    this.description = description;
+    this.packageName = packageJson.name;
+    this.version = packageJson.version;
+    this.description = packageJson.description ?? `${packageJson.name} plugin`;
 
     // Validate config if schema provided
     if (configSchema) {

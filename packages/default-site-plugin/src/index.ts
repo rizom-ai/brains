@@ -1,1 +1,0 @@
-export { DefaultSitePlugin } from "./plugin";

@@ -182,11 +182,9 @@ export class App {
         );
 
         // Fallback to simple text if default not found
-        if (!formatter) {
-          formatter = contentRegistry.getFormatter(
-            "shell:response:simple-text",
-          );
-        }
+        formatter ??= contentRegistry.getFormatter(
+          "shell:response:simple-text",
+        );
 
         if (!formatter) {
           // Last resort fallback to JSON

@@ -38,10 +38,12 @@ export const ViewTemplateSchema = z.object({
   name: z.string(),
   schema: z.any(), // ZodType can't be validated at runtime
   description: z.string().optional(),
+  pluginId: z.string(),
   renderers: z.object({
     web: z.union([z.function(), z.string()]).optional(),
     // Future formats can be added here
   }),
+  interactive: z.boolean(),
 });
 
 /**
@@ -81,6 +83,7 @@ export interface ViewTemplate<T = unknown> {
   name: string;
   schema: z.ZodType<T>;
   description?: string;
+  pluginId: string; // ID of the plugin that registered this template
 
   // Format-specific renderers
   renderers: {
@@ -91,7 +94,7 @@ export interface ViewTemplate<T = unknown> {
   };
 
   // Mark components that need client-side hydration
-  interactive?: boolean;
+  interactive: boolean;
 }
 
 /**

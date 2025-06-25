@@ -124,6 +124,7 @@ export class SiteBuilder implements ISiteBuilder {
       const buildContext: BuildContext = {
         routes,
         viewRegistry: this.context.viewRegistry,
+        pluginContext: this.context,
         siteConfig: {
           title: siteConfig.title,
           description: siteConfig.description,

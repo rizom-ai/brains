@@ -65,6 +65,7 @@ async function main(): Promise<void> {
               watchInterval: process.env["WATCH_INTERVAL"]
                 ? Number(process.env["WATCH_INTERVAL"])
                 : 5000,
+              includeMetadata: true,
             }),
           ]
         : []),

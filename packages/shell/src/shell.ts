@@ -16,7 +16,11 @@ import { Logger, LogLevel } from "@brains/utils";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerShellMCP } from "./mcp";
 import type { QueryResult } from "./types";
-import type { Plugin } from "@brains/types";
+import type {
+  Plugin,
+  RouteDefinition,
+  TemplateDefinition,
+} from "@brains/types";
 import {
   baseEntitySchema,
   defaultQueryResponseSchema,
@@ -390,8 +394,8 @@ export class Shell {
         this.logger,
       );
 
-      // Register default templates
-      this.registerDefaultTemplates();
+      // Register templates
+      this.registerTemplates();
 
       // Register response schemas and formatters
       this.registerResponseSchemas();
@@ -425,17 +429,101 @@ export class Shell {
   /**
    * Register default templates for shell tools
    */
-  private registerDefaultTemplates(): void {
-    this.logger.debug("Registering default templates");
+  /**
+   * Register templates from various sources
+   * This method can be called by plugins to register their templates
+   */
+  public registerTemplates(
+    templates?: Record<string, TemplateDefinition>,
+    pluginId?: string,
+  ): void {
+    this.logger.debug("Registering templates", { pluginId });
 
-    // Register query response template for public queries
-    this.contentRegistry.registerContent("shell:query_response", {
-      template: queryResponseTemplate,
-      formatter: new GenericYamlFormatter<QueryResponse>(), // Use typed generic YAML formatter
-      schema: queryResponseTemplate.schema,
+    // Register shell's own templates
+    if (!templates) {
+      // Register query response template for public queries
+      this.contentRegistry.registerContent("shell:query_response", {
+        template: queryResponseTemplate,
+        formatter: new GenericYamlFormatter<QueryResponse>(),
+        schema: queryResponseTemplate.schema,
+      });
+
+      this.logger.debug("Shell templates registered");
+      return;
+    }
+
+    // Register templates from plugins
+    // Note: template names are already prefixed by PluginManager
+
+    Object.values(templates).forEach((template: TemplateDefinition) => {
+      // Register with ContentRegistry (for AI generation)
+      if (template.formatter && template.schema) {
+        this.contentRegistry.registerContent(template.name, {
+          template: {
+            name: template.name,
+            description: template.description,
+            schema: template.schema,
+            basePrompt: template.prompt,
+            formatter: template.formatter,
+          },
+          formatter: template.formatter,
+          schema: template.schema,
+        });
+      }
+
+      // Register with ViewRegistry (for rendering)
+      if (template.component) {
+        this.viewRegistry.registerViewTemplate({
+          name: template.name, // Already prefixed
+          schema: template.schema,
+          description: template.description,
+          pluginId: pluginId ?? "shell", // Default to shell if no pluginId
+          renderers: { web: template.component },
+          interactive: template.interactive,
+        });
+      }
     });
 
-    this.logger.debug("Default templates registered");
+    this.logger.debug(`Registered ${Object.keys(templates).length} templates`, {
+      pluginId,
+    });
+  }
+
+  /**
+   * Register routes (typically called by plugins)
+   */
+  public registerRoutes(
+    routes: RouteDefinition[],
+    options?: {
+      pluginId?: string;
+      environment?: string;
+    },
+  ): void {
+    const { pluginId, environment = "preview" } = options ?? {};
+    this.logger.debug("Registering routes", { pluginId, count: routes.length });
+
+    routes.forEach((route) => {
+      // Add convention-based contentEntity if not already present
+      const processedRoute = {
+        ...route,
+        pluginId,
+        sections: route.sections.map((section) => ({
+          ...section,
+          contentEntity: section.contentEntity ?? {
+            entityType: "site-content",
+            query: {
+              page: route.id,
+              section: section.id,
+              environment,
+            },
+          },
+        })),
+      };
+
+      this.viewRegistry.registerRoute(processedRoute);
+    });
+
+    this.logger.debug(`Registered ${routes.length} routes`, { pluginId });
   }
 
   /**

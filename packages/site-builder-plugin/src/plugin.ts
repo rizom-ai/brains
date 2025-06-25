@@ -13,6 +13,9 @@ import {
 import { SiteBuilder } from "./site-builder";
 import { z } from "zod";
 import { siteContentAdapter } from "./entities/site-content-adapter";
+import { dashboardTemplate } from "./templates/dashboard";
+import { DashboardFormatter } from "./templates/dashboard/formatter";
+import packageJson from "../package.json";
 
 /**
  * Configuration schema for the site builder plugin
@@ -52,13 +55,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
   private siteBuilder?: SiteBuilder;
 
   constructor(config: unknown = {}) {
-    super(
-      "site-builder",
-      "Site Builder Plugin",
-      "Provides static site generation capabilities",
-      config,
-      siteBuilderConfigSchema,
-    );
+    super("site-builder", packageJson, config, siteBuilderConfigSchema);
   }
 
   /**
@@ -75,57 +72,50 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
     );
     this.logger?.debug("Registered site-content entity type");
 
-    // TODO: Move this registration logic to shell
-    // The shell should handle template and route registration directly,
-    // making this plugin purely focused on site building functionality
+    // Register built-in dashboard template using the standard method
+    // This will register it with both ContentRegistry and ViewRegistry
+    context.registerTemplates({
+      dashboard: dashboardTemplate,
+    });
+    this.logger?.debug("Registered dashboard template");
+
+    // Register dashboard route
+    // TODO: Refactor this pattern - templates with formatters should automatically
+    // provide default content when no contentEntity is specified. The preact-builder
+    // should check if a template has a formatter and call formatter.parse("") or
+    // a getDefaultContent() method to get initial data.
+    const dashboardFormatter = new DashboardFormatter();
+    context.registerRoutes(
+      [
+        {
+          id: "dashboard",
+          path: "/dashboard",
+          title: "System Dashboard",
+          description: "Monitor your Brain system statistics and activity",
+          sections: [
+            {
+              id: "main",
+              template: "dashboard", // Plugin prefix is added automatically
+              content: dashboardFormatter.getMockData(), // Temporary: provide mock data directly
+            },
+          ],
+        },
+      ],
+      {
+        environment: this.config.environment ?? "preview",
+      },
+    );
+    this.logger?.debug("Registered dashboard route");
 
     // Register templates if provided
     if (this.config.templates) {
-      Object.values(this.config.templates).forEach((template) => {
-        // Register with ContentRegistry (for AI generation)
-        context.contentRegistry.registerContent(`${this.id}:${template.name}`, {
-          template: {
-            name: template.name,
-            description: template.description,
-            schema: template.schema,
-            basePrompt: template.prompt,
-            formatter: template.formatter,
-          },
-          formatter: template.formatter,
-          schema: template.schema,
-        });
-
-        // Register with ViewRegistry (for rendering)
-        if (template.component) {
-          context.viewRegistry.registerViewTemplate({
-            name: template.name,
-            schema: template.schema,
-            description: template.description,
-            renderers: { web: template.component },
-            interactive: template.interactive,
-          });
-        }
-      });
+      context.registerTemplates(this.config.templates);
     }
 
     // Register routes if provided
     if (this.config.routes) {
-      this.config.routes.forEach((route) => {
-        // Add convention-based contentEntity
-        context.viewRegistry.registerRoute({
-          ...route,
-          sections: route.sections.map((section) => ({
-            ...section,
-            contentEntity: {
-              entityType: "site-content",
-              query: {
-                page: route.id,
-                section: section.id,
-                environment: this.config.environment ?? "preview",
-              },
-            },
-          })),
-        });
+      context.registerRoutes(this.config.routes, {
+        environment: this.config.environment ?? "preview",
       });
     }
 

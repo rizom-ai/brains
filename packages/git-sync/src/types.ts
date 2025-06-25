@@ -4,13 +4,9 @@ import { createPluginConfig } from "@brains/utils";
 export const gitSyncConfigSchema = createPluginConfig(
   {
     gitUrl: z.string().describe("Git repository URL (https or ssh)"),
-    branch: z.string().default("main").describe("Git branch to sync"),
-    autoSync: z.boolean().default(false).describe("Enable automatic syncing"),
-    syncInterval: z
-      .number()
-      .min(1)
-      .default(30)
-      .describe("Sync interval in minutes"),
+    branch: z.string().describe("Git branch to sync"),
+    autoSync: z.boolean().describe("Enable automatic syncing"),
+    syncInterval: z.number().min(1).describe("Sync interval in minutes"),
     commitMessage: z
       .string()
       .optional()

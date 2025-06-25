@@ -27,14 +27,14 @@ export class PluginWithLifecycle implements Plugin {
     // Copy plugin properties
     this.id = plugin.id;
     this.version = plugin.version;
-    this.name = plugin.name ?? "";
+    this.packageName = plugin.packageName;
     this.description = plugin.description ?? "";
   }
 
   // Plugin properties
   id: string;
   version: string;
-  name: string;
+  packageName: string;
   description: string;
 
   /**
@@ -190,7 +190,7 @@ export function delegatePlugin(
   return {
     id: overrides.id ?? delegate.id,
     version: overrides.version ?? delegate.version,
-    name: overrides.name ?? delegate.name,
+    packageName: overrides.packageName ?? delegate.packageName,
     description: overrides.description ?? delegate.description,
     register: overrides.register ?? delegate.register.bind(delegate),
   };
@@ -201,14 +201,14 @@ export function delegatePlugin(
  */
 export function composePlugins(
   id: string,
-  name: string,
+  packageName: string,
   description: string,
   plugins: Plugin[],
 ): Plugin {
   return {
     id,
     version: "1.0.0",
-    name,
+    packageName,
     description,
     async register(context: PluginContext): Promise<PluginCapabilities> {
       const allCapabilities = await Promise.all(

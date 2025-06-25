@@ -20,9 +20,7 @@ export class ViewRegistry implements IViewRegistry {
   private viewTemplateRegistry: ViewTemplateRegistry;
 
   public static getInstance(): ViewRegistry {
-    if (!ViewRegistry.instance) {
-      ViewRegistry.instance = new ViewRegistry();
-    }
+    ViewRegistry.instance ??= new ViewRegistry();
     return ViewRegistry.instance;
   }
 

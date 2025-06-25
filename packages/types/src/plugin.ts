@@ -17,7 +17,11 @@ import type { VNode } from "preact";
  */
 export type ComponentType<P = unknown> = (props: P) => VNode;
 
-import type { ViewRegistry } from "./views";
+import type {
+  ViewRegistry,
+  RouteDefinition,
+  TemplateDefinition,
+} from "./views";
 
 /**
  * Options for content generation
@@ -82,9 +86,9 @@ export interface BatchGenerateOptions<T> {
 export const pluginMetadataSchema = z.object({
   id: z.string(),
   version: z.string(),
-  name: z.string().optional(),
   description: z.string().optional(),
   dependencies: z.array(z.string()).optional(),
+  packageName: z.string(), // Package name for import resolution (e.g., "@brains/site-builder-plugin")
 });
 
 /**
@@ -170,6 +174,12 @@ export interface PluginContext {
     adapter: EntityAdapter<T>,
   ) => void;
   generateContent: <T>(options: ContentGenerateOptions<T>) => Promise<T>;
+  // Template and route registration
+  registerTemplates: (templates: Record<string, TemplateDefinition>) => void;
+  registerRoutes: (
+    routes: RouteDefinition[],
+    options?: { environment?: string },
+  ) => void;
   // Direct service access
   entityService: EntityService;
   contentRegistry: ContentRegistry;

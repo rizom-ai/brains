@@ -56,8 +56,15 @@ export class ServerManager {
       serveStatic({
         root: this.options.distDir,
         rewriteRequestPath: (path) => {
-          // Handle clean URLs - try with .html extension
+          // Handle clean URLs
           if (!path.includes(".") && path !== "/") {
+            // First try directory with index.html
+            const indexPath = path + "/index.html";
+            const fullIndexPath = join(this.options.distDir, indexPath);
+            if (existsSync(fullIndexPath)) {
+              return indexPath;
+            }
+            // Then try with .html extension
             return path + ".html";
           }
           return path;
@@ -109,8 +116,15 @@ export class ServerManager {
       serveStatic({
         root: this.options.distDir,
         rewriteRequestPath: (path) => {
-          // Handle clean URLs - try with .html extension
+          // Handle clean URLs
           if (!path.includes(".") && path !== "/") {
+            // First try directory with index.html
+            const indexPath = path + "/index.html";
+            const fullIndexPath = join(this.options.distDir, indexPath);
+            if (existsSync(fullIndexPath)) {
+              return indexPath;
+            }
+            // Then try with .html extension
             return path + ".html";
           }
           return path;
