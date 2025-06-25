@@ -3,16 +3,22 @@ import type {
   PluginContext,
   PluginTool,
   PluginResource,
-  SiteContent,
+  SiteContentPreview,
+  SiteContentProduction,
 } from "@brains/types";
 import {
   RouteDefinitionSchema,
   TemplateDefinitionSchema,
-  siteContentSchema,
+  siteContentPreviewSchema,
+  siteContentProductionSchema,
+  SiteContentEntityTypeSchema,
 } from "@brains/types";
 import { SiteBuilder } from "./site-builder";
 import { z } from "zod";
-import { siteContentAdapter } from "./entities/site-content-adapter";
+import { 
+  siteContentPreviewAdapter, 
+  siteContentProductionAdapter 
+} from "./entities/site-content-adapter";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
 import packageJson from "../package.json";
@@ -64,13 +70,20 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
 
-    // Register site-content entity type
+    // Register site content entity types
     context.registerEntityType(
-      "site-content",
-      siteContentSchema,
-      siteContentAdapter,
+      "site-content-preview",
+      siteContentPreviewSchema,
+      siteContentPreviewAdapter,
     );
-    this.logger?.debug("Registered site-content entity type");
+    this.logger?.debug("Registered site-content-preview entity type");
+
+    context.registerEntityType(
+      "site-content-production",
+      siteContentProductionSchema,
+      siteContentProductionAdapter,
+    );
+    this.logger?.debug("Registered site-content-production entity type");
 
     // Register built-in dashboard template using the standard method
     // This will register it with both ContentRegistry and ViewRegistry
@@ -268,37 +281,32 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                     : JSON.stringify(generatedContent);
 
                 // Save as entity with required metadata
-                // For site-content entities, we need to include the required fields
-                if (
-                  section.contentEntity.entityType === "site-content" &&
-                  section.contentEntity.query
-                ) {
+                try {
+                  // Try to parse as site content entity type
+                  const entityType = SiteContentEntityTypeSchema.parse(section.contentEntity.entityType);
+                  
+                  if (!section.contentEntity.query) {
+                    throw new Error(`Site content entity requires query data for page and section`);
+                  }
+                  
                   // For site-content, construct the entity with all required fields
-                  // Extract and validate environment value
-                  const envValue = section.contentEntity.query["environment"];
-                  const environment: "preview" | "production" =
-                    envValue === "production" ? "production" : "preview";
-
                   const siteContentEntity: Omit<
-                    SiteContent,
+                    SiteContentPreview | SiteContentProduction,
                     "id" | "created" | "updated"
                   > = {
-                    entityType: "site-content",
+                    entityType,
                     content: formattedContent,
                     page: section.contentEntity.query["page"] as string,
                     section: section.contentEntity.query["section"] as string,
-                    environment,
                   };
 
                   await this.context.entityService.createEntity(
                     siteContentEntity,
                   );
-                } else {
-                  // For other entity types, save as-is
-                  await this.context.entityService.createEntity({
-                    entityType: section.contentEntity.entityType,
-                    content: formattedContent,
-                  });
+                } catch (error) {
+                  // Log the error and skip this section
+                  this.logger?.error(`Failed to create entity for section ${section.id}`, { error });
+                  continue;
                 }
 
                 sectionsGenerated++;

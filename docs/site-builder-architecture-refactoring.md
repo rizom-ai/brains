@@ -682,17 +682,19 @@ Implement comprehensive content management workflow with refined entity architec
 #### Entity Architecture Refinements
 
 **Deterministic Entity IDs:**
+
 ```typescript
 // Replace random IDs with predictable structure
-id: `${entityType}:${page}:${section}`
+id: `${entityType}:${page}:${section}`;
 // Example: "site-content-preview:landing:hero"
 ```
 
 **Separate Entity Types:**
+
 ```typescript
 // Split environments into distinct entity types
-entityType: "site-content-preview"   // For draft content
-entityType: "site-content-production" // For live content
+entityType: "site-content-preview"; // For draft content
+entityType: "site-content-production"; // For live content
 
 // Benefits:
 // - Clean file system separation (/entities/site-content-preview/, /entities/site-content-production/)
@@ -701,6 +703,7 @@ entityType: "site-content-production" // For live content
 ```
 
 **Simplified Schemas:**
+
 ```typescript
 // Remove environment field, simplify to core fields
 export const siteContentPreviewSchema = baseEntitySchema.extend({
@@ -710,14 +713,16 @@ export const siteContentPreviewSchema = baseEntitySchema.extend({
 });
 
 export const siteContentProductionSchema = baseEntitySchema.extend({
-  entityType: z.literal("site-content-production"), 
+  entityType: z.literal("site-content-production"),
   page: z.string(),
   section: z.string(),
-  promotionMetadata: z.object({
-    promotedAt: z.string(),
-    promotedBy: z.string().optional(),
-    promotedFrom: z.string(), // Preview entity ID
-  }).optional(),
+  promotionMetadata: z
+    .object({
+      promotedAt: z.string(),
+      promotedBy: z.string().optional(),
+      promotedFrom: z.string(), // Preview entity ID
+    })
+    .optional(),
 });
 ```
 
@@ -731,17 +736,18 @@ Promotes preview content to production environment via entity copying.
 // Input schema
 {
   page?: string,        // Optional: specific page filter
-  section?: string,     // Optional: specific section filter  
+  section?: string,     // Optional: specific section filter
   sections?: string[]   // Optional: batch promote multiple sections
   dryRun?: boolean     // Optional: preview changes without executing
 }
 
 // Operation: Simple entity copy with ID transformation
-// From: "site-content-preview:landing:hero" 
+// From: "site-content-preview:landing:hero"
 // To:   "site-content-production:landing:hero"
 ```
 
 **Logic:**
+
 - Query preview entities matching filters
 - For each preview entity, create corresponding production entity
 - Add promotion metadata (timestamp, source entity ID)
@@ -753,7 +759,7 @@ Promotes preview content to production environment via entity copying.
 Removes production content, reverting to preview-only state.
 
 ```typescript
-// Input schema  
+// Input schema
 {
   page?: string,        // Optional: specific page filter
   section?: string,     // Optional: specific section filter
@@ -766,6 +772,7 @@ Removes production content, reverting to preview-only state.
 ```
 
 **Logic:**
+
 - Query production entities matching filters
 - Delete matching production entities
 - Preview content remains untouched
@@ -788,11 +795,12 @@ Generates fresh content with three operational modes.
 
 // Three modes:
 // 1. "leave" - No regeneration, preserve existing content
-// 2. "new" - Fresh AI generation, ignore current content  
+// 2. "new" - Fresh AI generation, ignore current content
 // 3. "with-current" - Use existing content as context for AI generation
 ```
 
 **Logic:**
+
 - Mode "leave": No-op, return current content status
 - Mode "new": Delete existing content, generate fresh using AI templates
 - Mode "with-current": Pass existing content to AI as context, generate improved version
@@ -802,6 +810,7 @@ Generates fresh content with three operational modes.
 #### Implementation Approach
 
 **Tool Design Principles:**
+
 - **CLI-first**: Efficient tools for technical users
 - **Section-level granularity**: Operations work on complete sections (no partial updates)
 - **One-click operations**: Direct execution with optional dry-run safety
@@ -809,49 +818,57 @@ Generates fresh content with three operational modes.
 - **Infrequent update optimization**: Prioritize thoroughness over speed
 
 **Entity Service Integration:**
+
 ```typescript
 // Promotion example
-const previewEntity = await entityService.getEntity("site-content-preview:landing:hero");
+const previewEntity = await entityService.getEntity(
+  "site-content-preview:landing:hero",
+);
 const productionEntity = {
   ...previewEntity,
-  id: "site-content-production:landing:hero", 
+  id: "site-content-production:landing:hero",
   entityType: "site-content-production",
   promotionMetadata: {
     promotedAt: new Date().toISOString(),
-    promotedFrom: previewEntity.id
-  }
+    promotedFrom: previewEntity.id,
+  },
 };
 await entityService.createEntity(productionEntity);
 ```
 
 **File System Results:**
+
 ```
 /entities/
   site-content-preview/
     landing-hero.md         # Draft content
     landing-features.md     # Draft content
-  site-content-production/  
+  site-content-production/
     landing-hero.md         # Published content (promoted from preview)
 ```
 
 #### Benefits
 
 1. **Predictable Entity Structure**
+
    - Deterministic IDs enable direct entity access
    - No complex relationship tracking needed
    - Simple tooling and debugging
 
 2. **Clean Separation**
+
    - Preview and production content physically separated
    - Clear conceptual model (draft vs published)
    - Independent entity lifecycles
 
 3. **Simple Operations**
+
    - Promotion is entity copy operation
    - Rollback is entity deletion
    - No complex state management
 
 4. **Flexible Content Generation**
+
    - Three regeneration modes support different workflows
    - Preserve user edits unless explicitly requested
    - AI can build on existing content for improvements

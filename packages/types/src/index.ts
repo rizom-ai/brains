@@ -6,8 +6,8 @@
  */
 
 // Entity types
-export type { BaseEntity, SearchResult, SiteContent } from "./entities";
-export { baseEntitySchema, siteContentSchema } from "./entities";
+export type { BaseEntity, SearchResult, SiteContentPreview, SiteContentProduction } from "./entities";
+export { baseEntitySchema, siteContentPreviewSchema, siteContentProductionSchema } from "./entities";
 
 // Plugin types
 export type {
@@ -83,6 +83,7 @@ export type {
   ViewTemplateRegistry,
   ViewRegistry,
   SiteBuilder,
+  SiteContentEntityType,
 } from "./views";
 export {
   RouteDefinitionSchema,
@@ -92,6 +93,7 @@ export {
   SiteBuilderOptionsSchema,
   BuildResultSchema,
   ContentGenerationRequestSchema,
+  SiteContentEntityTypeSchema,
 } from "./views";
 
 // Re-export commonly used types from utils

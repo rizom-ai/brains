@@ -27,32 +27,40 @@ export interface SearchResult {
 }
 
 /**
- * Schema for site content entities
- * These store AI-generated or user-edited content for the website
+ * Shared schema for all site content entities
  */
-export const siteContentSchema = baseEntitySchema.extend({
-  entityType: z.literal("site-content"),
-
+const baseSiteContentSchema = baseEntitySchema.extend({
   // Which page this content is for (e.g., "landing", "about")
   page: z.string(),
 
   // Which section of the page (e.g., "hero", "features")
   section: z.string(),
-
-  // Environment this content belongs to
-  environment: z.enum(["preview", "production"]),
-
-  // Promotion metadata
-  promotionMetadata: z
-    .object({
-      promotedAt: z.string().optional(),
-      promotedBy: z.string().optional(),
-      promotedFrom: z.string().optional(), // Entity ID of the preview version
-    })
-    .optional(),
 });
 
 /**
- * Site content entity type
+ * Schema for preview site content entities
+ * These store draft content being worked on before publication
  */
-export type SiteContent = z.infer<typeof siteContentSchema>;
+export const siteContentPreviewSchema = baseSiteContentSchema.extend({
+  entityType: z.literal("site-content-preview"),
+});
+
+/**
+ * Schema for production site content entities
+ * These store live content that's been promoted from preview
+ */
+export const siteContentProductionSchema = baseSiteContentSchema.extend({
+  entityType: z.literal("site-content-production"),
+  
+  // Future enhancement: Add promotion metadata when audit trails are needed
+  // promotionMetadata: z.object({
+  //   promotedAt: z.string(),
+  //   promotedBy: z.string().optional(),
+  // }).optional(),
+});
+
+/**
+ * Site content entity types
+ */
+export type SiteContentPreview = z.infer<typeof siteContentPreviewSchema>;
+export type SiteContentProduction = z.infer<typeof siteContentProductionSchema>;

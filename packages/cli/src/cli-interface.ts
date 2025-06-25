@@ -109,6 +109,7 @@ Type any message to interact with the brain.`;
       // Completely opaque import to prevent TypeScript from following the path
       const componentPath = "./components/App.js";
       const AppModule = await import(componentPath);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const App = AppModule.default as any;
 
       this.inkApp = render(React.createElement(App, { interface: this }));

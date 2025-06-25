@@ -3,6 +3,12 @@ import type { ProgressCallback } from "@brains/utils";
 import type { ComponentType } from "./plugin";
 
 /**
+ * Site content entity types
+ */
+export const SiteContentEntityTypeSchema = z.enum(["site-content-preview", "site-content-production"]);
+export type SiteContentEntityType = z.infer<typeof SiteContentEntityTypeSchema>;
+
+/**
  * Section definition schema
  */
 export const SectionDefinitionSchema = z.object({
@@ -11,7 +17,7 @@ export const SectionDefinitionSchema = z.object({
   content: z.unknown().optional(),
   contentEntity: z
     .object({
-      entityType: z.string(),
+      entityType: z.string(), // Keep as string for flexibility - could be site content or other entity types
       template: z.string().optional(),
       query: z.record(z.unknown()).optional(),
     })

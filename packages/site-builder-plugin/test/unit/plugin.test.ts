@@ -42,8 +42,9 @@ describe("SiteBuilderPlugin", () => {
 
     await plugin.register(context);
 
-    // Check that site-content entity type is registered
-    expect(registeredTypes.has("site-content")).toBe(true);
+    // Check that both site-content entity types are registered
+    expect(registeredTypes.has("site-content-preview")).toBe(true);
+    expect(registeredTypes.has("site-content-production")).toBe(true);
   });
 
   it("should register templates when provided", async () => {
@@ -140,7 +141,7 @@ describe("SiteBuilderPlugin", () => {
               id: "test",
               template: "test",
               contentEntity: {
-                entityType: "site-content",
+                entityType: "site-content-preview",
                 template: "test",
                 query: { page: "home", section: "test" },
               },
@@ -175,7 +176,7 @@ describe("SiteBuilderPlugin", () => {
               id: "missing",
               template: "non-existent",
               contentEntity: {
-                entityType: "site-content",
+                entityType: "site-content-preview",
                 template: "non-existent",
               },
             },
@@ -215,7 +216,7 @@ describe("SiteBuilderPlugin", () => {
               id: "test",
               template: "test",
               contentEntity: {
-                entityType: "site-content",
+                entityType: "site-content-preview",
                 template: "test",
               },
             },
