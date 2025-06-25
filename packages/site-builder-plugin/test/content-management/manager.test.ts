@@ -23,14 +23,14 @@ class MockEntityService {
     },
   ): Promise<T> {
     const id =
-      entity.id ||
+      entity.id ??
       `${entity.entityType}:${(entity as SiteContentPreview | SiteContentProduction).page}:${(entity as SiteContentPreview | SiteContentProduction).section}`;
     const now = new Date().toISOString();
     const fullEntity = {
       ...entity,
       id,
-      created: entity.created || now,
-      updated: entity.updated || now,
+      created: entity.created ?? now,
+      updated: entity.updated ?? now,
     } as T;
 
     this.entities.set(id, fullEntity);
@@ -53,7 +53,7 @@ class MockEntityService {
     id: string,
   ): Promise<T | null> {
     const entity = this.entities.get(id);
-    return (entity as T) || null;
+    return entity ? (entity as T) : null;
   }
 
   async deleteEntity(id: string): Promise<boolean> {
@@ -640,7 +640,7 @@ describe("SiteContentManager", () => {
       mode: "leave" | "new" | "with-current",
       _progress: { current: number; total: number; message: string },
       currentContent?: string,
-    ) => {
+    ): Promise<{ entityId: string; content: string }> => {
       let newContent = `Regenerated content for ${page} - ${section}`;
       if (mode === "with-current" && currentContent) {
         newContent = `Improved: ${currentContent}`;
@@ -812,7 +812,7 @@ describe("SiteContentManager", () => {
         _mode: "leave" | "new" | "with-current",
         _progress: { current: number; total: number; message: string },
         _currentContent?: string,
-      ) => {
+      ): Promise<never> => {
         throw new Error("Template not found");
       };
 

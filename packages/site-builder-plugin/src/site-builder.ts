@@ -203,7 +203,8 @@ export class SiteBuilder implements ISiteBuilder {
 
         // For now, we need to parse site-content entities manually
         if (
-          (entity.entityType === "site-content-preview" || entity.entityType === "site-content-production") &&
+          (entity.entityType === "site-content-preview" ||
+            entity.entityType === "site-content-production") &&
           typeof entity.content === "string"
         ) {
           try {

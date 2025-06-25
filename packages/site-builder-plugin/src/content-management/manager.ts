@@ -339,8 +339,10 @@ export class SiteContentManager {
             // Always generate preview content with deterministic ID
             const targetEntityType = "site-content-preview" as const;
             const page = section.contentEntity.query?.["page"] as string;
-            const sectionId = section.contentEntity.query?.["section"] as string;
-            
+            const sectionId = section.contentEntity.query?.[
+              "section"
+            ] as string;
+
             const deterministic_id = this.generateId(
               targetEntityType,
               page,
@@ -456,7 +458,10 @@ export class SiteContentManager {
 
       // Count total entities to process for progress tracking
       let totalEntities = 0;
-      const entityTypeMap = new Map<SiteContentEntityType, (SiteContentPreview | SiteContentProduction)[]>();
+      const entityTypeMap = new Map<
+        SiteContentEntityType,
+        (SiteContentPreview | SiteContentProduction)[]
+      >();
 
       for (const entityType of entityTypes) {
         // Build filter for finding entities
@@ -473,14 +478,17 @@ export class SiteContentManager {
           filter: { metadata: filter },
         });
 
-        entityTypeMap.set(entityType, entities as (SiteContentPreview | SiteContentProduction)[]);
+        entityTypeMap.set(
+          entityType,
+          entities as (SiteContentPreview | SiteContentProduction)[],
+        );
         totalEntities += entities.length;
       }
 
       let processedEntities = 0;
 
       for (const entityType of entityTypes) {
-        const entities = entityTypeMap.get(entityType) || [];
+        const entities = entityTypeMap.get(entityType) ?? [];
 
         for (const entity of entities) {
           const siteContent = entity as
@@ -638,7 +646,9 @@ export class SiteContentManager {
       content: string;
     }>,
   ): Promise<GenerateResult> {
-    this.logger?.info("Starting generate operation with progress tracking", { options });
+    this.logger?.info("Starting generate operation with progress tracking", {
+      options,
+    });
 
     const result: GenerateResult = {
       success: true,
@@ -667,7 +677,7 @@ export class SiteContentManager {
           (section) =>
             "contentEntity" in section &&
             section.contentEntity &&
-            !(("content" in section) && section.content),
+            !("content" in section && section.content),
         ).length;
       }
 
@@ -690,7 +700,7 @@ export class SiteContentManager {
           (section) =>
             "contentEntity" in section &&
             section.contentEntity &&
-            !(("content" in section) && section.content),
+            !("content" in section && section.content),
         );
 
         for (const section of sectionsNeedingContent) {
@@ -739,13 +749,19 @@ export class SiteContentManager {
 
           try {
             // Use the callback to generate content
-            const generated = await generateCallback(route, section, progressInfo);
+            const generated = await generateCallback(
+              route,
+              section,
+              progressInfo,
+            );
 
             // Always generate preview content with deterministic ID
             const targetEntityType = "site-content-preview" as const;
             const page = section.contentEntity.query?.["page"] as string;
-            const sectionId = section.contentEntity.query?.["section"] as string;
-            
+            const sectionId = section.contentEntity.query?.[
+              "section"
+            ] as string;
+
             const deterministic_id = this.generateId(
               targetEntityType,
               page,
@@ -812,7 +828,9 @@ export class SiteContentManager {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      this.logger?.error("Generate operation with progress failed", { error: errorMessage });
+      this.logger?.error("Generate operation with progress failed", {
+        error: errorMessage,
+      });
       return {
         success: false,
         sectionsGenerated: 0,
@@ -934,7 +952,6 @@ export class SiteContentManager {
           });
         }
       }
-
 
       result.success = result.errors.length === 0;
 

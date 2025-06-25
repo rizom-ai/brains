@@ -224,10 +224,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               throw new Error(`Template not found: ${templateName}`);
             }
 
-            if (!this.context) {
-              throw new Error("Plugin context not available");
-            }
-
             // Use the plugin context's generateContent method
             const generatedContent = await this.context.generateContent({
               schema: template.schema,
@@ -283,7 +279,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           if (context?.sendProgress) {
             await context.sendProgress({
               message:
-                result.message ||
+                result.message ??
                 `Generated content for ${result.sectionsGenerated} sections`,
               progress: 100,
               total: 100,
@@ -493,7 +489,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           }
 
           // Create a safe progress reporter
-          const reportProgress = async (notification: { message: string; progress: number; total: number }) => {
+          const reportProgress = async (notification: {
+            message: string;
+            progress: number;
+            total: number;
+          }): Promise<void> => {
             if (context?.sendProgress) {
               await context.sendProgress(notification);
             }
@@ -515,7 +515,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             content: string;
           }> => {
             // Report progress
-            const progressPercent = Math.round((progress.current / progress.total) * 100);
+            const progressPercent = Math.round(
+              (progress.current / progress.total) * 100,
+            );
             await reportProgress({
               message: progress.message,
               progress: progressPercent,
@@ -538,7 +540,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                 const matchingSection = route.sections.find(
                   (s) => s.id === section,
                 );
-                if (matchingSection && matchingSection.template) {
+                if (matchingSection?.template) {
                   templateName = matchingSection.template.includes(":")
                     ? matchingSection.template
                     : `site-builder:${matchingSection.template}`;
@@ -616,7 +618,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           }
 
           // Create a safe progress reporter
-          const reportProgress = async (notification: { message: string; progress: number; total: number }) => {
+          const reportProgress = async (notification: {
+            message: string;
+            progress: number;
+            total: number;
+          }): Promise<void> => {
             if (context?.sendProgress) {
               await context.sendProgress(notification);
             }
@@ -634,7 +640,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             content: string;
           }> => {
             // Report progress
-            const progressPercent = Math.round((progress.current / progress.total) * 100);
+            const progressPercent = Math.round(
+              (progress.current / progress.total) * 100,
+            );
             await reportProgress({
               message: progress.message,
               progress: progressPercent,
@@ -663,10 +671,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
 
             if (!template) {
               throw new Error(`Template not found: ${templateName}`);
-            }
-
-            if (!this.context) {
-              throw new Error("Plugin context not available");
             }
 
             // Use the plugin context's generateContent method
@@ -744,7 +748,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           }
 
           // Create a safe progress reporter
-          const reportProgress = async (notification: { message: string; progress: number; total: number }) => {
+          const reportProgress = async (notification: {
+            message: string;
+            progress: number;
+            total: number;
+          }): Promise<void> => {
             if (context?.sendProgress) {
               await context.sendProgress(notification);
             }
@@ -768,7 +776,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             content: string;
           }> => {
             // Report progress
-            const progressPercent = Math.round((progress.current / progress.total) * 100);
+            const progressPercent = Math.round(
+              (progress.current / progress.total) * 100,
+            );
             await reportProgress({
               message: progress.message,
               progress: progressPercent,
@@ -791,7 +801,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
                 const matchingSection = route.sections.find(
                   (s) => s.id === section,
                 );
-                if (matchingSection && matchingSection.template) {
+                if (matchingSection?.template) {
                   templateName = matchingSection.template.includes(":")
                     ? matchingSection.template
                     : `site-builder:${matchingSection.template}`;

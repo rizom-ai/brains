@@ -1,4 +1,3 @@
-// @ts-ignore: h is needed for Preact JSX compilation at runtime
 import { h } from "preact";
 import { useState, useMemo } from "preact/hooks";
 import type { VNode } from "preact";
