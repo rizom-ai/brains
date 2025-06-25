@@ -1,0 +1,339 @@
+import type { EntityService, Logger } from "@brains/types";
+import type { SiteContentEntityType, SiteContentPreview, SiteContentProduction } from "@brains/types";
+import type {
+  SiteContent,
+  PromoteOptions,
+  PromoteResult,
+  RollbackOptions,
+  RollbackResult,
+  RegenerateOptions,
+  RegenerateResult,
+  ContentComparison,
+} from "./types";
+import { isPreviewContent, isProductionContent } from "./types";
+import { generateSiteContentId, previewToProductionId } from "./utils/id-generator";
+import { compareContent } from "./utils/comparator";
+
+/**
+ * Site content management operations
+ * Handles promotion, rollback, and regeneration of site content
+ */
+export class SiteContentManager {
+  constructor(
+    private readonly entityService: EntityService,
+    private readonly logger?: Logger,
+  ) {}
+
+  /**
+   * Promote preview content to production
+   */
+  async promote(options: PromoteOptions): Promise<PromoteResult> {
+    this.logger?.info("Starting promote operation", { options });
+
+    const result: PromoteResult = {
+      success: true,
+      promoted: [],
+      skipped: [],
+      errors: [],
+    };
+
+    try {
+      // Get preview entities to promote
+      const previewEntities = await this.getPreviewEntities(options);
+
+      for (const previewEntity of previewEntities) {
+        try {
+          // Skip if dry run
+          if (options.dryRun) {
+            this.logger?.debug("Dry run: would promote", {
+              previewId: previewEntity.id,
+              page: previewEntity.page,
+              section: previewEntity.section,
+            });
+            continue;
+          }
+
+          // Generate production entity ID
+          const productionId = previewToProductionId(previewEntity.id);
+          if (!productionId) {
+            result.skipped.push({
+              page: previewEntity.page,
+              section: previewEntity.section,
+              reason: "Invalid preview entity ID format",
+            });
+            continue;
+          }
+
+          // Check if production entity already exists
+          const existingProduction = await this.entityService.getEntity("site-content-production", productionId);
+          
+          if (existingProduction) {
+            // Update existing production entity
+            const updatedProductionEntity: SiteContentProduction = {
+              ...existingProduction as SiteContentProduction,
+              content: previewEntity.content,
+              page: previewEntity.page,
+              section: previewEntity.section,
+              updated: new Date().toISOString(),
+            };
+
+            await this.entityService.updateEntity(updatedProductionEntity);
+            this.logger?.debug("Updated existing production content", {
+              previewId: previewEntity.id,
+              productionId,
+            });
+          } else {
+            // Create new production entity with deterministic ID
+            const productionEntity: Omit<SiteContentProduction, "created" | "updated"> = {
+              id: productionId,
+              entityType: "site-content-production",
+              content: previewEntity.content,
+              page: previewEntity.page,
+              section: previewEntity.section,
+            };
+
+            await this.entityService.createEntity(productionEntity);
+            this.logger?.debug("Created new production content", {
+              previewId: previewEntity.id,
+              productionId,
+            });
+          }
+
+          result.promoted.push({
+            page: previewEntity.page,
+            section: previewEntity.section,
+            previewId: previewEntity.id,
+            productionId,
+          });
+
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          result.errors?.push(`Failed to promote ${previewEntity.id}: ${errorMessage}`);
+          this.logger?.error("Failed to promote content", {
+            previewId: previewEntity.id,
+            error: errorMessage,
+          });
+        }
+      }
+
+      result.success = (result.errors?.length ?? 0) === 0;
+      this.logger?.info("Promote operation completed", {
+        promoted: result.promoted.length,
+        skipped: result.skipped.length,
+        errors: result.errors?.length ?? 0,
+      });
+
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      this.logger?.error("Promote operation failed", { error: errorMessage });
+      return {
+        success: false,
+        promoted: [],
+        skipped: [],
+        errors: [errorMessage],
+      };
+    }
+  }
+
+  /**
+   * Rollback production content (delete production entities)
+   */
+  async rollback(options: RollbackOptions): Promise<RollbackResult> {
+    this.logger?.info("Starting rollback operation", { options });
+
+    const result: RollbackResult = {
+      success: true,
+      rolledBack: [],
+      skipped: [],
+      errors: [],
+    };
+
+    try {
+      // Get production entities to rollback
+      const productionEntities = await this.getProductionEntities(options);
+
+      for (const productionEntity of productionEntities) {
+        try {
+          // Skip if dry run
+          if (options.dryRun) {
+            this.logger?.debug("Dry run: would rollback", {
+              productionId: productionEntity.id,
+              page: productionEntity.page,
+              section: productionEntity.section,
+            });
+            continue;
+          }
+
+          await this.entityService.deleteEntity(productionEntity.id);
+
+          result.rolledBack.push({
+            page: productionEntity.page,
+            section: productionEntity.section,
+            productionId: productionEntity.id,
+          });
+
+          this.logger?.debug("Rolled back production content", {
+            productionId: productionEntity.id,
+          });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          result.errors?.push(`Failed to rollback ${productionEntity.id}: ${errorMessage}`);
+          this.logger?.error("Failed to rollback content", {
+            productionId: productionEntity.id,
+            error: errorMessage,
+          });
+        }
+      }
+
+      result.success = (result.errors?.length ?? 0) === 0;
+      this.logger?.info("Rollback operation completed", {
+        rolledBack: result.rolledBack.length,
+        skipped: result.skipped.length,
+        errors: result.errors?.length ?? 0,
+      });
+
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      this.logger?.error("Rollback operation failed", { error: errorMessage });
+      return {
+        success: false,
+        rolledBack: [],
+        skipped: [],
+        errors: [errorMessage],
+      };
+    }
+  }
+
+  /**
+   * Regenerate content using AI
+   */
+  async regenerate(options: RegenerateOptions): Promise<RegenerateResult> {
+    this.logger?.info("Starting regenerate operation", { options });
+
+    // TODO: Implement regeneration logic
+    // This will need to integrate with the content generation service
+    const result: RegenerateResult = {
+      success: false,
+      regenerated: [],
+      skipped: [],
+      errors: ["Regeneration not yet implemented"],
+    };
+
+    this.logger?.warn("Regenerate operation not yet implemented", { options });
+    return result;
+  }
+
+  /**
+   * Compare preview and production content for a page and section
+   */
+  async compare(page: string, section: string): Promise<ContentComparison | null> {
+    try {
+      const previewId = generateSiteContentId("site-content-preview", page, section);
+      const productionId = generateSiteContentId("site-content-production", page, section);
+
+      const [preview, production] = await Promise.all([
+        this.entityService.getEntity("site-content-preview", previewId),
+        this.entityService.getEntity("site-content-production", productionId),
+      ]);
+
+      // Both must exist for comparison
+      if (!preview || !production) {
+        return null;
+      }
+
+      // Validate entity types
+      if (!isPreviewContent(preview as SiteContent) || !isProductionContent(production as SiteContent)) {
+        throw new Error("Invalid entity types for comparison");
+      }
+
+      return compareContent(
+        page,
+        section,
+        preview as SiteContentPreview,
+        production as SiteContentProduction,
+      );
+    } catch (error) {
+      this.logger?.error("Failed to compare content", {
+        page,
+        section,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Check if content exists for a page and section
+   */
+  async exists(page: string, section: string, type: "preview" | "production"): Promise<boolean> {
+    try {
+      const entityType = type === "preview" ? "site-content-preview" : "site-content-production";
+      const id = generateSiteContentId(entityType, page, section);
+      const entity = await this.entityService.getEntity(entityType, id);
+      return !!entity;
+    } catch (error) {
+      this.logger?.error("Failed to check content existence", {
+        page,
+        section,
+        type,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Generate deterministic entity ID
+   */
+  generateId(type: SiteContentEntityType, page: string, section: string): string {
+    return generateSiteContentId(type, page, section);
+  }
+
+  /**
+   * Get preview entities based on filter options
+   */
+  private async getPreviewEntities(options: PromoteOptions | RollbackOptions): Promise<SiteContentPreview[]> {
+    // Build filter for entity service
+    const filter: Record<string, unknown> = {};
+
+    if (options.page) {
+      filter["page"] = options.page;
+    }
+
+    if (options.section) {
+      filter["section"] = options.section;
+    }
+
+    // Get entities
+    const entities = await this.entityService.listEntities("site-content-preview", 
+      Object.keys(filter).length > 0 ? { filter: { metadata: filter } } : undefined,
+    );
+
+    return entities as SiteContentPreview[];
+  }
+
+  /**
+   * Get production entities based on filter options
+   */
+  private async getProductionEntities(options: RollbackOptions): Promise<SiteContentProduction[]> {
+    // Build filter for entity service
+    const filter: Record<string, unknown> = {};
+
+    if (options.page) {
+      filter["page"] = options.page;
+    }
+
+    if (options.section) {
+      filter["section"] = options.section;
+    }
+
+    // Get entities
+    const entities = await this.entityService.listEntities("site-content-production", 
+      Object.keys(filter).length > 0 ? { filter: { metadata: filter } } : undefined,
+    );
+
+    return entities as SiteContentProduction[];
+  }
+}

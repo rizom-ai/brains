@@ -19,6 +19,7 @@ import {
   siteContentPreviewAdapter,
   siteContentProductionAdapter,
 } from "./entities/site-content-adapter";
+import { SiteContentManager, PromoteOptionsSchema, RollbackOptionsSchema, RegenerateOptionsSchema } from "./content-management";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
 import packageJson from "../package.json";
@@ -59,6 +60,7 @@ type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema>;
  */
 export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
   private siteBuilder?: SiteBuilder;
+  private siteContentManager?: SiteContentManager;
 
   constructor(config: unknown = {}) {
     super("site-builder", packageJson, config, siteBuilderConfigSchema);
@@ -136,6 +138,12 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
     this.siteBuilder = SiteBuilder.getInstance(
       context.logger.child("SiteBuilder"),
       context,
+    );
+
+    // Initialize the site content manager with dependency injection
+    this.siteContentManager = new SiteContentManager(
+      context.entityService,
+      this.logger?.child("SiteContentManager"),
     );
 
     // Register site builder in the registry for other plugins to use
@@ -449,6 +457,80 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           };
         },
         "public",
+      ),
+    );
+
+    // Content management tools
+    tools.push(
+      this.createTool(
+        "promote-content",
+        "Promote preview content to production",
+        {
+          page: z.string().optional().describe("Optional: specific page filter"),
+          section: z.string().optional().describe("Optional: specific section filter"),
+          sections: z.array(z.string()).optional().describe("Optional: batch promote multiple sections"),
+          dryRun: z.boolean().default(false).describe("Optional: preview changes without executing"),
+        },
+        async (input): Promise<Record<string, unknown>> => {
+          if (!this.siteContentManager) {
+            throw new Error("Site content manager not initialized");
+          }
+
+          // Parse and validate input
+          const options = PromoteOptionsSchema.parse(input);
+          const result = await this.siteContentManager.promote(options);
+          return result;
+        },
+        "anchor", // Internal tool - modifies entities
+      ),
+    );
+
+    tools.push(
+      this.createTool(
+        "rollback-content",
+        "Remove production content (rollback to preview-only)",
+        {
+          page: z.string().optional().describe("Optional: specific page filter"),
+          section: z.string().optional().describe("Optional: specific section filter"),
+          sections: z.array(z.string()).optional().describe("Optional: batch rollback multiple sections"),
+          dryRun: z.boolean().default(false).describe("Optional: preview changes without executing"),
+        },
+        async (input): Promise<Record<string, unknown>> => {
+          if (!this.siteContentManager) {
+            throw new Error("Site content manager not initialized");
+          }
+
+          // Parse and validate input
+          const options = RollbackOptionsSchema.parse(input);
+          const result = await this.siteContentManager.rollback(options);
+          return result;
+        },
+        "anchor", // Internal tool - modifies entities
+      ),
+    );
+
+    tools.push(
+      this.createTool(
+        "regenerate-content",
+        "Regenerate content using AI with different modes",
+        {
+          page: z.string().describe("Required: target page"),
+          section: z.string().optional().describe("Optional: specific section"),
+          environment: z.enum(["preview", "production", "both"]).default("preview").describe("Optional: target environment (default: preview)"),
+          mode: z.enum(["leave", "new", "with-current"]).describe("Required: regeneration mode"),
+          dryRun: z.boolean().default(false).describe("Optional: preview changes without executing"),
+        },
+        async (input): Promise<Record<string, unknown>> => {
+          if (!this.siteContentManager) {
+            throw new Error("Site content manager not initialized");
+          }
+
+          // Parse and validate input
+          const options = RegenerateOptionsSchema.parse(input);
+          const result = await this.siteContentManager.regenerate(options);
+          return result;
+        },
+        "anchor", // Internal tool - modifies entities
       ),
     );
 
