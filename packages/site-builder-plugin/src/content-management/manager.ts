@@ -555,6 +555,161 @@ export class SiteContentManager {
   }
 
   /**
+   * Generate content for all sections across all pages
+   */
+  async generateAll(
+    routes: RouteDefinition[],
+    generateCallback: (
+      route: RouteDefinition,
+      section: SectionDefinition,
+    ) => Promise<{
+      entityId: string;
+      entityType: string;
+      content: string;
+    }>,
+  ): Promise<GenerateResult> {
+    this.logger?.info("Starting generate all operation");
+
+    return this.generate({ dryRun: false }, routes, generateCallback);
+  }
+
+  /**
+   * Regenerate all existing content using AI with the specified mode
+   */
+  async regenerateAll(
+    mode: "leave" | "new" | "with-current",
+    regenerateCallback: (
+      entityType: SiteContentEntityType,
+      page: string,
+      section: string,
+      mode: "leave" | "new" | "with-current",
+      currentContent?: string,
+    ) => Promise<{
+      entityId: string;
+      content: string;
+    }>,
+    options: { dryRun?: boolean } = {},
+  ): Promise<{
+    success: boolean;
+    totalPages: number;
+    regenerated: Array<{
+      page: string;
+      section: string;
+      entityId: string;
+      mode: "leave" | "new" | "with-current";
+    }>;
+    skipped: Array<{
+      page: string;
+      section: string;
+      reason: string;
+    }>;
+    errors: string[];
+  }> {
+    this.logger?.info("Starting regenerate all operation", {
+      mode,
+      options,
+    });
+
+    const result = {
+      success: true,
+      totalPages: 0,
+      regenerated: [] as Array<{
+        page: string;
+        section: string;
+        entityId: string;
+        mode: "leave" | "new" | "with-current";
+      }>,
+      skipped: [] as Array<{
+        page: string;
+        section: string;
+        reason: string;
+      }>,
+      errors: [] as string[],
+    };
+
+    try {
+      // Get all site content entities (both preview and production)
+      const entityTypes: SiteContentEntityType[] = [
+        "site-content-preview",
+        "site-content-production",
+      ];
+
+      const allPages = new Set<string>();
+      for (const entityType of entityTypes) {
+        const entities = await this.entityService.listEntities(entityType);
+        const siteContentEntities = entities as (
+          | SiteContentPreview
+          | SiteContentProduction
+        )[];
+
+        for (const entity of siteContentEntities) {
+          allPages.add(entity.page);
+        }
+      }
+
+      result.totalPages = allPages.size;
+
+      // Regenerate each page (both preview and production content if it exists)
+      for (const page of allPages) {
+        try {
+          const pageResult = await this.regenerate(
+            {
+              page,
+              environment: "both",
+              mode,
+              dryRun: options.dryRun ?? false,
+            },
+            regenerateCallback,
+          );
+
+          if (pageResult.success) {
+            result.regenerated.push(...pageResult.regenerated);
+            result.skipped.push(...pageResult.skipped);
+          } else {
+            result.errors.push(
+              ...(pageResult.errors ?? [`Failed to regenerate page: ${page}`]),
+            );
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          result.errors.push(
+            `Failed to regenerate page ${page}: ${errorMessage}`,
+          );
+          this.logger?.error("Failed to regenerate page", {
+            page,
+            error: errorMessage,
+          });
+        }
+      }
+
+      result.success = result.errors.length === 0;
+
+      this.logger?.info("Regenerate all operation completed", {
+        totalPages: result.totalPages,
+        regenerated: result.regenerated.length,
+        skipped: result.skipped.length,
+        errors: result.errors.length,
+      });
+
+      return result;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      this.logger?.error("Regenerate all operation failed", {
+        error: errorMessage,
+      });
+      return {
+        success: false,
+        totalPages: 0,
+        regenerated: [],
+        skipped: [],
+        errors: [errorMessage],
+      };
+    }
+  }
+
+  /**
    * Compare preview and production content for a page and section
    */
   async compare(

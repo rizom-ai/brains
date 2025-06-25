@@ -616,6 +616,256 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
       ),
     );
 
+    // Generate all tool - generates content for all sections across all pages
+    tools.push(
+      this.createTool(
+        "generate-all",
+        "Generate content for all sections across all pages",
+        {},
+        async (): Promise<Record<string, unknown>> => {
+          if (!this.siteContentManager || !this.context) {
+            throw new Error("Site content manager not initialized");
+          }
+
+          // Get all registered routes
+          const routes = this.context.viewRegistry.listRoutes();
+
+          // Create the content generation callback (reuse from generate tool)
+          const generateCallback = async (
+            route: RouteDefinition,
+            section: SectionDefinition,
+          ): Promise<{
+            entityId: string;
+            entityType: string;
+            content: string;
+          }> => {
+            const config = this.config;
+
+            // Get the content template
+            if (!section.template) {
+              throw new Error(
+                `No template specified for section ${section.id}`,
+              );
+            }
+
+            // Templates are registered with site-builder prefix
+            const templateName = section.template.includes(":")
+              ? section.template
+              : `site-builder:${section.template}`;
+
+            if (!this.context) {
+              throw new Error("Plugin context not available");
+            }
+
+            const template: ContentTemplate | null =
+              this.context.contentGenerationService.getTemplate(templateName);
+
+            if (!template) {
+              throw new Error(`Template not found: ${templateName}`);
+            }
+
+            if (!this.context) {
+              throw new Error("Plugin context not available");
+            }
+
+            // Use the plugin context's generateContent method
+            const generatedContent = await this.context.generateContent({
+              schema: template.schema,
+              prompt: template.basePrompt,
+              contentType: templateName,
+              context: {
+                data: {
+                  pageTitle: route.title,
+                  pageDescription: route.description,
+                  sectionId: section.id,
+                  ...(config.siteConfig ?? {
+                    title: "Personal Brain",
+                    description: "A knowledge management system",
+                  }),
+                },
+              },
+            });
+
+            // Format content using the template's formatter
+            const formattedContent = template.formatter
+              ? template.formatter.format(generatedContent)
+              : typeof generatedContent === "string"
+                ? generatedContent
+                : JSON.stringify(generatedContent);
+
+            // Save as entity with required metadata
+            if (!section.contentEntity?.query) {
+              throw new Error(
+                `Site content entity requires query data for page and section`,
+              );
+            }
+
+            const { contentEntity } = section;
+            if (!contentEntity.query) {
+              throw new Error(
+                `Site content entity requires query data for page and section`,
+              );
+            }
+
+            // Always generate preview content
+            const targetEntityType = "site-content-preview" as const;
+
+            // For site-content, construct the entity with all required fields
+            const siteContentEntity: Omit<
+              SiteContentPreview | SiteContentProduction,
+              "id" | "created" | "updated"
+            > = {
+              entityType: targetEntityType,
+              content: formattedContent,
+              page: contentEntity.query["page"] as string,
+              section: contentEntity.query["section"] as string,
+            };
+
+            if (!this.context) {
+              throw new Error("Plugin context not available");
+            }
+
+            const createdEntity =
+              await this.context.entityService.createEntity(siteContentEntity);
+
+            return {
+              entityId: createdEntity.id,
+              entityType: targetEntityType,
+              content: formattedContent,
+            };
+          };
+
+          const result = await this.siteContentManager.generateAll(
+            routes,
+            generateCallback,
+          );
+
+          return result;
+        },
+        "anchor", // Internal tool - modifies entities
+      ),
+    );
+
+    // Regenerate all tool - regenerates all existing content
+    tools.push(
+      this.createTool(
+        "regenerate-all",
+        "Regenerate all existing content using AI with the specified mode",
+        {
+          mode: z
+            .enum(["leave", "new", "with-current"])
+            .describe("Required: regeneration mode"),
+          dryRun: z
+            .boolean()
+            .default(false)
+            .describe("Optional: preview changes without executing"),
+        },
+        async (input): Promise<Record<string, unknown>> => {
+          if (!this.siteContentManager || !this.context) {
+            throw new Error("Site content manager not initialized");
+          }
+
+          const { mode, dryRun } = input as {
+            mode: "leave" | "new" | "with-current";
+            dryRun?: boolean;
+          };
+
+          // Create the regeneration callback (reuse from regenerate tool)
+          const regenerateCallback = async (
+            entityType: string,
+            page: string,
+            section: string,
+            mode: "leave" | "new" | "with-current",
+            currentContent?: string,
+          ): Promise<{
+            entityId: string;
+            content: string;
+          }> => {
+            const config = this.config;
+
+            if (!this.context) {
+              throw new Error("Plugin context not available");
+            }
+
+            // Find the template for this page/section by looking through routes
+            const routes = this.context.viewRegistry.listRoutes();
+            let template: ContentTemplate | null = null;
+            let templateName = "";
+
+            // Find the matching route and section
+            for (const route of routes) {
+              if (route.path.includes(page) || route.path === `/${page}`) {
+                const matchingSection = route.sections.find(
+                  (s) => s.id === section,
+                );
+                if (matchingSection && matchingSection.template) {
+                  templateName = matchingSection.template.includes(":")
+                    ? matchingSection.template
+                    : `site-builder:${matchingSection.template}`;
+                  template =
+                    this.context.contentGenerationService.getTemplate(
+                      templateName,
+                    );
+                  break;
+                }
+              }
+            }
+
+            if (!template) {
+              throw new Error(
+                `Template not found for page: ${page}, section: ${section}`,
+              );
+            }
+
+            // Prepare the prompt based on mode
+            let effectivePrompt = template.basePrompt;
+            if (mode === "with-current" && currentContent) {
+              effectivePrompt = `${template.basePrompt}\n\nCurrent content to improve:\n${currentContent}`;
+            }
+
+            // Generate content using the template
+            const generatedContent = await this.context.generateContent({
+              schema: template.schema,
+              prompt: effectivePrompt,
+              contentType: templateName,
+              context: {
+                data: {
+                  pageTitle: page,
+                  sectionId: section,
+                  regenerationMode: mode,
+                  ...(config.siteConfig ?? {
+                    title: "Personal Brain",
+                    description: "A knowledge management system",
+                  }),
+                },
+              },
+            });
+
+            // Format content using the template's formatter
+            const formattedContent = template.formatter
+              ? template.formatter.format(generatedContent)
+              : typeof generatedContent === "string"
+                ? generatedContent
+                : JSON.stringify(generatedContent);
+
+            return {
+              entityId: `${entityType}:${page}:${section}`,
+              content: formattedContent,
+            };
+          };
+
+          const result = await this.siteContentManager.regenerateAll(
+            mode,
+            regenerateCallback,
+            { dryRun: dryRun ?? false },
+          );
+
+          return result;
+        },
+        "anchor", // Internal tool - modifies entities
+      ),
+    );
+
     return tools;
   }
 

@@ -579,6 +579,63 @@ describe("SiteContentManager", () => {
       expect(result.generated).toHaveLength(0);
       expect(result.message).toBe("No sections need content generation");
     });
+
+    it("should generate content for all sections across all pages", async () => {
+      const result = await manager.generateAll(
+        mockRoutes,
+        mockGenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sectionsGenerated).toBe(3);
+      expect(result.totalSections).toBe(3);
+      expect(result.generated).toHaveLength(3);
+      expect(result.skipped).toHaveLength(0);
+      expect(result.errors).toEqual([]);
+
+      // Check that entities were created
+      const heroEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:hero",
+      );
+      const featuresEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:features",
+      );
+      const teamEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:about:team",
+      );
+
+      expect(heroEntity).toBeDefined();
+      expect(featuresEntity).toBeDefined();
+      expect(teamEntity).toBeDefined();
+    });
+
+    it("should skip existing content when generating all", async () => {
+      // Pre-populate with existing content
+      entityService.setEntity("site-content-preview:landing:hero", {
+        id: "site-content-preview:landing:hero",
+        entityType: "site-content-preview",
+        content: "Existing content",
+        page: "landing",
+        section: "hero",
+        created: "2024-01-01T00:00:00Z",
+        updated: "2024-01-01T01:00:00Z",
+      });
+
+      const result = await manager.generateAll(
+        mockRoutes,
+        mockGenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sectionsGenerated).toBe(2); // Only features and team
+      expect(result.totalSections).toBe(3);
+      expect(result.generated).toHaveLength(2);
+      expect(result.skipped).toHaveLength(1);
+      expect(result.skipped[0]?.reason).toBe("Content already exists");
+    });
   });
 
   describe("regenerate", () => {
@@ -802,6 +859,73 @@ describe("SiteContentManager", () => {
       expect(result.regenerated.some((r) => r.section === "features")).toBe(
         true,
       );
+    });
+
+    it("should regenerate all content with 'new' mode", async () => {
+      // Set up additional content for multiple pages
+      entityService.setEntity("site-content-preview:about:team", {
+        id: "site-content-preview:about:team",
+        entityType: "site-content-preview",
+        content: "Original about team content",
+        page: "about",
+        section: "team",
+        created: "2024-01-01T00:00:00Z",
+        updated: "2024-01-01T01:00:00Z",
+      });
+
+      const result = await manager.regenerateAll("new", mockRegenerateCallback);
+
+      expect(result.success).toBe(true);
+      expect(result.totalPages).toBeGreaterThan(0);
+      expect(result.regenerated.length).toBeGreaterThan(0);
+      expect(result.errors).toEqual([]);
+
+      // Check that content was updated
+      const updatedPreviewEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:hero",
+      );
+      expect(updatedPreviewEntity?.content).toBe(
+        "Regenerated content for landing - hero",
+      );
+    });
+
+    it("should handle dry run for regenerate all", async () => {
+      const result = await manager.regenerateAll(
+        "new",
+        mockRegenerateCallback,
+        { dryRun: true },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.totalPages).toBeGreaterThan(0);
+      expect(result.regenerated.length).toBeGreaterThan(0);
+
+      // Check that content was not actually changed
+      const unchangedEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:hero",
+      );
+      expect(unchangedEntity?.content).toBe("Original hero content");
+    });
+
+    it("should skip content with 'leave' mode for regenerate all", async () => {
+      const result = await manager.regenerateAll(
+        "leave",
+        mockRegenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.totalPages).toBeGreaterThan(0);
+      expect(result.skipped.length).toBeGreaterThan(0);
+      expect(result.regenerated).toHaveLength(0);
+
+      // All skipped items should have the leave reason
+      expect(
+        result.skipped.every(
+          (s) => s.reason === "Mode 'leave' - content kept as-is",
+        ),
+      ).toBe(true);
     });
   });
 
