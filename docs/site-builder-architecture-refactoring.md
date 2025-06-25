@@ -752,8 +752,12 @@ packages/site-builder-plugin/src/
 export type SiteContent = SiteContentPreview | SiteContentProduction;
 
 // Type guards for safe discrimination
-export function isPreviewContent(content: SiteContent): content is SiteContentPreview
-export function isProductionContent(content: SiteContent): content is SiteContentProduction
+export function isPreviewContent(
+  content: SiteContent,
+): content is SiteContentPreview;
+export function isProductionContent(
+  content: SiteContent,
+): content is SiteContentProduction;
 ```
 
 **SiteContentManager Class:**
@@ -761,12 +765,12 @@ export function isProductionContent(content: SiteContent): content is SiteConten
 ```typescript
 export class SiteContentManager {
   constructor(private entityService: EntityService, private logger?: Logger)
-  
+
   // Content lifecycle operations
   async promote(options: PromoteOptions): Promise<PromoteResult>
   async rollback(options: RollbackOptions): Promise<RollbackResult>
   async regenerate(options: RegenerateOptions): Promise<RegenerateResult>
-  
+
   // Utility operations
   async compare(page: string, section: string): Promise<ContentComparison>
   async exists(page: string, section: string, type: 'preview' | 'production'): Promise<boolean>
@@ -880,14 +884,14 @@ import { SiteContentManager } from './content-management';
 
 export class SiteBuilderPlugin {
   private siteContentManager: SiteContentManager;
-  
+
   async onRegister(context: PluginContext) {
     this.siteContentManager = new SiteContentManager(
       context.entityService,
       this.logger?.child('SiteContentManager')
     );
   }
-  
+
   // Tools delegate to manager
   createTool('promote-content', ..., async (input) => {
     return this.siteContentManager.promote(input);
@@ -952,6 +956,7 @@ await entityService.createEntity(productionEntity);
    - AI can build on existing content for improvements
 
 5. **Extensible Architecture**
+
    - Web UI can easily layer on top of CLI tools
    - Each tool has clean, focused responsibility
    - Good design naturally supports future enhancements

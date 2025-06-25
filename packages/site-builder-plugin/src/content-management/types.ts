@@ -10,6 +10,8 @@ export type {
   RollbackResult,
   RegenerateOptions,
   RegenerateResult,
+  GenerateOptions,
+  GenerateResult,
   ContentComparison,
 } from "./schemas";
 
@@ -23,6 +25,8 @@ export {
   RollbackResultSchema,
   RegenerateOptionsSchema,
   RegenerateResultSchema,
+  GenerateOptionsSchema,
+  GenerateResultSchema,
   ContentComparisonSchema,
 } from "./schemas";
 
@@ -34,10 +38,14 @@ export type SiteContent = SiteContentPreview | SiteContentProduction;
 /**
  * Type guards for safe discrimination between preview and production content
  */
-export function isPreviewContent(content: SiteContent): content is SiteContentPreview {
+export function isPreviewContent(
+  content: SiteContent,
+): content is SiteContentPreview {
   return content.entityType === "site-content-preview";
 }
 
-export function isProductionContent(content: SiteContent): content is SiteContentProduction {
+export function isProductionContent(
+  content: SiteContent,
+): content is SiteContentProduction {
   return content.entityType === "site-content-production";
 }

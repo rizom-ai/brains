@@ -1,19 +1,30 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import type { EntityService, SiteContentPreview, SiteContentProduction } from "@brains/types";
+import type {
+  EntityService,
+  SiteContentPreview,
+  SiteContentProduction,
+  RouteDefinition,
+  SectionDefinition,
+} from "@brains/types";
 import { SiteContentManager } from "../../src/content-management/manager";
 
 // Mock EntityService
 class MockEntityService {
-  private entities = new Map<string, SiteContentPreview | SiteContentProduction>();
+  private entities = new Map<
+    string,
+    SiteContentPreview | SiteContentProduction
+  >();
 
   async createEntity<T extends SiteContentPreview | SiteContentProduction>(
     entity: Omit<T, "id" | "created" | "updated"> & {
       id?: string;
       created?: string;
       updated?: string;
-    }
+    },
   ): Promise<T> {
-    const id = entity.id || `${entity.entityType}:${(entity as SiteContentPreview | SiteContentProduction).page}:${(entity as SiteContentPreview | SiteContentProduction).section}`;
+    const id =
+      entity.id ||
+      `${entity.entityType}:${(entity as SiteContentPreview | SiteContentProduction).page}:${(entity as SiteContentPreview | SiteContentProduction).section}`;
     const now = new Date().toISOString();
     const fullEntity = {
       ...entity,
@@ -26,7 +37,9 @@ class MockEntityService {
     return fullEntity;
   }
 
-  async updateEntity<T extends SiteContentPreview | SiteContentProduction>(entity: T): Promise<T> {
+  async updateEntity<T extends SiteContentPreview | SiteContentProduction>(
+    entity: T,
+  ): Promise<T> {
     const updatedEntity = {
       ...entity,
       updated: new Date().toISOString(),
@@ -35,7 +48,10 @@ class MockEntityService {
     return updatedEntity;
   }
 
-  async getEntity<T extends SiteContentPreview | SiteContentProduction>(_entityType: string, id: string): Promise<T | null> {
+  async getEntity<T extends SiteContentPreview | SiteContentProduction>(
+    _entityType: string,
+    id: string,
+  ): Promise<T | null> {
     const entity = this.entities.get(id);
     return (entity as T) || null;
   }
@@ -45,25 +61,25 @@ class MockEntityService {
   }
 
   async listEntities<T extends SiteContentPreview | SiteContentProduction>(
-    entityType: string, 
-    options?: { filter?: { metadata: Record<string, unknown> } }
+    entityType: string,
+    options?: { filter?: { metadata: Record<string, unknown> } },
   ): Promise<T[]> {
     const results: T[] = [];
-    
+
     for (const [, entity] of this.entities) {
       if (entity.entityType === entityType) {
         // Apply metadata filter if provided
         if (options?.filter?.metadata) {
           const metadata = options.filter.metadata;
           let matches = true;
-          
+
           for (const [key, value] of Object.entries(metadata)) {
             if ((entity as Record<string, unknown>)[key] !== value) {
               matches = false;
               break;
             }
           }
-          
+
           if (matches) {
             results.push(entity as T);
           }
@@ -72,12 +88,15 @@ class MockEntityService {
         }
       }
     }
-    
+
     return results;
   }
 
   // Helper method for tests
-  setEntity(id: string, entity: SiteContentPreview | SiteContentProduction): void {
+  setEntity(
+    id: string,
+    entity: SiteContentPreview | SiteContentProduction,
+  ): void {
     this.entities.set(id, entity);
   }
 
@@ -134,7 +153,10 @@ describe("SiteContentManager", () => {
       expect(result.errors).toEqual([]);
 
       // Check that production entity was created
-      const productionEntity = await entityService.getEntity("site-content-production", "site-content-production:landing:hero");
+      const productionEntity = await entityService.getEntity(
+        "site-content-production",
+        "site-content-production:landing:hero",
+      );
       expect(productionEntity).toBeDefined();
       expect(productionEntity?.content).toBe(previewEntity.content);
     });
@@ -149,7 +171,10 @@ describe("SiteContentManager", () => {
       expect(result.promoted).toHaveLength(1);
 
       // Check that production entity was updated with preview content
-      const updatedProduction = await entityService.getEntity("site-content-production", "site-content-production:landing:hero");
+      const updatedProduction = await entityService.getEntity(
+        "site-content-production",
+        "site-content-production:landing:hero",
+      );
       expect(updatedProduction?.content).toBe(previewEntity.content);
       expect(updatedProduction?.content).not.toBe(productionEntity.content);
     });
@@ -198,7 +223,10 @@ describe("SiteContentManager", () => {
       expect(result.promoted).toHaveLength(0);
 
       // Check that no production entity was created
-      const productionEntity = await entityService.getEntity("site-content-production", "site-content-production:landing:hero");
+      const productionEntity = await entityService.getEntity(
+        "site-content-production",
+        "site-content-production:landing:hero",
+      );
       expect(productionEntity).toBeNull();
     });
   });
@@ -218,7 +246,10 @@ describe("SiteContentManager", () => {
       });
 
       // Check that production entity was deleted
-      const deletedEntity = await entityService.getEntity("site-content-production", "site-content-production:landing:hero");
+      const deletedEntity = await entityService.getEntity(
+        "site-content-production",
+        "site-content-production:landing:hero",
+      );
       expect(deletedEntity).toBeNull();
     });
 
@@ -240,8 +271,14 @@ describe("SiteContentManager", () => {
       expect(result.rolledBack[0]?.page).toBe("landing");
 
       // Check that only landing page was deleted
-      const landingEntity = await entityService.getEntity("site-content-production", "site-content-production:landing:hero");
-      const aboutEntity = await entityService.getEntity("site-content-production", "site-content-production:about:team");
+      const landingEntity = await entityService.getEntity(
+        "site-content-production",
+        "site-content-production:landing:hero",
+      );
+      const aboutEntity = await entityService.getEntity(
+        "site-content-production",
+        "site-content-production:about:team",
+      );
       expect(landingEntity).toBeNull();
       expect(aboutEntity).toBeDefined();
     });
@@ -255,7 +292,10 @@ describe("SiteContentManager", () => {
       expect(result.rolledBack).toHaveLength(0);
 
       // Check that production entity still exists
-      const existingEntity = await entityService.getEntity("site-content-production", "site-content-production:landing:hero");
+      const existingEntity = await entityService.getEntity(
+        "site-content-production",
+        "site-content-production:landing:hero",
+      );
       expect(existingEntity).toBeDefined();
     });
   });
@@ -273,7 +313,7 @@ describe("SiteContentManager", () => {
       expect(result?.preview).toEqual(previewEntity);
       expect(result?.production).toEqual(productionEntity);
       expect(result?.identical).toBe(false);
-      expect(result?.differences.some(d => d.field === "content")).toBe(true);
+      expect(result?.differences.some((d) => d.field === "content")).toBe(true);
     });
 
     it("should return null when preview doesn't exist", async () => {
@@ -314,6 +354,454 @@ describe("SiteContentManager", () => {
       const result = await manager.exists("nonexistent", "section", "preview");
 
       expect(result).toBe(false);
+    });
+  });
+
+  describe("generate", () => {
+    const mockRoutes = [
+      {
+        id: "landing",
+        path: "/landing",
+        title: "Landing Page",
+        description: "Main landing page",
+        sections: [
+          {
+            id: "hero",
+            template: "hero",
+            contentEntity: {
+              entityType: "site-content-preview",
+              query: { page: "landing", section: "hero" },
+            },
+          },
+          {
+            id: "features",
+            template: "features",
+            contentEntity: {
+              entityType: "site-content-preview",
+              query: { page: "landing", section: "features" },
+            },
+          },
+        ],
+      },
+      {
+        id: "about",
+        path: "/about",
+        title: "About Page",
+        description: "About us page",
+        sections: [
+          {
+            id: "team",
+            template: "team",
+            contentEntity: {
+              entityType: "site-content-preview",
+              query: { page: "about", section: "team" },
+            },
+          },
+        ],
+      },
+    ];
+
+    const mockGenerateCallback = async (
+      route: RouteDefinition,
+      section: SectionDefinition,
+    ): Promise<{
+      entityId: string;
+      entityType: string;
+      content: string;
+    }> => {
+      if (!section.contentEntity) {
+        throw new Error("contentEntity is required");
+      }
+      return {
+        entityId: `${section.contentEntity.entityType}:${route.path.slice(1)}:${section.id}`,
+        entityType: section.contentEntity.entityType,
+        content: `Generated content for ${route.title} - ${section.id}`,
+      };
+    };
+
+    it("should generate content for all sections", async () => {
+      const result = await manager.generate(
+        { dryRun: false },
+        mockRoutes,
+        mockGenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sectionsGenerated).toBe(3);
+      expect(result.totalSections).toBe(3);
+      expect(result.generated).toHaveLength(3);
+      expect(result.skipped).toHaveLength(0);
+      expect(result.errors).toEqual([]);
+
+      // Check that entities were created
+      const heroEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:hero",
+      );
+      const featuresEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:features",
+      );
+      const teamEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:about:team",
+      );
+
+      expect(heroEntity).toBeDefined();
+      expect(featuresEntity).toBeDefined();
+      expect(teamEntity).toBeDefined();
+    });
+
+    it("should filter by page", async () => {
+      const result = await manager.generate(
+        { page: "landing", dryRun: false },
+        mockRoutes,
+        mockGenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sectionsGenerated).toBe(2);
+      expect(result.totalSections).toBe(2);
+      expect(result.generated).toHaveLength(2);
+      expect(result.generated.every((g) => g.page === "/landing")).toBe(true);
+    });
+
+    it("should filter by section", async () => {
+      const result = await manager.generate(
+        { section: "hero", dryRun: false },
+        mockRoutes,
+        mockGenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sectionsGenerated).toBe(1);
+      expect(result.totalSections).toBe(1);
+      expect(result.generated).toHaveLength(1);
+      expect(result.generated[0]?.section).toBe("hero");
+    });
+
+    it("should skip existing content", async () => {
+      // Pre-populate with existing content
+      entityService.setEntity("site-content-preview:landing:hero", {
+        id: "site-content-preview:landing:hero",
+        entityType: "site-content-preview",
+        content: "Existing content",
+        page: "landing",
+        section: "hero",
+        created: "2024-01-01T00:00:00Z",
+        updated: "2024-01-01T01:00:00Z",
+      });
+
+      const result = await manager.generate(
+        { dryRun: false },
+        mockRoutes,
+        mockGenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sectionsGenerated).toBe(2); // Only features and team
+      expect(result.totalSections).toBe(3);
+      expect(result.generated).toHaveLength(2);
+      expect(result.skipped).toHaveLength(1);
+      expect(result.skipped[0]?.reason).toBe("Content already exists");
+    });
+
+    it("should handle dry run", async () => {
+      const result = await manager.generate(
+        { dryRun: true },
+        mockRoutes,
+        mockGenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sectionsGenerated).toBe(3);
+      expect(result.totalSections).toBe(3);
+      expect(result.generated).toHaveLength(3);
+      expect(
+        result.generated.every((g) => g.entityId === "dry-run-entity-id"),
+      ).toBe(true);
+
+      // Check that no entities were actually created
+      const heroEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:hero",
+      );
+      expect(heroEntity).toBeNull();
+    });
+
+    it("should handle callback errors gracefully", async () => {
+      const failingCallback = async (
+        route: RouteDefinition,
+        section: SectionDefinition,
+      ): Promise<{
+        entityId: string;
+        entityType: string;
+        content: string;
+      }> => {
+        if (section.id === "hero") {
+          throw new Error("Template not found");
+        }
+        return mockGenerateCallback(route, section);
+      };
+
+      const result = await manager.generate(
+        { dryRun: false },
+        mockRoutes,
+        failingCallback,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.sectionsGenerated).toBe(2); // features and team succeeded
+      expect(result.totalSections).toBe(3);
+      expect(result.generated).toHaveLength(2);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors?.[0]).toContain("Template not found");
+    });
+
+    it("should return early when no sections need content", async () => {
+      const routesWithContent = mockRoutes.map((route): typeof route => ({
+        ...route,
+        sections: route.sections.map((section) => ({
+          ...section,
+          content: "Existing content", // All sections have content
+        })),
+      }));
+
+      const result = await manager.generate(
+        { dryRun: false },
+        routesWithContent,
+        mockGenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sectionsGenerated).toBe(0);
+      expect(result.totalSections).toBe(0);
+      expect(result.generated).toHaveLength(0);
+      expect(result.message).toBe("No sections need content generation");
+    });
+  });
+
+  describe("regenerate", () => {
+    const mockRegenerateCallback = async (
+      entityType: string,
+      page: string,
+      section: string,
+      mode: "leave" | "new" | "with-current",
+      currentContent?: string,
+    ) => {
+      let newContent = `Regenerated content for ${page} - ${section}`;
+      if (mode === "with-current" && currentContent) {
+        newContent = `Improved: ${currentContent}`;
+      }
+      return {
+        entityId: `${entityType}:${page}:${section}`,
+        content: newContent,
+      };
+    };
+
+    beforeEach((): void => {
+      // Set up some existing entities
+      entityService.setEntity("site-content-preview:landing:hero", {
+        id: "site-content-preview:landing:hero",
+        entityType: "site-content-preview",
+        content: "Original hero content",
+        page: "landing",
+        section: "hero",
+        created: "2024-01-01T00:00:00Z",
+        updated: "2024-01-01T01:00:00Z",
+      });
+
+      entityService.setEntity("site-content-production:landing:hero", {
+        id: "site-content-production:landing:hero",
+        entityType: "site-content-production",
+        content: "Original production hero content",
+        page: "landing",
+        section: "hero",
+        created: "2024-01-01T00:00:00Z",
+        updated: "2024-01-01T00:30:00Z",
+      });
+    });
+
+    it("should regenerate preview content with 'new' mode", async () => {
+      const result = await manager.regenerate(
+        {
+          page: "landing",
+          section: "hero",
+          environment: "preview",
+          mode: "new",
+          dryRun: false,
+        },
+        mockRegenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.regenerated).toHaveLength(1);
+      expect(result.regenerated[0]).toEqual({
+        page: "landing",
+        section: "hero",
+        entityId: "site-content-preview:landing:hero",
+        mode: "new",
+      });
+
+      // Check that content was updated
+      const updatedEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:hero",
+      );
+      expect(updatedEntity?.content).toBe(
+        "Regenerated content for landing - hero",
+      );
+    });
+
+    it("should regenerate content with 'with-current' mode", async () => {
+      const result = await manager.regenerate(
+        {
+          page: "landing",
+          section: "hero",
+          environment: "preview",
+          mode: "with-current",
+          dryRun: false,
+        },
+        mockRegenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.regenerated).toHaveLength(1);
+
+      // Check that content was improved based on current content
+      const updatedEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:hero",
+      );
+      expect(updatedEntity?.content).toBe("Improved: Original hero content");
+    });
+
+    it("should skip content with 'leave' mode", async () => {
+      const result = await manager.regenerate(
+        {
+          page: "landing",
+          section: "hero",
+          environment: "preview",
+          mode: "leave",
+          dryRun: false,
+        },
+        mockRegenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.regenerated).toHaveLength(0);
+      expect(result.skipped).toHaveLength(1);
+      expect(result.skipped[0]?.reason).toBe(
+        "Mode 'leave' - content kept as-is",
+      );
+
+      // Check that content was not changed
+      const unchangedEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:hero",
+      );
+      expect(unchangedEntity?.content).toBe("Original hero content");
+    });
+
+    it("should regenerate both preview and production with 'both' environment", async () => {
+      const result = await manager.regenerate(
+        {
+          page: "landing",
+          section: "hero",
+          environment: "both",
+          mode: "new",
+          dryRun: false,
+        },
+        mockRegenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.regenerated).toHaveLength(2);
+      expect(
+        result.regenerated.some(
+          (r) => r.entityId === "site-content-preview:landing:hero",
+        ),
+      ).toBe(true);
+      expect(
+        result.regenerated.some(
+          (r) => r.entityId === "site-content-production:landing:hero",
+        ),
+      ).toBe(true);
+    });
+
+    it("should handle dry run", async () => {
+      const result = await manager.regenerate(
+        {
+          page: "landing",
+          section: "hero",
+          environment: "preview",
+          mode: "new",
+          dryRun: true,
+        },
+        mockRegenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.regenerated).toHaveLength(1);
+
+      // Check that content was not actually changed
+      const unchangedEntity = await entityService.getEntity(
+        "site-content-preview",
+        "site-content-preview:landing:hero",
+      );
+      expect(unchangedEntity?.content).toBe("Original hero content");
+    });
+
+    it("should handle callback errors gracefully", async () => {
+      const failingCallback = async () => {
+        throw new Error("Template not found");
+      };
+
+      const result = await manager.regenerate(
+        {
+          page: "landing",
+          section: "hero",
+          environment: "preview",
+          mode: "new",
+          dryRun: false,
+        },
+        failingCallback,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.regenerated).toHaveLength(0);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors?.[0]).toContain("Template not found");
+    });
+
+    it("should regenerate all sections for a page when section not specified", async () => {
+      // Add another section for the same page
+      entityService.setEntity("site-content-preview:landing:features", {
+        id: "site-content-preview:landing:features",
+        entityType: "site-content-preview",
+        content: "Original features content",
+        page: "landing",
+        section: "features",
+        created: "2024-01-01T00:00:00Z",
+        updated: "2024-01-01T01:00:00Z",
+      });
+
+      const result = await manager.regenerate(
+        {
+          page: "landing",
+          environment: "preview",
+          mode: "new",
+          dryRun: false,
+        },
+        mockRegenerateCallback,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.regenerated).toHaveLength(2);
+      expect(result.regenerated.some((r) => r.section === "hero")).toBe(true);
+      expect(result.regenerated.some((r) => r.section === "features")).toBe(
+        true,
+      );
     });
   });
 

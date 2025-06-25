@@ -5,13 +5,15 @@ import type {
   PluginResource,
   SiteContentPreview,
   SiteContentProduction,
+  RouteDefinition,
+  SectionDefinition,
+  ContentTemplate,
 } from "@brains/types";
 import {
   RouteDefinitionSchema,
   TemplateDefinitionSchema,
   siteContentPreviewSchema,
   siteContentProductionSchema,
-  SiteContentEntityTypeSchema,
 } from "@brains/types";
 import { SiteBuilder } from "./site-builder";
 import { z } from "zod";
@@ -19,7 +21,13 @@ import {
   siteContentPreviewAdapter,
   siteContentProductionAdapter,
 } from "./entities/site-content-adapter";
-import { SiteContentManager, PromoteOptionsSchema, RollbackOptionsSchema, RegenerateOptionsSchema } from "./content-management";
+import {
+  SiteContentManager,
+  PromoteOptionsSchema,
+  RollbackOptionsSchema,
+  RegenerateOptionsSchema,
+  GenerateOptionsSchema,
+} from "./content-management";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
 import packageJson from "../package.json";
@@ -161,201 +169,155 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
       this.createTool(
         "generate",
         "Generate content for pages that don't have it",
-        {},
-        async (_input, context): Promise<Record<string, unknown>> => {
-          if (!this.siteBuilder || !this.context) {
-            throw new Error("Site builder not initialized");
+        {
+          page: z
+            .string()
+            .optional()
+            .describe("Optional: specific page filter"),
+          section: z
+            .string()
+            .optional()
+            .describe("Optional: specific section filter"),
+          dryRun: z
+            .boolean()
+            .default(false)
+            .describe("Optional: preview changes without executing"),
+        },
+        async (input, context): Promise<Record<string, unknown>> => {
+          if (!this.siteContentManager || !this.context) {
+            throw new Error("Site content manager not initialized");
           }
 
-          const config = this.config;
-          let sectionsGenerated = 0;
+          // Parse and validate input
+          const options = GenerateOptionsSchema.parse(input);
 
-          try {
-            // Report initial progress
-            await context?.sendProgress?.({
-              message: "Starting content generation",
-              progress: 0,
-              total: 100,
+          // Get all registered routes
+          const routes = this.context.viewRegistry.listRoutes();
+
+          // Create the content generation callback
+          const generateCallback = async (
+            route: RouteDefinition,
+            section: SectionDefinition,
+          ): Promise<{
+            entityId: string;
+            entityType: string;
+            content: string;
+          }> => {
+            const config = this.config;
+
+            // Get the content template
+            if (!section.template) {
+              throw new Error(
+                `No template specified for section ${section.id}`,
+              );
+            }
+
+            // Templates are registered with site-builder prefix
+            const templateName = section.template.includes(":")
+              ? section.template
+              : `site-builder:${section.template}`;
+
+            if (!this.context) {
+              throw new Error("Plugin context not available");
+            }
+
+            const template: ContentTemplate | null =
+              this.context.contentGenerationService.getTemplate(templateName);
+
+            if (!template) {
+              throw new Error(`Template not found: ${templateName}`);
+            }
+
+            if (!this.context) {
+              throw new Error("Plugin context not available");
+            }
+
+            // Use the plugin context's generateContent method
+            const generatedContent = await this.context.generateContent({
+              schema: template.schema,
+              prompt: template.basePrompt,
+              contentType: templateName,
+              context: {
+                data: {
+                  pageTitle: route.title,
+                  pageDescription: route.description,
+                  sectionId: section.id,
+                  ...(config.siteConfig ?? {
+                    title: "Personal Brain",
+                    description: "A knowledge management system",
+                  }),
+                },
+              },
             });
 
-            // Get all registered routes
-            const routes = this.context.viewRegistry.listRoutes();
+            // Format content using the template's formatter
+            const formattedContent = template.formatter
+              ? template.formatter.format(generatedContent)
+              : typeof generatedContent === "string"
+                ? generatedContent
+                : JSON.stringify(generatedContent);
 
-            // Count total sections to generate
-            let totalSections = 0;
-            for (const route of routes) {
-              totalSections += route.sections.filter(
-                (section) =>
-                  "contentEntity" in section &&
-                  section.contentEntity &&
-                  !("content" in section && section.content),
-              ).length;
-            }
-
-            if (totalSections === 0) {
-              await context?.sendProgress?.({
-                message: "No content to generate",
-                progress: 100,
-                total: 100,
-              });
-              return {
-                success: true,
-                sectionsGenerated: 0,
-                message: "No sections need content generation",
-              };
-            }
-
-            let processedSections = 0;
-
-            for (const route of routes) {
-              const sectionsNeedingContent = route.sections.filter(
-                (section) =>
-                  "contentEntity" in section &&
-                  section.contentEntity &&
-                  !("content" in section && section.content),
+            // Save as entity with required metadata
+            if (!section.contentEntity?.query) {
+              throw new Error(
+                `Site content entity requires query data for page and section`,
               );
-
-              for (const section of sectionsNeedingContent) {
-                if (!section.contentEntity) continue;
-
-                // Report progress for this section
-                await context?.sendProgress?.({
-                  message: `Generating content for ${route.title} - ${section.id}`,
-                  progress: Math.floor(
-                    (processedSections / totalSections) * 100,
-                  ),
-                  total: 100,
-                });
-
-                // Check if content already exists
-                const existingEntities =
-                  await this.context.entityService.listEntities(
-                    section.contentEntity.entityType,
-                    section.contentEntity.query
-                      ? { filter: { metadata: section.contentEntity.query } }
-                      : undefined,
-                  );
-
-                if (existingEntities.length > 0) {
-                  continue; // Content already exists
-                }
-
-                // Get the content template
-                if (!section.template) {
-                  this.logger?.warn(
-                    `No template specified for section ${section.id}`,
-                  );
-                  continue;
-                }
-
-                // Templates are registered with site-builder prefix
-                const templateName = section.template.includes(":")
-                  ? section.template
-                  : `site-builder:${section.template}`;
-
-                const template =
-                  this.context.contentGenerationService.getTemplate(
-                    templateName,
-                  );
-
-                if (!template) {
-                  this.logger?.warn(`Template not found: ${templateName}`);
-                  continue;
-                }
-
-                // Use the plugin context's generateContent method with fully qualified name
-                const generatedContent = await this.context.generateContent({
-                  schema: template.schema,
-                  prompt: template.basePrompt,
-                  contentType: templateName, // Use the fully qualified name (e.g., "default-site:landing-hero")
-                  context: {
-                    data: {
-                      pageTitle: route.title,
-                      pageDescription: route.description,
-                      sectionId: section.id,
-                      ...(config.siteConfig ?? {
-                        title: "Personal Brain",
-                        description: "A knowledge management system",
-                      }),
-                    },
-                  },
-                });
-
-                // Format content using the template's formatter
-                const formattedContent = template.formatter
-                  ? template.formatter.format(generatedContent)
-                  : typeof generatedContent === "string"
-                    ? generatedContent
-                    : JSON.stringify(generatedContent);
-
-                // Save as entity with required metadata
-                try {
-                  // Try to parse as site content entity type
-                  const entityType = SiteContentEntityTypeSchema.parse(
-                    section.contentEntity.entityType,
-                  );
-
-                  if (!section.contentEntity.query) {
-                    throw new Error(
-                      `Site content entity requires query data for page and section`,
-                    );
-                  }
-
-                  // For site-content, construct the entity with all required fields
-                  const siteContentEntity: Omit<
-                    SiteContentPreview | SiteContentProduction,
-                    "id" | "created" | "updated"
-                  > = {
-                    entityType,
-                    content: formattedContent,
-                    page: section.contentEntity.query["page"] as string,
-                    section: section.contentEntity.query["section"] as string,
-                  };
-
-                  await this.context.entityService.createEntity(
-                    siteContentEntity,
-                  );
-                } catch (error) {
-                  // Log the error and skip this section
-                  this.logger?.error(
-                    `Failed to create entity for section ${section.id}`,
-                    { error },
-                  );
-                  continue;
-                }
-
-                sectionsGenerated++;
-                processedSections++;
-
-                // Report progress after completing this section
-                await context?.sendProgress?.({
-                  message: `Completed ${section.id} (${sectionsGenerated}/${totalSections})`,
-                  progress: Math.floor(
-                    (processedSections / totalSections) * 100,
-                  ),
-                  total: 100,
-                });
-              }
             }
 
-            // Final progress report
-            await context?.sendProgress?.({
-              message: `Content generation complete`,
+            const { contentEntity } = section;
+            if (!contentEntity.query) {
+              throw new Error(
+                `Site content entity requires query data for page and section`,
+              );
+            }
+
+            // Always generate preview content
+            const targetEntityType = "site-content-preview" as const;
+
+            // For site-content, construct the entity with all required fields
+            const siteContentEntity: Omit<
+              SiteContentPreview | SiteContentProduction,
+              "id" | "created" | "updated"
+            > = {
+              entityType: targetEntityType,
+              content: formattedContent,
+              page: contentEntity.query["page"] as string,
+              section: contentEntity.query["section"] as string,
+            };
+
+            if (!this.context) {
+              throw new Error("Plugin context not available");
+            }
+
+            const createdEntity =
+              await this.context.entityService.createEntity(siteContentEntity);
+
+            return {
+              entityId: createdEntity.id,
+              entityType: targetEntityType,
+              content: formattedContent,
+            };
+          };
+
+          // Use the content manager with progress reporting
+          const result = await this.siteContentManager.generate(
+            options,
+            routes,
+            generateCallback,
+          );
+
+          // Report progress if context is available
+          if (context?.sendProgress) {
+            await context.sendProgress({
+              message:
+                result.message ||
+                `Generated content for ${result.sectionsGenerated} sections`,
               progress: 100,
               total: 100,
             });
-
-            return {
-              success: true,
-              sectionsGenerated,
-              message: `Generated content for ${sectionsGenerated} sections`,
-            };
-          } catch (error) {
-            return {
-              success: false,
-              error: error instanceof Error ? error.message : "Unknown error",
-            };
           }
+
+          return result;
         },
       ),
     );
@@ -466,10 +428,22 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
         "promote-content",
         "Promote preview content to production",
         {
-          page: z.string().optional().describe("Optional: specific page filter"),
-          section: z.string().optional().describe("Optional: specific section filter"),
-          sections: z.array(z.string()).optional().describe("Optional: batch promote multiple sections"),
-          dryRun: z.boolean().default(false).describe("Optional: preview changes without executing"),
+          page: z
+            .string()
+            .optional()
+            .describe("Optional: specific page filter"),
+          section: z
+            .string()
+            .optional()
+            .describe("Optional: specific section filter"),
+          sections: z
+            .array(z.string())
+            .optional()
+            .describe("Optional: batch promote multiple sections"),
+          dryRun: z
+            .boolean()
+            .default(false)
+            .describe("Optional: preview changes without executing"),
         },
         async (input): Promise<Record<string, unknown>> => {
           if (!this.siteContentManager) {
@@ -490,10 +464,22 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
         "rollback-content",
         "Remove production content (rollback to preview-only)",
         {
-          page: z.string().optional().describe("Optional: specific page filter"),
-          section: z.string().optional().describe("Optional: specific section filter"),
-          sections: z.array(z.string()).optional().describe("Optional: batch rollback multiple sections"),
-          dryRun: z.boolean().default(false).describe("Optional: preview changes without executing"),
+          page: z
+            .string()
+            .optional()
+            .describe("Optional: specific page filter"),
+          section: z
+            .string()
+            .optional()
+            .describe("Optional: specific section filter"),
+          sections: z
+            .array(z.string())
+            .optional()
+            .describe("Optional: batch rollback multiple sections"),
+          dryRun: z
+            .boolean()
+            .default(false)
+            .describe("Optional: preview changes without executing"),
         },
         async (input): Promise<Record<string, unknown>> => {
           if (!this.siteContentManager) {
@@ -516,18 +502,114 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
         {
           page: z.string().describe("Required: target page"),
           section: z.string().optional().describe("Optional: specific section"),
-          environment: z.enum(["preview", "production", "both"]).default("preview").describe("Optional: target environment (default: preview)"),
-          mode: z.enum(["leave", "new", "with-current"]).describe("Required: regeneration mode"),
-          dryRun: z.boolean().default(false).describe("Optional: preview changes without executing"),
+          environment: z
+            .enum(["preview", "production", "both"])
+            .default("preview")
+            .describe("Optional: target environment (default: preview)"),
+          mode: z
+            .enum(["leave", "new", "with-current"])
+            .describe("Required: regeneration mode"),
+          dryRun: z
+            .boolean()
+            .default(false)
+            .describe("Optional: preview changes without executing"),
         },
         async (input): Promise<Record<string, unknown>> => {
-          if (!this.siteContentManager) {
+          if (!this.siteContentManager || !this.context) {
             throw new Error("Site content manager not initialized");
           }
 
           // Parse and validate input
           const options = RegenerateOptionsSchema.parse(input);
-          const result = await this.siteContentManager.regenerate(options);
+
+          // Create the regeneration callback
+          const regenerateCallback = async (
+            entityType: string,
+            page: string,
+            section: string,
+            mode: "leave" | "new" | "with-current",
+            currentContent?: string,
+          ): Promise<{
+            entityId: string;
+            content: string;
+          }> => {
+            const config = this.config;
+
+            if (!this.context) {
+              throw new Error("Plugin context not available");
+            }
+
+            // Find the template for this page/section by looking through routes
+            const routes = this.context.viewRegistry.listRoutes();
+            let template: ContentTemplate | null = null;
+            let templateName = "";
+
+            // Find the matching route and section
+            for (const route of routes) {
+              if (route.path.includes(page) || route.path === `/${page}`) {
+                const matchingSection = route.sections.find(
+                  (s) => s.id === section,
+                );
+                if (matchingSection && matchingSection.template) {
+                  templateName = matchingSection.template.includes(":")
+                    ? matchingSection.template
+                    : `site-builder:${matchingSection.template}`;
+                  template =
+                    this.context.contentGenerationService.getTemplate(
+                      templateName,
+                    );
+                  break;
+                }
+              }
+            }
+
+            if (!template) {
+              throw new Error(
+                `Template not found for page: ${page}, section: ${section}`,
+              );
+            }
+
+            // Prepare the prompt based on mode
+            let effectivePrompt = template.basePrompt;
+            if (mode === "with-current" && currentContent) {
+              effectivePrompt = `${template.basePrompt}\n\nCurrent content to improve:\n${currentContent}`;
+            }
+
+            // Generate content using the template
+            const generatedContent = await this.context.generateContent({
+              schema: template.schema,
+              prompt: effectivePrompt,
+              contentType: templateName,
+              context: {
+                data: {
+                  pageTitle: page,
+                  sectionId: section,
+                  regenerationMode: mode,
+                  ...(config.siteConfig ?? {
+                    title: "Personal Brain",
+                    description: "A knowledge management system",
+                  }),
+                },
+              },
+            });
+
+            // Format content using the template's formatter
+            const formattedContent = template.formatter
+              ? template.formatter.format(generatedContent)
+              : typeof generatedContent === "string"
+                ? generatedContent
+                : JSON.stringify(generatedContent);
+
+            return {
+              entityId: `${entityType}:${page}:${section}`,
+              content: formattedContent,
+            };
+          };
+
+          const result = await this.siteContentManager.regenerate(
+            options,
+            regenerateCallback,
+          );
           return result;
         },
         "anchor", // Internal tool - modifies entities

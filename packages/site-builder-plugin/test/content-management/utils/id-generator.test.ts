@@ -9,17 +9,29 @@ import {
 describe("ID Generator", () => {
   describe("generateSiteContentId", () => {
     it("should generate correct preview ID", () => {
-      const id = generateSiteContentId("site-content-preview", "landing", "hero");
+      const id = generateSiteContentId(
+        "site-content-preview",
+        "landing",
+        "hero",
+      );
       expect(id).toBe("site-content-preview:landing:hero");
     });
 
     it("should generate correct production ID", () => {
-      const id = generateSiteContentId("site-content-production", "about", "team");
+      const id = generateSiteContentId(
+        "site-content-production",
+        "about",
+        "team",
+      );
       expect(id).toBe("site-content-production:about:team");
     });
 
     it("should handle special characters in page and section", () => {
-      const id = generateSiteContentId("site-content-preview", "user-profile", "contact-info");
+      const id = generateSiteContentId(
+        "site-content-preview",
+        "user-profile",
+        "contact-info",
+      );
       expect(id).toBe("site-content-preview:user-profile:contact-info");
     });
   });
@@ -46,7 +58,9 @@ describe("ID Generator", () => {
     it("should return null for invalid format", () => {
       expect(parseSiteContentId("invalid-format")).toBeNull();
       expect(parseSiteContentId("site-content-preview:landing")).toBeNull();
-      expect(parseSiteContentId("site-content-preview:landing:hero:extra")).toBeNull();
+      expect(
+        parseSiteContentId("site-content-preview:landing:hero:extra"),
+      ).toBeNull();
       expect(parseSiteContentId("")).toBeNull();
     });
 
@@ -56,7 +70,9 @@ describe("ID Generator", () => {
     });
 
     it("should handle special characters in page and section", () => {
-      const result = parseSiteContentId("site-content-preview:user-profile:contact-info");
+      const result = parseSiteContentId(
+        "site-content-preview:user-profile:contact-info",
+      );
       expect(result).toEqual({
         entityType: "site-content-preview",
         page: "user-profile",
@@ -67,12 +83,16 @@ describe("ID Generator", () => {
 
   describe("previewToProductionId", () => {
     it("should convert preview ID to production ID", () => {
-      const productionId = previewToProductionId("site-content-preview:landing:hero");
+      const productionId = previewToProductionId(
+        "site-content-preview:landing:hero",
+      );
       expect(productionId).toBe("site-content-production:landing:hero");
     });
 
     it("should return null for production ID input", () => {
-      const result = previewToProductionId("site-content-production:landing:hero");
+      const result = previewToProductionId(
+        "site-content-production:landing:hero",
+      );
       expect(result).toBeNull();
     });
 
@@ -84,7 +104,9 @@ describe("ID Generator", () => {
 
   describe("productionToPreviewId", () => {
     it("should convert production ID to preview ID", () => {
-      const previewId = productionToPreviewId("site-content-production:landing:hero");
+      const previewId = productionToPreviewId(
+        "site-content-production:landing:hero",
+      );
       expect(previewId).toBe("site-content-preview:landing:hero");
     });
 

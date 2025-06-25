@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { siteContentPreviewSchema, siteContentProductionSchema } from "@brains/types";
+import {
+  siteContentPreviewSchema,
+  siteContentProductionSchema,
+} from "@brains/types";
 
 /**
  * Regeneration mode schema
@@ -9,7 +12,11 @@ export const RegenerateModeSchema = z.enum(["leave", "new", "with-current"]);
 /**
  * Content environment schema
  */
-export const ContentEnvironmentSchema = z.enum(["preview", "production", "both"]);
+export const ContentEnvironmentSchema = z.enum([
+  "preview",
+  "production",
+  "both",
+]);
 
 /**
  * Promote operation options schema
@@ -17,8 +24,14 @@ export const ContentEnvironmentSchema = z.enum(["preview", "production", "both"]
 export const PromoteOptionsSchema = z.object({
   page: z.string().optional().describe("Optional: specific page filter"),
   section: z.string().optional().describe("Optional: specific section filter"),
-  sections: z.array(z.string()).optional().describe("Optional: batch promote multiple sections"),
-  dryRun: z.boolean().default(false).describe("Optional: preview changes without executing"),
+  sections: z
+    .array(z.string())
+    .optional()
+    .describe("Optional: batch promote multiple sections"),
+  dryRun: z
+    .boolean()
+    .default(false)
+    .describe("Optional: preview changes without executing"),
 });
 
 /**
@@ -26,17 +39,21 @@ export const PromoteOptionsSchema = z.object({
  */
 export const PromoteResultSchema = z.object({
   success: z.boolean(),
-  promoted: z.array(z.object({
-    page: z.string(),
-    section: z.string(),
-    previewId: z.string(),
-    productionId: z.string(),
-  })),
-  skipped: z.array(z.object({
-    page: z.string(),
-    section: z.string(),
-    reason: z.string(),
-  })),
+  promoted: z.array(
+    z.object({
+      page: z.string(),
+      section: z.string(),
+      previewId: z.string(),
+      productionId: z.string(),
+    }),
+  ),
+  skipped: z.array(
+    z.object({
+      page: z.string(),
+      section: z.string(),
+      reason: z.string(),
+    }),
+  ),
   errors: z.array(z.string()).optional(),
 });
 
@@ -46,8 +63,14 @@ export const PromoteResultSchema = z.object({
 export const RollbackOptionsSchema = z.object({
   page: z.string().optional().describe("Optional: specific page filter"),
   section: z.string().optional().describe("Optional: specific section filter"),
-  sections: z.array(z.string()).optional().describe("Optional: batch rollback multiple sections"),
-  dryRun: z.boolean().default(false).describe("Optional: preview changes without executing"),
+  sections: z
+    .array(z.string())
+    .optional()
+    .describe("Optional: batch rollback multiple sections"),
+  dryRun: z
+    .boolean()
+    .default(false)
+    .describe("Optional: preview changes without executing"),
 });
 
 /**
@@ -55,16 +78,20 @@ export const RollbackOptionsSchema = z.object({
  */
 export const RollbackResultSchema = z.object({
   success: z.boolean(),
-  rolledBack: z.array(z.object({
-    page: z.string(),
-    section: z.string(),
-    productionId: z.string(),
-  })),
-  skipped: z.array(z.object({
-    page: z.string(),
-    section: z.string(),
-    reason: z.string(),
-  })),
+  rolledBack: z.array(
+    z.object({
+      page: z.string(),
+      section: z.string(),
+      productionId: z.string(),
+    }),
+  ),
+  skipped: z.array(
+    z.object({
+      page: z.string(),
+      section: z.string(),
+      reason: z.string(),
+    }),
+  ),
   errors: z.array(z.string()).optional(),
 });
 
@@ -74,9 +101,14 @@ export const RollbackResultSchema = z.object({
 export const RegenerateOptionsSchema = z.object({
   page: z.string().describe("Required: target page"),
   section: z.string().optional().describe("Optional: specific section"),
-  environment: ContentEnvironmentSchema.default("preview").describe("Optional: target environment (default: preview)"),
+  environment: ContentEnvironmentSchema.default("preview").describe(
+    "Optional: target environment (default: preview)",
+  ),
   mode: RegenerateModeSchema.describe("Required: regeneration mode"),
-  dryRun: z.boolean().default(false).describe("Optional: preview changes without executing"),
+  dryRun: z
+    .boolean()
+    .default(false)
+    .describe("Optional: preview changes without executing"),
 });
 
 /**
@@ -84,18 +116,63 @@ export const RegenerateOptionsSchema = z.object({
  */
 export const RegenerateResultSchema = z.object({
   success: z.boolean(),
-  regenerated: z.array(z.object({
-    page: z.string(),
-    section: z.string(),
-    entityId: z.string(),
-    mode: RegenerateModeSchema,
-  })),
-  skipped: z.array(z.object({
-    page: z.string(),
-    section: z.string(),
-    reason: z.string(),
-  })),
+  regenerated: z.array(
+    z.object({
+      page: z.string(),
+      section: z.string(),
+      entityId: z.string(),
+      mode: RegenerateModeSchema,
+    }),
+  ),
+  skipped: z.array(
+    z.object({
+      page: z.string(),
+      section: z.string(),
+      reason: z.string(),
+    }),
+  ),
   errors: z.array(z.string()).optional(),
+});
+
+/**
+ * Content comparison result schema
+ */
+/**
+ * Generate operation options schema
+ */
+export const GenerateOptionsSchema = z.object({
+  page: z.string().optional().describe("Optional: specific page filter"),
+  section: z.string().optional().describe("Optional: specific section filter"),
+  dryRun: z
+    .boolean()
+    .default(false)
+    .describe("Optional: preview changes without executing"),
+});
+
+/**
+ * Generate operation result schema
+ */
+export const GenerateResultSchema = z.object({
+  success: z.boolean(),
+  sectionsGenerated: z.number(),
+  totalSections: z.number(),
+  generated: z.array(
+    z.object({
+      page: z.string(),
+      section: z.string(),
+      entityId: z.string(),
+      entityType: z.string(),
+    }),
+  ),
+  skipped: z.array(
+    z.object({
+      page: z.string(),
+      section: z.string(),
+      reason: z.string(),
+    }),
+  ),
+  errors: z.array(z.string()).optional(),
+  message: z.string().optional(),
 });
 
 /**
@@ -106,11 +183,13 @@ export const ContentComparisonSchema = z.object({
   section: z.string(),
   preview: siteContentPreviewSchema,
   production: siteContentProductionSchema,
-  differences: z.array(z.object({
-    field: z.string(),
-    previewValue: z.unknown(),
-    productionValue: z.unknown(),
-  })),
+  differences: z.array(
+    z.object({
+      field: z.string(),
+      previewValue: z.unknown(),
+      productionValue: z.unknown(),
+    }),
+  ),
   identical: z.boolean(),
 });
 
@@ -123,4 +202,6 @@ export type RollbackOptions = z.infer<typeof RollbackOptionsSchema>;
 export type RollbackResult = z.infer<typeof RollbackResultSchema>;
 export type RegenerateOptions = z.infer<typeof RegenerateOptionsSchema>;
 export type RegenerateResult = z.infer<typeof RegenerateResultSchema>;
+export type GenerateOptions = z.infer<typeof GenerateOptionsSchema>;
+export type GenerateResult = z.infer<typeof GenerateResultSchema>;
 export type ContentComparison = z.infer<typeof ContentComparisonSchema>;

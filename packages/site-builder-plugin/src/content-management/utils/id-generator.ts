@@ -26,13 +26,16 @@ export function parseSiteContentId(id: string): {
   }
 
   const [entityType, page, section] = parts;
-  
+
   // Validate entity type and that all parts exist
   if (!entityType || !page || !section) {
     return null;
   }
-  
-  if (entityType !== "site-content-preview" && entityType !== "site-content-production") {
+
+  if (
+    entityType !== "site-content-preview" &&
+    entityType !== "site-content-production"
+  ) {
     return null;
   }
 
@@ -52,7 +55,11 @@ export function previewToProductionId(previewId: string): string | null {
     return null;
   }
 
-  return generateSiteContentId("site-content-production", parsed.page, parsed.section);
+  return generateSiteContentId(
+    "site-content-production",
+    parsed.page,
+    parsed.section,
+  );
 }
 
 /**
@@ -64,5 +71,9 @@ export function productionToPreviewId(productionId: string): string | null {
     return null;
   }
 
-  return generateSiteContentId("site-content-preview", parsed.page, parsed.section);
+  return generateSiteContentId(
+    "site-content-preview",
+    parsed.page,
+    parsed.section,
+  );
 }

@@ -58,8 +58,8 @@ export function compareContent(
  * Check if preview and production content are substantially the same (ignoring timestamps and IDs)
  */
 export function isContentEquivalent(
-  preview: SiteContentPreview, 
-  production: SiteContentProduction
+  preview: SiteContentPreview,
+  production: SiteContentProduction,
 ): boolean {
   return (
     preview.content === production.content &&

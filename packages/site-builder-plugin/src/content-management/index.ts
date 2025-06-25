@@ -1,6 +1,6 @@
 /**
  * Site Content Management Module
- * 
+ *
  * Provides comprehensive content lifecycle management for site content entities,
  * including promotion from preview to production, rollback, and regeneration.
  */
@@ -17,6 +17,8 @@ export type {
   RollbackResult,
   RegenerateOptions,
   RegenerateResult,
+  GenerateOptions,
+  GenerateResult,
   ContentComparison,
 } from "./types";
 
@@ -25,6 +27,7 @@ export {
   PromoteOptionsSchema,
   RollbackOptionsSchema,
   RegenerateOptionsSchema,
+  GenerateOptionsSchema,
 } from "./schemas";
 
 // Export type guards (useful for consumers)

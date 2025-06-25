@@ -1,6 +1,9 @@
 import { describe, it, expect } from "bun:test";
 import type { SiteContentPreview, SiteContentProduction } from "@brains/types";
-import { compareContent, isContentEquivalent } from "../../../src/content-management/utils/comparator";
+import {
+  compareContent,
+  isContentEquivalent,
+} from "../../../src/content-management/utils/comparator";
 
 describe("Content Comparator", () => {
   const previewEntity: SiteContentPreview = {
@@ -15,7 +18,7 @@ describe("Content Comparator", () => {
 
   const productionEntity: SiteContentProduction = {
     id: "site-content-production:landing:hero",
-    entityType: "site-content-production", 
+    entityType: "site-content-production",
     content: "# Hero Section\n\nWelcome to our site!",
     page: "landing",
     section: "hero",
@@ -25,8 +28,13 @@ describe("Content Comparator", () => {
 
   describe("compareContent", () => {
     it("should identify identical content", () => {
-      const result = compareContent("landing", "hero", previewEntity, productionEntity);
-      
+      const result = compareContent(
+        "landing",
+        "hero",
+        previewEntity,
+        productionEntity,
+      );
+
       expect(result.page).toBe("landing");
       expect(result.section).toBe("hero");
       expect(result.preview).toBe(previewEntity);
@@ -41,17 +49,27 @@ describe("Content Comparator", () => {
         content: "# Hero Section\n\nDifferent content!",
       };
 
-      const result = compareContent("landing", "hero", previewEntity, differentProduction);
-      
+      const result = compareContent(
+        "landing",
+        "hero",
+        previewEntity,
+        differentProduction,
+      );
+
       expect(result.differences).toHaveLength(2); // content + updated timestamp
-      expect(result.differences.some(d => d.field === "content")).toBe(true);
+      expect(result.differences.some((d) => d.field === "content")).toBe(true);
       expect(result.identical).toBe(false);
     });
 
     it("should detect timestamp differences", () => {
-      const result = compareContent("landing", "hero", previewEntity, productionEntity);
-      
-      const updatedDiff = result.differences.find(d => d.field === "updated");
+      const result = compareContent(
+        "landing",
+        "hero",
+        previewEntity,
+        productionEntity,
+      );
+
+      const updatedDiff = result.differences.find((d) => d.field === "updated");
       expect(updatedDiff).toBeDefined();
       expect(updatedDiff?.previewValue).toBe("2024-01-01T01:00:00Z");
       expect(updatedDiff?.productionValue).toBe("2024-01-01T00:30:00Z");
@@ -63,32 +81,54 @@ describe("Content Comparator", () => {
         updated: previewEntity.updated, // Make timestamps match
       };
 
-      const result = compareContent("landing", "hero", previewEntity, identicalProduction);
-      
+      const result = compareContent(
+        "landing",
+        "hero",
+        previewEntity,
+        identicalProduction,
+      );
+
       expect(result.differences).toHaveLength(0);
       expect(result.identical).toBe(true);
     });
 
     it("should not compare ID differences", () => {
       // IDs are intentionally different, should not be flagged as difference
-      const result = compareContent("landing", "hero", previewEntity, productionEntity);
-      
-      expect(result.differences.some(d => d.field === "id")).toBe(false);
+      const result = compareContent(
+        "landing",
+        "hero",
+        previewEntity,
+        productionEntity,
+      );
+
+      expect(result.differences.some((d) => d.field === "id")).toBe(false);
     });
 
     it("should not compare entityType differences", () => {
       // Entity types are intentionally different, should not be flagged as difference
-      const result = compareContent("landing", "hero", previewEntity, productionEntity);
-      
-      expect(result.differences.some(d => d.field === "entityType")).toBe(false);
+      const result = compareContent(
+        "landing",
+        "hero",
+        previewEntity,
+        productionEntity,
+      );
+
+      expect(result.differences.some((d) => d.field === "entityType")).toBe(
+        false,
+      );
     });
 
     it("should not compare page/section differences", () => {
       // Page and section should always match for comparison, so no need to flag differences
-      const result = compareContent("landing", "hero", previewEntity, productionEntity);
-      
-      expect(result.differences.some(d => d.field === "page")).toBe(false);
-      expect(result.differences.some(d => d.field === "section")).toBe(false);
+      const result = compareContent(
+        "landing",
+        "hero",
+        previewEntity,
+        productionEntity,
+      );
+
+      expect(result.differences.some((d) => d.field === "page")).toBe(false);
+      expect(result.differences.some((d) => d.field === "section")).toBe(false);
     });
   });
 
