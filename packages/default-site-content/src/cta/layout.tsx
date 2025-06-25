@@ -9,16 +9,7 @@ export const CTALayout = ({
   return (
     <section className="relative py-16 md:py-24 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-brand-dark to-brand"></div>
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0)",
-            backgroundSize: "40px 40px",
-          }}
-        ></div>
-      </div>
+      <div className="absolute inset-0 opacity-10 pointer-events-none cta-bg-pattern"></div>
 
       <div className="relative max-w-7xl mx-auto px-4 text-center">
         <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-theme-inverse mb-6">
