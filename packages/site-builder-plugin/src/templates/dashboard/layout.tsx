@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- h is required for JSX compilation
 import { h } from "preact";
 import { useState, useMemo } from "preact/hooks";
 import type { VNode } from "preact";

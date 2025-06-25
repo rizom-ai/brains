@@ -221,7 +221,21 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               this.context.contentGenerationService.getTemplate(templateName);
 
             if (!template) {
-              throw new Error(`Template not found: ${templateName}`);
+              // Add debug logging to see what templates are available
+              const availableTemplates =
+                this.context.contentGenerationService.listTemplates?.() ?? [];
+              this.logger?.error(`Template not found: ${templateName}`, {
+                availableTemplates: availableTemplates.map(
+                  (t) => t.name ?? "unnamed",
+                ),
+                requestedTemplate: templateName,
+                sectionTemplate: section.template,
+                page: route.id,
+                section: section.id,
+              });
+              throw new Error(
+                `Template not found for page: ${route.id}, section: ${section.id}`,
+              );
             }
 
             // Use the plugin context's generateContent method
@@ -536,7 +550,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
 
             // Find the matching route and section
             for (const route of routes) {
-              if (route.path.includes(page) || route.path === `/${page}`) {
+              if (route.id === page) {
                 const matchingSection = route.sections.find(
                   (s) => s.id === section,
                 );
@@ -670,7 +684,21 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               this.context.contentGenerationService.getTemplate(templateName);
 
             if (!template) {
-              throw new Error(`Template not found: ${templateName}`);
+              // Add debug logging to see what templates are available
+              const availableTemplates =
+                this.context.contentGenerationService.listTemplates?.() ?? [];
+              this.logger?.error(`Template not found: ${templateName}`, {
+                availableTemplates: availableTemplates.map(
+                  (t) => t.name ?? "unnamed",
+                ),
+                requestedTemplate: templateName,
+                sectionTemplate: section.template,
+                page: route.id,
+                section: section.id,
+              });
+              throw new Error(
+                `Template not found for page: ${route.id}, section: ${section.id}`,
+              );
             }
 
             // Use the plugin context's generateContent method
@@ -797,7 +825,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
 
             // Find the matching route and section
             for (const route of routes) {
-              if (route.path.includes(page) || route.path === `/${page}`) {
+              if (route.id === page) {
                 const matchingSection = route.sections.find(
                   (s) => s.id === section,
                 );

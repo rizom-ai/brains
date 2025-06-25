@@ -444,17 +444,8 @@ export class SiteContentManager {
     };
 
     try {
-      // Determine which entity types to regenerate
-      const entityTypes: SiteContentEntityType[] = [];
-      if (options.environment === "preview" || options.environment === "both") {
-        entityTypes.push("site-content-preview");
-      }
-      if (
-        options.environment === "production" ||
-        options.environment === "both"
-      ) {
-        entityTypes.push("site-content-production");
-      }
+      // Only regenerate preview content - production content comes from promotion
+      const entityTypes: SiteContentEntityType[] = ["site-content-preview"];
 
       // Count total entities to process for progress tracking
       let totalEntities = 0;
@@ -919,13 +910,13 @@ export class SiteContentManager {
 
       result.totalPages = allPages.size;
 
-      // Regenerate each page (both preview and production content if it exists)
+      // Regenerate each page (preview content only - production comes from promotion)
       for (const page of allPages) {
         try {
           const pageResult = await this.regenerate(
             {
               page,
-              environment: "both",
+              environment: "preview",
               mode,
               dryRun: options.dryRun ?? false,
             },

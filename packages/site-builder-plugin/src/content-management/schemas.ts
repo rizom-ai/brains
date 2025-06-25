@@ -11,12 +11,10 @@ export const RegenerateModeSchema = z.enum(["leave", "new", "with-current"]);
 
 /**
  * Content environment schema
+ * Note: Content generation only works with preview content.
+ * Production content is created by promoting preview content.
  */
-export const ContentEnvironmentSchema = z.enum([
-  "preview",
-  "production",
-  "both",
-]);
+export const ContentEnvironmentSchema = z.enum(["preview"]);
 
 /**
  * Promote operation options schema
@@ -102,7 +100,7 @@ export const RegenerateOptionsSchema = z.object({
   page: z.string().describe("Required: target page"),
   section: z.string().optional().describe("Optional: specific section"),
   environment: ContentEnvironmentSchema.default("preview").describe(
-    "Optional: target environment (default: preview)",
+    "Environment: only preview content can be regenerated (production content comes from promotion)",
   ),
   mode: RegenerateModeSchema.describe("Required: regeneration mode"),
   dryRun: z

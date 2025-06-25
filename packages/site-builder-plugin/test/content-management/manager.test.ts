@@ -755,12 +755,23 @@ describe("SiteContentManager", () => {
       expect(unchangedEntity?.content).toBe("Original hero content");
     });
 
-    it("should regenerate both preview and production with 'both' environment", async () => {
+    it("should only regenerate preview content (production comes from promotion)", async () => {
+      // Set up production content that should NOT be regenerated
+      entityService.setEntity("site-content-production:landing:hero", {
+        id: "site-content-production:landing:hero",
+        entityType: "site-content-production",
+        content: "Original production content",
+        page: "landing",
+        section: "hero",
+        created: "2024-01-01T00:00:00Z",
+        updated: "2024-01-01T01:00:00Z",
+      });
+
       const result = await manager.regenerate(
         {
           page: "landing",
           section: "hero",
-          environment: "both",
+          environment: "preview",
           mode: "new",
           dryRun: false,
         },
@@ -768,17 +779,18 @@ describe("SiteContentManager", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.regenerated).toHaveLength(2);
-      expect(
-        result.regenerated.some(
-          (r) => r.entityId === "site-content-preview:landing:hero",
-        ),
-      ).toBe(true);
-      expect(
-        result.regenerated.some(
-          (r) => r.entityId === "site-content-production:landing:hero",
-        ),
-      ).toBe(true);
+      expect(result.regenerated).toHaveLength(1);
+      // Only preview content should be regenerated
+      expect(result.regenerated[0]?.entityId).toBe(
+        "site-content-preview:landing:hero",
+      );
+
+      // Production content should remain unchanged
+      const productionEntity = await entityService.getEntity(
+        "site-content-production",
+        "site-content-production:landing:hero",
+      );
+      expect(productionEntity?.content).toBe("Original production content");
     });
 
     it("should handle dry run", async () => {
