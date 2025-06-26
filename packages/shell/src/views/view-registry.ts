@@ -72,7 +72,9 @@ export class ViewRegistry implements IViewRegistry {
 
     // Ensure template has layout and component
     if (!template.layout?.component) {
-      throw new Error(`Template ${name} must have a layout.component for view registration`);
+      throw new Error(
+        `Template ${name} must have a layout.component for view registration`,
+      );
     }
 
     // Convert Template to ViewTemplate
