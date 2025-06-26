@@ -11,7 +11,7 @@
 **Problems:**
 
 1. **Fragmented architecture**: Content generation logic scattered across multiple services
-2. **Inconsistent APIs**: 3+ different ways to generate content 
+2. **Inconsistent APIs**: 3+ different ways to generate content
 3. **QueryProcessor duplication**: Essentially another form of content generation
 4. **Manual template resolution**: Site-builder plugin manually resolves templates, handles errors, formats content
 5. **Duplication**: ~150+ lines of template resolution/formatting logic duplicated across plugin
@@ -25,7 +25,7 @@
 #### **Major Architecture Changes:**
 
 1. **`packages/shell/src/content/contentGenerationService.ts`** - **MOVE ENTIRE CLASS** to @brains/content-generator
-2. **`packages/shell/src/query/queryProcessor.ts`** - **MOVE FUNCTIONALITY** to @brains/content-generator  
+2. **`packages/shell/src/query/queryProcessor.ts`** - **MOVE FUNCTIONALITY** to @brains/content-generator
 3. **`packages/shell/src/query/`** - **DELETE DIRECTORY** entirely
 4. **`packages/shell/src/content/`** - **DELETE DIRECTORY** entirely
 5. **`packages/types/src/services.ts`** - Remove ContentGenerationService and QueryProcessor interfaces
@@ -54,7 +54,7 @@
 #### **Tests (All Need Major Updates):**
 
 18. **`packages/shell/test/content/`** - **DELETE DIRECTORY** (ContentGenerationService tests)
-19. **`packages/shell/test/query/`** - **DELETE DIRECTORY** (QueryProcessor tests)  
+19. **`packages/shell/test/query/`** - **DELETE DIRECTORY** (QueryProcessor tests)
 20. **`packages/shell/test/plugins/pluginManager.test.ts`** - Update PluginContext tests for ContentGenerator
 21. **`packages/shell/test/mcp/*.test.ts`** - Update MCP adapter tests for ContentGenerator
 22. **`packages/shell/test/shell.test.ts`** - Replace QueryProcessor tests with ContentGenerator
@@ -91,16 +91,18 @@
 
 ```typescript
 // Knowledge queries → query templates
-contentGenerator.generateContent('knowledge-query', { prompt: 'What are my notes about X?' })
+contentGenerator.generateContent("knowledge-query", {
+  prompt: "What are my notes about X?",
+});
 
-// Schema generation → schema templates  
-contentGenerator.generateContent('user-profile', { data: userData })
+// Schema generation → schema templates
+contentGenerator.generateContent("user-profile", { data: userData });
 
 // Entity operations → entity templates
-contentGenerator.generateContent('entity-search', { query: 'find projects' })
+contentGenerator.generateContent("entity-search", { query: "find projects" });
 
 // Site content → site templates
-contentGenerator.generateContent('site-builder:hero', { data: pageData })
+contentGenerator.generateContent("site-builder:hero", { data: pageData });
 ```
 
 ### 1. Unified `@brains/content-generator` Package
@@ -128,7 +130,7 @@ class ContentGenerator {
   // Convenience methods for common patterns (built on generateContent)
   generateWithRoute(...): Promise<string>;
   regenerateContent(...): Promise<{ entityId: string; content: string }>;
-  
+
   // Template management
   registerTemplate<T>(name: string, template: ContentTemplate<T>): void;
   getTemplate(name: string): ContentTemplate<unknown> | null;
@@ -164,7 +166,7 @@ interface GenerationContext {
 ### Phase 1: Create Content Generator Package ✅ **COMPLETED**
 
 - **ContentGenerator class** with Component Interface Standardization pattern
-- **Template-only API** with `generateContent()`, `generateWithRoute()`, `regenerateContent()` 
+- **Template-only API** with `generateContent()`, `generateWithRoute()`, `regenerateContent()`
 - **Simplified GenerationContext** with only `prompt` and `data` fields
 - **Comprehensive test suite** with 17 passing tests
 - **Clean dependency injection** for easy testing and mocking
@@ -172,25 +174,31 @@ interface GenerationContext {
 ### Phase 2: Move Services to Content Generator Package
 
 #### Phase 2A: Move ContentGenerationService
+
 1. **Move ContentGenerationService class** from `shell/src/content/` to `content-generator/src/`
 2. **Merge with ContentGenerator** to create unified content generation system
 3. **Add template management** (registerTemplate, getTemplate, collections)
 4. **Maintain template-only approach** - no schema/prompt APIs
 
-#### Phase 2B: Move QueryProcessor Functionality  
+#### Phase 2B: Move QueryProcessor Functionality
+
 1. **Move QueryProcessor logic** from `shell/src/query/` to `content-generator/src/`
 2. **Integrate entity search** into ContentGenerator for knowledge-aware templates
 3. **Add AI service integration** for direct AI calls when needed
 4. **Transform processQuery** into template-based generation patterns
 
 #### Phase 2C: Enhanced ContentGenerator Dependencies
+
 ```typescript
 interface ContentGeneratorDependencies {
   // Template-based generation (existing)
-  generateWithTemplate: (template: ContentTemplate, context: GenerationContext) => Promise<unknown>;
+  generateWithTemplate: (
+    template: ContentTemplate,
+    context: GenerationContext,
+  ) => Promise<unknown>;
   getTemplate: (name: string) => ContentTemplate | null;
   listRoutes: () => RouteDefinition[];
-  
+
   // Knowledge-aware generation (new)
   entityService: EntityService;
   aiService: AIService;
@@ -201,7 +209,7 @@ interface ContentGeneratorDependencies {
 ### Phase 3: Delete Legacy Services from Shell
 
 1. **Delete QueryProcessor class** and entire `shell/src/query/` directory
-2. **Delete ContentGenerationService class** and entire `shell/src/content/` directory  
+2. **Delete ContentGenerationService class** and entire `shell/src/content/` directory
 3. **Remove interfaces** from `types/src/services.ts`
 4. **Update shell.ts** to import and use ContentGenerator instead
 
@@ -222,11 +230,13 @@ interface ContentGeneratorDependencies {
 ### Phase 6: Update All Tests and Clean Up
 
 1. **Delete test directories:**
+
    - `shell/test/content/` (ContentGenerationService tests)
    - `shell/test/query/` (QueryProcessor tests)
    - `utils/test/content-generation.test.ts` (legacy utility tests)
 
 2. **Update remaining tests:**
+
    - Shell, MCP, plugin manager tests for ContentGenerator
    - Site-builder plugin tests for simplified approach
    - Integration tests for new architecture
@@ -238,8 +248,9 @@ interface ContentGeneratorDependencies {
 ### Phase 7: Documentation and System Templates
 
 1. **Create system templates** for:
+
    - Knowledge queries (entity-aware generation)
-   - Schema validation (structured generation)  
+   - Schema validation (structured generation)
    - Entity operations (search, create, update)
 
 2. **Update documentation:**
@@ -270,12 +281,14 @@ interface ContentGeneratorDependencies {
 ## Architecture Result
 
 **Before:** Complex service orchestration
+
 ```
 Plugin → PluginContext → ContentGenerationService → QueryProcessor → EntityService + AIService
                      → Multiple APIs (generate, generateFromTemplate, generateContent)
 ```
 
 **After:** Single template-based pipeline
+
 ```
 Plugin → ContentGenerator.generateContent(templateName, context)
                         ↓ (internally)

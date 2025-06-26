@@ -1,6 +1,6 @@
 /**
  * @brains/content-generator
- * 
+ *
  * Content generation utilities for the Brain system.
  * Provides template-based content generation with convenience methods.
  */
