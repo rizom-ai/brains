@@ -158,6 +158,7 @@ export const SiteBuilderOptionsSchema = z.object({
   enableContentGeneration: z.boolean().default(false),
   outputDir: z.string(),
   workingDir: z.string().optional(),
+  environment: z.enum(["preview", "production"]).default("preview"),
   siteConfig: z
     .object({
       title: z.string(),

@@ -18,7 +18,8 @@ describe("SiteBuilderPlugin", () => {
 
   it("should initialize with valid config", async () => {
     const plugin = siteBuilderPlugin({
-      outputDir: "/tmp/test-output",
+      previewOutputDir: "/tmp/test-output",
+      productionOutputDir: "/tmp/test-output-production",
       workingDir: "/tmp/test-working",
     });
 
@@ -28,7 +29,8 @@ describe("SiteBuilderPlugin", () => {
 
   it("should register site-content entity type", async () => {
     const plugin = siteBuilderPlugin({
-      outputDir: "/tmp/test-output",
+      previewOutputDir: "/tmp/test-output",
+      productionOutputDir: "/tmp/test-output-production",
     });
 
     // Track registered entity types
@@ -63,7 +65,8 @@ describe("SiteBuilderPlugin", () => {
     };
 
     const plugin = siteBuilderPlugin({
-      outputDir: "/tmp/test-output",
+      previewOutputDir: "/tmp/test-output",
+      productionOutputDir: "/tmp/test-output-production",
       templates: {
         "test-template": testTemplate,
       },
@@ -78,7 +81,8 @@ describe("SiteBuilderPlugin", () => {
 
   it("should register routes when provided", async () => {
     const plugin = siteBuilderPlugin({
-      outputDir: "/tmp/test-output",
+      previewOutputDir: "/tmp/test-output",
+      productionOutputDir: "/tmp/test-output-production",
       routes: [
         {
           id: "test",
@@ -99,7 +103,8 @@ describe("SiteBuilderPlugin", () => {
 
   it("should provide site builder tools", async () => {
     const plugin = siteBuilderPlugin({
-      outputDir: "/tmp/test-output",
+      previewOutputDir: "/tmp/test-output",
+      productionOutputDir: "/tmp/test-output-production",
     });
 
     const context = harness.getPluginContext();
@@ -111,6 +116,7 @@ describe("SiteBuilderPlugin", () => {
     expect(toolNames).toContain("site-builder:build");
     expect(toolNames).toContain("site-builder:list_routes");
     expect(toolNames).toContain("site-builder:list_templates");
+    expect(toolNames).toContain("site-builder:promote-all");
   });
 
   it("should provide generate tool when routes have content entities", async () => {
@@ -128,7 +134,8 @@ describe("SiteBuilderPlugin", () => {
     };
 
     const plugin = siteBuilderPlugin({
-      outputDir: "/tmp/test-output",
+      previewOutputDir: "/tmp/test-output",
+      productionOutputDir: "/tmp/test-output-production",
       templates: { test: testTemplate },
       routes: [
         {
@@ -164,7 +171,8 @@ describe("SiteBuilderPlugin", () => {
 
   it("should handle missing templates gracefully", async () => {
     const plugin = siteBuilderPlugin({
-      outputDir: "/tmp/test-output",
+      previewOutputDir: "/tmp/test-output",
+      productionOutputDir: "/tmp/test-output-production",
       routes: [
         {
           id: "home-missing",
@@ -203,7 +211,8 @@ describe("SiteBuilderPlugin", () => {
 
   it("should set environment on routes", async () => {
     const plugin = siteBuilderPlugin({
-      outputDir: "/tmp/test-output",
+      previewOutputDir: "/tmp/test-output",
+      productionOutputDir: "/tmp/test-output-production",
       environment: "production",
       routes: [
         {

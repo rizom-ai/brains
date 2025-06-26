@@ -22,7 +22,9 @@ module.exports = {
     // "@typescript-eslint/no-unnecessary-type-assertion": "error", // Requires type info
     "@typescript-eslint/prefer-nullish-coalescing": "warn",
     "@typescript-eslint/prefer-optional-chain": "warn",
-    "@typescript-eslint/ban-ts-comment": "warn",
+    "@typescript-eslint/ban-ts-comment": ["warn", {
+      "ts-ignore": "allow-with-description"
+    }],
     "@typescript-eslint/no-floating-promises": "error",
     "@typescript-eslint/no-misused-promises": "error",
     "@typescript-eslint/await-thenable": "error",

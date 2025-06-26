@@ -1,8 +1,0 @@
-{
-  "extends": "astro/tsconfigs/base",
-  "compilerOptions": {
-    "types": ["astro/client"]
-  },
-  "include": ["src/**/*"],
-  "exclude": ["dist", "node_modules"]
-}

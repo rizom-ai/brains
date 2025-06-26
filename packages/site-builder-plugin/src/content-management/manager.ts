@@ -157,6 +157,15 @@ export class SiteContentManager {
   }
 
   /**
+   * Promote all preview content to production
+   */
+  async promoteAll(): Promise<PromoteResult> {
+    this.logger?.info("Starting promote all operation");
+
+    return this.promote({ dryRun: false });
+  }
+
+  /**
    * Rollback production content (delete production entities)
    */
   async rollback(options: RollbackOptions): Promise<RollbackResult> {

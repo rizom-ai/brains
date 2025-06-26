@@ -43,7 +43,10 @@ async function main(): Promise<void> {
               type: "webserver" as const,
               enabled: true,
               config: {
-                distDir: process.env["WEBSITE_OUTPUT_DIR"],
+                previewDistDir: process.env["WEBSITE_OUTPUT_DIR"],
+                productionDistDir:
+                  process.env["WEBSITE_PRODUCTION_OUTPUT_DIR"] ??
+                  process.env["WEBSITE_OUTPUT_DIR"] + "-production",
                 previewPort: Number(
                   process.env["WEBSITE_PREVIEW_PORT"] ?? 4321,
                 ),
@@ -73,7 +76,10 @@ async function main(): Promise<void> {
       ...(process.env["WEBSITE_OUTPUT_DIR"]
         ? [
             siteBuilderPlugin({
-              outputDir: process.env["WEBSITE_OUTPUT_DIR"],
+              previewOutputDir: process.env["WEBSITE_OUTPUT_DIR"],
+              productionOutputDir:
+                process.env["WEBSITE_PRODUCTION_OUTPUT_DIR"] ??
+                process.env["WEBSITE_OUTPUT_DIR"] + "-production",
               workingDir:
                 process.env["WEBSITE_WORKING_DIR"] ?? "/tmp/site-builder",
               templates, // Pass templates from default-site-content

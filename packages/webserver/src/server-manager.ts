@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
-import { compress } from "hono/compress";
+import { compress } from "@hono/bun-compress";
 import { etag } from "hono/etag";
 import type { Server } from "bun";
 import type { Logger } from "@brains/utils";
@@ -9,7 +9,8 @@ import { existsSync } from "fs";
 
 export interface ServerManagerOptions {
   logger: Logger;
-  distDir: string;
+  previewDistDir: string;
+  productionDistDir: string;
   previewPort: number;
   productionPort: number;
 }
@@ -54,13 +55,13 @@ export class ServerManager {
     app.use(
       "/*",
       serveStatic({
-        root: this.options.distDir,
+        root: this.options.previewDistDir,
         rewriteRequestPath: (path) => {
           // Handle clean URLs
           if (!path.includes(".") && path !== "/") {
             // First try directory with index.html
             const indexPath = path + "/index.html";
-            const fullIndexPath = join(this.options.distDir, indexPath);
+            const fullIndexPath = join(this.options.previewDistDir, indexPath);
             if (existsSync(fullIndexPath)) {
               return indexPath;
             }
@@ -74,7 +75,7 @@ export class ServerManager {
 
     // 404 handler
     app.notFound(async (c) => {
-      const notFoundPath = join(this.options.distDir, "404.html");
+      const notFoundPath = join(this.options.previewDistDir, "404.html");
       if (existsSync(notFoundPath)) {
         const file = await Bun.file(notFoundPath).text();
         return c.html(file, 404);
@@ -114,13 +115,13 @@ export class ServerManager {
     app.use(
       "/*",
       serveStatic({
-        root: this.options.distDir,
+        root: this.options.productionDistDir,
         rewriteRequestPath: (path) => {
           // Handle clean URLs
           if (!path.includes(".") && path !== "/") {
             // First try directory with index.html
             const indexPath = path + "/index.html";
-            const fullIndexPath = join(this.options.distDir, indexPath);
+            const fullIndexPath = join(this.options.previewDistDir, indexPath);
             if (existsSync(fullIndexPath)) {
               return indexPath;
             }
@@ -134,7 +135,7 @@ export class ServerManager {
 
     // 404 handler
     app.notFound(async (c) => {
-      const notFoundPath = join(this.options.distDir, "404.html");
+      const notFoundPath = join(this.options.productionDistDir, "404.html");
       if (existsSync(notFoundPath)) {
         const file = await Bun.file(notFoundPath).text();
         return c.html(file, 404);
@@ -154,8 +155,8 @@ export class ServerManager {
       return `http://localhost:${this.options.previewPort}`;
     }
 
-    if (!existsSync(this.options.distDir)) {
-      throw new Error("No build found. Run build_site first.");
+    if (!existsSync(this.options.previewDistDir)) {
+      throw new Error("No preview build found. Run build_site first.");
     }
 
     this.logger.info(
@@ -183,7 +184,7 @@ export class ServerManager {
       return `http://localhost:${this.options.productionPort}`;
     }
 
-    if (!existsSync(this.options.distDir)) {
+    if (!existsSync(this.options.productionDistDir)) {
       throw new Error("No build found. Run build_site first.");
     }
 

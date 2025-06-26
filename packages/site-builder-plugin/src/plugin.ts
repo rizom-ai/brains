@@ -34,7 +34,10 @@ import packageJson from "../package.json";
  * Configuration schema for the site builder plugin
  */
 const siteBuilderConfigSchema = z.object({
-  outputDir: z.string().describe("Output directory for built sites"),
+  previewOutputDir: z.string().describe("Output directory for preview builds"),
+  productionOutputDir: z
+    .string()
+    .describe("Output directory for production builds"),
   workingDir: z.string().optional().describe("Working directory for builds"),
   siteConfig: z
     .object({
@@ -223,10 +226,10 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             if (!template) {
               // Add debug logging to see what templates are available
               const availableTemplates =
-                this.context.contentGenerationService.listTemplates?.() ?? [];
+                this.context.contentGenerationService.listTemplates();
               this.logger?.error(`Template not found: ${templateName}`, {
                 availableTemplates: availableTemplates.map(
-                  (t) => t.name ?? "unnamed",
+                  (t) => t.name || "unnamed",
                 ),
                 requestedTemplate: templateName,
                 sectionTemplate: section.template,
@@ -310,21 +313,38 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
       this.createTool(
         "build",
         "Build a static site from registered pages",
-        {},
-        async (_input, context): Promise<Record<string, unknown>> => {
+        {
+          environment: z
+            .enum(["preview", "production"])
+            .default("preview")
+            .describe("Build environment: preview (default) or production"),
+        },
+        async (input, context): Promise<Record<string, unknown>> => {
           if (!this.siteBuilder) {
             throw new Error("Site builder not initialized");
           }
 
+          // Parse input for environment option
+          const environment =
+            (input as { environment?: "preview" | "production" }).environment ??
+            "preview";
+
           // Use the plugin's configuration
           const config = this.config;
+
+          // Choose output directory based on environment
+          const outputDir =
+            environment === "production"
+              ? config.productionOutputDir
+              : config.previewOutputDir;
 
           try {
             const result = await this.siteBuilder.build(
               {
-                outputDir: config.outputDir,
+                outputDir,
                 workingDir: config.workingDir,
                 enableContentGeneration: false,
+                environment,
                 siteConfig: config.siteConfig ?? {
                   title: "Personal Brain",
                   description: "A knowledge management system",
@@ -336,7 +356,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             return {
               success: result.success,
               routesBuilt: result.routesBuilt,
-              outputDir: config.outputDir,
+              outputDir,
+              environment,
               errors: result.errors,
               warnings: result.warnings,
             };
@@ -436,6 +457,23 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           // Parse and validate input
           const options = PromoteOptionsSchema.parse(input);
           const result = await this.siteContentManager.promote(options);
+          return result;
+        },
+        "anchor", // Internal tool - modifies entities
+      ),
+    );
+
+    tools.push(
+      this.createTool(
+        "promote-all",
+        "Promote all preview content to production",
+        {},
+        async (): Promise<Record<string, unknown>> => {
+          if (!this.siteContentManager) {
+            throw new Error("Site content manager not initialized");
+          }
+
+          const result = await this.siteContentManager.promoteAll();
           return result;
         },
         "anchor", // Internal tool - modifies entities
@@ -686,10 +724,10 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             if (!template) {
               // Add debug logging to see what templates are available
               const availableTemplates =
-                this.context.contentGenerationService.listTemplates?.() ?? [];
+                this.context.contentGenerationService.listTemplates();
               this.logger?.error(`Template not found: ${templateName}`, {
                 availableTemplates: availableTemplates.map(
-                  (t) => t.name ?? "unnamed",
+                  (t) => t.name || "unnamed",
                 ),
                 requestedTemplate: templateName,
                 sectionTemplate: section.template,

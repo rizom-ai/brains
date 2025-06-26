@@ -10,7 +10,7 @@ export const HeroLayout = ({
     <section className="hero-section py-20 md:py-32 text-center relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-5 pointer-events-none hero-bg-pattern"></div>
-      
+
       {/* Floating animated blobs */}
       <div className="absolute top-20 left-10 w-72 h-72 bg-brand-light rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
       <div className="absolute top-40 right-10 w-72 h-72 bg-accent rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>

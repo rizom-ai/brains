@@ -6,7 +6,8 @@ import { existsSync } from "fs";
 import { join } from "path";
 
 export interface WebserverOptions {
-  distDir: string;
+  previewDistDir: string;
+  productionDistDir: string;
   previewPort?: number;
   productionPort?: number;
 }
@@ -27,14 +28,16 @@ export class WebserverInterface extends BaseInterface {
 
     // Use provided options or defaults
     this.options = {
-      distDir: options?.distDir ?? "./dist",
+      previewDistDir: options?.previewDistDir ?? "./dist",
+      productionDistDir: options?.productionDistDir ?? "./dist-production",
       previewPort: options?.previewPort ?? 3456,
       productionPort: options?.productionPort ?? 4567,
     };
 
     this.serverManager = new ServerManager({
       logger: this.logger.child("ServerManager"),
-      distDir: this.options.distDir,
+      previewDistDir: this.options.previewDistDir,
+      productionDistDir: this.options.productionDistDir,
       previewPort: this.options.previewPort as number,
       productionPort: this.options.productionPort as number,
     });
@@ -54,22 +57,19 @@ export class WebserverInterface extends BaseInterface {
     // Ensure dist directory exists
     await this.ensureDistDirectory();
 
-    // Auto-start preview server
+    // Auto-start both preview and production servers
     await this.serverManager.startPreviewServer();
+    await this.serverManager.startProductionServer();
   }
 
   /**
-   * Ensure the dist directory exists with at least a basic index.html
+   * Ensure the dist directories exist with at least a basic index.html
    */
   private async ensureDistDirectory(): Promise<void> {
     const { mkdir, writeFile } = await import("fs/promises");
 
-    // Create dist directory if it doesn't exist
-    if (!existsSync(this.options.distDir)) {
-      await mkdir(this.options.distDir, { recursive: true });
-
-      // Create a basic placeholder index.html
-      const placeholderHtml = `<!DOCTYPE html>
+    // Create a basic placeholder index.html
+    const placeholderHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -138,8 +138,22 @@ export class WebserverInterface extends BaseInterface {
 </body>
 </html>`;
 
+    // Create preview dist directory if it doesn't exist
+    if (!existsSync(this.options.previewDistDir)) {
+      await mkdir(this.options.previewDistDir, { recursive: true });
+
       await writeFile(
-        join(this.options.distDir, "index.html"),
+        join(this.options.previewDistDir, "index.html"),
+        placeholderHtml,
+      );
+    }
+
+    // Create production dist directory if it doesn't exist
+    if (!existsSync(this.options.productionDistDir)) {
+      await mkdir(this.options.productionDistDir, { recursive: true });
+
+      await writeFile(
+        join(this.options.productionDistDir, "index.html"),
         placeholderHtml,
       );
     }
@@ -238,15 +252,37 @@ export class WebserverInterface extends BaseInterface {
         name: "build_info",
         description: "Get information about the current build",
         handler: async (): Promise<string> => {
-          const indexPath = join(this.options.distDir, "index.html");
-          if (!existsSync(indexPath)) {
-            return "No build found. Please build your site first.";
+          const previewIndexPath = join(
+            this.options.previewDistDir,
+            "index.html",
+          );
+          const productionIndexPath = join(
+            this.options.productionDistDir,
+            "index.html",
+          );
+
+          const previewExists = existsSync(previewIndexPath);
+          const productionExists = existsSync(productionIndexPath);
+
+          if (!previewExists && !productionExists) {
+            return "No builds found. Please build your site first.";
           }
 
-          const stats = await Bun.file(indexPath).stat();
-          const buildTime = stats.mtime.toLocaleString();
+          let info = "Build Information:\n";
 
-          return `Build found at: ${this.options.distDir}\nLast built: ${buildTime}`;
+          if (previewExists) {
+            const stats = await Bun.file(previewIndexPath).stat();
+            const buildTime = stats.mtime.toLocaleString();
+            info += `Preview: ${this.options.previewDistDir} (built: ${buildTime})\n`;
+          }
+
+          if (productionExists) {
+            const stats = await Bun.file(productionIndexPath).stat();
+            const buildTime = stats.mtime.toLocaleString();
+            info += `Production: ${this.options.productionDistDir} (built: ${buildTime})\n`;
+          }
+
+          return info.trim();
         },
       },
     ];

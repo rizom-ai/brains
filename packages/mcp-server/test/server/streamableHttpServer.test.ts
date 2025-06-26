@@ -44,7 +44,7 @@ async function makeRequest(
       ...defaultHeaders,
       ...options.headers,
     },
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: options.body ? JSON.stringify(options.body) : null,
   });
 
   let body: unknown;
@@ -73,7 +73,13 @@ async function makeRequest(
   return {
     status: response.status,
     body,
-    headers: Object.fromEntries(response.headers.entries()),
+    headers: ((): Record<string, string> => {
+      const headerObj: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headerObj[key] = value;
+      });
+      return headerObj;
+    })(),
   };
 }
 

@@ -131,7 +131,7 @@ export class SiteBuilder implements ISiteBuilder {
           ...(siteConfig.url && { url: siteConfig.url }),
         },
         getContent: async (section: SectionDefinition) => {
-          return this.getContentForSection(section);
+          return this.getContentForSection(section, options.environment);
         },
       };
 
@@ -176,6 +176,7 @@ export class SiteBuilder implements ISiteBuilder {
    */
   private async getContentForSection(
     section: SectionDefinition,
+    environment: "preview" | "production" = "preview",
   ): Promise<unknown> {
     // If content is provided directly, use it
     if (section.content) {
@@ -184,8 +185,17 @@ export class SiteBuilder implements ISiteBuilder {
 
     // If contentEntity is specified, fetch from entity service
     if (section.contentEntity) {
+      // Map entity type based on environment
+      let entityType = section.contentEntity.entityType;
+      if (
+        environment === "production" &&
+        entityType === "site-content-preview"
+      ) {
+        entityType = "site-content-production";
+      }
+
       const entities = await this.context.entityService.listEntities(
-        section.contentEntity.entityType,
+        entityType,
         section.contentEntity.query
           ? { filter: { metadata: section.contentEntity.query } }
           : undefined,
