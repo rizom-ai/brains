@@ -13,7 +13,6 @@ import {
   type DirectorySyncConfigInput,
 } from "./types";
 import { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
-import { GenericYamlFormatter } from "@brains/shell";
 import {
   directorySyncStatusSchema,
   exportResultSchema,
@@ -37,19 +36,15 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
    * Initialize the plugin
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
-    const { logger, entityService, contentRegistry, messageBus } = context;
+    const { logger, entityService, messageBus } = context;
 
-    // Register our custom formatter with content registry
-    contentRegistry.registerContent("directory-sync:status", {
-      template: {
-        name: "directorySyncStatus",
-        description: "Directory synchronization status",
-        schema: directorySyncStatusSchema,
-        basePrompt: "",
-        formatter: new GenericYamlFormatter(), // Use YAML formatter for template
-      },
-      formatter: new DirectorySyncStatusFormatter(), // Response formatter
+    // Register our template for directory sync status
+    context.registerTemplate("status", {
+      name: "status",
+      description: "Directory synchronization status",
       schema: directorySyncStatusSchema,
+      basePrompt: "",
+      formatter: new DirectorySyncStatusFormatter(), // Use status formatter for template
     });
 
     // Create DirectorySync instance

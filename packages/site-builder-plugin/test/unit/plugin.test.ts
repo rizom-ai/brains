@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { siteBuilderPlugin } from "../../src/plugin";
 import { PluginTestHarness } from "@brains/utils";
-import type { TemplateDefinition } from "@brains/types";
+import type { Template } from "@brains/types";
 import { z } from "zod";
 import { h } from "preact";
 
@@ -50,18 +50,20 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should register templates when provided", async () => {
-    const testTemplate: TemplateDefinition = {
+    const testTemplate: Template<{ title: string }> = {
       name: "test-template",
       description: "Test template",
       schema: z.object({ title: z.string() }),
-      component: ({ title }: { title: string }) => h("div", {}, title),
+      basePrompt: "Generate a test",
       formatter: {
         format: (data: unknown) =>
           `Title: ${(data as { title: string }).title}`,
         parse: (content: string) => ({ title: content.replace("Title: ", "") }),
       },
-      prompt: "Generate a test",
-      interactive: false,
+      layout: {
+        component: ({ title }: { title: string }) => h("div", {}, title),
+        interactive: false,
+      },
     };
 
     const plugin = siteBuilderPlugin({
@@ -120,17 +122,19 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should provide generate tool when routes have content entities", async () => {
-    const testTemplate: TemplateDefinition = {
+    const testTemplate: Template<{ content: string }> = {
       name: "test",
       description: "Test",
       schema: z.object({ content: z.string() }),
-      component: ({ content }: { content: string }) => h("div", {}, content),
+      basePrompt: "Generate test content",
       formatter: {
         format: (data: unknown) => (data as { content: string }).content,
         parse: (content: string) => ({ content }),
       },
-      prompt: "Generate test content",
-      interactive: false,
+      layout: {
+        component: ({ content }: { content: string }) => h("div", {}, content),
+        interactive: false,
+      },
     };
 
     const plugin = siteBuilderPlugin({

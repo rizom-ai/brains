@@ -1,0 +1,10 @@
+{
+  "extends": "@brains/typescript-config/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "lib": ["DOM", "ES2015"],
+    "rootDir": "./src"
+  },
+  "include": ["src"]
+}

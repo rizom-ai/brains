@@ -7,23 +7,14 @@
  * capabilities with it.
  */
 
-export { registerShellTools } from "./tools";
-export { registerShellResources } from "./resources";
-
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerShellTools } from "./tools";
-import { registerShellResources } from "./resources";
-import type { QueryProcessor } from "../query/queryProcessor";
 import type { EntityService } from "../entity/entityService";
-import type { ContentGenerationService } from "../content/contentGenerationService";
-import type { ContentRegistry } from "../content/content-registry";
+import type { ContentGenerator } from "@brains/content-generator";
 import type { Logger } from "@brains/utils";
 
 export interface ShellMCPOptions {
-  queryProcessor: QueryProcessor;
+  contentGenerator: ContentGenerator;
   entityService: EntityService;
-  contentRegistry: ContentRegistry;
-  contentGenerationService: ContentGenerationService;
   logger: Logger;
 }
 
@@ -34,9 +25,45 @@ export function registerShellMCP(
   server: McpServer,
   options: ShellMCPOptions,
 ): void {
-  // Register tools
-  registerShellTools(server, options);
+  // Register core shell query tool
+  server.tool(
+    "query",
+    "Query the knowledge base using AI-powered search",
+    {
+      query: {
+        type: "string",
+        description: "Natural language query to search the knowledge base",
+      },
+      userId: {
+        type: "string",
+        description: "Optional user ID for context",
+        optional: true,
+      },
+    },
+    async (params) => {
+      try {
+        const result = await options.contentGenerator.generateContent(
+          "shell:knowledge-query",
+          {
+            prompt: params["query"] as string,
+            data: {
+              userId: params["userId"],
+            },
+          },
+        );
 
-  // Register resources
-  registerShellResources(server, options);
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        options.logger.error("Query tool error", error);
+        throw error;
+      }
+    },
+  );
 }

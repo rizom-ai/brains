@@ -5,14 +5,9 @@
  * and internal implementation details.
  */
 
-import type { QueryProcessor } from "../query/queryProcessor";
-import type { QueryOptions } from "../types";
 import type { EntityService } from "../entity/entityService";
-import type { z } from "zod";
-import type { ContentGenerationService } from "../content/contentGenerationService";
-import type { ContentRegistry } from "../content/content-registry";
-import type { ContentGenerateOptions, BaseEntity } from "@brains/types";
-import { defaultQueryResponseSchema } from "@brains/types";
+import type { ContentGenerator } from "@brains/content-generator";
+import type { GenerationContext } from "@brains/types";
 
 /**
  * MCP Query parameters (what users provide via MCP tools)
@@ -29,65 +24,30 @@ export interface MCPQueryParams {
 }
 
 /**
- * Adapter for QueryProcessor that handles MCP-style parameters
+ * Adapter for ContentGenerator that handles MCP-style parameters
  */
-export class QueryProcessorAdapter {
-  constructor(
-    private queryProcessor: QueryProcessor,
-    private contentRegistry: ContentRegistry,
-  ) {}
+export class ContentGeneratorAdapter {
+  constructor(private contentGenerator: ContentGenerator) {}
 
   /**
-   * Execute a query with MCP-style parameters
+   * Execute a query with MCP-style parameters using knowledge query template
    */
   async executeQuery(params: MCPQueryParams): Promise<unknown> {
-    // Determine response schema
-    let responseSchema: z.ZodType<unknown> = defaultQueryResponseSchema;
-    if (params.options?.responseSchema) {
-      const schema = this.contentRegistry.getSchema(
-        params.options.responseSchema,
-      );
-      if (!schema) {
-        throw new Error(
-          `Response schema not found: ${params.options.responseSchema}`,
-        );
-      }
-      responseSchema = schema;
-    }
+    // Use the system knowledge query template
+    const templateName = "shell:knowledge-query";
 
-    // Build query options
-    const queryOptions: QueryOptions<unknown> = {
-      schema: responseSchema,
+    // Build generation context
+    const context: GenerationContext = {
+      prompt: params.query,
+      data: {
+        limit: params.options?.limit || 10,
+        responseSchema: params.options?.responseSchema || "default-query",
+        context: params.options?.context || {},
+      },
     };
 
-    if (params.options) {
-      // Handle context - extract known fields
-      if (params.options.context) {
-        const { userId, conversationId, ...metadata } = params.options.context;
-
-        if (typeof userId === "string") {
-          queryOptions.userId = userId;
-        }
-
-        if (typeof conversationId === "string") {
-          queryOptions.conversationId = conversationId;
-        }
-
-        // Put remaining context and MCP-specific options in metadata
-        queryOptions.metadata = {
-          ...metadata,
-          limit: params.options.limit,
-        };
-      } else {
-        // Just MCP options without context
-        queryOptions.metadata = {
-          limit: params.options.limit,
-        };
-      }
-    }
-
-    // Execute query with translated options
-    return this.queryProcessor.processQuery(params.query, queryOptions);
+    // Execute query using ContentGenerator with knowledge query template
+    return this.contentGenerator.generateContent(templateName, context);
   }
 }
 
@@ -144,10 +104,10 @@ export interface MCPGenerateFromTemplateParams {
 }
 
 /**
- * Adapter for ContentGenerationService that provides MCP interface
+ * Adapter for ContentGenerator that provides MCP interface
  */
 export class ContentGenerationAdapter {
-  constructor(private contentGenerationService: ContentGenerationService) {}
+  constructor(private contentGenerator: ContentGenerator) {}
 
   /**
    * Generate content with MCP-style parameters
@@ -155,51 +115,21 @@ export class ContentGenerationAdapter {
   async generateContent(params: {
     prompt: string;
     contentType: string;
-    schema: z.ZodType<unknown>;
-    context?:
-      | {
-          entities?: BaseEntity[] | undefined;
-          data?: Record<string, unknown> | undefined;
-          examples?: unknown[] | undefined;
-          style?: string | undefined;
-        }
-      | undefined;
-    save?: boolean | undefined;
+    context?: {
+      data?: Record<string, unknown>;
+    };
   }): Promise<unknown> {
-    // Build the options object for content generation
-    const generateOptions: ContentGenerateOptions<unknown> = {
-      schema: params.schema,
+    // Use contentType as template name
+    const templateName = params.contentType;
+
+    // Build generation context
+    const context: GenerationContext = {
       prompt: params.prompt,
-      contentType: params.contentType,
+      data: params.context?.data || {},
     };
 
-    // Clean up context to remove undefined values
-    if (params.context) {
-      const cleanContext: ContentGenerateOptions<unknown>["context"] = {};
-
-      if (params.context.entities !== undefined) {
-        cleanContext.entities = params.context.entities;
-      }
-      if (params.context.data !== undefined) {
-        cleanContext.data = params.context.data;
-      }
-      if (params.context.examples !== undefined) {
-        cleanContext.examples = params.context.examples;
-      }
-      if (params.context.style !== undefined) {
-        cleanContext.style = params.context.style;
-      }
-
-      if (Object.keys(cleanContext).length > 0) {
-        generateOptions.context = cleanContext;
-      }
-    }
-
-    // Call content generation service (handles save internally if requested)
-    const content =
-      await this.contentGenerationService.generate(generateOptions);
-
-    return content;
+    // Call ContentGenerator with template-based approach
+    return this.contentGenerator.generateContent(templateName, context);
   }
 
   /**
@@ -208,40 +138,23 @@ export class ContentGenerationAdapter {
   async generateFromTemplate(
     params: MCPGenerateFromTemplateParams,
   ): Promise<unknown> {
-    // Build the options object - starting with required prompt
-    const options: Omit<ContentGenerateOptions<unknown>, "schema"> = {
+    // Use contentType as template name
+    const templateName = params.contentType;
+
+    // Build generation context
+    const context: GenerationContext = {
       prompt: params.prompt,
-      contentType: params.contentType,
+      data: params.context?.data || {},
     };
 
-    // Only add context if it exists and has defined values
-    if (params.context) {
-      const context: ContentGenerateOptions<unknown>["context"] = {};
-
-      if (params.context.data !== undefined) {
-        context.data = params.context.data;
-      }
-      if (params.context.style !== undefined) {
-        context.style = params.context.style;
-      }
-
-      // Only set context if it has at least one property
-      if (Object.keys(context).length > 0) {
-        options.context = context;
-      }
-    }
-
-    return this.contentGenerationService.generateFromTemplate(
-      params.contentType,
-      options,
-    );
+    return this.contentGenerator.generateContent(templateName, context);
   }
 
   /**
    * List available templates
    */
   async listTemplates(): Promise<Array<{ name: string; description: string }>> {
-    const templates = this.contentGenerationService.listTemplates();
+    const templates = this.contentGenerator.listTemplates();
     return templates.map((t) => ({
       name: t.name,
       description: t.description,

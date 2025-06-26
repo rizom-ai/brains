@@ -1,14 +1,11 @@
 import type {
-  ContentTemplate,
+  Template,
   RouteDefinition,
   SectionDefinition,
   Logger,
   EntityService,
   AIService,
   SearchResult,
-  BaseEntity,
-  QueryOptions,
-  QueryResult,
 } from "@brains/types";
 
 /**
@@ -24,14 +21,7 @@ export interface ProgressInfo {
  * Dependencies required by ContentGenerator
  */
 export interface ContentGeneratorDependencies {
-  generateWithTemplate: (
-    template: ContentTemplate,
-    context: GenerationContext,
-  ) => Promise<unknown>;
-  getTemplate: (name: string) => ContentTemplate | null;
-  listRoutes: () => RouteDefinition[];
   logger: Logger;
-  // Knowledge-aware generation dependencies from QueryProcessor
   entityService: EntityService;
   aiService: AIService;
 }
@@ -52,10 +42,9 @@ export interface GenerationContext {
  */
 export class ContentGenerator {
   private static instance: ContentGenerator | null = null;
-  private static readonly TEMPLATE_NAMESPACE = "site-builder:";
-  
+
   // Template registry for local template management
-  private templates: Map<string, ContentTemplate<unknown>> = new Map();
+  private templates: Map<string, Template<unknown>> = new Map();
 
   /**
    * Get the singleton instance of ContentGenerator
@@ -93,66 +82,87 @@ export class ContentGenerator {
   /**
    * Register a reusable template
    */
-  registerTemplate<T>(name: string, template: ContentTemplate<T>): void {
+  registerTemplate<T>(name: string, template: Template<T>): void {
     // When storing in a heterogeneous map, we lose specific type information
     // This is safe because templates are retrieved by name and used with appropriate types
-    this.templates.set(name, template as ContentTemplate<unknown>);
+    this.templates.set(name, template as Template<unknown>);
   }
 
   /**
-   * Get a registered template (checks local registry first, then dependencies)
+   * Get a registered template
    */
-  getTemplate(name: string): ContentTemplate<unknown> | null {
-    // Check local registry first
-    const localTemplate = this.templates.get(name);
-    if (localTemplate) {
-      return localTemplate;
-    }
-    
-    // Fall back to dependencies
-    return this.dependencies.getTemplate(name);
+  getTemplate(name: string): Template<unknown> | null {
+    return this.templates.get(name) || null;
   }
 
   /**
-   * List all available templates (local + dependency templates)
+   * List all available templates
    */
-  listTemplates(): ContentTemplate<unknown>[] {
-    const localTemplates = Array.from(this.templates.values());
-    // Note: We don't have a way to list dependency templates, so just return local ones
-    return localTemplates;
+  listTemplates(): Template<unknown>[] {
+    return Array.from(this.templates.values());
   }
 
   /**
-   * Generate content using a template
+   * Generate content using a template with entity-aware context
    */
-  async generateContent(
+  async generateContent<T = unknown>(
     templateName: string,
     context: GenerationContext = {},
-  ): Promise<string> {
+  ): Promise<T> {
     const template = this.getTemplate(templateName);
     if (!template) {
       throw new Error(`Template not found: ${templateName}`);
     }
 
-    // Build enhanced prompt with context
-    const enhancedPrompt = this.buildPrompt(template, context);
+    // Cast template to correct type
+    const typedTemplate = template as Template<T>;
 
-    // Generate content using template
-    const templateContext: GenerationContext = {
-      prompt: enhancedPrompt,
-    };
+    // Query relevant entities to provide context for generation
+    const searchTerms = [typedTemplate.basePrompt, context.prompt]
+      .filter(Boolean)
+      .join(" ");
+    const relevantEntities = searchTerms
+      ? await this.dependencies.entityService.search(searchTerms, { limit: 5 })
+      : [];
 
-    if (context.data !== undefined) {
-      templateContext.data = context.data;
-    }
-
-    const generatedContent = await this.dependencies.generateWithTemplate(
-      template,
-      templateContext,
+    // Build enhanced prompt with template, user context, and entity context
+    const enhancedPrompt = this.buildPrompt(
+      typedTemplate,
+      context,
+      relevantEntities,
     );
 
-    // Format content using template's formatter
-    return this.formatContent(template, generatedContent);
+    // Generate content using AI service with entity-informed context
+    const result = await this.dependencies.aiService.generateObject<T>(
+      typedTemplate.basePrompt,
+      enhancedPrompt,
+      typedTemplate.schema,
+    );
+
+    // Return the typed content directly - no cast needed
+    return result.object;
+  }
+
+  /**
+   * Parse existing content using a template's formatter
+   */
+  parseContent<T = unknown>(templateName: string, content: string): T {
+    const template = this.getTemplate(templateName);
+    if (!template) {
+      throw new Error(`Template not found: ${templateName}`);
+    }
+
+    // Cast template to correct type
+    const typedTemplate = template as Template<T>;
+
+    if (!typedTemplate.formatter) {
+      throw new Error(
+        `Template ${templateName} does not have a formatter for parsing`,
+      );
+    }
+
+    // Use the formatter to parse the content
+    return typedTemplate.formatter.parse(content);
   }
 
   /**
@@ -168,7 +178,7 @@ export class ContentGenerator {
       throw new Error(`No template specified for section ${section.id}`);
     }
 
-    const templateName = this.resolveTemplateName(section.template);
+    const templateName = section.template;
 
     const context: GenerationContext = {
       data: {
@@ -184,245 +194,54 @@ export class ContentGenerator {
       },
     };
 
-    return this.generateContent(templateName, context);
-  }
+    // Generate content as object first
+    const contentObject = await this.generateContent(templateName, context);
 
-  /**
-   * Regenerate content for a specific entity
-   */
-  async regenerateContent(
-    entityType: string,
-    page: string,
-    section: string,
-    mode: "leave" | "new" | "with-current",
-    progressInfo: ProgressInfo,
-    currentContent?: string,
-  ): Promise<{ entityId: string; content: string }> {
-    // Find the template for this page/section
-    const { template, templateName } = this.findTemplateForEntity(
-      page,
-      section,
-    );
-
-    // Prepare the prompt based on mode
-    let effectivePrompt = template.basePrompt;
-    if (mode === "with-current" && currentContent) {
-      effectivePrompt = `${template.basePrompt}\n\nCurrent content to improve:\n${currentContent}`;
+    // Apply formatter to convert to string for persistence
+    const template = this.getTemplate(templateName);
+    if (!template) {
+      throw new Error(`Template not found: ${templateName}`);
     }
 
-    const context: GenerationContext = {
-      prompt: effectivePrompt,
-      data: {
-        pageTitle: page,
-        sectionId: section,
-        regenerationMode: mode,
-        progressInfo: {
-          currentSection: progressInfo.current,
-          totalSections: progressInfo.total,
-          processingStage: progressInfo.message,
-        },
-      },
-    };
-
-    const content = await this.generateContent(templateName, context);
-
-    return {
-      entityId: `${entityType}:${page}:${section}`,
-      content,
-    };
-  }
-
-  /**
-   * Process a query with entity awareness (from QueryProcessor)
-   */
-  async processQuery<T = unknown>(
-    query: string,
-    options: QueryOptions<T>,
-  ): Promise<QueryResult<T>> {
-    this.dependencies.logger.info("Processing query", {
-      queryLength: query.length,
-      firstLine:
-        query.split("\n")[0]?.substring(0, 100) +
-        ((query.split("\n")[0]?.length ?? 0) > 100 ? "..." : ""),
-    });
-
-    // 1. Analyze query intent
-    const intentAnalysis = await this.analyzeQueryIntent(query);
-
-    // 2. Search for relevant entities
-    const relevantEntities = await this.searchEntities(query, intentAnalysis);
-
-    // 3. Format prompt with entities
-    const { systemPrompt, userPrompt } = this.formatQueryPrompt(
-      query,
-      relevantEntities,
-      intentAnalysis,
-    );
-
-    // 4. Call model with required schema
-    const result = await this.dependencies.aiService.generateObject(
-      systemPrompt,
-      userPrompt,
-      options.schema,
-    );
-
-    // 5. Return the schema object directly
-    return result.object;
-  }
-
-  /**
-   * Analyze the intent of a query (from QueryProcessor)
-   */
-  private async analyzeQueryIntent(query: string): Promise<{
-    primaryIntent: string;
-    entityTypes: string[];
-    shouldSearchExternal: boolean;
-    confidenceScore: number;
-  }> {
-    // Simple intent analysis - in production would use NLP
-    const lowerQuery = query.toLowerCase();
-
-    let primaryIntent = "search";
-    if (lowerQuery.includes("create") || lowerQuery.includes("new")) {
-      primaryIntent = "create";
-    } else if (lowerQuery.includes("update") || lowerQuery.includes("edit")) {
-      primaryIntent = "update";
+    if (!template.formatter) {
+      throw new Error(`Template ${templateName} does not have a formatter`);
     }
 
-    // Determine entity types from query
-    const entityTypes = this.dependencies.entityService.getEntityTypes();
-    const mentionedTypes = entityTypes.filter((type: string) =>
-      lowerQuery.includes(type.toLowerCase()),
-    );
-
-    return {
-      primaryIntent,
-      entityTypes: mentionedTypes.length > 0 ? mentionedTypes : entityTypes,
-      shouldSearchExternal: false,
-      confidenceScore: 0.8,
-    };
+    // Use the formatter to convert object to string
+    return template.formatter.format(contentObject);
   }
 
   /**
-   * Search for entities relevant to the query (from QueryProcessor)
+   * Build enhanced prompt with context from template, user context, and entities
    */
-  private async searchEntities(
-    query: string,
-    intentAnalysis: {
-      primaryIntent: string;
-      entityTypes: string[];
-      shouldSearchExternal: boolean;
-      confidenceScore: number;
-    },
-  ): Promise<BaseEntity[]> {
-    const results = await this.dependencies.entityService.search(query, {
-      types: intentAnalysis.entityTypes,
-      limit: 5,
-      offset: 0,
-    });
-
-    return results.map((result: SearchResult) => result.entity);
-  }
-
-  /**
-   * Format prompt for query processing (from QueryProcessor)
-   */
-  private formatQueryPrompt(
-    query: string,
-    entities: BaseEntity[],
-    intentAnalysis: {
-      primaryIntent: string;
-      entityTypes: string[];
-      shouldSearchExternal: boolean;
-      confidenceScore: number;
-    },
-  ): { systemPrompt: string; userPrompt: string } {
-    const systemPrompt = `You are a helpful assistant with access to the user's personal knowledge base.
-Provide accurate responses based on the available information.
-Intent: ${intentAnalysis.primaryIntent}`;
-
-    const entityContent = entities
-      .map((entity) => {
-        return `[${entity.entityType}] ${entity.id}\n${entity.content}`;
-      })
-      .join("\n\n");
-
-    const userPrompt = `${entityContent ? `Context:\n${entityContent}\n\n` : ""}Query: ${query}`;
-
-    return { systemPrompt, userPrompt };
-  }
-
-  /**
-   * Resolve template name with namespace prefix
-   */
-  private resolveTemplateName(template: string): string {
-    return template.includes(":")
-      ? template
-      : `${ContentGenerator.TEMPLATE_NAMESPACE}${template}`;
-  }
-
-  /**
-   * Find template for a specific entity by page and section
-   */
-  private findTemplateForEntity(
-    page: string,
-    section: string,
-  ): { template: ContentTemplate; templateName: string } {
-    const routes = this.dependencies.listRoutes();
-
-    for (const route of routes) {
-      if (route.id === page) {
-        const matchingSection = route.sections.find((s) => s.id === section);
-        if (matchingSection?.template) {
-          const templateName = this.resolveTemplateName(
-            matchingSection.template,
-          );
-          const template = this.dependencies.getTemplate(templateName);
-
-          if (!template) {
-            throw new Error(
-              `Template not found for page: ${page}, section: ${section}`,
-            );
-          }
-
-          return { template, templateName };
-        }
-      }
-    }
-
-    throw new Error(
-      `Template not found for page: ${page}, section: ${section}`,
-    );
-  }
-
-  /**
-   * Build enhanced prompt with context from ContentGenerationService
-   */
-  private buildPrompt(
-    template: ContentTemplate,
+  private buildPrompt<T>(
+    template: Template<T>,
     context: GenerationContext,
+    relevantEntities: SearchResult[] = [],
   ): string {
     let prompt = template.basePrompt;
 
+    // Add entity context to inform the generation
+    if (relevantEntities.length > 0) {
+      const entityContext = relevantEntities
+        .map(
+          (result) =>
+            `[${result.entity.entityType}] ${result.entity.id}: ${result.excerpt}`,
+        )
+        .join("\n");
+      prompt += `\n\nRelevant context from your knowledge base:\n${entityContext}`;
+    }
+
+    // Add user context data if provided
+    if (context.data) {
+      prompt += `\n\nContext data:\n${JSON.stringify(context.data, null, 2)}`;
+    }
+
     // Add additional instructions if provided
     if (context.prompt) {
-      prompt = `${prompt}\n\nAdditional instructions: ${context.prompt}`;
+      prompt += `\n\nAdditional instructions: ${context.prompt}`;
     }
 
     return prompt;
-  }
-
-  /**
-   * Format content using template's formatter
-   */
-  private formatContent(
-    template: ContentTemplate,
-    generatedContent: unknown,
-  ): string {
-    return template.formatter
-      ? template.formatter.format(generatedContent)
-      : typeof generatedContent === "string"
-        ? generatedContent
-        : JSON.stringify(generatedContent);
   }
 }

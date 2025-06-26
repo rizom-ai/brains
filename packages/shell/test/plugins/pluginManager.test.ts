@@ -130,52 +130,21 @@ describe("PluginManager", (): void => {
         hasAdapter: (): boolean => false,
         importRawEntity: async (): Promise<void> => undefined,
       }),
-      getContentRegistry: (): {
-        registerContent: (name: string, config: unknown) => void;
-        getTemplate: (name: string) => unknown;
-        getFormatter: (name: string) => unknown;
-        generateContent: (
+      getContentGenerator: (): {
+        generateContent: <T>(
           templateName: string,
-          context: unknown,
-        ) => Promise<unknown>;
-        parseContent: (templateName: string, content: string) => unknown;
-        formatContent: (templateName: string, data: unknown) => string;
-        listContent: (namespace?: string) => string[];
-        hasContent: (name: string) => boolean;
-        clear: () => void;
-      } => ({
-        registerContent: (): void => undefined,
-        getTemplate: (): null => null,
-        getFormatter: (): null => null,
-        generateContent: async (): Promise<unknown> => ({}),
-        parseContent: (): unknown => ({}),
-        formatContent: (): string => "",
-        listContent: (): string[] => [],
-        hasContent: (): boolean => false,
-        clear: (): void => undefined,
-      }),
-      getContentGenerationService: (): {
-        generate: (options: unknown) => Promise<unknown>;
-        generateBatch: (options: unknown) => Promise<unknown[]>;
+          context?: unknown,
+        ) => Promise<T>;
+        parseContent: <T>(templateName: string, content: string) => T;
         registerTemplate: (name: string, template: unknown) => void;
         getTemplate: (name: string) => unknown;
         listTemplates: () => unknown[];
-        generateFromTemplate: (
-          templateName: string,
-          options: unknown,
-        ) => Promise<unknown>;
-        generateContent: (
-          contentType: string,
-          options: unknown,
-        ) => Promise<unknown>;
       } => ({
-        generate: async (): Promise<unknown> => ({}),
-        generateBatch: async (): Promise<unknown[]> => [],
+        generateContent: async <T>(): Promise<T> => ({}) as T,
+        parseContent: <T>(): T => ({}) as T,
         registerTemplate: (): void => undefined,
         getTemplate: (): null => null,
         listTemplates: (): unknown[] => [],
-        generateFromTemplate: async (): Promise<unknown> => ({}),
-        generateContent: async (): Promise<unknown> => ({}),
       }),
       getViewRegistry: (): {
         registerRoute: (route: unknown) => void;

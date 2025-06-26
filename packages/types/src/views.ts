@@ -55,23 +55,9 @@ export const ViewTemplateSchema = z.object({
   interactive: z.boolean(),
 });
 
-/**
- * Template definition schema (for site builder config)
- */
-export const TemplateDefinitionSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  schema: z.any(), // ZodType can't be validated at runtime
-  component: z.any().optional(), // ComponentType or null
-  formatter: z.any().optional(), // ContentFormatter instance or null
-  prompt: z.string(),
-  interactive: z.boolean(),
-});
-
 // Type exports
 export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
 export type RouteDefinition = z.infer<typeof RouteDefinitionSchema>;
-export type TemplateDefinition = z.infer<typeof TemplateDefinitionSchema>;
 
 /**
  * Renderer types for different output formats

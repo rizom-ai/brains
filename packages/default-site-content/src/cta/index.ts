@@ -2,17 +2,20 @@ export { CTALayout } from "./layout";
 export { ctaSectionSchema, type CTASection } from "./schema";
 export { CTASectionFormatter } from "./formatter";
 
-import { ctaSectionSchema } from "./schema";
+import { ctaSectionSchema, type CTASection } from "./schema";
 import { CTALayout } from "./layout";
 import { CTASectionFormatter } from "./formatter";
 import ctaPrompt from "./prompt.txt";
+import type { Template } from "@brains/types";
 
-export const ctaTemplate = {
+export const ctaTemplate: Template<CTASection> = {
   name: "cta",
   description: "Call to action section",
   schema: ctaSectionSchema,
-  component: CTALayout,
+  basePrompt: ctaPrompt,
   formatter: new CTASectionFormatter(),
-  prompt: ctaPrompt,
-  interactive: false,
+  layout: {
+    component: CTALayout,
+    interactive: false,
+  },
 };

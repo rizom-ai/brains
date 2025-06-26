@@ -12,7 +12,6 @@
 
 export * from "./config";
 export * from "./base-plugin";
-export * from "./content-generating-plugin";
 export * from "./config-builder";
 export * from "./lifecycle";
 export * from "./test-utils";

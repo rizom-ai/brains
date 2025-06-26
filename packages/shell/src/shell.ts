@@ -10,41 +10,18 @@ import {
   EmbeddingService,
   type IEmbeddingService,
 } from "./embedding/embeddingService";
-import { QueryProcessor } from "./query/queryProcessor";
+import { ContentGenerator } from "@brains/content-generator";
 import { AIService } from "./ai/aiService";
 import { Logger, LogLevel } from "@brains/utils";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerShellMCP } from "./mcp";
-import type { QueryResult } from "./types";
-import type {
-  Plugin,
-  RouteDefinition,
-  TemplateDefinition,
-} from "@brains/types";
-import {
-  baseEntitySchema,
-  defaultQueryResponseSchema,
-  simpleTextResponseSchema,
-  createEntityResponseSchema,
-  updateEntityResponseSchema,
-} from "@brains/types";
+import type { Plugin, RouteDefinition, Template } from "@brains/types";
+import { type DefaultQueryResponse } from "@brains/types";
+import { knowledgeQueryTemplate } from "./templates";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
 import { ViewRegistry } from "./views/view-registry";
-import {
-  SimpleTextResponseFormatter,
-  DefaultQueryResponseFormatter,
-  CreateEntityResponseFormatter,
-  UpdateEntityResponseFormatter,
-} from "@brains/formatters";
-import { BaseEntityAdapter, BaseEntityFormatter } from "@brains/base-entity";
-import { ContentGenerationService, ContentRegistry } from "./content";
-import { GenericYamlFormatter } from "./content/formatters/genericYamlFormatter";
-import { DefaultYamlFormatter } from "./content/formatters/defaultYamlFormatter";
-import {
-  queryResponseTemplate,
-  type QueryResponse,
-} from "./templates/query-response";
+import { BaseEntityAdapter } from "@brains/base-entity";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -59,12 +36,10 @@ export interface ShellDependencies {
   entityService?: EntityService;
   registry?: Registry;
   entityRegistry?: EntityRegistry;
-  contentRegistry?: ContentRegistry;
   messageBus?: MessageBus;
   viewRegistry?: ViewRegistry;
   pluginManager?: PluginManager;
-  queryProcessor?: QueryProcessor;
-  contentGenerationService?: ContentGenerationService;
+  contentGenerator?: ContentGenerator;
 }
 
 /**
@@ -88,10 +63,8 @@ export class Shell {
   private readonly viewRegistry: ViewRegistry;
   private readonly embeddingService: IEmbeddingService;
   private readonly entityService: EntityService;
-  private readonly queryProcessor: QueryProcessor;
   private readonly aiService: AIService;
-  private readonly contentGenerationService: ContentGenerationService;
-  private readonly contentRegistry: ContentRegistry;
+  private readonly contentGenerator: ContentGenerator;
   private readonly mcpServer: McpServer;
   private initialized = false;
 
@@ -148,9 +121,8 @@ export class Shell {
       logger,
       messageBus,
     );
-    const contentGenerationService = ContentGenerationService.createFresh();
 
-    // Merge fresh instances with any provided dependencies
+    // Merge fresh instances with any provided dependencies (without contentGenerator yet)
     const freshDependencies: ShellDependencies = {
       ...dependencies,
       logger,
@@ -158,7 +130,6 @@ export class Shell {
       entityRegistry,
       messageBus,
       pluginManager,
-      contentGenerationService,
     };
 
     return new Shell(fullConfig, freshDependencies);
@@ -246,30 +217,13 @@ export class Shell {
         logger: this.logger,
       });
 
-    this.queryProcessor =
-      dependencies?.queryProcessor ??
-      QueryProcessor.getInstance({
-        entityService: this.entityService,
+    this.contentGenerator =
+      dependencies?.contentGenerator ??
+      ContentGenerator.getInstance({
         logger: this.logger,
+        entityService: this.entityService,
         aiService: this.aiService,
       });
-
-    this.contentRegistry =
-      dependencies?.contentRegistry ?? ContentRegistry.getInstance();
-
-    this.contentGenerationService =
-      dependencies?.contentGenerationService ??
-      ContentGenerationService.getInstance();
-
-    // Initialize content registry with dependencies
-    this.contentRegistry.initialize(this.contentGenerationService, this.logger);
-
-    // Initialize content generation service with dependencies
-    this.contentGenerationService.initialize(
-      this.queryProcessor,
-      this.contentRegistry,
-      this.logger,
-    );
 
     // Use injected MCP server or create one
     if (dependencies?.mcpServer) {
@@ -284,10 +238,8 @@ export class Shell {
 
     // Register shell MCP capabilities
     registerShellMCP(this.mcpServer, {
-      queryProcessor: this.queryProcessor,
+      contentGenerator: this.contentGenerator,
       entityService: this.entityService,
-      contentRegistry: this.contentRegistry,
-      contentGenerationService: this.contentGenerationService,
       logger: this.logger,
     });
 
@@ -297,13 +249,8 @@ export class Shell {
     this.registry.register("messageBus", () => this.messageBus);
     this.registry.register("pluginManager", () => this.pluginManager);
     this.registry.register("entityService", () => this.entityService);
-    this.registry.register("queryProcessor", () => this.queryProcessor);
     this.registry.register("aiService", () => this.aiService);
-    this.registry.register(
-      "contentGenerationService",
-      () => this.contentGenerationService,
-    );
-    this.registry.register("contentRegistry", () => this.contentRegistry);
+    this.registry.register("contentGenerator", () => this.contentGenerator);
     this.registry.register("viewRegistry", () => this.viewRegistry);
     this.registry.register("mcpServer", () => this.mcpServer);
 
@@ -394,11 +341,8 @@ export class Shell {
         this.logger,
       );
 
-      // Register templates
-      this.registerTemplates();
-
-      // Register response schemas and formatters
-      this.registerResponseSchemas();
+      // Register system templates
+      this.registerShellTemplates();
 
       // Register base entity support
       this.registerBaseEntitySupport();
@@ -427,59 +371,43 @@ export class Shell {
   }
 
   /**
-   * Register default templates for shell tools
+   * Register shell's own system templates
    */
+  private registerShellTemplates(): void {
+    // Register knowledge query template for shell queries
+    this.contentGenerator.registerTemplate(
+      knowledgeQueryTemplate.name,
+      knowledgeQueryTemplate,
+    );
+
+    this.logger.debug("Shell system templates registered");
+  }
+
   /**
-   * Register templates from various sources
-   * This method can be called by plugins to register their templates
+   * Register templates from plugins
    */
   public registerTemplates(
-    templates?: Record<string, TemplateDefinition>,
+    templates: Record<string, Template>,
     pluginId?: string,
   ): void {
     this.logger.debug("Registering templates", { pluginId });
 
-    // Register shell's own templates
-    if (!templates) {
-      // Register query response template for public queries
-      this.contentRegistry.registerContent("shell:query_response", {
-        template: queryResponseTemplate,
-        formatter: new GenericYamlFormatter<QueryResponse>(),
-        schema: queryResponseTemplate.schema,
-      });
-
-      this.logger.debug("Shell templates registered");
-      return;
-    }
-
     // Register templates from plugins
     // Note: template names are already prefixed by PluginManager
 
-    Object.values(templates).forEach((template: TemplateDefinition) => {
-      // Register with ContentRegistry (for AI generation)
-      if (template.formatter && template.schema) {
-        this.contentRegistry.registerContent(template.name, {
-          template: {
-            name: template.name,
-            description: template.description,
-            schema: template.schema,
-            basePrompt: template.prompt,
-            formatter: template.formatter,
-          },
-          formatter: template.formatter,
-          schema: template.schema,
-        });
-      }
+    Object.values(templates).forEach((template: Template) => {
+      // Register with ContentGenerator (for AI generation)
+      this.contentGenerator.registerTemplate(template.name, template);
 
-      // Register with ViewRegistry (for rendering)
-      if (template.component) {
+      // Register with ViewRegistry (for rendering) if it has a layout component
+      if (template.layout?.component) {
         this.viewRegistry.registerViewTemplate({
           name: template.name, // Already prefixed
           schema: template.schema,
           description: template.description,
           pluginId: pluginId ?? "shell", // Default to shell if no pluginId
-          renderers: { web: template.component },
-          interactive: template.interactive,
+          renderers: { web: template.layout.component },
+          interactive: template.layout.interactive ?? false,
         });
       }
     });
@@ -487,6 +415,23 @@ export class Shell {
     this.logger.debug(`Registered ${Object.keys(templates).length} templates`, {
       pluginId,
     });
+  }
+
+  /**
+   * Register a unified template for both content generation and view rendering
+   */
+  public registerTemplate<T>(name: string, template: Template<T>): void {
+    this.logger.debug("Registering unified template", { name });
+
+    // Register with ContentGenerator for content generation
+    this.contentGenerator.registerTemplate(name, template);
+
+    // Register with ViewRegistry for rendering if layout is provided
+    if (template.layout?.component) {
+      this.viewRegistry.registerTemplate(name, template);
+    }
+
+    this.logger.debug(`Registered unified template: ${name}`);
   }
 
   /**
@@ -523,80 +468,6 @@ export class Shell {
     });
 
     this.logger.debug(`Registered ${routes.length} routes`, { pluginId });
-  }
-
-  /**
-   * Register response schemas in ContentRegistry
-   */
-  private registerResponseSchemas(): void {
-    this.logger.debug("Registering response schemas");
-
-    // Register default query response schema
-    this.contentRegistry.registerContent("shell:response:default-query", {
-      template: {
-        name: "shell:response:default-query",
-        description: "Default query response format",
-        schema: defaultQueryResponseSchema,
-        basePrompt: "", // Not used for response schemas
-        formatter: new DefaultYamlFormatter(), // Use YAML formatter for template
-      },
-      formatter: new DefaultQueryResponseFormatter(), // Response formatter for output
-      schema: defaultQueryResponseSchema,
-    });
-
-    // Register simple text response
-    this.contentRegistry.registerContent("shell:response:simple-text", {
-      template: {
-        name: "shell:response:simple-text",
-        description: "Simple text response format",
-        schema: simpleTextResponseSchema,
-        basePrompt: "", // Not used for response schemas
-        formatter: new DefaultYamlFormatter(),
-      },
-      formatter: new SimpleTextResponseFormatter(),
-      schema: simpleTextResponseSchema,
-    });
-
-    // Register create entity response
-    this.contentRegistry.registerContent("shell:response:create-entity", {
-      template: {
-        name: "shell:response:create-entity",
-        description: "Entity creation response format",
-        schema: createEntityResponseSchema,
-        basePrompt: "", // Not used for response schemas
-        formatter: new DefaultYamlFormatter(),
-      },
-      formatter: new CreateEntityResponseFormatter(),
-      schema: createEntityResponseSchema,
-    });
-
-    // Register update entity response
-    this.contentRegistry.registerContent("shell:response:update-entity", {
-      template: {
-        name: "shell:response:update-entity",
-        description: "Entity update response format",
-        schema: updateEntityResponseSchema,
-        basePrompt: "", // Not used for response schemas
-        formatter: new DefaultYamlFormatter(),
-      },
-      formatter: new UpdateEntityResponseFormatter(),
-      schema: updateEntityResponseSchema,
-    });
-
-    // Register base entity formatter
-    this.contentRegistry.registerContent("shell:formatter:base-entity", {
-      template: {
-        name: "shell:formatter:base-entity",
-        description: "Base entity format",
-        schema: baseEntitySchema,
-        basePrompt: "", // Not used for response schemas
-        formatter: new DefaultYamlFormatter(),
-      },
-      formatter: new BaseEntityFormatter(),
-      schema: baseEntitySchema,
-    });
-
-    this.logger.debug("Response schemas registered");
   }
 
   /**
@@ -651,15 +522,25 @@ export class Shell {
       conversationId?: string;
       metadata?: Record<string, unknown>;
     },
-  ): Promise<QueryResult<unknown>> {
+  ): Promise<DefaultQueryResponse> {
     if (!this.initialized) {
       throw new Error("Shell not initialized");
     }
 
-    return this.queryProcessor.processQuery(query, {
-      ...options,
-      schema: defaultQueryResponseSchema,
-    });
+    // Use ContentGenerator with knowledge query template
+    const context = {
+      prompt: query,
+      data: {
+        userId: options?.userId,
+        conversationId: options?.conversationId,
+        ...options?.metadata,
+      },
+    };
+
+    return this.contentGenerator.generateContent(
+      "shell:knowledge-query",
+      context,
+    );
   }
 
   /**
@@ -682,10 +563,6 @@ export class Shell {
 
   // Minimal getters needed for MCP integration
 
-  public getQueryProcessor(): QueryProcessor {
-    return this.queryProcessor;
-  }
-
   public getEntityService(): EntityService {
     return this.entityService;
   }
@@ -702,12 +579,8 @@ export class Shell {
     return this.pluginManager;
   }
 
-  public getContentGenerationService(): ContentGenerationService {
-    return this.contentGenerationService;
-  }
-
-  public getContentRegistry(): ContentRegistry {
-    return this.contentRegistry;
+  public getContentGenerator(): ContentGenerator {
+    return this.contentGenerator;
   }
 
   public getViewRegistry(): ViewRegistry {

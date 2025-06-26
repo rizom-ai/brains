@@ -5,11 +5,11 @@ import type {
   PluginResource,
   RouteDefinition,
   SectionDefinition,
-  ContentTemplate,
+  Template,
 } from "@brains/types";
 import {
   RouteDefinitionSchema,
-  TemplateDefinitionSchema,
+  TemplateSchema,
   siteContentPreviewSchema,
   siteContentProductionSchema,
 } from "@brains/types";
@@ -51,7 +51,7 @@ const siteBuilderConfigSchema = z.object({
     })
     .optional(),
   templates: z
-    .record(TemplateDefinitionSchema)
+    .record(TemplateSchema)
     .optional()
     .describe("Template definitions to register"),
   routes: z
@@ -96,11 +96,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
     );
     this.logger?.debug("Registered site-content-production entity type");
 
-    // Register built-in dashboard template using the standard method
-    // This will register it with both ContentRegistry and ViewRegistry
-    context.registerTemplates({
-      dashboard: dashboardTemplate,
-    });
+    // Register built-in dashboard template using unified method
+    context.registerTemplate("dashboard", dashboardTemplate);
     this.logger?.debug("Registered dashboard template");
 
     // Register dashboard route
@@ -131,9 +128,14 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
     );
     this.logger?.debug("Registered dashboard route");
 
-    // Register templates if provided
+    // Register templates from configuration using unified registration
     if (this.config.templates) {
-      context.registerTemplates(this.config.templates);
+      context.registerTemplates(
+        this.config.templates as Record<string, Template>,
+      );
+      this.logger?.debug(
+        `Registered ${Object.keys(this.config.templates).length} templates from config`,
+      );
     }
 
     // Register routes if provided
@@ -204,67 +206,33 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           }> => {
             const config = this.config;
 
-            // Get the content template
+            // Validate section has template
             if (!section.template) {
               throw new Error(
                 `No template specified for section ${section.id}`,
               );
             }
 
-            // Templates are registered with site-builder prefix
-            const templateName = section.template.includes(":")
-              ? section.template
-              : `site-builder:${section.template}`;
-
             if (!this.context) {
               throw new Error("Plugin context not available");
             }
 
-            const template: ContentTemplate | null =
-              this.context.contentGenerationService.getTemplate(templateName);
-
-            if (!template) {
-              // Add debug logging to see what templates are available
-              const availableTemplates =
-                this.context.contentGenerationService.listTemplates();
-              this.logger?.error(`Template not found: ${templateName}`, {
-                availableTemplates: availableTemplates.map(
-                  (t) => t.name || "unnamed",
-                ),
-                requestedTemplate: templateName,
-                sectionTemplate: section.template,
-                page: route.id,
-                section: section.id,
-              });
-              throw new Error(
-                `Template not found for page: ${route.id}, section: ${section.id}`,
-              );
-            }
-
-            // Use the plugin context's generateContent method
-            const generatedContent = await this.context.generateContent({
-              schema: template.schema,
-              prompt: template.basePrompt,
-              contentType: templateName,
-              context: {
-                data: {
-                  pageTitle: route.title,
-                  pageDescription: route.description,
-                  sectionId: section.id,
-                  ...(config.siteConfig ?? {
-                    title: "Personal Brain",
-                    description: "A knowledge management system",
-                  }),
-                },
+            // Use generateWithRoute which returns formatted string
+            const formattedContent = await this.context.generateWithRoute(
+              route,
+              section,
+              {
+                current: 1, // This will be improved when we have actual progress
+                total: 1,
+                message: "Generating content",
               },
-            });
-
-            // Format content using the template's formatter
-            const formattedContent = template.formatter
-              ? template.formatter.format(generatedContent)
-              : typeof generatedContent === "string"
-                ? generatedContent
-                : JSON.stringify(generatedContent);
+              {
+                ...(config.siteConfig ?? {
+                  title: "Personal Brain",
+                  description: "A knowledge management system",
+                }),
+              },
+            );
 
             // Save as entity with required metadata
             if (!section.contentEntity?.query) {
@@ -561,7 +529,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             section: string,
             mode: "leave" | "new" | "with-current",
             progress: { current: number; total: number; message: string },
-            currentContent?: string,
           ): Promise<{
             entityId: string;
             content: string;
@@ -581,66 +548,35 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               throw new Error("Plugin context not available");
             }
 
-            // Find the template for this page/section by looking through routes
+            // Find the template name for this page/section
             const routes = this.context.viewRegistry.listRoutes();
-            let template: ContentTemplate | null = null;
-            let templateName = "";
-
-            // Find the matching route and section
-            for (const route of routes) {
-              if (route.id === page) {
-                const matchingSection = route.sections.find(
-                  (s) => s.id === section,
-                );
-                if (matchingSection?.template) {
-                  templateName = matchingSection.template.includes(":")
-                    ? matchingSection.template
-                    : `site-builder:${matchingSection.template}`;
-                  template =
-                    this.context.contentGenerationService.getTemplate(
-                      templateName,
-                    );
-                  break;
-                }
-              }
+            const route = routes.find((r) => r.id === page);
+            if (!route) {
+              throw new Error(`Route not found for page: ${page}`);
             }
 
-            if (!template) {
-              throw new Error(
-                `Template not found for page: ${page}, section: ${section}`,
-              );
+            const foundSection = route.sections.find((s) => s.id === section);
+            if (!foundSection) {
+              throw new Error(`Section not found: ${section} in page: ${page}`);
             }
 
-            // Prepare the prompt based on mode
-            let effectivePrompt = template.basePrompt;
-            if (mode === "with-current" && currentContent) {
-              effectivePrompt = `${template.basePrompt}\n\nCurrent content to improve:\n${currentContent}`;
-            }
-
-            // Generate content using the template
-            const generatedContent = await this.context.generateContent({
-              schema: template.schema,
-              prompt: effectivePrompt,
-              contentType: templateName,
-              context: {
-                data: {
-                  pageTitle: page,
-                  sectionId: section,
-                  regenerationMode: mode,
-                  ...(config.siteConfig ?? {
-                    title: "Personal Brain",
-                    description: "A knowledge management system",
-                  }),
-                },
+            // Generate content using generateWithRoute to ensure proper formatting
+            const formattedContent = await this.context.generateWithRoute(
+              route,
+              foundSection,
+              {
+                current: progress.current,
+                total: progress.total,
+                message: progress.message,
               },
-            });
-
-            // Format content using the template's formatter
-            const formattedContent = template.formatter
-              ? template.formatter.format(generatedContent)
-              : typeof generatedContent === "string"
-                ? generatedContent
-                : JSON.stringify(generatedContent);
+              {
+                regenerationMode: mode,
+                ...(config.siteConfig ?? {
+                  title: "Personal Brain",
+                  description: "A knowledge management system",
+                }),
+              },
+            );
 
             return {
               entityId: `${entityType}:${page}:${section}`,
@@ -702,67 +638,33 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             });
             const config = this.config;
 
-            // Get the content template
+            // Validate section has template
             if (!section.template) {
               throw new Error(
                 `No template specified for section ${section.id}`,
               );
             }
 
-            // Templates are registered with site-builder prefix
-            const templateName = section.template.includes(":")
-              ? section.template
-              : `site-builder:${section.template}`;
-
             if (!this.context) {
               throw new Error("Plugin context not available");
             }
 
-            const template: ContentTemplate | null =
-              this.context.contentGenerationService.getTemplate(templateName);
-
-            if (!template) {
-              // Add debug logging to see what templates are available
-              const availableTemplates =
-                this.context.contentGenerationService.listTemplates();
-              this.logger?.error(`Template not found: ${templateName}`, {
-                availableTemplates: availableTemplates.map(
-                  (t) => t.name || "unnamed",
-                ),
-                requestedTemplate: templateName,
-                sectionTemplate: section.template,
-                page: route.id,
-                section: section.id,
-              });
-              throw new Error(
-                `Template not found for page: ${route.id}, section: ${section.id}`,
-              );
-            }
-
-            // Use the plugin context's generateContent method
-            const generatedContent = await this.context.generateContent({
-              schema: template.schema,
-              prompt: template.basePrompt,
-              contentType: templateName,
-              context: {
-                data: {
-                  pageTitle: route.title,
-                  pageDescription: route.description,
-                  sectionId: section.id,
-                  ...(config.siteConfig ?? {
-                    title: "Personal Brain",
-                    description: "A knowledge management system",
-                  }),
-                },
+            // Use generateWithRoute to get properly formatted string content
+            const formattedContent = await this.context.generateWithRoute(
+              route,
+              section,
+              {
+                current: progress.current,
+                total: progress.total,
+                message: progress.message,
               },
-            });
-
-            // Format content using the template's formatter
-            const formattedContent = template.formatter
-              ? template.formatter.format(generatedContent)
-              : typeof generatedContent === "string"
-                ? generatedContent
-                : JSON.stringify(generatedContent);
+              {
+                ...(config.siteConfig ?? {
+                  title: "Personal Brain",
+                  description: "A knowledge management system",
+                }),
+              },
+            );
 
             // Save as entity with required metadata
             if (!section.contentEntity?.query) {
@@ -836,7 +738,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             section: string,
             mode: "leave" | "new" | "with-current",
             progress: { current: number; total: number; message: string },
-            currentContent?: string,
           ): Promise<{
             entityId: string;
             content: string;
@@ -856,66 +757,35 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               throw new Error("Plugin context not available");
             }
 
-            // Find the template for this page/section by looking through routes
+            // Find the template name for this page/section
             const routes = this.context.viewRegistry.listRoutes();
-            let template: ContentTemplate | null = null;
-            let templateName = "";
-
-            // Find the matching route and section
-            for (const route of routes) {
-              if (route.id === page) {
-                const matchingSection = route.sections.find(
-                  (s) => s.id === section,
-                );
-                if (matchingSection?.template) {
-                  templateName = matchingSection.template.includes(":")
-                    ? matchingSection.template
-                    : `site-builder:${matchingSection.template}`;
-                  template =
-                    this.context.contentGenerationService.getTemplate(
-                      templateName,
-                    );
-                  break;
-                }
-              }
+            const route = routes.find((r) => r.id === page);
+            if (!route) {
+              throw new Error(`Route not found for page: ${page}`);
             }
 
-            if (!template) {
-              throw new Error(
-                `Template not found for page: ${page}, section: ${section}`,
-              );
+            const foundSection = route.sections.find((s) => s.id === section);
+            if (!foundSection) {
+              throw new Error(`Section not found: ${section} in page: ${page}`);
             }
 
-            // Prepare the prompt based on mode
-            let effectivePrompt = template.basePrompt;
-            if (mode === "with-current" && currentContent) {
-              effectivePrompt = `${template.basePrompt}\n\nCurrent content to improve:\n${currentContent}`;
-            }
-
-            // Generate content using the template
-            const generatedContent = await this.context.generateContent({
-              schema: template.schema,
-              prompt: effectivePrompt,
-              contentType: templateName,
-              context: {
-                data: {
-                  pageTitle: page,
-                  sectionId: section,
-                  regenerationMode: mode,
-                  ...(config.siteConfig ?? {
-                    title: "Personal Brain",
-                    description: "A knowledge management system",
-                  }),
-                },
+            // Generate content using generateWithRoute to ensure proper formatting
+            const formattedContent = await this.context.generateWithRoute(
+              route,
+              foundSection,
+              {
+                current: progress.current,
+                total: progress.total,
+                message: progress.message,
               },
-            });
-
-            // Format content using the template's formatter
-            const formattedContent = template.formatter
-              ? template.formatter.format(generatedContent)
-              : typeof generatedContent === "string"
-                ? generatedContent
-                : JSON.stringify(generatedContent);
+              {
+                regenerationMode: mode,
+                ...(config.siteConfig ?? {
+                  title: "Personal Brain",
+                  description: "A knowledge management system",
+                }),
+              },
+            );
 
             return {
               entityId: `${entityType}:${page}:${section}`,

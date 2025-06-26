@@ -6,22 +6,21 @@ import type {
   Plugin,
   PluginContext,
   BaseEntity,
-  ContentGenerateOptions,
-  ContentTemplate,
+  GenerationContext,
+  Template,
   PluginManager as IPluginManager,
   PluginInfo,
   PluginManagerEventMap,
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
   RouteDefinition,
-  TemplateDefinition,
+  SectionDefinition,
 } from "@brains/types";
 import { PluginStatus, PluginEvent } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "../entity/entityRegistry";
 import type { z } from "zod";
-import type { ContentGenerationService } from "../content/contentGenerationService";
 
 // Re-export enums for convenience
 export { PluginEvent, PluginStatus } from "@brains/types";
@@ -235,8 +234,7 @@ export class PluginManager implements IPluginManager {
     // Get services from shell - shell should always be available
     const shell = this.registry.resolve<Shell>("shell");
     const entityService = shell.getEntityService();
-    const contentRegistry = shell.getContentRegistry();
-    const contentGenerationService = shell.getContentGenerationService();
+    const contentGenerator = shell.getContentGenerator();
     const viewRegistry = shell.getViewRegistry();
 
     // Create plugin context
@@ -267,29 +265,24 @@ export class PluginManager implements IPluginManager {
           );
         }
       },
-      generateContent: async <T>(
-        options: ContentGenerateOptions<T>,
+      generateContent: async <T = unknown>(
+        templateName: string,
+        context?: GenerationContext,
       ): Promise<T> => {
         try {
-          const contentGenerationService =
-            this.registry.resolve<ContentGenerationService>(
-              "contentGenerationService",
-            );
-
-          // Always namespace the contentType with the plugin ID if not already namespaced
-          // Check if it's already properly namespaced (has exactly one colon with plugin prefix)
-          const parts = options.contentType.split(":");
+          // Always namespace the template name with the plugin ID if not already namespaced
+          const parts = templateName.split(":");
           const isProperlyNamespaced =
             parts.length >= 2 && parts[0] === pluginId;
 
-          const processedOptions = {
-            ...options,
-            contentType: isProperlyNamespaced
-              ? options.contentType
-              : `${pluginId}:${options.contentType}`,
-          };
+          const namespacedTemplateName = isProperlyNamespaced
+            ? templateName
+            : `${pluginId}:${templateName}`;
 
-          return await contentGenerationService.generate<T>(processedOptions);
+          return await contentGenerator.generateContent<T>(
+            namespacedTemplateName,
+            context,
+          );
         } catch (error) {
           this.logger.error("Failed to generate content", error);
           throw new Error(
@@ -297,46 +290,73 @@ export class PluginManager implements IPluginManager {
           );
         }
       },
-      contentTemplates: {
-        register: <T>(name: string, template: ContentTemplate<T>): void => {
-          try {
-            const contentGenerationService =
-              this.registry.resolve<ContentGenerationService>(
-                "contentGenerationService",
-              );
-
-            // Always prefix with plugin ID to ensure proper namespacing
-            const namespacedName = `${pluginId}:${name}`;
-
-            contentGenerationService.registerTemplate(namespacedName, template);
-
-            this.logger.debug(`Registered template: ${namespacedName}`);
-          } catch (error) {
-            this.logger.error("Failed to register template", error);
-            throw new Error(
-              `Template registration failed: ${error instanceof Error ? error.message : String(error)}`,
-            );
-          }
-        },
-      },
-      // Template and route registration
-      registerTemplates: (
-        templates: Record<string, TemplateDefinition>,
-      ): void => {
+      parseContent: <T = unknown>(templateName: string, content: string): T => {
         try {
-          // Add plugin prefix to template names
-          const processedTemplates: Record<string, TemplateDefinition> = {};
-          for (const [key, template] of Object.entries(templates)) {
-            processedTemplates[key] = {
-              ...template,
-              name: `${pluginId}:${template.name}`,
-            };
-          }
+          // Always namespace the template name with the plugin ID if not already namespaced
+          const parts = templateName.split(":");
+          const isProperlyNamespaced =
+            parts.length >= 2 && parts[0] === pluginId;
 
-          shell.registerTemplates(processedTemplates, pluginId);
-          this.logger.debug(
-            `Registered ${Object.keys(templates).length} templates for plugin ${pluginId}`,
+          const namespacedTemplateName = isProperlyNamespaced
+            ? templateName
+            : `${pluginId}:${templateName}`;
+
+          return contentGenerator.parseContent<T>(
+            namespacedTemplateName,
+            content,
           );
+        } catch (error) {
+          this.logger.error("Failed to parse content", error);
+          throw new Error(
+            `Content parsing failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      },
+      generateWithRoute: async (
+        route: RouteDefinition,
+        section: SectionDefinition,
+        progressInfo: { current: number; total: number; message: string },
+        additionalContext?: Record<string, unknown>,
+      ): Promise<string> => {
+        try {
+          return await contentGenerator.generateWithRoute(
+            route,
+            section,
+            progressInfo,
+            additionalContext,
+          );
+        } catch (error) {
+          this.logger.error("Failed to generate content with route", error);
+          throw new Error(
+            `Route content generation failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      },
+      // Unified template registration - registers template for both content generation and view rendering
+      registerTemplate: <T>(name: string, template: Template<T>): void => {
+        try {
+          // Always prefix with plugin ID to ensure proper namespacing
+          const namespacedName = `${pluginId}:${name}`;
+
+          // Delegate to shell which handles both content and view registration
+          shell.registerTemplate(namespacedName, template);
+
+          this.logger.debug(`Registered unified template: ${namespacedName}`);
+        } catch (error) {
+          this.logger.error("Failed to register template", error);
+          throw new Error(
+            `Template registration failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      },
+      // Convenience method for registering multiple templates at once
+      registerTemplates: (templates: Record<string, Template>): void => {
+        try {
+          Object.entries(templates).forEach(([name, template]) => {
+            const namespacedName = `${pluginId}:${name}`;
+            shell.registerTemplate(namespacedName, template);
+            this.logger.debug(`Registered unified template: ${namespacedName}`);
+          });
         } catch (error) {
           this.logger.error("Failed to register templates", error);
           throw new Error(
@@ -380,8 +400,6 @@ export class PluginManager implements IPluginManager {
       },
       // Direct service access
       entityService,
-      contentRegistry,
-      contentGenerationService,
       viewRegistry,
     };
 

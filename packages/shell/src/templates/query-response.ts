@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ContentTemplate } from "@brains/types";
+import type { Template } from "@brains/types";
 
 /**
  * Schema for public query responses
@@ -33,7 +33,7 @@ export type QueryResponse = z.infer<typeof queryResponseSchema>;
  * Template for public query responses
  * Used to ensure consistent, safe responses for public users
  */
-export const queryResponseTemplate: ContentTemplate<QueryResponse> = {
+export const queryResponseTemplate: Template<QueryResponse> = {
   name: "shell:query_response",
   description: "Template for structured query responses for public users",
   schema: queryResponseSchema,

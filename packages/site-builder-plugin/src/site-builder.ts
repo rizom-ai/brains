@@ -1,5 +1,5 @@
 import type { ProgressCallback, Logger } from "@brains/utils";
-import { ProgressReporter, parseMarkdownWithFrontmatter } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils";
 import type {
   SiteBuilder as ISiteBuilder,
   SiteBuilderOptions,
@@ -15,7 +15,6 @@ import type {
 } from "./static-site-builder";
 import { createPreactBuilder } from "./preact-builder";
 import { join } from "path";
-import { z } from "zod";
 
 export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
@@ -218,38 +217,34 @@ export class SiteBuilder implements ISiteBuilder {
           typeof entity.content === "string"
         ) {
           try {
-            // Parse the markdown with frontmatter
-            const { content: markdownBody } = parseMarkdownWithFrontmatter(
-              entity.content,
-              z.object({}).passthrough(),
-            );
-
-            // Get the formatter for this template using section.template
+            // Use ContentGenerator to parse existing content if template is available
             if (section.template) {
-              // Templates are registered with site-builder prefix
-              const templateName = section.template.includes(":")
-                ? section.template
-                : `site-builder:${section.template}`;
+              try {
+                // Templates are registered with site-builder prefix
+                const templateName = section.template.includes(":")
+                  ? section.template
+                  : `site-builder:${section.template}`;
 
-              const formatter =
-                this.context.contentRegistry.getFormatter(templateName);
-
-              if (formatter) {
-                // Use the formatter to parse markdown back to structured data
-                return formatter.parse(markdownBody);
-              } else {
-                this.logger.warn(
-                  `No formatter found for template: ${templateName}`,
+                // Use ContentGenerator to parse the existing content to structured data
+                const parsedContent = this.context.parseContent(
+                  templateName,
+                  entity.content,
                 );
+
+                return parsedContent;
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to parse content with template ${section.template}: ${error}`,
+                );
+                // Fallback to raw content
+                return entity.content;
               }
             } else {
               this.logger.warn(
                 `No template specified for section ${section.id}`,
               );
+              return entity.content;
             }
-
-            // If no formatter found, return the markdown body
-            return markdownBody;
           } catch (error) {
             this.logger.warn(`Failed to parse site-content entity: ${error}`);
             return entity.content;

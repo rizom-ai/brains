@@ -1,19 +1,21 @@
 import { DashboardWidget } from "./layout";
-import { DashboardDataSchema } from "./schema";
+import { DashboardDataSchema, type DashboardData } from "./schema";
 import { DashboardFormatter } from "./formatter";
-import type { TemplateDefinition } from "@brains/types";
+import type { Template } from "@brains/types";
 
 /**
  * Dashboard template definition
  */
-export const dashboardTemplate: TemplateDefinition = {
+export const dashboardTemplate: Template<DashboardData> = {
   name: "dashboard",
   description: "Interactive system dashboard showing entity statistics",
   schema: DashboardDataSchema,
-  component: DashboardWidget, // Use same component for both SSR and hydration
+  basePrompt: "", // Not AI generated
   formatter: new DashboardFormatter(),
-  prompt: "", // Not AI generated
-  interactive: true, // KEY: Marks this component for client-side hydration
+  layout: {
+    component: DashboardWidget, // Use same component for both SSR and hydration
+    interactive: true, // KEY: Marks this component for client-side hydration
+  },
 };
 
 // Export all dashboard components

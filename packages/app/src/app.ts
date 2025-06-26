@@ -7,7 +7,6 @@ import {
   type AppConfig,
   type InterfaceConfig,
 } from "./types.js";
-import { defaultQueryResponseSchema } from "@brains/types";
 
 export class App {
   private shell: Shell;
@@ -160,8 +159,6 @@ export class App {
     config: InterfaceConfig,
   ): Promise<BaseInterface | null> {
     const logger = this.createLogger();
-    const queryProcessor = this.shell.getQueryProcessor();
-    const contentRegistry = this.shell.getContentRegistry();
 
     const interfaceContext = {
       name: `${this.config.name}-${config.type}`,
@@ -169,29 +166,21 @@ export class App {
       logger: logger.child(config.type),
       processQuery: async (
         query: string,
-        _context: MessageContext,
+        context: MessageContext,
       ): Promise<string> => {
-        // Process query with default response schema
-        const result = await queryProcessor.processQuery(query, {
-          schema: defaultQueryResponseSchema,
+        // Use Shell's query method which returns DefaultQueryResponse
+        const result = await this.shell.query(query, {
+          userId: context.userId,
+          conversationId: context.channelId, // Map channelId to conversationId
+          metadata: {
+            messageId: context.messageId,
+            threadId: context.threadId,
+            timestamp: context.timestamp.toISOString(),
+          },
         });
 
-        // Get the appropriate formatter - try default query response first
-        let formatter = contentRegistry.getFormatter(
-          "shell:response:default-query",
-        );
-
-        // Fallback to simple text if default not found
-        formatter ??= contentRegistry.getFormatter(
-          "shell:response:simple-text",
-        );
-
-        if (!formatter) {
-          // Last resort fallback to JSON
-          return JSON.stringify(result, null, 2);
-        }
-
-        return formatter.format(result);
+        // Extract message from DefaultQueryResponse
+        return result.message;
       },
     };
 

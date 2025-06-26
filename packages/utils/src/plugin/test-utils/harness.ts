@@ -3,13 +3,13 @@ import type {
   PluginContext,
   BaseEntity,
   EntityService,
-  ContentGenerationService,
   Registry,
   PluginTool,
   ComponentFactory,
   MessageBus,
   RouteDefinition,
   ViewTemplate,
+  GenerationContext,
 } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
@@ -223,18 +223,12 @@ export class PluginTestHarness {
         // For test harness, register the entity type in our mock registry
         this.mockEntityRegistry.registerEntityType(entityType, schema, adapter);
       },
-      generateContent: async <T>(options: {
-        schema: z.ZodType<T>;
-        prompt: string;
-        context?: {
-          entities?: BaseEntity[];
-          data?: Record<string, unknown>;
-          examples?: T[];
-          style?: string;
-        };
-      }): Promise<T> => {
-        // For test harness, return mock data based on prompt
-        if (options.prompt.includes("landing page")) {
+      generateContent: async <T = unknown>(
+        templateName: string,
+        context?: GenerationContext,
+      ): Promise<T> => {
+        // For test harness, return mock data based on template name
+        if (templateName.includes("landing") || templateName.includes("hero")) {
           return {
             title: "Test Brain",
             tagline: "Test Description",
@@ -250,15 +244,28 @@ export class PluginTestHarness {
 
         // Default response
         return {
-          prompt: options.prompt,
+          prompt: context?.prompt || "mock prompt",
           response: "Mock response from content generation",
           results: [],
         } as T;
       },
-      contentTemplates: {
-        register: (): void => {
-          // Mock implementation for test harness
-        },
+      parseContent: <T = unknown>(templateName: string, content: string): T => {
+        // For test harness, return mock parsed data
+        return {
+          parsedContent: content,
+          templateName,
+          mockParsed: true,
+        } as T;
+      },
+      registerTemplate: (): void => {
+        // Mock implementation for test harness
+      },
+      registerTemplates: (): void => {
+        // Mock implementation for test harness
+      },
+      generateWithRoute: async (): Promise<string> => {
+        // Mock implementation for test harness
+        return "mock route content";
       },
       viewRegistry: {
         registerRoute: (): void => {
@@ -283,36 +290,7 @@ export class PluginTestHarness {
       },
       // Direct service access
       entityService: this.getEntityService() as EntityService,
-      contentRegistry: {
-        registerContent: (): void => undefined,
-        getTemplate: (): null => null,
-        getFormatter: (): null => null,
-        getSchema: (): null => null,
-        generateContent: async <T>(): Promise<T> => {
-          throw new Error("generateContent not implemented in test harness");
-        },
-        parseContent: <T>(): T => {
-          throw new Error("parseContent not implemented in test harness");
-        },
-        formatContent: (): string => "",
-        listContent: (): string[] => [],
-        hasContent: (): boolean => false,
-        clear: (): void => undefined,
-      },
-      contentGenerationService: {
-        initialize: (): void => undefined,
-        generate: async (): Promise<unknown> => ({}),
-        generateBatch: async (): Promise<unknown[]> => [],
-        registerTemplate: (): void => undefined,
-        getTemplate: (): null => null,
-        listTemplates: (): unknown[] => [],
-        generateFromTemplate: async (): Promise<unknown> => ({}),
-        generateContent: async (): Promise<unknown> => ({}),
-      } as ContentGenerationService,
-      // Template and route registration
-      registerTemplates: (): void => {
-        // Mock implementation for test harness
-      },
+      // Route registration
       registerRoutes: (): void => {
         // Mock implementation for test harness
       },

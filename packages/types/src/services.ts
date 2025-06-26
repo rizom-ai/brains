@@ -1,13 +1,6 @@
 import type { BaseEntity, SearchResult } from "./entities";
 import type { EntityAdapter } from "@brains/base-entity";
-import type {
-  ContentTemplate,
-  ContentGenerateOptions,
-  BatchGenerateOptions,
-  Plugin,
-  PluginTool,
-  PluginResource,
-} from "./plugin";
+import type { Plugin, PluginTool, PluginResource } from "./plugin";
 import type { z } from "zod";
 
 /**
@@ -127,64 +120,6 @@ export interface BrainProtocol {
 }
 
 /**
- * Content generation service interface
- */
-export interface ContentGenerationService {
-  /**
-   * Initialize with dependencies
-   */
-  initialize(
-    queryProcessor: unknown, // We don't want circular dependency with shell types
-    contentTypeRegistry: unknown,
-    logger: unknown,
-  ): void;
-
-  /**
-   * Generate content matching a schema
-   */
-  generate<T>(options: ContentGenerateOptions<T>): Promise<T>;
-
-  /**
-   * Generate multiple content pieces
-   */
-  generateBatch<T>(options: BatchGenerateOptions<T>): Promise<T[]>;
-
-  /**
-   * Register reusable templates
-   */
-  registerTemplate<T>(name: string, template: ContentTemplate<T>): void;
-
-  /**
-   * Get registered template
-   */
-  getTemplate(name: string): ContentTemplate<unknown> | null;
-
-  /**
-   * List all templates
-   */
-  listTemplates(): ContentTemplate<unknown>[];
-
-  /**
-   * Generate content using a registered template
-   */
-  generateFromTemplate(
-    templateName: string,
-    options: Omit<ContentGenerateOptions<unknown>, "schema">,
-  ): Promise<unknown>;
-
-  /**
-   * Generate content for a specific content type, handling collections automatically
-   */
-  generateContent(
-    contentType: string,
-    options?: {
-      prompt?: string;
-      context?: Record<string, unknown>;
-    },
-  ): Promise<unknown>;
-}
-
-/**
  * Entity Registry interface for managing entity types and their schemas/adapters
  */
 export interface EntityRegistry {
@@ -248,30 +183,6 @@ export interface AIModelConfig {
   temperature?: number;
   maxTokens?: number;
 }
-
-/**
- * Query Processor interface for processing queries with AI
- */
-export interface QueryProcessor {
-  processQuery<T = unknown>(
-    query: string,
-    options: QueryOptions<T>,
-  ): Promise<QueryResult<T>>;
-
-  getSchemaName<T>(schema: z.ZodType<T>): string | undefined;
-}
-
-/**
- * Query options for QueryProcessor
- */
-export interface QueryOptions<T> {
-  schema: z.ZodType<T>;
-}
-
-/**
- * Query result type
- */
-export type QueryResult<T> = T;
 
 /**
  * Plugin Manager interface for managing plugin lifecycle

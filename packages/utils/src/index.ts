@@ -30,9 +30,6 @@ export {
   type FrontmatterConfig,
 } from "./frontmatter";
 
-// Content generation utilities
-export { generateWithTemplate } from "./content-generation";
-
 // Progress utilities
 export { ProgressReporter } from "./progress";
 export type { ProgressCallback } from "./progress";

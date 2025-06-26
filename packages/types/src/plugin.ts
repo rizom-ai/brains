@@ -6,8 +6,7 @@ import type { MessageBus } from "./messaging";
 import type { ContentFormatter } from "./formatters";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { BaseEntity } from "./entities";
-import type { EntityService, ContentGenerationService } from "./services";
-import type { ContentRegistry } from "./content";
+import type { EntityService } from "./services";
 
 import type { VNode } from "preact";
 
@@ -17,31 +16,20 @@ import type { VNode } from "preact";
  */
 export type ComponentType<P = unknown> = (props: P) => VNode;
 
-import type {
-  ViewRegistry,
-  RouteDefinition,
-  TemplateDefinition,
-} from "./views";
+import type { ViewRegistry, RouteDefinition, SectionDefinition } from "./views";
 
 /**
- * Options for content generation
+ * Context for content generation - simplified for template-based approach
  */
-export interface ContentGenerateOptions<T> {
-  schema: z.ZodType<T>;
-  prompt: string;
-  contentType: string;
-  context?: {
-    entities?: BaseEntity[];
-    data?: Record<string, unknown>;
-    examples?: T[];
-    style?: string;
-  };
+export interface GenerationContext {
+  prompt?: string;
+  data?: Record<string, unknown>;
 }
 
 /**
- * Content template for reusable generation patterns
+ * Template for reusable generation patterns and view rendering
  */
-export interface ContentTemplate<T = unknown> {
+export interface Template<T = unknown> {
   name: string;
   description: string;
   schema: z.ZodType<T>;
@@ -52,33 +40,33 @@ export interface ContentTemplate<T = unknown> {
    */
   formatter?: ContentFormatter<T>;
   /**
-   * For collection content types that contain multiple items.
-   * Each item is itself a ContentTemplate.
-   */
-  items?: {
-    [itemKey: string]: ContentTemplate<unknown>;
-  };
-  /**
    * Optional layout definition for rendering this content type.
    * If provided, the template can be used as a section layout.
    */
   layout?: {
     component: ComponentType<T> | string; // Component function or path string
     description?: string;
+    interactive?: boolean; // Whether this layout requires client-side interactivity
   };
 }
 
 /**
- * Options for batch content generation
+ * Zod schema for Template validation (used in plugin configurations)
  */
-export interface BatchGenerateOptions<T> {
-  schema: z.ZodType<T>;
-  contentType: string;
-  items: Array<{
-    prompt: string;
-    context?: Record<string, unknown>;
-  }>;
-}
+export const TemplateSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  schema: z.any(), // ZodType can't be validated at runtime - required
+  basePrompt: z.string(),
+  formatter: z.any().optional(), // ContentFormatter instance
+  layout: z
+    .object({
+      component: z.any(), // ComponentType or string
+      description: z.string().optional(),
+      interactive: z.boolean().optional(),
+    })
+    .optional(),
+});
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -165,24 +153,32 @@ export interface PluginContext {
   getPlugin: (id: string) => Plugin | undefined;
   events: EventEmitter;
   messageBus: MessageBus;
-  contentTemplates: {
-    register<T>(name: string, template: ContentTemplate<T>): void;
-  };
   registerEntityType: <T extends BaseEntity>(
     entityType: string,
     schema: z.ZodType<T>,
     adapter: EntityAdapter<T>,
   ) => void;
-  generateContent: <T>(options: ContentGenerateOptions<T>) => Promise<T>;
-  // Template and route registration
-  registerTemplates: (templates: Record<string, TemplateDefinition>) => void;
+  generateContent: <T = unknown>(
+    templateName: string,
+    context?: GenerationContext,
+  ) => Promise<T>;
+  parseContent: <T = unknown>(templateName: string, content: string) => T;
+  generateWithRoute: (
+    route: RouteDefinition,
+    section: SectionDefinition,
+    progressInfo: { current: number; total: number; message: string },
+    additionalContext?: Record<string, unknown>,
+  ) => Promise<string>;
+  // Unified template registration - registers template for both content generation and view rendering
+  registerTemplate: <T>(name: string, template: Template<T>) => void;
+  // Convenience method for registering multiple templates at once
+  registerTemplates: (templates: Record<string, Template>) => void;
+  // Route registration
   registerRoutes: (
     routes: RouteDefinition[],
     options?: { environment?: string },
   ) => void;
   // Direct service access
   entityService: EntityService;
-  contentRegistry: ContentRegistry;
-  contentGenerationService: ContentGenerationService;
   viewRegistry: ViewRegistry;
 }

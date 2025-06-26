@@ -9,7 +9,6 @@ import {
 } from "./types";
 import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
 import { gitSyncStatusSchema } from "./schemas";
-import { GenericYamlFormatter } from "@brains/shell";
 import packageJson from "../package.json";
 
 /**
@@ -27,19 +26,15 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
    * Initialize the plugin
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
-    const { logger, contentRegistry } = context;
+    const { logger } = context;
 
-    // Register our custom formatter with content registry
-    contentRegistry.registerContent("git-sync:status", {
-      template: {
-        name: "gitSyncStatus",
-        description: "Git synchronization status",
-        schema: gitSyncStatusSchema,
-        basePrompt: "",
-        formatter: new GenericYamlFormatter(), // Use YAML formatter for template
-      },
-      formatter: new GitSyncStatusFormatter(), // Response formatter
+    // Register our template for git sync status
+    context.registerTemplate("status", {
+      name: "status",
+      description: "Git synchronization status",
       schema: gitSyncStatusSchema,
+      basePrompt: "",
+      formatter: new GitSyncStatusFormatter(), // Use status formatter for template
     });
 
     // Create GitSync instance

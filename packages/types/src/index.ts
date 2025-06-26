@@ -25,13 +25,12 @@ export type {
   PluginCapabilities,
   PluginTool,
   PluginResource,
-  ContentGenerateOptions,
-  ContentTemplate,
-  BatchGenerateOptions,
+  GenerationContext,
+  Template,
   ProgressNotification,
   ComponentType,
 } from "./plugin";
-export { pluginMetadataSchema } from "./plugin";
+export { pluginMetadataSchema, TemplateSchema } from "./plugin";
 
 // Registry types
 export type { Registry, ComponentFactory } from "./registry";
@@ -50,16 +49,12 @@ export type {
   ListOptions,
   SearchOptions,
   EntityService,
-  ContentGenerationService,
   Command,
   CommandResponse,
   BrainProtocol,
   EntityRegistry,
   AIService,
   AIModelConfig,
-  QueryProcessor,
-  QueryOptions,
-  QueryResult,
   PluginManager,
   PluginInfo,
   PluginManagerEventMap,
@@ -81,7 +76,6 @@ export type { ContentRegistry, ContentConfig } from "./content";
 export type {
   RouteDefinition,
   SectionDefinition,
-  TemplateDefinition,
   ViewTemplate,
   OutputFormat,
   WebRenderer,
@@ -97,7 +91,6 @@ export type {
 export {
   RouteDefinitionSchema,
   SectionDefinitionSchema,
-  TemplateDefinitionSchema,
   ViewTemplateSchema,
   SiteBuilderOptionsSchema,
   BuildResultSchema,

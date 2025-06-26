@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { ContentFormatter } from "./formatters";
-import type { ContentTemplate } from "./plugin";
+import type { Template } from "./plugin";
 
 /**
  * Unified content configuration that combines template, schema, and formatter
@@ -9,7 +9,7 @@ export interface ContentConfig<T = unknown> {
   /**
    * Content template with generation configuration
    */
-  template: ContentTemplate<T>;
+  template: Template<T>;
 
   /**
    * Content formatter for bidirectional conversion
@@ -34,7 +34,7 @@ export interface ContentRegistry {
   /**
    * Get content template
    */
-  getTemplate<T = unknown>(name: string): ContentTemplate<T> | null;
+  getTemplate<T = unknown>(name: string): Template<T> | null;
 
   /**
    * Get content formatter
