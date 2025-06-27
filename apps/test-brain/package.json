@@ -9,7 +9,7 @@
     "dev:cli": "bun run src/index.ts --cli",
     "dev:matrix": "bun run src/index.ts --matrix",
     "dev:all": "bun run src/index.ts --cli --matrix",
-    "db:migrate": "DATABASE_URL=\"${DATABASE_URL:-file:./test-brain.db}\" bun ../../packages/db/src/migrate.ts",
+    "db:migrate": "bun scripts/migrate.ts",
     "precompile": "bun run db:migrate",
     "compile": "bun build src/index.ts --compile --outfile dist/test-brain",
     "compile:prod": "bun build src/index.ts --compile --minify --outfile dist/test-brain",

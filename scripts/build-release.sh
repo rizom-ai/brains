@@ -130,11 +130,9 @@ run_prebuild() {
     log_step "Running pre-build tasks"
     
     # Run database migrations if needed
-    if [ -f "packages/db/src/migrate.ts" ]; then
-        log_info "Running database migrations..."
-        DATABASE_URL="file:./build-test.db" bun packages/db/src/migrate.ts || true
-        rm -f build-test.db*
-    fi
+    log_info "Running database migrations..."
+    DATABASE_URL="file:./build-test.db" bun --filter @brains/db run migrate || true
+    rm -f build-test.db*
 }
 
 # Build the binary

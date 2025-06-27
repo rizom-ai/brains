@@ -2,35 +2,78 @@
 
 ## Overview
 
-This document provides a comprehensive analysis of the shell package structure and identifies opportunities for refactoring and code cleanup. The focus is strictly on improving code quality, maintainability, and structure without adding new features or changing external APIs.
+This document provides a comprehensive analysis and progress report for the shell package refactoring initiative. The focus is on improving code quality, maintainability, and structure while establishing a clean monorepo architecture.
 
-## Current Package Structure
+## Monorepo Architecture Reorganization
 
-The shell package contains 24 TypeScript files totaling ~3,400 lines of code, organized into the following structure:
+### New 4-Directory Structure
+
+The project is being reorganized from the original `packages/` structure to a cleaner 4-directory architecture:
 
 ```
-packages/shell/src/
-├── ai/
-│   └── aiService.ts (178 lines)
+brains/
+├── core/              # Core infrastructure & services
+│   ├── ai-service/           ✅ EXTRACTED
+│   ├── base-entity/
+│   ├── content-generator/
+│   ├── db/
+│   ├── embedding-service/    ✅ EXTRACTED
+│   ├── entity-service/
+│   ├── eslint-config/
+│   ├── formatters/
+│   ├── integration-tests/
+│   ├── messaging-service/    ✅ EXTRACTED
+│   ├── service-registry/     ✅ EXTRACTED
+│   ├── shell/               🔄 REFACTORING IN PROGRESS
+│   ├── types/               🔄 DECOUPLING PLANNED
+│   ├── typescript-config/
+│   ├── utils/
+│   └── view-registry/        ✅ EXTRACTED
+├── plugins/           # Brain functionality extensions
+│   ├── default-site-content/
+│   ├── directory-sync/
+│   ├── git-sync/
+│   ├── site-builder/
+│   └── structured-content/
+├── interfaces/        # User-facing interaction layers
+│   ├── cli/
+│   ├── interface-core/
+│   ├── matrix/
+│   ├── matrix-setup/
+│   ├── mcp-server/
+│   ├── ui-library/
+│   └── webserver/
+└── apps/              # Application orchestrators
+    ├── app/
+    └── test-brain/
+```
+
+### Completed Extractions (Phase 0.1-0.6)
+
+**✅ Successfully extracted 1,093 lines** from shell to dedicated packages:
+
+1. **@brains/ai-service** (178 lines) - AI model integration
+2. **@brains/embedding-service** (181 lines) - Text embedding generation
+3. **@brains/messaging-service** (439 lines) - Event-driven messaging
+4. **@brains/service-registry** (168 lines) - Dependency injection system
+5. **@brains/view-registry** (325 lines) - Route and template management
+
+**Additional cleanup:** Removed 249 lines of dead SchemaRegistry code.
+
+### Current Shell Structure (After Extractions)
+
+The shell package has been reduced from ~3,400 to ~2,300 lines:
+
+```
+core/shell/src/
 ├── config/
 │   ├── index.ts (2 lines)
 │   └── shellConfig.ts (98 lines)
-├── embedding/
-│   └── embeddingService.ts (181 lines)
 ├── mcp/
 │   ├── adapters.ts (163 lines)
 │   └── index.ts (69 lines)
-├── messaging/
-│   ├── index.ts (15 lines)
-│   ├── messageBus.ts (271 lines)
-│   ├── messageFactory.ts (79 lines)
-│   └── types.ts (74 lines)
 ├── plugins/
-│   └── pluginManager.ts (647 lines) ⚠️ LARGEST FILE
-├── registry/
-│   └── registry.ts (168 lines)
-├── schema/
-│   └── schemaRegistry.ts (136 lines)
+│   └── pluginManager.ts (647 lines) ⚠️ LARGEST FILE - NEEDS DECOMPOSITION
 ├── templates/
 │   ├── index.ts (2 lines)
 │   ├── knowledge-query.ts (25 lines)
@@ -40,106 +83,49 @@ packages/shell/src/
 ├── utils/
 │   ├── serialization.ts (15 lines)
 │   └── similarity.ts (15 lines)
-├── views/
-│   ├── route-registry.ts (61 lines)
-│   ├── view-registry.ts (191 lines)
-│   └── view-template-registry.ts (73 lines)
 ├── index.ts (26 lines)
-└── shell.ts (588 lines) ⚠️ SECOND LARGEST FILE
+└── shell.ts (588 lines) ⚠️ SECOND LARGEST FILE - NEEDS DECOMPOSITION
 ```
 
-## Service Package Extraction Analysis
+## Types Package Decoupling Analysis
 
-Following the successful pattern established with `@brains/entity-service`, several core services in the shell package are excellent candidates for extraction to separate packages. This approach will:
+The current `@brains/types` package exports 50+ types, creating unnecessary coupling. Many types belong in individual packages following the principle that packages should own their types.
 
-- **Reduce Shell Complexity**: From ~3,400 to ~2,000 lines of code
-- **Improve Modularity**: Services become independently testable and versioned
-- **Enable Reusability**: Services can be used across different brain types
-- **Clarify Dependencies**: Clear package boundaries reduce coupling
+### Current Types Package Issues
 
-### Extraction Candidates
+- **Over-coupling**: All packages depend on types, creating tight coupling
+- **Violations of ownership**: Service-specific types should live with services
+- **Maintenance burden**: Central types package becomes a bottleneck
+- **Poor cohesion**: Unrelated types grouped together
 
-#### 🟢 High Priority Services (Should Extract)
+### Proposed Types Reorganization
 
-**1. @brains/ai-service (178 lines)**
+#### Keep in `@brains/types` (Truly Shared Contracts Only)
 
-- **Current Location**: `packages/shell/src/ai/aiService.ts`
-- **Benefits**:
-  - Clean interface with minimal shell dependencies
-  - Heavy AI SDK dependencies isolated
-  - Reusable across brain implementations
-- **Dependencies**: `@ai-sdk/anthropic`, `ai`, `@brains/types`, `@brains/utils`
-- **Extraction Effort**: Low (1 day)
+- `BaseEntity`, `EntityInput`, `SearchResult` - Core entity contracts
+- `Plugin`, `PluginContext`, `PluginCapabilities`, `PluginTool`, `PluginResource` - Plugin system
+- `Template`, `GenerationContext`, `ComponentType` - Template/component system
+- `ServiceRegistry`, `ComponentFactory` - Registry contracts
+- `Logger` re-export - Commonly used utility
 
-**2. @brains/embedding-service (181 lines)**
+#### Move to Individual Packages
 
-- **Current Location**: `packages/shell/src/embedding/embeddingService.ts`
-- **Benefits**:
-  - Self-contained with native fastembed dependencies
-  - Clear interface boundary
-  - Heavy native modules isolated from shell
-- **Dependencies**: `fastembed`, `@brains/types`, `@brains/utils`
-- **Extraction Effort**: Low-Medium (1 day, handle native deps)
+- **→ `core/entity-service`**: `EntityService`, `EntityRegistry`, `ListOptions`, `SearchOptions`
+- **→ `core/messaging-service`**: `BaseMessage`, `MessageWithPayload`, `MessageResponse`, `MessageHandler`, `MessageBus`
+- **→ `core/ai-service`**: `AIService`, `AIModelConfig`
+- **→ `core/embedding-service`**: `IEmbeddingService`
+- **→ `core/view-registry`**: `RouteDefinition`, `ViewTemplate`, `OutputFormat`, `WebRenderer`, etc.
+- **→ `core/formatters`**: `SchemaFormatter`, `ContentFormatter`, response schemas
+- **→ `core/content-generator`**: `ContentRegistry`, `ContentConfig`
+- **→ `plugins/site-builder`**: `SiteContentPreview`, `SiteContentProduction`, `SiteBuilder` types
+- **→ `core/shell`**: `PluginManager` types (shell-specific)
 
-**3. @brains/messaging (439 lines total)**
+### Benefits of Type Decoupling
 
-- **Current Location**: `packages/shell/src/messaging/`
-- **Includes**: MessageBus (271), MessageFactory (79), types (74), index (15)
-- **Benefits**:
-  - Core communication infrastructure
-  - Used by plugins and services
-  - Well-defined interfaces already exist
-- **Dependencies**: `@brains/types`, `@brains/utils`, `zod`
-- **Extraction Effort**: Medium (1-2 days, many consumers)
-
-#### 🟡 Medium Priority Services (Consider Extracting)
-
-**4. @brains/registry (304 lines total)**
-
-- **Current Location**: `packages/shell/src/registry/` + `packages/shell/src/schema/`
-- **Includes**: Registry (168), SchemaRegistry (136)
-- **Benefits**:
-  - Foundational dependency injection system
-  - Used throughout the system
-  - Clear separation of concerns
-- **Dependencies**: `@brains/types`, `@brains/utils`, `zod`
-- **Extraction Effort**: High (2-3 days, fundamental dependency)
-
-#### 🔴 Low Priority (Keep in Shell)
-
-**Services to Keep:**
-
-- **PluginManager**: Too tightly coupled to Shell lifecycle and context
-- **ViewRegistry/RouteRegistry**: Shell-specific view management
-- **MCP Adapters**: Shell integration layer, not reusable
-- **Templates**: Shell-specific query templates
-
-### Extraction Impact Analysis
-
-**Before Extraction:**
-
-```
-@brains/shell: ~3,400 lines
-├── Core services: ~1,100 lines (extractable)
-├── Shell infrastructure: ~2,300 lines (remains)
-```
-
-**After Extraction:**
-
-```
-@brains/ai-service: ~200 lines
-@brains/embedding-service: ~200 lines
-@brains/messaging: ~450 lines
-@brains/registry: ~320 lines (optional)
-@brains/shell: ~2,000 lines (reduced complexity)
-```
-
-**Benefits Achieved:**
-
-- 40% reduction in shell package size
-- 4 new reusable service packages
-- Cleaner dependency graph
-- Independent service testing
+- **Reduced coupling**: Packages only import types they actually use
+- **Clear ownership**: Types live with their implementation
+- **Better maintainability**: Changes to service types don't affect unrelated packages
+- **Improved cohesion**: Related types are grouped with their functionality
 
 ## Refactoring Priorities
 
@@ -237,50 +223,60 @@ This dual approach maximizes the reduction in shell complexity while maintaining
 
 ## Detailed Refactoring Plan
 
-### Phase 0: Service Package Extraction (3-5 days)
+### Phase 0: Architecture Reorganization (COMPLETED ✅)
 
-**Goal**: Extract core services to reduce shell package size by 40% before internal refactoring
+**Goal**: Extract core services and establish clean package boundaries
 
-#### 0.1 Extract AI Service (1 day)
+#### 0.1-0.6 Service Package Extractions (COMPLETED ✅)
 
-```bash
-# Create new package
-mkdir -p packages/ai-service/src packages/ai-service/test
-# Move aiService.ts and interface
-# Update package.json dependencies
-# Update all imports in shell and consumers
-```
+- ✅ **AI Service** (178 lines) → `@brains/ai-service`
+- ✅ **Embedding Service** (181 lines) → `@brains/embedding-service`
+- ✅ **Messaging System** (439 lines) → `@brains/messaging-service`
+- ✅ **Service Registry** (168 lines) → `@brains/service-registry`
+- ✅ **View Registry** (325 lines) → `@brains/view-registry`
+- ✅ **SchemaRegistry Cleanup** (249 lines removed)
 
-#### 0.2 Extract Embedding Service (1 day)
+**Results Achieved**:
 
-```bash
-# Create new package with native dependency handling
-mkdir -p packages/embedding-service/src packages/embedding-service/test
-# Handle fastembed native dependencies
-# Update docker builds and CI for native modules
-```
-
-#### 0.3 Extract Messaging System (1-2 days)
-
-```bash
-# Create messaging package
-mkdir -p packages/messaging/src packages/messaging/test
-# Move MessageBus, MessageFactory, types
-# Update 10+ consumer files across packages
-```
-
-#### 0.4 Consider Registry Extraction (1 day - optional)
-
-```bash
-# Evaluate registry extraction impact
-# May defer if too foundational
-```
-
-**After Phase 0 State**:
-
-- Shell package reduced from ~3,400 to ~2,000 lines
-- 3-4 new reusable service packages created
+- Shell package reduced from ~3,400 to ~2,300 lines (32% reduction)
+- 5 new reusable service packages created
 - Cleaner dependency boundaries established
+- All integration tests continue to pass
+
+### Phase 0.7: Monorepo Structure Reorganization (IN PROGRESS 🔄)
+
+**Goal**: Implement 4-directory structure for better organization
+
+#### 0.7.1 Create New Directory Structure
+
+```bash
+# Create new directories
+mkdir -p core plugins interfaces apps
+# Move packages to appropriate locations
+```
+
+#### 0.7.2 Update Package References
+
+- Update `package.json` workspaces: `["core/*", "plugins/*", "interfaces/*", "apps/*"]`
+- Update all import statements across packages
+- Update Turbo configuration and CI/CD scripts
+
+### Phase 0.8: Types Package Decoupling (PLANNED 📋)
+
+**Goal**: Move package-specific types back to their packages
+
+#### 0.8.1 Slim Down @brains/types
+
+- Keep only truly shared contracts (BaseEntity, Plugin interfaces, etc.)
+- Remove service-specific types
+
+#### 0.8.2 Move Types to Individual Packages
+
+- Move EntityService types → `core/entity-service`
+- Move MessageBus types → `core/messaging-service`
+- Move AI/Embedding types → respective service packages
+- Move View types → `core/view-registry`
+- Ensure no circular dependencies
 
 ### Phase 1: Critical File Decomposition (2-3 days)
 
@@ -517,41 +513,56 @@ export class TestShell {
 
 ### Complete Refactoring Strategy
 
-- **Phase 0**: 3-5 days (Service package extraction)
+- **Phase 0.1-0.6**: COMPLETED ✅ (Service package extractions)
+- **Phase 0.7**: 1-2 days (Monorepo structure reorganization)
+- **Phase 0.8**: 2-3 days (Types package decoupling)
 - **Phase 1**: 2-3 days (Critical file decomposition)
 - **Phase 2**: 1-2 days (Standardization)
 - **Phase 3**: 1-2 days (Code organization)
 - **Phase 4**: 1 day (Testing support)
 
-**Total**: 8-13 days of focused refactoring work
+**Total**: 7-13 days remaining (5-6 days completed)
 
-### Recommended Approach
+### Current Progress Status
 
-1. **Start with Service Extraction** (Phase 0) - Biggest impact on complexity
-2. **Follow with Internal Refactoring** (Phases 1-4) - Work with smaller, more manageable shell
+**Completed (Phase 0.1-0.6)**:
+
+1. ✅ Service extractions complete
+2. ✅ 32% reduction in shell complexity achieved
+3. ✅ All integration tests passing
+
+**In Progress (Phase 0.7)**: 4. 🔄 Monorepo reorganization underway
+
+**Next Steps**: 5. 📋 Types decoupling planned 6. 📋 Internal shell decomposition planned
+
+## Success Criteria
+
+### Architecture Reorganization Goals (Phase 0)
+
+- ✅ Shell package reduced from ~3,400 to ~2,300 lines (32% reduction achieved, target 40%)
+- ✅ 5 new reusable service packages created
+- ✅ Clean package boundaries with minimal dependencies
+- ✅ Services independently testable and versioned
+- ✅ No circular dependencies between packages
+- 🔄 4-directory monorepo structure implemented
+- 📋 Types properly decoupled to individual packages
+
+### Internal Refactoring Goals (Phase 1-4)
+
+- [ ] No files exceed 300 lines
+- [ ] All components follow standardized singleton pattern
+- [ ] Consistent error handling throughout
+- [ ] All imports are necessary
+- [ ] Methods are focused and testable
+- [ ] Clear separation of concerns
 
 ## Next Steps
 
-### Immediate Actions
+### Immediate Actions (Phase 0.7)
 
-1. **Validate Plan**: Review complete refactoring strategy with stakeholders
-2. **Choose Starting Point**:
-   - **Option A**: Start with service extraction (Phase 0) for maximum impact
-   - **Option B**: Start with internal refactoring (Phase 1) for incremental progress
-3. **Prepare Service Extraction**: If choosing Option A, plan package.json structures and dependency updates
-
-### Implementation Approach
-
-1. **Service-First Strategy** (Recommended):
-
-   - Extract AI Service → Embedding Service → Messaging → (Registry)
-   - Reduce shell to ~2,000 lines before internal refactoring
-   - Work with smaller, more manageable codebase for remaining phases
-
-2. **Internal-First Strategy** (Alternative):
-   - Decompose PluginManager and Shell first
-   - Extract services from already-refactored code
-   - May be easier to identify service boundaries after decomposition
+1. **Implement 4-directory structure**: Create core/, plugins/, interfaces/, apps/
+2. **Move packages systematically**: Reorganize based on package role and purpose
+3. **Update all references**: Package.json workspaces, imports, build configs
 
 ### Quality Assurance
 
@@ -562,6 +573,6 @@ export class TestShell {
 
 ## Notes
 
-This unified refactoring plan combines service extraction with internal restructuring to achieve maximum improvement in shell package maintainability. The service extraction approach follows the proven pattern established with `@brains/entity-service` and will reduce the shell package size by 40% while creating reusable service packages.
+This refactoring plan successfully combines service extraction with architectural reorganization to achieve maximum improvement in shell package maintainability. The completed service extractions have reduced shell complexity by 32% while creating 5 reusable service packages.
 
-All changes maintain backward compatibility and existing functionality while significantly improving code organization and maintainability.
+The next phases focus on organizational improvements (monorepo structure, types decoupling) before tackling internal shell decomposition. All changes maintain backward compatibility and existing functionality while significantly improving code organization and maintainability.

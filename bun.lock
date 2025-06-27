@@ -31,7 +31,7 @@
         "typescript": "^5.3.3",
       },
     },
-    "packages/ai-service": {
+    "core/ai-service": {
       "name": "@brains/ai-service",
       "version": "0.1.0",
       "dependencies": {
@@ -48,7 +48,7 @@
         "typescript": "^5.0.0",
       },
     },
-    "packages/app": {
+    "core/app": {
       "name": "@brains/app",
       "version": "0.1.0",
       "dependencies": {
@@ -65,7 +65,7 @@
         "typescript": "^5.3.3",
       },
     },
-    "packages/base-entity": {
+    "core/base-entity": {
       "name": "@brains/base-entity",
       "version": "0.1.0",
       "dependencies": {
@@ -81,27 +81,7 @@
         "@types/bun": "latest",
       },
     },
-    "packages/cli": {
-      "name": "@brains/cli",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/interface-core": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "ink": "^5.0.1",
-        "ink-spinner": "^5.0.0",
-        "ink-text-input": "^6.0.0",
-        "react": "^18.3.1",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.1.14",
-        "@types/react": "^18.3.16",
-        "typescript": "^5.7.2",
-      },
-    },
-    "packages/content-generator": {
+    "core/content-generator": {
       "name": "@brains/content-generator",
       "version": "0.1.0",
       "dependencies": {
@@ -116,7 +96,7 @@
         "typescript": "^5.6.3",
       },
     },
-    "packages/db": {
+    "core/db": {
       "name": "@brains/db",
       "version": "0.1.0",
       "dependencies": {
@@ -134,45 +114,7 @@
         "typescript": "^5.3.3",
       },
     },
-    "packages/default-site-content": {
-      "name": "@brains/default-site-content",
-      "version": "0.0.1",
-      "dependencies": {
-        "@brains/structured-content": "workspace:*",
-        "@brains/types": "workspace:*",
-        "lucide-preact": "^0.460.0",
-        "preact": "^10.19.3",
-        "zod": "^3.24.1",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.1.17",
-        "eslint": "^8.48.0",
-        "typescript": "^5.7.3",
-      },
-    },
-    "packages/directory-sync": {
-      "name": "@brains/directory-sync",
-      "version": "1.0.0",
-      "dependencies": {
-        "@brains/base-entity": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "chokidar": "^3.5.3",
-        "gray-matter": "^4.0.3",
-        "zod": "^3.22.2",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "@types/node": "^20.0.0",
-        "typescript": "^5.2.2",
-      },
-      "peerDependencies": {
-        "@brains/types": "workspace:*",
-      },
-    },
-    "packages/embedding-service": {
+    "core/embedding-service": {
       "name": "@brains/embedding-service",
       "version": "0.1.0",
       "dependencies": {
@@ -188,7 +130,7 @@
         "typescript": "^5.0.0",
       },
     },
-    "packages/entity-service": {
+    "core/entity-service": {
       "name": "@brains/entity-service",
       "version": "0.1.0",
       "dependencies": {
@@ -205,7 +147,7 @@
         "typescript": "^5.0.0",
       },
     },
-    "packages/eslint-config": {
+    "core/eslint-config": {
       "name": "@brains/eslint-config",
       "version": "0.1.0",
       "dependencies": {
@@ -214,7 +156,7 @@
         "eslint-config-prettier": "^8.10.0",
       },
     },
-    "packages/formatters": {
+    "core/formatters": {
       "name": "@brains/formatters",
       "version": "0.1.0",
       "dependencies": {
@@ -229,26 +171,7 @@
         "@types/mdast": "^4.0.4",
       },
     },
-    "packages/git-sync": {
-      "name": "@brains/git-sync",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/directory-sync": "workspace:*",
-        "@brains/formatters": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "simple-git": "^3.21.0",
-        "zod": "^3.24.1",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "@types/node": "^20.0.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "packages/integration-tests": {
+    "core/integration-tests": {
       "name": "@brains/integration-tests",
       "version": "0.1.0",
       "dependencies": {
@@ -268,82 +191,7 @@
         "typescript": "^5.3.3",
       },
     },
-    "packages/interface-core": {
-      "name": "@brains/interface-core",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/utils": "workspace:*",
-        "@modelcontextprotocol/sdk": "^1.0.1",
-        "@types/mdast": "^4.0.4",
-        "gray-matter": "^4.0.3",
-        "p-queue": "^8.0.1",
-        "p-retry": "^6.2.0",
-        "remark": "^15.0.1",
-        "remark-frontmatter": "^5.0.0",
-        "unist-util-visit": "^5.0.0",
-        "zod": "^3.24.1",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "typescript": "^5.6.3",
-      },
-    },
-    "packages/matrix": {
-      "name": "@brains/matrix",
-      "version": "0.0.1",
-      "dependencies": {
-        "@brains/interface-core": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "marked": "^15.0.4",
-        "matrix-bot-sdk": "^0.7.1",
-        "zod": "^3.24.1",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/shell": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-      },
-    },
-    "packages/matrix-setup": {
-      "name": "@brains/matrix-setup",
-      "version": "0.1.0",
-      "bin": {
-        "brain-matrix-setup": "./src/cli.ts",
-      },
-      "dependencies": {
-        "@brains/utils": "workspace:*",
-        "@clack/prompts": "^0.8.2",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-      },
-    },
-    "packages/mcp-server": {
-      "name": "@brains/mcp-server",
-      "version": "0.1.0",
-      "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.12.0",
-        "cors": "^2.8.5",
-        "express": "^4.18.0",
-        "express-async-handler": "^1.2.0",
-        "zod": "^3.24.1",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "@types/cors": "^2.8.17",
-        "@types/express": "^4.17.21",
-        "@types/node": "^20.11.24",
-        "typescript": "^5.3.3",
-      },
-      "peerDependencies": {
-        "bun-types": "latest",
-      },
-    },
-    "packages/messaging-service": {
+    "core/messaging-service": {
       "name": "@brains/messaging-service",
       "version": "0.1.0",
       "dependencies": {
@@ -360,7 +208,7 @@
         "typescript": "^5.3.3",
       },
     },
-    "packages/service-registry": {
+    "core/service-registry": {
       "name": "@brains/service-registry",
       "version": "0.1.0",
       "dependencies": {
@@ -374,7 +222,7 @@
         "typescript": "^5.3.3",
       },
     },
-    "packages/shell": {
+    "core/shell": {
       "name": "@brains/shell",
       "version": "0.1.0",
       "dependencies": {
@@ -415,7 +263,229 @@
         "typescript": "^5.3.3",
       },
     },
-    "packages/site-builder-plugin": {
+    "core/types": {
+      "name": "@brains/types",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/utils": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.12.0",
+        "preact": "^10.19.3",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "core/typescript-config": {
+      "name": "@brains/typescript-config",
+      "version": "0.1.0",
+    },
+    "core/utils": {
+      "name": "@brains/utils",
+      "version": "0.1.0",
+      "dependencies": {
+        "gray-matter": "^4.0.3",
+        "js-yaml": "^4.1.0",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^20.11.24",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "core/view-registry": {
+      "name": "@brains/view-registry",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/types": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "interfaces/cli": {
+      "name": "@brains/cli",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/interface-core": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "ink": "^5.0.1",
+        "ink-spinner": "^5.0.0",
+        "ink-text-input": "^6.0.0",
+        "react": "^18.3.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.1.14",
+        "@types/react": "^18.3.16",
+        "typescript": "^5.7.2",
+      },
+    },
+    "interfaces/interface-core": {
+      "name": "@brains/interface-core",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/utils": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.0.1",
+        "@types/mdast": "^4.0.4",
+        "gray-matter": "^4.0.3",
+        "p-queue": "^8.0.1",
+        "p-retry": "^6.2.0",
+        "remark": "^15.0.1",
+        "remark-frontmatter": "^5.0.0",
+        "unist-util-visit": "^5.0.0",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.6.3",
+      },
+    },
+    "interfaces/matrix": {
+      "name": "@brains/matrix",
+      "version": "0.0.1",
+      "dependencies": {
+        "@brains/interface-core": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "marked": "^15.0.4",
+        "matrix-bot-sdk": "^0.7.1",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/shell": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+      },
+    },
+    "interfaces/matrix-setup": {
+      "name": "@brains/matrix-setup",
+      "version": "0.1.0",
+      "bin": {
+        "brain-matrix-setup": "./src/cli.ts",
+      },
+      "dependencies": {
+        "@brains/utils": "workspace:*",
+        "@clack/prompts": "^0.8.2",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+      },
+    },
+    "interfaces/mcp-server": {
+      "name": "@brains/mcp-server",
+      "version": "0.1.0",
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.12.0",
+        "cors": "^2.8.5",
+        "express": "^4.18.0",
+        "express-async-handler": "^1.2.0",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/node": "^20.11.24",
+        "typescript": "^5.3.3",
+      },
+      "peerDependencies": {
+        "bun-types": "latest",
+      },
+    },
+    "interfaces/webserver": {
+      "name": "@brains/webserver",
+      "version": "0.0.1",
+      "dependencies": {
+        "@brains/interface-core": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@hono/bun-compress": "^0.1.0",
+        "hono": "^4.6.14",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.1.17",
+        "@types/node": "^20.11.5",
+        "eslint": "^8.48.0",
+        "typescript": "^5.7.3",
+      },
+    },
+    "plugins/default-site-content": {
+      "name": "@brains/default-site-content",
+      "version": "0.0.1",
+      "dependencies": {
+        "@brains/structured-content": "workspace:*",
+        "@brains/types": "workspace:*",
+        "lucide-preact": "^0.460.0",
+        "preact": "^10.19.3",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.1.17",
+        "eslint": "^8.48.0",
+        "typescript": "^5.7.3",
+      },
+    },
+    "plugins/directory-sync": {
+      "name": "@brains/directory-sync",
+      "version": "1.0.0",
+      "dependencies": {
+        "@brains/base-entity": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "chokidar": "^3.5.3",
+        "gray-matter": "^4.0.3",
+        "zod": "^3.22.2",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.2.2",
+      },
+      "peerDependencies": {
+        "@brains/types": "workspace:*",
+      },
+    },
+    "plugins/git-sync": {
+      "name": "@brains/git-sync",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/directory-sync": "workspace:*",
+        "@brains/formatters": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "simple-git": "^3.21.0",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "plugins/site-builder": {
       "name": "@brains/site-builder-plugin",
       "version": "0.0.1",
       "dependencies": {
@@ -437,7 +507,7 @@
         "typescript": "^5.7.3",
       },
     },
-    "packages/structured-content": {
+    "plugins/structured-content": {
       "name": "@brains/structured-content",
       "version": "0.0.1",
       "dependencies": {
@@ -453,27 +523,7 @@
         "@brains/utils": "workspace:*",
       },
     },
-    "packages/types": {
-      "name": "@brains/types",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/utils": "workspace:*",
-        "@modelcontextprotocol/sdk": "^1.12.0",
-        "preact": "^10.19.3",
-        "zod": "^3.24.1",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "packages/typescript-config": {
-      "name": "@brains/typescript-config",
-      "version": "0.1.0",
-    },
-    "packages/ui-library": {
+    "plugins/ui-library": {
       "name": "@brains/ui-library",
       "version": "0.0.1",
       "dependencies": {
@@ -490,56 +540,6 @@
         "storybook": "^9.0.13",
         "tailwindcss": "^4.1.11",
         "typescript": "^5.4.5",
-      },
-    },
-    "packages/utils": {
-      "name": "@brains/utils",
-      "version": "0.1.0",
-      "dependencies": {
-        "gray-matter": "^4.0.3",
-        "js-yaml": "^4.1.0",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/js-yaml": "^4.0.9",
-        "@types/node": "^20.11.24",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "packages/view-registry": {
-      "name": "@brains/view-registry",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/types": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "packages/webserver": {
-      "name": "@brains/webserver",
-      "version": "0.0.1",
-      "dependencies": {
-        "@brains/interface-core": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "@hono/bun-compress": "^0.1.0",
-        "hono": "^4.6.14",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.1.17",
-        "@types/node": "^20.11.5",
-        "eslint": "^8.48.0",
-        "typescript": "^5.7.3",
       },
     },
   },
@@ -581,65 +581,65 @@
 
     "@babel/runtime": ["@babel/runtime@7.27.6", "", {}, "sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q=="],
 
-    "@brains/ai-service": ["@brains/ai-service@workspace:packages/ai-service"],
+    "@brains/ai-service": ["@brains/ai-service@workspace:core/ai-service"],
 
-    "@brains/app": ["@brains/app@workspace:packages/app"],
+    "@brains/app": ["@brains/app@workspace:core/app"],
 
-    "@brains/base-entity": ["@brains/base-entity@workspace:packages/base-entity"],
+    "@brains/base-entity": ["@brains/base-entity@workspace:core/base-entity"],
 
-    "@brains/cli": ["@brains/cli@workspace:packages/cli"],
+    "@brains/cli": ["@brains/cli@workspace:interfaces/cli"],
 
-    "@brains/content-generator": ["@brains/content-generator@workspace:packages/content-generator"],
+    "@brains/content-generator": ["@brains/content-generator@workspace:core/content-generator"],
 
-    "@brains/db": ["@brains/db@workspace:packages/db"],
+    "@brains/db": ["@brains/db@workspace:core/db"],
 
-    "@brains/default-site-content": ["@brains/default-site-content@workspace:packages/default-site-content"],
+    "@brains/default-site-content": ["@brains/default-site-content@workspace:plugins/default-site-content"],
 
-    "@brains/directory-sync": ["@brains/directory-sync@workspace:packages/directory-sync"],
+    "@brains/directory-sync": ["@brains/directory-sync@workspace:plugins/directory-sync"],
 
-    "@brains/embedding-service": ["@brains/embedding-service@workspace:packages/embedding-service"],
+    "@brains/embedding-service": ["@brains/embedding-service@workspace:core/embedding-service"],
 
-    "@brains/entity-service": ["@brains/entity-service@workspace:packages/entity-service"],
+    "@brains/entity-service": ["@brains/entity-service@workspace:core/entity-service"],
 
-    "@brains/eslint-config": ["@brains/eslint-config@workspace:packages/eslint-config"],
+    "@brains/eslint-config": ["@brains/eslint-config@workspace:core/eslint-config"],
 
-    "@brains/formatters": ["@brains/formatters@workspace:packages/formatters"],
+    "@brains/formatters": ["@brains/formatters@workspace:core/formatters"],
 
-    "@brains/git-sync": ["@brains/git-sync@workspace:packages/git-sync"],
+    "@brains/git-sync": ["@brains/git-sync@workspace:plugins/git-sync"],
 
-    "@brains/integration-tests": ["@brains/integration-tests@workspace:packages/integration-tests"],
+    "@brains/integration-tests": ["@brains/integration-tests@workspace:core/integration-tests"],
 
-    "@brains/interface-core": ["@brains/interface-core@workspace:packages/interface-core"],
+    "@brains/interface-core": ["@brains/interface-core@workspace:interfaces/interface-core"],
 
-    "@brains/matrix": ["@brains/matrix@workspace:packages/matrix"],
+    "@brains/matrix": ["@brains/matrix@workspace:interfaces/matrix"],
 
-    "@brains/matrix-setup": ["@brains/matrix-setup@workspace:packages/matrix-setup"],
+    "@brains/matrix-setup": ["@brains/matrix-setup@workspace:interfaces/matrix-setup"],
 
-    "@brains/mcp-server": ["@brains/mcp-server@workspace:packages/mcp-server"],
+    "@brains/mcp-server": ["@brains/mcp-server@workspace:interfaces/mcp-server"],
 
-    "@brains/messaging-service": ["@brains/messaging-service@workspace:packages/messaging-service"],
+    "@brains/messaging-service": ["@brains/messaging-service@workspace:core/messaging-service"],
 
-    "@brains/service-registry": ["@brains/service-registry@workspace:packages/service-registry"],
+    "@brains/service-registry": ["@brains/service-registry@workspace:core/service-registry"],
 
-    "@brains/shell": ["@brains/shell@workspace:packages/shell"],
+    "@brains/shell": ["@brains/shell@workspace:core/shell"],
 
-    "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:packages/site-builder-plugin"],
+    "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
 
-    "@brains/structured-content": ["@brains/structured-content@workspace:packages/structured-content"],
+    "@brains/structured-content": ["@brains/structured-content@workspace:plugins/structured-content"],
 
     "@brains/test-brain": ["@brains/test-brain@workspace:apps/test-brain"],
 
-    "@brains/types": ["@brains/types@workspace:packages/types"],
+    "@brains/types": ["@brains/types@workspace:core/types"],
 
-    "@brains/typescript-config": ["@brains/typescript-config@workspace:packages/typescript-config"],
+    "@brains/typescript-config": ["@brains/typescript-config@workspace:core/typescript-config"],
 
-    "@brains/ui-library": ["@brains/ui-library@workspace:packages/ui-library"],
+    "@brains/ui-library": ["@brains/ui-library@workspace:plugins/ui-library"],
 
-    "@brains/utils": ["@brains/utils@workspace:packages/utils"],
+    "@brains/utils": ["@brains/utils@workspace:core/utils"],
 
-    "@brains/view-registry": ["@brains/view-registry@workspace:packages/view-registry"],
+    "@brains/view-registry": ["@brains/view-registry@workspace:core/view-registry"],
 
-    "@brains/webserver": ["@brains/webserver@workspace:packages/webserver"],
+    "@brains/webserver": ["@brains/webserver@workspace:interfaces/webserver"],
 
     "@clack/core": ["@clack/core@0.3.5", "", { "dependencies": { "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-5cfhQNH+1VQ2xLQlmzXMqUoiaH0lRBq9/CLW9lTyMbuKLC3+xEK01tHVvyut++mLOn5urSHmkm6I0Lg9MaJSTQ=="],
 
@@ -1973,7 +1973,7 @@
 
     "swr": ["swr@2.3.3", "", { "dependencies": { "dequal": "^2.0.3", "use-sync-external-store": "^1.4.0" }, "peerDependencies": { "react": "^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-dshNvs3ExOqtZ6kJBaAsabhPdHyeY4P2cKwRCniDVifBMoG/SVI7tfLWqPXriVspf2Rg4tPzXJTnwaihIeFw2A=="],
 
-    "tailwindcss": ["tailwindcss@4.1.10", "", {}, "sha512-P3nr6WkvKV/ONsTzj6Gb57sWPMX29EPNPopo7+FcpkQaNsrNpZ1pv8QmrYI2RqEKD7mlGqLnGovlcYnBK0IqUA=="],
+    "tailwindcss": ["tailwindcss@4.1.11", "", {}, "sha512-2E9TBm6MDD/xKYe+dvJZAmg3yxIEDNRc0jwlNyDg/4Fil2QcSLjFKGVff0lAf1jjeaArlG/M75Ey/EYr/OJtBA=="],
 
     "tapable": ["tapable@2.2.2", "", {}, "sha512-Re10+NauLTMCudc7T5WLFLAwDhQ0JWdrMK+9B2M8zR5hRExKmsRDCBA7/aV/pNJFltmBFO5BAMlQFi/vq3nKOg=="],
 
@@ -2119,8 +2119,6 @@
 
     "@brains/structured-content/typescript": ["typescript@5.7.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-i5t66RHxDvVN40HfDd1PsEThGNnlMCMT3jMUuoh9/0TaqWevNontacunWyN02LA9/fIbEWlcHZcgTKb9QoaLfg=="],
 
-    "@brains/ui-library/tailwindcss": ["tailwindcss@4.1.11", "", {}, "sha512-2E9TBm6MDD/xKYe+dvJZAmg3yxIEDNRc0jwlNyDg/4Fil2QcSLjFKGVff0lAf1jjeaArlG/M75Ey/EYr/OJtBA=="],
-
     "@esbuild-kit/core-utils/esbuild": ["esbuild@0.18.20", "", { "optionalDependencies": { "@esbuild/android-arm": "0.18.20", "@esbuild/android-arm64": "0.18.20", "@esbuild/android-x64": "0.18.20", "@esbuild/darwin-arm64": "0.18.20", "@esbuild/darwin-x64": "0.18.20", "@esbuild/freebsd-arm64": "0.18.20", "@esbuild/freebsd-x64": "0.18.20", "@esbuild/linux-arm": "0.18.20", "@esbuild/linux-arm64": "0.18.20", "@esbuild/linux-ia32": "0.18.20", "@esbuild/linux-loong64": "0.18.20", "@esbuild/linux-mips64el": "0.18.20", "@esbuild/linux-ppc64": "0.18.20", "@esbuild/linux-riscv64": "0.18.20", "@esbuild/linux-s390x": "0.18.20", "@esbuild/linux-x64": "0.18.20", "@esbuild/netbsd-x64": "0.18.20", "@esbuild/openbsd-x64": "0.18.20", "@esbuild/sunos-x64": "0.18.20", "@esbuild/win32-arm64": "0.18.20", "@esbuild/win32-ia32": "0.18.20", "@esbuild/win32-x64": "0.18.20" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-ceqxoedUrcayh7Y7ZX6NdbbDzGROiyVBgC4PriJThBKSVPWnnFHZAkfI1lJT8QFkOwH4qOS2SJkS4wvpGl8BpA=="],
 
     "@isaacs/fs-minipass/minipass": ["minipass@7.1.2", "", {}, "sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw=="],
@@ -2149,6 +2147,10 @@
 
     "@storybook/theming/storybook": ["storybook@8.6.14", "", { "dependencies": { "@storybook/core": "8.6.14" }, "peerDependencies": { "prettier": "^2 || ^3" }, "optionalPeers": ["prettier"], "bin": { "sb": "./bin/index.cjs", "storybook": "./bin/index.cjs", "getstorybook": "./bin/index.cjs" } }, "sha512-sVKbCj/OTx67jhmauhxc2dcr1P+yOgz/x3h0krwjyMgdc5Oubvxyg4NYDZmzAw+ym36g/lzH8N0Ccp4dwtdfxw=="],
 
+    "@tailwindcss/cli/tailwindcss": ["tailwindcss@4.1.10", "", {}, "sha512-P3nr6WkvKV/ONsTzj6Gb57sWPMX29EPNPopo7+FcpkQaNsrNpZ1pv8QmrYI2RqEKD7mlGqLnGovlcYnBK0IqUA=="],
+
+    "@tailwindcss/node/tailwindcss": ["tailwindcss@4.1.10", "", {}, "sha512-P3nr6WkvKV/ONsTzj6Gb57sWPMX29EPNPopo7+FcpkQaNsrNpZ1pv8QmrYI2RqEKD7mlGqLnGovlcYnBK0IqUA=="],
+
     "@tailwindcss/oxide/detect-libc": ["detect-libc@2.0.4", "", {}, "sha512-3UDv+G9CsCKO1WKMGw9fwq/SWJYbI0c5Y7LU1AXYoDdbhE2AHQ6N6Nb34sG8Fj7T5APy8qXDCKuuIHd1BR0tVA=="],
 
     "@tailwindcss/oxide/tar": ["tar@7.4.3", "", { "dependencies": { "@isaacs/fs-minipass": "^4.0.0", "chownr": "^3.0.0", "minipass": "^7.1.2", "minizlib": "^3.0.1", "mkdirp": "^3.0.1", "yallist": "^5.0.0" } }, "sha512-5S7Va8hKfV7W5U6g3aYxXmlPoZVAwUMy9AOKyF2fVuZa2UD3qZjg578OrLRt8PcNN1PleVaL/5/yYATNL0ICUw=="],
@@ -2168,8 +2170,6 @@
     "@tailwindcss/postcss/@tailwindcss/node": ["@tailwindcss/node@4.1.11", "", { "dependencies": { "@ampproject/remapping": "^2.3.0", "enhanced-resolve": "^5.18.1", "jiti": "^2.4.2", "lightningcss": "1.30.1", "magic-string": "^0.30.17", "source-map-js": "^1.2.1", "tailwindcss": "4.1.11" } }, "sha512-yzhzuGRmv5QyU9qLNg4GTlYI6STedBWRE7NjxP45CsFYYq9taI0zJXZBMqIC/c8fViNLhmrbpSFS57EoxUmD6Q=="],
 
     "@tailwindcss/postcss/@tailwindcss/oxide": ["@tailwindcss/oxide@4.1.11", "", { "dependencies": { "detect-libc": "^2.0.4", "tar": "^7.4.3" }, "optionalDependencies": { "@tailwindcss/oxide-android-arm64": "4.1.11", "@tailwindcss/oxide-darwin-arm64": "4.1.11", "@tailwindcss/oxide-darwin-x64": "4.1.11", "@tailwindcss/oxide-freebsd-x64": "4.1.11", "@tailwindcss/oxide-linux-arm-gnueabihf": "4.1.11", "@tailwindcss/oxide-linux-arm64-gnu": "4.1.11", "@tailwindcss/oxide-linux-arm64-musl": "4.1.11", "@tailwindcss/oxide-linux-x64-gnu": "4.1.11", "@tailwindcss/oxide-linux-x64-musl": "4.1.11", "@tailwindcss/oxide-wasm32-wasi": "4.1.11", "@tailwindcss/oxide-win32-arm64-msvc": "4.1.11", "@tailwindcss/oxide-win32-x64-msvc": "4.1.11" } }, "sha512-Q69XzrtAhuyfHo+5/HMgr1lAiPP/G40OMFAnws7xcFEYqcypZmdW8eGXaOUIeOl1dzPJBPENXgbjsOyhg2nkrg=="],
-
-    "@tailwindcss/postcss/tailwindcss": ["tailwindcss@4.1.11", "", {}, "sha512-2E9TBm6MDD/xKYe+dvJZAmg3yxIEDNRc0jwlNyDg/4Fil2QcSLjFKGVff0lAf1jjeaArlG/M75Ey/EYr/OJtBA=="],
 
     "@testing-library/dom/aria-query": ["aria-query@5.3.0", "", { "dependencies": { "dequal": "^2.0.3" } }, "sha512-b0P0sZPKtyu8HkeRAfCq0IfURZK+SuwMjY1UXGBU27wpAiTwQAIlq56IbIO+ytk/JjS1fMR14ee5WBBfKi5J6A=="],
 
