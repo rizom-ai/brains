@@ -39,7 +39,10 @@ export class PluginManager implements IPluginManager {
   /**
    * Get the singleton instance of PluginManager
    */
-  public static getInstance(serviceRegistry: ServiceRegistry, logger: Logger): PluginManager {
+  public static getInstance(
+    serviceRegistry: ServiceRegistry,
+    logger: Logger,
+  ): PluginManager {
     PluginManager.instance ??= new PluginManager(serviceRegistry, logger);
     return PluginManager.instance;
   }
@@ -54,7 +57,10 @@ export class PluginManager implements IPluginManager {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(serviceRegistry: ServiceRegistry, logger: Logger): PluginManager {
+  public static createFresh(
+    serviceRegistry: ServiceRegistry,
+    logger: Logger,
+  ): PluginManager {
     return new PluginManager(serviceRegistry, logger);
   }
 

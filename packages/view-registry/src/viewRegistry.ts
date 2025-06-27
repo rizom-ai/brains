@@ -6,13 +6,13 @@ import type {
   ViewRegistry as IViewRegistry,
   Template,
 } from "@brains/types";
-import { RouteRegistry } from "./route-registry";
-import { ViewTemplateRegistry } from "./view-template-registry";
+import { RouteRegistry } from "./routeRegistry";
+import { ViewTemplateRegistry } from "./viewTemplateRegistry";
 
 /**
  * ViewRegistry - Combines route and template management
  *
- * This is the shell's implementation that owns the actual registries
+ * This is the implementation that owns the actual registries
  */
 export class ViewRegistry implements IViewRegistry {
   private static instance: ViewRegistry | null = null;

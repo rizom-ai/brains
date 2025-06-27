@@ -26,6 +26,7 @@
     "@brains/service-registry": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@brains/view-registry": "workspace:*",
     "@libsql/client": "^0.15.7",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "drizzle-orm": "^0.29.4",

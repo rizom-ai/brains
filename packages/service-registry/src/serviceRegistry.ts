@@ -19,7 +19,9 @@ export class ServiceRegistry {
   /**
    * Get the singleton instance of ServiceRegistry
    */
-  public static getInstance(logger: Logger = Logger.getInstance()): ServiceRegistry {
+  public static getInstance(
+    logger: Logger = Logger.getInstance(),
+  ): ServiceRegistry {
     ServiceRegistry.instance ??= new ServiceRegistry(logger);
     return ServiceRegistry.instance;
   }

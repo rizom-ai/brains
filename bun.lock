@@ -390,6 +390,7 @@
         "@brains/service-registry": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
+        "@brains/view-registry": "workspace:*",
         "@libsql/client": "^0.15.7",
         "@modelcontextprotocol/sdk": "^1.12.0",
         "drizzle-orm": "^0.29.4",
@@ -508,6 +509,20 @@
         "typescript": "^5.3.3",
       },
     },
+    "packages/view-registry": {
+      "name": "@brains/view-registry",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/types": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "packages/webserver": {
       "name": "@brains/webserver",
       "version": "0.0.1",
@@ -621,6 +636,8 @@
     "@brains/ui-library": ["@brains/ui-library@workspace:packages/ui-library"],
 
     "@brains/utils": ["@brains/utils@workspace:packages/utils"],
+
+    "@brains/view-registry": ["@brains/view-registry@workspace:packages/view-registry"],
 
     "@brains/webserver": ["@brains/webserver@workspace:packages/webserver"],
 

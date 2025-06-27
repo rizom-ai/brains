@@ -102,7 +102,8 @@ describe("ServiceRegistry", (): void => {
 
     // Register and resolve the counter
     serviceRegistry.register("counter", counterFactory);
-    const counterComponent = serviceRegistry.resolve<TestCounterComponent>("counter");
+    const counterComponent =
+      serviceRegistry.resolve<TestCounterComponent>("counter");
 
     // Use the component
     expect(counterComponent.increment()).toBe(1);
@@ -110,12 +111,14 @@ describe("ServiceRegistry", (): void => {
     expect(counterComponent.getValue()).toBe(2);
 
     // Resolve again and it should maintain state
-    const sameCounter = serviceRegistry.resolve<TestCounterComponent>("counter");
+    const sameCounter =
+      serviceRegistry.resolve<TestCounterComponent>("counter");
     expect(sameCounter.getValue()).toBe(2);
     expect(sameCounter.increment()).toBe(3);
 
     // Create fresh should not maintain state
-    const freshCounter = serviceRegistry.createFresh<TestCounterComponent>("counter");
+    const freshCounter =
+      serviceRegistry.createFresh<TestCounterComponent>("counter");
     expect(freshCounter.getValue()).toBe(3); // Still uses the same closure var
 
     // Clear registry and re-register

@@ -19,7 +19,7 @@ import { type DefaultQueryResponse } from "@brains/types";
 import { knowledgeQueryTemplate } from "./templates";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
-import { ViewRegistry } from "./views/view-registry";
+import { ViewRegistry } from "@brains/view-registry";
 import { BaseEntityAdapter } from "@brains/base-entity";
 
 /**
@@ -192,7 +192,8 @@ export class Shell {
 
     // Initialize core components
     // Use provided dependencies if available, otherwise use singletons
-    this.serviceRegistry = dependencies?.serviceRegistry ?? ServiceRegistry.getInstance(this.logger);
+    this.serviceRegistry =
+      dependencies?.serviceRegistry ?? ServiceRegistry.getInstance(this.logger);
     this.entityRegistry =
       dependencies?.entityRegistry ?? EntityRegistry.getInstance(this.logger);
     this.messageBus =
@@ -245,7 +246,10 @@ export class Shell {
     this.serviceRegistry.register("pluginManager", () => this.pluginManager);
     this.serviceRegistry.register("entityService", () => this.entityService);
     this.serviceRegistry.register("aiService", () => this.aiService);
-    this.serviceRegistry.register("contentGenerator", () => this.contentGenerator);
+    this.serviceRegistry.register(
+      "contentGenerator",
+      () => this.contentGenerator,
+    );
     this.serviceRegistry.register("viewRegistry", () => this.viewRegistry);
     this.serviceRegistry.register("mcpServer", () => this.mcpServer);
 
