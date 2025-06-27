@@ -1,12 +1,11 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { z } from "zod";
-import { EntityService } from "@brains/shell/src/entity/entityService";
-import { EntityRegistry } from "@brains/shell/src/entity/entityRegistry";
+import { EntityService, EntityRegistry } from "@brains/entity-service";
 import { createTestDatabase } from "../helpers/test-db";
 import type { DrizzleDB } from "@brains/db";
 import { createSilentLogger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
-import type { IEmbeddingService } from "@brains/shell/src/embedding/embeddingService";
+import type { IEmbeddingService } from "@brains/shell";
 import type { EntityAdapter } from "@brains/base-entity";
 
 // Create a mock embedding service
@@ -513,45 +512,35 @@ describe("EntityService - Database Operations", () => {
     });
   });
 
-  describe("importRawEntity", () => {
-    test("imports raw entity data", async () => {
-      // For import, we need to provide markdown that includes frontmatter
-      const markdownContent = `---
-category: imported
----
+  describe("serialize/deserialize", () => {
+    test("deserializes markdown entity data", async () => {
+      // Create a test entity first
+      const testEntity = await entityService.createEntity(createTestEntityData({
+        content: "This is test content",
+        category: "test"
+      }));
 
-This note was imported`;
+      // Serialize the entity
+      const serialized = entityService.serializeEntity(testEntity);
+      expect(serialized).toContain("This is test content");
 
-      const rawData = {
-        entityType: "note",
-        id: "imported-note-id",
-        content: markdownContent,
-        created: new Date("2023-01-01"),
-        updated: new Date("2023-01-02"),
-      };
-
-      await entityService.importRawEntity(rawData);
-
-      const imported = await entityService.getEntity<Note>("note", rawData.id);
-      expect(imported).toBeDefined();
-      expect(imported?.id).toBe(rawData.id);
-      // The adapter's fromMarkdown extracts the actual content without frontmatter
-      expect(imported?.content).toBe("This note was imported");
+      // Deserialize the markdown back to entity data
+      const deserialized = entityService.deserializeEntity(serialized, "note");
+      expect(deserialized.content).toBe("This is test content");
+      expect(deserialized.category).toBe("test");
     });
 
-    test("throws error for unregistered entity type", async () => {
-      const rawData = {
-        entityType: "unknown",
-        id: "test-id",
-        content: "Test",
-        created: new Date(),
-        updated: new Date(),
-      };
+    test("throws error for unregistered entity type during deserialization", async () => {
+      const markdownContent = `---
+id: test-id
+entityType: unknown
+---
 
-      // eslint-disable-next-line @typescript-eslint/await-thenable
-      await expect(entityService.importRawEntity(rawData)).rejects.toThrow(
-        "No adapter registered for entity type: unknown",
-      );
+Test content`;
+
+      expect(() => {
+        entityService.deserializeEntity(markdownContent, "unknown");
+      }).toThrow("No adapter registered for entity type: unknown");
     });
   });
 });

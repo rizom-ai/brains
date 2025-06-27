@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { App } from "@brains/app";
 import { Shell } from "@brains/shell";
-import { EntityRegistry } from "@brains/shell/src/entity/entityRegistry";
+import { EntityRegistry } from "@brains/entity-service";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { createTestDatabase } from "./helpers/test-db.js";
 import { createMockAIService } from "./helpers/mock-ai-service.js";

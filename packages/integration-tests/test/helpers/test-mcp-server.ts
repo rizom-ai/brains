@@ -3,8 +3,9 @@
 import { App } from "@brains/app";
 import { Shell } from "@brains/shell";
 import { createMockAIService } from "./mock-ai-service";
+import { createSilentLogger } from "@brains/utils";
 
-// Create shell with mock AI service
+// Create shell with mock AI service and silent logger
 const shell = Shell.createFresh(
   {
     database: { url: process.env["DATABASE_URL"] ?? "file::memory:" },
@@ -14,6 +15,7 @@ const shell = Shell.createFresh(
   },
   {
     aiService: createMockAIService(),
+    logger: createSilentLogger(),
   },
 );
 

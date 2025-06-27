@@ -27,7 +27,7 @@ export function registerShellMCP(
 ): void {
   // Register core shell query tool
   server.tool(
-    "query",
+    "shell:query",
     "Query the knowledge base using AI-powered search",
     {
       query: {
@@ -62,6 +62,145 @@ export function registerShellMCP(
         };
       } catch (error) {
         options.logger.error("Query tool error", error);
+        throw error;
+      }
+    },
+  );
+
+  // Register entity search tool
+  server.tool(
+    "shell:search",
+    "Search entities by type and query",
+    {
+      entityType: {
+        type: "string",
+        description: "Type of entity to search (e.g., 'note', 'base')",
+      },
+      query: {
+        type: "string", 
+        description: "Search query",
+      },
+      limit: {
+        type: "number",
+        description: "Maximum number of results",
+        optional: true,
+      },
+    },
+    async (params) => {
+      try {
+        const results = await options.entityService.search(
+          params["query"] as string,
+          {
+            entityType: params["entityType"] as string,
+            limit: (params["limit"] as number) || 10,
+          },
+        );
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(results, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        options.logger.error("Search tool error", error);
+        throw error;
+      }
+    },
+  );
+
+  // Register entity get tool
+  server.tool(
+    "shell:get",
+    "Get a specific entity by ID and type",
+    {
+      entityType: {
+        type: "string",
+        description: "Type of entity to retrieve",
+      },
+      id: {
+        type: "string",
+        description: "Entity ID",
+      },
+    },
+    async (params) => {
+      try {
+        const entity = await options.entityService.getEntity(
+          params["entityType"] as string,
+          params["id"] as string,
+        );
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(entity, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        options.logger.error("Get tool error", error);
+        throw error;
+      }
+    },
+  );
+
+  // Register entity types resource
+  server.resource(
+    "entity-types",
+    "entity://types",
+    { 
+      mimeType: "application/json",
+      description: "List all available entity types"
+    },
+    async (uri) => {
+      try {
+        const types = options.entityService.getSupportedEntityTypes();
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: "application/json",
+              text: JSON.stringify(types, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        options.logger.error("Entity types resource error", error);
+        throw error;
+      }
+    },
+  );
+
+  // Register schema list resource
+  server.resource(
+    "schema-list",
+    "schema://list",
+    { 
+      mimeType: "application/json",
+      description: "List all available entity schemas"
+    },
+    async (uri) => {
+      try {
+        const types = options.entityService.getSupportedEntityTypes();
+        const schemas = types.reduce((acc, type) => {
+          acc[type] = `Schema for ${type} entities`;
+          return acc;
+        }, {} as Record<string, string>);
+        
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: "application/json",
+              text: JSON.stringify(schemas, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        options.logger.error("Schema list resource error", error);
         throw error;
       }
     },

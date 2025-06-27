@@ -62,8 +62,9 @@ Following the successful pattern established with `@brains/entity-service`, seve
 #### 🟢 High Priority Services (Should Extract)
 
 **1. @brains/ai-service (178 lines)**
+
 - **Current Location**: `packages/shell/src/ai/aiService.ts`
-- **Benefits**: 
+- **Benefits**:
   - Clean interface with minimal shell dependencies
   - Heavy AI SDK dependencies isolated
   - Reusable across brain implementations
@@ -71,6 +72,7 @@ Following the successful pattern established with `@brains/entity-service`, seve
 - **Extraction Effort**: Low (1 day)
 
 **2. @brains/embedding-service (181 lines)**
+
 - **Current Location**: `packages/shell/src/embedding/embeddingService.ts`
 - **Benefits**:
   - Self-contained with native fastembed dependencies
@@ -80,6 +82,7 @@ Following the successful pattern established with `@brains/entity-service`, seve
 - **Extraction Effort**: Low-Medium (1 day, handle native deps)
 
 **3. @brains/messaging (439 lines total)**
+
 - **Current Location**: `packages/shell/src/messaging/`
 - **Includes**: MessageBus (271), MessageFactory (79), types (74), index (15)
 - **Benefits**:
@@ -92,6 +95,7 @@ Following the successful pattern established with `@brains/entity-service`, seve
 #### 🟡 Medium Priority Services (Consider Extracting)
 
 **4. @brains/registry (304 lines total)**
+
 - **Current Location**: `packages/shell/src/registry/` + `packages/shell/src/schema/`
 - **Includes**: Registry (168), SchemaRegistry (136)
 - **Benefits**:
@@ -104,6 +108,7 @@ Following the successful pattern established with `@brains/entity-service`, seve
 #### 🔴 Low Priority (Keep in Shell)
 
 **Services to Keep:**
+
 - **PluginManager**: Too tightly coupled to Shell lifecycle and context
 - **ViewRegistry/RouteRegistry**: Shell-specific view management
 - **MCP Adapters**: Shell integration layer, not reusable
@@ -112,6 +117,7 @@ Following the successful pattern established with `@brains/entity-service`, seve
 ### Extraction Impact Analysis
 
 **Before Extraction:**
+
 ```
 @brains/shell: ~3,400 lines
 ├── Core services: ~1,100 lines (extractable)
@@ -119,15 +125,17 @@ Following the successful pattern established with `@brains/entity-service`, seve
 ```
 
 **After Extraction:**
+
 ```
 @brains/ai-service: ~200 lines
-@brains/embedding-service: ~200 lines  
+@brains/embedding-service: ~200 lines
 @brains/messaging: ~450 lines
 @brains/registry: ~320 lines (optional)
 @brains/shell: ~2,000 lines (reduced complexity)
 ```
 
 **Benefits Achieved:**
+
 - 40% reduction in shell package size
 - 4 new reusable service packages
 - Cleaner dependency graph
@@ -138,6 +146,7 @@ Following the successful pattern established with `@brains/entity-service`, seve
 ### 🔴 Critical Issues (Requires Immediate Attention)
 
 #### 1. **Oversized Files**
+
 - **PluginManager.ts (647 lines)**: Far exceeds maintainable size (~200-300 lines ideal)
 - **Shell.ts (588 lines)**: Core class too large, multiple responsibilities
 
@@ -147,12 +156,13 @@ Following the successful pattern established with `@brains/entity-service`, seve
 ### 🟡 High Priority Issues
 
 #### 2. **Component Interface Standardization Inconsistencies**
+
 Current singleton pattern implementation varies:
 
 ```typescript
 // Inconsistent getInstance signatures
 Registry.getInstance(logger: Logger)
-MessageBus.getInstance(logger: Logger)  
+MessageBus.getInstance(logger: Logger)
 PluginManager.getInstance(registry: Registry, logger: Logger)
 ViewRegistry.getInstance() // No parameters
 ```
@@ -161,6 +171,7 @@ ViewRegistry.getInstance() // No parameters
 **Solution**: Standardize initialization patterns
 
 #### 3. **Error Handling Inconsistencies**
+
 Multiple error handling patterns found:
 
 ```typescript
@@ -179,6 +190,7 @@ const errorMessage = error instanceof Error ? error.message : String(error);
 **Solution**: Create standardized error classes and handling
 
 #### 4. **Import/Export Organization**
+
 - 71 import statements across 24 files
 - Some re-exports may be unnecessary
 - Potential circular dependency with PluginManager importing Shell type
@@ -188,23 +200,28 @@ const errorMessage = error instanceof Error ? error.message : String(error);
 #### 5. **Method Extraction Opportunities**
 
 **Shell.ts** - Long methods that could be extracted:
+
 - `initialize()` method (~150 lines)
 - `setupMcpServer()` method (~50 lines)
 - Plugin registration logic (~30 lines each)
 
 **PluginManager.ts** - Complex methods:
+
 - `createPluginContext()` method (~100 lines)
 - Plugin initialization logic scattered throughout
 
 #### 6. **Type Safety Improvements**
+
 Found minimal `any` usage (only 4 instances in comments/docs), which is good.
 
 #### 7. **Unused Code Detection**
+
 Need to verify all exports in index files are actually used.
 
 ### 🔵 Low Priority Issues
 
 #### 8. **Code Organization**
+
 - Some utilities could be better organized
 - Template system could be consolidated
 - View-related classes could be grouped better
@@ -212,6 +229,7 @@ Need to verify all exports in index files are actually used.
 ## Unified Refactoring Strategy
 
 The refactoring approach combines two complementary strategies:
+
 1. **Service Package Extraction**: Move standalone services to separate packages
 2. **Internal Restructuring**: Decompose large files and standardize patterns
 
@@ -224,15 +242,17 @@ This dual approach maximizes the reduction in shell complexity while maintaining
 **Goal**: Extract core services to reduce shell package size by 40% before internal refactoring
 
 #### 0.1 Extract AI Service (1 day)
+
 ```bash
 # Create new package
 mkdir -p packages/ai-service/src packages/ai-service/test
 # Move aiService.ts and interface
-# Update package.json dependencies  
+# Update package.json dependencies
 # Update all imports in shell and consumers
 ```
 
 #### 0.2 Extract Embedding Service (1 day)
+
 ```bash
 # Create new package with native dependency handling
 mkdir -p packages/embedding-service/src packages/embedding-service/test
@@ -241,6 +261,7 @@ mkdir -p packages/embedding-service/src packages/embedding-service/test
 ```
 
 #### 0.3 Extract Messaging System (1-2 days)
+
 ```bash
 # Create messaging package
 mkdir -p packages/messaging/src packages/messaging/test
@@ -249,12 +270,14 @@ mkdir -p packages/messaging/src packages/messaging/test
 ```
 
 #### 0.4 Consider Registry Extraction (1 day - optional)
+
 ```bash
 # Evaluate registry extraction impact
 # May defer if too foundational
 ```
 
 **After Phase 0 State**:
+
 - Shell package reduced from ~3,400 to ~2,000 lines
 - 3-4 new reusable service packages created
 - Cleaner dependency boundaries established
@@ -264,6 +287,7 @@ mkdir -p packages/messaging/src packages/messaging/test
 #### 1.1 PluginManager Decomposition
 
 **Current Structure (647 lines)**:
+
 ```typescript
 export class PluginManager {
   // Plugin lifecycle management
@@ -278,6 +302,7 @@ export class PluginManager {
 ```
 
 **Proposed Structure**:
+
 ```typescript
 // Core plugin management
 export class PluginManager {
@@ -298,6 +323,7 @@ export class PluginRegistrationHandler {
 #### 1.2 Shell Class Decomposition
 
 **Current Structure (588 lines)**:
+
 ```typescript
 export class Shell {
   // Initialization
@@ -310,6 +336,7 @@ export class Shell {
 ```
 
 **Proposed Structure**:
+
 ```typescript
 // Core shell
 export class Shell {
@@ -332,6 +359,7 @@ export class McpServerManager {
 #### 2.1 Singleton Pattern Standardization
 
 **Target Pattern**:
+
 ```typescript
 interface ComponentFactory<T> {
   getInstance(...args: unknown[]): T;
@@ -343,12 +371,13 @@ interface ComponentFactory<T> {
 #### 2.2 Error Handling Standardization
 
 **Proposed Error Classes**:
+
 ```typescript
 export class BrainError extends Error {
   constructor(
     message: string,
     public code: string,
-    public details?: unknown
+    public details?: unknown,
   ) {
     super(message);
   }
@@ -356,13 +385,19 @@ export class BrainError extends Error {
 
 export class PluginError extends BrainError {
   constructor(pluginId: string, message: string, cause?: unknown) {
-    super(`Plugin ${pluginId}: ${message}`, "PLUGIN_ERROR", { pluginId, cause });
+    super(`Plugin ${pluginId}: ${message}`, "PLUGIN_ERROR", {
+      pluginId,
+      cause,
+    });
   }
 }
 
 export class InitializationError extends BrainError {
   constructor(component: string, cause?: unknown) {
-    super(`Failed to initialize ${component}`, "INIT_ERROR", { component, cause });
+    super(`Failed to initialize ${component}`, "INIT_ERROR", {
+      component,
+      cause,
+    });
   }
 }
 ```
@@ -372,6 +407,7 @@ export class InitializationError extends BrainError {
 #### 3.1 Method Extraction
 
 **Shell.initialize()** breakdown:
+
 ```typescript
 // Current: One large method
 async initialize(): Promise<void> {
@@ -419,16 +455,19 @@ export class TestShell {
 ## Implementation Guidelines
 
 ### File Size Targets
+
 - **Maximum**: 300 lines per file
 - **Ideal**: 200 lines per file
 - **Method**: 50 lines maximum
 
 ### Naming Conventions
+
 - Consistent across all components
 - Clear separation of concerns in class names
 - Use descriptive method names
 
 ### Architecture Principles
+
 - Single Responsibility Principle
 - Dependency Injection where possible
 - Clear separation of initialization and runtime logic
@@ -437,13 +476,15 @@ export class TestShell {
 ## Success Criteria
 
 ### Service Extraction Goals
+
 - [ ] Shell package reduced from ~3,400 to ~2,000 lines (40% reduction)
 - [ ] 3-4 new reusable service packages created (@brains/ai-service, @brains/embedding-service, @brains/messaging, @brains/registry)
 - [ ] Clean package boundaries with minimal dependencies
 - [ ] Services independently testable and versioned
 - [ ] No circular dependencies between packages
 
-### Internal Refactoring Goals  
+### Internal Refactoring Goals
+
 - [ ] No files exceed 300 lines
 - [ ] All components follow standardized singleton pattern
 - [ ] Consistent error handling throughout
@@ -454,6 +495,7 @@ export class TestShell {
 ## Risk Assessment
 
 ### Low Risk
+
 - AI Service extraction (clean interfaces, minimal dependencies)
 - Embedding Service extraction (self-contained)
 - Method extraction within existing classes
@@ -461,19 +503,22 @@ export class TestShell {
 - Import cleanup
 
 ### Medium Risk
+
 - Messaging system extraction (many consumers to update)
 - File decomposition (requires careful interface design)
 - Singleton pattern changes (affects initialization)
 
 ### High Risk
+
 - Registry extraction (foundational dependency, wide impact)
 - None identified for internal refactoring (strict refactoring only)
 
 ## Updated Timeline
 
 ### Complete Refactoring Strategy
+
 - **Phase 0**: 3-5 days (Service package extraction)
-- **Phase 1**: 2-3 days (Critical file decomposition) 
+- **Phase 1**: 2-3 days (Critical file decomposition)
 - **Phase 2**: 1-2 days (Standardization)
 - **Phase 3**: 1-2 days (Code organization)
 - **Phase 4**: 1 day (Testing support)
@@ -481,22 +526,26 @@ export class TestShell {
 **Total**: 8-13 days of focused refactoring work
 
 ### Recommended Approach
+
 1. **Start with Service Extraction** (Phase 0) - Biggest impact on complexity
 2. **Follow with Internal Refactoring** (Phases 1-4) - Work with smaller, more manageable shell
 
 ## Next Steps
 
 ### Immediate Actions
+
 1. **Validate Plan**: Review complete refactoring strategy with stakeholders
-2. **Choose Starting Point**: 
+2. **Choose Starting Point**:
    - **Option A**: Start with service extraction (Phase 0) for maximum impact
    - **Option B**: Start with internal refactoring (Phase 1) for incremental progress
 3. **Prepare Service Extraction**: If choosing Option A, plan package.json structures and dependency updates
 
 ### Implementation Approach
+
 1. **Service-First Strategy** (Recommended):
+
    - Extract AI Service → Embedding Service → Messaging → (Registry)
-   - Reduce shell to ~2,000 lines before internal refactoring  
+   - Reduce shell to ~2,000 lines before internal refactoring
    - Work with smaller, more manageable codebase for remaining phases
 
 2. **Internal-First Strategy** (Alternative):
@@ -505,6 +554,7 @@ export class TestShell {
    - May be easier to identify service boundaries after decomposition
 
 ### Quality Assurance
+
 - **Test Coverage**: Ensure refactoring doesn't break functionality
 - **Iterative Approach**: Complete one component at a time with full testing
 - **Documentation**: Update affected documentation and dependency graphs

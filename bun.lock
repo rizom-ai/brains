@@ -31,6 +31,23 @@
         "typescript": "^5.3.3",
       },
     },
+    "packages/ai-service": {
+      "name": "@brains/ai-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@ai-sdk/anthropic": "^1.2.12",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "ai": "^4.3.16",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "^5.0.0",
+      },
+    },
     "packages/app": {
       "name": "@brains/app",
       "version": "0.1.0",
@@ -500,6 +517,8 @@
     "@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.27.1", "", {}, "sha512-D2hP9eA+Sqx1kBZgzxZh0y1trbuU+JoDkiEwqhQ36nodYqJwyEIhPSdMNd7lOm/4io72luTPWH20Yda0xOuUow=="],
 
     "@babel/runtime": ["@babel/runtime@7.27.6", "", {}, "sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q=="],
+
+    "@brains/ai-service": ["@brains/ai-service@workspace:packages/ai-service"],
 
     "@brains/app": ["@brains/app@workspace:packages/app"],
 

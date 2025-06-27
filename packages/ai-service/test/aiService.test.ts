@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
-import { AIService } from "@/ai/aiService";
+import { AIService } from "../src/aiService";
 import { createSilentLogger } from "@brains/utils";
 import { z } from "zod";
 import * as ai from "ai";

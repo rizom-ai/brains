@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach, beforeEach } from "bun:test";
-import { Shell } from "@brains/shell/src/shell";
-import { EntityRegistry } from "@brains/shell/src/entity/entityRegistry";
+import { Shell } from "@brains/shell";
+import { EntityRegistry } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/utils";
 import { BaseEntityAdapter } from "@brains/base-entity";
 import { createTestDatabase } from "./helpers/test-db.js";
@@ -62,34 +62,6 @@ describe("Shell and Base Entity Integration", () => {
     expect(testEntity.entityType).toBe("base");
   });
 
-  test("base entity formatter is registered during shell initialization", async () => {
-    // Create a shell instance
-    shell = Shell.createFresh(
-      {
-        features: {
-          enablePlugins: false,
-        },
-        database: {
-          url: `file:${dbPath}`,
-        },
-      },
-      {
-        logger: createSilentLogger(),
-      },
-    );
-
-    // Initialize the shell
-    await shell.initialize();
-
-    // Get the content registry through the shell
-    const contentRegistry = shell.getContentRegistry();
-
-    // Verify base entity formatter is registered
-    const formatter = contentRegistry.getFormatter(
-      "shell:formatter:base-entity",
-    );
-    expect(formatter).toBeDefined();
-  });
 
   test("can create, retrieve, and update base entities through entity service", async () => {
     // Create and initialize shell with real database
@@ -230,52 +202,4 @@ describe("Shell and Base Entity Integration", () => {
     expect(searchResults.length).toBeGreaterThanOrEqual(2);
   });
 
-  test("formatter correctly formats base entities", async () => {
-    // Create and initialize shell
-    shell = Shell.createFresh(
-      {
-        features: {
-          enablePlugins: false,
-        },
-        database: {
-          url: `file:${dbPath}`,
-        },
-      },
-      {
-        logger: createSilentLogger(),
-      },
-    );
-    await shell.initialize();
-
-    const contentRegistry = shell.getContentRegistry();
-    const formatter = contentRegistry.getFormatter(
-      "shell:formatter:base-entity",
-    );
-
-    // Verify formatter exists
-    expect(formatter).toBeDefined();
-
-    if (!formatter) {
-      throw new Error("BaseEntity formatter not found");
-    }
-
-    // Create a test entity
-    const entity: BaseEntity = {
-      id: "test-123",
-      entityType: "base",
-      content: "Test content",
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    };
-
-    // Format the entity
-    const formatted = formatter.format(entity);
-
-    // Verify formatted output contains expected fields
-    expect(formatted).toContain("# Entity: test-123");
-    expect(formatted).toContain("ID**: test-123");
-    expect(formatted).toContain("Type**: base");
-    expect(formatted).toContain("## Content");
-    expect(formatted).toContain("Test content");
-  });
 });

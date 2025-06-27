@@ -1,4 +1,4 @@
-import type { AIService } from "@brains/shell/src/ai/aiService";
+import type { AIService } from "@brains/ai-service";
 import type { z } from "zod";
 
 /**

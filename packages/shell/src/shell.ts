@@ -10,7 +10,7 @@ import {
   type IEmbeddingService,
 } from "./embedding/embeddingService";
 import { ContentGenerator } from "@brains/content-generator";
-import { AIService } from "./ai/aiService";
+import { AIService } from "@brains/ai-service";
 import { Logger, LogLevel } from "@brains/utils";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerShellMCP } from "./mcp";
