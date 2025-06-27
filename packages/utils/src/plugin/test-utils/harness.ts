@@ -3,14 +3,14 @@ import type {
   PluginContext,
   BaseEntity,
   EntityInput,
-  PublicEntityService,
+  EntityService,
   PluginTool,
   GenerationContext,
 } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
-import { z } from "zod";
+import type { z } from "zod";
 
 export interface PluginTestHarnessOptions {
   /**
@@ -218,7 +218,7 @@ export class PluginTestHarness {
 
         // Default response
         return {
-          prompt: context?.prompt || "mock prompt",
+          prompt: context?.prompt ?? "mock prompt",
           response: "Mock response from content generation",
           results: [],
         } as T;
@@ -277,13 +277,13 @@ export class PluginTestHarness {
   /**
    * Create a mock entity service
    */
-  private createMockEntityService(): PublicEntityService {
+  private createMockEntityService(): EntityService {
     return {
       createEntity: async <T extends BaseEntity>(
         entity: EntityInput<T>,
       ): Promise<T> => {
         const entityType =
-          ((entity as Record<string, unknown>)["entityType"] as string) ||
+          ((entity as Record<string, unknown>)["entityType"] as string) ??
           "base";
         return this.createTestEntity(entityType, entity) as Promise<T>;
       },
@@ -327,6 +327,56 @@ export class PluginTestHarness {
         // Mock implementation - return empty array
         return [];
       },
-    } as unknown as PublicEntityService;
+      deriveEntity: async <T extends BaseEntity>(
+        sourceEntityId: string,
+        sourceEntityType: string,
+        targetEntityType: string,
+        _options?: { deleteSource?: boolean },
+      ): Promise<T> => {
+        // Mock implementation - get source entity and transform it
+        const source = await this.getEntity(sourceEntityType, sourceEntityId);
+        if (!source) {
+          throw new Error(
+            `Source entity not found: ${sourceEntityType}/${sourceEntityId}`,
+          );
+        }
+        // Create a new entity based on the source
+        const { id: _id, created: _created, updated: _updated, ...sourceFields } = source;
+        return this.createTestEntity(
+          targetEntityType,
+          sourceFields as EntityInput<T>,
+        ) as Promise<T>;
+      },
+      getEntityTypes: (): string[] => {
+        // Return all registered entity types
+        return Array.from(this.entities.keys());
+      },
+      serializeEntity: (entity: BaseEntity): string => {
+        // Mock serialization - return JSON as markdown
+        return `# ${entity.entityType}\n\n${JSON.stringify(entity, null, 2)}`;
+      },
+      deserializeEntity: (
+        markdown: string,
+        entityType: string,
+      ): Partial<BaseEntity> => {
+        // Mock deserialization - try to parse JSON from markdown
+        try {
+          const jsonMatch = markdown.match(/```json\n(.*)\n```/s);
+          if (jsonMatch?.[1]) {
+            return JSON.parse(jsonMatch[1]);
+          }
+          // Simple fallback - just return basic structure
+          return {
+            content: markdown,
+            entityType,
+          };
+        } catch {
+          return {
+            content: markdown,
+            entityType,
+          };
+        }
+      },
+    };
   }
 }

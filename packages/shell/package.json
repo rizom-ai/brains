@@ -18,6 +18,7 @@
     "@anthropic-ai/sdk": "^0.13.0",
     "@brains/base-entity": "workspace:*",
     "@brains/db": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/formatters": "workspace:*",
     "@brains/mcp-server": "workspace:*",
     "@brains/types": "workspace:*",

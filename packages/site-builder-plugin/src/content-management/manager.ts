@@ -1,4 +1,4 @@
-import type { PublicEntityService, Logger } from "@brains/types";
+import type { EntityService, Logger } from "@brains/types";
 import type {
   SiteContentEntityType,
   SiteContentPreview,
@@ -31,7 +31,7 @@ import { compareContent } from "./utils/comparator";
  */
 export class SiteContentManager {
   constructor(
-    private readonly entityService: PublicEntityService,
+    private readonly entityService: EntityService,
     private readonly logger?: Logger,
   ) {}
 

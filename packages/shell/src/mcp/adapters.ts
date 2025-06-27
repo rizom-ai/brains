@@ -5,7 +5,7 @@
  * and internal implementation details.
  */
 
-import type { EntityService } from "../entity/entityService";
+import type { EntityService } from "@brains/entity-service";
 import type { ContentGenerator } from "@brains/content-generator";
 import type { GenerationContext } from "@brains/types";
 

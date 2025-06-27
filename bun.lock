@@ -155,6 +155,23 @@
         "@brains/types": "workspace:*",
       },
     },
+    "packages/entity-service": {
+      "name": "@brains/entity-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/base-entity": "workspace:*",
+        "@brains/db": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "^5.0.0",
+      },
+    },
     "packages/eslint-config": {
       "name": "@brains/eslint-config",
       "version": "0.1.0",
@@ -301,6 +318,7 @@
         "@anthropic-ai/sdk": "^0.13.0",
         "@brains/base-entity": "workspace:*",
         "@brains/db": "workspace:*",
+        "@brains/entity-service": "workspace:*",
         "@brains/formatters": "workspace:*",
         "@brains/mcp-server": "workspace:*",
         "@brains/types": "workspace:*",
@@ -496,6 +514,8 @@
     "@brains/default-site-content": ["@brains/default-site-content@workspace:packages/default-site-content"],
 
     "@brains/directory-sync": ["@brains/directory-sync@workspace:packages/directory-sync"],
+
+    "@brains/entity-service": ["@brains/entity-service@workspace:packages/entity-service"],
 
     "@brains/eslint-config": ["@brains/eslint-config@workspace:packages/eslint-config"],
 

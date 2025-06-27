@@ -18,6 +18,7 @@ Extract EntityService into its own package (`packages/entity-service/`) to creat
 ## Architecture Changes
 
 ### Before (Current State)
+
 ```
 packages/shell/
 ├── src/entity/
@@ -33,6 +34,7 @@ packages/types/src/services.ts  # PublicEntityService interface
 **Dependencies**: Shell → Types, DB, Base-Entity, Utils
 
 ### After (Target State)
+
 ```
 packages/entity-service/
 ├── src/
@@ -63,7 +65,7 @@ Create new package with proper TypeScript and dependency configuration:
   "name": "@brains/entity-service",
   "dependencies": {
     "@brains/types": "workspace:*",
-    "@brains/base-entity": "workspace:*", 
+    "@brains/base-entity": "workspace:*",
     "@brains/db": "workspace:*",
     "@brains/utils": "workspace:*"
   }
@@ -73,14 +75,17 @@ Create new package with proper TypeScript and dependency configuration:
 ### Step 2: Move Files
 
 **Source Files:**
+
 - `packages/shell/src/entity/entityService.ts` → `packages/entity-service/src/entityService.ts`
 - `packages/shell/src/entity/entityRegistry.ts` → `packages/entity-service/src/entityRegistry.ts`
 
 **Test Files:**
+
 - `packages/shell/test/entity/entityService.test.ts` → `packages/entity-service/test/entityService.test.ts`
 - `packages/shell/test/entity/entityRegistry.test.ts` → `packages/entity-service/test/entityRegistry.test.ts`
 
 **New Files:**
+
 - `packages/entity-service/src/index.ts` - Export EntityService and EntityRegistry
 - `packages/entity-service/tsconfig.json` - TypeScript configuration
 
@@ -99,13 +104,13 @@ Add serialization methods to PublicEntityService (in `packages/types/src/service
 ```typescript
 export interface PublicEntityService {
   // Existing CRUD operations...
-  
+
   // Serialization operations (needed by directory-sync)
   getSerializableEntityTypes(): string[];
   serializeEntity(entity: BaseEntity): string;
   deserializeEntity(markdown: string, entityType: string): BaseEntity;
   canSerialize(entityType: string): boolean;
-  
+
   // Existing operations...
 }
 ```

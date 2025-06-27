@@ -26,7 +26,18 @@ module.exports = {
       "ts-ignore": "allow-with-description"
     }],
     "@typescript-eslint/no-floating-promises": "error",
-    "@typescript-eslint/no-misused-promises": "error",
+    "@typescript-eslint/no-misused-promises": [
+      "error",
+      {
+        "checksVoidReturn": {
+          "arguments": false,
+          "attributes": false,
+          "properties": false,
+          "returns": false,
+          "variables": false
+        }
+      }
+    ],
     "@typescript-eslint/await-thenable": "error",
     "@typescript-eslint/consistent-type-imports": "warn",
     "@typescript-eslint/no-unnecessary-condition": "warn",

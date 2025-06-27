@@ -14,7 +14,7 @@ import type { VNode } from "preact";
 export type ComponentType<P = unknown> = (props: P) => VNode;
 
 import type { RouteDefinition, SectionDefinition, ViewTemplate } from "./views";
-import type { PublicEntityService } from "./services";
+import type { EntityService } from "./services";
 
 /**
  * Context for content generation - simplified for template-based approach
@@ -182,5 +182,5 @@ export interface PluginContext {
   // Plugin metadata access (scoped to current plugin by default)
   getPluginPackageName: (pluginId?: string) => string | undefined;
   // Entity service access - direct access to public service interface
-  entityService: PublicEntityService;
+  entityService: EntityService;
 }

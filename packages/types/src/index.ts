@@ -49,8 +49,8 @@ export type {
 export type {
   ListOptions,
   SearchOptions,
-  PublicEntityService,
   EntityService,
+  IEmbeddingService,
   Command,
   CommandResponse,
   BrainProtocol,

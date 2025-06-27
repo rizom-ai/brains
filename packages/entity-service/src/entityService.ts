@@ -1,7 +1,6 @@
 import type { DrizzleDB } from "@brains/db";
 import { entities, createId } from "@brains/db/schema";
 import { EntityRegistry } from "./entityRegistry";
-import type { EntityAdapter } from "@brains/base-entity";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type {
   BaseEntity,
@@ -429,12 +428,23 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Get adapter for a specific entity type
+   * Serialize an entity to markdown format
    */
-  public getAdapter<T extends BaseEntity>(
+  public serializeEntity(entity: BaseEntity): string {
+    const adapter = this.entityRegistry.getAdapter(entity.entityType);
+    return adapter.toMarkdown(entity);
+  }
+
+  /**
+   * Deserialize markdown content to an entity (partial)
+   * Returns parsed fields from markdown - caller should merge with metadata
+   */
+  public deserializeEntity(
+    markdown: string,
     entityType: string,
-  ): EntityAdapter<T> {
-    return this.entityRegistry.getAdapter<T>(entityType);
+  ): Partial<BaseEntity> {
+    const adapter = this.entityRegistry.getAdapter(entityType);
+    return adapter.fromMarkdown(markdown);
   }
 
   /**
@@ -596,20 +606,6 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Check if adapter exists for entity type
-   */
-  public hasAdapter(entityType: string): boolean {
-    try {
-      this.entityRegistry.getAdapter(entityType);
-      return true;
-    } catch (error) {
-      // Expected error when adapter doesn't exist
-      this.logger.debug("Adapter not found", { entityType, error });
-      return false;
-    }
-  }
-
-  /**
    * Derive a new entity from an existing entity
    * Useful for creating entities based on generated content or transforming between types
    */
@@ -652,54 +648,5 @@ export class EntityService implements IEntityService {
     );
 
     return derived;
-  }
-
-  /**
-   * Import raw entity data (e.g., from git sync)
-   * Creates a BaseEntity from file system data and passes to create/update
-   */
-  public async importRawEntity(data: {
-    entityType: string;
-    id: string;
-    content: string;
-    created: Date;
-    updated: Date;
-  }): Promise<void> {
-    // Get adapter for entity type
-    const adapter = this.entityRegistry.getAdapter(data.entityType);
-
-    // Parse the markdown content using the adapter
-    const parsedEntity = adapter.fromMarkdown(data.content);
-
-    // Check if entity exists
-    const existing = await this.getEntity(data.entityType, data.id);
-
-    if (existing) {
-      // Update if modified (compare timestamps)
-      const existingTime = new Date(existing.updated).getTime();
-      const newTime = data.updated.getTime();
-      if (existingTime < newTime) {
-        // Build entity for update, preserving any entity-specific fields
-        const entity = {
-          ...existing,
-          content: data.content,
-          ...parsedEntity,
-          id: data.id,
-          entityType: data.entityType,
-          updated: data.updated.toISOString(),
-        } as BaseEntity;
-        await this.updateEntity(entity);
-      }
-    } else {
-      // Create new entity with timestamps
-      await this.createEntity({
-        id: data.id,
-        entityType: data.entityType,
-        content: data.content,
-        ...parsedEntity,
-        created: data.created.toISOString(),
-        updated: data.updated.toISOString(),
-      });
-    }
   }
 }

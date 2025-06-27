@@ -202,7 +202,7 @@ describe("EntityService", (): void => {
 
   // Note: toMarkdown tests removed - this is now handled by the adapter
 
-  test("hasAdapter returns true for registered types", () => {
+  test("serializeEntity converts entities to markdown", () => {
     // Create test adapter
     const testAdapter: EntityAdapter<Note> = {
       entityType: "note",
@@ -230,11 +230,21 @@ describe("EntityService", (): void => {
     // Register a test entity type
     entityRegistry.registerEntityType("note", noteSchema, testAdapter);
 
-    expect(entityService.hasAdapter("note")).toBe(true);
-    expect(entityService.hasAdapter("unknownType")).toBe(false);
+    const testEntity: Note = {
+      id: "test-id",
+      entityType: "note",
+      content: "Test content",
+      created: "2023-01-01T00:00:00.000Z",
+      updated: "2023-01-01T00:00:00.000Z",
+      title: "Test Note",
+      tags: ["test"],
+    };
+
+    const markdown = entityService.serializeEntity(testEntity);
+    expect(markdown).toBe("# Test Note\n\nTest content");
   });
 
-  test("getAdapter returns adapter for registered types", () => {
+  test("deserializeEntity converts markdown to entities", () => {
     // Create and register test adapter
     const testAdapter: EntityAdapter<Note> = {
       entityType: "note",
@@ -261,15 +271,21 @@ describe("EntityService", (): void => {
 
     entityRegistry.registerEntityType("note", noteSchema, testAdapter);
 
-    const retrievedAdapter = entityService.getAdapter("note");
-    expect(retrievedAdapter).toBeDefined();
-    expect(retrievedAdapter.entityType).toBe("note");
+    const markdown = "# Test Note\n\nTest content";
+    const parsedEntity = entityService.deserializeEntity(
+      markdown,
+      "note",
+    ) as Note;
+
+    expect(parsedEntity.title).toBe("Test Note");
+    expect(parsedEntity.content).toBe("Test content");
   });
 
-  test("getAdapter throws for unregistered types", () => {
-    expect(() => entityService.getAdapter("unknownType")).toThrow(
-      "No adapter registered for entity type: unknownType",
-    );
+  test("deserializeEntity throws for unknown entity types", () => {
+    const markdown = "# Test Note\n\nTest content";
+    expect(() =>
+      entityService.deserializeEntity(markdown, "unknownType"),
+    ).toThrow("No adapter registered for entity type: unknownType");
   });
 
   test("getAllEntityTypes returns same as getEntityTypes", () => {

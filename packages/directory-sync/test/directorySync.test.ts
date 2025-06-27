@@ -9,22 +9,19 @@ import { tmpdir } from "os";
 
 // Mock entity adapter
 class MockEntityAdapter implements EntityAdapter<BaseEntity> {
-  fromMarkdown(markdown: string): BaseEntity {
+  fromMarkdown(markdown: string): Partial<BaseEntity> {
     // Simple mock implementation
     const lines = markdown.split("\n");
-    const title = lines[0].replace("# ", "");
+    const firstLine = lines[0]?.replace("# ", "") || "";
     return {
-      id: title.toLowerCase().replace(/\s+/g, "-"),
-      title,
       content: lines.slice(2).join("\n"),
-      entityType: "base",
-      created: new Date(),
-      updated: new Date(),
     };
   }
 
   toMarkdown(entity: BaseEntity): string {
-    return `# ${entity.title}\n\n${entity.content}`;
+    // Extract title from content or use a default
+    const firstLine = entity.content.split("\n")[0] || "Untitled";
+    return `# ${firstLine}\n\n${entity.content}`;
   }
 
   validate(entity: unknown): entity is BaseEntity {
@@ -50,30 +47,71 @@ class MockEntityService implements Partial<EntityService> {
     return ["base", "note"];
   }
 
-  hasAdapter(entityType: string): boolean {
-    return this.adapters.has(entityType);
+  serializeEntity(entity: BaseEntity): string {
+    const adapter = this.adapters.get(entity.entityType);
+    if (!adapter) {
+      throw new Error(`No adapter for entity type: ${entity.entityType}`);
+    }
+    return adapter.toMarkdown(entity);
   }
 
-  getAdapter(entityType: string): EntityAdapter<BaseEntity> {
+  deserializeEntity(markdown: string, entityType: string): Partial<BaseEntity> {
     const adapter = this.adapters.get(entityType);
     if (!adapter) {
       throw new Error(`No adapter for entity type: ${entityType}`);
     }
-    return adapter;
+    return adapter.fromMarkdown(markdown);
   }
 
-  async importRawEntity(raw: any): Promise<void> {
-    const adapter = this.getAdapter(raw.entityType);
-    const entity = adapter.fromMarkdown(raw.content);
-
-    const entities = this.entities.get(raw.entityType) || [];
-    entities.push({
+  async createEntity<T extends BaseEntity>(entity: any): Promise<T> {
+    const entities = this.entities.get(entity.entityType) || [];
+    const newEntity = {
       ...entity,
-      id: raw.id,
-      created: raw.created,
-      updated: raw.updated,
-    });
-    this.entities.set(raw.entityType, entities);
+      id: entity.id || `generated-${Date.now()}`,
+      created: entity.created || new Date().toISOString(),
+      updated: entity.updated || new Date().toISOString(),
+    } as T;
+    entities.push(newEntity);
+    this.entities.set(entity.entityType, entities);
+    return newEntity;
+  }
+
+  async updateEntity<T extends BaseEntity>(entity: T): Promise<T> {
+    const entities = this.entities.get(entity.entityType) || [];
+    const index = entities.findIndex((e) => e.id === entity.id);
+    if (index >= 0) {
+      entities[index] = entity;
+      this.entities.set(entity.entityType, entities);
+    }
+    return entity;
+  }
+
+  async getEntity<T extends BaseEntity>(
+    entityType: string,
+    id: string,
+  ): Promise<T | null> {
+    const entities = this.entities.get(entityType) || [];
+    return (entities.find((e) => e.id === id) as T) || null;
+  }
+
+  async deleteEntity(id: string): Promise<boolean> {
+    for (const [entityType, entities] of this.entities) {
+      const index = entities.findIndex((e) => e.id === id);
+      if (index >= 0) {
+        entities.splice(index, 1);
+        this.entities.set(entityType, entities);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async search(): Promise<any[]> {
+    return [];
+  }
+
+  async deriveEntity(): Promise<any> {
+    throw new Error("Not implemented in mock");
   }
 
   // Helper methods for testing
@@ -125,22 +163,16 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // Add test entities
-    entityService.addEntity({
+    await entityService.createEntity({
       id: "test-1",
-      title: "Test Entity 1",
-      content: "This is test content 1",
+      content: "Test Entity 1\nThis is test content 1",
       entityType: "base",
-      created: new Date(),
-      updated: new Date(),
     });
 
-    entityService.addEntity({
+    await entityService.createEntity({
       id: "test-note",
-      title: "Test Note",
-      content: "This is a test note",
+      content: "Test Note\nThis is a test note",
       entityType: "note",
-      created: new Date(),
-      updated: new Date(),
     });
 
     // Export entities
@@ -163,13 +195,10 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // First export some entities
-    entityService.addEntity({
+    await entityService.createEntity({
       id: "import-test",
-      title: "Import Test",
-      content: "Content to import",
+      content: "Import Test\nContent to import",
       entityType: "base",
-      created: new Date(),
-      updated: new Date(),
     });
 
     await directorySync.exportEntities();
@@ -189,7 +218,7 @@ describe("DirectorySync", (): void => {
     expect(result.failed).toBe(0);
 
     // Check entity was imported
-    const imported = entityService.getEntities("base");
+    const imported = await entityService.listEntities("base");
     expect(imported).toHaveLength(1);
     expect(imported[0].id).toBe("import-test");
   });
@@ -226,13 +255,10 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // Add an entity
-    entityService.addEntity({
+    await entityService.createEntity({
       id: "sync-test",
-      title: "Sync Test",
-      content: "Sync content",
+      content: "Sync Test\nSync content",
       entityType: "base",
-      created: new Date(),
-      updated: new Date(),
     });
 
     // Perform sync
@@ -250,13 +276,10 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // Add and export some entities
-    entityService.addEntity({
+    await entityService.createEntity({
       id: "status-test",
-      title: "Status Test",
-      content: "Status content",
+      content: "Status Test\nStatus content",
       entityType: "base",
-      created: new Date(),
-      updated: new Date(),
     });
 
     await directorySync.exportEntities();

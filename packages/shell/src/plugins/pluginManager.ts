@@ -18,7 +18,7 @@ import type {
 import { PluginStatus, PluginEvent } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
-import type { EntityRegistry } from "../entity/entityRegistry";
+import type { EntityRegistry } from "@brains/entity-service";
 import type { z } from "zod";
 
 // Re-export enums for convenience
@@ -396,7 +396,7 @@ export class PluginManager implements IPluginManager {
         const pluginInfo = this.plugins.get(targetId);
         return pluginInfo?.plugin.packageName;
       },
-      // Entity service access - direct access to well-designed service interface
+      // Entity service access - clean interface for plugin usage
       entityService,
     };
 

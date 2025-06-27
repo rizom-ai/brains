@@ -24,13 +24,14 @@ export interface SearchOptions {
   limit?: number;
   offset?: number;
   types?: string[];
+  sortBy?: "relevance" | "created" | "updated";
+  sortDirection?: "asc" | "desc";
 }
 
 /**
- * Public entity operations interface for plugin consumption
- * Contains the essential methods that plugins typically need
+ * Entity service interface for managing brain entities
  */
-export interface PublicEntityService {
+export interface EntityService {
   // Core CRUD operations
   getEntity<T extends BaseEntity>(
     entityType: string,
@@ -55,30 +56,20 @@ export interface PublicEntityService {
     options?: { deleteSource?: boolean },
   ): Promise<T>;
 
-  // Entity type discovery and adapter access (needed by directory-sync plugin)
+  // Entity type discovery
   getEntityTypes(): string[];
-  getAdapter<T extends BaseEntity>(entityType: string): EntityAdapter<T>;
-  hasAdapter(entityType: string): boolean;
 
-  // TODO: Move this to directory-sync plugin - it's the only consumer
-  // Raw import for file system synchronization
-  importRawEntity(data: {
-    entityType: string;
-    id: string;
-    content: string;
-    created: Date;
-    updated: Date;
-  }): Promise<void>;
+  // Entity serialization for file system synchronization (directory-sync plugin)
+  serializeEntity(entity: BaseEntity): string;
+  deserializeEntity(markdown: string, entityType: string): Partial<BaseEntity>;
 }
 
 /**
- * Full entity service interface with internal operations
+ * Interface for embedding service
  */
-export interface EntityService extends PublicEntityService {
-  // Internal entity type management (not exposed to plugins)
-  getEntityTypes(): string[];
-  getAdapter<T extends BaseEntity>(entityType: string): EntityAdapter<T>;
-  hasAdapter(entityType: string): boolean;
+export interface IEmbeddingService {
+  generateEmbedding(text: string): Promise<Float32Array>;
+  generateEmbeddings(texts: string[]): Promise<Float32Array[]>;
 }
 
 /**

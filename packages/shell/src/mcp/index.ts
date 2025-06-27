@@ -8,7 +8,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { EntityService } from "../entity/entityService";
+import type { EntityService } from "@brains/entity-service";
 import type { ContentGenerator } from "@brains/content-generator";
 import type { Logger } from "@brains/utils";
 

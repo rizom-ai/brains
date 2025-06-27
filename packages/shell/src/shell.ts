@@ -2,10 +2,9 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
 import { createDatabase, enableWALMode } from "@brains/db";
 import { Registry } from "./registry/registry";
-import { EntityRegistry } from "./entity/entityRegistry";
+import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { MessageBus } from "./messaging/messageBus";
 import { PluginManager, PluginEvent } from "./plugins/pluginManager";
-import { EntityService } from "./entity/entityService";
 import {
   EmbeddingService,
   type IEmbeddingService,

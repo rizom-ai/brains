@@ -201,18 +201,60 @@ export class DirectorySync {
           continue;
         }
 
-        // Skip if entity type is not registered
-        if (!this.entityService.hasAdapter(rawEntity.entityType)) {
-          this.logger.debug("Skipping file - no adapter for entity type", {
+        try {
+          // Deserialize the markdown content to get parsed fields
+          const parsedEntity = this.entityService.deserializeEntity(
+            rawEntity.content,
+            rawEntity.entityType,
+          );
+
+          // Check if entity exists
+          const existing = await this.entityService.getEntity(
+            rawEntity.entityType,
+            rawEntity.id,
+          );
+
+          if (existing) {
+            // Update if modified (compare timestamps)
+            const existingTime = new Date(existing.updated).getTime();
+            const newTime = rawEntity.updated.getTime();
+            if (existingTime < newTime) {
+              // Build entity for update, preserving existing fields and merging parsed content
+              const entityUpdate = {
+                ...existing,
+                content: rawEntity.content,
+                ...parsedEntity,
+                id: rawEntity.id,
+                entityType: rawEntity.entityType,
+                updated: rawEntity.updated.toISOString(),
+              };
+              await this.entityService.updateEntity(entityUpdate);
+            }
+          } else {
+            // Create new entity with all required fields
+            const entityCreate = {
+              id: rawEntity.id,
+              entityType: rawEntity.entityType,
+              content: rawEntity.content,
+              ...parsedEntity,
+              created: rawEntity.created.toISOString(),
+              updated: rawEntity.updated.toISOString(),
+            };
+            await this.entityService.createEntity(entityCreate);
+          }
+        } catch (deserializeError) {
+          // Skip if entity type is not registered or deserialization fails
+          this.logger.debug("Skipping file - unable to deserialize", {
             path: filePath,
             entityType: rawEntity.entityType,
+            error:
+              deserializeError instanceof Error
+                ? deserializeError.message
+                : String(deserializeError),
           });
           result.skipped++;
           continue;
         }
-
-        // Import the entity
-        await this.entityService.importRawEntity(rawEntity);
         result.imported++;
         this.logger.debug("Imported entity from directory", {
           path: filePath,
@@ -239,9 +281,8 @@ export class DirectorySync {
    * Write entity to file
    */
   async writeEntity(entity: BaseEntity): Promise<void> {
-    // Get the adapter to convert to markdown
-    const adapter = this.entityService.getAdapter(entity.entityType);
-    const markdown = adapter.toMarkdown(entity);
+    // Serialize entity to markdown
+    const markdown = this.entityService.serializeEntity(entity);
     const filePath = this.getEntityFilePath(entity);
 
     // Ensure directory exists (only for non-base entities)
