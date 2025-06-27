@@ -20,7 +20,7 @@ export { Shell } from "./shell";
 
 // Re-export essential types that don't trigger side effects
 export type { ShellConfig } from "./config";
-export type { IEmbeddingService } from "./embedding/embeddingService";
+export type { IEmbeddingService } from "@brains/embedding-service";
 export type { DrizzleDB } from "@brains/db";
 export type { SerializableEntity, SerializableQueryResult } from "./types";
 export type { ShellMCPOptions } from "./mcp";

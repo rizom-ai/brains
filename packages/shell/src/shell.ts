@@ -3,12 +3,12 @@ import type { Client } from "@libsql/client";
 import { createDatabase, enableWALMode } from "@brains/db";
 import { Registry } from "./registry/registry";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
-import { MessageBus } from "./messaging/messageBus";
+import { MessageBus } from "@brains/messaging-service";
 import { PluginManager, PluginEvent } from "./plugins/pluginManager";
 import {
   EmbeddingService,
   type IEmbeddingService,
-} from "./embedding/embeddingService";
+} from "@brains/embedding-service";
 import { ContentGenerator } from "@brains/content-generator";
 import { AIService } from "@brains/ai-service";
 import { Logger, LogLevel } from "@brains/utils";

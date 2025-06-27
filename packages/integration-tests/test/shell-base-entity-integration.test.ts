@@ -62,7 +62,6 @@ describe("Shell and Base Entity Integration", () => {
     expect(testEntity.entityType).toBe("base");
   });
 
-
   test("can create, retrieve, and update base entities through entity service", async () => {
     // Create and initialize shell with real database
     shell = Shell.createFresh(
@@ -201,5 +200,4 @@ describe("Shell and Base Entity Integration", () => {
     const searchResults = await entityService.search("Content");
     expect(searchResults.length).toBeGreaterThanOrEqual(2);
   });
-
 });

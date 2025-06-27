@@ -77,7 +77,7 @@ export function registerShellMCP(
         description: "Type of entity to search (e.g., 'note', 'base')",
       },
       query: {
-        type: "string", 
+        type: "string",
         description: "Search query",
       },
       limit: {
@@ -91,7 +91,7 @@ export function registerShellMCP(
         const results = await options.entityService.search(
           params["query"] as string,
           {
-            entityType: params["entityType"] as string,
+            types: [params["entityType"] as string],
             limit: (params["limit"] as number) || 10,
           },
         );
@@ -151,9 +151,9 @@ export function registerShellMCP(
   server.resource(
     "entity-types",
     "entity://types",
-    { 
+    {
       mimeType: "application/json",
-      description: "List all available entity types"
+      description: "List all available entity types",
     },
     async (uri) => {
       try {
@@ -178,18 +178,21 @@ export function registerShellMCP(
   server.resource(
     "schema-list",
     "schema://list",
-    { 
+    {
       mimeType: "application/json",
-      description: "List all available entity schemas"
+      description: "List all available entity schemas",
     },
     async (uri) => {
       try {
         const types = options.entityService.getSupportedEntityTypes();
-        const schemas = types.reduce((acc, type) => {
-          acc[type] = `Schema for ${type} entities`;
-          return acc;
-        }, {} as Record<string, string>);
-        
+        const schemas = types.reduce(
+          (acc, type) => {
+            acc[type] = `Schema for ${type} entities`;
+            return acc;
+          },
+          {} as Record<string, string>,
+        );
+
         return {
           contents: [
             {

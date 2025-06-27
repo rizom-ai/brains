@@ -172,6 +172,22 @@
         "@brains/types": "workspace:*",
       },
     },
+    "packages/embedding-service": {
+      "name": "@brains/embedding-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "fastembed": "^1.14.4",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "^5.0.0",
+      },
+    },
     "packages/entity-service": {
       "name": "@brains/entity-service",
       "version": "0.1.0",
@@ -327,26 +343,43 @@
         "bun-types": "latest",
       },
     },
+    "packages/messaging-service": {
+      "name": "@brains/messaging-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/db": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "packages/shell": {
       "name": "@brains/shell",
       "version": "0.1.0",
       "dependencies": {
-        "@ai-sdk/anthropic": "^1.2.12",
         "@anthropic-ai/sdk": "^0.13.0",
+        "@brains/ai-service": "workspace:*",
         "@brains/base-entity": "workspace:*",
         "@brains/db": "workspace:*",
+        "@brains/embedding-service": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/formatters": "workspace:*",
         "@brains/mcp-server": "workspace:*",
+        "@brains/messaging-service": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.15.7",
         "@modelcontextprotocol/sdk": "^1.12.0",
-        "ai": "^4.3.16",
         "drizzle-orm": "^0.29.4",
         "drizzle-zod": "^0.5.1",
         "esbuild": "^0.19.11",
-        "fastembed": "^1.14.4",
         "gray-matter": "^4.0.3",
         "hono": "^4.7.10",
         "nanoid": "^5.1.5",
@@ -534,6 +567,8 @@
 
     "@brains/directory-sync": ["@brains/directory-sync@workspace:packages/directory-sync"],
 
+    "@brains/embedding-service": ["@brains/embedding-service@workspace:packages/embedding-service"],
+
     "@brains/entity-service": ["@brains/entity-service@workspace:packages/entity-service"],
 
     "@brains/eslint-config": ["@brains/eslint-config@workspace:packages/eslint-config"],
@@ -551,6 +586,8 @@
     "@brains/matrix-setup": ["@brains/matrix-setup@workspace:packages/matrix-setup"],
 
     "@brains/mcp-server": ["@brains/mcp-server@workspace:packages/mcp-server"],
+
+    "@brains/messaging-service": ["@brains/messaging-service@workspace:packages/messaging-service"],
 
     "@brains/shell": ["@brains/shell@workspace:packages/shell"],
 

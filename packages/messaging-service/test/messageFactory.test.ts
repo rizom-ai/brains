@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { MessageFactory } from "@/messaging/messageFactory";
-import { baseMessageSchema, messageResponseSchema } from "@/messaging/types";
+import { MessageFactory } from "@/messageFactory";
+import { baseMessageSchema, messageResponseSchema } from "@/types";
 
 describe("MessageFactory", () => {
   describe("createMessage", () => {

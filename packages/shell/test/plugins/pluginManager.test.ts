@@ -14,7 +14,7 @@ import { Registry } from "@/registry/registry";
 import type { Shell } from "@/shell";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
-import { MessageBus } from "@/messaging/messageBus";
+import { MessageBus } from "@brains/messaging-service";
 
 import { match, P } from "ts-pattern";
 
