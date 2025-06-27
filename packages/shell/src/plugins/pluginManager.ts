@@ -1,7 +1,6 @@
 import type { Registry } from "../registry/registry";
 import type { Logger } from "@brains/utils";
 import { EventEmitter } from "events";
-import type { MessageBus } from "../messaging/messageBus";
 import type {
   Plugin,
   PluginContext,
@@ -36,7 +35,6 @@ export class PluginManager implements IPluginManager {
   private registry: Registry;
   private logger: Logger;
   private events: EventEmitter;
-  private messageBus: MessageBus;
 
   /**
    * Get the singleton instance of PluginManager
@@ -44,9 +42,8 @@ export class PluginManager implements IPluginManager {
   public static getInstance(
     registry: Registry,
     logger: Logger,
-    messageBus: MessageBus,
   ): PluginManager {
-    PluginManager.instance ??= new PluginManager(registry, logger, messageBus);
+    PluginManager.instance ??= new PluginManager(registry, logger);
     return PluginManager.instance;
   }
 
@@ -63,9 +60,8 @@ export class PluginManager implements IPluginManager {
   public static createFresh(
     registry: Registry,
     logger: Logger,
-    messageBus: MessageBus,
   ): PluginManager {
-    return new PluginManager(registry, logger, messageBus);
+    return new PluginManager(registry, logger);
   }
 
   /**
@@ -74,12 +70,10 @@ export class PluginManager implements IPluginManager {
   private constructor(
     registry: Registry,
     logger: Logger,
-    messageBus: MessageBus,
   ) {
     this.registry = registry;
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
-    this.messageBus = messageBus;
   }
 
   /**
@@ -240,11 +234,8 @@ export class PluginManager implements IPluginManager {
     // Create plugin context
     const context: PluginContext = {
       pluginId,
-      registry: this.registry,
       logger: this.logger.child(`Plugin:${pluginId}`),
-      getPlugin: this.getPlugin.bind(this),
       events: this.events,
-      messageBus: this.messageBus,
       registerEntityType: <T extends BaseEntity>(
         entityType: string,
         schema: z.ZodType<T>,
@@ -402,9 +393,20 @@ export class PluginManager implements IPluginManager {
       getViewTemplate: (name: string) => {
         return viewRegistry.getViewTemplate(name);
       },
-      // Direct service access
+      listRoutes: () => {
+        return viewRegistry.listRoutes();
+      },
+      listViewTemplates: () => {
+        return viewRegistry.listViewTemplates();
+      },
+      // Plugin metadata access (scoped to current plugin by default)
+      getPluginPackageName: (targetPluginId?: string) => {
+        const targetId = targetPluginId || pluginId;
+        const pluginInfo = this.plugins.get(targetId);
+        return pluginInfo?.plugin.packageName;
+      },
+      // Entity service access - direct access to well-designed service interface
       entityService,
-      viewRegistry,
     };
 
     // Register the plugin

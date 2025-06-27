@@ -119,7 +119,6 @@ export class Shell {
     const pluginManager = PluginManager.createFresh(
       registry,
       logger,
-      messageBus,
     );
 
     // Merge fresh instances with any provided dependencies (without contentGenerator yet)
@@ -206,7 +205,7 @@ export class Shell {
       dependencies?.viewRegistry ?? ViewRegistry.getInstance();
     this.pluginManager =
       dependencies?.pluginManager ??
-      PluginManager.getInstance(this.registry, this.logger, this.messageBus);
+      PluginManager.getInstance(this.registry, this.logger);
 
     this.entityService =
       dependencies?.entityService ??

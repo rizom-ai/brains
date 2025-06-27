@@ -16,11 +16,6 @@ import type { Shell } from "@/shell";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import { MessageBus } from "@/messaging/messageBus";
 
-interface MockService {
-  id: string;
-  getName(): string;
-  getVersion(): string;
-}
 import { match, P } from "ts-pattern";
 
 // Create a simple test plugin
@@ -55,18 +50,10 @@ class TestPlugin implements Plugin {
     }
 
     this.registerCalled = true;
-    const { registry, logger } = context;
+    const { logger } = context;
 
-    // Register a test service
-    registry.register(`service:${this.id}`, () => {
-      return {
-        id: this.id,
-        getName: (): string => this.name,
-        getVersion: (): string => this.version,
-      };
-    });
-
-    logger.info(`Registered service for plugin ${this.id}`);
+    // Test plugin registration - registry access is no longer available
+    logger.info(`Registered plugin ${this.id}`);
 
     // Return empty capabilities
     return {
@@ -80,7 +67,6 @@ describe("PluginManager", (): void => {
   let pluginManager: PluginManager;
   let registry: Registry;
   let logger: Logger;
-  let messageBus: MessageBus;
 
   beforeEach((): void => {
     // Reset singletons
@@ -91,7 +77,6 @@ describe("PluginManager", (): void => {
     // Create fresh instances with mock logger
     logger = createSilentLogger();
     registry = Registry.createFresh(logger);
-    messageBus = MessageBus.createFresh(logger);
 
     // Register a mock shell with required services
     const mockShell = {
@@ -169,7 +154,7 @@ describe("PluginManager", (): void => {
     };
     registry.register("shell", () => mockShell as unknown as Shell);
 
-    pluginManager = PluginManager.createFresh(registry, logger, messageBus);
+    pluginManager = PluginManager.createFresh(registry, logger);
   });
 
   test("plugin lifecycle - register and initialize plugins", async (): Promise<void> => {
@@ -213,16 +198,8 @@ describe("PluginManager", (): void => {
     expect(pluginA.registerCalled).toBe(true);
     expect(pluginB.registerCalled).toBe(true);
 
-    // Services should be registered
-    expect(registry.has("service:plugin-a")).toBe(true);
-    expect(registry.has("service:plugin-b")).toBe(true);
-
-    // Resolve services
-    const serviceA = registry.resolve<MockService>("service:plugin-a");
-    const serviceB = registry.resolve<MockService>("service:plugin-b");
-
-    expect(serviceA.id).toBe("plugin-a");
-    expect(serviceB.id).toBe("plugin-b");
+    // Note: Registry service registration is no longer part of the plugin interface
+    // Plugins now use proper abstraction layers instead of direct registry access
   });
 
   test("plugin dependencies are respected during initialization", async (): Promise<void> => {
@@ -406,7 +383,7 @@ describe("PluginManager", (): void => {
   });
 
   test("plugin registration can handle async operations", async () => {
-    const pm = PluginManager.createFresh(registry, logger, messageBus);
+    const pm = PluginManager.createFresh(registry, logger);
 
     // Create a plugin that does async work during registration
     let asyncWorkCompleted = false;
