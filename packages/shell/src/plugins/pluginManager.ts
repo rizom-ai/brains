@@ -384,11 +384,38 @@ export class PluginManager implements IPluginManager {
       getViewTemplate: (name: string) => {
         return viewRegistry.getViewTemplate(name);
       },
+      
+      // Route finding abstraction
+      getRoute: (path: string) => {
+        return viewRegistry.getRoute(path);
+      },
+      findRoute: (filter: {
+        id?: string;
+        pluginId?: string;
+        pathPattern?: string;
+      }) => {
+        return viewRegistry.findRoute(filter);
+      },
       listRoutes: () => {
         return viewRegistry.listRoutes();
       },
+      validateRoute: (route: RouteDefinition) => {
+        return viewRegistry.validateRoute(route);
+      },
+      
+      // Template finding abstraction
+      findViewTemplate: (filter: {
+        name?: string;
+        pluginId?: string;
+        namePattern?: string;
+      }) => {
+        return viewRegistry.findViewTemplate(filter);
+      },
       listViewTemplates: () => {
         return viewRegistry.listViewTemplates();
+      },
+      validateTemplate: (templateName: string, content: unknown) => {
+        return viewRegistry.validateViewTemplate(templateName, content);
       },
       // Plugin metadata access (scoped to current plugin by default)
       getPluginPackageName: (targetPluginId?: string) => {

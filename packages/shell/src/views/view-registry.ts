@@ -54,6 +54,39 @@ export class ViewRegistry implements IViewRegistry {
     return this.routeRegistry.list();
   }
 
+  findRoute(filter: {
+    id?: string;
+    pluginId?: string;
+    pathPattern?: string;
+  }): RouteDefinition | undefined {
+    const routes = this.routeRegistry.list();
+
+    return routes.find((route) => {
+      if (filter.id && route.id !== filter.id) return false;
+      if (filter.pluginId && route.pluginId !== filter.pluginId) return false;
+      if (filter.pathPattern) {
+        const pattern = new RegExp(filter.pathPattern);
+        if (!pattern.test(route.path)) return false;
+      }
+      return true;
+    });
+  }
+
+  listRoutesByPlugin(pluginId: string): RouteDefinition[] {
+    return this.routeRegistry.listByPlugin(pluginId);
+  }
+
+  validateRoute(route: RouteDefinition): boolean {
+    try {
+      // Use the same validation as RouteRegistry - delegate to RouteRegistry for validation
+      const tempRegistry = RouteRegistry.createFresh();
+      tempRegistry.register(route);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // ===== View Template Methods =====
 
   registerTemplate<T>(name: string, template: Template<T>): void {
@@ -104,6 +137,24 @@ export class ViewRegistry implements IViewRegistry {
 
   validateViewTemplate(templateName: string, content: unknown): boolean {
     return this.viewTemplateRegistry.validate(templateName, content);
+  }
+
+  findViewTemplate(filter: {
+    name?: string;
+    pluginId?: string;
+    namePattern?: string;
+  }): ViewTemplate<unknown> | undefined {
+    const templates = this.viewTemplateRegistry.list();
+
+    return templates.find((template) => {
+      if (filter.name && template.name !== filter.name) return false;
+      if (filter.pluginId && template.pluginId !== filter.pluginId) return false;
+      if (filter.namePattern) {
+        const pattern = new RegExp(filter.namePattern);
+        if (!pattern.test(template.name)) return false;
+      }
+      return true;
+    });
   }
 
   // ===== Renderer Access Methods =====

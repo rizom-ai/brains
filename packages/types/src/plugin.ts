@@ -176,9 +176,25 @@ export interface PluginContext {
   ) => void;
   // View template access (replaces direct viewRegistry access)
   getViewTemplate: (name: string) => ViewTemplate | undefined;
-  // TODO: Replace these with proper route finding abstraction in viewRegistry
-  listRoutes: () => RouteDefinition[];
-  listViewTemplates: () => ViewTemplate[];
+  
+  // Route finding abstraction
+  getRoute: (path: string) => RouteDefinition | undefined;
+  findRoute: (filter: {
+    id?: string;
+    pluginId?: string;
+    pathPattern?: string;
+  }) => RouteDefinition | undefined;
+  listRoutes: () => RouteDefinition[]; // for tool use only
+  validateRoute: (route: RouteDefinition) => boolean;
+  
+  // Template finding abstraction
+  findViewTemplate: (filter: {
+    name?: string;
+    pluginId?: string;
+    namePattern?: string;
+  }) => ViewTemplate | undefined;
+  listViewTemplates: () => ViewTemplate[]; // for tool use only
+  validateTemplate: (templateName: string, content: unknown) => boolean;
   // Plugin metadata access (scoped to current plugin by default)
   getPluginPackageName: (pluginId?: string) => string | undefined;
   // Entity service access - direct access to public service interface

@@ -243,8 +243,17 @@ export class PluginTestHarness {
       },
       // View template access (replaces direct viewRegistry access)
       getViewTemplate: (): undefined => undefined,
+      
+      // Route finding abstraction
+      getRoute: (): undefined => undefined,
+      findRoute: (): undefined => undefined,
       listRoutes: () => [],
+      validateRoute: (): boolean => true,
+      
+      // Template finding abstraction
+      findViewTemplate: (): undefined => undefined,
       listViewTemplates: () => [],
+      validateTemplate: (): boolean => true,
       // Plugin metadata access (scoped to current plugin by default)
       getPluginPackageName: (): string => "test-plugin-package",
       // Entity service access - direct access to mock entity service
@@ -341,7 +350,12 @@ export class PluginTestHarness {
           );
         }
         // Create a new entity based on the source
-        const { id: _id, created: _created, updated: _updated, ...sourceFields } = source;
+        const {
+          id: _id,
+          created: _created,
+          updated: _updated,
+          ...sourceFields
+        } = source;
         return this.createTestEntity(
           targetEntityType,
           sourceFields as EntityInput<T>,

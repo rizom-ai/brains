@@ -548,8 +548,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             }
 
             // Find the template name for this page/section
-            const routes = this.context.listRoutes();
-            const route = routes.find((r) => r.id === page);
+            const route = this.context.findRoute({ id: page });
             if (!route) {
               throw new Error(`Route not found for page: ${page}`);
             }
@@ -757,8 +756,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             }
 
             // Find the template name for this page/section
-            const routes = this.context.listRoutes();
-            const route = routes.find((r) => r.id === page);
+            const route = this.context.findRoute({ id: page });
             if (!route) {
               throw new Error(`Route not found for page: ${page}`);
             }
