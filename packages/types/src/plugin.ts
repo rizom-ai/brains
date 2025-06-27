@@ -16,7 +16,7 @@ import type { VNode } from "preact";
  */
 export type ComponentType<P = unknown> = (props: P) => VNode;
 
-import type { ViewRegistry, RouteDefinition, SectionDefinition } from "./views";
+import type { ViewRegistry, RouteDefinition, SectionDefinition, ViewTemplate } from "./views";
 
 /**
  * Context for content generation - simplified for template-based approach
@@ -178,6 +178,8 @@ export interface PluginContext {
     routes: RouteDefinition[],
     options?: { environment?: string },
   ) => void;
+  // View template access (replaces direct viewRegistry access)
+  getViewTemplate: (name: string) => ViewTemplate | undefined;
   // Direct service access
   entityService: EntityService;
   viewRegistry: ViewRegistry;

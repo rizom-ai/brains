@@ -267,6 +267,8 @@ export class PluginTestHarness {
         // Mock implementation for test harness
         return "mock route content";
       },
+      // View template access (replaces direct viewRegistry access)
+      getViewTemplate: (): undefined => undefined,
       viewRegistry: {
         registerRoute: (): void => {
           // Mock implementation for test harness

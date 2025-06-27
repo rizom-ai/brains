@@ -398,6 +398,10 @@ export class PluginManager implements IPluginManager {
           );
         }
       },
+      // View template access (replaces direct viewRegistry access)
+      getViewTemplate: (name: string) => {
+        return viewRegistry.getViewTemplate(name);
+      },
       // Direct service access
       entityService,
       viewRegistry,

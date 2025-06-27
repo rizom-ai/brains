@@ -1,8 +1,8 @@
 import type { Logger } from "@brains/utils";
 import type {
   RouteDefinition,
-  ViewRegistry,
   PluginContext,
+  ViewTemplate,
 } from "@brains/types";
 import type { CSSProcessor } from "./css/css-processor";
 
@@ -11,7 +11,6 @@ import type { CSSProcessor } from "./css/css-processor";
  */
 export interface BuildContext {
   routes: RouteDefinition[];
-  viewRegistry: ViewRegistry;
   pluginContext: PluginContext;
   siteConfig: {
     title: string;
@@ -19,6 +18,7 @@ export interface BuildContext {
     url?: string;
   };
   getContent: (section: RouteDefinition["sections"][0]) => Promise<unknown>;
+  getViewTemplate: (name: string) => ViewTemplate | undefined;
 }
 
 /**

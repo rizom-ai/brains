@@ -53,7 +53,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     onProgress?.("Setting up component hydration");
     const hydrationManager = new HydrationManager(
       this.logger.child("HydrationManager"),
-      context.viewRegistry,
+      context.getViewTemplate,
       context.pluginContext,
       this.outputDir,
     );
@@ -124,7 +124,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     const renderedSections: string[] = [];
 
     for (const section of sections) {
-      const template = context.viewRegistry.getViewTemplate(section.template);
+      const template = context.getViewTemplate(section.template);
       if (!template) {
         this.logger.warn(`Template not found: ${section.template}`);
         continue;

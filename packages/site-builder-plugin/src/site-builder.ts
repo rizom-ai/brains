@@ -122,7 +122,6 @@ export class SiteBuilder implements ISiteBuilder {
 
       const buildContext: BuildContext = {
         routes,
-        viewRegistry: this.context.viewRegistry,
         pluginContext: this.context,
         siteConfig: {
           title: siteConfig.title,
@@ -131,6 +130,9 @@ export class SiteBuilder implements ISiteBuilder {
         },
         getContent: async (section: SectionDefinition) => {
           return this.getContentForSection(section, options.environment);
+        },
+        getViewTemplate: (name: string) => {
+          return this.context.getViewTemplate(name);
         },
       };
 

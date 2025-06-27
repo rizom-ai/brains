@@ -99,7 +99,7 @@ describe("PreactBuilder", () => {
           ],
         },
       ],
-      viewRegistry,
+      getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
       pluginContext: mockPluginContext,
       siteConfig: {
         title: "Test Site",
@@ -135,7 +135,7 @@ describe("PreactBuilder", () => {
     });
 
     const viewRegistry = {
-      getViewTemplate: (): ViewTemplate => ({
+      getViewTemplate: (_name: string): ViewTemplate => ({
         name: "test",
         schema: z.object({ content: z.string() }),
         pluginId: "test-plugin",
@@ -179,7 +179,7 @@ describe("PreactBuilder", () => {
           ],
         },
       ],
-      viewRegistry,
+      getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
       pluginContext: mockPluginContext,
       siteConfig: {
         title: "Test Site",
@@ -207,7 +207,7 @@ describe("PreactBuilder", () => {
     });
 
     const viewRegistry = {
-      getViewTemplate: (): undefined => undefined, // No templates found
+      getViewTemplate: (_name: string): undefined => undefined, // No templates found
       registerRoute: (): void => {},
       getRoute: (): undefined => undefined,
       listRoutes: (): RouteDefinition[] => [],
@@ -240,7 +240,7 @@ describe("PreactBuilder", () => {
           ],
         },
       ],
-      viewRegistry,
+      getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
       pluginContext: mockPluginContext,
       siteConfig: {
         title: "Test Site",
@@ -269,7 +269,7 @@ describe("PreactBuilder", () => {
     let contentFetched = false;
 
     const viewRegistry = {
-      getViewTemplate: (): ViewTemplate => ({
+      getViewTemplate: (_name: string): ViewTemplate => ({
         name: "test",
         schema: z.object({ title: z.string() }),
         pluginId: "test-plugin",
@@ -317,7 +317,7 @@ describe("PreactBuilder", () => {
           ],
         },
       ],
-      viewRegistry,
+      getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
       pluginContext: mockPluginContext,
       siteConfig: {
         title: "Test Site",

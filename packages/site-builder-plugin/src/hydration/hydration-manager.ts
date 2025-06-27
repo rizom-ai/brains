@@ -1,8 +1,8 @@
 import type { Logger } from "@brains/utils";
 import type {
-  ViewRegistry,
   RouteDefinition,
   PluginContext,
+  ViewTemplate,
 } from "@brains/types";
 import { join } from "path";
 import { fileURLToPath } from "url";
@@ -14,18 +14,18 @@ import { promises as fs } from "fs";
  */
 export class HydrationManager {
   private logger: Logger;
-  private viewRegistry: ViewRegistry;
+  private getViewTemplate: (name: string) => ViewTemplate | undefined;
   private pluginContext: PluginContext;
   private outputDir: string;
 
   constructor(
     logger: Logger,
-    viewRegistry: ViewRegistry,
+    getViewTemplate: (name: string) => ViewTemplate | undefined,
     pluginContext: PluginContext,
     outputDir: string,
   ) {
     this.logger = logger;
-    this.viewRegistry = viewRegistry;
+    this.getViewTemplate = getViewTemplate;
     this.pluginContext = pluginContext;
     this.outputDir = outputDir;
   }
@@ -46,7 +46,7 @@ export class HydrationManager {
         this.logger.info(
           `Checking section ${section.id} with template ${section.template}`,
         );
-        const template = this.viewRegistry.getViewTemplate(section.template);
+        const template = this.getViewTemplate(section.template);
         if (!template) {
           this.logger.warn(`Template not found: ${section.template}`);
         } else {
@@ -80,7 +80,7 @@ export class HydrationManager {
   async updateHTMLFiles(routes: RouteDefinition[]): Promise<void> {
     for (const route of routes) {
       const hasInteractive = route.sections.some((section) => {
-        const template = this.viewRegistry.getViewTemplate(section.template);
+        const template = this.getViewTemplate(section.template);
         return template?.interactive;
       });
 
@@ -120,7 +120,7 @@ export class HydrationManager {
         // Add hydration scripts at the end of body for interactive components
         let hydrationScripts = "";
         for (const section of route.sections) {
-          const template = this.viewRegistry.getViewTemplate(section.template);
+          const template = this.getViewTemplate(section.template);
           if (template?.interactive && section.content) {
             // Extract template name from the full template name
             // Format must be "pluginId:templateName" e.g., "site-builder:dashboard"
