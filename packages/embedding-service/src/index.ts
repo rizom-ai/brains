@@ -1,0 +1,1 @@
+export { EmbeddingService, type IEmbeddingService } from "./embeddingService";
