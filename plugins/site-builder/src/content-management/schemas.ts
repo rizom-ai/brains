@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   siteContentPreviewSchema,
   siteContentProductionSchema,
-} from "@brains/types";
+} from "../types";
 
 /**
  * Regeneration mode schema

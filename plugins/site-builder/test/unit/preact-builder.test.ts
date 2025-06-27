@@ -2,12 +2,14 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPreactBuilder } from "../../src/preact-builder";
 import type { BuildContext } from "../../src/static-site-builder";
 import type {
+  PluginContext,
+} from "@brains/types";
+import type {
   ViewTemplate,
   RouteDefinition,
   OutputFormat,
-  PluginContext,
-} from "@brains/types";
-import { Logger, createMockPlugin } from "@brains/utils";
+} from "@brains/view-registry";
+import { Logger } from "@brains/utils";
 import { z } from "zod";
 import { promises as fs } from "fs";
 import { join } from "path";
@@ -79,8 +81,10 @@ describe("PreactBuilder", () => {
 
     // Create a minimal mock pluginContext with only necessary fields
     const mockPluginContext = {
-      getPlugin: (id: string) =>
-        createMockPlugin({ id, packageName: `@test/${id}` }),
+      getPlugin: (id: string) => ({
+        id,
+        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` }
+      }),
     } as unknown as PluginContext;
 
     const buildContext: BuildContext = {
@@ -159,8 +163,10 @@ describe("PreactBuilder", () => {
     };
 
     const mockPluginContext = {
-      getPlugin: (id: string) =>
-        createMockPlugin({ id, packageName: `@test/${id}` }),
+      getPlugin: (id: string) => ({
+        id,
+        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` }
+      }),
     } as unknown as PluginContext;
 
     const buildContext: BuildContext = {
@@ -220,8 +226,10 @@ describe("PreactBuilder", () => {
     };
 
     const mockPluginContext = {
-      getPlugin: (id: string) =>
-        createMockPlugin({ id, packageName: `@test/${id}` }),
+      getPlugin: (id: string) => ({
+        id,
+        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` }
+      }),
     } as unknown as PluginContext;
 
     const buildContext: BuildContext = {
@@ -293,8 +301,10 @@ describe("PreactBuilder", () => {
     };
 
     const mockPluginContext = {
-      getPlugin: (id: string) =>
-        createMockPlugin({ id, packageName: `@test/${id}` }),
+      getPlugin: (id: string) => ({
+        id,
+        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` }
+      }),
     } as unknown as PluginContext;
 
     const buildContext: BuildContext = {

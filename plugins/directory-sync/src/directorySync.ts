@@ -1,4 +1,5 @@
-import type { EntityService, BaseEntity, Logger } from "@brains/types";
+import type { BaseEntity, Logger } from "@brains/types";
+import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
 import { join, basename, dirname, resolve, isAbsolute } from "path";

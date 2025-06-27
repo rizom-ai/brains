@@ -1,8 +1,8 @@
 import type {
   ViewTemplate,
   ViewTemplateRegistry as IViewTemplateRegistry,
-} from "@brains/types";
-import { ViewTemplateSchema } from "@brains/types";
+} from "./types";
+import { ViewTemplateSchema } from "./types";
 
 export class ViewTemplateRegistry implements IViewTemplateRegistry {
   private static instance: ViewTemplateRegistry | null = null;

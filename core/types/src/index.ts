@@ -10,13 +10,9 @@ export type {
   BaseEntity,
   EntityInput,
   SearchResult,
-  SiteContentPreview,
-  SiteContentProduction,
 } from "./entities";
 export {
   baseEntitySchema,
-  siteContentPreviewSchema,
-  siteContentProductionSchema,
 } from "./entities";
 
 // Plugin types
@@ -36,27 +32,12 @@ export { pluginMetadataSchema, TemplateSchema } from "./plugin";
 // Registry types
 export type { ServiceRegistry, ComponentFactory } from "./registry";
 
-// Service interfaces
+// Service interfaces (minimal shared contracts only)
 export type {
-  ListOptions,
-  SearchOptions,
-  EntityService,
-  IEmbeddingService,
   Command,
   CommandResponse,
   BrainProtocol,
-  EntityRegistry,
-  AIService,
-  AIModelConfig,
-  PluginManager,
-  PluginInfo,
-  PluginManagerEventMap,
-  PluginToolRegisterEvent,
-  PluginResourceRegisterEvent,
 } from "./services";
-
-// Export enums separately
-export { PluginStatus, PluginEvent } from "./services";
 
 // Formatter types
 export type { SchemaFormatter, ContentFormatter } from "./formatters";
@@ -64,31 +45,7 @@ export type { SchemaFormatter, ContentFormatter } from "./formatters";
 // Content types
 export type { ContentRegistry, ContentConfig } from "./content";
 
-// View types and schemas
-export type {
-  RouteDefinition,
-  SectionDefinition,
-  ViewTemplate,
-  OutputFormat,
-  WebRenderer,
-  SiteBuilderOptions,
-  BuildResult,
-  ContentGenerationRequest,
-  RouteRegistry,
-  ViewTemplateRegistry,
-  ViewRegistry,
-  SiteBuilder,
-  SiteContentEntityType,
-} from "./views";
-export {
-  RouteDefinitionSchema,
-  SectionDefinitionSchema,
-  ViewTemplateSchema,
-  SiteBuilderOptionsSchema,
-  BuildResultSchema,
-  ContentGenerationRequestSchema,
-  SiteContentEntityTypeSchema,
-} from "./views";
+// View types have been moved to @brains/view-registry
 
 // Re-export commonly used types from utils
 export type { Logger } from "@brains/utils";

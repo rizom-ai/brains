@@ -136,6 +136,7 @@
       "dependencies": {
         "@brains/base-entity": "workspace:*",
         "@brains/db": "workspace:*",
+        "@brains/embedding-service": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.22.4",
@@ -259,6 +260,25 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "core/test-utils": {
+      "name": "@brains/test-utils",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/base-entity": "workspace:*",
+        "@brains/entity-service": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/node": "^20.11.24",
+        "bun-types": "latest",
         "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
@@ -451,6 +471,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@brains/base-entity": "workspace:*",
+        "@brains/entity-service": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "chokidar": "^3.5.3",
@@ -479,6 +500,7 @@
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "@types/node": "^20.0.0",
@@ -489,8 +511,10 @@
       "name": "@brains/site-builder-plugin",
       "version": "0.0.1",
       "dependencies": {
+        "@brains/entity-service": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
+        "@brains/view-registry": "workspace:*",
         "@tailwindcss/cli": "^4.0.0",
         "esbuild": "^0.19.11",
         "preact": "^10.19.3",
@@ -500,6 +524,7 @@
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.1.17",
         "@types/react": "^18.2.0",
@@ -628,6 +653,8 @@
     "@brains/structured-content": ["@brains/structured-content@workspace:plugins/structured-content"],
 
     "@brains/test-brain": ["@brains/test-brain@workspace:apps/test-brain"],
+
+    "@brains/test-utils": ["@brains/test-utils@workspace:core/test-utils"],
 
     "@brains/types": ["@brains/types@workspace:core/types"],
 

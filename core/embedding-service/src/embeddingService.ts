@@ -1,13 +1,6 @@
 import { EmbeddingModel, FlagEmbedding } from "fastembed";
 import type { Logger } from "@brains/utils";
-
-/**
- * Interface for embedding service
- */
-export interface IEmbeddingService {
-  generateEmbedding(text: string): Promise<Float32Array>;
-  generateEmbeddings(texts: string[]): Promise<Float32Array[]>;
-}
+import type { IEmbeddingService } from "./types";
 
 /**
  * Local embedding service using FastEmbed

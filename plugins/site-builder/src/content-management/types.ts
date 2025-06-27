@@ -1,4 +1,4 @@
-import type { SiteContentPreview, SiteContentProduction } from "@brains/types";
+import type { SiteContentPreview, SiteContentProduction } from "../types";
 
 // Re-export types from schemas
 export type {

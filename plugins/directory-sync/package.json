@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@brains/base-entity": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "chokidar": "^3.5.3",

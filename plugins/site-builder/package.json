@@ -16,8 +16,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@brains/entity-service": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@brains/view-registry": "workspace:*",
     "preact": "^10.19.3",
     "preact-render-to-string": "^6.3.1",
     "esbuild": "^0.19.11",
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.1.17",
     "eslint": "^8.48.0",

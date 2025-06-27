@@ -1,9 +1,9 @@
 import type { EntityAdapter } from "@brains/base-entity";
-import type { SiteContentPreview, SiteContentProduction } from "@brains/types";
+import type { SiteContentPreview, SiteContentProduction } from "../types";
 import {
   siteContentPreviewSchema,
   siteContentProductionSchema,
-} from "@brains/types";
+} from "../types";
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,

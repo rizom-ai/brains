@@ -6,7 +6,8 @@ import type { EntityAdapter } from "@brains/base-entity";
 import type { DrizzleDB } from "@brains/db";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
-import { baseEntitySchema, type IEmbeddingService } from "@brains/types";
+import { baseEntitySchema } from "@brains/types";
+import type { IEmbeddingService } from "@brains/embedding-service";
 import { createId } from "@brains/db/schema";
 
 // Create a mock embedding service

@@ -7,23 +7,27 @@ import type {
   BaseEntity,
   GenerationContext,
   Template,
+  MessageHandler,
+} from "@brains/types";
+import type {
   PluginManager as IPluginManager,
   PluginInfo,
   PluginManagerEventMap,
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
+} from "../types/plugin-manager";
+import { PluginStatus, PluginEvent } from "../types/plugin-manager";
+import type {
   RouteDefinition,
   SectionDefinition,
-  MessageHandler,
-} from "@brains/types";
-import { PluginStatus, PluginEvent } from "@brains/types";
+} from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
 import type { z } from "zod";
 
 // Re-export enums for convenience
-export { PluginEvent, PluginStatus } from "@brains/types";
+export { PluginEvent, PluginStatus } from "../types/plugin-manager";
 
 /**
  * Plugin manager that handles plugin registration, initialization, and lifecycle

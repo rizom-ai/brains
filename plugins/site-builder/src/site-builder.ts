@@ -1,13 +1,15 @@
 import type { ProgressCallback, Logger } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
 import type {
+  PluginContext,
+  BaseEntity,
+} from "@brains/types";
+import type {
   SiteBuilder as ISiteBuilder,
   SiteBuilderOptions,
   BuildResult,
-  PluginContext,
   SectionDefinition,
-  BaseEntity,
-} from "@brains/types";
+} from "@brains/view-registry";
 import { builtInTemplates } from "./view-template-schemas";
 import type {
   StaticSiteBuilderFactory,

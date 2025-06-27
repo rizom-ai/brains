@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { siteBuilderPlugin } from "../../src/plugin";
-import { PluginTestHarness } from "@brains/utils";
+import { PluginTestHarness } from "@brains/test-utils";
 import type { Template } from "@brains/types";
 import { z } from "zod";
 import { h } from "preact";

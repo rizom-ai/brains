@@ -1,9 +1,11 @@
 import type { Logger } from "@brains/utils";
 import type {
-  RouteDefinition,
   PluginContext,
-  ViewTemplate,
 } from "@brains/types";
+import type {
+  RouteDefinition,
+  ViewTemplate,
+} from "@brains/view-registry";
 import { join } from "path";
 import { fileURLToPath } from "url";
 import { promises as fs } from "fs";

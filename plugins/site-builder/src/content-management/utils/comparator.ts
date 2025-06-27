@@ -1,4 +1,4 @@
-import type { SiteContentPreview, SiteContentProduction } from "@brains/types";
+import type { SiteContentPreview, SiteContentProduction } from "../../types";
 import type { ContentComparison } from "../types";
 
 /**

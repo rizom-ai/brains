@@ -1,4 +1,4 @@
-import type { SiteContentEntityType } from "@brains/types";
+import type { SiteContentEntityType } from "@brains/view-registry";
 
 /**
  * Generate deterministic entity ID for site content

@@ -1,11 +1,14 @@
-import type { EntityService, Logger } from "@brains/types";
+import type { Logger } from "@brains/types";
+import type { IEntityService as EntityService } from "@brains/entity-service";
 import type {
   SiteContentEntityType,
-  SiteContentPreview,
-  SiteContentProduction,
   RouteDefinition,
   SectionDefinition,
-} from "@brains/types";
+} from "@brains/view-registry";
+import type {
+  SiteContentPreview,
+  SiteContentProduction,
+} from "../types";
 import type {
   SiteContent,
   PromoteOptions,

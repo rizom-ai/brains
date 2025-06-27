@@ -6,3 +6,6 @@
  */
 
 export { AIService } from "./aiService";
+
+// Export types
+export type { AIService as IAIService, AIModelConfig } from "./types";

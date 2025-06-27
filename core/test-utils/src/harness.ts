@@ -3,13 +3,13 @@ import type {
   PluginContext,
   BaseEntity,
   EntityInput,
-  EntityService,
   PluginTool,
   GenerationContext,
   MessageHandler,
   MessageSender,
   MessageResponse,
 } from "@brains/types";
+import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { z } from "zod";
@@ -321,7 +321,7 @@ export class PluginTestHarness {
    * Create a mock entity service
    */
   private createMockEntityService(): EntityService {
-    return {
+    const mockService: EntityService = {
       createEntity: async <T extends BaseEntity>(
         entity: EntityInput<T>,
       ): Promise<T> => {
@@ -426,5 +426,6 @@ export class PluginTestHarness {
         }
       },
     };
+    return mockService;
   }
 }

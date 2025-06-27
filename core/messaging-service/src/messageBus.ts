@@ -10,7 +10,7 @@ import { z } from "zod";
 
 // Internal type for wrapped handlers
 type WrappedHandler = (
-  message: MessageWithPayload<unknown>
+  message: MessageWithPayload<unknown>,
 ) => Promise<MessageResponse | null>;
 
 /**

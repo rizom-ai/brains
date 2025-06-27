@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import type { IEntityService as EntityService } from "@brains/entity-service";
 import type {
-  EntityService,
-  SiteContentPreview,
-  SiteContentProduction,
   RouteDefinition,
   SectionDefinition,
-} from "@brains/types";
+} from "@brains/view-registry";
+import type {
+  SiteContentPreview,
+  SiteContentProduction,
+} from "../../src/types";
 import { SiteContentManager } from "../../src/content-management/manager";
 
 // Mock EntityService

@@ -5,7 +5,7 @@ import {
   TestDataGenerator,
   FileTestUtils,
   createToolTester,
-} from "@brains/utils";
+} from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import { rmSync, existsSync } from "fs";

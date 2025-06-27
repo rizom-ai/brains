@@ -1,8 +1,8 @@
 import type {
   RouteDefinition,
   RouteRegistry as IRouteRegistry,
-} from "@brains/types";
-import { RouteDefinitionSchema } from "@brains/types";
+} from "./types";
+import { RouteDefinitionSchema } from "./types";
 
 export class RouteRegistry implements IRouteRegistry {
   private static instance: RouteRegistry | null = null;

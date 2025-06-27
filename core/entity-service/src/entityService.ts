@@ -5,10 +5,12 @@ import { Logger, extractIndexedFields } from "@brains/utils";
 import type {
   BaseEntity,
   SearchResult,
+} from "@brains/types";
+import type { IEmbeddingService } from "@brains/embedding-service";
+import type {
   EntityService as IEntityService,
   SearchOptions,
-  IEmbeddingService,
-} from "@brains/types";
+} from "./types";
 import { eq, and, inArray, desc, asc, sql } from "@brains/db";
 import { z } from "zod";
 
