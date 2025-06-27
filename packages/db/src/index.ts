@@ -82,3 +82,6 @@ export async function runMigrations(
 
 // Re-export schema types for convenience
 export * from "./schema";
+
+// Re-export drizzle-orm query builders for centralized dependency management
+export { eq, and, or, inArray, desc, asc, sql } from "drizzle-orm";

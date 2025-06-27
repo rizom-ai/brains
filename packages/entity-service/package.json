@@ -15,7 +15,6 @@
     "@brains/base-entity": "workspace:*",
     "@brains/db": "workspace:*",
     "@brains/utils": "workspace:*",
-    "drizzle-orm": "^0.37.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

@@ -10,7 +10,7 @@ import type {
   SearchOptions,
   IEmbeddingService,
 } from "@brains/types";
-import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, sql } from "@brains/db";
 import { z } from "zod";
 
 /**
