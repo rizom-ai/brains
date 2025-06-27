@@ -176,7 +176,7 @@ export interface PluginContext {
   ) => void;
   // View template access (replaces direct viewRegistry access)
   getViewTemplate: (name: string) => ViewTemplate | undefined;
-  
+
   // Route finding abstraction
   getRoute: (path: string) => RouteDefinition | undefined;
   findRoute: (filter: {
@@ -186,7 +186,7 @@ export interface PluginContext {
   }) => RouteDefinition | undefined;
   listRoutes: () => RouteDefinition[]; // for tool use only
   validateRoute: (route: RouteDefinition) => boolean;
-  
+
   // Template finding abstraction
   findViewTemplate: (filter: {
     name?: string;

@@ -384,7 +384,7 @@ export class PluginManager implements IPluginManager {
       getViewTemplate: (name: string) => {
         return viewRegistry.getViewTemplate(name);
       },
-      
+
       // Route finding abstraction
       getRoute: (path: string) => {
         return viewRegistry.getRoute(path);
@@ -402,7 +402,7 @@ export class PluginManager implements IPluginManager {
       validateRoute: (route: RouteDefinition) => {
         return viewRegistry.validateRoute(route);
       },
-      
+
       // Template finding abstraction
       findViewTemplate: (filter: {
         name?: string;

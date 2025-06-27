@@ -243,13 +243,13 @@ export class PluginTestHarness {
       },
       // View template access (replaces direct viewRegistry access)
       getViewTemplate: (): undefined => undefined,
-      
+
       // Route finding abstraction
       getRoute: (): undefined => undefined,
       findRoute: (): undefined => undefined,
       listRoutes: () => [],
       validateRoute: (): boolean => true,
-      
+
       // Template finding abstraction
       findViewTemplate: (): undefined => undefined,
       listViewTemplates: () => [],

@@ -148,7 +148,8 @@ export class ViewRegistry implements IViewRegistry {
 
     return templates.find((template) => {
       if (filter.name && template.name !== filter.name) return false;
-      if (filter.pluginId && template.pluginId !== filter.pluginId) return false;
+      if (filter.pluginId && template.pluginId !== filter.pluginId)
+        return false;
       if (filter.namePattern) {
         const pattern = new RegExp(filter.namePattern);
         if (!pattern.test(template.name)) return false;
