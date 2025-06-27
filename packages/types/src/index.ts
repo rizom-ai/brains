@@ -62,7 +62,6 @@ export type {
   PluginManagerEventMap,
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
-  SchemaRegistry,
 } from "./services";
 
 // Export enums separately

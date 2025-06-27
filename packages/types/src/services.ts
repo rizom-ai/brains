@@ -283,26 +283,3 @@ export interface PluginResourceRegisterEvent {
   resource: PluginResource;
 }
 
-/**
- * Schema Registry interface for managing Zod schemas
- */
-export interface SchemaRegistry {
-  register(name: string, schema: z.ZodType<unknown>): void;
-
-  get<T = unknown>(name: string): z.ZodType<T> | undefined;
-
-  has(name: string): boolean;
-
-  remove(name: string): boolean;
-
-  getSchemaNames(): string[];
-
-  getAllSchemaNames(): string[];
-
-  validate<T = unknown>(
-    name: string,
-    data: unknown,
-  ): { success: true; data: T } | { success: false; error: z.ZodError };
-
-  clear(): void;
-}
