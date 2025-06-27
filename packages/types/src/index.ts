@@ -34,7 +34,7 @@ export type {
 export { pluginMetadataSchema, TemplateSchema } from "./plugin";
 
 // Registry types
-export type { Registry, ComponentFactory } from "./registry";
+export type { ServiceRegistry, ComponentFactory } from "./registry";
 
 // Messaging types
 export type {

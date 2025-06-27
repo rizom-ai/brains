@@ -1,4 +1,4 @@
-import type { Registry } from "../registry/registry";
+import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
 import { EventEmitter } from "events";
 import type {
@@ -32,15 +32,15 @@ export class PluginManager implements IPluginManager {
   private static instance: PluginManager | null = null;
 
   private plugins: Map<string, PluginInfo> = new Map();
-  private registry: Registry;
+  private serviceRegistry: ServiceRegistry;
   private logger: Logger;
   private events: EventEmitter;
 
   /**
    * Get the singleton instance of PluginManager
    */
-  public static getInstance(registry: Registry, logger: Logger): PluginManager {
-    PluginManager.instance ??= new PluginManager(registry, logger);
+  public static getInstance(serviceRegistry: ServiceRegistry, logger: Logger): PluginManager {
+    PluginManager.instance ??= new PluginManager(serviceRegistry, logger);
     return PluginManager.instance;
   }
 
@@ -54,15 +54,15 @@ export class PluginManager implements IPluginManager {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(registry: Registry, logger: Logger): PluginManager {
-    return new PluginManager(registry, logger);
+  public static createFresh(serviceRegistry: ServiceRegistry, logger: Logger): PluginManager {
+    return new PluginManager(serviceRegistry, logger);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(registry: Registry, logger: Logger) {
-    this.registry = registry;
+  private constructor(serviceRegistry: ServiceRegistry, logger: Logger) {
+    this.serviceRegistry = serviceRegistry;
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
   }
@@ -217,7 +217,7 @@ export class PluginManager implements IPluginManager {
     this.events.emit(PluginEvent.BEFORE_INITIALIZE, pluginId, plugin);
 
     // Get services from shell - shell should always be available
-    const shell = this.registry.resolve<Shell>("shell");
+    const shell = this.serviceRegistry.resolve<Shell>("shell");
     const entityService = shell.getEntityService();
     const contentGenerator = shell.getContentGenerator();
     const viewRegistry = shell.getViewRegistry();
@@ -234,7 +234,7 @@ export class PluginManager implements IPluginManager {
       ): void => {
         try {
           const entityRegistry =
-            this.registry.resolve<EntityRegistry>("entityRegistry");
+            this.serviceRegistry.resolve<EntityRegistry>("entityRegistry");
           entityRegistry.registerEntityType(entityType, schema, adapter);
           this.logger.info(`Registered entity type: ${entityType}`);
         } catch (error) {

@@ -282,4 +282,3 @@ export interface PluginResourceRegisterEvent {
   pluginId: string;
   resource: PluginResource;
 }
-

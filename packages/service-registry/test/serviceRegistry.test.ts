@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { Registry } from "@/registry/registry";
+import { ServiceRegistry } from "../src/serviceRegistry";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 
@@ -28,17 +28,17 @@ interface TestCounterComponent {
   getValue(): number;
 }
 
-describe("Registry", (): void => {
-  let registry: Registry;
+describe("ServiceRegistry", (): void => {
+  let serviceRegistry: ServiceRegistry;
   let logger: Logger;
 
   beforeEach((): void => {
     // Reset singletons
-    Registry.resetInstance();
+    ServiceRegistry.resetInstance();
 
     // Create fresh instances with mock logger
     logger = createSilentLogger();
-    registry = Registry.createFresh(logger);
+    serviceRegistry = ServiceRegistry.createFresh(logger);
   });
 
   test("component lifecycle - register, resolve, and unregister", (): void => {
@@ -48,11 +48,11 @@ describe("Registry", (): void => {
     );
 
     // Register component
-    registry.register("testComponent", componentFactory);
-    expect(registry.has("testComponent")).toBe(true);
+    serviceRegistry.register("testComponent", componentFactory);
+    expect(serviceRegistry.has("testComponent")).toBe(true);
 
     // Resolve component
-    const component = registry.resolve<TestComponent>(
+    const component = serviceRegistry.resolve<TestComponent>(
       "testComponent",
       "test-1",
     );
@@ -61,7 +61,7 @@ describe("Registry", (): void => {
     expect(componentFactory).toHaveBeenCalledTimes(1);
 
     // Resolve again - should use cached instance
-    const sameComponent = registry.resolve<TestComponent>(
+    const sameComponent = serviceRegistry.resolve<TestComponent>(
       "testComponent",
       "test-2",
     );
@@ -69,7 +69,7 @@ describe("Registry", (): void => {
     expect(componentFactory).toHaveBeenCalledTimes(1); // Factory not called again
 
     // Create fresh instance
-    const freshComponent = registry.createFresh<TestComponent>(
+    const freshComponent = serviceRegistry.createFresh<TestComponent>(
       "testComponent",
       "test-3",
     );
@@ -78,12 +78,12 @@ describe("Registry", (): void => {
     expect(componentFactory).toHaveBeenCalledTimes(2);
 
     // Unregister component
-    registry.unregister("testComponent");
-    expect(registry.has("testComponent")).toBe(false);
+    serviceRegistry.unregister("testComponent");
+    expect(serviceRegistry.has("testComponent")).toBe(false);
 
     // Trying to resolve or create should throw
-    expect(() => registry.resolve("testComponent")).toThrow();
-    expect(() => registry.createFresh("testComponent")).toThrow();
+    expect(() => serviceRegistry.resolve("testComponent")).toThrow();
+    expect(() => serviceRegistry.createFresh("testComponent")).toThrow();
   });
 
   test("registry maintains component state", (): void => {
@@ -101,8 +101,8 @@ describe("Registry", (): void => {
     });
 
     // Register and resolve the counter
-    registry.register("counter", counterFactory);
-    const counterComponent = registry.resolve<TestCounterComponent>("counter");
+    serviceRegistry.register("counter", counterFactory);
+    const counterComponent = serviceRegistry.resolve<TestCounterComponent>("counter");
 
     // Use the component
     expect(counterComponent.increment()).toBe(1);
@@ -110,21 +110,21 @@ describe("Registry", (): void => {
     expect(counterComponent.getValue()).toBe(2);
 
     // Resolve again and it should maintain state
-    const sameCounter = registry.resolve<TestCounterComponent>("counter");
+    const sameCounter = serviceRegistry.resolve<TestCounterComponent>("counter");
     expect(sameCounter.getValue()).toBe(2);
     expect(sameCounter.increment()).toBe(3);
 
     // Create fresh should not maintain state
-    const freshCounter = registry.createFresh<TestCounterComponent>("counter");
+    const freshCounter = serviceRegistry.createFresh<TestCounterComponent>("counter");
     expect(freshCounter.getValue()).toBe(3); // Still uses the same closure var
 
     // Clear registry and re-register
-    registry.clear();
+    serviceRegistry.clear();
     counter = 0; // Reset the counter
-    registry.register("counter", counterFactory);
+    serviceRegistry.register("counter", counterFactory);
 
     // State should be reset
-    const newCounter = registry.resolve<TestCounterComponent>("counter");
+    const newCounter = serviceRegistry.resolve<TestCounterComponent>("counter");
     expect(newCounter.getValue()).toBe(0);
   });
 });

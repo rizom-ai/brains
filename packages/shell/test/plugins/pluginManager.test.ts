@@ -10,7 +10,7 @@ import {
   PluginManager,
   PluginStatus,
 } from "@/plugins/pluginManager";
-import { Registry } from "@/registry/registry";
+import { ServiceRegistry } from "@brains/service-registry";
 import type { Shell } from "@/shell";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
@@ -65,18 +65,18 @@ class TestPlugin implements Plugin {
 
 describe("PluginManager", (): void => {
   let pluginManager: PluginManager;
-  let registry: Registry;
+  let serviceRegistry: ServiceRegistry;
   let logger: Logger;
 
   beforeEach((): void => {
     // Reset singletons
     PluginManager.resetInstance();
-    Registry.resetInstance();
+    ServiceRegistry.resetInstance();
     MessageBus.resetInstance();
 
     // Create fresh instances with mock logger
     logger = createSilentLogger();
-    registry = Registry.createFresh(logger);
+    serviceRegistry = ServiceRegistry.createFresh(logger);
 
     // Register a mock shell with required services
     const mockShell = {
@@ -152,9 +152,9 @@ describe("PluginManager", (): void => {
         validateViewTemplate: (): boolean => true,
       }),
     };
-    registry.register("shell", () => mockShell as unknown as Shell);
+    serviceRegistry.register("shell", () => mockShell as unknown as Shell);
 
-    pluginManager = PluginManager.createFresh(registry, logger);
+    pluginManager = PluginManager.createFresh(serviceRegistry, logger);
   });
 
   test("plugin lifecycle - register and initialize plugins", async (): Promise<void> => {
@@ -383,7 +383,7 @@ describe("PluginManager", (): void => {
   });
 
   test("plugin registration can handle async operations", async () => {
-    const pm = PluginManager.createFresh(registry, logger);
+    const pm = PluginManager.createFresh(serviceRegistry, logger);
 
     // Create a plugin that does async work during registration
     let asyncWorkCompleted = false;

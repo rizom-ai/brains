@@ -1,7 +1,7 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
 import { createDatabase, enableWALMode } from "@brains/db";
-import { Registry } from "./registry/registry";
+import { ServiceRegistry } from "@brains/service-registry";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager, PluginEvent } from "./plugins/pluginManager";
@@ -33,7 +33,7 @@ export interface ShellDependencies {
   aiService?: AIService;
   mcpServer?: McpServer;
   entityService?: EntityService;
-  registry?: Registry;
+  serviceRegistry?: ServiceRegistry;
   entityRegistry?: EntityRegistry;
   messageBus?: MessageBus;
   viewRegistry?: ViewRegistry;
@@ -55,7 +55,7 @@ export class Shell {
   private readonly db: LibSQLDatabase<Record<string, never>>;
   private readonly dbClient: Client;
   private readonly logger: Logger;
-  private readonly registry: Registry;
+  private readonly serviceRegistry: ServiceRegistry;
   private readonly entityRegistry: EntityRegistry;
   private readonly messageBus: MessageBus;
   private readonly pluginManager: PluginManager;
@@ -112,16 +112,16 @@ export class Shell {
         context: fullConfig.logging.context,
       });
 
-    const registry = Registry.createFresh(logger);
+    const serviceRegistry = ServiceRegistry.createFresh(logger);
     const entityRegistry = EntityRegistry.createFresh(logger);
     const messageBus = MessageBus.createFresh(logger);
-    const pluginManager = PluginManager.createFresh(registry, logger);
+    const pluginManager = PluginManager.createFresh(serviceRegistry, logger);
 
     // Merge fresh instances with any provided dependencies (without contentGenerator yet)
     const freshDependencies: ShellDependencies = {
       ...dependencies,
       logger,
-      registry,
+      serviceRegistry,
       entityRegistry,
       messageBus,
       pluginManager,
@@ -192,7 +192,7 @@ export class Shell {
 
     // Initialize core components
     // Use provided dependencies if available, otherwise use singletons
-    this.registry = dependencies?.registry ?? Registry.getInstance(this.logger);
+    this.serviceRegistry = dependencies?.serviceRegistry ?? ServiceRegistry.getInstance(this.logger);
     this.entityRegistry =
       dependencies?.entityRegistry ?? EntityRegistry.getInstance(this.logger);
     this.messageBus =
@@ -201,7 +201,7 @@ export class Shell {
       dependencies?.viewRegistry ?? ViewRegistry.getInstance();
     this.pluginManager =
       dependencies?.pluginManager ??
-      PluginManager.getInstance(this.registry, this.logger);
+      PluginManager.getInstance(this.serviceRegistry, this.logger);
 
     this.entityService =
       dependencies?.entityService ??
@@ -238,16 +238,16 @@ export class Shell {
       logger: this.logger,
     });
 
-    // Register core components in the registry
-    this.registry.register("shell", () => this);
-    this.registry.register("entityRegistry", () => this.entityRegistry);
-    this.registry.register("messageBus", () => this.messageBus);
-    this.registry.register("pluginManager", () => this.pluginManager);
-    this.registry.register("entityService", () => this.entityService);
-    this.registry.register("aiService", () => this.aiService);
-    this.registry.register("contentGenerator", () => this.contentGenerator);
-    this.registry.register("viewRegistry", () => this.viewRegistry);
-    this.registry.register("mcpServer", () => this.mcpServer);
+    // Register core components in the service registry
+    this.serviceRegistry.register("shell", () => this);
+    this.serviceRegistry.register("entityRegistry", () => this.entityRegistry);
+    this.serviceRegistry.register("messageBus", () => this.messageBus);
+    this.serviceRegistry.register("pluginManager", () => this.pluginManager);
+    this.serviceRegistry.register("entityService", () => this.entityService);
+    this.serviceRegistry.register("aiService", () => this.aiService);
+    this.serviceRegistry.register("contentGenerator", () => this.contentGenerator);
+    this.serviceRegistry.register("viewRegistry", () => this.viewRegistry);
+    this.serviceRegistry.register("mcpServer", () => this.mcpServer);
 
     // Listen for plugin tool registration events
     this.pluginManager.on(PluginEvent.TOOL_REGISTER, (event) => {
@@ -498,7 +498,7 @@ export class Shell {
     }
 
     // Clear registries
-    this.registry.clear();
+    this.serviceRegistry.clear();
 
     // Close database connection
     this.dbClient.close();

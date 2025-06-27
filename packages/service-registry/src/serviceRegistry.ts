@@ -6,43 +6,43 @@ import { Logger } from "@brains/utils";
 export type ComponentFactory<T> = (...args: unknown[]) => T;
 
 /**
- * Registry of components for dependency management
+ * Service registry for dependency management
  * Implements Component Interface Standardization pattern
  */
-export class Registry {
-  private static instance: Registry | null = null;
+export class ServiceRegistry {
+  private static instance: ServiceRegistry | null = null;
 
   private components: Map<string, unknown> = new Map();
   private factories: Map<string, ComponentFactory<unknown>> = new Map();
   private logger: Logger;
 
   /**
-   * Get the singleton instance of Registry
+   * Get the singleton instance of ServiceRegistry
    */
-  public static getInstance(logger: Logger = Logger.getInstance()): Registry {
-    Registry.instance ??= new Registry(logger);
-    return Registry.instance;
+  public static getInstance(logger: Logger = Logger.getInstance()): ServiceRegistry {
+    ServiceRegistry.instance ??= new ServiceRegistry(logger);
+    return ServiceRegistry.instance;
   }
 
   /**
    * Reset the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
-    Registry.instance = null;
+    ServiceRegistry.instance = null;
   }
 
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(logger: Logger): Registry {
-    return new Registry(logger);
+  public static createFresh(logger: Logger): ServiceRegistry {
+    return new ServiceRegistry(logger);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
   private constructor(logger: Logger) {
-    this.logger = logger.child("Registry");
+    this.logger = logger.child("ServiceRegistry");
   }
 
   /**

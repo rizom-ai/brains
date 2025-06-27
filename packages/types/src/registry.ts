@@ -4,9 +4,9 @@
 export type ComponentFactory<T> = (...args: unknown[]) => T;
 
 /**
- * Registry interface for managing components
+ * Service registry interface for managing components
  */
-export interface Registry {
+export interface ServiceRegistry {
   register<T>(id: string, factory: ComponentFactory<T>): void;
   resolve<T>(id: string, ...args: unknown[]): T;
   has(id: string): boolean;
