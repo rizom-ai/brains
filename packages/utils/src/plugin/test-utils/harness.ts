@@ -2,13 +2,9 @@ import type {
   Plugin,
   PluginContext,
   BaseEntity,
-  EntityService,
-  Registry,
+  EntityInput,
+  PublicEntityService,
   PluginTool,
-  ComponentFactory,
-  MessageBus,
-  RouteDefinition,
-  ViewTemplate,
   GenerationContext,
 } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
@@ -94,18 +90,18 @@ export class PluginTestHarness {
    */
   async createTestEntity<T extends BaseEntity = BaseEntity>(
     entityType: string,
-    data: Partial<T>,
+    data: EntityInput<T>,
   ): Promise<T> {
-    const id = `${entityType}-${++this.entityIdCounter}`;
+    const id = data.id ?? `${entityType}-${++this.entityIdCounter}`;
     const now = new Date().toISOString();
 
     const entity = {
+      ...data,
       id,
       entityType,
       content: data.content ?? "Test content",
       created: data.created ?? now,
       updated: data.updated ?? now,
-      ...data,
     } as T;
 
     // Store in our simple in-memory store
@@ -161,20 +157,6 @@ export class PluginTestHarness {
   }
 
   /**
-   * Get entity service
-   */
-  getEntityService(): Partial<EntityService> {
-    return this.createMockEntityService();
-  }
-
-  /**
-   * Get registry
-   */
-  getRegistry(): Registry {
-    return this.createMockRegistry();
-  }
-
-  /**
    * Get installed plugins
    */
   getInstalledPlugins(): Plugin[] {
@@ -201,20 +183,12 @@ export class PluginTestHarness {
   getPluginContext(): PluginContext {
     return {
       pluginId: "test-plugin",
-      registry: this.createMockRegistry(),
       logger: this.logger,
-      getPlugin: (id: string): Plugin | undefined => {
-        return this.installedPlugins.find((p) => p.id === id);
-      },
       events: {
         on: (): unknown => undefined,
         emit: (): boolean => false,
         removeListener: (): unknown => undefined,
       } as unknown as EventEmitter,
-      messageBus: {
-        publish: async (): Promise<void> => undefined,
-        subscribe: (): (() => void) => () => undefined,
-      } as unknown as MessageBus,
       registerEntityType: <T extends BaseEntity>(
         entityType: string,
         schema: z.ZodType<T>,
@@ -269,29 +243,12 @@ export class PluginTestHarness {
       },
       // View template access (replaces direct viewRegistry access)
       getViewTemplate: (): undefined => undefined,
-      viewRegistry: {
-        registerRoute: (): void => {
-          // Mock implementation for test harness
-        },
-        getRoute: (): undefined => undefined,
-        listRoutes: (): RouteDefinition[] => {
-          return [];
-        },
-        registerViewTemplate: (): void => {
-          // Mock implementation for test harness
-        },
-        getViewTemplate: (): undefined => undefined,
-        listViewTemplates: (): ViewTemplate[] => {
-          return [];
-        },
-        validateViewTemplate: (): boolean => true,
-        // Renderer access methods
-        getRenderer: (): undefined => undefined,
-        hasRenderer: (): boolean => false,
-        listFormats: (): "web"[] => [],
-      },
-      // Direct service access
-      entityService: this.getEntityService() as EntityService,
+      listRoutes: () => [],
+      listViewTemplates: () => [],
+      // Plugin metadata access (scoped to current plugin by default)
+      getPluginPackageName: (): string => "test-plugin-package",
+      // Entity service access - direct access to mock entity service
+      entityService: this.createMockEntityService(),
       // Route registration
       registerRoutes: (): void => {
         // Mock implementation for test harness
@@ -318,65 +275,12 @@ export class PluginTestHarness {
   }
 
   /**
-   * Create a mock registry for the plugin context
-   */
-  private createMockRegistry(): Registry {
-    const registry = new Map<string, unknown>();
-
-    // Pre-register the entity service
-    registry.set("entityService", this.createMockEntityService());
-
-    return {
-      register: <T>(id: string, factory: ComponentFactory<T>): void => {
-        registry.set(id, factory);
-      },
-      resolve: <T>(id: string, ...args: unknown[]): T => {
-        if (id === "entityService") {
-          return this.createMockEntityService() as T;
-        }
-        const factory = registry.get(id);
-        if (!factory) {
-          throw new Error(`Component ${id} not found in registry`);
-        }
-        return (
-          typeof factory === "function" ? factory(...args) : factory
-        ) as T;
-      },
-      has: (id: string): boolean => {
-        return registry.has(id);
-      },
-      getAll: (): string[] => {
-        return Array.from(registry.keys());
-      },
-      clear: (): void => {
-        registry.clear();
-      },
-      unregister: (id: string): void => {
-        registry.delete(id);
-      },
-      createFresh: <T>(id: string, ...args: unknown[]): T => {
-        const factory = registry.get(id);
-        if (!factory) {
-          throw new Error(`Component ${id} not found in registry`);
-        }
-        return (
-          typeof factory === "function" ? factory(...args) : factory
-        ) as T;
-      },
-    };
-  }
-
-  /**
    * Create a mock entity service
    */
-  private createMockEntityService(): Partial<EntityService> {
+  private createMockEntityService(): PublicEntityService {
     return {
       createEntity: async <T extends BaseEntity>(
-        entity: Omit<T, "id" | "created" | "updated"> & {
-          id?: string;
-          created?: string;
-          updated?: string;
-        },
+        entity: EntityInput<T>,
       ): Promise<T> => {
         const entityType =
           ((entity as Record<string, unknown>)["entityType"] as string) ||
@@ -391,76 +295,38 @@ export class PluginTestHarness {
       },
       listEntities: async <T extends BaseEntity>(
         entityType: string,
+        _options?: { filter?: { metadata?: Record<string, unknown> } },
       ): Promise<T[]> => {
+        // For simplicity, ignore filter options in test harness
         return this.listEntities(entityType);
       },
-      getEntityTypes: (): string[] => {
-        return Array.from(this.entities.keys());
+      updateEntity: async <T extends BaseEntity>(entity: T): Promise<T> => {
+        // Find and update entity in harness storage
+        const entities = this.entities.get(entity.entityType) ?? [];
+        const index = entities.findIndex((e) => e.id === entity.id);
+        if (index !== -1) {
+          entities[index] = { ...entity, updated: new Date().toISOString() };
+          this.entities.set(entity.entityType, entities);
+          return entities[index] as T;
+        }
+        throw new Error(`Entity ${entity.id} not found for update`);
       },
-      hasAdapter: (entityType: string): boolean => {
-        // Mock implementation - assume adapter exists for known entity types
-        return (
-          this.entities.has(entityType) ||
-          entityType === "note" ||
-          entityType === "task"
-        );
+      deleteEntity: async (id: string): Promise<boolean> => {
+        // Find and remove entity from harness storage
+        for (const [entityType, entities] of this.entities) {
+          const index = entities.findIndex((e) => e.id === id);
+          if (index !== -1) {
+            entities.splice(index, 1);
+            this.entities.set(entityType, entities);
+            return true;
+          }
+        }
+        return false; // Entity not found
       },
-      getAdapter: <T extends BaseEntity>(
-        entityType: string,
-      ): EntityAdapter<T> => {
-        // Mock adapter that converts entities to markdown
-        const baseSchema = z.object({
-          id: z.string(),
-          entityType: z.string(),
-          title: z.string(),
-          content: z.string(),
-          tags: z.array(z.string()),
-          created: z.string(),
-          updated: z.string(),
-        }) as unknown as z.ZodSchema<T>;
-
-        return {
-          entityType,
-          schema: baseSchema,
-          toMarkdown: (entity: T): string => {
-            return entity.content;
-          },
-          fromMarkdown: (markdown: string): Partial<T> => {
-            return {
-              content: markdown,
-            } as Partial<T>;
-          },
-          extractMetadata: (entity: T): Record<string, unknown> => {
-            // Return any entity-specific fields beyond base fields
-            const {
-              id: _id,
-              entityType: _entityType,
-              content: _content,
-              created: _created,
-              updated: _updated,
-              ...metadata
-            } = entity as Record<string, unknown>;
-            return metadata;
-          },
-          parseFrontMatter: <TFrontmatter>(
-            _markdown: string,
-            schema: z.ZodSchema<TFrontmatter>,
-          ): TFrontmatter => {
-            return schema.parse({});
-          },
-          generateFrontMatter: (_entity: T): string => {
-            return "";
-          },
-        };
+      search: async (): Promise<never[]> => {
+        // Mock implementation - return empty array
+        return [];
       },
-      importRawEntity: async (entity: unknown): Promise<void> => {
-        // Mock import - just create the entity
-        const entityData = entity as Record<string, unknown>;
-        await this.createTestEntity(
-          (entityData["entityType"] as string | undefined) ?? "note",
-          entityData,
-        );
-      },
-    };
+    } as unknown as PublicEntityService;
   }
 }

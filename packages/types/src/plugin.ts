@@ -1,12 +1,9 @@
 import { z, type ZodRawShape } from "zod";
 import type { Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
-import type { Registry } from "./registry";
-import type { MessageBus } from "./messaging";
 import type { ContentFormatter } from "./formatters";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { BaseEntity } from "./entities";
-import type { EntityService } from "./services";
 
 import type { VNode } from "preact";
 
@@ -16,7 +13,8 @@ import type { VNode } from "preact";
  */
 export type ComponentType<P = unknown> = (props: P) => VNode;
 
-import type { ViewRegistry, RouteDefinition, SectionDefinition, ViewTemplate } from "./views";
+import type { RouteDefinition, SectionDefinition, ViewTemplate } from "./views";
+import type { PublicEntityService } from "./services";
 
 /**
  * Context for content generation - simplified for template-based approach
@@ -47,6 +45,7 @@ export interface Template<T = unknown> {
     component: ComponentType<T> | string; // Component function or path string
     description?: string;
     interactive?: boolean; // Whether this layout requires client-side interactivity
+    packageName?: string; // Package name for hydration script resolution
   };
 }
 
@@ -144,15 +143,12 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
 
 /**
  * Plugin context passed to plugins during registration
- * Provides access to the registry and other shared services
+ * Provides clean, minimal interface following principle of least privilege
  */
 export interface PluginContext {
   pluginId: string;
-  registry: Registry;
   logger: Logger;
-  getPlugin: (id: string) => Plugin | undefined;
   events: EventEmitter;
-  messageBus: MessageBus;
   registerEntityType: <T extends BaseEntity>(
     entityType: string,
     schema: z.ZodType<T>,
@@ -180,7 +176,11 @@ export interface PluginContext {
   ) => void;
   // View template access (replaces direct viewRegistry access)
   getViewTemplate: (name: string) => ViewTemplate | undefined;
-  // Direct service access
-  entityService: EntityService;
-  viewRegistry: ViewRegistry;
+  // TODO: Replace these with proper route finding abstraction in viewRegistry
+  listRoutes: () => RouteDefinition[];
+  listViewTemplates: () => ViewTemplate[];
+  // Plugin metadata access (scoped to current plugin by default)
+  getPluginPackageName: (pluginId?: string) => string | undefined;
+  // Entity service access - direct access to public service interface
+  entityService: PublicEntityService;
 }

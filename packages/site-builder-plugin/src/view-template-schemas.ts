@@ -1,7 +1,7 @@
-import type { ViewTemplate } from "@brains/types";
+import type { Template } from "@brains/types";
 
-// Site-builder doesn't provide any built-in view templates
+// Site-builder doesn't provide any built-in templates
 // All templates should be registered by plugins
-export const builtInTemplates: ViewTemplate[] = [];
+export const builtInTemplates: Template[] = [];
 
 export type BuiltInTemplateName = (typeof builtInTemplates)[number]["name"];

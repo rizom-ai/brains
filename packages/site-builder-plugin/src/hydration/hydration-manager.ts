@@ -137,25 +137,19 @@ export class HydrationManager {
             hydrationScripts += `\n<script type="application/json" data-${templateName}-props="true">${JSON.stringify(section.content)}</script>`;
             hydrationScripts += `\n<script src="/${templateName}-hydration.js"></script>`;
 
-            // Get the plugin that registered this template
-            const plugin = this.pluginContext.getPlugin(template.pluginId);
-            if (!plugin) {
-              this.logger.error(
-                `Plugin ${template.pluginId} not found for template ${section.template}`,
-              );
-              continue;
-            }
-
-            // Plugin found, check packageName
-            if (!plugin.packageName) {
+            // Get the plugin package name for hydration script resolution
+            const packageName = this.pluginContext.getPluginPackageName(
+              template.pluginId,
+            );
+            if (!packageName) {
               this.logger.error(
                 `Plugin ${template.pluginId} missing packageName for template ${section.template}`,
               );
               continue;
             }
 
-            // Both plugin and packageName exist
-            await this.copyHydrationScript(templateName, plugin.packageName);
+            // Copy hydration script for this template
+            await this.copyHydrationScript(templateName, packageName);
           }
         }
 

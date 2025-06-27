@@ -157,8 +157,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
       this.logger?.child("SiteContentManager"),
     );
 
-    // Register site builder in the registry for other plugins to use
-    context.registry.register("siteBuilder", () => this.siteBuilder);
+    // Site builder is now encapsulated within the plugin
   }
 
   /**
@@ -195,7 +194,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           const options = GenerateOptionsSchema.parse(input);
 
           // Get all registered routes
-          const routes = this.context.viewRegistry.listRoutes();
+          const routes = this.context.listRoutes();
 
           // Create the content generation callback
           const generateCallback = async (
@@ -352,7 +351,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           if (!this.context) {
             throw new Error("Plugin context not initialized");
           }
-          const routes = this.context.viewRegistry.listRoutes();
+          const routes = this.context.listRoutes();
 
           return {
             success: true,
@@ -379,7 +378,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           if (!this.context) {
             throw new Error("Plugin context not initialized");
           }
-          const templates = this.context.viewRegistry.listViewTemplates();
+          const templates = this.context.listViewTemplates();
 
           return {
             success: true,
@@ -549,7 +548,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             }
 
             // Find the template name for this page/section
-            const routes = this.context.viewRegistry.listRoutes();
+            const routes = this.context.listRoutes();
             const route = routes.find((r) => r.id === page);
             if (!route) {
               throw new Error(`Route not found for page: ${page}`);
@@ -617,7 +616,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
           };
 
           // Get all registered routes
-          const routes = this.context.viewRegistry.listRoutes();
+          const routes = this.context.listRoutes();
 
           // Create the content generation callback (reuse from generate tool)
           const generateCallback = async (
@@ -758,7 +757,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             }
 
             // Find the template name for this page/section
-            const routes = this.context.viewRegistry.listRoutes();
+            const routes = this.context.listRoutes();
             const route = routes.find((r) => r.id === page);
             if (!route) {
               throw new Error(`Route not found for page: ${page}`);

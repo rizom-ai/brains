@@ -17,6 +17,18 @@ export const baseEntitySchema = z.object({
 export type BaseEntity = z.infer<typeof baseEntitySchema>;
 
 /**
+ * Entity input type for creation - allows partial entities with optional system fields
+ */
+export type EntityInput<T extends BaseEntity> = Omit<
+  T,
+  "id" | "created" | "updated"
+> & {
+  id?: string;
+  created?: string;
+  updated?: string;
+};
+
+/**
  * Search result type
  */
 export interface SearchResult {

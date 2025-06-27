@@ -1,4 +1,4 @@
-import type { BaseEntity, SearchResult } from "./entities";
+import type { BaseEntity, EntityInput, SearchResult } from "./entities";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Plugin, PluginTool, PluginResource } from "./plugin";
 import type { z } from "zod";
@@ -27,41 +27,41 @@ export interface SearchOptions {
 }
 
 /**
- * Entity service interface
+ * Public entity operations interface for plugin consumption
+ * Contains the essential methods that plugins typically need
  */
-export interface EntityService {
-  // Create, read, update, delete
-  createEntity<T extends BaseEntity>(
-    entity: Omit<T, "id" | "created" | "updated"> & {
-      id?: string;
-      created?: string;
-      updated?: string;
-    },
-  ): Promise<T>;
-
+export interface PublicEntityService {
+  // Core CRUD operations
   getEntity<T extends BaseEntity>(
     entityType: string,
     id: string,
   ): Promise<T | null>;
-
-  updateEntity<T extends BaseEntity>(entity: T): Promise<T>;
-
-  deleteEntity(id: string): Promise<boolean>;
-
-  // List and search
   listEntities<T extends BaseEntity>(
     entityType: string,
     options?: Omit<ListOptions, "entityType">,
   ): Promise<T[]>;
+  createEntity<T extends BaseEntity>(entity: EntityInput<T>): Promise<T>;
+  updateEntity<T extends BaseEntity>(entity: T): Promise<T>;
+  deleteEntity(id: string): Promise<boolean>;
 
+  // Search and discovery
   search(query: string, options?: SearchOptions): Promise<SearchResult[]>;
 
-  // Entity type management
+  // Entity transformation - useful for promotion/rollback workflows
+  deriveEntity<T extends BaseEntity>(
+    sourceEntityId: string,
+    sourceEntityType: string,
+    targetEntityType: string,
+    options?: { deleteSource?: boolean },
+  ): Promise<T>;
+
+  // Entity type discovery and adapter access (needed by directory-sync plugin)
   getEntityTypes(): string[];
   getAdapter<T extends BaseEntity>(entityType: string): EntityAdapter<T>;
   hasAdapter(entityType: string): boolean;
 
-  // Import/export
+  // TODO: Move this to directory-sync plugin - it's the only consumer
+  // Raw import for file system synchronization
   importRawEntity(data: {
     entityType: string;
     id: string;
@@ -69,14 +69,16 @@ export interface EntityService {
     created: Date;
     updated: Date;
   }): Promise<void>;
+}
 
-  // Derive entities
-  deriveEntity<T extends BaseEntity>(
-    sourceEntityId: string,
-    sourceEntityType: string,
-    targetEntityType: string,
-    options?: { deleteSource?: boolean },
-  ): Promise<T>;
+/**
+ * Full entity service interface with internal operations
+ */
+export interface EntityService extends PublicEntityService {
+  // Internal entity type management (not exposed to plugins)
+  getEntityTypes(): string[];
+  getAdapter<T extends BaseEntity>(entityType: string): EntityAdapter<T>;
+  hasAdapter(entityType: string): boolean;
 }
 
 /**

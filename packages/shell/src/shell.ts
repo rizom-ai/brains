@@ -116,10 +116,7 @@ export class Shell {
     const registry = Registry.createFresh(logger);
     const entityRegistry = EntityRegistry.createFresh(logger);
     const messageBus = MessageBus.createFresh(logger);
-    const pluginManager = PluginManager.createFresh(
-      registry,
-      logger,
-    );
+    const pluginManager = PluginManager.createFresh(registry, logger);
 
     // Merge fresh instances with any provided dependencies (without contentGenerator yet)
     const freshDependencies: ShellDependencies = {

@@ -8,6 +8,7 @@
 // Entity types
 export type {
   BaseEntity,
+  EntityInput,
   SearchResult,
   SiteContentPreview,
   SiteContentProduction,
@@ -48,6 +49,7 @@ export type {
 export type {
   ListOptions,
   SearchOptions,
+  PublicEntityService,
   EntityService,
   Command,
   CommandResponse,

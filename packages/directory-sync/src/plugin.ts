@@ -1,9 +1,5 @@
-import type {
-  Plugin,
-  PluginContext,
-  PluginTool,
-  MessageBus,
-} from "@brains/types";
+import type { Plugin, PluginContext, PluginTool } from "@brains/types";
+import type { EventEmitter } from "events";
 import { BasePlugin, pluginConfig, toolInput } from "@brains/utils";
 import { z } from "zod";
 import { DirectorySync } from "./directorySync";
@@ -36,7 +32,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
    * Initialize the plugin
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
-    const { logger, entityService, messageBus } = context;
+    const { logger, entityService, events } = context;
 
     // Register our template for directory sync status
     context.registerTemplate("status", {
@@ -69,8 +65,8 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
       throw error; // Fail plugin registration if init fails
     }
 
-    // Register message handlers for plugin communication
-    this.registerMessageHandlers(messageBus);
+    // Register event handlers for plugin communication
+    this.registerEventHandlers(events);
   }
 
   /**
@@ -236,11 +232,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
   }
 
   /**
-   * Register message handlers for inter-plugin communication
+   * Register event handlers for inter-plugin communication
    */
-  private registerMessageHandlers(messageBus: MessageBus): void {
+  private registerEventHandlers(events: EventEmitter): void {
     // Handler for export requests
-    messageBus.subscribe("entity:export:request", async (message) => {
+    events.on("entity:export:request", async (message) => {
       if (!this.directorySync) {
         return {
           success: false,
@@ -267,7 +263,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
     });
 
     // Handler for import requests
-    messageBus.subscribe("entity:import:request", async (message) => {
+    events.on("entity:import:request", async (message) => {
       if (!this.directorySync) {
         return {
           success: false,
@@ -292,7 +288,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
     });
 
     // Handler for status requests
-    messageBus.subscribe("sync:status:request", async () => {
+    events.on("sync:status:request", async () => {
       if (!this.directorySync) {
         return {
           success: false,
@@ -320,7 +316,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
     });
 
     // Handler for configuration requests
-    messageBus.subscribe("sync:configure:request", async (message) => {
+    events.on("sync:configure:request", async (message) => {
       if (!this.directorySync) {
         return {
           success: false,
@@ -350,7 +346,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
       }
     });
 
-    this.info("Registered message handlers for inter-plugin communication");
+    this.info("Registered event handlers for inter-plugin communication");
   }
 }
 

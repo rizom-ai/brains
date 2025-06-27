@@ -70,11 +70,7 @@ export class SiteBuilder implements ISiteBuilder {
     this.context = context;
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
 
-    // Register factory in context registry
-    context.registry.register(
-      "staticSiteBuilderFactory",
-      () => this.staticSiteBuilderFactory,
-    );
+    // Factory is now encapsulated within the site builder
 
     // Register built-in templates
     this.registerBuiltInTemplates();
@@ -82,7 +78,8 @@ export class SiteBuilder implements ISiteBuilder {
 
   private registerBuiltInTemplates(): void {
     for (const template of builtInTemplates) {
-      this.context.viewRegistry.registerViewTemplate(template);
+      // Register built-in templates directly
+      this.context.registerTemplate(template.name, template);
     }
   }
 
@@ -107,7 +104,7 @@ export class SiteBuilder implements ISiteBuilder {
       });
 
       // Get all registered routes
-      const routes = this.context.viewRegistry.listRoutes();
+      const routes = this.context.listRoutes();
       if (routes.length === 0) {
         warnings.push("No routes registered for site build");
       }

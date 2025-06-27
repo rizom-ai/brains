@@ -39,10 +39,7 @@ export class PluginManager implements IPluginManager {
   /**
    * Get the singleton instance of PluginManager
    */
-  public static getInstance(
-    registry: Registry,
-    logger: Logger,
-  ): PluginManager {
+  public static getInstance(registry: Registry, logger: Logger): PluginManager {
     PluginManager.instance ??= new PluginManager(registry, logger);
     return PluginManager.instance;
   }
@@ -57,20 +54,14 @@ export class PluginManager implements IPluginManager {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(
-    registry: Registry,
-    logger: Logger,
-  ): PluginManager {
+  public static createFresh(registry: Registry, logger: Logger): PluginManager {
     return new PluginManager(registry, logger);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(
-    registry: Registry,
-    logger: Logger,
-  ) {
+  private constructor(registry: Registry, logger: Logger) {
     this.registry = registry;
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
