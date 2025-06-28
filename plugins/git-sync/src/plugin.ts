@@ -71,7 +71,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
             throw new GitSyncInitializationError(
               "Git sync service not initialized",
               "Plugin not properly configured",
-              { tool: "git-sync" }
+              { tool: "git-sync" },
             );
           }
           await this.gitSync.sync();
@@ -94,7 +94,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
             throw new GitSyncInitializationError(
               "Git sync service not initialized",
               "Plugin not properly configured",
-              { tool: "git-sync" }
+              { tool: "git-sync" },
             );
           }
           await this.gitSync.commit(commitMessage);
@@ -114,7 +114,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
             throw new GitSyncInitializationError(
               "Git sync service not initialized",
               "Plugin not properly configured",
-              { tool: "git-sync" }
+              { tool: "git-sync" },
             );
           }
           await this.gitSync.push();
@@ -134,7 +134,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
             throw new GitSyncInitializationError(
               "Git sync service not initialized",
               "Plugin not properly configured",
-              { tool: "git-sync" }
+              { tool: "git-sync" },
             );
           }
           await this.gitSync.pull();
@@ -154,7 +154,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
             throw new GitSyncInitializationError(
               "Git sync service not initialized",
               "Plugin not properly configured",
-              { tool: "git-sync" }
+              { tool: "git-sync" },
             );
           }
           return this.gitSync.getStatus();
@@ -174,7 +174,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
             throw new GitSyncInitializationError(
               "Git sync service not initialized",
               "Plugin not properly configured",
-              { tool: "git-sync" }
+              { tool: "git-sync" },
             );
           }
 

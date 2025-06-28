@@ -1,5 +1,10 @@
 import type { BaseEntity, Logger } from "@brains/types";
 import type { IEntityService as EntityService } from "@brains/entity-service";
+import {
+  FileSystemError,
+  EntitySerializationError,
+  DirectoryWatchError,
+} from "./errors";
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
 import { join, basename, dirname, resolve, isAbsolute } from "path";
@@ -154,16 +159,21 @@ export class DirectorySync {
           result.exported++;
           this.logger.debug("Exported entity", { entityType, id: entity.id });
         } catch (error) {
+          const exportError = new FileSystemError(
+            `Failed to export entity ${entity.id}`,
+            error,
+            { entityId: entity.id, entityType }
+          );
           result.failed++;
           result.errors.push({
             entityId: entity.id,
             entityType,
-            error: error instanceof Error ? error.message : String(error),
+            error: exportError.message,
           });
           this.logger.error("Failed to export entity", {
             entityType,
             id: entity.id,
-            error,
+            error: exportError,
           });
         }
       }
@@ -245,13 +255,15 @@ export class DirectorySync {
           }
         } catch (deserializeError) {
           // Skip if entity type is not registered or deserialization fails
+          const serializationError = new EntitySerializationError(
+            "Unable to deserialize entity from file",
+            deserializeError,
+            { path: filePath, entityType: rawEntity.entityType }
+          );
           this.logger.debug("Skipping file - unable to deserialize", {
             path: filePath,
             entityType: rawEntity.entityType,
-            error:
-              deserializeError instanceof Error
-                ? deserializeError.message
-                : String(deserializeError),
+            error: serializationError,
           });
           result.skipped++;
           continue;
@@ -262,14 +274,19 @@ export class DirectorySync {
           entityType: rawEntity.entityType,
         });
       } catch (error) {
+        const importError = new FileSystemError(
+          `Failed to import entity from file`,
+          error,
+          { path: filePath }
+        );
         result.failed++;
         result.errors.push({
           path: filePath,
-          error: error instanceof Error ? error.message : String(error),
+          error: importError.message,
         });
         this.logger.error("Failed to import entity", {
           path: filePath,
-          error,
+          error: importError,
         });
       }
     }
@@ -514,7 +531,12 @@ export class DirectorySync {
           break;
       }
     } catch (error) {
-      this.logger.error("Failed to handle file change", { event, path, error });
+      const watchError = new DirectoryWatchError(
+        "Failed to handle file change event",
+        error,
+        { event, path }
+      );
+      this.logger.error("Failed to handle file change", { event, path, error: watchError });
     }
   }
 

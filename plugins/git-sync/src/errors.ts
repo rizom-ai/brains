@@ -9,12 +9,7 @@ export class GitSyncError extends BrainsError {
     cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(
-      message,
-      "GIT_SYNC_ERROR",
-      normalizeError(cause),
-      context ?? {}
-    );
+    super(message, "GIT_SYNC_ERROR", normalizeError(cause), context ?? {});
   }
 }
 

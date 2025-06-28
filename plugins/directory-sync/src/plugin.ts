@@ -1,5 +1,6 @@
 import type { Plugin, PluginContext, PluginTool } from "@brains/types";
 import { BasePlugin, pluginConfig, toolInput } from "@brains/utils";
+import { DirectorySyncInitializationError } from "./errors";
 import { z } from "zod";
 import { DirectorySync } from "./directorySync";
 import {
@@ -73,7 +74,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
    */
   protected override async getTools(): Promise<PluginTool[]> {
     if (!this.directorySync) {
-      throw new Error("DirectorySync not initialized");
+      throw new DirectorySyncInitializationError(
+        "DirectorySync service not initialized",
+        "Plugin not properly configured",
+        { method: "getTools" }
+      );
     }
 
     return [
@@ -83,7 +88,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
         {},
         async (): Promise<unknown> => {
           if (!this.directorySync) {
-            throw new Error("DirectorySync not initialized");
+            throw new DirectorySyncInitializationError(
+              "DirectorySync service not initialized",
+              "Plugin not properly configured",
+              { tool: "directory-sync" }
+            );
           }
           const result = await this.directorySync.sync();
           return syncResultSchema.parse(result);
@@ -105,7 +114,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
           .build(),
         async (input: unknown): Promise<unknown> => {
           if (!this.directorySync) {
-            throw new Error("DirectorySync not initialized");
+            throw new DirectorySyncInitializationError(
+              "DirectorySync service not initialized",
+              "Plugin not properly configured",
+              { tool: "directory-sync" }
+            );
           }
           const params = input as { entityTypes?: string[] };
           const result = await this.directorySync.exportEntities(
@@ -130,7 +143,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
           .build(),
         async (input: unknown): Promise<unknown> => {
           if (!this.directorySync) {
-            throw new Error("DirectorySync not initialized");
+            throw new DirectorySyncInitializationError(
+              "DirectorySync service not initialized",
+              "Plugin not properly configured",
+              { tool: "directory-sync" }
+            );
           }
           const params = input as { paths?: string[] };
           const result = await this.directorySync.importEntities(params.paths);
@@ -147,7 +164,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
           .build(),
         async (input: unknown): Promise<{ watching: boolean }> => {
           if (!this.directorySync) {
-            throw new Error("DirectorySync not initialized");
+            throw new DirectorySyncInitializationError(
+              "DirectorySync service not initialized",
+              "Plugin not properly configured",
+              { tool: "directory-sync" }
+            );
           }
           const params = input as { action: "start" | "stop" };
 
@@ -169,7 +190,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
         {},
         async (): Promise<unknown> => {
           if (!this.directorySync) {
-            throw new Error("DirectorySync not initialized");
+            throw new DirectorySyncInitializationError(
+              "DirectorySync service not initialized",
+              "Plugin not properly configured",
+              { tool: "directory-sync" }
+            );
           }
           const status = await this.directorySync.getStatus();
           // Parse through schema to ensure it has the right structure
@@ -185,7 +210,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
         {},
         async (): Promise<{ message: string }> => {
           if (!this.directorySync) {
-            throw new Error("DirectorySync not initialized");
+            throw new DirectorySyncInitializationError(
+              "DirectorySync service not initialized",
+              "Plugin not properly configured",
+              { tool: "directory-sync" }
+            );
           }
           await this.directorySync.ensureDirectoryStructure();
           return { message: "Directory structure created" };
@@ -214,7 +243,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
    */
   public async configure(options: { syncPath: string }): Promise<void> {
     if (!this.directorySync) {
-      throw new Error("DirectorySync not initialized");
+      throw new DirectorySyncInitializationError(
+        "DirectorySync service not initialized",
+        "Plugin not properly configured",
+        { method: "configure" }
+      );
     }
 
     // Update the sync path
