@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import type { IEntityService as EntityService } from "@brains/entity-service";
-import type {
-  RouteDefinition,
-  SectionDefinition,
-} from "@brains/view-registry";
+import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type {
   SiteContentPreview,
   SiteContentProduction,

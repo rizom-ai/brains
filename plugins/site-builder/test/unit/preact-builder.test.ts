@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPreactBuilder } from "../../src/preact-builder";
 import type { BuildContext } from "../../src/static-site-builder";
-import type {
-  PluginContext,
-} from "@brains/types";
+import type { PluginContext } from "@brains/types";
 import type {
   ViewTemplate,
   RouteDefinition,
@@ -83,7 +81,7 @@ describe("PreactBuilder", () => {
     const mockPluginContext = {
       getPlugin: (id: string) => ({
         id,
-        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` }
+        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
       }),
     } as unknown as PluginContext;
 
@@ -165,7 +163,7 @@ describe("PreactBuilder", () => {
     const mockPluginContext = {
       getPlugin: (id: string) => ({
         id,
-        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` }
+        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
       }),
     } as unknown as PluginContext;
 
@@ -228,7 +226,7 @@ describe("PreactBuilder", () => {
     const mockPluginContext = {
       getPlugin: (id: string) => ({
         id,
-        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` }
+        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
       }),
     } as unknown as PluginContext;
 
@@ -303,7 +301,7 @@ describe("PreactBuilder", () => {
     const mockPluginContext = {
       getPlugin: (id: string) => ({
         id,
-        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` }
+        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
       }),
     } as unknown as PluginContext;
 

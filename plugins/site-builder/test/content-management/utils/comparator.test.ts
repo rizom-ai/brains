@@ -1,5 +1,8 @@
 import { describe, it, expect } from "bun:test";
-import type { SiteContentPreview, SiteContentProduction } from "../../../src/types";
+import type {
+  SiteContentPreview,
+  SiteContentProduction,
+} from "../../../src/types";
 import {
   compareContent,
   isContentEquivalent,

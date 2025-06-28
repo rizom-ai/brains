@@ -5,20 +5,10 @@ import type {
   PluginResource,
   Template,
 } from "@brains/types";
-import type {
-  RouteDefinition,
-  SectionDefinition,
-} from "@brains/view-registry";
-import {
-  RouteDefinitionSchema,
-} from "@brains/view-registry";
-import {
-  TemplateSchema,
-} from "@brains/types";
-import {
-  siteContentPreviewSchema,
-  siteContentProductionSchema,
-} from "./types";
+import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import { RouteDefinitionSchema } from "@brains/view-registry";
+import { TemplateSchema } from "@brains/types";
+import { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
 import { SiteBuilder } from "./site-builder";
 import { z } from "zod";
 import {

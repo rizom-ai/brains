@@ -6,14 +6,8 @@
  */
 
 // Entity types
-export type {
-  BaseEntity,
-  EntityInput,
-  SearchResult,
-} from "./entities";
-export {
-  baseEntitySchema,
-} from "./entities";
+export type { BaseEntity, EntityInput, SearchResult } from "./entities";
+export { baseEntitySchema } from "./entities";
 
 // Plugin types
 export type {
@@ -33,11 +27,7 @@ export { pluginMetadataSchema, TemplateSchema } from "./plugin";
 export type { ServiceRegistry, ComponentFactory } from "./registry";
 
 // Service interfaces (minimal shared contracts only)
-export type {
-  Command,
-  CommandResponse,
-  BrainProtocol,
-} from "./services";
+export type { Command, CommandResponse, BrainProtocol } from "./services";
 
 // Formatter types
 export type { SchemaFormatter, ContentFormatter } from "./formatters";

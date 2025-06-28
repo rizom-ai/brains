@@ -1,12 +1,5 @@
-import type {
-  Template,
-  Logger,
-  SearchResult,
-} from "@brains/types";
-import type {
-  RouteDefinition,
-  SectionDefinition,
-} from "@brains/view-registry";
+import type { Template, Logger, SearchResult } from "@brains/types";
+import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { IAIService as AIService } from "@brains/ai-service";
 

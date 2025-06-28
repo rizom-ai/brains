@@ -3,7 +3,10 @@ import {
   SiteContentPreviewAdapter,
   SiteContentProductionAdapter,
 } from "../../src/entities/site-content-adapter";
-import type { SiteContentPreview, SiteContentProduction } from "../../src/types";
+import type {
+  SiteContentPreview,
+  SiteContentProduction,
+} from "../../src/types";
 
 describe("SiteContentPreviewAdapter", () => {
   const adapter = new SiteContentPreviewAdapter();

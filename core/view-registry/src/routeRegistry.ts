@@ -1,7 +1,4 @@
-import type {
-  RouteDefinition,
-  RouteRegistry as IRouteRegistry,
-} from "./types";
+import type { RouteDefinition, RouteRegistry as IRouteRegistry } from "./types";
 import { RouteDefinitionSchema } from "./types";
 
 export class RouteRegistry implements IRouteRegistry {

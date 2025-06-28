@@ -5,10 +5,7 @@ import type {
   RouteDefinition,
   SectionDefinition,
 } from "@brains/view-registry";
-import type {
-  SiteContentPreview,
-  SiteContentProduction,
-} from "../types";
+import type { SiteContentPreview, SiteContentProduction } from "../types";
 import type {
   SiteContent,
   PromoteOptions,

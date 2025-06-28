@@ -1,11 +1,6 @@
 import type { Logger } from "@brains/utils";
-import type {
-  PluginContext,
-} from "@brains/types";
-import type {
-  RouteDefinition,
-  ViewTemplate,
-} from "@brains/view-registry";
+import type { PluginContext } from "@brains/types";
+import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { CSSProcessor } from "./css/css-processor";
 
 /**
