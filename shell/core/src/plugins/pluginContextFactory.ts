@@ -6,7 +6,10 @@ import type {
   GenerationContext,
   Template,
   MessageHandler,
+  Daemon,
+  DefaultQueryResponse,
 } from "@brains/types";
+import { DaemonRegistry } from "@brains/daemon-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
@@ -29,6 +32,7 @@ export class PluginContextFactory {
   private serviceRegistry: ServiceRegistry;
   private logger: Logger;
   private plugins: Map<string, { plugin: { packageName?: string } }>;
+  private daemonRegistry: DaemonRegistry;
 
   /**
    * Get the singleton instance of PluginContextFactory
@@ -75,6 +79,7 @@ export class PluginContextFactory {
     this.serviceRegistry = serviceRegistry;
     this.logger = logger.child("PluginContextFactory");
     this.plugins = plugins;
+    this.daemonRegistry = DaemonRegistry.getInstance(logger);
   }
 
   /**
@@ -301,6 +306,32 @@ export class PluginContextFactory {
       },
       // Entity service access - clean interface for plugin usage
       entityService,
+
+      // Interface plugin capabilities
+      registerDaemon: (name: string, daemon: Daemon): void => {
+        try {
+          // Ensure daemon name is unique by prefixing with plugin ID
+          const daemonName = `${pluginId}:${name}`;
+          this.daemonRegistry.register(daemonName, daemon, pluginId);
+          this.logger.debug(`Registered daemon: ${daemonName} for plugin: ${pluginId}`);
+        } catch (error) {
+          this.logger.error(`Failed to register daemon: ${name}`, error);
+          throw error;
+        }
+      },
+
+      processMessage: async (
+        message: string,
+        context: { userId: string; channelId: string; messageId: string; threadId?: string; timestamp: Date },
+      ): Promise<DefaultQueryResponse> => {
+        try {
+          // Delegate to shell's message processing and return raw response
+          return await shell.processMessage(message, context);
+        } catch (error) {
+          this.logger.error(`Failed to process message for plugin: ${pluginId}`, error);
+          throw error;
+        }
+      },
     };
 
     return context;

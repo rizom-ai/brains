@@ -365,7 +365,7 @@ describe("PluginManager", (): void => {
     expect(pluginManager.isPluginInitialized("test-plugin")).toBe(true);
 
     // Disable plugin
-    pluginManager.disablePlugin("test-plugin");
+    await pluginManager.disablePlugin("test-plugin");
 
     expect(pluginManager.getPluginStatus("test-plugin")).toBe(
       PluginStatus.DISABLED,
@@ -374,7 +374,7 @@ describe("PluginManager", (): void => {
     expect(disableHandler).toHaveBeenCalledTimes(1);
 
     // Enable plugin
-    pluginManager.enablePlugin("test-plugin");
+    await pluginManager.enablePlugin("test-plugin");
 
     expect(pluginManager.getPluginStatus("test-plugin")).toBe(
       PluginStatus.INITIALIZED,

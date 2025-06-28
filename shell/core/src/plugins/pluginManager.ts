@@ -2,6 +2,7 @@ import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
 import { EventEmitter } from "events";
 import type { Plugin } from "@brains/types";
+import { DaemonRegistry } from "@brains/daemon-registry";
 import type {
   PluginManager as IPluginManager,
   PluginInfo,
@@ -27,6 +28,7 @@ export class PluginManager implements IPluginManager {
   private events: EventEmitter;
   private contextFactory: PluginContextFactory;
   private registrationHandler: PluginRegistrationHandler;
+  private daemonRegistry: DaemonRegistry;
 
   /**
    * Get the singleton instance of PluginManager
@@ -71,6 +73,7 @@ export class PluginManager implements IPluginManager {
       logger,
       this.events,
     );
+    this.daemonRegistry = DaemonRegistry.getInstance(logger);
   }
 
   /**
@@ -253,6 +256,15 @@ export class PluginManager implements IPluginManager {
       pluginInfo.status = PluginStatus.INITIALIZED;
       this.logger.info(`Initialized plugin: ${pluginId}`);
 
+      // Start any daemons registered by this plugin
+      try {
+        await this.daemonRegistry.startPlugin(pluginId);
+        this.logger.debug(`Started daemons for plugin: ${pluginId}`);
+      } catch (error) {
+        this.logger.error(`Failed to start daemons for plugin: ${pluginId}`, error);
+        // Don't fail plugin initialization if daemon startup fails
+      }
+
       // Emit initialized event
       this.events.emit(PluginEvent.INITIALIZED, pluginId, plugin);
     } catch (error) {
@@ -369,7 +381,7 @@ export class PluginManager implements IPluginManager {
    * Disable a plugin
    * This only marks the plugin as disabled but doesn't unregister it
    */
-  public disablePlugin(id: string): void {
+  public async disablePlugin(id: string): Promise<void> {
     const pluginInfo = this.plugins.get(id);
     if (!pluginInfo) {
       this.logger.warn(`Cannot disable plugin ${id}: not registered`);
@@ -377,6 +389,15 @@ export class PluginManager implements IPluginManager {
     }
 
     this.logger.debug(`Disabling plugin: ${id}`);
+
+    // Stop any daemons registered by this plugin
+    try {
+      await this.daemonRegistry.stopPlugin(id);
+      this.logger.debug(`Stopped daemons for plugin: ${id}`);
+    } catch (error) {
+      this.logger.error(`Failed to stop daemons for plugin: ${id}`, error);
+      // Continue with plugin disable even if daemon stop fails
+    }
 
     // Update status
     pluginInfo.status = PluginStatus.DISABLED;
@@ -390,7 +411,7 @@ export class PluginManager implements IPluginManager {
   /**
    * Enable a disabled plugin
    */
-  public enablePlugin(id: string): void {
+  public async enablePlugin(id: string): Promise<void> {
     const pluginInfo = this.plugins.get(id);
     if (!pluginInfo) {
       this.logger.warn(`Cannot enable plugin ${id}: not registered`);
@@ -406,6 +427,15 @@ export class PluginManager implements IPluginManager {
 
     // Update status back to initialized
     pluginInfo.status = PluginStatus.INITIALIZED;
+
+    // Start any daemons registered by this plugin
+    try {
+      await this.daemonRegistry.startPlugin(id);
+      this.logger.debug(`Started daemons for plugin: ${id}`);
+    } catch (error) {
+      this.logger.error(`Failed to start daemons for plugin: ${id}`, error);
+      // Continue with plugin enable even if daemon start fails
+    }
 
     // Emit enabled event
     this.events.emit(PluginEvent.ENABLED, id, pluginInfo.plugin);

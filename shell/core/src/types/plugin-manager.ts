@@ -22,9 +22,9 @@ export interface PluginManager {
 
   getFailedPlugins(): Array<{ id: string; error: Error }>;
 
-  disablePlugin(id: string): void;
+  disablePlugin(id: string): Promise<void>;
 
-  enablePlugin(id: string): void;
+  enablePlugin(id: string): Promise<void>;
 
   on<E extends PluginEvent>(
     event: E,

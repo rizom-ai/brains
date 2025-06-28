@@ -79,9 +79,9 @@ export class Shell {
   /**
    * Reset the singleton instance (primarily for testing)
    */
-  public static resetInstance(): void {
+  public static async resetInstance(): Promise<void> {
     if (Shell.instance) {
-      Shell.instance.shutdown();
+      await Shell.instance.shutdown();
       Shell.instance = null;
     }
     // Also reset dependent singletons
@@ -376,13 +376,13 @@ export class Shell {
   /**
    * Shutdown the Shell and clean up resources
    */
-  public shutdown(): void {
+  public async shutdown(): Promise<void> {
     this.logger.info("Shutting down Shell");
 
     // Cleanup in reverse order of initialization
     // Disable all plugins
     for (const [pluginId] of this.pluginManager.getAllPlugins()) {
-      this.pluginManager.disablePlugin(pluginId);
+      await this.pluginManager.disablePlugin(pluginId);
     }
 
     // Clear registries
@@ -430,6 +430,26 @@ export class Shell {
       "shell:knowledge-query",
       context,
     );
+  }
+
+  /**
+   * Process a message from interface plugins
+   * Returns raw query response for interface-specific formatting
+   */
+  public async processMessage(
+    message: string,
+    context: { userId: string; channelId: string; messageId: string; threadId?: string; timestamp: Date },
+  ): Promise<DefaultQueryResponse> {
+    // Delegate to query method and return the full response
+    return this.query(message, {
+      userId: context.userId,
+      conversationId: context.channelId,
+      metadata: {
+        messageId: context.messageId,
+        threadId: context.threadId,
+        timestamp: context.timestamp.toISOString(),
+      },
+    });
   }
 
   /**
