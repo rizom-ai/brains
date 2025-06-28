@@ -438,7 +438,13 @@ export class Shell {
    */
   public async processMessage(
     message: string,
-    context: { userId: string; channelId: string; messageId: string; threadId?: string; timestamp: Date },
+    context: {
+      userId: string;
+      channelId: string;
+      messageId: string;
+      threadId?: string;
+      timestamp: Date;
+    },
   ): Promise<DefaultQueryResponse> {
     // Delegate to query method and return the full response
     return this.query(message, {

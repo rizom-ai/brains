@@ -313,7 +313,9 @@ export class PluginContextFactory {
           // Ensure daemon name is unique by prefixing with plugin ID
           const daemonName = `${pluginId}:${name}`;
           this.daemonRegistry.register(daemonName, daemon, pluginId);
-          this.logger.debug(`Registered daemon: ${daemonName} for plugin: ${pluginId}`);
+          this.logger.debug(
+            `Registered daemon: ${daemonName} for plugin: ${pluginId}`,
+          );
         } catch (error) {
           this.logger.error(`Failed to register daemon: ${name}`, error);
           throw error;
@@ -322,13 +324,22 @@ export class PluginContextFactory {
 
       processMessage: async (
         message: string,
-        context: { userId: string; channelId: string; messageId: string; threadId?: string; timestamp: Date },
+        context: {
+          userId: string;
+          channelId: string;
+          messageId: string;
+          threadId?: string;
+          timestamp: Date;
+        },
       ): Promise<DefaultQueryResponse> => {
         try {
           // Delegate to shell's message processing and return raw response
           return await shell.processMessage(message, context);
         } catch (error) {
-          this.logger.error(`Failed to process message for plugin: ${pluginId}`, error);
+          this.logger.error(
+            `Failed to process message for plugin: ${pluginId}`,
+            error,
+          );
           throw error;
         }
       },

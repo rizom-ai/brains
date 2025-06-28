@@ -261,7 +261,10 @@ export class PluginManager implements IPluginManager {
         await this.daemonRegistry.startPlugin(pluginId);
         this.logger.debug(`Started daemons for plugin: ${pluginId}`);
       } catch (error) {
-        this.logger.error(`Failed to start daemons for plugin: ${pluginId}`, error);
+        this.logger.error(
+          `Failed to start daemons for plugin: ${pluginId}`,
+          error,
+        );
         // Don't fail plugin initialization if daemon startup fails
       }
 
