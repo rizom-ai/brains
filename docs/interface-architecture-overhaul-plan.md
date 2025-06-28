@@ -7,11 +7,13 @@ This document outlines a comprehensive plan to standardize and enhance the inter
 ## Current State Analysis
 
 ### Existing Interface Packages
+
 - `interfaces/cli` - Command-line interface
 - `interfaces/interface-core` - Base interface utilities and formatters
 - `interfaces/matrix` - Matrix protocol interface (planned/in development)
 
 ### Current Issues
+
 1. **No Interface Registry**: Interfaces are not systematically registered or managed
 2. **Inconsistent Lifecycle**: No standardized initialization/shutdown patterns
 3. **Ad-hoc Integration**: Each interface integrates with core differently
@@ -22,15 +24,17 @@ This document outlines a comprehensive plan to standardize and enhance the inter
 ## Interface vs Plugin Philosophy
 
 ### Interfaces
+
 - **Purpose**: User-facing interaction layers and external protocol adapters
 - **Examples**: CLI, Matrix, Web UI, API endpoints
-- **Characteristics**: 
+- **Characteristics**:
   - Handle user input/output
   - Manage external protocol communication
   - Focus on presentation and interaction
   - Typically long-running services
 
 ### Plugins
+
 - **Purpose**: Content processing and business logic extensions
 - **Examples**: Directory sync, git sync, site builder, link capture
 - **Characteristics**:
@@ -40,6 +44,7 @@ This document outlines a comprehensive plan to standardize and enhance the inter
   - Provide tools and resources
 
 ### Hybrid Approach
+
 - Interfaces can load interface-specific plugins for extensibility
 - Clear separation of concerns between presentation and logic
 
@@ -48,6 +53,7 @@ This document outlines a comprehensive plan to standardize and enhance the inter
 ### 2.3.1 Interface Registry System
 
 #### Create `@brains/interface-registry` Package
+
 ```typescript
 export interface InterfaceMetadata {
   name: string;
@@ -69,13 +75,15 @@ export interface InterfaceRegistry {
 ```
 
 #### Interface Discovery and Registration
+
 - Automatic discovery of interface packages
 - Configuration-based interface enabling/disabling
 - Dependency resolution between interfaces
 
 ### 2.3.2 Interface Context Framework
 
-#### Create `InterfaceContext` 
+#### Create `InterfaceContext`
+
 ```typescript
 export interface InterfaceContext {
   // Core service access
@@ -83,18 +91,18 @@ export interface InterfaceContext {
   entityService: EntityService;
   messageBus: MessageBus;
   logger: Logger;
-  
+
   // Interface-specific services
   interfaceRegistry: InterfaceRegistry;
-  
+
   // Configuration and metadata
   config: Record<string, unknown>;
   metadata: InterfaceMetadata;
-  
+
   // Communication helpers
   formatResponse(data: unknown, format?: string): string;
   validateInput(data: unknown, schema: ZodType): unknown;
-  
+
   // Event handling
   on(event: string, handler: Function): void;
   emit(event: string, data: unknown): void;
@@ -102,6 +110,7 @@ export interface InterfaceContext {
 ```
 
 #### Interface-Specific Capabilities
+
 - Input validation and sanitization
 - Output formatting and rendering
 - Session management (for stateful interfaces)
@@ -110,12 +119,13 @@ export interface InterfaceContext {
 ### 2.3.3 Base Interface Class
 
 #### Create `BaseInterface` in `@brains/utils`
+
 ```typescript
 export abstract class BaseInterface {
   protected context: InterfaceContext;
   protected config: InterfaceConfig;
   protected logger: Logger;
-  private state: InterfaceState = 'stopped';
+  private state: InterfaceState = "stopped";
 
   constructor(config: unknown, schema: ZodType<InterfaceConfig>) {
     this.config = this.validateConfig(config, schema);
@@ -129,11 +139,11 @@ export abstract class BaseInterface {
 
   // Health monitoring
   abstract getHealth(): InterfaceHealth;
-  
+
   // Configuration management
   protected validateConfig(config: unknown, schema: ZodType): InterfaceConfig;
   public updateConfig(config: Partial<InterfaceConfig>): Promise<void>;
-  
+
   // Common utilities
   protected formatError(error: Error): string;
   protected logActivity(activity: string, data?: unknown): void;
@@ -141,6 +151,7 @@ export abstract class BaseInterface {
 ```
 
 #### Interface Configuration System
+
 - Standardized configuration validation
 - Environment-specific config support
 - Hot-reload capabilities for development
@@ -148,11 +159,12 @@ export abstract class BaseInterface {
 ### 2.3.4 Interface Manager
 
 #### Implement `InterfaceManager` in Shell Core
+
 ```typescript
 export class InterfaceManager {
   private interfaces = new Map<string, BaseInterface>();
   private registry: InterfaceRegistry;
-  
+
   constructor(private shell: Shell) {
     this.registry = new InterfaceRegistryImpl();
   }
@@ -187,6 +199,7 @@ export class InterfaceManager {
 ```
 
 #### Interface Health Monitoring
+
 - Periodic health checks
 - Automatic restart on failure
 - Interface dependency tracking
@@ -195,19 +208,20 @@ export class InterfaceManager {
 ### 2.3.5 Interface Error Handling
 
 #### Standardized Interface Error Classes
+
 ```typescript
 export class InterfaceError extends BrainsError {
   constructor(
     interfaceName: string,
     message: string,
     cause: ErrorCause,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     super(
       `Interface error in ${interfaceName}: ${message}`,
       "INTERFACE_ERROR",
       normalizeError(cause),
-      { interfaceName, ...context }
+      { interfaceName, ...context },
     );
   }
 }
@@ -217,13 +231,13 @@ export class InterfaceInitializationError extends BrainsError {
     interfaceName: string,
     reason: string,
     cause: ErrorCause,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     super(
       `Interface initialization failed for ${interfaceName}: ${reason}`,
       "INTERFACE_INITIALIZATION_ERROR",
       normalizeError(cause),
-      { interfaceName, reason, ...context }
+      { interfaceName, reason, ...context },
     );
   }
 }
@@ -234,19 +248,20 @@ export class InterfaceProtocolError extends BrainsError {
     protocol: string,
     message: string,
     cause: ErrorCause,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     super(
       `Protocol error in ${interfaceName} (${protocol}): ${message}`,
       "INTERFACE_PROTOCOL_ERROR",
       normalizeError(cause),
-      { interfaceName, protocol, ...context }
+      { interfaceName, protocol, ...context },
     );
   }
 }
 ```
 
 #### Error Recovery Patterns
+
 - Graceful degradation strategies
 - Retry mechanisms with exponential backoff
 - Circuit breaker patterns for external protocols
@@ -255,6 +270,7 @@ export class InterfaceProtocolError extends BrainsError {
 ### 2.3.6 Interface Configuration System
 
 #### Unified Configuration Schema
+
 ```typescript
 export const interfaceConfigSchema = z.object({
   enabled: z.boolean().default(true),
@@ -265,14 +281,15 @@ export const interfaceConfigSchema = z.object({
     retries: z.number().default(3),
   }),
   logging: z.object({
-    level: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-    format: z.enum(['json', 'text']).default('text'),
+    level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+    format: z.enum(["json", "text"]).default("text"),
   }),
   // Interface-specific config extends this base
 });
 ```
 
 #### Environment Configuration
+
 - Development vs production configurations
 - Environment variable overrides
 - Secrets management integration
@@ -280,24 +297,28 @@ export const interfaceConfigSchema = z.object({
 ## Implementation Plan
 
 ### Phase 2.3.1: Foundation (Week 1)
+
 1. Create `@brains/interface-registry` package
 2. Implement `BaseInterface` class in `@brains/utils`
 3. Define `InterfaceContext` and related types
 4. Create standardized interface error classes
 
 ### Phase 2.3.2: Core Integration (Week 2)
+
 1. Implement `InterfaceManager` in shell core
 2. Create interface discovery and registration system
 3. Add interface lifecycle management
 4. Integrate with shell initialization
 
 ### Phase 2.3.3: Interface Migration (Week 3)
+
 1. Migrate `interfaces/cli` to new architecture
 2. Migrate `interfaces/interface-core` to new architecture
 3. Update any matrix interface code to new patterns
 4. Add comprehensive error handling to all interfaces
 
 ### Phase 2.3.4: Testing and Documentation (Week 4)
+
 1. Add comprehensive tests for interface architecture
 2. Update integration tests
 3. Create interface development guide
@@ -306,18 +327,21 @@ export const interfaceConfigSchema = z.object({
 ## Benefits
 
 ### For Developers
+
 - **Consistent Patterns**: Same patterns across all interfaces
 - **Reduced Boilerplate**: BaseInterface handles common concerns
 - **Better Testing**: Standardized testing patterns
 - **Clear Architecture**: Well-defined boundaries and responsibilities
 
 ### For System
+
 - **Reliability**: Health monitoring and automatic recovery
 - **Scalability**: Easy to add new interfaces
 - **Maintainability**: Centralized interface management
 - **Debuggability**: Consistent error handling and logging
 
 ### For Users
+
 - **Stability**: More reliable interface behavior
 - **Performance**: Optimized interface lifecycle management
 - **Features**: Rich interface capabilities and formatting
@@ -325,11 +349,13 @@ export const interfaceConfigSchema = z.object({
 ## Migration Strategy
 
 ### Backward Compatibility
+
 - Existing interfaces continue to work during migration
 - Gradual migration with parallel systems
 - Clear deprecation timeline
 
 ### Risk Mitigation
+
 - Feature flags for new interface system
 - Rollback mechanisms
 - Comprehensive testing before deployment

@@ -1,4 +1,4 @@
-import { Shell } from "@brains/shell";
+import { Shell } from "@brains/core";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { Logger, LogLevel } from "@brains/utils";
 import type { BaseInterface, MessageContext } from "@brains/interface-core";

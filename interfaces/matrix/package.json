@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
-    "@brains/shell": "workspace:*",
+    "@brains/core": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest"
   }

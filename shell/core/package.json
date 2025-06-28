@@ -1,5 +1,5 @@
 {
-  "name": "@brains/shell",
+  "name": "@brains/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",

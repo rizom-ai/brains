@@ -1,7 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { App } from "./app.js";
 import { appConfigSchema } from "./types.js";
-import type { Shell } from "@brains/shell";
+import type { Shell } from "@brains/core";
 
 // Create a mock Shell
 const createMockShell = (): Shell => {
