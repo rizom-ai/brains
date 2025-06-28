@@ -57,11 +57,13 @@ After deeper analysis, we've realized that **interfaces and plugins serve the sa
 **All extensions to the shell are plugins, categorized by function:**
 
 1. **Content Plugins**: Directory sync, git sync, site builder, link capture
+
    - Process and transform data
    - Extend core functionality with business logic
 
 2. **Interface Plugins**: CLI, Matrix, Webserver, MCP transports
-   - Handle user input/output and external protocol communication  
+
+   - Handle user input/output and external protocol communication
    - Provide interaction mechanisms with the shell
    - Long-running services that bridge external clients to shell capabilities
 
@@ -92,11 +94,13 @@ After deeper analysis, we've realized that **interfaces and plugins serve the sa
 Instead of explicit categorization, plugins are identified by their capabilities:
 
 **Content Plugins** naturally register:
+
 - Data processing tools (`sync_directory`, `build_site`, `capture_link`)
 - Content generation templates
 - Entity types and adapters
 
 **Interface Plugins** naturally register:
+
 - User interaction services (`cli_handler`, `matrix_handler`, `web_server`)
 - Long-running protocol handlers
 - Health check endpoints
@@ -116,10 +120,13 @@ export interface PluginContext {
     handler: {
       start: () => Promise<void>;
       stop: () => Promise<void>;
-      healthCheck?: () => Promise<{ status: 'healthy' | 'warning' | 'error'; message?: string }>;
-    }
+      healthCheck?: () => Promise<{
+        status: "healthy" | "warning" | "error";
+        message?: string;
+      }>;
+    },
   ) => void;
-  
+
   // Direct access to shell message processing (for interface plugins)
   processMessage: (message: string, context: MessageContext) => Promise<string>;
 }
@@ -139,409 +146,88 @@ export interface PluginContext {
 Current interfaces using `BaseInterface` will be migrated to the plugin pattern:
 
 **Migration Path:**
+
 1. Interface functionality moves into plugin `register()` method
 2. Long-running services registered via `registerService()`
 3. User input handling registered as tools or services
 4. Configuration handled through standard plugin config
 5. `BaseInterface` class becomes unnecessary - deleted after migration
 
-#### Interface Context Factory Pattern
+### 2.3.3 Plugin Context Enhancement Examples
 
-Following the plugin architecture pattern:
-
-```typescript
-// In shell/core/src/interfaces/interfaceContextFactory.ts
-export class InterfaceContextFactory {
-  private static instance: InterfaceContextFactory | null = null;
-
-  private serviceRegistry: ServiceRegistry;
-  private logger: Logger;
-
-  public static getInstance(
-    serviceRegistry: ServiceRegistry,
-    logger: Logger,
-  ): InterfaceContextFactory {
-    InterfaceContextFactory.instance ??= new InterfaceContextFactory(
-      serviceRegistry,
-      logger,
-    );
-    return InterfaceContextFactory.instance;
-  }
-
-  public createContext(
-    interfaceId: string,
-    metadata: InterfaceMetadata,
-    config: Record<string, unknown>,
-  ): InterfaceContext {
-    // Create limited, secure context
-    // Inject only specific functions interfaces need
-    // No direct shell access
-  }
-}
-```
-
-#### Interface-Specific Capabilities
-
-- Input validation and sanitization
-- Output formatting and rendering
-- Session management (for stateful interfaces)
-- Authentication and authorization integration
-
-### 2.3.3 Base Interface Class Enhancement
-
-#### Enhance Existing `BaseInterface` in `@brains/interface-core`
-
-The current `BaseInterface` already provides a solid foundation. We'll enhance it rather than replace it:
+#### Example: CLI Plugin Implementation
 
 ```typescript
-export abstract class BaseInterface {
-  // Existing functionality (preserved)
-  protected logger: Logger;
-  protected queue: PQueue;
-  protected processMessage: (
-    message: string,
-    context: MessageContext,
-  ) => Promise<string>;
-  public readonly name: string;
-  public readonly version: string;
+// interfaces/cli/src/plugin.ts
+export const cliPlugin: Plugin = {
+  id: "cli-interface",
+  version: "1.0.0",
+  description: "Command-line interface for shell interaction",
+  packageName: "@brains/cli-plugin",
 
-  // Enhanced context and configuration
-  protected context: InterfaceContext;
-  protected config: InterfaceConfig;
-  private state: InterfaceState = "stopped";
-
-  constructor(
-    context: InterfaceContext,
-    config?: unknown,
-    schema?: ZodType<InterfaceConfig>,
-  ) {
-    // Backward compatibility with current constructor
-    this.name = context.name;
-    this.version = context.version;
-    this.logger = context.logger;
-    this.processMessage = context.processMessage;
-    this.context = context;
-
-    // Enhanced configuration validation
-    if (config && schema) {
-      this.config = this.validateConfig(config, schema);
-    } else {
-      this.config = {} as InterfaceConfig;
-    }
-
-    // Existing queue setup (preserved)
-    this.queue = new PQueue({
-      concurrency: 1,
-      interval: 1000,
-      intervalCap: 10,
+  async register(context: PluginContext): Promise<PluginCapabilities> {
+    // Register CLI service for long-running interface
+    context.registerService("cli-server", {
+      start: async () => {
+        // Start CLI input loop
+        await startCliLoop(context);
+      },
+      stop: async () => {
+        // Gracefully stop CLI
+        await stopCliLoop();
+      },
+      healthCheck: async () => ({
+        status: "healthy",
+        message: "CLI interface running",
+      }),
     });
-  }
 
-  // Enhanced lifecycle methods
-  abstract initialize?(): Promise<void>; // Optional for backward compatibility
-  abstract start(): Promise<void>;
-  abstract stop(): Promise<void>;
-  abstract shutdown?(): Promise<void>; // Optional for backward compatibility
+    // CLI plugins don't typically expose tools, just services
+    return {
+      tools: [],
+      resources: [],
+    };
+  },
+};
 
-  // Health monitoring (new)
-  abstract getHealth?(): InterfaceHealth; // Optional initially
-
-  // Existing message handling (preserved)
-  protected async handleInput(
-    input: string,
-    context: MessageContext,
-  ): Promise<string>;
-  protected abstract handleLocalCommand(
-    command: string,
-    context: MessageContext,
-  ): Promise<string | null>;
-  protected async processMessage(
-    content: string,
-    context: MessageContext,
-  ): Promise<string>;
-
-  // Enhanced configuration management (new)
-  protected validateConfig(config: unknown, schema: ZodType): InterfaceConfig;
-  public updateConfig?(config: Partial<InterfaceConfig>): Promise<void>; // Optional initially
-
-  // Enhanced utilities (new)
-  protected formatError(error: Error): string;
-  protected logActivity(activity: string, data?: unknown): void;
-
-  // State management (new)
-  public getState(): InterfaceState;
-  protected setState(state: InterfaceState): void;
+async function startCliLoop(context: PluginContext) {
+  // Use context.processMessage() for shell integration
+  // Handle user input and display responses
 }
 ```
 
-#### Interface Configuration System
-
-- Standardized configuration validation
-- Environment-specific config support
-- Hot-reload capabilities for development
-
-### 2.3.4 Interface Manager Architecture
-
-#### Following Plugin Manager Pattern
-
-Mirroring the plugin architecture in `shell/core/src/interfaces/`:
+#### Example: Matrix Plugin Implementation
 
 ```typescript
-// shell/core/src/interfaces/interfaceManager.ts
-export class InterfaceManager implements IInterfaceManager {
-  private static instance: InterfaceManager | null = null;
+// interfaces/matrix/src/plugin.ts
+export const matrixPlugin: Plugin = {
+  id: "matrix-interface", 
+  version: "1.0.0",
+  description: "Matrix protocol interface for real-time communication",
+  packageName: "@brains/matrix-plugin",
 
-  private interfaces: Map<string, InterfaceInfo> = new Map();
-  private logger: Logger;
-  private events: EventEmitter;
-  private contextFactory: InterfaceContextFactory;
-  private registrationHandler: InterfaceRegistrationHandler;
-
-  public static getInstance(
-    serviceRegistry: ServiceRegistry,
-    logger: Logger,
-  ): InterfaceManager {
-    InterfaceManager.instance ??= new InterfaceManager(serviceRegistry, logger);
-    return InterfaceManager.instance;
-  }
-
-  public static resetInstance(): void {
-    InterfaceManager.instance = null;
-  }
-
-  public static createFresh(
-    serviceRegistry: ServiceRegistry,
-    logger: Logger,
-  ): InterfaceManager {
-    return new InterfaceManager(serviceRegistry, logger);
-  }
-
-  private constructor(serviceRegistry: ServiceRegistry, logger: Logger) {
-    this.logger = logger.child("InterfaceManager");
-    this.events = new EventEmitter();
-    this.contextFactory = InterfaceContextFactory.getInstance(
-      serviceRegistry,
-      logger,
-    );
-    this.registrationHandler = InterfaceRegistrationHandler.getInstance(logger);
-  }
-
-  async registerInterface(interfaceInstance: BaseInterface): Promise<void> {
-    // Delegate to registration handler
-    await this.registrationHandler.register(interfaceInstance, this.interfaces);
-
-    // Emit registration event
-    this.events.emit(InterfaceEvent.REGISTER, interfaceInstance.name);
-  }
-
-  async initializeInterfaces(): Promise<void> {
-    // Initialize all registered interfaces
-    for (const [name, info] of this.interfaces) {
-      if (info.config.autoStart) {
-        await this.startInterface(name);
-      }
-    }
-  }
-
-  // ... other lifecycle methods
-}
-
-// shell/core/src/interfaces/interfaceContextFactory.ts
-export class InterfaceContextFactory {
-  private serviceRegistry: ServiceRegistry;
-  private logger: Logger;
-
-  public createContext(
-    interfaceId: string,
-    metadata: InterfaceMetadata,
-    config: Record<string, unknown>,
-  ): InterfaceContext {
-    const shell = this.serviceRegistry.get<Shell>("shell");
-    const entityService =
-      this.serviceRegistry.get<EntityService>("entityService");
-    const messageBus = this.serviceRegistry.get<MessageBus>("messageBus");
+  async register(context: PluginContext): Promise<PluginCapabilities> {
+    // Register Matrix service
+    context.registerService("matrix-client", {
+      start: async () => {
+        await connectToMatrix(context);
+      },
+      stop: async () => {
+        await disconnectFromMatrix();
+      },
+      healthCheck: async () => ({
+        status: matrixClient.isConnected() ? "healthy" : "error",
+        message: `Matrix client status: ${matrixClient.getStatus()}`,
+      }),
+    });
 
     return {
-      interfaceId,
-      logger: this.logger.child(interfaceId),
-
-      // Limited shell access - specific functions only
-      processMessage: (message: string, context: MessageContext) =>
-        shell.processMessage(message, context),
-
-      getEntityService: () => entityService,
-      getMessageBus: () => messageBus,
-
-      // Safe, limited functionality
-      formatResponse: (data: unknown, format?: string) => {
-        return typeof data === "string" ? data : JSON.stringify(data, null, 2);
-      },
-
-      validateInput: (data: unknown, schema: ZodType) => {
-        return schema.parse(data);
-      },
-
-      getConfig: (key?: string) => {
-        return key ? config[key] : config;
-      },
-
-      reportHealth: (health: Partial<InterfaceHealth>) => {
-        // Report health status to interface manager
-        this.reportInterfaceHealth(interfaceId, health);
-      },
-
-      // Limited interface registry access
-      getInterface: (name: string) => this.getInterfaceInstance(name),
-      listInterfaces: () => this.listInterfaceNames(),
-
-      // Event system integration
-      sendMessage: this.createMessageSender(messageBus),
-      subscribe: this.createSubscriber(messageBus, interfaceId),
+      tools: [],
+      resources: [],
     };
-  }
-}
-
-// shell/core/src/interfaces/interfaceRegistrationHandler.ts
-export class InterfaceRegistrationHandler {
-  // Similar to PluginRegistrationHandler
-  // Handles validation, dependency checking, etc.
-}
+  },
+};
 ```
-
-#### Interface Info Structure
-
-Following plugin pattern:
-
-```typescript
-// shell/core/src/types/interface-manager.ts
-export interface InterfaceInfo {
-  instance: BaseInterface;
-  metadata: InterfaceMetadata;
-  status: InterfaceLifecycleState;
-  config: InterfaceConfig;
-  health: InterfaceHealth;
-  lastActivity: Date;
-  startedAt?: Date;
-  error?: Error;
-}
-
-export interface IInterfaceManager {
-  registerInterface(interfaceInstance: BaseInterface): Promise<void>;
-  initializeInterfaces(): Promise<void>;
-  startInterface(name: string): Promise<void>;
-  stopInterface(name: string): Promise<void>;
-  restartInterface(name: string): Promise<void>;
-  getInterface(name: string): BaseInterface | undefined;
-  getInterfaceStatus(name: string): InterfaceStatus | undefined;
-  getAllInterfaceStatuses(): InterfaceStatus[];
-  hasInterface(name: string): boolean;
-  isInterfaceRunning(name: string): boolean;
-  getAllInterfaceNames(): string[];
-  shutdown(): Promise<void>;
-
-  // Event handling (like PluginManager)
-  on<E extends InterfaceEvent>(
-    event: E,
-    listener: (...args: InterfaceManagerEventMap[E]) => void,
-  ): void;
-}
-```
-
-#### Interface Health Monitoring
-
-- Periodic health checks
-- Automatic restart on failure
-- Interface dependency tracking
-- Performance metrics collection
-
-### 2.3.5 Interface Error Handling
-
-#### Standardized Interface Error Classes
-
-```typescript
-export class InterfaceError extends BrainsError {
-  constructor(
-    interfaceName: string,
-    message: string,
-    cause: ErrorCause,
-    context?: Record<string, unknown>,
-  ) {
-    super(
-      `Interface error in ${interfaceName}: ${message}`,
-      "INTERFACE_ERROR",
-      normalizeError(cause),
-      { interfaceName, ...context },
-    );
-  }
-}
-
-export class InterfaceInitializationError extends BrainsError {
-  constructor(
-    interfaceName: string,
-    reason: string,
-    cause: ErrorCause,
-    context?: Record<string, unknown>,
-  ) {
-    super(
-      `Interface initialization failed for ${interfaceName}: ${reason}`,
-      "INTERFACE_INITIALIZATION_ERROR",
-      normalizeError(cause),
-      { interfaceName, reason, ...context },
-    );
-  }
-}
-
-export class InterfaceProtocolError extends BrainsError {
-  constructor(
-    interfaceName: string,
-    protocol: string,
-    message: string,
-    cause: ErrorCause,
-    context?: Record<string, unknown>,
-  ) {
-    super(
-      `Protocol error in ${interfaceName} (${protocol}): ${message}`,
-      "INTERFACE_PROTOCOL_ERROR",
-      normalizeError(cause),
-      { interfaceName, protocol, ...context },
-    );
-  }
-}
-```
-
-#### Error Recovery Patterns
-
-- Graceful degradation strategies
-- Retry mechanisms with exponential backoff
-- Circuit breaker patterns for external protocols
-- Error reporting to core system
-
-### 2.3.6 Interface Configuration System
-
-#### Unified Configuration Schema
-
-```typescript
-export const interfaceConfigSchema = z.object({
-  enabled: z.boolean().default(true),
-  autoStart: z.boolean().default(true),
-  healthCheck: z.object({
-    interval: z.number().default(30000),
-    timeout: z.number().default(5000),
-    retries: z.number().default(3),
-  }),
-  logging: z.object({
-    level: z.enum(["debug", "info", "warn", "error"]).default("info"),
-    format: z.enum(["json", "text"]).default("text"),
-  }),
-  // Interface-specific config extends this base
-});
-```
-
-#### Environment Configuration
-
-- Development vs production configurations
-- Environment variable overrides
-- Secrets management integration
 
 ## Simplified Implementation Plan
 
@@ -634,39 +320,42 @@ export const interfaceConfigSchema = z.object({
 
 ## Migration Strategy Details
 
-### Backward Compatibility Approach
+### Unified Plugin Migration Approach
 
-**Phase 1 (Weeks 1-2): Additive Only**
+**Phase 1 (Week 1): Plugin Architecture Enhancement**
 
-- All existing interfaces continue to work unchanged
-- New features are optional and backward compatible
-- InterfaceManager can register both old and new style interfaces
+- Add service registration capabilities to PluginContext
+- Enhance PluginManager to handle service lifecycle
+- All existing content plugins continue to work unchanged
+- Interface plugins gain access to same proven architecture
 
-**Phase 2 (Week 3): Gradual Migration**
+**Phase 2 (Week 2): Interface Plugin Migration**
 
-- Migrate interfaces one by one
-- Keep old versions running until new versions are verified
-- Feature flags for switching between old/new implementations
+- Convert existing interfaces to plugin pattern one by one
+- Each interface registers as service via `registerService()`
+- Test each migration independently
+- Keep old interfaces running until new versions are verified
 
-**Phase 3 (Week 4): Complete Transition**
+**Phase 3 (Week 3): Cleanup and Polish**
 
-- All interfaces use new architecture
-- Remove old compatibility code
-- Full integration testing of new system
+- Remove deprecated BaseInterface and related infrastructure
+- All extensions now follow unified plugin pattern
+- Complete integration testing and documentation
 
 ### MCP Integration Strategy
 
-**Preserve Current Architecture:**
+**Preserve Core Architecture:**
 
-- Keep MCP server as shell core service
-- MCP transport interfaces connect to shell's MCP server
-- No changes to plugin → shell → MCP flow
+- MCP server remains as shell core service (proven, working system)
+- MCP transport interfaces become standard plugins with services
+- No changes to plugin → shell → MCP server flow
+- Transport plugins connect external clients to shell's MCP server
 
-**Enhance Transport Management:**
+**Enhanced Transport Management:**
 
-- MCP transports become managed interfaces
-- Support multiple transport configurations
-- Better lifecycle management for transports
+- MCP transport plugins managed by PluginManager like all other plugins
+- Support multiple transport configurations through plugin config
+- Health monitoring for all MCP transports via plugin health system
 
 ## Benefits of Unified Plugin Architecture
 
@@ -700,19 +389,13 @@ export const interfaceConfigSchema = z.object({
 - **Unified Management**: All MCP-related components managed through PluginManager
 - **Enhanced Monitoring**: Transport health monitoring integrated into plugin health system
 
-## Migration Strategy
+## Risk Mitigation
 
-### Backward Compatibility
-
-- Existing interfaces continue to work during migration
-- Gradual migration with parallel systems
-- Clear deprecation timeline
-
-### Risk Mitigation
-
-- Feature flags for new interface system
-- Rollback mechanisms
-- Comprehensive testing before deployment
+- **Backward Compatibility**: All existing content plugins continue to work unchanged
+- **Gradual Migration**: Interface plugins migrated one by one with independent testing
+- **Proven Architecture**: Building on existing, stable PluginManager system
+- **Rollback Capability**: Can revert to current BaseInterface system if needed
+- **Comprehensive Testing**: Full test coverage before removing deprecated code
 
 ## Success Metrics
 
@@ -735,8 +418,8 @@ export const interfaceConfigSchema = z.object({
 │  │                 │  │                 │                  │
 │  └─────────────────┘  └─────────────────┘                  │
 └─────────────────────────────────────────────────────────────┘
-            │                       │                       
-            │                       │                       
+            │                       │
+            │                       │
     ┌───────▼───────────────────────▼───────────────────────┐
     │                All Plugins                            │
     │                                                       │
@@ -763,7 +446,7 @@ export const interfaceConfigSchema = z.object({
 ### Unified Responsibilities
 
 - **Shell Core**: Owns business logic, MCP server, manages all plugins via PluginManager
-- **Content Plugins**: Process data, extend functionality via tools/resources  
+- **Content Plugins**: Process data, extend functionality via tools/resources
 - **Interface Plugins**: Handle user interaction via registered services
 - **MCP Transport Plugins**: Connect external clients to shell's MCP server
 - **PluginManager**: Manages all plugin lifecycles uniformly (content + interface)
