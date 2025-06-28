@@ -1,0 +1,30 @@
+{
+  "name": "@brains/integration-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "test:db": "bun test test/db",
+    "test:e2e": "bun test test/e2e",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+  },
+  "dependencies": {
+    "@brains/app": "workspace:*",
+    "@brains/mcp-server": "workspace:*",
+    "@brains/core": "workspace:*",
+    "@brains/types": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@libsql/client": "^0.15.7",
+    "drizzle-orm": "^0.29.4"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}
