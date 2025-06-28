@@ -1,15 +1,17 @@
-# Interface Architecture Overhaul Plan (Phase 2.3)
+# Interface Architecture Simplification Plan (Phase 2.3) - REVISED
 
 ## Overview
 
-This document outlines a comprehensive plan to standardize and enhance the interface architecture in the Personal Brain system. Currently, interfaces lack the systematic architecture that plugins have, leading to inconsistencies and missed opportunities for code reuse.
+**MAJOR ARCHITECTURAL INSIGHT**: After careful analysis, we've determined that interfaces should be **implemented as plugins** rather than as a separate architectural layer. This eliminates architectural duplication and provides a unified, consistent system for all extensions to the shell.
+
+This document outlines the revised plan to integrate interfaces into the existing plugin architecture, eliminating the need for a separate interface management system.
 
 ## Current State Analysis
 
 ### Existing Interface Packages
 
 - `interfaces/cli` - Command-line interface using BaseInterface
-- `interfaces/interface-core` - Base interface utilities and formatters  
+- `interfaces/interface-core` - Base interface utilities and formatters
 - `interfaces/matrix` - Matrix protocol interface using BaseInterface
 - `interfaces/webserver` - Static site serving interface using BaseInterface
 - `interfaces/mcp-server` - MCP transport interfaces (stdio, HTTP)
@@ -18,14 +20,16 @@ This document outlines a comprehensive plan to standardize and enhance the inter
 
 **Three Different Approaches Identified:**
 
-1. **Interactive Interfaces** (CLI, Matrix): 
+1. **Interactive Interfaces** (CLI, Matrix):
+
    - Extend `BaseInterface` from `interface-core`
    - Handle user interaction and message processing
    - Manually instantiated and managed
 
 2. **MCP Server Architecture**:
+
    - **Core Service**: MCP server integrated into shell core
-   - **Transport Interfaces**: `StdioMCPServer`, `StreamableHTTPServer` 
+   - **Transport Interfaces**: `StdioMCPServer`, `StreamableHTTPServer`
    - **Well-Integrated**: Plugins register tools/resources via shell
 
 3. **Standalone Interfaces** (Webserver):
@@ -36,121 +40,110 @@ This document outlines a comprehensive plan to standardize and enhance the inter
 ### Current Issues
 
 1. **No Interface Registry**: Interfaces are not systematically registered or managed
-2. **Inconsistent Lifecycle**: No standardized initialization/shutdown patterns  
+2. **Inconsistent Lifecycle**: No standardized initialization/shutdown patterns
 3. **Ad-hoc Integration**: Each interface type integrates differently
 4. **Missing Context System**: No equivalent to PluginContext for interfaces
 5. **Inconsistent Error Handling**: Each interface handles errors differently
 6. **Mixed Architecture**: MCP both service and interface, others purely interfaces
 
-## Interface vs Plugin Philosophy
+## Revised Architecture: Interfaces as Plugins
 
-### Interfaces
+### Key Insight: No Fundamental Difference
 
-- **Purpose**: User-facing interaction layers and external protocol adapters
-- **Examples**: CLI, Matrix, Webserver, MCP transports (stdio, HTTP)
-- **Characteristics**:
-  - Handle user input/output
-  - Manage external protocol communication
-  - Focus on presentation and transport
-  - Typically long-running services
-  - Connect external clients to shell capabilities
+After deeper analysis, we've realized that **interfaces and plugins serve the same architectural purpose**: they extend the shell's capabilities. The distinction between "business logic" vs "user interaction" is artificial and creates unnecessary complexity.
 
-### Plugins
+### Unified Plugin Categories
 
-- **Purpose**: Content processing and business logic extensions
-- **Examples**: Directory sync, git sync, site builder, link capture
-- **Characteristics**:
-  - Process and transform data
-  - Extend core functionality
-  - Can be dynamically loaded/unloaded
-  - Provide tools and resources to shell
+**All extensions to the shell are plugins, categorized by function:**
 
-### MCP Server as Core Service
+1. **Content Plugins**: Directory sync, git sync, site builder, link capture
+   - Process and transform data
+   - Extend core functionality with business logic
 
-- **Purpose**: Shell's external API - exposes shell functionality via MCP protocol
-- **Architecture**: Core service owned by shell, not an interface
-- **Integration**: Plugins register tools/resources with shell → shell exposes via MCP
-- **Transport**: MCP transport interfaces connect external clients to shell's MCP server
+2. **Interface Plugins**: CLI, Matrix, Webserver, MCP transports
+   - Handle user input/output and external protocol communication  
+   - Provide interaction mechanisms with the shell
+   - Long-running services that bridge external clients to shell capabilities
 
-### Clear Separation
+3. **Hybrid Plugins**: Can provide both content processing and interface capabilities
 
-- **Shell Core**: Owns business logic and MCP server
-- **Transport Interfaces**: Handle protocol-specific communication (stdio, HTTP, Matrix, etc.)
-- **Plugins**: Extend shell functionality via tools and resources
-- **No Blurred Lines**: Each component has clear, distinct responsibilities
+### Benefits of Unified Architecture
 
-## Phase 2.3: Interface Architecture Standardization
+1. **Single Management System**: One PluginManager handles all extensions
+2. **Consistent Patterns**: Same registration, lifecycle, context, and error handling
+3. **Simplified Codebase**: Eliminates architectural duplication
+4. **Flexible Categorization**: Plugins can provide multiple types of capabilities
+5. **Dynamic Loading**: Interface plugins gain dynamic loading/unloading capabilities
+6. **Unified Configuration**: Same configuration patterns for all extensions
 
-### 2.3.1 Interface Registry System
+### MCP Server Integration
 
-#### Create `@brains/interface-registry` Package
+- **MCP Server**: Remains a core shell service (not a plugin)
+- **MCP Transport Plugins**: Handle protocol-specific communication (stdio, HTTP)
+- **Plugin Integration**: All plugins register tools/resources → shell exposes via MCP
+- **Clean Separation**: MCP server (core service) vs MCP transports (interface plugins)
 
-```typescript
-export interface InterfaceMetadata {
-  name: string;
-  version: string;
-  description: string;
-  protocols: string[]; // e.g., ['cli', 'matrix', 'http']
-  dependencies: string[];
-  capabilities: InterfaceCapability[];
-}
+## Phase 2.3: Interface-to-Plugin Migration
 
-export interface InterfaceRegistry {
-  register(interfaceInstance: BaseInterface): Promise<void>;
-  unregister(name: string): Promise<void>;
-  get(name: string): BaseInterface | undefined;
-  list(): InterfaceMetadata[];
-  initialize(): Promise<void>;
-  shutdown(): Promise<void>;
-}
-```
+### 2.3.1 Plugin Architecture Enhancement for Interface Capabilities
 
-#### Interface Discovery and Registration
+#### Capability-Based Plugin Identification
 
-- Automatic discovery of interface packages
-- Configuration-based interface enabling/disabling
-- Dependency resolution between interfaces
+Instead of explicit categorization, plugins are identified by their capabilities:
 
-### 2.3.2 Interface Context Framework
+**Content Plugins** naturally register:
+- Data processing tools (`sync_directory`, `build_site`, `capture_link`)
+- Content generation templates
+- Entity types and adapters
 
-#### Create `InterfaceContext` in `@brains/types`
+**Interface Plugins** naturally register:
+- User interaction services (`cli_handler`, `matrix_handler`, `web_server`)
+- Long-running protocol handlers
+- Health check endpoints
 
-Following the plugin pattern with principle of least privilege:
+**PluginManager Enhancement**: Automatically detect plugin type based on registered capabilities and handle lifecycle accordingly.
+
+#### Enhanced Plugin Context for Interface Capabilities
 
 ```typescript
-export interface InterfaceContext {
-  interfaceId: string;
-  logger: Logger;
+// Extend existing PluginContext with interface-specific capabilities
+export interface PluginContext {
+  // ... existing capabilities (sendMessage, subscribe, registerEntityType, etc.)
+
+  // Service registration for long-running interfaces
+  registerService: (
+    serviceName: string,
+    handler: {
+      start: () => Promise<void>;
+      stop: () => Promise<void>;
+      healthCheck?: () => Promise<{ status: 'healthy' | 'warning' | 'error'; message?: string }>;
+    }
+  ) => void;
   
-  // Message processing (core interface capability)
+  // Direct access to shell message processing (for interface plugins)
   processMessage: (message: string, context: MessageContext) => Promise<string>;
-  
-  // Service access (limited, specific functions)
-  getEntityService: () => EntityService;
-  getMessageBus: () => MessageBus;
-  
-  // Event handling
-  sendMessage: MessageSender;
-  subscribe: <T = unknown, R = unknown>(
-    type: string,
-    handler: MessageHandler<T, R>,
-  ) => () => void;
-  
-  // Interface-specific capabilities
-  formatResponse: (data: unknown, format?: string) => string;
-  validateInput: (data: unknown, schema: ZodType) => unknown;
-  
-  // Configuration access
-  getConfig: (key?: string) => unknown;
-  
-  // Health reporting
-  reportHealth: (health: Partial<InterfaceHealth>) => void;
-  
-  // Interface registry access (limited)
-  getInterface: (name: string) => BaseInterface | undefined;
-  listInterfaces: () => string[];
 }
 ```
+
+#### Service Lifecycle Management
+
+- **PluginManager detects service registrations** during plugin initialization
+- **Automatic service startup** for plugins that register services
+- **Health monitoring** for long-running services
+- **Graceful shutdown** of services during plugin unload
+
+### 2.3.2 BaseInterface Deprecation Strategy
+
+#### Eliminate BaseInterface in Favor of Plugin Pattern
+
+Current interfaces using `BaseInterface` will be migrated to the plugin pattern:
+
+**Migration Path:**
+1. Interface functionality moves into plugin `register()` method
+2. Long-running services registered via `registerService()`
+3. User input handling registered as tools or services
+4. Configuration handled through standard plugin config
+5. `BaseInterface` class becomes unnecessary - deleted after migration
 
 #### Interface Context Factory Pattern
 
@@ -160,22 +153,25 @@ Following the plugin architecture pattern:
 // In shell/core/src/interfaces/interfaceContextFactory.ts
 export class InterfaceContextFactory {
   private static instance: InterfaceContextFactory | null = null;
-  
+
   private serviceRegistry: ServiceRegistry;
   private logger: Logger;
-  
+
   public static getInstance(
     serviceRegistry: ServiceRegistry,
     logger: Logger,
   ): InterfaceContextFactory {
-    InterfaceContextFactory.instance ??= new InterfaceContextFactory(serviceRegistry, logger);
+    InterfaceContextFactory.instance ??= new InterfaceContextFactory(
+      serviceRegistry,
+      logger,
+    );
     return InterfaceContextFactory.instance;
   }
-  
+
   public createContext(
     interfaceId: string,
     metadata: InterfaceMetadata,
-    config: Record<string, unknown>
+    config: Record<string, unknown>,
   ): InterfaceContext {
     // Create limited, secure context
     // Inject only specific functions interfaces need
@@ -202,7 +198,10 @@ export abstract class BaseInterface {
   // Existing functionality (preserved)
   protected logger: Logger;
   protected queue: PQueue;
-  protected processMessage: (message: string, context: MessageContext) => Promise<string>;
+  protected processMessage: (
+    message: string,
+    context: MessageContext,
+  ) => Promise<string>;
   public readonly name: string;
   public readonly version: string;
 
@@ -211,14 +210,18 @@ export abstract class BaseInterface {
   protected config: InterfaceConfig;
   private state: InterfaceState = "stopped";
 
-  constructor(context: InterfaceContext, config?: unknown, schema?: ZodType<InterfaceConfig>) {
+  constructor(
+    context: InterfaceContext,
+    config?: unknown,
+    schema?: ZodType<InterfaceConfig>,
+  ) {
     // Backward compatibility with current constructor
     this.name = context.name;
     this.version = context.version;
     this.logger = context.logger;
     this.processMessage = context.processMessage;
     this.context = context;
-    
+
     // Enhanced configuration validation
     if (config && schema) {
       this.config = this.validateConfig(config, schema);
@@ -244,9 +247,18 @@ export abstract class BaseInterface {
   abstract getHealth?(): InterfaceHealth; // Optional initially
 
   // Existing message handling (preserved)
-  protected async handleInput(input: string, context: MessageContext): Promise<string>;
-  protected abstract handleLocalCommand(command: string, context: MessageContext): Promise<string | null>;
-  protected async processMessage(content: string, context: MessageContext): Promise<string>;
+  protected async handleInput(
+    input: string,
+    context: MessageContext,
+  ): Promise<string>;
+  protected abstract handleLocalCommand(
+    command: string,
+    context: MessageContext,
+  ): Promise<string | null>;
+  protected async processMessage(
+    content: string,
+    context: MessageContext,
+  ): Promise<string>;
 
   // Enhanced configuration management (new)
   protected validateConfig(config: unknown, schema: ZodType): InterfaceConfig;
@@ -255,7 +267,7 @@ export abstract class BaseInterface {
   // Enhanced utilities (new)
   protected formatError(error: Error): string;
   protected logActivity(activity: string, data?: unknown): void;
-  
+
   // State management (new)
   public getState(): InterfaceState;
   protected setState(state: InterfaceState): void;
@@ -278,13 +290,13 @@ Mirroring the plugin architecture in `shell/core/src/interfaces/`:
 // shell/core/src/interfaces/interfaceManager.ts
 export class InterfaceManager implements IInterfaceManager {
   private static instance: InterfaceManager | null = null;
-  
+
   private interfaces: Map<string, InterfaceInfo> = new Map();
   private logger: Logger;
   private events: EventEmitter;
   private contextFactory: InterfaceContextFactory;
   private registrationHandler: InterfaceRegistrationHandler;
-  
+
   public static getInstance(
     serviceRegistry: ServiceRegistry,
     logger: Logger,
@@ -292,33 +304,36 @@ export class InterfaceManager implements IInterfaceManager {
     InterfaceManager.instance ??= new InterfaceManager(serviceRegistry, logger);
     return InterfaceManager.instance;
   }
-  
+
   public static resetInstance(): void {
     InterfaceManager.instance = null;
   }
-  
+
   public static createFresh(
     serviceRegistry: ServiceRegistry,
     logger: Logger,
   ): InterfaceManager {
     return new InterfaceManager(serviceRegistry, logger);
   }
-  
+
   private constructor(serviceRegistry: ServiceRegistry, logger: Logger) {
     this.logger = logger.child("InterfaceManager");
     this.events = new EventEmitter();
-    this.contextFactory = InterfaceContextFactory.getInstance(serviceRegistry, logger);
+    this.contextFactory = InterfaceContextFactory.getInstance(
+      serviceRegistry,
+      logger,
+    );
     this.registrationHandler = InterfaceRegistrationHandler.getInstance(logger);
   }
-  
+
   async registerInterface(interfaceInstance: BaseInterface): Promise<void> {
     // Delegate to registration handler
     await this.registrationHandler.register(interfaceInstance, this.interfaces);
-    
+
     // Emit registration event
     this.events.emit(InterfaceEvent.REGISTER, interfaceInstance.name);
   }
-  
+
   async initializeInterfaces(): Promise<void> {
     // Initialize all registered interfaces
     for (const [name, info] of this.interfaces) {
@@ -327,7 +342,7 @@ export class InterfaceManager implements IInterfaceManager {
       }
     }
   }
-  
+
   // ... other lifecycle methods
 }
 
@@ -335,49 +350,50 @@ export class InterfaceManager implements IInterfaceManager {
 export class InterfaceContextFactory {
   private serviceRegistry: ServiceRegistry;
   private logger: Logger;
-  
+
   public createContext(
     interfaceId: string,
     metadata: InterfaceMetadata,
-    config: Record<string, unknown>
+    config: Record<string, unknown>,
   ): InterfaceContext {
     const shell = this.serviceRegistry.get<Shell>("shell");
-    const entityService = this.serviceRegistry.get<EntityService>("entityService");
+    const entityService =
+      this.serviceRegistry.get<EntityService>("entityService");
     const messageBus = this.serviceRegistry.get<MessageBus>("messageBus");
-    
+
     return {
       interfaceId,
       logger: this.logger.child(interfaceId),
-      
+
       // Limited shell access - specific functions only
-      processMessage: (message: string, context: MessageContext) => 
+      processMessage: (message: string, context: MessageContext) =>
         shell.processMessage(message, context),
-      
+
       getEntityService: () => entityService,
       getMessageBus: () => messageBus,
-      
+
       // Safe, limited functionality
       formatResponse: (data: unknown, format?: string) => {
         return typeof data === "string" ? data : JSON.stringify(data, null, 2);
       },
-      
+
       validateInput: (data: unknown, schema: ZodType) => {
         return schema.parse(data);
       },
-      
+
       getConfig: (key?: string) => {
         return key ? config[key] : config;
       },
-      
+
       reportHealth: (health: Partial<InterfaceHealth>) => {
         // Report health status to interface manager
         this.reportInterfaceHealth(interfaceId, health);
       },
-      
+
       // Limited interface registry access
       getInterface: (name: string) => this.getInterfaceInstance(name),
       listInterfaces: () => this.listInterfaceNames(),
-      
+
       // Event system integration
       sendMessage: this.createMessageSender(messageBus),
       subscribe: this.createSubscriber(messageBus, interfaceId),
@@ -385,7 +401,7 @@ export class InterfaceContextFactory {
   }
 }
 
-// shell/core/src/interfaces/interfaceRegistrationHandler.ts  
+// shell/core/src/interfaces/interfaceRegistrationHandler.ts
 export class InterfaceRegistrationHandler {
   // Similar to PluginRegistrationHandler
   // Handles validation, dependency checking, etc.
@@ -422,7 +438,7 @@ export interface IInterfaceManager {
   isInterfaceRunning(name: string): boolean;
   getAllInterfaceNames(): string[];
   shutdown(): Promise<void>;
-  
+
   // Event handling (like PluginManager)
   on<E extends InterfaceEvent>(
     event: E,
@@ -527,123 +543,113 @@ export const interfaceConfigSchema = z.object({
 - Environment variable overrides
 - Secrets management integration
 
-## Implementation Plan
+## Simplified Implementation Plan
 
-### Phase 2.3.1: Foundation Enhancement (Week 1)
+### Phase 2.3.1: Plugin Context Enhancement (Week 1)
 
-**Goal**: Create interface architecture foundation following plugin patterns
+**Goal**: Extend existing plugin architecture to support interface capabilities
 
-1. **Add Interface Types to `@brains/types`**
-   - Create `src/interface.ts` with all interface types
-   - `InterfaceContext`, `InterfaceMetadata`, `InterfaceHealth`, etc.
-   - `InterfaceManager` interface and event types
-   - Follow same patterns as `src/plugin.ts`
+1. **Enhance PluginContext in `@brains/types`**
 
-2. **Add Interface Error Classes to `@brains/utils`**
-   - `InterfaceError`, `InterfaceInitializationError`, `InterfaceProtocolError`
-   - Follow existing BrainsError pattern from Phase 2.2
+   - Add `registerService()` method for long-running services
+   - Add `processMessage()` method for direct shell message access
+   - Add service health check capabilities
+   - Keep changes minimal and backward compatible
 
-3. **Enhance `BaseInterface` in `@brains/interface-core`**
-   - Rewrite to use new `InterfaceContext` from `@brains/types`
-   - Add lifecycle methods with `handle` prefix pattern
-   - Add state management and health monitoring
-   - Remove direct shell access, use context functions
+2. **Update PluginManager Service Handling**
 
-4. **Create Interface Manager Types**
-   - Add `shell/core/src/types/interface-manager.ts`
-   - Define `InterfaceInfo`, `IInterfaceManager` interfaces
-   - Mirror `plugin-manager.ts` structure exactly
+   - Detect service registrations during plugin initialization
+   - Start/stop services automatically with plugin lifecycle
+   - Add health monitoring for registered services
+   - Maintain existing content plugin functionality
 
-### Phase 2.3.2: InterfaceManager Integration (Week 2)
+3. **Add Service Types to `@brains/types`**
 
-**Goal**: Build complete interface management system in shell core
+   - `ServiceHandler` interface with start/stop/healthCheck methods
+   - `ServiceHealth` status types
+   - Integration with existing plugin event system
 
-1. **Implement InterfaceManager Architecture**
-   - `shell/core/src/interfaces/interfaceManager.ts` - Main manager class
-   - `shell/core/src/interfaces/interfaceContextFactory.ts` - Context creation
-   - `shell/core/src/interfaces/interfaceRegistrationHandler.ts` - Registration logic
-   - Mirror plugin architecture exactly
+4. **Testing**
+   - Test service registration and lifecycle
+   - Verify backward compatibility with existing content plugins
+   - Test health monitoring system
 
-2. **Integrate with Shell Core**
-   - Add InterfaceManager to shell initialization (alongside PluginManager)
-   - Register InterfaceManager in ServiceRegistry
-   - Create shell configuration schema for interfaces
+### Phase 2.3.2: Interface Plugin Migration (Week 2)
 
-3. **Create Interface Registry Package**
-   - `shared/interface-registry/` package (similar to service-registry)
-   - Basic interface discovery and metadata management
-   - Integration with InterfaceManager
+**Goal**: Convert existing interfaces to plugin pattern
 
-4. **Integration Testing**
-   - Test InterfaceManager singleton pattern
-   - Verify context factory creates proper limited contexts
-   - Test interface lifecycle management
+1. **Migrate CLI Interface to Plugin**
 
-### Phase 2.3.3: Interface Migration and Enhancement (Week 3)
+   - Convert `interfaces/cli` package to plugin structure
+   - Register CLI service via `registerService()`
+   - Use `processMessage()` for shell integration
+   - Remove BaseInterface dependency
 
-**Goal**: Migrate existing interfaces to new architecture
+2. **Migrate Matrix Interface to Plugin**
 
-1. **Migrate CLI Interface**
-   - Update to use enhanced InterfaceContext
-   - Add health monitoring and state management
-   - Test with InterfaceManager registration
+   - Convert `interfaces/matrix` package to plugin structure
+   - Register Matrix service for long-running connection
+   - Handle Matrix protocol via registered service
+   - Remove BaseInterface dependency
 
-2. **Migrate Matrix Interface**
-   - Update to use enhanced InterfaceContext
-   - Add standardized error handling
-   - Integrate with interface configuration system
+3. **Migrate Webserver Interface to Plugin**
 
-3. **Migrate Webserver Interface**
-   - Add to InterfaceManager registration
-   - Enhance with proper lifecycle management
+   - Convert `interfaces/webserver` package to plugin structure
+   - Register web server as service
    - Add health checks for server status
+   - Remove BaseInterface dependency
 
-4. **Add Comprehensive Error Handling**
-   - Update all interfaces to use standardized error classes
-   - Add error recovery patterns
-   - Implement graceful degradation strategies
+4. **MCP Transport Plugin Migration**
+   - Convert MCP transport interfaces to plugins
+   - Register stdio and HTTP transport services
+   - Maintain integration with core MCP server
 
-### Phase 2.3.4: Polish and Documentation (Week 4)
+### Phase 2.3.3: Cleanup and Polish (Week 3)
 
-**Goal**: Complete the architecture with testing and documentation
+**Goal**: Remove deprecated interface architecture
 
-1. **Comprehensive Testing**
-   - Unit tests for InterfaceManager
-   - Integration tests for interface lifecycle
-   - Test interface registration and discovery
-   - Test MCP transport integration
+1. **Remove BaseInterface**
 
-2. **Update Integration Tests**
-   - Update shell integration tests to include interfaces
-   - Test interface startup/shutdown sequences
-   - Verify interface health monitoring
+   - Delete `interfaces/interface-core/src/base-interface.ts`
+   - Remove interface-specific types now handled by plugins
+   - Keep only shared utilities in `interface-core`
 
-3. **Documentation and Guides**
-   - Create interface development guide
-   - Document interface vs plugin decision framework
-   - Add configuration examples for each interface type
-   - Document MCP transport architecture
+2. **Update Package Dependencies**
 
-4. **Performance and Monitoring**
-   - Add interface performance metrics
-   - Implement health check endpoints
-   - Add interface status dashboard/logging
+   - Remove BaseInterface imports from all interface packages
+   - Update to use standard plugin patterns
+   - Clean up package.json dependencies
+
+3. **Integration Testing**
+
+   - Test all interface plugins work with PluginManager
+   - Verify service lifecycle management
+   - Test health monitoring across all interfaces
+   - Validate MCP integration still works
+
+4. **Documentation Updates**
+   - Update interface development guide to use plugin pattern
+   - Document service registration patterns
+   - Add examples of interface plugin implementations
 
 ## Migration Strategy Details
 
 ### Backward Compatibility Approach
 
 **Phase 1 (Weeks 1-2): Additive Only**
+
 - All existing interfaces continue to work unchanged
 - New features are optional and backward compatible
 - InterfaceManager can register both old and new style interfaces
 
 **Phase 2 (Week 3): Gradual Migration**
+
 - Migrate interfaces one by one
 - Keep old versions running until new versions are verified
 - Feature flags for switching between old/new implementations
 
 **Phase 3 (Week 4): Complete Transition**
+
 - All interfaces use new architecture
 - Remove old compatibility code
 - Full integration testing of new system
@@ -651,46 +657,48 @@ export const interfaceConfigSchema = z.object({
 ### MCP Integration Strategy
 
 **Preserve Current Architecture:**
+
 - Keep MCP server as shell core service
 - MCP transport interfaces connect to shell's MCP server
 - No changes to plugin → shell → MCP flow
 
 **Enhance Transport Management:**
+
 - MCP transports become managed interfaces
 - Support multiple transport configurations
 - Better lifecycle management for transports
 
-## Benefits
+## Benefits of Unified Plugin Architecture
 
 ### For Developers
 
-- **Consistent Patterns**: Same patterns across all interfaces (CLI, Matrix, MCP transports, Webserver)
-- **Reduced Boilerplate**: Enhanced BaseInterface handles common concerns
-- **Better Testing**: Standardized testing patterns with interface mocking
-- **Clear Architecture**: Well-defined boundaries between interfaces, shell, and plugins
-- **Easy Integration**: Simple interface registration and lifecycle management
+- **Single Pattern**: Same plugin pattern for all extensions (content + interface + MCP transport)
+- **Reduced Complexity**: No separate interface management system to learn
+- **Consistent Testing**: Same testing patterns for all plugin types
+- **Clear Architecture**: All extensions managed uniformly by PluginManager
+- **Easy Development**: Familiar plugin pattern for all new interface development
 
 ### For System
 
-- **Reliability**: Health monitoring, automatic recovery, and graceful degradation
-- **Scalability**: Easy to add new interfaces without core changes  
-- **Maintainability**: Centralized interface management through InterfaceManager
-- **Debuggability**: Consistent error handling, logging, and state tracking
-- **Configuration**: Unified interface configuration with environment overrides
+- **Simplified Architecture**: One management system instead of two
+- **Reduced Code Duplication**: No separate interface lifecycle, error handling, etc.
+- **Unified Health Monitoring**: Service health checks integrated into plugin system
+- **Scalability**: Easy to add new interface plugins without architectural changes
+- **Maintainability**: Single codebase for all extension management
 
 ### For Users
 
-- **Stability**: More reliable interface behavior across all interaction methods
-- **Performance**: Optimized interface lifecycle management and resource usage
-- **Features**: Rich interface capabilities, consistent formatting, and error handling
-- **Flexibility**: Multiple interface options (CLI, Matrix, Web, API) with consistent experience
+- **Consistent Experience**: All interfaces follow same reliability and error handling patterns
+- **Dynamic Configuration**: Interface plugins can be enabled/disabled like content plugins
+- **Better Monitoring**: Unified health and status tracking across all interfaces
+- **Flexibility**: Same powerful plugin capabilities available for all interface types
 
 ### For MCP Integration
 
-- **Preserves Working System**: No changes to proven MCP server architecture
-- **Better Transport Management**: Unified lifecycle for stdio and HTTP transports
-- **Consistent Experience**: MCP transports follow same patterns as other interfaces
-- **Enhanced Monitoring**: Health checks and status tracking for MCP endpoints
+- **Preserves Core Architecture**: MCP server remains a shell core service
+- **Simplified Transports**: MCP transports become standard plugins with services
+- **Unified Management**: All MCP-related components managed through PluginManager
+- **Enhanced Monitoring**: Transport health monitoring integrated into plugin health system
 
 ## Migration Strategy
 
@@ -714,77 +722,79 @@ export const interfaceConfigSchema = z.object({
 4. **Developer Experience**: Faster interface development
 5. **Test Coverage**: >90% coverage for interface architecture
 
-## Updated Architecture Overview
+## Simplified Architecture Overview
 
-### Final Interface Architecture
+### Unified Plugin Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Shell Core                           │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │   Plugin        │  │   MCP Server    │  │ Interface   │ │
-│  │   Manager       │  │   (Core Service)│  │ Manager     │ │
-│  │                 │  │                 │  │             │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
+│  ┌─────────────────┐  ┌─────────────────┐                  │
+│  │   Plugin        │  │   MCP Server    │                  │
+│  │   Manager       │  │   (Core Service)│                  │
+│  │                 │  │                 │                  │
+│  └─────────────────┘  └─────────────────┘                  │
 └─────────────────────────────────────────────────────────────┘
-            │                       │                       │
-            │                       │                       │
-    ┌───────▼───────┐      ┌────────▼────────┐     ┌────────▼────────┐
-    │    Plugins    │      │ MCP Transports  │     │   Interfaces    │
-    │               │      │                 │     │                 │
-    │ ┌───────────┐ │      │ ┌─────────────┐ │     │ ┌─────────────┐ │
-    │ │Directory  │ │      │ │Stdio MCP    │ │     │ │CLI Interface│ │
-    │ │Sync       │ │      │ │Interface    │ │     │ │             │ │
-    │ └───────────┘ │      │ └─────────────┘ │     │ └─────────────┘ │
-    │               │      │                 │     │                 │
-    │ ┌───────────┐ │      │ ┌─────────────┐ │     │ ┌─────────────┐ │
-    │ │Site       │ │      │ │HTTP MCP     │ │     │ │Matrix       │ │
-    │ │Builder    │ │      │ │Interface    │ │     │ │Interface    │ │
-    │ └───────────┘ │      │ └─────────────┘ │     │ └─────────────┘ │
-    │               │      │                 │     │                 │
-    │ ┌───────────┐ │      └─────────────────┘     │ ┌─────────────┐ │
-    │ │Git Sync   │ │                              │ │Webserver    │ │
-    │ │           │ │                              │ │Interface    │ │
-    │ └───────────┘ │                              │ └─────────────┘ │
-    └───────────────┘                              └─────────────────┘
+            │                       │                       
+            │                       │                       
+    ┌───────▼───────────────────────▼───────────────────────┐
+    │                All Plugins                            │
+    │                                                       │
+    │ ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+    │ │Directory    │  │CLI Plugin   │  │Stdio MCP    │     │
+    │ │Sync Plugin  │  │(Service)    │  │Plugin       │     │
+    │ └─────────────┘  └─────────────┘  └─────────────┘     │
+    │                                                       │
+    │ ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+    │ │Site Builder │  │Matrix Plugin│  │HTTP MCP     │     │
+    │ │Plugin       │  │(Service)    │  │Plugin       │     │
+    │ └─────────────┘  └─────────────┘  └─────────────┘     │
+    │                                                       │
+    │ ┌─────────────┐  ┌─────────────┐                      │
+    │ │Git Sync     │  │Webserver    │                      │
+    │ │Plugin       │  │Plugin       │                      │
+    │ └─────────────┘  └─────────────┘                      │
+    └───────────────────────────────────────────────────────┘
 
-    Business Logic                Transport             User Interaction
-    Extensions                    Adapters              Layers
+    Content Processing + Interface Services + MCP Transports
+    All managed uniformly by PluginManager
 ```
 
-### Clear Responsibilities
+### Unified Responsibilities
 
-- **Shell Core**: Owns business logic, MCP server, manages plugins and interfaces
-- **Plugins**: Extend functionality, register tools/resources with shell
-- **MCP Server**: Exposes shell capabilities via MCP protocol (core service)
-- **MCP Transport Interfaces**: Connect external MCP clients to shell's MCP server
-- **User Interfaces**: Handle direct user interaction (CLI, Matrix, Web)
-- **InterfaceManager**: Manages all interface lifecycles uniformly
+- **Shell Core**: Owns business logic, MCP server, manages all plugins via PluginManager
+- **Content Plugins**: Process data, extend functionality via tools/resources  
+- **Interface Plugins**: Handle user interaction via registered services
+- **MCP Transport Plugins**: Connect external clients to shell's MCP server
+- **PluginManager**: Manages all plugin lifecycles uniformly (content + interface)
+- **MCP Server**: Core service that exposes all plugin capabilities via MCP protocol
 
 ## Next Steps
 
-1. **Review and approve this updated plan** ✅
-2. **Begin Phase 2.3.1 implementation** (Foundation Enhancement)
-   - Start with BaseInterface enhancements
-   - Create interface registry package
-   - Add interface error classes
-3. **Week-by-week implementation** following the detailed plan
-4. **Regular progress reviews** with focus on backward compatibility
-5. **Integration testing** at each phase milestone
+1. **Review and approve this simplified plan** ✅
+2. **Begin Phase 2.3.1 implementation** (Plugin Context Enhancement)
+   - Extend PluginContext with service registration capabilities
+   - Update PluginManager to handle service lifecycle
+   - Add service health monitoring
+3. **Week-by-week implementation** following the simplified plan
+4. **Interface plugin migration** one by one with testing
+5. **Remove deprecated BaseInterface** after successful migration
 
 ## Key Decisions Made
 
+✅ **Unified Plugin Architecture**: Interfaces implemented as plugins, not separate system  
 ✅ **Preserve MCP Server Architecture**: Keep as shell core service  
-✅ **Enhance Rather Than Replace**: Build on existing BaseInterface  
-✅ **Option A Approach**: MCP transports as interfaces, server as service  
-✅ **Backward Compatibility**: Gradual migration with no breaking changes  
-✅ **Unified Management**: All interfaces managed through InterfaceManager  
+✅ **Capability-Based Detection**: Plugin type determined by registered capabilities  
+✅ **Service Registration Pattern**: Interface plugins register long-running services  
+✅ **Backward Compatibility**: Existing content plugins unaffected by changes
 
 ---
 
-This refined plan provides a robust, scalable interface architecture that:
-- Respects existing working systems (especially MCP integration)
-- Provides consistent patterns across all interface types  
-- Maintains clear separation between business logic and presentation layers
-- Enables easy addition of new interfaces without core changes
-- Preserves backward compatibility throughout the migration
+This simplified plan provides a unified, elegant architecture that:
+
+- **Eliminates architectural duplication** by using plugins for all extensions
+- **Respects existing working systems** (especially MCP server and content plugins)
+- **Provides consistent patterns** across all extension types
+- **Maintains clear separation** between core services and extensions
+- **Enables easy development** of new interfaces using familiar plugin patterns
+- **Preserves full backward compatibility** for existing content plugins
