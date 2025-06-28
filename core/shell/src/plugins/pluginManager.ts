@@ -10,6 +10,7 @@ import type {
 import { PluginStatus, PluginEvent } from "../types/plugin-manager";
 import { PluginContextFactory } from "./pluginContextFactory";
 import { PluginRegistrationHandler } from "./pluginRegistrationHandler";
+import { PluginRegistrationError, PluginDependencyError } from "../errors";
 
 // Re-export enums for convenience
 export { PluginEvent, PluginStatus } from "../types/plugin-manager";
@@ -78,7 +79,7 @@ export class PluginManager implements IPluginManager {
    */
   public registerPlugin(plugin: Plugin): void {
     if (!plugin.id) {
-      throw new Error("Plugin must have an id");
+      throw new PluginRegistrationError("unknown", "Plugin must have an id", "Missing plugin ID");
     }
 
     this.logger.debug(`Registering plugin: ${plugin.id} (${plugin.version})`);
@@ -88,8 +89,11 @@ export class PluginManager implements IPluginManager {
       const existingInfo = this.plugins.get(plugin.id);
       const existingVersion = existingInfo?.plugin.version;
 
-      throw new Error(
-        `Plugin ${plugin.id} is already registered with version ${existingVersion}`,
+      throw new PluginRegistrationError(
+        plugin.id,
+        `Plugin is already registered with version ${existingVersion}`,
+        "Duplicate plugin registration",
+        { existingVersion, newVersion: plugin.version }
       );
     }
 
@@ -190,8 +194,10 @@ export class PluginManager implements IPluginManager {
         const pluginInfo = this.plugins.get(pluginId);
         if (pluginInfo) {
           pluginInfo.status = PluginStatus.ERROR;
-          pluginInfo.error = new Error(
-            `Unmet dependencies: ${unmetDependencies.join(", ")}`,
+          pluginInfo.error = new PluginDependencyError(
+            pluginId,
+            unmetDependencies,
+            "Dependency resolution failed"
           );
         }
 
@@ -211,7 +217,7 @@ export class PluginManager implements IPluginManager {
   private async initializePlugin(pluginId: string): Promise<void> {
     const pluginInfo = this.plugins.get(pluginId);
     if (!pluginInfo) {
-      throw new Error(`Plugin ${pluginId} is not registered`);
+      throw new PluginRegistrationError(pluginId, "Plugin is not registered", "Plugin not found in registry");
     }
 
     const plugin = pluginInfo.plugin;

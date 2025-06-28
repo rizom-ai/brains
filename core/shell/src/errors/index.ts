@@ -4,6 +4,11 @@
  */
 
 /**
+ * Utility type for error causes that can be a string, Error instance, or unknown (from catch blocks)
+ */
+export type ErrorCause = string | Error | unknown;
+
+/**
  * Base error class for all shell-related errors
  * Provides consistent structure and metadata
  */
@@ -16,14 +21,14 @@ export class ShellError extends Error {
   constructor(
     message: string,
     code: string,
-    cause: Error,
+    cause: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
     super(message);
     this.name = this.constructor.name;
     this.code = code;
     this.context = context;
-    this.cause = cause;
+    this.cause = normalizeError(cause);
     this.timestamp = new Date();
 
     // Preserve stack trace
@@ -88,7 +93,7 @@ export class DatabaseError extends ShellError {
  * Configuration-related errors
  */
 export class ConfigurationError extends ShellError {
-  constructor(setting: string, cause: Error, value?: unknown) {
+  constructor(setting: string, cause: ErrorCause, value?: unknown) {
     super(`Invalid configuration: ${setting}`, "CONFIG_INVALID", cause, {
       setting,
       value,
@@ -106,7 +111,7 @@ export class PluginError extends ShellError {
     pluginId: string,
     message: string,
     code: string,
-    cause: Error,
+    cause: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
     super(`Plugin ${pluginId}: ${message}`, code, cause, {
@@ -124,7 +129,7 @@ export class PluginRegistrationError extends PluginError {
   constructor(
     pluginId: string,
     reason: string,
-    cause: Error,
+    cause: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
     super(
@@ -144,7 +149,7 @@ export class PluginDependencyError extends PluginError {
   constructor(
     pluginId: string,
     unmetDependencies: string[],
-    cause: Error,
+    cause: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
     super(
@@ -163,7 +168,7 @@ export class PluginDependencyError extends PluginError {
 export class PluginInitializationError extends PluginError {
   constructor(
     pluginId: string,
-    cause: Error,
+    cause: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
     super(
@@ -237,7 +242,7 @@ export class ContentGenerationError extends ShellError {
   constructor(
     templateName: string,
     operation: "generation" | "parsing",
-    cause: Error,
+    cause: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
     super(
@@ -274,7 +279,7 @@ export class TemplateRegistrationError extends ShellError {
 export class RouteRegistrationError extends ShellError {
   constructor(
     routeId: string,
-    cause: Error,
+    cause: ErrorCause,
     pluginId?: string,
     context: Record<string, unknown> = {},
   ) {
@@ -293,7 +298,7 @@ export class RouteRegistrationError extends ShellError {
 export class McpError extends ShellError {
   constructor(
     operation: string,
-    cause: Error,
+    cause: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
     super(`MCP operation failed: ${operation}`, "MCP_ERROR", cause, {
@@ -309,7 +314,7 @@ export class McpError extends ShellError {
 export class ToolRegistrationError extends McpError {
   constructor(
     toolName: string,
-    cause: Error,
+    cause: ErrorCause,
     pluginId?: string,
     context: Record<string, unknown> = {},
   ) {
@@ -328,7 +333,7 @@ export class ToolRegistrationError extends McpError {
 export class ResourceRegistrationError extends McpError {
   constructor(
     resourceName: string,
-    cause: Error,
+    cause: ErrorCause,
     pluginId?: string,
     context: Record<string, unknown> = {},
   ) {
@@ -353,19 +358,19 @@ export class EntityRegistrationError extends ShellError {
     super(
       `Entity type registration failed: ${entityType}`,
       "ENTITY_REGISTRATION_FAILED",
-      normalizeError(cause) || new Error("Unknown entity registration error"),
+      normalizeError(cause),
       { entityType, ...context },
     );
   }
 }
 
 /**
- * Convert unknown error to Error instance
+ * Convert ErrorCause to Error instance
  */
-function normalizeError(error: unknown): Error | undefined {
-  if (!error) return undefined;
-  if (error instanceof Error) return error;
-  return new Error(String(error));
+function normalizeError(cause: ErrorCause): Error {
+  if (typeof cause === "string") return new Error(cause);
+  if (cause instanceof Error) return cause;
+  return new Error(String(cause));
 }
 
 /**

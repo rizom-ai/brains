@@ -11,6 +11,7 @@ import {
   DatabaseError,
   TemplateRegistrationError,
   EntityRegistrationError,
+  InitializationError,
 } from "../errors";
 
 /**
@@ -165,9 +166,7 @@ export class ShellInitializer {
       this.logger.info("Plugin initialization complete");
     } catch (error) {
       this.logger.error("Failed to initialize plugins", error);
-      throw new Error(
-        `Plugin initialization failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw new InitializationError("plugins", error);
     }
   }
 

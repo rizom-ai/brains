@@ -9,6 +9,7 @@ import type {
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
 } from "../types/plugin-manager";
+import { McpError, ToolRegistrationError, ResourceRegistrationError } from "../errors";
 
 /**
  * Manages MCP server setup and plugin tool/resource registration
@@ -76,9 +77,7 @@ export class McpServerManager {
       this.logger.debug("Shell MCP capabilities registered successfully");
     } catch (error) {
       this.logger.error("Failed to register Shell MCP capabilities", error);
-      throw new Error(
-        `Shell MCP registration failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw new McpError("Shell MCP registration", error);
     }
   }
 
@@ -165,9 +164,7 @@ export class McpServerManager {
         `Failed to register tool ${tool.name} from plugin ${pluginId}`,
         error,
       );
-      throw new Error(
-        `Tool registration failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw new ToolRegistrationError(tool.name, error, pluginId);
     }
   }
 
@@ -193,9 +190,7 @@ export class McpServerManager {
         `Failed to register resource ${resource.name} from plugin ${pluginId}`,
         error,
       );
-      throw new Error(
-        `Resource registration failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw new ResourceRegistrationError(resource.name, error, pluginId);
     }
   }
 

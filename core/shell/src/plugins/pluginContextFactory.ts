@@ -11,6 +11,12 @@ import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
+import { 
+  EntityRegistrationError, 
+  ContentGenerationError, 
+  TemplateRegistrationError, 
+  RouteRegistrationError 
+} from "../errors";
 import type { z } from "zod";
 
 /**
@@ -123,9 +129,7 @@ export class PluginContextFactory {
             `Failed to register entity type ${entityType}`,
             error,
           );
-          throw new Error(
-            `Entity type registration failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          throw new EntityRegistrationError(entityType, error);
         }
       },
       generateContent: async <T = unknown>(
@@ -148,9 +152,7 @@ export class PluginContextFactory {
           );
         } catch (error) {
           this.logger.error("Failed to generate content", error);
-          throw new Error(
-            `Content generation failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          throw new ContentGenerationError(templateName, "generation", error);
         }
       },
       parseContent: <T = unknown>(templateName: string, content: string): T => {
@@ -170,9 +172,7 @@ export class PluginContextFactory {
           );
         } catch (error) {
           this.logger.error("Failed to parse content", error);
-          throw new Error(
-            `Content parsing failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          throw new ContentGenerationError(templateName, "parsing", error);
         }
       },
       generateWithRoute: async (
@@ -190,9 +190,10 @@ export class PluginContextFactory {
           );
         } catch (error) {
           this.logger.error("Failed to generate content with route", error);
-          throw new Error(
-            `Route content generation failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          throw new ContentGenerationError(route.id, "generation", error, { 
+            routeId: route.id, 
+            sectionId: section.id 
+          });
         }
       },
       // Unified template registration - registers template for both content generation and view rendering
@@ -207,9 +208,7 @@ export class PluginContextFactory {
           this.logger.debug(`Registered unified template: ${namespacedName}`);
         } catch (error) {
           this.logger.error("Failed to register template", error);
-          throw new Error(
-            `Template registration failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          throw new TemplateRegistrationError(name, pluginId, error);
         }
       },
       // Convenience method for registering multiple templates at once
@@ -222,9 +221,7 @@ export class PluginContextFactory {
           });
         } catch (error) {
           this.logger.error("Failed to register templates", error);
-          throw new Error(
-            `Template registration failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          throw new TemplateRegistrationError("batch", pluginId, error);
         }
       },
       registerRoutes: (
@@ -256,9 +253,7 @@ export class PluginContextFactory {
           );
         } catch (error) {
           this.logger.error("Failed to register routes", error);
-          throw new Error(
-            `Route registration failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          throw new RouteRegistrationError("batch", error, pluginId);
         }
       },
       // View template access (replaces direct viewRegistry access)
