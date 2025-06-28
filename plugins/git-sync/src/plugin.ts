@@ -1,5 +1,6 @@
 import type { Plugin, PluginContext, PluginTool } from "@brains/types";
 import { BasePlugin } from "@brains/utils";
+import { GitSyncInitializationError } from "./errors";
 import { z } from "zod";
 import { GitSync } from "./gitSync";
 import {
@@ -67,7 +68,11 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
         visibility: "anchor", // Only anchor user can sync
         handler: async (): Promise<{ message: string }> => {
           if (!this.gitSync) {
-            throw new Error("Git sync not initialized");
+            throw new GitSyncInitializationError(
+              "Git sync service not initialized",
+              "Plugin not properly configured",
+              { tool: "git-sync" }
+            );
           }
           await this.gitSync.sync();
           return {
@@ -86,7 +91,11 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
         handler: async (input: unknown): Promise<{ message: string }> => {
           const { commitMessage } = input as { commitMessage?: string };
           if (!this.gitSync) {
-            throw new Error("Git sync not initialized");
+            throw new GitSyncInitializationError(
+              "Git sync service not initialized",
+              "Plugin not properly configured",
+              { tool: "git-sync" }
+            );
           }
           await this.gitSync.commit(commitMessage);
           return {
@@ -102,7 +111,11 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
         visibility: "anchor", // Only anchor user can push
         handler: async (): Promise<{ message: string }> => {
           if (!this.gitSync) {
-            throw new Error("Git sync not initialized");
+            throw new GitSyncInitializationError(
+              "Git sync service not initialized",
+              "Plugin not properly configured",
+              { tool: "git-sync" }
+            );
           }
           await this.gitSync.push();
           return {
@@ -118,7 +131,11 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
         visibility: "anchor", // Only anchor user can pull
         handler: async (): Promise<{ message: string }> => {
           if (!this.gitSync) {
-            throw new Error("Git sync not initialized");
+            throw new GitSyncInitializationError(
+              "Git sync service not initialized",
+              "Plugin not properly configured",
+              { tool: "git-sync" }
+            );
           }
           await this.gitSync.pull();
           return {
@@ -134,7 +151,11 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
         visibility: "public", // Anyone can check status
         handler: async (): Promise<unknown> => {
           if (!this.gitSync) {
-            throw new Error("Git sync not initialized");
+            throw new GitSyncInitializationError(
+              "Git sync service not initialized",
+              "Plugin not properly configured",
+              { tool: "git-sync" }
+            );
           }
           return this.gitSync.getStatus();
         },
@@ -150,7 +171,11 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
         handler: async (input: unknown): Promise<{ message: string }> => {
           const { autoSync } = input as { autoSync: boolean };
           if (!this.gitSync) {
-            throw new Error("Git sync not initialized");
+            throw new GitSyncInitializationError(
+              "Git sync service not initialized",
+              "Plugin not properly configured",
+              { tool: "git-sync" }
+            );
           }
 
           if (autoSync) {

@@ -9,12 +9,7 @@ export class SiteBuilderError extends BrainsError {
     cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(
-      message,
-      "SITE_BUILDER_ERROR",
-      normalizeError(cause),
-      context ?? {}
-    );
+    super(message, "SITE_BUILDER_ERROR", normalizeError(cause), context ?? {});
   }
 }
 

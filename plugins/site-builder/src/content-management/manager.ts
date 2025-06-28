@@ -127,10 +127,10 @@ export class SiteContentManager {
           const promotionError = new ContentPromotionError(
             `Failed to promote content ${previewEntity.id}`,
             error,
-            { 
-              previewId: previewEntity.id, 
-              productionId: previewToProductionId(previewEntity.id) 
-            }
+            {
+              previewId: previewEntity.id,
+              productionId: previewToProductionId(previewEntity.id),
+            },
           );
           const errorMessage = promotionError.message;
           result.errors?.push(errorMessage);

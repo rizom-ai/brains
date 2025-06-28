@@ -24,10 +24,7 @@ import {
 } from "./content-management";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
-import {
-  SiteBuilderInitializationError,
-  SiteBuildError,
-} from "./errors";
+import { SiteBuilderInitializationError, SiteBuildError } from "./errors";
 import packageJson from "../package.json";
 
 /**
@@ -190,7 +187,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
             throw new SiteBuilderInitializationError(
               "Site content manager not initialized",
               undefined,
-              { tool: "generate" }
+              { tool: "generate" },
             );
           }
 
@@ -333,11 +330,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               warnings: result.warnings,
             };
           } catch (error) {
-            const buildError = new SiteBuildError(
-              "Site build failed",
-              error,
-              { tool: "build", outputDir, environment }
-            );
+            const buildError = new SiteBuildError("Site build failed", error, {
+              tool: "build",
+              outputDir,
+              environment,
+            });
             const message = buildError.message;
             return {
               success: false,

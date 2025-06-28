@@ -1,6 +1,10 @@
 import type { Logger, MessageSender } from "@brains/types";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
+import {
+  GitRepositoryError,
+  GitNetworkError,
+} from "./errors";
 import { existsSync, mkdirSync } from "fs";
 import { join, basename } from "path";
 import { z } from "zod";
@@ -304,8 +308,13 @@ export class GitSync {
       await this.git.push("origin", this.branch);
       this.logger.info("Pushed changes to remote");
     } catch (error) {
-      this.logger.error("Failed to push changes", { error });
-      throw error;
+      const pushError = new GitNetworkError(
+        "Failed to push changes to remote repository",
+        error,
+        { branch: this.branch, gitUrl: this.gitUrl }
+      );
+      this.logger.error("Failed to push changes", { error: pushError });
+      throw pushError;
     }
   }
 
@@ -335,8 +344,13 @@ export class GitSync {
         });
       }
     } catch (error) {
-      this.logger.error("Failed to pull changes", { error });
-      throw error;
+      const pullError = new GitNetworkError(
+        "Failed to pull changes from remote repository",
+        error,
+        { branch: this.branch, gitUrl: this.gitUrl }
+      );
+      this.logger.error("Failed to pull changes", { error: pullError });
+      throw pullError;
     }
   }
 
@@ -382,8 +396,13 @@ export class GitSync {
 
       this.logger.info("Sync completed successfully");
     } catch (error) {
-      this.logger.error("Sync failed", { error });
-      throw error;
+      const syncError = new GitRepositoryError(
+        "Git synchronization failed",
+        error,
+        { branch: this.branch, gitUrl: this.gitUrl }
+      );
+      this.logger.error("Sync failed", { error: syncError });
+      throw syncError;
     }
   }
 
