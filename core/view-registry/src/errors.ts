@@ -33,10 +33,10 @@ export class RouteValidationError extends BrainsError {
     cause?: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
-    const errors = Array.isArray(validationErrors) 
-      ? validationErrors 
+    const errors = Array.isArray(validationErrors)
+      ? validationErrors
       : [validationErrors];
-    
+
     super(
       `Route validation failed for ${routeId}: ${errors.join(", ")}`,
       "ROUTE_VALIDATION_FAILED",
@@ -60,7 +60,7 @@ export class RendererError extends BrainsError {
     const message = templateName
       ? `Renderer ${rendererType} failed for template ${templateName}${reason ? `: ${reason}` : ""}`
       : `Renderer ${rendererType} failed${reason ? `: ${reason}` : ""}`;
-    
+
     super(message, "RENDERER_ERROR", cause, {
       rendererType,
       templateName,
@@ -99,12 +99,10 @@ export class RouteNotFoundError extends BrainsError {
     cause?: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
-    super(
-      `Route not found: ${path}`,
-      "ROUTE_NOT_FOUND",
-      cause,
-      { path, ...context },
-    );
+    super(`Route not found: ${path}`, "ROUTE_NOT_FOUND", cause, {
+      path,
+      ...context,
+    });
   }
 }
 

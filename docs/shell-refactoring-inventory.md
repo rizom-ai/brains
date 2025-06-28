@@ -384,28 +384,30 @@ This approach balances consistency with package autonomy by providing shared uti
 **Core Components**:
 
 1. **@brains/error-utils Package**: Shared utilities and base classes
+
    ```typescript
    export type ErrorCause = string | Error | unknown;
-   
+
    export class BrainsError extends Error {
      constructor(
        message: string,
        public readonly cause?: ErrorCause,
-       public readonly context?: Record<string, unknown>
+       public readonly context?: Record<string, unknown>,
      ) {
        super(message);
        this.name = this.constructor.name;
      }
    }
-   
+
    export function normalizeError(cause: ErrorCause): string {
      if (cause instanceof Error) return cause.message;
-     if (typeof cause === 'string') return cause;
+     if (typeof cause === "string") return cause;
      return String(cause);
    }
    ```
 
 2. **Package-Specific Error Classes**: Each service package defines domain-specific errors
+
    - **EntityService**: EntityNotFoundError, EntityValidationError, EntityStorageError
    - **AIService**: ModelNotAvailableError, GenerationTimeoutError, TokenLimitError
    - **EmbeddingService**: EmbeddingGenerationError, EmbeddingServiceUnavailableError
@@ -413,6 +415,7 @@ This approach balances consistency with package autonomy by providing shared uti
    - **ViewRegistry**: TemplateNotFoundError, RouteValidationError, RendererError
 
 3. **Interface Error Translation**: User-facing interfaces translate internal errors
+
    - **CLI**: Convert internal errors to user-friendly messages
    - **WebServer**: Map errors to appropriate HTTP status codes
    - **MCP Server**: Translate to MCP protocol error responses
@@ -423,6 +426,7 @@ This approach balances consistency with package autonomy by providing shared uti
    - Integration with shell's PluginRegistrationError system
 
 **Benefits**:
+
 - **Consistency**: Shared utilities ensure consistent error handling patterns
 - **Autonomy**: Packages own their domain-specific error types
 - **Debuggability**: Rich error context and cause chaining
@@ -432,25 +436,16 @@ This approach balances consistency with package autonomy by providing shared uti
 #### 2.2.3 Cross-Package Error Implementation Plan
 
 **Phase 1: Foundation Package (1-2 days)**
+
 1. Create `@brains/error-utils` package with shared utilities
 2. Implement BrainsError base class and utility functions
 3. Create TypeScript types for error handling patterns
 
-**Phase 2: Core Service Error Classes (2-3 days)**
-4. **EntityService Package**: EntityNotFoundError, EntityValidationError, EntityStorageError, EntityIndexError
-5. **AIService Package**: ModelNotAvailableError, GenerationTimeoutError, TokenLimitError, ModelConfigError
-6. **EmbeddingService Package**: EmbeddingGenerationError, EmbeddingServiceUnavailableError, EmbeddingCacheError
-7. **MessagingService Package**: MessageDeliveryError, HandlerRegistrationError, HandlerExecutionError, MessageTimeoutError
-8. **ViewRegistry Package**: TemplateNotFoundError, RouteValidationError, RendererError, ViewConfigError
+**Phase 2: Core Service Error Classes (2-3 days)** 4. **EntityService Package**: EntityNotFoundError, EntityValidationError, EntityStorageError, EntityIndexError 5. **AIService Package**: ModelNotAvailableError, GenerationTimeoutError, TokenLimitError, ModelConfigError 6. **EmbeddingService Package**: EmbeddingGenerationError, EmbeddingServiceUnavailableError, EmbeddingCacheError 7. **MessagingService Package**: MessageDeliveryError, HandlerRegistrationError, HandlerExecutionError, MessageTimeoutError 8. **ViewRegistry Package**: TemplateNotFoundError, RouteValidationError, RendererError, ViewConfigError
 
-**Phase 3: Interface Error Translation (1-2 days)**
-9. **CLI Package**: User-friendly error messages and exit codes
-10. **WebServer Package**: HTTP status code mapping and error response formatting
-11. **MCP Server Package**: MCP protocol error response translation
+**Phase 3: Interface Error Translation (1-2 days)** 9. **CLI Package**: User-friendly error messages and exit codes 10. **WebServer Package**: HTTP status code mapping and error response formatting 11. **MCP Server Package**: MCP protocol error response translation
 
-**Phase 4: Plugin Error Integration (1 day)**
-12. **Plugin Packages**: Plugin-specific error classes with context injection
-13. **Shell Integration**: Update plugin error handling to use new error classes
+**Phase 4: Plugin Error Integration (1 day)** 12. **Plugin Packages**: Plugin-specific error classes with context injection 13. **Shell Integration**: Update plugin error handling to use new error classes
 
 **Total Estimated Time**: 4.5-8.5 days
 **Risk Level**: Low (no functional changes, only error handling improvements)
@@ -588,14 +583,15 @@ export class TestShell {
 2. ✅ 32% reduction in shell complexity achieved
 3. ✅ All integration tests passing
 
-**Completed (Phase 0.7-2.2.1)**:
-4. ✅ 4-directory monorepo structure implemented
-5. ✅ Types package decoupled to individual packages
-6. ✅ Internal shell decomposition completed (Phase 1)
-7. ✅ Component Interface Standardization completed (Phase 2.1)
+**Completed (Phase 0.7-2.2.2)**: 
+4. ✅ 4-directory monorepo structure implemented 
+5. ✅ Types package decoupled to individual packages 
+6. ✅ Internal shell decomposition completed (Phase 1) 
+7. ✅ Component Interface Standardization completed (Phase 2.1) 
 8. ✅ Shell package error handling standardization completed (Phase 2.2.1)
+9. ✅ Core service packages error standardization completed (Phase 2.2.2 - partial)
 
-**Next Priority (Phase 2.2.2)**: 📋 Cross-package error handling strategy implementation
+**Next Priority (Phase 2.2.3)**: 📋 Interface and plugin error handling standardization
 
 ## Success Criteria
 
@@ -613,7 +609,7 @@ export class TestShell {
 
 - ✅ No files exceed 300 lines (shell package fully decomposed)
 - ✅ All components follow standardized singleton pattern
-- 🔄 Consistent error handling throughout (✅ shell package, 📋 cross-package planned)
+- 🔄 Consistent error handling throughout (✅ shell package, ✅ core services, 📋 interfaces and plugins remaining)
 - ✅ All imports are necessary (cleaned during decomposition)
 - ✅ Methods are focused and testable (achieved through decomposition)
 - ✅ Clear separation of concerns (achieved through service extraction and decomposition)

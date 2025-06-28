@@ -245,9 +245,7 @@ describe("AIService", () => {
 
       void expect(
         service.generateObject("System", "User", testSchema),
-      ).rejects.toThrow(
-        "AI object generation failed",
-      );
+      ).rejects.toThrow("AI object generation failed");
     });
 
     it("should respect configuration for object generation", async () => {

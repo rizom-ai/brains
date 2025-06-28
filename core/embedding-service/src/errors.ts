@@ -19,7 +19,7 @@ export class EmbeddingGenerationError extends BrainsError {
     const message = reason
       ? `Embedding generation failed for text "${truncatedText}": ${reason}`
       : `Embedding generation failed for text "${truncatedText}"`;
-    
+
     super(message, "EMBEDDING_GENERATION_FAILED", cause, {
       textLength: text.length,
       truncatedText,
@@ -42,7 +42,7 @@ export class EmbeddingServiceUnavailableError extends BrainsError {
     const message = reason
       ? `Embedding service unavailable: ${serviceName} (${reason})`
       : `Embedding service unavailable: ${serviceName}`;
-    
+
     super(message, "EMBEDDING_SERVICE_UNAVAILABLE", cause, {
       serviceName,
       reason,
@@ -64,7 +64,7 @@ export class EmbeddingCacheError extends BrainsError {
     const message = key
       ? `Embedding cache ${operation} failed for key: ${key}`
       : `Embedding cache ${operation} failed`;
-    
+
     super(message, "EMBEDDING_CACHE_ERROR", cause, {
       operation,
       key,
@@ -125,7 +125,7 @@ export class EmbeddingRateLimitError extends BrainsError {
     const message = retryAfterSeconds
       ? `Embedding service rate limited (${requestsPerMinute}/min), retry after ${retryAfterSeconds} seconds`
       : `Embedding service rate limited (${requestsPerMinute}/min)`;
-    
+
     super(message, "EMBEDDING_RATE_LIMITED", cause, {
       requestsPerMinute,
       retryAfterSeconds,

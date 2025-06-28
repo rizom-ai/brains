@@ -18,7 +18,7 @@ export class MessageDeliveryError extends BrainsError {
     const message = targetHandler
       ? `Message delivery failed for type "${messageType}" to handler "${targetHandler}"`
       : `Message delivery failed for type "${messageType}"`;
-    
+
     super(message, "MESSAGE_DELIVERY_FAILED", cause, {
       messageType,
       targetHandler,
