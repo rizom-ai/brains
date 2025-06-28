@@ -24,6 +24,7 @@ import {
   previewToProductionId,
 } from "./utils/id-generator";
 import { compareContent } from "./utils/comparator";
+import { ContentPromotionError } from "../errors";
 
 /**
  * Site content management operations
@@ -123,14 +124,19 @@ export class SiteContentManager {
             productionId,
           });
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
-          result.errors?.push(
-            `Failed to promote ${previewEntity.id}: ${errorMessage}`,
+          const promotionError = new ContentPromotionError(
+            `Failed to promote content ${previewEntity.id}`,
+            error,
+            { 
+              previewId: previewEntity.id, 
+              productionId: previewToProductionId(previewEntity.id) 
+            }
           );
+          const errorMessage = promotionError.message;
+          result.errors?.push(errorMessage);
           this.logger?.error("Failed to promote content", {
             previewId: previewEntity.id,
-            error: errorMessage,
+            error: promotionError,
           });
         }
       }

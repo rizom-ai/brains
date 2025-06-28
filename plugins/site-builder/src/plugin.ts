@@ -24,6 +24,10 @@ import {
 } from "./content-management";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
+import {
+  SiteBuilderInitializationError,
+  SiteBuildError,
+} from "./errors";
 import packageJson from "../package.json";
 
 /**
@@ -183,7 +187,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
         },
         async (input, context): Promise<Record<string, unknown>> => {
           if (!this.siteContentManager || !this.context) {
-            throw new Error("Site content manager not initialized");
+            throw new SiteBuilderInitializationError(
+              "Site content manager not initialized",
+              undefined,
+              { tool: "generate" }
+            );
           }
 
           // Parse and validate input
@@ -325,8 +333,12 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
               warnings: result.warnings,
             };
           } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
+            const buildError = new SiteBuildError(
+              "Site build failed",
+              error,
+              { tool: "build", outputDir, environment }
+            );
+            const message = buildError.message;
             return {
               success: false,
               error: message,
