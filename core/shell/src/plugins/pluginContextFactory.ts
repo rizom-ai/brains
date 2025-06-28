@@ -11,12 +11,12 @@ import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
-import { 
-  EntityRegistrationError, 
-  ContentGenerationError, 
-  TemplateRegistrationError, 
-  RouteRegistrationError 
-} from "../errors";
+import {
+  EntityRegistrationError,
+  ContentGenerationError,
+  TemplateRegistrationError,
+  RouteRegistrationError,
+} from "@brains/utils";
 import type { z } from "zod";
 
 /**
@@ -190,9 +190,9 @@ export class PluginContextFactory {
           );
         } catch (error) {
           this.logger.error("Failed to generate content with route", error);
-          throw new ContentGenerationError(route.id, "generation", error, { 
-            routeId: route.id, 
-            sectionId: section.id 
+          throw new ContentGenerationError(route.id, "generation", error, {
+            routeId: route.id,
+            sectionId: section.id,
           });
         }
       },

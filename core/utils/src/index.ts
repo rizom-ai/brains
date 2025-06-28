@@ -39,3 +39,28 @@ export * from "./plugin";
 
 // YAML utilities
 export { toYaml, fromYaml, isValidYaml } from "./yaml";
+
+// Error utilities
+export {
+  type ErrorCause,
+  BrainsError,
+  InitializationError,
+  DatabaseError,
+  ConfigurationError,
+  PluginError,
+  PluginRegistrationError,
+  PluginDependencyError,
+  PluginInitializationError,
+  ServiceError,
+  ServiceRegistrationError,
+  ServiceResolutionError,
+  ContentGenerationError,
+  TemplateRegistrationError,
+  RouteRegistrationError,
+  McpError,
+  ToolRegistrationError,
+  ResourceRegistrationError,
+  EntityRegistrationError,
+  ErrorUtils,
+  normalizeError,
+} from "./errors";

@@ -9,7 +9,11 @@ import type {
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
 } from "../types/plugin-manager";
-import { McpError, ToolRegistrationError, ResourceRegistrationError } from "../errors";
+import {
+  McpError,
+  ToolRegistrationError,
+  ResourceRegistrationError,
+} from "@brains/utils";
 
 /**
  * Manages MCP server setup and plugin tool/resource registration

@@ -12,7 +12,7 @@ import {
   TemplateRegistrationError,
   EntityRegistrationError,
   InitializationError,
-} from "../errors";
+} from "@brains/utils";
 
 /**
  * Handles Shell initialization logic

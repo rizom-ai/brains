@@ -9,3 +9,14 @@ export { AIService } from "./aiService";
 
 // Export types
 export type { AIService as IAIService, AIModelConfig } from "./types";
+
+// Export error classes
+export {
+  ModelNotAvailableError,
+  GenerationTimeoutError,
+  TokenLimitError,
+  ModelConfigError,
+  GenerationFailureError,
+  RateLimitError,
+  AuthenticationError,
+} from "./errors";

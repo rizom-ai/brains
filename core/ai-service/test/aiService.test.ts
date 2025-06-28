@@ -166,7 +166,7 @@ describe("AIService", () => {
       (ai.generateText as ReturnType<typeof mock>).mockRejectedValueOnce(error);
 
       void expect(service.generateText("System", "User")).rejects.toThrow(
-        "AI generation failed: Error: Generation failed",
+        "AI text generation failed",
       );
     });
 
@@ -246,7 +246,7 @@ describe("AIService", () => {
       void expect(
         service.generateObject("System", "User", testSchema),
       ).rejects.toThrow(
-        "AI object generation failed: Error: Object generation failed",
+        "AI object generation failed",
       );
     });
 
@@ -304,7 +304,7 @@ describe("AIService", () => {
       );
 
       void expect(service.generateText("System", "User")).rejects.toThrow(
-        "AI generation failed: Error: Custom API error",
+        "AI text generation failed",
       );
     });
   });

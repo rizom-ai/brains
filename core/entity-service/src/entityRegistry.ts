@@ -3,6 +3,7 @@ import type { Logger } from "@brains/utils";
 import type { BaseEntity } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { EntityRegistry as IEntityRegistry } from "./types";
+import { EntityTypeRegistrationError } from "./errors";
 
 /**
  * Registry for entity types
@@ -56,7 +57,12 @@ export class EntityRegistry implements IEntityRegistry {
 
     // Check for duplicate registration
     if (this.entitySchemas.has(type)) {
-      throw new Error(`Entity type '${type}' is already registered`);
+      throw new EntityTypeRegistrationError(
+        type,
+        "Entity type is already registered",
+        undefined,
+        { operation: "register" },
+      );
     }
 
     // Schema validation handled by Zod - works correctly with extended schemas
@@ -74,7 +80,12 @@ export class EntityRegistry implements IEntityRegistry {
   getSchema(type: string): z.ZodType<unknown> {
     const schema = this.entitySchemas.get(type);
     if (!schema) {
-      throw new Error(`No schema registered for entity type: ${type}`);
+      throw new EntityTypeRegistrationError(
+        type,
+        "No schema registered for entity type",
+        undefined,
+        { operation: "getSchema" },
+      );
     }
     return schema;
   }
@@ -85,7 +96,12 @@ export class EntityRegistry implements IEntityRegistry {
   getAdapter<T extends BaseEntity>(type: string): EntityAdapter<T> {
     const adapter = this.entityAdapters.get(type);
     if (!adapter) {
-      throw new Error(`No adapter registered for entity type: ${type}`);
+      throw new EntityTypeRegistrationError(
+        type,
+        "No adapter registered for entity type",
+        undefined,
+        { operation: "getAdapter" },
+      );
     }
     return adapter as EntityAdapter<T>;
   }

@@ -8,3 +8,13 @@ export type {
   EntityService as IEntityService,
   EntityRegistry as IEntityRegistry,
 } from "./types";
+
+// Export error classes
+export {
+  EntityNotFoundError,
+  EntityValidationError,
+  EntityStorageError,
+  EntityIndexError,
+  EntityTypeRegistrationError,
+  EntitySerializationError,
+} from "./errors";

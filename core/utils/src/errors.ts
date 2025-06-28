@@ -1,6 +1,6 @@
 /**
- * Standardized error classes for the Shell package
- * Provides consistent error handling across all shell components
+ * Standardized error utilities for the Brains ecosystem
+ * Provides consistent error handling patterns across all packages
  */
 
 /**
@@ -9,10 +9,10 @@
 export type ErrorCause = string | Error | unknown;
 
 /**
- * Base error class for all shell-related errors
+ * Base error class for all Brains-related errors
  * Provides consistent structure and metadata
  */
-export class ShellError extends Error {
+export class BrainsError extends Error {
   public readonly code: string;
   public readonly context: Record<string, unknown>;
   public override readonly cause: Error;
@@ -56,7 +56,7 @@ export class ShellError extends Error {
 /**
  * Initialization-related errors
  */
-export class InitializationError extends ShellError {
+export class InitializationError extends BrainsError {
   constructor(
     component: string,
     cause: unknown,
@@ -74,7 +74,7 @@ export class InitializationError extends ShellError {
 /**
  * Database-related errors
  */
-export class DatabaseError extends ShellError {
+export class DatabaseError extends BrainsError {
   constructor(
     operation: string,
     cause: unknown,
@@ -92,7 +92,7 @@ export class DatabaseError extends ShellError {
 /**
  * Configuration-related errors
  */
-export class ConfigurationError extends ShellError {
+export class ConfigurationError extends BrainsError {
   constructor(setting: string, cause: ErrorCause, value?: unknown) {
     super(`Invalid configuration: ${setting}`, "CONFIG_INVALID", cause, {
       setting,
@@ -104,7 +104,7 @@ export class ConfigurationError extends ShellError {
 /**
  * Base class for plugin-related errors
  */
-export class PluginError extends ShellError {
+export class PluginError extends BrainsError {
   public readonly pluginId: string;
 
   constructor(
@@ -184,7 +184,7 @@ export class PluginInitializationError extends PluginError {
 /**
  * Service-related errors
  */
-export class ServiceError extends ShellError {
+export class ServiceError extends BrainsError {
   public readonly serviceName: string;
 
   constructor(
@@ -238,7 +238,7 @@ export class ServiceResolutionError extends ServiceError {
 /**
  * Content generation errors
  */
-export class ContentGenerationError extends ShellError {
+export class ContentGenerationError extends BrainsError {
   constructor(
     templateName: string,
     operation: "generation" | "parsing",
@@ -257,7 +257,7 @@ export class ContentGenerationError extends ShellError {
 /**
  * Template registration errors
  */
-export class TemplateRegistrationError extends ShellError {
+export class TemplateRegistrationError extends BrainsError {
   constructor(
     templateName: string,
     pluginId: string,
@@ -276,7 +276,7 @@ export class TemplateRegistrationError extends ShellError {
 /**
  * Route registration errors
  */
-export class RouteRegistrationError extends ShellError {
+export class RouteRegistrationError extends BrainsError {
   constructor(
     routeId: string,
     cause: ErrorCause,
@@ -295,7 +295,7 @@ export class RouteRegistrationError extends ShellError {
 /**
  * MCP-related errors
  */
-export class McpError extends ShellError {
+export class McpError extends BrainsError {
   constructor(
     operation: string,
     cause: ErrorCause,
@@ -349,7 +349,7 @@ export class ResourceRegistrationError extends McpError {
 /**
  * Entity registration errors
  */
-export class EntityRegistrationError extends ShellError {
+export class EntityRegistrationError extends BrainsError {
   constructor(
     entityType: string,
     cause: unknown,
@@ -388,10 +388,10 @@ export class ErrorUtils {
   }
 
   /**
-   * Check if error is of specific shell error type
+   * Check if error is of specific Brains error type
    */
-  static isShellError(error: unknown): error is ShellError {
-    return error instanceof ShellError;
+  static isBrainsError(error: unknown): error is BrainsError {
+    return error instanceof BrainsError;
   }
 
   /**
@@ -402,19 +402,22 @@ export class ErrorUtils {
   }
 
   /**
-   * Wrap unknown error in ShellError if it's not already one
+   * Wrap unknown error in BrainsError if it's not already one
    */
   static wrapError(
     error: unknown,
     message: string,
     code: string,
     context: Record<string, unknown> = {},
-  ): ShellError {
-    if (error instanceof ShellError) {
+  ): BrainsError {
+    if (error instanceof BrainsError) {
       return error;
     }
 
     const cause = error instanceof Error ? error : new Error(String(error));
-    return new ShellError(message, code, cause, context);
+    return new BrainsError(message, code, cause, context);
   }
 }
+
+// Re-export normalizeError for external use
+export { normalizeError };

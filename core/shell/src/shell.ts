@@ -21,7 +21,7 @@ import { createShellConfig } from "./config";
 import { ViewRegistry } from "@brains/view-registry";
 import { ShellInitializer } from "./initialization/shellInitializer";
 import { McpServerManager } from "./mcp/mcpServerManager";
-import { InitializationError } from "./errors";
+import { InitializationError } from "@brains/utils";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -407,9 +407,13 @@ export class Shell {
     },
   ): Promise<DefaultQueryResponse> {
     if (!this.initialized) {
-      throw new InitializationError("Shell", "Query attempted before initialization", {
-        operation: "query"
-      });
+      throw new InitializationError(
+        "Shell",
+        "Query attempted before initialization",
+        {
+          operation: "query",
+        },
+      );
     }
 
     // Use ContentGenerator with knowledge query template
@@ -433,10 +437,14 @@ export class Shell {
    */
   public registerPlugin(plugin: Plugin): void {
     if (!this.initialized) {
-      throw new InitializationError("Shell", "Plugin registration attempted before initialization", {
-        operation: "registerPlugin",
-        pluginId: plugin.id
-      });
+      throw new InitializationError(
+        "Shell",
+        "Plugin registration attempted before initialization",
+        {
+          operation: "registerPlugin",
+          pluginId: plugin.id,
+        },
+      );
     }
 
     this.pluginManager.registerPlugin(plugin);

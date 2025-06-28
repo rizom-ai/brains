@@ -7,6 +7,7 @@ import type { IEmbeddingService } from "@brains/embedding-service";
 import type { EntityService as IEntityService, SearchOptions } from "./types";
 import { eq, and, inArray, desc, asc, sql } from "@brains/db";
 import { z } from "zod";
+import { EntityNotFoundError } from "./errors";
 
 /**
  * Schema for list entities options
@@ -614,8 +615,11 @@ export class EntityService implements IEntityService {
     // Get the source entity
     const source = await this.getEntity(sourceEntityType, sourceEntityId);
     if (!source) {
-      throw new Error(
-        `Source entity not found: ${sourceEntityType}/${sourceEntityId}`,
+      throw new EntityNotFoundError(
+        sourceEntityId,
+        sourceEntityType,
+        undefined,
+        { operation: "deriveEntity" },
       );
     }
 

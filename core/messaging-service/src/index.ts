@@ -14,3 +14,14 @@ export {
   messageResponseSchema,
   hasPayload,
 } from "./types";
+
+// Export error classes
+export {
+  MessageDeliveryError,
+  HandlerRegistrationError,
+  HandlerExecutionError,
+  MessageTimeoutError,
+  InvalidMessageFormatError,
+  MessageBusNotInitializedError,
+  CircularMessageDependencyError,
+} from "./errors";

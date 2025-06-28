@@ -8,7 +8,7 @@
 import type { EntityService } from "@brains/entity-service";
 import type { ContentGenerator } from "@brains/content-generator";
 import type { GenerationContext } from "@brains/types";
-import { ServiceError } from "../errors";
+import { ServiceError } from "@brains/utils";
 
 /**
  * MCP Query parameters (what users provide via MCP tools)
@@ -84,7 +84,11 @@ export class EntityServiceAdapter {
   async getEntity(entityType: string, entityId: string): Promise<unknown> {
     const entity = await this.entityService.getEntity(entityType, entityId);
     if (!entity) {
-      throw new ServiceError("entity", "retrieval", `Entity not found: ${entityType}/${entityId}`);
+      throw new ServiceError(
+        "entity",
+        "retrieval",
+        `Entity not found: ${entityType}/${entityId}`,
+      );
     }
     return entity;
   }
