@@ -6,11 +6,10 @@ import type {
   PluginManager as IPluginManager,
   PluginInfo,
   PluginManagerEventMap,
-  PluginToolRegisterEvent,
-  PluginResourceRegisterEvent,
 } from "../types/plugin-manager";
 import { PluginStatus, PluginEvent } from "../types/plugin-manager";
 import { PluginContextFactory } from "./pluginContextFactory";
+import { PluginRegistrationHandler } from "./pluginRegistrationHandler";
 
 // Re-export enums for convenience
 export { PluginEvent, PluginStatus } from "../types/plugin-manager";
@@ -26,6 +25,7 @@ export class PluginManager implements IPluginManager {
   private logger: Logger;
   private events: EventEmitter;
   private contextFactory: PluginContextFactory;
+  private registrationHandler: PluginRegistrationHandler;
 
   /**
    * Get the singleton instance of PluginManager
@@ -65,6 +65,10 @@ export class PluginManager implements IPluginManager {
       serviceRegistry,
       logger,
       this.plugins,
+    );
+    this.registrationHandler = PluginRegistrationHandler.getInstance(
+      logger,
+      this.events,
     );
   }
 
@@ -225,24 +229,11 @@ export class PluginManager implements IPluginManager {
       // Call plugin's register method and get capabilities
       const capabilities = await plugin.register(context);
 
-      // Register plugin tools with MCP server
-      for (const tool of capabilities.tools) {
-        this.logger.debug(`Registering MCP tool: ${tool.name}`);
-        // Emit event for Shell to handle
-        const toolEvent: PluginToolRegisterEvent = { pluginId, tool };
-        this.events.emit(PluginEvent.TOOL_REGISTER, toolEvent);
-      }
-
-      // Register plugin resources with MCP server
-      for (const resource of capabilities.resources) {
-        this.logger.debug(`Registering MCP resource: ${resource.uri}`);
-        // Emit event for Shell to handle
-        const resourceEvent: PluginResourceRegisterEvent = {
-          pluginId,
-          resource,
-        };
-        this.events.emit(PluginEvent.RESOURCE_REGISTER, resourceEvent);
-      }
+      // Register plugin capabilities using the registration handler
+      this.registrationHandler.registerPluginCapabilities(
+        pluginId,
+        capabilities,
+      );
 
       // Update plugin status
       pluginInfo.status = PluginStatus.INITIALIZED;
