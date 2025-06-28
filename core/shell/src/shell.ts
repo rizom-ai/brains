@@ -1,10 +1,10 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
-import { createDatabase, enableWALMode } from "@brains/db";
+import { createDatabase } from "@brains/db";
 import { ServiceRegistry } from "@brains/service-registry";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
-import { PluginManager, PluginEvent } from "./plugins/pluginManager";
+import { PluginManager } from "./plugins/pluginManager";
 import {
   EmbeddingService,
   type IEmbeddingService,
@@ -13,15 +13,14 @@ import { ContentGenerator } from "@brains/content-generator";
 import { AIService } from "@brains/ai-service";
 import { Logger, LogLevel } from "@brains/utils";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerShellMCP } from "./mcp";
 import type { Plugin, Template } from "@brains/types";
 import type { RouteDefinition } from "@brains/view-registry";
 import { type DefaultQueryResponse } from "@brains/types";
-import { knowledgeQueryTemplate } from "./templates";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
 import { ViewRegistry } from "@brains/view-registry";
-import { BaseEntityAdapter } from "@brains/base-entity";
+import { ShellInitializer } from "./initialization/shellInitializer";
+import { McpServerManager } from "./mcp/mcpServerManager";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -87,6 +86,9 @@ export class Shell {
       Shell.instance.shutdown();
       Shell.instance = null;
     }
+    // Also reset dependent singletons
+    ShellInitializer.resetInstance();
+    McpServerManager.resetInstance();
   }
 
   /**
@@ -233,12 +235,16 @@ export class Shell {
       });
     }
 
-    // Register shell MCP capabilities
-    registerShellMCP(this.mcpServer, {
-      contentGenerator: this.contentGenerator,
-      entityService: this.entityService,
-      logger: this.logger,
-    });
+    // Set up MCP server with Shell capabilities and plugin event listeners
+    // Use createFresh for dependency injection to avoid singleton issues in tests
+    const mcpServerManager = dependencies?.mcpServer
+      ? McpServerManager.createFresh(this.logger, this.mcpServer)
+      : McpServerManager.getInstance(this.logger, this.mcpServer);
+    mcpServerManager.initializeShellCapabilities(
+      this.contentGenerator,
+      this.entityService,
+    );
+    mcpServerManager.setupPluginEventListeners(this.pluginManager);
 
     // Register core components in the service registry
     this.serviceRegistry.register("shell", () => this);
@@ -253,73 +259,6 @@ export class Shell {
     );
     this.serviceRegistry.register("viewRegistry", () => this.viewRegistry);
     this.serviceRegistry.register("mcpServer", () => this.mcpServer);
-
-    // Listen for plugin tool registration events
-    this.pluginManager.on(PluginEvent.TOOL_REGISTER, (event) => {
-      const { pluginId, tool } = event;
-      this.logger.debug(
-        `Registering MCP tool from plugin ${pluginId}: ${tool.name}`,
-      );
-
-      // Register the tool with the MCP server
-      this.mcpServer.tool(
-        tool.name,
-        tool.description,
-        tool.inputSchema,
-        async (params, extra) => {
-          try {
-            // Create progress context if a progress token is provided
-            let progressContext;
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (extra?._meta?.progressToken) {
-              const progressToken = extra._meta.progressToken;
-              progressContext = {
-                progressToken,
-                sendProgress: async (notification: {
-                  progress: number;
-                  total?: number;
-                  message?: string;
-                }): Promise<void> => {
-                  await extra.sendNotification({
-                    method: "notifications/progress" as const,
-                    params: {
-                      progressToken,
-                      progress: notification.progress,
-                      total: notification.total,
-                      message: notification.message,
-                    },
-                  });
-                },
-              };
-            }
-
-            const result = await tool.handler(params, progressContext);
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: JSON.stringify(result, null, 2),
-                },
-              ],
-            };
-          } catch (error) {
-            this.logger.error(`Error in tool ${tool.name}`, error);
-            throw error;
-          }
-        },
-      );
-    });
-
-    // Listen for plugin resource registration events
-    this.pluginManager.on(PluginEvent.RESOURCE_REGISTER, (event) => {
-      const { pluginId, resource } = event;
-      this.logger.debug(
-        `Registering MCP resource from plugin ${pluginId}: ${resource.uri}`,
-      );
-
-      // Register the resource with the MCP server
-      this.mcpServer.resource(resource.name, resource.uri, resource.handler);
-    });
   }
 
   /**
@@ -334,33 +273,17 @@ export class Shell {
     this.logger.info("Initializing Shell");
 
     try {
-      // Enable WAL mode for better concurrent database access
-      await enableWALMode(
-        this.dbClient,
-        this.config.database.url || "file:./brain.db",
+      const shellInitializer = ShellInitializer.getInstance(
         this.logger,
+        this.config,
+        this.dbClient,
       );
 
-      // Register system templates
-      this.registerShellTemplates();
-
-      // Register base entity support
-      this.registerBaseEntitySupport();
-
-      // Register and initialize plugins if enabled
-      if (this.config.features.enablePlugins) {
-        this.logger.info(
-          `Plugins enabled, found ${this.config.plugins.length} plugins to register`,
-        );
-        // Register plugins from config
-        for (const plugin of this.config.plugins) {
-          this.logger.info(`Registering plugin: ${plugin.id}`);
-          this.pluginManager.registerPlugin(plugin);
-        }
-
-        // Initialize all registered plugins
-        await this.pluginManager.initializePlugins();
-      }
+      await shellInitializer.initializeAll(
+        this.contentGenerator,
+        this.entityRegistry,
+        this.pluginManager,
+      );
 
       this.initialized = true;
       this.logger.info("Shell initialized successfully");
@@ -370,18 +293,6 @@ export class Shell {
     }
   }
 
-  /**
-   * Register shell's own system templates
-   */
-  private registerShellTemplates(): void {
-    // Register knowledge query template for shell queries
-    this.contentGenerator.registerTemplate(
-      knowledgeQueryTemplate.name,
-      knowledgeQueryTemplate,
-    );
-
-    this.logger.debug("Shell system templates registered");
-  }
 
   /**
    * Register templates from plugins
@@ -470,25 +381,6 @@ export class Shell {
     this.logger.debug(`Registered ${routes.length} routes`, { pluginId });
   }
 
-  /**
-   * Register base entity support
-   * This provides fallback handling for generic entities
-   */
-  private registerBaseEntitySupport(): void {
-    this.logger.debug("Registering base entity support");
-
-    // Create base entity adapter
-    const baseEntityAdapter = new BaseEntityAdapter();
-
-    // Register with entity registry
-    this.entityRegistry.registerEntityType(
-      "base",
-      baseEntityAdapter.schema,
-      baseEntityAdapter,
-    );
-
-    this.logger.debug("Base entity support registered");
-  }
 
   /**
    * Shutdown the Shell and clean up resources

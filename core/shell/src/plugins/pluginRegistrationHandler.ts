@@ -59,17 +59,14 @@ export class PluginRegistrationHandler {
   /**
    * Register plugin tools and emit events for Shell to handle
    */
-  public registerPluginTools(
-    pluginId: string,
-    tools: PluginTool[],
-  ): void {
+  public registerPluginTools(pluginId: string, tools: PluginTool[]): void {
     this.logger.debug(
       `Registering ${tools.length} tools for plugin ${pluginId}`,
     );
 
     for (const tool of tools) {
       this.logger.debug(`Registering MCP tool: ${tool.name}`);
-      
+
       // Emit event for Shell to handle
       const toolEvent: PluginToolRegisterEvent = { pluginId, tool };
       this.events.emit(PluginEvent.TOOL_REGISTER, toolEvent);
@@ -93,7 +90,7 @@ export class PluginRegistrationHandler {
 
     for (const resource of resources) {
       this.logger.debug(`Registering MCP resource: ${resource.uri}`);
-      
+
       // Emit event for Shell to handle
       const resourceEvent: PluginResourceRegisterEvent = {
         pluginId,
