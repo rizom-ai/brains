@@ -7,6 +7,11 @@ import type { ContentGenerator } from "@brains/content-generator";
 import type { PluginManager } from "../plugins/pluginManager";
 import { BaseEntityAdapter } from "@brains/base-entity";
 import { knowledgeQueryTemplate } from "../templates";
+import {
+  DatabaseError,
+  TemplateRegistrationError,
+  EntityRegistrationError,
+} from "../errors";
 
 /**
  * Handles Shell initialization logic
@@ -56,11 +61,7 @@ export class ShellInitializer {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(
-    logger: Logger,
-    config: ShellConfig,
-    dbClient: Client,
-  ) {
+  private constructor(logger: Logger, config: ShellConfig, dbClient: Client) {
     this.logger = logger.child("ShellInitializer");
     this.config = config;
     this.dbClient = dbClient;
@@ -83,9 +84,9 @@ export class ShellInitializer {
       this.logger.debug("Database initialization complete");
     } catch (error) {
       this.logger.error("Failed to initialize database", error);
-      throw new Error(
-        `Database initialization failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw new DatabaseError("WAL mode initialization", error, {
+        url: this.config.database.url,
+      });
     }
   }
 
@@ -105,8 +106,10 @@ export class ShellInitializer {
       this.logger.debug("Shell system templates registered successfully");
     } catch (error) {
       this.logger.error("Failed to register shell templates", error);
-      throw new Error(
-        `Shell template registration failed: ${error instanceof Error ? error.message : String(error)}`,
+      throw new TemplateRegistrationError(
+        knowledgeQueryTemplate.name,
+        "shell",
+        error,
       );
     }
   }
@@ -115,9 +118,7 @@ export class ShellInitializer {
    * Register base entity support
    * This provides fallback handling for generic entities
    */
-  public registerBaseEntitySupport(
-    entityRegistry: EntityRegistry,
-  ): void {
+  public registerBaseEntitySupport(entityRegistry: EntityRegistry): void {
     this.logger.debug("Registering base entity support");
 
     try {
@@ -134,9 +135,7 @@ export class ShellInitializer {
       this.logger.debug("Base entity support registered successfully");
     } catch (error) {
       this.logger.error("Failed to register base entity support", error);
-      throw new Error(
-        `Base entity registration failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw new EntityRegistrationError("base", error);
     }
   }
 

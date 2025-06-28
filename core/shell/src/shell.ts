@@ -93,14 +93,9 @@ export class Shell {
 
   /**
    * Create a fresh instance without affecting the singleton
-   * @param config - Configuration for the shell (required if dependencies are provided)
+   * @param config - Configuration for the shell
    * @param dependencies - Optional dependencies for testing
    */
-  public static createFresh(
-    config: Partial<ShellConfig>,
-    dependencies?: ShellDependencies,
-  ): Shell;
-  public static createFresh(config?: Partial<ShellConfig>): Shell;
   public static createFresh(
     config?: Partial<ShellConfig>,
     dependencies?: ShellDependencies,
@@ -293,7 +288,6 @@ export class Shell {
     }
   }
 
-
   /**
    * Register templates from plugins
    */
@@ -380,7 +374,6 @@ export class Shell {
 
     this.logger.debug(`Registered ${routes.length} routes`, { pluginId });
   }
-
 
   /**
    * Shutdown the Shell and clean up resources
