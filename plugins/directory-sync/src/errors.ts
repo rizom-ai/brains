@@ -13,7 +13,7 @@ export class DirectorySyncError extends BrainsError {
       message,
       "DIRECTORY_SYNC_ERROR",
       normalizeError(cause),
-      context ?? {}
+      context ?? {},
     );
   }
 }

@@ -1,5 +1,42 @@
 import type { z } from "zod";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "./logger";
+import { BrainsError, normalizeError, type ErrorCause } from "./errors";
+
+/**
+ * Error thrown when content validation fails
+ */
+export class ContentValidationError extends BrainsError {
+  constructor(
+    message: string,
+    cause: ErrorCause,
+    context?: Record<string, unknown>,
+  ) {
+    super(
+      message,
+      "CONTENT_VALIDATION_ERROR",
+      normalizeError(cause),
+      context ?? {},
+    );
+  }
+}
+
+/**
+ * Error thrown when schema is not found or invalid
+ */
+export class SchemaNotFoundError extends BrainsError {
+  constructor(
+    contentType: string,
+    cause?: ErrorCause,
+    context?: Record<string, unknown>,
+  ) {
+    super(
+      `No schema registered for content type: ${contentType}`,
+      "SCHEMA_NOT_FOUND",
+      cause ? normalizeError(cause) : new Error("Schema not found"),
+      { contentType, ...context },
+    );
+  }
+}
 
 /**
  * Validates content against registered schemas
@@ -26,17 +63,19 @@ export class ContentValidator {
   public validate(contentType: string, content: unknown): unknown {
     const schema = this.schemas.get(contentType);
     if (!schema) {
-      throw new Error(`No schema registered for content type: ${contentType}`);
+      throw new SchemaNotFoundError(contentType);
     }
 
     try {
       return schema.parse(content);
     } catch (error) {
-      this.logger?.error(`Validation failed for content type: ${contentType}`, {
+      const validationError = new ContentValidationError(
+        `Validation failed for content type: ${contentType}`,
         error,
-        content,
-      });
-      throw error;
+        { contentType, content },
+      );
+      this.logger?.error(validationError.message, { error: validationError });
+      throw validationError;
     }
   }
 

@@ -541,7 +541,9 @@ Test content`;
 
       expect(() => {
         entityService.deserializeEntity(markdownContent, "unknown");
-      }).toThrow("No adapter registered for entity type: unknown");
+      }).toThrow(
+        "Entity type registration failed for unknown: No adapter registered for entity type",
+      );
     });
   });
 });

@@ -77,7 +77,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
       throw new DirectorySyncInitializationError(
         "DirectorySync service not initialized",
         "Plugin not properly configured",
-        { method: "getTools" }
+        { method: "getTools" },
       );
     }
 
@@ -91,7 +91,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
               "Plugin not properly configured",
-              { tool: "directory-sync" }
+              { tool: "directory-sync" },
             );
           }
           const result = await this.directorySync.sync();
@@ -117,7 +117,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
               "Plugin not properly configured",
-              { tool: "directory-sync" }
+              { tool: "directory-sync" },
             );
           }
           const params = input as { entityTypes?: string[] };
@@ -146,7 +146,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
               "Plugin not properly configured",
-              { tool: "directory-sync" }
+              { tool: "directory-sync" },
             );
           }
           const params = input as { paths?: string[] };
@@ -167,7 +167,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
               "Plugin not properly configured",
-              { tool: "directory-sync" }
+              { tool: "directory-sync" },
             );
           }
           const params = input as { action: "start" | "stop" };
@@ -193,7 +193,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
               "Plugin not properly configured",
-              { tool: "directory-sync" }
+              { tool: "directory-sync" },
             );
           }
           const status = await this.directorySync.getStatus();
@@ -213,7 +213,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
               "Plugin not properly configured",
-              { tool: "directory-sync" }
+              { tool: "directory-sync" },
             );
           }
           await this.directorySync.ensureDirectoryStructure();
@@ -246,7 +246,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
       throw new DirectorySyncInitializationError(
         "DirectorySync service not initialized",
         "Plugin not properly configured",
-        { method: "configure" }
+        { method: "configure" },
       );
     }
 

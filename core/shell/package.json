@@ -21,7 +21,6 @@
     "@brains/embedding-service": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/messaging-service": "workspace:*",
-    "@brains/formatters": "workspace:*",
     "@brains/mcp-server": "workspace:*",
     "@brains/service-registry": "workspace:*",
     "@brains/types": "workspace:*",

@@ -1,4 +1,4 @@
-import type { RouteDefinition } from "@brains/types";
+import type { RouteDefinition } from "@brains/view-registry";
 
 export const routes: RouteDefinition[] = [
   {

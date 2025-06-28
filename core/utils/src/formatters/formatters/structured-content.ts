@@ -1,6 +1,44 @@
 import type { ContentFormatter } from "@brains/types";
+import type { z } from "zod";
 import { remark } from "remark";
 import type { Root, Heading, Paragraph, Content } from "mdast";
+import { BrainsError, normalizeError, type ErrorCause } from "@brains/utils";
+
+/**
+ * Error thrown when structured content formatting fails
+ */
+export class StructuredContentFormattingError extends BrainsError {
+  constructor(
+    message: string,
+    cause: ErrorCause,
+    context?: Record<string, unknown>,
+  ) {
+    super(
+      message,
+      "STRUCTURED_CONTENT_FORMATTING_ERROR",
+      normalizeError(cause),
+      context ?? {},
+    );
+  }
+}
+
+/**
+ * Error thrown when structured content parsing fails
+ */
+export class StructuredContentParsingError extends BrainsError {
+  constructor(
+    message: string,
+    cause: ErrorCause,
+    context?: Record<string, unknown>,
+  ) {
+    super(
+      message,
+      "STRUCTURED_CONTENT_PARSING_ERROR",
+      normalizeError(cause),
+      context ?? {},
+    );
+  }
+}
 
 /**
  * Field mapping configuration for structured content formatting
@@ -38,7 +76,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   private processor = remark();
 
   constructor(
-    private schema: { parse: (data: unknown) => T },
+    private schema: z.ZodType<T>,
     private config: FormatterConfig,
   ) {}
 
@@ -46,23 +84,39 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
    * Format structured data into human-readable markdown
    */
   public format(data: T): string {
-    const lines: string[] = [`# ${this.config.title}`, ""];
+    try {
+      const lines: string[] = [`# ${this.config.title}`, ""];
 
-    for (const mapping of this.config.mappings) {
-      this.formatField(data, mapping, lines, 2);
+      for (const mapping of this.config.mappings) {
+        this.formatField(data, mapping, lines, 2);
+      }
+
+      return lines.join("\n");
+    } catch (error) {
+      throw new StructuredContentFormattingError(
+        "Failed to format structured content",
+        error,
+        { title: this.config.title, data },
+      );
     }
-
-    return lines.join("\n");
   }
 
   /**
    * Parse human-readable markdown back to structured data
    */
   public parse(content: string): T {
-    const tree = this.processor.parse(content) as Root;
-    const sections = this.extractSections(tree, 2);
-    const data = this.buildDataFromSections(sections, this.config.mappings);
-    return this.schema.parse(data);
+    try {
+      const tree = this.processor.parse(content) as Root;
+      const sections = this.extractSections(tree, 2);
+      const data = this.buildDataFromSections(sections, this.config.mappings);
+      return this.schema.parse(data);
+    } catch (error) {
+      throw new StructuredContentParsingError(
+        "Failed to parse structured content",
+        error,
+        { title: this.config.title, contentLength: content.length },
+      );
+    }
   }
 
   /**

@@ -1,4 +1,4 @@
-import { ResponseFormatter } from "@brains/formatters";
+import { ResponseFormatter } from "@brains/utils";
 import type { GitSyncStatus } from "../schemas";
 
 /**

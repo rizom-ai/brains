@@ -1,5 +1,5 @@
 /**
- * @brains/formatters
+ * Formatters
  *
  * Schema formatters for the brain system.
  * Provides base classes and common formatters for transforming

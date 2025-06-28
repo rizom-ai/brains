@@ -64,3 +64,13 @@ export {
   ErrorUtils,
   normalizeError,
 } from "./errors";
+
+// Content validation utilities
+export {
+  ContentValidator,
+  ContentValidationError,
+  SchemaNotFoundError,
+} from "./content-validator";
+
+// Formatters
+export * from "./formatters";

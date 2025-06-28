@@ -3,7 +3,7 @@ import {
   defaultQueryResponseSchema,
   type DefaultQueryResponse,
 } from "@brains/types";
-import { DefaultQueryResponseFormatter } from "@brains/formatters";
+import { DefaultQueryResponseFormatter } from "@brains/utils";
 
 /**
  * Knowledge query template for shell queries
