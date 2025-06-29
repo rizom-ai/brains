@@ -16,6 +16,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@brains/plugin-utils": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "ink": "^6.0.1",

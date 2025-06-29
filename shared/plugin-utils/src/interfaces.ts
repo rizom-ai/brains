@@ -1,71 +1,15 @@
 import { z, type ZodRawShape } from "zod";
-import type { Logger } from "@brains/utils";
-import type { ContentFormatter } from "./formatters";
+import type { Logger, ProgressNotification } from "@brains/utils";
+import type { 
+  BaseEntity,
+  MessageHandler,
+  MessageSender,
+  GenerationContext,
+  Template
+} from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
-import type { BaseEntity } from "./entities";
-import type { MessageHandler, MessageSender } from "./messaging";
-
-import type { VNode } from "preact";
-
-/**
- * Component type for layouts - using Preact
- * Returns a Preact VNode
- */
-export type ComponentType<P = unknown> = (props: P) => VNode;
-
-import type { RouteDefinition, SectionDefinition, ViewTemplate } from "./views";
-import type { EntityService } from "./services";
-
-/**
- * Context for content generation - simplified for template-based approach
- */
-export interface GenerationContext {
-  prompt?: string;
-  data?: Record<string, unknown>;
-}
-
-/**
- * Template for reusable generation patterns and view rendering
- */
-export interface Template<T = unknown> {
-  name: string;
-  description: string;
-  schema: z.ZodType<T>;
-  basePrompt: string;
-  /**
-   * Optional formatter for converting between structured data and human-editable markdown.
-   * If not provided, a default YAML formatter will be used.
-   */
-  formatter?: ContentFormatter<T>;
-  /**
-   * Optional layout definition for rendering this content type.
-   * If provided, the template can be used as a section layout.
-   */
-  layout?: {
-    component: ComponentType<T> | string; // Component function or path string
-    description?: string;
-    interactive?: boolean; // Whether this layout requires client-side interactivity
-    packageName?: string; // Package name for hydration script resolution
-  };
-}
-
-/**
- * Zod schema for Template validation (used in plugin configurations)
- */
-export const TemplateSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  schema: z.any(), // ZodType can't be validated at runtime - required
-  basePrompt: z.string(),
-  formatter: z.any().optional(), // ContentFormatter instance
-  layout: z
-    .object({
-      component: z.any(), // ComponentType or string
-      description: z.string().optional(),
-      interactive: z.boolean().optional(),
-    })
-    .optional(),
-});
+import type { RouteDefinition, SectionDefinition, ViewTemplate } from "@brains/view-registry";
+import type { IEntityService } from "@brains/entity-service";
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -77,15 +21,6 @@ export const pluginMetadataSchema = z.object({
   dependencies: z.array(z.string()).optional(),
   packageName: z.string(), // Package name for import resolution (e.g., "@brains/site-builder-plugin")
 });
-
-/**
- * Progress notification for long-running operations
- */
-export interface ProgressNotification {
-  progress: number;
-  total?: number;
-  message?: string;
-}
 
 /**
  * Daemon health status schema
@@ -235,7 +170,7 @@ export interface PluginContext {
   // Plugin metadata access (scoped to current plugin by default)
   getPluginPackageName: (pluginId?: string) => string | undefined;
   // Entity service access - direct access to public service interface
-  entityService: EntityService;
+  entityService: IEntityService;
 
   // Interface plugin capabilities
   registerDaemon: (name: string, daemon: Daemon) => void;
@@ -245,12 +180,12 @@ export interface PluginContext {
  * Interface plugin type - extends Plugin with start/stop lifecycle methods
  * Used as base for all interface implementations (CLI, Matrix, etc.)
  */
-export interface InterfacePlugin extends Plugin {
+export interface IInterfacePlugin extends Plugin {
   /**
    * Start the interface
    */
   start(): Promise<void>;
-
+  
   /**
    * Stop the interface
    */
@@ -270,20 +205,20 @@ export interface MessageContext {
 }
 
 /**
- * Message-based interface plugin type - extends InterfacePlugin
+ * Message-based interface plugin type - extends IInterfacePlugin
  * Used for interfaces that process messages (CLI, Matrix, etc.)
  */
-export interface MessageInterfacePlugin extends InterfacePlugin {
+export interface IMessageInterfacePlugin extends IInterfacePlugin {
   /**
    * The unique session ID for this interface instance
    */
   readonly sessionId: string;
-
+  
   /**
    * Process user input and emit response/error events
    */
   processInput(input: string, context?: Partial<MessageContext>): Promise<void>;
-
+  
   /**
    * EventEmitter methods for message interfaces
    */

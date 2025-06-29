@@ -4,7 +4,7 @@ import type {
   PluginCapabilities,
   PluginTool,
   PluginResource,
-} from "@brains/types";
+} from "@brains/plugin-utils";
 import { z } from "zod";
 
 /**

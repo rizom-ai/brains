@@ -1,7 +1,7 @@
 import { Shell } from "@brains/core";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { Logger, LogLevel } from "@brains/utils";
-import type { Plugin } from "@brains/types";
+import type { Plugin } from "@brains/plugin-utils";
 import { appConfigSchema, type AppConfig } from "./types.js";
 
 export class App {

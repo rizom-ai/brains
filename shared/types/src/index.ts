@@ -9,28 +9,13 @@
 export type { BaseEntity, EntityInput, SearchResult } from "./entities";
 export { baseEntitySchema } from "./entities";
 
-// Plugin types
+// Template types (used by both content and plugins)
 export type {
-  Plugin,
-  PluginContext,
-  PluginCapabilities,
-  PluginTool,
-  PluginResource,
+  ComponentType,
   GenerationContext,
   Template,
-  ProgressNotification,
-  ComponentType,
-  Daemon,
-  DaemonHealth,
-  InterfacePlugin,
-  MessageInterfacePlugin,
-  MessageContext,
-} from "./plugin";
-export {
-  pluginMetadataSchema,
-  TemplateSchema,
-  DaemonHealthSchema,
-} from "./plugin";
+} from "./templates";
+export { TemplateSchema } from "./templates";
 
 // Registry types
 export type { ServiceRegistry, ComponentFactory } from "./registry";

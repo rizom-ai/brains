@@ -3,8 +3,8 @@ import type {
   PluginTool,
   PluginResource,
   Daemon,
-  InterfacePlugin as IInterfacePlugin,
-} from "@brains/types";
+  IInterfacePlugin,
+} from "./interfaces";
 import { BasePlugin } from "./base-plugin";
 
 /**

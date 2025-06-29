@@ -1,4 +1,4 @@
-import type { PluginTool } from "@brains/types";
+import type { PluginTool } from "@brains/plugin-utils";
 import type { UserPermissionLevel } from "./types";
 
 /**

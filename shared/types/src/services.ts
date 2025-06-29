@@ -1,6 +1,6 @@
 import type { BaseEntity, EntityInput, SearchResult } from "./entities";
 import type { EntityAdapter } from "@brains/base-entity";
-import type { Plugin, PluginTool, PluginResource } from "./plugin";
+import type { Plugin, PluginTool, PluginResource } from "@brains/plugin-utils";
 import type { z } from "zod";
 
 /**

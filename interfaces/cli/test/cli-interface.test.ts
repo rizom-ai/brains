@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock, afterAll } from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
-import type { PluginContext, MessageContext } from "@brains/types";
+import type { PluginContext, MessageContext } from "@brains/plugin-utils";
 import { createSilentLogger } from "@brains/utils";
 import type { CLIConfig } from "../src/types";
 

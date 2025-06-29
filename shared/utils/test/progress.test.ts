@@ -1,6 +1,6 @@
 import { describe, it, expect, jest, beforeEach } from "bun:test";
 import { ProgressReporter } from "../src/progress";
-import type { ProgressNotification } from "@brains/types";
+import type { ProgressNotification } from "../src/progress";
 
 describe("ProgressReporter", () => {
   let mockCallback: jest.Mock;

@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { PluginContext } from "@brains/types";
+import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { CSSProcessor } from "./css/css-processor";
 

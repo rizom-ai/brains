@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ProgressCallback } from "@brains/utils";
-import type { ComponentType } from "./plugin";
+import type { ComponentType } from "./templates";
 
 /**
  * Site content entity types

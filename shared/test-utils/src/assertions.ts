@@ -1,4 +1,5 @@
-import type { BaseEntity, PluginTool, Plugin } from "@brains/types";
+import type { BaseEntity } from "@brains/types";
+import type { PluginTool, Plugin } from "@brains/plugin-utils";
 
 /**
  * Custom assertions for plugin testing

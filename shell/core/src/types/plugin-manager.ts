@@ -1,4 +1,4 @@
-import type { Plugin, PluginTool, PluginResource } from "@brains/types";
+import type { Plugin, PluginTool, PluginResource } from "@brains/plugin-utils";
 
 /**
  * Plugin Manager interface for managing plugin lifecycle

@@ -4,8 +4,8 @@ import type {
   PluginCapabilities,
   PluginTool,
   PluginResource,
-  Logger,
-} from "@brains/types";
+} from "./interfaces";
+import type { Logger } from "@brains/utils";
 import type { z } from "zod";
 import { validatePluginConfig } from "./config";
 

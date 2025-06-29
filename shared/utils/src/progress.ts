@@ -1,4 +1,11 @@
-import type { ProgressNotification } from "@brains/types";
+/**
+ * Progress notification for long-running operations
+ */
+export interface ProgressNotification {
+  progress: number;
+  total?: number;
+  message?: string;
+}
 
 /**
  * Progress callback type

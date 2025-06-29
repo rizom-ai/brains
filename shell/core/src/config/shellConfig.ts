@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { Plugin } from "@brains/types";
-import { pluginMetadataSchema } from "@brains/types";
+import type { Plugin } from "@brains/plugin-utils";
+import { pluginMetadataSchema } from "@brains/plugin-utils";
 
 /**
  * Shell configuration schema

@@ -1,7 +1,7 @@
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
 import { EventEmitter } from "events";
-import type { Plugin } from "@brains/types";
+import type { Plugin } from "@brains/plugin-utils";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type {
   PluginManager as IPluginManager,

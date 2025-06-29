@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { PermissionHandler } from "../src/permission-handler";
-import type { PluginTool } from "@brains/types";
+import type { PluginTool } from "@brains/plugin-utils";
 
 describe("PermissionHandler", () => {
   const anchorUserId = "@admin:example.org";

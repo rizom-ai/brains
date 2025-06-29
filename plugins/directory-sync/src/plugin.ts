@@ -1,5 +1,5 @@
-import type { Plugin, PluginContext, PluginTool } from "@brains/types";
-import { BasePlugin, pluginConfig, toolInput } from "@brains/utils";
+import type { Plugin, PluginContext, PluginTool } from "@brains/plugin-utils";
+import { BasePlugin, pluginConfig, toolInput } from "@brains/plugin-utils";
 import { DirectorySyncInitializationError } from "./errors";
 import { z } from "zod";
 import { DirectorySync } from "./directorySync";

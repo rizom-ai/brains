@@ -1,4 +1,4 @@
-import type { Plugin, PluginTool, PluginCapabilities } from "@brains/types";
+import type { Plugin, PluginTool, PluginCapabilities } from "@brains/plugin-utils";
 import { PluginTestHarness } from "./harness";
 import { expect } from "bun:test";
 

@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { ContentFormatter } from "./formatters";
-import type { Template } from "./plugin";
+import type { Template } from "./templates";
 
 /**
  * Unified content configuration that combines template, schema, and formatter

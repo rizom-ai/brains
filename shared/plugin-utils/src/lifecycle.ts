@@ -1,4 +1,4 @@
-import type { Plugin, PluginContext, PluginCapabilities } from "@brains/types";
+import type { Plugin, PluginContext, PluginCapabilities } from "./interfaces";
 
 /**
  * Plugin lifecycle events

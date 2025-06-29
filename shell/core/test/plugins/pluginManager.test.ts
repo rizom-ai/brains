@@ -1,10 +1,10 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
+import type { BaseEntity } from "@brains/types";
 import type {
   Plugin,
   PluginContext,
   PluginCapabilities,
-  BaseEntity,
-} from "@brains/types";
+} from "@brains/plugin-utils";
 import {
   PluginEvent,
   PluginManager,

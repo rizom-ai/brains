@@ -1,8 +1,6 @@
-import {
-  MessageInterfacePlugin,
-  PluginInitializationError,
-} from "@brains/utils";
-import type { DefaultQueryResponse, MessageContext } from "@brains/types";
+import { MessageInterfacePlugin, PluginInitializationError } from "@brains/plugin-utils";
+import type { MessageContext } from "@brains/plugin-utils";
+import type { DefaultQueryResponse } from "@brains/types";
 import type { Instance } from "ink";
 import type { CLIConfig } from "./types";
 import packageJson from "../package.json";

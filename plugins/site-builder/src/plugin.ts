@@ -1,10 +1,6 @@
-import { BasePlugin } from "@brains/utils";
-import type {
-  PluginContext,
-  PluginTool,
-  PluginResource,
-  Template,
-} from "@brains/types";
+import { BasePlugin } from "@brains/plugin-utils";
+import type { PluginContext, PluginTool, PluginResource } from "@brains/plugin-utils";
+import type { Template } from "@brains/types";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import { RouteDefinitionSchema } from "@brains/view-registry";
 import { TemplateSchema } from "@brains/types";

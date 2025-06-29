@@ -1,8 +1,8 @@
+import type { DefaultQueryResponse } from "@brains/types";
 import type {
-  DefaultQueryResponse,
-  MessageInterfacePlugin as IMessageInterfacePlugin,
+  IMessageInterfacePlugin,
   MessageContext,
-} from "@brains/types";
+} from "./interfaces";
 import type { z } from "zod";
 import { InterfacePlugin } from "./interface-plugin";
 import { EventEmitter } from "node:events";

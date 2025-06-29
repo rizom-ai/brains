@@ -1,17 +1,32 @@
-/**
- * Plugin utilities for the Brain system
- *
- * This module provides common utilities for plugin development including:
- * - Configuration validation with Zod
- * - Builder patterns for tools and entities
- * - Common plugin patterns and helpers
- * - Base classes for common plugin types
- * - Lifecycle management utilities
- */
+// Plugin types and interfaces
+export type {
+  DaemonHealth,
+  Daemon,
+  ToolVisibility,
+  PluginTool,
+  PluginResource,
+  PluginCapabilities,
+  Plugin,
+  PluginContext,
+  IInterfacePlugin,
+  MessageContext,
+  IMessageInterfacePlugin,
+} from "./interfaces";
 
-export * from "./config";
-export * from "./base-plugin";
-export * from "./interface-plugin";
-export * from "./message-interface-plugin";
-export * from "./config-builder";
-export * from "./lifecycle";
+export {
+  pluginMetadataSchema,
+  DaemonHealthSchema,
+} from "./interfaces";
+
+// Plugin base classes
+export { BasePlugin } from "./base-plugin";
+export { InterfacePlugin } from "./interface-plugin";
+export { MessageInterfacePlugin } from "./message-interface-plugin";
+
+// Plugin utilities
+export { validatePluginConfig, createPluginConfig } from "./config";
+export { PluginConfigBuilder, pluginConfig, toolInput } from "./config-builder";
+export type { PluginLifecycleHook } from "./lifecycle";
+
+// Plugin errors
+export { PluginInitializationError } from "./errors";

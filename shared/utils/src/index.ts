@@ -32,10 +32,7 @@ export {
 
 // Progress utilities
 export { ProgressReporter } from "./progress";
-export type { ProgressCallback } from "./progress";
-
-// Plugin utilities
-export * from "./plugin";
+export type { ProgressCallback, ProgressNotification } from "./progress";
 
 // YAML utilities
 export { toYaml, fromYaml, isValidYaml } from "./yaml";

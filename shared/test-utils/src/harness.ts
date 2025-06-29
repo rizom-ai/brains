@@ -1,15 +1,13 @@
 import type {
-  Plugin,
-  PluginContext,
   BaseEntity,
   EntityInput,
-  PluginTool,
   GenerationContext,
   MessageHandler,
   MessageSender,
   MessageResponse,
 } from "@brains/types";
-import type { IEntityService as EntityService } from "@brains/entity-service";
+import type { Plugin, PluginContext, PluginTool } from "@brains/plugin-utils";
+import type { IEntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { z } from "zod";
@@ -328,8 +326,8 @@ export class PluginTestHarness {
   /**
    * Create a mock entity service
    */
-  private createMockEntityService(): EntityService {
-    const mockService: EntityService = {
+  private createMockEntityService(): IEntityService {
+    const mockService: IEntityService = {
       createEntity: async <T extends BaseEntity>(
         entity: EntityInput<T>,
       ): Promise<T> => {

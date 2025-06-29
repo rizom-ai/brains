@@ -4,7 +4,7 @@ import React from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import TextInput from "ink-text-input";
 import Spinner from "ink-spinner";
-import type { MessageInterfacePlugin } from "@brains/utils";
+import type { MessageInterfacePlugin } from "@brains/plugin-utils";
 
 interface Message {
   role: "user" | "assistant" | "system";

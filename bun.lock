@@ -36,6 +36,7 @@
       "name": "@brains/cli",
       "version": "0.1.0",
       "dependencies": {
+        "@brains/plugin-utils": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "ink": "^6.0.1",
@@ -265,6 +266,28 @@
         "@typescript-eslint/eslint-plugin": "^8.33.0",
         "@typescript-eslint/parser": "^8.33.0",
         "eslint-config-prettier": "^8.10.0",
+      },
+    },
+    "shared/plugin-utils": {
+      "name": "@brains/plugin-utils",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/base-entity": "workspace:*",
+        "@brains/entity-service": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@brains/view-registry": "workspace:*",
+        "p-queue": "^8.0.1",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "^5.5.4",
+      },
+      "peerDependencies": {
+        "typescript": "^5.0.0",
       },
     },
     "shared/test-utils": {
@@ -627,6 +650,8 @@
     "@brains/mcp-server": ["@brains/mcp-server@workspace:interfaces/mcp-server"],
 
     "@brains/messaging-service": ["@brains/messaging-service@workspace:shell/messaging-service"],
+
+    "@brains/plugin-utils": ["@brains/plugin-utils@workspace:shared/plugin-utils"],
 
     "@brains/service-registry": ["@brains/service-registry@workspace:shell/service-registry"],
 

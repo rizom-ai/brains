@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pluginMetadataSchema, type Plugin } from "@brains/types";
+import { pluginMetadataSchema, type Plugin } from "@brains/plugin-utils";
 import type { Shell } from "@brains/core";
 import type { BaseInterface } from "@brains/interface-core";
 import type { CLIConfig } from "@brains/cli";

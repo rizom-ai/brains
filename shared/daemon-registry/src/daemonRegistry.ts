@@ -1,5 +1,5 @@
 import { Logger } from "@brains/utils";
-import type { Daemon, DaemonHealth } from "@brains/types";
+import type { Daemon, DaemonHealth } from "@brains/plugin-utils";
 
 /**
  * Information about a registered daemon

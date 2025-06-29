@@ -5,7 +5,7 @@ import type {
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
 } from "../types/plugin-manager";
-import type { PluginTool, PluginResource } from "@brains/types";
+import type { PluginTool, PluginResource } from "@brains/plugin-utils";
 
 /**
  * Handler for plugin capability registration (tools, resources)

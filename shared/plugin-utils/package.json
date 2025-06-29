@@ -16,6 +16,10 @@
   },
   "dependencies": {
     "@brains/types": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@brains/base-entity": "workspace:*",
+    "@brains/view-registry": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "zod": "^3.22.4",
     "p-queue": "^8.0.1"
   },

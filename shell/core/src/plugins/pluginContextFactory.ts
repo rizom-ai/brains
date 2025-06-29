@@ -1,13 +1,12 @@
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
 import type {
-  PluginContext,
   BaseEntity,
   GenerationContext,
   Template,
   MessageHandler,
-  Daemon,
 } from "@brains/types";
+import type { PluginContext, Daemon } from "@brains/plugin-utils";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
