@@ -178,7 +178,6 @@ export interface ViewTemplate<T = unknown> {
    ```
 
 3. Each template directory contains:
-
    - `layout.tsx` - Preact component for rendering
    - `schema.ts` - Zod schema for validation
    - `formatter.ts` - Markdown/structured data conversion
@@ -326,12 +325,10 @@ Allow the shell to register built-in templates (like dashboard) while keeping pl
    ```
 
 2. **Dashboard component location**:
-
    - `packages/shell/src/site-templates/dashboard/` - Dashboard component
    - Shell owns system-level templates
 
 3. **Site-builder plugin continues to**:
-
    - Import and register default-site-content templates (hero, features, etc.)
    - Provide template registration via plugin context
    - Other plugins can still register their own templates
@@ -400,7 +397,6 @@ Our selective hydration approach uses self-contained components that handle thei
 **How It Works:**
 
 1. **Build Phase**:
-
    - Site builder renders static HTML using component functions
    - Interactive components include inline hydration scripts during SSR
    - Hydration manager only adds Preact dependencies to HTML head
@@ -932,31 +928,26 @@ await entityService.createEntity(productionEntity);
 #### Benefits
 
 1. **Predictable Entity Structure**
-
    - Deterministic IDs enable direct entity access
    - No complex relationship tracking needed
    - Simple tooling and debugging
 
 2. **Clean Separation**
-
    - Preview and production content physically separated
    - Clear conceptual model (draft vs published)
    - Independent entity lifecycles
 
 3. **Simple Operations**
-
    - Promotion is entity copy operation
    - Rollback is entity deletion
    - No complex state management
 
 4. **Flexible Content Generation**
-
    - Three regeneration modes support different workflows
    - Preserve user edits unless explicitly requested
    - AI can build on existing content for improvements
 
 5. **Extensible Architecture**
-
    - Web UI can easily layer on top of CLI tools
    - Each tool has clean, focused responsibility
    - Good design naturally supports future enhancements
@@ -1003,47 +994,40 @@ await entityService.createEntity(productionEntity);
 ## Benefits
 
 1. **Extreme Simplicity**
-
    - No Astro complexity
    - No import/export gymnastics
    - Direct component access via function references
    - Everything runs in one process
 
 2. **Unified Template Structure**
-
    - Each template exports all necessary data in one object
    - Includes component, schema, formatter, and AI prompt
    - Site-builder transforms to ViewTemplate format as needed
    - Clear separation between content definition and registration
 
 3. **No Deployment Issues**
-
    - Output is just HTML/CSS/JS files
    - No workspace dependencies
    - Can be served from anywhere
    - No npm packages to manage
 
 4. **True Plugin Independence**
-
    - Plugins are self-contained
    - Components stay with their plugins
    - No separate content packages
 
 5. **Modern Styling with Tailwind**
-
    - Use Tailwind v4 with just a global.css file
    - No config file needed
    - Automatic purging of unused styles
    - Components use Tailwind classes
 
 6. **Flexibility**
-
    - Optional client-side hydration
    - Progressive enhancement
    - Full control over output
 
 7. **Clean App Configuration**
-
    - Apps control which templates to use
    - Site-builder plugin remains generic
    - Easy to swap different template sets

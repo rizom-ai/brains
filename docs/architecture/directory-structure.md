@@ -121,25 +121,21 @@ apps/personal-brain/
 ## Best Practices
 
 1. **Exports**:
-
    - Export interfaces, types, and public functions from `index.ts`
    - Avoid direct imports from implementation files
    - Use named exports instead of default exports
 
 2. **Package Dependencies**:
-
    - Core package should have minimal dependencies
    - Plugin packages should depend on core package
    - Application should depend on core and plugin packages
 
 3. **Directory Naming**:
-
    - Use kebab-case for package names (e.g., `note-context`)
    - Use camelCase for file names (e.g., `entityService.ts`)
    - Use PascalCase for class and interface names (e.g., `EntityService`)
 
 4. **File Organization**:
-
    - Group related files in dedicated directories
    - Keep file size manageable (aim for < 300 lines)
    - One class/interface per file

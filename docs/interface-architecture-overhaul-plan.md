@@ -21,13 +21,11 @@ This document outlines the revised plan to integrate interfaces into the existin
 **Three Different Approaches Identified:**
 
 1. **Interactive Interfaces** (CLI, Matrix):
-
    - Extend `BaseInterface` from `interface-core`
    - Handle user interaction and message processing
    - Manually instantiated and managed
 
 2. **MCP Server Architecture**:
-
    - **Core Service**: MCP server integrated into shell core
    - **Transport Interfaces**: `StdioMCPServer`, `StreamableHTTPServer`
    - **Well-Integrated**: Plugins register tools/resources via shell
@@ -57,12 +55,10 @@ After deeper analysis, we've realized that **interfaces and plugins serve the sa
 **All extensions to the shell are plugins, categorized by function:**
 
 1. **Content Plugins**: Directory sync, git sync, site builder, link capture
-
    - Process and transform data
    - Extend core functionality with business logic
 
 2. **Interface Plugins**: CLI, Matrix, Webserver, MCP transports
-
    - Handle user input/output and external protocol communication
    - Provide interaction mechanisms with the shell
    - Long-running services that bridge external clients to shell capabilities
@@ -186,7 +182,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
 
   protected async handleLocalCommand(
     command: string,
-    context: MessageContext
+    context: MessageContext,
   ): Promise<string | null> {
     // Handle CLI-specific commands like /help, /quit
     switch (command) {
@@ -203,7 +199,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
 
   protected async formatResponse(
     queryResponse: DefaultQueryResponse,
-    context: MessageContext
+    context: MessageContext,
   ): Promise<string> {
     // Format for CLI display
     let output = queryResponse.message || "No response generated";
@@ -239,14 +235,14 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     // Initialize Matrix client and connect
     this.matrixClient = new MatrixClient(this.config);
     await this.matrixClient.connect();
-    
+
     // Set up message handlers
     this.matrixClient.on("message", (message) => {
       this.processInput(message.content, {
         userId: message.sender,
         channelId: message.roomId,
         messageId: message.eventId,
-        timestamp: new Date(message.timestamp)
+        timestamp: new Date(message.timestamp),
       });
     });
   }
@@ -260,7 +256,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
 
   protected async handleLocalCommand(
     command: string,
-    context: MessageContext
+    context: MessageContext,
   ): Promise<string | null> {
     // Handle Matrix-specific commands
     switch (command) {
@@ -268,7 +264,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
         // Join room logic
         return "Joined room";
       case "/leave":
-        // Leave room logic  
+        // Leave room logic
         return "Left room";
       default:
         return null; // Let Shell handle it
@@ -277,7 +273,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
 
   protected async formatResponse(
     queryResponse: DefaultQueryResponse,
-    context: MessageContext
+    context: MessageContext,
   ): Promise<string> {
     // Format with Matrix markdown
     let output = `**${queryResponse.message || "No response generated"}**`;
@@ -314,7 +310,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   public async start(): Promise<void> {
     // Ensure dist directories exist
     await this.ensureDistDirectory();
-    
+
     // Start both preview and production servers
     await this.serverManager.startPreviewServer();
     await this.serverManager.startProductionServer();
@@ -327,7 +323,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   // No message processing needed - webserver just serves static files
 }
 
-// interfaces/webserver/src/plugin.ts - Simple export  
+// interfaces/webserver/src/plugin.ts - Simple export
 import { WebserverInterface } from "./webserver-interface";
 export const webserverPlugin = new WebserverInterface(webserverConfig);
 ```
@@ -341,21 +337,18 @@ export const webserverPlugin = new WebserverInterface(webserverConfig);
 **Completed Implementation:**
 
 1. **Enhanced PluginContext in `@brains/types`**
-
    - Added `registerDaemon()` method for long-running interface processes
    - Added `processMessage()` method for direct shell message access
    - Added daemon health check capabilities
    - Maintained backward compatibility with existing content plugins
 
 2. **Created @brains/daemon-registry Package**
-
    - `DaemonRegistry` class with start/stop/healthCheck lifecycle management
    - `Daemon` interface with start/stop/healthCheck methods
    - `DaemonHealth` status types with health monitoring
    - Integration with existing plugin event system
 
 3. **Updated PluginManager Daemon Handling**
-
    - Detects daemon registrations during plugin initialization
    - Starts/stops daemons automatically with plugin lifecycle
    - Health monitoring for registered daemons

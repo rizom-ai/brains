@@ -25,19 +25,16 @@ This repository contains the design and implementation plan for rebuilding the P
 When you encounter uncertainty about implementation details or architectural decisions:
 
 1. **Ask Specific Yes/No Questions**:
-
    - "Should the QueryProcessor maintain its own instance of SchemaRegistry, or share the global one?"
    - "Is it correct to implement the EntityAdapter as an abstract class rather than an interface?"
 
 2. **Present Clear Options**:
-
    - "I see two potential approaches for implementing the EntityService:
      Option A: [concise description]
      Option B: [concise description]
      Do you prefer option A?"
 
 3. **Validate Understanding**:
-
    - "My understanding is that all entities should be stored as Markdown with optional frontmatter. Is this correct?"
 
 4. **Check Implementation Direction Early**:

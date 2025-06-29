@@ -55,7 +55,6 @@ The shell package already includes:
 Entities are **NOT** defined in the shell package. Instead:
 
 1. **Shell provides base infrastructure**:
-
    - Base entity schema and types
    - EntityRegistry for registration
    - EntityService for CRUD operations

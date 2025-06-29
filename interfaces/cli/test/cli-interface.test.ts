@@ -19,16 +19,20 @@ describe("CLIInterface", () => {
 
   beforeEach(() => {
     mock.restore();
-    generateContentMock = mock(() => Promise.resolve({
-      message: "Query processed",
-      success: true,
-      sources: []
-    }));
+    generateContentMock = mock(() =>
+      Promise.resolve({
+        message: "Query processed",
+        success: true,
+        sources: [],
+      }),
+    );
 
     mockContext = {
       logger: createSilentLogger(),
       generateContent: generateContentMock,
-      formatContent: mock((template: string, data: any) => "Formatted response"),
+      formatContent: mock(
+        (template: string, data: any) => "Formatted response",
+      ),
       registerDaemon: mock(() => {}),
     } as unknown as PluginContext;
   });
@@ -73,8 +77,8 @@ describe("CLIInterface", () => {
       expect(generateContentMock).toHaveBeenCalledWith(
         "shell:knowledge-query",
         expect.objectContaining({
-          prompt: "Hello world"
-        })
+          prompt: "Hello world",
+        }),
       );
       expect(responseHandler).toHaveBeenCalledWith("Formatted response");
     });

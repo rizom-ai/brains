@@ -24,7 +24,6 @@ Entity Object → Markdown → Database Storage
 ### Storage Strategy
 
 1. **Primary Storage**:
-
    - Full Markdown representation stored in `content` column
    - Includes YAML frontmatter and body content
 

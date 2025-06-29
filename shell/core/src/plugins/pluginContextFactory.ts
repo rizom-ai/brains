@@ -88,7 +88,7 @@ export class PluginContextFactory {
     const parts = templateName.split(":");
     // If already namespaced (has a prefix), use as-is
     const isAlreadyNamespaced = parts.length >= 2;
-    
+
     return isAlreadyNamespaced ? templateName : `${pluginId}:${templateName}`;
   }
 
@@ -152,8 +152,11 @@ export class PluginContextFactory {
         context?: GenerationContext,
       ): Promise<T> => {
         try {
-          const namespacedTemplateName = this.ensureNamespaced(templateName, pluginId);
-          
+          const namespacedTemplateName = this.ensureNamespaced(
+            templateName,
+            pluginId,
+          );
+
           return await contentGenerator.generateContent<T>(
             namespacedTemplateName,
             context,
@@ -165,8 +168,11 @@ export class PluginContextFactory {
       },
       parseContent: <T = unknown>(templateName: string, content: string): T => {
         try {
-          const namespacedTemplateName = this.ensureNamespaced(templateName, pluginId);
-          
+          const namespacedTemplateName = this.ensureNamespaced(
+            templateName,
+            pluginId,
+          );
+
           return contentGenerator.parseContent<T>(
             namespacedTemplateName,
             content,
@@ -178,8 +184,11 @@ export class PluginContextFactory {
       },
       formatContent: <T = unknown>(templateName: string, data: T): string => {
         try {
-          const namespacedTemplateName = this.ensureNamespaced(templateName, pluginId);
-          
+          const namespacedTemplateName = this.ensureNamespaced(
+            templateName,
+            pluginId,
+          );
+
           return contentGenerator.formatContent<T>(
             namespacedTemplateName,
             data,

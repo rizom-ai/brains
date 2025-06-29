@@ -230,13 +230,11 @@ interface ContentGeneratorDependencies {
 ### Phase 6: Update All Tests and Clean Up
 
 1. **Delete test directories:**
-
    - `shell/test/content/` (ContentGenerationService tests)
    - `shell/test/query/` (QueryProcessor tests)
    - `utils/test/content-generation.test.ts` (legacy utility tests)
 
 2. **Update remaining tests:**
-
    - Shell, MCP, plugin manager tests for ContentGenerator
    - Site-builder plugin tests for simplified approach
    - Integration tests for new architecture
@@ -248,7 +246,6 @@ interface ContentGeneratorDependencies {
 ### Phase 7: Documentation and System Templates
 
 1. **Create system templates** for:
-
    - Knowledge queries (entity-aware generation)
    - Schema validation (structured generation)
    - Entity operations (search, create, update)

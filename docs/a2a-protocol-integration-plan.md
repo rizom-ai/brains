@@ -498,14 +498,12 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Phase 1: Foundation (2-3 months)
 
 1. **Core Protocol Implementation**
-
    - A2A JSON-RPC message handling
    - Agent card generation and serving
    - Basic protocol handler
    - WebServer plugin integration
 
 2. **Plugin Scaffold**
-
    - Create a2a-protocol package
    - Basic plugin structure
    - Configuration management
@@ -519,7 +517,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Phase 2: Agent Discovery (1-2 months)
 
 1. **Agent Card Management**
-
    - Dynamic skill generation from MCP tools
    - Agent card caching
    - Version management
@@ -534,14 +531,12 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Phase 3: Core Features (2-3 months)
 
 1. **Task Execution**
-
    - Remote task creation
    - Task status tracking
    - Result retrieval
    - Error handling
 
 2. **Skill-Based Routing**
-
    - Analyze tasks to extract required skills
    - Find agents with matching capabilities
    - Intelligent agent selection
@@ -556,14 +551,12 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Phase 4: Advanced Features (2-3 months)
 
 1. **Authentication**
-
    - API key support
    - OAuth integration
    - Mutual authentication
    - Token management
 
 2. **Streaming Support**
-
    - Server-Sent Events (SSE)
    - Real-time task updates
    - Progress notifications
@@ -578,7 +571,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Phase 5: Ecosystem Integration (Ongoing)
 
 1. **Registry Integration**
-
    - Connect to A2A registries
    - Publish agent cards
    - Discover other agents
@@ -595,7 +587,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Authentication and Authorization
 
 1. **API Key Authentication**
-
    - Secure key storage
    - Key rotation
    - Rate limiting
@@ -610,7 +601,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Data Protection
 
 1. **HTTPS Only**
-
    - Enforce TLS 1.3+
    - Certificate validation
    - HSTS headers
@@ -627,7 +617,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Unit Testing
 
 1. **Agent Card Generation**
-
    - Dynamic skill creation
    - Version management
    - Capability updates
@@ -642,7 +631,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Integration Testing
 
 1. **Agent Discovery**
-
    - Card fetching
    - Trust assignment
    - Error scenarios
@@ -657,7 +645,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### End-to-End Testing
 
 1. **Multi-Agent Scenarios**
-
    - Agent discovery
    - Task delegation
    - Result aggregation
@@ -674,7 +661,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Technical Metrics
 
 1. **Performance**
-
    - Agent discovery < 1 second
    - Task creation < 200ms
    - Agent card generation < 50ms
@@ -689,7 +675,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Adoption Metrics
 
 1. **Usage**
-
    - Number of discovered agents
    - Tasks executed per day
    - Success rate
@@ -706,7 +691,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Advanced Agent Cards
 
 1. **Dynamic Capabilities**
-
    - Real-time skill updates
    - Load-based availability
    - Performance metrics
@@ -721,7 +705,6 @@ ${skill.examples ? `- **Examples**:\n${skill.examples.map((e) => `  - ${e}`).joi
 ### Protocol Extensions
 
 1. **Batch Operations**
-
    - Multiple task execution
    - Bulk queries
    - Transaction support

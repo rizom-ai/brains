@@ -407,7 +407,6 @@ This approach balances consistency with package autonomy by providing shared uti
    ```
 
 2. **Package-Specific Error Classes**: Each service package defines domain-specific errors
-
    - **EntityService**: EntityNotFoundError, EntityValidationError, EntityStorageError
    - **AIService**: ModelNotAvailableError, GenerationTimeoutError, TokenLimitError
    - **EmbeddingService**: EmbeddingGenerationError, EmbeddingServiceUnavailableError
@@ -415,7 +414,6 @@ This approach balances consistency with package autonomy by providing shared uti
    - **ViewRegistry**: TemplateNotFoundError, RouteValidationError, RendererError
 
 3. **Interface Error Translation**: User-facing interfaces translate internal errors
-
    - **CLI**: Convert internal errors to user-friendly messages
    - **WebServer**: Map errors to appropriate HTTP status codes
    - **MCP Server**: Translate to MCP protocol error responses

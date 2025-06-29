@@ -250,7 +250,7 @@ export interface InterfacePlugin extends Plugin {
    * Start the interface
    */
   start(): Promise<void>;
-  
+
   /**
    * Stop the interface
    */
@@ -266,6 +266,7 @@ export interface MessageContext {
   messageId: string;
   threadId?: string;
   timestamp: Date;
+  interfaceType: string; // The type of interface processing this message (set to pluginId: "cli", "matrix", etc.)
 }
 
 /**
@@ -277,12 +278,12 @@ export interface MessageInterfacePlugin extends InterfacePlugin {
    * The unique session ID for this interface instance
    */
   readonly sessionId: string;
-  
+
   /**
    * Process user input and emit response/error events
    */
   processInput(input: string, context?: Partial<MessageContext>): Promise<void>;
-  
+
   /**
    * EventEmitter methods for message interfaces
    */

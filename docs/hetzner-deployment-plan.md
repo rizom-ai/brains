@@ -617,7 +617,6 @@ LOG_LEVEL=info
    ```
 
 2. **Get Hetzner API Token**:
-
    - Log in to [Hetzner Cloud Console](https://console.hetzner.cloud/)
    - Go to Security → API Tokens
    - Generate new token with Read & Write permissions
@@ -728,17 +727,14 @@ EOF
 ### Common Issues
 
 1. **Terraform init fails**:
-
    - Check Hetzner API token
    - Ensure terraform version >= 1.0
 
 2. **Server not accessible**:
-
    - Check firewall rules in Hetzner Console
    - Verify SSH key is correct
 
 3. **Application won't start**:
-
    - Check logs: `journalctl -u personal-brain -n 100`
    - Verify environment variables in `/opt/personal-brain/.env`
 

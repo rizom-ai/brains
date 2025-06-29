@@ -158,18 +158,15 @@ Both deployment methods use the same approach:
 ### 6. Implementation Steps
 
 1. **Clean root directory**
-
    - Move Dockerfile.optimized → deploy/docker/Dockerfile.standalone
    - Remove test-docker directory
    - Remove scripts/deploy-docker.sh wrapper
 
 2. **Create Docker provider**
-
    - Create deploy/providers/docker/deploy.sh
    - Add README.md with Docker-specific docs
 
 3. **Update references**
-
    - Update any hardcoded paths
    - Ensure all scripts use correct locations
 

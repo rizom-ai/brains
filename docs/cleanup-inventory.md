@@ -31,7 +31,6 @@ None remaining - all critical issues have been resolved!
 ### 🟡 High Priority
 
 1. **Add Async Embedding Generation**
-
    - Issue: Synchronous embedding generation blocks operations
    - Solution: Queue embeddings for background processing
    - Impact: Every entity creation blocks for ~200-500ms
@@ -46,30 +45,25 @@ None remaining - all critical issues have been resolved!
 ### 🟢 Medium Priority
 
 3. **Add Component Disposal Methods**
-
    - Issue: Only Shell has shutdown; other components can't cleanup
    - Solution: Add dispose() method to all major components
    - Impact: Memory leaks and resource cleanup issues
 
 4. **Plugin Lifecycle Hooks**
-
    - Issue: Plugins only have init, no cleanup
    - Solution: Add dispose/shutdown hooks for plugins
    - Related to: Component disposal methods (#3)
 
 5. **Implement Search Highlights**
-
    - Location: `packages/shell/src/entity/entityService.ts:529`
    - TODO: Search results should include text highlights
    - Impact: Users can't see why results matched their query
 
 6. **Implement Caching Layer**
-
    - Issue: No caching for embeddings or query results
    - Solution: Add simple in-memory cache with TTL
 
 7. **Add Batch Operations**
-
    - Issue: Entity operations are one-at-a-time
    - Solution: Add batch create/update/delete methods
 
@@ -81,7 +75,6 @@ None remaining - all critical issues have been resolved!
 ### 🔵 Low Priority
 
 9. **Add Retry Logic**
-
    - Issue: No retry for external service failures
    - Solution: Implement exponential backoff for AI/embedding calls
 

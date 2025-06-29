@@ -240,13 +240,11 @@ embedding:
 **Start with async approach**, but design for pluggable embedding providers:
 
 1. **Phase 1**: Async with any API provider (OpenAI, etc.)
-
    - Get core functionality working
    - Learn usage patterns
    - No performance constraints initially
 
 2. **Phase 2**: Add local model support
-
    - Optional for development/offline use
    - Benchmark on target devices
    - Choose appropriate model size

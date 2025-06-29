@@ -88,13 +88,11 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
 ### Phase 1: Core Validation
 
 1. **Update SiteContentAdapter**
-
    - Add ContentTypeRegistry dependency
    - Implement schema lookup based on page/section
    - Validate data during fromMarkdown
 
 2. **Update Webserver Plugin**
-
    - Wire ContentTypeRegistry to adapter during registration
    - Ensure all content types are registered before adapter is used
 
@@ -125,7 +123,6 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
 ### Phase 3: Developer Experience
 
 1. **Validation Commands**
-
    - Tool to validate all site-content entities
    - Pre-commit hooks for markdown validation
 

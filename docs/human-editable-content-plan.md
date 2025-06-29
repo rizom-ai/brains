@@ -32,7 +32,6 @@ Through a series of yes/no questions, we've made the following decisions:
 We currently have two types of adapters:
 
 1. **EntityAdapter** (e.g., `BaseEntityAdapter`, `NoteAdapter`)
-
    - Responsible for entity ↔ markdown conversion
    - Lives with the entity type definition
    - Handles frontmatter generation and parsing
@@ -45,13 +44,11 @@ We currently have two types of adapters:
 ### Key Questions
 
 1. **Should content formatting be part of the EntityAdapter or separate?**
-
    - Option A: Keep as-is - EntityAdapter handles everything
    - Option B: EntityAdapter for storage, ContentFormatter for human-readable representation
    - Option C: Merge concepts - all entities have formatters
 
 2. **Where does content-type-specific formatting logic belong?**
-
    - With the plugin that defines the content type?
    - In a central formatting registry?
    - As part of the content type registration?
@@ -144,7 +141,6 @@ Based on our design decisions, we're implementing a pattern where:
 The adapter provides two distinct methods for different use cases:
 
 1. **`parseContent(content, contentType)`** - For editing existing content
-
    - Used when user edits the markdown body
    - Only parses the content, not frontmatter
    - Returns just the data and validation status
@@ -178,6 +174,7 @@ The system supports two ways to provide formatters:
    - Clean, declarative API
 
 2. **Via Content Templates**
+
    ```typescript
    const landingPageTemplate: ContentTemplate = {
      name: "landing-page",
@@ -186,6 +183,7 @@ The system supports two ways to provide formatters:
      // ...
    };
    ```
+
    - Formatter is part of the template definition
    - Used when generating content from templates
    - Note: This doesn't automatically register with GeneratedContentAdapter
@@ -625,25 +623,21 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
 #### Phase -1: Foundation Work (Current)
 
 1. **Resolve naming conflicts**
-
    - Rename existing `BaseFormatter` to `ResponseFormatter` in `@brains/formatters` package
    - This creates clear distinction: `ResponseFormatter` for API responses vs `ContentFormatter` for human-editable content
    - Update all existing formatters that extend BaseFormatter
 
 2. **Update ContentTemplate interface**
-
    - Add optional `formatter?: ContentFormatter` field
    - Ensure backwards compatibility (undefined = use default)
    - Update type definitions in `@brains/types` package
 
 3. **Design ContentFormatter interface**
-
    - Use generics for type safety: `ContentFormatter<T>`
    - Clear method names: `format()` and `parse()`
    - Consider validation integration
 
 4. **Plan migration strategy**
-
    - Document how to migrate existing content from frontmatter to body
    - Create migration script template
    - Establish versioning strategy for content format
@@ -663,25 +657,21 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
 #### Phase 1: Core Infrastructure
 
 1. **Enhance ContentTypeRegistry to support formatters**
-
    - Add formatters Map alongside schemas Map
    - Update register method: `register(contentType: string, schema: z.ZodType<unknown>, formatter?: ContentFormatter<unknown>)`
    - Add getFormatter method to retrieve formatters by content type
    - Formatters are optional - content types without formatters use default YAML formatter
 
 2. **Update PluginContext interface**
-
    - Modify contentTypes.register to accept optional formatter parameter
    - This provides a clean API for plugins to register schemas and formatters together
 
 3. **Connect ContentTypeRegistry with GeneratedContentAdapter**
-
    - When formatters are registered, automatically register them with GeneratedContentAdapter
    - PluginManager handles this connection during content type registration
    - Ensures formatters are available for both generation and storage
 
 4. **Update ContentTemplate interface to include optional formatter**
-
    - Already completed in Phase -1
    - Templates can specify custom formatters for human-editable output
 
@@ -693,7 +683,6 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
 #### Phase 2: Generic Formatter Infrastructure
 
 1. **Create StructuredContentFormatter base class**
-
    - Extract common patterns from LandingPageFormatter
    - Support declarative field mappings
    - Handle nested objects and arrays
@@ -711,7 +700,6 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
    ```
 
 3. **Implement common formatting utilities**
-
    - Section extraction by heading depth
    - Text content extraction
    - Value formatting based on type
@@ -726,22 +714,18 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
 #### Phase 3: Content Type Formatters
 
 1. **Refactor LandingPageFormatter to use StructuredContentFormatter**
-
    - Define field mappings declaratively
    - Reduce code to just configuration
 
 2. **Create DashboardFormatter using generic approach**
-
    - Simple configuration-based implementation
    - Handle stats object and recent entities array
 
 3. **Create LandingHeroFormatter**
-
    - Simpler subset of landing page fields
    - Demonstrate reusability
 
 4. **Update webserver-plugin registrations**
-
    - Register all formatters with content types
    - Update content templates
 
@@ -752,7 +736,6 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
 #### Phase 4: Composite Content & Entity Resolution
 
 1. **Design composite content pattern**
-
    - Parent entities reference child section entities
    - Adapter resolves references during loading
    - Maintains modular storage while providing complete objects to Astro
@@ -782,7 +765,6 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
    ```
 
 3. **Handle content hierarchy**
-
    - Generated content sections (AI-created, editable)
    - User content overrides (manual edits take precedence)
    - Fallback to defaults if sections missing
@@ -806,13 +788,11 @@ const landingPageFormatter = new StructuredContentFormatter(landingPageSchema, {
 For complex pages with multiple sections, we use a composite pattern:
 
 1. **Section Entities**: Each section (hero, features, CTA) is its own generated-content entity
-
    - `webserver:section:hero` - Hero section with its own formatter
    - `webserver:section:features` - Features section with its own formatter
    - `webserver:section:cta` - CTA section with its own formatter
 
 2. **Page Entity**: The main page entity references section entities
-
    - `webserver:page:landing` - Contains title, tagline, and section IDs
    - Adapter resolves sections during load for Astro
 

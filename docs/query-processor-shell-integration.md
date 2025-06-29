@@ -5,7 +5,6 @@
 The QueryProcessor currently serves as a critical orchestration component in the BrainProtocol system:
 
 1. It implements the full query processing pipeline:
-
    - Analyzing profile relevance
    - Retrieving relevant notes
    - Getting conversation history
@@ -15,7 +14,6 @@ The QueryProcessor currently serves as a critical orchestration component in the
    - Saving conversation turns
 
 2. It coordinates interactions between multiple contexts:
-
    - NoteContext
    - ProfileContext
    - ConversationContext
@@ -581,7 +579,6 @@ User query: ${query}
 In our new architecture, the QueryProcessor works closely with the EntityService:
 
 1. **EntityService** handles:
-
    - Entity storage, retrieval, and indexing
    - Entity embedding and similarity search
    - Entity metadata extraction and tagging

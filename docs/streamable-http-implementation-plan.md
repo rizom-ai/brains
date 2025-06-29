@@ -134,13 +134,11 @@ brain:
 **Integration Points**:
 
 1. **Existing Tools Integration** (unchanged)
-
    - `brain_query` → Shell.executeQuery()
    - `brain_command` → Shell.executeCommand()
    - `entity_*` tools → EntityService methods
 
 2. **Existing Resources Integration** (unchanged)
-
    - `entity://list` → EntityService.listEntities()
    - `entity://{id}` → EntityService.getEntity()
    - `schema://list` → SchemaRegistry.listSchemas()

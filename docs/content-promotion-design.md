@@ -138,7 +138,6 @@ The roundtrip pattern leverages the fact that each content section is stored as 
    ```
 
 3. **User Edits**
-
    - User edits markdown files via git
    - Changes sync back to site-content entities
    - Each section remains independent

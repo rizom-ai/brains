@@ -245,12 +245,10 @@ await app.start();
 ## Open Questions
 
 1. **Should App handle process signals automatically?**
-
    - Could add `handleSignals: boolean` option
    - Would register SIGTERM/SIGINT handlers for graceful shutdown
 
 2. **Should we support programmatic config loading?**
-
    - Could add `App.createFromFile("config.json")`
    - Or support environment-based config
 

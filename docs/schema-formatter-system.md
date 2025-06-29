@@ -114,14 +114,12 @@ class DefaultSchemaFormatter implements SchemaFormatter {
 ### Phase 1: Core Infrastructure (Week 1)
 
 1. **Create formatter interfaces and base classes**
-
    - [ ] Define simple `SchemaFormatter` interface in `packages/shell/src/formatters/types.ts`
    - [ ] Implement `SchemaFormatterRegistry` in `packages/shell/src/formatters/registry.ts`
    - [ ] Create `DefaultSchemaFormatter` in `packages/shell/src/formatters/default.ts`
    - [ ] Add formatter registry to Shell class
 
 2. **Update QueryProcessor**
-
    - [ ] Add optional `schemaName` to `QueryOptions`
    - [ ] Extract schema description as default schemaName hint
    - [ ] Pass schemaName through to query results

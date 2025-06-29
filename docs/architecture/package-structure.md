@@ -80,13 +80,11 @@ The repository supports different brain types that share core infrastructure:
 ### Brain Types
 
 1. **Personal Brain** (`apps/personal-brain`)
-
    - Individual knowledge management
    - Personal notes, tasks, and projects
    - Private by default
 
 2. **Team Brain** (`apps/team-brain`) - Future
-
    - Shared team knowledge
    - Collaborative features
    - Permission-based access

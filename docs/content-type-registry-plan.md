@@ -92,7 +92,6 @@ The ContentTypeRegistry will be implemented in the Shell because:
    ```
 
 2. Update Shell to:
-
    - Initialize ContentTypeRegistry
    - Add to registry for dependency injection
    - Expose via PluginContext as `context.contentTypes`

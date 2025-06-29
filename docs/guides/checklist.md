@@ -14,36 +14,30 @@ This checklist provides a step-by-step guide for implementing the new Personal B
 ### Core Skeleton Package
 
 - [ ] Create skeleton package structure
-
   - [ ] Set up project with TypeScript and dependencies
   - [ ] Configure behavioral testing framework
 
 - [ ] Implement Registry System
-
   - [ ] Create Registry class with register/resolve methods
   - [ ] Implement singleton and factory patterns
   - [ ] Add dependency validation
 
 - [ ] Implement Plugin System
-
   - [ ] Create plugin registration interface
   - [ ] Implement plugin lifecycle hooks
   - [ ] Add dependency mechanism between plugins
 
 - [ ] Create Schema Validation System
-
   - [ ] Implement Zod schemas for core message types
   - [ ] Create validation utilities
   - [ ] Set up error handling for validation failures
 
 - [ ] Implement Messaging System
-
   - [ ] Create message schema definitions
   - [ ] Implement MessageBus
   - [ ] Set up message routing
 
 - [ ] Set up MCP Server Core
-
   - [ ] Implement HTTP server
   - [ ] Implement stdio interface
   - [ ] Create message handling system
@@ -56,13 +50,11 @@ This checklist provides a step-by-step guide for implementing the new Personal B
 ### CLI Interface
 
 - [ ] Create CLI Interface Package
-
   - [ ] Set up project structure
   - [ ] Implement command parsing
   - [ ] Create rendering system
 
 - [ ] Connect CLI to MCP Server
-
   - [ ] Implement MCP client
   - [ ] Set up communication
   - [ ] Add error handling
@@ -75,13 +67,11 @@ This checklist provides a step-by-step guide for implementing the new Personal B
 ### Matrix Interface
 
 - [ ] Create Matrix Interface Package
-
   - [ ] Set up project structure
   - [ ] Configure Matrix SDK integration
   - [ ] Implement authentication
 
 - [ ] Connect Matrix to MCP Server
-
   - [ ] Create Matrix client adapter
   - [ ] Set up message translation
   - [ ] Implement response formatting
@@ -94,7 +84,6 @@ This checklist provides a step-by-step guide for implementing the new Personal B
 ### Main Application Shell
 
 - [ ] Create Main Application Package
-
   - [ ] Set up project structure with CLI and Matrix support
   - [ ] Configure plugin loading
   - [ ] Implement basic application shell
@@ -107,13 +96,11 @@ This checklist provides a step-by-step guide for implementing the new Personal B
 ## Phase 2: Entity Model & Repository (1-2 weeks)
 
 - [ ] Set up Entity Framework
-
   - [ ] Create base entity interfaces and types
   - [ ] Implement EntityRegistry for type registration
   - [ ] Create EntityAdapter interface
 
 - [ ] Set up Database Layer
-
   - [ ] Configure database connection management
   - [ ] Create schema definitions
   - [ ] Set up migration system
@@ -137,24 +124,20 @@ See `docs/cleanup-inventory.md` for detailed cleanup tasks. Key items:
 ## Phase 4: Link Plugin Implementation (1 week)
 
 - [ ] Create Link Plugin Package
-
   - [ ] Set up project structure at packages/link-plugin
   - [ ] Configure dependencies
 
 - [ ] Implement Link Entity
-
   - [ ] Define Link schema with URL and read tracking
   - [ ] Create LinkAdapter implementation
   - [ ] Implement markdown serialization
 
 - [ ] Implement Link Tools
-
   - [ ] Create MCP tool definitions
   - [ ] Implement save_link with AI summarization
   - [ ] Implement mark_link_read functionality
 
 - [ ] Implement Link Service
-
   - [ ] Create LinkService for business logic
   - [ ] Integrate with WebFetch for content retrieval
   - [ ] Add AI summarization and tagging
@@ -167,7 +150,6 @@ See `docs/cleanup-inventory.md` for detailed cleanup tasks. Key items:
 ## Phase 5: Article Plugin Implementation (1-2 weeks)
 
 - [ ] Create Article Plugin Package
-
   - [ ] Set up project structure at packages/article-plugin
   - [ ] Configure dependencies
 
@@ -185,19 +167,16 @@ See `docs/cleanup-inventory.md` for detailed cleanup tasks. Key items:
 ## Phase 4: Additional Context Implementation (2-3 weeks)
 
 - [ ] Implement Profile Context
-
   - [ ] Create entity definition
   - [ ] Implement services
   - [ ] Add tools and commands
 
 - [ ] Implement Website Context
-
   - [ ] Create entity definition
   - [ ] Implement services
   - [ ] Add tools and commands
 
 - [ ] Implement Conversation Context
-
   - [ ] Create entity definition
   - [ ] Implement tiered memory
   - [ ] Add tools and commands
@@ -210,19 +189,16 @@ See `docs/cleanup-inventory.md` for detailed cleanup tasks. Key items:
 ## Phase 5: Refinement & Documentation (1-2 weeks)
 
 - [ ] Implement Cross-Context Features
-
   - [ ] Set up cross-entity search
   - [ ] Implement relationships between entities
   - [ ] Add composite commands
 
 - [ ] Focused Behavioral Testing
-
   - [ ] Test key command behaviors
   - [ ] Verify entity model operations
   - [ ] Test messaging system behavior
 
 - [ ] Performance Optimization
-
   - [ ] Identify and optimize bottlenecks
   - [ ] Improve search performance
   - [ ] Optimize message handling
@@ -235,13 +211,11 @@ See `docs/cleanup-inventory.md` for detailed cleanup tasks. Key items:
 ## Phase 6: Final Polishing (1 week)
 
 - [ ] Enhanced Features
-
   - [ ] Add advanced search capabilities
   - [ ] Implement improved formatting
   - [ ] Add progress tracking for long operations
 
 - [ ] Final System Verification
-
   - [ ] Ensure all functionality works as expected
   - [ ] Verify all commands behave correctly
   - [ ] Address any remaining issues

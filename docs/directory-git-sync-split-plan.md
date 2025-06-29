@@ -63,19 +63,16 @@ git-sync/
 ### Responsibilities
 
 1. **Entity Serialization**
-
    - Convert entities to markdown files
    - Parse markdown files back to entities
    - Manage frontmatter metadata
 
 2. **Directory Structure**
-
    - Root directory for base entities
    - Subdirectories for each entity type
    - File naming conventions (entity-id.md)
 
 3. **Synchronization**
-
    - Export entities to directory
    - Import entities from directory
    - Track file changes
@@ -171,13 +168,11 @@ class DirectorySync {
 ### Responsibilities
 
 1. **Git Repository Management**
-
    - Clone from URL or initialize new repo
    - Configure remotes and branches
    - Handle authentication
 
 2. **Version Control Operations**
-
    - Commit changes
    - Push to remote
    - Pull from remote
@@ -420,14 +415,12 @@ This approach means git-sync could work with any storage provider that handles t
    ```
 
 2. **Extract Directory Operations**
-
    - Move entity file path logic
    - Move markdown read/write operations
    - Move import/export logic
    - Remove git-specific code
 
 3. **Implement File Watching**
-
    - Use chokidar or native fs.watch
    - Debounce file change events
    - Trigger imports on changes
@@ -450,19 +443,16 @@ This approach means git-sync could work with any storage provider that handles t
    ```
 
 2. **Remove Directory Operations**
-
    - Delete file management code
    - Delete entity serialization code
    - Keep only git-specific operations
 
 3. **Update Configuration**
-
    - Change `repoPath` to `gitUrl`
    - Add repository cloning logic
    - Handle authentication
 
 4. **Integrate with Directory Sync**
-
    - Get directory-sync plugin in register
    - Configure it with cloned repo path
    - Use its tools for file operations
@@ -501,7 +491,6 @@ This approach means git-sync could work with any storage provider that handles t
    ```
 
 2. **Migration Guide**
-
    - Document configuration changes
    - Provide migration script if needed
    - Update all documentation
@@ -516,13 +505,11 @@ This approach means git-sync could work with any storage provider that handles t
 ### For Users
 
 1. **Flexibility**
-
    - Use directory sync without git
    - Choose different VCS systems
    - Mix and match plugins
 
 2. **Performance**
-
    - Directory sync without git overhead
    - Faster local operations
    - Optional file watching
@@ -535,13 +522,11 @@ This approach means git-sync could work with any storage provider that handles t
 ### For Developers
 
 1. **Maintainability**
-
    - Single responsibility per plugin
    - Cleaner codebase
    - Easier to test
 
 2. **Extensibility**
-
    - Build new VCS plugins
    - Add cloud sync plugins
    - Create specialized directory layouts
@@ -613,13 +598,11 @@ plugins: [
 ### Directory Sync Tests
 
 1. **Unit Tests**
-
    - File path generation
    - Markdown conversion
    - Directory structure
 
 2. **Integration Tests**
-
    - Entity service interaction
    - Import/export operations
    - File watching
@@ -632,13 +615,11 @@ plugins: [
 ### Git Sync Tests
 
 1. **Unit Tests**
-
    - Git operations
    - URL parsing
    - Branch management
 
 2. **Integration Tests**
-
    - Plugin communication
    - Full sync workflow
    - Error scenarios
@@ -665,13 +646,11 @@ plugins: [
 ### Error Recovery
 
 1. **Graceful Degradation**
-
    - Continue with partial sync
    - Log detailed errors
    - Notify user of issues
 
 2. **Retry Logic**
-
    - Exponential backoff for network
    - Configurable retry limits
    - Skip problematic files
@@ -686,13 +665,11 @@ plugins: [
 ### Directory Sync
 
 1. **Advanced File Watching**
-
    - Efficient inotify/FSEvents usage
    - Batch change processing
    - Ignore patterns
 
 2. **Performance Optimization**
-
    - Parallel file operations
    - Incremental sync
    - Caching mechanisms
@@ -705,13 +682,11 @@ plugins: [
 ### Git Sync
 
 1. **Advanced Git Features**
-
    - Branch management UI
    - Merge strategies
    - Tag support
 
 2. **Collaboration Features**
-
    - Multi-user support
    - Conflict resolution UI
    - Change attribution

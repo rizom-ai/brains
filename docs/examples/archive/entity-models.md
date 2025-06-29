@@ -333,17 +333,14 @@ export class NoteEmbeddingService {
 ### Common Patterns to Adopt
 
 1. **Markdown as Storage Format**
-
    - Current implementation uses JSON or raw text
    - New implementation will use Markdown with frontmatter
 
 2. **Unified Entity Model**
-
    - Current implementation has separate models and storage
    - New implementation uses a common base entity interface
 
 3. **Plugin Architecture**
-
    - Current implementation uses singleton instances
    - New implementation uses plugin registration
 
@@ -354,19 +351,16 @@ export class NoteEmbeddingService {
 ### Migration Steps
 
 1. **Create Entity Types**
-
    - Define Zod schemas for each entity type
    - Implement the IContentModel interface
    - Create entity adapters for markdown conversion
 
 2. **Implement Context Plugins**
-
    - Convert each context to a plugin
    - Register with the plugin manager
    - Define dependencies explicitly
 
 3. **Update Repositories**
-
    - Remove entity-specific repositories
    - Use the unified entity service
    - Update queries to use entityType filter

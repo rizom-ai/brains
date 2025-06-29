@@ -432,7 +432,6 @@ export class Shell {
     );
   }
 
-
   /**
    * Register a plugin
    */

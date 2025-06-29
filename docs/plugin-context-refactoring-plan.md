@@ -237,7 +237,6 @@ export interface PluginContext {
 #### Core Interface Files
 
 1. **`packages/types/src/plugin.ts`**
-
    - Remove problematic properties from PluginContext interface
    - Add new `getViewTemplate` method
 
@@ -249,11 +248,9 @@ export interface PluginContext {
 #### Plugin Implementation Files
 
 3. **`packages/site-builder-plugin/src/preact-builder.ts`**
-
    - Line 127: Replace `context.viewRegistry.getViewTemplate()` with `context.getViewTemplate()`
 
 4. **`packages/site-builder-plugin/src/static-site-builder.ts`**
-
    - Remove `viewRegistry: ViewRegistry` from BuildContext interface
    - Update BuildContext creation in site-builder.ts
 

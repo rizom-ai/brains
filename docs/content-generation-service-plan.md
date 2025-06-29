@@ -511,21 +511,18 @@ class ContentGenerationService {
 The good news is that **95% of the required infrastructure already exists**:
 
 1. **QueryProcessor** (`packages/shell/src/query/queryProcessor.ts`)
-
    - Already handles AI-powered query processing with schema validation
    - Uses AIService to generate structured responses matching Zod schemas
    - Automatically includes relevant entities in context
    - Returns schema-validated objects directly
 
 2. **AIService** (`packages/shell/src/ai/aiService.ts`)
-
    - Uses Vercel AI SDK with Anthropic provider
    - Supports both text and structured object generation with schemas
    - Configured for Claude 4 Sonnet by default
    - Handles token usage tracking
 
 3. **Plugin Context**
-
    - Already provides `query: <T>(query: string, schema: z.ZodType<T>) => Promise<T>`
    - Available to all plugins through their context
    - Delegates to QueryProcessor via the registry

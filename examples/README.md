@@ -76,15 +76,12 @@ The Brain MCP server exposes these tools:
 1. **brain_query** - Process natural language queries
    - Parameters: `query` (string), `options` (object)
 2. **brain_command** - Execute Brain commands
-
    - Parameters: `command` (string), `args` (array), `context` (object)
 
 3. **entity_search** - Search for entities
-
    - Parameters: `entityType` (string), `query` (string), `limit` (number)
 
 4. **entity_get** - Get a specific entity
-
    - Parameters: `entityType` (string), `entityId` (string)
 
 5. **brain_status** - Get system status

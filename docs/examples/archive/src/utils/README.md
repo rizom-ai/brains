@@ -11,27 +11,22 @@ This module provides functions for safe property and array access with proper ty
 #### Key Functions:
 
 - `safeArrayAccess<T>(array: T[] | undefined | null, index: number, defaultValue: T): T`
-
   - Safely access array elements with a default value when the index is out of bounds
   - Example: `safeArrayAccess(users, 5, defaultUser)`
 
 - `safeObjectAccess<T, K extends keyof T>(obj: T | undefined | null, key: K, defaultValue: T[K]): T[K]`
-
   - Safely access object properties with a default value if the object or property doesn't exist
   - Example: `safeObjectAccess(user, 'name', 'Anonymous')`
 
 - `safeIndexAccess<T>(obj: Record<string, T> | undefined | null, key: string, defaultValue: T): T`
-
   - Safely access properties on objects with string indices
   - Example: `safeIndexAccess(userMap, userId, defaultUser)`
 
 - `safeNestedAccess<T>(obj: Record<string, unknown> | undefined | null, path: string, defaultValue: T): T`
-
   - Safely access nested properties with a dot-separated path
   - Example: `safeNestedAccess(user, 'profile.address.city', 'Unknown')`
 
 - `assertDefined<T>(value: T | undefined | null, errorMessage: string): T`
-
   - Assert that a value is defined, throwing an error if it's not
   - Example: `const userId = assertDefined(user.id, 'User ID is required')`
 

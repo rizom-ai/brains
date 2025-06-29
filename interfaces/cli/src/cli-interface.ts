@@ -1,4 +1,7 @@
-import { MessageInterfacePlugin, PluginInitializationError } from "@brains/utils";
+import {
+  MessageInterfacePlugin,
+  PluginInitializationError,
+} from "@brains/utils";
 import type { DefaultQueryResponse, MessageContext } from "@brains/types";
 import type { Instance } from "ink";
 import type { CLIConfig } from "./types";
@@ -41,7 +44,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
 
   protected async handleLocalCommand(
     command: string,
-    _context: MessageContext
+    _context: MessageContext,
   ): Promise<string | null> {
     const [cmd, ...args] = command.slice(1).split(" ");
 
@@ -97,7 +100,7 @@ Type any message to interact with the brain.`;
       throw new PluginInitializationError(
         this.id,
         "Plugin context not initialized",
-        { method: "start" }
+        { method: "start" },
       );
     }
     this.context.logger.info("Starting CLI interface");
@@ -107,13 +110,13 @@ Type any message to interact with the brain.`;
       const [inkModule, reactModule, appModule] = await Promise.all([
         import("ink"),
         import("react"),
-        import("./components/App")
+        import("./components/App"),
       ]);
-      
+
       const { render } = inkModule;
       const React = reactModule.default;
       const App = appModule.default;
-      
+
       // Ensure we're using React's createElement, not any bundled version
       const element = React.createElement(App, { interface: this });
       this.inkApp = render(element);
@@ -137,7 +140,6 @@ Type any message to interact with the brain.`;
       this.inkApp = null;
     }
   }
-
 
   protected async handleInput(
     input: string,
@@ -164,7 +166,7 @@ Type any message to interact with the brain.`;
       throw new PluginInitializationError(
         this.id,
         "Plugin context not initialized",
-        { method: "formatResponse" }
+        { method: "formatResponse" },
       );
     }
     return this.context.formatContent("shell:knowledge-query", queryResponse);

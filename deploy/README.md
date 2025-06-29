@@ -76,7 +76,6 @@ To add a new provider:
 
 1. Create `deploy/providers/yourprovider/` directory
 2. Implement `deploy/providers/yourprovider/deploy.sh` with required functions:
-
    - `deploy_infrastructure()` - Create servers
    - `update_application()` - Update existing deployment
    - `destroy_infrastructure()` - Tear down servers

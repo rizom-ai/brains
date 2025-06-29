@@ -2,10 +2,7 @@ import { Shell } from "@brains/core";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { Logger, LogLevel } from "@brains/utils";
 import type { Plugin } from "@brains/types";
-import {
-  appConfigSchema,
-  type AppConfig,
-} from "./types.js";
+import { appConfigSchema, type AppConfig } from "./types.js";
 
 export class App {
   private shell: Shell;
@@ -29,7 +26,6 @@ export class App {
         config: config?.cliConfig,
       });
     }
-
 
     // Follow Shell's pattern: validate schema then add full Plugin objects
     const appConfig: AppConfig = {
@@ -83,7 +79,7 @@ export class App {
   public async initialize(): Promise<void> {
     // Register interfaces as plugins before shell initialization
     await this.registerInterfacePlugins();
-    
+
     // Initialize shell (which will initialize all plugins including interfaces)
     await this.shell.initialize();
 
@@ -122,13 +118,13 @@ export class App {
 
   private async registerInterfacePlugins(): Promise<void> {
     const pluginManager = this.shell.getPluginManager();
-    
+
     // Register each interface as a plugin
     for (const interfaceConfig of this.config.interfaces) {
       if (!interfaceConfig.enabled) continue;
-      
+
       let plugin: Plugin;
-      
+
       switch (interfaceConfig.type) {
         case "cli": {
           const { CLIInterface } = await import("@brains/cli");
@@ -138,12 +134,10 @@ export class App {
         default:
           throw new Error(`Unknown interface type: ${interfaceConfig.type}`);
       }
-      
+
       pluginManager.registerPlugin(plugin);
     }
   }
-  
-
 
   public async start(): Promise<void> {
     if (!this.server) {
@@ -153,7 +147,7 @@ export class App {
     await this.server.start();
 
     // Interfaces are now started as plugins during shell initialization
-    
+
     // Set up signal handlers
     this.setupSignalHandlers();
   }

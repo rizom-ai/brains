@@ -48,49 +48,41 @@ This table provides a side-by-side comparison of the current and new architectur
 ## Key Technical Improvements
 
 1. **Markdown-Centric Approach**
-
    - Current: Different serialization for different entities
    - New: Consistent markdown format with frontmatter for all entities
    - Benefit: Human-readable storage, easier debugging, interoperability
 
 2. **Unified Entity Model**
-
    - Current: Separate models with different interfaces
    - New: Common base entity interface with extensions
    - Benefit: Consistent operations, reduced duplication
 
 3. **Plugin Architecture**
-
    - Current: Tightly coupled contexts with direct dependencies
    - New: Plugin system with explicit dependency declaration
    - Benefit: Better isolation, easier testing, clearer boundaries
 
 4. **Registry-Based Dependency Injection**
-
    - Current: Direct access to singletons, hard-coded dependencies
    - New: Registry-based component resolution
    - Benefit: Better testability, clearer dependency graph
 
 5. **Schema Validation**
-
    - Current: Inconsistent or missing validation
    - New: Comprehensive Zod schemas for all data
    - Benefit: Better type safety, consistent validation
 
 6. **Standardized Messaging**
-
    - Current: Ad-hoc communication between contexts
    - New: Schema-based message system
    - Benefit: Better decoupling, consistent patterns
 
 7. **Unified Search**
-
    - Current: Separate search implementations
    - New: Cross-entity vector search
    - Benefit: Better search results, new capabilities
 
 8. **Package Organization**
-
    - Current: Monolithic codebase
    - New: Turborepo with multiple packages
    - Benefit: Clearer boundaries, better build performance
@@ -103,25 +95,21 @@ This table provides a side-by-side comparison of the current and new architectur
 ## Development Experience Improvements
 
 1. **Getting Started**
-
    - Current: Complex setup with many dependencies
    - New: Simple setup with clear entry points
    - Benefit: Easier onboarding for new developers
 
 2. **Creating New Features**
-
    - Current: Requires understanding of multiple contexts
    - New: Register a plugin with clear interfaces
    - Benefit: Easier to add new functionality
 
 3. **Testing**
-
    - Current: Complex mocking of singletons
    - New: Simple dependency injection for testing
    - Benefit: Easier, faster, more reliable tests
 
 4. **Understanding the Codebase**
-
    - Current: Complex interrelationships
    - New: Clear plugin boundaries
    - Benefit: Easier to understand how components work together
