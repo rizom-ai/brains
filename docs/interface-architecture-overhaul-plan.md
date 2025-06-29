@@ -195,7 +195,20 @@ export const cliPlugin: Plugin = {
   packageName: "@brains/cli",
 
   async initialize(context: PluginContext): Promise<void> {
-    // Register CLI response formatter template
+    // Register DefaultQuery template for consistent query processing
+    context.registerTemplate("default-query", {
+      name: "default-query",
+      description: "Convert user input to properly formatted query",
+      schema: { /* User input schema */ },
+      formatter: {
+        format: (data: { input: string, context: MessageContext }) => {
+          // Format user input for Shell.query()
+          return data.input; // Can be enhanced with context, history, etc.
+        }
+      }
+    });
+
+    // Register CLI response formatter template  
     context.registerTemplate("response-formatter", {
       name: "cli-response-formatter",
       description: "Format responses for CLI display",
@@ -233,6 +246,9 @@ class CLIInterface extends MessageInterface {
     // Use registered template for formatting
     return this.context.generateContent("response-formatter", { data: queryResponse });
   }
+  
+  // Note: processMessage implementation will be in MessageInterface base class
+  // Uses template-based query processing without direct Shell access
 }
 ```
 
@@ -276,7 +292,7 @@ export const matrixPlugin: Plugin = {
   packageName: "@brains/matrix",
 
   async initialize(context: PluginContext): Promise<void> {
-    // Register Matrix response formatter template
+    // Register Matrix response formatter template (DefaultQuery shared from core)
     context.registerTemplate("response-formatter", {
       name: "matrix-response-formatter", 
       description: "Format responses for Matrix display with markdown",
@@ -315,6 +331,9 @@ class MatrixInterface extends MessageInterface {
     // Use registered template for Matrix markdown formatting
     return this.context.generateContent("response-formatter", { data: queryResponse });
   }
+  
+  // Note: processMessage implementation will be in MessageInterface base class
+  // Uses shared DefaultQuery template for consistent query processing
 }
 ```
 
@@ -366,8 +385,9 @@ class MatrixInterface extends MessageInterface {
 2. **MessageInterface for Message-Based Interfaces**
    - CLI and Matrix interfaces extend MessageInterface
    - Webserver and MCP use direct daemon pattern (no MessageInterface)
+   - Template-based query processing: MessageInterface → generateContent("default-query") → Shell.query()
    - Template-based response formatting
-   - Unified message processing flow
+   - Clean separation: MessageInterface handles messages, Shell handles queries
 
 **Current Work:**
 
@@ -376,8 +396,9 @@ class MatrixInterface extends MessageInterface {
    - Convert `interfaces/cli` to plugin structure with daemon registration
    - Extend MessageInterface for shared message processing logic  
    - Register CLI daemon via `registerDaemon()`
-   - Use `processMessage()` for shell integration
+   - Use template-based query processing: generateContent("default-query") → Shell.query()
    - Template-based response formatting for CLI display
+   - No direct Shell access from MessageInterface
 
 2. **Matrix Interface Migration** ⏳ PLANNED
 
