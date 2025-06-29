@@ -88,6 +88,38 @@ export interface ProgressNotification {
 }
 
 /**
+ * Daemon health status schema
+ */
+export const DaemonHealthSchema = z.object({
+  status: z.enum(["healthy", "warning", "error", "unknown"]),
+  message: z.string().optional(),
+  lastCheck: z.date().optional(),
+  details: z.record(z.unknown()).optional(),
+});
+
+export type DaemonHealth = z.infer<typeof DaemonHealthSchema>;
+
+/**
+ * Daemon interface for long-running interface processes
+ */
+export interface Daemon {
+  /**
+   * Start the daemon - called when plugin is initialized
+   */
+  start: () => Promise<void>;
+
+  /**
+   * Stop the daemon - called when plugin is unloaded/shutdown
+   */
+  stop: () => Promise<void>;
+
+  /**
+   * Optional health check - called periodically to monitor daemon health
+   */
+  healthCheck?: () => Promise<DaemonHealth>;
+}
+
+/**
  * Tool visibility levels for permission control
  */
 export type ToolVisibility = "public" | "anchor";
@@ -163,6 +195,7 @@ export interface PluginContext {
     context?: GenerationContext,
   ) => Promise<T>;
   parseContent: <T = unknown>(templateName: string, content: string) => T;
+  formatContent: <T = unknown>(templateName: string, data: T) => string;
   generateWithRoute: (
     route: RouteDefinition,
     section: SectionDefinition,
@@ -203,4 +236,57 @@ export interface PluginContext {
   getPluginPackageName: (pluginId?: string) => string | undefined;
   // Entity service access - direct access to public service interface
   entityService: EntityService;
+
+  // Interface plugin capabilities
+  registerDaemon: (name: string, daemon: Daemon) => void;
+}
+
+/**
+ * Interface plugin type - extends Plugin with start/stop lifecycle methods
+ * Used as base for all interface implementations (CLI, Matrix, etc.)
+ */
+export interface InterfacePlugin extends Plugin {
+  /**
+   * Start the interface
+   */
+  start(): Promise<void>;
+  
+  /**
+   * Stop the interface
+   */
+  stop(): Promise<void>;
+}
+
+/**
+ * Message context for message-based interfaces
+ */
+export interface MessageContext {
+  userId: string;
+  channelId: string;
+  messageId: string;
+  threadId?: string;
+  timestamp: Date;
+}
+
+/**
+ * Message-based interface plugin type - extends InterfacePlugin
+ * Used for interfaces that process messages (CLI, Matrix, etc.)
+ */
+export interface MessageInterfacePlugin extends InterfacePlugin {
+  /**
+   * The unique session ID for this interface instance
+   */
+  readonly sessionId: string;
+  
+  /**
+   * Process user input and emit response/error events
+   */
+  processInput(input: string, context?: Partial<MessageContext>): Promise<void>;
+  
+  /**
+   * EventEmitter methods for message interfaces
+   */
+  on(event: string, listener: (...args: unknown[]) => void): this;
+  off(event: string, listener: (...args: unknown[]) => void): this;
+  emit(event: string, ...args: unknown[]): boolean;
 }

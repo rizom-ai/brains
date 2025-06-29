@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock, afterAll } from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
-import type { InterfaceContext, MessageContext } from "@brains/interface-core";
+import type { PluginContext, MessageContext } from "@brains/types";
 import { createSilentLogger } from "@brains/utils";
 import type { CLIConfig } from "../src/types";
 
@@ -14,36 +14,43 @@ process.exit = mockExit as any;
 
 describe("CLIInterface", () => {
   let cliInterface: CLIInterface;
-  let mockContext: InterfaceContext;
-  let processQueryMock: ReturnType<typeof mock>;
+  let mockContext: PluginContext;
+  let generateContentMock: ReturnType<typeof mock>;
 
   beforeEach(() => {
     mock.restore();
-    processQueryMock = mock(() => Promise.resolve("Query processed"));
+    generateContentMock = mock(() => Promise.resolve({
+      message: "Query processed",
+      success: true,
+      sources: []
+    }));
 
     mockContext = {
-      name: "Test CLI",
-      version: "1.0.0",
       logger: createSilentLogger(),
-      processQuery: processQueryMock,
-    };
+      generateContent: generateContentMock,
+      formatContent: mock((template: string, data: any) => "Formatted response"),
+      registerDaemon: mock(() => {}),
+    } as unknown as PluginContext;
   });
 
   describe("constructor and configuration", () => {
-    it("should create instance with context and default config", () => {
-      cliInterface = new CLIInterface(mockContext);
-      expect(cliInterface.name).toBe("Test CLI");
-      expect(cliInterface.version).toBe("1.0.0");
+    it("should create instance with context and default config", async () => {
+      cliInterface = new CLIInterface();
+      // Register the plugin to set context
+      await cliInterface.register(mockContext);
+      expect(cliInterface.id).toBe("cli");
+      expect(cliInterface.packageName).toBe("@brains/cli");
     });
 
-    it("should create instance with custom config", () => {
+    it("should create instance with custom config", async () => {
       const config: CLIConfig = {
         shortcuts: {
           h: "/help",
           q: "/quit",
         },
       };
-      cliInterface = new CLIInterface(mockContext, config);
+      cliInterface = new CLIInterface(config);
+      await cliInterface.register(mockContext);
       expect(cliInterface).toBeDefined();
     });
   });
@@ -52,8 +59,9 @@ describe("CLIInterface", () => {
   // Test commands through the public processInput method instead
 
   describe("processInput", () => {
-    beforeEach(() => {
-      cliInterface = new CLIInterface(mockContext);
+    beforeEach(async () => {
+      cliInterface = new CLIInterface();
+      await cliInterface.register(mockContext);
     });
 
     it("should process regular input through handleInput", async () => {
@@ -62,11 +70,13 @@ describe("CLIInterface", () => {
 
       await cliInterface.processInput("Hello world");
 
-      expect(processQueryMock).toHaveBeenCalledWith(
-        "Hello world",
-        expect.any(Object),
+      expect(generateContentMock).toHaveBeenCalledWith(
+        "shell:knowledge-query",
+        expect.objectContaining({
+          prompt: "Hello world"
+        })
       );
-      expect(responseHandler).toHaveBeenCalledWith("Query processed");
+      expect(responseHandler).toHaveBeenCalledWith("Formatted response");
     });
 
     it("should handle /help command", async () => {
@@ -91,11 +101,12 @@ describe("CLIInterface", () => {
     });
 
     it("should emit error event on failure", async () => {
-      processQueryMock = mock(() =>
+      // Override the mock to throw an error
+      mockContext.generateContent = mock(() =>
         Promise.reject(new Error("Process failed")),
       );
-      mockContext.processQuery = processQueryMock;
-      cliInterface = new CLIInterface(mockContext);
+      cliInterface = new CLIInterface();
+      await cliInterface.register(mockContext);
 
       const errorHandler = mock(() => {});
       cliInterface.on("error", errorHandler);

@@ -432,31 +432,6 @@ export class Shell {
     );
   }
 
-  /**
-   * Process a message from interface plugins
-   * Returns raw query response for interface-specific formatting
-   */
-  public async processMessage(
-    message: string,
-    context: {
-      userId: string;
-      channelId: string;
-      messageId: string;
-      threadId?: string;
-      timestamp: Date;
-    },
-  ): Promise<DefaultQueryResponse> {
-    // Delegate to query method and return the full response
-    return this.query(message, {
-      userId: context.userId,
-      conversationId: context.channelId,
-      metadata: {
-        messageId: context.messageId,
-        threadId: context.threadId,
-        timestamp: context.timestamp.toISOString(),
-      },
-    });
-  }
 
   /**
    * Register a plugin

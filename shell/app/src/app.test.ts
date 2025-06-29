@@ -8,6 +8,9 @@ const createMockShell = (): Shell => {
   return {
     initialize: mock(() => Promise.resolve()),
     getMcpServer: mock(() => ({})),
+    getPluginManager: mock(() => ({
+      registerPlugin: mock(() => {}),
+    })),
   } as unknown as Shell;
 };
 

@@ -153,188 +153,183 @@ Current interfaces using `BaseInterface` will be migrated to the plugin pattern:
 4. Configuration handled through standard plugin config
 5. `BaseInterface` class becomes unnecessary - deleted after migration
 
-### 2.3.3 Implementation Examples
+### 2.3.3 Implementation Examples (Updated with Actual Pattern)
 
-#### Example: CLI Plugin Implementation
+**IMPORTANT UPDATE**: During implementation, we discovered a much simpler and cleaner pattern than originally planned. Interface classes directly extend base plugin classes, eliminating the need for wrapper daemons.
+
+#### Example: CLI Implementation (✅ COMPLETED)
 
 ```typescript
-// interfaces/cli/src/plugin.ts
-import { MessageInterface } from "@brains/message-interface";
-import type { Plugin, PluginContext, Daemon } from "@brains/types";
+// interfaces/cli/src/cli-interface.ts
+import { MessageInterfacePlugin } from "@brains/utils";
+import type { DefaultQueryResponse, MessageContext } from "@brains/types";
+import type { CLIConfig } from "./types";
+import packageJson from "../package.json";
 
-class CLIDaemon implements Daemon {
-  private cliInterface: CLIInterface | null = null;
-  
-  constructor(private context: PluginContext, private config: CLIConfig) {}
-
-  async start(): Promise<void> {
-    this.cliInterface = new CLIInterface(this.context, this.config);
-    await this.cliInterface.start();
+export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
+  constructor(config: CLIConfig = {}) {
+    super("cli", packageJson, config);
   }
 
-  async stop(): Promise<void> {
-    if (this.cliInterface) {
-      await this.cliInterface.stop();
-      this.cliInterface = null;
+  // MessageInterfacePlugin automatically handles daemon registration
+  public async start(): Promise<void> {
+    // Start the CLI interface
+    this.inkApp = await this.createInkApp();
+  }
+
+  public async stop(): Promise<void> {
+    // Stop the CLI interface
+    if (this.inkApp) {
+      this.inkApp.unmount();
     }
   }
 
-  async healthCheck() {
-    return {
-      status: this.cliInterface ? "healthy" : "error" as const,
-      message: this.cliInterface ? "CLI running" : "CLI not running",
-      lastCheck: new Date(),
-    };
-  }
-}
-
-export const cliPlugin: Plugin = {
-  id: "cli-interface",
-  version: "1.0.0", 
-  description: "Interactive command-line interface",
-  packageName: "@brains/cli",
-
-  async initialize(context: PluginContext): Promise<void> {
-    // Register DefaultQuery template for consistent query processing
-    context.registerTemplate("default-query", {
-      name: "default-query",
-      description: "Convert user input to properly formatted query",
-      schema: { /* User input schema */ },
-      formatter: {
-        format: (data: { input: string, context: MessageContext }) => {
-          // Format user input for Shell.query()
-          return data.input; // Can be enhanced with context, history, etc.
-        }
-      }
-    });
-
-    // Register CLI response formatter template  
-    context.registerTemplate("response-formatter", {
-      name: "cli-response-formatter",
-      description: "Format responses for CLI display",
-      schema: { /* DefaultQueryResponse schema */ },
-      formatter: {
-        format: (queryResponse) => {
-          let output = queryResponse.message || "No response generated";
-          if (queryResponse.sources?.length) {
-            output += `\n\n📚 Sources: ${queryResponse.sources.length} reference(s)`;
-          }
-          return output;
-        }
-      }
-    });
-
-    // Register CLI daemon
-    const cliDaemon = new CLIDaemon(context, { /* config */ });
-    context.registerDaemon("cli", cliDaemon);
-  },
-
-  capabilities: ["interface", "interactive", "daemon"]
-};
-
-// CLIInterface extends MessageInterface for shared message processing
-class CLIInterface extends MessageInterface {
-  constructor(context: PluginContext, config: CLIConfig) {
-    super(context, `cli-${Date.now()}`);
-  }
-  
-  protected async handleLocalCommand(command: string, context: MessageContext): Promise<string | null> {
+  protected async handleLocalCommand(
+    command: string,
+    context: MessageContext
+  ): Promise<string | null> {
     // Handle CLI-specific commands like /help, /quit
+    switch (command) {
+      case "/help":
+        return this.getHelpText();
+      case "/quit":
+      case "/exit":
+        await this.stop();
+        process.exit(0);
+      default:
+        return null; // Let Shell handle it
+    }
   }
-  
-  protected async formatResponse(queryResponse: DefaultQueryResponse, context: MessageContext): Promise<string> {
-    // Use registered template for formatting
-    return this.context.generateContent("response-formatter", { data: queryResponse });
+
+  protected async formatResponse(
+    queryResponse: DefaultQueryResponse,
+    context: MessageContext
+  ): Promise<string> {
+    // Format for CLI display
+    let output = queryResponse.message || "No response generated";
+    if (queryResponse.sources?.length) {
+      output += `\n\n📚 Sources: ${queryResponse.sources.length} reference(s)`;
+    }
+    return output;
   }
-  
-  // Note: processMessage implementation will be in MessageInterface base class
-  // Uses template-based query processing without direct Shell access
 }
+
+// interfaces/cli/src/plugin.ts - Simple export
+import { CLIInterface } from "./cli-interface";
+export const cliPlugin = new CLIInterface();
 ```
 
-#### Example: Matrix Plugin Implementation
+#### Example: Matrix Implementation (⏳ PLANNED)
 
 ```typescript
-// interfaces/matrix/src/plugin.ts
-import { MessageInterface } from "@brains/message-interface";
-import type { Plugin, PluginContext, Daemon } from "@brains/types";
+// interfaces/matrix/src/matrix-interface.ts
+import { MessageInterfacePlugin } from "@brains/utils";
+import type { DefaultQueryResponse, MessageContext } from "@brains/types";
+import type { MatrixConfig } from "./types";
+import packageJson from "../package.json";
 
-class MatrixDaemon implements Daemon {
-  private matrixInterface: MatrixInterface | null = null;
-  
-  constructor(private context: PluginContext, private config: MatrixConfig) {}
+export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
+  private matrixClient: MatrixClient | null = null;
 
-  async start(): Promise<void> {
-    this.matrixInterface = new MatrixInterface(this.context, this.config);
-    await this.matrixInterface.start();
+  constructor(config: MatrixConfig) {
+    super("matrix", packageJson, config);
   }
 
-  async stop(): Promise<void> {
-    if (this.matrixInterface) {
-      await this.matrixInterface.stop();
-      this.matrixInterface = null;
+  public async start(): Promise<void> {
+    // Initialize Matrix client and connect
+    this.matrixClient = new MatrixClient(this.config);
+    await this.matrixClient.connect();
+    
+    // Set up message handlers
+    this.matrixClient.on("message", (message) => {
+      this.processInput(message.content, {
+        userId: message.sender,
+        channelId: message.roomId,
+        messageId: message.eventId,
+        timestamp: new Date(message.timestamp)
+      });
+    });
+  }
+
+  public async stop(): Promise<void> {
+    if (this.matrixClient) {
+      await this.matrixClient.disconnect();
+      this.matrixClient = null;
     }
   }
 
-  async healthCheck() {
-    return {
-      status: this.matrixInterface?.isConnected() ? "healthy" : "error" as const,
-      message: `Matrix client status: ${this.matrixInterface?.getStatus() || "disconnected"}`,
-      lastCheck: new Date(),
-    };
+  protected async handleLocalCommand(
+    command: string,
+    context: MessageContext
+  ): Promise<string | null> {
+    // Handle Matrix-specific commands
+    switch (command) {
+      case "/join":
+        // Join room logic
+        return "Joined room";
+      case "/leave":
+        // Leave room logic  
+        return "Left room";
+      default:
+        return null; // Let Shell handle it
+    }
+  }
+
+  protected async formatResponse(
+    queryResponse: DefaultQueryResponse,
+    context: MessageContext
+  ): Promise<string> {
+    // Format with Matrix markdown
+    let output = `**${queryResponse.message || "No response generated"}**`;
+    if (queryResponse.sources?.length) {
+      output += `\n\n📚 *Sources: ${queryResponse.sources.length} reference(s)*`;
+    }
+    return output;
   }
 }
 
-export const matrixPlugin: Plugin = {
-  id: "matrix-interface", 
-  version: "1.0.0",
-  description: "Matrix protocol interface for real-time communication",
-  packageName: "@brains/matrix",
+// interfaces/matrix/src/plugin.ts - Simple export
+import { MatrixInterface } from "./matrix-interface";
+// Config would come from environment/settings
+export const matrixPlugin = new MatrixInterface(matrixConfig);
+```
 
-  async initialize(context: PluginContext): Promise<void> {
-    // Register Matrix response formatter template (DefaultQuery shared from core)
-    context.registerTemplate("response-formatter", {
-      name: "matrix-response-formatter", 
-      description: "Format responses for Matrix display with markdown",
-      schema: { /* DefaultQueryResponse schema */ },
-      formatter: {
-        format: (queryResponse) => {
-          // Matrix supports markdown formatting
-          let output = `**${queryResponse.message || "No response generated"}**`;
-          if (queryResponse.sources?.length) {
-            output += `\n\n📚 *Sources: ${queryResponse.sources.length} reference(s)*`;
-          }
-          return output;
-        }
-      }
-    });
+#### Example: Webserver Implementation (🚧 IN PROGRESS)
 
-    // Register Matrix daemon
-    const matrixDaemon = new MatrixDaemon(context, { /* matrix config */ });
-    context.registerDaemon("matrix", matrixDaemon);
-  },
+```typescript
+// interfaces/webserver/src/webserver-interface.ts
+import { InterfacePlugin } from "@brains/utils";
+import type { WebserverConfig } from "./types";
+import packageJson from "../package.json";
 
-  capabilities: ["interface", "messaging", "daemon"]
-};
+export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
+  private serverManager: ServerManager;
 
-// MatrixInterface extends MessageInterface for shared message processing  
-class MatrixInterface extends MessageInterface {
-  constructor(context: PluginContext, config: MatrixConfig) {
-    super(context);
+  constructor(config: WebserverConfig) {
+    super("webserver", packageJson, config);
+    this.serverManager = new ServerManager(config);
   }
-  
-  protected async handleLocalCommand(command: string, context: MessageContext): Promise<string | null> {
-    // Handle Matrix-specific commands like /join, /leave
+
+  // InterfacePlugin automatically handles daemon registration
+  public async start(): Promise<void> {
+    // Ensure dist directories exist
+    await this.ensureDistDirectory();
+    
+    // Start both preview and production servers
+    await this.serverManager.startPreviewServer();
+    await this.serverManager.startProductionServer();
   }
-  
-  protected async formatResponse(queryResponse: DefaultQueryResponse, context: MessageContext): Promise<string> {
-    // Use registered template for Matrix markdown formatting
-    return this.context.generateContent("response-formatter", { data: queryResponse });
+
+  public async stop(): Promise<void> {
+    await this.serverManager.stopAll();
   }
-  
-  // Note: processMessage implementation will be in MessageInterface base class
-  // Uses shared DefaultQuery template for consistent query processing
+
+  // No message processing needed - webserver just serves static files
 }
+
+// interfaces/webserver/src/plugin.ts - Simple export  
+import { WebserverInterface } from "./webserver-interface";
+export const webserverPlugin = new WebserverInterface(webserverConfig);
 ```
 
 ## Simplified Implementation Plan
@@ -373,79 +368,78 @@ class MatrixInterface extends MessageInterface {
 
 ### Phase 2.3.2: Interface Plugin Migration 🚧 IN PROGRESS
 
-**Goal**: Convert existing interfaces to plugin pattern using MessageInterface for message-based interfaces
+**Goal**: Convert existing interfaces to plugin pattern using appropriate base classes
 
-**Architecture Changes:**
+**Architecture Updates (Based on Implementation Experience):**
 
-1. **Package Rename: @brains/interface-core → @brains/message-interface**
-   - Renamed to better reflect purpose (message-based interfaces only)
-   - BaseInterface → MessageInterface class rename
-   - Updated dependencies in CLI and Matrix packages
+1. **Simplified Plugin Pattern Discovered**
+   - Interface classes directly extend InterfacePlugin or MessageInterfacePlugin
+   - No need for separate daemon wrapper classes (base classes handle it)
+   - Much cleaner than originally planned
 
-2. **MessageInterface for Message-Based Interfaces**
-   - CLI and Matrix interfaces extend MessageInterface
-   - Webserver and MCP use direct daemon pattern (no MessageInterface)
-   - Template-based query processing: MessageInterface → generateContent("default-query") → Shell.query()
-   - Template-based response formatting
-   - Clean separation: MessageInterface handles messages, Shell handles queries
+2. **Two Base Classes for Different Interface Types**
+   - **MessageInterfacePlugin**: For interfaces that process user messages (CLI, Matrix)
+   - **InterfacePlugin**: For non-message interfaces (Webserver, future dashboard)
+   - Both automatically handle daemon registration and lifecycle
 
-**Current Work:**
+3. **MCP Transports Remain as Transports**
+   - StdioMCPServer and StreamableHTTPServer are NOT interfaces
+   - They are transport mechanisms used by App class
+   - They connect to Shell's MCP server - no plugin conversion needed
 
-1. **CLI Interface Migration** 🚧 IN PROGRESS
+**Migration Status:**
 
-   - Convert `interfaces/cli` to plugin structure with daemon registration
-   - Extend MessageInterface for shared message processing logic  
-   - Register CLI daemon via `registerDaemon()`
-   - Use template-based query processing: generateContent("default-query") → Shell.query()
-   - Template-based response formatting for CLI display
-   - No direct Shell access from MessageInterface
+1. **CLI Interface Migration** ✅ COMPLETED
+   - Successfully converted to extend MessageInterfacePlugin
+   - Simplified pattern works perfectly
+   - Daemon registration handled automatically by base class
+   - Template-based message processing implemented
 
-2. **Matrix Interface Migration** ⏳ PLANNED
+2. **Webserver Interface Migration** 🚧 IN PROGRESS
+   - Convert to extend InterfacePlugin (not MessageInterfacePlugin)
+   - No message processing needed - just serves static files
+   - Daemon lifecycle handled by base class
 
-   - Convert `interfaces/matrix` to plugin structure  
-   - Extend MessageInterface for Matrix-specific message handling
-   - Register Matrix daemon for long-running connection
-   - Handle Matrix protocol via registered daemon
+3. **Matrix Interface Migration** ⏳ PLANNED
+   - Will follow CLI pattern: extend MessageInterfacePlugin
+   - Handle Matrix protocol messages similar to CLI
+   - Automatic daemon registration via base class
 
-3. **Webserver Interface Migration** ⏳ PLANNED
+4. **MCP Transport Migration** ❌ NOT APPLICABLE
+   - MCP transports are NOT interfaces - they're transport layers
+   - Remain as transport classes in @brains/mcp-server
+   - Used by App class to expose Shell's MCP server
+   - No plugin conversion needed or desired
 
-   - Convert `interfaces/webserver` to plugin structure
-   - Direct daemon registration (no MessageInterface)
-   - Register web server as daemon
-   - Add health checks for server status
+### Phase 2.3.3: Cleanup and Polish
 
-4. **MCP Transport Plugin Migration** ⏳ PLANNED
-   - Convert MCP transport interfaces to plugins
-   - Register stdio and HTTP transport daemons
-   - Maintain integration with core MCP server
+**Goal**: Complete migration and remove deprecated code
 
-### Phase 2.3.3: Cleanup and Polish (Week 3)
+1. **Complete Remaining Migrations**
+   - Finish Webserver interface conversion to InterfacePlugin
+   - Convert Matrix interface to MessageInterfacePlugin
+   - Test each interface thoroughly
 
-**Goal**: Remove deprecated interface architecture
+2. **Remove Deprecated Code**
+   - Delete BaseInterface from interface-core
+   - Remove old interface patterns
+   - Clean up package dependencies
 
-1. **Remove BaseInterface**
-
-   - Delete `interfaces/interface-core/src/base-interface.ts`
-   - Remove interface-specific types now handled by plugins
-   - Keep only shared utilities in `interface-core`
-
-2. **Update Package Dependencies**
-
-   - Remove BaseInterface imports from all interface packages
-   - Update to use standard plugin patterns
-   - Clean up package.json dependencies
-
-3. **Integration Testing**
-
-   - Test all interface plugins work with PluginManager
-   - Verify service lifecycle management
-   - Test health monitoring across all interfaces
-   - Validate MCP integration still works
+3. **Package Reorganization**
+   - Consider renaming interface-core to message-interface (clearer purpose)
+   - Or merge utilities into @brains/utils
+   - Ensure clean separation of concerns
 
 4. **Documentation Updates**
-   - Update interface development guide to use plugin pattern
-   - Document service registration patterns
-   - Add examples of interface plugin implementations
+   - Update interface development guide
+   - Document InterfacePlugin vs MessageInterfacePlugin usage
+   - Add examples for each interface type
+
+5. **Integration Testing**
+   - Verify all interfaces work with PluginManager
+   - Test daemon lifecycle management
+   - Ensure health monitoring works
+   - Validate MCP server integration unchanged
 
 ## Migration Strategy Details
 
@@ -536,77 +530,105 @@ class MatrixInterface extends MessageInterface {
 
 ## Simplified Architecture Overview
 
-### Unified Plugin Architecture
+### Actual Architecture (After Implementation)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Shell Core                           │
-│  ┌─────────────────┐  ┌─────────────────┐                  │
-│  │   Plugin        │  │   MCP Server    │                  │
-│  │   Manager       │  │   (Core Service)│                  │
-│  │                 │  │                 │                  │
-│  └─────────────────┘  └─────────────────┘                  │
+│                           App                               │
+│  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │   MCP Transports│  │         Shell Core              │  │
+│  │ (Stdio/HTTP)    │  │  ┌───────────────────────────┐  │  │
+│  └─────────────────┘  │  │    MCP Server (Core)     │  │  │
+│           │           │  └───────────────────────────┘  │  │
+│           └──────────►│  ┌───────────────────────────┐  │  │
+│                       │  │   Plugin Manager          │  │  │
+│                       │  └───────────────────────────┘  │  │
+│                       └─────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
-            │                       │
-            │                       │
-    ┌───────▼───────────────────────▼───────────────────────┐
-    │                All Plugins                            │
-    │                                                       │
-    │ ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
-    │ │Directory    │  │CLI Plugin   │  │Stdio MCP    │     │
-    │ │Sync Plugin  │  │(Service)    │  │Plugin       │     │
-    │ └─────────────┘  └─────────────┘  └─────────────┘     │
-    │                                                       │
-    │ ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
-    │ │Site Builder │  │Matrix Plugin│  │HTTP MCP     │     │
-    │ │Plugin       │  │(Service)    │  │Plugin       │     │
-    │ └─────────────┘  └─────────────┘  └─────────────┘     │
-    │                                                       │
-    │ ┌─────────────┐  ┌─────────────┐                      │
-    │ │Git Sync     │  │Webserver    │                      │
-    │ │Plugin       │  │Plugin       │                      │
-    │ └─────────────┘  └─────────────┘                      │
-    └───────────────────────────────────────────────────────┘
+                                    │
+    ┌───────────────────────────────▼───────────────────────┐
+    │                       All Plugins                      │
+    │                                                        │
+    │  Content Plugins             Interface Plugins         │
+    │  ┌───────────────┐         ┌─────────────────────┐    │
+    │  │Directory Sync │         │CLI (MessageInterface)│    │
+    │  └───────────────┘         └─────────────────────┘    │
+    │  ┌───────────────┐         ┌─────────────────────┐    │
+    │  │Site Builder   │         │Matrix (MessageInterface)│ │
+    │  └───────────────┘         └─────────────────────┘    │
+    │  ┌───────────────┐         ┌─────────────────────┐    │
+    │  │Git Sync       │         │Webserver (Interface) │    │
+    │  └───────────────┘         └─────────────────────┘    │
+    └────────────────────────────────────────────────────────┘
 
-    Content Processing + Interface Services + MCP Transports
-    All managed uniformly by PluginManager
+    All plugins managed uniformly by PluginManager
+    MCP Transports remain separate (not plugins)
 ```
 
-### Unified Responsibilities
+### Actual Responsibilities (Clarified)
 
-- **Shell Core**: Owns business logic, MCP server, manages all plugins via PluginManager
+- **App**: Orchestrates Shell and MCP transports
+- **Shell Core**: Business logic, MCP server, manages all plugins
 - **Content Plugins**: Process data, extend functionality via tools/resources
-- **Interface Plugins**: Handle user interaction via registered services
-- **MCP Transport Plugins**: Connect external clients to shell's MCP server
-- **PluginManager**: Manages all plugin lifecycles uniformly (content + interface)
-- **MCP Server**: Core service that exposes all plugin capabilities via MCP protocol
+- **Interface Plugins**: Handle user interaction via daemon services
+  - MessageInterfacePlugin: For message-processing interfaces (CLI, Matrix)
+  - InterfacePlugin: For non-message interfaces (Webserver)
+- **MCP Transports**: NOT plugins - transport layers that connect to MCP server
+- **PluginManager**: Manages all plugin lifecycles uniformly
+- **MCP Server**: Core service exposing plugin capabilities via MCP protocol
 
 ## Next Steps
 
-1. **Review and approve this simplified plan** ✅
-2. **Begin Phase 2.3.1 implementation** (Plugin Context Enhancement)
-   - Extend PluginContext with service registration capabilities
-   - Update PluginManager to handle service lifecycle
-   - Add service health monitoring
-3. **Week-by-week implementation** following the simplified plan
-4. **Interface plugin migration** one by one with testing
-5. **Remove deprecated BaseInterface** after successful migration
+1. **Complete Webserver Interface Migration** 🚧 CURRENT
+   - Convert to extend InterfacePlugin
+   - Remove BaseInterface dependency
+   - Test with test-brain app
+
+2. **Migrate Matrix Interface** ⏳ NEXT
+   - Convert to extend MessageInterfacePlugin
+   - Follow CLI pattern for message processing
+   - Test Matrix integration
+
+3. **Cleanup Phase**
+   - Remove BaseInterface from interface-core
+   - Consider merging interface-core utilities into @brains/utils
+   - Update all documentation
+
+4. **Final Testing**
+   - Integration test all interfaces
+   - Verify health monitoring
+   - Ensure MCP server integration unchanged
 
 ## Key Decisions Made
 
-✅ **Unified Plugin Architecture**: Interfaces implemented as plugins, not separate system  
-✅ **Preserve MCP Server Architecture**: Keep as shell core service  
-✅ **Capability-Based Detection**: Plugin type determined by registered capabilities  
-✅ **Service Registration Pattern**: Interface plugins register long-running services  
-✅ **Backward Compatibility**: Existing content plugins unaffected by changes
+✅ **Unified Plugin Architecture**: Interfaces implemented as plugins  
+✅ **Simplified Pattern**: Direct inheritance from base classes (no wrappers)  
+✅ **Two Interface Types**: MessageInterfacePlugin vs InterfacePlugin  
+✅ **MCP Transports Unchanged**: Remain as transport classes, not plugins  
+✅ **Automatic Daemon Registration**: Base classes handle lifecycle
+
+## Lessons Learned
+
+### Original Plan vs Reality
+
+1. **Over-Engineering**: The original plan with separate daemon wrappers was unnecessarily complex
+2. **Base Classes Work**: InterfacePlugin and MessageInterfacePlugin provide perfect abstraction
+3. **Direct Inheritance**: Interface classes can directly extend base classes - much cleaner
+4. **MCP Clarity**: MCP transports are not interfaces - they're transport layers for the MCP server
+
+### Key Insights
+
+1. **Simpler is Better**: The actual implementation is much simpler than planned
+2. **Reuse Existing Patterns**: Base plugin classes already handle daemon lifecycle perfectly
+3. **Clear Separation**: Message-processing interfaces vs non-message interfaces
+4. **Transport ≠ Interface**: MCP transports connect to the MCP server, not user interfaces
 
 ---
 
-This simplified plan provides a unified, elegant architecture that:
+This updated plan reflects the actual implementation and provides:
 
-- **Eliminates architectural duplication** by using plugins for all extensions
-- **Respects existing working systems** (especially MCP server and content plugins)
-- **Provides consistent patterns** across all extension types
-- **Maintains clear separation** between core services and extensions
-- **Enables easy development** of new interfaces using familiar plugin patterns
-- **Preserves full backward compatibility** for existing content plugins
+- **Accurate Documentation**: Shows what was actually built, not what was planned
+- **Simplified Architecture**: Direct inheritance pattern is much cleaner
+- **Clear Guidance**: For converting remaining interfaces (Webserver, Matrix)
+- **Correct Understanding**: MCP transports are not interfaces
+- **Lessons for Future**: Avoid over-engineering, use existing patterns

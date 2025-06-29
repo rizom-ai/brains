@@ -7,7 +7,6 @@ import type {
   Template,
   MessageHandler,
   Daemon,
-  DefaultQueryResponse,
 } from "@brains/types";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
@@ -83,6 +82,17 @@ export class PluginContextFactory {
   }
 
   /**
+   * Ensure template name is properly namespaced with plugin ID
+   */
+  private ensureNamespaced(templateName: string, pluginId: string): string {
+    const parts = templateName.split(":");
+    // If already namespaced (has a prefix), use as-is
+    const isAlreadyNamespaced = parts.length >= 2;
+    
+    return isAlreadyNamespaced ? templateName : `${pluginId}:${templateName}`;
+  }
+
+  /**
    * Create a plugin context for the specified plugin
    */
   public createPluginContext(pluginId: string): PluginContext {
@@ -142,15 +152,8 @@ export class PluginContextFactory {
         context?: GenerationContext,
       ): Promise<T> => {
         try {
-          // Always namespace the template name with the plugin ID if not already namespaced
-          const parts = templateName.split(":");
-          const isProperlyNamespaced =
-            parts.length >= 2 && parts[0] === pluginId;
-
-          const namespacedTemplateName = isProperlyNamespaced
-            ? templateName
-            : `${pluginId}:${templateName}`;
-
+          const namespacedTemplateName = this.ensureNamespaced(templateName, pluginId);
+          
           return await contentGenerator.generateContent<T>(
             namespacedTemplateName,
             context,
@@ -162,15 +165,8 @@ export class PluginContextFactory {
       },
       parseContent: <T = unknown>(templateName: string, content: string): T => {
         try {
-          // Always namespace the template name with the plugin ID if not already namespaced
-          const parts = templateName.split(":");
-          const isProperlyNamespaced =
-            parts.length >= 2 && parts[0] === pluginId;
-
-          const namespacedTemplateName = isProperlyNamespaced
-            ? templateName
-            : `${pluginId}:${templateName}`;
-
+          const namespacedTemplateName = this.ensureNamespaced(templateName, pluginId);
+          
           return contentGenerator.parseContent<T>(
             namespacedTemplateName,
             content,
@@ -178,6 +174,19 @@ export class PluginContextFactory {
         } catch (error) {
           this.logger.error("Failed to parse content", error);
           throw new ContentGenerationError(templateName, "parsing", error);
+        }
+      },
+      formatContent: <T = unknown>(templateName: string, data: T): string => {
+        try {
+          const namespacedTemplateName = this.ensureNamespaced(templateName, pluginId);
+          
+          return contentGenerator.formatContent<T>(
+            namespacedTemplateName,
+            data,
+          );
+        } catch (error) {
+          this.logger.error("Failed to format content", error);
+          throw new ContentGenerationError(templateName, "formatting", error);
         }
       },
       generateWithRoute: async (
@@ -300,7 +309,7 @@ export class PluginContextFactory {
       },
       // Plugin metadata access (scoped to current plugin by default)
       getPluginPackageName: (targetPluginId?: string) => {
-        const targetId = targetPluginId || pluginId;
+        const targetId = targetPluginId ?? pluginId;
         const pluginInfo = this.plugins.get(targetId);
         return pluginInfo?.plugin.packageName;
       },
@@ -318,28 +327,6 @@ export class PluginContextFactory {
           );
         } catch (error) {
           this.logger.error(`Failed to register daemon: ${name}`, error);
-          throw error;
-        }
-      },
-
-      processMessage: async (
-        message: string,
-        context: {
-          userId: string;
-          channelId: string;
-          messageId: string;
-          threadId?: string;
-          timestamp: Date;
-        },
-      ): Promise<DefaultQueryResponse> => {
-        try {
-          // Delegate to shell's message processing and return raw response
-          return await shell.processMessage(message, context);
-        } catch (error) {
-          this.logger.error(
-            `Failed to process message for plugin: ${pluginId}`,
-            error,
-          );
           throw error;
         }
       },

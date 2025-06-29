@@ -13,7 +13,6 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@brains/interface-core": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "marked": "^15.0.4",

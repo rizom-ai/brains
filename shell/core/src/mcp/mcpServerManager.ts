@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerShellMCP } from "./index";
 import type { ContentGenerator } from "@brains/content-generator";
 import type { EntityService } from "@brains/entity-service";

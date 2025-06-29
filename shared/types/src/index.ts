@@ -20,8 +20,17 @@ export type {
   Template,
   ProgressNotification,
   ComponentType,
+  Daemon,
+  DaemonHealth,
+  InterfacePlugin,
+  MessageInterfacePlugin,
+  MessageContext,
 } from "./plugin";
-export { pluginMetadataSchema, TemplateSchema } from "./plugin";
+export {
+  pluginMetadataSchema,
+  TemplateSchema,
+  DaemonHealthSchema,
+} from "./plugin";
 
 // Registry types
 export type { ServiceRegistry, ComponentFactory } from "./registry";

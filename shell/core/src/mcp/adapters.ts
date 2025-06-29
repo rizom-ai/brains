@@ -41,9 +41,9 @@ export class ContentGeneratorAdapter {
     const context: GenerationContext = {
       prompt: params.query,
       data: {
-        limit: params.options?.limit || 10,
-        responseSchema: params.options?.responseSchema || "default-query",
-        context: params.options?.context || {},
+        limit: params.options?.limit ?? 10,
+        responseSchema: params.options?.responseSchema ?? "default-query",
+        context: params.options?.context ?? {},
       },
     };
 
@@ -130,7 +130,7 @@ export class ContentGenerationAdapter {
     // Build generation context
     const context: GenerationContext = {
       prompt: params.prompt,
-      data: params.context?.data || {},
+      data: params.context?.data ?? {},
     };
 
     // Call ContentGenerator with template-based approach
@@ -149,7 +149,7 @@ export class ContentGenerationAdapter {
     // Build generation context
     const context: GenerationContext = {
       prompt: params.prompt,
-      data: params.context?.data || {},
+      data: params.context?.data ?? {},
     };
 
     return this.contentGenerator.generateContent(templateName, context);

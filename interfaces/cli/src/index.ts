@@ -1,2 +1,2 @@
-export { CLIInterface } from "./cli-interface.js";
-export type { CLIConfig } from "./types.js";
+export { CLIInterface } from "./cli-interface";
+export type { CLIConfig } from "./types";

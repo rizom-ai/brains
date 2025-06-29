@@ -30,23 +30,18 @@ export class BrainsError extends Error {
     this.context = context;
     this.cause = normalizeError(cause);
     this.timestamp = new Date();
-
-    // Preserve stack trace
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
   }
 
   /**
    * Convert error to structured object for logging/serialization
    */
-  toJSON() {
+  toJSON(): Record<string, unknown> {
     return {
       name: this.name,
       message: this.message,
       code: this.code,
       context: this.context,
-      cause: this.cause?.message,
+      cause: this.cause.message,
       timestamp: this.timestamp.toISOString(),
       stack: this.stack,
     };
@@ -65,7 +60,7 @@ export class InitializationError extends BrainsError {
     super(
       `Failed to initialize ${component}`,
       "INIT_FAILED",
-      normalizeError(cause) || new Error("Unknown initialization error"),
+      normalizeError(cause),
       { component, ...context },
     );
   }
@@ -83,7 +78,7 @@ export class DatabaseError extends BrainsError {
     super(
       `Database operation failed: ${operation}`,
       "DB_ERROR",
-      normalizeError(cause) || new Error("Unknown database error"),
+      normalizeError(cause),
       { operation, ...context },
     );
   }
@@ -196,7 +191,7 @@ export class ServiceError extends BrainsError {
     super(
       `Service ${serviceName}: ${operation} failed`,
       "SERVICE_ERROR",
-      normalizeError(cause) || new Error("Unknown service error"),
+      normalizeError(cause),
       { serviceName, operation, ...context },
     );
     this.serviceName = serviceName;
@@ -241,7 +236,7 @@ export class ServiceResolutionError extends ServiceError {
 export class ContentGenerationError extends BrainsError {
   constructor(
     templateName: string,
-    operation: "generation" | "parsing",
+    operation: "generation" | "parsing" | "formatting",
     cause: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
@@ -267,7 +262,7 @@ export class TemplateRegistrationError extends BrainsError {
     super(
       `Template registration failed: ${templateName}`,
       "TEMPLATE_REGISTRATION_FAILED",
-      normalizeError(cause) || new Error("Unknown template registration error"),
+      normalizeError(cause),
       { templateName, pluginId, ...context },
     );
   }

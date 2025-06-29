@@ -282,7 +282,7 @@ describe("ContentGenerator", () => {
         format: mock((content) => `# ${content.title}\n\n${content.content}`),
         parse: mock((content: string) => {
           const lines = content.split("\n");
-          const title = lines[0]?.replace("# ", "") || "";
+          const title = lines[0]?.replace("# ", "") ?? "";
           const contentText = lines.slice(2).join("\n");
           return { title, content: contentText };
         }),

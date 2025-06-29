@@ -1,17 +1,15 @@
 import { Shell } from "@brains/core";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { Logger, LogLevel } from "@brains/utils";
-import type { BaseInterface, MessageContext } from "@brains/interface-core";
+import type { Plugin } from "@brains/types";
 import {
   appConfigSchema,
   type AppConfig,
-  type InterfaceConfig,
 } from "./types.js";
 
 export class App {
   private shell: Shell;
   private server: StdioMCPServer | StreamableHTTPServer | null = null;
-  private interfaces: Map<string, BaseInterface> = new Map();
   private config: AppConfig;
   private shutdownHandlers: Array<() => void> = [];
   private isShuttingDown = false;
@@ -32,14 +30,6 @@ export class App {
       });
     }
 
-    // Add Matrix interface if --matrix flag is present
-    if (
-      args.includes("--matrix") &&
-      !interfaces.some((i) => i.type === "matrix")
-    ) {
-      // Matrix interface should be configured via getMatrixInterfaceFromEnv()
-      // This is handled in the app's index.ts file
-    }
 
     // Follow Shell's pattern: validate schema then add full Plugin objects
     const appConfig: AppConfig = {
@@ -91,7 +81,10 @@ export class App {
   }
 
   public async initialize(): Promise<void> {
-    // Initialize shell
+    // Register interfaces as plugins before shell initialization
+    await this.registerInterfacePlugins();
+    
+    // Initialize shell (which will initialize all plugins including interfaces)
     await this.shell.initialize();
 
     // Create logger that respects log level
@@ -124,99 +117,33 @@ export class App {
       this.server.connectMCPServer(mcpServer);
     }
 
-    // Initialize interfaces
-    await this.initializeInterfaces();
+    // Note: Interfaces are now initialized as plugins during shell.initialize()
   }
 
-  private async initializeInterfaces(): Promise<void> {
-    // Initialize custom interfaces if provided
-    if (this.config.customInterfaces) {
-      for (const customInterface of this.config.customInterfaces) {
-        this.interfaces.set(customInterface.name, customInterface);
-      }
-    }
-
-    // Initialize configured interfaces
+  private async registerInterfacePlugins(): Promise<void> {
+    const pluginManager = this.shell.getPluginManager();
+    
+    // Register each interface as a plugin
     for (const interfaceConfig of this.config.interfaces) {
       if (!interfaceConfig.enabled) continue;
-
-      try {
-        const interfaceInstance = await this.createInterface(interfaceConfig);
-        if (interfaceInstance) {
-          this.interfaces.set(interfaceConfig.type, interfaceInstance);
+      
+      let plugin: Plugin;
+      
+      switch (interfaceConfig.type) {
+        case "cli": {
+          const { CLIInterface } = await import("@brains/cli");
+          plugin = new CLIInterface(interfaceConfig.config);
+          break;
         }
-      } catch (error) {
-        const logger = this.createLogger();
-        logger.error(
-          `Failed to initialize ${interfaceConfig.type} interface:`,
-          error,
-        );
+        default:
+          throw new Error(`Unknown interface type: ${interfaceConfig.type}`);
       }
+      
+      pluginManager.registerPlugin(plugin);
     }
   }
+  
 
-  private async createInterface(
-    config: InterfaceConfig,
-  ): Promise<BaseInterface | null> {
-    const logger = this.createLogger();
-
-    const interfaceContext = {
-      name: `${this.config.name}-${config.type}`,
-      version: this.config.version,
-      logger: logger.child(config.type),
-      processQuery: async (
-        query: string,
-        context: MessageContext,
-      ): Promise<string> => {
-        // Use Shell's query method which returns DefaultQueryResponse
-        const result = await this.shell.query(query, {
-          userId: context.userId,
-          conversationId: context.channelId, // Map channelId to conversationId
-          metadata: {
-            messageId: context.messageId,
-            threadId: context.threadId,
-            timestamp: context.timestamp.toISOString(),
-          },
-        });
-
-        // Extract message from DefaultQueryResponse
-        return result.message;
-      },
-    };
-
-    switch (config.type) {
-      case "cli": {
-        const { CLIInterface } = await import("@brains/cli");
-        return new CLIInterface(interfaceContext, config.config);
-      }
-      case "matrix": {
-        const { MatrixInterface } = await import("@brains/matrix");
-        return new MatrixInterface(interfaceContext, config.config);
-      }
-      case "webserver": {
-        const { WebserverInterface } = await import("@brains/webserver");
-        return new WebserverInterface(interfaceContext, config.config);
-      }
-      default:
-        return null;
-    }
-  }
-
-  private createLogger(): Logger {
-    const logLevelMap: Record<string, LogLevel> = {
-      debug: LogLevel.DEBUG,
-      info: LogLevel.INFO,
-      warn: LogLevel.WARN,
-      error: LogLevel.ERROR,
-    };
-    const logLevel =
-      logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
-    return Logger.createFresh({
-      level: logLevel,
-      context: this.config.name,
-      useStderr: this.config.transport.type === "stdio",
-    });
-  }
 
   public async start(): Promise<void> {
     if (!this.server) {
@@ -225,18 +152,8 @@ export class App {
 
     await this.server.start();
 
-    // Start all interfaces
-    for (const [name, interface_] of this.interfaces) {
-      try {
-        await interface_.start();
-        const logger = this.createLogger();
-        logger.info(`Started ${name} interface`);
-      } catch (error) {
-        const logger = this.createLogger();
-        logger.error(`Failed to start ${name} interface:`, error);
-      }
-    }
-
+    // Interfaces are now started as plugins during shell initialization
+    
     // Set up signal handlers
     this.setupSignalHandlers();
   }
@@ -251,15 +168,7 @@ export class App {
     // Remove signal handlers
     this.cleanupSignalHandlers();
 
-    // Stop all interfaces
-    for (const [name, interface_] of this.interfaces) {
-      try {
-        await interface_.stop();
-      } catch (error) {
-        const logger = this.createLogger();
-        logger.error(`Failed to stop ${name} interface:`, error);
-      }
-    }
+    // Interfaces are stopped as plugins during shell shutdown
 
     if (this.server) {
       await this.server.stop();
@@ -308,12 +217,7 @@ export class App {
         );
       }
 
-      // Log active interfaces
-      if (this.interfaces.size > 0) {
-        logger.info(
-          `Active interfaces: ${Array.from(this.interfaces.keys()).join(", ")}`,
-        );
-      }
+      // Interfaces are now logged as plugins during shell initialization
 
       // Keep process alive
       if (this.config.transport.type === "stdio") {

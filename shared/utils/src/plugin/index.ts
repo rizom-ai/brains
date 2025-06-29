@@ -11,5 +11,7 @@
 
 export * from "./config";
 export * from "./base-plugin";
+export * from "./interface-plugin";
+export * from "./message-interface-plugin";
 export * from "./config-builder";
 export * from "./lifecycle";

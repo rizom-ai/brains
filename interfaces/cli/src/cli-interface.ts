@@ -1,11 +1,8 @@
-import {
-  BaseInterface,
-  type InterfaceContext,
-  type MessageContext,
-} from "@brains/interface-core";
-import { EventEmitter } from "node:events";
+import { MessageInterfacePlugin, PluginInitializationError } from "@brains/utils";
+import type { DefaultQueryResponse, MessageContext } from "@brains/types";
 import type { Instance } from "ink";
-import type { CLIConfig } from "./types.js";
+import type { CLIConfig } from "./types";
+import packageJson from "../package.json";
 
 interface Command {
   name: string;
@@ -13,11 +10,8 @@ interface Command {
   usage?: string;
 }
 
-export class CLIInterface extends BaseInterface {
+export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   private inkApp: Instance | null = null;
-  private readonly config: CLIConfig;
-  private eventEmitter = new EventEmitter();
-  private sessionId = `cli-${Date.now()}`;
 
   private readonly localCommands: Command[] = [
     { name: "help", description: "Show this help message" },
@@ -41,14 +35,13 @@ export class CLIInterface extends BaseInterface {
     },
   ];
 
-  constructor(context: InterfaceContext, config?: CLIConfig) {
-    super(context);
-    this.config = config ?? {};
+  constructor(config: CLIConfig = {}) {
+    super("cli", packageJson, config);
   }
 
   protected async handleLocalCommand(
     command: string,
-    _context: MessageContext,
+    _context: MessageContext
   ): Promise<string | null> {
     const [cmd, ...args] = command.slice(1).split(" ");
 
@@ -100,31 +93,44 @@ Type any message to interact with the brain.`;
   }
 
   public async start(): Promise<void> {
-    this.logger.info("Starting CLI interface");
+    if (!this.context) {
+      throw new PluginInitializationError(
+        this.id,
+        "Plugin context not initialized",
+        { method: "start" }
+      );
+    }
+    this.context.logger.info("Starting CLI interface");
 
     try {
-      const { render } = await import("ink");
-      const React = await import("react");
-
-      // Completely opaque import to prevent TypeScript from following the path
-      const componentPath = "./components/App.js";
-      const AppModule = await import(componentPath);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const App = AppModule.default as any;
-
-      this.inkApp = render(React.createElement(App, { interface: this }));
+      // Use dynamic imports to ensure React isolation
+      const [inkModule, reactModule, appModule] = await Promise.all([
+        import("ink"),
+        import("react"),
+        import("./components/App")
+      ]);
+      
+      const { render } = inkModule;
+      const React = reactModule.default;
+      const App = appModule.default;
+      
+      // Ensure we're using React's createElement, not any bundled version
+      const element = React.createElement(App, { interface: this });
+      this.inkApp = render(element);
 
       // Handle process termination gracefully
       process.on("SIGINT", () => void this.stop());
       process.on("SIGTERM", () => void this.stop());
     } catch (error) {
-      this.logger.error("Failed to start CLI interface", { error });
+      this.context.logger.error("Failed to start CLI interface", { error });
       throw error;
     }
   }
 
   public async stop(): Promise<void> {
-    this.logger.info("Stopping CLI interface");
+    if (this.context) {
+      this.context.logger.info("Stopping CLI interface");
+    }
 
     if (this.inkApp) {
       this.inkApp.unmount();
@@ -132,30 +138,35 @@ Type any message to interact with the brain.`;
     }
   }
 
-  public async processInput(input: string): Promise<void> {
-    const context: MessageContext = {
-      userId: "cli-user",
-      channelId: this.sessionId,
-      messageId: `msg-${Date.now()}`,
-      timestamp: new Date(),
-    };
 
-    try {
-      const response = await this.handleInput(input, context);
-      // Response will be displayed by the Ink component
-      this.eventEmitter.emit("response", response);
-    } catch (error) {
-      this.logger.error("Failed to process input", { error });
-      this.eventEmitter.emit("error", error);
+  protected async handleInput(
+    input: string,
+    context: MessageContext,
+  ): Promise<string> {
+    // Handle interface-specific commands
+    if (input.startsWith("/")) {
+      const localResponse = await this.handleLocalCommand(input, context);
+      if (localResponse !== null) {
+        return localResponse;
+      }
     }
+
+    // Everything else goes to Shell
+    return this.processMessage(input, context);
   }
 
-  // Event emitter methods for Ink component
-  public on(event: string, listener: (...args: unknown[]) => void): void {
-    this.eventEmitter.on(event, listener);
-  }
-
-  public off(event: string, listener: (...args: unknown[]) => void): void {
-    this.eventEmitter.off(event, listener);
+  protected async formatResponse(
+    queryResponse: DefaultQueryResponse,
+    _context: MessageContext,
+  ): Promise<string> {
+    // Use the shell:knowledge-query template's formatter
+    if (!this.context) {
+      throw new PluginInitializationError(
+        this.id,
+        "Plugin context not initialized",
+        { method: "formatResponse" }
+      );
+    }
+    return this.context.formatContent("shell:knowledge-query", queryResponse);
   }
 }

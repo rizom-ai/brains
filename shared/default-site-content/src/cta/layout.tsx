@@ -1,3 +1,4 @@
+import type { JSX } from "preact";
 import type { CTASection } from "./schema";
 
 export const CTALayout = ({

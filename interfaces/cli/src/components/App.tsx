@@ -1,8 +1,10 @@
-import React, { useState, useCallback } from "react";
+/** @jsxImportSource react */
+import { useState, useCallback, useEffect } from "react";
+import React from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import TextInput from "ink-text-input";
 import Spinner from "ink-spinner";
-import type { CLIInterface } from "../cli-interface.js";
+import type { MessageInterfacePlugin } from "@brains/utils";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -11,7 +13,7 @@ interface Message {
 }
 
 interface Props {
-  interface: CLIInterface;
+  interface: MessageInterfacePlugin;
 }
 
 export default function App({
@@ -29,7 +31,7 @@ export default function App({
   const { exit } = useApp();
 
   // Listen for responses from the interface
-  React.useEffect(() => {
+  useEffect(() => {
     const handleResponse = (...args: unknown[]): void => {
       const response = args[0] as string;
       setMessages((prev) => [

@@ -1,3 +1,4 @@
+import type { JSX } from "preact";
 import type { LandingHeroData } from "./schema";
 
 export const HeroLayout = ({

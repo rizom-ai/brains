@@ -1,10 +1,10 @@
 import type { Logger } from "@brains/utils";
-import { EventEmitter } from "events";
+import type { EventEmitter } from "events";
+import { PluginEvent } from "../types/plugin-manager";
 import type {
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
 } from "../types/plugin-manager";
-import { PluginEvent } from "../types/plugin-manager";
 import type { PluginTool, PluginResource } from "@brains/types";
 
 /**

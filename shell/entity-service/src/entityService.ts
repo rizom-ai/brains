@@ -545,8 +545,10 @@ export class EntityService implements IEntityService {
       }
     }
 
-    this.logger.info(
-      `Found ${searchResults.length} results for query "${query}"`,
+    // Log search results count without exposing the full query
+    const queryPreview = query.length > 50 ? query.substring(0, 50) + "..." : query;
+    this.logger.debug(
+      `Found ${searchResults.length} results for query "${queryPreview}"`,
     );
 
     return searchResults;

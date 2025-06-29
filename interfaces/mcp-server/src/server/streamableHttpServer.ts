@@ -146,7 +146,6 @@ export class StreamableHTTPServer {
             };
 
             // Connect transport to MCP server
-            // @ts-expect-error - MCP SDK type issue: sessionId is string | undefined
             await this.mcpServer.connect(transport);
 
             // Handle the initialization request

@@ -87,7 +87,7 @@ export class ContentGenerator {
    * Get a registered template
    */
   getTemplate(name: string): Template<unknown> | null {
-    return this.templates.get(name) || null;
+    return this.templates.get(name) ?? null;
   }
 
   /**
@@ -192,7 +192,14 @@ export class ContentGenerator {
     // Generate content as object first
     const contentObject = await this.generateContent(templateName, context);
 
-    // Apply formatter to convert to string for persistence
+    // Use the formatContent method to convert object to string
+    return this.formatContent(templateName, contentObject);
+  }
+
+  /**
+   * Format content using a template's formatter
+   */
+  formatContent<T = unknown>(templateName: string, data: T): string {
     const template = this.getTemplate(templateName);
     if (!template) {
       throw new Error(`Template not found: ${templateName}`);
@@ -203,7 +210,7 @@ export class ContentGenerator {
     }
 
     // Use the formatter to convert object to string
-    return template.formatter.format(contentObject);
+    return template.formatter.format(data);
   }
 
   /**

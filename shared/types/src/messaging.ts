@@ -25,7 +25,7 @@ export const baseMessageSchema = z.object({
  */
 export const messageWithPayloadSchema = <T extends z.ZodType>(
   payloadSchema: T,
-) =>
+): ReturnType<typeof baseMessageSchema.extend<{ payload: T }>> =>
   baseMessageSchema.extend({
     payload: payloadSchema,
   });

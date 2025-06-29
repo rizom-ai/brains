@@ -151,7 +151,7 @@ describe("PluginManager", (): void => {
         listViewTemplates: (): unknown[] => [],
         validateViewTemplate: (): boolean => true,
       }),
-      getMessageBus: () => MessageBus.getInstance(logger),
+      getMessageBus: (): MessageBus => MessageBus.getInstance(logger),
     };
     serviceRegistry.register("shell", () => mockShell as unknown as Shell);
 

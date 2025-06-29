@@ -1,4 +1,4 @@
-import { App, getMatrixInterfaceFromEnv } from "@brains/app";
+import { App } from "@brains/app";
 import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { templates, routes } from "@brains/default-site-content";
@@ -10,8 +10,6 @@ import { templates, routes } from "@brains/default-site-content";
 //   bun run src/index.ts --matrix     # MCP server + Matrix interface
 //   bun run src/index.ts --cli --matrix # All interfaces
 async function main(): Promise<void> {
-  // Get Matrix config from environment if available
-  const matrixInterface = getMatrixInterfaceFromEnv();
 
   await App.run({
     name: "test-brain",
@@ -35,57 +33,57 @@ async function main(): Promise<void> {
     // Interfaces can also be explicitly configured here
     interfaces: [
       // Add Matrix interface if configured in environment
-      ...(matrixInterface ? [matrixInterface] : []),
-      // Add Webserver interface if website output is configured
-      ...(process.env["WEBSITE_OUTPUT_DIR"]
-        ? [
-            {
-              type: "webserver" as const,
-              enabled: true,
-              config: {
-                previewDistDir: process.env["WEBSITE_OUTPUT_DIR"],
-                productionDistDir:
-                  process.env["WEBSITE_PRODUCTION_OUTPUT_DIR"] ??
-                  process.env["WEBSITE_OUTPUT_DIR"] + "-production",
-                previewPort: Number(
-                  process.env["WEBSITE_PREVIEW_PORT"] ?? 4321,
-                ),
-                productionPort: Number(
-                  process.env["WEBSITE_PRODUCTION_PORT"] ?? 8080,
-                ),
-              },
-            },
-          ]
-        : []),
+      // ...(matrixInterface ? [matrixInterface] : []),
+      // // Add Webserver interface if website output is configured
+      // ...(process.env["WEBSITE_OUTPUT_DIR"]
+      //   ? [
+      //     {
+      //       type: "webserver" as const,
+      //       enabled: true,
+      //       config: {
+      //         previewDistDir: process.env["WEBSITE_OUTPUT_DIR"],
+      //         productionDistDir:
+      //           process.env["WEBSITE_PRODUCTION_OUTPUT_DIR"] ??
+      //           process.env["WEBSITE_OUTPUT_DIR"] + "-production",
+      //         previewPort: Number(
+      //           process.env["WEBSITE_PREVIEW_PORT"] ?? 4321,
+      //         ),
+      //         productionPort: Number(
+      //           process.env["WEBSITE_PRODUCTION_PORT"] ?? 8080,
+      //         ),
+      //       },
+      //     },
+      //   ]
+      //   : []),
     ],
     plugins: [
       // Directory sync plugin for file-based storage (if configured)
       ...(process.env["SYNC_PATH"]
         ? [
-            directorySync({
-              syncPath: process.env["SYNC_PATH"],
-              watchEnabled: process.env["WATCH_ENABLED"] === "true",
-              watchInterval: process.env["WATCH_INTERVAL"]
-                ? Number(process.env["WATCH_INTERVAL"])
-                : 5000,
-              includeMetadata: true,
-            }),
-          ]
+          directorySync({
+            syncPath: process.env["SYNC_PATH"],
+            watchEnabled: process.env["WATCH_ENABLED"] === "true",
+            watchInterval: process.env["WATCH_INTERVAL"]
+              ? Number(process.env["WATCH_INTERVAL"])
+              : 5000,
+            includeMetadata: true,
+          }),
+        ]
         : []),
       // Site builder plugin for generating static sites
       ...(process.env["WEBSITE_OUTPUT_DIR"]
         ? [
-            siteBuilderPlugin({
-              previewOutputDir: process.env["WEBSITE_OUTPUT_DIR"],
-              productionOutputDir:
-                process.env["WEBSITE_PRODUCTION_OUTPUT_DIR"] ??
-                process.env["WEBSITE_OUTPUT_DIR"] + "-production",
-              workingDir:
-                process.env["WEBSITE_WORKING_DIR"] ?? "/tmp/site-builder",
-              templates, // Pass templates from default-site-content
-              routes, // Pass routes from default-site-content
-            }),
-          ]
+          siteBuilderPlugin({
+            previewOutputDir: process.env["WEBSITE_OUTPUT_DIR"],
+            productionOutputDir:
+              process.env["WEBSITE_PRODUCTION_OUTPUT_DIR"] ??
+              process.env["WEBSITE_OUTPUT_DIR"] + "-production",
+            workingDir:
+              process.env["WEBSITE_WORKING_DIR"] ?? "/tmp/site-builder",
+            templates, // Pass templates from default-site-content
+            routes, // Pass routes from default-site-content
+          }),
+        ]
         : []),
       // Future: noteContext(), taskContext(), etc.
     ],

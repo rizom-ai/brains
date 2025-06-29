@@ -1,4 +1,4 @@
-import { FunctionalComponent, type ComponentChildren } from "preact";
+import type { FunctionalComponent, ComponentChildren } from "preact";
 
 interface ButtonProps {
   onClick?: () => void;

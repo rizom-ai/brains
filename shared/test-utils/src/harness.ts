@@ -101,7 +101,7 @@ export class PluginTestHarness {
       ...data,
       id,
       entityType,
-      content: data.content ?? "Test content",
+      content: "content" in data ? data.content : "Test content",
       created: data.created ?? now,
       updated: data.updated ?? now,
     } as T;
@@ -230,6 +230,10 @@ export class PluginTestHarness {
           mockParsed: true,
         } as T;
       },
+      formatContent: <T = unknown>(templateName: string, data: T): string => {
+        // For test harness, return mock formatted content
+        return JSON.stringify({ templateName, data, mockFormatted: true });
+      },
       registerTemplate: (): void => {
         // Mock implementation for test harness
       },
@@ -259,6 +263,10 @@ export class PluginTestHarness {
       entityService: this.createMockEntityService(),
       // Route registration
       registerRoutes: (): void => {
+        // Mock implementation for test harness
+      },
+      // Daemon registration
+      registerDaemon: (): void => {
         // Mock implementation for test harness
       },
     };
@@ -326,7 +334,7 @@ export class PluginTestHarness {
         entity: EntityInput<T>,
       ): Promise<T> => {
         const entityType =
-          ((entity as Record<string, unknown>)["entityType"] as string) ??
+          ((entity as Record<string, unknown>)["entityType"] as string) ||
           "base";
         return this.createTestEntity(entityType, entity) as Promise<T>;
       },
