@@ -149,64 +149,156 @@ Current interfaces using `BaseInterface` will be migrated to the plugin pattern:
 4. Configuration handled through standard plugin config
 5. `BaseInterface` class becomes unnecessary - deleted after migration
 
-### 2.3.3 Implementation Examples (Updated with Actual Pattern)
+### 2.3.3 MessageInterfacePlugin Architecture (New Pattern)
 
-**IMPORTANT UPDATE**: During implementation, we discovered a much simpler and cleaner pattern than originally planned. Interface classes directly extend base plugin classes, eliminating the need for wrapper daemons.
+**IMPORTANT UPDATE**: The MessageInterfacePlugin architecture has been redesigned with a cleaner three-method pattern that separates different types of user input:
+
+#### Three Message Types and Methods
+
+```typescript
+export abstract class MessageInterfacePlugin<TConfig = unknown> extends InterfacePlugin<TConfig> {
+  
+  // 1. Context Messages - Store conversation context, no response needed
+  public async addContext(message: string, context: MessageContext): Promise<void> {
+    // Default: Store in conversation history for future reference
+    // Interfaces typically don't need to override this
+  }
+
+  // 2. Queries - Process through shell and return response
+  public async processQuery(query: string, context: MessageContext): Promise<string> {
+    // Default: Use shell's knowledge-query template to process and return response
+    const queryResponse = await this.context.generateContent("shell:knowledge-query", {
+      prompt: query,
+      data: { userId: context.userId, conversationId: context.channelId, ... }
+    });
+    return queryResponse.message;
+  }
+
+  // 3. Commands - Handle interface-specific commands
+  public async executeCommand(command: string, context: MessageContext): Promise<string> {
+    // Default: Return unknown command or delegate to shell
+    // Interfaces override this for interface-specific commands like /help, /quit
+    return "Unknown command";
+  }
+
+  // Entry point that routes input to appropriate method
+  protected abstract handleInput(input: string, context: MessageContext): Promise<string>;
+}
+```
+
+#### Benefits of Three-Method Pattern
+
+1. **Clear Separation**: Context vs queries vs commands are handled distinctly
+2. **Sensible Defaults**: Base class provides working implementations
+3. **Selective Overriding**: Interfaces only customize what they need
+4. **Easier Testing**: Test each message type independently
+5. **Consistent API**: All interfaces have same three capabilities
+
+#### Interface-Specific Customization
+
+- **CLI Interface**: Overrides `executeCommand()` for `/help`, `/clear`, `/quit`
+- **Matrix Interface**: Overrides `executeCommand()` for `/join`, `/leave`, Matrix-specific commands
+- **Future Interfaces**: Only override methods that need customization
+
+### 2.3.4 Implementation Examples (Updated with New Pattern)
 
 #### Example: CLI Implementation (✅ COMPLETED)
 
 ```typescript
 // interfaces/cli/src/cli-interface.ts
-import { MessageInterfacePlugin } from "@brains/utils";
-import type { DefaultQueryResponse, MessageContext } from "@brains/types";
+import { MessageInterfacePlugin } from "@brains/plugin-utils";
+import type { MessageContext } from "@brains/plugin-utils";
 import type { CLIConfig } from "./types";
 import packageJson from "../package.json";
 
 export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
-  constructor(config: CLIConfig = {}) {
-    super("cli", packageJson, config);
+  private inkApp: Instance | null = null;
+
+  constructor(config: CLIConfigInput = {}) {
+    const defaults = {
+      theme: { primaryColor: "#0066cc", accentColor: "#ff6600" },
+      shortcuts: {},
+    };
+    super("cli", packageJson, config, cliConfigSchema, defaults);
   }
 
   // MessageInterfacePlugin automatically handles daemon registration
   public async start(): Promise<void> {
-    // Start the CLI interface
+    this.logger.info("Starting CLI interface");
+    // Start the CLI interface with React/Ink
     this.inkApp = await this.createInkApp();
   }
 
   public async stop(): Promise<void> {
-    // Stop the CLI interface
+    this.logger.info("Stopping CLI interface");
     if (this.inkApp) {
       this.inkApp.unmount();
+      this.inkApp = null;
     }
   }
 
-  protected async handleLocalCommand(
+  // Override executeCommand for CLI-specific commands
+  public async executeCommand(
     command: string,
     context: MessageContext,
-  ): Promise<string | null> {
-    // Handle CLI-specific commands like /help, /quit
-    switch (command) {
-      case "/help":
+  ): Promise<string> {
+    const [cmd, ...args] = command.slice(1).split(" ");
+    
+    switch (cmd) {
+      case "help":
         return this.getHelpText();
-      case "/quit":
-      case "/exit":
+      case "clear":
+        console.clear();
+        return "";
+      case "exit":
+      case "quit":
         await this.stop();
         process.exit(0);
+        return "Exiting...";
+      case "context":
+        if (args.length === 0) {
+          return "Usage: /context <name>";
+        }
+        // Let shell handle context switching
+        return super.executeCommand(command, context);
       default:
-        return null; // Let Shell handle it
+        // Delegate to parent (returns "Unknown command" or processes via shell)
+        return super.executeCommand(command, context);
     }
   }
 
-  protected async formatResponse(
-    queryResponse: DefaultQueryResponse,
+  // Entry point that routes to appropriate method
+  protected async handleInput(
+    input: string,
     context: MessageContext,
   ): Promise<string> {
-    // Format for CLI display
-    let output = queryResponse.message || "No response generated";
-    if (queryResponse.sources?.length) {
-      output += `\n\n📚 Sources: ${queryResponse.sources.length} reference(s)`;
+    // Route commands to executeCommand
+    if (input.startsWith("/")) {
+      return this.executeCommand(input, context);
     }
-    return output;
+
+    // Regular messages go to processQuery
+    return this.processQuery(input, context);
+  }
+
+  private getHelpText(): string {
+    const shortcuts = this.config.shortcuts;
+    let helpText = `Available commands:
+• /help - Show this help message
+• /clear - Clear the screen
+• /exit - Exit the CLI
+• /context <name> - Switch to a different context
+
+Type any message to interact with the brain.`;
+
+    if (shortcuts && Object.keys(shortcuts).length > 0) {
+      const shortcutList = Object.entries(shortcuts)
+        .map(([key, value]) => `• ${key} → ${value}`)
+        .join("\n");
+      helpText += `\n\nShortcuts:\n${shortcutList}`;
+    }
+
+    return helpText;
   }
 }
 
@@ -215,78 +307,125 @@ import { CLIInterface } from "./cli-interface";
 export const cliPlugin = new CLIInterface();
 ```
 
-#### Example: Matrix Implementation (⏳ PLANNED)
+#### Example: Matrix Implementation (🚧 IN PROGRESS)
 
 ```typescript
 // interfaces/matrix/src/matrix-interface.ts
-import { MessageInterfacePlugin } from "@brains/utils";
-import type { DefaultQueryResponse, MessageContext } from "@brains/types";
-import type { MatrixConfig } from "./types";
+import { MessageInterfacePlugin } from "@brains/plugin-utils";
+import type { MessageContext } from "@brains/plugin-utils";
+import type { MatrixConfig, MatrixConfigInput } from "./schemas";
+import { MatrixClientWrapper } from "./client/matrix-client";
 import packageJson from "../package.json";
 
-export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
-  private matrixClient: MatrixClient | null = null;
+export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
+  declare protected config: MatrixConfig;
+  private client?: MatrixClientWrapper;
 
-  constructor(config: MatrixConfig) {
-    super("matrix", packageJson, config);
+  constructor(config: MatrixConfigInput, sessionId?: string) {
+    const defaults = {
+      publicToolsOnly: false,
+      autoJoinRooms: true,
+      enableEncryption: true,
+      enableReactions: true,
+      enableThreading: true,
+      commandPrefix: "!",
+      anchorPrefix: "!!",
+      // ... other defaults
+    };
+    super("matrix", packageJson, config, matrixConfigSchema, defaults, sessionId);
   }
 
   public async start(): Promise<void> {
-    // Initialize Matrix client and connect
-    this.matrixClient = new MatrixClient(this.config);
-    await this.matrixClient.connect();
-
-    // Set up message handlers
-    this.matrixClient.on("message", (message) => {
-      this.processInput(message.content, {
-        userId: message.sender,
-        channelId: message.roomId,
-        messageId: message.eventId,
-        timestamp: new Date(message.timestamp),
-      });
-    });
+    this.logger.info("Starting Matrix interface...");
+    
+    // Create Matrix client and connect
+    this.client = new MatrixClientWrapper(this.config, this.logger);
+    this.setupEventHandlers();
+    await this.client.start();
   }
 
   public async stop(): Promise<void> {
-    if (this.matrixClient) {
-      await this.matrixClient.disconnect();
-      this.matrixClient = null;
+    this.logger.info("Stopping Matrix interface...");
+    if (this.client) {
+      await this.client.stop();
     }
   }
 
-  protected async handleLocalCommand(
+  // Override executeCommand for Matrix-specific commands
+  public async executeCommand(
     command: string,
     context: MessageContext,
-  ): Promise<string | null> {
-    // Handle Matrix-specific commands
-    switch (command) {
-      case "/join":
+  ): Promise<string> {
+    const [cmd, ...args] = command.slice(1).split(" ");
+    
+    switch (cmd) {
+      case "join":
+        if (args.length === 0) return "Usage: /join <room-id>";
         // Join room logic
-        return "Joined room";
-      case "/leave":
-        // Leave room logic
+        await this.client?.joinRoom(args[0]);
+        return `Joined room ${args[0]}`;
+      case "leave":
+        // Leave current room logic
         return "Left room";
       default:
-        return null; // Let Shell handle it
+        // Delegate to parent (shell handles or unknown command)
+        return super.executeCommand(command, context);
     }
   }
 
-  protected async formatResponse(
-    queryResponse: DefaultQueryResponse,
+  // Entry point that routes to appropriate method
+  protected async handleInput(
+    input: string,
     context: MessageContext,
   ): Promise<string> {
-    // Format with Matrix markdown
-    let output = `**${queryResponse.message || "No response generated"}**`;
-    if (queryResponse.sources?.length) {
-      output += `\n\n📚 *Sources: ${queryResponse.sources.length} reference(s)*`;
+    // Check for anchor-only commands (!!command)
+    if (input.startsWith(this.config.anchorPrefix)) {
+      if (context.userId !== this.config.anchorUserId) {
+        throw new Error("This command is restricted to the anchor user");
+      }
+      // Process as command but remove extra prefix
+      const command = input.slice(this.config.anchorPrefix.length - 1);
+      return this.executeCommand(command, context);
     }
-    return output;
+
+    // Regular commands (!command)
+    if (input.startsWith(this.config.commandPrefix)) {
+      return this.executeCommand(input, context);
+    }
+
+    // Regular messages go to processQuery
+    return this.processQuery(input, context);
+  }
+
+  private setupEventHandlers(): void {
+    this.client?.on("room.message", async (roomId: string, event: any) => {
+      // Process message through handleInput which routes appropriately
+      const context: MessageContext = {
+        userId: event.sender,
+        channelId: roomId,
+        messageId: event.event_id,
+        timestamp: new Date(),
+        interfaceType: this.id,
+      };
+      
+      const response = await this.handleInput(event.content.body, context);
+      await this.sendResponse(roomId, event.event_id, response);
+    });
+  }
+
+  private async sendResponse(roomId: string, replyToEventId: string, response: string): Promise<void> {
+    // Format and send Matrix response
+    const html = this.markdownFormatter.markdownToHtml(response);
+    if (this.config.enableThreading) {
+      await this.client?.sendReply(roomId, replyToEventId, response, html);
+    } else {
+      await this.client?.sendFormattedMessage(roomId, response, html);
+    }
   }
 }
 
 // interfaces/matrix/src/plugin.ts - Simple export
 import { MatrixInterface } from "./matrix-interface";
-// Config would come from environment/settings
 export const matrixPlugin = new MatrixInterface(matrixConfig);
 ```
 
@@ -294,16 +433,31 @@ export const matrixPlugin = new MatrixInterface(matrixConfig);
 
 ```typescript
 // interfaces/webserver/src/webserver-interface.ts
-import { InterfacePlugin } from "@brains/utils";
-import type { WebserverConfig } from "./types";
+import { InterfacePlugin } from "@brains/plugin-utils";
+import type { WebserverConfig, WebserverConfigInput } from "./types";
+import { ServerManager } from "./server-manager";
 import packageJson from "../package.json";
 
-export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
+export class WebserverInterface extends InterfacePlugin<WebserverConfigInput> {
+  declare protected config: WebserverConfig;
   private serverManager: ServerManager;
 
-  constructor(config: WebserverConfig) {
-    super("webserver", packageJson, config);
-    this.serverManager = new ServerManager(config);
+  constructor(config: WebserverConfigInput = {}) {
+    const defaults = {
+      previewDistDir: "./dist",
+      productionDistDir: "./dist-production",
+      previewPort: 3456,
+      productionPort: 4567,
+    };
+    super("webserver", packageJson, config, webserverConfigSchema, defaults);
+    
+    this.serverManager = new ServerManager({
+      logger: this.logger,
+      previewDistDir: this.config.previewDistDir,
+      productionDistDir: this.config.productionDistDir,
+      previewPort: this.config.previewPort,
+      productionPort: this.config.productionPort,
+    });
   }
 
   // InterfacePlugin automatically handles daemon registration
@@ -321,6 +475,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   }
 
   // No message processing needed - webserver just serves static files
+  // Uses InterfacePlugin (not MessageInterfacePlugin) so no message methods
 }
 
 // interfaces/webserver/src/plugin.ts - Simple export
@@ -384,19 +539,23 @@ export const webserverPlugin = new WebserverInterface(webserverConfig);
 
 1. **CLI Interface Migration** ✅ COMPLETED
    - Successfully converted to extend MessageInterfacePlugin
-   - Simplified pattern works perfectly
+   - Implements new three-method pattern (addContext, processQuery, executeCommand)
+   - Overrides executeCommand() for CLI-specific commands (/help, /clear, /quit)
    - Daemon registration handled automatically by base class
-   - Template-based message processing implemented
+   - Template-based message processing through processQuery()
 
 2. **Webserver Interface Migration** 🚧 IN PROGRESS
    - Convert to extend InterfacePlugin (not MessageInterfacePlugin)
    - No message processing needed - just serves static files
+   - Uses new config pattern with defaults and zod validation
    - Daemon lifecycle handled by base class
 
-3. **Matrix Interface Migration** ⏳ PLANNED
-   - Will follow CLI pattern: extend MessageInterfacePlugin
-   - Handle Matrix protocol messages similar to CLI
-   - Automatic daemon registration via base class
+3. **Matrix Interface Migration** 🚧 IN PROGRESS
+   - Converting to extend MessageInterfacePlugin
+   - Implements new three-method pattern
+   - Overrides executeCommand() for Matrix-specific commands (/join, /leave)
+   - Uses config pattern with defaults for all Matrix settings
+   - Handles anchor-only commands via executeCommand()
 
 4. **MCP Transport Migration** ❌ NOT APPLICABLE
    - MCP transports are NOT interfaces - they're transport layers
@@ -475,13 +634,24 @@ export const webserverPlugin = new WebserverInterface(webserverConfig);
 
 ## Benefits of Unified Plugin Architecture
 
+### MessageInterfacePlugin Three-Method Pattern Benefits
+
+- **Clear Message Type Separation**: Context messages, queries, and commands handled distinctly
+- **Sensible Defaults**: Base class provides working implementations out of the box
+- **Selective Customization**: Interfaces only override methods they need to customize
+- **Easier Testing**: Test addContext(), processQuery(), and executeCommand() independently
+- **Consistent API**: All message interfaces support same three capabilities
+- **Better Maintainability**: Changes to message handling logic isolated to specific methods
+- **Flexible Routing**: Single entry point (handleInput) routes to appropriate method
+
 ### For Developers
 
 - **Single Pattern**: Same plugin pattern for all extensions (content + interface + MCP transport)
-- **Reduced Complexity**: No separate interface management system to learn
+- **Reduced Complexity**: No separate interface management system to learn  
 - **Consistent Testing**: Same testing patterns for all plugin types
 - **Clear Architecture**: All extensions managed uniformly by PluginManager
 - **Easy Development**: Familiar plugin pattern for all new interface development
+- **Message Flow Clarity**: Three distinct methods make interface behavior predictable
 
 ### For System
 
@@ -572,24 +742,34 @@ export const webserverPlugin = new WebserverInterface(webserverConfig);
 
 ## Next Steps
 
-1. **Complete Webserver Interface Migration** 🚧 CURRENT
-   - Convert to extend InterfacePlugin
+1. **Complete Matrix Interface Migration** 🚧 CURRENT
+   - Finish converting to extend MessageInterfacePlugin
+   - Implement new three-method pattern (addContext, processQuery, executeCommand)
+   - Fix remaining test issues to use new constructor signature
+   - Test Matrix integration with new message flow
+
+2. **Complete Webserver Interface Migration** 🚧 CURRENT
+   - Finish converting to extend InterfacePlugin
+   - Apply new config pattern with defaults
    - Remove BaseInterface dependency
    - Test with test-brain app
 
-2. **Migrate Matrix Interface** ⏳ NEXT
-   - Convert to extend MessageInterfacePlugin
-   - Follow CLI pattern for message processing
-   - Test Matrix integration
+3. **Implement New Message Flow Pattern** ⏳ NEXT
+   - Update MessageInterfacePlugin base class with three methods
+   - Ensure CLI interface uses new pattern correctly
+   - Update Matrix interface to use new pattern
+   - Test message routing logic
 
-3. **Cleanup Phase**
+4. **Cleanup Phase**
    - Remove BaseInterface from interface-core
+   - Remove deprecated methods (handleInput, handleLocalCommand, formatResponse)
    - Consider merging interface-core utilities into @brains/utils
    - Update all documentation
 
-4. **Final Testing**
-   - Integration test all interfaces
-   - Verify health monitoring
+5. **Final Testing**
+   - Integration test all interfaces with new message flow
+   - Verify daemon lifecycle management
+   - Test config pattern with defaults
    - Ensure MCP server integration unchanged
 
 ## Key Decisions Made
@@ -597,8 +777,12 @@ export const webserverPlugin = new WebserverInterface(webserverConfig);
 ✅ **Unified Plugin Architecture**: Interfaces implemented as plugins  
 ✅ **Simplified Pattern**: Direct inheritance from base classes (no wrappers)  
 ✅ **Two Interface Types**: MessageInterfacePlugin vs InterfacePlugin  
+✅ **Three-Method Message Pattern**: addContext(), processQuery(), executeCommand()  
+✅ **Config Pattern Standardization**: Partial input, defaults, zod validation  
+✅ **Elegant Logger Solution**: Protected getter with context fallback  
 ✅ **MCP Transports Unchanged**: Remain as transport classes, not plugins  
-✅ **Automatic Daemon Registration**: Base classes handle lifecycle
+✅ **Automatic Daemon Registration**: Base classes handle lifecycle  
+✅ **Template System Integration**: Remove formatResponse, templates handle formatting
 
 ## Lessons Learned
 
@@ -615,6 +799,9 @@ export const webserverPlugin = new WebserverInterface(webserverConfig);
 2. **Reuse Existing Patterns**: Base plugin classes already handle daemon lifecycle perfectly
 3. **Clear Separation**: Message-processing interfaces vs non-message interfaces
 4. **Transport ≠ Interface**: MCP transports connect to the MCP server, not user interfaces
+5. **Message Type Clarity**: Three distinct methods (context/query/command) much clearer than complex routing
+6. **Config Pattern Benefits**: Partial input + defaults + zod validation works perfectly for all plugins
+7. **Template Integration**: Removing formatResponse simplified interfaces significantly
 
 ---
 
