@@ -7,6 +7,7 @@ Last Updated: 2025-06-30
 ## ✅ Completed Components
 
 ### Core Infrastructure
+
 - **Shell Core** - Plugin system, registry, entity framework
 - **Database Layer** - SQLite with vector support
 - **MCP Server** - Model Context Protocol implementation
@@ -17,6 +18,7 @@ Last Updated: 2025-06-30
 - **AI Services** - Embeddings (FastEmbed) and chat (Anthropic)
 
 ### Base Packages
+
 - **@brains/plugin-utils** - Base classes for plugins:
   - `BasePlugin` - Base plugin functionality
   - `InterfacePlugin` - For non-message interfaces
@@ -29,6 +31,7 @@ Last Updated: 2025-06-30
 - **@brains/test-utils** - Testing utilities and harness
 
 ### Interfaces (as Plugins)
+
 - **CLI Interface** ✅ - Basic command-line interface
   - Extends `MessageInterfacePlugin`
   - Basic command handling and help system
@@ -44,6 +47,7 @@ Last Updated: 2025-06-30
   - Configurable ports and directories
 
 ### Feature Plugins
+
 - **Directory Sync Plugin** ✅ - File-based entity synchronization
   - Import/export entities to/from filesystem
   - Watch mode for real-time sync
@@ -59,6 +63,7 @@ Last Updated: 2025-06-30
   - Dashboard template
 
 ### Applications
+
 - **test-brain** ✅ - Reference implementation
   - Demonstrates plugin integration
   - Environment-based configuration
@@ -67,6 +72,7 @@ Last Updated: 2025-06-30
 ## 🚧 In Progress
 
 ### Interface Enhancements
+
 - **CLI Interface** - Full Ink implementation with rich UI
 - **Matrix Interface** - Additional features from original plan
 - **BaseInterface Removal** - Clean up deprecated code
@@ -76,6 +82,7 @@ Last Updated: 2025-06-30
 ### High Priority
 
 #### 1. Link Plugin (First Priority)
+
 - Web content capture with URL fetching
 - AI-powered summarization
 - Read/unread tracking
@@ -83,6 +90,7 @@ Last Updated: 2025-06-30
 - MCP tools for link management
 
 #### 2. Article Plugin (Second Priority)
+
 - Long-form content support
 - Draft/publish workflow
 - Series/collection support
@@ -90,6 +98,7 @@ Last Updated: 2025-06-30
 - MCP tools for article management
 
 #### 3. Content Generation Integration
+
 - Save parameter for generate_content tool
 - Generated-content entity type
 - Content management tools (list, promote, preview)
@@ -99,11 +108,13 @@ Last Updated: 2025-06-30
 ### Medium Priority
 
 #### Architecture Improvements
+
 - **Error Handling** - Standardized error handling for interfaces and plugins
 - **Entity Service Extraction** - Move to separate package
 - **Plugin Architecture Phase 2-4** - Enhanced abstractions and patterns
 
 #### Additional Entity Plugins
+
 - **Task Plugin** - Task tracking with due dates and priorities
 - **Profile Plugin** - User and contact management
 - **Project Plugin** - Project organization and metadata
@@ -111,10 +122,12 @@ Last Updated: 2025-06-30
 ### Lower Priority
 
 #### Package Extractions
+
 - **App Package** - Unified initialization helper
 - **Base Entity Package** - Extract base entity to separate package
 
 #### Deployment Enhancements
+
 - Docker deployment integration with brain commands
 - StreamableHTTP transport migration
 - Native module build strategy

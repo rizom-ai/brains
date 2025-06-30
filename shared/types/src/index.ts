@@ -57,3 +57,7 @@ export type {
   CreateEntityResponse,
   UpdateEntityResponse,
 } from "./schemas";
+
+// Permission types
+export { UserPermissionLevelSchema } from "./permissions";
+export type { UserPermissionLevel } from "./permissions";

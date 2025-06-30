@@ -291,6 +291,11 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         await this.client.sendReaction(roomId, eventId, "🤔");
       }
 
+      // TODO: Permission checking should be moved to shell level for better security
+      // Currently handling it at interface level as a temporary solution
+      // Get user permission level
+      const userPermissionLevel = this.permissionHandler.getUserPermissionLevel(senderId);
+
       // Create message context
       const messageContext: MessageContext = {
         userId: senderId,
@@ -298,6 +303,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         messageId: eventId,
         timestamp: new Date(),
         interfaceType: this.id,
+        userPermissionLevel,
       };
 
       // Check if message is an anchor-only command

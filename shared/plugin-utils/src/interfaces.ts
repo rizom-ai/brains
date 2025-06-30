@@ -1,5 +1,5 @@
 import { z, type ZodRawShape } from "zod";
-import type { Logger, ProgressNotification } from "@brains/utils";
+import type { Logger, ProgressNotification, UserPermissionLevel } from "@brains/utils";
 import type {
   BaseEntity,
   MessageHandler,
@@ -206,6 +206,7 @@ export interface MessageContext {
   threadId?: string;
   timestamp: Date;
   interfaceType: string; // The type of interface processing this message (set to pluginId: "cli", "matrix", etc.)
+  userPermissionLevel?: UserPermissionLevel; // Permission level in this specific context (room/channel)
 }
 
 /**
