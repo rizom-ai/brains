@@ -5,7 +5,7 @@ import { z } from "zod";
  */
 export const UserPermissionLevelSchema = z.enum([
   "anchor",
-  "trusted", 
+  "trusted",
   "public",
 ]);
 

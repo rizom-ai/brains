@@ -11,7 +11,7 @@ import {
 } from "@brains/embedding-service";
 import { ContentGenerator } from "@brains/content-generator";
 import { AIService } from "@brains/ai-service";
-import { Logger, LogLevel } from "@brains/utils";
+import { Logger, LogLevel, PermissionHandler } from "@brains/utils";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Plugin } from "@brains/plugin-utils";
 import type { Template } from "@brains/types";
@@ -41,6 +41,7 @@ export interface ShellDependencies {
   viewRegistry?: ViewRegistry;
   pluginManager?: PluginManager;
   contentGenerator?: ContentGenerator;
+  permissionHandler?: PermissionHandler;
 }
 
 /**
@@ -67,6 +68,7 @@ export class Shell {
   private readonly aiService: AIService;
   private readonly contentGenerator: ContentGenerator;
   private readonly mcpServer: McpServer;
+  private readonly permissionHandler: PermissionHandler;
   private initialized = false;
 
   /**
@@ -217,6 +219,12 @@ export class Shell {
         entityService: this.entityService,
         aiService: this.aiService,
       });
+
+    // Initialize permission handler
+    // TODO: Move permission config to ShellConfig instead of using defaults
+    this.permissionHandler =
+      dependencies?.permissionHandler ??
+      new PermissionHandler("default-anchor", []);
 
     // Use injected MCP server or create one
     if (dependencies?.mcpServer) {
@@ -490,5 +498,9 @@ export class Shell {
 
   public getLogger(): Logger {
     return this.logger;
+  }
+
+  public getPermissionHandler(): PermissionHandler {
+    return this.permissionHandler;
   }
 }

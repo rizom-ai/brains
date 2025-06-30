@@ -294,7 +294,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       // TODO: Permission checking should be moved to shell level for better security
       // Currently handling it at interface level as a temporary solution
       // Get user permission level
-      const userPermissionLevel = this.permissionHandler.getUserPermissionLevel(senderId);
+      const userPermissionLevel =
+        this.permissionHandler.getUserPermissionLevel(senderId);
 
       // Create message context
       const messageContext: MessageContext = {

@@ -17,31 +17,6 @@ export interface GenerationContext {
 }
 
 /**
- * Template for reusable generation patterns and view rendering
- */
-export interface Template<T = unknown> {
-  name: string;
-  description: string;
-  schema: z.ZodType<T>;
-  basePrompt: string;
-  /**
-   * Optional formatter for converting between structured data and human-editable markdown.
-   * If not provided, a default YAML formatter will be used.
-   */
-  formatter?: ContentFormatter<T>;
-  /**
-   * Optional layout definition for rendering this content type.
-   * If provided, the template can be used as a section layout.
-   */
-  layout?: {
-    component: ComponentType<T> | string; // Component function or path string
-    description?: string;
-    interactive?: boolean; // Whether this layout requires client-side interactivity
-    packageName?: string; // Package name for hydration script resolution
-  };
-}
-
-/**
  * Zod schema for Template validation (used in plugin configurations)
  */
 export const TemplateSchema = z.object({
@@ -49,12 +24,23 @@ export const TemplateSchema = z.object({
   description: z.string(),
   schema: z.any(), // ZodType can't be validated at runtime - required
   basePrompt: z.string(),
+  requiredPermission: z.enum(["anchor", "trusted", "public"]),
   formatter: z.any().optional(), // ContentFormatter instance
   layout: z
     .object({
       component: z.any(), // ComponentType or string
       description: z.string().optional(),
       interactive: z.boolean().optional(),
+      packageName: z.string().optional(),
     })
     .optional(),
 });
+
+/**
+ * Template for reusable generation patterns and view rendering
+ * Inferred from TemplateSchema with proper typing for generic T
+ */
+export interface Template<T = unknown> extends Omit<z.infer<typeof TemplateSchema>, 'schema' | 'formatter'> {
+  schema: z.ZodType<T>;
+  formatter?: ContentFormatter<T>;
+}

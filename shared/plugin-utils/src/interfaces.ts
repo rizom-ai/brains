@@ -1,5 +1,9 @@
 import { z, type ZodRawShape } from "zod";
-import type { Logger, ProgressNotification, UserPermissionLevel } from "@brains/utils";
+import type {
+  Logger,
+  ProgressNotification,
+  UserPermissionLevel,
+} from "@brains/utils";
 import type {
   BaseEntity,
   MessageHandler,

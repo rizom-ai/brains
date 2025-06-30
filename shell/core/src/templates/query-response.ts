@@ -37,6 +37,7 @@ export const queryResponseTemplate: Template<QueryResponse> = {
   name: "shell:query_response",
   description: "Template for structured query responses for public users",
   schema: queryResponseSchema,
+  requiredPermission: "public",
   basePrompt: `You are a helpful assistant providing information from a knowledge base.
 
 Generate a clear, informative response to the user's query based on the available context.

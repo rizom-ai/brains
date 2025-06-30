@@ -13,7 +13,7 @@ export const UserPermissionLevelSchema = z.enum([
 export type UserPermissionLevel = z.infer<typeof UserPermissionLevelSchema>;
 
 /**
- * Handles permission checking and tool filtering for Matrix users
+ * Handles permission checking and tool filtering for all interfaces
  */
 export class PermissionHandler {
   private readonly anchorUserId: string;
@@ -38,6 +38,22 @@ export class PermissionHandler {
   }
 
   /**
+   * Check if a user can access a specific template
+   */
+  canUseTemplate(userLevel: UserPermissionLevel, requiredPermission: UserPermissionLevel): boolean {
+    if (requiredPermission === "public") {
+      return true; // Everyone has public access
+    }
+
+    if (requiredPermission === "trusted") {
+      return userLevel === "trusted" || userLevel === "anchor";
+    }
+
+    // At this point, requiredPermission must be "anchor"
+    return userLevel === "anchor";
+  }
+
+  /**
    * Check if a user can use a specific command
    */
   canUseCommand(userId: string, _command: string): boolean {
@@ -54,18 +70,24 @@ export class PermissionHandler {
   }
 
   /**
-   * Filter tools based on user permissions
+   * Filter tools based on user permission level
    */
-  filterToolsByPermission(tools: PluginTool[], userId: string): PluginTool[] {
-    const level = this.getUserPermissionLevel(userId);
-
+  filterToolsByPermission(tools: PluginTool[], userLevel: UserPermissionLevel): PluginTool[] {
     // Anchor gets all tools
-    if (level === "anchor") {
+    if (userLevel === "anchor") {
       return tools;
     }
 
     // Public and trusted users only get public tools
     return tools.filter((tool) => tool.visibility === "public");
+  }
+
+  /**
+   * Filter tools based on user ID (convenience method)
+   */
+  filterToolsByUserId(tools: PluginTool[], userId: string): PluginTool[] {
+    const level = this.getUserPermissionLevel(userId);
+    return this.filterToolsByPermission(tools, level);
   }
 
   /**
