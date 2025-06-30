@@ -40,7 +40,8 @@ export const TemplateSchema = z.object({
  * Template for reusable generation patterns and view rendering
  * Inferred from TemplateSchema with proper typing for generic T
  */
-export interface Template<T = unknown> extends Omit<z.infer<typeof TemplateSchema>, 'schema' | 'formatter'> {
+export interface Template<T = unknown>
+  extends Omit<z.infer<typeof TemplateSchema>, "schema" | "formatter"> {
   schema: z.ZodType<T>;
   formatter?: ContentFormatter<T>;
 }

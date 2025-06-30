@@ -40,7 +40,10 @@ export class PermissionHandler {
   /**
    * Check if a user can access a specific template
    */
-  canUseTemplate(userLevel: UserPermissionLevel, requiredPermission: UserPermissionLevel): boolean {
+  canUseTemplate(
+    userLevel: UserPermissionLevel,
+    requiredPermission: UserPermissionLevel,
+  ): boolean {
     if (requiredPermission === "public") {
       return true; // Everyone has public access
     }
@@ -72,7 +75,10 @@ export class PermissionHandler {
   /**
    * Filter tools based on user permission level
    */
-  filterToolsByPermission(tools: PluginTool[], userLevel: UserPermissionLevel): PluginTool[] {
+  filterToolsByPermission(
+    tools: PluginTool[],
+    userLevel: UserPermissionLevel,
+  ): PluginTool[] {
     // Anchor gets all tools
     if (userLevel === "anchor") {
       return tools;

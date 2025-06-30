@@ -11,7 +11,12 @@ import {
 } from "@brains/embedding-service";
 import { ContentGenerator } from "@brains/content-generator";
 import { AIService } from "@brains/ai-service";
-import { Logger, LogLevel, PermissionHandler } from "@brains/utils";
+import {
+  Logger,
+  LogLevel,
+  PermissionHandler,
+  UserPermissionLevel,
+} from "@brains/utils";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Plugin } from "@brains/plugin-utils";
 import type { Template } from "@brains/types";
@@ -413,6 +418,7 @@ export class Shell {
       userId?: string;
       conversationId?: string;
       metadata?: Record<string, unknown>;
+      userPermissionLevel?: UserPermissionLevel;
     },
   ): Promise<DefaultQueryResponse> {
     if (!this.initialized) {
@@ -423,6 +429,27 @@ export class Shell {
           operation: "query",
         },
       );
+    }
+
+    // Check permissions if user permission level is provided
+    if (options?.userPermissionLevel) {
+      const template = this.contentGenerator.getTemplate(
+        "shell:knowledge-query",
+      );
+      if (!template) {
+        throw new Error("Template not found: shell:knowledge-query");
+      }
+
+      const hasPermission = this.permissionHandler.canUseTemplate(
+        options.userPermissionLevel,
+        template.requiredPermission,
+      );
+
+      if (!hasPermission) {
+        throw new Error(
+          `Insufficient permissions: ${template.requiredPermission} required, but user has ${options.userPermissionLevel}`,
+        );
+      }
     }
 
     // Use ContentGenerator with knowledge query template
