@@ -57,12 +57,16 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     input: string,
     context?: Partial<MessageContext>,
   ): Promise<void> {
+    const userId = context?.userId ?? "default-user";
+    const userPermissionLevel = this.determineUserPermissionLevel(userId);
+
     const fullContext: MessageContext = {
-      userId: context?.userId ?? "default-user",
+      userId,
       channelId: context?.channelId ?? this.sessionId,
       messageId: context?.messageId ?? `msg-${Date.now()}`,
       timestamp: context?.timestamp ?? new Date(),
       interfaceType: this.id,
+      userPermissionLevel,
       ...context,
     };
 

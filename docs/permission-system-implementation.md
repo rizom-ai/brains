@@ -2,125 +2,188 @@
 
 ## Overview
 
-This document outlines the implementation plan for centralizing permission checking in the Brain's shell core, moving away from interface-level permission handling to ensure consistent security enforcement across all interfaces.
+This document outlines the implementation plan for creating a unified security system in the Brain architecture. The system uses a Security Gateway abstraction to handle ALL permission decisions - templates, tools, resources, and future secured operations - through a single, consistent interface.
 
 ## Current State Analysis
 
 ### What Exists
 
 - `UserPermissionLevel` type: `"anchor" | "trusted" | "public"`
-- `PermissionHandler` class in `shared/utils/src/permission-handler.ts` with Matrix-specific logic
+- `PermissionHandler` class in `shared/utils/src/permission-handler.ts`
 - `MessageContext` interface with optional `userPermissionLevel` field
+- Template permission system: `requiredPermission` field on templates
 - Tool visibility system: `"public" | "anchor"` on `PluginTool`
-- Permission checking scattered across interfaces (Matrix has TODO comment)
+- Shell-level permission checking for queries (partial implementation)
 
 ### Problem Statement
 
-Permission checking is currently done at the interface level instead of the shell level, creating:
+Permission checking is scattered across multiple systems and layers, creating:
 
-- **Security inconsistencies** between different interfaces
-- **Code duplication** of permission logic
-- **Maintenance burden** when updating permission rules
-- **Potential security gaps** where interfaces might bypass checks
+- **Multiple permission systems** (templates, tools, resources) with different patterns
+- **Security gaps** where different execution paths bypass permission checks
+- **Inconsistent enforcement** between interfaces and execution contexts
+- **Code duplication** of permission logic across components
+- **Maintenance burden** when updating security rules
+- **Missing abstraction** for unified security decisions
 
-## Implementation Strategy
+## New Architecture: Security Gateway Pattern
 
 ### Core Principle
 
-**Interfaces determine user identity, Shell enforces permissions**
+**Single Security Gateway controls access to ALL protected resources**
 
-### Permission Flow
+### Key Abstractions
+
+#### AccessContext
+
+```typescript
+interface AccessContext {
+  userId: string;
+  userPermissionLevel: UserPermissionLevel;
+  interfaceType: string;
+  sessionId: string;
+  timestamp: Date;
+  metadata?: Record<string, unknown>;
+}
+```
+
+#### SecurityGateway
+
+```typescript
+interface SecurityGateway {
+  canAccessTemplate(context: AccessContext, template: Template): boolean;
+  canExecuteTool(context: AccessContext, tool: PluginTool): boolean;
+  canAccessResource(context: AccessContext, resource: PluginResource): boolean;
+  filterAvailableCapabilities(
+    context: AccessContext,
+    capabilities: PluginCapabilities,
+  ): PluginCapabilities;
+  createAccessContext(
+    userId: string,
+    interfaceType: string,
+    sessionId: string,
+  ): AccessContext;
+}
+```
+
+### Unified Permission Flow
 
 ```
-User Request → Interface (determines userId + permission level) →
-MessageContext → Shell.generateContent() → Permission Check →
-Tool Filtering → Template Execution (if authorized)
+User Request → Interface (creates AccessContext) →
+SecurityGateway.canAccess*() → Authorized Operation Execution
 ```
 
 ## Implementation Plan
 
-### Phase 1: Planning and Documentation ✓
+### Phase 1: Foundation and Analysis ✓
 
 - [x] Create this implementation plan document
-- [x] Define clear permission model and enforcement points
+- [x] Analyze existing permission systems and identify gaps
+- [x] Design Security Gateway architecture
+- [x] Update implementation plan with unified approach
 
-### Phase 2: Shell-Level Permission Integration
+### Phase 2: Security Gateway Implementation
 
-#### 2.1 Add PermissionHandler to Shell Core
+#### 2.1 Create AccessContext and SecurityGateway Interfaces
 
-**File:** `shell/core/src/shell.ts`
+**File:** `shared/types/src/security.ts` (new file)
 
-**Changes:**
-
-- Import and initialize `PermissionHandler` in Shell constructor
-- Add anchor user ID configuration (from environment/config)
-- Provide methods for interfaces to query user permission levels
-
-**Configuration:**
+**Create Core Abstractions:**
 
 ```typescript
-// Environment variables
-BRAIN_ANCHOR_USER_ID=user@example.com
-BRAIN_TRUSTED_USERS=user1@example.com,user2@example.com
+export interface AccessContext {
+  userId: string;
+  userPermissionLevel: UserPermissionLevel;
+  interfaceType: string;
+  sessionId: string;
+  timestamp: Date;
+  metadata?: Record<string, unknown>;
+}
+
+export interface SecurityGateway {
+  canAccessTemplate(context: AccessContext, template: Template): boolean;
+  canExecuteTool(context: AccessContext, tool: PluginTool): boolean;
+  canAccessResource(context: AccessContext, resource: PluginResource): boolean;
+  filterAvailableCapabilities(
+    context: AccessContext,
+    capabilities: PluginCapabilities,
+  ): PluginCapabilities;
+  createAccessContext(
+    userId: string,
+    interfaceType: string,
+    sessionId: string,
+  ): AccessContext;
+}
 ```
 
-#### 2.2 Modify Shell's generateContent Method
+#### 2.2 Implement SecurityGateway Class
 
-**File:** `shell/core/src/shell.ts`
-
-**Changes:**
-
-- Extract `userPermissionLevel` from `MessageContext`
-- Implement permission checking before template processing
-- Filter available tools based on user permission level
-- Return appropriate error for insufficient permissions
-- Keep templates permission-agnostic
+**File:** `shared/utils/src/security-gateway.ts` (new file)
 
 **Implementation:**
 
 ```typescript
-async generateContent<T>(templateName: string, context?: GenerationContext): Promise<T> {
-  // Extract user permission level from context
-  const userLevel = context?.data?.userPermissionLevel || 'public';
+export class SecurityGatewayImpl implements SecurityGateway {
+  private permissionHandler: PermissionHandler;
 
-  // Check template access permissions
-  if (!this.permissionHandler.canUseTemplate(userLevel, templateName)) {
-    throw new PermissionError(`Insufficient permissions for template: ${templateName}`);
+  constructor(permissionHandler: PermissionHandler) {
+    this.permissionHandler = permissionHandler;
   }
 
-  // Filter tools based on permission level
-  const availableTools = this.permissionHandler.filterToolsByPermission(
-    this.getAllTools(),
-    userLevel
-  );
+  canAccessTemplate(context: AccessContext, template: Template): boolean {
+    return this.permissionHandler.canUseTemplate(
+      context.userPermissionLevel,
+      template.requiredPermission,
+    );
+  }
 
-  // Proceed with template processing using filtered tools
-  return this.processTemplateWithTools(templateName, context, availableTools);
+  canExecuteTool(context: AccessContext, tool: PluginTool): boolean {
+    if (context.userPermissionLevel === "anchor") return true;
+    return tool.visibility === "public";
+  }
+
+  // ... other methods
 }
 ```
 
-### Phase 3: Interface Permission Assignment
+#### 2.3 Integrate SecurityGateway at Chokepoints
 
-#### 3.1 Update MessageInterfacePlugin Base Class
+**Files to Update:**
+
+- `shell/content-generator/src/content-generator.ts` - Template access control
+- `shell/core/src/mcp/mcpServerManager.ts` - Tool execution control
+- Plugin resource handlers - Resource access control
+
+### Phase 3: Interface Integration with AccessContext
+
+#### 3.1 Update Interface Base Classes
+
+**File:** `shared/plugin-utils/src/base-plugin.ts`
+
+**Changes:**
+
+- Add `determineUserPermissionLevel(userId: string): UserPermissionLevel` method to BasePlugin
+- Default implementation returns "public" for safety
+- Interfaces override to implement their permission model
 
 **File:** `shared/plugin-utils/src/message-interface-plugin.ts`
 
 **Changes:**
 
-- Add abstract method `determineUserPermissionLevel(userId: string): UserPermissionLevel`
-- Modify `processInput` to populate `userPermissionLevel` in MessageContext
-- Ensure all interfaces implement permission determination
+- Update `processInput` to create AccessContext using SecurityGateway
+- Pass AccessContext through to secured operations
+- Remove MessageContext.userPermissionLevel (replaced by AccessContext)
 
 #### 3.2 CLI Interface Implementation
 
 **File:** `interfaces/cli/src/cli-interface.ts`
 
-**Permission Level:** Always `"anchor"` (local access = full control)
+**AccessContext Creation:** Always `"anchor"` level (local access = full control)
 
 **Implementation:**
 
 ```typescript
-protected determineUserPermissionLevel(_userId: string): UserPermissionLevel {
+public determineUserPermissionLevel(_userId: string): UserPermissionLevel {
   return 'anchor'; // CLI access is always anchor level
 }
 ```
@@ -129,12 +192,12 @@ protected determineUserPermissionLevel(_userId: string): UserPermissionLevel {
 
 **File:** `interfaces/mcp-server/src/mcp-interface.ts`
 
-**Permission Level:** Always `"anchor"` (local tools access = full control)
+**AccessContext Creation:** Always `"anchor"` level (local tools access = full control)
 
 **Implementation:**
 
 ```typescript
-protected determineUserPermissionLevel(_userId: string): UserPermissionLevel {
+public determineUserPermissionLevel(_userId: string): UserPermissionLevel {
   return 'anchor'; // MCP tools access is always anchor level
 }
 ```
@@ -143,165 +206,162 @@ protected determineUserPermissionLevel(_userId: string): UserPermissionLevel {
 
 **File:** `interfaces/matrix/src/matrix-interface.ts`
 
-**Permission Level:** Dynamic based on user ID
-
-- Anchor user gets `"anchor"`
-- Configurable trusted users get `"trusted"`
-- Everyone else gets `"public"`
+**AccessContext Creation:** Dynamic based on user ID using Shell's SecurityGateway
 
 **Changes:**
 
-- Remove existing permission checking logic
-- Implement `determineUserPermissionLevel` to query shell's PermissionHandler
+- Remove existing Matrix-specific permission logic
+- Implement `determineUserPermissionLevel` using Shell's PermissionHandler
 - Remove Matrix-specific PermissionHandler instantiation
 
 **Implementation:**
 
 ```typescript
-protected determineUserPermissionLevel(userId: string): UserPermissionLevel {
+public determineUserPermissionLevel(userId: string): UserPermissionLevel {
   // Query shell's permission handler
   return this.context.getPermissionHandler().getUserPermissionLevel(userId);
 }
 ```
 
-### Phase 4: Generalize PermissionHandler
+### Phase 4: Remove Legacy Permission Systems
 
-#### 4.1 Update PermissionHandler Class
+#### 4.1 Clean Up Scattered Permission Code
 
-**File:** `shared/utils/src/permission-handler.ts`
+**Files to Clean:**
 
-**Changes:**
-
-- Remove Matrix-specific logic and comments
-- Make it interface-agnostic
-- Add template permission checking capabilities
-- Enhance tool filtering logic
+- Remove permission checking from `shell/core/src/shell.ts` query method
+- Remove MessageContext.userPermissionLevel field (replaced by AccessContext)
+- Consolidate PermissionHandler functionality into SecurityGateway
 
 ### Phase 5: Comprehensive Testing Strategy
 
-#### 5.1 Unit Tests for PermissionHandler
+#### 5.1 SecurityGateway Unit Tests
 
-**File:** `shared/utils/test/permission-handler.test.ts`
+**File:** `shared/utils/test/security-gateway.test.ts`
 
 **Test Coverage:**
 
-- User permission level determination
-- Tool filtering by permission level
-- Template access permissions
-- Trusted user management
+- AccessContext creation and validation
+- Template access permission checking
+- Tool execution permission checking
+- Resource access permission checking
+- Capability filtering
 - Edge cases and error conditions
 
-#### 5.2 Shell Permission Enforcement Tests
+#### 5.2 Integration Tests
 
-**File:** `shell/core/test/permission-enforcement.test.ts`
-
-**Test Coverage:**
-
-- `generateContent` with different permission levels
-- Tool filtering during template execution
-- Permission rejection scenarios
-- Error handling for insufficient permissions
-- Template access control
-
-#### 5.3 Interface Permission Tests
-
-**CLI Tests** (`interfaces/cli/test/permission.test.ts`):
-
-- Always returns "anchor" permission level
-- Proper MessageContext population
-
-**Matrix Tests** (`interfaces/matrix/test/permission.test.ts`):
-
-- Correct permission level based on user ID
-- Anchor user identification
-- Trusted user handling
-- Public user restrictions
-
-**MCP Tests** (`interfaces/mcp-server/test/permission.test.ts`):
-
-- Always returns "anchor" permission level
-- Tool access verification
-
-#### 5.4 Integration Tests
-
-**File:** `shell/integration-tests/test/permission-integration.test.ts`
+**File:** `shell/integration-tests/test/security-integration.test.ts`
 
 **Test Coverage:**
 
-- End-to-end permission flow testing
+- End-to-end security flow through all chokepoints
+- Template generation with different permission levels
+- Tool execution with different visibility levels
+- Resource access with different user levels
 - Cross-interface consistency verification
-- Security boundary validation
-- Privilege escalation prevention
-- Permission bypass attempts
+- Permission bypass prevention
 
-#### 5.5 Security Tests
+#### 5.3 Interface Security Tests
+
+**CLI Tests** (`interfaces/cli/test/security.test.ts`):
+
+- AccessContext creation with "anchor" level
+- SecurityGateway integration
+
+**Matrix Tests** (`interfaces/matrix/test/security.test.ts`):
+
+- Dynamic permission level determination
+- AccessContext creation based on user ID
+- Security boundary enforcement
+
+**MCP Tests** (`interfaces/mcp-server/test/security.test.ts`):
+
+- AccessContext creation with "anchor" level
+- Tool access verification through SecurityGateway
+
+#### 5.4 Security Validation Tests
 
 **Test Scenarios:**
 
-- Unauthorized template access attempts
+- Unauthorized template access attempts via all paths
 - Tool visibility bypass attempts
+- Resource access without proper permissions
 - Permission level spoofing
 - Context manipulation attacks
 - Interface switching privilege escalation
+- SecurityGateway bypass attempts
 
 ## Implementation Timeline
 
-### Phase 1: Foundation (Current)
+### Phase 1: Foundation ✓
 
-- [x] Create implementation plan
+- [x] Analyze existing permission systems and gaps
+- [x] Design Security Gateway architecture
+- [x] Create comprehensive implementation plan
 - [x] Update todo tracking
 
-### Phase 2: Core Implementation (Next)
+### Phase 2: Security Gateway Implementation (Next)
 
-- [ ] Generalize PermissionHandler class
-- [ ] Add PermissionHandler to Shell core
-- [ ] Implement shell-level permission enforcement
-- [ ] Update MessageInterfacePlugin base class
+- [ ] Create AccessContext and SecurityGateway interfaces
+- [ ] Implement SecurityGatewayImpl class
+- [ ] Integrate SecurityGateway at chokepoints:
+  - [ ] ContentGenerator for template access
+  - [ ] MCP tool execution
+  - [ ] Plugin resource access
 
-### Phase 3: Interface Updates
+### Phase 3: Interface Integration
 
-- [ ] Update CLI interface for anchor permissions
-- [ ] Update MCP interface for anchor permissions
-- [ ] Update Matrix interface to use shell permissions
-- [ ] Remove Matrix-specific permission code
+- [ ] Update BasePlugin with determineUserPermissionLevel method
+- [ ] Update MessageInterfacePlugin for AccessContext
+- [ ] Implement interface-specific permission determination:
+  - [ ] CLI interface (anchor level)
+  - [ ] MCP interface (anchor level)
+  - [ ] Matrix interface (dynamic levels)
 
-### Phase 4: Testing
+### Phase 4: Legacy Cleanup
 
-- [ ] Create comprehensive unit tests
-- [ ] Implement integration tests
-- [ ] Add security validation tests
-- [ ] Performance testing for permission checks
+- [ ] Remove scattered permission checks
+- [ ] Clean up duplicate permission code
+- [ ] Remove MessageContext.userPermissionLevel
+- [ ] Consolidate into SecurityGateway
 
-### Phase 5: Validation
+### Phase 5: Testing and Validation
 
-- [ ] End-to-end testing across all interfaces
-- [ ] Security review and validation
+- [ ] SecurityGateway unit tests
+- [ ] Integration tests across all chokepoints
+- [ ] Interface security tests
+- [ ] Security validation and penetration testing
+- [ ] Performance validation
 - [ ] Documentation updates
-- [ ] Performance impact assessment
 
 ## Success Criteria
 
 ### Functional Requirements
 
-- ✅ All permission checks happen at shell level
-- ✅ Interfaces only determine user identity
-- ✅ Templates remain permission-agnostic
-- ✅ Consistent behavior across all interfaces
-- ✅ Tool filtering based on permission levels
+- ✅ Single SecurityGateway controls ALL permission decisions
+- ✅ AccessContext propagates through all secured operations
+- ✅ Unified permission system for templates, tools, and resources
+- ✅ Interfaces create AccessContext, SecurityGateway enforces permissions
+- ✅ No bypass paths around security controls
+- ✅ Consistent behavior across all interfaces and execution paths
 
 ### Security Requirements
 
 - ✅ No privilege escalation vulnerabilities
-- ✅ Proper access control enforcement
+- ✅ Centralized access control enforcement
 - ✅ Secure by default (public permissions)
-- ✅ Audit trail for permission decisions
+- ✅ Protection against all known bypass patterns
+- ✅ Audit trail for all permission decisions
+- ✅ Defense in depth with single chokepoint architecture
 
 ### Quality Requirements
 
-- ✅ Comprehensive test coverage (>90%)
+- ✅ Comprehensive test coverage (>95%) including security tests
 - ✅ Clear error messages for permission denials
-- ✅ Minimal performance impact (<5ms per request)
-- ✅ Maintainable and extensible code
+- ✅ Minimal performance impact (<2ms per security check)
+- ✅ Clean, maintainable security architecture
+- ✅ Zero code duplication in permission logic
+- ✅ Easy to extend for new resource types
 
 ## Risk Mitigation
 
@@ -324,16 +384,19 @@ protected determineUserPermissionLevel(userId: string): UserPermissionLevel {
 
 ### Short Term
 
-- Permission caching for performance
-- Audit logging for permission decisions
-- Granular template-level permissions
+- AccessContext caching for performance optimization
+- Comprehensive audit logging for all SecurityGateway decisions
+- Resource-level permission granularity
+- SecurityGateway middleware for additional security layers
 
 ### Long Term
 
-- Role-based access control (RBAC)
-- Dynamic permission delegation
+- Role-based access control (RBAC) system
+- Dynamic permission delegation and inheritance
 - External permission providers integration
+- Multi-tenant security support
+- Permission policy as code
 
 ## Conclusion
 
-This implementation will establish a robust, centralized permission system that ensures consistent security enforcement across all Brain interfaces while maintaining clean separation of concerns and comprehensive test coverage.
+This Security Gateway implementation establishes a unified, robust security architecture that controls access to ALL protected resources (templates, tools, resources) through a single chokepoint. The design eliminates security gaps, reduces code duplication, and provides a maintainable foundation for comprehensive access control across the entire Brain ecosystem. The AccessContext abstraction ensures consistent security enforcement regardless of interface or execution path, while the SecurityGateway provides a clean extension point for future security enhancements.

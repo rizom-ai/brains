@@ -5,7 +5,7 @@ import type {
   PluginTool,
   PluginResource,
 } from "./interfaces";
-import { Logger } from "@brains/utils";
+import { Logger, type UserPermissionLevel } from "@brains/utils";
 import type { z } from "zod";
 
 /**
@@ -216,5 +216,14 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
       throw new Error(`Plugin ${this.id} not registered yet`);
     }
     return this.context;
+  }
+
+  /**
+   * Determine the permission level for a user in this plugin's context
+   * Must be implemented by plugins that handle user permissions
+   * Default implementation returns 'public' for safety
+   */
+  public determineUserPermissionLevel(_userId: string): UserPermissionLevel {
+    return "public";
   }
 }
