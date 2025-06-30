@@ -247,7 +247,10 @@ export class Shell {
       ? McpServerManager.createFresh(this.logger, this.mcpServer)
       : McpServerManager.getInstance(this.logger, this.mcpServer);
     mcpServerManager.initializeShellCapabilities({
-      generateContent: <T = unknown>(templateName: string, context?: Record<string, unknown>) =>
+      generateContent: <T = unknown>(
+        templateName: string,
+        context?: Record<string, unknown>,
+      ) =>
         this.generateContent<T>("", templateName, {
           userPermissionLevel: "anchor", // TODO: MCP access implies anchor permissions - for now
           ...(context || {}),
