@@ -7,11 +7,11 @@ section: hero
 
 ## Headline
 
-Elevate Your Knowledge, Amplify Your Impact
+Amplify Your Knowledge, Unlock Your Full Potential
 
 ## Subheadline
 
-Harness the power of a personal knowledge management system to transform your expertise into scalable impact.
+Rizom's Personal Brain empowers you to capture, connect, and leverage your expertise - without sacrificing your independence.
 
 ## CTA Text
 

@@ -13,9 +13,18 @@ import type { ContentGenerator } from "@brains/content-generator";
 import type { Logger } from "@brains/utils";
 
 export interface ShellMCPOptions {
-  contentGenerator: ContentGenerator;
-  entityService: EntityService;
+  generateContent: ContentGenerator["generateContent"];
+  search: EntityService["search"];
+  getEntity: EntityService["getEntity"];
+  getSupportedEntityTypes: EntityService["getSupportedEntityTypes"];
   logger: Logger;
+}
+
+export interface ShellMCPCapabilities {
+  generateContent: ContentGenerator["generateContent"];
+  search: EntityService["search"];
+  getEntity: EntityService["getEntity"];
+  getSupportedEntityTypes: EntityService["getSupportedEntityTypes"];
 }
 
 /**
@@ -42,15 +51,12 @@ export function registerShellMCP(
     },
     async (params) => {
       try {
-        const result = await options.contentGenerator.generateContent(
-          "shell:knowledge-query",
-          {
-            prompt: params["query"] as string,
-            data: {
-              userId: params["userId"],
-            },
+        const result = await options.generateContent("shell:knowledge-query", {
+          prompt: params["query"] as string,
+          data: {
+            userId: params["userId"],
           },
-        );
+        });
 
         return {
           content: [
@@ -88,13 +94,10 @@ export function registerShellMCP(
     },
     async (params) => {
       try {
-        const results = await options.entityService.search(
-          params["query"] as string,
-          {
-            types: [params["entityType"] as string],
-            limit: (params["limit"] as number) || 10,
-          },
-        );
+        const results = await options.search(params["query"] as string, {
+          types: [params["entityType"] as string],
+          limit: (params["limit"] as number) || 10,
+        });
 
         return {
           content: [
@@ -127,7 +130,7 @@ export function registerShellMCP(
     },
     async (params) => {
       try {
-        const entity = await options.entityService.getEntity(
+        const entity = await options.getEntity(
           params["entityType"] as string,
           params["id"] as string,
         );
@@ -157,7 +160,7 @@ export function registerShellMCP(
     },
     async (uri) => {
       try {
-        const types = options.entityService.getSupportedEntityTypes();
+        const types = options.getSupportedEntityTypes();
         return {
           contents: [
             {
@@ -184,7 +187,7 @@ export function registerShellMCP(
     },
     async (uri) => {
       try {
-        const types = options.entityService.getSupportedEntityTypes();
+        const types = options.getSupportedEntityTypes();
         const schemas = types.reduce(
           (acc, type) => {
             acc[type] = `Schema for ${type} entities`;

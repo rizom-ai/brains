@@ -7,11 +7,11 @@ section: cta
 
 ## Headline
 
-Elevate Your Knowledge, Amplify Your Impact
+Amplify Your Knowledge, Unlock Your Potential
 
 ## Description
 
-Transform your knowledge into a powerful force for growth and discovery. Join thousands who are already building their second brain with Rizom - the complete knowledge amplification ecosystem.
+Join thousands who are already building their second brain and transforming how they work and learn.
 
 ## Primary Button
 

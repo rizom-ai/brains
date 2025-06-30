@@ -15,7 +15,7 @@ import {
   Logger,
   LogLevel,
   PermissionHandler,
-  UserPermissionLevel,
+  type UserPermissionLevel,
 } from "@brains/utils";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Plugin } from "@brains/plugin-utils";
@@ -246,10 +246,18 @@ export class Shell {
     const mcpServerManager = dependencies?.mcpServer
       ? McpServerManager.createFresh(this.logger, this.mcpServer)
       : McpServerManager.getInstance(this.logger, this.mcpServer);
-    mcpServerManager.initializeShellCapabilities(
-      this.contentGenerator,
-      this.entityService,
-    );
+    mcpServerManager.initializeShellCapabilities({
+      generateContent: <T = unknown>(templateName: string, context?: Record<string, unknown>) =>
+        this.generateContent<T>("", templateName, {
+          userPermissionLevel: "anchor", // TODO: MCP access implies anchor permissions - for now
+          ...(context || {}),
+        }),
+      search: this.entityService.search.bind(this.entityService),
+      getEntity: this.entityService.getEntity.bind(this.entityService),
+      getSupportedEntityTypes: this.entityService.getSupportedEntityTypes.bind(
+        this.entityService,
+      ),
+    });
     mcpServerManager.setupPluginEventListeners(this.pluginManager);
 
     // Register core components in the service registry

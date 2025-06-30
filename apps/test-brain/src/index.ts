@@ -3,6 +3,7 @@ import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { templates, routes } from "@brains/default-site-content";
 import { MatrixInterface } from "@brains/matrix";
+import { WebserverInterface } from "@brains/webserver";
 
 // Run the app - command line args are parsed automatically by App
 // Usage:
@@ -35,31 +36,23 @@ async function main(): Promise<void> {
         sn: "search notes",
       },
     },
-    // Interfaces are now loaded as plugins below
-    interfaces: [
-      // // Add Webserver interface if website output is configured
-      // ...(process.env["WEBSITE_OUTPUT_DIR"]
-      //   ? [
-      //     {
-      //       type: "webserver" as const,
-      //       enabled: true,
-      //       config: {
-      //         previewDistDir: process.env["WEBSITE_OUTPUT_DIR"],
-      //         productionDistDir:
-      //           process.env["WEBSITE_PRODUCTION_OUTPUT_DIR"] ??
-      //           process.env["WEBSITE_OUTPUT_DIR"] + "-production",
-      //         previewPort: Number(
-      //           process.env["WEBSITE_PREVIEW_PORT"] ?? 4321,
-      //         ),
-      //         productionPort: Number(
-      //           process.env["WEBSITE_PRODUCTION_PORT"] ?? 8080,
-      //         ),
-      //       },
-      //     },
-      //   ]
-      //   : []),
-    ],
+    interfaces: [],
     plugins: [
+      // Webserver interface plugin (if configured in environment)
+      ...(process.env["WEBSITE_OUTPUT_DIR"]
+        ? [
+            new WebserverInterface({
+              previewDistDir: process.env["WEBSITE_OUTPUT_DIR"],
+              productionDistDir:
+                process.env["WEBSITE_PRODUCTION_OUTPUT_DIR"] ??
+                process.env["WEBSITE_OUTPUT_DIR"] + "-production",
+              previewPort: Number(process.env["WEBSITE_PREVIEW_PORT"] ?? 4321),
+              productionPort: Number(
+                process.env["WEBSITE_PRODUCTION_PORT"] ?? 8080,
+              ),
+            }),
+          ]
+        : []),
       // Matrix interface plugin (if configured in environment)
       ...(process.env["MATRIX_HOMESERVER"] &&
       process.env["MATRIX_ACCESS_TOKEN"] &&

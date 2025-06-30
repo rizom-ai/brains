@@ -56,7 +56,9 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   /**
    * CLI interface users have anchor permissions since CLI access indicates local/trusted access
    */
-  public override determineUserPermissionLevel(_userId: string): UserPermissionLevel {
+  public override determineUserPermissionLevel(
+    _userId: string,
+  ): UserPermissionLevel {
     return "anchor";
   }
 

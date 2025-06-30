@@ -56,6 +56,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
       schema: directorySyncStatusSchema,
       basePrompt: "",
       formatter: new DirectorySyncStatusFormatter(), // Use status formatter for template
+      requiredPermission: "anchor",
     });
 
     // Create DirectorySync instance

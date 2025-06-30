@@ -1,8 +1,7 @@
 import type { Logger } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerShellMCP } from "./index";
-import type { ContentGenerator } from "@brains/content-generator";
-import type { EntityService } from "@brains/entity-service";
+import type { ShellMCPCapabilities } from "./index";
 import type { PluginManager } from "../plugins/pluginManager";
 import { PluginEvent } from "../plugins/pluginManager";
 import type {
@@ -64,17 +63,13 @@ export class McpServerManager {
   /**
    * Initialize MCP server with shell capabilities
    */
-  public initializeShellCapabilities(
-    contentGenerator: ContentGenerator,
-    entityService: EntityService,
-  ): void {
+  public initializeShellCapabilities(capabilities: ShellMCPCapabilities): void {
     this.logger.debug("Initializing Shell MCP capabilities");
 
     try {
       // Register shell MCP capabilities
       registerShellMCP(this.mcpServer, {
-        contentGenerator,
-        entityService,
+        ...capabilities,
         logger: this.logger,
       });
 

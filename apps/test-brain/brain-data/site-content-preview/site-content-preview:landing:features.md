@@ -11,11 +11,11 @@ Features
 
 ## Headline
 
-Elevate Your Knowledge, Amplify Your Impact
+Organize, Search, Secure, and Amplify Your Knowledge
 
 ## Description
 
-Harness the power of a personal knowledge management system to organize your insights, surface critical information, and amplify your expertise.
+Rizom's Personal Brain empowers you to capture, connect, and leverage your expertise like never before. Unlock the full potential of your knowledge with these powerful features.
 
 ## Feature Cards
 
@@ -23,21 +23,21 @@ Harness the power of a personal knowledge management system to organize your ins
 
 #### Title
 
-Structured Knowledge
+Structured Storage
 
 #### Icon
 
-Brain
+FileText
 
 #### Description
 
-Seamlessly capture and connect your ideas, notes, and research in a dynamic knowledge graph.
+Organize your knowledge into a centralized, hierarchical structure for easy access and navigation.
 
 ### Feature Card 2
 
 #### Title
 
-Intelligent Search
+Powerful Search
 
 #### Icon
 
@@ -45,13 +45,13 @@ Search
 
 #### Description
 
-Instantly find the information you need with powerful search and discovery tools.
+Quickly find the information you need with advanced search capabilities across your entire knowledge base.
 
 ### Feature Card 3
 
 #### Title
 
-Secure Storage
+Secure Access
 
 #### Icon
 
@@ -59,4 +59,4 @@ Shield
 
 #### Description
 
-Keep your valuable knowledge safe and private with end-to-end encryption and access controls.
+Protect your sensitive information with granular access controls and robust encryption.
