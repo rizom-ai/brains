@@ -17,6 +17,7 @@ export {
   extractTitle,
   extractIndexedFields,
   generateMarkdown,
+  markdownToHtml,
 } from "./markdown";
 
 // Frontmatter utilities
@@ -71,3 +72,10 @@ export {
 
 // Formatters
 export * from "./formatters";
+
+// Permission handling
+export {
+  PermissionHandler,
+  UserPermissionLevelSchema,
+  type UserPermissionLevel,
+} from "./permission-handler";

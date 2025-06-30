@@ -2,13 +2,15 @@ import { App } from "@brains/app";
 import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { templates, routes } from "@brains/default-site-content";
+import { MatrixInterface } from "@brains/matrix";
 
 // Run the app - command line args are parsed automatically by App
 // Usage:
 //   bun run src/index.ts              # MCP server only
 //   bun run src/index.ts --cli        # MCP server + CLI interface
-//   bun run src/index.ts --matrix     # MCP server + Matrix interface
-//   bun run src/index.ts --cli --matrix # All interfaces
+//
+// Matrix interface is enabled automatically when environment variables are set:
+// MATRIX_HOMESERVER, MATRIX_ACCESS_TOKEN, MATRIX_USER_ID, MATRIX_ANCHOR_USER_ID
 async function main(): Promise<void> {
   await App.run({
     name: "test-brain",
@@ -23,16 +25,18 @@ async function main(): Promise<void> {
     logLevel: "debug",
     // CLI config used when --cli flag is present
     cliConfig: {
+      theme: {
+        primaryColor: "#00ff00",
+        accentColor: "#ffff00",
+      },
       shortcuts: {
         nn: "create note",
         ln: "list notes",
         sn: "search notes",
       },
     },
-    // Interfaces can also be explicitly configured here
+    // Interfaces are now loaded as plugins below
     interfaces: [
-      // Add Matrix interface if configured in environment
-      // ...(matrixInterface ? [matrixInterface] : []),
       // // Add Webserver interface if website output is configured
       // ...(process.env["WEBSITE_OUTPUT_DIR"]
       //   ? [
@@ -56,6 +60,23 @@ async function main(): Promise<void> {
       //   : []),
     ],
     plugins: [
+      // Matrix interface plugin (if configured in environment)
+      ...(process.env["MATRIX_HOMESERVER"] &&
+      process.env["MATRIX_ACCESS_TOKEN"] &&
+      process.env["MATRIX_USER_ID"] &&
+      process.env["MATRIX_ANCHOR_USER_ID"]
+        ? [
+            new MatrixInterface({
+              homeserver: process.env["MATRIX_HOMESERVER"],
+              accessToken: process.env["MATRIX_ACCESS_TOKEN"],
+              userId: process.env["MATRIX_USER_ID"],
+              anchorUserId: process.env["MATRIX_ANCHOR_USER_ID"],
+              trustedUsers: process.env["MATRIX_TRUSTED_USERS"]
+                ? process.env["MATRIX_TRUSTED_USERS"].split(",")
+                : undefined,
+            }),
+          ]
+        : []),
       // Directory sync plugin for file-based storage (if configured)
       ...(process.env["SYNC_PATH"]
         ? [

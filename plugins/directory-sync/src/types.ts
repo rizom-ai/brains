@@ -15,8 +15,8 @@ export const directorySyncConfigSchema = z.object({
 });
 
 export type DirectorySyncConfig = z.infer<typeof directorySyncConfigSchema>;
-export type DirectorySyncConfigInput = z.input<
-  typeof directorySyncConfigSchema
+export type DirectorySyncConfigInput = Partial<
+  z.input<typeof directorySyncConfigSchema>
 >;
 
 /**

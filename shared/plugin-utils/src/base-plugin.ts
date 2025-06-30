@@ -5,9 +5,8 @@ import type {
   PluginTool,
   PluginResource,
 } from "./interfaces";
-import type { Logger } from "@brains/utils";
+import { Logger } from "@brains/utils";
 import type { z } from "zod";
-import { validatePluginConfig } from "./config";
 
 /**
  * Base abstract class for plugins that provides common functionality
@@ -18,26 +17,30 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
   public readonly description: string;
   public readonly packageName: string;
   protected config: TConfig;
-  protected logger?: Logger;
   protected context?: PluginContext;
+
+  /**
+   * Get the logger - uses context logger if available, creates temp logger otherwise
+   */
+  protected get logger(): Logger {
+    return this.context?.logger ?? Logger.createFresh({ context: this.id });
+  }
 
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: unknown,
-    configSchema?: z.ZodType<TConfig>,
+    partialConfig: Partial<TConfig>,
+    configSchema: z.ZodType<TConfig>,
+    defaults: Partial<TConfig>,
   ) {
     this.id = id;
     this.packageName = packageJson.name;
     this.version = packageJson.version;
     this.description = packageJson.description ?? `${packageJson.name} plugin`;
 
-    // Validate config if schema provided
-    if (configSchema) {
-      this.config = validatePluginConfig(configSchema, config, this.id);
-    } else {
-      this.config = config as TConfig;
-    }
+    // Apply defaults and validate config
+    const configWithDefaults = { ...defaults, ...partialConfig };
+    this.config = configSchema.parse(configWithDefaults);
   }
 
   /**
@@ -45,7 +48,6 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
    */
   async register(context: PluginContext): Promise<PluginCapabilities> {
     this.context = context;
-    this.logger = context.logger;
 
     // Call lifecycle hook
     await this.onRegister(context);
@@ -100,7 +102,7 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
    * Helper to log debug messages (only if debug is enabled in config)
    */
   protected debug(message: string, data?: unknown): void {
-    if (this.logger && this.isDebugEnabled()) {
+    if (this.isDebugEnabled()) {
       this.logger.debug(`[${this.id}] ${message}`, data);
     }
   }
@@ -109,27 +111,21 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
    * Helper to log info messages
    */
   protected info(message: string, data?: unknown): void {
-    if (this.logger) {
-      this.logger.info(`[${this.id}] ${message}`, data);
-    }
+    this.logger.info(`[${this.id}] ${message}`, data);
   }
 
   /**
    * Helper to log warning messages
    */
   protected warn(message: string, data?: unknown): void {
-    if (this.logger) {
-      this.logger.warn(`[${this.id}] ${message}`, data);
-    }
+    this.logger.warn(`[${this.id}] ${message}`, data);
   }
 
   /**
    * Helper to log error messages
    */
   protected error(message: string, error?: unknown): void {
-    if (this.logger) {
-      this.logger.error(`[${this.id}] ${message}`, error);
-    }
+    this.logger.error(`[${this.id}] ${message}`, error);
   }
 
   /**

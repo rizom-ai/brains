@@ -157,7 +157,7 @@ Current interfaces using `BaseInterface` will be migrated to the plugin pattern:
 
 ```typescript
 export abstract class MessageInterfacePlugin<TConfig = unknown> extends InterfacePlugin<TConfig> {
-  
+
   // 1. Context Messages - Store conversation context, no response needed
   public async addContext(message: string, context: MessageContext): Promise<void> {
     // Default: Store in conversation history for future reference
@@ -243,7 +243,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     context: MessageContext,
   ): Promise<string> {
     const [cmd, ...args] = command.slice(1).split(" ");
-    
+
     switch (cmd) {
       case "help":
         return this.getHelpText();
@@ -332,12 +332,19 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       anchorPrefix: "!!",
       // ... other defaults
     };
-    super("matrix", packageJson, config, matrixConfigSchema, defaults, sessionId);
+    super(
+      "matrix",
+      packageJson,
+      config,
+      matrixConfigSchema,
+      defaults,
+      sessionId,
+    );
   }
 
   public async start(): Promise<void> {
     this.logger.info("Starting Matrix interface...");
-    
+
     // Create Matrix client and connect
     this.client = new MatrixClientWrapper(this.config, this.logger);
     this.setupEventHandlers();
@@ -357,7 +364,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     context: MessageContext,
   ): Promise<string> {
     const [cmd, ...args] = command.slice(1).split(" ");
-    
+
     switch (cmd) {
       case "join":
         if (args.length === 0) return "Usage: /join <room-id>";
@@ -407,13 +414,17 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         timestamp: new Date(),
         interfaceType: this.id,
       };
-      
+
       const response = await this.handleInput(event.content.body, context);
       await this.sendResponse(roomId, event.event_id, response);
     });
   }
 
-  private async sendResponse(roomId: string, replyToEventId: string, response: string): Promise<void> {
+  private async sendResponse(
+    roomId: string,
+    replyToEventId: string,
+    response: string,
+  ): Promise<void> {
     // Format and send Matrix response
     const html = this.markdownFormatter.markdownToHtml(response);
     if (this.config.enableThreading) {
@@ -450,7 +461,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfigInput> {
       productionPort: 4567,
     };
     super("webserver", packageJson, config, webserverConfigSchema, defaults);
-    
+
     this.serverManager = new ServerManager({
       logger: this.logger,
       previewDistDir: this.config.previewDistDir,
@@ -647,7 +658,7 @@ export const webserverPlugin = new WebserverInterface(webserverConfig);
 ### For Developers
 
 - **Single Pattern**: Same plugin pattern for all extensions (content + interface + MCP transport)
-- **Reduced Complexity**: No separate interface management system to learn  
+- **Reduced Complexity**: No separate interface management system to learn
 - **Consistent Testing**: Same testing patterns for all plugin types
 - **Clear Architecture**: All extensions managed uniformly by PluginManager
 - **Easy Development**: Familiar plugin pattern for all new interface development

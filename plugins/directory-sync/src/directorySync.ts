@@ -291,7 +291,18 @@ export class DirectorySync {
       }
     }
 
-    this.logger.info("Import completed", result);
+    // Only log at info level if we imported multiple files
+    if (filesToProcess.length > 1) {
+      this.logger.info("Import completed", {
+        filesProcessed: filesToProcess.length,
+        imported: result.imported,
+        skipped: result.skipped,
+        failed: result.failed,
+      });
+    } else {
+      // For single file imports (like from file watcher), use debug level
+      this.logger.debug("Import completed", result);
+    }
     return result;
   }
 

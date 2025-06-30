@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { matrixConfigSchema } from "./schemas";
+import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 
 /**
  * Configuration builder for Matrix interface
@@ -198,7 +198,9 @@ class MatrixConfigBuilder {
    * Build and validate the configuration
    */
   build(): z.infer<typeof matrixConfigSchema> {
-    return matrixConfigSchema.parse(this.config);
+    // Apply defaults before validation (same as MatrixInterface constructor)
+    const configWithDefaults = { ...MATRIX_CONFIG_DEFAULTS, ...this.config };
+    return matrixConfigSchema.parse(configWithDefaults);
   }
 }
 

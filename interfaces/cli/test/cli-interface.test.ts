@@ -30,9 +30,6 @@ describe("CLIInterface", () => {
     mockContext = {
       logger: createSilentLogger(),
       generateContent: generateContentMock,
-      formatContent: mock(
-        (template: string, data: any) => "Formatted response",
-      ),
       registerDaemon: mock(() => {}),
     } as unknown as PluginContext;
   });
@@ -47,7 +44,7 @@ describe("CLIInterface", () => {
     });
 
     it("should create instance with custom config", async () => {
-      const config: CLIConfig = {
+      const config = {
         shortcuts: {
           h: "/help",
           q: "/quit",
@@ -80,7 +77,7 @@ describe("CLIInterface", () => {
           prompt: "Hello world",
         }),
       );
-      expect(responseHandler).toHaveBeenCalledWith("Formatted response");
+      expect(responseHandler).toHaveBeenCalledWith("Query processed");
     });
 
     it("should handle /help command", async () => {
@@ -122,8 +119,9 @@ describe("CLIInterface", () => {
   });
 
   describe("event emitter", () => {
-    beforeEach(() => {
-      cliInterface = new CLIInterface(mockContext);
+    beforeEach(async () => {
+      cliInterface = new CLIInterface();
+      await cliInterface.register(mockContext);
     });
 
     it("should support event listeners", () => {
@@ -144,8 +142,9 @@ describe("CLIInterface", () => {
   });
 
   describe("start and stop", () => {
-    beforeEach(() => {
-      cliInterface = new CLIInterface(mockContext);
+    beforeEach(async () => {
+      cliInterface = new CLIInterface();
+      await cliInterface.register(mockContext);
     });
 
     it("should handle stop when no inkApp", async () => {

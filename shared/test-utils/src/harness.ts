@@ -213,6 +213,14 @@ export class PluginTestHarness {
           } as T;
         }
 
+        // Default response for shell:knowledge-query template
+        if (templateName === "shell:knowledge-query") {
+          return {
+            message: "Mock response from content generation",
+            results: [],
+          } as T;
+        }
+
         // Default response
         return {
           prompt: context?.prompt ?? "mock prompt",

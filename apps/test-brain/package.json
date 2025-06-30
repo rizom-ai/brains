@@ -18,7 +18,7 @@
     "start:cli": "./dist/test-brain --cli",
     "start:matrix": "./dist/test-brain --matrix",
     "start:all": "./dist/test-brain --cli --matrix",
-    "matrix:setup": "bun run ../../packages/matrix-setup/src/cli.ts",
+    "matrix:setup": "bun scripts/matrix-setup.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist"
@@ -29,6 +29,7 @@
     "@brains/db": "workspace:*",
     "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
+    "@brains/matrix-setup": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/webserver": "workspace:*",
     "preact": "^10.26.9"

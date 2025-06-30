@@ -1,53 +1,45 @@
-import type { BrainProtocol } from "@brains/types";
-import { BaseInterface } from "@brains/interface-core";
-import type { InterfaceContext, MessageContext } from "@brains/interface-core";
+import { InterfacePlugin } from "@brains/plugin-utils";
 import { ServerManager } from "./server-manager";
 import { existsSync } from "fs";
 import { join } from "path";
+import { z } from "zod";
+import packageJson from "../package.json";
 
-export interface WebserverOptions {
-  previewDistDir: string;
-  productionDistDir: string;
-  previewPort?: number;
-  productionPort?: number;
-}
+export const webserverConfigSchema = z.object({
+  previewDistDir: z.string(),
+  productionDistDir: z.string(),
+  previewPort: z.number(),
+  productionPort: z.number(),
+});
+
+export type WebserverConfig = z.infer<typeof webserverConfigSchema>;
+export type WebserverConfigInput = Partial<WebserverConfig>;
 
 /**
  * Webserver interface for serving static sites
  * This is a pure serving interface - site building is handled by site-builder
  */
-export class WebserverInterface extends BaseInterface {
-  public readonly id = "webserver";
-  public readonly description = "Serves static websites built by site-builder";
-
+export class WebserverInterface extends InterfacePlugin<WebserverConfigInput> {
+  declare protected config: WebserverConfig;
   private serverManager: ServerManager;
-  private options: WebserverOptions;
 
-  constructor(context: InterfaceContext, options?: WebserverOptions) {
-    super(context);
-
-    // Use provided options or defaults
-    this.options = {
-      previewDistDir: options?.previewDistDir ?? "./dist",
-      productionDistDir: options?.productionDistDir ?? "./dist-production",
-      previewPort: options?.previewPort ?? 3456,
-      productionPort: options?.productionPort ?? 4567,
+  constructor(config: WebserverConfigInput = {}) {
+    const defaults: Partial<WebserverConfig> = {
+      previewDistDir: "./dist",
+      productionDistDir: "./dist-production",
+      previewPort: 3456,
+      productionPort: 4567,
     };
 
-    this.serverManager = new ServerManager({
-      logger: this.logger.child("ServerManager"),
-      previewDistDir: this.options.previewDistDir,
-      productionDistDir: this.options.productionDistDir,
-      previewPort: this.options.previewPort as number,
-      productionPort: this.options.productionPort as number,
-    });
-  }
+    super("webserver", packageJson, config, webserverConfigSchema, defaults);
 
-  /**
-   * Initialize the interface with the brain protocol
-   */
-  async initialize(_protocol: BrainProtocol): Promise<void> {
-    // Protocol is available if needed in the future
+    this.serverManager = new ServerManager({
+      logger: this.logger,
+      previewDistDir: this.config.previewDistDir,
+      productionDistDir: this.config.productionDistDir,
+      previewPort: this.config.previewPort,
+      productionPort: this.config.productionPort,
+    });
   }
 
   /**
@@ -139,21 +131,21 @@ export class WebserverInterface extends BaseInterface {
 </html>`;
 
     // Create preview dist directory if it doesn't exist
-    if (!existsSync(this.options.previewDistDir)) {
-      await mkdir(this.options.previewDistDir, { recursive: true });
+    if (!existsSync(this.config.previewDistDir)) {
+      await mkdir(this.config.previewDistDir, { recursive: true });
 
       await writeFile(
-        join(this.options.previewDistDir, "index.html"),
+        join(this.config.previewDistDir, "index.html"),
         placeholderHtml,
       );
     }
 
     // Create production dist directory if it doesn't exist
-    if (!existsSync(this.options.productionDistDir)) {
-      await mkdir(this.options.productionDistDir, { recursive: true });
+    if (!existsSync(this.config.productionDistDir)) {
+      await mkdir(this.config.productionDistDir, { recursive: true });
 
       await writeFile(
-        join(this.options.productionDistDir, "index.html"),
+        join(this.config.productionDistDir, "index.html"),
         placeholderHtml,
       );
     }
@@ -172,17 +164,6 @@ export class WebserverInterface extends BaseInterface {
   isRunning(): boolean {
     const status = this.serverManager.getStatus();
     return status.preview || status.production;
-  }
-
-  /**
-   * Handle local commands for the webserver interface
-   */
-  protected async handleLocalCommand(
-    _command: string,
-    _context: MessageContext,
-  ): Promise<string | null> {
-    // Webserver has no local commands - all commands go to Shell
-    return null;
   }
 
   /**
@@ -253,11 +234,11 @@ export class WebserverInterface extends BaseInterface {
         description: "Get information about the current build",
         handler: async (): Promise<string> => {
           const previewIndexPath = join(
-            this.options.previewDistDir,
+            this.config.previewDistDir,
             "index.html",
           );
           const productionIndexPath = join(
-            this.options.productionDistDir,
+            this.config.productionDistDir,
             "index.html",
           );
 
@@ -273,13 +254,13 @@ export class WebserverInterface extends BaseInterface {
           if (previewExists) {
             const stats = await Bun.file(previewIndexPath).stat();
             const buildTime = stats.mtime.toLocaleString();
-            info += `Preview: ${this.options.previewDistDir} (built: ${buildTime})\n`;
+            info += `Preview: ${this.config.previewDistDir} (built: ${buildTime})\n`;
           }
 
           if (productionExists) {
             const stats = await Bun.file(productionIndexPath).stat();
             const buildTime = stats.mtime.toLocaleString();
-            info += `Production: ${this.options.productionDistDir} (built: ${buildTime})\n`;
+            info += `Production: ${this.config.productionDistDir} (built: ${buildTime})\n`;
           }
 
           return info.trim();

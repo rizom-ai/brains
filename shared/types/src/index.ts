@@ -10,11 +10,7 @@ export type { BaseEntity, EntityInput, SearchResult } from "./entities";
 export { baseEntitySchema } from "./entities";
 
 // Template types (used by both content and plugins)
-export type {
-  ComponentType,
-  GenerationContext,
-  Template,
-} from "./templates";
+export type { ComponentType, GenerationContext, Template } from "./templates";
 export { TemplateSchema } from "./templates";
 
 // Registry types

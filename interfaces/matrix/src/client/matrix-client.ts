@@ -152,9 +152,9 @@ export class MatrixClientWrapper {
   }
 
   /**
-   * Send a typing notification
+   * Set typing notification state
    */
-  async sendTyping(
+  async setTyping(
     roomId: string,
     isTyping: boolean,
     timeout?: number,

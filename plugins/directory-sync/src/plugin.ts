@@ -17,15 +17,30 @@ import {
 } from "./schemas";
 import packageJson from "../package.json";
 
+const DIRECTORY_SYNC_CONFIG_DEFAULTS = {
+  syncPath: "./brain-data",
+  watchEnabled: false,
+  watchInterval: 1000,
+  includeMetadata: true,
+} as const;
+
 /**
  * Directory Sync plugin that extends BasePlugin
  * Synchronizes brain entities with a directory structure
  */
-export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfig> {
+export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
+  // After validation with defaults, config is complete
+  declare protected config: DirectorySyncConfig;
   private directorySync?: DirectorySync;
 
-  constructor(config: unknown) {
-    super("directory-sync", packageJson, config, directorySyncConfigSchema);
+  constructor(config: DirectorySyncConfigInput = {}) {
+    super(
+      "directory-sync",
+      packageJson,
+      config,
+      directorySyncConfigSchema,
+      DIRECTORY_SYNC_CONFIG_DEFAULTS,
+    );
   }
 
   /**

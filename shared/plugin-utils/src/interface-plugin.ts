@@ -26,12 +26,12 @@ export abstract class InterfacePlugin<TConfig = unknown>
       start: async () => {
         await this.start();
         this.isStarted = true;
-        this.logger?.info(`${this.id} interface started`);
+        this.logger.info(`${this.id} interface started`);
       },
       stop: async () => {
         await this.stop();
         this.isStarted = false;
-        this.logger?.info(`${this.id} interface stopped`);
+        this.logger.info(`${this.id} interface stopped`);
       },
       healthCheck: async () => {
         return {

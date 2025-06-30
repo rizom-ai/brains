@@ -1,4 +1,5 @@
 import matter from "gray-matter";
+import { marked } from "marked";
 
 /**
  * Parse frontmatter and content from markdown
@@ -102,4 +103,19 @@ export function generateMarkdown(
   content: string,
 ): string {
   return matter.stringify(content, frontmatter);
+}
+
+/**
+ * Convert markdown to HTML
+ * Uses marked for conversion with sensible defaults
+ */
+export function markdownToHtml(markdown: string): string {
+  // Configure marked with sensible defaults if not already configured
+  marked.setOptions({
+    gfm: true, // GitHub Flavored Markdown
+    breaks: true, // Convert line breaks to <br>
+    pedantic: false, // Don't conform to original markdown.pl
+  });
+
+  return marked(markdown) as string;
 }

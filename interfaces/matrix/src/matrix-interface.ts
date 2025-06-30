@@ -1,34 +1,43 @@
 import {
-  BaseInterface,
-  type InterfaceContext,
+  MessageInterfacePlugin,
   type MessageContext,
-} from "@brains/interface-core";
-import { matrixConfigSchema } from "./schemas";
-import type { MatrixConfig } from "./types";
+} from "@brains/plugin-utils";
+import { PermissionHandler, markdownToHtml } from "@brains/utils";
+import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
+import type { MatrixConfigInput, MatrixConfig } from "./schemas";
 import { MatrixClientWrapper } from "./client/matrix-client";
-import { PermissionHandler } from "@brains/interface-core";
-import { MarkdownFormatter } from "./formatters/markdown-formatter";
+// MentionPill is for creating mentions, not detecting them
+import packageJson from "../package.json";
 
 /**
  * Matrix interface for Personal Brain
  * Provides chat-based interaction through Matrix protocol
  */
-export class MatrixInterface extends BaseInterface {
+export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
+  // After validation with defaults, config is complete
+  declare protected config: MatrixConfig;
   private client?: MatrixClientWrapper;
   private permissionHandler?: PermissionHandler;
-  private markdownFormatter: MarkdownFormatter;
-  private config: MatrixConfig;
 
-  constructor(context: InterfaceContext, config: MatrixConfig) {
-    super(context);
-    this.config = matrixConfigSchema.parse(config);
-    this.markdownFormatter = new MarkdownFormatter();
+  constructor(config: MatrixConfigInput, sessionId?: string) {
+    super(
+      "matrix",
+      packageJson,
+      config,
+      matrixConfigSchema,
+      MATRIX_CONFIG_DEFAULTS,
+      sessionId,
+    );
   }
 
   /**
    * Start the interface
    */
   async start(): Promise<void> {
+    if (!this.context) {
+      throw new Error("Matrix interface must be registered before starting");
+    }
+
     // Create permission handler
     this.permissionHandler = new PermissionHandler(
       this.config.anchorUserId,
@@ -64,14 +73,53 @@ export class MatrixInterface extends BaseInterface {
   }
 
   /**
-   * Handle local commands
+   * Handle user input with Matrix-specific routing logic
    */
-  protected async handleLocalCommand(
-    _command: string,
-    _context: MessageContext,
-  ): Promise<string | null> {
-    // Matrix doesn't have local commands in Phase 1
-    return null;
+  protected override async handleInput(
+    input: string,
+    context: MessageContext,
+  ): Promise<string> {
+    // Check for anchor-only commands (!!command)
+    if (input.startsWith(this.config.anchorPrefix)) {
+      if (context.userId !== this.config.anchorUserId) {
+        throw new Error("This command is restricted to the anchor user");
+      }
+      // Process as command but remove extra prefix
+      const command = input.slice(this.config.anchorPrefix.length - 1);
+      return this.executeCommand(command, context);
+    }
+
+    // Use default routing (commands start with /, everything else is query)
+    return super.handleInput(input, context);
+  }
+
+  /**
+   * Execute Matrix-specific commands
+   */
+  public override async executeCommand(
+    command: string,
+    context: MessageContext,
+  ): Promise<string> {
+    const [cmd, ...args] = command.slice(1).split(" ");
+
+    switch (cmd) {
+      case "join": {
+        if (args.length === 0) return "Usage: /join <room-id>";
+        const roomId = args[0];
+        if (!roomId) return "Room ID is required";
+        if (this.client) {
+          await this.client.joinRoom(roomId);
+          return `Joined room ${roomId}`;
+        }
+        return "Matrix client not available";
+      }
+      case "leave":
+        // Could implement leave room logic here
+        return "Leave room functionality not implemented yet";
+      default:
+        // Let parent handle unknown commands
+        return super.executeCommand(command, context);
+    }
   }
 
   /**
@@ -108,7 +156,15 @@ export class MatrixInterface extends BaseInterface {
   ): Promise<void> {
     const messageEvent = event as {
       sender?: string;
-      content?: { msgtype?: string; body?: string };
+      content?: {
+        msgtype?: string;
+        body?: string;
+        formatted_body?: string;
+        format?: string;
+        "m.mentions"?: {
+          user_ids?: string[];
+        };
+      };
       event_id?: string;
     };
 
@@ -119,6 +175,28 @@ export class MatrixInterface extends BaseInterface {
 
     // Only handle text messages for now
     if (messageEvent.content?.msgtype !== "m.text") {
+      return;
+    }
+
+    const messageBody = messageEvent.content?.body;
+    if (!messageBody) {
+      return;
+    }
+
+    // Only respond if we're explicitly addressed or it's a command
+    if (!this.isAddressedToBot(messageEvent) && !this.isCommand(messageBody)) {
+      return;
+    }
+
+    // For anchor commands, check permission before processing
+    if (
+      messageBody.startsWith(this.config.anchorPrefix) &&
+      messageEvent.sender !== this.config.anchorUserId
+    ) {
+      this.logger.debug("Ignoring anchor command from non-anchor user", {
+        sender: messageEvent.sender,
+        command: messageBody.substring(0, 50),
+      });
       return;
     }
 
@@ -158,7 +236,12 @@ export class MatrixInterface extends BaseInterface {
     roomId: string,
     event: {
       sender?: string;
-      content?: { body?: string };
+      content?: {
+        body?: string;
+        "m.mentions"?: {
+          user_ids?: string[];
+        };
+      };
       event_id?: string;
     },
   ): Promise<void> {
@@ -179,20 +262,32 @@ export class MatrixInterface extends BaseInterface {
     });
 
     try {
-      // Get user permission level
+      // Get user permission level and validate access
       if (!this.permissionHandler) {
         throw new Error("Permission handler not initialized");
       }
       const permissionLevel =
         this.permissionHandler.getUserPermissionLevel(senderId);
 
-      // Send typing indicator
-      if (this.config.enableTypingNotifications && this.client) {
-        await this.client.sendTyping(roomId, true);
+      // Log the interaction for audit purposes
+      this.logger.debug("Processing message", {
+        senderId,
+        permissionLevel,
+        roomId,
+        messageLength: message.length,
+      });
+
+      if (!this.client) {
+        throw new Error("Matrix client not initialized");
+      }
+
+      // Set typing indicator
+      if (this.config.enableTypingNotifications) {
+        await this.client.setTyping(roomId, true);
       }
 
       // Add thinking reaction
-      if (this.config.enableReactions && this.client) {
+      if (this.config.enableReactions) {
         await this.client.sendReaction(roomId, eventId, "🤔");
       }
 
@@ -202,21 +297,25 @@ export class MatrixInterface extends BaseInterface {
         channelId: roomId,
         messageId: eventId,
         timestamp: new Date(),
+        interfaceType: this.id,
       };
 
-      // Process the message
-      const response = await this.processMessageWithContext(
-        message,
-        senderId,
-        permissionLevel,
-        messageContext,
-      );
+      // Check if message is an anchor-only command
+      if (message.startsWith(this.config.anchorPrefix)) {
+        // Only process if sender is the anchor user
+        if (senderId !== this.config.anchorUserId) {
+          throw new Error("This command is restricted to the anchor user");
+        }
+      }
+
+      // Process the message using our handleInput method
+      const response = await this.handleInput(message, messageContext);
 
       // Send the response
       await this.sendResponse(roomId, eventId, response);
 
       // Add done reaction
-      if (this.config.enableReactions && this.client) {
+      if (this.config.enableReactions) {
         await this.client.sendReaction(roomId, eventId, "✅");
       }
     } catch (error) {
@@ -225,31 +324,9 @@ export class MatrixInterface extends BaseInterface {
     } finally {
       // Stop typing indicator
       if (this.config.enableTypingNotifications && this.client) {
-        await this.client.sendTyping(roomId, false);
+        await this.client.setTyping(roomId, false);
       }
     }
-  }
-
-  /**
-   * Process a message and generate a response
-   */
-  private async processMessageWithContext(
-    message: string,
-    senderId: string,
-    _permissionLevel: string,
-    messageContext: MessageContext,
-  ): Promise<string> {
-    // Check if message is an anchor-only command
-    if (message.startsWith(this.config.anchorPrefix)) {
-      // Only process if sender is the anchor user
-      if (senderId !== this.config.anchorUserId) {
-        throw new Error("This command is restricted to the anchor user");
-      }
-    }
-
-    // For Phase 1, use the processQuery method from BaseInterface
-    // In future phases, we'll filter tools based on permission level
-    return this.processQuery(message, messageContext);
   }
 
   /**
@@ -261,7 +338,7 @@ export class MatrixInterface extends BaseInterface {
     response: string,
   ): Promise<void> {
     // Convert markdown to HTML
-    const html = this.markdownFormatter.markdownToHtml(response);
+    const html = markdownToHtml(response);
 
     if (!this.client) {
       throw new Error("Matrix client not initialized");
@@ -287,7 +364,7 @@ export class MatrixInterface extends BaseInterface {
       error instanceof Error ? error.message : "An unknown error occurred";
     const response = `❌ **Error:** ${errorMessage}`;
 
-    const html = this.markdownFormatter.markdownToHtml(response);
+    const html = markdownToHtml(response);
 
     if (!this.client) {
       throw new Error("Matrix client not initialized");
@@ -298,5 +375,37 @@ export class MatrixInterface extends BaseInterface {
     } else {
       await this.client.sendFormattedMessage(roomId, response, html, true);
     }
+  }
+
+  /**
+   * Check if the message is addressed to this bot
+   */
+  private isAddressedToBot(event: {
+    content?: {
+      "m.mentions"?: {
+        user_ids?: string[];
+      };
+    };
+  }): boolean {
+    const userIds = event.content?.["m.mentions"]?.user_ids;
+    const isAddressed = userIds?.includes(this.config.userId) ?? false;
+
+    this.logger.debug("Checking if bot is addressed", {
+      botUserId: this.config.userId,
+      mentionedUserIds: userIds,
+      isAddressed,
+    });
+
+    return isAddressed;
+  }
+
+  /**
+   * Check if the message is a command
+   */
+  private isCommand(message: string): boolean {
+    return (
+      message.startsWith(this.config.commandPrefix) ||
+      message.startsWith(this.config.anchorPrefix)
+    );
   }
 }

@@ -1,14 +1,18 @@
 import { z, type ZodRawShape } from "zod";
 import type { Logger, ProgressNotification } from "@brains/utils";
-import type { 
+import type {
   BaseEntity,
   MessageHandler,
   MessageSender,
   GenerationContext,
-  Template
+  Template,
 } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
-import type { RouteDefinition, SectionDefinition, ViewTemplate } from "@brains/view-registry";
+import type {
+  RouteDefinition,
+  SectionDefinition,
+  ViewTemplate,
+} from "@brains/view-registry";
 import type { IEntityService } from "@brains/entity-service";
 
 /**
@@ -185,7 +189,7 @@ export interface IInterfacePlugin extends Plugin {
    * Start the interface
    */
   start(): Promise<void>;
-  
+
   /**
    * Stop the interface
    */
@@ -213,12 +217,12 @@ export interface IMessageInterfacePlugin extends IInterfacePlugin {
    * The unique session ID for this interface instance
    */
   readonly sessionId: string;
-  
+
   /**
    * Process user input and emit response/error events
    */
   processInput(input: string, context?: Partial<MessageContext>): Promise<void>;
-  
+
   /**
    * EventEmitter methods for message interfaces
    */

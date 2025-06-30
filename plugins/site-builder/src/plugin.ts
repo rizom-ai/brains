@@ -1,5 +1,9 @@
 import { BasePlugin } from "@brains/plugin-utils";
-import type { PluginContext, PluginTool, PluginResource } from "@brains/plugin-utils";
+import type {
+  PluginContext,
+  PluginTool,
+  PluginResource,
+} from "@brains/plugin-utils";
 import type { Template } from "@brains/types";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import { RouteDefinitionSchema } from "@brains/view-registry";
@@ -55,17 +59,31 @@ const siteBuilderConfigSchema = z.object({
 });
 
 type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema>;
+type SiteBuilderConfigInput = Partial<z.input<typeof siteBuilderConfigSchema>>;
+
+const SITE_BUILDER_CONFIG_DEFAULTS = {
+  previewOutputDir: "./site-preview",
+  productionOutputDir: "./site-production",
+} as const;
 
 /**
  * Site Builder Plugin
  * Provides static site generation capabilities
  */
-export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
+export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
+  // After validation with defaults, config is complete
+  declare protected config: SiteBuilderConfig;
   private siteBuilder?: SiteBuilder;
   private siteContentManager?: SiteContentManager;
 
-  constructor(config: unknown = {}) {
-    super("site-builder", packageJson, config, siteBuilderConfigSchema);
+  constructor(config: SiteBuilderConfigInput = {}) {
+    super(
+      "site-builder",
+      packageJson,
+      config,
+      siteBuilderConfigSchema,
+      SITE_BUILDER_CONFIG_DEFAULTS,
+    );
   }
 
   /**
@@ -824,6 +842,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfig> {
 /**
  * Factory function to create the plugin
  */
-export function siteBuilderPlugin(config?: unknown): SiteBuilderPlugin {
+export function siteBuilderPlugin(
+  config?: SiteBuilderConfigInput,
+): SiteBuilderPlugin {
   return new SiteBuilderPlugin(config);
 }

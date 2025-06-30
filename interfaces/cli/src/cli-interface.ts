@@ -1,8 +1,11 @@
-import { MessageInterfacePlugin, PluginInitializationError } from "@brains/plugin-utils";
+import {
+  MessageInterfacePlugin,
+  PluginInitializationError,
+} from "@brains/plugin-utils";
 import type { MessageContext } from "@brains/plugin-utils";
-import type { DefaultQueryResponse } from "@brains/types";
 import type { Instance } from "ink";
-import type { CLIConfig } from "./types";
+import type { CLIConfig, CLIConfigInput } from "./types";
+import { cliConfigSchema } from "./types";
 import packageJson from "../package.json";
 
 interface Command {
@@ -11,7 +14,8 @@ interface Command {
   usage?: string;
 }
 
-export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
+export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
+  declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
 
   private readonly localCommands: Command[] = [
@@ -36,14 +40,22 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     },
   ];
 
-  constructor(config: CLIConfig = {}) {
-    super("cli", packageJson, config);
+  constructor(config: CLIConfigInput = {}) {
+    const defaults: Partial<CLIConfig> = {
+      theme: {
+        primaryColor: "#0066cc",
+        accentColor: "#ff6600",
+      },
+      shortcuts: {},
+    };
+
+    super("cli", packageJson, config, cliConfigSchema, defaults);
   }
 
-  protected async handleLocalCommand(
+  public override async executeCommand(
     command: string,
-    _context: MessageContext,
-  ): Promise<string | null> {
+    context: MessageContext,
+  ): Promise<string> {
     const [cmd, ...args] = command.slice(1).split(" ");
 
     switch (cmd) {
@@ -63,9 +75,11 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
           );
           return `Usage: ${contextCmd?.usage}`;
         }
-        return null; // Let Shell handle context switching
+        // Let parent handle unknown commands (will delegate to shell)
+        return super.executeCommand(command, context);
       default:
-        return null; // Let Shell handle unknown commands
+        // Let parent handle unknown commands
+        return super.executeCommand(command, context);
     }
   }
 
@@ -83,7 +97,7 @@ ${commandList}
 
 Type any message to interact with the brain.`;
 
-    if (shortcuts && Object.keys(shortcuts).length > 0) {
+    if (Object.keys(shortcuts).length > 0) {
       const shortcutList = Object.entries(shortcuts)
         .map(([key, value]) => `• ${key} → ${value}`)
         .join("\n");
@@ -101,7 +115,7 @@ Type any message to interact with the brain.`;
         { method: "start" },
       );
     }
-    this.context.logger.info("Starting CLI interface");
+    this.logger.info("Starting CLI interface");
 
     try {
       // Use dynamic imports to ensure React isolation
@@ -123,50 +137,17 @@ Type any message to interact with the brain.`;
       process.on("SIGINT", () => void this.stop());
       process.on("SIGTERM", () => void this.stop());
     } catch (error) {
-      this.context.logger.error("Failed to start CLI interface", { error });
+      this.logger.error("Failed to start CLI interface", { error });
       throw error;
     }
   }
 
   public async stop(): Promise<void> {
-    if (this.context) {
-      this.context.logger.info("Stopping CLI interface");
-    }
+    this.logger.info("Stopping CLI interface");
 
     if (this.inkApp) {
       this.inkApp.unmount();
       this.inkApp = null;
     }
-  }
-
-  protected async handleInput(
-    input: string,
-    context: MessageContext,
-  ): Promise<string> {
-    // Handle interface-specific commands
-    if (input.startsWith("/")) {
-      const localResponse = await this.handleLocalCommand(input, context);
-      if (localResponse !== null) {
-        return localResponse;
-      }
-    }
-
-    // Everything else goes to Shell
-    return this.processMessage(input, context);
-  }
-
-  protected async formatResponse(
-    queryResponse: DefaultQueryResponse,
-    _context: MessageContext,
-  ): Promise<string> {
-    // Use the shell:knowledge-query template's formatter
-    if (!this.context) {
-      throw new PluginInitializationError(
-        this.id,
-        "Plugin context not initialized",
-        { method: "formatResponse" },
-      );
-    }
-    return this.context.formatContent("shell:knowledge-query", queryResponse);
   }
 }

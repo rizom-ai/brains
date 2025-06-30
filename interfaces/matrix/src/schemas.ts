@@ -1,6 +1,27 @@
 import { z } from "zod";
 
 /**
+ * Default values for Matrix configuration
+ */
+export const MATRIX_CONFIG_DEFAULTS = {
+  deviceDisplayName: process.env["MATRIX_DISPLAY_NAME"] || "Personal Brain",
+  publicToolsOnly: false,
+  autoJoinRooms: true,
+  enableEncryption: true,
+  enableReactions: true,
+  enableThreading: true,
+  enableTypingNotifications: true,
+  commandPrefix: "!",
+  anchorPrefix: "!!",
+  maxContextMessages: 10,
+  typingTimeout: 30000,
+  reactionTimeout: 60000,
+  rateLimitPerMinute: 60,
+  maxRetries: 3,
+  retryDelay: 1000,
+} as const;
+
+/**
  * Per-room rate limit configuration
  */
 export const perRoomRateLimitSchema = z.object({
@@ -38,70 +59,34 @@ export const matrixConfigSchema = z.object({
     .array(z.string().regex(/^@.+:.+$/))
     .optional()
     .describe("Additional trusted users"),
-  publicToolsOnly: z
-    .boolean()
-    .optional()
-    .default(false)
-    .describe("Force public-only mode"),
+  publicToolsOnly: z.boolean().describe("Force public-only mode"),
 
   // Features
-  autoJoinRooms: z
-    .boolean()
-    .optional()
-    .default(true)
-    .describe("Automatically join rooms when invited"),
-  enableEncryption: z
-    .boolean()
-    .optional()
-    .default(true)
-    .describe("Enable E2E encryption support"),
-  enableReactions: z
-    .boolean()
-    .optional()
-    .default(true)
-    .describe("Enable reaction support"),
-  enableThreading: z
-    .boolean()
-    .optional()
-    .default(true)
-    .describe("Enable threading support"),
+  autoJoinRooms: z.boolean().describe("Automatically join rooms when invited"),
+  enableEncryption: z.boolean().describe("Enable E2E encryption support"),
+  enableReactions: z.boolean().describe("Enable reaction support"),
+  enableThreading: z.boolean().describe("Enable threading support"),
   enableTypingNotifications: z
     .boolean()
-    .optional()
-    .default(true)
     .describe("Enable typing notifications"),
 
   // Behavior
-  commandPrefix: z
-    .string()
-    .optional()
-    .default("!")
-    .describe("Command prefix for bot commands"),
-  anchorPrefix: z
-    .string()
-    .optional()
-    .default("!!")
-    .describe("Prefix for anchor-only commands"),
+  commandPrefix: z.string().describe("Command prefix for bot commands"),
+  anchorPrefix: z.string().describe("Prefix for anchor-only commands"),
   maxContextMessages: z
     .number()
     .int()
     .positive()
-    .optional()
-    .default(10)
     .describe("Maximum context messages to consider"),
   typingTimeout: z
     .number()
     .int()
     .positive()
-    .optional()
-    .default(30000)
     .describe("Typing indicator timeout in ms"),
   reactionTimeout: z
     .number()
     .int()
     .positive()
-    .optional()
-    .default(60000)
     .describe("Reaction timeout in ms"),
 
   // Rate limiting
@@ -114,27 +99,14 @@ export const matrixConfigSchema = z.object({
     .number()
     .int()
     .positive()
-    .optional()
-    .default(60)
     .describe("Global rate limit per minute"),
-  maxRetries: z
-    .number()
-    .int()
-    .min(0)
-    .optional()
-    .default(3)
-    .describe("Maximum retry attempts"),
-  retryDelay: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .default(1000)
-    .describe("Retry delay in ms"),
+  maxRetries: z.number().int().min(0).describe("Maximum retry attempts"),
+  retryDelay: z.number().int().positive().describe("Retry delay in ms"),
 });
 
 /**
  * Type exports
  */
 export type MatrixConfig = z.infer<typeof matrixConfigSchema>;
+export type MatrixConfigInput = Partial<MatrixConfig>;
 export type PerRoomRateLimit = z.infer<typeof perRoomRateLimitSchema>;

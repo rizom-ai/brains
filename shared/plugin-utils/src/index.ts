@@ -13,10 +13,7 @@ export type {
   IMessageInterfacePlugin,
 } from "./interfaces";
 
-export {
-  pluginMetadataSchema,
-  DaemonHealthSchema,
-} from "./interfaces";
+export { pluginMetadataSchema, DaemonHealthSchema } from "./interfaces";
 
 // Plugin base classes
 export { BasePlugin } from "./base-plugin";

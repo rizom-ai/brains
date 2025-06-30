@@ -23,6 +23,7 @@
         "@brains/db": "workspace:*",
         "@brains/default-site-content": "workspace:*",
         "@brains/directory-sync": "workspace:*",
+        "@brains/matrix-setup": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/webserver": "workspace:*",
         "preact": "^10.26.9",
@@ -76,15 +77,17 @@
       "name": "@brains/matrix",
       "version": "0.0.1",
       "dependencies": {
+        "@brains/plugin-utils": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
-        "marked": "^15.0.4",
         "matrix-bot-sdk": "^0.7.1",
+        "p-queue": "^8.0.1",
         "zod": "^3.24.1",
       },
       "devDependencies": {
         "@brains/core": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
       },
@@ -130,7 +133,7 @@
       "name": "@brains/webserver",
       "version": "0.0.1",
       "dependencies": {
-        "@brains/interface-core": "workspace:*",
+        "@brains/plugin-utils": "workspace:*",
         "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "@hono/bun-compress": "^0.1.0",
@@ -354,6 +357,7 @@
       "dependencies": {
         "gray-matter": "^4.0.3",
         "js-yaml": "^4.1.0",
+        "marked": "^12.0.0",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -1615,7 +1619,7 @@
 
     "magic-string": ["magic-string@0.30.17", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0" } }, "sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA=="],
 
-    "marked": ["marked@15.0.12", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA=="],
+    "marked": ["marked@12.0.2", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-qXUm7e/YKFoqFPYPa3Ukg9xlI5cyAtGmyEIzMfW//m6kXwCy2Ps9DYf5ioijFKQ8qyuscrHoY04iJGctu2Kg0Q=="],
 
     "matcher": ["matcher@3.0.0", "", { "dependencies": { "escape-string-regexp": "^4.0.0" } }, "sha512-OkeDaAZ/bQCxeFAozM55PKcKU0yJMPGifLwV4Qgjitu+5MoAfSQN4lsLJeXZ1b8w0x+/Emda6MZgXS1jvsapng=="],
 

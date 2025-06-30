@@ -1,8 +1,5 @@
 import type { DefaultQueryResponse } from "@brains/types";
-import type {
-  IMessageInterfacePlugin,
-  MessageContext,
-} from "./interfaces";
+import type { IMessageInterfacePlugin, MessageContext } from "./interfaces";
 import type { z } from "zod";
 import { InterfacePlugin } from "./interface-plugin";
 import { EventEmitter } from "node:events";
@@ -23,11 +20,12 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: TConfig,
-    configSchema?: z.ZodType<TConfig>,
+    partialConfig: Partial<TConfig>,
+    configSchema: z.ZodType<TConfig>,
+    defaults: Partial<TConfig>,
     sessionId?: string,
   ) {
-    super(id, packageJson, config, configSchema);
+    super(id, packageJson, partialConfig, configSchema, defaults);
     this.sessionId = sessionId ?? `${id}-session-${Date.now()}`;
     this.queue = new PQueue({
       concurrency: 1,
@@ -72,32 +70,50 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
       const response = await this.handleInput(input, fullContext);
       this.emit("response", response);
     } catch (error) {
-      this.logger?.error("Failed to process input", { error });
+      this.logger.error("Failed to process input", { error });
       this.emit("error", error);
     }
   }
 
   /**
-   * Handle user input - must be implemented by subclasses
+   * Handle user input - routes to appropriate method based on input type
+   * Can be overridden by subclasses for custom routing logic
    */
-  protected abstract handleInput(
+  protected async handleInput(
     input: string,
     context: MessageContext,
-  ): Promise<string>;
+  ): Promise<string> {
+    // Default routing logic: commands start with '/', everything else is a query
+    if (input.startsWith("/")) {
+      return this.executeCommand(input, context);
+    }
+
+    return this.processQuery(input, context);
+  }
 
   /**
-   * Handle local commands specific to the interface
+   * Store context messages for conversation history (no response needed)
+   * Override this to customize context storage behavior
    */
-  protected abstract handleLocalCommand(
-    command: string,
+  public async addContext(
+    message: string,
     context: MessageContext,
-  ): Promise<string | null>;
+  ): Promise<void> {
+    // Default: Store in conversation history for future reference
+    // For now, we just log it - could be enhanced to store in database
+    this.logger.debug("Adding context message", {
+      userId: context.userId,
+      channelId: context.channelId,
+      message: message.substring(0, 100),
+    });
+  }
 
   /**
-   * Process a message through the Shell
+   * Process queries through the shell and return response
+   * Override this to customize query processing
    */
-  protected async processMessage(
-    content: string,
+  public async processQuery(
+    query: string,
     context: MessageContext,
   ): Promise<string> {
     if (!this.context) {
@@ -113,7 +129,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
         await this.context.generateContent<DefaultQueryResponse>(
           "shell:knowledge-query",
           {
-            prompt: content,
+            prompt: query,
             data: {
               userId: context.userId,
               conversationId: context.channelId,
@@ -124,8 +140,8 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
           },
         );
 
-      // Format response using interface-specific template
-      return this.formatResponse(queryResponse, context);
+      // Return the already-formatted response from the template system
+      return queryResponse.message;
     });
 
     if (!result) {
@@ -136,10 +152,14 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   }
 
   /**
-   * Format the response for the specific interface
+   * Execute interface-specific commands
+   * Override this to add interface-specific commands like /help, /quit, etc.
    */
-  protected abstract formatResponse(
-    queryResponse: DefaultQueryResponse,
-    context: MessageContext,
-  ): Promise<string>;
+  public async executeCommand(
+    command: string,
+    _context: MessageContext,
+  ): Promise<string> {
+    // Default: Return unknown command (interfaces should override this)
+    return `Unknown command: ${command}. Type /help for available commands.`;
+  }
 }
