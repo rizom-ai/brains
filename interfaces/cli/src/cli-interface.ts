@@ -3,6 +3,7 @@ import {
   PluginInitializationError,
 } from "@brains/plugin-utils";
 import type { MessageContext } from "@brains/plugin-utils";
+import type { UserPermissionLevel } from "@brains/utils";
 import type { Instance } from "ink";
 import type { CLIConfig, CLIConfigInput } from "./types";
 import { cliConfigSchema } from "./types";
@@ -50,6 +51,13 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     };
 
     super("cli", packageJson, config, cliConfigSchema, defaults);
+  }
+
+  /**
+   * CLI interface users have anchor permissions since CLI access indicates local/trusted access
+   */
+  public override determineUserPermissionLevel(_userId: string): UserPermissionLevel {
+    return "anchor";
   }
 
   public override async executeCommand(

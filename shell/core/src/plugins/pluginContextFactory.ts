@@ -157,13 +157,19 @@ export class PluginContextFactory {
           );
 
           // Always route through Shell.query() for consistent permission checking
-          const queryPrompt = context?.prompt ?? `Generate content using template: ${namespacedTemplateName}`;
-          
-          const queryResponse = await shell.generateContent<T>(queryPrompt, namespacedTemplateName, {
-            userId: "default-user",
-            ...(context?.data && { data: context.data }),
-          });
-          
+          const queryPrompt =
+            context?.prompt ??
+            `Generate content using template: ${namespacedTemplateName}`;
+
+          const queryResponse = await shell.generateContent<T>(
+            queryPrompt,
+            namespacedTemplateName,
+            {
+              userId: "default-user",
+              ...(context?.data && { data: context.data }),
+            },
+          );
+
           return queryResponse;
         } catch (error) {
           this.logger.error("Failed to generate content", error);

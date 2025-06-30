@@ -2,6 +2,7 @@
 page: landing
 section: hero
 ---
+
 # Hero Section
 
 ## Headline

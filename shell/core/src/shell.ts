@@ -458,10 +458,7 @@ export class Shell {
       ...(options?.data && { data: options.data }),
     };
 
-    return this.contentGenerator.generateContent<T>(
-      templateName,
-      context,
-    );
+    return this.contentGenerator.generateContent<T>(templateName, context);
   }
 
   /**
