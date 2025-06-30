@@ -28,13 +28,15 @@ The Personal Brain application features a modular, plugin-based architecture bui
 - **packages/mcp-server**: MCP protocol server implementation
 - **packages/utils**: Shared utilities including logging and markdown processing
 
-### Future Packages (Planned)
+### Implemented Packages
 
-- **packages/cli**: Command-line interface package
-- **packages/matrix-bot**: Matrix bot interface package
-- **apps/personal-brain**: Unified application supporting multiple modes
-- **apps/team-brain**: Team collaboration brain
-- **apps/collective-brain**: Community knowledge brain
+- **interfaces/cli**: Command-line interface (as plugin)
+- **interfaces/matrix**: Matrix bot interface (as plugin)
+- **interfaces/webserver**: Static site server (as plugin)
+- **plugins/directory-sync**: File-based entity synchronization
+- **plugins/git-sync**: Version control integration
+- **plugins/site-builder**: Static site generation
+- **apps/test-brain**: Reference implementation application
 
 See [Package Structure](./architecture/package-structure.md) for detailed information.
 
@@ -239,14 +241,13 @@ Key Design Principles:
 
 Entity plugins are the primary plugin type, representing domains of functionality:
 
-**Current Entity Plugins (planned):**
+**Planned Entity Plugins:**
 
-- **Link Plugin**: Web content capture with AI summarization (first priority after cleanup)
-- **Article Plugin**: Long-form content with draft/publish workflow
-- **Note Plugin**: Extended note features beyond BaseEntity (deprioritized - BaseEntity provides core functionality)
+- **Link Plugin**: Web content capture with AI summarization (first priority)
+- **Article Plugin**: Long-form content with draft/publish workflow (second priority)
 - **Task Plugin**: Task tracking and management
-- **Profile Plugin**: User profiles and preferences
-- **Project Plugin**: Project organization
+- **Profile Plugin**: User and contact profiles
+- **Project Plugin**: Project organization and metadata
 
 **What Entity Plugins Provide:**
 

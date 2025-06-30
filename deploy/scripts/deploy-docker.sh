@@ -153,9 +153,9 @@ build_image() {
     fi
     
     # Copy migration files
-    if [ -f "packages/db/src/migrate.ts" ]; then
-        cp "packages/db/src/migrate.ts" "$DOCKER_BUILD_DIR/"
-        [ -d "packages/db/drizzle" ] && cp -r "packages/db/drizzle" "$DOCKER_BUILD_DIR/"
+    if [ -f "shell/db/src/migrate.ts" ]; then
+        cp "shell/db/src/migrate.ts" "$DOCKER_BUILD_DIR/"
+        [ -d "shell/db/drizzle" ] && cp -r "shell/db/drizzle" "$DOCKER_BUILD_DIR/"
     fi
     
     # Copy brain-data if it exists in the release
