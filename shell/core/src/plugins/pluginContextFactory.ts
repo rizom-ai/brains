@@ -156,10 +156,15 @@ export class PluginContextFactory {
             pluginId,
           );
 
-          return await contentGenerator.generateContent<T>(
-            namespacedTemplateName,
-            context,
-          );
+          // Always route through Shell.query() for consistent permission checking
+          const queryPrompt = context?.prompt ?? `Generate content using template: ${namespacedTemplateName}`;
+          
+          const queryResponse = await shell.generateContent<T>(queryPrompt, namespacedTemplateName, {
+            userId: "default-user",
+            ...(context?.data && { data: context.data }),
+          });
+          
+          return queryResponse;
         } catch (error) {
           this.logger.error("Failed to generate content", error);
           throw new ContentGenerationError(templateName, "generation", error);

@@ -13,6 +13,7 @@ export const ctaTemplate: Template<CTASection> = {
   description: "Call to action section",
   schema: ctaSectionSchema,
   basePrompt: ctaPrompt,
+  requiredPermission: "public",
   formatter: new CTASectionFormatter(),
   layout: {
     component: CTALayout,

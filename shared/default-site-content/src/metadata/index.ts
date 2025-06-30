@@ -10,5 +10,6 @@ export const metadataTemplate: Template<LandingMetadata> = {
   description: "Site metadata (title and tagline)",
   schema: landingMetadataSchema,
   basePrompt: metadataPrompt,
+  requiredPermission: "public",
   // No layout component since metadata is used in HTML head
 };

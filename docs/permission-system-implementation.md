@@ -48,7 +48,7 @@ PluginContext.generateContent() → Shell.query() → ContentGenerator (with per
 ### Unified Permission Flow
 
 ```
-User Request → Interface (determines userPermissionLevel) → 
+User Request → Interface (determines userPermissionLevel) →
 PluginContext.generateContent() → Shell.query() → Permission Check → ContentGenerator
 ```
 
@@ -89,7 +89,7 @@ generateContent: <T = unknown>(
 ) => Promise<T> {
   // Get user permission level from current context
   const userPermissionLevel = this.determineUserPermissionLevel(context?.userId ?? 'default-user');
-  
+
   // Route through Shell.query() which has proper permission checking
   return this.shell.query(
     context?.prompt ?? `Generate content using template: ${templateName}`,

@@ -2,7 +2,6 @@
 page: landing
 section: cta
 ---
-
 # CTA Section
 
 ## Headline

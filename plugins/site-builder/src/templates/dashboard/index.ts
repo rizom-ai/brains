@@ -11,6 +11,7 @@ export const dashboardTemplate: Template<DashboardData> = {
   description: "Interactive system dashboard showing entity statistics",
   schema: DashboardDataSchema,
   basePrompt: "", // Not AI generated
+  requiredPermission: "public",
   formatter: new DashboardFormatter(),
   layout: {
     component: DashboardWidget, // Use same component for both SSR and hydration

@@ -13,6 +13,7 @@ export const featuresTemplate: Template<FeaturesSection> = {
   description: "Features section with cards",
   schema: featuresSectionSchema,
   basePrompt: featuresPrompt,
+  requiredPermission: "public",
   formatter: new FeaturesSectionFormatter(),
   layout: {
     component: FeaturesLayout,

@@ -2,7 +2,6 @@
 page: landing
 section: features
 ---
-
 # Features Section
 
 ## Label

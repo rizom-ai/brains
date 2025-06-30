@@ -13,6 +13,7 @@ export const heroTemplate: Template<LandingHeroData> = {
   description: "Hero section with headline and call-to-action",
   schema: landingHeroDataSchema,
   basePrompt: heroPrompt,
+  requiredPermission: "public",
   formatter: new HeroSectionFormatter(),
   layout: {
     component: HeroLayout,

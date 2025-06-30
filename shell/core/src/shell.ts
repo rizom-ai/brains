@@ -21,7 +21,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Plugin } from "@brains/plugin-utils";
 import type { Template } from "@brains/types";
 import type { RouteDefinition } from "@brains/view-registry";
-import { type DefaultQueryResponse } from "@brains/types";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
 import { ViewRegistry } from "@brains/view-registry";
@@ -410,17 +409,18 @@ export class Shell {
   }
 
   /**
-   * Process a natural language query
+   * Generate content using a template with permission checking
    */
-  public async query(
+  public async generateContent<T = unknown>(
     query: string,
+    templateName: string,
     options?: {
       userId?: string;
       conversationId?: string;
-      metadata?: Record<string, unknown>;
+      data?: Record<string, unknown>;
       userPermissionLevel?: UserPermissionLevel;
     },
-  ): Promise<DefaultQueryResponse> {
+  ): Promise<T> {
     if (!this.initialized) {
       throw new InitializationError(
         "Shell",
@@ -452,18 +452,14 @@ export class Shell {
       }
     }
 
-    // Use ContentGenerator with knowledge query template
+    // Use the explicitly provided template name
     const context = {
       prompt: query,
-      data: {
-        userId: options?.userId,
-        conversationId: options?.conversationId,
-        ...options?.metadata,
-      },
+      ...(options?.data && { data: options.data }),
     };
 
-    return this.contentGenerator.generateContent(
-      "shell:knowledge-query",
+    return this.contentGenerator.generateContent<T>(
+      templateName,
       context,
     );
   }

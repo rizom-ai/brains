@@ -55,6 +55,7 @@ describe("SiteBuilderPlugin", () => {
       description: "Test template",
       schema: z.object({ title: z.string() }),
       basePrompt: "Generate a test",
+      requiredPermission: "public",
       formatter: {
         format: (data: unknown) =>
           `Title: ${(data as { title: string }).title}`,
@@ -127,6 +128,7 @@ describe("SiteBuilderPlugin", () => {
       description: "Test",
       schema: z.object({ content: z.string() }),
       basePrompt: "Generate test content",
+      requiredPermission: "public",
       formatter: {
         format: (data: unknown) => (data as { content: string }).content,
         parse: (content: string) => ({ content }),
