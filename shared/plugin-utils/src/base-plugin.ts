@@ -219,15 +219,6 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
   }
 
   /**
-   * Get the interface permission level for this plugin
-   * This represents the maximum permission level this interface can provide
-   * Default implementation returns 'public' for safety
-   */
-  public getInterfacePermissionLevel(): UserPermissionLevel {
-    return "public";
-  }
-
-  /**
    * Determine the permission level for a user in this plugin's context
    * Must be implemented by plugins that handle user permissions
    * Default implementation returns 'public' for safety

@@ -227,6 +227,27 @@ describe("MatrixInterface", () => {
       expect(mockMatrixClient.setTyping).not.toHaveBeenCalled();
     });
 
+    it("should use default processQuery without interface permission grants", async () => {
+      // Create a fresh Matrix interface for this test
+      const testInterface = new MatrixInterface(config);
+      await harness.installPlugin(testInterface);
+
+      // Matrix interface should not override processQuery method, meaning it inherits
+      // the base implementation which does not grant interface permissions
+
+      // Process a query and verify it completes successfully
+      const result = await testInterface.processQuery("test query", {
+        userId: "@user:example.org",
+        channelId: "!room:example.org",
+        messageId: "msg_123",
+        timestamp: new Date(),
+        interfaceType: "matrix",
+      });
+
+      // The result should be the default mock response, proving the base method was called
+      expect(result).toBe("Mock response from content generation");
+    });
+
     it("should send typing indicator when enabled", async () => {
       const typingConfig = {
         ...config,

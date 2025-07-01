@@ -4,6 +4,7 @@ import {
 } from "@brains/plugin-utils";
 import type { MessageContext } from "@brains/plugin-utils";
 import type { UserPermissionLevel } from "@brains/utils";
+import type { DefaultQueryResponse } from "@brains/types";
 import type { Instance } from "ink";
 import type { CLIConfig, CLIConfigInput } from "./types";
 import { cliConfigSchema } from "./types";
@@ -53,17 +54,60 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     super("cli", packageJson, config, cliConfigSchema, defaults);
   }
 
-  /**
-   * CLI interface users have anchor permissions since CLI access indicates local/trusted access
-   */
-  public override getInterfacePermissionLevel(): UserPermissionLevel {
-    return "anchor";
-  }
-
   public override determineUserPermissionLevel(
     _userId: string,
   ): UserPermissionLevel {
     return "anchor";
+  }
+
+  /**
+   * Get the interface permission grant for CLI
+   * CLI grants anchor permissions due to local access assumption
+   */
+  protected getInterfacePermissionGrant(): UserPermissionLevel {
+    return "anchor";
+  }
+
+  /**
+   * Override processQuery to grant interface permissions for CLI users
+   */
+  public override async processQuery(
+    query: string,
+    context: MessageContext,
+  ): Promise<string> {
+    if (!this.context) {
+      throw new Error("Plugin context not initialized");
+    }
+
+    const result = await this.queue.add(async () => {
+      // Use Shell's knowledge-query template to process the query and get response
+      if (!this.context) {
+        throw new Error("Plugin context not initialized");
+      }
+      const queryResponse =
+        await this.context.generateContent<DefaultQueryResponse>({
+          prompt: query,
+          templateName: "shell:knowledge-query",
+          userId: context.userId,
+          interfacePermissionGrant: this.getInterfacePermissionGrant(),
+          data: {
+            userId: context.userId,
+            conversationId: context.channelId,
+            messageId: context.messageId,
+            threadId: context.threadId,
+            timestamp: context.timestamp.toISOString(),
+          },
+        });
+
+      // Return the already-formatted response from the template system
+      return queryResponse.message;
+    });
+
+    if (!result) {
+      throw new Error("No response from query processor");
+    }
+
+    return result;
   }
 
   public override async executeCommand(

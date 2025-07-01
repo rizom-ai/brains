@@ -72,9 +72,10 @@ describe("CLIInterface", () => {
       await cliInterface.processInput("Hello world");
 
       expect(generateContentMock).toHaveBeenCalledWith(
-        "shell:knowledge-query",
         expect.objectContaining({
           prompt: "Hello world",
+          templateName: "shell:knowledge-query",
+          interfacePermissionGrant: "anchor", // CLI grants anchor permissions
         }),
       );
       expect(responseHandler).toHaveBeenCalledWith("Query processed");
