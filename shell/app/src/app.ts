@@ -83,7 +83,9 @@ export class App {
 
   private async registerCLIIfRequested(): Promise<void> {
     // Check if CLI interface was added via --cli flag
-    const cliInterface = this.config.interfaces.find((i) => i.type === "cli" && i.enabled);
+    const cliInterface = this.config.interfaces.find(
+      (i) => i.type === "cli" && i.enabled,
+    );
     if (!cliInterface) return;
 
     const pluginManager = this.shell.getPluginManager();

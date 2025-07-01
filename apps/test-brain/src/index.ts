@@ -3,12 +3,13 @@ import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { templates, routes } from "@brains/default-site-content";
 import { MatrixInterface } from "@brains/matrix";
+import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 
 // Run the app - command line args are parsed automatically by App
 // Usage:
-//   bun run src/index.ts              # MCP server only
-//   bun run src/index.ts --cli        # MCP server + CLI interface
+//   bun run src/index.ts              # Runs with all configured interfaces
+//   bun run src/index.ts --cli        # Also adds CLI interface
 //
 // Matrix interface is enabled automatically when environment variables are set:
 // MATRIX_HOMESERVER, MATRIX_ACCESS_TOKEN, MATRIX_USER_ID, MATRIX_ANCHOR_USER_ID
@@ -16,11 +17,6 @@ async function main(): Promise<void> {
   await App.run({
     name: "test-brain",
     version: "1.0.0",
-    transport: {
-      type: "http",
-      port: Number(process.env["BRAIN_SERVER_PORT"] ?? 3333),
-      host: "localhost",
-    },
     database: process.env["DATABASE_URL"] ?? "file:./data/test-brain.db",
     aiApiKey: process.env["ANTHROPIC_API_KEY"] ?? "test-key",
     logLevel: "debug",
@@ -38,6 +34,11 @@ async function main(): Promise<void> {
     },
     interfaces: [],
     plugins: [
+      // MCP interface plugin - provides Model Context Protocol server
+      new MCPInterface({
+        transport: process.env["MCP_TRANSPORT"] === "stdio" ? "stdio" : "http",
+        httpPort: Number(process.env["BRAIN_SERVER_PORT"] ?? 3333),
+      }),
       // Webserver interface plugin (if configured in environment)
       ...(process.env["WEBSITE_OUTPUT_DIR"]
         ? [

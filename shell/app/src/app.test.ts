@@ -61,7 +61,6 @@ describe("App", () => {
   });
 
   describe("lifecycle", () => {
-
     it("should handle stop gracefully without initialization", async () => {
       const mockShell = createMockShell();
       const app = App.create({}, mockShell);
@@ -87,7 +86,6 @@ describe("App", () => {
       const app = App.create({}, mockShell);
       expect(app.getShell()).toBe(mockShell);
     });
-
   });
 
   describe("run", () => {

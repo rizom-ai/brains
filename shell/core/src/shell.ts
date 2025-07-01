@@ -12,11 +12,7 @@ import {
 } from "@brains/embedding-service";
 import { ContentGenerator } from "@brains/content-generator";
 import { AIService } from "@brains/ai-service";
-import {
-  Logger,
-  LogLevel,
-  PermissionHandler,
-} from "@brains/utils";
+import { Logger, LogLevel, PermissionHandler } from "@brains/utils";
 import type { Plugin } from "@brains/plugin-utils";
 import type { Template } from "@brains/types";
 import type { RouteDefinition } from "@brains/view-registry";
@@ -224,8 +220,6 @@ export class Shell {
     this.permissionHandler =
       dependencies?.permissionHandler ??
       new PermissionHandler("default-anchor", []);
-
-
 
     // Register core components in the service registry
     this.serviceRegistry.register("shell", () => this);
@@ -468,7 +462,6 @@ export class Shell {
   public getAIService(): AIService {
     return this.aiService;
   }
-
 
   public getPluginManager(): PluginManager {
     return this.pluginManager;

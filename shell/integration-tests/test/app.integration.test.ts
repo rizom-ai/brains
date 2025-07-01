@@ -56,7 +56,6 @@ describe("App Integration", () => {
     });
   });
 
-
   describe("full lifecycle", () => {
     it("should handle complete app lifecycle", async () => {
       // Create shell with mock AI service

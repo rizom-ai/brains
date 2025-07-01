@@ -5,7 +5,6 @@ import type { CLIConfig } from "@brains/cli";
 import { matrixConfigSchema } from "@brains/matrix";
 import { mcpConfigSchema } from "@brains/mcp";
 
-
 export const interfaceConfigSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("cli"),
