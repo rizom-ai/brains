@@ -2,7 +2,11 @@ import {
   MessageInterfacePlugin,
   type MessageContext,
 } from "@brains/plugin-utils";
-import { PermissionHandler, markdownToHtml, type UserPermissionLevel } from "@brains/utils";
+import {
+  PermissionHandler,
+  markdownToHtml,
+  type UserPermissionLevel,
+} from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
 import { MatrixClientWrapper } from "./client/matrix-client";
@@ -37,7 +41,9 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     return "anchor";
   }
 
-  public override determineUserPermissionLevel(userId: string): UserPermissionLevel {
+  public override determineUserPermissionLevel(
+    userId: string,
+  ): UserPermissionLevel {
     if (!this.permissionHandler) {
       return "public";
     }

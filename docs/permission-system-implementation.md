@@ -275,50 +275,52 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 - Simple and secure - inappropriate tools never get registered
 - Clear separation of concerns - permission level is server-wide property
 
-### Phase 3: Hybrid Interface + Operation Level Permissions
+### Phase 3: Interface Permission Grant System
 
-**Architecture: Two-Level Permission System**
+**Architecture: Interface Grant Override Model**
 
-**Level 1: Interface-Level Permissions** - Each interface declares its base permission level:
+**Permission Grant Logic:**
 
-- CLI Interface: `"anchor"` (full access)
-- MCP Server: Configurable (`"public"`, `"trusted"`, or `"anchor"`)
-- Matrix Interface: `"anchor"` (authenticated Matrix access)
+- **CLI Interface**: Grants `"anchor"` permission (local access overrides user permissions)
+- **Matrix Interface**: No permission grant (respects Matrix room-based user hierarchy)
+- **MCP Server**: Configurable grant level based on transport (stdio=anchor, http=user-based)
 
-**Level 2: Operation-Level Permissions** - Individual operations get user-specific permissions, constrained by interface level:
+**Permission Flow:**
 
-- CLI: All users get `"anchor"` (interface level)
-- MCP: All operations get server permission level
-- Matrix: Users get dynamic permissions based on room membership, but ≤ `"anchor"`
+- **CLI**: `interfacePermissionGrant="anchor"` → Always anchor regardless of user
+- **Matrix**: `interfacePermissionGrant=undefined` → Use actual user permission level from room hierarchy
+- **MCP**: `interfacePermissionGrant=configurable` → Transport-based grant level
 
 **Implementation Status:**
 
-- [ ] Update PluginContext to accept interface + user permission levels
-- [x] Add CLI interface anchor permission declaration
-- [x] Add Matrix interface anchor permission declaration  
+- [ ] Update PluginContext.generateContent() to accept interfacePermissionGrant parameter
+- [x] Add CLI interface anchor permission grant capability  
+- [ ] Update Matrix interface to use user permissions (remove blanket anchor grant)
 - [ ] **CRITICAL**: Fix PluginContext hardcoded "default-user" in generateContent()
-- [ ] Implement hybrid permission enforcement: `min(interfacePermissionLevel, userPermissionLevel)`
-- [ ] Add comprehensive test coverage for permission level methods
+- [ ] Implement interface grant override logic in PluginContext
+- [ ] Add comprehensive test coverage for permission grant system
 
 **MCP Permission Handling:**
 
 MCP-specific permission concerns are intentionally deferred to the next phase. Current implementation uses:
+
 - [ ] Remove hardcoded MCP `"anchor"` permission (interim solution only)
 
 **Note:** Comprehensive MCP permission architecture will be addressed in [MCP Interface Plugin Extraction Plan](mcp-interface-plugin-extraction-plan.md) which outlines:
+
 - Extracting MCP from Shell into proper interface plugin
-- OAuth 2.1 integration for authentication-based permissions  
+- OAuth 2.1 integration for authentication-based permissions
 - Transport-based permission levels (HTTP OAuth vs stdio local access)
 - Complete separation of MCP concerns from Shell core
 
 **Benefits:**
 
-- ✅ Interface-level security boundaries
-- ✅ Per-operation user permissions
-- ✅ MCP servers can be configured as public/trusted/anchor
-- ✅ CLI always gets anchor access
-- ✅ Matrix supports room-based permissions
-- ✅ No global singleton permission issues
+- ✅ Clear interface-based security boundaries  
+- ✅ CLI grants anchor access (local access is trusted)
+- ✅ Matrix respects room-based user hierarchy
+- ✅ MCP supports transport-based permission grants
+- ✅ No complex min/max permission logic needed
+- ✅ Clean separation between interface grants and user permissions
 
 ### Phase 4: Cleanup Unused Code
 
@@ -419,20 +421,23 @@ This Shell as Single Security Boundary implementation establishes a simple, robu
 
 **File:** `shell/core/src/plugins/pluginContextFactory.ts:168`
 
-**Problem:** The `generateContent` method hardcodes `userId: "default-user"` instead of using actual user context from interfaces.
+**Problem:** The `generateContent` method hardcodes `userId: "default-user"` and has no way to receive interface permission grants.
 
-**Impact:** Interface permission levels (`getInterfacePermissionLevel()`, `determineUserPermissionLevel()`) are completely bypassed - the shell never receives the actual user permission context.
+**Impact:** Interface permission grants cannot be passed through to Shell permission checking - the permission system is completely non-functional.
 
 **Status:** ❌ CRITICAL BUG - Permission system not functional
+
+**Solution:** Add `interfacePermissionGrant` parameter to PluginContext.generateContent() and implement interface grant override logic.
 
 ### Issue 2: Missing Test Coverage
 
 **Problem:** No tests exist for:
-- `getInterfacePermissionLevel()` methods
-- `determineUserPermissionLevel()` methods  
-- Hybrid permission enforcement
+
+- Interface permission grant system
+- `interfacePermissionGrant` parameter handling  
+- Permission grant override logic
 - Permission flow from interfaces to shell
-- Integration between interface and user permission levels
+- CLI anchor grant vs Matrix user permission differences
 
 **Impact:** Permission system implementation cannot be validated or maintained safely.
 
