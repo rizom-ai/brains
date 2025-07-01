@@ -21,6 +21,7 @@ This document tracks technical debt and cleanup tasks that should be addressed b
 - **Git Sync Refactoring** - Split into two plugins with proper separation of concerns
 - **Extract Service Interfaces** - Created interfaces for EntityService, QueryProcessor, AIService, EntityRegistry, PluginManager, SchemaRegistry, and ContentTypeRegistry
 - **Add Missing Tests** - Added comprehensive tests for AIService, EmbeddingService, MCP resources, and MCP tools
+- **Standardize Error Handling** - Implemented comprehensive BrainsError hierarchy with consistent error codes and rich context across all components
 
 ## Cleanup Tasks
 
@@ -35,12 +36,6 @@ None remaining - all critical issues have been resolved!
    - Solution: Queue embeddings for background processing
    - Impact: Every entity creation blocks for ~200-500ms
    - **Why High**: Direct impact on user experience
-
-2. **Standardize Error Handling**
-   - Issue: Mix of Error objects and strings, no error codes
-   - Solution: Create custom error classes with codes
-   - Impact: Poor debugging experience, inconsistent error messages
-   - **Why High**: Affects debugging and user experience
 
 ### 🟢 Medium Priority
 
