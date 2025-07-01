@@ -293,11 +293,13 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 
 **Implementation Tasks:**
 
-- [ ] Remove hardcoded MCP `"anchor"` permission and make configurable
+- [ ] Remove hardcoded MCP `"anchor"` permission and make configurable (interim solution)
 - [ ] Update PluginContext to accept interface + user permission levels
 - [ ] Add CLI interface anchor permission declaration
 - [ ] Add Matrix interface trusted permission declaration
 - [ ] Implement hybrid permission enforcement: `min(interfacePermissionLevel, userPermissionLevel)`
+
+**Note:** For a complete MCP architecture solution, see [MCP Interface Plugin Extraction Plan](mcp-interface-plugin-extraction-plan.md) which outlines extracting MCP from Shell into a proper interface plugin with OAuth 2.1 integration.
 
 **Benefits:**
 
