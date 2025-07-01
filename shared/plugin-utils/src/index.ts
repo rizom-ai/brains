@@ -11,7 +11,7 @@ export type {
   IInterfacePlugin,
   MessageContext,
   IMessageInterfacePlugin,
-  ContentGenerationOptions,
+  ContentGenerationConfig,
   GenerateContentFunction,
 } from "./interfaces";
 

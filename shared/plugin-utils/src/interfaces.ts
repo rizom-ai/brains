@@ -211,9 +211,11 @@ export interface MessageContext {
 }
 
 /**
- * Content generation options - user context with permission grants
+ * Content generation configuration - unified config object
  */
-export interface ContentGenerationOptions {
+export interface ContentGenerationConfig {
+  prompt: string;
+  templateName: string;
   userId?: string;
   data?: Record<string, unknown>;
   interfacePermissionGrant?: UserPermissionLevel;
@@ -223,9 +225,7 @@ export interface ContentGenerationOptions {
  * Content generation function signature - used by both PluginContext and Shell
  */
 export type GenerateContentFunction = <T = unknown>(
-  prompt: string,
-  templateName: string,
-  options: ContentGenerationOptions,
+  config: ContentGenerationConfig,
 ) => Promise<T>;
 
 /**

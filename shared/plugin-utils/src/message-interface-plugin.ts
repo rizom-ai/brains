@@ -130,20 +130,18 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
         throw new Error("Plugin context not initialized");
       }
       const queryResponse =
-        await this.context.generateContent<DefaultQueryResponse>(
-          query,
-          "shell:knowledge-query",
-          {
+        await this.context.generateContent<DefaultQueryResponse>({
+          prompt: query,
+          templateName: "shell:knowledge-query",
+          userId: context.userId,
+          data: {
             userId: context.userId,
-            data: {
-              userId: context.userId,
-              conversationId: context.channelId,
-              messageId: context.messageId,
-              threadId: context.threadId,
-              timestamp: context.timestamp.toISOString(),
-            },
+            conversationId: context.channelId,
+            messageId: context.messageId,
+            threadId: context.threadId,
+            timestamp: context.timestamp.toISOString(),
           },
-        );
+        });
 
       // Return the already-formatted response from the template system
       return queryResponse.message;
