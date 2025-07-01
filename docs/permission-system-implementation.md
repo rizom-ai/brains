@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the implementation plan for creating a unified security system in the Brain architecture. The system uses **Shell as Single Security Boundary** pattern where Shell.query() is the only entry point for all secured operations, ensuring consistent permission enforcement across the entire system.
+This document outlines the implementation plan for creating a unified security system in the Brain architecture. The system uses **Shell as Single Security Boundary** pattern where Shell.generateContent() is the only entry point for all secured operations, ensuring consistent permission enforcement across the entire system.
 
 ## Current State Analysis
 
@@ -38,18 +38,20 @@ Instead of creating complex abstractions, we route all content generation throug
 ### Current Secure Architecture (Implemented)
 
 ```typescript
-// Current security gap:
-PluginContext.generateContent() → ContentGenerator (bypasses permissions)
+// Current secure flow (IMPLEMENTED):
+PluginContext.generateContent() → Shell.generateContent() → ContentGenerator (with permissions)
 
-// New secure flow:
-PluginContext.generateContent() → Shell.query() → ContentGenerator (with permissions)
+// MCP tool filtering (REGISTRATION-TIME APPROACH):
+Shell startup → Determine MCP server permission level → 
+ McpServerManager.handleToolRegistration() → Filter by tool.visibility → 
+ Register only appropriate tools with MCP server
 ```
 
-### Unified Permission Flow
+### Current Permission Flows
 
 ```
 User Request → Interface (determines userPermissionLevel) →
-PluginContext.generateContent() → Shell.query() → Permission Check → ContentGenerator
+PluginContext.generateContent() → Shell.generateContent() → Permission Check → ContentGenerator
 ```
 
 ## Implementation Plan
@@ -76,19 +78,20 @@ generateContent: async <T = unknown>(
   context?: GenerationContext,
 ): Promise<T> => {
   const namespacedTemplateName = this.ensureNamespaced(templateName, pluginId);
-  
+
   // Always route through Shell.generateContent() for consistent permission checking
   const queryResponse = await shell.generateContent<T>(
-    context?.prompt ?? `Generate content using template: ${namespacedTemplateName}`,
+    context?.prompt ??
+      `Generate content using template: ${namespacedTemplateName}`,
     namespacedTemplateName,
     {
       userId: "default-user", // TODO: Pass actual user permission level
       ...(context?.data && { data: context.data }),
     },
   );
-  
+
   return queryResponse;
-}
+};
 ```
 
 **Remaining issue:** Need to pass actual user permission level instead of hardcoded "default-user"
@@ -97,10 +100,10 @@ generateContent: async <T = unknown>(
 
 **File:** `shell/core/src/shell.ts`
 
-**Enhancement:** Update Shell.query() to handle template-specific requests:
+**Enhancement:** Update Shell.generateContent() to handle template-specific requests:
 
 ```typescript
-// In Shell.query() method, detect template-specific requests:
+// In Shell.generateContent() method, detect template-specific requests:
 if (options?.metadata?.templateName) {
   const templateName = options.metadata.templateName as string;
   return this.contentGenerator.generateContent(templateName, {
@@ -185,7 +188,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 
 **Test Coverage:**
 
-- PluginContext.generateContent() routes through Shell.query()
+- PluginContext.generateContent() routes through Shell.generateContent()
 - Permission checking works for plugin-generated content
 - Template permission enforcement in plugin context
 - User permission level propagation
@@ -229,7 +232,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 - Unauthorized template access attempts via PluginContext.generateContent()
 - Tool visibility enforcement at MCP level
 - Permission level consistency across interfaces
-- Shell.query() as single chokepoint verification
+- Shell.generateContent() as single chokepoint verification
 - PluginContext cannot bypass Shell permissions
 - Interface permission determination accuracy
 
@@ -248,11 +251,27 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 - [x] Verify Shell permission checking works for plugin-generated content
 - [x] Test security boundary enforcement
 
-**Next Priority: MCP Tool Permission Filtering**
+**Next Priority: MCP Tool Permission Filtering (Registration-Time Approach)**
 
-- [ ] Implement MCP tool filtering by permission level in McpServerManager
-- [ ] Add user permission context to MCP tool handlers
-- [ ] Filter tools based on visibility levels before registering with MCP server
+- [ ] Add serverPermissionLevel parameter to McpServerManager constructor
+- [ ] Implement tool filtering in handleToolRegistration() based on server permission level
+- [ ] Update Shell initialization to determine and pass MCP server permission level
+- [ ] Add configuration option for MCP server permission level (default: "public")
+
+**Approach:** Filter tools at registration time based on MCP server's permission level, not per-tool-call. This is simpler, more efficient, and aligns with the MCP model where server capabilities are fixed at startup.
+
+**MCP Tool Filtering Logic:**
+- "public" MCP server: Only register tools with `visibility: "public"`
+- "trusted" MCP server: Register tools with `visibility: "public"` or `"trusted"`
+- "anchor" MCP server: Register all tools (`"public"`, `"trusted"`, and `"anchor"` visibility)
+- Default MCP server permission level: "public" (for safety)
+- Configuration option to set MCP server as "trusted" or "anchor" level
+
+**Benefits:**
+- No per-call overhead - filtering happens once at startup
+- Aligns with MCP protocol where server capabilities are static
+- Simple and secure - inappropriate tools never get registered
+- Clear separation of concerns - permission level is server-wide property
 
 ### Phase 3: Fix Permission Context Flow
 
@@ -263,6 +282,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 - [ ] Ensure CLI passes "anchor" level, Matrix passes dynamic levels
 
 **Interface-specific permission determination:**
+
 - [x] BasePlugin has determineUserPermissionLevel method (already done)
 - [x] CLI interface returns "anchor" level (already done)
 - [ ] Matrix interface dynamic permission determination
@@ -278,7 +298,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 ### Phase 5: Testing and Validation
 
 - [ ] PluginContext security tests
-- [ ] Shell.query() as single chokepoint verification
+- [ ] Shell.generateContent() as single chokepoint verification
 - [ ] Interface permission determination tests
 - [ ] Security boundary enforcement validation
 - [ ] Performance validation
@@ -288,7 +308,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 
 ### Functional Requirements
 
-- ✅ Shell.query() is single chokepoint for ALL secured operations
+- ✅ Shell.generateContent() is single chokepoint for ALL secured operations
 - ✅ PluginContext.generateContent() routes through Shell with permissions
 - ✅ Existing permission system (PermissionHandler, templates) works consistently
 - ✅ Interfaces determine userPermissionLevel, Shell enforces permissions
@@ -300,7 +320,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 - ✅ No privilege escalation vulnerabilities
 - ✅ Shell as single trusted security boundary
 - ✅ Secure by default (public permissions)
-- ✅ No bypass paths around Shell.query() permission checking
+- ✅ No bypass paths around Shell.generateContent() permission checking
 - ✅ Consistent permission enforcement across all content generation
 - ✅ Simple, auditable security architecture
 
@@ -352,6 +372,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 This Shell as Single Security Boundary implementation establishes a simple, robust security architecture that controls access to ALL protected content generation through Shell.generateContent() as the single chokepoint. The architecture has been successfully implemented - PluginContext.generateContent() correctly routes through Shell.generateContent() with permission checking.
 
 **Current Status:**
+
 - ✅ **Content Generation Security**: Complete and working
 - ❌ **MCP Tool Permission Filtering**: Primary remaining gap - tools are not filtered by user permissions
 - ❌ **Permission Context Flow**: Secondary gap - hardcoded "default-user" instead of actual user permission levels

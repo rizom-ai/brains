@@ -64,8 +64,9 @@ export interface Daemon {
 
 /**
  * Tool visibility levels for permission control
+ * Uses the same levels as UserPermissionLevel for consistency
  */
-export type ToolVisibility = "public" | "anchor";
+export type ToolVisibility = UserPermissionLevel;
 
 /**
  * Plugin tool definition
