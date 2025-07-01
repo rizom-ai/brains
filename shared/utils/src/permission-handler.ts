@@ -86,8 +86,8 @@ export class PermissionHandler {
 
     // Trusted gets trusted + public tools
     if (userLevel === "trusted") {
-      return tools.filter((tool) => 
-        tool.visibility === "public" || tool.visibility === "trusted"
+      return tools.filter(
+        (tool) => tool.visibility === "public" || tool.visibility === "trusted",
       );
     }
 

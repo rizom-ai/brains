@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger, UserPermissionLevel } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerShellMCP } from "./index";
 import type { ShellMCPCapabilities } from "./index";
@@ -23,6 +23,7 @@ export class McpServerManager {
 
   private logger: Logger;
   private mcpServer: McpServer;
+  private serverPermissionLevel: UserPermissionLevel;
 
   /**
    * Get the singleton instance of McpServerManager
@@ -30,8 +31,9 @@ export class McpServerManager {
   public static getInstance(
     logger: Logger,
     mcpServer: McpServer,
+    serverPermissionLevel: UserPermissionLevel = "public",
   ): McpServerManager {
-    McpServerManager.instance ??= new McpServerManager(logger, mcpServer);
+    McpServerManager.instance ??= new McpServerManager(logger, mcpServer, serverPermissionLevel);
     return McpServerManager.instance;
   }
 
@@ -48,16 +50,20 @@ export class McpServerManager {
   public static createFresh(
     logger: Logger,
     mcpServer: McpServer,
+    serverPermissionLevel: UserPermissionLevel = "public",
   ): McpServerManager {
-    return new McpServerManager(logger, mcpServer);
+    return new McpServerManager(logger, mcpServer, serverPermissionLevel);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(logger: Logger, mcpServer: McpServer) {
+  private constructor(logger: Logger, mcpServer: McpServer, serverPermissionLevel: UserPermissionLevel = "public") {
     this.logger = logger.child("McpServerManager");
     this.mcpServer = mcpServer;
+    this.serverPermissionLevel = serverPermissionLevel;
+    
+    this.logger.debug(`MCP server initialized with permission level: ${serverPermissionLevel}`);
   }
 
   /**
@@ -104,8 +110,20 @@ export class McpServerManager {
    */
   private handleToolRegistration(event: PluginToolRegisterEvent): void {
     const { pluginId, tool } = event;
+    
+    // Filter tools based on server permission level
+    const toolVisibility = tool.visibility || "anchor"; // Default to anchor for safety
+    const shouldRegisterTool = this.shouldRegisterTool(toolVisibility);
+    
+    if (!shouldRegisterTool) {
+      this.logger.debug(
+        `Skipping tool registration due to permission level - plugin: ${pluginId}, tool: ${tool.name}, visibility: ${toolVisibility}, server level: ${this.serverPermissionLevel}`,
+      );
+      return;
+    }
+
     this.logger.debug(
-      `Registering MCP tool from plugin ${pluginId}: ${tool.name}`,
+      `Registering MCP tool from plugin ${pluginId}: ${tool.name} (visibility: ${toolVisibility})`,
     );
 
     try {
@@ -191,6 +209,31 @@ export class McpServerManager {
       );
       throw new ResourceRegistrationError(resource.name, error, pluginId);
     }
+  }
+
+  /**
+   * Determine if a tool should be registered based on server permission level and tool visibility
+   */
+  private shouldRegisterTool(toolVisibility: UserPermissionLevel): boolean {
+    // Anchor servers get all tools
+    if (this.serverPermissionLevel === "anchor") {
+      return true;
+    }
+
+    // Trusted servers get trusted + public tools
+    if (this.serverPermissionLevel === "trusted") {
+      return toolVisibility === "public" || toolVisibility === "trusted";
+    }
+
+    // Public servers get only public tools
+    return toolVisibility === "public";
+  }
+
+  /**
+   * Get the current server permission level
+   */
+  public getServerPermissionLevel(): UserPermissionLevel {
+    return this.serverPermissionLevel;
   }
 
   /**

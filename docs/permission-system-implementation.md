@@ -42,8 +42,8 @@ Instead of creating complex abstractions, we route all content generation throug
 PluginContext.generateContent() → Shell.generateContent() → ContentGenerator (with permissions)
 
 // MCP tool filtering (REGISTRATION-TIME APPROACH):
-Shell startup → Determine MCP server permission level → 
- McpServerManager.handleToolRegistration() → Filter by tool.visibility → 
+Shell startup → Determine MCP server permission level →
+ McpServerManager.handleToolRegistration() → Filter by tool.visibility →
  Register only appropriate tools with MCP server
 ```
 
@@ -261,6 +261,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 **Approach:** Filter tools at registration time based on MCP server's permission level, not per-tool-call. This is simpler, more efficient, and aligns with the MCP model where server capabilities are fixed at startup.
 
 **MCP Tool Filtering Logic:**
+
 - "public" MCP server: Only register tools with `visibility: "public"`
 - "trusted" MCP server: Register tools with `visibility: "public"` or `"trusted"`
 - "anchor" MCP server: Register all tools (`"public"`, `"trusted"`, and `"anchor"` visibility)
@@ -268,6 +269,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 - Configuration option to set MCP server as "trusted" or "anchor" level
 
 **Benefits:**
+
 - No per-call overhead - filtering happens once at startup
 - Aligns with MCP protocol where server capabilities are static
 - Simple and secure - inappropriate tools never get registered
