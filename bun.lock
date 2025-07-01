@@ -89,6 +89,23 @@
         "@types/bun": "latest",
       },
     },
+    "interfaces/mcp": {
+      "name": "@brains/mcp",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/mcp-server": "workspace:*",
+        "@brains/plugin-utils": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.0.0",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.1.14",
+        "typescript": "^5.7.2",
+      },
+    },
     "interfaces/mcp-server": {
       "name": "@brains/mcp-server",
       "version": "0.1.0",
@@ -373,7 +390,7 @@
       "dependencies": {
         "@brains/core": "workspace:*",
         "@brains/matrix": "workspace:*",
-        "@brains/mcp-server": "workspace:*",
+        "@brains/mcp": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.24.1",
       },
@@ -629,6 +646,8 @@
     "@brains/matrix": ["@brains/matrix@workspace:interfaces/matrix"],
 
     "@brains/matrix-setup": ["@brains/matrix-setup@workspace:interfaces/matrix-setup"],
+
+    "@brains/mcp": ["@brains/mcp@workspace:interfaces/mcp"],
 
     "@brains/mcp-server": ["@brains/mcp-server@workspace:interfaces/mcp-server"],
 

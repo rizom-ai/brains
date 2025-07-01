@@ -16,13 +16,13 @@ describe("Shell and Base Entity Integration", () => {
     dbPath = testDb.dbPath;
 
     // Clean up singletons before each test
-    Shell.resetInstance();
+    await Shell.resetInstance();
     EntityRegistry.resetInstance();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Clean up singletons after each test
-    Shell.resetInstance();
+    await Shell.resetInstance();
     EntityRegistry.resetInstance();
   });
 

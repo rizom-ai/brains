@@ -16,9 +16,7 @@ import {
   Logger,
   LogLevel,
   PermissionHandler,
-  type UserPermissionLevel,
 } from "@brains/utils";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Plugin } from "@brains/plugin-utils";
 import type { Template } from "@brains/types";
 import type { RouteDefinition } from "@brains/view-registry";
@@ -26,7 +24,6 @@ import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
 import { ViewRegistry } from "@brains/view-registry";
 import { ShellInitializer } from "./initialization/shellInitializer";
-import { McpServerManager } from "./mcp/mcpServerManager";
 import { InitializationError } from "@brains/utils";
 
 /**
@@ -38,7 +35,6 @@ export interface ShellDependencies {
   logger?: Logger;
   embeddingService?: IEmbeddingService;
   aiService?: AIService;
-  mcpServer?: McpServer;
   entityService?: EntityService;
   serviceRegistry?: ServiceRegistry;
   entityRegistry?: EntityRegistry;
@@ -72,7 +68,6 @@ export class Shell {
   private readonly entityService: EntityService;
   private readonly aiService: AIService;
   private readonly contentGenerator: ContentGenerator;
-  private readonly mcpServer: McpServer;
   private readonly permissionHandler: PermissionHandler;
   private initialized = false;
 
@@ -94,7 +89,6 @@ export class Shell {
     }
     // Also reset dependent singletons
     ShellInitializer.resetInstance();
-    McpServerManager.resetInstance();
   }
 
   /**
@@ -231,51 +225,7 @@ export class Shell {
       dependencies?.permissionHandler ??
       new PermissionHandler("default-anchor", []);
 
-    // Use injected MCP server or create one
-    if (dependencies?.mcpServer) {
-      this.mcpServer = dependencies.mcpServer;
-    } else {
-      // Create our own MCP server
-      this.mcpServer = new McpServer({
-        name: "brain-shell",
-        version: "1.0.0",
-      });
-    }
 
-    // Set up MCP server with Shell capabilities and plugin event listeners
-    // Use createFresh for dependency injection to avoid singleton issues in tests
-    // TODO: Make MCP server permission level configurable via environment or config
-    const mcpServerPermissionLevel: UserPermissionLevel = "anchor"; // Default to anchor for MCP
-    const mcpServerManager = dependencies?.mcpServer
-      ? McpServerManager.createFresh(
-          this.logger,
-          this.mcpServer,
-          mcpServerPermissionLevel,
-        )
-      : McpServerManager.getInstance(
-          this.logger,
-          this.mcpServer,
-          mcpServerPermissionLevel,
-        );
-    mcpServerManager.initializeShellCapabilities({
-      generateContent: <T = unknown>(
-        templateName: string,
-        context?: Record<string, unknown>,
-      ) =>
-        this.generateContent<T>({
-          prompt: "",
-          templateName,
-          userId: "mcp-user", // TODO: Get actual MCP user context
-          interfacePermissionGrant: "anchor", // TODO: MCP access implies anchor permissions - for now
-          ...(context && { data: context }),
-        }),
-      search: this.entityService.search.bind(this.entityService),
-      getEntity: this.entityService.getEntity.bind(this.entityService),
-      getSupportedEntityTypes: this.entityService.getSupportedEntityTypes.bind(
-        this.entityService,
-      ),
-    });
-    mcpServerManager.setupPluginEventListeners(this.pluginManager);
 
     // Register core components in the service registry
     this.serviceRegistry.register("shell", () => this);
@@ -289,7 +239,6 @@ export class Shell {
       () => this.contentGenerator,
     );
     this.serviceRegistry.register("viewRegistry", () => this.viewRegistry);
-    this.serviceRegistry.register("mcpServer", () => this.mcpServer);
   }
 
   /**
@@ -520,9 +469,6 @@ export class Shell {
     return this.aiService;
   }
 
-  public getMcpServer(): McpServer {
-    return this.mcpServer;
-  }
 
   public getPluginManager(): PluginManager {
     return this.pluginManager;

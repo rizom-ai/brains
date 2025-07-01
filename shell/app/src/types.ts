@@ -3,19 +3,8 @@ import { pluginMetadataSchema, type Plugin } from "@brains/plugin-utils";
 import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/cli";
 import { matrixConfigSchema } from "@brains/matrix";
+import { mcpConfigSchema } from "@brains/mcp";
 
-export const transportConfigSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("stdio"),
-  }),
-  z.object({
-    type: z.literal("http"),
-    port: z.number().default(3000),
-    host: z.string().default("localhost"),
-  }),
-]);
-
-export type TransportConfig = z.infer<typeof transportConfigSchema>;
 
 export const interfaceConfigSchema = z.discriminatedUnion("type", [
   z.object({
@@ -33,6 +22,11 @@ export const interfaceConfigSchema = z.discriminatedUnion("type", [
     enabled: z.boolean().default(true),
     config: z.any().optional(), // Webserver-specific config
   }),
+  z.object({
+    type: z.literal("mcp"),
+    enabled: z.boolean().default(true),
+    config: mcpConfigSchema,
+  }),
 ]);
 
 export type InterfaceConfig = z.infer<typeof interfaceConfigSchema>;
@@ -41,7 +35,6 @@ export type InterfaceConfig = z.infer<typeof interfaceConfigSchema>;
 export const appConfigSchema = z.object({
   name: z.string().default("brain-app"),
   version: z.string().default("1.0.0"),
-  transport: transportConfigSchema.default({ type: "stdio" }),
   // These map directly to Shell config but with simpler names
   database: z.string().optional(), // Maps to database.url in Shell
   aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell

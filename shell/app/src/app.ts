@@ -1,12 +1,9 @@
 import { Shell } from "@brains/core";
-import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { Logger, LogLevel } from "@brains/utils";
-import type { Plugin } from "@brains/plugin-utils";
 import { appConfigSchema, type AppConfig } from "./types.js";
 
 export class App {
   private shell: Shell;
-  private server: StdioMCPServer | StreamableHTTPServer | null = null;
   private config: AppConfig;
   private shutdownHandlers: Array<() => void> = [];
   private isShuttingDown = false;
@@ -77,77 +74,25 @@ export class App {
   }
 
   public async initialize(): Promise<void> {
-    // Register interfaces as plugins before shell initialization
-    await this.registerInterfacePlugins();
+    // Register CLI interface if --cli flag is present
+    await this.registerCLIIfRequested();
 
     // Initialize shell (which will initialize all plugins including interfaces)
     await this.shell.initialize();
-
-    // Create logger that respects log level
-    const logLevelMap: Record<string, LogLevel> = {
-      debug: LogLevel.DEBUG,
-      info: LogLevel.INFO,
-      warn: LogLevel.WARN,
-      error: LogLevel.ERROR,
-    };
-    const logLevel =
-      logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
-    const logger = Logger.createFresh({
-      level: logLevel,
-      context: this.config.name,
-      useStderr: this.config.transport.type === "stdio", // MCP servers need stderr
-    });
-
-    // Create and configure transport server
-    const mcpServer = this.shell.getMcpServer();
-
-    if (this.config.transport.type === "stdio") {
-      this.server = new StdioMCPServer({ logger });
-      this.server.connectMCPServer(mcpServer);
-    } else {
-      this.server = new StreamableHTTPServer({
-        port: this.config.transport.port,
-        host: this.config.transport.host,
-        logger,
-      });
-      this.server.connectMCPServer(mcpServer);
-    }
-
-    // Note: Interfaces are now initialized as plugins during shell.initialize()
   }
 
-  private async registerInterfacePlugins(): Promise<void> {
+  private async registerCLIIfRequested(): Promise<void> {
+    // Check if CLI interface was added via --cli flag
+    const cliInterface = this.config.interfaces.find((i) => i.type === "cli" && i.enabled);
+    if (!cliInterface) return;
+
     const pluginManager = this.shell.getPluginManager();
-
-    // Register each interface as a plugin
-    for (const interfaceConfig of this.config.interfaces) {
-      if (!interfaceConfig.enabled) continue;
-
-      let plugin: Plugin;
-
-      switch (interfaceConfig.type) {
-        case "cli": {
-          const { CLIInterface } = await import("@brains/cli");
-          plugin = new CLIInterface(interfaceConfig.config);
-          break;
-        }
-        default:
-          throw new Error(`Unknown interface type: ${interfaceConfig.type}`);
-      }
-
-      pluginManager.registerPlugin(plugin);
-    }
+    const { CLIInterface } = await import("@brains/cli");
+    const plugin = new CLIInterface(cliInterface.config);
+    pluginManager.registerPlugin(plugin);
   }
 
   public async start(): Promise<void> {
-    if (!this.server) {
-      throw new Error("App not initialized. Call initialize() first.");
-    }
-
-    await this.server.start();
-
-    // Interfaces are now started as plugins during shell initialization
-
     // Set up signal handlers
     this.setupSignalHandlers();
   }
@@ -163,10 +108,6 @@ export class App {
     this.cleanupSignalHandlers();
 
     // Interfaces are stopped as plugins during shell shutdown
-
-    if (this.server) {
-      await this.server.stop();
-    }
   }
 
   /**
@@ -186,7 +127,6 @@ export class App {
     const logger = Logger.createFresh({
       level: logLevel,
       context: this.config.name,
-      useStderr: this.config.transport.type === "stdio",
     });
 
     try {
@@ -197,27 +137,10 @@ export class App {
 
       await this.start();
 
-      if (this.config.transport.type === "stdio") {
-        logger.info("Brain stdio server started");
-      } else {
-        logger.info(
-          `🌐 Brain HTTP server ready at http://${this.config.transport.host}:${this.config.transport.port}/mcp`,
-        );
-        logger.info(
-          `   Health check: http://${this.config.transport.host}:${this.config.transport.port}/health`,
-        );
-        logger.info(
-          `   Status: http://${this.config.transport.host}:${this.config.transport.port}/status`,
-        );
-      }
-
       // Interfaces are now logged as plugins during shell initialization
 
       // Keep process alive
-      if (this.config.transport.type === "stdio") {
-        // For stdio, we need to keep stdin open
-        process.stdin.resume();
-      }
+      process.stdin.resume();
     } catch (error) {
       logger.error(`❌ Failed to start ${this.config.name}:`, error);
       process.exit(1);
@@ -274,9 +197,5 @@ export class App {
 
   public getShell(): Shell {
     return this.shell;
-  }
-
-  public getServer(): StdioMCPServer | StreamableHTTPServer | null {
-    return this.server;
   }
 }

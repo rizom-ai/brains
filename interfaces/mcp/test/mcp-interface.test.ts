@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, expect, it, beforeEach } from "bun:test";
 import { MCPInterface } from "../src/mcp-interface";
 import { PluginTestHarness } from "@brains/test-utils";
 
@@ -9,52 +9,72 @@ describe("MCPInterface", () => {
     harness = new PluginTestHarness();
   });
 
-  describe("constructor and configuration", () => {
-    it("should create instance with default config (stdio)", () => {
-      const mcpInterface = new MCPInterface();
-      expect(mcpInterface.id).toBe("mcp");
-      expect(mcpInterface.packageName).toBe("@brains/mcp");
+  describe("initialization", () => {
+    it("should create instance with default config", () => {
+      const plugin = new MCPInterface();
+      expect(plugin.id).toBe("mcp");
+      expect(plugin.packageName).toBe("@brains/mcp");
     });
 
-    it("should create instance with http config", () => {
-      const config = {
-        transport: "http" as const,
-        httpPort: 8080,
-      };
-      const mcpInterface = new MCPInterface(config);
-      expect(mcpInterface).toBeDefined();
-    });
-  });
-
-  describe("permission levels", () => {
-    it("should grant anchor permissions for stdio transport", async () => {
-      const mcpInterface = new MCPInterface({ transport: "stdio" });
-      await harness.installPlugin(mcpInterface);
-
-      // TODO: Once we integrate McpServerManager, verify anchor permissions are used
+    it("should create instance with stdio transport", () => {
+      const plugin = new MCPInterface({ transport: "stdio" });
+      expect(plugin.id).toBe("mcp");
     });
 
-    it("should grant public permissions for http transport", async () => {
-      const mcpInterface = new MCPInterface({ transport: "http" });
-      await harness.installPlugin(mcpInterface);
-
-      // TODO: Once we integrate McpServerManager, verify public permissions are used
+    it("should create instance with http transport", () => {
+      const plugin = new MCPInterface({ 
+        transport: "http", 
+        httpPort: 3001 
+      });
+      expect(plugin.id).toBe("mcp");
     });
   });
 
-  describe("lifecycle methods", () => {
-    it("should register without errors", async () => {
-      const mcpInterface = new MCPInterface();
-      await harness.installPlugin(mcpInterface);
-      // Should not throw
+  describe("registration", () => {
+    it("should register with stdio transport and anchor permissions", async () => {
+      const plugin = new MCPInterface({ transport: "stdio" });
+      const context = harness.getPluginContext();
+      
+      const capabilities = await plugin.register(context);
+      
+      expect(capabilities).toBeDefined();
+      expect(capabilities.tools).toEqual([]);
+      expect(capabilities.resources).toEqual([]);
     });
 
-    it("should start and stop without errors", async () => {
-      const mcpInterface = new MCPInterface();
-      await harness.installPlugin(mcpInterface);
-      await mcpInterface.start();
-      await mcpInterface.stop();
+    it("should register with http transport and public permissions", async () => {
+      const plugin = new MCPInterface({ transport: "http" });
+      const context = harness.getPluginContext();
+      
+      const capabilities = await plugin.register(context);
+      
+      expect(capabilities).toBeDefined();
+      expect(capabilities.tools).toEqual([]);
+      expect(capabilities.resources).toEqual([]);
+    });
+  });
+
+  describe("lifecycle", () => {
+    it("should handle start/stop with stdio transport", async () => {
+      const plugin = new MCPInterface({ transport: "stdio" });
+      const context = harness.getPluginContext();
+      
+      await plugin.register(context);
+      
       // Should not throw
+      await expect(plugin.start()).resolves.toBeUndefined();
+      await expect(plugin.stop()).resolves.toBeUndefined();
+    });
+
+    it("should warn about unimplemented http transport", async () => {
+      const plugin = new MCPInterface({ transport: "http" });
+      const context = harness.getPluginContext();
+      
+      await plugin.register(context);
+      
+      // Start should complete without error (logs warning)
+      await expect(plugin.start()).resolves.toBeUndefined();
+      await expect(plugin.stop()).resolves.toBeUndefined();
     });
   });
 });

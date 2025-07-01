@@ -15,9 +15,9 @@
   },
   "dependencies": {
     "@brains/core": "workspace:*",
-    "@brains/mcp-server": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/matrix": "workspace:*",
+    "@brains/mcp": "workspace:*",
     "zod": "^3.24.1"
   },
   "devDependencies": {
