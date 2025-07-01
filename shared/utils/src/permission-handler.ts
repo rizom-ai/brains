@@ -157,4 +157,26 @@ export class PermissionHandler {
   isTrusted(userId: string): boolean {
     return this.trustedUserIds.has(userId);
   }
+
+  /**
+   * Determine effective permission level considering interface grants
+   * Interface grants override user permissions (Interface Grant Override model)
+   */
+  getEffectivePermissionLevel(
+    userId: string | null | undefined,
+    interfacePermissionGrant?: UserPermissionLevel,
+  ): UserPermissionLevel {
+    // If interface provides a permission grant, use it (interface override)
+    if (interfacePermissionGrant) {
+      return interfacePermissionGrant;
+    }
+
+    // If no userId provided, default to public permissions
+    if (!userId) {
+      return "public";
+    }
+
+    // Otherwise, use the user's actual permission level
+    return this.getUserPermissionLevel(userId);
+  }
 }

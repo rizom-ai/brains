@@ -8,7 +8,6 @@ import type {
   BaseEntity,
   MessageHandler,
   MessageSender,
-  GenerationContext,
   Template,
 } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";
@@ -134,10 +133,7 @@ export interface PluginContext {
     schema: z.ZodType<T>,
     adapter: EntityAdapter<T>,
   ) => void;
-  generateContent: <T = unknown>(
-    templateName: string,
-    context?: GenerationContext,
-  ) => Promise<T>;
+  generateContent: GenerateContentFunction;
   parseContent: <T = unknown>(templateName: string, content: string) => T;
   formatContent: <T = unknown>(templateName: string, data: T) => string;
   generateWithRoute: (
@@ -213,6 +209,24 @@ export interface MessageContext {
   interfaceType: string; // The type of interface processing this message (set to pluginId: "cli", "matrix", etc.)
   userPermissionLevel?: UserPermissionLevel; // Permission level in this specific context (room/channel)
 }
+
+/**
+ * Content generation options - user context with permission grants
+ */
+export interface ContentGenerationOptions {
+  userId?: string;
+  data?: Record<string, unknown>;
+  interfacePermissionGrant?: UserPermissionLevel;
+}
+
+/**
+ * Content generation function signature - used by both PluginContext and Shell
+ */
+export type GenerateContentFunction = <T = unknown>(
+  prompt: string,
+  templateName: string,
+  options: ContentGenerationOptions,
+) => Promise<T>;
 
 /**
  * Message-based interface plugin type - extends IInterfacePlugin

@@ -1,12 +1,12 @@
 import type { ServiceRegistry } from "@brains/service-registry";
-import type { Logger } from "@brains/utils";
+import type { Logger, UserPermissionLevel } from "@brains/utils";
 import type {
   BaseEntity,
   GenerationContext,
   Template,
   MessageHandler,
 } from "@brains/types";
-import type { PluginContext, Daemon } from "@brains/plugin-utils";
+import type { PluginContext, Daemon, ContentGenerationOptions } from "@brains/plugin-utils";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
@@ -147,8 +147,9 @@ export class PluginContextFactory {
         }
       },
       generateContent: async <T = unknown>(
+        prompt: string,
         templateName: string,
-        context?: GenerationContext,
+        options: ContentGenerationOptions,
       ): Promise<T> => {
         try {
           const namespacedTemplateName = this.ensureNamespaced(
@@ -156,18 +157,11 @@ export class PluginContextFactory {
             pluginId,
           );
 
-          // Always route through Shell.query() for consistent permission checking
-          const queryPrompt =
-            context?.prompt ??
-            `Generate content using template: ${namespacedTemplateName}`;
-
+          // Always route through Shell.generateContent() for consistent permission checking
           const queryResponse = await shell.generateContent<T>(
-            queryPrompt,
+            prompt,
             namespacedTemplateName,
-            {
-              userId: "default-user",
-              ...(context?.data && { data: context.data }),
-            },
+            options,
           );
 
           return queryResponse;

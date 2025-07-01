@@ -11,6 +11,8 @@ export type {
   IInterfacePlugin,
   MessageContext,
   IMessageInterfacePlugin,
+  ContentGenerationOptions,
+  GenerateContentFunction,
 } from "./interfaces";
 
 export { pluginMetadataSchema, DaemonHealthSchema } from "./interfaces";

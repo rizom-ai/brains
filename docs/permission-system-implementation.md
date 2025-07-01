@@ -294,7 +294,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 **Implementation Status:**
 
 - [ ] Update PluginContext.generateContent() to accept interfacePermissionGrant parameter
-- [x] Add CLI interface anchor permission grant capability  
+- [x] Add CLI interface anchor permission grant capability
 - [ ] Update Matrix interface to use user permissions (remove blanket anchor grant)
 - [ ] **CRITICAL**: Fix PluginContext hardcoded "default-user" in generateContent()
 - [ ] Implement interface grant override logic in PluginContext
@@ -315,7 +315,7 @@ MCP-specific permission concerns are intentionally deferred to the next phase. C
 
 **Benefits:**
 
-- ✅ Clear interface-based security boundaries  
+- ✅ Clear interface-based security boundaries
 - ✅ CLI grants anchor access (local access is trusted)
 - ✅ Matrix respects room-based user hierarchy
 - ✅ MCP supports transport-based permission grants
@@ -434,7 +434,7 @@ This Shell as Single Security Boundary implementation establishes a simple, robu
 **Problem:** No tests exist for:
 
 - Interface permission grant system
-- `interfacePermissionGrant` parameter handling  
+- `interfacePermissionGrant` parameter handling
 - Permission grant override logic
 - Permission flow from interfaces to shell
 - CLI anchor grant vs Matrix user permission differences

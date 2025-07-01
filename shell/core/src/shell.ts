@@ -1,5 +1,6 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
+import type { GenerateContentFunction, ContentGenerationOptions } from "@brains/plugin-utils";
 import { createDatabase } from "@brains/db";
 import { ServiceRegistry } from "@brains/service-registry";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
@@ -262,7 +263,8 @@ export class Shell {
         context?: Record<string, unknown>,
       ) =>
         this.generateContent<T>("", templateName, {
-          userPermissionLevel: "anchor", // TODO: MCP access implies anchor permissions - for now
+          userId: "mcp-user", // TODO: Get actual MCP user context
+          interfacePermissionGrant: "anchor", // TODO: MCP access implies anchor permissions - for now
           ...(context || {}),
         }),
       search: this.entityService.search.bind(this.entityService),
@@ -433,14 +435,9 @@ export class Shell {
    * Generate content using a template with permission checking
    */
   public async generateContent<T = unknown>(
-    query: string,
+    prompt: string,
     templateName: string,
-    options?: {
-      userId?: string;
-      conversationId?: string;
-      data?: Record<string, unknown>;
-      userPermissionLevel?: UserPermissionLevel;
-    },
+    options: ContentGenerationOptions,
   ): Promise<T> {
     if (!this.initialized) {
       throw new InitializationError(
@@ -452,28 +449,32 @@ export class Shell {
       );
     }
 
-    // Check permissions if user permission level is provided
-    if (options?.userPermissionLevel) {
-      const template = this.contentGenerator.getTemplate(templateName);
-      if (!template) {
-        throw new Error(`Template not found: ${templateName}`);
-      }
+    // Check permissions (always required)
+    const template = this.contentGenerator.getTemplate(templateName);
+    if (!template) {
+      throw new Error(`Template not found: ${templateName}`);
+    }
 
-      const hasPermission = this.permissionHandler.canUseTemplate(
-        options.userPermissionLevel,
-        template.requiredPermission,
+    // Get effective permission level from permission service
+    const effectivePermissionLevel = this.permissionHandler.getEffectivePermissionLevel(
+      options.userId,
+      options.interfacePermissionGrant,
+    );
+
+    const hasPermission = this.permissionHandler.canUseTemplate(
+      effectivePermissionLevel,
+      template.requiredPermission,
+    );
+
+    if (!hasPermission) {
+      throw new Error(
+        `Insufficient permissions: ${template.requiredPermission} required, but effective permission is ${effectivePermissionLevel} for template: ${templateName}`,
       );
-
-      if (!hasPermission) {
-        throw new Error(
-          `Insufficient permissions: ${template.requiredPermission} required, but user has ${options.userPermissionLevel} for template: ${templateName}`,
-        );
-      }
     }
 
     // Use the explicitly provided template name
     const context = {
-      prompt: query,
+      prompt,
       ...(options?.data && { data: options.data }),
     };
 

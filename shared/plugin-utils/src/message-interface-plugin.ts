@@ -131,9 +131,10 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
       }
       const queryResponse =
         await this.context.generateContent<DefaultQueryResponse>(
+          query,
           "shell:knowledge-query",
           {
-            prompt: query,
+            userId: context.userId,
             data: {
               userId: context.userId,
               conversationId: context.channelId,
