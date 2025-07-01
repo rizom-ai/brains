@@ -444,11 +444,9 @@ export class Shell {
 
     // Check permissions if user permission level is provided
     if (options?.userPermissionLevel) {
-      const template = this.contentGenerator.getTemplate(
-        "shell:knowledge-query",
-      );
+      const template = this.contentGenerator.getTemplate(templateName);
       if (!template) {
-        throw new Error("Template not found: shell:knowledge-query");
+        throw new Error(`Template not found: ${templateName}`);
       }
 
       const hasPermission = this.permissionHandler.canUseTemplate(
@@ -458,7 +456,7 @@ export class Shell {
 
       if (!hasPermission) {
         throw new Error(
-          `Insufficient permissions: ${template.requiredPermission} required, but user has ${options.userPermissionLevel}`,
+          `Insufficient permissions: ${template.requiredPermission} required, but user has ${options.userPermissionLevel} for template: ${templateName}`,
         );
       }
     }

@@ -33,7 +33,11 @@ export class McpServerManager {
     mcpServer: McpServer,
     serverPermissionLevel: UserPermissionLevel = "public",
   ): McpServerManager {
-    McpServerManager.instance ??= new McpServerManager(logger, mcpServer, serverPermissionLevel);
+    McpServerManager.instance ??= new McpServerManager(
+      logger,
+      mcpServer,
+      serverPermissionLevel,
+    );
     return McpServerManager.instance;
   }
 
@@ -58,12 +62,18 @@ export class McpServerManager {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(logger: Logger, mcpServer: McpServer, serverPermissionLevel: UserPermissionLevel = "public") {
+  private constructor(
+    logger: Logger,
+    mcpServer: McpServer,
+    serverPermissionLevel: UserPermissionLevel = "public",
+  ) {
     this.logger = logger.child("McpServerManager");
     this.mcpServer = mcpServer;
     this.serverPermissionLevel = serverPermissionLevel;
-    
-    this.logger.debug(`MCP server initialized with permission level: ${serverPermissionLevel}`);
+
+    this.logger.debug(
+      `MCP server initialized with permission level: ${serverPermissionLevel}`,
+    );
   }
 
   /**
@@ -110,11 +120,11 @@ export class McpServerManager {
    */
   private handleToolRegistration(event: PluginToolRegisterEvent): void {
     const { pluginId, tool } = event;
-    
+
     // Filter tools based on server permission level
     const toolVisibility = tool.visibility || "anchor"; // Default to anchor for safety
     const shouldRegisterTool = this.shouldRegisterTool(toolVisibility);
-    
+
     if (!shouldRegisterTool) {
       this.logger.debug(
         `Skipping tool registration due to permission level - plugin: ${pluginId}, tool: ${tool.name}, visibility: ${toolVisibility}, server level: ${this.serverPermissionLevel}`,

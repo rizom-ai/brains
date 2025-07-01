@@ -251,12 +251,12 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 - [x] Verify Shell permission checking works for plugin-generated content
 - [x] Test security boundary enforcement
 
-**Next Priority: MCP Tool Permission Filtering (Registration-Time Approach)**
+**MCP Tool Permission Filtering (Registration-Time Approach) ✅ COMPLETED**
 
-- [ ] Add serverPermissionLevel parameter to McpServerManager constructor
-- [ ] Implement tool filtering in handleToolRegistration() based on server permission level
-- [ ] Update Shell initialization to determine and pass MCP server permission level
-- [ ] Add configuration option for MCP server permission level (default: "public")
+- [x] Add serverPermissionLevel parameter to McpServerManager constructor
+- [x] Implement tool filtering in handleToolRegistration() based on server permission level
+- [x] Update Shell initialization to determine and pass MCP server permission level
+- [x] Add configuration option for MCP server permission level (default: "public")
 
 **Approach:** Filter tools at registration time based on MCP server's permission level, not per-tool-call. This is simpler, more efficient, and aligns with the MCP model where server capabilities are fixed at startup.
 
@@ -275,20 +275,38 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 - Simple and secure - inappropriate tools never get registered
 - Clear separation of concerns - permission level is server-wide property
 
-### Phase 3: Fix Permission Context Flow
+### Phase 3: Hybrid Interface + Operation Level Permissions
 
-**Priority: Fix hardcoded permission context**
+**Architecture: Two-Level Permission System**
 
-- [ ] Add userPermissionLevel parameter to PluginContext.generateContent()
-- [ ] Update Shell.generateContent() calls to pass actual user permission levels
-- [ ] Ensure CLI passes "anchor" level, Matrix passes dynamic levels
+**Level 1: Interface-Level Permissions** - Each interface declares its base permission level:
 
-**Interface-specific permission determination:**
+- CLI Interface: `"anchor"` (full access)
+- MCP Server: Configurable (`"public"`, `"trusted"`, or `"anchor"`)
+- Matrix Interface: `"trusted"` (room-based permissions)
 
-- [x] BasePlugin has determineUserPermissionLevel method (already done)
-- [x] CLI interface returns "anchor" level (already done)
-- [ ] Matrix interface dynamic permission determination
-- [ ] MCP client permission level determination
+**Level 2: Operation-Level Permissions** - Individual operations get user-specific permissions, constrained by interface level:
+
+- CLI: All users get `"anchor"` (interface level)
+- MCP: All operations get server permission level
+- Matrix: Users get dynamic permissions based on room membership, but ≤ `"trusted"`
+
+**Implementation Tasks:**
+
+- [ ] Remove hardcoded MCP `"anchor"` permission and make configurable
+- [ ] Update PluginContext to accept interface + user permission levels
+- [ ] Add CLI interface anchor permission declaration
+- [ ] Add Matrix interface trusted permission declaration
+- [ ] Implement hybrid permission enforcement: `min(interfacePermissionLevel, userPermissionLevel)`
+
+**Benefits:**
+
+- ✅ Interface-level security boundaries
+- ✅ Per-operation user permissions
+- ✅ MCP servers can be configured as public/trusted/anchor
+- ✅ CLI always gets anchor access
+- ✅ Matrix supports room-based permissions
+- ✅ No global singleton permission issues
 
 ### Phase 4: Cleanup Unused Code
 
@@ -376,7 +394,9 @@ This Shell as Single Security Boundary implementation establishes a simple, robu
 **Current Status:**
 
 - ✅ **Content Generation Security**: Complete and working
-- ❌ **MCP Tool Permission Filtering**: Primary remaining gap - tools are not filtered by user permissions
-- ❌ **Permission Context Flow**: Secondary gap - hardcoded "default-user" instead of actual user permission levels
+- ✅ **Shell.generateContent() Permission Bug**: Fixed - now checks actual template instead of hardcoded template
+- ✅ **MCP Tool Permission Filtering**: Complete - tools filtered at registration time by server permission level
+- ⏳ **Hybrid Permission System**: In progress - implementing interface + operation level permissions
+- ❌ **Hardcoded Permission Context**: Remaining gap - MCP hardcoded "anchor", PluginContext hardcoded "default-user"
 
-The foundation is solid. The remaining work focuses on MCP tool filtering and fixing permission context flow, which are smaller, targeted improvements rather than architectural changes.
+The foundation is solid. The remaining work focuses on implementing the hybrid permission system with interface-level and operation-level permissions, removing hardcoded permission contexts, and completing the permission flow architecture.
