@@ -2,11 +2,7 @@ import {
   MessageInterfacePlugin,
   type MessageContext,
 } from "@brains/plugin-utils";
-import {
-  PermissionHandler,
-  markdownToHtml,
-  type UserPermissionLevel,
-} from "@brains/utils";
+import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
 import { MatrixClientWrapper } from "./client/matrix-client";
@@ -35,20 +31,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   }
 
   /**
-   * Matrix interface users have anchor permissions since Matrix access indicates authenticated access
+   * Matrix interface does not grant interface permissions - uses actual user permissions
    */
-  public override getInterfacePermissionLevel(): UserPermissionLevel {
-    return "anchor";
-  }
-
-  public override determineUserPermissionLevel(
-    userId: string,
-  ): UserPermissionLevel {
-    if (!this.permissionHandler) {
-      return "public";
-    }
-    return this.permissionHandler.getUserPermissionLevel(userId);
-  }
 
   /**
    * Start the interface
@@ -311,20 +295,13 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         await this.client.sendReaction(roomId, eventId, "🤔");
       }
 
-      // TODO: Permission checking should be moved to shell level for better security
-      // Currently handling it at interface level as a temporary solution
-      // Get user permission level
-      const userPermissionLevel =
-        this.permissionHandler.getUserPermissionLevel(senderId);
-
-      // Create message context
+      // Create message context - let shell handle permission checking
       const messageContext: MessageContext = {
         userId: senderId,
         channelId: roomId,
         messageId: eventId,
         timestamp: new Date(),
         interfaceType: this.id,
-        userPermissionLevel,
       };
 
       // Check if message is an anchor-only command

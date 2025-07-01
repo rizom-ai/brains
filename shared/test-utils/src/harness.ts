@@ -1,12 +1,16 @@
 import type {
   BaseEntity,
   EntityInput,
-  GenerationContext,
   MessageHandler,
   MessageSender,
   MessageResponse,
 } from "@brains/types";
-import type { Plugin, PluginContext, PluginTool } from "@brains/plugin-utils";
+import type {
+  Plugin,
+  PluginContext,
+  PluginTool,
+  ContentGenerationConfig,
+} from "@brains/plugin-utils";
 import type { IEntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
@@ -195,11 +199,13 @@ export class PluginTestHarness {
         this.mockEntityRegistry.registerEntityType(entityType, schema, adapter);
       },
       generateContent: async <T = unknown>(
-        templateName: string,
-        context?: GenerationContext,
+        config: ContentGenerationConfig,
       ): Promise<T> => {
         // For test harness, return mock data based on template name
-        if (templateName.includes("landing") || templateName.includes("hero")) {
+        if (
+          config.templateName.includes("landing") ||
+          config.templateName.includes("hero")
+        ) {
           return {
             title: "Test Brain",
             tagline: "Test Description",
@@ -214,7 +220,7 @@ export class PluginTestHarness {
         }
 
         // Default response for shell:knowledge-query template
-        if (templateName === "shell:knowledge-query") {
+        if (config.templateName === "shell:knowledge-query") {
           return {
             message: "Mock response from content generation",
             results: [],
@@ -223,7 +229,7 @@ export class PluginTestHarness {
 
         // Default response
         return {
-          prompt: context?.prompt ?? "mock prompt",
+          prompt: config.prompt ?? "mock prompt",
           response: "Mock response from content generation",
           results: [],
         } as T;

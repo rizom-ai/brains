@@ -1,12 +1,11 @@
 import type { ServiceRegistry } from "@brains/service-registry";
-import type { Logger, UserPermissionLevel } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import type { BaseEntity, Template, MessageHandler } from "@brains/types";
 import type {
-  BaseEntity,
-  GenerationContext,
-  Template,
-  MessageHandler,
-} from "@brains/types";
-import type { PluginContext, Daemon, ContentGenerationOptions } from "@brains/plugin-utils";
+  PluginContext,
+  Daemon,
+  ContentGenerationConfig,
+} from "@brains/plugin-utils";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
@@ -147,27 +146,28 @@ export class PluginContextFactory {
         }
       },
       generateContent: async <T = unknown>(
-        prompt: string,
-        templateName: string,
-        options: ContentGenerationOptions,
+        config: ContentGenerationConfig,
       ): Promise<T> => {
         try {
           const namespacedTemplateName = this.ensureNamespaced(
-            templateName,
+            config.templateName,
             pluginId,
           );
 
           // Always route through Shell.generateContent() for consistent permission checking
-          const queryResponse = await shell.generateContent<T>(
-            prompt,
-            namespacedTemplateName,
-            options,
-          );
+          const queryResponse = await shell.generateContent<T>({
+            ...config,
+            templateName: namespacedTemplateName,
+          });
 
           return queryResponse;
         } catch (error) {
           this.logger.error("Failed to generate content", error);
-          throw new ContentGenerationError(templateName, "generation", error);
+          throw new ContentGenerationError(
+            config.templateName,
+            "generation",
+            error,
+          );
         }
       },
       parseContent: <T = unknown>(templateName: string, content: string): T => {
