@@ -283,23 +283,33 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 
 - CLI Interface: `"anchor"` (full access)
 - MCP Server: Configurable (`"public"`, `"trusted"`, or `"anchor"`)
-- Matrix Interface: `"trusted"` (room-based permissions)
+- Matrix Interface: `"anchor"` (authenticated Matrix access)
 
 **Level 2: Operation-Level Permissions** - Individual operations get user-specific permissions, constrained by interface level:
 
 - CLI: All users get `"anchor"` (interface level)
 - MCP: All operations get server permission level
-- Matrix: Users get dynamic permissions based on room membership, but ≤ `"trusted"`
+- Matrix: Users get dynamic permissions based on room membership, but ≤ `"anchor"`
 
-**Implementation Tasks:**
+**Implementation Status:**
 
-- [ ] Remove hardcoded MCP `"anchor"` permission and make configurable (interim solution)
 - [ ] Update PluginContext to accept interface + user permission levels
-- [ ] Add CLI interface anchor permission declaration
-- [ ] Add Matrix interface trusted permission declaration
+- [x] Add CLI interface anchor permission declaration
+- [x] Add Matrix interface anchor permission declaration  
+- [ ] **CRITICAL**: Fix PluginContext hardcoded "default-user" in generateContent()
 - [ ] Implement hybrid permission enforcement: `min(interfacePermissionLevel, userPermissionLevel)`
+- [ ] Add comprehensive test coverage for permission level methods
 
-**Note:** For a complete MCP architecture solution, see [MCP Interface Plugin Extraction Plan](mcp-interface-plugin-extraction-plan.md) which outlines extracting MCP from Shell into a proper interface plugin with OAuth 2.1 integration.
+**MCP Permission Handling:**
+
+MCP-specific permission concerns are intentionally deferred to the next phase. Current implementation uses:
+- [ ] Remove hardcoded MCP `"anchor"` permission (interim solution only)
+
+**Note:** Comprehensive MCP permission architecture will be addressed in [MCP Interface Plugin Extraction Plan](mcp-interface-plugin-extraction-plan.md) which outlines:
+- Extracting MCP from Shell into proper interface plugin
+- OAuth 2.1 integration for authentication-based permissions  
+- Transport-based permission levels (HTTP OAuth vs stdio local access)
+- Complete separation of MCP concerns from Shell core
 
 **Benefits:**
 
@@ -399,6 +409,41 @@ This Shell as Single Security Boundary implementation establishes a simple, robu
 - ✅ **Shell.generateContent() Permission Bug**: Fixed - now checks actual template instead of hardcoded template
 - ✅ **MCP Tool Permission Filtering**: Complete - tools filtered at registration time by server permission level
 - ⏳ **Hybrid Permission System**: In progress - implementing interface + operation level permissions
-- ❌ **Hardcoded Permission Context**: Remaining gap - MCP hardcoded "anchor", PluginContext hardcoded "default-user"
+- ❌ **Hardcoded Permission Context**: Critical remaining gap - PluginContext hardcoded "default-user" (MCP permissions deferred to next phase)
+- ❌ **Permission Flow to Shell**: Interface permission levels not passed through to shell
+- ❌ **Test Coverage**: No tests for permission level methods or hybrid permission system
 
-The foundation is solid. The remaining work focuses on implementing the hybrid permission system with interface-level and operation-level permissions, removing hardcoded permission contexts, and completing the permission flow architecture.
+## Critical Issues Identified
+
+### Issue 1: PluginContext Hardcoded User Context
+
+**File:** `shell/core/src/plugins/pluginContextFactory.ts:168`
+
+**Problem:** The `generateContent` method hardcodes `userId: "default-user"` instead of using actual user context from interfaces.
+
+**Impact:** Interface permission levels (`getInterfacePermissionLevel()`, `determineUserPermissionLevel()`) are completely bypassed - the shell never receives the actual user permission context.
+
+**Status:** ❌ CRITICAL BUG - Permission system not functional
+
+### Issue 2: Missing Test Coverage
+
+**Problem:** No tests exist for:
+- `getInterfacePermissionLevel()` methods
+- `determineUserPermissionLevel()` methods  
+- Hybrid permission enforcement
+- Permission flow from interfaces to shell
+- Integration between interface and user permission levels
+
+**Impact:** Permission system implementation cannot be validated or maintained safely.
+
+**Status:** ❌ HIGH PRIORITY - Required before production use
+
+### Issue 3: Permission Context Flow
+
+**Problem:** The permission levels determined by interfaces are never passed to the shell's permission checking system.
+
+**Impact:** All content generation uses default/hardcoded permission levels instead of actual user permissions.
+
+**Status:** ❌ CRITICAL - Core architecture not complete
+
+The foundation is solid but the permission flow is broken. The remaining work focuses on fixing the permission context flow, implementing hybrid permission enforcement, and adding comprehensive test coverage.

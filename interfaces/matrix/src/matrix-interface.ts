@@ -2,7 +2,7 @@ import {
   MessageInterfacePlugin,
   type MessageContext,
 } from "@brains/plugin-utils";
-import { PermissionHandler, markdownToHtml } from "@brains/utils";
+import { PermissionHandler, markdownToHtml, type UserPermissionLevel } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
 import { MatrixClientWrapper } from "./client/matrix-client";
@@ -28,6 +28,20 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       MATRIX_CONFIG_DEFAULTS,
       sessionId,
     );
+  }
+
+  /**
+   * Matrix interface users have anchor permissions since Matrix access indicates authenticated access
+   */
+  public override getInterfacePermissionLevel(): UserPermissionLevel {
+    return "anchor";
+  }
+
+  public override determineUserPermissionLevel(userId: string): UserPermissionLevel {
+    if (!this.permissionHandler) {
+      return "public";
+    }
+    return this.permissionHandler.getUserPermissionLevel(userId);
   }
 
   /**

@@ -243,9 +243,19 @@ export class Shell {
 
     // Set up MCP server with Shell capabilities and plugin event listeners
     // Use createFresh for dependency injection to avoid singleton issues in tests
+    // TODO: Make MCP server permission level configurable via environment or config
+    const mcpServerPermissionLevel: UserPermissionLevel = "anchor"; // Default to anchor for MCP
     const mcpServerManager = dependencies?.mcpServer
-      ? McpServerManager.createFresh(this.logger, this.mcpServer)
-      : McpServerManager.getInstance(this.logger, this.mcpServer);
+      ? McpServerManager.createFresh(
+          this.logger,
+          this.mcpServer,
+          mcpServerPermissionLevel,
+        )
+      : McpServerManager.getInstance(
+          this.logger,
+          this.mcpServer,
+          mcpServerPermissionLevel,
+        );
     mcpServerManager.initializeShellCapabilities({
       generateContent: <T = unknown>(
         templateName: string,
