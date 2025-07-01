@@ -9,7 +9,6 @@
   "types": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
