@@ -2,103 +2,107 @@
 page: landing
 section: products
 ---
-
 # Products Section
 
 ## Label
-
-Our Products
+Our Ecosystem
 
 ## Headline
-
-Unlock the Power of Your Team's Knowledge
+Discover our core products and services
 
 ## Description
-
-Rizom offers a suite of products that empower teams to capture, connect, and amplify their collective expertise. From collaborative knowledge bases to personal brains, our tools help organizations transform their hidden knowledge into sustainable competitive advantage.
+Rizom offers a suite of innovative solutions to help organizations navigate the complexities of digital transformation, organizational development, and ecosystem design. Our products are designed to empower teams, foster collaboration, and drive sustainable growth.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
-team-brain
+rizom-canvas
 
 #### Name
-
-Team Brain
+Rizom Canvas
 
 #### Tagline
-
-Turn Your Team's Combined Knowledge Into Your Biggest Competitive Advantage
+Visualize and design your ecosystem
 
 #### Description
-
-Your team has incredible collective expertise, but it's trapped in individual heads, scattered documents, and endless Slack channels. Team Brain helps you centralize and structure your team's knowledge, making it searchable, shareable, and continuously improving.
+An intuitive platform that allows you to map out your organization's ecosystem, identify key stakeholders, and strategize collaborative initiatives.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Brain
+#### Icon
+Cpu
 
 ### Product 2
 
 #### ID
-
-freelance-brain
+collective-brain
 
 #### Name
-
-Freelance Brain
+Collective Brain
 
 #### Tagline
-
-Scale Your Expertise Without Losing Your Independence
+Capture and share collective knowledge
 
 #### Description
-
-You've built valuable expertise over years of work. But turning that knowledge into scalable income while maintaining your autonomy feels impossible. Freelance Brain gives you the tools to package and sell your expertise on your own terms.
+A knowledge management system that enables teams to collaboratively curate, organize, and access their collective expertise and insights.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
+#### Icon
 Brain
 
 ### Product 3
 
 #### ID
-
-rizom-brains
+practice-innovation
 
 #### Name
-
-Rizom Brains
+Practice Innovation
 
 #### Tagline
-
-The Complete Knowledge Amplification Ecosystem
+Empower your teams to innovate
 
 #### Description
-
-Knowledge work is transforming. Whether you're an independent expert, a collaborative team, or a distributed collective, the ability to capture, transform, and leverage your collective intelligence is key to thriving. Rizom Brains provides the complete suite of tools to power your knowledge-driven future.
+A comprehensive toolkit that helps organizations foster a culture of innovation, design new practices, and implement sustainable change.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Brain
+#### Icon
+Wrench
+
+### Product 4
+
+#### ID
+economy-of-garbage
+
+#### Name
+Economy of Garbage
+
+#### Tagline
+Transform waste into value
+
+#### Description
+A consultative service that helps organizations identify and capitalize on opportunities within their waste streams, transitioning towards a more circular economy.
+
+#### Status
+beta
+
+#### Link
+
+
+#### Icon
+Recycle

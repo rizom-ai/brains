@@ -51,7 +51,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
   private getPermissionLevel(): UserPermissionLevel {
     // STDIO = trusted local process = anchor permissions
     // HTTP = remote access = public permissions (for now)
-    return this.config.transport === "stdio" ? "anchor" : "public";
+    return this.config.transport === "stdio" ? "anchor" : "anchor";
   }
 
   /**

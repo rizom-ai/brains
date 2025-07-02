@@ -229,7 +229,7 @@ export class PluginTestHarness {
 
         // Default response
         return {
-          prompt: config.prompt ?? "mock prompt",
+          prompt: config.prompt,
           response: "Mock response from content generation",
           results: [],
         } as T;

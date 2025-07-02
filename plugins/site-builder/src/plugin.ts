@@ -98,18 +98,18 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       siteContentPreviewSchema,
       siteContentPreviewAdapter,
     );
-    this.logger?.debug("Registered site-content-preview entity type");
+    this.logger.debug("Registered site-content-preview entity type");
 
     context.registerEntityType(
       "site-content-production",
       siteContentProductionSchema,
       siteContentProductionAdapter,
     );
-    this.logger?.debug("Registered site-content-production entity type");
+    this.logger.debug("Registered site-content-production entity type");
 
     // Register built-in dashboard template using unified method
     context.registerTemplate("dashboard", dashboardTemplate);
-    this.logger?.debug("Registered dashboard template");
+    this.logger.debug("Registered dashboard template");
 
     // Register dashboard route
     // TODO: Refactor this pattern - templates with formatters should automatically
@@ -137,14 +137,14 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         environment: this.config.environment ?? "preview",
       },
     );
-    this.logger?.debug("Registered dashboard route");
+    this.logger.debug("Registered dashboard route");
 
     // Register templates from configuration using unified registration
     if (this.config.templates) {
       context.registerTemplates(
         this.config.templates as Record<string, Template>,
       );
-      this.logger?.debug(
+      this.logger.debug(
         `Registered ${Object.keys(this.config.templates).length} templates from config`,
       );
     }
@@ -165,7 +165,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
     // Initialize the site content manager with dependency injection
     this.siteContentManager = new SiteContentManager(
       context.entityService,
-      this.logger?.child("SiteContentManager"),
+      this.logger.child("SiteContentManager"),
     );
 
     // Site builder is now encapsulated within the plugin

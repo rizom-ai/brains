@@ -2,33 +2,24 @@
 page: landing
 section: cta
 ---
-
 # CTA Section
 
 ## Headline
-
-Amplify Your Knowledge, Unlock Your Potential
+Unlock the Power of Your Personal Brain
 
 ## Description
-
-Join thousands who are already building their second brain and transforming the way they work. Unlock your full potential with our powerful personal knowledge management system.
+Capture, connect, and amplify your knowledge to achieve your goals.
 
 ## Primary Button
-
 ### Text
-
 Start Free Trial
 
 ### Link
-
 /signup
 
 ## Secondary Button
-
 ### Text
-
-View Demo
+Learn More
 
 ### Link
-
-/demo
+/about

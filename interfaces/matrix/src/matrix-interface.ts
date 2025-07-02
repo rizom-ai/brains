@@ -182,7 +182,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       return;
     }
 
-    const messageBody = messageEvent.content?.body;
+    const messageBody = messageEvent.content.body;
     if (!messageBody) {
       return;
     }

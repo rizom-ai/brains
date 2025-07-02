@@ -103,7 +103,7 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
         if (hasProgress && progressToken !== undefined) {
           toolContext = {
             progressToken,
-            sendProgress: async (notification: ProgressNotification) => {
+            sendProgress: async (notification: ProgressNotification): Promise<void> => {
               // Send progress notification back through message bus
               await context.sendMessage(`plugin:${this.id}:progress`, {
                 progressToken,

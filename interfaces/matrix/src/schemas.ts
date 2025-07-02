@@ -4,7 +4,7 @@ import { z } from "zod";
  * Default values for Matrix configuration
  */
 export const MATRIX_CONFIG_DEFAULTS = {
-  deviceDisplayName: process.env["MATRIX_DISPLAY_NAME"] || "Personal Brain",
+  deviceDisplayName: process.env["MATRIX_DISPLAY_NAME"] ?? "Personal Brain",
   publicToolsOnly: false,
   autoJoinRooms: true,
   enableEncryption: true,
