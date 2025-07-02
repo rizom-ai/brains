@@ -1,6 +1,7 @@
 ---
 type: research
 ---
+
 ## Introduction
 
 At Rizom, we've developed a progressive, algorithmic approach to talent assessment and quality control that aligns with our decentralized philosophy. Rather than relying on traditional, hierarchical methods of vetting and oversight, we've created an integrated system that combines cutting-edge technology with natural selection principles to maintain exceptional standards while preserving flexibility and autonomy.

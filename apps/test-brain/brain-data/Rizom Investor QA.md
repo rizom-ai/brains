@@ -1,7 +1,9 @@
 ---
 type: strategy
 ---
+
 ## What is Rizom?
+
 Rizom is a decentralized professional ecosystem where talented individuals collaborate without sacrificing their unique approaches. We're building a scalable platform inspired by rhizomes—plant systems that thrive through connection and adaptability—creating a new model for professional services with strong market differentiation and sustainable revenue.
 
 ## How does Rizom work?
@@ -19,6 +21,7 @@ This structure enables efficient scaling while maintaining quality and alignment
 Our $50B immediately addressable market focuses on organizations undergoing digital transformation and AI transition with particular emphasis on:
 
 **Enterprise Organizations: $25B**
+
 - Companies navigating complex digital transformations
 - Organizations implementing AI strategies and transitions
 - Businesses requiring cross-functional expertise
@@ -26,6 +29,7 @@ Our $50B immediately addressable market focuses on organizations undergoing digi
 - Strong demand for agile, specialized teams over traditional consulting
 
 **Public Sector: $15B**
+
 - Government agencies modernizing citizen services
 - Public institutions implementing digital-first approaches
 - Organizations requiring transparent, ethical AI implementation
@@ -33,6 +37,7 @@ Our $50B immediately addressable market focuses on organizations undergoing digi
 - Long-term transformation initiatives with sustained engagement
 
 **Education Sector: $10B**
+
 - Universities and colleges digitizing learning experiences
 - EdTech companies building new digital solutions
 - Educational institutions implementing AI-enhanced tools
@@ -50,6 +55,7 @@ Our primary revenue comes from client projects executed by our collective member
 2. **Infrastructure Tools**: We're developing software tools to facilitate collaboration that will eventually become a standalone product offering
 
 From client projects, a transparent 60/25/15 split ensures all stakeholders are incentivized appropriately:
+
 - 60% to project contributors
 - 25% to INFRA for ecosystem development
 - 15% to the Core that acquired the client
@@ -59,12 +65,14 @@ From client projects, a transparent 60/25/15 split ensures all stakeholders are 
 Our 60/25/15 revenue distribution model is strategically designed to build a sustainable, scalable ecosystem with strong margins:
 
 **The 15% to Cores represents efficient client acquisition:**
+
 - Traditional consulting firms spend 20-30% on business development and client acquisition
 - Our model reduces this overhead through a distributed network of Core owners
 - Cores absorb all financial risk and client relationship management
 - This creates a lean, entrepreneurial approach to client acquisition with aligned incentives
 
 **The 25% to INFRA drives competitive advantage:**
+
 - This investment creates proprietary tools and infrastructure that:
   - Increase collaborator productivity and reduce administrative overhead
   - Enable sophisticated team formation and project execution
@@ -75,6 +83,7 @@ Our 60/25/15 revenue distribution model is strategically designed to build a sus
 - The infrastructure investment will eventually yield standalone product offerings, creating additional revenue streams
 
 **The 60% to collaborators maximizes talent attraction and retention:**
+
 - While lower than the raw percentage on traditional freelance platforms (which take 20%), our model provides substantially higher effective rates by:
   - Eliminating unpaid business development time (typically 20-30% of a freelancer's time)
   - Providing access to higher-value projects than individual freelancers can typically secure
@@ -87,6 +96,7 @@ This model enables us to maintain 30-35% gross margins while delivering premium 
 ## How is Rizom structured legally?
 
 We operate through two main legal entities:
+
 - **Cores**: Organizations responsible for client acquisition and project management (starting with Core 0 in the Netherlands)
 - **INFRA**: The organization developing tools and methods to facilitate the collective (based in Singapore)
 
@@ -117,17 +127,20 @@ Each milestone builds toward a self-sustaining ecosystem with multiple revenue s
 Our team formation process combines organic collaboration with sophisticated matching:
 
 **Natural Team Formation**
+
 - Professionals connect through shared interests and complementary skills
 - Our Matrix-based communication infrastructure facilitates spontaneous connections
 - Common project interests drive natural team composition
 
 **TMS-Based Matching Algorithm**
+
 - Proprietary algorithm based on Team Management Systems (TMS) methodology
 - Analyzes communication patterns and collaboration effectiveness
 - Evaluates project outcomes and team dynamics
 - Suggests optimal team compositions based on real-time data
 
 **Practical Team Assembly Process**
+
 1. Client needs are analyzed by Core owners who identify required skills for digital transformation or AI transition projects
 2. Algorithm suggests collective members with complementary expertise across business, technology, and design domains
 3. Core owners curate the optimal team based on skills, availability, and collaboration history
@@ -141,20 +154,24 @@ This hybrid approach ensures we create true product teams—not just groups of i
 We operate in an evolving professional services landscape with several distinct competitor categories:
 
 **Traditional Freelance Platforms** (Upwork, Fiverr, Toptal)
-- *Their approach*: Transactional marketplaces focused on individual freelancers, typically with race-to-the-bottom pricing and high platform fees (20-40%)
-- *Our differentiation*: Curated teams with complementary skills; community-based ecosystem; transparent 60/25/15 revenue model ensuring fair compensation
+
+- _Their approach_: Transactional marketplaces focused on individual freelancers, typically with race-to-the-bottom pricing and high platform fees (20-40%)
+- _Our differentiation_: Curated teams with complementary skills; community-based ecosystem; transparent 60/25/15 revenue model ensuring fair compensation
 
 **Traditional Consulting Firms** (Big Four, McKinsey, Accenture)
-- *Their approach*: Hierarchical structures with standardized methodologies and high overhead costs
-- *Our differentiation*: Decentralized model with greater flexibility, lower overhead, and direct client access to senior talent at 30-40% lower cost
+
+- _Their approach_: Hierarchical structures with standardized methodologies and high overhead costs
+- _Our differentiation_: Decentralized model with greater flexibility, lower overhead, and direct client access to senior talent at 30-40% lower cost
 
 **Design/Development Agencies**
-- *Their approach*: Project-based work with fixed teams and limited scalability
-- *Our differentiation*: Fluid collective structure allowing perfect team assembly for each project's unique requirements
+
+- _Their approach_: Project-based work with fixed teams and limited scalability
+- _Our differentiation_: Fluid collective structure allowing perfect team assembly for each project's unique requirements
 
 **Other Professional Collectives** (Enspiral, Ouishare, Smart.coop)
-- *Their approach*: Community-focused with less structured business models
-- *Our differentiation*: Clear three-tiered structure with growth pathways; dedicated infrastructure development creating scalable tools
+
+- _Their approach_: Community-focused with less structured business models
+- _Our differentiation_: Clear three-tiered structure with growth pathways; dedicated infrastructure development creating scalable tools
 
 Our model of pre-vetted empowered product teams creates tremendous value for clients while attracting top talent. Unlike traditional consulting firms that deploy interchangeable resources or freelance platforms offering individual contributors, Rizom provides clients with complete product teams that bring end-to-end capabilities for digital transformation and AI transition projects. These teams are empowered to make decisions, drive innovation, and deliver outcomes—not just execute tasks. This approach results in higher client satisfaction, more efficient delivery, and premium margins compared to competitors.
 
@@ -165,12 +182,14 @@ Our most significant competitive advantage is attracting and retaining top talen
 Our vetting and quality assurance system leverages Transactive Memory Systems (TMS) science to ensure consistent quality:
 
 **Member Vetting Process**:
+
 1. Algorithmic assessment of professional profiles
 2. Matrix-based communication analysis measuring collaboration effectiveness
 3. Internal project contribution evaluation
 4. Graduated client project participation
 
 **Quality Assurance Framework**:
+
 1. Performance thresholds with minimum scores on TMS and client NPS
 2. Core owner oversight on all client projects
 3. Natural selection mechanism promoting high performers
@@ -215,7 +234,7 @@ Our founding team combines expertise in technology, community building, and inno
 We're assembling a full founding team with specific leadership roles in technology, product & culture, sales & marketing, and finance & operations, each bringing relevant expertise to scaling our ecosystem.
 
 ## What exactly do you mean by "the future of work is play"?
-    
+
 As technology handles increasingly routine tasks, humans should focus on what we do best: creating, exploring, and solving problems together. Play isn't frivolous—it's about engaging work that's intrinsically rewarding, collaborative, and aligned with natural talents. This approach allows us to attract top talent who might otherwise avoid traditional employment models.
 
 ## What makes Rizom different from other platforms?

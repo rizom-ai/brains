@@ -690,6 +690,89 @@ export class MonitorPlugin extends BasePlugin<MonitorConfig> {
 }
 ```
 
+## Tool Execution and Progress
+
+### Plugin-Specific Message Types
+
+Since the MCP refactoring, plugins now use plugin-specific message types for tool execution. This prevents conflicts when multiple plugins register tools.
+
+```typescript
+// BasePlugin automatically subscribes to plugin-specific messages
+// The subscription happens in setupMessageHandlers() during registration
+
+// Message types follow this pattern:
+// - Tool execution: `plugin:${pluginId}:tool:execute`
+// - Progress updates: `plugin:${pluginId}:progress`
+// - Resource fetching: `plugin:${pluginId}:resource:get`
+```
+
+### Progress Callback Support
+
+Tools can now report progress for long-running operations:
+
+```typescript
+export interface PluginTool {
+  name: string;
+  description: string;
+  inputSchema: ZodRawShape;
+  handler: (
+    input: unknown,
+    context?: {
+      progressToken?: string | number;
+      sendProgress?: (notification: ProgressNotification) => Promise<void>;
+    },
+  ) => Promise<unknown>;
+  visibility?: ToolVisibility;
+}
+
+// Example tool with progress reporting
+protected async getTools(): Promise<PluginTool[]> {
+  return [
+    {
+      name: "generate-site",
+      description: "Generate static site",
+      inputSchema: {
+        environment: z.enum(["preview", "production"]),
+      },
+      handler: async (input, context) => {
+        const { environment } = input as { environment: string };
+        
+        // Report progress if supported
+        if (context?.sendProgress) {
+          await context.sendProgress({
+            progress: 0,
+            total: 100,
+            message: "Starting site generation...",
+          });
+        }
+        
+        // Do work...
+        
+        if (context?.sendProgress) {
+          await context.sendProgress({
+            progress: 50,
+            total: 100,
+            message: "Building pages...",
+          });
+        }
+        
+        // More work...
+        
+        return { success: true, pagesBuilt: 10 };
+      },
+    },
+  ];
+}
+```
+
+### Message Flow
+
+1. **MCP Interface** receives tool execution request
+2. **MCP Interface** sends `plugin:${pluginId}:tool:execute` message
+3. **BasePlugin** handles the message and executes the tool
+4. If progress is supported, **Plugin** sends `plugin:${pluginId}:progress` messages
+5. **MCP Interface** forwards progress to the MCP client
+
 ## Best Practices
 
 1. **Configuration**: Always validate configuration with Zod schemas
@@ -699,3 +782,5 @@ export class MonitorPlugin extends BasePlugin<MonitorConfig> {
 5. **Cleanup**: Implement shutdown() to clean up resources
 6. **Type Safety**: Leverage TypeScript's type system fully
 7. **Documentation**: Document your plugin's configuration and tools
+8. **Progress Reporting**: Use progress callbacks for long-running operations
+9. **Message Isolation**: Trust that BasePlugin handles message routing

@@ -7,7 +7,8 @@ updatedAt: 2024-08-25T10:09:13.847Z
 publishedAt: 2024-08-25T10:09:13.847Z
 type: article
 ---
-In his revelatory works *The Gutenberg Galaxy* (1962) and *Understanding Media* (1964), Marshall McLuhan predicts that connecting the world through technology will not lead to further unification. Rather, the connective powers of electricity, and the technical media built on top of it, will turn the world into a global village. As information travels rapidly across the globe, traditional distinctions between local and global, as well as between different cultures, are eroded. The concept of global village designates a contraction of space and time, creating a sense of simultaneous existence for people worldwide.
+
+In his revelatory works _The Gutenberg Galaxy_ (1962) and _Understanding Media_ (1964), Marshall McLuhan predicts that connecting the world through technology will not lead to further unification. Rather, the connective powers of electricity, and the technical media built on top of it, will turn the world into a global village. As information travels rapidly across the globe, traditional distinctions between local and global, as well as between different cultures, are eroded. The concept of global village designates a contraction of space and time, creating a sense of simultaneous existence for people worldwide.
 
 To understand this concept in today's terms, imagine how social media platforms like Twitter or Facebook allow news and trends to spread globally within minutes. A protest in Hong Kong can inspire activists in New York almost instantaneously, exemplifying this collapse of geographical and temporal barriers.
 
@@ -17,9 +18,9 @@ Paradoxically, while the implosion of time and space effaces some differences, i
 
 This tribalism manifests in the echo chambers and filter bubbles we see online today. For instance, social media algorithms tend to show us content that aligns with our existing beliefs, reinforcing our "tribal" identities. The rise of niche online communities, from Reddit subcultures to Discord servers, further illustrates this digital tribalism.
 
-Considering the current landscape of the internet, it is safe to say that McLuhan was spot on with his predictions. The modern web is akin to a bustling village. On its busy street corners we find competing tribes. Their members are either claiming and defending the superiority of their own truths and values, or they are disqualifying and ridiculing those of others. It is thus not far-fetched to claim that the term global *village* also hints at the narrow mindedness of its inhabitants.
+Considering the current landscape of the internet, it is safe to say that McLuhan was spot on with his predictions. The modern web is akin to a bustling village. On its busy street corners we find competing tribes. Their members are either claiming and defending the superiority of their own truths and values, or they are disqualifying and ridiculing those of others. It is thus not far-fetched to claim that the term global _village_ also hints at the narrow mindedness of its inhabitants.
 
-Yet, these clashes extend far beyond mere content or ideological disputes. In *Gramophone, Film, Typewriter* (1987), Friedrich Kittler aptly frames the essence of these media wars as a struggle for control over the conduits that transmit words, sounds, and images. Our media are overloaded with entertaining distractions thinly veiled as information. Bread and circus provides a captivating backdrop to the overarching battle for dominion over the channels of communication.
+Yet, these clashes extend far beyond mere content or ideological disputes. In _Gramophone, Film, Typewriter_ (1987), Friedrich Kittler aptly frames the essence of these media wars as a struggle for control over the conduits that transmit words, sounds, and images. Our media are overloaded with entertaining distractions thinly veiled as information. Bread and circus provides a captivating backdrop to the overarching battle for dominion over the channels of communication.
 
 To put this in contemporary terms, think of the ongoing debates about net neutrality, or the increasing concerns over big tech companies' control of social media platforms. These are modern manifestations of the struggle for control over communication channels that Kittler foresaw.
 
@@ -42,5 +43,3 @@ By "tribal, monotheistic logic," we mean the tendency to view complex issues in 
 While there may very well be an objective truth, clear good and evil, and pure beauty, we all have to come to terms with the fact that we will never agree on it. Hence, it does not really matter. Pragmatically, value pluralism is the only way forward. This means acknowledging and respecting the existence of multiple, often conflicting, but equally valid moral and cultural viewpoints.
 
 In our digital global village, embracing value pluralism could mean actively seeking out diverse perspectives online, engaging in respectful dialogue with those we disagree with, and being open to changing our views. It's about navigating the complexities of our interconnected world with empathy and critical thinking, rather than retreating into the comfort of our digital tribes.
-
-

@@ -6,7 +6,6 @@ type: research
 
 Rizom will execute a targeted rollup strategy focusing on underperforming freelancer-based agencies in Europe (design, business development) and Asia (technology). This approach will accelerate collective growth, provide immediate revenue streams, and demonstrate the value of the Rizom organizational model while requiring less capital than traditional acquisitions. The strategy employs a structured assessment framework to efficiently identify and prioritize high-potential acquisition targets.
 
-
 ## Strategic Rationale
 
 ### Target Profile
@@ -24,7 +23,6 @@ Rizom will execute a targeted rollup strategy focusing on underperforming freela
 2. **Implement Rizom infrastructure and methodology** to improve operational efficiency
 3. **Cross-sell between acquired agency client bases** to increase utilization rates
 4. **Transition agency leadership** into appropriate Rizom roles based on skills and alignment
-
 
 ## Acquisition Process
 
@@ -116,7 +114,6 @@ Based on Quick-Scan Matrix positioning:
    - Establish standardized KPIs to track turnaround progress
    - Provide INFRA tools and methodologies immediately post-acquisition
 
-
 ## Fundraising Alignment
 
 ### Capital Efficiency
@@ -143,7 +140,6 @@ Based on Quick-Scan Matrix positioning:
    - Target investors with agency rollup experience
    - Demonstrate initial turnaround success metrics
 
-
 ## Implementation Timeline
 
 ### Near-Term (Q1-Q2 2025)
@@ -165,10 +161,10 @@ Based on Quick-Scan Matrix positioning:
 - Consider expansion into additional service verticals
 - Evaluate potential future North American market entry
 
-
 ## Risk Mitigation
 
 ### Due Diligence Focus Areas
+
 - Client contract transferability and relationship strength
 - Freelancer network quality and retention likelihood
 - Underlying issues causing agency distress

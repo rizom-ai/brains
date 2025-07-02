@@ -7,6 +7,7 @@ updatedAt: 2024-10-07T09:08:32.079Z
 publishedAt: 2024-10-07T09:08:32.079Z
 type: article
 ---
+
 An ecosystem is a regenerative practice of continuous, decentralized alignment. The fact that it strives towards the most favorable conditions for most, however, inevitably means that it will not work for all. This brings us to a crucial, and often overlooked, principle that we can learn from nature: the freedom to leave one habitat for another. Healthy ecosystems facilitate the possibility to vote with your feet.
 
 In nature, organisms move or migrate in response to environmental conditions. This movement is often a direct reaction to factors like food availability, climate conditions, habitat quality, or predation pressure. For example, animals may move to new areas in search of better food sources or more suitable climates. Similarly, plants can also change habitat through seed dispersal, effectively moving to locations with more favorable growth conditions.
@@ -19,19 +20,19 @@ Voting with your feet underscores the dynamic nature of ecosystems, where the di
 
 The desire for the freedom to switch habitats is a decisive argument against the claim that fragmentation is just loss. In fact, it is an affordance that a unified, monolithic whole can never offer, since its inherent universality makes reality all-encompassing and inescapable. To prevent this predicament, there needs to be an out, there needs to be multiplicity. The possibility to vote with your feet is nature's antidote to entrapment and solipsism.
 
-The privilege to move between different communities or ecosystems is not to be taken lightly. It is a necessary condition for creativity and innovation. Imagination demands the possibility of another habitat. Accessing other realms, even if it is just in the mind, is essential to dream, design, develop, and maintain new, better, or simply different ecosystems. 
+The privilege to move between different communities or ecosystems is not to be taken lightly. It is a necessary condition for creativity and innovation. Imagination demands the possibility of another habitat. Accessing other realms, even if it is just in the mind, is essential to dream, design, develop, and maintain new, better, or simply different ecosystems.
 
 This phenomenon is of all ages. As Walter Benjamin showed throughout his work, the history of utopianism and that of architecture are one and the same. Buildings, cities, and parks are yesterday's projection of how tomorrow's ecosystems should look. And in the age of the internet, architecture far exceeds mere physical bricks and mortar.
 
 > Not architecture alone but all technology is, at certain stages, evidence of a collective dream.
- 
+
 — Walter Benjamin
 
 As a collective dream, the original internet is the last refuge of modernism. Caught in an architectural metaphor, it is best imagined as a huge cathedral that the entire world is building together. Everyone is welcome to inhabit and contribute to this virtual Sagrada Familia. There is one major catch, though: you have to convert to the shared belief system upon entrance. What those on the inside do not realize, however, is that their values are not universal or even universally appealing. Their dream only attracts those who are already converted.
 
 Letting go of that dream of globally shared values should not lead to mourning but be welcomed with a deep sigh of relief. Once we affirm and celebrate value pluralism, the internet will open up realms that go beyond modernism's wildest dreams. To unite the whole world under one roof was never its true promise. From its inception, it blew up the building altogether. The decentralized internet truly enables the creation of spaces that completely defy spatial and temporal boundaries.
 
-Balaji Srinivasan's *The Network State* (2022) may be this new era's first philosophical masterpiece. Its claim is deceivingly simple: the era of the nation-state is nearing its end. In Srinivasan's view, states no longer need to be defined by their claim on contiguous physical space. The internet has removed the necessity for that requirement:
+Balaji Srinivasan's _The Network State_ (2022) may be this new era's first philosophical masterpiece. Its claim is deceivingly simple: the era of the nation-state is nearing its end. In Srinivasan's view, states no longer need to be defined by their claim on contiguous physical space. The internet has removed the necessity for that requirement:
 
 > What underpins the new dynamic of network states is the intrinsic lack of scarcity of digital territory, the return of unclaimed land and terra nullius, the reopened frontier.
 
@@ -53,5 +54,4 @@ Freed from the scarcity of physical space, it becomes much easier for communitie
 
 Future ecosystems should be designed first and foremost around the right of their inhabitants to vote with their feet. The idea that people are unconditionally loyal to a ruler, a state, a company, or an ideology is no longer viable. It has always been impossible to fully encapsulate a culture inside its physical borders. Traveling salesmen, academic networks, broadcast networks, and pandemics all broke the illusion of containment. The decentralized internet, however, took this phenomenon to the next level and rendered any attempt to shield an ecosystem from its outside utterly futile.
 
-Any state, organization, or network that continues to restrict the desire to vote with your feet should be met with great skepticism. Forceful entrapment — both physical and ideological — should be treated as an alarming signal. It indicates that there are fundamental flaws in the moral proposition of an ecosystem. Any community that functions around strong shared values does not need to hold on to anyone who does not subscribe to them. On the contrary, healthy ecosystems should encourage their members to imagine, design, and build new, even better spaces. 
-
+Any state, organization, or network that continues to restrict the desire to vote with your feet should be met with great skepticism. Forceful entrapment — both physical and ideological — should be treated as an alarming signal. It indicates that there are fundamental flaws in the moral proposition of an ecosystem. Any community that functions around strong shared values does not need to hold on to anyone who does not subscribe to them. On the contrary, healthy ecosystems should encourage their members to imagine, design, and build new, even better spaces.

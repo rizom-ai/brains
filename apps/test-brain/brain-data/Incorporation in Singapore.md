@@ -1,11 +1,13 @@
 ---
 type: research
 ---
+
 # Singapore Incorporation Rationale
 
 ## Strategic Advantages
 
 Singapore presents an ideal incorporation location for Rizom, offering a unique combination of benefits that align with our global ambitions and operational needs:
+
 ### Financial Hub Status
 
 Singapore's position as Asia's leading financial center provides Rizom with unparalleled access to capital markets and institutional investors. The country's sophisticated banking system and deep pool of venture capital firms create optimal conditions for future funding rounds and financial operations.
