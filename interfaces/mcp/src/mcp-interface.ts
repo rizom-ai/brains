@@ -12,6 +12,17 @@ import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { mcpConfigSchema, MCP_CONFIG_DEFAULTS } from "./schemas";
 import type { MCPConfigInput, MCPConfig } from "./types";
 import packageJson from "../package.json";
+import { z } from "zod";
+
+// Schema for progress notification messages
+const progressMessageSchema = z.object({
+  progressToken: z.union([z.string(), z.number()]),
+  notification: z.object({
+    progress: z.number(),
+    total: z.number().optional(),
+    message: z.string().optional(),
+  }),
+});
 
 /**
  * MCP Interface Plugin
@@ -57,6 +68,239 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
   protected override async getResources(): Promise<PluginResource[]> {
     // MCP manages its own resources internally
     return [];
+  }
+
+  /**
+   * Set up listeners for system events
+   */
+  private setupSystemEventListeners(context: PluginContext): void {
+    // Subscribe to tool registration events
+    context.subscribe("system:tool:register", (message) => {
+      const { pluginId, tool } = message.payload as {
+        pluginId: string;
+        tool: PluginTool;
+        timestamp: number;
+      };
+      this.handleToolRegistration(pluginId, tool);
+      return { success: true };
+    });
+
+    // Subscribe to resource registration events
+    context.subscribe("system:resource:register", (message) => {
+      const { pluginId, resource } = message.payload as {
+        pluginId: string;
+        resource: PluginResource;
+        timestamp: number;
+      };
+      this.handleResourceRegistration(pluginId, resource);
+      return { success: true };
+    });
+
+    this.logger.info("Subscribed to system tool/resource registration events");
+  }
+
+  /**
+   * Handle tool registration from plugins
+   */
+  private handleToolRegistration(pluginId: string, tool: PluginTool): void {
+    if (!this.mcpServer) return;
+
+    const toolVisibility = tool.visibility ?? "anchor";
+    const permissionLevel = this.getPermissionLevel();
+
+    if (!this.shouldRegisterTool(permissionLevel, toolVisibility)) {
+      this.logger.debug(
+        `Skipping tool ${tool.name} from ${pluginId} - insufficient permissions`,
+      );
+      return;
+    }
+
+    // Register the tool with namespacing
+    this.mcpServer.tool(
+      `${pluginId}:${tool.name}`,
+      tool.description,
+      tool.inputSchema,
+      async (params, extra) => {
+        try {
+          // Check if progress is supported
+          const progressToken = extra._meta?.progressToken;
+          const hasProgress = progressToken !== undefined;
+
+          // Subscribe to progress notifications if progress is supported
+          let unsubscribe: (() => void) | undefined;
+          if (hasProgress && this.context) {
+            // Set up progress handler
+            unsubscribe = this.context.subscribe(
+              `plugin:${pluginId}:progress`,
+              async (message) => {
+                try {
+                  // Validate and parse the message payload
+                  const { progressToken: msgToken, notification } =
+                    progressMessageSchema.parse(message.payload);
+
+                  // Only handle progress for this specific request
+                  if (msgToken === progressToken) {
+                    // Send progress notification to MCP client
+                    await extra.sendNotification({
+                      method: "notifications/progress",
+                      params: {
+                        progressToken,
+                        progress: notification.progress,
+                        ...(notification.total !== undefined && {
+                          total: notification.total,
+                        }),
+                        ...(notification.message && {
+                          message: notification.message,
+                        }),
+                      },
+                    });
+                  }
+
+                  return { success: true };
+                } catch (error) {
+                  this.logger.warn("Invalid progress message format", {
+                    error,
+                    payload: message.payload,
+                  });
+                  return {
+                    success: false,
+                    error: "Invalid progress message format",
+                  };
+                }
+              },
+            );
+
+            // Clean up progress handler when request completes or is aborted
+            extra.signal.addEventListener("abort", () => {
+              unsubscribe?.();
+            });
+          }
+
+          // Execute tool through message bus using plugin-specific message type
+          if (!this.context) {
+            throw new Error("Plugin context not initialized");
+          }
+          const response = await this.context.sendMessage(
+            `plugin:${pluginId}:tool:execute`,
+            {
+              toolName: tool.name,
+              args: params,
+              progressToken,
+              hasProgress,
+            },
+          );
+
+          // Clean up progress handler
+          unsubscribe?.();
+
+          if (!response.success) {
+            throw new Error(response.error ?? "Tool execution failed");
+          }
+
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(response.data, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          this.logger.error(`Tool execution error for ${tool.name}`, error);
+          throw error;
+        }
+      },
+    );
+
+    this.logger.info(`Registered tool ${pluginId}:${tool.name}`);
+  }
+
+  /**
+   * Handle resource registration from plugins
+   */
+  private handleResourceRegistration(
+    pluginId: string,
+    resource: PluginResource,
+  ): void {
+    if (!this.mcpServer) return;
+
+    // Resources don't have visibility, so we'll default to anchor permission
+    // In the future, we might want to add visibility to resources
+    const resourceVisibility: UserPermissionLevel = "anchor";
+    const permissionLevel = this.getPermissionLevel();
+
+    if (!this.shouldRegisterResource(permissionLevel, resourceVisibility)) {
+      this.logger.debug(
+        `Skipping resource ${resource.uri} from ${pluginId} - insufficient permissions`,
+      );
+      return;
+    }
+
+    // Register the resource with namespacing
+    this.mcpServer.resource(
+      `${pluginId}:${resource.uri}`,
+      resource.description ?? `Resource from ${pluginId}`,
+      async () => {
+        try {
+          // Get resource through message bus using plugin-specific message type
+          if (!this.context) {
+            throw new Error("Plugin context not initialized");
+          }
+          const response = await this.context.sendMessage(
+            `plugin:${pluginId}:resource:get`,
+            {
+              resourceUri: resource.uri,
+            },
+          );
+
+          if (!response.success) {
+            throw new Error(response.error ?? "Resource fetch failed");
+          }
+
+          return {
+            contents: [
+              {
+                uri: `${pluginId}:${resource.uri}`,
+                mimeType: resource.mimeType ?? "text/plain",
+                text: JSON.stringify(response.data, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          this.logger.error(`Resource fetch error for ${resource.uri}`, error);
+          throw error;
+        }
+      },
+    );
+
+    this.logger.info(`Registered resource ${pluginId}:${resource.uri}`);
+  }
+
+  /**
+   * Check if a tool should be registered based on permissions
+   */
+  private shouldRegisterTool(
+    serverPermission: UserPermissionLevel,
+    toolVisibility: UserPermissionLevel,
+  ): boolean {
+    const hierarchy: Record<UserPermissionLevel, number> = {
+      anchor: 3,
+      trusted: 2,
+      public: 1,
+    };
+
+    return hierarchy[serverPermission] >= hierarchy[toolVisibility];
+  }
+
+  /**
+   * Check if a resource should be registered based on permissions
+   */
+  private shouldRegisterResource(
+    serverPermission: UserPermissionLevel,
+    resourceVisibility: UserPermissionLevel,
+  ): boolean {
+    // Use same logic as tools
+    return this.shouldRegisterTool(serverPermission, resourceVisibility);
   }
 
   /**
@@ -232,6 +476,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
 
     // Register basic Shell tools
     this.registerShellTools(context);
+
+    // Subscribe to system events for plugin tools
+    this.setupSystemEventListeners(context);
 
     return capabilities;
   }

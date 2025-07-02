@@ -110,7 +110,7 @@ describe("PreactBuilder", () => {
       getContent: async () => null,
     };
 
-    await builder.build(buildContext);
+    await builder.build(buildContext, () => {});
 
     // Check that output files were created
     const indexPath = join(outputDir, "index.html");
@@ -192,7 +192,7 @@ describe("PreactBuilder", () => {
       getContent: async () => null,
     };
 
-    await builder.build(buildContext);
+    await builder.build(buildContext, () => {});
 
     const teamPath = join(outputDir, "about/team/index.html");
     const exists = await fs
@@ -256,7 +256,7 @@ describe("PreactBuilder", () => {
     };
 
     // Should not throw
-    await builder.build(buildContext);
+    await builder.build(buildContext, () => {});
 
     // Should still create the HTML file with empty content
     const html = await fs.readFile(join(outputDir, "index.html"), "utf-8");
@@ -338,7 +338,7 @@ describe("PreactBuilder", () => {
       },
     };
 
-    await builder.build(buildContext);
+    await builder.build(buildContext, () => {});
 
     expect(contentFetched).toBe(true);
 

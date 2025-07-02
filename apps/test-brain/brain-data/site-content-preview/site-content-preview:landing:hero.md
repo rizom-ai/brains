@@ -7,11 +7,11 @@ section: hero
 
 ## Headline
 
-Amplify Your Knowledge, Unlock Your Full Potential
+Amplify Your Knowledge, Unlock Your Potential
 
 ## Subheadline
 
-Rizom's Personal Brain empowers you to capture, connect, and leverage your expertise - without sacrificing your independence.
+Rizom's Personal Brain empowers you to capture, connect, and leverage your expertise to achieve your goals.
 
 ## CTA Text
 

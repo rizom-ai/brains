@@ -137,7 +137,10 @@ export class SiteBuilder implements ISiteBuilder {
       // Run static site build
       await reporter?.report("Running static site build", 85, 100);
       await staticSiteBuilder.build(buildContext, (message) => {
-        void reporter?.report(message);
+        // Report progress without await to avoid blocking
+        reporter?.report(message).catch(() => {
+          // Ignore progress reporting errors
+        });
       });
 
       await reporter?.report("Site build complete", 100, 100);

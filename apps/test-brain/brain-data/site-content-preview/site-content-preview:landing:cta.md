@@ -11,7 +11,7 @@ Amplify Your Knowledge, Unlock Your Potential
 
 ## Description
 
-Join thousands who are already building their second brain and transforming how they work and learn.
+Join thousands who are already building their second brain and transforming the way they work. Unlock your full potential with our powerful personal knowledge management system.
 
 ## Primary Button
 

@@ -72,6 +72,7 @@ export class PluginManager implements IPluginManager {
     this.registrationHandler = PluginRegistrationHandler.getInstance(
       logger,
       this.events,
+      serviceRegistry,
     );
     this.daemonRegistry = DaemonRegistry.getInstance(logger);
   }
@@ -247,7 +248,7 @@ export class PluginManager implements IPluginManager {
       const capabilities = await plugin.register(context);
 
       // Register plugin capabilities using the registration handler
-      this.registrationHandler.registerPluginCapabilities(
+      await this.registrationHandler.registerPluginCapabilities(
         pluginId,
         capabilities,
       );

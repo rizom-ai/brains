@@ -15,7 +15,7 @@ Unlock the Power of Your Team's Knowledge
 
 ## Description
 
-Rizom offers a suite of products that empower teams to capture, organize, and amplify their collective expertise. From personal knowledge management to collaborative knowledge sharing, our solutions help you turn your team's combined knowledge into your biggest competitive advantage.
+Rizom offers a suite of products that empower teams to capture, connect, and amplify their collective expertise. From collaborative knowledge bases to personal brains, our tools help organizations transform their hidden knowledge into sustainable competitive advantage.
 
 ## Products
 
@@ -35,7 +35,7 @@ Turn Your Team's Combined Knowledge Into Your Biggest Competitive Advantage
 
 #### Description
 
-Empower your team to capture, organize, and share their collective expertise. Team Brain provides a centralized knowledge hub that keeps everyone on the same page.
+Your team has incredible collective expertise, but it's trapped in individual heads, scattered documents, and endless Slack channels. Team Brain helps you centralize and structure your team's knowledge, making it searchable, shareable, and continuously improving.
 
 #### Status
 
@@ -63,7 +63,7 @@ Scale Your Expertise Without Losing Your Independence
 
 #### Description
 
-As a freelancer or independent expert, Freelance Brain helps you systematize your knowledge, build a personal knowledge base, and create scalable digital products from your expertise.
+You've built valuable expertise over years of work. But turning that knowledge into scalable income while maintaining your autonomy feels impossible. Freelance Brain gives you the tools to package and sell your expertise on your own terms.
 
 #### Status
 
@@ -73,7 +73,7 @@ live
 
 #### Icon
 
-Network
+Brain
 
 ### Product 3
 
@@ -91,7 +91,7 @@ The Complete Knowledge Amplification Ecosystem
 
 #### Description
 
-Rizom Brains is a suite of interconnected tools that empower individuals, teams, and collectives to capture, transform, and amplify their collective intelligence.
+Knowledge work is transforming. Whether you're an independent expert, a collaborative team, or a distributed collective, the ability to capture, transform, and leverage your collective intelligence is key to thriving. Rizom Brains provides the complete suite of tools to power your knowledge-driven future.
 
 #### Status
 
@@ -101,4 +101,4 @@ live
 
 #### Icon
 
-Zap
+Brain

@@ -11,12 +11,12 @@ export class MockStaticSiteBuilder implements StaticSiteBuilder {
 
   async build(
     context: BuildContext,
-    onProgress?: (message: string) => void,
+    onProgress: (message: string) => void,
   ): Promise<void> {
-    onProgress?.("Mock build started");
+    onProgress("Mock build started");
     this.buildContext = context;
     this.hasBuildFlag = true;
-    onProgress?.("Mock build completed");
+    onProgress("Mock build completed");
   }
 
   async clean(): Promise<void> {

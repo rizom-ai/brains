@@ -5,8 +5,24 @@ import type {
   PluginTool,
   PluginResource,
 } from "./interfaces";
-import { Logger, type UserPermissionLevel } from "@brains/utils";
-import type { z } from "zod";
+import {
+  Logger,
+  type UserPermissionLevel,
+  type ProgressNotification,
+} from "@brains/utils";
+import { z } from "zod";
+
+// Message schemas for validation
+const toolExecuteRequestSchema = z.object({
+  toolName: z.string(),
+  args: z.unknown(),
+  progressToken: z.union([z.string(), z.number()]).optional(),
+  hasProgress: z.boolean().optional(),
+});
+
+const resourceGetRequestSchema = z.object({
+  resourceUri: z.string(),
+});
 
 /**
  * Base abstract class for plugins that provides common functionality
@@ -49,6 +65,9 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
   async register(context: PluginContext): Promise<PluginCapabilities> {
     this.context = context;
 
+    // Set up message handlers for tool/resource execution
+    this.setupMessageHandlers(context);
+
     // Call lifecycle hook
     await this.onRegister(context);
 
@@ -56,6 +75,101 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
       tools: await this.getTools(),
       resources: await this.getResources(),
     };
+  }
+
+  /**
+   * Set up message handlers for tool and resource execution
+   */
+  private setupMessageHandlers(context: PluginContext): void {
+    // Subscribe to tool execution requests for this specific plugin
+    context.subscribe(`plugin:${this.id}:tool:execute`, async (message) => {
+      try {
+        // Validate and parse the message payload
+        const { toolName, args, progressToken, hasProgress } =
+          toolExecuteRequestSchema.parse(message.payload);
+
+        const tools = await this.getTools();
+        const tool = tools.find((t) => t.name === toolName);
+
+        if (!tool) {
+          return {
+            success: false,
+            error: `Tool not found: ${toolName}`,
+          };
+        }
+
+        // Create context with progress callback if progress is supported
+        let toolContext;
+        if (hasProgress && progressToken !== undefined) {
+          toolContext = {
+            progressToken,
+            sendProgress: async (notification: ProgressNotification) => {
+              // Send progress notification back through message bus
+              await context.sendMessage(`plugin:${this.id}:progress`, {
+                progressToken,
+                notification,
+              });
+            },
+          };
+        }
+
+        // Execute the tool with optional context
+        const result = await tool.handler(args, toolContext);
+        return {
+          success: true,
+          data: result,
+        };
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: "Invalid tool execution request format",
+          };
+        }
+        this.logger.error("Tool execution error", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    });
+
+    // Subscribe to resource get requests for this specific plugin
+    context.subscribe(`plugin:${this.id}:resource:get`, async (message) => {
+      try {
+        // Validate and parse the message payload
+        const { resourceUri } = resourceGetRequestSchema.parse(message.payload);
+
+        const resources = await this.getResources();
+        const resource = resources.find((r) => r.uri === resourceUri);
+
+        if (!resource) {
+          return {
+            success: false,
+            error: `Resource not found: ${resourceUri}`,
+          };
+        }
+
+        // Get the resource
+        const result = await resource.handler();
+        return {
+          success: true,
+          data: result,
+        };
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: "Invalid resource get request format",
+          };
+        }
+        this.logger.error("Resource fetch error", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    });
   }
 
   /**

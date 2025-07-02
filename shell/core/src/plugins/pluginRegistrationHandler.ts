@@ -6,6 +6,8 @@ import type {
   PluginResourceRegisterEvent,
 } from "../types/plugin-manager";
 import type { PluginTool, PluginResource } from "@brains/plugin-utils";
+import type { ServiceRegistry } from "@brains/service-registry";
+import type { Shell } from "../shell";
 
 /**
  * Handler for plugin capability registration (tools, resources)
@@ -16,6 +18,7 @@ export class PluginRegistrationHandler {
 
   private logger: Logger;
   private events: EventEmitter;
+  private serviceRegistry: ServiceRegistry;
 
   /**
    * Get the singleton instance of PluginRegistrationHandler
@@ -23,10 +26,12 @@ export class PluginRegistrationHandler {
   public static getInstance(
     logger: Logger,
     events: EventEmitter,
+    serviceRegistry: ServiceRegistry,
   ): PluginRegistrationHandler {
     PluginRegistrationHandler.instance ??= new PluginRegistrationHandler(
       logger,
       events,
+      serviceRegistry,
     );
     return PluginRegistrationHandler.instance;
   }
@@ -44,32 +49,56 @@ export class PluginRegistrationHandler {
   public static createFresh(
     logger: Logger,
     events: EventEmitter,
+    serviceRegistry: ServiceRegistry,
   ): PluginRegistrationHandler {
-    return new PluginRegistrationHandler(logger, events);
+    return new PluginRegistrationHandler(logger, events, serviceRegistry);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(logger: Logger, events: EventEmitter) {
+  private constructor(
+    logger: Logger,
+    events: EventEmitter,
+    serviceRegistry: ServiceRegistry,
+  ) {
     this.logger = logger.child("PluginRegistrationHandler");
     this.events = events;
+    this.serviceRegistry = serviceRegistry;
   }
 
   /**
    * Register plugin tools and emit events for Shell to handle
    */
-  public registerPluginTools(pluginId: string, tools: PluginTool[]): void {
+  public async registerPluginTools(
+    pluginId: string,
+    tools: PluginTool[],
+  ): Promise<void> {
     this.logger.debug(
       `Registering ${tools.length} tools for plugin ${pluginId}`,
     );
 
+    // Get the message bus from shell
+    const shell = this.serviceRegistry.resolve<Shell>("shell");
+    const messageBus = shell.getMessageBus();
+
     for (const tool of tools) {
       this.logger.debug(`Registering MCP tool: ${tool.name}`);
 
-      // Emit event for Shell to handle
+      // Emit event for Shell to handle (existing behavior)
       const toolEvent: PluginToolRegisterEvent = { pluginId, tool };
       this.events.emit(PluginEvent.TOOL_REGISTER, toolEvent);
+
+      // Also publish to MessageBus for plugin consumption
+      await messageBus.send(
+        "system:tool:register",
+        {
+          pluginId,
+          tool,
+          timestamp: Date.now(),
+        },
+        "PluginRegistrationHandler",
+      );
     }
 
     this.logger.info(
@@ -80,23 +109,38 @@ export class PluginRegistrationHandler {
   /**
    * Register plugin resources and emit events for Shell to handle
    */
-  public registerPluginResources(
+  public async registerPluginResources(
     pluginId: string,
     resources: PluginResource[],
-  ): void {
+  ): Promise<void> {
     this.logger.debug(
       `Registering ${resources.length} resources for plugin ${pluginId}`,
     );
 
+    // Get the message bus from shell
+    const shell = this.serviceRegistry.resolve<Shell>("shell");
+    const messageBus = shell.getMessageBus();
+
     for (const resource of resources) {
       this.logger.debug(`Registering MCP resource: ${resource.uri}`);
 
-      // Emit event for Shell to handle
+      // Emit event for Shell to handle (existing behavior)
       const resourceEvent: PluginResourceRegisterEvent = {
         pluginId,
         resource,
       };
       this.events.emit(PluginEvent.RESOURCE_REGISTER, resourceEvent);
+
+      // Also publish to MessageBus for plugin consumption
+      await messageBus.send(
+        "system:resource:register",
+        {
+          pluginId,
+          resource,
+          timestamp: Date.now(),
+        },
+        "PluginRegistrationHandler",
+      );
     }
 
     this.logger.info(
@@ -107,22 +151,22 @@ export class PluginRegistrationHandler {
   /**
    * Register all plugin capabilities (tools and resources)
    */
-  public registerPluginCapabilities(
+  public async registerPluginCapabilities(
     pluginId: string,
     capabilities: {
       tools: PluginTool[];
       resources: PluginResource[];
     },
-  ): void {
+  ): Promise<void> {
     this.logger.debug(
       `Registering capabilities for plugin ${pluginId}: ${capabilities.tools.length} tools, ${capabilities.resources.length} resources`,
     );
 
     // Register tools
-    this.registerPluginTools(pluginId, capabilities.tools);
+    await this.registerPluginTools(pluginId, capabilities.tools);
 
     // Register resources
-    this.registerPluginResources(pluginId, capabilities.resources);
+    await this.registerPluginResources(pluginId, capabilities.resources);
 
     this.logger.info(
       `Successfully registered all capabilities for plugin ${pluginId}`,

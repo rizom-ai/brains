@@ -32,9 +32,9 @@ export class PreactBuilder implements StaticSiteBuilder {
 
   async build(
     context: BuildContext,
-    onProgress?: (message: string) => void,
+    onProgress: (message: string) => void,
   ): Promise<void> {
-    onProgress?.("Starting Preact build");
+    onProgress("Starting Preact build");
 
     // Create output directory
     await fs.mkdir(this.outputDir, { recursive: true });
@@ -42,16 +42,16 @@ export class PreactBuilder implements StaticSiteBuilder {
 
     // Build each route first (HTML files)
     for (const route of context.routes) {
-      onProgress?.(`Building route: ${route.path}`);
+      onProgress(`Building route: ${route.path}`);
       await this.buildRoute(route, context);
     }
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
-    onProgress?.("Processing Tailwind CSS");
+    onProgress("Processing Tailwind CSS");
     await this.processStyles();
 
     // Set up hydration for interactive components
-    onProgress?.("Setting up component hydration");
+    onProgress("Setting up component hydration");
     const hydrationManager = new HydrationManager(
       this.logger.child("HydrationManager"),
       context.getViewTemplate,
@@ -67,7 +67,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       await hydrationManager.updateHTMLFiles(context.routes);
     }
 
-    onProgress?.("Preact build complete");
+    onProgress("Preact build complete");
   }
 
   async clean(): Promise<void> {

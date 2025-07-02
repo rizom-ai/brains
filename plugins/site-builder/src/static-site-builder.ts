@@ -27,7 +27,7 @@ export interface StaticSiteBuilder {
    */
   build(
     context: BuildContext,
-    onProgress?: (message: string) => void,
+    onProgress: (message: string) => void,
   ): Promise<void>;
 
   /**

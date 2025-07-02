@@ -15,7 +15,7 @@ Organize, Search, Secure, and Amplify Your Knowledge
 
 ## Description
 
-Rizom's Personal Brain empowers you to capture, connect, and leverage your expertise like never before. Unlock the full potential of your knowledge with these powerful features.
+Rizom's Personal Brain empowers you to capture, connect, and cultivate your knowledge, making it accessible, searchable, and secure. Unlock the full potential of your expertise.
 
 ## Feature Cards
 
@@ -23,15 +23,15 @@ Rizom's Personal Brain empowers you to capture, connect, and leverage your exper
 
 #### Title
 
-Structured Storage
+Organized Knowledge
 
 #### Icon
 
-FileText
+Database
 
 #### Description
 
-Organize your knowledge into a centralized, hierarchical structure for easy access and navigation.
+Seamlessly capture and structure your notes, documents, and ideas in a centralized knowledge base.
 
 ### Feature Card 2
 
@@ -51,7 +51,7 @@ Quickly find the information you need with advanced search capabilities across y
 
 #### Title
 
-Secure Access
+Secure Privacy
 
 #### Icon
 
@@ -59,4 +59,4 @@ Shield
 
 #### Description
 
-Protect your sensitive information with granular access controls and robust encryption.
+Protect your sensitive information with robust security features and granular access controls.
