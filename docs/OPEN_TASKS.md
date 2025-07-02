@@ -1,20 +1,23 @@
 # Open Tasks and TODOs
 
-This document consolidates all open tasks and TODOs from the Personal Brain Rebuild project documentation as of 2025-07-02.
+This document consolidates all open tasks and TODOs from the Personal Brain Rebuild project documentation.
+
+Last Updated: 2025-07-02
 
 ## High Priority Tasks
 
-### 1. Interface Completion (First Priority)
-
-- [x] ~~Remove deprecated BaseInterface code~~ ✅ Already removed
-- [ ] Complete full CLI interface implementation with Ink (beyond basic functionality)
-- [ ] Enhance Matrix interface features from original plan
-- [ ] Update interface documentation
-
-### 2. Core Plugin Implementation
+### 1. Core Plugin Implementation (First Priority)
 
 - **Link Plugin** (docs/link-plugin-plan.md) - Web content capture with AI processing
 - **Article Plugin** (docs/article-plugin-plan.md) - Long-form content support
+
+### 2. Interface Completion
+
+- [x] ~~Remove deprecated BaseInterface code~~ ✅ Completed
+- [x] ~~Implement interfaces as plugins~~ ✅ All interfaces now extend InterfacePlugin or MessageInterfacePlugin
+- [ ] Complete full CLI interface implementation with Ink (beyond basic functionality)
+- [ ] Update interface documentation
+
 
 ### 3. Content Generation Integration
 
@@ -38,6 +41,12 @@ From docs/cleanup-inventory.md:
 
 From docs/shell-refactoring-inventory.md:
 
+- [x] ~~Phase 0.1-0.6: Service package extractions~~ ✅ Completed (reduced shell from ~3,400 to ~1,900 lines)
+- [x] ~~Phase 0.7: 4-directory monorepo structure~~ ✅ Completed
+- [x] ~~Phase 0.8: Types package decoupling~~ ✅ Completed
+- [x] ~~Phase 1: Shell package decomposition~~ ✅ Completed (no files exceed 300 lines)
+- [x] ~~Phase 2.1: Component Interface Standardization~~ ✅ Completed
+- [x] ~~Phase 2.2.1: Shell package error handling~~ ✅ Completed
 - [ ] Phase 2.2.3: Interface and plugin error handling
 
 ### 2. Async Embedding Queue
@@ -108,50 +117,80 @@ From docs/native-modules-build-plan.md:
 
 The following have been completed but were listed as open in various documents:
 
+### Architecture & Refactoring
+- 4-directory monorepo structure (shell/, shared/, plugins/, interfaces/, apps/)
+- Shell package reduced by 44% (from ~3,400 to ~1,900 lines)
+- 8 new service packages extracted:
+  - @brains/ai-service
+  - @brains/embedding-service
+  - @brains/messaging-service
+  - @brains/service-registry
+  - @brains/view-registry
+  - @brains/entity-service
+  - @brains/content-generator
+  - @brains/app
+- Types package decoupled to individual packages
+- Component Interface Standardization pattern implemented
+- Shell package error handling standardized
+
+### Interface Implementation
 - BaseInterface and interface-core removal
+- All interfaces implemented as plugins:
+  - CLI Interface (MessageInterfacePlugin)
+  - Matrix Interface (MessageInterfacePlugin)
+  - MCP Interface (InterfacePlugin)
+  - Webserver Interface (InterfacePlugin)
 - MCP Plugin Tool Registration with plugin-specific message types
 - Progress callback support for long-running operations
-- Matrix Interface Migration to MessageInterfacePlugin
-- Webserver Interface Migration to InterfacePlugin
+
+### Plugin System
 - Plugin base classes (BasePlugin, InterfacePlugin, MessageInterfacePlugin)
-- ContentGenerator package creation (Phase 1)
-- Directory-sync and git-sync as separate plugins
+- Directory-sync plugin (file-based entity sync)
+- Git-sync plugin (version control integration)
+- Site-builder plugin (static site generation with Preact)
+- Default-site-content package (templates and formatters)
 
 ## Documentation Updates Needed
 
 ### Immediate Updates
 
 1. **docs/architecture-overview.md**
-   - Update "Future Packages" section (CLI and Matrix are implemented)
+   - Update package structure with 4-directory layout
+   - Remove "Future Packages" section (CLI and Matrix are implemented)
    - Update implementation priorities
-   - Clarify interface plugin architecture
+   - Document new service packages
 
-2. **docs/plugin-system.md**
+2. **docs/architecture/package-structure.md**
+   - Document the new 4-directory structure
+   - List all packages in their correct locations
+   - Update package descriptions
+
+3. **docs/plugin-system.md**
    - Add references to @brains/plugin-utils base classes
    - Update examples with real plugins
-
-### Status Updates
-
-1. **docs/shell-refactoring-inventory.md** - Mark completed phases
-2. **docs/content-generation-refactor-plan.md** - Mark Phase 1 as completed
-3. **docs/interface-architecture-overhaul-plan.md** - Update migration status
 
 ### Archive
 
 1. **docs/turborepo-setup.md** - Outdated, setup already complete
+2. Completed refactoring plans that are fully implemented
 
 ## Implementation Order Recommendation
 
 1. **Link Plugin** - Core feature, high user value
 2. **Article Plugin** - Build on content patterns
 3. **Content Generation Integration** - Complete remaining features
-4. **Async Embedding Queue** - Enable non-blocking imports for large content libraries
-5. **Architecture Cleanup** - Improve stability and developer experience
-6. **Service Extractions** - Clean architecture for scalability
-7. **Interface Enhancements** - Polish user experience
+4. **CLI Interface Enhancement** - Full Ink implementation
+5. **Cross-Package Error Handling** - Complete Phase 2.2.3
+6. **Async Embedding Queue** - Enable non-blocking imports for large content libraries
+7. **Additional Entity Plugins** - Task, Profile, Project plugins
+8. **Service Extractions** - EntityService package extraction
+9. **Architecture Documentation Updates** - Reflect current state
 
 ## Notes
 
-- Many plans are partially implemented but not fully extracted into the planned structure
-- The core functionality works, but architectural improvements would enhance maintainability
-- Focus on user-facing features (plugins) before internal refactoring
+- Shell refactoring is complete with 44% reduction in complexity
+- All interfaces are now implemented as plugins
+- Core functionality is solid and well-tested
+- Focus should shift to user-facing entity plugins (Link, Article, Task)
+- Architecture is clean and extensible with the new 4-directory structure
+- Cross-package error handling is the main remaining architectural task

@@ -293,14 +293,15 @@ Entity plugins are the primary plugin type, representing domains of functionalit
 Multiple client interfaces can connect to the brain through the MCP server:
 
 - **MCP Clients**: Any MCP-compatible client (Claude Desktop, VS Code, etc.)
-- **CLI Package**: Command-line interface (future package)
-- **Matrix Package**: Matrix chat interface (future package)
+- **CLI Interface**: Command-line interface (implemented as MessageInterfacePlugin)
+- **Matrix Interface**: Matrix chat interface (implemented as MessageInterfacePlugin)
+- **Web Interface**: Through the webserver plugin
 - **Custom Clients**: Any client that implements the MCP protocol
 
 ```
 ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-│   MCP Clients   │   │  CLI Package    │   │ Matrix Package  │
-│  (Claude, etc)  │   │    (@brains/cli)│   │(@brains/matrix) │
+│   MCP Clients   │   │  CLI Interface  │   │ Matrix Interface│
+│  (Claude, etc)  │   │    (Plugin)     │   │    (Plugin)     │
 └────────┬────────┘   └────────┬────────┘   └────────┬────────┘
          │                     │                     │
          ▼                     ▼                     ▼
@@ -355,43 +356,13 @@ runBrainApp({
   },
 });
 
-// apps/personal-brain/src/cli.ts
-import { Shell } from "@brains/shell";
-import { runCLI } from "@brains/cli";
-import { getPlugins } from "./config";
+// Interface plugins are now part of the main app configuration
+// No separate entry points needed - they register with the shell
 
-// Start brain with same config
-const shell = Shell.getInstance();
-await shell.initialize();
-
-// Register all plugins
-for (const plugin of getPlugins()) {
-  await shell.registerPlugin(plugin);
-}
-
-// Start CLI interface
-runCLI({ shell });
-
-// apps/personal-brain/src/matrix.ts
-import { Shell } from "@brains/shell";
-import { runMatrix } from "@brains/matrix";
-import { getPlugins } from "./config";
-
-// Start brain with same config
-const shell = Shell.getInstance();
-await shell.initialize();
-
-// Register all plugins
-for (const plugin of getPlugins()) {
-  await shell.registerPlugin(plugin);
-}
-
-// Start Matrix interface
-runMatrix({
-  shell,
-  homeserver: process.env.MATRIX_HOMESERVER,
-  accessToken: process.env.MATRIX_TOKEN,
-});
+// Example: Starting the app with different modes
+// ./brain              # Starts all configured plugins
+// ./brain --only-mcp   # Start only MCP server interface
+// ./brain --no-web     # Start without web server
 ```
 
 **Bundling with Bun:**
@@ -401,9 +372,8 @@ runMatrix({
 bun build src/index.ts --outfile=dist/brain.js --target=node
 
 # Usage
-./brain              # Start brain with configured plugins (MCP server mode)
-./brain cli          # Start CLI with embedded brain
-./brain matrix       # Start Matrix bot with embedded brain
+./brain              # Start brain with all configured plugins
+./brain --help       # Show available options
 ```
 
 **Benefits:**

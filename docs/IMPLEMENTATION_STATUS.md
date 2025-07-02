@@ -4,34 +4,43 @@ This document provides a clear overview of what's implemented, in progress, and 
 
 Last Updated: 2025-07-02
 
+## Project Structure
+
+The project uses a 4-directory monorepo structure:
+- **shell/** - Core services and infrastructure
+- **shared/** - Shared utilities and base packages
+- **plugins/** - Feature plugins (directory-sync, git-sync, site-builder)
+- **interfaces/** - Interface plugins (CLI, Matrix, MCP, Webserver)
+- **apps/** - Example applications (test-brain)
+
 ## ✅ Completed Components
 
-### Core Infrastructure
+### Core Infrastructure (Shell Packages)
 
-- **Shell Core** - Plugin system, registry, entity framework
-- **Database Layer** - SQLite with vector support
-- **MCP Server** - Model Context Protocol implementation with plugin tool registration
-  - Plugin-specific message types for tool execution
-  - Progress callback support for long-running operations
-  - Type-safe message validation with Zod schemas
-- **Entity Service** - Entity CRUD operations and adapters
-- **Query Processor** - Natural language query handling
-- **Messaging System** - Pub/sub for inter-component communication
-- **Content Generator** - AI-powered content generation service
-- **AI Services** - Embeddings (FastEmbed) and chat (Anthropic)
+- **shell/core** - Plugin system, registry, entity framework (reduced from ~3,400 to ~1,900 lines)
+- **shell/db** - SQLite with vector support (using libSQL with 384-dimension vectors)
+- **shell/entity-service** - Entity CRUD operations and adapters
+- **shell/messaging-service** - Pub/sub for inter-component communication (439 lines)
+- **shell/service-registry** - Service registration and dependency injection (168 lines)
+- **shell/view-registry** - View and route registration (325 lines)
+- **shell/ai-service** - Anthropic Claude integration (178 lines)
+- **shell/embedding-service** - FastEmbed integration (181 lines)
+- **shell/content-generator** - AI-powered content generation
+- **shell/app** - Application bootstrapper with helper functions
 
-### Base Packages
+### Shared Base Packages
 
-- **@brains/plugin-utils** - Base classes for plugins:
+- **@brains/base-entity** - Base entity schemas and adapters
+- **@brains/plugin-utils** - Plugin base classes:
   - `BasePlugin` - Base plugin functionality
   - `InterfacePlugin` - For non-message interfaces
   - `MessageInterfacePlugin` - For chat-like interfaces
-- **@brains/utils** - Common utilities including:
-  - Logger
-  - Markdown utilities (markdownToHtml)
-  - PermissionHandler (for Matrix)
-- **@brains/types** - Shared TypeScript types and schemas
-- **@brains/test-utils** - Testing utilities and harness
+- **@brains/utils** - Common utilities:
+  - Logger, Markdown, Permission handling, YAML, Progress tracking
+- **@brains/types** - Shared TypeScript types (recently decoupled)
+- **@brains/test-utils** - Testing harness and utilities
+- **@brains/daemon-registry** - Daemon process management
+- **@brains/default-site-content** - Default website templates with formatters
 
 ### Interfaces (as Plugins)
 
@@ -60,15 +69,18 @@ Last Updated: 2025-07-02
   - Import/export entities to/from filesystem
   - Watch mode for real-time sync
   - Configurable entity types
+  - Full test coverage
 - **Git Sync Plugin** ✅ - Version control integration
   - Auto-commit on changes
   - Push/pull functionality
   - Branch management
+  - Status formatter with test coverage
 - **Site Builder Plugin** ✅ - Static site generation
-  - Preact-based rendering
+  - Preact-based rendering with hydration
   - Template system with formatters
   - Preview and production builds
-  - Dashboard template
+  - Dashboard template with content management
+  - CSS processing and static site building
 
 ### Applications
 
@@ -79,10 +91,17 @@ Last Updated: 2025-07-02
 
 ## 🚧 In Progress
 
+### Architecture Improvements
+
+- **Cross-Package Error Handling** - Standardizing error handling across all packages
+  - Shell package error handling ✅ COMPLETED
+  - Core service packages partially complete
+  - Interface and plugin error handling planned
+
 ### Interface Enhancements
 
-- **CLI Interface** - Full Ink implementation with rich UI
-- **Matrix Interface** - Additional features from original plan
+- **CLI Interface** - Full Ink implementation with rich UI components
+- **Async Embedding Queue** - Non-blocking embedding generation
 
 ## 📋 Planned Features
 
@@ -152,28 +171,48 @@ Last Updated: 2025-07-02
 - Plugin marketplace/registry
 - Visual graph explorer
 - Mobile app support
+- StreamableHTTP transport for MCP
+- Note plugin with extended features (deprioritized since BaseEntity provides core functionality)
 
 ## 📊 Progress Summary
 
-- **Core System**: 95% complete (MCP integration done, minor error handling improvements needed)
-- **Interfaces**: 80% complete (all interfaces functional, CLI needs Ink enhancements)
-- **Entity Plugins**: 0% complete (planned but not started)
-- **Feature Plugins**: 100% complete for current scope
-- **Documentation**: 70% complete (updated with MCP implementation details)
-- **Testing**: 50% complete (core has tests, plugins need more)
+- **Core System**: 95% complete
+  - Shell refactoring reduced codebase by 44% (from ~3,400 to ~1,900 lines)
+  - 8 service packages extracted for better modularity
+  - MCP integration with full tool registration
+  - Component Interface Standardization complete
+- **Interfaces**: 100% functional, 80% feature-complete
+  - All interfaces implemented as plugins
+  - CLI needs Ink UI enhancements
+  - MCP supports both STDIO and HTTP transports
+- **Entity Plugins**: 0% complete (not started)
+- **Feature Plugins**: 100% complete
+  - Directory sync, Git sync, Site builder all functional
+- **Documentation**: 75% complete
+  - Architecture docs need updates for new structure
+- **Testing**: 60% complete
+  - 41 test files across project
+  - Core packages have good coverage
+  - Plugins need more comprehensive tests
 
 ## 🎯 Next Steps
 
-1. Implement Link Plugin for web content capture
-2. Implement Article Plugin for long-form content
-3. Complete content generation integration features
-4. Enhance existing interfaces with planned features
-5. Improve error handling across the system
+1. **Implement Link Plugin** - Core user feature for web content capture
+2. **Implement Article Plugin** - Long-form content management
+3. **Complete Content Generation Integration**
+   - Save parameter for generate_content tool
+   - DeriveEntity method on EntityService
+4. **Enhance CLI Interface** - Full Ink implementation
+5. **Standardize Error Handling** - Complete cross-package error strategy
+6. **Update Architecture Documentation** - Reflect new 4-directory structure
 
 ## 📝 Notes
 
-- The system is functional with current features
-- Architecture is solid and extensible
-- Plugin system works well for adding new functionality
-- Interface-as-plugin pattern is proving successful
-- Focus should be on user-facing features (plugins) before internal refactoring
+- The system is fully functional with current features
+- Architecture has been significantly improved with 4-directory structure
+- Shell package refactoring achieved 44% reduction in complexity
+- Plugin system is mature and well-tested
+- Interface-as-plugin pattern has been successfully implemented
+- All essential services are functional and extracted into packages
+- Focus should be on implementing entity plugins for user-facing features
+- The project has solid CI/CD with Docker and systemd deployment options

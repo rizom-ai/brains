@@ -2,291 +2,347 @@
 
 ## Overview
 
-The Brains repository uses a monorepo structure designed to support multiple brain implementations (personal, team, collective) with shared infrastructure and clear separation of concerns.
+The Brains repository uses a 4-directory monorepo structure designed to support modular development with clear separation of concerns between core infrastructure, shared utilities, feature plugins, and user interfaces.
 
-## Package Organization
+## Directory Organization
+
+```
+brains/
+├── shell/              # Core infrastructure & services
+├── shared/             # Shared utilities and base packages
+├── plugins/            # Feature extensions
+├── interfaces/         # User interaction layers
+└── apps/               # Example applications
+```
+
+## Shell (Core Infrastructure)
+
+The shell directory contains the core services that power the brain application. These packages were extracted from a monolithic shell to improve maintainability (44% reduction in complexity).
 
 ### Core Packages
 
-#### `packages/shell`
-
-- **Purpose**: Core brain infrastructure and business logic
+#### `shell/core`
+- **Purpose**: Plugin system and coordination (~1,900 lines)
 - **Responsibilities**:
-  - Entity management (EntityService, EntityRegistry)
-  - Schema management (SchemaRegistry)
-  - Message bus and messaging system
-  - Query processing (QueryProcessor)
-  - Brain protocol (command routing)
-  - Core types and interfaces
-- **Dependencies**: Minimal - only essential libraries (Drizzle, Zod)
-- **Consumers**: All other packages depend on shell
+  - Plugin lifecycle management
+  - Component initialization
+  - MCP server integration
+  - Configuration management
+- **Key Classes**: Shell, PluginManager, PluginContextFactory
 
-#### `packages/mcp-server`
-
-- **Purpose**: Model Context Protocol (MCP) server infrastructure
+#### `shell/db`
+- **Purpose**: Database layer with vector support
 - **Responsibilities**:
-  - MCP standard compliance
-  - Provides server infrastructure for tool/resource registration
-  - Transport implementations (stdio, HTTP/SSE)
-  - Connection lifecycle management
-  - Does NOT define specific tools or resources
-- **Dependencies**:
-  - `@modelcontextprotocol/sdk` only
-  - No dependency on shell or other packages
-- **Consumers**: Apps that need MCP interface
-- **Usage Pattern**: Other packages register their own tools/resources with the MCP server
+  - SQLite database with libSQL
+  - Vector embeddings (384 dimensions)
+  - Schema migrations with Drizzle
+  - Connection management
+- **Technologies**: libSQL, Drizzle ORM
 
-#### `packages/cli`
-
-- **Purpose**: Command-line interface functionality
+#### `shell/entity-service`
+- **Purpose**: Entity CRUD operations and management
 - **Responsibilities**:
-  - Interactive command parsing
-  - CLI-specific formatting and output
-  - Command history and completion
-  - Direct shell integration (no MCP overhead)
-- **Dependencies**:
-  - `packages/shell`
-  - CLI libraries (e.g., commander, inquirer)
-- **Consumers**: Brain app in CLI mode
+  - Entity registry and validation
+  - CRUD operations
+  - Vector search capabilities
+  - Entity adapters for serialization
+- **Key Classes**: EntityService, EntityRegistry
 
-#### `packages/matrix-bot`
-
-- **Purpose**: Matrix bot functionality
+#### `shell/messaging-service`
+- **Purpose**: Event-driven messaging system
 - **Responsibilities**:
-  - Matrix protocol handling
-  - Message parsing and response formatting
-  - Matrix-specific features (rooms, threads, reactions)
-  - Direct shell integration
-- **Dependencies**:
-  - `packages/shell`
-  - Matrix SDK
-- **Consumers**: Brain app in Matrix mode
+  - Pub/sub message bus
+  - Event routing
+  - Message validation
+  - Handler registration
+- **Size**: 439 lines
 
-### Plugin Architecture
+#### `shell/service-registry`
+- **Purpose**: Dependency injection and service registration
+- **Responsibilities**:
+  - Service lifecycle management
+  - Dependency resolution
+  - Singleton pattern implementation
+- **Size**: 168 lines
 
-The shell package provides a plugin system that allows for modular extension without requiring separate packages. Plugins can:
+#### `shell/view-registry`
+- **Purpose**: View and route registration system
+- **Responsibilities**:
+  - Route management
+  - View template registration
+  - Output format handling
+  - Renderer coordination
+- **Size**: 325 lines
 
-- Register new entity types via `EntityAdapter` interface
-- Add MCP tools and resources
-- Subscribe to messaging events
-- Extend functionality without modifying core code
+#### `shell/ai-service`
+- **Purpose**: AI model integration
+- **Responsibilities**:
+  - Anthropic Claude integration
+  - Chat completions
+  - Error handling and retries
+- **Size**: 178 lines
 
-This approach provides the benefits of modularity while keeping the codebase simple and maintainable.
+#### `shell/embedding-service`
+- **Purpose**: Vector embedding generation
+- **Responsibilities**:
+  - FastEmbed integration
+  - Text-to-vector conversion
+  - Embedding caching
+- **Size**: 181 lines
 
-## Multiple Brain Architecture
+#### `shell/content-generator`
+- **Purpose**: AI-powered content generation
+- **Responsibilities**:
+  - Template-based generation
+  - Prompt management
+  - Content validation
 
-The repository supports different brain types that share core infrastructure:
+#### `shell/app`
+- **Purpose**: Application bootstrapper
+- **Responsibilities**:
+  - Unified app initialization
+  - Configuration helpers
+  - Environment setup
 
-### Brain Types
+## Shared (Utilities and Base Packages)
 
-1. **Personal Brain** (`apps/personal-brain`)
-   - Individual knowledge management
-   - Personal notes, tasks, and projects
-   - Private by default
+### Base Packages
 
-2. **Team Brain** (`apps/team-brain`) - Future
-   - Shared team knowledge
-   - Collaborative features
-   - Permission-based access
+#### `shared/base-entity`
+- **Purpose**: Base entity framework
+- **Exports**:
+  - BaseEntity schema
+  - Entity adapters
+  - Markdown formatters
 
-3. **Collective Brain** (`apps/collective-brain`) - Future
-   - Community knowledge base
-   - Public contributions
-   - Consensus mechanisms
+#### `shared/plugin-utils`
+- **Purpose**: Plugin base classes
+- **Exports**:
+  - `BasePlugin` - Standard plugin functionality
+  - `InterfacePlugin` - For non-message interfaces
+  - `MessageInterfacePlugin` - For chat-like interfaces
+- **Key Features**: Lifecycle management, configuration validation
 
-### Plugin System
+#### `shared/utils`
+- **Purpose**: Common utilities
+- **Exports**:
+  - Logger with debug levels
+  - Markdown processing
+  - Permission handling
+  - YAML parsing
+  - Progress tracking
 
-Plugins can be created to extend any brain type with new entity types and functionality. The plugin system supports:
+#### `shared/types`
+- **Purpose**: Shared TypeScript types
+- **Note**: Recently decoupled - types now live with their packages
 
-- **Entity Registration**: Define new entity types with custom adapters
-- **Tool Registration**: Add MCP tools for entity operations
-- **Resource Registration**: Expose entity data as MCP resources
-- **Event Handling**: React to system events via message bus
-- **Service Access**: Use core services like QueryProcessor, EntityService
+#### `shared/test-utils`
+- **Purpose**: Testing utilities
+- **Exports**:
+  - Test harness
+  - Mock factories
+  - Plugin testing helpers
 
-Plugins can be developed internally or by third parties, and loaded dynamically based on configuration.
+#### `shared/daemon-registry`
+- **Purpose**: Daemon process management
+- **Features**: Process tracking, graceful shutdown
 
-## Application Structure
+#### `shared/default-site-content`
+- **Purpose**: Default website templates
+- **Includes**:
+  - Hero, Features, CTA, Products sections
+  - Formatters and layouts
+  - Content generation prompts
 
-### `apps/personal-brain`
+## Interfaces (User Interaction Layers)
 
-The unified application that can run in multiple modes:
+All interfaces are implemented as plugins extending base classes from `shared/plugin-utils`.
 
-```typescript
-// Example usage
-personal-brain --mode mcp      // Run as MCP server only
-personal-brain --mode cli      // Run as interactive CLI
-personal-brain --mode matrix   // Run as Matrix bot
-personal-brain --mode all      // Run all services (default)
+### Interface Packages
 
-// Multiple modes
-personal-brain --mode mcp,cli  // Run MCP server and CLI
+#### `interfaces/cli`
+- **Type**: MessageInterfacePlugin
+- **Purpose**: Command-line interface
+- **Features**:
+  - Ink-based UI components
+  - Command history
+  - Interactive prompts
+- **Status**: Basic implementation, Ink UI enhancement planned
+
+#### `interfaces/matrix`
+- **Type**: MessageInterfacePlugin
+- **Purpose**: Matrix protocol bot
+- **Features**:
+  - Room management
+  - Permission system
+  - Mention detection
+  - Command prefix support
+
+#### `interfaces/mcp`
+- **Type**: InterfacePlugin
+- **Purpose**: Model Context Protocol server
+- **Features**:
+  - STDIO and HTTP transports
+  - Tool registration from plugins
+  - Progress notifications
+  - Permission-based filtering
+
+#### `interfaces/webserver`
+- **Type**: InterfacePlugin
+- **Purpose**: Static site server
+- **Features**:
+  - Serves generated sites
+  - Preview and production modes
+  - Configurable ports
+
+## Plugins (Feature Extensions)
+
+### Feature Plugins
+
+#### `plugins/directory-sync`
+- **Purpose**: File-based entity synchronization
+- **Features**:
+  - Import/export entities
+  - Watch mode
+  - Configurable entity types
+  - Status formatting
+
+#### `plugins/git-sync`
+- **Purpose**: Version control integration
+- **Features**:
+  - Auto-commit on changes
+  - Push/pull functionality
+  - Branch management
+  - Status reporting
+
+#### `plugins/site-builder`
+- **Purpose**: Static site generation
+- **Features**:
+  - Preact-based rendering
+  - Template system
+  - CSS processing
+  - Content management
+  - Dashboard hydration
+
+## Apps (Example Applications)
+
+### `apps/test-brain`
+- **Purpose**: Reference implementation
+- **Features**:
+  - Demonstrates all plugins
+  - Environment-based config
+  - Example data
+  - Deployment scripts
+
+## Dependency Flow
+
 ```
-
-**Mode Implementations**:
-
-- Each mode imports and initializes the corresponding package
-- Modes can run concurrently (e.g., MCP server + Matrix bot)
-- Shared shell instance across all modes
-- Graceful shutdown handling for all active modes
-
-## Dependency Graph
-
-```
-apps/personal-brain
-    ├── packages/mcp-server
-    │   └── packages/shell
-    ├── packages/cli
-    │   └── packages/shell
-    ├── packages/matrix-bot
-    │   └── packages/shell
-    └── packages/shell
-        └── (core dependencies)
+apps/test-brain
+    ├── interfaces/*    (via plugin registration)
+    ├── plugins/*       (via plugin registration)
+    ├── shell/app       (for initialization)
+    └── shell/core      (for plugin management)
+        └── shell/*     (core services)
+            └── shared/* (utilities)
 ```
 
 ## Design Principles
 
-1. **Single Responsibility**: Each package has one clear purpose
-2. **Dependency Direction**: Dependencies flow inward to shell, never outward
-3. **Protocol Isolation**: External protocols (MCP, Matrix) isolated in their own packages
-4. **Mode Flexibility**: Brain app can run any combination of modes
-5. **Shared Core**: All modes use the same shell instance
-6. **Inversion of Control**: Infrastructure packages (like MCP) don't define business logic
+1. **Focused Packages**: Each package has a single, clear responsibility
+2. **Clean Dependencies**: Dependencies flow inward, never circular
+3. **Plugin Architecture**: All features implemented as plugins
+4. **Type Safety**: Zod schemas for all data validation
+5. **Testability**: Each package independently testable
+6. **Component Standardization**: Consistent patterns across all components
 
-## Building Executable Applications
+## Package Standards
 
-### Bun Executable Compilation
+### Plugin Interface
 
-Each brain application can be compiled into a standalone executable using Bun:
+All plugins follow this pattern:
+
+```typescript
+export class MyPlugin extends BasePlugin {
+  name = "my-plugin";
+  
+  async register(context: PluginContext): Promise<void> {
+    // Register entities, tools, routes, etc.
+  }
+  
+  async start(): Promise<void> {
+    // Start any services
+  }
+  
+  async stop(): Promise<void> {
+    // Cleanup
+  }
+}
+```
+
+### Service Pattern
+
+Core services use singleton pattern:
+
+```typescript
+export class MyService {
+  private static instance: MyService | null = null;
+  
+  static getInstance(): MyService {
+    if (!MyService.instance) {
+      MyService.instance = new MyService();
+    }
+    return MyService.instance;
+  }
+  
+  static resetInstance(): void {
+    MyService.instance = null;
+  }
+}
+```
+
+## Building and Distribution
+
+### Development
 
 ```bash
-# Build personal-brain executable
-cd apps/personal-brain
-bun build src/index.ts --compile --outfile personal-brain
+# Install dependencies
+bun install
 
-# Build with optimizations
-bun build src/index.ts --compile --outfile personal-brain --minify
+# Run tests
+bun test
 
-# Cross-platform builds
-bun build src/index.ts --compile --outfile personal-brain-linux --target=bun-linux-x64
-bun build src/index.ts --compile --outfile personal-brain-darwin --target=bun-darwin-x64
+# Type checking
+bun run typecheck
+
+# Linting
+bun run lint
 ```
 
-### Package Scripts
+### Production Builds
 
-Each app should include build scripts in `package.json`:
+```bash
+# Build for production
+bun run build
 
-```json
-{
-  "scripts": {
-    "build": "bun build src/index.ts --compile --outfile dist/personal-brain",
-    "build:prod": "bun build src/index.ts --compile --outfile dist/personal-brain --minify",
-    "build:all": "npm run build:linux && npm run build:macos && npm run build:windows",
-    "build:linux": "bun build src/index.ts --compile --outfile dist/personal-brain-linux --target=bun-linux-x64",
-    "build:macos": "bun build src/index.ts --compile --outfile dist/personal-brain-macos --target=bun-darwin-x64",
-    "build:windows": "bun build src/index.ts --compile --outfile dist/personal-brain-windows --target=bun-windows-x64"
-  }
-}
+# Create standalone executable
+bun build apps/test-brain/src/index.ts --compile --outfile=brain
 ```
 
-### Distribution
+## Benefits of 4-Directory Structure
 
-The compiled executables are self-contained and include:
+1. **Clear Organization**: Obvious where each type of code belongs
+2. **Reduced Complexity**: Shell reduced by 44% through extraction
+3. **Independent Development**: Teams can work on different directories
+4. **Easy Plugin Development**: Clear patterns and base classes
+5. **Flexible Deployment**: Choose which plugins to include
+6. **Better Testing**: Focused packages are easier to test
 
-- All application code
-- All dependencies
-- Bun runtime
+## Migration Status
 
-No need to install Node.js, Bun, or any dependencies on the target system.
-
-## Benefits
-
-1. **Clean Architecture**: Clear boundaries between concerns
-2. **Independent Testing**: Each package can be tested in isolation
-3. **Flexible Deployment**: Choose which modes to run based on needs
-4. **Easy Maintenance**: Changes to one protocol don't affect others
-5. **Reusability**: Packages can be used by other apps if needed
-6. **Single Binary Distribution**: Deploy brain apps as single executables
-
-## Migration Path
-
-1. Create `packages/mcp-server` and move MCP implementation
-2. Create `packages/cli` and extract CLI functionality
-3. Create `packages/matrix-bot` and extract Matrix functionality
-4. Update `apps/personal-brain` to support mode selection
-5. Add context packages as needed
-
-## Package Interface Standards
-
-All packages should follow these standards:
-
-```typescript
-// Each package exports a standard interface
-export interface PackageRunner {
-  name: string;
-  initialize(shell: Shell): Promise<void>;
-  start(): Promise<void>;
-  stop(): Promise<void>;
-  getStatus(): PackageStatus;
-}
-
-// Example implementation
-export class MCPServerRunner implements PackageRunner {
-  name = "mcp-server";
-
-  async initialize(shell: Shell): Promise<void> {
-    // Setup using shell instance
-  }
-
-  async start(): Promise<void> {
-    // Start the service
-  }
-
-  async stop(): Promise<void> {
-    // Graceful shutdown
-  }
-
-  getStatus(): PackageStatus {
-    // Return current status
-  }
-}
-```
-
-This ensures all packages can be managed consistently by the personal-brain app.
-
-## MCP Registration Pattern
-
-The MCP server package provides infrastructure without defining specific tools or resources. Other packages register their capabilities:
-
-```typescript
-// In apps/personal-brain when MCP mode is enabled
-import { MCPServer } from "@brains/mcp-server";
-import { Shell } from "@brains/shell";
-
-// Create MCP server with just the infrastructure
-const mcpServer = MCPServer.createFresh({
-  name: "PersonalBrain",
-  version: "1.0.0",
-});
-
-// Get the underlying server for registration
-const server = mcpServer.getServer();
-
-// Shell registers its core tools
-Shell.registerMCPTools(server);
-Shell.registerMCPResources(server);
-
-// Plugins register their specific tools
-notePlugin.registerMCPTools(server);
-taskPlugin.registerMCPTools(server);
-
-// Start the server
-await mcpServer.startStdio();
-```
-
-This pattern ensures:
-
-- MCP server has no knowledge of specific business logic
-- Each package owns its tool/resource definitions
-- Clean separation between infrastructure and implementation
-- Easy to add/remove capabilities without modifying MCP server
+- ✅ Shell package decomposition complete
+- ✅ 4-directory structure implemented
+- ✅ All interfaces converted to plugins
+- ✅ Types package decoupled
+- ✅ Component Interface Standardization complete
+- 🚧 Cross-package error handling in progress
+- 📋 Entity plugins planned (Link, Article, Task, Profile, Project)
