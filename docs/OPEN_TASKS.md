@@ -1,12 +1,12 @@
 # Open Tasks and TODOs
 
-This document consolidates all open tasks and TODOs from the Personal Brain Rebuild project documentation as of 2025-06-30.
+This document consolidates all open tasks and TODOs from the Personal Brain Rebuild project documentation as of 2025-07-02.
 
 ## High Priority Tasks
 
 ### 1. Interface Completion (First Priority)
 
-- [ ] Remove deprecated BaseInterface code (still exists in interface-core)
+- [x] ~~Remove deprecated BaseInterface code~~ ✅ Already removed
 - [ ] Complete full CLI interface implementation with Ink (beyond basic functionality)
 - [ ] Enhance Matrix interface features from original plan
 - [ ] Update interface documentation
@@ -98,6 +98,9 @@ From docs/native-modules-build-plan.md:
 
 The following have been completed but were listed as open in various documents:
 
+- BaseInterface and interface-core removal
+- MCP Plugin Tool Registration with plugin-specific message types
+- Progress callback support for long-running operations
 - Matrix Interface Migration to MessageInterfacePlugin
 - Webserver Interface Migration to InterfacePlugin
 - Plugin base classes (BasePlugin, InterfacePlugin, MessageInterfacePlugin)

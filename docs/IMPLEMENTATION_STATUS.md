@@ -83,7 +83,6 @@ Last Updated: 2025-07-02
 
 - **CLI Interface** - Full Ink implementation with rich UI
 - **Matrix Interface** - Additional features from original plan
-- **BaseInterface Removal** - Clean up deprecated code
 
 ## 📋 Planned Features
 
@@ -160,12 +159,11 @@ Last Updated: 2025-07-02
 
 ## 🎯 Next Steps
 
-1. Remove BaseInterface and clean up interface architecture
-2. Implement Link Plugin for web content capture
-3. Implement Article Plugin for long-form content
-4. Complete content generation integration features
-5. Enhance existing interfaces with planned features
-6. Improve error handling across the system
+1. Implement Link Plugin for web content capture
+2. Implement Article Plugin for long-form content
+3. Complete content generation integration features
+4. Enhance existing interfaces with planned features
+5. Improve error handling across the system
 
 ## 📝 Notes
 

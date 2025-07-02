@@ -10,7 +10,8 @@ The MCP (Model Context Protocol) plugin tool registration system has been succes
 
 **Problem Solved**: Multiple plugins subscribing to the same generic message type (`plugin:tool:execute`) caused conflicts where the first non-matching plugin would return `{success: true}` with no data, preventing other handlers from executing.
 
-**Solution Implemented**: 
+**Solution Implemented**:
+
 - Each plugin now subscribes to its own namespaced message types
 - Message types follow the pattern: `plugin:${pluginId}:tool:execute`
 - Example: `plugin:directory-sync:tool:execute`, `plugin:site-builder:tool:execute`
@@ -20,6 +21,7 @@ The MCP (Model Context Protocol) plugin tool registration system has been succes
 **Problem Solved**: Progress callbacks were broken after the initial refactoring because the context parameter wasn't being passed through the message bus.
 
 **Solution Implemented**:
+
 - Added `progressToken` and `hasProgress` fields to tool execution messages
 - BasePlugin creates a `sendProgress` callback when progress is supported
 - MCP interface subscribes to `plugin:${pluginId}:progress` messages and forwards them to MCP clients
@@ -34,6 +36,7 @@ MCP Client → MCP Interface → MessageBus → Plugin (BasePlugin)
 ```
 
 #### Tool Execution Flow:
+
 1. MCP client calls tool via MCP protocol
 2. MCP interface receives request with optional progress token
 3. Interface sends `plugin:${pluginId}:tool:execute` message via MessageBus
@@ -44,6 +47,7 @@ MCP Client → MCP Interface → MessageBus → Plugin (BasePlugin)
 ### 4. Key Files Modified
 
 #### BasePlugin (`shared/plugin-utils/src/base-plugin.ts`)
+
 - Subscribes to plugin-specific message types
 - Creates progress callback context when needed
 - Validates messages with Zod schemas
@@ -55,7 +59,9 @@ context.subscribe(`plugin:${this.id}:tool:execute`, async (message) => {
   if (hasProgress && progressToken !== undefined) {
     toolContext = {
       progressToken,
-      sendProgress: async (notification: ProgressNotification): Promise<void> => {
+      sendProgress: async (
+        notification: ProgressNotification,
+      ): Promise<void> => {
         await context.sendMessage(`plugin:${this.id}:progress`, {
           progressToken,
           notification,
@@ -67,6 +73,7 @@ context.subscribe(`plugin:${this.id}:tool:execute`, async (message) => {
 ```
 
 #### MCP Interface (`interfaces/mcp/src/mcp-interface.ts`)
+
 - Sends plugin-specific tool execution messages
 - Subscribes to progress notifications
 - Forwards progress to MCP clients
@@ -75,7 +82,7 @@ context.subscribe(`plugin:${this.id}:tool:execute`, async (message) => {
 // Execute tool through plugin-specific message
 const response = await this.context.sendMessage(
   `plugin:${pluginId}:tool:execute`,
-  { toolName: tool.name, args: params, progressToken, hasProgress }
+  { toolName: tool.name, args: params, progressToken, hasProgress },
 );
 
 // Subscribe to progress notifications
@@ -84,7 +91,7 @@ if (hasProgress && this.context) {
     `plugin:${pluginId}:progress`,
     async (message) => {
       // Forward progress to MCP client
-    }
+    },
   );
 }
 ```
@@ -107,6 +114,7 @@ if (hasProgress && this.context) {
 ## Testing
 
 The implementation has been tested with:
+
 - Multiple plugins registering tools simultaneously
 - Progress callbacks for long-running operations
 - Tool execution with and without progress support

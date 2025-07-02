@@ -736,7 +736,7 @@ protected async getTools(): Promise<PluginTool[]> {
       },
       handler: async (input, context) => {
         const { environment } = input as { environment: string };
-        
+
         // Report progress if supported
         if (context?.sendProgress) {
           await context.sendProgress({
@@ -745,9 +745,9 @@ protected async getTools(): Promise<PluginTool[]> {
             message: "Starting site generation...",
           });
         }
-        
+
         // Do work...
-        
+
         if (context?.sendProgress) {
           await context.sendProgress({
             progress: 50,
@@ -755,9 +755,9 @@ protected async getTools(): Promise<PluginTool[]> {
             message: "Building pages...",
           });
         }
-        
+
         // More work...
-        
+
         return { success: true, pagesBuilt: 10 };
       },
     },
