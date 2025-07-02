@@ -1,5 +1,5 @@
 import type { Client } from "@libsql/client";
-import { enableWALMode } from "@brains/db";
+import { enableWALMode, ensureCriticalIndexes } from "@brains/db";
 import type { Logger } from "@brains/utils";
 import type { ShellConfig } from "../config";
 import type { EntityRegistry } from "@brains/entity-service";
@@ -81,6 +81,9 @@ export class ShellInitializer {
         this.config.database.url || "file:./brain.db",
         this.logger,
       );
+
+      // Ensure critical indexes exist (like vector indexes)
+      await ensureCriticalIndexes(this.dbClient, this.logger);
 
       this.logger.debug("Database initialization complete");
     } catch (error) {

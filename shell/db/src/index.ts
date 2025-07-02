@@ -80,6 +80,30 @@ export async function runMigrations(
   await migrate(db, { migrationsFolder: folder });
 }
 
+/**
+ * Ensure critical indexes exist (like vector indexes)
+ * This is needed because some indexes require special SQL that Drizzle doesn't generate
+ *
+ * @param client The libSQL client
+ * @param logger Logger for output
+ */
+export async function ensureCriticalIndexes(
+  client: Client,
+  logger: Logger,
+): Promise<void> {
+  try {
+    // Create vector index for efficient similarity search
+    await client.execute(`
+      CREATE INDEX IF NOT EXISTS entities_embedding_idx 
+      ON entities(libsql_vector_idx(embedding))
+    `);
+    logger.debug("Ensured vector index exists for entities table");
+  } catch (error) {
+    // Non-fatal: vector indexes might not be supported in all environments
+    logger.warn("Failed to create vector index (non-fatal)", error);
+  }
+}
+
 // Re-export schema types for convenience
 export * from "./schema";
 

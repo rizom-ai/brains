@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "sqlite",
-  "id": "ac176538-8bf2-4080-aed7-6de29166fef6",
+  "id": "eeee2fab-ba8b-45cf-af4a-c9baa8e68653",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "entities": {
@@ -71,8 +71,8 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "entity_relations": {
-      "name": "entity_relations",
+    "embedding_queue": {
+      "name": "embedding_queue",
       "columns": {
         "id": {
           "name": "id",
@@ -81,72 +81,93 @@
           "notNull": true,
           "autoincrement": false
         },
-        "source_id": {
-          "name": "source_id",
+        "entityData": {
+          "name": "entityData",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "target_id": {
-          "name": "target_id",
+        "status": {
+          "name": "status",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "'pending'"
         },
-        "relation_type": {
-          "name": "relation_type",
-          "type": "text",
+        "priority": {
+          "name": "priority",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": 0
         },
-        "metadata": {
-          "name": "metadata",
+        "retryCount": {
+          "name": "retryCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "maxRetries": {
+          "name": "maxRetries",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 3
+        },
+        "lastError": {
+          "name": "lastError",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "'{}'"
+          "autoincrement": false
         },
-        "created": {
-          "name": "created",
+        "createdAt": {
+          "name": "createdAt",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "entity_relations_source_id_entities_id_fk": {
-          "name": "entity_relations_source_id_entities_id_fk",
-          "tableFrom": "entity_relations",
-          "tableTo": "entities",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         },
-        "entity_relations_target_id_entities_id_fk": {
-          "name": "entity_relations_target_id_entities_id_fk",
-          "tableFrom": "entity_relations",
-          "tableTo": "entities",
-          "columnsFrom": [
-            "target_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+        "scheduledFor": {
+          "name": "scheduledFor",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "startedAt": {
+          "name": "startedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "completedAt": {
+          "name": "completedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
+      "indexes": {
+        "idx_queue_ready": {
+          "name": "idx_queue_ready",
+          "columns": [
+            "status",
+            "priority",
+            "scheduledFor"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     }

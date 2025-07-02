@@ -20,6 +20,7 @@ This document outlines the plan for standardizing error handling across all inte
 ### Packages Requiring Standardization
 
 #### Interfaces (4 packages)
+
 1. **CLI Interface** (`@brains/cli`)
    - Currently uses generic `Error` throws
    - No custom error classes
@@ -40,6 +41,7 @@ This document outlines the plan for standardizing error handling across all inte
    - No custom error classes
 
 #### Plugins (3 packages)
+
 1. **Directory Sync** (`@brains/directory-sync`)
    - ✅ Already has custom error classes extending `BrainsError`
    - Good example of proper implementation
@@ -75,6 +77,7 @@ BrainsError (base)
 ### 2. Error Context Standards
 
 Every error should include:
+
 - **message**: Clear description of what went wrong
 - **code**: Unique error code for categorization
 - **cause**: The underlying error (if any)
@@ -88,15 +91,11 @@ Every error should include:
 throw new Error("Failed to process message");
 
 // Good - Specific error with context
-throw new MatrixMessageError(
-  "Failed to process message",
-  error,
-  {
-    roomId: event.room_id,
-    eventType: event.type,
-    userId: event.sender
-  }
-);
+throw new MatrixMessageError("Failed to process message", error, {
+  roomId: event.room_id,
+  eventType: event.type,
+  userId: event.sender,
+});
 ```
 
 ## Implementation Roadmap
@@ -139,47 +138,81 @@ throw new MatrixMessageError(
 ### Interface Error Classes
 
 #### CLI Interface Errors
+
 ```typescript
 export class CLIError extends InterfaceError {
-  constructor(message: string, cause: ErrorCause, context?: Record<string, unknown>) {
+  constructor(
+    message: string,
+    cause: ErrorCause,
+    context?: Record<string, unknown>,
+  ) {
     super(message, "CLI_ERROR", cause, context);
   }
 }
 
-export class CLIInitializationError extends CLIError { /* ... */ }
-export class CLIRenderError extends CLIError { /* ... */ }
-export class CLICommandError extends CLIError { /* ... */ }
+export class CLIInitializationError extends CLIError {
+  /* ... */
+}
+export class CLIRenderError extends CLIError {
+  /* ... */
+}
+export class CLICommandError extends CLIError {
+  /* ... */
+}
 ```
 
 #### Matrix Interface Errors
+
 ```typescript
 export class MatrixError extends InterfaceError {
-  constructor(message: string, cause: ErrorCause, context?: Record<string, unknown>) {
+  constructor(
+    message: string,
+    cause: ErrorCause,
+    context?: Record<string, unknown>,
+  ) {
     super(message, "MATRIX_ERROR", cause, context);
   }
 }
 
-export class MatrixConnectionError extends MatrixError { /* ... */ }
-export class MatrixMessageError extends MatrixError { /* ... */ }
-export class MatrixPermissionError extends MatrixError { /* ... */ }
+export class MatrixConnectionError extends MatrixError {
+  /* ... */
+}
+export class MatrixMessageError extends MatrixError {
+  /* ... */
+}
+export class MatrixPermissionError extends MatrixError {
+  /* ... */
+}
 ```
 
 #### MCP Interface Errors
+
 ```typescript
 export class MCPError extends InterfaceError {
-  constructor(message: string, cause: ErrorCause, context?: Record<string, unknown>) {
+  constructor(
+    message: string,
+    cause: ErrorCause,
+    context?: Record<string, unknown>,
+  ) {
     super(message, "MCP_ERROR", cause, context);
   }
 }
 
-export class MCPToolError extends MCPError { /* ... */ }
-export class MCPResourceError extends MCPError { /* ... */ }
-export class MCPTransportError extends MCPError { /* ... */ }
+export class MCPToolError extends MCPError {
+  /* ... */
+}
+export class MCPResourceError extends MCPError {
+  /* ... */
+}
+export class MCPTransportError extends MCPError {
+  /* ... */
+}
 ```
 
 ### Error Context Examples
 
 #### CLI Context
+
 ```typescript
 {
   command: string,
@@ -190,6 +223,7 @@ export class MCPTransportError extends MCPError { /* ... */ }
 ```
 
 #### Matrix Context
+
 ```typescript
 {
   roomId: string,
@@ -201,6 +235,7 @@ export class MCPTransportError extends MCPError { /* ... */ }
 ```
 
 #### MCP Context
+
 ```typescript
 {
   toolName: string,
