@@ -173,12 +173,12 @@ Plot the agency on the Quick-Scan Matrix using the calculated scores:
 
 ### Agency Information
 
-- **Agency Name:** ******\*\*******\_\_\_******\*\*******
-- **Location:** ******\*\*******\_\_\_******\*\*******
-- **Primary Services:** ******\*\*******\_\_\_******\*\*******
-- **Estimated Size:** ******\*\*******\_\_\_******\*\*******
-- **Assessment Date:** ******\*\*******\_\_\_******\*\*******
-- **Assessor:** ******\*\*******\_\_\_******\*\*******
+- **Agency Name:** **\*\***\*\***\*\***\_\_\_**\*\***\*\***\*\***
+- **Location:** **\*\***\*\***\*\***\_\_\_**\*\***\*\***\*\***
+- **Primary Services:** **\*\***\*\***\*\***\_\_\_**\*\***\*\***\*\***
+- **Estimated Size:** **\*\***\*\***\*\***\_\_\_**\*\***\*\***\*\***
+- **Assessment Date:** **\*\***\*\***\*\***\_\_\_**\*\***\*\***\*\***
+- **Assessor:** **\*\***\*\***\*\***\_\_\_**\*\***\*\***\*\***
 
 ### Strategic Value Assessment
 
@@ -206,7 +206,7 @@ Plot the agency on the Quick-Scan Matrix using the calculated scores:
 
 - Strategic Value (X-axis): **\_\_\_**
 - Turnaround Potential (Y-axis): **\_\_\_**
-- Quadrant: ******\*\*******\_\_\_******\*\*******
+- Quadrant: **\*\***\*\***\*\***\_\_\_**\*\***\*\***\*\***
 
 ### Preliminary Recommendation
 

@@ -117,6 +117,11 @@ Last Updated: 2025-07-02
 #### Architecture Improvements
 
 - **Error Handling** - Standardized error handling for interfaces and plugins
+- **Async Embedding Queue** - Non-blocking embedding generation
+  - Implement persisted queue with box pattern
+  - Background worker for processing
+  - Retry logic for failed embeddings
+  - Progress tracking for bulk imports
 - **Entity Service Extraction** - Move to separate package
 - **Plugin Architecture Phase 2-4** - Enhanced abstractions and patterns
 

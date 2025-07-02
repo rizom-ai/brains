@@ -40,7 +40,17 @@ From docs/shell-refactoring-inventory.md:
 
 - [ ] Phase 2.2.3: Interface and plugin error handling
 
-### 2. Service Extraction
+### 2. Async Embedding Queue
+
+From docs/async-embedding-queue-plan.md:
+
+- [ ] Implement async embedding queue with box pattern
+- [ ] Create background worker for queue processing
+- [ ] Add retry logic for failed embeddings
+- [ ] Implement progress tracking for bulk imports
+- [ ] Add queue status monitoring
+
+### 3. Service Extraction
 
 From docs/entity-service-extraction-plan.md:
 
@@ -48,7 +58,7 @@ From docs/entity-service-extraction-plan.md:
 - [ ] Enhance PublicEntityService interface
 - [ ] Update directory-sync plugin compatibility
 
-### 3. Plugin Architecture Improvements
+### 4. Plugin Architecture Improvements
 
 From docs/plugin-architecture-refactoring-plan.md:
 
@@ -57,7 +67,7 @@ From docs/plugin-architecture-refactoring-plan.md:
 - [ ] Phase 3: Refactor existing plugins to use new patterns
 - [ ] Phase 4: Developer experience improvements
 
-### 4. Content Generation Refactoring
+### 5. Content Generation Refactoring
 
 From docs/content-generation-refactor-plan.md (Phase 1 ✅ completed):
 
@@ -132,12 +142,13 @@ The following have been completed but were listed as open in various documents:
 
 ## Implementation Order Recommendation
 
-1. **Interface Cleanup** - Remove BaseInterface, enhance existing interfaces
-2. **Link Plugin** - Core feature, high user value
-3. **Article Plugin** - Build on content patterns
-4. **Content Generation Integration** - Complete remaining features
+1. **Link Plugin** - Core feature, high user value
+2. **Article Plugin** - Build on content patterns
+3. **Content Generation Integration** - Complete remaining features
+4. **Async Embedding Queue** - Enable non-blocking imports for large content libraries
 5. **Architecture Cleanup** - Improve stability and developer experience
 6. **Service Extractions** - Clean architecture for scalability
+7. **Interface Enhancements** - Polish user experience
 
 ## Notes
 
