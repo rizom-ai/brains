@@ -213,7 +213,6 @@ export class Shell {
         aiService: this.aiService,
       });
 
-
     // Register core components in the service registry
     this.serviceRegistry.register("shell", () => this);
     this.serviceRegistry.register("entityRegistry", () => this.entityRegistry);
@@ -393,7 +392,12 @@ export class Shell {
 
     // Check if interface-granted permission meets template requirements
     const grantedPermission = config.interfacePermissionGrant || "public";
-    if (!PermissionHandler.canUseTemplate(grantedPermission, template.requiredPermission)) {
+    if (
+      !PermissionHandler.canUseTemplate(
+        grantedPermission,
+        template.requiredPermission,
+      )
+    ) {
       throw new Error(
         `Insufficient permissions: ${template.requiredPermission} required, but interface granted ${grantedPermission} for template: ${config.templateName}`,
       );
