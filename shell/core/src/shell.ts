@@ -38,7 +38,6 @@ export interface ShellDependencies {
   viewRegistry?: ViewRegistry;
   pluginManager?: PluginManager;
   contentGenerator?: ContentGenerator;
-  permissionHandler?: PermissionHandler;
 }
 
 /**
@@ -64,7 +63,6 @@ export class Shell {
   private readonly entityService: EntityService;
   private readonly aiService: AIService;
   private readonly contentGenerator: ContentGenerator;
-  private readonly permissionHandler: PermissionHandler;
   private initialized = false;
 
   /**
@@ -215,11 +213,6 @@ export class Shell {
         aiService: this.aiService,
       });
 
-    // Initialize permission handler
-    // TODO: Move permission config to ShellConfig instead of using defaults
-    this.permissionHandler =
-      dependencies?.permissionHandler ??
-      new PermissionHandler("default-anchor", []);
 
     // Register core components in the service registry
     this.serviceRegistry.register("shell", () => this);
@@ -392,31 +385,21 @@ export class Shell {
       );
     }
 
-    // Check permissions (always required)
+    // Validate template exists
     const template = this.contentGenerator.getTemplate(config.templateName);
     if (!template) {
       throw new Error(`Template not found: ${config.templateName}`);
     }
 
-    // Get effective permission level from permission service
-    const effectivePermissionLevel =
-      this.permissionHandler.getEffectivePermissionLevel(
-        config.userId,
-        config.interfacePermissionGrant,
-      );
-
-    const hasPermission = this.permissionHandler.canUseTemplate(
-      effectivePermissionLevel,
-      template.requiredPermission,
-    );
-
-    if (!hasPermission) {
+    // Check if interface-granted permission meets template requirements
+    const grantedPermission = config.interfacePermissionGrant || "public";
+    if (!PermissionHandler.canUseTemplate(grantedPermission, template.requiredPermission)) {
       throw new Error(
-        `Insufficient permissions: ${template.requiredPermission} required, but effective permission is ${effectivePermissionLevel} for template: ${config.templateName}`,
+        `Insufficient permissions: ${template.requiredPermission} required, but interface granted ${grantedPermission} for template: ${config.templateName}`,
       );
     }
 
-    // Use the explicitly provided template name
+    // Generate content
     const context = {
       prompt: config.prompt,
       ...(config.data && { data: config.data }),
@@ -481,9 +464,5 @@ export class Shell {
 
   public getLogger(): Logger {
     return this.logger;
-  }
-
-  public getPermissionHandler(): PermissionHandler {
-    return this.permissionHandler;
   }
 }

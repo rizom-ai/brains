@@ -7,6 +7,7 @@ Last Updated: 2025-07-02
 ## Project Structure
 
 The project uses a 4-directory monorepo structure:
+
 - **shell/** - Core services and infrastructure
 - **shared/** - Shared utilities and base packages
 - **plugins/** - Feature plugins (directory-sync, git-sync, site-builder)

@@ -18,7 +18,6 @@ Last Updated: 2025-07-02
 - [ ] Complete full CLI interface implementation with Ink (beyond basic functionality)
 - [ ] Update interface documentation
 
-
 ### 3. Content Generation Integration
 
 From docs/content-generation-integration-plan.md:
@@ -118,6 +117,7 @@ From docs/native-modules-build-plan.md:
 The following have been completed but were listed as open in various documents:
 
 ### Architecture & Refactoring
+
 - 4-directory monorepo structure (shell/, shared/, plugins/, interfaces/, apps/)
 - Shell package reduced by 44% (from ~3,400 to ~1,900 lines)
 - 8 new service packages extracted:
@@ -134,6 +134,7 @@ The following have been completed but were listed as open in various documents:
 - Shell package error handling standardized
 
 ### Interface Implementation
+
 - BaseInterface and interface-core removal
 - All interfaces implemented as plugins:
   - CLI Interface (MessageInterfacePlugin)
@@ -144,6 +145,7 @@ The following have been completed but were listed as open in various documents:
 - Progress callback support for long-running operations
 
 ### Plugin System
+
 - Plugin base classes (BasePlugin, InterfacePlugin, MessageInterfacePlugin)
 - Directory-sync plugin (file-based entity sync)
 - Git-sync plugin (version control integration)

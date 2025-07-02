@@ -179,4 +179,24 @@ export class PermissionHandler {
     // Otherwise, use the user's actual permission level
     return this.getUserPermissionLevel(userId);
   }
+
+  /**
+   * Static method to check if a permission level can use a template
+   * Used by Shell for interface-based permission checking
+   */
+  static canUseTemplate(
+    grantedLevel: UserPermissionLevel,
+    requiredLevel: UserPermissionLevel,
+  ): boolean {
+    if (requiredLevel === "public") {
+      return true; // Everyone has public access
+    }
+
+    if (requiredLevel === "trusted") {
+      return grantedLevel === "trusted" || grantedLevel === "anchor";
+    }
+
+    // At this point, requiredLevel must be "anchor"
+    return grantedLevel === "anchor";
+  }
 }

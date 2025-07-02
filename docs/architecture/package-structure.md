@@ -22,6 +22,7 @@ The shell directory contains the core services that power the brain application.
 ### Core Packages
 
 #### `shell/core`
+
 - **Purpose**: Plugin system and coordination (~1,900 lines)
 - **Responsibilities**:
   - Plugin lifecycle management
@@ -31,6 +32,7 @@ The shell directory contains the core services that power the brain application.
 - **Key Classes**: Shell, PluginManager, PluginContextFactory
 
 #### `shell/db`
+
 - **Purpose**: Database layer with vector support
 - **Responsibilities**:
   - SQLite database with libSQL
@@ -40,6 +42,7 @@ The shell directory contains the core services that power the brain application.
 - **Technologies**: libSQL, Drizzle ORM
 
 #### `shell/entity-service`
+
 - **Purpose**: Entity CRUD operations and management
 - **Responsibilities**:
   - Entity registry and validation
@@ -49,6 +52,7 @@ The shell directory contains the core services that power the brain application.
 - **Key Classes**: EntityService, EntityRegistry
 
 #### `shell/messaging-service`
+
 - **Purpose**: Event-driven messaging system
 - **Responsibilities**:
   - Pub/sub message bus
@@ -58,6 +62,7 @@ The shell directory contains the core services that power the brain application.
 - **Size**: 439 lines
 
 #### `shell/service-registry`
+
 - **Purpose**: Dependency injection and service registration
 - **Responsibilities**:
   - Service lifecycle management
@@ -66,6 +71,7 @@ The shell directory contains the core services that power the brain application.
 - **Size**: 168 lines
 
 #### `shell/view-registry`
+
 - **Purpose**: View and route registration system
 - **Responsibilities**:
   - Route management
@@ -75,6 +81,7 @@ The shell directory contains the core services that power the brain application.
 - **Size**: 325 lines
 
 #### `shell/ai-service`
+
 - **Purpose**: AI model integration
 - **Responsibilities**:
   - Anthropic Claude integration
@@ -83,6 +90,7 @@ The shell directory contains the core services that power the brain application.
 - **Size**: 178 lines
 
 #### `shell/embedding-service`
+
 - **Purpose**: Vector embedding generation
 - **Responsibilities**:
   - FastEmbed integration
@@ -91,6 +99,7 @@ The shell directory contains the core services that power the brain application.
 - **Size**: 181 lines
 
 #### `shell/content-generator`
+
 - **Purpose**: AI-powered content generation
 - **Responsibilities**:
   - Template-based generation
@@ -98,6 +107,7 @@ The shell directory contains the core services that power the brain application.
   - Content validation
 
 #### `shell/app`
+
 - **Purpose**: Application bootstrapper
 - **Responsibilities**:
   - Unified app initialization
@@ -109,6 +119,7 @@ The shell directory contains the core services that power the brain application.
 ### Base Packages
 
 #### `shared/base-entity`
+
 - **Purpose**: Base entity framework
 - **Exports**:
   - BaseEntity schema
@@ -116,6 +127,7 @@ The shell directory contains the core services that power the brain application.
   - Markdown formatters
 
 #### `shared/plugin-utils`
+
 - **Purpose**: Plugin base classes
 - **Exports**:
   - `BasePlugin` - Standard plugin functionality
@@ -124,6 +136,7 @@ The shell directory contains the core services that power the brain application.
 - **Key Features**: Lifecycle management, configuration validation
 
 #### `shared/utils`
+
 - **Purpose**: Common utilities
 - **Exports**:
   - Logger with debug levels
@@ -133,10 +146,12 @@ The shell directory contains the core services that power the brain application.
   - Progress tracking
 
 #### `shared/types`
+
 - **Purpose**: Shared TypeScript types
 - **Note**: Recently decoupled - types now live with their packages
 
 #### `shared/test-utils`
+
 - **Purpose**: Testing utilities
 - **Exports**:
   - Test harness
@@ -144,10 +159,12 @@ The shell directory contains the core services that power the brain application.
   - Plugin testing helpers
 
 #### `shared/daemon-registry`
+
 - **Purpose**: Daemon process management
 - **Features**: Process tracking, graceful shutdown
 
 #### `shared/default-site-content`
+
 - **Purpose**: Default website templates
 - **Includes**:
   - Hero, Features, CTA, Products sections
@@ -161,6 +178,7 @@ All interfaces are implemented as plugins extending base classes from `shared/pl
 ### Interface Packages
 
 #### `interfaces/cli`
+
 - **Type**: MessageInterfacePlugin
 - **Purpose**: Command-line interface
 - **Features**:
@@ -170,6 +188,7 @@ All interfaces are implemented as plugins extending base classes from `shared/pl
 - **Status**: Basic implementation, Ink UI enhancement planned
 
 #### `interfaces/matrix`
+
 - **Type**: MessageInterfacePlugin
 - **Purpose**: Matrix protocol bot
 - **Features**:
@@ -179,6 +198,7 @@ All interfaces are implemented as plugins extending base classes from `shared/pl
   - Command prefix support
 
 #### `interfaces/mcp`
+
 - **Type**: InterfacePlugin
 - **Purpose**: Model Context Protocol server
 - **Features**:
@@ -188,6 +208,7 @@ All interfaces are implemented as plugins extending base classes from `shared/pl
   - Permission-based filtering
 
 #### `interfaces/webserver`
+
 - **Type**: InterfacePlugin
 - **Purpose**: Static site server
 - **Features**:
@@ -200,6 +221,7 @@ All interfaces are implemented as plugins extending base classes from `shared/pl
 ### Feature Plugins
 
 #### `plugins/directory-sync`
+
 - **Purpose**: File-based entity synchronization
 - **Features**:
   - Import/export entities
@@ -208,6 +230,7 @@ All interfaces are implemented as plugins extending base classes from `shared/pl
   - Status formatting
 
 #### `plugins/git-sync`
+
 - **Purpose**: Version control integration
 - **Features**:
   - Auto-commit on changes
@@ -216,6 +239,7 @@ All interfaces are implemented as plugins extending base classes from `shared/pl
   - Status reporting
 
 #### `plugins/site-builder`
+
 - **Purpose**: Static site generation
 - **Features**:
   - Preact-based rendering
@@ -227,6 +251,7 @@ All interfaces are implemented as plugins extending base classes from `shared/pl
 ## Apps (Example Applications)
 
 ### `apps/test-brain`
+
 - **Purpose**: Reference implementation
 - **Features**:
   - Demonstrates all plugins
@@ -264,15 +289,15 @@ All plugins follow this pattern:
 ```typescript
 export class MyPlugin extends BasePlugin {
   name = "my-plugin";
-  
+
   async register(context: PluginContext): Promise<void> {
     // Register entities, tools, routes, etc.
   }
-  
+
   async start(): Promise<void> {
     // Start any services
   }
-  
+
   async stop(): Promise<void> {
     // Cleanup
   }
@@ -286,14 +311,14 @@ Core services use singleton pattern:
 ```typescript
 export class MyService {
   private static instance: MyService | null = null;
-  
+
   static getInstance(): MyService {
     if (!MyService.instance) {
       MyService.instance = new MyService();
     }
     return MyService.instance;
   }
-  
+
   static resetInstance(): void {
     MyService.instance = null;
   }
