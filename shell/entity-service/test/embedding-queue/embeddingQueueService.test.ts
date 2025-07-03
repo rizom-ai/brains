@@ -180,9 +180,9 @@ describe("EmbeddingQueueService", () => {
     });
 
     it("should handle missing job", () => {
-      expect(
-        service.fail("non-existent", new Error("Test")),
-      ).rejects.toThrow("Job not found");
+      expect(service.fail("non-existent", new Error("Test"))).rejects.toThrow(
+        "Job not found",
+      );
     });
   });
 
@@ -354,9 +354,7 @@ describe("EmbeddingQueueService", () => {
       expect(jobs).toHaveLength(5);
 
       // All dequeued jobs should be unique
-      const ids = jobs
-        .filter((j) => j !== null)
-        .map((j) => j.entityData.id);
+      const ids = jobs.filter((j) => j !== null).map((j) => j.entityData.id);
       expect(new Set(ids).size).toBe(5);
     });
   });

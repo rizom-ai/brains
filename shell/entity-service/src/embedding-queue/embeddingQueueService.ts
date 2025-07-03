@@ -159,7 +159,12 @@ export class EmbeddingQueueService implements IEmbeddingQueueService {
         lastError = error as Error;
 
         // If it's a SQLite busy error and we have retries left, wait and retry
-        if (error instanceof Error && 'code' in error && error.code === "SQLITE_BUSY" && attempt < maxRetries - 1) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "SQLITE_BUSY" &&
+          attempt < maxRetries - 1
+        ) {
           this.logger.debug("Database busy, retrying dequeue", {
             attempt: attempt + 1,
             maxRetries,
