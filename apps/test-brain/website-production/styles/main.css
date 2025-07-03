@@ -499,9 +499,6 @@
   .text-white {
     color: var(--color-white);
   }
-  .capitalize {
-    text-transform: capitalize;
-  }
   .opacity-5 {
     opacity: 5%;
   }

@@ -92,7 +92,7 @@ export class SiteContentManager {
               updated: new Date().toISOString(),
             };
 
-            await this.entityService.updateEntitySync(updatedProductionEntity);
+            await this.entityService.updateEntityAsync(updatedProductionEntity);
             this.logger?.debug("Updated existing production content", {
               previewId: previewEntity.id,
               productionId,
@@ -110,7 +110,7 @@ export class SiteContentManager {
               section: previewEntity.section,
             };
 
-            await this.entityService.createEntitySync(productionEntity);
+            await this.entityService.createEntityAsync(productionEntity);
             this.logger?.debug("Created new production content", {
               previewId: previewEntity.id,
               productionId,
@@ -376,7 +376,7 @@ export class SiteContentManager {
               section: sectionId,
             };
 
-            await this.entityService.createEntitySync(siteContentEntity);
+            await this.entityService.createEntityAsync(siteContentEntity);
 
             result.generated.push({
               page: route.path,
@@ -558,7 +558,7 @@ export class SiteContentManager {
               updated: new Date().toISOString(),
             };
 
-            await this.entityService.updateEntitySync(updatedEntity);
+            await this.entityService.updateEntityAsync(updatedEntity);
 
             result.regenerated.push({
               page: siteContent.page,
@@ -786,7 +786,7 @@ export class SiteContentManager {
               section: sectionId,
             };
 
-            await this.entityService.createEntitySync(siteContentEntity);
+            await this.entityService.createEntityAsync(siteContentEntity);
 
             result.generated.push({
               page: route.path,
