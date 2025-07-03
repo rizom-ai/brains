@@ -8,6 +8,9 @@ import {
   EntityService,
   EmbeddingQueueService,
   EmbeddingQueueWorker,
+  JobQueueService,
+  JobQueueWorker,
+  EmbeddingJobHandler,
 } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "./plugins/pluginManager";
@@ -45,6 +48,8 @@ export interface ShellDependencies {
   contentGenerator?: ContentGenerator;
   embeddingQueueService?: EmbeddingQueueService;
   embeddingQueueWorker?: EmbeddingQueueWorker;
+  jobQueueService?: JobQueueService;
+  jobQueueWorker?: JobQueueWorker;
 }
 
 /**
@@ -72,6 +77,8 @@ export class Shell {
   private readonly contentGenerator: ContentGenerator;
   private readonly embeddingQueueService: EmbeddingQueueService;
   private readonly embeddingQueueWorker: EmbeddingQueueWorker;
+  private readonly jobQueueService: JobQueueService;
+  private readonly jobQueueWorker: JobQueueWorker;
   private initialized = false;
 
   /**
@@ -222,7 +229,7 @@ export class Shell {
         aiService: this.aiService,
       });
 
-    // Initialize embedding queue service and worker
+    // Initialize embedding queue service and worker (legacy)
     this.embeddingQueueService =
       dependencies?.embeddingQueueService ??
       EmbeddingQueueService.getInstance(this.db, this.logger);
@@ -243,6 +250,26 @@ export class Shell {
         this.logger,
       );
 
+    // Initialize new generic job queue service and worker
+    this.jobQueueService =
+      dependencies?.jobQueueService ??
+      JobQueueService.createFresh(this.db, this.logger);
+
+    // Register embedding job handler
+    const embeddingJobHandler = EmbeddingJobHandler.createFresh(
+      this.db,
+      this.embeddingService,
+    );
+    this.jobQueueService.registerHandler("embedding", embeddingJobHandler);
+
+    this.jobQueueWorker =
+      dependencies?.jobQueueWorker ??
+      JobQueueWorker.createFresh(this.jobQueueService, {
+        pollInterval: 100, // 100ms for responsive processing
+        concurrency: 1, // Process one job at a time
+        autoStart: false, // Start manually during initialization
+      });
+
     // Register core components in the service registry
     this.serviceRegistry.register("shell", () => this);
     this.serviceRegistry.register("entityRegistry", () => this.entityRegistry);
@@ -262,6 +289,14 @@ export class Shell {
     this.serviceRegistry.register(
       "embeddingQueueWorker",
       () => this.embeddingQueueWorker,
+    );
+    this.serviceRegistry.register(
+      "jobQueueService",
+      () => this.jobQueueService,
+    );
+    this.serviceRegistry.register(
+      "jobQueueWorker",
+      () => this.jobQueueWorker,
     );
   }
 
@@ -289,9 +324,11 @@ export class Shell {
         this.pluginManager,
       );
 
-      // Start the embedding queue worker
-      await this.embeddingQueueWorker.start();
-      this.logger.info("Embedding queue worker started");
+      // Start the new job queue worker
+      await this.jobQueueWorker.start();
+      this.logger.info("Job queue worker started");
+
+      // Note: Legacy embedding queue worker is no longer started
 
       this.initialized = true;
       this.logger.info("Shell initialized successfully");
@@ -395,9 +432,11 @@ export class Shell {
     this.logger.info("Shutting down Shell");
 
     // Cleanup in reverse order of initialization
-    // Stop the embedding queue worker first
-    this.embeddingQueueWorker.stop();
-    this.logger.info("Embedding queue worker stopped");
+    // Stop the job queue worker first
+    await this.jobQueueWorker.stop();
+    this.logger.info("Job queue worker stopped");
+
+    // Note: Legacy embedding queue worker is no longer used
 
     // Disable all plugins
     for (const [pluginId] of this.pluginManager.getAllPlugins()) {

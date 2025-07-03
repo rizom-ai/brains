@@ -47,6 +47,7 @@ export interface EntityServiceOptions {
   embeddingService: IEmbeddingService;
   entityRegistry?: EntityRegistry;
   logger?: Logger;
+  jobQueueService?: JobQueueService;
 }
 
 /**
@@ -96,7 +97,16 @@ export class EntityService implements IEntityService {
     this.logger = (options.logger ?? Logger.getInstance()).child(
       "EntityService",
     );
-    this.jobQueueService = JobQueueService.createFresh(this.db, this.logger);
+    this.jobQueueService = options.jobQueueService ?? JobQueueService.createFresh(this.db, this.logger);
+    
+    // If we created a fresh JobQueueService, register the EmbeddingJobHandler
+    if (!options.jobQueueService) {
+      const embeddingJobHandler = EmbeddingJobHandler.createFresh(
+        this.db,
+        this.embeddingService,
+      );
+      this.jobQueueService.registerHandler("embedding", embeddingJobHandler);
+    }
   }
 
   /**
