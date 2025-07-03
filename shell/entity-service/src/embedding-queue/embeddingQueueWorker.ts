@@ -239,10 +239,7 @@ export class EmbeddingQueueWorker {
             contentWeight: job.entityData.contentWeight,
             created: job.entityData.created,
             updated: job.entityData.updated,
-            metadata: (job.entityData.metadata ?? {}) as Record<
-              string,
-              unknown
-            >,
+            metadata: job.entityData.metadata as Record<string, unknown>,
             embedding,
           });
 

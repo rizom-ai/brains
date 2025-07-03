@@ -3,17 +3,19 @@
 ## Background & Problem Statement
 
 **Current State:**
+
 - Embedding queue exists for async embedding generation
 - Content generation methods are synchronous and blocking (5-30 seconds per AI call)
 - Bulk operations (site generation) block interface for 2-10 minutes
 - User concern: "hesitant to create a new queue for each background task"
 
-**Goal:** 
+**Goal:**
 Create a single, extensible job queue that handles all background tasks without proliferation of specialized queues.
 
 ## Architecture: Generic Job Queue
 
 ### **Core Design Principles:**
+
 1. **Single Infrastructure:** One queue table, one worker, one monitoring system
 2. **Type Safety:** TypeScript discriminated unions for job types
 3. **Extensibility:** Easy to add new job types via handler registration
@@ -21,25 +23,26 @@ Create a single, extensible job queue that handles all background tasks without 
 5. **Maintainability:** Simple to debug, monitor, and extend
 
 ### **Job Type System:**
+
 ```typescript
 // Core job definitions
 type CoreJobDefinitions = {
-  'embedding': { 
-    input: EntityWithoutEmbedding; 
+  embedding: {
+    input: EntityWithoutEmbedding;
     output: void;
   };
-  'content-generation': { 
-    input: ContentGenerationRequest; 
+  "content-generation": {
+    input: ContentGenerationRequest;
     output: string;
   };
-}
+};
 
 // Plugin augmentation pattern
-declare module '@brains/job-queue' {
+declare module "@brains/job-queue" {
   interface PluginJobDefinitions {
-    'web-scraping': { input: WebScrapingRequest; output: ScrapedContent };
-    'image-generation': { input: ImageRequest; output: string };
-    'pdf-export': { input: ExportRequest; output: Buffer };
+    "web-scraping": { input: WebScrapingRequest; output: ScrapedContent };
+    "image-generation": { input: ImageRequest; output: string };
+    "pdf-export": { input: ExportRequest; output: Buffer };
   }
 }
 
@@ -104,42 +107,46 @@ type AllJobDefinitions = CoreJobDefinitions & PluginJobDefinitions;
 ## Plugin Extension Support
 
 ### **Plugin Registration Pattern:**
+
 ```typescript
 class LinkPlugin extends Plugin {
   async register() {
     // Register job handler during plugin initialization
     this.context.jobQueue.registerHandler(
-      'web-scraping',
-      new WebScrapingJobHandler(this.logger, this.config)
+      "web-scraping",
+      new WebScrapingJobHandler(this.logger, this.config),
     );
   }
-  
+
   // Plugin tool that uses the job queue
   private async scrapeTool(input: { url: string }) {
-    const jobId = await this.context.jobQueue.enqueue('web-scraping', {
+    const jobId = await this.context.jobQueue.enqueue("web-scraping", {
       url: input.url,
       timeout: 30000,
-      extractionRules: this.config.defaultRules
+      extractionRules: this.config.defaultRules,
     });
-    
-    return { jobId, message: 'Scraping started' };
+
+    return { jobId, message: "Scraping started" };
   }
 }
 ```
 
 ### **Handler Implementation:**
+
 ```typescript
-class WebScrapingJobHandler implements JobHandler<WebScrapingRequest, ScrapedContent> {
+class WebScrapingJobHandler
+  implements JobHandler<WebScrapingRequest, ScrapedContent>
+{
   async process(data: WebScrapingRequest): Promise<ScrapedContent> {
     // Plugin-specific logic
     const response = await fetch(data.url);
     const content = await this.extractContent(response);
     return { title: content.title, text: content.text };
   }
-  
+
   async onError(error: Error, data: WebScrapingRequest): Promise<void> {
     // Plugin-specific error handling
-    this.logger.error('Web scraping failed', { url: data.url, error });
+    this.logger.error("Web scraping failed", { url: data.url, error });
   }
 }
 ```
@@ -147,11 +154,13 @@ class WebScrapingJobHandler implements JobHandler<WebScrapingRequest, ScrapedCon
 ## Benefits
 
 ### **Immediate:**
+
 - ✅ Non-blocking content generation (2-10 min → immediate response)
 - ✅ Single queue infrastructure (no proliferation)
 - ✅ Type-safe job handling
 
 ### **Long-term:**
+
 - ✅ Easy to add new background task types
 - ✅ Plugin-extensible job system
 - ✅ Unified monitoring and debugging
@@ -161,40 +170,45 @@ class WebScrapingJobHandler implements JobHandler<WebScrapingRequest, ScrapedCon
 ## Future Extensibility Examples
 
 **Core Team Adding New Job Type:**
+
 ```typescript
 // Add to core definitions and register handler
 type CoreJobDefinitions = {
   // ... existing
-  'data-export': { input: ExportRequest; output: Buffer };
-}
+  "data-export": { input: ExportRequest; output: Buffer };
+};
 ```
 
 **Plugin Adding New Job Type:**
+
 ```typescript
 // Plugin augments type system and registers handler
-declare module '@brains/job-queue' {
+declare module "@brains/job-queue" {
   interface PluginJobDefinitions {
-    'image-generation': { input: ImageRequest; output: string };
+    "image-generation": { input: ImageRequest; output: string };
   }
 }
 
 // Registration happens in plugin.register()
-jobQueue.registerHandler('image-generation', new ImageGenerationHandler());
+jobQueue.registerHandler("image-generation", new ImageGenerationHandler());
 ```
 
 ## Migration Strategy
 
 ### **Clean Refactor (No Backward Compatibility):**
+
 - Direct refactor of existing embedding queue to generic job queue
 - Update all call sites immediately to use new API
 - Clean database schema designed for generic jobs from start
 
 ### **Database Migration:**
+
 - Replace `embeddingQueue` table with new `jobQueue` table
 - Include `type` field in initial schema design
 - Migrate existing embedding jobs to type 'embedding'
 
 ## Estimated Effort
+
 - **Total:** 3-4 development sessions (reduced due to no backward compatibility)
 - **Phase 1:** 1-2 sessions (clean refactor of existing queue)
 - **Phase 2:** 1 session (worker infrastructure)
@@ -203,8 +217,9 @@ jobQueue.registerHandler('image-generation', new ImageGenerationHandler());
 - **Result:** Single, extensible queue system that prevents proliferation
 
 ## Success Criteria
+
 1. ✅ All background tasks use single job queue
-2. ✅ Type-safe job definitions and handlers  
+2. ✅ Type-safe job definitions and handlers
 3. ✅ Non-blocking bulk content generation
 4. ✅ Easy to add new job types (< 30 lines of code)
 5. ✅ Plugins can register custom job handlers easily

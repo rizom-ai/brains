@@ -352,7 +352,7 @@ export class EntityService implements IEntityService {
         updated: new Date(validatedEntity.updated).getTime(),
         metadata,
       },
-      options || {},
+      options ?? {},
     );
 
     this.logger.info(

@@ -15,7 +15,7 @@
     "test": "bun test",
     "db:generate": "drizzle-kit generate:sqlite",
     "db:migrate": "bun src/migrate.ts",
-    "db:push": "drizzle-kit push",
+    "db:push": "drizzle-kit push:sqlite",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

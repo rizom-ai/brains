@@ -9,6 +9,22 @@ CREATE TABLE `entities` (
 	`updated` integer NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `job_queue` (
+	`id` text PRIMARY KEY NOT NULL,
+	`type` text NOT NULL,
+	`data` text NOT NULL,
+	`result` text,
+	`status` text DEFAULT 'pending' NOT NULL,
+	`priority` integer DEFAULT 0 NOT NULL,
+	`retryCount` integer DEFAULT 0 NOT NULL,
+	`maxRetries` integer DEFAULT 3 NOT NULL,
+	`lastError` text,
+	`createdAt` integer NOT NULL,
+	`scheduledFor` integer NOT NULL,
+	`startedAt` integer,
+	`completedAt` integer
+);
+--> statement-breakpoint
 CREATE TABLE `embedding_queue` (
 	`id` text PRIMARY KEY NOT NULL,
 	`entityData` text NOT NULL,
@@ -23,4 +39,6 @@ CREATE TABLE `embedding_queue` (
 	`completedAt` integer
 );
 --> statement-breakpoint
+CREATE INDEX `idx_job_queue_ready` ON `job_queue` (`status`,`priority`,`scheduledFor`);--> statement-breakpoint
+CREATE INDEX `idx_job_queue_type` ON `job_queue` (`type`,`status`);--> statement-breakpoint
 CREATE INDEX `idx_queue_ready` ON `embedding_queue` (`status`,`priority`,`scheduledFor`);
