@@ -293,18 +293,75 @@ export class EntityService implements IEntityService {
 
   /**
    * Update an existing entity asynchronously (with background embedding generation)
-   * TODO: Implement full async update logic
    */
   public async updateEntityAsync<T extends BaseEntity>(
     entity: T,
-    _options?: { priority?: number; maxRetries?: number },
+    options?: { priority?: number; maxRetries?: number },
   ): Promise<{ entityId: string; jobId: string }> {
-    // Temporary stub - delegate to sync version for now
-    await this.updateEntitySync(entity);
-    
+    this.logger.debug(
+      `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
+    );
+
+    // Update 'updated' timestamp
+    const updatedEntity = {
+      ...entity,
+      updated: new Date().toISOString(),
+    };
+
+    // Validate entity against its schema
+    const validatedEntity = this.entityRegistry.validateEntity<T>(
+      entity.entityType,
+      updatedEntity,
+    );
+
+    // Convert to markdown using adapter
+    const adapter = this.entityRegistry.getAdapter<T>(
+      validatedEntity.entityType,
+    );
+    const markdown = adapter.toMarkdown(validatedEntity);
+
+    // Extract metadata using adapter
+    const metadata = adapter.extractMetadata(validatedEntity);
+
+    // Extract content weight from markdown
+    const { contentWeight } = extractIndexedFields(
+      markdown,
+      validatedEntity.id,
+    );
+
+    // First update the entity in database without embedding
+    await this.db
+      .update(entities)
+      .set({
+        content: markdown,
+        metadata,
+        updated: new Date(validatedEntity.updated).getTime(),
+        contentWeight,
+        // Note: embedding will be updated by the background worker
+      })
+      .where(eq(entities.id, validatedEntity.id));
+
+    // Queue embedding generation for the updated entity
+    const jobId = await this.embeddingQueueService.enqueue(
+      {
+        id: validatedEntity.id,
+        entityType: validatedEntity.entityType,
+        content: markdown,
+        contentWeight,
+        created: new Date(validatedEntity.created).getTime(),
+        updated: new Date(validatedEntity.updated).getTime(),
+        metadata,
+      },
+      options || {},
+    );
+
+    this.logger.info(
+      `Queued embedding update for entity ${validatedEntity.entityType}:${validatedEntity.id} (job: ${jobId})`,
+    );
+
     return {
-      entityId: entity.id,
-      jobId: `stub-job-${Date.now()}`,
+      entityId: validatedEntity.id,
+      jobId,
     };
   }
 

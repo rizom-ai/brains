@@ -252,4 +252,61 @@ describe("Shell and Base Entity Integration", () => {
       expect(entity?.content).toBe("Async test content");
     }
   });
+
+  test("async entity update with background embedding", async () => {
+    // Create and initialize shell
+    shell = Shell.createFresh(
+      {
+        features: {
+          enablePlugins: false,
+        },
+        database: {
+          url: `file:${dbPath}`,
+        },
+      },
+      {
+        logger: createSilentLogger(),
+      },
+    );
+    await shell.initialize();
+
+    const entityService = shell.getEntityService();
+
+    // First create an entity synchronously
+    const originalEntity = await entityService.createEntitySync<BaseEntity>({
+      entityType: "base",
+      content: "Original content",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    });
+
+    // Update entity asynchronously
+    const result = await entityService.updateEntityAsync<BaseEntity>({
+      ...originalEntity,
+      content: "Updated async content",
+    });
+
+    // Should return job info immediately
+    expect(result.entityId).toBe(originalEntity.id);
+    expect(result.jobId).toBeDefined();
+
+    // Wait a bit for the worker to process the job
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Check job status
+    const jobStatus = await entityService.getAsyncJobStatus(result.jobId);
+    expect(jobStatus).toBeDefined();
+    expect(jobStatus?.entityId).toBe(result.entityId);
+    // Job should be completed or processing
+    expect(["pending", "processing", "completed"]).toContain(jobStatus?.status);
+
+    // Verify the entity was updated in the database
+    const updatedEntity = await entityService.getEntity<BaseEntity>(
+      "base",
+      result.entityId,
+    );
+    expect(updatedEntity).toBeDefined();
+    expect(updatedEntity?.content).toBe("Updated async content");
+    expect(updatedEntity?.updated).not.toBe(originalEntity.updated);
+  });
 });
