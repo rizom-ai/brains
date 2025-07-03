@@ -109,7 +109,7 @@ describe("Shell and Base Entity Integration", () => {
     );
 
     // Update the entity
-    const updatedEntity = await entityService.updateEntity<BaseEntity>({
+    const updatedEntity = await entityService.updateEntitySync<BaseEntity>({
       ...createdEntity,
       content: "Updated content",
     });
@@ -233,18 +233,21 @@ describe("Shell and Base Entity Integration", () => {
     expect(result.jobId).toBeDefined();
 
     // Wait a bit for the worker to process the job
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     // Check job status
     const jobStatus = await entityService.getAsyncJobStatus(result.jobId);
     expect(jobStatus).toBeDefined();
     expect(jobStatus?.entityId).toBe(result.entityId);
     // Job should be completed or processing
-    expect(['pending', 'processing', 'completed']).toContain(jobStatus?.status);
+    expect(["pending", "processing", "completed"]).toContain(jobStatus?.status);
 
     // If completed, entity should exist in database
-    if (jobStatus?.status === 'completed') {
-      const entity = await entityService.getEntity<BaseEntity>("base", result.entityId);
+    if (jobStatus?.status === "completed") {
+      const entity = await entityService.getEntity<BaseEntity>(
+        "base",
+        result.entityId,
+      );
       expect(entity).toBeDefined();
       expect(entity?.content).toBe("Async test content");
     }

@@ -200,7 +200,7 @@ describe("EntityService - Database Operations", () => {
     });
   });
 
-  describe("updateEntity", () => {
+  describe("updateEntitySync", () => {
     test("updates existing entity", async () => {
       const noteData = createTestEntityData({
         content: "Original content",
@@ -218,7 +218,7 @@ describe("EntityService - Database Operations", () => {
         category: "updated",
       };
 
-      const updated = await entityService.updateEntity(updatedData);
+      const updated = await entityService.updateEntitySync(updatedData);
 
       expect(updated.id).toBe(created.id);
       expect(updated.content).toBe("Updated content");
@@ -235,8 +235,8 @@ describe("EntityService - Database Operations", () => {
         updated: new Date().toISOString(),
       };
 
-      // updateEntity doesn't throw for non-existent entities, it just updates nothing
-      const result = await entityService.updateEntity(fakeEntity);
+      // updateEntitySync doesn't throw for non-existent entities, it just updates nothing
+      const result = await entityService.updateEntitySync(fakeEntity);
       expect(result).toBeDefined();
       expect(result.id).toBe(fakeEntity.id);
     });

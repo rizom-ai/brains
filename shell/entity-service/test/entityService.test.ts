@@ -188,7 +188,7 @@ describe("EntityService", (): void => {
       updated: originalTime,
     });
 
-    // Simulate update logic (what EntityService.updateEntity does)
+    // Simulate update logic (what EntityService.updateEntitySync does)
     const updatedEntity = {
       ...entity,
       title: "Updated Title",

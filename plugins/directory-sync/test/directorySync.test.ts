@@ -77,7 +77,7 @@ class MockEntityService implements Partial<EntityService> {
     return newEntity;
   }
 
-  async updateEntity<T extends BaseEntity>(entity: T): Promise<T> {
+  async updateEntitySync<T extends BaseEntity>(entity: T): Promise<T> {
     const entities = this.entities.get(entity.entityType) || [];
     const index = entities.findIndex((e) => e.id === entity.id);
     if (index >= 0) {

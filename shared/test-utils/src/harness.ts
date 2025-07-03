@@ -363,7 +363,7 @@ export class PluginTestHarness {
         // For simplicity, ignore filter options in test harness
         return this.listEntities(entityType);
       },
-      updateEntity: async <T extends BaseEntity>(entity: T): Promise<T> => {
+      updateEntitySync: async <T extends BaseEntity>(entity: T): Promise<T> => {
         // Find and update entity in harness storage
         const entities = this.entities.get(entity.entityType) ?? [];
         const index = entities.findIndex((e) => e.id === entity.id);
@@ -427,6 +427,12 @@ export class PluginTestHarness {
       },
       getAsyncJobStatus: async (): Promise<null> => {
         throw new Error("getAsyncJobStatus not implemented in test harness");
+      },
+      updateEntityAsync: async (): Promise<{
+        entityId: string;
+        jobId: string;
+      }> => {
+        throw new Error("updateEntityAsync not implemented in test harness");
       },
       serializeEntity: (entity: BaseEntity): string => {
         // Mock serialization - return JSON as markdown

@@ -235,9 +235,9 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Update an existing entity
+   * Update an existing entity synchronously (with immediate embedding generation)
    */
-  public async updateEntity<T extends BaseEntity>(entity: T): Promise<T> {
+  public async updateEntitySync<T extends BaseEntity>(entity: T): Promise<T> {
     this.logger.debug(
       `Updating entity of type ${entity.entityType} with ID ${entity.id}`,
     );
@@ -289,6 +289,23 @@ export class EntityService implements IEntityService {
     );
 
     return validatedEntity;
+  }
+
+  /**
+   * Update an existing entity asynchronously (with background embedding generation)
+   * TODO: Implement full async update logic
+   */
+  public async updateEntityAsync<T extends BaseEntity>(
+    entity: T,
+    _options?: { priority?: number; maxRetries?: number },
+  ): Promise<{ entityId: string; jobId: string }> {
+    // Temporary stub - delegate to sync version for now
+    await this.updateEntitySync(entity);
+    
+    return {
+      entityId: entity.id,
+      jobId: `stub-job-${Date.now()}`,
+    };
   }
 
   /**

@@ -36,7 +36,7 @@ class MockEntityService {
     return fullEntity;
   }
 
-  async updateEntity<T extends SiteContentPreview | SiteContentProduction>(
+  async updateEntitySync<T extends SiteContentPreview | SiteContentProduction>(
     entity: T,
   ): Promise<T> {
     const updatedEntity = {

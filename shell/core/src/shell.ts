@@ -3,7 +3,12 @@ import type { Client } from "@libsql/client";
 import type { ContentGenerationConfig } from "@brains/plugin-utils";
 import { createDatabase } from "@brains/db";
 import { ServiceRegistry } from "@brains/service-registry";
-import { EntityRegistry, EntityService, EmbeddingQueueService, EmbeddingQueueWorker } from "@brains/entity-service";
+import {
+  EntityRegistry,
+  EntityService,
+  EmbeddingQueueService,
+  EmbeddingQueueWorker,
+} from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "./plugins/pluginManager";
 import {

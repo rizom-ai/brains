@@ -39,7 +39,7 @@ export interface EntityService {
     options?: Omit<ListOptions, "entityType">,
   ): Promise<T[]>;
   createEntitySync<T extends BaseEntity>(entity: EntityInput<T>): Promise<T>;
-  updateEntity<T extends BaseEntity>(entity: T): Promise<T>;
+  updateEntitySync<T extends BaseEntity>(entity: T): Promise<T>;
   deleteEntity(id: string): Promise<boolean>;
 
   // Async entity creation (returns immediately, embedding generated in background)
@@ -48,7 +48,13 @@ export interface EntityService {
     options?: { priority?: number; maxRetries?: number },
   ): Promise<{ entityId: string; jobId: string }>;
 
-  // Check async entity creation status
+  // Async entity update (returns immediately, embedding generated in background)
+  updateEntityAsync<T extends BaseEntity>(
+    entity: T,
+    options?: { priority?: number; maxRetries?: number },
+  ): Promise<{ entityId: string; jobId: string }>;
+
+  // Check async entity creation/update status
   getAsyncJobStatus(jobId: string): Promise<{
     status: "pending" | "processing" | "completed" | "failed";
     entityId?: string;

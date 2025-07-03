@@ -239,7 +239,7 @@ export class DirectorySync {
                 entityType: rawEntity.entityType,
                 updated: rawEntity.updated.toISOString(),
               };
-              await this.entityService.updateEntity(entityUpdate);
+              await this.entityService.updateEntitySync(entityUpdate);
             }
           } else {
             // Create new entity with all required fields

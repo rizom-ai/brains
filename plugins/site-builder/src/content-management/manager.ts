@@ -92,7 +92,7 @@ export class SiteContentManager {
               updated: new Date().toISOString(),
             };
 
-            await this.entityService.updateEntity(updatedProductionEntity);
+            await this.entityService.updateEntitySync(updatedProductionEntity);
             this.logger?.debug("Updated existing production content", {
               previewId: previewEntity.id,
               productionId,
@@ -558,7 +558,7 @@ export class SiteContentManager {
               updated: new Date().toISOString(),
             };
 
-            await this.entityService.updateEntity(updatedEntity);
+            await this.entityService.updateEntitySync(updatedEntity);
 
             result.regenerated.push({
               page: siteContent.page,

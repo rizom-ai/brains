@@ -88,7 +88,7 @@ describe("PluginManager", (): void => {
           entityType: string,
           id: string,
         ) => Promise<T | null>;
-        updateEntity: <T extends BaseEntity>(entity: T) => Promise<T>;
+        updateEntitySync: <T extends BaseEntity>(entity: T) => Promise<T>;
         deleteEntity: (entityType: string, id: string) => Promise<boolean>;
         listEntities: <T extends BaseEntity>(
           entityType: string,
@@ -105,7 +105,7 @@ describe("PluginManager", (): void => {
       } => ({
         createEntity: async (): Promise<{ id: string }> => ({ id: "test-id" }),
         getEntity: async (): Promise<null> => null,
-        updateEntity: async <T extends BaseEntity>(entity: T): Promise<T> =>
+        updateEntitySync: async <T extends BaseEntity>(entity: T): Promise<T> =>
           entity,
         deleteEntity: async (): Promise<boolean> => true,
         listEntities: async <T extends BaseEntity>(): Promise<T[]> => [] as T[],
