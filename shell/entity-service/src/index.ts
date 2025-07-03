@@ -1,7 +1,5 @@
 export { EntityService } from "./entityService";
 export { EntityRegistry } from "./entityRegistry";
-export { EmbeddingQueueService } from "./embedding-queue/embeddingQueueService";
-export { EmbeddingQueueWorker } from "./embedding-queue/embeddingQueueWorker";
 export { JobQueueService } from "./job-queue/jobQueueService";
 export { JobQueueWorker } from "./job-queue/jobQueueWorker";
 export { EmbeddingJobHandler } from "./job-queue/handlers/embeddingJobHandler";

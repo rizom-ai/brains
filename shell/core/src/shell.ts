@@ -6,8 +6,6 @@ import { ServiceRegistry } from "@brains/service-registry";
 import {
   EntityRegistry,
   EntityService,
-  EmbeddingQueueService,
-  EmbeddingQueueWorker,
   JobQueueService,
   JobQueueWorker,
   EmbeddingJobHandler,
@@ -46,8 +44,6 @@ export interface ShellDependencies {
   viewRegistry?: ViewRegistry;
   pluginManager?: PluginManager;
   contentGenerator?: ContentGenerator;
-  embeddingQueueService?: EmbeddingQueueService;
-  embeddingQueueWorker?: EmbeddingQueueWorker;
   jobQueueService?: JobQueueService;
   jobQueueWorker?: JobQueueWorker;
 }
@@ -75,8 +71,6 @@ export class Shell {
   private readonly entityService: EntityService;
   private readonly aiService: AIService;
   private readonly contentGenerator: ContentGenerator;
-  private readonly embeddingQueueService: EmbeddingQueueService;
-  private readonly embeddingQueueWorker: EmbeddingQueueWorker;
   private readonly jobQueueService: JobQueueService;
   private readonly jobQueueWorker: JobQueueWorker;
   private initialized = false;
@@ -212,28 +206,7 @@ export class Shell {
       dependencies?.pluginManager ??
       PluginManager.getInstance(this.serviceRegistry, this.logger);
 
-    // Initialize embedding queue service and worker (legacy)
-    this.embeddingQueueService =
-      dependencies?.embeddingQueueService ??
-      EmbeddingQueueService.getInstance(this.db, this.logger);
-
-    this.embeddingQueueWorker =
-      dependencies?.embeddingQueueWorker ??
-      EmbeddingQueueWorker.getInstance(
-        this.db,
-        this.embeddingQueueService,
-        this.embeddingService,
-        {
-          pollInterval: 100, // 100ms for responsive processing
-          batchSize: 1, // Process one job at a time
-          maxProcessingTime: 5 * 60 * 1000, // 5 minutes timeout
-          cleanupInterval: 60 * 60 * 1000, // Cleanup every hour
-          cleanupAge: 24 * 60 * 60 * 1000, // Clean jobs older than 24 hours
-        },
-        this.logger,
-      );
-
-    // Initialize new generic job queue service and worker
+    // Initialize generic job queue service and worker
     this.jobQueueService =
       dependencies?.jobQueueService ??
       JobQueueService.createFresh(this.db, this.logger);
@@ -285,14 +258,6 @@ export class Shell {
     );
     this.serviceRegistry.register("viewRegistry", () => this.viewRegistry);
     this.serviceRegistry.register(
-      "embeddingQueueService",
-      () => this.embeddingQueueService,
-    );
-    this.serviceRegistry.register(
-      "embeddingQueueWorker",
-      () => this.embeddingQueueWorker,
-    );
-    this.serviceRegistry.register(
       "jobQueueService",
       () => this.jobQueueService,
     );
@@ -323,11 +288,9 @@ export class Shell {
         this.pluginManager,
       );
 
-      // Start the new job queue worker
+      // Start the job queue worker
       await this.jobQueueWorker.start();
       this.logger.info("Job queue worker started");
-
-      // Note: Legacy embedding queue worker is no longer started
 
       this.initialized = true;
       this.logger.info("Shell initialized successfully");
@@ -434,8 +397,6 @@ export class Shell {
     // Stop the job queue worker first
     await this.jobQueueWorker.stop();
     this.logger.info("Job queue worker stopped");
-
-    // Note: Legacy embedding queue worker is no longer used
 
     // Disable all plugins
     for (const [pluginId] of this.pluginManager.getAllPlugins()) {
