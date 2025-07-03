@@ -8,6 +8,5 @@
 export { ContentGenerator } from "./content-generator";
 export type {
   ContentGeneratorDependencies,
-  GenerationContext,
   ProgressInfo,
 } from "./content-generator";

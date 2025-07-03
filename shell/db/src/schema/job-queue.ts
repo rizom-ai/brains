@@ -170,8 +170,8 @@ export type EntityWithoutEmbedding = {
 export interface ContentGenerationRequest {
   templateName: string;
   context: {
-    prompt?: string;
-    data?: Record<string, unknown>;
+    prompt?: string | undefined;
+    data?: Record<string, unknown> | undefined;
   };
-  userId?: string;
+  userId?: string | undefined;
 }

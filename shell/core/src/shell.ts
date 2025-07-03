@@ -9,6 +9,7 @@ import {
   JobQueueService,
   JobQueueWorker,
   EmbeddingJobHandler,
+  ContentGenerationJobHandler,
 } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "./plugins/pluginManager";
@@ -244,6 +245,12 @@ export class Shell {
         entityService: this.entityService,
         aiService: this.aiService,
       });
+
+    // Register content generation job handler
+    const contentGenerationJobHandler = ContentGenerationJobHandler.createFresh(
+      this.contentGenerator,
+    );
+    this.jobQueueService.registerHandler("content-generation", contentGenerationJobHandler);
 
     // Register core components in the service registry
     this.serviceRegistry.register("shell", () => this);

@@ -10,7 +10,7 @@ import { DaemonRegistry } from "@brains/daemon-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
-import type { EntityRegistry } from "@brains/entity-service";
+import type { EntityRegistry, JobQueueService } from "@brains/entity-service";
 import {
   EntityRegistrationError,
   ContentGenerationError,
@@ -328,6 +328,128 @@ export class PluginContextFactory {
       },
       // Entity service access - clean interface for plugin usage
       entityService,
+
+      // Async content generation - queues content generation jobs
+      enqueueContentGeneration: async (request: {
+        templateName: string;
+        context: {
+          prompt?: string | undefined;
+          data?: Record<string, unknown> | undefined;
+        };
+        userId?: string | undefined;
+      }): Promise<string> => {
+        try {
+          const namespacedTemplateName = this.ensureNamespaced(
+            request.templateName,
+            pluginId,
+          );
+
+          const jobQueueService = this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (!jobQueueService || typeof jobQueueService.enqueue !== "function") {
+            throw new Error("JobQueueService not available");
+          }
+
+          const jobId = await jobQueueService.enqueue("content-generation", {
+            templateName: namespacedTemplateName,
+            context: request.context,
+            userId: request.userId,
+          });
+
+          this.logger.debug("Enqueued content generation job", {
+            jobId,
+            templateName: namespacedTemplateName,
+            pluginId,
+          });
+
+          return jobId;
+        } catch (error) {
+          this.logger.error("Failed to enqueue content generation", error);
+          throw new ContentGenerationError(
+            request.templateName,
+            "generation",
+            error,
+          );
+        }
+      },
+
+      // Check status of content generation job
+      getJobStatus: async (jobId: string): Promise<{
+        status: "pending" | "processing" | "completed" | "failed";
+        result?: string;
+        error?: string;
+      } | null> => {
+        try {
+          const jobQueueService = this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (!jobQueueService || typeof jobQueueService.getStatus !== "function") {
+            throw new Error("JobQueueService not available");
+          }
+
+          const job = await jobQueueService.getStatus(jobId);
+          if (!job) {
+            return null;
+          }
+
+          const result: {
+            status: "pending" | "processing" | "completed" | "failed";
+            result?: string;
+            error?: string;
+          } = {
+            status: job.status,
+          };
+
+          if (job.result !== undefined && job.result !== null) {
+            result.result = job.result as string;
+          }
+
+          if (job.lastError) {
+            result.error = job.lastError;
+          }
+
+          return result;
+        } catch (error) {
+          this.logger.error("Failed to get job status", { jobId, error });
+          throw error;
+        }
+      },
+
+      // Wait for job completion (with timeout)
+      waitForJob: async (jobId: string, timeoutMs: number = 30000): Promise<string> => {
+        try {
+          const jobQueueService = this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (!jobQueueService || typeof jobQueueService.getStatus !== "function") {
+            throw new Error("JobQueueService not available");
+          }
+
+          const startTime = Date.now();
+          const pollInterval = 100; // Poll every 100ms
+
+          while (Date.now() - startTime < timeoutMs) {
+            const job = await jobQueueService.getStatus(jobId);
+            
+            if (!job) {
+              throw new Error(`Job ${jobId} not found`);
+            }
+
+            if (job.status === "completed") {
+              this.logger.debug("Job completed", { jobId, pluginId });
+              return job.result as string;
+            }
+
+            if (job.status === "failed") {
+              const error = job.lastError || "Job failed with no error message";
+              throw new Error(`Job ${jobId} failed: ${error}`);
+            }
+
+            // Wait before next poll
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+          }
+
+          throw new Error(`Job ${jobId} timed out after ${timeoutMs}ms`);
+        } catch (error) {
+          this.logger.error("Failed to wait for job completion", { jobId, error });
+          throw error;
+        }
+      },
 
       // Interface plugin capabilities
       registerDaemon: (name: string, daemon: Daemon): void => {

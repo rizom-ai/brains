@@ -281,6 +281,26 @@ export class PluginTestHarness {
       registerDaemon: (): void => {
         // Mock implementation for test harness
       },
+      // Async content generation methods
+      enqueueContentGeneration: async (): Promise<string> => {
+        // Mock implementation - return a fake job ID
+        return "mock-job-id-" + Date.now();
+      },
+      getJobStatus: async (): Promise<{
+        status: "pending" | "processing" | "completed" | "failed";
+        result?: string;
+        error?: string;
+      } | null> => {
+        // Mock implementation - return completed status
+        return {
+          status: "completed",
+          result: "Mock generated content",
+        };
+      },
+      waitForJob: async (): Promise<string> => {
+        // Mock implementation - return mock content
+        return "Mock generated content";
+      },
     };
   }
 

@@ -12,8 +12,8 @@ export type ComponentType<P = unknown> = (props: P) => VNode;
  * Context for content generation - simplified for template-based approach
  */
 export interface GenerationContext {
-  prompt?: string;
-  data?: Record<string, unknown>;
+  prompt?: string | undefined;
+  data?: Record<string, unknown> | undefined;
 }
 
 /**

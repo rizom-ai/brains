@@ -177,6 +177,26 @@ export interface PluginContext {
   // Entity service access - direct access to public service interface
   entityService: IEntityService;
 
+  // Async content generation - queues content generation jobs
+  enqueueContentGeneration: (request: {
+    templateName: string;
+    context: {
+      prompt?: string | undefined;
+      data?: Record<string, unknown> | undefined;
+    };
+    userId?: string | undefined;
+  }) => Promise<string>; // Returns job ID
+
+  // Check status of content generation job
+  getJobStatus: (jobId: string) => Promise<{
+    status: "pending" | "processing" | "completed" | "failed";
+    result?: string;
+    error?: string;
+  } | null>;
+
+  // Wait for job completion (with timeout)
+  waitForJob: (jobId: string, timeoutMs?: number) => Promise<string>;
+
   // Interface plugin capabilities
   registerDaemon: (name: string, daemon: Daemon) => void;
 }
