@@ -137,7 +137,7 @@ describe("EntityService - Database Operations", () => {
         category: "general",
       };
 
-      const created = await entityService.createEntity(noteData);
+      const created = await entityService.createEntitySync(noteData);
 
       expect(created).toBeDefined();
       expect(created.id).toBeDefined();
@@ -156,7 +156,7 @@ describe("EntityService - Database Operations", () => {
         }),
       };
 
-      const created = await entityService.createEntity(noteData);
+      const created = await entityService.createEntitySync(noteData);
 
       expect(created.id).toBe(customId);
       expect(created.content).toBe(noteData.content);
@@ -171,7 +171,9 @@ describe("EntityService - Database Operations", () => {
       };
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
-      await expect(entityService.createEntity(invalidData)).rejects.toThrow();
+      await expect(
+        entityService.createEntitySync(invalidData),
+      ).rejects.toThrow();
     });
   });
 
@@ -182,7 +184,7 @@ describe("EntityService - Database Operations", () => {
         category: "retrievable",
       });
 
-      const created = await entityService.createEntity(noteData);
+      const created = await entityService.createEntitySync(noteData);
       const retrieved = await entityService.getEntity<Note>("note", created.id);
 
       expect(retrieved).toBeDefined();
@@ -205,7 +207,7 @@ describe("EntityService - Database Operations", () => {
         category: "original",
       });
 
-      const created = await entityService.createEntity(noteData);
+      const created = await entityService.createEntitySync(noteData);
 
       // Wait a bit to ensure timestamps differ
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -247,7 +249,7 @@ describe("EntityService - Database Operations", () => {
         category: "deletable",
       });
 
-      const created = await entityService.createEntity(noteData);
+      const created = await entityService.createEntitySync(noteData);
       const deleted = await entityService.deleteEntity(created.id);
 
       expect(deleted).toBe(true);
@@ -267,7 +269,7 @@ describe("EntityService - Database Operations", () => {
     beforeEach(async () => {
       // Create test entities
       for (let i = 0; i < 5; i++) {
-        await entityService.createEntity(
+        await entityService.createEntitySync(
           createTestEntityData({
             content: `Content for note ${i}`,
             category: `category${i}`,
@@ -319,7 +321,7 @@ describe("EntityService - Database Operations", () => {
 
     test("filters entities by metadata", async () => {
       // Create entities with specific titles
-      await entityService.createEntity(
+      await entityService.createEntitySync(
         createTestEntityData({
           content: "Content with unique title",
           category: "unique",
@@ -371,7 +373,7 @@ describe("EntityService - Database Operations", () => {
         profileAdapter,
       );
 
-      await entityService.createEntity({
+      await entityService.createEntitySync({
         entityType: "profile" as const,
         content: "Profile content",
         created: new Date().toISOString(),
@@ -392,21 +394,21 @@ describe("EntityService - Database Operations", () => {
 
   describe("search entities", () => {
     beforeEach(async () => {
-      await entityService.createEntity(
+      await entityService.createEntitySync(
         createTestEntityData({
           content: "Learn JS",
           category: "javascript",
         }),
       );
 
-      await entityService.createEntity(
+      await entityService.createEntitySync(
         createTestEntityData({
           content: "TS is great",
           category: "typescript",
         }),
       );
 
-      await entityService.createEntity(
+      await entityService.createEntitySync(
         createTestEntityData({
           content: "Python 101",
           category: "python",
@@ -437,14 +439,14 @@ describe("EntityService - Database Operations", () => {
   describe("search (vector similarity)", () => {
     test("performs vector similarity search", async () => {
       // Create entities with different content
-      await entityService.createEntity(
+      await entityService.createEntitySync(
         createTestEntityData({
           content: "Neural networks and deep learning fundamentals",
           category: "ml",
         }),
       );
 
-      await entityService.createEntity(
+      await entityService.createEntitySync(
         createTestEntityData({
           content: "How to make pasta carbonara",
           category: "cooking",
@@ -489,7 +491,7 @@ describe("EntityService - Database Operations", () => {
         profileAdapter,
       );
 
-      await entityService.createEntity(
+      await entityService.createEntitySync(
         createTestEntityData({
           content: "AI content",
           category: "ai",
@@ -498,7 +500,7 @@ describe("EntityService - Database Operations", () => {
 
       // Profile adapter already registered above
 
-      await entityService.createEntity({
+      await entityService.createEntitySync({
         entityType: "profile" as const,
         content: "Profile of AI researcher",
         created: new Date().toISOString(),
@@ -515,7 +517,7 @@ describe("EntityService - Database Operations", () => {
   describe("serialize/deserialize", () => {
     test("deserializes markdown entity data", async () => {
       // Create a test entity first
-      const testEntity = await entityService.createEntity(
+      const testEntity = await entityService.createEntitySync(
         createTestEntityData({
           content: "This is test content",
           category: "test",

@@ -14,7 +14,7 @@ class MockEntityService {
     SiteContentPreview | SiteContentProduction
   >();
 
-  async createEntity<T extends SiteContentPreview | SiteContentProduction>(
+  async createEntitySync<T extends SiteContentPreview | SiteContentProduction>(
     entity: Omit<T, "id" | "created" | "updated"> & {
       id?: string;
       created?: string;
@@ -89,6 +89,14 @@ class MockEntityService {
     }
 
     return results;
+  }
+
+  async createEntityAsync(): Promise<{ entityId: string; jobId: string }> {
+    throw new Error("createEntityAsync not implemented in mock");
+  }
+
+  async getAsyncJobStatus(): Promise<null> {
+    throw new Error("getAsyncJobStatus not implemented in mock");
   }
 
   // Helper method for tests

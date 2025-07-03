@@ -19,12 +19,14 @@ The queue table is a generic job queue that "boxes" entities until their embeddi
 ### ✅ Completed Components
 
 #### 1. Database Schema (DONE)
+
 - Created `embedding_queue` table in `shell/db/src/schema/embedding-queue.ts`
 - Implemented box pattern with complete entity storage
 - Added appropriate indexes for queue operations
 - Refactored database schema into modular directory structure
 
 #### 2. Queue Service (DONE)
+
 - Implemented `EmbeddingQueueService` in `shell/entity-service/src/embedding-queue/`
 - Features implemented:
   - `enqueue()` - Add entities to queue
@@ -37,6 +39,7 @@ The queue table is a generic job queue that "boxes" entities until their embeddi
   - `resetStuckJobs()` - Recover stuck processing jobs
 
 #### 3. Queue Worker (DONE)
+
 - Implemented `EmbeddingQueueWorker` for background processing
 - Features:
   - Continuous polling with configurable interval
@@ -46,6 +49,7 @@ The queue table is a generic job queue that "boxes" entities until their embeddi
   - Graceful shutdown support
 
 #### 4. Tests (DONE)
+
 - Comprehensive test suite for queue operations
 - Concurrent operation tests
 - Failure and retry scenarios
@@ -54,6 +58,7 @@ The queue table is a generic job queue that "boxes" entities until their embeddi
 ### 🚧 Remaining Implementation
 
 #### 1. EntityService Methods
+
 ```typescript
 // Rename existing method to make sync behavior explicit
 createEntitySync() // Current createEntity() renamed
@@ -73,11 +78,13 @@ getAsyncJobStatus(jobId: string): Promise<{
 ```
 
 #### 2. Shell Integration
+
 - Start EmbeddingQueueWorker during shell initialization
 - Configure worker options (poll interval, batch size, etc.)
 - Ensure graceful shutdown
 
 #### 3. Interface Updates
+
 - Update Matrix interface to use async creation
 - Update CLI interface to use async creation
 - Update directory-sync plugin for bulk imports
@@ -135,7 +142,7 @@ interface QueueConfig {
 ## Migration Strategy
 
 1. **Phase 1**: Rename `createEntity` to `createEntitySync`
-2. **Phase 2**: Implement `createEntityAsync` 
+2. **Phase 2**: Implement `createEntityAsync`
 3. **Phase 3**: Create new `createEntity` that uses async by default
 4. **Phase 4**: Update all interfaces to use async creation
 5. **Phase 5**: Deprecate `createEntitySync` for most use cases

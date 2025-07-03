@@ -110,7 +110,7 @@ export class SiteContentManager {
               section: previewEntity.section,
             };
 
-            await this.entityService.createEntity(productionEntity);
+            await this.entityService.createEntitySync(productionEntity);
             this.logger?.debug("Created new production content", {
               previewId: previewEntity.id,
               productionId,
@@ -376,7 +376,7 @@ export class SiteContentManager {
               section: sectionId,
             };
 
-            await this.entityService.createEntity(siteContentEntity);
+            await this.entityService.createEntitySync(siteContentEntity);
 
             result.generated.push({
               page: route.path,
@@ -786,7 +786,7 @@ export class SiteContentManager {
               section: sectionId,
             };
 
-            await this.entityService.createEntity(siteContentEntity);
+            await this.entityService.createEntitySync(siteContentEntity);
 
             result.generated.push({
               page: route.path,

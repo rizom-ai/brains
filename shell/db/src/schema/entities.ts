@@ -49,11 +49,13 @@ export const entities = sqliteTable("entities", {
 export const insertEntitySchema = createInsertSchema(entities, {
   contentWeight: z.number().min(0).max(1).default(1.0),
   embedding: z.instanceof(Float32Array),
+  metadata: z.record(z.unknown()),
 });
 
 export const selectEntitySchema = createSelectSchema(entities, {
   contentWeight: z.number().min(0).max(1),
   embedding: z.instanceof(Float32Array),
+  metadata: z.record(z.unknown()),
 });
 
 /**

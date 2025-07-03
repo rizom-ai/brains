@@ -53,7 +53,7 @@ describe("Shell and Base Entity Integration", () => {
     expect(supportedTypes).toContain("base");
 
     // Verify we can create a base entity (which will fail if adapter isn't registered)
-    const testEntity = await entityService.createEntity<BaseEntity>({
+    const testEntity = await entityService.createEntitySync<BaseEntity>({
       entityType: "base",
       content: "Test",
       created: new Date().toISOString(),
@@ -83,7 +83,7 @@ describe("Shell and Base Entity Integration", () => {
     const entityService = shell.getEntityService();
 
     // Create a base entity
-    const createdEntity = await entityService.createEntity<BaseEntity>({
+    const createdEntity = await entityService.createEntitySync<BaseEntity>({
       entityType: "base",
       content: "This is test content for a base entity",
       created: new Date().toISOString(),
@@ -178,14 +178,14 @@ describe("Shell and Base Entity Integration", () => {
     const entityService = shell.getEntityService();
 
     // Create multiple entities
-    await entityService.createEntity<BaseEntity>({
+    await entityService.createEntitySync<BaseEntity>({
       entityType: "base",
       content: "Content 1",
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
     });
 
-    await entityService.createEntity<BaseEntity>({
+    await entityService.createEntitySync<BaseEntity>({
       entityType: "base",
       content: "Content 2",
       created: new Date().toISOString(),

@@ -1,5 +1,5 @@
 import type { DrizzleDB } from "@brains/db";
-import { entities, createId } from "@brains/db/schema";
+import { entities, createId, embeddingQueue } from "@brains/db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type { BaseEntity, SearchResult } from "@brains/types";
@@ -8,6 +8,8 @@ import type { EntityService as IEntityService, SearchOptions } from "./types";
 import { eq, and, inArray, desc, asc, sql } from "@brains/db";
 import { z } from "zod";
 import { EntityNotFoundError } from "./errors";
+import { EmbeddingQueueService } from "./embedding-queue";
+import type { EntityWithoutEmbedding } from "./embedding-queue/types";
 
 /**
  * Schema for list entities options
@@ -57,6 +59,7 @@ export class EntityService implements IEntityService {
   private entityRegistry: EntityRegistry;
   private logger: Logger;
   private embeddingService: IEmbeddingService;
+  private embeddingQueueService: EmbeddingQueueService;
 
   /**
    * Get the singleton instance of EntityService
@@ -92,12 +95,16 @@ export class EntityService implements IEntityService {
     this.logger = (options.logger ?? Logger.getInstance()).child(
       "EntityService",
     );
+    this.embeddingQueueService = EmbeddingQueueService.createFresh(
+      this.db,
+      this.logger,
+    );
   }
 
   /**
-   * Create a new entity
+   * Create a new entity (synchronous - waits for embedding)
    */
-  public async createEntity<T extends BaseEntity>(
+  public async createEntitySync<T extends BaseEntity>(
     entity: Omit<T, "id" | "created" | "updated"> & {
       id?: string;
       created?: string;
@@ -636,7 +643,7 @@ export class EntityService implements IEntityService {
       ...sourceFields
     } = source;
 
-    const derived = await this.createEntity<T>({
+    const derived = await this.createEntitySync<T>({
       ...sourceFields,
       entityType: targetEntityType,
     } as T);
@@ -655,28 +662,102 @@ export class EntityService implements IEntityService {
 
   /**
    * Create entity asynchronously (embedding generated in background)
-   * TODO: Implement in next commit
    */
   public async createEntityAsync<T extends BaseEntity>(
-    _entity: Omit<T, "id" | "created" | "updated"> & {
+    entity: Omit<T, "id" | "created" | "updated"> & {
       id?: string;
       created?: string;
       updated?: string;
     },
-    _options?: { priority?: number; maxRetries?: number },
+    options?: { priority?: number; maxRetries?: number },
   ): Promise<{ entityId: string; jobId: string }> {
-    throw new Error("Not implemented yet");
+    this.logger.debug(
+      `Creating entity asynchronously of type: ${entity["entityType"]}`,
+    );
+
+    // Generate ID and timestamps if not provided
+    const now = new Date().toISOString();
+    const entityWithDefaults = {
+      ...entity,
+      id: entity.id ?? createId(),
+      created: entity.created ?? now,
+      updated: entity.updated ?? now,
+    };
+
+    // Validate entity against its schema
+    const validatedEntity = this.entityRegistry.validateEntity<T>(
+      entity["entityType"],
+      entityWithDefaults,
+    );
+
+    // Convert to markdown using adapter
+    const adapter = this.entityRegistry.getAdapter<T>(
+      validatedEntity.entityType,
+    );
+    const markdown = adapter.toMarkdown(validatedEntity);
+
+    // Extract metadata using adapter
+    const metadata = adapter.extractMetadata(validatedEntity);
+
+    // Extract content weight from markdown
+    const { contentWeight } = extractIndexedFields(
+      markdown,
+      validatedEntity.id,
+    );
+
+    // Prepare entity data for queue (without embedding)
+    const entityForQueue: EntityWithoutEmbedding = {
+      id: validatedEntity.id,
+      entityType: validatedEntity.entityType,
+      content: markdown,
+      metadata,
+      created: new Date(validatedEntity.created).getTime(),
+      updated: new Date(validatedEntity.updated).getTime(),
+      contentWeight,
+    };
+
+    // Enqueue for async embedding generation
+    const jobId = await this.embeddingQueueService.enqueue(entityForQueue, {
+      ...(options?.priority !== undefined && { priority: options.priority }),
+      ...(options?.maxRetries !== undefined && {
+        maxRetries: options.maxRetries,
+      }),
+    });
+
+    this.logger.info(
+      `Created entity asynchronously of type ${entity["entityType"]} with ID ${validatedEntity.id}, job ID ${jobId}`,
+    );
+
+    return {
+      entityId: validatedEntity.id,
+      jobId,
+    };
   }
 
   /**
    * Check async entity creation status
-   * TODO: Implement in next commit
    */
-  public async getAsyncJobStatus(_jobId: string): Promise<{
+  public async getAsyncJobStatus(jobId: string): Promise<{
     status: "pending" | "processing" | "completed" | "failed";
     entityId?: string;
     error?: string;
   } | null> {
-    throw new Error("Not implemented yet");
+    // Get job status from queue service by looking up the job directly
+    const jobs = await this.db
+      .select()
+      .from(embeddingQueue)
+      .where(eq(embeddingQueue.id, jobId))
+      .limit(1);
+
+    const job = jobs[0];
+    if (!job) {
+      return null;
+    }
+
+    return {
+      status: job.status,
+      entityId: job.entityData.id,
+      ...(job.lastError && { error: job.lastError }),
+    };
   }
 }

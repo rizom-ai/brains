@@ -342,7 +342,7 @@ export class PluginTestHarness {
    */
   private createMockEntityService(): IEntityService {
     const mockService: IEntityService = {
-      createEntity: async <T extends BaseEntity>(
+      createEntitySync: async <T extends BaseEntity>(
         entity: EntityInput<T>,
       ): Promise<T> => {
         const entityType =
@@ -418,6 +418,15 @@ export class PluginTestHarness {
       getEntityTypes: (): string[] => {
         // Return all registered entity types
         return Array.from(this.entities.keys());
+      },
+      createEntityAsync: async (): Promise<{
+        entityId: string;
+        jobId: string;
+      }> => {
+        throw new Error("createEntityAsync not implemented in test harness");
+      },
+      getAsyncJobStatus: async (): Promise<null> => {
+        throw new Error("getAsyncJobStatus not implemented in test harness");
       },
       serializeEntity: (entity: BaseEntity): string => {
         // Mock serialization - return JSON as markdown
