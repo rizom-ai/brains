@@ -212,23 +212,6 @@ export class Shell {
       dependencies?.pluginManager ??
       PluginManager.getInstance(this.serviceRegistry, this.logger);
 
-    this.entityService =
-      dependencies?.entityService ??
-      EntityService.getInstance({
-        db: this.db,
-        embeddingService: this.embeddingService,
-        entityRegistry: this.entityRegistry,
-        logger: this.logger,
-      });
-
-    this.contentGenerator =
-      dependencies?.contentGenerator ??
-      ContentGenerator.getInstance({
-        logger: this.logger,
-        entityService: this.entityService,
-        aiService: this.aiService,
-      });
-
     // Initialize embedding queue service and worker (legacy)
     this.embeddingQueueService =
       dependencies?.embeddingQueueService ??
@@ -270,6 +253,25 @@ export class Shell {
         autoStart: false, // Start manually during initialization
       });
 
+    // Initialize EntityService with the configured JobQueueService
+    this.entityService =
+      dependencies?.entityService ??
+      EntityService.getInstance({
+        db: this.db,
+        embeddingService: this.embeddingService,
+        entityRegistry: this.entityRegistry,
+        logger: this.logger,
+        jobQueueService: this.jobQueueService,
+      });
+
+    this.contentGenerator =
+      dependencies?.contentGenerator ??
+      ContentGenerator.getInstance({
+        logger: this.logger,
+        entityService: this.entityService,
+        aiService: this.aiService,
+      });
+
     // Register core components in the service registry
     this.serviceRegistry.register("shell", () => this);
     this.serviceRegistry.register("entityRegistry", () => this.entityRegistry);
@@ -294,10 +296,7 @@ export class Shell {
       "jobQueueService",
       () => this.jobQueueService,
     );
-    this.serviceRegistry.register(
-      "jobQueueWorker",
-      () => this.jobQueueWorker,
-    );
+    this.serviceRegistry.register("jobQueueWorker", () => this.jobQueueWorker);
   }
 
   /**
