@@ -87,6 +87,41 @@ class MockEntityService implements Partial<EntityService> {
     return entity;
   }
 
+  async createEntityAsync<T extends BaseEntity>(
+    entity: Omit<T, "id" | "created" | "updated"> & {
+      id?: string;
+      created?: string;
+      updated?: string;
+    },
+  ): Promise<{ entityId: string; jobId: string }> {
+    const created = await this.createEntitySync(entity);
+    return {
+      entityId: created.id,
+      jobId: `mock-job-${Date.now()}`,
+    };
+  }
+
+  async updateEntityAsync<T extends BaseEntity>(
+    entity: T,
+  ): Promise<{ entityId: string; jobId: string }> {
+    await this.updateEntitySync(entity);
+    return {
+      entityId: entity.id,
+      jobId: `mock-job-${Date.now()}`,
+    };
+  }
+
+  async getAsyncJobStatus(): Promise<{
+    status: "pending" | "processing" | "completed" | "failed";
+    entityId?: string;
+    error?: string;
+  } | null> {
+    return {
+      status: "completed",
+      entityId: "mock-entity",
+    };
+  }
+
   async getEntity<T extends BaseEntity>(
     entityType: string,
     id: string,

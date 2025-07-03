@@ -239,7 +239,7 @@ export class DirectorySync {
                 entityType: rawEntity.entityType,
                 updated: rawEntity.updated.toISOString(),
               };
-              await this.entityService.updateEntitySync(entityUpdate);
+              await this.entityService.updateEntityAsync(entityUpdate);
             }
           } else {
             // Create new entity with all required fields
@@ -251,7 +251,7 @@ export class DirectorySync {
               created: rawEntity.created.toISOString(),
               updated: rawEntity.updated.toISOString(),
             };
-            await this.entityService.createEntitySync(entityCreate);
+            await this.entityService.createEntityAsync(entityCreate);
           }
         } catch (deserializeError) {
           // Skip if entity type is not registered or deserialization fails
