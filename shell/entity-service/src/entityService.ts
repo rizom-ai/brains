@@ -1,5 +1,5 @@
 import type { DrizzleDB } from "@brains/db";
-import { entities, createId, embeddingQueue } from "@brains/db/schema";
+import { entities, createId, jobQueue } from "@brains/db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type { BaseEntity, SearchResult } from "@brains/types";
@@ -8,8 +8,9 @@ import type { EntityService as IEntityService, SearchOptions } from "./types";
 import { eq, and, inArray, desc, asc, sql } from "@brains/db";
 import { z } from "zod";
 import { EntityNotFoundError } from "./errors";
-import { EmbeddingQueueService } from "./embedding-queue";
-import type { EntityWithoutEmbedding } from "./embedding-queue/types";
+import { JobQueueService } from "./job-queue/jobQueueService";
+import { EmbeddingJobHandler } from "./job-queue/handlers/embeddingJobHandler";
+import type { EntityWithoutEmbedding } from "@brains/db";
 
 /**
  * Schema for list entities options
@@ -59,7 +60,7 @@ export class EntityService implements IEntityService {
   private entityRegistry: EntityRegistry;
   private logger: Logger;
   private embeddingService: IEmbeddingService;
-  private embeddingQueueService: EmbeddingQueueService;
+  private jobQueueService: JobQueueService;
 
   /**
    * Get the singleton instance of EntityService
@@ -95,10 +96,7 @@ export class EntityService implements IEntityService {
     this.logger = (options.logger ?? Logger.getInstance()).child(
       "EntityService",
     );
-    this.embeddingQueueService = EmbeddingQueueService.createFresh(
-      this.db,
-      this.logger,
-    );
+    this.jobQueueService = JobQueueService.createFresh(this.db, this.logger);
   }
 
   /**
@@ -342,7 +340,8 @@ export class EntityService implements IEntityService {
       .where(eq(entities.id, validatedEntity.id));
 
     // Queue embedding generation for the updated entity
-    const jobId = await this.embeddingQueueService.enqueue(
+    const jobId = await this.jobQueueService.enqueue(
+      "embedding",
       {
         id: validatedEntity.id,
         entityType: validatedEntity.entityType,
@@ -791,12 +790,16 @@ export class EntityService implements IEntityService {
     };
 
     // Enqueue for async embedding generation
-    const jobId = await this.embeddingQueueService.enqueue(entityForQueue, {
-      ...(options?.priority !== undefined && { priority: options.priority }),
-      ...(options?.maxRetries !== undefined && {
-        maxRetries: options.maxRetries,
-      }),
-    });
+    const jobId = await this.jobQueueService.enqueue(
+      "embedding",
+      entityForQueue,
+      {
+        ...(options?.priority !== undefined && { priority: options.priority }),
+        ...(options?.maxRetries !== undefined && {
+          maxRetries: options.maxRetries,
+        }),
+      },
+    );
 
     this.logger.info(
       `Created entity asynchronously of type ${entity["entityType"]} with ID ${validatedEntity.id}, job ID ${jobId}`,
@@ -816,11 +819,11 @@ export class EntityService implements IEntityService {
     entityId?: string;
     error?: string;
   } | null> {
-    // Get job status from queue service by looking up the job directly
+    // Get job status from the generic job queue
     const jobs = await this.db
       .select()
-      .from(embeddingQueue)
-      .where(eq(embeddingQueue.id, jobId))
+      .from(jobQueue)
+      .where(eq(jobQueue.id, jobId))
       .limit(1);
 
     const job = jobs[0];
@@ -828,10 +831,36 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    return {
+    // Parse the job data using the EmbeddingJobHandler's validation
+    let entityId: string | undefined;
+    try {
+      const handler = EmbeddingJobHandler.createFresh(
+        this.db,
+        this.embeddingService,
+      );
+      const parsedData = JSON.parse(job.data as string);
+      const jobData = handler.validateAndParse(parsedData);
+      entityId = jobData?.id;
+    } catch {
+      // If parsing fails, entityId will remain undefined
+    }
+
+    const result: {
+      status: "pending" | "processing" | "completed" | "failed";
+      entityId?: string;
+      error?: string;
+    } = {
       status: job.status,
-      entityId: job.entityData.id,
-      ...(job.lastError && { error: job.lastError }),
     };
+
+    if (entityId) {
+      result.entityId = entityId;
+    }
+
+    if (job.lastError) {
+      result.error = job.lastError;
+    }
+
+    return result;
   }
 }
