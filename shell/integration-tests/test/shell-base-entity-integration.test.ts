@@ -200,4 +200,53 @@ describe("Shell and Base Entity Integration", () => {
     const searchResults = await entityService.search("Content");
     expect(searchResults.length).toBeGreaterThanOrEqual(2);
   });
+
+  test("async entity creation with background embedding", async () => {
+    // Create and initialize shell
+    shell = Shell.createFresh(
+      {
+        features: {
+          enablePlugins: false,
+        },
+        database: {
+          url: `file:${dbPath}`,
+        },
+      },
+      {
+        logger: createSilentLogger(),
+      },
+    );
+    await shell.initialize();
+
+    const entityService = shell.getEntityService();
+
+    // Create entity asynchronously
+    const result = await entityService.createEntityAsync<BaseEntity>({
+      entityType: "base",
+      content: "Async test content",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    });
+
+    // Should return job info immediately
+    expect(result.entityId).toBeDefined();
+    expect(result.jobId).toBeDefined();
+
+    // Wait a bit for the worker to process the job
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Check job status
+    const jobStatus = await entityService.getAsyncJobStatus(result.jobId);
+    expect(jobStatus).toBeDefined();
+    expect(jobStatus?.entityId).toBe(result.entityId);
+    // Job should be completed or processing
+    expect(['pending', 'processing', 'completed']).toContain(jobStatus?.status);
+
+    // If completed, entity should exist in database
+    if (jobStatus?.status === 'completed') {
+      const entity = await entityService.getEntity<BaseEntity>("base", result.entityId);
+      expect(entity).toBeDefined();
+      expect(entity?.content).toBe("Async test content");
+    }
+  });
 });

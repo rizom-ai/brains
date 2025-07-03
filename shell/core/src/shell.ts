@@ -3,7 +3,7 @@ import type { Client } from "@libsql/client";
 import type { ContentGenerationConfig } from "@brains/plugin-utils";
 import { createDatabase } from "@brains/db";
 import { ServiceRegistry } from "@brains/service-registry";
-import { EntityRegistry, EntityService } from "@brains/entity-service";
+import { EntityRegistry, EntityService, EmbeddingQueueService, EmbeddingQueueWorker } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "./plugins/pluginManager";
 import {
@@ -38,6 +38,8 @@ export interface ShellDependencies {
   viewRegistry?: ViewRegistry;
   pluginManager?: PluginManager;
   contentGenerator?: ContentGenerator;
+  embeddingQueueService?: EmbeddingQueueService;
+  embeddingQueueWorker?: EmbeddingQueueWorker;
 }
 
 /**
@@ -63,6 +65,8 @@ export class Shell {
   private readonly entityService: EntityService;
   private readonly aiService: AIService;
   private readonly contentGenerator: ContentGenerator;
+  private readonly embeddingQueueService: EmbeddingQueueService;
+  private readonly embeddingQueueWorker: EmbeddingQueueWorker;
   private initialized = false;
 
   /**
@@ -213,6 +217,27 @@ export class Shell {
         aiService: this.aiService,
       });
 
+    // Initialize embedding queue service and worker
+    this.embeddingQueueService =
+      dependencies?.embeddingQueueService ??
+      EmbeddingQueueService.getInstance(this.db, this.logger);
+
+    this.embeddingQueueWorker =
+      dependencies?.embeddingQueueWorker ??
+      EmbeddingQueueWorker.getInstance(
+        this.db,
+        this.embeddingQueueService,
+        this.embeddingService,
+        {
+          pollInterval: 100, // 100ms for responsive processing
+          batchSize: 1, // Process one job at a time
+          maxProcessingTime: 5 * 60 * 1000, // 5 minutes timeout
+          cleanupInterval: 60 * 60 * 1000, // Cleanup every hour
+          cleanupAge: 24 * 60 * 60 * 1000, // Clean jobs older than 24 hours
+        },
+        this.logger,
+      );
+
     // Register core components in the service registry
     this.serviceRegistry.register("shell", () => this);
     this.serviceRegistry.register("entityRegistry", () => this.entityRegistry);
@@ -225,6 +250,14 @@ export class Shell {
       () => this.contentGenerator,
     );
     this.serviceRegistry.register("viewRegistry", () => this.viewRegistry);
+    this.serviceRegistry.register(
+      "embeddingQueueService",
+      () => this.embeddingQueueService,
+    );
+    this.serviceRegistry.register(
+      "embeddingQueueWorker",
+      () => this.embeddingQueueWorker,
+    );
   }
 
   /**
@@ -250,6 +283,10 @@ export class Shell {
         this.entityRegistry,
         this.pluginManager,
       );
+
+      // Start the embedding queue worker
+      await this.embeddingQueueWorker.start();
+      this.logger.info("Embedding queue worker started");
 
       this.initialized = true;
       this.logger.info("Shell initialized successfully");
@@ -353,6 +390,10 @@ export class Shell {
     this.logger.info("Shutting down Shell");
 
     // Cleanup in reverse order of initialization
+    // Stop the embedding queue worker first
+    this.embeddingQueueWorker.stop();
+    this.logger.info("Embedding queue worker stopped");
+
     // Disable all plugins
     for (const [pluginId] of this.pluginManager.getAllPlugins()) {
       await this.pluginManager.disablePlugin(pluginId);
