@@ -652,4 +652,31 @@ export class EntityService implements IEntityService {
 
     return derived;
   }
+
+  /**
+   * Create entity asynchronously (embedding generated in background)
+   * TODO: Implement in next commit
+   */
+  public async createEntityAsync<T extends BaseEntity>(
+    _entity: Omit<T, "id" | "created" | "updated"> & {
+      id?: string;
+      created?: string;
+      updated?: string;
+    },
+    _options?: { priority?: number; maxRetries?: number },
+  ): Promise<{ entityId: string; jobId: string }> {
+    throw new Error("Not implemented yet");
+  }
+
+  /**
+   * Check async entity creation status
+   * TODO: Implement in next commit
+   */
+  public async getAsyncJobStatus(_jobId: string): Promise<{
+    status: "pending" | "processing" | "completed" | "failed";
+    entityId?: string;
+    error?: string;
+  } | null> {
+    throw new Error("Not implemented yet");
+  }
 }

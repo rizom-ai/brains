@@ -7,7 +7,9 @@ import { selectEntitySchema, type Entity } from "./entities";
 /**
  * Zod schema for entity without embedding
  */
-const entityWithoutEmbeddingSchema = selectEntitySchema.omit({ embedding: true });
+const entityWithoutEmbeddingSchema = selectEntitySchema.omit({
+  embedding: true,
+});
 
 /**
  * Embedding queue table for async embedding generation
@@ -52,9 +54,9 @@ export const embeddingQueue = sqliteTable(
     queueReadyIdx: index("idx_queue_ready").on(
       table.status,
       table.priority,
-      table.scheduledFor
+      table.scheduledFor,
     ),
-  })
+  }),
 );
 
 /**
@@ -62,7 +64,9 @@ export const embeddingQueue = sqliteTable(
  */
 export const insertEmbeddingQueueSchema = createInsertSchema(embeddingQueue, {
   entityData: entityWithoutEmbeddingSchema,
-  status: z.enum(["pending", "processing", "completed", "failed"]).default("pending"),
+  status: z
+    .enum(["pending", "processing", "completed", "failed"])
+    .default("pending"),
   priority: z.number().int().default(0),
   retryCount: z.number().int().min(0).default(0),
   maxRetries: z.number().int().min(0).default(3),

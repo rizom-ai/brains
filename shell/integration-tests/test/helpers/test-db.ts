@@ -4,6 +4,8 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
+import { enableWALMode, ensureCriticalIndexes } from "@brains/db";
+import { createSilentLogger } from "@brains/utils";
 
 /**
  * Create a temporary test database
@@ -29,11 +31,18 @@ export async function createTestDatabase(): Promise<{
   // Create Drizzle instance
   const db = drizzle(client);
 
+  // Enable WAL mode for better concurrency
+  const logger = createSilentLogger();
+  await enableWALMode(client, `file:${dbPath}`, logger);
+
   // Run migrations from db package
   const migrationsPath = join(__dirname, "../../../db/drizzle");
   await migrate(db, {
     migrationsFolder: migrationsPath,
   });
+
+  // Ensure critical indexes exist
+  await ensureCriticalIndexes(client, logger);
 
   // Cleanup function
   const cleanup = async (): Promise<void> => {

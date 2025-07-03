@@ -42,6 +42,19 @@ export interface EntityService {
   updateEntity<T extends BaseEntity>(entity: T): Promise<T>;
   deleteEntity(id: string): Promise<boolean>;
 
+  // Async entity creation (returns immediately, embedding generated in background)
+  createEntityAsync<T extends BaseEntity>(
+    entity: EntityInput<T>,
+    options?: { priority?: number; maxRetries?: number },
+  ): Promise<{ entityId: string; jobId: string }>;
+
+  // Check async entity creation status
+  getAsyncJobStatus(jobId: string): Promise<{
+    status: "pending" | "processing" | "completed" | "failed";
+    entityId?: string;
+    error?: string;
+  } | null>;
+
   // Search and discovery
   search(query: string, options?: SearchOptions): Promise<SearchResult[]>;
 
