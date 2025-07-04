@@ -13,8 +13,8 @@ import { z } from "zod";
 
 // Schema for parsing frontmatter
 const frontmatterSchema = z.object({
-  page: z.string(),
-  section: z.string(),
+  pageId: z.string(),
+  sectionId: z.string(),
   // Content origin metadata
   generatedBy: z.string().optional(),
   generatedAt: z.string().datetime().optional(),
@@ -38,8 +38,8 @@ abstract class SiteContentAdapter<
     // The content field already contains the formatted content
     // We just need to add/update the frontmatter
     const metadata: Record<string, unknown> = {
-      page: entity.page,
-      section: entity.section,
+      pageId: entity.pageId,
+      sectionId: entity.sectionId,
     };
 
     // If content already has frontmatter, preserve the body and update metadata
@@ -57,7 +57,7 @@ abstract class SiteContentAdapter<
   }
 
   public fromMarkdown(markdown: string): Partial<T> {
-    // Parse frontmatter to get page and section
+    // Parse frontmatter to get pageId and sectionId
     const { metadata } = parseMarkdownWithFrontmatter(
       markdown,
       frontmatterSchema,
@@ -66,8 +66,8 @@ abstract class SiteContentAdapter<
     // The content is the formatted markdown
     // For import, we store the full markdown as the source of truth
     const result: Partial<T> = {
-      page: metadata.page,
-      section: metadata.section,
+      pageId: metadata.pageId,
+      sectionId: metadata.sectionId,
       content: markdown, // Store the full markdown including frontmatter
     } as Partial<T>;
 
@@ -76,8 +76,8 @@ abstract class SiteContentAdapter<
 
   public extractMetadata(entity: T): Record<string, unknown> {
     return {
-      page: entity.page,
-      section: entity.section,
+      pageId: entity.pageId,
+      sectionId: entity.sectionId,
     };
   }
 
@@ -91,8 +91,8 @@ abstract class SiteContentAdapter<
 
   public generateFrontMatter(entity: T): string {
     const metadata: Record<string, unknown> = {
-      page: entity.page,
-      section: entity.section,
+      pageId: entity.pageId,
+      sectionId: entity.sectionId,
     };
 
     return generateFrontmatter(metadata);

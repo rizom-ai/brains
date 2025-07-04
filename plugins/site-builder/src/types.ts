@@ -5,8 +5,8 @@ import { baseEntitySchema } from "@brains/types";
  * Base site content schema - shared between preview and production
  */
 const baseSiteSchema = baseEntitySchema.extend({
-  page: z.string(),
-  section: z.string(),
+  pageId: z.string(),
+  sectionId: z.string(),
   template: z.string().optional(),
   content: z.string(),
 });

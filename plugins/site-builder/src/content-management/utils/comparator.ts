@@ -5,8 +5,8 @@ import type { ContentComparison } from "../types";
  * Compare preview and production content for a given page and section
  */
 export function compareContent(
-  page: string,
-  section: string,
+  pageId: string,
+  sectionId: string,
   preview: SiteContentPreview,
   production: SiteContentProduction,
 ): ContentComparison {
@@ -45,8 +45,8 @@ export function compareContent(
   // Note: We don't compare id as they are intentionally different
 
   return {
-    page,
-    section,
+    pageId,
+    sectionId,
     preview,
     production,
     differences,
@@ -63,7 +63,7 @@ export function isContentEquivalent(
 ): boolean {
   return (
     preview.content === production.content &&
-    preview.page === production.page &&
-    preview.section === production.section
+    preview.pageId === production.pageId &&
+    preview.sectionId === production.sectionId
   );
 }

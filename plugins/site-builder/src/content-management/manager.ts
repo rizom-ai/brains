@@ -19,6 +19,7 @@ import type {
   GenerateResult,
   ContentComparison,
   SiteContentJob,
+  ContentGenerationJob,
   JobStatusSummary,
 } from "./types";
 import { isPreviewContent, isProductionContent } from "./types";
@@ -63,8 +64,8 @@ export class SiteContentManager {
           if (options.dryRun) {
             this.logger?.debug("Dry run: would promote", {
               previewId: previewEntity.id,
-              page: previewEntity.page,
-              section: previewEntity.section,
+              page: previewEntity.pageId,
+              section: previewEntity.sectionId,
             });
             continue;
           }
@@ -73,8 +74,8 @@ export class SiteContentManager {
           const productionId = previewToProductionId(previewEntity.id);
           if (!productionId) {
             result.skipped.push({
-              page: previewEntity.page,
-              section: previewEntity.section,
+              pageId: previewEntity.pageId,
+              sectionId: previewEntity.sectionId,
               reason: "Invalid preview entity ID format",
             });
             continue;
@@ -91,8 +92,8 @@ export class SiteContentManager {
             const updatedProductionEntity: SiteContentProduction = {
               ...(existingProduction as SiteContentProduction),
               content: previewEntity.content,
-              page: previewEntity.page,
-              section: previewEntity.section,
+              pageId: previewEntity.pageId,
+              sectionId: previewEntity.sectionId,
               updated: new Date().toISOString(),
             };
 
@@ -110,8 +111,8 @@ export class SiteContentManager {
               id: productionId,
               entityType: "site-content-production",
               content: previewEntity.content,
-              page: previewEntity.page,
-              section: previewEntity.section,
+              pageId: previewEntity.pageId,
+              sectionId: previewEntity.sectionId,
             };
 
             await this.entityService.createEntityAsync(productionEntity);
@@ -122,8 +123,8 @@ export class SiteContentManager {
           }
 
           result.promoted.push({
-            page: previewEntity.page,
-            section: previewEntity.section,
+            pageId: previewEntity.pageId,
+            sectionId: previewEntity.sectionId,
             previewId: previewEntity.id,
             productionId,
           });
@@ -198,8 +199,8 @@ export class SiteContentManager {
           if (options.dryRun) {
             this.logger?.debug("Dry run: would rollback", {
               productionId: productionEntity.id,
-              page: productionEntity.page,
-              section: productionEntity.section,
+              page: productionEntity.pageId,
+              section: productionEntity.sectionId,
             });
             continue;
           }
@@ -207,8 +208,8 @@ export class SiteContentManager {
           await this.entityService.deleteEntity(productionEntity.id);
 
           result.rolledBack.push({
-            page: productionEntity.page,
-            section: productionEntity.section,
+            pageId: productionEntity.pageId,
+            sectionId: productionEntity.sectionId,
             productionId: productionEntity.id,
           });
 
@@ -257,7 +258,7 @@ export class SiteContentManager {
     routes: RouteDefinition[],
     generateCallback: (
       route: RouteDefinition,
-      section: SectionDefinition,
+      sectionId: SectionDefinition,
     ) => Promise<{
       content: string;
     }>,
@@ -275,16 +276,16 @@ export class SiteContentManager {
 
     try {
       // Filter routes by page if specified
-      const { page } = options;
-      const filteredRoutes = page
-        ? routes.filter((route) => route.path.includes(page))
+      const { pageId } = options;
+      const filteredRoutes = pageId
+        ? routes.filter((route) => route.path.includes(pageId))
         : routes;
 
       // Count total sections to generate
       let totalSections = 0;
       for (const route of filteredRoutes) {
-        const sectionsToCheck = options.section
-          ? route.sections.filter((section) => section.id === options.section)
+        const sectionsToCheck = options.sectionId
+          ? route.sections.filter((section) => section.id === options.sectionId)
           : route.sections;
 
         totalSections += sectionsToCheck.filter(
@@ -304,8 +305,8 @@ export class SiteContentManager {
       }
 
       for (const route of filteredRoutes) {
-        const sectionsToProcess = options.section
-          ? route.sections.filter((section) => section.id === options.section)
+        const sectionsToProcess = options.sectionId
+          ? route.sections.filter((section) => section.id === options.sectionId)
           : route.sections;
 
         const sectionsNeedingContent = sectionsToProcess.filter(
@@ -328,8 +329,8 @@ export class SiteContentManager {
 
           if (existingEntities.length > 0) {
             result.skipped.push({
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
               reason: "Content already exists",
             });
             continue;
@@ -338,12 +339,12 @@ export class SiteContentManager {
           // Skip if dry run
           if (options.dryRun) {
             this.logger?.debug("Dry run: would generate content", {
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
             });
             result.generated.push({
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
               entityId: "dry-run-entity-id",
               entityType: section.contentEntity.entityType,
             });
@@ -357,14 +358,12 @@ export class SiteContentManager {
 
             // Always generate preview content with deterministic ID
             const targetEntityType = "site-content-preview" as const;
-            const page = section.contentEntity.query?.["page"] as string;
-            const sectionId = section.contentEntity.query?.[
-              "section"
-            ] as string;
+            const pageId = route.path.replace(/^\//, ''); // Remove leading slash
+            const sectionId = section.id;
 
             const deterministic_id = this.generateId(
               targetEntityType,
-              page,
+              pageId,
               sectionId,
             );
 
@@ -376,23 +375,23 @@ export class SiteContentManager {
               id: deterministic_id,
               entityType: targetEntityType,
               content: generated.content,
-              page,
-              section: sectionId,
+              pageId,
+              sectionId: sectionId,
             };
 
             await this.entityService.createEntityAsync(siteContentEntity);
 
             result.generated.push({
-              page: route.path,
-              section: section.id,
+              pageId,
+              sectionId: section.id,
               entityId: deterministic_id,
               entityType: targetEntityType,
             });
             result.sectionsGenerated++;
 
             this.logger?.debug("Generated content for section", {
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
               entityId: deterministic_id,
             });
           } catch (error) {
@@ -402,8 +401,8 @@ export class SiteContentManager {
               `Failed to generate content for ${route.path}:${section.id}: ${errorMessage}`,
             );
             this.logger?.error("Failed to generate section content", {
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
               error: errorMessage,
             });
           }
@@ -443,8 +442,8 @@ export class SiteContentManager {
     options: RegenerateOptions,
     regenerateCallback: (
       entityType: SiteContentEntityType,
-      page: string,
-      section: string,
+      pageId: string,
+      sectionId: string,
       mode: "leave" | "new" | "with-current",
       progress: { current: number; total: number; message: string },
       currentContent?: string,
@@ -476,11 +475,11 @@ export class SiteContentManager {
       for (const entityType of entityTypes) {
         // Build filter for finding entities
         const filter: Record<string, unknown> = {
-          page: options.page,
+          pageId: options.pageId,
         };
 
-        if (options.section) {
-          filter["section"] = options.section;
+        if (options.sectionId) {
+          filter["sectionId"] = options.sectionId;
         }
 
         // Get existing entities to regenerate
@@ -508,7 +507,7 @@ export class SiteContentManager {
           const progressInfo = {
             current: processedEntities,
             total: totalEntities,
-            message: `Regenerating ${entityType}:${siteContent.page}:${siteContent.section}...`,
+            message: `Regenerating ${entityType}:${siteContent.pageId}:${siteContent.sectionId}...`,
           };
 
           try {
@@ -516,13 +515,13 @@ export class SiteContentManager {
             if (options.dryRun) {
               this.logger?.debug("Dry run: would regenerate content", {
                 entityType,
-                page: siteContent.page,
-                section: siteContent.section,
+                page: siteContent.pageId,
+                section: siteContent.sectionId,
                 mode: options.mode,
               });
               result.regenerated.push({
-                page: siteContent.page,
-                section: siteContent.section,
+                pageId: siteContent.pageId,
+                sectionId: siteContent.sectionId,
                 entityId: siteContent.id,
                 mode: options.mode,
               });
@@ -534,8 +533,8 @@ export class SiteContentManager {
             if (options.mode === "leave") {
               // Mode "leave": Keep content as-is, no regeneration needed
               result.skipped.push({
-                page: siteContent.page,
-                section: siteContent.section,
+                pageId: siteContent.pageId,
+                sectionId: siteContent.sectionId,
                 reason: "Mode 'leave' - content kept as-is",
               });
               processedEntities++;
@@ -548,8 +547,8 @@ export class SiteContentManager {
 
             const regenerated = await regenerateCallback(
               entityType,
-              siteContent.page,
-              siteContent.section,
+              siteContent.pageId,
+              siteContent.sectionId,
               options.mode,
               progressInfo,
               currentContent,
@@ -565,16 +564,16 @@ export class SiteContentManager {
             await this.entityService.updateEntityAsync(updatedEntity);
 
             result.regenerated.push({
-              page: siteContent.page,
-              section: siteContent.section,
+              pageId: siteContent.pageId,
+              sectionId: siteContent.sectionId,
               entityId: siteContent.id,
               mode: options.mode,
             });
 
             this.logger?.debug("Regenerated content", {
               entityType,
-              page: siteContent.page,
-              section: siteContent.section,
+              page: siteContent.pageId,
+              section: siteContent.sectionId,
               mode: options.mode,
               entityId: siteContent.id,
             });
@@ -582,12 +581,12 @@ export class SiteContentManager {
             const errorMessage =
               error instanceof Error ? error.message : "Unknown error";
             result.errors?.push(
-              `Failed to regenerate ${entityType}:${siteContent.page}:${siteContent.section}: ${errorMessage}`,
+              `Failed to regenerate ${entityType}:${siteContent.pageId}:${siteContent.sectionId}: ${errorMessage}`,
             );
             this.logger?.error("Failed to regenerate content", {
               entityType,
-              page: siteContent.page,
-              section: siteContent.section,
+              page: siteContent.pageId,
+              section: siteContent.sectionId,
               error: errorMessage,
             });
           }
@@ -627,7 +626,7 @@ export class SiteContentManager {
     routes: RouteDefinition[],
     generateCallback: (
       route: RouteDefinition,
-      section: SectionDefinition,
+      sectionId: SectionDefinition,
       progress: { current: number; total: number; message: string },
     ) => Promise<{
       content: string;
@@ -650,7 +649,7 @@ export class SiteContentManager {
     routes: RouteDefinition[],
     generateCallback: (
       route: RouteDefinition,
-      section: SectionDefinition,
+      sectionId: SectionDefinition,
       progress: { current: number; total: number; message: string },
     ) => Promise<{
       content: string;
@@ -671,16 +670,16 @@ export class SiteContentManager {
 
     try {
       // Filter routes by page if specified
-      const { page } = options;
-      const filteredRoutes = page
-        ? routes.filter((route) => route.path.includes(page))
+      const { pageId } = options;
+      const filteredRoutes = pageId
+        ? routes.filter((route) => route.path.includes(pageId))
         : routes;
 
       // Count total sections to generate
       let totalSections = 0;
       for (const route of filteredRoutes) {
-        const sectionsToCheck = options.section
-          ? route.sections.filter((section) => section.id === options.section)
+        const sectionsToCheck = options.sectionId
+          ? route.sections.filter((section) => section.id === options.sectionId)
           : route.sections;
 
         totalSections += sectionsToCheck.filter(
@@ -702,8 +701,8 @@ export class SiteContentManager {
       let processedSections = 0;
 
       for (const route of filteredRoutes) {
-        const sectionsToProcess = options.section
-          ? route.sections.filter((section) => section.id === options.section)
+        const sectionsToProcess = options.sectionId
+          ? route.sections.filter((section) => section.id === options.sectionId)
           : route.sections;
 
         const sectionsNeedingContent = sectionsToProcess.filter(
@@ -732,8 +731,8 @@ export class SiteContentManager {
 
           if (existingEntities.length > 0) {
             result.skipped.push({
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
               reason: "Content already exists",
             });
             processedSections++;
@@ -743,12 +742,12 @@ export class SiteContentManager {
           // Skip if dry run
           if (options.dryRun) {
             this.logger?.debug("Dry run: would generate content", {
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
             });
             result.generated.push({
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
               entityId: "dry-run-entity-id",
               entityType: section.contentEntity.entityType,
             });
@@ -767,14 +766,12 @@ export class SiteContentManager {
 
             // Always generate preview content with deterministic ID
             const targetEntityType = "site-content-preview" as const;
-            const page = section.contentEntity.query?.["page"] as string;
-            const sectionId = section.contentEntity.query?.[
-              "section"
-            ] as string;
+            const pageId = route.path.replace(/^\//, ''); // Remove leading slash
+            const sectionId = section.id;
 
             const deterministic_id = this.generateId(
               targetEntityType,
-              page,
+              pageId,
               sectionId,
             );
 
@@ -786,23 +783,23 @@ export class SiteContentManager {
               id: deterministic_id,
               entityType: targetEntityType,
               content: generated.content,
-              page,
-              section: sectionId,
+              pageId,
+              sectionId: sectionId,
             };
 
             await this.entityService.createEntityAsync(siteContentEntity);
 
             result.generated.push({
-              page: route.path,
-              section: section.id,
+              pageId,
+              sectionId: section.id,
               entityId: deterministic_id,
               entityType: targetEntityType,
             });
             result.sectionsGenerated++;
 
             this.logger?.debug("Generated content for section", {
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
               entityId: deterministic_id,
             });
           } catch (error) {
@@ -812,8 +809,8 @@ export class SiteContentManager {
               `Failed to generate content for ${route.path}:${section.id}: ${errorMessage}`,
             );
             this.logger?.error("Failed to generate section content", {
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
               error: errorMessage,
             });
           }
@@ -859,8 +856,8 @@ export class SiteContentManager {
     mode: "leave" | "new" | "with-current",
     regenerateCallback: (
       entityType: SiteContentEntityType,
-      page: string,
-      section: string,
+      pageId: string,
+      sectionId: string,
       mode: "leave" | "new" | "with-current",
       progress: { current: number; total: number; message: string },
       currentContent?: string,
@@ -873,14 +870,14 @@ export class SiteContentManager {
     success: boolean;
     totalPages: number;
     regenerated: Array<{
-      page: string;
-      section: string;
+      pageId: string;
+      sectionId: string;
       entityId: string;
       mode: "leave" | "new" | "with-current";
     }>;
     skipped: Array<{
-      page: string;
-      section: string;
+      pageId: string;
+      sectionId: string;
       reason: string;
     }>;
     errors: string[];
@@ -894,14 +891,14 @@ export class SiteContentManager {
       success: true,
       totalPages: 0,
       regenerated: [] as Array<{
-        page: string;
-        section: string;
+        pageId: string;
+        sectionId: string;
         entityId: string;
         mode: "leave" | "new" | "with-current";
       }>,
       skipped: [] as Array<{
-        page: string;
-        section: string;
+        pageId: string;
+        sectionId: string;
         reason: string;
       }>,
       errors: [] as string[],
@@ -923,18 +920,18 @@ export class SiteContentManager {
         )[];
 
         for (const entity of siteContentEntities) {
-          allPages.add(entity.page);
+          allPages.add(entity.pageId);
         }
       }
 
       result.totalPages = allPages.size;
 
       // Regenerate each page (preview content only - production comes from promotion)
-      for (const page of allPages) {
+      for (const pageId of allPages) {
         try {
           const pageResult = await this.regenerateSync(
             {
-              page,
+              pageId,
               environment: "preview",
               mode,
               dryRun: options.dryRun ?? false,
@@ -947,17 +944,17 @@ export class SiteContentManager {
             result.skipped.push(...pageResult.skipped);
           } else {
             result.errors.push(
-              ...(pageResult.errors ?? [`Failed to regenerate page: ${page}`]),
+              ...(pageResult.errors ?? [`Failed to regenerate pageId: ${pageId}`]),
             );
           }
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error";
           result.errors.push(
-            `Failed to regenerate page ${page}: ${errorMessage}`,
+            `Failed to regenerate page ${pageId}: ${errorMessage}`,
           );
           this.logger?.error("Failed to regenerate page", {
-            page,
+            pageId,
             error: errorMessage,
           });
         }
@@ -993,19 +990,19 @@ export class SiteContentManager {
    * Compare preview and production content for a page and section
    */
   async compare(
-    page: string,
-    section: string,
+    pageId: string,
+    sectionId: string,
   ): Promise<ContentComparison | null> {
     try {
       const previewId = generateSiteContentId(
         "site-content-preview",
-        page,
-        section,
+        pageId,
+        sectionId,
       );
       const productionId = generateSiteContentId(
         "site-content-production",
-        page,
-        section,
+        pageId,
+        sectionId,
       );
 
       const [preview, production] = await Promise.all([
@@ -1027,15 +1024,15 @@ export class SiteContentManager {
       }
 
       return compareContent(
-        page,
-        section,
+        pageId,
+        sectionId,
         preview as SiteContentPreview,
         production as SiteContentProduction,
       );
     } catch (error) {
       this.logger?.error("Failed to compare content", {
-        page,
-        section,
+        pageId,
+        sectionId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
       return null;
@@ -1046,20 +1043,20 @@ export class SiteContentManager {
    * Check if content exists for a page and section
    */
   async exists(
-    page: string,
-    section: string,
+    pageId: string,
+    sectionId: string,
     type: "preview" | "production",
   ): Promise<boolean> {
     try {
       const entityType =
         type === "preview" ? "site-content-preview" : "site-content-production";
-      const id = generateSiteContentId(entityType, page, section);
+      const id = generateSiteContentId(entityType, pageId, sectionId);
       const entity = await this.entityService.getEntity(entityType, id);
       return !!entity;
     } catch (error) {
       this.logger?.error("Failed to check content existence", {
-        page,
-        section,
+        pageId,
+        sectionId,
         type,
         error: error instanceof Error ? error.message : "Unknown error",
       });
@@ -1072,10 +1069,10 @@ export class SiteContentManager {
    */
   generateId(
     type: SiteContentEntityType,
-    page: string,
-    section: string,
+    pageId: string,
+    sectionId: string,
   ): string {
-    return generateSiteContentId(type, page, section);
+    return generateSiteContentId(type, pageId, sectionId);
   }
 
   /**
@@ -1087,12 +1084,12 @@ export class SiteContentManager {
     // Build filter for entity service
     const filter: Record<string, unknown> = {};
 
-    if (options.page) {
-      filter["page"] = options.page;
+    if (options.pageId) {
+      filter["pageId"] = options.pageId;
     }
 
-    if (options.section) {
-      filter["section"] = options.section;
+    if (options.sectionId) {
+      filter["sectionId"] = options.sectionId;
     }
 
     // Get entities
@@ -1115,12 +1112,12 @@ export class SiteContentManager {
     // Build filter for entity service
     const filter: Record<string, unknown> = {};
 
-    if (options.page) {
-      filter["page"] = options.page;
+    if (options.pageId) {
+      filter["pageId"] = options.pageId;
     }
 
-    if (options.section) {
-      filter["section"] = options.section;
+    if (options.sectionId) {
+      filter["sectionId"] = options.sectionId;
     }
 
     // Get entities
@@ -1141,10 +1138,10 @@ export class SiteContentManager {
   async generateAsync(
     options: GenerateOptions,
     routes: RouteDefinition[],
-    templateResolver: (section: SectionDefinition) => string,
+    templateResolver: (sectionId: SectionDefinition) => string,
     siteConfig?: Record<string, unknown>,
   ): Promise<{
-    jobs: SiteContentJob[];
+    jobs: ContentGenerationJob[];
     totalSections: number;
     queuedSections: number;
   }> {
@@ -1154,21 +1151,21 @@ export class SiteContentManager {
       throw new Error("PluginContext required for async content generation");
     }
 
-    const jobs: SiteContentJob[] = [];
+    const jobs: ContentGenerationJob[] = [];
     let totalSections = 0;
     let queuedSections = 0;
 
     try {
       // Filter routes by page if specified
-      const { page } = options;
-      const filteredRoutes = page
-        ? routes.filter((route) => route.path.includes(page))
+      const { pageId } = options;
+      const filteredRoutes = pageId
+        ? routes.filter((route) => route.path.includes(pageId))
         : routes;
 
       // Count total sections to generate
       for (const route of filteredRoutes) {
-        const sectionsToCheck = options.section
-          ? route.sections.filter((section) => section.id === options.section)
+        const sectionsToCheck = options.sectionId
+          ? route.sections.filter((section) => section.id === options.sectionId)
           : route.sections;
 
         totalSections += sectionsToCheck.filter(
@@ -1187,8 +1184,8 @@ export class SiteContentManager {
       }
 
       for (const route of filteredRoutes) {
-        const sectionsToProcess = options.section
-          ? route.sections.filter((section) => section.id === options.section)
+        const sectionsToProcess = options.sectionId
+          ? route.sections.filter((section) => section.id === options.sectionId)
           : route.sections;
 
         const sectionsNeedingContent = sectionsToProcess.filter(
@@ -1211,8 +1208,8 @@ export class SiteContentManager {
 
           if (existingEntities.length > 0) {
             this.logger?.debug("Skipping section - content already exists", {
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
             });
             continue;
           }
@@ -1220,8 +1217,8 @@ export class SiteContentManager {
           // Skip if dry run
           if (options.dryRun) {
             this.logger?.debug("Dry run: would generate content", {
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
             });
             queuedSections++;
             continue;
@@ -1230,10 +1227,8 @@ export class SiteContentManager {
           try {
             // Get template name and entity metadata
             const templateName = templateResolver(section);
-            const page = section.contentEntity.query?.["page"] as string;
-            const sectionId = section.contentEntity.query?.[
-              "section"
-            ] as string;
+            const pageId = route.path;
+            const sectionId = section.id;
 
             // Enqueue content generation job
             const jobId = await this.pluginContext.enqueueContentGeneration({
@@ -1248,15 +1243,24 @@ export class SiteContentManager {
               },
             });
 
-            // Track the job
-            const job: SiteContentJob = {
-              jobId,
-              route,
-              section,
-              templateName,
-              targetEntityType: "site-content-preview",
-              page,
+            // Generate deterministic entity ID for tracking
+            const entityId = this.generateId(
+              "site-content-preview",
+              pageId,
               sectionId,
+            );
+
+            // Track the job as ContentGenerationJob
+            const job: ContentGenerationJob = {
+              jobId,
+              entityId,
+              entityType: "site-content-preview",
+              operation: "generate",
+              pageId,
+              sectionId,
+              templateName,
+              route,
+              sectionDefinition: section,
             };
 
             jobs.push(job);
@@ -1264,16 +1268,16 @@ export class SiteContentManager {
 
             this.logger?.debug("Enqueued content generation job", {
               jobId,
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
               templateName,
             });
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : "Unknown error";
             this.logger?.error("Failed to enqueue content generation job", {
-              page: route.path,
-              section: section.id,
+              pageId: route.path,
+              sectionId: section.id,
               error: errorMessage,
             });
             // Continue with other sections even if one fails
@@ -1303,7 +1307,7 @@ export class SiteContentManager {
    * Phase 2: Wait for job completion and create entities
    */
   async waitAndCreateEntities(
-    jobs: SiteContentJob[],
+    jobs: ContentGenerationJob[],
     timeoutMs: number = 60000,
     progressCallback?: (
       completed: number,
@@ -1343,7 +1347,7 @@ export class SiteContentManager {
             progressCallback?.(
               completedJobs,
               jobs.length,
-              `Generating content for ${job.page}/${job.sectionId}...`,
+              `Generating content for ${job.pageId}/${job.sectionId}...`,
             );
 
             if (!this.pluginContext) {
@@ -1402,8 +1406,8 @@ export class SiteContentManager {
         // Create entity with the generated content
         try {
           const deterministic_id = this.generateId(
-            job.targetEntityType,
-            job.page,
+            job.entityType,
+            job.pageId,
             job.sectionId,
           );
 
@@ -1419,24 +1423,24 @@ export class SiteContentManager {
             id: deterministic_id,
             entityType: "site-content-preview",
             content: content,
-            page: job.page,
-            section: job.sectionId,
+            pageId: job.pageId,
+            sectionId: job.sectionId,
           };
 
           await this.entityService.createEntityAsync(siteContentEntity);
 
           result.sectionsGenerated++;
           result.generated.push({
-            page: job.route.path,
-            section: job.section.id,
+            pageId: job.route.path,
+            sectionId: job.sectionDefinition.id,
             entityId: deterministic_id,
-            entityType: job.targetEntityType,
+            entityType: job.entityType,
           });
 
           this.logger?.debug("Created entity from async content generation", {
             jobId: job.jobId,
             entityId: deterministic_id,
-            page: job.page,
+            page: job.pageId,
             section: job.sectionId,
           });
         } catch (error) {
@@ -1487,7 +1491,7 @@ export class SiteContentManager {
   async generateAsyncComplete(
     options: GenerateOptions,
     routes: RouteDefinition[],
-    templateResolver: (section: SectionDefinition) => string,
+    templateResolver: (sectionId: SectionDefinition) => string,
     siteConfig?: Record<string, unknown>,
     timeoutMs: number = 60000,
     progressCallback?: (

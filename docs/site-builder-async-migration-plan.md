@@ -368,41 +368,83 @@ regenerate() → regenerateSync()
 generateAll() → generateAllSync()
 ```
 
-**Step 2: Create True Async Variants (Following Established Pattern)**
+**Step 2: Design Specialized Job Interfaces**
+
+After analysis, different operations require different job tracking information:
 
 ```typescript
-// New async methods follow generateAsync pattern
-promoteAsync() → Promise<{jobs: EntityJob[], ...}>
-regenerateAsync() → Promise<{jobs: EntityJob[], ...}>
-generateAllAsync() → Promise<{jobs: EntityJob[], ...}>
-// generateAsync() already exists and follows correct pattern
+// For AI-based content operations (generate/regenerate)
+interface ContentGenerationJob {
+  jobId: string;           // Content generation job ID
+  entityId: string;        // Target entity ID (deterministic)
+  entityType: "site-content-preview" | "site-content-production";
+  operation: "generate" | "regenerate";
+  page: string;
+  section: string;
+  templateName: string;    // For AI generation
+  route: RouteDefinition;  // For AI context
+  sectionDefinition: SectionDefinition; // For AI context
+  mode?: "leave" | "new" | "with-current"; // For regenerate only
+}
+
+// For entity management operations (promote/rollback)
+interface EntityOperationJob {
+  jobId: string;           // Entity operation job ID
+  entityId: string;        // Source entity ID
+  targetEntityId?: string; // For promote (production entity ID)
+  entityType: "site-content-preview" | "site-content-production";
+  operation: "promote" | "rollback";
+  page: string;
+  section: string;
+}
 ```
 
-**Step 3: Add Progress Tracking Infrastructure**
+**Step 3: Create True Async Variants (Operation-Specific Types)**
 
 ```typescript
-// Entity job management utilities
-waitForEntityJobs(jobs: EntityJob[], progressCallback) → Promise<Result>
-getEntityJobStatuses(jobs: EntityJob[]) → Promise<JobStatusSummary>
+// Content generation operations return ContentGenerationJob[]
+generateAsync() → Promise<{jobs: ContentGenerationJob[], ...}> // Already exists
+regenerateAsync() → Promise<{jobs: ContentGenerationJob[], ...}>
+generateAllAsync() → Promise<{jobs: ContentGenerationJob[], ...}>
+
+// Entity operations return EntityOperationJob[]
+promoteAsync() → Promise<{jobs: EntityOperationJob[], ...}>
+rollbackAsync() → Promise<{jobs: EntityOperationJob[], ...}>
+```
+
+**Step 4: Add Progress Tracking Infrastructure**
+
+```typescript
+// Content generation job utilities
+waitForContentJobs(jobs: ContentGenerationJob[], progressCallback) → Promise<Result>
+getContentJobStatuses(jobs: ContentGenerationJob[]) → Promise<JobStatusSummary>
+
+// Entity operation job utilities  
+waitForEntityJobs(jobs: EntityOperationJob[], progressCallback) → Promise<Result>
+getEntityJobStatuses(jobs: EntityOperationJob[]) → Promise<JobStatusSummary>
 
 // Complete variants for convenience
 promoteAsyncComplete() → Promise<Result>
 regenerateAsyncComplete() → Promise<Result>
+rollbackAsyncComplete() → Promise<Result>
 generateAllAsyncComplete() → Promise<Result>
 ```
 
-**Step 4: Update Plugin Tools**
+**Step 5: Update Plugin Tools**
 
 - Update all plugin tools to use new async methods with `Async` suffix
 - Provide both sync and async variants for different use cases
 - Add progress reporting to long-running operations
+- Handle both ContentGenerationJob and EntityOperationJob types appropriately
 
 #### Benefits
 
 - **Non-blocking**: Operations return immediately with job tracking
 - **Progress Monitoring**: Real-time status updates during processing
 - **Scalability**: Handle large datasets without blocking UI
+- **Type Safety**: Operation-specific job interfaces provide better type checking
 - **Consistency**: All async methods follow established `Async` suffix pattern
+- **Separation of Concerns**: Content generation vs entity operations use appropriate metadata
 
 ### Backward Compatibility
 
@@ -504,9 +546,13 @@ generateAllAsyncComplete() → Promise<Result>
 
 ### Week 3: Long-Running Operations (Phase 5)
 
-- Rename existing blocking methods to use Sync suffix
-- Create true async variants with Async suffix
-- Add progress tracking infrastructure for entity jobs
+- ✅ Rename existing blocking methods to use Sync suffix
+- Define ContentGenerationJob and EntityOperationJob interfaces
+- Update generateAsync to return ContentGenerationJob[]
+- Implement promoteAsync returning EntityOperationJob[]
+- Implement regenerateAsync returning ContentGenerationJob[]
+- Implement rollbackAsync returning EntityOperationJob[]
+- Create waitForEntityJobs and waitForContentJobs utilities
 - Update plugin tools to use new async methods
 
 ### Week 4: Testing & Polish

@@ -60,7 +60,38 @@ export interface SiteContentJob {
   section: SectionDefinition;
   templateName: string;
   targetEntityType: "site-content-preview" | "site-content-production";
-  page: string;
+  pageId: string;
+  sectionId: string;
+}
+
+/**
+ * Interface for tracking async content generation jobs (generate/regenerate)
+ * These operations require AI generation with route/section context
+ */
+export interface ContentGenerationJob {
+  jobId: string;
+  entityId: string;
+  entityType: "site-content-preview" | "site-content-production";
+  operation: "generate" | "regenerate";
+  pageId: string;
+  sectionId: string;
+  templateName: string;
+  route: RouteDefinition;
+  sectionDefinition: SectionDefinition;
+  mode?: "leave" | "new" | "with-current"; // For regenerate only
+}
+
+/**
+ * Interface for tracking async entity operation jobs (promote/rollback)
+ * These operations work on existing entities without AI generation
+ */
+export interface EntityOperationJob {
+  jobId: string;
+  entityId: string;
+  targetEntityId?: string; // For promote operations (production entity ID)
+  entityType: "site-content-preview" | "site-content-production";
+  operation: "promote" | "rollback";
+  pageId: string;
   sectionId: string;
 }
 

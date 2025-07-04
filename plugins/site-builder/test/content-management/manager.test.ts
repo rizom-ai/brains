@@ -23,7 +23,7 @@ class MockEntityService {
   ): Promise<T> {
     const id =
       entity.id ??
-      `${entity.entityType}:${(entity as SiteContentPreview | SiteContentProduction).page}:${(entity as SiteContentPreview | SiteContentProduction).section}`;
+      `${entity.entityType}:${(entity as SiteContentPreview | SiteContentProduction).pageId}:${(entity as SiteContentPreview | SiteContentProduction).sectionId}`;
     const now = new Date().toISOString();
     const fullEntity = {
       ...entity,
@@ -148,8 +148,8 @@ describe("SiteContentManager", () => {
     id: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
     content: "# Hero Section\n\nWelcome to our site!",
-    page: "landing",
-    section: "hero",
+    pageId: "landing",
+    sectionId: "hero",
     created: "2024-01-01T00:00:00Z",
     updated: "2024-01-01T01:00:00Z",
   };
@@ -158,8 +158,8 @@ describe("SiteContentManager", () => {
     id: "site-content-production:landing:hero",
     entityType: "site-content-production",
     content: "# Hero Section\n\nOld production content",
-    page: "landing",
-    section: "hero",
+    pageId: "landing",
+    sectionId: "hero",
     created: "2024-01-01T00:00:00Z",
     updated: "2024-01-01T00:30:00Z",
   };
@@ -178,8 +178,8 @@ describe("SiteContentManager", () => {
       expect(result.success).toBe(true);
       expect(result.promoted).toHaveLength(1);
       expect(result.promoted[0]).toEqual({
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         previewId: "site-content-preview:landing:hero",
         productionId: "site-content-production:landing:hero",
       });
@@ -217,35 +217,41 @@ describe("SiteContentManager", () => {
       const aboutPreview: SiteContentPreview = {
         ...previewEntity,
         id: "site-content-preview:about:team",
-        page: "about",
-        section: "team",
+        pageId: "about",
+        sectionId: "team",
       };
 
       entityService.setEntity(previewEntity.id, previewEntity);
       entityService.setEntity(aboutPreview.id, aboutPreview);
 
-      const result = await manager.promoteSync({ page: "landing", dryRun: false });
+      const result = await manager.promoteSync({
+        pageId: "landing",
+        dryRun: false,
+      });
 
       expect(result.success).toBe(true);
       expect(result.promoted).toHaveLength(1);
-      expect(result.promoted[0]?.page).toBe("landing");
+      expect(result.promoted[0]?.pageId).toBe("landing");
     });
 
     it("should filter by section", async () => {
       const featuresPreview: SiteContentPreview = {
         ...previewEntity,
         id: "site-content-preview:landing:features",
-        section: "features",
+        sectionId: "features",
       };
 
       entityService.setEntity(previewEntity.id, previewEntity);
       entityService.setEntity(featuresPreview.id, featuresPreview);
 
-      const result = await manager.promoteSync({ section: "hero", dryRun: false });
+      const result = await manager.promoteSync({
+        sectionId: "hero",
+        dryRun: false,
+      });
 
       expect(result.success).toBe(true);
       expect(result.promoted).toHaveLength(1);
-      expect(result.promoted[0]?.section).toBe("hero");
+      expect(result.promoted[0]?.sectionId).toBe("hero");
     });
 
     it("should handle dry run", async () => {
@@ -274,8 +280,8 @@ describe("SiteContentManager", () => {
       expect(result.success).toBe(true);
       expect(result.rolledBack).toHaveLength(1);
       expect(result.rolledBack[0]).toEqual({
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         productionId: "site-content-production:landing:hero",
       });
 
@@ -291,18 +297,21 @@ describe("SiteContentManager", () => {
       const aboutProduction: SiteContentProduction = {
         ...productionEntity,
         id: "site-content-production:about:team",
-        page: "about",
-        section: "team",
+        pageId: "about",
+        sectionId: "team",
       };
 
       entityService.setEntity(productionEntity.id, productionEntity);
       entityService.setEntity(aboutProduction.id, aboutProduction);
 
-      const result = await manager.rollbackSync({ page: "landing", dryRun: false });
+      const result = await manager.rollbackSync({
+        pageId: "landing",
+        dryRun: false,
+      });
 
       expect(result.success).toBe(true);
       expect(result.rolledBack).toHaveLength(1);
-      expect(result.rolledBack[0]?.page).toBe("landing");
+      expect(result.rolledBack[0]?.pageId).toBe("landing");
 
       // Check that only landing page was deleted
       const landingEntity = await entityService.getEntity(
@@ -342,8 +351,8 @@ describe("SiteContentManager", () => {
       const result = await manager.compare("landing", "hero");
 
       expect(result).toBeDefined();
-      expect(result?.page).toBe("landing");
-      expect(result?.section).toBe("hero");
+      expect(result?.pageId).toBe("landing");
+      expect(result?.sectionId).toBe("hero");
       expect(result?.preview).toEqual(previewEntity);
       expect(result?.production).toEqual(productionEntity);
       expect(result?.identical).toBe(false);
@@ -404,7 +413,7 @@ describe("SiteContentManager", () => {
             template: "hero",
             contentEntity: {
               entityType: "site-content-preview",
-              query: { page: "landing", section: "hero" },
+              query: { pageId: "landing", sectionId: "hero" },
             },
           },
           {
@@ -412,7 +421,7 @@ describe("SiteContentManager", () => {
             template: "features",
             contentEntity: {
               entityType: "site-content-preview",
-              query: { page: "landing", section: "features" },
+              query: { pageId: "landing", sectionId: "features" },
             },
           },
         ],
@@ -428,7 +437,7 @@ describe("SiteContentManager", () => {
             template: "team",
             contentEntity: {
               entityType: "site-content-preview",
-              query: { page: "about", section: "team" },
+              query: { pageId: "about", sectionId: "team" },
             },
           },
         ],
@@ -484,7 +493,7 @@ describe("SiteContentManager", () => {
 
     it("should filter by page", async () => {
       const result = await manager.generateSync(
-        { page: "landing", dryRun: false },
+        { pageId: "landing", dryRun: false },
         mockRoutes,
         mockGenerateCallback,
       );
@@ -493,12 +502,12 @@ describe("SiteContentManager", () => {
       expect(result.sectionsGenerated).toBe(2);
       expect(result.totalSections).toBe(2);
       expect(result.generated).toHaveLength(2);
-      expect(result.generated.every((g) => g.page === "/landing")).toBe(true);
+      expect(result.generated.every((g) => g.pageId === "landing")).toBe(true);
     });
 
     it("should filter by section", async () => {
       const result = await manager.generateSync(
-        { section: "hero", dryRun: false },
+        { sectionId: "hero", dryRun: false },
         mockRoutes,
         mockGenerateCallback,
       );
@@ -507,7 +516,7 @@ describe("SiteContentManager", () => {
       expect(result.sectionsGenerated).toBe(1);
       expect(result.totalSections).toBe(1);
       expect(result.generated).toHaveLength(1);
-      expect(result.generated[0]?.section).toBe("hero");
+      expect(result.generated[0]?.sectionId).toBe("hero");
     });
 
     it("should skip existing content", async () => {
@@ -516,8 +525,8 @@ describe("SiteContentManager", () => {
         id: "site-content-preview:landing:hero",
         entityType: "site-content-preview",
         content: "Existing content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: "2024-01-01T00:00:00Z",
         updated: "2024-01-01T01:00:00Z",
       });
@@ -646,8 +655,8 @@ describe("SiteContentManager", () => {
         id: "site-content-preview:landing:hero",
         entityType: "site-content-preview",
         content: "Existing content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: "2024-01-01T00:00:00Z",
         updated: "2024-01-01T01:00:00Z",
       });
@@ -691,8 +700,8 @@ describe("SiteContentManager", () => {
         id: "site-content-preview:landing:hero",
         entityType: "site-content-preview",
         content: "Original hero content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: "2024-01-01T00:00:00Z",
         updated: "2024-01-01T01:00:00Z",
       });
@@ -701,8 +710,8 @@ describe("SiteContentManager", () => {
         id: "site-content-production:landing:hero",
         entityType: "site-content-production",
         content: "Original production hero content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: "2024-01-01T00:00:00Z",
         updated: "2024-01-01T00:30:00Z",
       });
@@ -711,8 +720,8 @@ describe("SiteContentManager", () => {
     it("should regenerate preview content with 'new' mode", async () => {
       const result = await manager.regenerateSync(
         {
-          page: "landing",
-          section: "hero",
+          pageId: "landing",
+          sectionId: "hero",
           environment: "preview",
           mode: "new",
           dryRun: false,
@@ -723,8 +732,8 @@ describe("SiteContentManager", () => {
       expect(result.success).toBe(true);
       expect(result.regenerated).toHaveLength(1);
       expect(result.regenerated[0]).toEqual({
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         entityId: "site-content-preview:landing:hero",
         mode: "new",
       });
@@ -742,8 +751,8 @@ describe("SiteContentManager", () => {
     it("should regenerate content with 'with-current' mode", async () => {
       const result = await manager.regenerateSync(
         {
-          page: "landing",
-          section: "hero",
+          pageId: "landing",
+          sectionId: "hero",
           environment: "preview",
           mode: "with-current",
           dryRun: false,
@@ -765,8 +774,8 @@ describe("SiteContentManager", () => {
     it("should skip content with 'leave' mode", async () => {
       const result = await manager.regenerateSync(
         {
-          page: "landing",
-          section: "hero",
+          pageId: "landing",
+          sectionId: "hero",
           environment: "preview",
           mode: "leave",
           dryRun: false,
@@ -795,16 +804,16 @@ describe("SiteContentManager", () => {
         id: "site-content-production:landing:hero",
         entityType: "site-content-production",
         content: "Original production content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: "2024-01-01T00:00:00Z",
         updated: "2024-01-01T01:00:00Z",
       });
 
       const result = await manager.regenerateSync(
         {
-          page: "landing",
-          section: "hero",
+          pageId: "landing",
+          sectionId: "hero",
           environment: "preview",
           mode: "new",
           dryRun: false,
@@ -830,8 +839,8 @@ describe("SiteContentManager", () => {
     it("should handle dry run", async () => {
       const result = await manager.regenerateSync(
         {
-          page: "landing",
-          section: "hero",
+          pageId: "landing",
+          sectionId: "hero",
           environment: "preview",
           mode: "new",
           dryRun: true,
@@ -864,8 +873,8 @@ describe("SiteContentManager", () => {
 
       const result = await manager.regenerateSync(
         {
-          page: "landing",
-          section: "hero",
+          pageId: "landing",
+          sectionId: "hero",
           environment: "preview",
           mode: "new",
           dryRun: false,
@@ -885,15 +894,15 @@ describe("SiteContentManager", () => {
         id: "site-content-preview:landing:features",
         entityType: "site-content-preview",
         content: "Original features content",
-        page: "landing",
-        section: "features",
+        pageId: "landing",
+        sectionId: "features",
         created: "2024-01-01T00:00:00Z",
         updated: "2024-01-01T01:00:00Z",
       });
 
       const result = await manager.regenerateSync(
         {
-          page: "landing",
+          pageId: "landing",
           environment: "preview",
           mode: "new",
           dryRun: false,
@@ -903,8 +912,8 @@ describe("SiteContentManager", () => {
 
       expect(result.success).toBe(true);
       expect(result.regenerated).toHaveLength(2);
-      expect(result.regenerated.some((r) => r.section === "hero")).toBe(true);
-      expect(result.regenerated.some((r) => r.section === "features")).toBe(
+      expect(result.regenerated.some((r) => r.sectionId === "hero")).toBe(true);
+      expect(result.regenerated.some((r) => r.sectionId === "features")).toBe(
         true,
       );
     });
@@ -915,13 +924,16 @@ describe("SiteContentManager", () => {
         id: "site-content-preview:about:team",
         entityType: "site-content-preview",
         content: "Original about team content",
-        page: "about",
-        section: "team",
+        pageId: "about",
+        sectionId: "team",
         created: "2024-01-01T00:00:00Z",
         updated: "2024-01-01T01:00:00Z",
       });
 
-      const result = await manager.regenerateAllSync("new", mockRegenerateCallback);
+      const result = await manager.regenerateAllSync(
+        "new",
+        mockRegenerateCallback,
+      );
 
       expect(result.success).toBe(true);
       expect(result.totalPages).toBeGreaterThan(0);

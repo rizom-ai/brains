@@ -17,8 +17,8 @@ describe("SiteContentPreviewAdapter", () => {
         id: "test-id",
         entityType: "site-content-preview",
         content: "# Test Content\n\nThis is test content.",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
@@ -26,8 +26,8 @@ describe("SiteContentPreviewAdapter", () => {
       const markdown = adapter.toMarkdown(entity);
 
       expect(markdown).toContain("---");
-      expect(markdown).toContain("page: landing");
-      expect(markdown).toContain("section: hero");
+      expect(markdown).toContain("pageId: landing");
+      expect(markdown).toContain("sectionId: hero");
       expect(markdown).toContain("# Test Content");
       expect(markdown).toContain("This is test content.");
     });
@@ -37,8 +37,8 @@ describe("SiteContentPreviewAdapter", () => {
         id: "test-id",
         entityType: "site-content-preview",
         content: "# Preview Content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
@@ -46,8 +46,8 @@ describe("SiteContentPreviewAdapter", () => {
       const markdown = adapter.toMarkdown(entity);
 
       expect(markdown).toContain("---");
-      expect(markdown).toContain("page: landing");
-      expect(markdown).toContain("section: hero");
+      expect(markdown).toContain("pageId: landing");
+      expect(markdown).toContain("sectionId: hero");
       expect(markdown).toContain("# Preview Content");
       expect(markdown).not.toContain("environment");
       expect(markdown).not.toContain("promotedAt");
@@ -58,16 +58,16 @@ describe("SiteContentPreviewAdapter", () => {
         id: "test-id",
         entityType: "site-content-preview",
         content: "---\nexistingKey: value\n---\n# Existing Content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
       const markdown = adapter.toMarkdown(entity);
 
-      expect(markdown).toContain("page: landing");
-      expect(markdown).toContain("section: hero");
+      expect(markdown).toContain("pageId: landing");
+      expect(markdown).toContain("sectionId: hero");
       expect(markdown).toContain("# Existing Content");
       // Should not contain the original frontmatter key
       expect(markdown).not.toContain("existingKey: value");
@@ -77,8 +77,8 @@ describe("SiteContentPreviewAdapter", () => {
   describe("fromMarkdown", () => {
     it("should parse frontmatter correctly", () => {
       const markdown = `---
-page: landing
-section: hero
+pageId: landing
+sectionId: hero
 ---
 # Test Content
 
@@ -86,15 +86,15 @@ This is test content.`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.page).toBe("landing");
-      expect(result.section).toBe("hero");
+      expect(result.pageId).toBe("landing");
+      expect(result.sectionId).toBe("hero");
       expect(result.content).toBe(markdown);
     });
 
     it("should ignore deprecated fields in frontmatter", () => {
       const markdown = `---
-page: landing
-section: hero
+pageId: landing
+sectionId: hero
 environment: production
 promotedAt: '2024-01-01T00:00:00Z'
 promotedBy: admin
@@ -104,8 +104,8 @@ promotedFrom: preview
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.page).toBe("landing");
-      expect(result.section).toBe("hero");
+      expect(result.pageId).toBe("landing");
+      expect(result.sectionId).toBe("hero");
       expect(result.content).toBe(markdown);
       // Legacy fields should be ignored
       expect(result).not.toHaveProperty("environment");
@@ -114,29 +114,29 @@ promotedFrom: preview
 
     it("should parse minimal frontmatter", () => {
       const markdown = `---
-page: landing
-section: hero
+pageId: landing
+sectionId: hero
 ---
 # Test Content`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.page).toBe("landing");
-      expect(result.section).toBe("hero");
+      expect(result.pageId).toBe("landing");
+      expect(result.sectionId).toBe("hero");
       expect(result.content).toBe(markdown);
     });
 
     it("should handle missing optional fields", () => {
       const markdown = `---
-page: landing
-section: hero
+pageId: landing
+sectionId: hero
 ---
 # Simple Content`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.page).toBe("landing");
-      expect(result.section).toBe("hero");
+      expect(result.pageId).toBe("landing");
+      expect(result.sectionId).toBe("hero");
       expect(result.content).toBe(markdown);
     });
   });
@@ -147,8 +147,8 @@ section: hero
         id: "test-id",
         entityType: "site-content-preview",
         content: "# Test Content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
@@ -156,8 +156,8 @@ section: hero
       const metadata = adapter.extractMetadata(entity);
 
       expect(metadata).toEqual({
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
       });
     });
 
@@ -166,8 +166,8 @@ section: hero
         id: "test-id",
         entityType: "site-content-preview",
         content: "# Test Content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
@@ -175,8 +175,8 @@ section: hero
       const metadata = adapter.extractMetadata(entity);
 
       expect(metadata).toEqual({
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
       });
       expect(metadata).not.toHaveProperty("environment");
       expect(metadata).not.toHaveProperty("promotedAt");
@@ -189,16 +189,16 @@ section: hero
         id: "test-id",
         entityType: "site-content-preview",
         content: "# Test Content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
       const frontmatter = adapter.generateFrontMatter(entity);
 
-      expect(frontmatter).toContain("page: landing");
-      expect(frontmatter).toContain("section: hero");
+      expect(frontmatter).toContain("pageId: landing");
+      expect(frontmatter).toContain("sectionId: hero");
       expect(frontmatter).not.toContain("environment");
     });
 
@@ -207,16 +207,16 @@ section: hero
         id: "test-id",
         entityType: "site-content-preview",
         content: "# Test Content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
       const frontmatter = adapter.generateFrontMatter(entity);
 
-      expect(frontmatter).toContain("page: landing");
-      expect(frontmatter).toContain("section: hero");
+      expect(frontmatter).toContain("pageId: landing");
+      expect(frontmatter).toContain("sectionId: hero");
       expect(frontmatter).not.toContain("environment");
       expect(frontmatter).not.toContain("promotedAt");
       expect(frontmatter).not.toContain("promotedBy");
@@ -234,8 +234,8 @@ describe("SiteContentProductionAdapter", () => {
         id: "test-id",
         entityType: "site-content-production",
         content: "# Production Content\\n\\nThis is production content.",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
@@ -243,8 +243,8 @@ describe("SiteContentProductionAdapter", () => {
       const markdown = adapter.toMarkdown(entity);
 
       expect(markdown).toContain("---");
-      expect(markdown).toContain("page: landing");
-      expect(markdown).toContain("section: hero");
+      expect(markdown).toContain("pageId: landing");
+      expect(markdown).toContain("sectionId: hero");
       expect(markdown).toContain("# Production Content");
       expect(markdown).toContain("This is production content.");
     });
@@ -253,8 +253,8 @@ describe("SiteContentProductionAdapter", () => {
   describe("fromMarkdown", () => {
     it("should parse frontmatter correctly", () => {
       const markdown = `---
-page: landing
-section: hero
+pageId: landing
+sectionId: hero
 ---
 # Production Content
 
@@ -262,8 +262,8 @@ This is production content.`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.page).toBe("landing");
-      expect(result.section).toBe("hero");
+      expect(result.pageId).toBe("landing");
+      expect(result.sectionId).toBe("hero");
       expect(result.content).toBe(markdown);
     });
   });
@@ -274,8 +274,8 @@ This is production content.`;
         id: "test-id",
         entityType: "site-content-production",
         content: "# Production Content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
@@ -283,8 +283,8 @@ This is production content.`;
       const metadata = adapter.extractMetadata(entity);
 
       expect(metadata).toEqual({
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
       });
     });
   });
@@ -295,16 +295,16 @@ This is production content.`;
         id: "test-id",
         entityType: "site-content-production",
         content: "# Production Content",
-        page: "landing",
-        section: "hero",
+        pageId: "landing",
+        sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
       const frontmatter = adapter.generateFrontMatter(entity);
 
-      expect(frontmatter).toContain("page: landing");
-      expect(frontmatter).toContain("section: hero");
+      expect(frontmatter).toContain("pageId: landing");
+      expect(frontmatter).toContain("sectionId: hero");
     });
   });
 });

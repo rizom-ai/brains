@@ -17,18 +17,18 @@ export function generateSiteContentId(
  */
 export function parseSiteContentId(id: string): {
   entityType: SiteContentEntityType;
-  page: string;
-  section: string;
+  pageId: string;
+  sectionId: string;
 } | null {
   const parts = id.split(":");
   if (parts.length !== 3) {
     return null;
   }
 
-  const [entityType, page, section] = parts;
+  const [entityType, pageId, sectionId] = parts;
 
   // Validate entity type and that all parts exist
-  if (!entityType || !page || !section) {
+  if (!entityType || !pageId || !sectionId) {
     return null;
   }
 
@@ -41,8 +41,8 @@ export function parseSiteContentId(id: string): {
 
   return {
     entityType: entityType as SiteContentEntityType,
-    page,
-    section,
+    pageId,
+    sectionId,
   };
 }
 
@@ -57,8 +57,8 @@ export function previewToProductionId(previewId: string): string | null {
 
   return generateSiteContentId(
     "site-content-production",
-    parsed.page,
-    parsed.section,
+    parsed.pageId,
+    parsed.sectionId,
   );
 }
 
@@ -73,7 +73,7 @@ export function productionToPreviewId(productionId: string): string | null {
 
   return generateSiteContentId(
     "site-content-preview",
-    parsed.page,
-    parsed.section,
+    parsed.pageId,
+    parsed.sectionId,
   );
 }

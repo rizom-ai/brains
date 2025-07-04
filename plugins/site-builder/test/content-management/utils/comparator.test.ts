@@ -13,8 +13,8 @@ describe("Content Comparator", () => {
     id: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
     content: "# Hero Section\n\nWelcome to our site!",
-    page: "landing",
-    section: "hero",
+    pageId: "landing",
+    sectionId: "hero",
     created: "2024-01-01T00:00:00Z",
     updated: "2024-01-01T01:00:00Z",
   };
@@ -23,8 +23,8 @@ describe("Content Comparator", () => {
     id: "site-content-production:landing:hero",
     entityType: "site-content-production",
     content: "# Hero Section\n\nWelcome to our site!",
-    page: "landing",
-    section: "hero",
+    pageId: "landing",
+    sectionId: "hero",
     created: "2024-01-01T00:00:00Z",
     updated: "2024-01-01T00:30:00Z",
   };
@@ -38,8 +38,8 @@ describe("Content Comparator", () => {
         productionEntity,
       );
 
-      expect(result.page).toBe("landing");
-      expect(result.section).toBe("hero");
+      expect(result.pageId).toBe("landing");
+      expect(result.sectionId).toBe("hero");
       expect(result.preview).toBe(previewEntity);
       expect(result.production).toBe(productionEntity);
       expect(result.differences).toHaveLength(1); // Only updated timestamp differs
@@ -130,8 +130,8 @@ describe("Content Comparator", () => {
         productionEntity,
       );
 
-      expect(result.differences.some((d) => d.field === "page")).toBe(false);
-      expect(result.differences.some((d) => d.field === "section")).toBe(false);
+      expect(result.differences.some((d) => d.field === "pageId")).toBe(false);
+      expect(result.differences.some((d) => d.field === "sectionId")).toBe(false);
     });
   });
 
@@ -154,7 +154,7 @@ describe("Content Comparator", () => {
     it("should return false for different page", () => {
       const differentProduction: SiteContentProduction = {
         ...productionEntity,
-        page: "about",
+        pageId: "about",
       };
 
       const result = isContentEquivalent(previewEntity, differentProduction);
@@ -164,7 +164,7 @@ describe("Content Comparator", () => {
     it("should return false for different section", () => {
       const differentProduction: SiteContentProduction = {
         ...productionEntity,
-        section: "features",
+        sectionId: "features",
       };
 
       const result = isContentEquivalent(previewEntity, differentProduction);

@@ -156,7 +156,7 @@ describe("SiteBuilderPlugin", () => {
               contentEntity: {
                 entityType: "site-content-preview",
                 template: "test",
-                query: { page: "home", section: "test" },
+                query: { pageId: "home", sectionId: "test" },
               },
             },
           ],
