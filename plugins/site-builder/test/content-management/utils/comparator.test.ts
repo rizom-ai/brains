@@ -131,7 +131,9 @@ describe("Content Comparator", () => {
       );
 
       expect(result.differences.some((d) => d.field === "pageId")).toBe(false);
-      expect(result.differences.some((d) => d.field === "sectionId")).toBe(false);
+      expect(result.differences.some((d) => d.field === "sectionId")).toBe(
+        false,
+      );
     });
   });
 

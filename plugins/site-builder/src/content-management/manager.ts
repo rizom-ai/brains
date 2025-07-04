@@ -358,7 +358,7 @@ export class SiteContentManager {
 
             // Always generate preview content with deterministic ID
             const targetEntityType = "site-content-preview" as const;
-            const pageId = route.path.replace(/^\//, ''); // Remove leading slash
+            const pageId = route.path.replace(/^\//, ""); // Remove leading slash
             const sectionId = section.id;
 
             const deterministic_id = this.generateId(
@@ -766,7 +766,7 @@ export class SiteContentManager {
 
             // Always generate preview content with deterministic ID
             const targetEntityType = "site-content-preview" as const;
-            const pageId = route.path.replace(/^\//, ''); // Remove leading slash
+            const pageId = route.path.replace(/^\//, ""); // Remove leading slash
             const sectionId = section.id;
 
             const deterministic_id = this.generateId(
@@ -944,7 +944,9 @@ export class SiteContentManager {
             result.skipped.push(...pageResult.skipped);
           } else {
             result.errors.push(
-              ...(pageResult.errors ?? [`Failed to regenerate pageId: ${pageId}`]),
+              ...(pageResult.errors ?? [
+                `Failed to regenerate pageId: ${pageId}`,
+              ]),
             );
           }
         } catch (error) {

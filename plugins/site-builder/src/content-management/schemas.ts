@@ -21,7 +21,10 @@ export const ContentEnvironmentSchema = z.enum(["preview"]);
  */
 export const PromoteOptionsSchema = z.object({
   pageId: z.string().optional().describe("Optional: specific page filter"),
-  sectionId: z.string().optional().describe("Optional: specific section filter"),
+  sectionId: z
+    .string()
+    .optional()
+    .describe("Optional: specific section filter"),
   sections: z
     .array(z.string())
     .optional()
@@ -60,7 +63,10 @@ export const PromoteResultSchema = z.object({
  */
 export const RollbackOptionsSchema = z.object({
   pageId: z.string().optional().describe("Optional: specific page filter"),
-  sectionId: z.string().optional().describe("Optional: specific section filter"),
+  sectionId: z
+    .string()
+    .optional()
+    .describe("Optional: specific section filter"),
   sections: z
     .array(z.string())
     .optional()
@@ -140,7 +146,10 @@ export const RegenerateResultSchema = z.object({
  */
 export const GenerateOptionsSchema = z.object({
   pageId: z.string().optional().describe("Optional: specific page filter"),
-  sectionId: z.string().optional().describe("Optional: specific section filter"),
+  sectionId: z
+    .string()
+    .optional()
+    .describe("Optional: specific section filter"),
   dryRun: z
     .boolean()
     .default(false)
