@@ -75,3 +75,27 @@ export interface JobStatusSummary {
     error?: string;
   }>;
 }
+
+/**
+ * Options for content derivation operations
+ */
+export interface DeriveOptions {
+  /** Whether to delete the source entity after successful derivation */
+  deleteSource?: boolean;
+}
+
+/**
+ * Result of a content derivation operation
+ */
+export interface DeriveResult {
+  /** ID of the source entity */
+  sourceEntityId: string;
+  /** Type of the source entity */
+  sourceEntityType: SiteContentEntityType;
+  /** ID of the newly created derived entity */
+  derivedEntityId: string;
+  /** Type of the derived entity */
+  derivedEntityType: SiteContentEntityType;
+  /** Whether the source entity was deleted */
+  sourceDeleted: boolean;
+}

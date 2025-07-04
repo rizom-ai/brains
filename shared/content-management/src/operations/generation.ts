@@ -318,6 +318,105 @@ export class GenerationOperations {
   }
 
   /**
+   * Regenerate content asynchronously (queues jobs and returns immediately)
+   */
+  async regenerateAsync(
+    options: RegenerateOptions,
+    targetEntityType: SiteContentEntityType,
+    templateResolver: (pageId: string, sectionId: string) => string,
+    generateId: (
+      type: SiteContentEntityType,
+      pageId: string,
+      sectionId: string,
+    ) => string,
+    siteConfig?: Record<string, unknown>,
+  ): Promise<{
+    jobs: ContentGenerationJob[];
+    totalEntities: number;
+    queuedEntities: number;
+  }> {
+    this.logger.info("Starting async content regeneration", { options });
+
+    // Get entities to regenerate
+    const entities = await this.getEntitiesForRegeneration(
+      options,
+      targetEntityType,
+      generateId,
+    );
+
+    const jobs: ContentGenerationJob[] = [];
+    let queuedEntities = 0;
+
+    for (const entity of entities) {
+      // Skip if dry run
+      if (options.dryRun) {
+        this.logger.debug("Dry run: would regenerate", {
+          entityId: entity.id,
+          pageId: entity.pageId,
+          sectionId: entity.sectionId,
+        });
+        continue;
+      }
+
+      // Create regeneration job
+      const job: ContentGenerationJob = {
+        jobId: `regenerate-${entity.id}-${Date.now()}`,
+        entityId: entity.id,
+        entityType: targetEntityType,
+        operation: "regenerate",
+        pageId: entity.pageId,
+        sectionId: entity.sectionId,
+        templateName: templateResolver(entity.pageId, entity.sectionId),
+        route: {
+          path: `/${entity.pageId}`,
+          id: entity.pageId,
+          description: `${entity.pageId} page`,
+          title: entity.pageId,
+          sections: [{ id: entity.sectionId, template: templateResolver(entity.pageId, entity.sectionId) }],
+        },
+        sectionDefinition: { 
+          id: entity.sectionId, 
+          template: templateResolver(entity.pageId, entity.sectionId) 
+        },
+        mode: options.mode,
+      };
+
+      jobs.push(job);
+      queuedEntities++;
+
+      // Queue the regeneration job
+      await this.pluginContext.enqueueContentGeneration({
+        templateName: job.templateName,
+        context: {
+          data: {
+            ...job,
+            currentContent: entity.content,
+            siteConfig,
+          },
+        },
+      });
+
+      this.logger.debug("Queued content regeneration job", {
+        jobId: job.jobId,
+        pageId: entity.pageId,
+        sectionId: entity.sectionId,
+      });
+    }
+
+    this.logger.info("Async content regeneration queued", {
+      totalEntities: entities.length,
+      queuedEntities,
+      jobCount: jobs.length,
+    });
+
+    return {
+      jobs,
+      totalEntities: entities.length,
+      queuedEntities,
+    };
+  }
+
+  /**
    * Generate content with progress tracking (private helper)
    */
   private async generateWithProgress(

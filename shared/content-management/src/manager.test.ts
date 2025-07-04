@@ -12,6 +12,7 @@ const mockUpdateEntityAsync = mock();
 const mockListEntities = mock();
 const mockEnqueueContentGeneration = mock();
 const mockGetJobStatus = mock();
+const mockDeriveEntity = mock();
 
 const mockEntityService = {
   getEntity: mockGetEntity,
@@ -26,7 +27,7 @@ const mockEntityService = {
   listAsyncJobs: mock(),
   cancelAsyncJob: mock(),
   search: mock(),
-  deriveEntity: mock(),
+  deriveEntity: mockDeriveEntity,
   getEntityTypes: mock(),
   serializeEntity: mock(),
   deserializeEntity: mock(),
@@ -99,13 +100,17 @@ beforeEach((): void => {
   mockListEntities.mockClear();
   mockEnqueueContentGeneration.mockClear();
   mockGetJobStatus.mockClear();
+  mockDeriveEntity.mockClear();
 
   ContentManager.resetInstance();
 
   // Create content manager - all dependencies are now required
-  contentManager = ContentManager.createFresh(mockEntityService, mockLogger, mockPluginContext);
+  contentManager = ContentManager.createFresh(
+    mockEntityService,
+    mockLogger,
+    mockPluginContext,
+  );
 });
-
 
 // ========================================
 // Content Generation Tests
@@ -209,6 +214,44 @@ test("regenerateSync should delegate to GenerationOperations", async () => {
   expect(mockUpdateEntityAsync).toHaveBeenCalled();
 });
 
+test("regenerateAsync should delegate to GenerationOperations", async () => {
+  const existingEntities = [
+    {
+      id: "site-content-preview:landing:hero",
+      entityType: "site-content-preview",
+      pageId: "landing",
+      sectionId: "hero",
+      content: "Old content",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    },
+  ];
+
+  const templateResolver = mock().mockReturnValue("hero-template");
+
+  mockListEntities.mockResolvedValue(existingEntities);
+  mockEnqueueContentGeneration.mockResolvedValue("job-id");
+
+  const result = await contentManager.regenerateAsync(
+    {
+      pageId: "landing",
+      environment: "preview",
+      mode: "new",
+      dryRun: false,
+    },
+    "site-content-preview",
+    templateResolver,
+    mockGenerateId,
+  );
+
+  expect(result.totalEntities).toBe(1);
+  expect(result.queuedEntities).toBe(1);
+  expect(result.jobs).toHaveLength(1);
+  expect(result.jobs[0]?.operation).toBe("regenerate");
+  expect(mockListEntities).toHaveBeenCalled();
+  expect(mockEnqueueContentGeneration).toHaveBeenCalled();
+});
+
 // ========================================
 // Content Query Tests
 // ========================================
@@ -253,7 +296,10 @@ test("getPageContent should delegate to EntityQueryService", async () => {
 
   mockListEntities.mockResolvedValue(mockEntities);
 
-  const result = await contentManager.getPageContent("site-content-preview", "landing");
+  const result = await contentManager.getPageContent(
+    "site-content-preview",
+    "landing",
+  );
 
   expect(result).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-preview", {
@@ -330,7 +376,9 @@ test("getPreviewEntities should work with and without pageId", async () => {
   mockListEntities.mockResolvedValue(mockEntities);
 
   // With pageId
-  const resultWithPage = await contentManager.getPreviewEntities({ pageId: "landing" });
+  const resultWithPage = await contentManager.getPreviewEntities({
+    pageId: "landing",
+  });
   expect(resultWithPage).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-preview", {
     filter: { metadata: { pageId: "landing" } },
@@ -360,7 +408,9 @@ test("getProductionEntities should work with and without pageId", async () => {
   mockListEntities.mockResolvedValue(mockEntities);
 
   // With pageId
-  const resultWithPage = await contentManager.getProductionEntities({ pageId: "landing" });
+  const resultWithPage = await contentManager.getProductionEntities({
+    pageId: "landing",
+  });
   expect(resultWithPage).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-production", {
     filter: { metadata: { pageId: "landing" } },
@@ -392,9 +442,18 @@ test("exists convenience method should work with default and custom generateId",
 
   // With custom generateId
   const customGenerateId = mock().mockReturnValue("custom:landing:hero");
-  const result2 = await contentManager.exists("landing", "hero", "production", customGenerateId);
+  const result2 = await contentManager.exists(
+    "landing",
+    "hero",
+    "production",
+    customGenerateId,
+  );
   expect(result2).toBe(true);
-  expect(customGenerateId).toHaveBeenCalledWith("site-content-production", "landing", "hero");
+  expect(customGenerateId).toHaveBeenCalledWith(
+    "site-content-production",
+    "landing",
+    "hero",
+  );
 });
 
 // ========================================
@@ -427,7 +486,11 @@ test("waitForContentJobs should delegate to JobTrackingService", async () => {
     result: "Generated content",
   });
 
-  const result = await contentManager.waitForContentJobs(mockJobs, undefined, 5000);
+  const result = await contentManager.waitForContentJobs(
+    mockJobs,
+    undefined,
+    5000,
+  );
 
   expect(result).toHaveLength(1);
   expect(result[0]?.success).toBe(true);
@@ -465,4 +528,79 @@ test("getContentJobStatuses should delegate to JobTrackingService", async () => 
   expect(result.jobs).toHaveLength(1);
   expect(result.jobs[0]?.status).toBe("completed");
   expect(mockGetJobStatus).toHaveBeenCalledWith("job-1");
+});
+
+// ========================================
+// Content Derivation Tests
+// ========================================
+
+test("deriveSync should delegate to DerivationOperations", async () => {
+  const mockDerivedEntity = {
+    id: "site-content-production:landing:hero",
+    entityType: "site-content-production",
+    pageId: "landing",
+    sectionId: "hero",
+    content: "Derived content",
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
+  };
+
+  mockDeriveEntity.mockResolvedValue(mockDerivedEntity);
+
+  const result = await contentManager.deriveSync(
+    "site-content-preview:landing:hero",
+    "site-content-preview",
+    "site-content-production",
+    { deleteSource: false },
+  );
+
+  expect(result).toEqual({
+    sourceEntityId: "site-content-preview:landing:hero",
+    sourceEntityType: "site-content-preview",
+    derivedEntityId: "site-content-production:landing:hero",
+    derivedEntityType: "site-content-production",
+    sourceDeleted: false,
+  });
+
+  expect(mockDeriveEntity).toHaveBeenCalledWith(
+    "site-content-preview:landing:hero",
+    "site-content-preview",
+    "site-content-production",
+    { deleteSource: false },
+  );
+});
+
+test("deriveAsync should delegate to DerivationOperations", async () => {
+  const mockDerivedEntity = {
+    id: "site-content-production:landing:hero",
+    entityType: "site-content-production",
+    pageId: "landing",
+    sectionId: "hero",
+    content: "Derived content",
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
+  };
+
+  mockDeriveEntity.mockResolvedValue(mockDerivedEntity);
+
+  const result = await contentManager.deriveAsync(
+    "site-content-preview:landing:hero",
+    "site-content-preview",
+    "site-content-production",
+    { deleteSource: true },
+  );
+
+  expect(result.jobId).toMatch(
+    /^derive-site-content-preview:landing:hero-site-content-production-\d+$/,
+  );
+
+  // Give the background job a moment to execute
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  expect(mockDeriveEntity).toHaveBeenCalledWith(
+    "site-content-preview:landing:hero",
+    "site-content-preview",
+    "site-content-production",
+    { deleteSource: true },
+  );
 });

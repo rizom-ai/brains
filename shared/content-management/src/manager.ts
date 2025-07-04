@@ -4,6 +4,7 @@ import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import { GenerationOperations } from "./operations/generation";
+import { DerivationOperations } from "./operations/derivation";
 import { EntityQueryService } from "./services/entity-query";
 import { JobTrackingService } from "./services/job-tracking";
 import type {
@@ -14,6 +15,8 @@ import type {
   RegenerateOptions,
   RegenerateResult,
   ContentGenerationJob,
+  DeriveOptions,
+  DeriveResult,
 } from "./types";
 import type {
   ProgressCallback,
@@ -22,18 +25,20 @@ import type {
 
 /**
  * ContentManager facade that provides a unified interface for content management operations
- * 
+ *
  * This facade integrates:
  * - GenerationOperations: Content generation and regeneration
+ * - DerivationOperations: Content transformation between entity types
  * - EntityQueryService: Content querying and retrieval
  * - JobTrackingService: Async job monitoring and progress tracking
- * 
+ *
  * All dependencies (EntityService, Logger, PluginContext) are required for full functionality
  */
 export class ContentManager {
   private static instance: ContentManager | null = null;
 
   private readonly generationOps: GenerationOperations;
+  private readonly derivationOps: DerivationOperations;
   private readonly entityQuery: EntityQueryService;
   private readonly jobTracking: JobTrackingService;
 
@@ -77,6 +82,10 @@ export class ContentManager {
       entityService,
       logger,
       pluginContext,
+    );
+    this.derivationOps = DerivationOperations.createFresh(
+      entityService,
+      logger,
     );
 
     // Async services
@@ -168,6 +177,33 @@ export class ContentManager {
       regenerateCallback,
       targetEntityType,
       generateId,
+    );
+  }
+
+  /**
+   * Regenerate content asynchronously by queuing jobs
+   */
+  async regenerateAsync(
+    options: RegenerateOptions,
+    targetEntityType: SiteContentEntityType,
+    templateResolver: (pageId: string, sectionId: string) => string,
+    generateId: (
+      type: SiteContentEntityType,
+      pageId: string,
+      sectionId: string,
+    ) => string,
+    siteConfig?: Record<string, unknown>,
+  ): Promise<{
+    jobs: ContentGenerationJob[];
+    totalEntities: number;
+    queuedEntities: number;
+  }> {
+    return this.generationOps.regenerateAsync(
+      options,
+      targetEntityType,
+      templateResolver,
+      generateId,
+      siteConfig,
     );
   }
 
@@ -362,4 +398,41 @@ export class ContentManager {
     );
   }
 
+  // ========================================
+  // Content Derivation Operations
+  // ========================================
+
+  /**
+   * Derive content from one entity type to another synchronously
+   */
+  async deriveSync(
+    sourceEntityId: string,
+    sourceEntityType: SiteContentEntityType,
+    targetEntityType: SiteContentEntityType,
+    options: DeriveOptions = {},
+  ): Promise<DeriveResult> {
+    return this.derivationOps.deriveSync(
+      sourceEntityId,
+      sourceEntityType,
+      targetEntityType,
+      options,
+    );
+  }
+
+  /**
+   * Derive content asynchronously (queues jobs and returns immediately)
+   */
+  async deriveAsync(
+    sourceEntityId: string,
+    sourceEntityType: SiteContentEntityType,
+    targetEntityType: SiteContentEntityType,
+    options: DeriveOptions = {},
+  ): Promise<{ jobId: string }> {
+    return this.derivationOps.deriveAsync(
+      sourceEntityId,
+      sourceEntityType,
+      targetEntityType,
+      options,
+    );
+  }
 }

@@ -418,3 +418,97 @@ test("regenerateSync should regenerate all sections for page", async () => {
   });
   expect(regenerateCallback).toHaveBeenCalledTimes(2);
 });
+
+test("regenerateAsync should queue regeneration jobs", async () => {
+  const existingEntities = [
+    {
+      id: "site-content-preview:landing:hero",
+      entityType: "site-content-preview",
+      pageId: "landing",
+      sectionId: "hero",
+      content: "Old hero content",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    },
+    {
+      id: "site-content-preview:landing:features",
+      entityType: "site-content-preview",
+      pageId: "landing",
+      sectionId: "features",
+      content: "Old features content",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    },
+  ];
+
+  const templateResolver = mock()
+    .mockReturnValueOnce("hero-template")
+    .mockReturnValueOnce("features-template");
+
+  mockListEntities.mockResolvedValue(existingEntities);
+  mockEnqueueContentGeneration.mockResolvedValue("job-id");
+
+  const result = await operations.regenerateAsync(
+    { pageId: "landing", environment: "preview", mode: "new", dryRun: false },
+    "site-content-preview",
+    templateResolver,
+    mockGenerateId,
+  );
+
+  expect(result.totalEntities).toBe(2);
+  expect(result.queuedEntities).toBe(2);
+  expect(result.jobs).toHaveLength(2);
+
+  expect(result.jobs[0]).toMatchObject({
+    jobId: expect.stringMatching(/^regenerate-site-content-preview:landing:hero-\d+$/),
+    entityId: "site-content-preview:landing:hero",
+    entityType: "site-content-preview",
+    operation: "regenerate",
+    pageId: "landing",
+    sectionId: "hero",
+    templateName: "hero-template",
+    mode: "new",
+  });
+
+  expect(mockEnqueueContentGeneration).toHaveBeenCalledTimes(2);
+  expect(mockEnqueueContentGeneration).toHaveBeenCalledWith({
+    templateName: "hero-template",
+    context: {
+      data: {
+        ...result.jobs[0],
+        currentContent: "Old hero content",
+        siteConfig: undefined,
+      },
+    },
+  });
+});
+
+test("regenerateAsync should handle dry run", async () => {
+  const existingEntities = [
+    {
+      id: "site-content-preview:landing:hero",
+      entityType: "site-content-preview",
+      pageId: "landing",
+      sectionId: "hero",
+      content: "Old content",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    },
+  ];
+
+  const templateResolver = mock().mockReturnValue("hero-template");
+
+  mockListEntities.mockResolvedValue(existingEntities);
+
+  const result = await operations.regenerateAsync(
+    { pageId: "landing", environment: "preview", mode: "new", dryRun: true },
+    "site-content-preview",
+    templateResolver,
+    mockGenerateId,
+  );
+
+  expect(result.totalEntities).toBe(1);
+  expect(result.queuedEntities).toBe(0);
+  expect(result.jobs).toHaveLength(0);
+  expect(mockEnqueueContentGeneration).not.toHaveBeenCalled();
+});
