@@ -171,6 +171,7 @@ export const GenerateResultSchema = z.object({
   ),
   errors: z.array(z.string()).optional(),
   message: z.string().optional(),
+  jobId: z.string().optional().describe("Job ID for async operations"),
 });
 
 /**

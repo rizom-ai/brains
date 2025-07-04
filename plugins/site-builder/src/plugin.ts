@@ -163,9 +163,12 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
     );
 
     // Initialize the site content manager with dependency injection
+    // TODO: Inconsistent PluginContext access - passing both entityService separately and context
+    // Should either pass only context and access entityService through it, or extract needed methods
     this.siteContentManager = new SiteContentManager(
       context.entityService,
       this.logger.child("SiteContentManager"),
+      context,
     );
 
     // Site builder is now encapsulated within the plugin

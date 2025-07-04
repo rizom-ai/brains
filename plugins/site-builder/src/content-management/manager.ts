@@ -5,6 +5,7 @@ import type {
   RouteDefinition,
   SectionDefinition,
 } from "@brains/view-registry";
+import type { PluginContext } from "@brains/plugin-utils";
 import type { SiteContentPreview, SiteContentProduction } from "../types";
 import type {
   SiteContent,
@@ -17,6 +18,8 @@ import type {
   GenerateOptions,
   GenerateResult,
   ContentComparison,
+  SiteContentJob,
+  JobStatusSummary,
 } from "./types";
 import { isPreviewContent, isProductionContent } from "./types";
 import {
@@ -34,6 +37,7 @@ export class SiteContentManager {
   constructor(
     private readonly entityService: EntityService,
     private readonly logger?: Logger,
+    private readonly pluginContext?: PluginContext,
   ) {}
 
   /**
@@ -1128,5 +1132,511 @@ export class SiteContentManager {
     );
 
     return entities as SiteContentProduction[];
+  }
+
+  /**
+   * Generate content asynchronously using job queue
+   * Phase 1: Enqueue jobs for content generation
+   */
+  async generateAsync(
+    options: GenerateOptions,
+    routes: RouteDefinition[],
+    templateResolver: (section: SectionDefinition) => string,
+    siteConfig?: Record<string, unknown>,
+  ): Promise<{
+    jobs: SiteContentJob[];
+    totalSections: number;
+    queuedSections: number;
+  }> {
+    this.logger?.info("Starting async generate operation", { options });
+
+    if (!this.pluginContext) {
+      throw new Error("PluginContext required for async content generation");
+    }
+
+    const jobs: SiteContentJob[] = [];
+    let totalSections = 0;
+    let queuedSections = 0;
+
+    try {
+      // Filter routes by page if specified
+      const { page } = options;
+      const filteredRoutes = page
+        ? routes.filter((route) => route.path.includes(page))
+        : routes;
+
+      // Count total sections to generate
+      for (const route of filteredRoutes) {
+        const sectionsToCheck = options.section
+          ? route.sections.filter((section) => section.id === options.section)
+          : route.sections;
+
+        totalSections += sectionsToCheck.filter(
+          (section) =>
+            "contentEntity" in section &&
+            section.contentEntity &&
+            !("content" in section && section.content),
+        ).length;
+      }
+
+      if (totalSections === 0) {
+        this.logger?.info(
+          "Async generate operation completed - no content needed",
+        );
+        return { jobs: [], totalSections: 0, queuedSections: 0 };
+      }
+
+      for (const route of filteredRoutes) {
+        const sectionsToProcess = options.section
+          ? route.sections.filter((section) => section.id === options.section)
+          : route.sections;
+
+        const sectionsNeedingContent = sectionsToProcess.filter(
+          (section) =>
+            "contentEntity" in section &&
+            section.contentEntity &&
+            !("content" in section && section.content),
+        );
+
+        for (const section of sectionsNeedingContent) {
+          if (!section.contentEntity) continue;
+
+          // Check if content already exists - always check preview content for generation
+          const existingEntities = await this.entityService.listEntities(
+            "site-content-preview",
+            section.contentEntity.query
+              ? { filter: { metadata: section.contentEntity.query } }
+              : undefined,
+          );
+
+          if (existingEntities.length > 0) {
+            this.logger?.debug("Skipping section - content already exists", {
+              page: route.path,
+              section: section.id,
+            });
+            continue;
+          }
+
+          // Skip if dry run
+          if (options.dryRun) {
+            this.logger?.debug("Dry run: would generate content", {
+              page: route.path,
+              section: section.id,
+            });
+            queuedSections++;
+            continue;
+          }
+
+          try {
+            // Get template name and entity metadata
+            const templateName = templateResolver(section);
+            const page = section.contentEntity.query?.["page"] as string;
+            const sectionId = section.contentEntity.query?.[
+              "section"
+            ] as string;
+
+            // Enqueue content generation job
+            const jobId = await this.pluginContext.enqueueContentGeneration({
+              templateName,
+              context: {
+                prompt: `Generate content for ${route.path}/${section.id}`,
+                data: {
+                  route,
+                  section,
+                  siteConfig,
+                },
+              },
+            });
+
+            // Track the job
+            const job: SiteContentJob = {
+              jobId,
+              route,
+              section,
+              templateName,
+              targetEntityType: "site-content-preview",
+              page,
+              sectionId,
+            };
+
+            jobs.push(job);
+            queuedSections++;
+
+            this.logger?.debug("Enqueued content generation job", {
+              jobId,
+              page: route.path,
+              section: section.id,
+              templateName,
+            });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : "Unknown error";
+            this.logger?.error("Failed to enqueue content generation job", {
+              page: route.path,
+              section: section.id,
+              error: errorMessage,
+            });
+            // Continue with other sections even if one fails
+          }
+        }
+      }
+
+      this.logger?.info("Async generate operation completed", {
+        totalSections,
+        queuedSections,
+        jobIds: jobs.length,
+      });
+
+      return { jobs, totalSections, queuedSections };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      this.logger?.error("Async generate operation failed", {
+        error: errorMessage,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Wait for async content generation jobs to complete and create entities
+   * Phase 2: Wait for job completion and create entities
+   */
+  async waitAndCreateEntities(
+    jobs: SiteContentJob[],
+    timeoutMs: number = 60000,
+    progressCallback?: (
+      completed: number,
+      total: number,
+      message: string,
+    ) => void,
+  ): Promise<GenerateResult> {
+    this.logger?.info("Waiting for async content generation", {
+      jobCount: jobs.length,
+      timeoutMs,
+    });
+
+    if (!this.pluginContext) {
+      throw new Error("PluginContext required for async content generation");
+    }
+
+    const result: GenerateResult = {
+      success: true,
+      sectionsGenerated: 0,
+      totalSections: jobs.length,
+      generated: [],
+      skipped: [],
+      errors: [],
+    };
+
+    try {
+      let completedJobs = 0;
+
+      // Report initial progress
+      progressCallback?.(0, jobs.length, "Starting content generation jobs...");
+
+      // Wait for all jobs to complete with progress tracking
+      const jobResults = await Promise.allSettled(
+        jobs.map(async (job) => {
+          try {
+            // Report progress for this job
+            progressCallback?.(
+              completedJobs,
+              jobs.length,
+              `Generating content for ${job.page}/${job.sectionId}...`,
+            );
+
+            if (!this.pluginContext) {
+              throw new Error("PluginContext required for async content generation");
+            }
+            
+            const content = await this.pluginContext.waitForJob(
+              job.jobId,
+              timeoutMs,
+            );
+
+            completedJobs++;
+            progressCallback?.(
+              completedJobs,
+              jobs.length,
+              `Completed ${completedJobs}/${jobs.length} content generation jobs`,
+            );
+
+            return { job, content, success: true };
+          } catch (error) {
+            completedJobs++;
+            const errorMessage =
+              error instanceof Error ? error.message : "Unknown error";
+            this.logger?.error("Job failed", {
+              jobId: job.jobId,
+              error: errorMessage,
+            });
+
+            progressCallback?.(
+              completedJobs,
+              jobs.length,
+              `Failed ${completedJobs}/${jobs.length} - ${errorMessage}`,
+            );
+
+            return { job, error: errorMessage, success: false };
+          }
+        }),
+      );
+
+      // Process results and create entities
+      for (const jobResult of jobResults) {
+        if (jobResult.status === "rejected") {
+          result.errors?.push(`Job processing failed: ${jobResult.reason}`);
+          continue;
+        }
+
+        const { job, content, success, error } = jobResult.value;
+
+        if (!success) {
+          result.errors?.push(`Job ${job.jobId} failed: ${error}`);
+          continue;
+        }
+
+        // Create entity with the generated content
+        try {
+          const deterministic_id = this.generateId(
+            job.targetEntityType,
+            job.page,
+            job.sectionId,
+          );
+
+          // Create the entity with deterministic ID (always preview for async generation)
+          if (!content) {
+            throw new Error(`Content generation failed for job ${job.jobId}`);
+          }
+
+          const siteContentEntity: Omit<
+            SiteContentPreview,
+            "created" | "updated"
+          > = {
+            id: deterministic_id,
+            entityType: "site-content-preview",
+            content: content,
+            page: job.page,
+            section: job.sectionId,
+          };
+
+          await this.entityService.createEntityAsync(siteContentEntity);
+
+          result.sectionsGenerated++;
+          result.generated.push({
+            page: job.route.path,
+            section: job.section.id,
+            entityId: deterministic_id,
+            entityType: job.targetEntityType,
+          });
+
+          this.logger?.debug("Created entity from async content generation", {
+            jobId: job.jobId,
+            entityId: deterministic_id,
+            page: job.page,
+            section: job.sectionId,
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          result.errors?.push(
+            `Failed to create entity for job ${job.jobId}: ${errorMessage}`,
+          );
+        }
+      }
+
+      result.success = (result.errors?.length ?? 0) === 0;
+
+      // Final progress update
+      progressCallback?.(
+        jobs.length,
+        jobs.length,
+        `Content generation complete: ${result.sectionsGenerated} sections generated`,
+      );
+
+      this.logger?.info("Async generation wait completed", {
+        generated: result.sectionsGenerated,
+        errors: result.errors?.length ?? 0,
+      });
+
+      return result;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      this.logger?.error("Async generation wait failed", {
+        error: errorMessage,
+      });
+
+      return {
+        success: false,
+        sectionsGenerated: 0,
+        totalSections: jobs.length,
+        generated: [],
+        skipped: [],
+        errors: [errorMessage],
+      };
+    }
+  }
+
+  /**
+   * Convenience method combining both phases with progress tracking
+   */
+  async generateAsyncComplete(
+    options: GenerateOptions,
+    routes: RouteDefinition[],
+    templateResolver: (section: SectionDefinition) => string,
+    siteConfig?: Record<string, unknown>,
+    timeoutMs: number = 60000,
+    progressCallback?: (
+      completed: number,
+      total: number,
+      message: string,
+    ) => void,
+  ): Promise<GenerateResult> {
+    this.logger?.info("Starting complete async generation", { options });
+
+    try {
+      // Phase 1: Enqueue jobs
+      progressCallback?.(0, 1, "Analyzing sections and queueing jobs...");
+
+      const { jobs, totalSections, queuedSections } = await this.generateAsync(
+        options,
+        routes,
+        templateResolver,
+        siteConfig,
+      );
+
+      if (jobs.length === 0) {
+        const message =
+          totalSections === 0
+            ? "No sections need content generation"
+            : "All sections already have content";
+
+        progressCallback?.(1, 1, message);
+
+        return {
+          success: true,
+          sectionsGenerated: 0,
+          totalSections,
+          generated: [],
+          skipped: [],
+          errors: [],
+          message,
+        };
+      }
+
+      this.logger?.info("Queued jobs for async generation", {
+        totalSections,
+        queuedSections,
+        jobCount: jobs.length,
+      });
+
+      // Phase 2: Wait for completion and create entities
+      return await this.waitAndCreateEntities(
+        jobs,
+        timeoutMs,
+        progressCallback,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      this.logger?.error("Complete async generation failed", {
+        error: errorMessage,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get status summary for multiple jobs
+   */
+  async getJobStatuses(jobs: SiteContentJob[]): Promise<JobStatusSummary> {
+    if (!this.pluginContext) {
+      throw new Error("PluginContext required for job status checking");
+    }
+
+    let pending = 0;
+    let processing = 0;
+    let completed = 0;
+    let failed = 0;
+    const jobStatuses: JobStatusSummary["jobs"] = [];
+
+    try {
+      const statusPromises = jobs.map(async (job) => {
+        try {
+          if (!this.pluginContext) {
+            throw new Error("PluginContext is required for job status checking");
+          }
+          const status = await this.pluginContext.getJobStatus(job.jobId);
+          return { job, status };
+        } catch (error) {
+          return { job, status: null, error };
+        }
+      });
+
+      const results = await Promise.allSettled(statusPromises);
+
+      for (const result of results) {
+        if (result.status === "rejected") {
+          failed++;
+          jobStatuses.push({
+            jobId: "unknown",
+            sectionId: "unknown",
+            status: "failed",
+            error: "Failed to get job status",
+          });
+          continue;
+        }
+
+        const { job, status } = result.value;
+
+        if (!status) {
+          failed++;
+          jobStatuses.push({
+            jobId: job.jobId,
+            sectionId: job.sectionId,
+            status: "failed",
+            error: "Job not found",
+          });
+          continue;
+        }
+
+        // Count statuses
+        switch (status.status) {
+          case "pending":
+            pending++;
+            break;
+          case "processing":
+            processing++;
+            break;
+          case "completed":
+            completed++;
+            break;
+          case "failed":
+            failed++;
+            break;
+        }
+
+        jobStatuses.push({
+          jobId: job.jobId,
+          sectionId: job.sectionId,
+          status: status.status,
+          ...(status.error && { error: status.error }),
+        });
+      }
+
+      return {
+        total: jobs.length,
+        pending,
+        processing,
+        completed,
+        failed,
+        jobs: jobStatuses,
+      };
+    } catch (error) {
+      this.logger?.error("Failed to get job statuses", { error });
+      throw error;
+    }
   }
 }

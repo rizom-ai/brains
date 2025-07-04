@@ -1,4 +1,9 @@
-import type { Template, GenerationContext, Logger, SearchResult } from "@brains/types";
+import type {
+  Template,
+  GenerationContext,
+  Logger,
+  SearchResult,
+} from "@brains/types";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { IAIService as AIService } from "@brains/ai-service";
@@ -20,7 +25,6 @@ export interface ContentGeneratorDependencies {
   entityService: EntityService;
   aiService: AIService;
 }
-
 
 /**
  * Content Generator

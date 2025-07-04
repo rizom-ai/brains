@@ -344,8 +344,12 @@ export class PluginContextFactory {
             pluginId,
           );
 
-          const jobQueueService = this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (!jobQueueService || typeof jobQueueService.enqueue !== "function") {
+          const jobQueueService =
+            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (
+            !jobQueueService ||
+            typeof jobQueueService.enqueue !== "function"
+          ) {
             throw new Error("JobQueueService not available");
           }
 
@@ -373,14 +377,20 @@ export class PluginContextFactory {
       },
 
       // Check status of content generation job
-      getJobStatus: async (jobId: string): Promise<{
+      getJobStatus: async (
+        jobId: string,
+      ): Promise<{
         status: "pending" | "processing" | "completed" | "failed";
         result?: string;
         error?: string;
       } | null> => {
         try {
-          const jobQueueService = this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (!jobQueueService || typeof jobQueueService.getStatus !== "function") {
+          const jobQueueService =
+            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (
+            !jobQueueService ||
+            typeof jobQueueService.getStatus !== "function"
+          ) {
             throw new Error("JobQueueService not available");
           }
 
@@ -413,10 +423,17 @@ export class PluginContextFactory {
       },
 
       // Wait for job completion (with timeout)
-      waitForJob: async (jobId: string, timeoutMs: number = 30000): Promise<string> => {
+      waitForJob: async (
+        jobId: string,
+        timeoutMs: number = 30000,
+      ): Promise<string> => {
         try {
-          const jobQueueService = this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (!jobQueueService || typeof jobQueueService.getStatus !== "function") {
+          const jobQueueService =
+            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (
+            !jobQueueService ||
+            typeof jobQueueService.getStatus !== "function"
+          ) {
             throw new Error("JobQueueService not available");
           }
 
@@ -425,7 +442,7 @@ export class PluginContextFactory {
 
           while (Date.now() - startTime < timeoutMs) {
             const job = await jobQueueService.getStatus(jobId);
-            
+
             if (!job) {
               throw new Error(`Job ${jobId} not found`);
             }
@@ -441,12 +458,15 @@ export class PluginContextFactory {
             }
 
             // Wait before next poll
-            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
           }
 
           throw new Error(`Job ${jobId} timed out after ${timeoutMs}ms`);
         } catch (error) {
-          this.logger.error("Failed to wait for job completion", { jobId, error });
+          this.logger.error("Failed to wait for job completion", {
+            jobId,
+            error,
+          });
           throw error;
         }
       },

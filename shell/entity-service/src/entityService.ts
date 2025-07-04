@@ -339,17 +339,7 @@ export class EntityService implements IEntityService {
       validatedEntity.id,
     );
 
-    // First update the entity in database without embedding
-    await this.db
-      .update(entities)
-      .set({
-        content: markdown,
-        metadata,
-        updated: new Date(validatedEntity.updated).getTime(),
-        contentWeight,
-        // Note: embedding will be updated by the background worker
-      })
-      .where(eq(entities.id, validatedEntity.id));
+    // Note: Entity will be updated with embedding by the background worker
 
     // Queue embedding generation for the updated entity
     const jobId = await this.jobQueueService.enqueue(

@@ -250,7 +250,10 @@ export class Shell {
     const contentGenerationJobHandler = ContentGenerationJobHandler.createFresh(
       this.contentGenerator,
     );
-    this.jobQueueService.registerHandler("content-generation", contentGenerationJobHandler);
+    this.jobQueueService.registerHandler(
+      "content-generation",
+      contentGenerationJobHandler,
+    );
 
     // Register core components in the service registry
     this.serviceRegistry.register("shell", () => this);

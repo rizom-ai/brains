@@ -13,12 +13,14 @@ Plugin Tool → SiteContentManager.generate(callback) → callback(route, sectio
 ```
 
 **Key Components:**
+
 1. **Plugin Tools** (`generate`, `generate-all`, `regenerate-content`, `regenerate-all`)
 2. **SiteContentManager.generate()** - Orchestrates content generation
 3. **Callback Function** - Calls `context.generateWithRoute()` synchronously
 4. **Entity Creation** - Immediate entity creation with deterministic IDs
 
 **Current Callback Pattern:**
+
 ```typescript
 const generateCallback = async (
   route: RouteDefinition,
@@ -28,13 +30,14 @@ const generateCallback = async (
     route,
     section,
     progressInfo,
-    siteConfig
+    siteConfig,
   );
   return { content: formattedContent };
 };
 ```
 
 **Problems with Current Approach:**
+
 - Blocks UI during content generation
 - No background processing capability
 - Large operations (`generate-all`) are not interruptible
@@ -51,6 +54,7 @@ Plugin Tool → SiteContentManager.generateAsync() → enqueue jobs → wait for
 ```
 
 **Key Components:**
+
 1. **Job Tracking System** - Maps jobs to route/section metadata
 2. **Async Content Generation** - Background job processing
 3. **Result Processing** - Creates entities from job results
@@ -59,6 +63,7 @@ Plugin Tool → SiteContentManager.generateAsync() → enqueue jobs → wait for
 ### Job-Result Processing Approach (Option B)
 
 **Benefits:**
+
 - Clean separation: jobs only generate content, manager handles entities
 - Proper error handling per section
 - Progress tracking capability
@@ -71,6 +76,7 @@ Plugin Tool → SiteContentManager.generateAsync() → enqueue jobs → wait for
 ### Step 1: Data Structure Extensions
 
 #### Job Tracking Interface
+
 ```typescript
 interface SiteContentJob {
   jobId: string;
@@ -84,7 +90,9 @@ interface SiteContentJob {
 ```
 
 #### Enhanced ContentGenerationRequest
+
 The existing `ContentGenerationRequest` already supports the needed data structure:
+
 ```typescript
 {
   templateName: string; // section.template (already prefixed)
@@ -103,6 +111,7 @@ The existing `ContentGenerationRequest` already supports the needed data structu
 ### Step 2: SiteContentManager Async Methods
 
 #### Primary Async Methods
+
 ```typescript
 class SiteContentManager {
   // Phase 1: Enqueue jobs for content generation
@@ -110,7 +119,7 @@ class SiteContentManager {
     options: GenerateOptions,
     routes: RouteDefinition[],
     templateResolver: (section: SectionDefinition) => string,
-    siteConfig?: Record<string, unknown>
+    siteConfig?: Record<string, unknown>,
   ): Promise<{
     jobs: SiteContentJob[];
     totalSections: number;
@@ -120,7 +129,7 @@ class SiteContentManager {
   // Phase 2: Wait for job completion and create entities
   async waitAndCreateEntities(
     jobs: SiteContentJob[],
-    timeoutMs?: number
+    timeoutMs?: number,
   ): Promise<GenerateResult>;
 
   // Convenience method combining both phases
@@ -129,12 +138,13 @@ class SiteContentManager {
     routes: RouteDefinition[],
     templateResolver: (section: SectionDefinition) => string,
     siteConfig?: Record<string, unknown>,
-    timeoutMs?: number
+    timeoutMs?: number,
   ): Promise<GenerateResult>;
 }
 ```
 
 #### Job Status Monitoring
+
 ```typescript
 async getJobStatuses(jobIds: string[]): Promise<JobStatusSummary>;
 async waitForJobCompletion(jobs: SiteContentJob[], timeoutMs: number): Promise<JobResult[]>;
@@ -143,12 +153,14 @@ async waitForJobCompletion(jobs: SiteContentJob[], timeoutMs: number): Promise<J
 ### Step 3: Template Resolution Strategy
 
 **Current:** `context.generateWithRoute(route, section, progress, siteConfig)`
-**New:** 
+**New:**
+
 - Use `section.template` (already prefixed by plugin) as `templateName`
 - Pass `{ route, section, siteConfig }` as `context.data`
 - ContentGenerator will format content same as current `generateWithRoute`
 
 **Template Resolution Function:**
+
 ```typescript
 const templateResolver = (section: SectionDefinition): string => {
   if (!section.template) {
@@ -161,30 +173,32 @@ const templateResolver = (section: SectionDefinition): string => {
 ### Step 4: Plugin Tool Updates
 
 #### Generate Tool (Async Version)
+
 ```typescript
 async handler(config) {
   // Option 1: Fully async with progress tracking
   const { jobs } = await this.siteContentManager.generateAsync(
     config, routes, templateResolver, siteConfig
   );
-  
+
   // Return job IDs for progress tracking
   return {
     success: true,
     message: `Queued ${jobs.length} content generation jobs`,
     jobs: jobs.map(j => ({ jobId: j.jobId, section: j.sectionId }))
   };
-  
+
   // Option 2: Complete async operation
   const result = await this.siteContentManager.generateAsyncComplete(
     config, routes, templateResolver, siteConfig, 60000
   );
-  
+
   return result;
 }
 ```
 
 #### Progress Tracking Tool
+
 ```typescript
 // New tool for monitoring async operations
 this.createTool(
@@ -194,18 +208,20 @@ this.createTool(
   async ({ jobIds }) => {
     const statuses = await this.siteContentManager.getJobStatuses(jobIds);
     return statuses;
-  }
+  },
 );
 ```
 
 ### Step 5: Error Handling Strategy
 
 #### Job-Level Error Handling
+
 - Individual job failures don't stop entire operation
 - Failed jobs are logged with specific error messages
 - Retry mechanism through job queue (configurable retries)
 
 #### Operation-Level Error Handling
+
 - Partial success results include both successful and failed sections
 - Clear error reporting per section
 - Rollback capability for failed operations
@@ -213,6 +229,7 @@ this.createTool(
 ## API Design
 
 ### New SiteContentManager Constructor
+
 ```typescript
 constructor(
   private readonly entityService: EntityService,
@@ -222,6 +239,7 @@ constructor(
 ```
 
 ### Job Status Response Format
+
 ```typescript
 interface JobStatusSummary {
   total: number;
@@ -239,6 +257,7 @@ interface JobStatusSummary {
 ```
 
 ### Enhanced GenerateResult
+
 ```typescript
 interface GenerateResult {
   success: boolean;
@@ -264,41 +283,43 @@ interface GenerateResult {
 ## Data Flow Diagrams
 
 ### Current Synchronous Flow
+
 ```
-[Plugin Tool] 
+[Plugin Tool]
     ↓ (calls generate)
-[SiteContentManager.generate] 
+[SiteContentManager.generate]
     ↓ (for each section)
-[Callback Function] 
+[Callback Function]
     ↓ (calls generateWithRoute)
-[ContentGenerator.generateWithRoute] 
+[ContentGenerator.generateWithRoute]
     ↓ (synchronous)
-[AI Service] 
+[AI Service]
     ↓ (returns content)
-[Entity Creation] 
+[Entity Creation]
     ↓
 [Database Storage]
 ```
 
 ### Proposed Asynchronous Flow
+
 ```
-[Plugin Tool] 
+[Plugin Tool]
     ↓ (calls generateAsync)
-[SiteContentManager.generateAsync] 
+[SiteContentManager.generateAsync]
     ↓ (for each section)
-[Job Queue] 
+[Job Queue]
     ↓ (enqueue content-generation jobs)
-[JobQueueWorker] 
+[JobQueueWorker]
     ↓ (background processing)
-[ContentGenerationJobHandler] 
+[ContentGenerationJobHandler]
     ↓ (calls ContentGenerator)
-[AI Service] 
+[AI Service]
     ↓ (returns content)
-[Job Result Storage] 
+[Job Result Storage]
     ↓
-[SiteContentManager.waitAndCreateEntities] 
+[SiteContentManager.waitAndCreateEntities]
     ↓ (processes results)
-[Entity Creation] 
+[Entity Creation]
     ↓
 [Database Storage]
 ```
@@ -306,26 +327,85 @@ interface GenerateResult {
 ## Migration Strategy
 
 ### Phase 1: Infrastructure (Completed)
+
 - ✅ Generic job queue system
 - ✅ ContentGenerationJobHandler
 - ✅ PluginContext async methods
 
 ### Phase 2: SiteContentManager Async Methods
+
 - Add async content generation methods
 - Implement job tracking and result processing
 - Add error handling and progress monitoring
 
 ### Phase 3: Plugin Tool Migration
+
 - Update existing tools to support async operations
 - Add progress tracking capabilities
 - Maintain backward compatibility options
 
-### Phase 4: User Experience Enhancements
-- Add job status monitoring tools
-- Implement operation cancellation
-- Add progress indicators for long-running operations
+### Phase 4: User Experience Enhancements (COMPLETED)
+
+- ✅ Add job status monitoring tools
+- ✅ Implement operation cancellation
+- ✅ Add progress indicators for long-running operations
+
+### Phase 5: Long-Running Operations Async Migration
+
+#### Problem Statement
+
+Current methods like `promote`, `generate`, `regenerate`, and `generateAll` use async entity operations but execute them sequentially with `await`, making the overall operations blocking. For large datasets (100+ entities), this blocks the interface and prevents progress monitoring.
+
+#### Solution: True Async Pattern
+
+**Step 1: Rename Existing Methods (Add Sync Suffix)**
+
+```typescript
+// Current blocking methods become explicit sync variants
+promote() → promoteSync()
+generate() → generateSync()
+regenerate() → regenerateSync()
+generateAll() → generateAllSync()
+```
+
+**Step 2: Create True Async Variants (Following Established Pattern)**
+
+```typescript
+// New async methods follow generateAsync pattern
+promoteAsync() → Promise<{jobs: EntityJob[], ...}>
+regenerateAsync() → Promise<{jobs: EntityJob[], ...}>
+generateAllAsync() → Promise<{jobs: EntityJob[], ...}>
+// generateAsync() already exists and follows correct pattern
+```
+
+**Step 3: Add Progress Tracking Infrastructure**
+
+```typescript
+// Entity job management utilities
+waitForEntityJobs(jobs: EntityJob[], progressCallback) → Promise<Result>
+getEntityJobStatuses(jobs: EntityJob[]) → Promise<JobStatusSummary>
+
+// Complete variants for convenience
+promoteAsyncComplete() → Promise<Result>
+regenerateAsyncComplete() → Promise<Result>
+generateAllAsyncComplete() → Promise<Result>
+```
+
+**Step 4: Update Plugin Tools**
+
+- Update all plugin tools to use new async methods with `Async` suffix
+- Provide both sync and async variants for different use cases
+- Add progress reporting to long-running operations
+
+#### Benefits
+
+- **Non-blocking**: Operations return immediately with job tracking
+- **Progress Monitoring**: Real-time status updates during processing
+- **Scalability**: Handle large datasets without blocking UI
+- **Consistency**: All async methods follow established `Async` suffix pattern
 
 ### Backward Compatibility
+
 - Keep existing synchronous methods
 - Add feature flags for async vs sync operation
 - Gradual migration of tools to async versions
@@ -333,24 +413,28 @@ interface GenerateResult {
 ## Testing Strategy
 
 ### Unit Tests
+
 - SiteContentManager async methods
 - Job tracking and result processing
 - Error handling for partial failures
 - Template resolution logic
 
 ### Integration Tests
+
 - End-to-end async content generation
 - Plugin tool async operations
 - Job queue integration
 - Entity creation with async results
 
 ### Performance Tests
+
 - Bulk content generation benchmarks
 - Memory usage during large operations
 - Job queue throughput testing
 - Progress tracking accuracy
 
 ### User Experience Tests
+
 - Progress tracking during operations
 - Error reporting clarity
 - Operation cancellation functionality
@@ -359,18 +443,21 @@ interface GenerateResult {
 ## Performance Considerations
 
 ### Expected Improvements
+
 - **Non-blocking Operations**: UI remains responsive during content generation
 - **Parallel Processing**: Multiple content generation jobs can run concurrently
 - **Resource Optimization**: Better memory usage for large operations
 - **Progress Visibility**: Real-time status updates for users
 
 ### Trade-offs
+
 - **Complexity**: More complex error handling and state management
 - **Latency**: Small overhead for job queue operations
 - **Storage**: Additional job tracking data
 - **Debugging**: More complex debugging with async operations
 
 ### Benchmarks
+
 - Target: 10x faster for bulk operations (parallel processing)
 - Memory: 50% reduction for large content generation runs
 - Responsiveness: UI remains responsive during all operations
@@ -378,6 +465,7 @@ interface GenerateResult {
 ## Risk Assessment
 
 ### High Risk Items
+
 1. **Job-to-Entity Mapping**: Complex tracking of async results
    - **Mitigation**: Deterministic job tracking with comprehensive tests
 
@@ -388,6 +476,7 @@ interface GenerateResult {
    - **Mitigation**: Robust error handling and clear user feedback
 
 ### Medium Risk Items
+
 1. **Performance Regression**: Async overhead for small operations
    - **Mitigation**: Keep sync methods for small operations
 
@@ -395,27 +484,39 @@ interface GenerateResult {
    - **Mitigation**: Proper locking and atomic operations
 
 ### Low Risk Items
+
 1. **User Experience**: Learning curve for new async operations
    - **Mitigation**: Clear documentation and gradual rollout
 
 ## Implementation Timeline
 
-### Week 1: Core Infrastructure
-- Implement SiteContentManager async methods
-- Add job tracking system
-- Create basic error handling
+### Week 1: Core Infrastructure (COMPLETED)
 
-### Week 2: Plugin Integration  
-- Update plugin tools for async operations
-- Add progress tracking
-- Implement status monitoring
+- ✅ Implement SiteContentManager async methods
+- ✅ Add job tracking system
+- ✅ Create basic error handling
 
-### Week 3: Testing & Polish
+### Week 2: Plugin Integration (COMPLETED)
+
+- ✅ Update plugin tools for async operations
+- ✅ Add progress tracking
+- ✅ Implement status monitoring
+
+### Week 3: Long-Running Operations (Phase 5)
+
+- Rename existing blocking methods to use Sync suffix
+- Create true async variants with Async suffix
+- Add progress tracking infrastructure for entity jobs
+- Update plugin tools to use new async methods
+
+### Week 4: Testing & Polish
+
 - Comprehensive testing suite
 - Performance optimization
 - Documentation and examples
 
 ### Week 4: Rollout & Monitoring
+
 - Gradual feature rollout
 - Monitor performance metrics
 - User feedback integration

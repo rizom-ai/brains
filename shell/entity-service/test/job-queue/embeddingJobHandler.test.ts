@@ -11,7 +11,10 @@ const createMockEmbeddingService = (): IEmbeddingService => ({
 });
 
 const createMockDb = (): DrizzleDB => {
-  const mockValues = mock(() => Promise.resolve());
+  const mockOnConflictDoUpdate = mock(() => Promise.resolve());
+  const mockValues = mock(() => ({
+    onConflictDoUpdate: mockOnConflictDoUpdate,
+  }));
   const mockInsert = mock(() => ({ values: mockValues }));
 
   return {
@@ -222,7 +225,10 @@ describe("EmbeddingJobHandler", () => {
         generateEmbeddings: mock(() => Promise.resolve([mockEmbedding])),
       };
 
-      const mockValues = mock(() => Promise.reject(insertError));
+      const mockOnConflictDoUpdate = mock(() => Promise.reject(insertError));
+      const mockValues = mock(() => ({
+        onConflictDoUpdate: mockOnConflictDoUpdate,
+      }));
       mockDb = {
         insert: mock(() => ({ values: mockValues })),
       } as unknown as DrizzleDB;

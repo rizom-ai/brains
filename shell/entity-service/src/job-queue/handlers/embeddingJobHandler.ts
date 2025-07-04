@@ -74,7 +74,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
 
   /**
    * Process an embedding job
-   * Generates embedding for entity content and updates the entity
+   * Generates embedding for entity content and upserts the complete entity
    */
   public async process(
     data: EntityWithoutEmbedding,
@@ -93,17 +93,29 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         data.content,
       );
 
-      // Insert the complete entity with embedding into the main entities table
-      await this.db.insert(entities).values({
-        id: data.id,
-        entityType: data.entityType,
-        content: data.content,
-        metadata: data.metadata,
-        created: data.created,
-        updated: data.updated,
-        contentWeight: data.contentWeight,
-        embedding,
-      });
+      // Upsert the complete entity with embedding (handles both create and update)
+      await this.db
+        .insert(entities)
+        .values({
+          id: data.id,
+          entityType: data.entityType,
+          content: data.content,
+          metadata: data.metadata,
+          created: data.created,
+          updated: data.updated,
+          contentWeight: data.contentWeight,
+          embedding,
+        })
+        .onConflictDoUpdate({
+          target: entities.id,
+          set: {
+            content: data.content,
+            metadata: data.metadata,
+            updated: data.updated,
+            contentWeight: data.contentWeight,
+            embedding,
+          },
+        });
 
       this.logger.debug("Embedding job completed successfully", {
         jobId,
