@@ -41,9 +41,9 @@ export class SiteContentManager {
   ) {}
 
   /**
-   * Promote preview content to production
+   * Promote preview content to production (synchronous - blocks until complete)
    */
-  async promote(options: PromoteOptions): Promise<PromoteResult> {
+  async promoteSync(options: PromoteOptions): Promise<PromoteResult> {
     this.logger?.info("Starting promote operation", { options });
 
     const result: PromoteResult = {
@@ -167,18 +167,18 @@ export class SiteContentManager {
   }
 
   /**
-   * Promote all preview content to production
+   * Promote all preview content to production (synchronous - blocks until complete)
    */
-  async promoteAll(): Promise<PromoteResult> {
+  async promoteAllSync(): Promise<PromoteResult> {
     this.logger?.info("Starting promote all operation");
 
-    return this.promote({ dryRun: false });
+    return this.promoteSync({ dryRun: false });
   }
 
   /**
-   * Rollback production content (delete production entities)
+   * Rollback production content (delete production entities) (synchronous - blocks until complete)
    */
-  async rollback(options: RollbackOptions): Promise<RollbackResult> {
+  async rollbackSync(options: RollbackOptions): Promise<RollbackResult> {
     this.logger?.info("Starting rollback operation", { options });
 
     const result: RollbackResult = {
@@ -250,9 +250,9 @@ export class SiteContentManager {
   }
 
   /**
-   * Generate content for sections that don't have it
+   * Generate content for sections that don't have it (synchronous - blocks until complete)
    */
-  async generate(
+  async generateSync(
     options: GenerateOptions,
     routes: RouteDefinition[],
     generateCallback: (
@@ -437,9 +437,9 @@ export class SiteContentManager {
   }
 
   /**
-   * Regenerate content using AI with different modes
+   * Regenerate content using AI with different modes (synchronous - blocks until complete)
    */
-  async regenerate(
+  async regenerateSync(
     options: RegenerateOptions,
     regenerateCallback: (
       entityType: SiteContentEntityType,
@@ -621,9 +621,9 @@ export class SiteContentManager {
   }
 
   /**
-   * Generate content for all sections across all pages
+   * Generate content for all sections across all pages (synchronous - blocks until complete)
    */
-  async generateAll(
+  async generateAllSync(
     routes: RouteDefinition[],
     generateCallback: (
       route: RouteDefinition,
@@ -853,9 +853,9 @@ export class SiteContentManager {
   }
 
   /**
-   * Regenerate all existing content using AI with the specified mode
+   * Regenerate all existing content using AI with the specified mode (synchronous - blocks until complete)
    */
-  async regenerateAll(
+  async regenerateAllSync(
     mode: "leave" | "new" | "with-current",
     regenerateCallback: (
       entityType: SiteContentEntityType,
@@ -932,7 +932,7 @@ export class SiteContentManager {
       // Regenerate each page (preview content only - production comes from promotion)
       for (const page of allPages) {
         try {
-          const pageResult = await this.regenerate(
+          const pageResult = await this.regenerateSync(
             {
               page,
               environment: "preview",
@@ -1347,9 +1347,11 @@ export class SiteContentManager {
             );
 
             if (!this.pluginContext) {
-              throw new Error("PluginContext required for async content generation");
+              throw new Error(
+                "PluginContext required for async content generation",
+              );
             }
-            
+
             const content = await this.pluginContext.waitForJob(
               job.jobId,
               timeoutMs,
@@ -1566,7 +1568,9 @@ export class SiteContentManager {
       const statusPromises = jobs.map(async (job) => {
         try {
           if (!this.pluginContext) {
-            throw new Error("PluginContext is required for job status checking");
+            throw new Error(
+              "PluginContext is required for job status checking",
+            );
           }
           const status = await this.pluginContext.getJobStatus(job.jobId);
           return { job, status };

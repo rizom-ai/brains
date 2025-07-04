@@ -271,7 +271,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           };
 
           // Use the content manager with progress reporting
-          const result = await this.siteContentManager.generate(
+          const result = await this.siteContentManager.generateSync(
             options,
             routes,
             generateCallback,
@@ -445,7 +445,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Parse and validate input
           const options = PromoteOptionsSchema.parse(input);
-          const result = await this.siteContentManager.promote(options);
+          const result = await this.siteContentManager.promoteSync(options);
           return result;
         },
         "anchor", // Internal tool - modifies entities
@@ -462,7 +462,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             throw new Error("Site content manager not initialized");
           }
 
-          const result = await this.siteContentManager.promoteAll();
+          const result = await this.siteContentManager.promoteAllSync();
           return result;
         },
         "anchor", // Internal tool - modifies entities
@@ -498,7 +498,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Parse and validate input
           const options = RollbackOptionsSchema.parse(input);
-          const result = await this.siteContentManager.rollback(options);
+          const result = await this.siteContentManager.rollbackSync(options);
           return result;
         },
         "anchor", // Internal tool - modifies entities
@@ -604,7 +604,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             };
           };
 
-          const result = await this.siteContentManager.regenerate(
+          const result = await this.siteContentManager.regenerateSync(
             options,
             regenerateCallback,
           );
@@ -705,7 +705,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             };
           };
 
-          const result = await this.siteContentManager.generateAll(
+          const result = await this.siteContentManager.generateAllSync(
             routes,
             generateCallback,
           );
@@ -812,7 +812,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             };
           };
 
-          const result = await this.siteContentManager.regenerateAll(
+          const result = await this.siteContentManager.regenerateAllSync(
             mode,
             regenerateCallback,
             { dryRun: dryRun ?? false },

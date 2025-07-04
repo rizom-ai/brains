@@ -173,7 +173,7 @@ describe("SiteContentManager", () => {
     it("should promote preview content to new production entity", async () => {
       entityService.setEntity(previewEntity.id, previewEntity);
 
-      const result = await manager.promote({ dryRun: false });
+      const result = await manager.promoteSync({ dryRun: false });
 
       expect(result.success).toBe(true);
       expect(result.promoted).toHaveLength(1);
@@ -199,7 +199,7 @@ describe("SiteContentManager", () => {
       entityService.setEntity(previewEntity.id, previewEntity);
       entityService.setEntity(productionEntity.id, productionEntity);
 
-      const result = await manager.promote({ dryRun: false });
+      const result = await manager.promoteSync({ dryRun: false });
 
       expect(result.success).toBe(true);
       expect(result.promoted).toHaveLength(1);
@@ -224,7 +224,7 @@ describe("SiteContentManager", () => {
       entityService.setEntity(previewEntity.id, previewEntity);
       entityService.setEntity(aboutPreview.id, aboutPreview);
 
-      const result = await manager.promote({ page: "landing", dryRun: false });
+      const result = await manager.promoteSync({ page: "landing", dryRun: false });
 
       expect(result.success).toBe(true);
       expect(result.promoted).toHaveLength(1);
@@ -241,7 +241,7 @@ describe("SiteContentManager", () => {
       entityService.setEntity(previewEntity.id, previewEntity);
       entityService.setEntity(featuresPreview.id, featuresPreview);
 
-      const result = await manager.promote({ section: "hero", dryRun: false });
+      const result = await manager.promoteSync({ section: "hero", dryRun: false });
 
       expect(result.success).toBe(true);
       expect(result.promoted).toHaveLength(1);
@@ -251,7 +251,7 @@ describe("SiteContentManager", () => {
     it("should handle dry run", async () => {
       entityService.setEntity(previewEntity.id, previewEntity);
 
-      const result = await manager.promote({ dryRun: true });
+      const result = await manager.promoteSync({ dryRun: true });
 
       expect(result.success).toBe(true);
       expect(result.promoted).toHaveLength(0);
@@ -269,7 +269,7 @@ describe("SiteContentManager", () => {
     it("should delete production content", async () => {
       entityService.setEntity(productionEntity.id, productionEntity);
 
-      const result = await manager.rollback({ dryRun: false });
+      const result = await manager.rollbackSync({ dryRun: false });
 
       expect(result.success).toBe(true);
       expect(result.rolledBack).toHaveLength(1);
@@ -298,7 +298,7 @@ describe("SiteContentManager", () => {
       entityService.setEntity(productionEntity.id, productionEntity);
       entityService.setEntity(aboutProduction.id, aboutProduction);
 
-      const result = await manager.rollback({ page: "landing", dryRun: false });
+      const result = await manager.rollbackSync({ page: "landing", dryRun: false });
 
       expect(result.success).toBe(true);
       expect(result.rolledBack).toHaveLength(1);
@@ -320,7 +320,7 @@ describe("SiteContentManager", () => {
     it("should handle dry run", async () => {
       entityService.setEntity(productionEntity.id, productionEntity);
 
-      const result = await manager.rollback({ dryRun: true });
+      const result = await manager.rollbackSync({ dryRun: true });
 
       expect(result.success).toBe(true);
       expect(result.rolledBack).toHaveLength(0);
@@ -450,7 +450,7 @@ describe("SiteContentManager", () => {
     };
 
     it("should generate content for all sections", async () => {
-      const result = await manager.generate(
+      const result = await manager.generateSync(
         { dryRun: false },
         mockRoutes,
         mockGenerateCallback,
@@ -483,7 +483,7 @@ describe("SiteContentManager", () => {
     });
 
     it("should filter by page", async () => {
-      const result = await manager.generate(
+      const result = await manager.generateSync(
         { page: "landing", dryRun: false },
         mockRoutes,
         mockGenerateCallback,
@@ -497,7 +497,7 @@ describe("SiteContentManager", () => {
     });
 
     it("should filter by section", async () => {
-      const result = await manager.generate(
+      const result = await manager.generateSync(
         { section: "hero", dryRun: false },
         mockRoutes,
         mockGenerateCallback,
@@ -522,7 +522,7 @@ describe("SiteContentManager", () => {
         updated: "2024-01-01T01:00:00Z",
       });
 
-      const result = await manager.generate(
+      const result = await manager.generateSync(
         { dryRun: false },
         mockRoutes,
         mockGenerateCallback,
@@ -537,7 +537,7 @@ describe("SiteContentManager", () => {
     });
 
     it("should handle dry run", async () => {
-      const result = await manager.generate(
+      const result = await manager.generateSync(
         { dryRun: true },
         mockRoutes,
         mockGenerateCallback,
@@ -572,7 +572,7 @@ describe("SiteContentManager", () => {
         return mockGenerateCallback(route, section);
       };
 
-      const result = await manager.generate(
+      const result = await manager.generateSync(
         { dryRun: false },
         mockRoutes,
         failingCallback,
@@ -595,7 +595,7 @@ describe("SiteContentManager", () => {
         })),
       }));
 
-      const result = await manager.generate(
+      const result = await manager.generateSync(
         { dryRun: false },
         routesWithContent,
         mockGenerateCallback,
@@ -609,7 +609,7 @@ describe("SiteContentManager", () => {
     });
 
     it("should generate content for all sections across all pages", async () => {
-      const result = await manager.generateAll(
+      const result = await manager.generateAllSync(
         mockRoutes,
         mockGenerateCallback,
       );
@@ -652,7 +652,7 @@ describe("SiteContentManager", () => {
         updated: "2024-01-01T01:00:00Z",
       });
 
-      const result = await manager.generateAll(
+      const result = await manager.generateAllSync(
         mockRoutes,
         mockGenerateCallback,
       );
@@ -709,7 +709,7 @@ describe("SiteContentManager", () => {
     });
 
     it("should regenerate preview content with 'new' mode", async () => {
-      const result = await manager.regenerate(
+      const result = await manager.regenerateSync(
         {
           page: "landing",
           section: "hero",
@@ -740,7 +740,7 @@ describe("SiteContentManager", () => {
     });
 
     it("should regenerate content with 'with-current' mode", async () => {
-      const result = await manager.regenerate(
+      const result = await manager.regenerateSync(
         {
           page: "landing",
           section: "hero",
@@ -763,7 +763,7 @@ describe("SiteContentManager", () => {
     });
 
     it("should skip content with 'leave' mode", async () => {
-      const result = await manager.regenerate(
+      const result = await manager.regenerateSync(
         {
           page: "landing",
           section: "hero",
@@ -801,7 +801,7 @@ describe("SiteContentManager", () => {
         updated: "2024-01-01T01:00:00Z",
       });
 
-      const result = await manager.regenerate(
+      const result = await manager.regenerateSync(
         {
           page: "landing",
           section: "hero",
@@ -828,7 +828,7 @@ describe("SiteContentManager", () => {
     });
 
     it("should handle dry run", async () => {
-      const result = await manager.regenerate(
+      const result = await manager.regenerateSync(
         {
           page: "landing",
           section: "hero",
@@ -862,7 +862,7 @@ describe("SiteContentManager", () => {
         throw new Error("Template not found");
       };
 
-      const result = await manager.regenerate(
+      const result = await manager.regenerateSync(
         {
           page: "landing",
           section: "hero",
@@ -891,7 +891,7 @@ describe("SiteContentManager", () => {
         updated: "2024-01-01T01:00:00Z",
       });
 
-      const result = await manager.regenerate(
+      const result = await manager.regenerateSync(
         {
           page: "landing",
           environment: "preview",
@@ -921,7 +921,7 @@ describe("SiteContentManager", () => {
         updated: "2024-01-01T01:00:00Z",
       });
 
-      const result = await manager.regenerateAll("new", mockRegenerateCallback);
+      const result = await manager.regenerateAllSync("new", mockRegenerateCallback);
 
       expect(result.success).toBe(true);
       expect(result.totalPages).toBeGreaterThan(0);
@@ -939,7 +939,7 @@ describe("SiteContentManager", () => {
     });
 
     it("should handle dry run for regenerate all", async () => {
-      const result = await manager.regenerateAll(
+      const result = await manager.regenerateAllSync(
         "new",
         mockRegenerateCallback,
         { dryRun: true },
@@ -958,7 +958,7 @@ describe("SiteContentManager", () => {
     });
 
     it("should skip content with 'leave' mode for regenerate all", async () => {
-      const result = await manager.regenerateAll(
+      const result = await manager.regenerateAllSync(
         "leave",
         mockRegenerateCallback,
       );
