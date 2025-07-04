@@ -139,7 +139,6 @@ test("generateSync should delegate to GenerationOperations", async () => {
     routes,
     generateCallback,
     "site-content-preview",
-    mockGenerateId,
   );
 
   expect(result.success).toBe(true);
@@ -167,7 +166,6 @@ test("generateAsync should delegate to GenerationOperations with PluginContext",
     routes,
     templateResolver,
     "site-content-preview",
-    mockGenerateId,
   );
 
   expect(result.totalSections).toBe(1);
@@ -188,7 +186,6 @@ test("regenerateSync should delegate to GenerationOperations", async () => {
   };
 
   const regenerateCallback = mock().mockResolvedValue({
-    entityId: "site-content-preview:landing:hero",
     content: "New content",
   });
 
@@ -205,7 +202,6 @@ test("regenerateSync should delegate to GenerationOperations", async () => {
     },
     regenerateCallback,
     "site-content-preview",
-    mockGenerateId,
   );
 
   expect(result.success).toBe(true);
@@ -241,7 +237,6 @@ test("regenerateAsync should delegate to GenerationOperations", async () => {
     },
     "site-content-preview",
     templateResolver,
-    mockGenerateId,
   );
 
   expect(result.totalEntities).toBe(1);

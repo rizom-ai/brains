@@ -279,8 +279,7 @@ async function checkJobStatus(
       ...(jobStatus.error && { error: jobStatus.error }),
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error("Failed to check content job status", {
       jobId,
       error: errorMessage,

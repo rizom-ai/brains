@@ -15,6 +15,17 @@ import type {
 } from "../types";
 
 /**
+ * Generate deterministic entity ID for site content
+ * Format: ${pageId}:${sectionId}
+ */
+function generateContentId(
+  pageId: string,
+  sectionId: string,
+): string {
+  return `${pageId}:${sectionId}`;
+}
+
+/**
  * Content generation operations
  * Handles AI-driven content generation and regeneration
  */
@@ -70,11 +81,6 @@ export class GenerationOperations {
       content: string;
     }>,
     targetEntityType: SiteContentEntityType,
-    generateId: (
-      type: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-    ) => string,
   ): Promise<GenerateResult> {
     return this.generateWithProgress(
       options,
@@ -87,7 +93,6 @@ export class GenerationOperations {
         });
       },
       targetEntityType,
-      generateId,
     );
   }
 
@@ -99,11 +104,6 @@ export class GenerationOperations {
     routes: RouteDefinition[],
     templateResolver: (sectionId: SectionDefinition) => string,
     targetEntityType: SiteContentEntityType,
-    generateId: (
-      type: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-    ) => string,
     siteConfig?: Record<string, unknown>,
   ): Promise<{
     jobs: ContentGenerationJob[];
@@ -130,11 +130,7 @@ export class GenerationOperations {
       totalSections += sectionsToGenerate.length;
 
       for (const sectionDefinition of sectionsToGenerate) {
-        const entityId = generateId(
-          targetEntityType,
-          pageId,
-          sectionDefinition.id,
-        );
+        const entityId = generateContentId(pageId, sectionDefinition.id);
 
         // Skip if dry run
         if (options.dryRun) {
@@ -207,15 +203,9 @@ export class GenerationOperations {
       progress: ProgressNotification,
       currentContent?: string,
     ) => Promise<{
-      entityId: string;
       content: string;
     }>,
     targetEntityType: SiteContentEntityType,
-    generateId: (
-      type: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-    ) => string,
   ): Promise<RegenerateResult> {
     this.logger.info("Starting regenerate operation", { options });
 
@@ -231,7 +221,6 @@ export class GenerationOperations {
       const entities = await this.getEntitiesForRegeneration(
         options,
         targetEntityType,
-        generateId,
       );
 
       for (const [index, entity] of entities.entries()) {
@@ -324,11 +313,6 @@ export class GenerationOperations {
     options: RegenerateOptions,
     targetEntityType: SiteContentEntityType,
     templateResolver: (pageId: string, sectionId: string) => string,
-    generateId: (
-      type: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-    ) => string,
     siteConfig?: Record<string, unknown>,
   ): Promise<{
     jobs: ContentGenerationJob[];
@@ -341,7 +325,6 @@ export class GenerationOperations {
     const entities = await this.getEntitiesForRegeneration(
       options,
       targetEntityType,
-      generateId,
     );
 
     const jobs: ContentGenerationJob[] = [];
@@ -435,11 +418,6 @@ export class GenerationOperations {
       content: string;
     }>,
     targetEntityType: SiteContentEntityType,
-    generateId: (
-      type: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-    ) => string,
   ): Promise<GenerateResult> {
     this.logger.info("Starting content generation", { options });
 
@@ -489,11 +467,8 @@ export class GenerationOperations {
         };
 
         try {
-          const entityId = generateId(
-            targetEntityType,
-            pageId,
-            sectionDefinition.id,
-          );
+          // Generate entity ID using simplified pattern
+          const entityId = generateContentId(pageId, sectionDefinition.id);
 
           // Skip if dry run
           if (options.dryRun) {
@@ -584,18 +559,12 @@ export class GenerationOperations {
   private async getEntitiesForRegeneration(
     options: RegenerateOptions,
     targetEntityType: SiteContentEntityType,
-    generateId: (
-      type: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-    ) => string,
   ): Promise<SiteContent[]> {
     const entities: SiteContent[] = [];
 
     if (options.sectionId) {
       // Regenerate specific section
-      const entityId = generateId(
-        targetEntityType,
+      const entityId = generateContentId(
         options.pageId,
         options.sectionId,
       );

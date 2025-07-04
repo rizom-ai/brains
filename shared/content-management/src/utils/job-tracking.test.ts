@@ -100,11 +100,7 @@ beforeEach((): void => {
 });
 
 test("waitForContentJobs should return empty array for no jobs", async () => {
-  const result = await waitForContentJobs(
-    [],
-    mockPluginContext,
-    mockLogger,
-  );
+  const result = await waitForContentJobs([], mockPluginContext, mockLogger);
 
   expect(result).toEqual([]);
 });

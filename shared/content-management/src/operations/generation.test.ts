@@ -81,11 +81,6 @@ const mockPluginContext = {
   updateContentIndex: mock(),
 } as unknown as PluginContext;
 
-const mockGenerateId = (
-  type: string,
-  pageId: string,
-  sectionId: string,
-): string => `${type}:${pageId}:${sectionId}`;
 
 let operations: GenerationOperations;
 
@@ -128,7 +123,6 @@ test("generateSync should generate content for routes", async () => {
     routes,
     generateCallback,
     "site-content-preview",
-    mockGenerateId,
   );
 
   expect(result.success).toBe(true);
@@ -137,12 +131,12 @@ test("generateSync should generate content for routes", async () => {
   expect(result.generated[0]).toEqual({
     pageId: "landing",
     sectionId: "hero",
-    entityId: "site-content-preview:landing:hero",
+    entityId: "landing:hero",
     entityType: "site-content-preview",
   });
 
   expect(mockCreateEntityAsync).toHaveBeenCalledWith({
-    id: "site-content-preview:landing:hero",
+    id: "landing:hero",
     entityType: "site-content-preview",
     pageId: "landing",
     sectionId: "hero",
@@ -164,7 +158,7 @@ test("generateSync should skip existing entities", async () => {
   ];
 
   const generateCallback = mock();
-  const existingEntity = { id: "site-content-preview:landing:hero" };
+  const existingEntity = { id: "landing:hero" };
 
   mockGetEntity.mockResolvedValue(existingEntity);
 
@@ -173,7 +167,6 @@ test("generateSync should skip existing entities", async () => {
     routes,
     generateCallback,
     "site-content-preview",
-    mockGenerateId,
   );
 
   expect(result.success).toBe(true);
@@ -207,7 +200,6 @@ test("generateSync should handle dry run", async () => {
     routes,
     generateCallback,
     "site-content-preview",
-    mockGenerateId,
   );
 
   expect(result.success).toBe(true);
@@ -239,7 +231,6 @@ test("generateAsync should queue generation jobs", async () => {
     routes,
     templateResolver,
     "site-content-preview",
-    mockGenerateId,
     { siteTitle: "Test Site" },
   );
 
@@ -250,9 +241,9 @@ test("generateAsync should queue generation jobs", async () => {
   expect(result.jobs).toHaveLength(2);
   expect(result.jobs[0]).toMatchObject({
     jobId: expect.stringMatching(
-      /^generate-site-content-preview:landing:hero-\d+$/,
+      /^generate-landing:hero-\d+$/,
     ),
-    entityId: "site-content-preview:landing:hero",
+    entityId: "landing:hero",
     entityType: "site-content-preview",
     operation: "generate",
     pageId: "landing",
@@ -303,7 +294,6 @@ test("generateAsync should filter by pageId", async () => {
     routes,
     templateResolver,
     "site-content-preview",
-    mockGenerateId,
   );
 
   expect(result.totalSections).toBe(1);
@@ -314,7 +304,7 @@ test("generateAsync should filter by pageId", async () => {
 
 test("regenerateSync should regenerate specific section", async () => {
   const existingEntity = {
-    id: "site-content-preview:landing:hero",
+    id: "landing:hero",
     entityType: "site-content-preview",
     pageId: "landing",
     sectionId: "hero",
@@ -324,7 +314,6 @@ test("regenerateSync should regenerate specific section", async () => {
   };
 
   const regenerateCallback = mock().mockResolvedValue({
-    entityId: "site-content-preview:landing:hero",
     content: "New content",
   });
 
@@ -341,7 +330,6 @@ test("regenerateSync should regenerate specific section", async () => {
     },
     regenerateCallback,
     "site-content-preview",
-    mockGenerateId,
   );
 
   expect(result.success).toBe(true);
@@ -349,7 +337,7 @@ test("regenerateSync should regenerate specific section", async () => {
   expect(result.regenerated[0]).toEqual({
     pageId: "landing",
     sectionId: "hero",
-    entityId: "site-content-preview:landing:hero",
+    entityId: "landing:hero",
     mode: "new",
   });
 
@@ -372,7 +360,7 @@ test("regenerateSync should regenerate specific section", async () => {
 test("regenerateSync should regenerate all sections for page", async () => {
   const pageEntities = [
     {
-      id: "site-content-preview:landing:hero",
+      id: "landing:hero",
       entityType: "site-content-preview",
       pageId: "landing",
       sectionId: "hero",
@@ -381,7 +369,7 @@ test("regenerateSync should regenerate all sections for page", async () => {
       updated: new Date().toISOString(),
     },
     {
-      id: "site-content-preview:landing:features",
+      id: "landing:features",
       entityType: "site-content-preview",
       pageId: "landing",
       sectionId: "features",
@@ -393,11 +381,9 @@ test("regenerateSync should regenerate all sections for page", async () => {
 
   const regenerateCallback = mock()
     .mockResolvedValueOnce({
-      entityId: "site-content-preview:landing:hero",
       content: "New hero",
     })
     .mockResolvedValueOnce({
-      entityId: "site-content-preview:landing:features",
       content: "New features",
     });
 
@@ -408,7 +394,6 @@ test("regenerateSync should regenerate all sections for page", async () => {
     { pageId: "landing", environment: "preview", mode: "new", dryRun: false },
     regenerateCallback,
     "site-content-preview",
-    mockGenerateId,
   );
 
   expect(result.success).toBe(true);
@@ -422,7 +407,7 @@ test("regenerateSync should regenerate all sections for page", async () => {
 test("regenerateAsync should queue regeneration jobs", async () => {
   const existingEntities = [
     {
-      id: "site-content-preview:landing:hero",
+      id: "landing:hero",
       entityType: "site-content-preview",
       pageId: "landing",
       sectionId: "hero",
@@ -431,7 +416,7 @@ test("regenerateAsync should queue regeneration jobs", async () => {
       updated: new Date().toISOString(),
     },
     {
-      id: "site-content-preview:landing:features",
+      id: "landing:features",
       entityType: "site-content-preview",
       pageId: "landing",
       sectionId: "features",
@@ -452,7 +437,6 @@ test("regenerateAsync should queue regeneration jobs", async () => {
     { pageId: "landing", environment: "preview", mode: "new", dryRun: false },
     "site-content-preview",
     templateResolver,
-    mockGenerateId,
   );
 
   expect(result.totalEntities).toBe(2);
@@ -461,9 +445,9 @@ test("regenerateAsync should queue regeneration jobs", async () => {
 
   expect(result.jobs[0]).toMatchObject({
     jobId: expect.stringMatching(
-      /^regenerate-site-content-preview:landing:hero-\d+$/,
+      /^regenerate-landing:hero-\d+$/,
     ),
-    entityId: "site-content-preview:landing:hero",
+    entityId: "landing:hero",
     entityType: "site-content-preview",
     operation: "regenerate",
     pageId: "landing",
@@ -488,7 +472,7 @@ test("regenerateAsync should queue regeneration jobs", async () => {
 test("regenerateAsync should handle dry run", async () => {
   const existingEntities = [
     {
-      id: "site-content-preview:landing:hero",
+      id: "landing:hero",
       entityType: "site-content-preview",
       pageId: "landing",
       sectionId: "hero",
@@ -506,7 +490,6 @@ test("regenerateAsync should handle dry run", async () => {
     { pageId: "landing", environment: "preview", mode: "new", dryRun: true },
     "site-content-preview",
     templateResolver,
-    mockGenerateId,
   );
 
   expect(result.totalEntities).toBe(1);

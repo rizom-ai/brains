@@ -108,18 +108,12 @@ export class ContentManager {
       progress: ProgressNotification,
     ) => Promise<{ content: string }>,
     targetEntityType: SiteContentEntityType,
-    generateId: (
-      type: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-    ) => string,
   ): Promise<GenerateResult> {
     return this.generationOps.generateSync(
       options,
       routes,
       generateCallback,
       targetEntityType,
-      generateId,
     );
   }
 
@@ -131,11 +125,6 @@ export class ContentManager {
     routes: RouteDefinition[],
     templateResolver: (sectionId: SectionDefinition) => string,
     targetEntityType: SiteContentEntityType,
-    generateId: (
-      type: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-    ) => string,
     siteConfig?: Record<string, unknown>,
   ): Promise<{
     jobs: ContentGenerationJob[];
@@ -147,7 +136,6 @@ export class ContentManager {
       routes,
       templateResolver,
       targetEntityType,
-      generateId,
       siteConfig,
     );
   }
@@ -164,19 +152,13 @@ export class ContentManager {
       mode: "leave" | "new" | "with-current",
       progress: ProgressNotification,
       currentContent?: string,
-    ) => Promise<{ entityId: string; content: string }>,
+    ) => Promise<{ content: string }>,
     targetEntityType: SiteContentEntityType,
-    generateId: (
-      type: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-    ) => string,
   ): Promise<RegenerateResult> {
     return this.generationOps.regenerateSync(
       options,
       regenerateCallback,
       targetEntityType,
-      generateId,
     );
   }
 
@@ -187,11 +169,6 @@ export class ContentManager {
     options: RegenerateOptions,
     targetEntityType: SiteContentEntityType,
     templateResolver: (pageId: string, sectionId: string) => string,
-    generateId: (
-      type: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-    ) => string,
     siteConfig?: Record<string, unknown>,
   ): Promise<{
     jobs: ContentGenerationJob[];
@@ -202,7 +179,6 @@ export class ContentManager {
       options,
       targetEntityType,
       templateResolver,
-      generateId,
       siteConfig,
     );
   }
@@ -339,7 +315,6 @@ export class ContentManager {
   }> {
     return this.jobTracking.getContentJobStatuses(jobs);
   }
-
 
   // ========================================
   // Convenience Methods
