@@ -1,6 +1,7 @@
-import type { z } from "zod";
+import { z } from "zod";
 import type { ContentFormatter } from "./formatters";
 import type { Template } from "./templates";
+import type { BaseEntity } from "./entities";
 
 /**
  * Unified content configuration that combines template, schema, and formatter
@@ -76,3 +77,33 @@ export interface ContentRegistry {
    */
   clear(): void;
 }
+
+/**
+ * Generic site content interface
+ */
+export interface SiteContent extends BaseEntity {
+  pageId: string;
+  sectionId: string;
+}
+
+/**
+ * Route definition for content generation
+ */
+export interface RouteDefinition {
+  path: string;
+  sections: SectionDefinition[];
+}
+
+/**
+ * Section definition within a route
+ */
+export interface SectionDefinition {
+  id: string;
+  title?: string;
+}
+
+/**
+ * Site content entity type schema and union
+ */
+export const SiteContentEntityTypeSchema = z.enum(["site-content-preview", "site-content-production"]);
+export type SiteContentEntityType = z.infer<typeof SiteContentEntityTypeSchema>;

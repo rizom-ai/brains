@@ -14,6 +14,7 @@ This document outlines a comprehensive plan to extract the site-builder plugin's
 ### Solution Overview
 
 Extract content management to `shared/content-management/` package with:
+
 - Clean operation-based architecture (PromotionOperations, GenerationOperations, etc.)
 - Complete async implementation with job tracking
 - Reusable package that other plugins can leverage
@@ -24,6 +25,7 @@ Extract content management to `shared/content-management/` package with:
 ### SiteContentManager Responsibilities
 
 The current manager handles:
+
 - **Sync Operations**: `promoteSync()`, `rollbackSync()`, `generateSync()`, `regenerateSync()`
 - **Async Operations**: `generateAsync()`, `waitAndCreateEntities()`, `getJobStatuses()`
 - **Entity Querying**: `getPreviewEntities()`, `getProductionEntities()`
@@ -34,6 +36,7 @@ The current manager handles:
 ### Remaining Async Tasks
 
 From the site-builder async migration plan, Phase 5 tasks remaining:
+
 - ✅ Rename existing blocking methods to use Sync suffix (completed)
 - ✅ Define ContentGenerationJob and EntityOperationJob interfaces (completed)
 - ✅ Update generateAsync to return ContentGenerationJob[] (completed)
@@ -46,6 +49,7 @@ From the site-builder async migration plan, Phase 5 tasks remaining:
 ### Dependencies Analysis
 
 Current dependencies that will be preserved:
+
 - `@brains/entity-service` - Entity CRUD operations and job queue
 - `@brains/view-registry` - Route and section definitions
 - `@brains/plugin-utils` - PluginContext for async job enqueuing
@@ -108,8 +112,16 @@ export abstract class BaseOperation {
     }
   }
 
-  protected logProgress(operation: string, current: number, total: number): void {
-    this.logger?.info(`${operation} progress`, { current, total, percent: Math.round((current / total) * 100) });
+  protected logProgress(
+    operation: string,
+    current: number,
+    total: number,
+  ): void {
+    this.logger?.info(`${operation} progress`, {
+      current,
+      total,
+      percent: Math.round((current / total) * 100),
+    });
   }
 }
 ```
@@ -119,20 +131,20 @@ export abstract class BaseOperation {
 ```typescript
 export class PromotionOperations extends BaseOperation {
   // Existing sync method
-  async promoteSync(options: PromoteOptions): Promise<PromoteResult>
+  async promoteSync(options: PromoteOptions): Promise<PromoteResult>;
 
   // New async method returning EntityOperationJob[]
   async promoteAsync(options: PromoteOptions): Promise<{
     jobs: EntityOperationJob[];
     totalEntities: number;
     queuedEntities: number;
-  }>
+  }>;
 
   // Complete async operation (convenience method)
   async promoteAsyncComplete(
     options: PromoteOptions,
-    timeoutMs: number = 60000
-  ): Promise<PromoteResult>
+    timeoutMs: number = 60000,
+  ): Promise<PromoteResult>;
 }
 ```
 
@@ -153,7 +165,7 @@ export class GenerationOperations extends BaseOperation {
     options: GenerateOptions,
     routes: RouteDefinition[],
     generateCallback: GenerateCallback,
-  ): Promise<GenerateResult>
+  ): Promise<GenerateResult>;
 
   // Existing async method - already implemented
   async generateAsync(
@@ -165,11 +177,11 @@ export class GenerationOperations extends BaseOperation {
     jobs: ContentGenerationJob[];
     totalSections: number;
     queuedSections: number;
-  }>
+  }>;
 }
 ```
 
-#### Regeneration Operations  
+#### Regeneration Operations
 
 ```typescript
 export class RegenerationOperations extends BaseOperation {
@@ -185,7 +197,7 @@ export class RegenerationOperations extends BaseOperation {
   async regenerateSync(
     options: RegenerateOptions,
     regenerateCallback: RegenerateCallback,
-  ): Promise<RegenerateResult>
+  ): Promise<RegenerateResult>;
 
   // New async method returning ContentGenerationJob[]
   async regenerateAsync(
@@ -196,7 +208,7 @@ export class RegenerationOperations extends BaseOperation {
     jobs: ContentGenerationJob[];
     totalEntities: number;
     queuedEntities: number;
-  }>
+  }>;
 
   // Complete async operation (convenience method)
   async regenerateAsyncComplete(
@@ -204,7 +216,7 @@ export class RegenerationOperations extends BaseOperation {
     templateResolver: TemplateResolver,
     siteConfig?: Record<string, unknown>,
     timeoutMs: number = 60000,
-  ): Promise<RegenerateResult>
+  ): Promise<RegenerateResult>;
 }
 ```
 
@@ -213,20 +225,20 @@ export class RegenerationOperations extends BaseOperation {
 ```typescript
 export class RollbackOperations extends BaseOperation {
   // Existing sync method
-  async rollbackSync(options: RollbackOptions): Promise<RollbackResult>
+  async rollbackSync(options: RollbackOptions): Promise<RollbackResult>;
 
   // New async method returning EntityOperationJob[]
   async rollbackAsync(options: RollbackOptions): Promise<{
     jobs: EntityOperationJob[];
     totalEntities: number;
     queuedEntities: number;
-  }>
+  }>;
 
   // Complete async operation (convenience method)
   async rollbackAsyncComplete(
     options: RollbackOptions,
-    timeoutMs: number = 60000
-  ): Promise<RollbackResult>
+    timeoutMs: number = 60000,
+  ): Promise<RollbackResult>;
 }
 ```
 
@@ -246,16 +258,20 @@ export class JobTrackingService {
     jobs: ContentGenerationJob[],
     progressCallback?: ProgressCallback,
     timeoutMs: number = 60000,
-  ): Promise<ContentGenerationResult[]>
+  ): Promise<ContentGenerationResult[]>;
 
   async waitForEntityJobs(
     jobs: EntityOperationJob[],
     progressCallback?: ProgressCallback,
     timeoutMs: number = 60000,
-  ): Promise<EntityOperationResult[]>
+  ): Promise<EntityOperationResult[]>;
 
-  async getContentJobStatuses(jobs: ContentGenerationJob[]): Promise<JobStatusSummary>
-  async getEntityJobStatuses(jobs: EntityOperationJob[]): Promise<JobStatusSummary>
+  async getContentJobStatuses(
+    jobs: ContentGenerationJob[],
+  ): Promise<JobStatusSummary>;
+  async getEntityJobStatuses(
+    jobs: EntityOperationJob[],
+  ): Promise<JobStatusSummary>;
 }
 ```
 
@@ -268,12 +284,16 @@ export class EntityQueryService {
     private readonly logger?: Logger,
   ) {}
 
-  async getPreviewEntities(options: FilterOptions): Promise<SiteContentPreview[]>
-  async getProductionEntities(options: FilterOptions): Promise<SiteContentProduction[]>
+  async getPreviewEntities(
+    options: FilterOptions,
+  ): Promise<SiteContentPreview[]>;
+  async getProductionEntities(
+    options: FilterOptions,
+  ): Promise<SiteContentProduction[]>;
   async getEntitiesByType<T extends SiteContent>(
     entityType: SiteContentEntityType,
     options: FilterOptions,
-  ): Promise<T[]>
+  ): Promise<T[]>;
 }
 ```
 
@@ -296,10 +316,18 @@ export class ContentManager {
     this.promotionOps = new PromotionOperations(entityService, logger);
     this.rollbackOps = new RollbackOperations(entityService, logger);
     this.entityQuery = new EntityQueryService(entityService, logger);
-    
+
     if (pluginContext) {
-      this.generationOps = new GenerationOperations(entityService, pluginContext, logger);
-      this.regenerationOps = new RegenerationOperations(entityService, pluginContext, logger);
+      this.generationOps = new GenerationOperations(
+        entityService,
+        pluginContext,
+        logger,
+      );
+      this.regenerationOps = new RegenerationOperations(
+        entityService,
+        pluginContext,
+        logger,
+      );
       this.jobTracking = new JobTrackingService(pluginContext, logger);
     }
   }
@@ -309,22 +337,39 @@ export class ContentManager {
     return this.promotionOps.promoteSync(options);
   }
 
-  async promoteAsync(options: PromoteOptions): Promise<{jobs: EntityOperationJob[]; totalEntities: number; queuedEntities: number}> {
+  async promoteAsync(
+    options: PromoteOptions,
+  ): Promise<{
+    jobs: EntityOperationJob[];
+    totalEntities: number;
+    queuedEntities: number;
+  }> {
     return this.promotionOps.promoteAsync(options);
   }
 
   // ... delegate all other methods
 
   // Utility methods
-  async compare(pageId: string, sectionId: string): Promise<ContentComparison | null> {
-    return compareContent(pageId, sectionId, /* ... */);
+  async compare(
+    pageId: string,
+    sectionId: string,
+  ): Promise<ContentComparison | null> {
+    return compareContent(pageId, sectionId /* ... */);
   }
 
-  async exists(pageId: string, sectionId: string, type: 'preview' | 'production'): Promise<boolean> {
+  async exists(
+    pageId: string,
+    sectionId: string,
+    type: "preview" | "production",
+  ): Promise<boolean> {
     // Implementation
   }
 
-  generateId(type: SiteContentEntityType, pageId: string, sectionId: string): string {
+  generateId(
+    type: SiteContentEntityType,
+    pageId: string,
+    sectionId: string,
+  ): string {
     return generateSiteContentId(type, pageId, sectionId);
   }
 }
@@ -335,24 +380,28 @@ export class ContentManager {
 ### Phase 1: Package Creation & Basic Migration (Week 1)
 
 #### Step 1.1: Create Package Structure
+
 - Create `shared/content-management/` directory
 - Set up package.json with proper dependencies
 - Configure TypeScript and build setup
 - Add to workspace and turbo.json
 
 #### Step 1.2: Extract Current Code
+
 - Move content-management/ files from site-builder to new package
 - Update imports and dependencies
 - Maintain current SiteContentManager structure initially
 - Export through clean public API
 
 #### Step 1.3: Update Site-Builder Plugin
+
 - Add dependency on `@brains/content-management`
 - Update imports to use new package
 - Remove content-management code from site-builder
 - Ensure all existing functionality works
 
 #### Step 1.4: Verify Migration
+
 - Run all existing tests
 - Verify site-builder plugin tools still work
 - No functionality changes at this stage
@@ -360,18 +409,21 @@ export class ContentManager {
 ### Phase 2: Architecture Refactoring & Async Completion (Week 2-3)
 
 #### Step 2.1: Implement Operation Classes
+
 - Create BaseOperation abstract class
 - Extract PromotionOperations from SiteContentManager
-- Extract RollbackOperations from SiteContentManager  
+- Extract RollbackOperations from SiteContentManager
 - Extract GenerationOperations from SiteContentManager
 - Extract RegenerationOperations from SiteContentManager
 
 #### Step 2.2: Implement Support Services
+
 - Create EntityQueryService with existing query logic
 - Create JobTrackingService for job status management
 - Move utility functions to dedicated modules
 
 #### Step 2.3: Complete Async Implementation
+
 - Implement `promoteAsync()` in PromotionOperations
 - Implement `regenerateAsync()` in RegenerationOperations
 - Implement `rollbackAsync()` in RollbackOperations
@@ -379,11 +431,13 @@ export class ContentManager {
 - Add complete async operation methods
 
 #### Step 2.4: Create Content Manager Facade
+
 - Implement ContentManager as facade over operations
 - Maintain backward compatibility with existing API
 - Support both sync-only and async-enabled usage
 
 #### Step 2.5: Update Site-Builder Integration
+
 - Update SiteContentManager instantiation to use ContentManager
 - Pass PluginContext for async operations
 - Update plugin tools to use new async methods where beneficial
@@ -391,17 +445,20 @@ export class ContentManager {
 ### Phase 3: Testing & Optimization (Week 4)
 
 #### Step 3.1: Comprehensive Testing
+
 - Unit tests for each operation class
 - Integration tests for ContentManager facade
 - Test both sync and async code paths
 - Test error handling and edge cases
 
 #### Step 3.2: Performance Validation
+
 - Benchmark sync vs async operations
 - Verify job queue performance for bulk operations
 - Test timeout and cancellation behavior
 
 #### Step 3.3: Documentation & Examples
+
 - API documentation for public interface
 - Usage examples for both sync and async patterns
 - Migration guide for other plugins
@@ -412,10 +469,10 @@ export class ContentManager {
 
 ```typescript
 // Main exports
-export { ContentManager } from './manager';
+export { ContentManager } from "./manager";
 export type {
   SiteContent,
-  SiteContentPreview, 
+  SiteContentPreview,
   SiteContentProduction,
   PromoteOptions,
   PromoteResult,
@@ -429,7 +486,7 @@ export type {
   ContentGenerationJob,
   EntityOperationJob,
   JobStatusSummary,
-} from './types';
+} from "./types";
 
 // Validation schemas
 export {
@@ -437,38 +494,43 @@ export {
   RollbackOptionsSchema,
   GenerateOptionsSchema,
   RegenerateOptionsSchema,
-} from './schemas';
+} from "./schemas";
 
 // Utilities
-export { generateSiteContentId, previewToProductionId } from './utils/id-generator';
-export { compareContent, isContentEquivalent } from './utils/comparator';
+export {
+  generateSiteContentId,
+  previewToProductionId,
+} from "./utils/id-generator";
+export { compareContent, isContentEquivalent } from "./utils/comparator";
 ```
 
 ### Usage Examples
 
 #### Basic Usage (Sync Only)
+
 ```typescript
-import { ContentManager } from '@brains/content-management';
+import { ContentManager } from "@brains/content-management";
 
 const contentManager = new ContentManager(entityService, undefined, logger);
 
 // Sync operations work without PluginContext
-await contentManager.promoteSync({ pageId: 'landing' });
-await contentManager.rollbackSync({ pageId: 'landing', sectionId: 'hero' });
+await contentManager.promoteSync({ pageId: "landing" });
+await contentManager.rollbackSync({ pageId: "landing", sectionId: "hero" });
 ```
 
 #### Full Usage (Sync + Async)
+
 ```typescript
-import { ContentManager } from '@brains/content-management';
+import { ContentManager } from "@brains/content-management";
 
 const contentManager = new ContentManager(entityService, pluginContext, logger);
 
 // Async operations available with PluginContext
-const { jobs } = await contentManager.promoteAsync({ pageId: 'landing' });
+const { jobs } = await contentManager.promoteAsync({ pageId: "landing" });
 const results = await contentManager.waitForEntityJobs(jobs);
 
 // Or use complete async operations
-const result = await contentManager.promoteAsyncComplete({ pageId: 'landing' });
+const result = await contentManager.promoteAsyncComplete({ pageId: "landing" });
 ```
 
 ### Backward Compatibility Strategy
@@ -478,7 +540,7 @@ The ContentManager facade maintains the exact same API as the current SiteConten
 ```typescript
 // All existing calls continue to work
 const manager = new ContentManager(entityService, pluginContext, logger);
-await manager.promoteSync(options);    // ✅ Same as before
+await manager.promoteSync(options); // ✅ Same as before
 await manager.generateSync(options, routes, callback); // ✅ Same as before
 await manager.generateAsync(options, routes, resolver, config); // ✅ Same as before
 ```
@@ -554,21 +616,25 @@ await manager.generateAsync(options, routes, resolver, config); // ✅ Same as b
 ## Timeline
 
 ### Week 1: Package Creation & Basic Migration
+
 - Days 1-2: Create package structure and extract existing code
 - Days 3-4: Update site-builder to use new package
 - Day 5: Verify migration with existing tests
 
 ### Week 2: Architecture Refactoring
+
 - Days 1-2: Implement operation classes and support services
 - Days 3-4: Create ContentManager facade and update integration
 - Day 5: Complete basic refactoring with working sync operations
 
 ### Week 3: Async Implementation Completion
+
 - Days 1-2: Implement remaining async methods (promoteAsync, regenerateAsync, rollbackAsync)
 - Days 3-4: Complete job tracking utilities and async complete methods
 - Day 5: Update plugin tools to use new async methods
 
 ### Week 4: Testing & Polish
+
 - Days 1-2: Comprehensive testing suite
 - Days 3-4: Performance validation and optimization
 - Day 5: Documentation and migration guide
