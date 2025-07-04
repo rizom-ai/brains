@@ -375,22 +375,22 @@ After analysis, different operations require different job tracking information:
 ```typescript
 // For AI-based content operations (generate/regenerate)
 interface ContentGenerationJob {
-  jobId: string;           // Content generation job ID
-  entityId: string;        // Target entity ID (deterministic)
+  jobId: string; // Content generation job ID
+  entityId: string; // Target entity ID (deterministic)
   entityType: "site-content-preview" | "site-content-production";
   operation: "generate" | "regenerate";
   page: string;
   section: string;
-  templateName: string;    // For AI generation
-  route: RouteDefinition;  // For AI context
+  templateName: string; // For AI generation
+  route: RouteDefinition; // For AI context
   sectionDefinition: SectionDefinition; // For AI context
   mode?: "leave" | "new" | "with-current"; // For regenerate only
 }
 
 // For entity management operations (promote/rollback)
 interface EntityOperationJob {
-  jobId: string;           // Entity operation job ID
-  entityId: string;        // Source entity ID
+  jobId: string; // Entity operation job ID
+  entityId: string; // Source entity ID
   targetEntityId?: string; // For promote (production entity ID)
   entityType: "site-content-preview" | "site-content-production";
   operation: "promote" | "rollback";
@@ -419,7 +419,7 @@ rollbackAsync() → Promise<{jobs: EntityOperationJob[], ...}>
 waitForContentJobs(jobs: ContentGenerationJob[], progressCallback) → Promise<Result>
 getContentJobStatuses(jobs: ContentGenerationJob[]) → Promise<JobStatusSummary>
 
-// Entity operation job utilities  
+// Entity operation job utilities
 waitForEntityJobs(jobs: EntityOperationJob[], progressCallback) → Promise<Result>
 getEntityJobStatuses(jobs: EntityOperationJob[]) → Promise<JobStatusSummary>
 
