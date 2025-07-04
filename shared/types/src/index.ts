@@ -14,13 +14,13 @@ export type { ComponentType, GenerationContext, Template } from "./templates";
 export { TemplateSchema } from "./templates";
 
 // Content types (site content, routes, sections)
-export type { 
-  SiteContent, 
-  RouteDefinition, 
-  SectionDefinition, 
+export type {
+  SiteContent,
+  RouteDefinition,
+  SectionDefinition,
   SiteContentEntityType,
   ContentConfig,
-  ContentRegistry
+  ContentRegistry,
 } from "./content";
 export { SiteContentEntityTypeSchema } from "./content";
 
@@ -32,7 +32,6 @@ export type { Command, CommandResponse, BrainProtocol } from "./services";
 
 // Formatter types
 export type { SchemaFormatter, ContentFormatter } from "./formatters";
-
 
 // View types have been moved to @brains/view-registry
 

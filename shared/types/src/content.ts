@@ -105,5 +105,8 @@ export interface SectionDefinition {
 /**
  * Site content entity type schema and union
  */
-export const SiteContentEntityTypeSchema = z.enum(["site-content-preview", "site-content-production"]);
+export const SiteContentEntityTypeSchema = z.enum([
+  "site-content-preview",
+  "site-content-production",
+]);
 export type SiteContentEntityType = z.infer<typeof SiteContentEntityTypeSchema>;

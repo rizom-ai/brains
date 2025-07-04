@@ -28,8 +28,11 @@ const mockEntityService = {
 
 const mockLogger = createSilentLogger("entity-query-test");
 
-const mockGenerateId = (type: string, pageId: string, sectionId: string): string => 
-  `${type}:${pageId}:${sectionId}`;
+const mockGenerateId = (
+  type: string,
+  pageId: string,
+  sectionId: string,
+): string => `${type}:${pageId}:${sectionId}`;
 
 let queryService: EntityQueryService;
 
@@ -37,7 +40,7 @@ beforeEach((): void => {
   // Reset all mocks
   mockGetEntity.mockClear();
   mockListEntities.mockClear();
-  
+
   EntityQueryService.resetInstance();
   queryService = EntityQueryService.createFresh(mockEntityService, mockLogger);
 });
@@ -55,16 +58,25 @@ test("getContent should return entity when found", async () => {
 
   mockGetEntity.mockResolvedValue(mockEntity);
 
-  const result = await queryService.getContent("site-content-preview", "site-content-preview:landing:hero");
+  const result = await queryService.getContent(
+    "site-content-preview",
+    "site-content-preview:landing:hero",
+  );
 
   expect(result).toEqual(mockEntity);
-  expect(mockGetEntity).toHaveBeenCalledWith("site-content-preview", "site-content-preview:landing:hero");
+  expect(mockGetEntity).toHaveBeenCalledWith(
+    "site-content-preview",
+    "site-content-preview:landing:hero",
+  );
 });
 
 test("getContent should return null when entity not found", async () => {
   mockGetEntity.mockResolvedValue(null);
 
-  const result = await queryService.getContent("site-content-preview", "nonexistent-id");
+  const result = await queryService.getContent(
+    "site-content-preview",
+    "nonexistent-id",
+  );
 
   expect(result).toBeNull();
 });
@@ -72,7 +84,10 @@ test("getContent should return null when entity not found", async () => {
 test("getContent should handle errors gracefully", async () => {
   mockGetEntity.mockRejectedValue(new Error("Database error"));
 
-  const result = await queryService.getContent("site-content-preview", "test-id");
+  const result = await queryService.getContent(
+    "site-content-preview",
+    "test-id",
+  );
 
   expect(result).toBeNull();
   // Silent logger doesn't need to be tested for specific calls
@@ -102,7 +117,10 @@ test("getPageContent should return entities for page", async () => {
 
   mockListEntities.mockResolvedValue(mockEntities);
 
-  const result = await queryService.getPageContent("site-content-preview", "landing");
+  const result = await queryService.getPageContent(
+    "site-content-preview",
+    "landing",
+  );
 
   expect(result).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-preview", {
@@ -113,7 +131,10 @@ test("getPageContent should return entities for page", async () => {
 test("getPageContent should handle errors gracefully", async () => {
   mockListEntities.mockRejectedValue(new Error("Query error"));
 
-  const result = await queryService.getPageContent("site-content-preview", "landing");
+  const result = await queryService.getPageContent(
+    "site-content-preview",
+    "landing",
+  );
 
   expect(result).toEqual([]);
   // Silent logger doesn't need to be tested for specific calls
@@ -148,8 +169,8 @@ test("getSectionContent should generate ID and get entity", async () => {
 
 test("getAllContent should return all entities of type", async () => {
   const mockEntities = [
-    { 
-      id: "entity1", 
+    {
+      id: "entity1",
       entityType: "site-content-preview",
       pageId: "page1",
       sectionId: "section1",
@@ -157,8 +178,8 @@ test("getAllContent should return all entities of type", async () => {
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
     },
-    { 
-      id: "entity2", 
+    {
+      id: "entity2",
       entityType: "site-content-preview",
       pageId: "page2",
       sectionId: "section2",
@@ -205,10 +226,10 @@ test("contentExists should return false when content does not exist", async () =
 
 test("queryContent should return entities matching criteria", async () => {
   const mockEntities = [
-    { 
-      id: "entity1", 
+    {
+      id: "entity1",
       entityType: "site-content-preview",
-      pageId: "landing", 
+      pageId: "landing",
       sectionId: "hero",
       content: "Query content",
       created: new Date().toISOString(),
@@ -231,7 +252,7 @@ test("queryContent should return entities matching criteria", async () => {
 
 test("getPageStats should return stats for multiple entity types", async () => {
   const previewEntities = [
-    { 
+    {
       id: "preview1",
       entityType: "site-content-preview",
       pageId: "landing",
@@ -240,7 +261,7 @@ test("getPageStats should return stats for multiple entity types", async () => {
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
     },
-    { 
+    {
       id: "preview2",
       entityType: "site-content-preview",
       pageId: "landing",
@@ -251,7 +272,7 @@ test("getPageStats should return stats for multiple entity types", async () => {
     },
   ];
   const productionEntities = [
-    { 
+    {
       id: "production1",
       entityType: "site-content-production",
       pageId: "landing",

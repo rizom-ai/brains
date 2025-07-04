@@ -13,7 +13,10 @@ export class EntityQueryService {
     entityService: EntityService,
     logger: Logger,
   ): EntityQueryService {
-    EntityQueryService.instance ??= new EntityQueryService(entityService, logger);
+    EntityQueryService.instance ??= new EntityQueryService(
+      entityService,
+      logger,
+    );
     return EntityQueryService.instance;
   }
 
@@ -68,9 +71,12 @@ export class EntityQueryService {
     this.logger.debug("Getting page content", { entityType, pageId });
 
     try {
-      const entities = await this.entityService.listEntities<SiteContent>(entityType, {
-        filter: { metadata: { pageId } },
-      });
+      const entities = await this.entityService.listEntities<SiteContent>(
+        entityType,
+        {
+          filter: { metadata: { pageId } },
+        },
+      );
       return entities;
     } catch (error) {
       this.logger.error("Failed to get page content", {
@@ -89,7 +95,11 @@ export class EntityQueryService {
     entityType: SiteContentEntityType,
     pageId: string,
     sectionId: string,
-    generateId: (type: SiteContentEntityType, pageId: string, sectionId: string) => string,
+    generateId: (
+      type: SiteContentEntityType,
+      pageId: string,
+      sectionId: string,
+    ) => string,
   ): Promise<SiteContent | null> {
     const entityId = generateId(entityType, pageId, sectionId);
     return this.getContent(entityType, entityId);
@@ -98,11 +108,16 @@ export class EntityQueryService {
   /**
    * Get all content entities of a specific type
    */
-  async getAllContent(entityType: SiteContentEntityType): Promise<SiteContent[]> {
+  async getAllContent(
+    entityType: SiteContentEntityType,
+  ): Promise<SiteContent[]> {
     this.logger.debug("Getting all content", { entityType });
 
     try {
-      const entities = await this.entityService.listEntities<SiteContent>(entityType, {});
+      const entities = await this.entityService.listEntities<SiteContent>(
+        entityType,
+        {},
+      );
       return entities;
     } catch (error) {
       this.logger.error("Failed to get all content", {
@@ -120,9 +135,18 @@ export class EntityQueryService {
     entityType: SiteContentEntityType,
     pageId: string,
     sectionId: string,
-    generateId: (type: SiteContentEntityType, pageId: string, sectionId: string) => string,
+    generateId: (
+      type: SiteContentEntityType,
+      pageId: string,
+      sectionId: string,
+    ) => string,
   ): Promise<boolean> {
-    const content = await this.getSectionContent(entityType, pageId, sectionId, generateId);
+    const content = await this.getSectionContent(
+      entityType,
+      pageId,
+      sectionId,
+      generateId,
+    );
     return content !== null;
   }
 
@@ -133,12 +157,18 @@ export class EntityQueryService {
     entityType: SiteContentEntityType,
     criteria: Record<string, unknown>,
   ): Promise<SiteContent[]> {
-    this.logger.debug("Querying content with criteria", { entityType, criteria });
+    this.logger.debug("Querying content with criteria", {
+      entityType,
+      criteria,
+    });
 
     try {
-      const entities = await this.entityService.listEntities<SiteContent>(entityType, {
-        filter: { metadata: criteria },
-      });
+      const entities = await this.entityService.listEntities<SiteContent>(
+        entityType,
+        {
+          filter: { metadata: criteria },
+        },
+      );
       return entities;
     } catch (error) {
       this.logger.error("Failed to query content", {
@@ -164,14 +194,19 @@ export class EntityQueryService {
         entityTypes.map(async (entityType) => {
           const content = await this.getPageContent(entityType, pageId);
           return { entityType, count: content.length };
-        })
+        }),
       );
 
-      const stats = results.reduce((acc, { entityType, count }) => {
-        acc[entityType] = count;
-        acc.total += count;
-        return acc;
-      }, { total: 0 } as Record<SiteContentEntityType, number> & { total: number });
+      const stats = results.reduce(
+        (acc, { entityType, count }) => {
+          acc[entityType] = count;
+          acc.total += count;
+          return acc;
+        },
+        { total: 0 } as Record<SiteContentEntityType, number> & {
+          total: number;
+        },
+      );
 
       return stats;
     } catch (error) {
@@ -180,13 +215,18 @@ export class EntityQueryService {
         entityTypes,
         error: error instanceof Error ? error.message : String(error),
       });
-      
+
       // Return empty stats for all requested entity types
-      const emptyStats = entityTypes.reduce((acc, entityType) => {
-        acc[entityType] = 0;
-        return acc;
-      }, { total: 0 } as Record<SiteContentEntityType, number> & { total: number });
-      
+      const emptyStats = entityTypes.reduce(
+        (acc, entityType) => {
+          acc[entityType] = 0;
+          return acc;
+        },
+        { total: 0 } as Record<SiteContentEntityType, number> & {
+          total: number;
+        },
+      );
+
       return emptyStats;
     }
   }

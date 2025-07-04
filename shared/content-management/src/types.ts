@@ -1,9 +1,11 @@
-import type { 
-  SiteContent, 
-  RouteDefinition, 
-  SectionDefinition, 
-  SiteContentEntityType 
+import type {
+  SiteContent,
+  SiteContentEntityType,
 } from "@brains/types";
+import type {
+  RouteDefinition,
+  SectionDefinition,
+} from "@brains/view-registry";
 
 // Re-export types from schemas
 export type {
@@ -26,7 +28,12 @@ export {
 } from "./schemas";
 
 // Re-export shared types
-export type { SiteContent, RouteDefinition, SectionDefinition, SiteContentEntityType };
+export type {
+  SiteContent,
+  RouteDefinition,
+  SectionDefinition,
+  SiteContentEntityType,
+};
 
 /**
  * Interface for tracking async content generation jobs
@@ -57,7 +64,6 @@ export interface ContentGenerationJob {
   sectionDefinition: SectionDefinition;
   mode?: "leave" | "new" | "with-current"; // For regenerate only
 }
-
 
 /**
  * Summary of job statuses for async operations

@@ -7,17 +7,18 @@ This document outlines a comprehensive plan to extract the site-builder plugin's
 ### Problems Being Solved
 
 1. **Architecture Violation**: 1652-line `SiteContentManager` handles too many responsibilities
-2. **Incomplete Async Implementation**: Missing async variants for promote, regenerate, and rollback operations
+2. **Incomplete Async Implementation**: Missing async variants for regenerate operations
 3. **Poor Maintainability**: Large, monolithic class is difficult to test and extend
-4. **Limited Reusability**: Content management functionality is embedded in site-builder plugin
+4. **Limited Reusability**: Core content management functionality is embedded in site-builder plugin
 
 ### Solution Overview
 
-Extract content management to `shared/content-management/` package with:
+Extract **core content management** to `shared/content-management/` package with:
 
-- Clean operation-based architecture (PromotionOperations, GenerationOperations, etc.)
-- Complete async implementation with job tracking
-- Reusable package that other plugins can leverage
+- Clean operation-based architecture for generation and query operations
+- Complete async implementation for content generation workflows
+- Reusable package that other plugins can leverage for content operations
+- Site-builder specific operations (promote/rollback) remain in the plugin
 - Maintained backward compatibility through facade pattern
 
 ## Current State Analysis
@@ -26,25 +27,32 @@ Extract content management to `shared/content-management/` package with:
 
 The current manager handles:
 
-- **Sync Operations**: `promoteSync()`, `rollbackSync()`, `generateSync()`, `regenerateSync()`
-- **Async Operations**: `generateAsync()`, `waitAndCreateEntities()`, `getJobStatuses()`
-- **Entity Querying**: `getPreviewEntities()`, `getProductionEntities()`
-- **Content Comparison**: `compare()`, `exists()`
-- **ID Generation**: `generateId()`
-- **Progress Tracking**: Job status monitoring and result processing
+**Operations to Extract (Core Content Management):**
+- **Generation Operations**: `generateSync()`, `generateAsync()`, `regenerateSync()`
+- **Entity Querying**: `getPreviewEntities()`, `getProductionEntities()`, content queries
+- **Content Utilities**: `compare()`, `exists()`, `generateId()`
+- **Job Tracking**: Job status monitoring and result processing for content generation
 
-### Remaining Async Tasks
+**Operations Remaining in Site-Builder:**
+- **Promotion Operations**: `promoteSync()`, `promoteAsync()` - Site-builder specific workflow
+- **Rollback Operations**: `rollbackSync()`, `rollbackAsync()` - Site-builder specific workflow
+- **Site Building Integration**: Template resolution, build pipeline integration
 
-From the site-builder async migration plan, Phase 5 tasks remaining:
+### Remaining Implementation Tasks
 
-- ✅ Rename existing blocking methods to use Sync suffix (completed)
-- ✅ Define ContentGenerationJob and EntityOperationJob interfaces (completed)
-- ✅ Update generateAsync to return ContentGenerationJob[] (completed)
-- ⏳ Implement promoteAsync returning EntityOperationJob[]
+**Content Management Package (Shared):**
+- ✅ Extract GenerationOperations class (completed)
+- ✅ Extract EntityQueryService class (completed)
+- ✅ Create types and schemas (completed)
 - ⏳ Implement regenerateAsync returning ContentGenerationJob[]
-- ⏳ Implement rollbackAsync returning EntityOperationJob[]
-- ⏳ Create waitForEntityJobs utility for EntityOperationJob tracking
-- ⏳ Update plugin tools to use new async methods
+- ⏳ Create JobTrackingService for async job monitoring
+- ⏳ Create ContentManager facade class
+
+**Site-Builder Plugin (Specific):**
+- ⏳ Keep promoteAsync and rollbackAsync in site-builder (site-specific operations)
+- ⏳ Integrate shared content management package
+- ⏳ Update plugin tools to use shared package for generation operations
+- ⏳ Maintain promote/rollback operations as site-builder exclusive features
 
 ### Dependencies Analysis
 
@@ -126,28 +134,6 @@ export abstract class BaseOperation {
 }
 ```
 
-#### Promotion Operations
-
-```typescript
-export class PromotionOperations extends BaseOperation {
-  // Existing sync method
-  async promoteSync(options: PromoteOptions): Promise<PromoteResult>;
-
-  // New async method returning EntityOperationJob[]
-  async promoteAsync(options: PromoteOptions): Promise<{
-    jobs: EntityOperationJob[];
-    totalEntities: number;
-    queuedEntities: number;
-  }>;
-
-  // Complete async operation (convenience method)
-  async promoteAsyncComplete(
-    options: PromoteOptions,
-    timeoutMs: number = 60000,
-  ): Promise<PromoteResult>;
-}
-```
-
 #### Generation Operations
 
 ```typescript
@@ -220,28 +206,6 @@ export class RegenerationOperations extends BaseOperation {
 }
 ```
 
-#### Rollback Operations
-
-```typescript
-export class RollbackOperations extends BaseOperation {
-  // Existing sync method
-  async rollbackSync(options: RollbackOptions): Promise<RollbackResult>;
-
-  // New async method returning EntityOperationJob[]
-  async rollbackAsync(options: RollbackOptions): Promise<{
-    jobs: EntityOperationJob[];
-    totalEntities: number;
-    queuedEntities: number;
-  }>;
-
-  // Complete async operation (convenience method)
-  async rollbackAsyncComplete(
-    options: RollbackOptions,
-    timeoutMs: number = 60000,
-  ): Promise<RollbackResult>;
-}
-```
-
 ### Support Services
 
 #### Job Tracking Service
@@ -253,24 +217,15 @@ export class JobTrackingService {
     private readonly logger?: Logger,
   ) {}
 
-  // Specialized tracking for different job types
+  // Specialized tracking for content generation jobs
   async waitForContentJobs(
     jobs: ContentGenerationJob[],
     progressCallback?: ProgressCallback,
     timeoutMs: number = 60000,
   ): Promise<ContentGenerationResult[]>;
 
-  async waitForEntityJobs(
-    jobs: EntityOperationJob[],
-    progressCallback?: ProgressCallback,
-    timeoutMs: number = 60000,
-  ): Promise<EntityOperationResult[]>;
-
   async getContentJobStatuses(
     jobs: ContentGenerationJob[],
-  ): Promise<JobStatusSummary>;
-  async getEntityJobStatuses(
-    jobs: EntityOperationJob[],
   ): Promise<JobStatusSummary>;
 }
 ```
@@ -301,8 +256,6 @@ export class EntityQueryService {
 
 ```typescript
 export class ContentManager {
-  private promotionOps: PromotionOperations;
-  private rollbackOps: RollbackOperations;
   private generationOps: GenerationOperations;
   private regenerationOps: RegenerationOperations;
   private entityQuery: EntityQueryService;
@@ -313,8 +266,6 @@ export class ContentManager {
     pluginContext?: PluginContext, // Optional for sync-only usage
     logger?: Logger,
   ) {
-    this.promotionOps = new PromotionOperations(entityService, logger);
-    this.rollbackOps = new RollbackOperations(entityService, logger);
     this.entityQuery = new EntityQueryService(entityService, logger);
 
     if (pluginContext) {
@@ -332,19 +283,17 @@ export class ContentManager {
     }
   }
 
-  // Delegate to appropriate operations
-  async promoteSync(options: PromoteOptions): Promise<PromoteResult> {
-    return this.promotionOps.promoteSync(options);
+  // Content generation operations
+  async generateSync(options: GenerateOptions): Promise<GenerateResult> {
+    return this.generationOps.generateSync(options);
   }
 
-  async promoteAsync(
-    options: PromoteOptions,
-  ): Promise<{
-    jobs: EntityOperationJob[];
-    totalEntities: number;
-    queuedEntities: number;
+  async generateAsync(options: GenerateOptions): Promise<{
+    jobs: ContentGenerationJob[];
+    totalSections: number;
+    queuedSections: number;
   }> {
-    return this.promotionOps.promoteAsync(options);
+    return this.generationOps.generateAsync(options);
   }
 
   // ... delegate all other methods
@@ -506,31 +455,31 @@ export { compareContent, isContentEquivalent } from "./utils/comparator";
 
 ### Usage Examples
 
-#### Basic Usage (Sync Only)
+#### Basic Usage (Query Operations)
 
 ```typescript
 import { ContentManager } from "@brains/content-management";
 
 const contentManager = new ContentManager(entityService, undefined, logger);
 
-// Sync operations work without PluginContext
-await contentManager.promoteSync({ pageId: "landing" });
-await contentManager.rollbackSync({ pageId: "landing", sectionId: "hero" });
+// Query operations work without PluginContext
+const previewContent = await contentManager.getPreviewEntities({ pageId: "landing" });
+const exists = await contentManager.exists("landing", "hero", "preview");
 ```
 
-#### Full Usage (Sync + Async)
+#### Full Usage (Generation + Async)
 
 ```typescript
 import { ContentManager } from "@brains/content-management";
 
 const contentManager = new ContentManager(entityService, pluginContext, logger);
 
-// Async operations available with PluginContext
-const { jobs } = await contentManager.promoteAsync({ pageId: "landing" });
-const results = await contentManager.waitForEntityJobs(jobs);
+// Async content generation available with PluginContext
+const { jobs } = await contentManager.generateAsync({ pageId: "landing" }, routes, resolver);
+const results = await contentManager.waitForContentJobs(jobs);
 
-// Or use complete async operations
-const result = await contentManager.promoteAsyncComplete({ pageId: "landing" });
+// Or use sync generation
+const result = await contentManager.generateSync({ pageId: "landing" }, routes, callback);
 ```
 
 ### Backward Compatibility Strategy
@@ -538,11 +487,14 @@ const result = await contentManager.promoteAsyncComplete({ pageId: "landing" });
 The ContentManager facade maintains the exact same API as the current SiteContentManager, ensuring zero breaking changes:
 
 ```typescript
-// All existing calls continue to work
+// All existing content generation calls continue to work
 const manager = new ContentManager(entityService, pluginContext, logger);
-await manager.promoteSync(options); // ✅ Same as before
 await manager.generateSync(options, routes, callback); // ✅ Same as before
 await manager.generateAsync(options, routes, resolver, config); // ✅ Same as before
+await manager.regenerateSync(options, callback); // ✅ Same as before
+
+// Site-builder will maintain its own promote/rollback operations
+// These remain in SiteContentManager for site-specific workflows
 ```
 
 ## Benefits
@@ -551,9 +503,9 @@ await manager.generateAsync(options, routes, resolver, config); // ✅ Same as b
 
 1. **Single Responsibility Principle**: Each operation class has one clear purpose
 2. **Testability**: Smaller, focused classes are easier to test in isolation
-3. **Maintainability**: Changes to promotion logic only affect PromotionOperations
-4. **Reusability**: Other plugins can use content management functionality
-5. **Complete Async Implementation**: All operations have async variants with job tracking
+3. **Maintainability**: Changes to generation logic only affect GenerationOperations
+4. **Reusability**: Other plugins can use core content management functionality
+5. **Complete Async Implementation**: Content generation operations have async variants with job tracking
 
 ### Long-term Benefits
 

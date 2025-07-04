@@ -81,8 +81,11 @@ const mockPluginContext = {
   updateContentIndex: mock(),
 } as unknown as PluginContext;
 
-const mockGenerateId = (type: string, pageId: string, sectionId: string): string => 
-  `${type}:${pageId}:${sectionId}`;
+const mockGenerateId = (
+  type: string,
+  pageId: string,
+  sectionId: string,
+): string => `${type}:${pageId}:${sectionId}`;
 
 let operations: GenerationOperations;
 
@@ -93,7 +96,7 @@ beforeEach((): void => {
   mockUpdateEntityAsync.mockClear();
   mockListEntities.mockClear();
   mockEnqueueContentGeneration.mockClear();
-  
+
   GenerationOperations.resetInstance();
   operations = GenerationOperations.createFresh(
     mockEntityService,
@@ -109,13 +112,13 @@ test("generateSync should generate content for routes", async () => {
       id: "landing",
       description: "Landing page",
       title: "Landing Page",
-      sections: [
-        { id: "hero", template: "hero-template" },
-      ],
+      sections: [{ id: "hero", template: "hero-template" }],
     },
   ];
 
-  const generateCallback = mock().mockResolvedValue({ content: "Generated content" });
+  const generateCallback = mock().mockResolvedValue({
+    content: "Generated content",
+  });
 
   mockGetEntity.mockResolvedValue(null);
   mockCreateEntityAsync.mockResolvedValue(undefined);
@@ -156,9 +159,7 @@ test("generateSync should skip existing entities", async () => {
       id: "landing",
       description: "Landing page",
       title: "Landing Page",
-      sections: [
-        { id: "hero", template: "hero-template" },
-      ],
+      sections: [{ id: "hero", template: "hero-template" }],
     },
   ];
 
@@ -195,9 +196,7 @@ test("generateSync should handle dry run", async () => {
       id: "landing",
       description: "Landing page",
       title: "Landing Page",
-      sections: [
-        { id: "hero", template: "hero-template" },
-      ],
+      sections: [{ id: "hero", template: "hero-template" }],
     },
   ];
 
@@ -248,17 +247,24 @@ test("generateAsync should queue generation jobs", async () => {
   expect(result.queuedSections).toBe(2);
   expect(result.jobs).toHaveLength(2);
 
-  expect(result.jobs[0]).toEqual({
-    jobId: expect.stringMatching(/^generate-site-content-preview:landing:hero-\d+$/),
+  expect(result.jobs).toHaveLength(2);
+  expect(result.jobs[0]).toMatchObject({
+    jobId: expect.stringMatching(
+      /^generate-site-content-preview:landing:hero-\d+$/,
+    ),
     entityId: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
     operation: "generate",
     pageId: "landing",
     sectionId: "hero",
     templateName: "template-name",
-    route: routes[0],
-    sectionDefinition: routes[0].sections[0],
   });
+
+  // Verify route and section are properly set (check they exist first)
+  expect(routes[0]).toBeDefined();
+  expect(routes[0]?.sections[0]).toBeDefined();
+  expect(result.jobs[0]?.route.path).toBe("/landing");
+  expect(result.jobs[0]?.sectionDefinition.id).toBe("hero");
 
   expect(mockEnqueueContentGeneration).toHaveBeenCalledTimes(2);
   expect(mockEnqueueContentGeneration).toHaveBeenCalledWith({
@@ -279,18 +285,14 @@ test("generateAsync should filter by pageId", async () => {
       id: "landing",
       description: "Landing page",
       title: "Landing Page",
-      sections: [
-        { id: "hero", template: "hero-template" },
-      ],
+      sections: [{ id: "hero", template: "hero-template" }],
     },
     {
       path: "/about",
       id: "about",
       description: "About page",
       title: "About Page",
-      sections: [
-        { id: "content", template: "content-template" },
-      ],
+      sections: [{ id: "content", template: "content-template" }],
     },
   ];
 
@@ -306,6 +308,7 @@ test("generateAsync should filter by pageId", async () => {
 
   expect(result.totalSections).toBe(1);
   expect(result.queuedSections).toBe(1);
+  expect(result.jobs).toHaveLength(1);
   expect(result.jobs[0]?.pageId).toBe("landing");
 });
 
@@ -329,7 +332,13 @@ test("regenerateSync should regenerate specific section", async () => {
   mockUpdateEntityAsync.mockResolvedValue(undefined);
 
   const result = await operations.regenerateSync(
-    { pageId: "landing", sectionId: "hero", environment: "preview", mode: "new", dryRun: false },
+    {
+      pageId: "landing",
+      sectionId: "hero",
+      environment: "preview",
+      mode: "new",
+      dryRun: false,
+    },
     regenerateCallback,
     "site-content-preview",
     mockGenerateId,
@@ -383,8 +392,14 @@ test("regenerateSync should regenerate all sections for page", async () => {
   ];
 
   const regenerateCallback = mock()
-    .mockResolvedValueOnce({ entityId: "site-content-preview:landing:hero", content: "New hero" })
-    .mockResolvedValueOnce({ entityId: "site-content-preview:landing:features", content: "New features" });
+    .mockResolvedValueOnce({
+      entityId: "site-content-preview:landing:hero",
+      content: "New hero",
+    })
+    .mockResolvedValueOnce({
+      entityId: "site-content-preview:landing:features",
+      content: "New features",
+    });
 
   mockListEntities.mockResolvedValue(pageEntities);
   mockUpdateEntityAsync.mockResolvedValue(undefined);

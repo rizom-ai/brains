@@ -2,7 +2,7 @@
 
 ## Issues to fix after extraction:
 
-1. **EntityService interface mismatch**: 
+1. **EntityService interface mismatch**:
    - Current code uses `queryEntities()` but EntityService interface has `listEntities()`
    - Need to update all usages to use `listEntities()` with filter options
 
@@ -19,4 +19,5 @@
    - Need to add proper null checks
 
 ## Priority: High
+
 These issues prevent the package from compiling and need to be resolved during integration.
