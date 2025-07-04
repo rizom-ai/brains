@@ -32,3 +32,9 @@ export type {
   ProgressCallback,
   ContentGenerationResult,
 } from "./services/job-tracking";
+
+// Utility functions
+export {
+  waitForContentJobs,
+  getContentJobStatuses,
+} from "./utils/job-tracking";

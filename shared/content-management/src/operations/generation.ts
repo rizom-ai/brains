@@ -372,11 +372,16 @@ export class GenerationOperations {
           id: entity.pageId,
           description: `${entity.pageId} page`,
           title: entity.pageId,
-          sections: [{ id: entity.sectionId, template: templateResolver(entity.pageId, entity.sectionId) }],
+          sections: [
+            {
+              id: entity.sectionId,
+              template: templateResolver(entity.pageId, entity.sectionId),
+            },
+          ],
         },
-        sectionDefinition: { 
-          id: entity.sectionId, 
-          template: templateResolver(entity.pageId, entity.sectionId) 
+        sectionDefinition: {
+          id: entity.sectionId,
+          template: templateResolver(entity.pageId, entity.sectionId),
         },
         mode: options.mode,
       };

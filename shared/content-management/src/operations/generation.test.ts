@@ -460,7 +460,9 @@ test("regenerateAsync should queue regeneration jobs", async () => {
   expect(result.jobs).toHaveLength(2);
 
   expect(result.jobs[0]).toMatchObject({
-    jobId: expect.stringMatching(/^regenerate-site-content-preview:landing:hero-\d+$/),
+    jobId: expect.stringMatching(
+      /^regenerate-site-content-preview:landing:hero-\d+$/,
+    ),
     entityId: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
     operation: "regenerate",

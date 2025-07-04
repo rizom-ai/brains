@@ -28,12 +28,14 @@ Extract **core content management** to `shared/content-management/` package with
 The current manager handles:
 
 **Operations to Extract (Core Content Management):**
+
 - **Generation Operations**: `generateSync()`, `generateAsync()`, `regenerateSync()`
 - **Entity Querying**: `getPreviewEntities()`, `getProductionEntities()`, content queries
 - **Content Utilities**: `compare()`, `exists()`, `generateId()`
 - **Job Tracking**: Job status monitoring and result processing for content generation
 
 **Operations Remaining in Site-Builder:**
+
 - **Promotion Operations**: `promoteSync()`, `promoteAsync()` - Site-builder specific workflow
 - **Rollback Operations**: `rollbackSync()`, `rollbackAsync()` - Site-builder specific workflow
 - **Site Building Integration**: Template resolution, build pipeline integration
@@ -41,6 +43,7 @@ The current manager handles:
 ### Remaining Implementation Tasks
 
 **Content Management Package (Shared):**
+
 - ✅ Extract GenerationOperations class (completed)
 - ✅ Extract EntityQueryService class (completed)
 - ✅ Create types and schemas (completed)
@@ -49,6 +52,7 @@ The current manager handles:
 - ⏳ Create ContentManager facade class
 
 **Site-Builder Plugin (Specific):**
+
 - ⏳ Keep promoteAsync and rollbackAsync in site-builder (site-specific operations)
 - ⏳ Integrate shared content management package
 - ⏳ Update plugin tools to use shared package for generation operations
@@ -463,7 +467,9 @@ import { ContentManager } from "@brains/content-management";
 const contentManager = new ContentManager(entityService, undefined, logger);
 
 // Query operations work without PluginContext
-const previewContent = await contentManager.getPreviewEntities({ pageId: "landing" });
+const previewContent = await contentManager.getPreviewEntities({
+  pageId: "landing",
+});
 const exists = await contentManager.exists("landing", "hero", "preview");
 ```
 
@@ -475,11 +481,19 @@ import { ContentManager } from "@brains/content-management";
 const contentManager = new ContentManager(entityService, pluginContext, logger);
 
 // Async content generation available with PluginContext
-const { jobs } = await contentManager.generateAsync({ pageId: "landing" }, routes, resolver);
+const { jobs } = await contentManager.generateAsync(
+  { pageId: "landing" },
+  routes,
+  resolver,
+);
 const results = await contentManager.waitForContentJobs(jobs);
 
 // Or use sync generation
-const result = await contentManager.generateSync({ pageId: "landing" }, routes, callback);
+const result = await contentManager.generateSync(
+  { pageId: "landing" },
+  routes,
+  callback,
+);
 ```
 
 ### Backward Compatibility Strategy

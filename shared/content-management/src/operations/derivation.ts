@@ -92,7 +92,6 @@ export class DerivationOperations {
     }
   }
 
-
   /**
    * Derive content asynchronously (queues jobs and returns immediately)
    * Future enhancement: Could queue derivation jobs for batch processing
