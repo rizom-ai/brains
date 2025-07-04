@@ -63,34 +63,55 @@ let jobTrackingService: JobTrackingService;
 beforeEach((): void => {
   mockGetJobStatus.mockClear();
   JobTrackingService.resetInstance();
-  jobTrackingService = JobTrackingService.createFresh(mockPluginContext, mockLogger);
+  jobTrackingService = JobTrackingService.createFresh(
+    mockPluginContext,
+    mockLogger,
+  );
 });
 
 test("should implement singleton pattern", () => {
-  const instance1 = JobTrackingService.getInstance(mockPluginContext, mockLogger);
-  const instance2 = JobTrackingService.getInstance(mockPluginContext, mockLogger);
-  
+  const instance1 = JobTrackingService.getInstance(
+    mockPluginContext,
+    mockLogger,
+  );
+  const instance2 = JobTrackingService.getInstance(
+    mockPluginContext,
+    mockLogger,
+  );
+
   expect(instance1).toBe(instance2);
 });
 
 test("should reset instance", () => {
-  const instance1 = JobTrackingService.getInstance(mockPluginContext, mockLogger);
+  const instance1 = JobTrackingService.getInstance(
+    mockPluginContext,
+    mockLogger,
+  );
   JobTrackingService.resetInstance();
-  const instance2 = JobTrackingService.getInstance(mockPluginContext, mockLogger);
-  
+  const instance2 = JobTrackingService.getInstance(
+    mockPluginContext,
+    mockLogger,
+  );
+
   expect(instance1).not.toBe(instance2);
 });
 
 test("should create fresh instance", () => {
-  const instance1 = JobTrackingService.getInstance(mockPluginContext, mockLogger);
-  const instance2 = JobTrackingService.createFresh(mockPluginContext, mockLogger);
-  
+  const instance1 = JobTrackingService.getInstance(
+    mockPluginContext,
+    mockLogger,
+  );
+  const instance2 = JobTrackingService.createFresh(
+    mockPluginContext,
+    mockLogger,
+  );
+
   expect(instance1).not.toBe(instance2);
 });
 
 test("waitForContentJobs should return empty array for no jobs", async () => {
   const result = await jobTrackingService.waitForContentJobs([]);
-  
+
   expect(result).toEqual([]);
 });
 
@@ -130,7 +151,7 @@ test("waitForContentJobs should track job progress", async () => {
   });
 
   const progressCallback = mock();
-  
+
   const result = await jobTrackingService.waitForContentJobs(
     mockJobs,
     progressCallback,
@@ -142,7 +163,6 @@ test("waitForContentJobs should track job progress", async () => {
   expect(result[0]?.jobId).toBe("job-1");
   expect(result[0]?.content).toBe("Generated content");
   expect(progressCallback).toHaveBeenCalled();
-
 });
 
 test("waitForContentJobs should handle job failures", async () => {
@@ -172,7 +192,11 @@ test("waitForContentJobs should handle job failures", async () => {
     error: "Template not found",
   });
 
-  const result = await jobTrackingService.waitForContentJobs(mockJobs, undefined, 5000);
+  const result = await jobTrackingService.waitForContentJobs(
+    mockJobs,
+    undefined,
+    5000,
+  );
 
   expect(result).toHaveLength(1);
   expect(result[0]?.success).toBe(false);
@@ -299,7 +323,6 @@ test("getContentJobStatuses should handle errors gracefully", async () => {
   expect(result.jobs[0]?.error).toBe("Network error");
 });
 
-
 test("should call progress callback with correct data", async () => {
   const mockJobs: ContentGenerationJob[] = [
     {
@@ -328,7 +351,7 @@ test("should call progress callback with correct data", async () => {
   });
 
   const progressCallback = mock();
-  
+
   await jobTrackingService.waitForContentJobs(mockJobs, progressCallback, 5000);
 
   expect(progressCallback).toHaveBeenCalledWith({

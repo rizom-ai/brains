@@ -358,7 +358,7 @@ test("regenerateSync should regenerate specific section", async () => {
     "landing",
     "hero",
     "new",
-    { current: 1, total: 1, message: "Regenerating landing/hero" },
+    { progress: 1, total: 1, message: "Regenerating landing/hero" },
     "Old content",
   );
 

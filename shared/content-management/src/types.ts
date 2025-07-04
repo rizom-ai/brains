@@ -1,11 +1,5 @@
-import type {
-  SiteContent,
-  SiteContentEntityType,
-} from "@brains/types";
-import type {
-  RouteDefinition,
-  SectionDefinition,
-} from "@brains/view-registry";
+import type { SiteContent, SiteContentEntityType } from "@brains/types";
+import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 
 // Re-export types from schemas
 export type {

@@ -103,12 +103,17 @@ export class JobTrackingService {
       const checkJobs = async (): Promise<void> => {
         try {
           pollCount++;
-          this.logger.debug("Polling job statuses", { pollCount, interval: pollInterval });
+          this.logger.debug("Polling job statuses", {
+            pollCount,
+            interval: pollInterval,
+          });
 
           // Check status of each pending job
           for (const job of jobs) {
-            if (completed.some(c => c.jobId === job.jobId) || 
-                failed.some(f => f.jobId === job.jobId)) {
+            if (
+              completed.some((c) => c.jobId === job.jobId) ||
+              failed.some((f) => f.jobId === job.jobId)
+            ) {
               continue; // Already processed
             }
 
@@ -117,14 +122,16 @@ export class JobTrackingService {
               // This assumes the PluginContext has a method to check job status
               // Implementation will depend on the actual job queue system
               const jobStatus = await this.checkJobStatus(job.jobId);
-              
+
               if (jobStatus.status === "completed") {
                 completed.push(job);
                 results.push({
                   jobId: job.jobId,
                   entityId: job.entityId,
                   success: true,
-                  ...(jobStatus.result?.content && { content: jobStatus.result.content }),
+                  ...(jobStatus.result?.content && {
+                    content: jobStatus.result.content,
+                  }),
                   duration: Date.now() - startTime,
                 });
 
@@ -170,7 +177,7 @@ export class JobTrackingService {
           // Check if all jobs are complete
           if (completed.length + failed.length >= jobs.length) {
             clearTimeout(timeoutHandle);
-            
+
             this.logger.info("All content generation jobs completed", {
               totalJobs: jobs.length,
               successful: completed.length,
@@ -222,7 +229,7 @@ export class JobTrackingService {
     try {
       for (const job of jobs) {
         const status = await this.checkJobStatus(job.jobId);
-        
+
         summary.jobs.push({
           jobId: job.jobId,
           sectionId: job.sectionId,
@@ -255,7 +262,6 @@ export class JobTrackingService {
     return summary;
   }
 
-
   /**
    * Check the status of a specific job using the plugin context
    */
@@ -265,11 +271,11 @@ export class JobTrackingService {
     error?: string;
   }> {
     this.logger.debug("Checking job status", { jobId });
-    
+
     try {
       // Use the plugin context to check job status
       const jobStatus = await this.pluginContext.getJobStatus(jobId);
-      
+
       if (!jobStatus) {
         this.logger.warn("Job not found", { jobId });
         return {
@@ -277,24 +283,24 @@ export class JobTrackingService {
           error: "Job not found",
         };
       }
-      
+
       return {
         status: jobStatus.status,
         ...(jobStatus.result && { result: { content: jobStatus.result } }),
         ...(jobStatus.error && { error: jobStatus.error }),
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error("Failed to check job status", {
         jobId,
         error: errorMessage,
       });
-      
+
       return {
         status: "failed",
         error: errorMessage,
       };
     }
   }
-
 }

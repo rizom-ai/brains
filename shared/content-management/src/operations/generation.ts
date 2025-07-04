@@ -1,14 +1,9 @@
 import type { Logger } from "@brains/types";
 import type { ProgressNotification } from "@brains/utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
-import type {
-  SiteContentEntityType,
-} from "@brains/types";
+import type { SiteContentEntityType } from "@brains/types";
 import { SiteContentEntityTypeSchema } from "@brains/types";
-import type {
-  RouteDefinition,
-  SectionDefinition,
-} from "@brains/view-registry";
+import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { PluginContext } from "@brains/plugin-utils";
 import type {
   SiteContent,
@@ -209,7 +204,7 @@ export class GenerationOperations {
       pageId: string,
       sectionId: string,
       mode: "leave" | "new" | "with-current",
-      progress: { current: number; total: number; message: string },
+      progress: ProgressNotification,
       currentContent?: string,
     ) => Promise<{
       entityId: string;
@@ -240,8 +235,8 @@ export class GenerationOperations {
       );
 
       for (const [index, entity] of entities.entries()) {
-        const progress = {
-          current: index + 1,
+        const progress: ProgressNotification = {
+          progress: index + 1,
           total: entities.length,
           message: `Regenerating ${entity.pageId}/${entity.sectionId}`,
         };
