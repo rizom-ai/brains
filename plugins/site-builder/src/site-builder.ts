@@ -1,12 +1,12 @@
 import type { ProgressCallback, Logger } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
-import type { BaseEntity } from "@brains/types";
 import type { PluginContext } from "@brains/plugin-utils";
 import type {
   SiteBuilder as ISiteBuilder,
   SiteBuilderOptions,
   BuildResult,
   SectionDefinition,
+  RouteDefinition,
 } from "@brains/view-registry";
 import { builtInTemplates } from "./view-template-schemas";
 import type {
@@ -126,8 +126,8 @@ export class SiteBuilder implements ISiteBuilder {
           description: siteConfig.description,
           ...(siteConfig.url && { url: siteConfig.url }),
         },
-        getContent: async (section: SectionDefinition) => {
-          return this.getContentForSection(section, options.environment);
+        getContent: async (route: RouteDefinition, section: SectionDefinition) => {
+          return this.getContentForSection(section, route, options.environment);
         },
         getViewTemplate: (name: string) => {
           return this.context.getViewTemplate(name);
@@ -181,6 +181,7 @@ export class SiteBuilder implements ISiteBuilder {
    */
   private async getContentForSection(
     section: SectionDefinition,
+    route: { id: string },
     environment: "preview" | "production" = "preview",
   ): Promise<unknown> {
     // If content is provided directly, use it
@@ -188,78 +189,20 @@ export class SiteBuilder implements ISiteBuilder {
       return section.content;
     }
 
-    // If contentEntity is specified, fetch from entity service
-    if (section.contentEntity) {
-      // Map entity type based on environment
-      let entityType = section.contentEntity.entityType;
-      if (
-        environment === "production" &&
-        entityType === "site-content-preview"
-      ) {
-        entityType = "site-content-production";
+    // Look up entity by ID pattern (routeId:sectionId)
+    const entityId = `${route.id}:${section.id}`;
+    const entityType = environment === "production" ? "site-content-production" : "site-content-preview";
+    
+    try {
+      const entity = await this.context.entityService.getEntity(entityType, entityId);
+      if (entity && section.template) {
+        const templateName = section.template.includes(":")
+          ? section.template
+          : `site-builder:${section.template}`;
+        return this.context.parseContent(templateName, entity.content);
       }
-
-      const entities = await this.context.entityService.listEntities(
-        entityType,
-        section.contentEntity.query
-          ? { filter: { metadata: section.contentEntity.query } }
-          : undefined,
-      );
-
-      if (entities.length > 0) {
-        const entity = entities[0] as BaseEntity;
-
-        // TODO: Future refactoring - create a StructuredContentEntityAdapter that
-        // handles both formatting and parsing in one place. This would:
-        // - Take entity type as a parameter (not hardcoded to site-content)
-        // - Return already-parsed structured data from entityService
-        // - Sunset the need for SiteContentAdapter
-        // - Eliminate the need for manual parsing here
-
-        // For now, we need to parse site-content entities manually
-        if (
-          (entity.entityType === "site-content-preview" ||
-            entity.entityType === "site-content-production") &&
-          typeof entity.content === "string"
-        ) {
-          try {
-            // Use ContentGenerator to parse existing content if template is available
-            if (section.template) {
-              try {
-                // Templates are registered with site-builder prefix
-                const templateName = section.template.includes(":")
-                  ? section.template
-                  : `site-builder:${section.template}`;
-
-                // Use ContentGenerator to parse the existing content to structured data
-                const parsedContent = this.context.parseContent(
-                  templateName,
-                  entity.content,
-                );
-
-                return parsedContent;
-              } catch (error) {
-                this.logger.warn(
-                  `Failed to parse content with template ${section.template}: ${error}`,
-                );
-                // Fallback to raw content
-                return entity.content;
-              }
-            } else {
-              this.logger.warn(
-                `No template specified for section ${section.id}`,
-              );
-              return entity.content;
-            }
-          } catch (error) {
-            this.logger.warn(`Failed to parse site-content entity: ${error}`);
-            return entity.content;
-          }
-        }
-
-        // For other entities, return the content as-is
-        return entity.content;
-      }
+    } catch {
+      this.logger.debug(`No entity found with ID ${entityId}`);
     }
 
     return null;

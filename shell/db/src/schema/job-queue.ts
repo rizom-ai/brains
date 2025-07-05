@@ -18,8 +18,8 @@ export const jobQueue = sqliteTable(
     // Job type for handler dispatch
     type: text("type").notNull(),
 
-    // Job data (JSON - type-specific payload)
-    data: text("data", { mode: "json" }).$type<unknown>().notNull(),
+    // Job data (JSON string - type-specific payload)
+    data: text("data").notNull(),
 
     // Job result (JSON - type-specific result after completion)
     result: text("result", { mode: "json" }).$type<unknown>(),

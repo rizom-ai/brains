@@ -453,7 +453,7 @@ export class PluginContextFactory {
             }
 
             if (job.status === "failed") {
-              const error = job.lastError || "Job failed with no error message";
+              const error = job.lastError ?? "Job failed with no error message";
               throw new Error(`Job ${jobId} failed: ${error}`);
             }
 

@@ -53,6 +53,7 @@ export {
   ServiceRegistrationError,
   ServiceResolutionError,
   ContentGenerationError,
+  TemplateNotGeneratableError,
   TemplateRegistrationError,
   RouteRegistrationError,
   McpError,

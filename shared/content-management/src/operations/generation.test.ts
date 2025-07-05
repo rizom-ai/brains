@@ -81,7 +81,6 @@ const mockPluginContext = {
   updateContentIndex: mock(),
 } as unknown as PluginContext;
 
-
 let operations: GenerationOperations;
 
 beforeEach((): void => {
@@ -240,9 +239,7 @@ test("generateAsync should queue generation jobs", async () => {
 
   expect(result.jobs).toHaveLength(2);
   expect(result.jobs[0]).toMatchObject({
-    jobId: expect.stringMatching(
-      /^generate-landing:hero-\d+$/,
-    ),
+    jobId: expect.stringMatching(/^generate-landing:hero-\d+$/),
     entityId: "landing:hero",
     entityType: "site-content-preview",
     operation: "generate",
@@ -444,9 +441,7 @@ test("regenerateAsync should queue regeneration jobs", async () => {
   expect(result.jobs).toHaveLength(2);
 
   expect(result.jobs[0]).toMatchObject({
-    jobId: expect.stringMatching(
-      /^regenerate-landing:hero-\d+$/,
-    ),
+    jobId: expect.stringMatching(/^regenerate-landing:hero-\d+$/),
     entityId: "landing:hero",
     entityType: "site-content-preview",
     operation: "regenerate",

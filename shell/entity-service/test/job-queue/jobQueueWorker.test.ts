@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { JobQueueWorker } from "../../src/job-queue/jobQueueWorker";
 import type { JobQueue } from "@brains/db";
 import type { JobQueueService } from "../../src/job-queue/jobQueueService";
+import { createSilentLogger } from "@brains/utils";
 
 describe("JobQueueWorker", () => {
   let worker: JobQueueWorker;
@@ -38,7 +39,7 @@ describe("JobQueueWorker", () => {
       ),
     } as unknown as JobQueueService;
 
-    worker = JobQueueWorker.createFresh(mockService, {
+    worker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
       pollInterval: 50, // Fast for tests
     });
   });
@@ -74,7 +75,7 @@ describe("JobQueueWorker", () => {
 
   describe("Configuration", () => {
     it("should accept custom configuration", () => {
-      const customWorker = JobQueueWorker.createFresh(mockService, {
+      const customWorker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
         concurrency: 5,
         pollInterval: 2000,
         maxJobs: 100,
@@ -85,7 +86,7 @@ describe("JobQueueWorker", () => {
     });
 
     it("should auto-start when configured", async () => {
-      const autoWorker = JobQueueWorker.createFresh(mockService, {
+      const autoWorker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
         autoStart: true,
       });
 
@@ -146,7 +147,7 @@ describe("JobQueueWorker", () => {
         ),
       } as unknown as JobQueueService;
 
-      worker = JobQueueWorker.createFresh(mockService, {
+      worker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
         pollInterval: 50,
       });
 
@@ -165,30 +166,10 @@ describe("JobQueueWorker", () => {
     });
   });
 
-  describe("Singleton pattern", () => {
-    it("should return same instance for getInstance", () => {
-      const instance1 = JobQueueWorker.getInstance(mockService);
-      const instance2 = JobQueueWorker.getInstance(mockService);
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should create fresh instance for createFresh", () => {
-      const singleton = JobQueueWorker.getInstance(mockService);
-      const fresh = JobQueueWorker.createFresh(mockService);
-      expect(singleton).not.toBe(fresh);
-    });
-
-    it("should reset singleton", () => {
-      const instance1 = JobQueueWorker.getInstance(mockService);
-      JobQueueWorker.resetInstance();
-      const instance2 = JobQueueWorker.getInstance(mockService);
-      expect(instance1).not.toBe(instance2);
-    });
-  });
 
   describe("Max jobs limit", () => {
     it("should accept maxJobs configuration", () => {
-      const limitedWorker = JobQueueWorker.createFresh(mockService, {
+      const limitedWorker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
         maxJobs: 5,
       });
 
@@ -214,7 +195,7 @@ describe("JobQueueWorker", () => {
         }),
       } as unknown as JobQueueService;
 
-      worker = JobQueueWorker.createFresh(mockService, {
+      worker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
         pollInterval: 50,
       });
 

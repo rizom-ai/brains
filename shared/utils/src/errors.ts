@@ -250,6 +250,25 @@ export class ContentGenerationError extends BrainsError {
 }
 
 /**
+ * Error for templates that don't support AI content generation
+ */
+export class TemplateNotGeneratableError extends BrainsError {
+  constructor(
+    templateName: string,
+    reason: string = "Template does not support AI content generation",
+    context: Record<string, unknown> = {},
+  ) {
+    super(
+      `Template ${templateName} does not support AI content generation`,
+      "TEMPLATE_NOT_GENERATABLE",
+      reason,
+      { templateName, ...context },
+    );
+    this.name = "TemplateNotGeneratableError";
+  }
+}
+
+/**
  * Template registration errors
  */
 export class TemplateRegistrationError extends BrainsError {

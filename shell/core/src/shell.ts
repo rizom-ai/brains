@@ -221,7 +221,7 @@ export class Shell {
 
     this.jobQueueWorker =
       dependencies?.jobQueueWorker ??
-      JobQueueWorker.createFresh(this.jobQueueService, {
+      JobQueueWorker.createFresh(this.jobQueueService, this.logger, {
         pollInterval: 100, // 100ms for responsive processing
         concurrency: 1, // Process one job at a time
         autoStart: false, // Start manually during initialization
@@ -446,7 +446,7 @@ export class Shell {
     }
 
     // Check if interface-granted permission meets template requirements
-    const grantedPermission = config.interfacePermissionGrant || "public";
+    const grantedPermission = config.interfacePermissionGrant ?? "public";
     if (
       !PermissionHandler.canUseTemplate(
         grantedPermission,

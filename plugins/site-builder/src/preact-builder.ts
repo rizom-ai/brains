@@ -95,7 +95,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     this.logger.info(`Building route: ${route.path}`);
 
     // Render sections
-    const sections = await this.renderSections(route.sections, context);
+    const sections = await this.renderSections(route, route.sections, context);
 
     // Create full HTML page
     const html = this.createHTMLPage({
@@ -119,6 +119,7 @@ export class PreactBuilder implements StaticSiteBuilder {
   }
 
   private async renderSections(
+    route: RouteDefinition,
     sections: RouteDefinition["sections"],
     context: BuildContext,
   ): Promise<string[]> {
@@ -139,9 +140,7 @@ export class PreactBuilder implements StaticSiteBuilder {
 
       // Get content from entity or use provided content
       let content = section.content;
-      if (!content && section.contentEntity) {
-        content = await context.getContent(section);
-      }
+      content ??= await context.getContent(route, section);
 
       if (!content) {
         this.logger.warn(`No content for section: ${section.id}`);

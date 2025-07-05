@@ -57,9 +57,10 @@ export class JobQueueWorker {
    */
   public static getInstance(
     jobQueueService: JobQueueService,
+    logger: Logger,
     config?: JobQueueWorkerConfig,
   ): JobQueueWorker {
-    JobQueueWorker.instance ??= new JobQueueWorker(jobQueueService, config);
+    JobQueueWorker.instance ??= new JobQueueWorker(jobQueueService, logger, config);
     return JobQueueWorker.instance;
   }
 
@@ -75,9 +76,10 @@ export class JobQueueWorker {
    */
   public static createFresh(
     jobQueueService: JobQueueService,
+    logger: Logger,
     config?: JobQueueWorkerConfig,
   ): JobQueueWorker {
-    return new JobQueueWorker(jobQueueService, config);
+    return new JobQueueWorker(jobQueueService, logger, config);
   }
 
   /**
@@ -85,9 +87,10 @@ export class JobQueueWorker {
    */
   private constructor(
     jobQueueService: JobQueueService,
+    logger: Logger,
     config?: JobQueueWorkerConfig,
   ) {
-    this.logger = Logger.getInstance().child("JobQueueWorker");
+    this.logger = logger.child("JobQueueWorker");
     this.jobQueueService = jobQueueService;
     this.config = {
       concurrency: config?.concurrency ?? 1,

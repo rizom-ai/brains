@@ -6,6 +6,7 @@ import type {
 } from "@brains/plugin-utils";
 import type { Template } from "@brains/types";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import type { ProgressNotification } from "@brains/utils";
 import { RouteDefinitionSchema } from "@brains/view-registry";
 import { TemplateSchema } from "@brains/types";
 import { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
@@ -15,6 +16,7 @@ import {
   siteContentPreviewAdapter,
   siteContentProductionAdapter,
 } from "./entities/site-content-adapter";
+import { ContentManager } from "@brains/content-management";
 import {
   SiteContentManager,
   PromoteOptionsSchema,
@@ -75,6 +77,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
   declare protected config: SiteBuilderConfig;
   private siteBuilder?: SiteBuilder;
   private siteContentManager?: SiteContentManager;
+  private contentManager?: ContentManager;
 
   constructor(config: SiteBuilderConfigInput = {}) {
     super(
@@ -171,6 +174,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       context,
     );
 
+    // Initialize the shared content manager
+    this.contentManager = ContentManager.getInstance(
+      context.entityService,
+      this.logger.child("ContentManager"),
+      context,
+    );
+
     // Site builder is now encapsulated within the plugin
   }
 
@@ -200,9 +210,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .describe("Optional: preview changes without executing"),
         },
         async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.siteContentManager || !this.context) {
+          if (!this.contentManager || !this.context) {
             throw new SiteBuilderInitializationError(
-              "Site content manager not initialized",
+              "Content manager not initialized",
               undefined,
               { tool: "generate" },
             );
@@ -218,6 +228,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const generateCallback = async (
             route: RouteDefinition,
             section: SectionDefinition,
+            progress: ProgressNotification,
           ): Promise<{
             content: string;
           }> => {
@@ -239,9 +250,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               route,
               section,
               {
-                current: 1, // This will be improved when we have actual progress
-                total: 1,
-                message: "Generating content",
+                current: progress.progress,
+                total: progress.total ?? 100,
+                message: progress.message ?? "Generating content",
               },
               {
                 ...(config.siteConfig ?? {
@@ -270,11 +281,12 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             };
           };
 
-          // Use the content manager with progress reporting
-          const result = await this.siteContentManager.generateSync(
+          // Use the shared content manager with progress reporting
+          const result = await this.contentManager.generateSync(
             options,
             routes,
             generateCallback,
+            "site-content-preview",
           );
 
           // Report progress if context is available
@@ -545,11 +557,12 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Create the regeneration callback
           const regenerateCallback = async (
-            entityType: string,
+            _entityType: string,
             page: string,
             section: string,
             mode: "leave" | "new" | "with-current",
             progress: { current: number; total: number; message: string },
+            _currentContent?: string,
           ): Promise<{
             entityId: string;
             content: string;
@@ -599,7 +612,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             );
 
             return {
-              entityId: `${entityType}:${page}:${section}`,
+              entityId: `${page}:${section}`,
               content: formattedContent,
             };
           };
@@ -621,8 +634,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         "Generate content for all sections across all pages",
         {},
         async (_input, context): Promise<Record<string, unknown>> => {
-          if (!this.siteContentManager || !this.context) {
-            throw new Error("Site content manager not initialized");
+          if (!this.contentManager || !this.context) {
+            throw new Error("Content manager not initialized");
           }
 
           // Create a safe progress reporter
@@ -643,16 +656,16 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const generateCallback = async (
             route: RouteDefinition,
             section: SectionDefinition,
-            progress: { current: number; total: number; message: string },
+            progress: ProgressNotification,
           ): Promise<{
             content: string;
           }> => {
             // Report progress
             const progressPercent = Math.round(
-              (progress.current / progress.total) * 100,
+              (progress.progress / (progress.total ?? 100)) * 100,
             );
             await reportProgress({
-              message: progress.message,
+              message: progress.message ?? "Generating content",
               progress: progressPercent,
               total: 100,
             });
@@ -674,9 +687,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               route,
               section,
               {
-                current: progress.current,
-                total: progress.total,
-                message: progress.message,
+                current: progress.progress,
+                total: progress.total ?? 100,
+                message: progress.message ?? "Generating content",
               },
               {
                 ...(config.siteConfig ?? {
@@ -705,9 +718,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             };
           };
 
-          const result = await this.siteContentManager.generateAllSync(
+          const result = await this.contentManager.generateSync(
+            { dryRun: false },
             routes,
             generateCallback,
+            "site-content-preview",
           );
 
           return result;
@@ -753,11 +768,12 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Create the regeneration callback (reuse from regenerate tool)
           const regenerateCallback = async (
-            entityType: string,
+            _entityType: string,
             page: string,
             section: string,
             mode: "leave" | "new" | "with-current",
             progress: { current: number; total: number; message: string },
+            _currentContent?: string,
           ): Promise<{
             entityId: string;
             content: string;
@@ -807,7 +823,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             );
 
             return {
-              entityId: `${entityType}:${page}:${section}`,
+              entityId: `${page}:${section}`,
               content: formattedContent,
             };
           };

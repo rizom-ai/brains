@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, mock, afterAll } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
 import type { PluginContext, MessageContext } from "@brains/plugin-utils";
-import { createSilentLogger } from "@brains/utils";
+import { PluginTestHarness } from "@brains/test-utils";
 import type { CLIConfig } from "../src/types";
 
 // Mock console.clear
@@ -15,10 +15,18 @@ process.exit = mockExit as any;
 describe("CLIInterface", () => {
   let cliInterface: CLIInterface;
   let mockContext: PluginContext;
+  let testHarness: PluginTestHarness;
   let generateContentMock: ReturnType<typeof mock>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mock.restore();
+    
+    // Set up test harness
+    testHarness = new PluginTestHarness();
+    await testHarness.setup();
+    mockContext = testHarness.getPluginContext();
+    
+    // Mock the generateContent method to track calls
     generateContentMock = mock(() =>
       Promise.resolve({
         message: "Query processed",
@@ -26,12 +34,13 @@ describe("CLIInterface", () => {
         sources: [],
       }),
     );
+    mockContext.generateContent = generateContentMock;
+  });
 
-    mockContext = {
-      logger: createSilentLogger(),
-      generateContent: generateContentMock,
-      registerDaemon: mock(() => {}),
-    } as unknown as PluginContext;
+  afterEach(async () => {
+    if (testHarness) {
+      await testHarness.cleanup();
+    }
   });
 
   describe("constructor and configuration", () => {

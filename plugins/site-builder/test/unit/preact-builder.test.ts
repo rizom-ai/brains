@@ -331,7 +331,7 @@ describe("PreactBuilder", () => {
         title: "Test Site",
         description: "Test",
       },
-      getContent: async (section) => {
+      getContent: async (_route, section) => {
         contentFetched = true;
         expect(section.contentEntity).toBeDefined();
         return mockContent;

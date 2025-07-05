@@ -3,10 +3,10 @@ import type {
   GenerationContext,
   Logger,
   SearchResult,
+  EntityService,
+  AIService,
 } from "@brains/types";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
-import type { IEntityService as EntityService } from "@brains/entity-service";
-import type { IAIService as AIService } from "@brains/ai-service";
 
 /**
  * Progress information for content generation operations
@@ -108,6 +108,20 @@ export class ContentGenerator {
 
     // Cast template to correct type
     const typedTemplate = template as Template<T>;
+
+    // Check if template supports AI generation
+    if (!typedTemplate.basePrompt) {
+      // Template doesn't use AI - check for getData method
+      if (typedTemplate.getData) {
+        return typedTemplate.getData({
+          context,
+          dependencies: this.dependencies,
+        });
+      }
+      throw new Error(
+        `Template ${templateName} must have either basePrompt or getData method`,
+      );
+    }
 
     // Query relevant entities to provide context for generation
     const searchTerms = [typedTemplate.basePrompt, context.prompt]
@@ -218,6 +232,10 @@ export class ContentGenerator {
     context: GenerationContext,
     relevantEntities: SearchResult[] = [],
   ): string {
+    // basePrompt is required for AI generation, verified by caller
+    if (!template.basePrompt) {
+      throw new Error("Template basePrompt is required for AI generation");
+    }
     let prompt = template.basePrompt;
 
     // Add entity context to inform the generation

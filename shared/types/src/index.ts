@@ -10,7 +10,7 @@ export type { BaseEntity, EntityInput, SearchResult } from "./entities";
 export { baseEntitySchema } from "./entities";
 
 // Template types (used by both content and plugins)
-export type { ComponentType, GenerationContext, Template } from "./templates";
+export type { ComponentType, GenerationContext, Template, TemplateDataContext } from "./templates";
 export { TemplateSchema } from "./templates";
 
 // Content types (site content, routes, sections)
@@ -28,7 +28,7 @@ export { SiteContentEntityTypeSchema } from "./content";
 export type { ServiceRegistry, ComponentFactory } from "./registry";
 
 // Service interfaces (minimal shared contracts only)
-export type { Command, CommandResponse, BrainProtocol } from "./services";
+export type { Command, CommandResponse, BrainProtocol, EntityService, AIService } from "./services";
 
 // Formatter types
 export type { SchemaFormatter, ContentFormatter } from "./formatters";

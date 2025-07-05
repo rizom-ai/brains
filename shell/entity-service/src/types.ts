@@ -1,4 +1,4 @@
-import type { BaseEntity, EntityInput } from "@brains/types";
+import type { BaseEntity, EntityInput, EntityService as IEntityService } from "@brains/types";
 
 /**
  * List entities options
@@ -27,21 +27,11 @@ export interface SearchOptions {
 
 /**
  * Entity service interface for managing brain entities
+ * Extends the public interface with additional shell-specific methods
  */
-export interface EntityService {
-  // Core CRUD operations
-  getEntity<T extends BaseEntity>(
-    entityType: string,
-    id: string,
-  ): Promise<T | null>;
-  listEntities<T extends BaseEntity>(
-    entityType: string,
-    options?: Omit<ListOptions, "entityType">,
-  ): Promise<T[]>;
-  createEntitySync<T extends BaseEntity>(entity: EntityInput<T>): Promise<T>;
-  updateEntitySync<T extends BaseEntity>(entity: T): Promise<T>;
-  deleteEntity(id: string): Promise<boolean>;
-
+export interface EntityService extends IEntityService {
+  // Additional shell-specific methods for async operations
+  
   // Async entity creation (returns immediately, embedding generated in background)
   createEntityAsync<T extends BaseEntity>(
     entity: EntityInput<T>,
@@ -61,23 +51,7 @@ export interface EntityService {
     error?: string;
   } | null>;
 
-  // Search and discovery
-  search(query: string, options?: SearchOptions): Promise<SearchResult[]>;
-
-  // Entity transformation - useful for promotion/rollback workflows
-  deriveEntity<T extends BaseEntity>(
-    sourceEntityId: string,
-    sourceEntityType: string,
-    targetEntityType: string,
-    options?: { deleteSource?: boolean },
-  ): Promise<T>;
-
-  // Entity type discovery
-  getEntityTypes(): string[];
-
-  // Entity serialization for file system synchronization (directory-sync plugin)
-  serializeEntity(entity: BaseEntity): string;
-  deserializeEntity(markdown: string, entityType: string): Partial<BaseEntity>;
+  // The sync methods are inherited from the public interface
 }
 
 /**
@@ -103,5 +77,4 @@ export interface EntityRegistry {
 
 // Import only the necessary types from other packages
 import type { z } from "zod";
-import type { SearchResult } from "@brains/types";
 import type { EntityAdapter } from "@brains/base-entity";

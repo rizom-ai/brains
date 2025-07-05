@@ -18,10 +18,7 @@ import type {
  * Generate deterministic entity ID for site content
  * Format: ${pageId}:${sectionId}
  */
-function generateContentId(
-  pageId: string,
-  sectionId: string,
-): string {
+function generateContentId(pageId: string, sectionId: string): string {
   return `${pageId}:${sectionId}`;
 }
 
@@ -118,7 +115,7 @@ export class GenerationOperations {
 
     for (const route of routes) {
       // Apply page filter if specified
-      const pageId = route.path.replace(/^\//, "");
+      const pageId = route.id;
       if (options.pageId && pageId !== options.pageId) {
         continue;
       }
@@ -432,7 +429,7 @@ export class GenerationOperations {
 
     // Calculate total sections
     for (const route of routes) {
-      const pageId = route.path.replace(/^\//, "");
+      const pageId = route.id;
       if (options.pageId && pageId !== options.pageId) {
         continue;
       }
@@ -447,7 +444,7 @@ export class GenerationOperations {
     let currentSection = 0;
 
     for (const route of routes) {
-      const pageId = route.path.replace(/^\//, "");
+      const pageId = route.id;
 
       // Apply page filter if specified
       if (options.pageId && pageId !== options.pageId) {
@@ -496,11 +493,13 @@ export class GenerationOperations {
           }
 
           // Generate content
-          const { content } = await generateCallback(
+          const generationResult = await generateCallback(
             route,
             sectionDefinition,
             progress,
           );
+          const content = generationResult.content;
+
 
           // Create entity
           const newEntity = {
@@ -564,10 +563,7 @@ export class GenerationOperations {
 
     if (options.sectionId) {
       // Regenerate specific section
-      const entityId = generateContentId(
-        options.pageId,
-        options.sectionId,
-      );
+      const entityId = generateContentId(options.pageId, options.sectionId);
 
       const entity = await this.entityService.getEntity<SiteContent>(
         targetEntityType,

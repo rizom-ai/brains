@@ -833,6 +833,8 @@ export class EntityService implements IEntityService {
       return null;
     }
 
+    this.logger.info(`Found job ${jobId} with type: ${job.type}`);
+
     // Parse the job data using the EmbeddingJobHandler's validation
     let entityId: string | undefined;
     try {
@@ -841,10 +843,21 @@ export class EntityService implements IEntityService {
         this.embeddingService,
       );
       const parsedData = JSON.parse(job.data as string);
+      this.logger.info(`Parsing job data for job ${jobId}`, { 
+        jobType: job.type,
+        dataType: typeof parsedData,
+        hasId: 'id' in (parsedData as object)
+      });
       const jobData = handler.validateAndParse(parsedData);
-      entityId = jobData?.id;
-    } catch {
+      if (jobData) {
+        entityId = jobData.id;
+        this.logger.info(`Successfully parsed job data for job ${jobId}`, { entityId });
+      } else {
+        this.logger.info(`validateAndParse returned null for job ${jobId}`);
+      }
+    } catch (error) {
       // If parsing fails, entityId will remain undefined
+      this.logger.info(`Failed to parse job data for job ${jobId}`, { error });
     }
 
     const result: {

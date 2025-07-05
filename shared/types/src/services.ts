@@ -41,8 +41,8 @@ export interface EntityService {
     entityType: string,
     options?: Omit<ListOptions, "entityType">,
   ): Promise<T[]>;
-  createEntity<T extends BaseEntity>(entity: EntityInput<T>): Promise<T>;
-  updateEntity<T extends BaseEntity>(entity: T): Promise<T>;
+  createEntitySync<T extends BaseEntity>(entity: EntityInput<T>): Promise<T>;
+  updateEntitySync<T extends BaseEntity>(entity: T): Promise<T>;
   deleteEntity(id: string): Promise<boolean>;
 
   // Search and discovery

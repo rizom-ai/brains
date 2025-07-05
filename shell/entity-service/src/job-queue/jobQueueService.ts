@@ -100,7 +100,7 @@ export class JobQueueService implements IJobQueueService {
       await this.db.insert(jobQueue).values({
         id: jobId,
         type,
-        data,
+        data: JSON.stringify(data),
         priority: options.priority ?? 0,
         maxRetries: options.maxRetries ?? 3,
         scheduledFor: Date.now() + (options.delayMs ?? 0),
@@ -194,7 +194,8 @@ export class JobQueueService implements IJobQueueService {
       });
 
       // Validate and parse job data before processing
-      const parsedData = handler.validateAndParse(job.data);
+      const rawData = JSON.parse(job.data);
+      const parsedData = handler.validateAndParse(rawData);
       if (parsedData === null) {
         throw new Error(`Invalid job data for type: ${job.type}`);
       }
@@ -215,7 +216,8 @@ export class JobQueueService implements IJobQueueService {
       // Call handler's error callback if available
       try {
         // Validate and parse job data for error handler
-        const parsedData = handler.validateAndParse(job.data);
+        const rawData = JSON.parse(job.data);
+        const parsedData = handler.validateAndParse(rawData);
         if (parsedData !== null) {
           await handler.onError?.(processError, parsedData, job.id);
         }
@@ -345,7 +347,16 @@ export class JobQueueService implements IJobQueueService {
         .where(eq(jobQueue.id, jobId))
         .limit(1);
 
-      return jobs[0] ?? null;
+      const job = jobs[0];
+      if (!job) {
+        return null;
+      }
+
+      // Parse JSON data back to object
+      return {
+        ...job,
+        data: JSON.parse(job.data),
+      };
     } catch (error) {
       this.logger.error("Failed to get job status", { jobId, error });
       throw error;
@@ -369,7 +380,16 @@ export class JobQueueService implements IJobQueueService {
         .orderBy(desc(jobQueue.createdAt))
         .limit(1);
 
-      return jobs[0] ?? null;
+      const job = jobs[0];
+      if (!job) {
+        return null;
+      }
+
+      // Parse JSON data back to object
+      return {
+        ...job,
+        data: JSON.parse(job.data),
+      };
     } catch (error) {
       this.logger.error("Failed to get job status by entity ID", {
         entityId,
