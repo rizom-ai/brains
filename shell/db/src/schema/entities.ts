@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { createId } from "./utils";
@@ -12,7 +12,7 @@ import { vector } from "./vector";
 export const entities = sqliteTable("entities", {
   // Core fields
   id: text("id")
-    .primaryKey()
+    .notNull()
     .$defaultFn(() => createId()),
   entityType: text("entityType").notNull(),
 
@@ -41,6 +41,11 @@ export const entities = sqliteTable("entities", {
   updated: integer("updated")
     .notNull()
     .$defaultFn(() => Date.now()),
+}, (table) => {
+  return {
+    // Composite unique constraint on entityType + id
+    entityTypeIdUnique: uniqueIndex("entity_type_id_unique").on(table.entityType, table.id),
+  };
 });
 
 /**

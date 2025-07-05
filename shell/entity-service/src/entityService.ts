@@ -367,27 +367,27 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Delete an entity by ID
+   * Delete an entity by type and ID
    */
-  public async deleteEntity(id: string): Promise<boolean> {
-    this.logger.debug(`Deleting entity with ID ${id}`);
+  public async deleteEntity(entityType: string, id: string): Promise<boolean> {
+    this.logger.debug(`Deleting entity of type ${entityType} with ID ${id}`);
 
     // First check if entity exists
     const existingEntity = await this.db
       .select({ id: entities.id })
       .from(entities)
-      .where(eq(entities.id, id))
+      .where(and(eq(entities.entityType, entityType), eq(entities.id, id)))
       .limit(1);
 
     if (existingEntity.length === 0) {
-      this.logger.info(`Entity with ID ${id} not found for deletion`);
+      this.logger.info(`Entity of type ${entityType} with ID ${id} not found for deletion`);
       return false;
     }
 
     // Delete from database (cascades to chunks and embeddings)
-    await this.db.delete(entities).where(eq(entities.id, id));
+    await this.db.delete(entities).where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
 
-    this.logger.info(`Deleted entity with ID ${id}`);
+    this.logger.info(`Deleted entity of type ${entityType} with ID ${id}`);
     return true;
   }
 
@@ -725,7 +725,7 @@ export class EntityService implements IEntityService {
 
     // Optionally delete the source
     if (options?.deleteSource) {
-      await this.deleteEntity(sourceEntityId);
+      await this.deleteEntity(sourceEntityType, sourceEntityId);
     }
 
     this.logger.info(

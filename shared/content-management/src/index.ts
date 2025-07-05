@@ -20,12 +20,18 @@ export type {
   SiteContentEntityType,
   GenerateOptions,
   GenerateResult,
-  RegenerateOptions,
-  RegenerateResult,
   ContentGenerationJob,
   DeriveOptions,
   DeriveResult,
+  ContentComparison,
 } from "./types";
+
+// Schemas for validation
+export {
+  GenerateOptionsSchema,
+  GenerateResultSchema,
+  ContentEnvironmentSchema,
+} from "./schemas";
 
 // Job tracking types
 export type {
@@ -38,3 +44,14 @@ export {
   waitForContentJobs,
   getContentJobStatuses,
 } from "./utils/job-tracking";
+
+// Content utilities
+export {
+  generateSiteContentId,
+  parseSiteContentId,
+  convertSiteContentId,
+  previewToProductionId,
+  productionToPreviewId,
+} from "./utils/id-generator";
+
+export { compareContent, isContentEquivalent } from "./utils/comparator";

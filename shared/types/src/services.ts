@@ -43,7 +43,7 @@ export interface EntityService {
   ): Promise<T[]>;
   createEntitySync<T extends BaseEntity>(entity: EntityInput<T>): Promise<T>;
   updateEntitySync<T extends BaseEntity>(entity: T): Promise<T>;
-  deleteEntity(id: string): Promise<boolean>;
+  deleteEntity(entityType: string, id: string): Promise<boolean>;
 
   // Search and discovery
   search(query: string, options?: SearchOptions): Promise<SearchResult[]>;

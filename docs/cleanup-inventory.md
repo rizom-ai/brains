@@ -28,6 +28,7 @@ This document tracks technical debt and cleanup tasks that should be addressed b
 ## In Progress: Content Management Package Extraction
 
 ### Completed:
+
 - ✅ Package structure created at `shared/content-management/`
 - ✅ Core operations implemented:
   - GenerationOperations (with regenerateAsync)
@@ -39,6 +40,7 @@ This document tracks technical debt and cleanup tasks that should be addressed b
 - ✅ Basic integration with site-builder plugin
 
 ### Remaining (2-3 days):
+
 - ⏳ Move utilities (comparator, id-generator) from site-builder to shared package
 - ⏳ Refactor SiteContentManager (1652 lines → ~200 lines):
   - Remove all generation/regeneration methods (use ContentManager)
@@ -49,6 +51,7 @@ This document tracks technical debt and cleanup tasks that should be addressed b
 - ⏳ Add promoteAsync/rollbackAsync for batch promote/rollback operations
 
 ### Key Decision:
+
 - Promote/rollback operations remain in site-builder (site-specific workflow)
 - All other content operations use shared package
 
@@ -185,7 +188,7 @@ await embeddingQueue.add({ entityId, text });
 ## Timeline
 
 - **Phase 1**: ✅ Completed
-- **Phase 2**: ✅ Completed 
+- **Phase 2**: ✅ Completed
 - **Phase 3**: ✅ Completed
 - **Phase 4**: 2-3 days remaining (optional performance improvements)
 - **Total elapsed**: ~7-8 days of cleanup completed
@@ -197,11 +200,9 @@ await embeddingQueue.add({ entityId, text });
    - Slim down SiteContentManager to ~200 lines
    - Move utilities to shared package
    - Full integration with site-builder
-   
 2. **Begin Link Plugin Development** - Core infrastructure is now stable
    - First plugin to demonstrate the new architecture
    - Web content capture with AI
-   
 3. **Optional: Phase 4 Performance Improvements** - Can be done in parallel
    - Caching layer
    - Batch operations

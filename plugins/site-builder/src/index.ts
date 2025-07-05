@@ -16,4 +16,4 @@ export type { SiteContentPreview, SiteContentProduction } from "./types";
 export { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
 
 // Export content management types
-export type { SiteContent } from "./content-management";
+export type { SiteContent } from "@brains/content-management";

@@ -12,8 +12,6 @@ import type {
   SiteContentEntityType,
   GenerateOptions,
   GenerateResult,
-  RegenerateOptions,
-  RegenerateResult,
   ContentGenerationJob,
   DeriveOptions,
   DeriveResult,
@@ -136,49 +134,6 @@ export class ContentManager {
       routes,
       templateResolver,
       targetEntityType,
-      siteConfig,
-    );
-  }
-
-  /**
-   * Regenerate existing content synchronously
-   */
-  async regenerateSync(
-    options: RegenerateOptions,
-    regenerateCallback: (
-      entityType: SiteContentEntityType,
-      pageId: string,
-      sectionId: string,
-      mode: "leave" | "new" | "with-current",
-      progress: ProgressNotification,
-      currentContent?: string,
-    ) => Promise<{ content: string }>,
-    targetEntityType: SiteContentEntityType,
-  ): Promise<RegenerateResult> {
-    return this.generationOps.regenerateSync(
-      options,
-      regenerateCallback,
-      targetEntityType,
-    );
-  }
-
-  /**
-   * Regenerate content asynchronously by queuing jobs
-   */
-  async regenerateAsync(
-    options: RegenerateOptions,
-    targetEntityType: SiteContentEntityType,
-    templateResolver: (pageId: string, sectionId: string) => string,
-    siteConfig?: Record<string, unknown>,
-  ): Promise<{
-    jobs: ContentGenerationJob[];
-    totalEntities: number;
-    queuedEntities: number;
-  }> {
-    return this.generationOps.regenerateAsync(
-      options,
-      targetEntityType,
-      templateResolver,
       siteConfig,
     );
   }

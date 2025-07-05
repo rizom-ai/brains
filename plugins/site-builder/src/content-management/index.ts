@@ -1,34 +1,21 @@
 /**
  * Site Content Management Module
  *
- * Provides comprehensive content lifecycle management for site content entities,
- * including promotion from preview to production, rollback, and regeneration.
+ * Provides site-specific content operations for preview/production workflow.
+ * Note: Generation and regeneration operations are now handled by the shared
+ * @brains/content-management package.
  */
 
-// Export the main manager class
-export { SiteContentManager } from "./manager";
+// Export the site operations class
+export { SiteOperations } from "./site-operations";
 
 // Export public types
 export type {
-  SiteContent,
   PromoteOptions,
   PromoteResult,
   RollbackOptions,
   RollbackResult,
-  RegenerateOptions,
-  RegenerateResult,
-  GenerateOptions,
-  GenerateResult,
-  ContentComparison,
 } from "./types";
 
 // Export schemas for validation
-export {
-  PromoteOptionsSchema,
-  RollbackOptionsSchema,
-  RegenerateOptionsSchema,
-  GenerateOptionsSchema,
-} from "./schemas";
-
-// Export type guards (useful for consumers)
-export { isPreviewContent, isProductionContent } from "./types";
+export { PromoteOptionsSchema, RollbackOptionsSchema } from "./schemas";

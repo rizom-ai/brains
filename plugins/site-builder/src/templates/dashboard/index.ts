@@ -21,11 +21,12 @@ export const dashboardTemplate: Template<DashboardData> = {
     dependencies,
   }: TemplateDataContext): Promise<DashboardData> => {
     try {
-      // Get entity statistics by type
-      const entityTypes = ["note", "task", "profile", "project"];
+      // Get all registered entity types
+      const registeredTypes = dependencies.entityService.getEntityTypes();
+      
+      // Get entity statistics for registered types
       const entityStats = await Promise.all(
-        entityTypes.map(async (type) => {
-          // Use listEntities with limit 0 to just get the count
+        registeredTypes.map(async (type) => {
           const entities = await dependencies.entityService.listEntities(type, {
             limit: 100,
           });
@@ -46,7 +47,7 @@ export const dashboardTemplate: Template<DashboardData> = {
           id: result.entity.id,
           type: result.entity.entityType,
           title:
-            (result.entity.metadata?.["title"] as string) ?? result.entity.id,
+            (result.entity.metadata?.["title"] as string) || result.entity.id,
           created: result.entity.created,
         })),
         buildInfo: {

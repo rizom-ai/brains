@@ -16,13 +16,14 @@ import {
   siteContentPreviewAdapter,
   siteContentProductionAdapter,
 } from "./entities/site-content-adapter";
-import { ContentManager } from "@brains/content-management";
 import {
-  SiteContentManager,
+  ContentManager,
+  GenerateOptionsSchema,
+} from "@brains/content-management";
+import {
+  SiteOperations,
   PromoteOptionsSchema,
   RollbackOptionsSchema,
-  RegenerateOptionsSchema,
-  GenerateOptionsSchema,
 } from "./content-management";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
@@ -76,7 +77,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
   // After validation with defaults, config is complete
   declare protected config: SiteBuilderConfig;
   private siteBuilder?: SiteBuilder;
-  private siteContentManager?: SiteContentManager;
+  private siteOperations?: SiteOperations;
   private contentManager?: ContentManager;
 
   constructor(config: SiteBuilderConfigInput = {}) {
@@ -165,12 +166,10 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       context,
     );
 
-    // Initialize the site content manager with dependency injection
-    // TODO: Inconsistent PluginContext access - passing both entityService separately and context
-    // Should either pass only context and access entityService through it, or extract needed methods
-    this.siteContentManager = new SiteContentManager(
+    // Initialize the site operations with dependency injection
+    this.siteOperations = new SiteOperations(
       context.entityService,
-      this.logger.child("SiteContentManager"),
+      this.logger.child("SiteOperations"),
       context,
     );
 
@@ -451,13 +450,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .describe("Optional: preview changes without executing"),
         },
         async (input): Promise<Record<string, unknown>> => {
-          if (!this.siteContentManager) {
-            throw new Error("Site content manager not initialized");
+          if (!this.siteOperations) {
+            throw new Error("Site operations not initialized");
           }
 
           // Parse and validate input
           const options = PromoteOptionsSchema.parse(input);
-          const result = await this.siteContentManager.promoteSync(options);
+          const result = await this.siteOperations.promoteSync(options);
           return result;
         },
         "anchor", // Internal tool - modifies entities
@@ -470,11 +469,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         "Promote all preview content to production",
         {},
         async (): Promise<Record<string, unknown>> => {
-          if (!this.siteContentManager) {
-            throw new Error("Site content manager not initialized");
+          if (!this.siteOperations) {
+            throw new Error("Site operations not initialized");
           }
 
-          const result = await this.siteContentManager.promoteAllSync();
+          const result = await this.siteOperations.promoteAllSync();
           return result;
         },
         "anchor", // Internal tool - modifies entities
@@ -504,123 +503,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .describe("Optional: preview changes without executing"),
         },
         async (input): Promise<Record<string, unknown>> => {
-          if (!this.siteContentManager) {
-            throw new Error("Site content manager not initialized");
+          if (!this.siteOperations) {
+            throw new Error("Site operations not initialized");
           }
 
           // Parse and validate input
           const options = RollbackOptionsSchema.parse(input);
-          const result = await this.siteContentManager.rollbackSync(options);
-          return result;
-        },
-        "anchor", // Internal tool - modifies entities
-      ),
-    );
-
-    tools.push(
-      this.createTool(
-        "regenerate-content",
-        "Regenerate content using AI with different modes",
-        {
-          page: z.string().describe("Required: target page"),
-          section: z.string().optional().describe("Optional: specific section"),
-          environment: z
-            .enum(["preview", "production", "both"])
-            .default("preview")
-            .describe("Optional: target environment (default: preview)"),
-          mode: z
-            .enum(["leave", "new", "with-current"])
-            .describe("Required: regeneration mode"),
-          dryRun: z
-            .boolean()
-            .default(false)
-            .describe("Optional: preview changes without executing"),
-        },
-        async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.siteContentManager || !this.context) {
-            throw new Error("Site content manager not initialized");
-          }
-
-          // Create a safe progress reporter
-          const reportProgress = async (notification: {
-            message: string;
-            progress: number;
-            total: number;
-          }): Promise<void> => {
-            if (context?.sendProgress) {
-              await context.sendProgress(notification);
-            }
-          };
-
-          // Parse and validated input
-          const options = RegenerateOptionsSchema.parse(input);
-
-          // Create the regeneration callback
-          const regenerateCallback = async (
-            _entityType: string,
-            page: string,
-            section: string,
-            mode: "leave" | "new" | "with-current",
-            progress: { current: number; total: number; message: string },
-            _currentContent?: string,
-          ): Promise<{
-            entityId: string;
-            content: string;
-          }> => {
-            // Report progress
-            const progressPercent = Math.round(
-              (progress.current / progress.total) * 100,
-            );
-            await reportProgress({
-              message: progress.message,
-              progress: progressPercent,
-              total: 100,
-            });
-            const config = this.config;
-
-            if (!this.context) {
-              throw new Error("Plugin context not available");
-            }
-
-            // Find the template name for this page/section
-            const route = this.context.findRoute({ id: page });
-            if (!route) {
-              throw new Error(`Route not found for page: ${page}`);
-            }
-
-            const foundSection = route.sections.find((s) => s.id === section);
-            if (!foundSection) {
-              throw new Error(`Section not found: ${section} in page: ${page}`);
-            }
-
-            // Generate content using generateWithRoute to ensure proper formatting
-            const formattedContent = await this.context.generateWithRoute(
-              route,
-              foundSection,
-              {
-                current: progress.current,
-                total: progress.total,
-                message: progress.message,
-              },
-              {
-                regenerationMode: mode,
-                ...(config.siteConfig ?? {
-                  title: "Personal Brain",
-                  description: "A knowledge management system",
-                }),
-              },
-            );
-
-            return {
-              entityId: `${page}:${section}`,
-              content: formattedContent,
-            };
-          };
-
-          const result = await this.siteContentManager.regenerateSync(
-            options,
-            regenerateCallback,
-          );
+          const result = await this.siteOperations.rollbackSync(options);
           return result;
         },
         "anchor", // Internal tool - modifies entities
@@ -723,115 +612,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             routes,
             generateCallback,
             "site-content-preview",
-          );
-
-          return result;
-        },
-        "anchor", // Internal tool - modifies entities
-      ),
-    );
-
-    // Regenerate all tool - regenerates all existing content
-    tools.push(
-      this.createTool(
-        "regenerate-all",
-        "Regenerate all existing content using AI with the specified mode",
-        {
-          mode: z
-            .enum(["leave", "new", "with-current"])
-            .describe("Required: regeneration mode"),
-          dryRun: z
-            .boolean()
-            .default(false)
-            .describe("Optional: preview changes without executing"),
-        },
-        async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.siteContentManager || !this.context) {
-            throw new Error("Site content manager not initialized");
-          }
-
-          // Create a safe progress reporter
-          const reportProgress = async (notification: {
-            message: string;
-            progress: number;
-            total: number;
-          }): Promise<void> => {
-            if (context?.sendProgress) {
-              await context.sendProgress(notification);
-            }
-          };
-
-          const { mode, dryRun } = input as {
-            mode: "leave" | "new" | "with-current";
-            dryRun?: boolean;
-          };
-
-          // Create the regeneration callback (reuse from regenerate tool)
-          const regenerateCallback = async (
-            _entityType: string,
-            page: string,
-            section: string,
-            mode: "leave" | "new" | "with-current",
-            progress: { current: number; total: number; message: string },
-            _currentContent?: string,
-          ): Promise<{
-            entityId: string;
-            content: string;
-          }> => {
-            // Report progress
-            const progressPercent = Math.round(
-              (progress.current / progress.total) * 100,
-            );
-            await reportProgress({
-              message: progress.message,
-              progress: progressPercent,
-              total: 100,
-            });
-            const config = this.config;
-
-            if (!this.context) {
-              throw new Error("Plugin context not available");
-            }
-
-            // Find the template name for this page/section
-            const route = this.context.findRoute({ id: page });
-            if (!route) {
-              throw new Error(`Route not found for page: ${page}`);
-            }
-
-            const foundSection = route.sections.find((s) => s.id === section);
-            if (!foundSection) {
-              throw new Error(`Section not found: ${section} in page: ${page}`);
-            }
-
-            // Generate content using generateWithRoute to ensure proper formatting
-            const formattedContent = await this.context.generateWithRoute(
-              route,
-              foundSection,
-              {
-                current: progress.current,
-                total: progress.total,
-                message: progress.message,
-              },
-              {
-                regenerationMode: mode,
-                ...(config.siteConfig ?? {
-                  title: "Personal Brain",
-                  description: "A knowledge management system",
-                }),
-              },
-            );
-
-            return {
-              entityId: `${page}:${section}`,
-              content: formattedContent,
-            };
-          };
-
-          const result = await this.siteContentManager.regenerateAllSync(
-            mode,
-            regenerateCallback,
-            { dryRun: dryRun ?? false },
           );
 
           return result;

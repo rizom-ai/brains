@@ -250,7 +250,7 @@ describe("EntityService - Database Operations", () => {
       });
 
       const created = await entityService.createEntitySync(noteData);
-      const deleted = await entityService.deleteEntity(created.id);
+      const deleted = await entityService.deleteEntity("note", created.id);
 
       expect(deleted).toBe(true);
 
@@ -260,7 +260,7 @@ describe("EntityService - Database Operations", () => {
     });
 
     test("returns false when deleting non-existent entity", async () => {
-      const result = await entityService.deleteEntity("non-existent-id");
+      const result = await entityService.deleteEntity("note", "non-existent-id");
       expect(result).toBe(false);
     });
   });

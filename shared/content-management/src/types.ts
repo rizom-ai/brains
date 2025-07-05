@@ -3,20 +3,14 @@ import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 
 // Re-export types from schemas
 export type {
-  RegenerateMode,
   ContentEnvironment,
-  RegenerateOptions,
-  RegenerateResult,
   GenerateOptions,
   GenerateResult,
 } from "./schemas";
 
 // Re-export schemas
 export {
-  RegenerateModeSchema,
   ContentEnvironmentSchema,
-  RegenerateOptionsSchema,
-  RegenerateResultSchema,
   GenerateOptionsSchema,
   GenerateResultSchema,
 } from "./schemas";
@@ -43,20 +37,19 @@ export interface SiteContentJob {
 }
 
 /**
- * Interface for tracking async content generation jobs (generate/regenerate)
+ * Interface for tracking async content generation jobs
  * These operations require AI generation with route/section context
  */
 export interface ContentGenerationJob {
   jobId: string;
   entityId: string;
   entityType: "site-content-preview" | "site-content-production";
-  operation: "generate" | "regenerate";
+  operation: "generate";
   pageId: string;
   sectionId: string;
   templateName: string;
   route: RouteDefinition;
   sectionDefinition: SectionDefinition;
-  mode?: "leave" | "new" | "with-current"; // For regenerate only
 }
 
 /**
@@ -99,3 +92,6 @@ export interface DeriveResult {
   /** Whether the source entity was deleted */
   sourceDeleted: boolean;
 }
+
+// Re-export utility types
+export type { ContentComparison } from "./utils/comparator";
