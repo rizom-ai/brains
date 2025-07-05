@@ -62,7 +62,7 @@ export const jobQueue = sqliteTable(
  */
 export const insertJobQueueSchema = createInsertSchema(jobQueue, {
   type: z.string().min(1),
-  data: z.unknown(),
+  data: z.string(),
   result: z.unknown().optional(),
   status: z
     .enum(["pending", "processing", "completed", "failed"])
@@ -74,7 +74,7 @@ export const insertJobQueueSchema = createInsertSchema(jobQueue, {
 
 export const selectJobQueueSchema = createSelectSchema(jobQueue, {
   type: z.string(),
-  data: z.unknown(),
+  data: z.string(),
   result: z.unknown().optional(),
   status: z.enum(["pending", "processing", "completed", "failed"]),
   priority: z.number().int(),

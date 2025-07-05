@@ -843,15 +843,17 @@ export class EntityService implements IEntityService {
         this.embeddingService,
       );
       const parsedData = JSON.parse(job.data as string);
-      this.logger.info(`Parsing job data for job ${jobId}`, { 
+      this.logger.info(`Parsing job data for job ${jobId}`, {
         jobType: job.type,
         dataType: typeof parsedData,
-        hasId: 'id' in (parsedData as object)
+        hasId: "id" in (parsedData as object),
       });
       const jobData = handler.validateAndParse(parsedData);
       if (jobData) {
         entityId = jobData.id;
-        this.logger.info(`Successfully parsed job data for job ${jobId}`, { entityId });
+        this.logger.info(`Successfully parsed job data for job ${jobId}`, {
+          entityId,
+        });
       } else {
         this.logger.info(`validateAndParse returned null for job ${jobId}`);
       }

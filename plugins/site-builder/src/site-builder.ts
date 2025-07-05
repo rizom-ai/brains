@@ -126,7 +126,10 @@ export class SiteBuilder implements ISiteBuilder {
           description: siteConfig.description,
           ...(siteConfig.url && { url: siteConfig.url }),
         },
-        getContent: async (route: RouteDefinition, section: SectionDefinition) => {
+        getContent: async (
+          route: RouteDefinition,
+          section: SectionDefinition,
+        ) => {
           return this.getContentForSection(section, route, options.environment);
         },
         getViewTemplate: (name: string) => {
@@ -191,10 +194,16 @@ export class SiteBuilder implements ISiteBuilder {
 
     // Look up entity by ID pattern (routeId:sectionId)
     const entityId = `${route.id}:${section.id}`;
-    const entityType = environment === "production" ? "site-content-production" : "site-content-preview";
-    
+    const entityType =
+      environment === "production"
+        ? "site-content-production"
+        : "site-content-preview";
+
     try {
-      const entity = await this.context.entityService.getEntity(entityType, entityId);
+      const entity = await this.context.entityService.getEntity(
+        entityType,
+        entityId,
+      );
       if (entity && section.template) {
         const templateName = section.template.includes(":")
           ? section.template

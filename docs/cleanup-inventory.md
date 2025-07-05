@@ -22,6 +22,35 @@ This document tracks technical debt and cleanup tasks that should be addressed b
 - **Extract Service Interfaces** - Created interfaces for EntityService, QueryProcessor, AIService, EntityRegistry, PluginManager, SchemaRegistry, and ContentTypeRegistry
 - **Add Missing Tests** - Added comprehensive tests for AIService, EmbeddingService, MCP resources, and MCP tools
 - **Standardize Error Handling** - Implemented comprehensive BrainsError hierarchy with consistent error codes and rich context across all components
+- **Async Embedding Generation** - Implemented job queue system with background embedding processing via JobQueueService and JobQueueWorker
+- **TypeScript, Test, and Lint Error Resolution** - Fixed all compilation errors, test failures, and lint violations across codebase
+
+## In Progress: Content Management Package Extraction
+
+### Completed:
+- ✅ Package structure created at `shared/content-management/`
+- ✅ Core operations implemented:
+  - GenerationOperations (with regenerateAsync)
+  - DerivationOperations
+  - EntityQueryService
+  - JobTrackingService
+  - ContentManager facade
+- ✅ 64 tests passing for content management package
+- ✅ Basic integration with site-builder plugin
+
+### Remaining (2-3 days):
+- ⏳ Move utilities (comparator, id-generator) from site-builder to shared package
+- ⏳ Refactor SiteContentManager (1652 lines → ~200 lines):
+  - Remove all generation/regeneration methods (use ContentManager)
+  - Remove all query methods (use ContentManager)
+  - Keep ONLY promote/rollback operations (site-specific)
+- ⏳ Update site-builder plugin to fully use shared ContentManager
+- ⏳ Make batch operations (generate-all, regenerate-all) use async internally to prevent blocking
+- ⏳ Add promoteAsync/rollbackAsync for batch promote/rollback operations
+
+### Key Decision:
+- Promote/rollback operations remain in site-builder (site-specific workflow)
+- All other content operations use shared package
 
 ## Cleanup Tasks
 
@@ -31,11 +60,7 @@ None remaining - all critical issues have been resolved!
 
 ### 🟡 High Priority
 
-1. **Add Async Embedding Generation**
-   - Issue: Synchronous embedding generation blocks operations
-   - Solution: Queue embeddings for background processing
-   - Impact: Every entity creation blocks for ~200-500ms
-   - **Why High**: Direct impact on user experience
+None remaining - all high priority issues have been resolved!
 
 ### 🟢 Medium Priority
 
@@ -86,15 +111,15 @@ None remaining - all critical issues have been resolved!
 - [x] Remove legacy MessageBus methods
 - [x] Implement plugin communication architecture
 
-### Phase 2: Architecture Improvements (3-4 days)
+### Phase 2: Architecture Improvements ✅ COMPLETED
 
-- [ ] Add component disposal methods (#3)
+- [ ] Add component disposal methods (#3) - DEFERRED TO PHASE 4
 - [x] Extract service interfaces (✅ COMPLETED)
-- [ ] Add async embedding generation (#1)
+- [x] Add async embedding generation (#1) (✅ COMPLETED)
 
-### Phase 3: Quality & Testing (2-3 days)
+### Phase 3: Quality & Testing ✅ COMPLETED
 
-- [ ] Standardize error handling (#2)
+- [x] Standardize error handling (#2) (✅ COMPLETED)
 - [x] Add critical missing tests (✅ COMPLETED)
 
 ### Phase 4: Performance (2-3 days)
@@ -160,13 +185,24 @@ await embeddingQueue.add({ entityId, text });
 ## Timeline
 
 - **Phase 1**: ✅ Completed
-- **Phases 2-4**: 8-11 days remaining
-- **Total elapsed**: ~3-4 days of cleanup completed
-- **Remaining**: ~8 days of cleanup work before starting Link Plugin implementation
+- **Phase 2**: ✅ Completed 
+- **Phase 3**: ✅ Completed
+- **Phase 4**: 2-3 days remaining (optional performance improvements)
+- **Total elapsed**: ~7-8 days of cleanup completed
+- **Status**: In Progress: Content Management Package Extraction (70% complete)
 
 ## Next Steps
 
-1. Begin Phase 2 with component disposal methods
-2. Extract service interfaces for better testability
-3. Continue with async embedding generation
-4. Consider starting Link Plugin development in parallel with Phase 3/4 cleanup
+1. **Complete Content Management Package Extraction** (2-3 days)
+   - Slim down SiteContentManager to ~200 lines
+   - Move utilities to shared package
+   - Full integration with site-builder
+   
+2. **Begin Link Plugin Development** - Core infrastructure is now stable
+   - First plugin to demonstrate the new architecture
+   - Web content capture with AI
+   
+3. **Optional: Phase 4 Performance Improvements** - Can be done in parallel
+   - Caching layer
+   - Batch operations
+   - Message bus improvements

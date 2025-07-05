@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  mock,
+  afterAll,
+} from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
 import type { PluginContext, MessageContext } from "@brains/plugin-utils";
 import { PluginTestHarness } from "@brains/test-utils";
@@ -20,12 +28,12 @@ describe("CLIInterface", () => {
 
   beforeEach(async () => {
     mock.restore();
-    
+
     // Set up test harness
     testHarness = new PluginTestHarness();
     await testHarness.setup();
     mockContext = testHarness.getPluginContext();
-    
+
     // Mock the generateContent method to track calls
     generateContentMock = mock(() =>
       Promise.resolve({

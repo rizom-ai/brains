@@ -14,7 +14,10 @@ export interface BuildContext {
     description: string;
     url?: string;
   };
-  getContent: (route: RouteDefinition, section: RouteDefinition["sections"][0]) => Promise<unknown>;
+  getContent: (
+    route: RouteDefinition,
+    section: RouteDefinition["sections"][0],
+  ) => Promise<unknown>;
   getViewTemplate: (name: string) => ViewTemplate | undefined;
 }
 

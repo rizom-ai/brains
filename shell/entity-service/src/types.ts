@@ -1,4 +1,8 @@
-import type { BaseEntity, EntityInput, EntityService as IEntityService } from "@brains/types";
+import type {
+  BaseEntity,
+  EntityInput,
+  EntityService as IEntityService,
+} from "@brains/types";
 
 /**
  * List entities options
@@ -31,7 +35,7 @@ export interface SearchOptions {
  */
 export interface EntityService extends IEntityService {
   // Additional shell-specific methods for async operations
-  
+
   // Async entity creation (returns immediately, embedding generated in background)
   createEntityAsync<T extends BaseEntity>(
     entity: EntityInput<T>,

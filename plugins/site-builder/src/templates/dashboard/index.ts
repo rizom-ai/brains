@@ -1,7 +1,11 @@
 import { DashboardWidget } from "./layout";
 import { DashboardDataSchema, type DashboardData } from "./schema";
 import { DashboardFormatter } from "./formatter";
-import type { Template, TemplateDataContext, SearchResult } from "@brains/types";
+import type {
+  Template,
+  TemplateDataContext,
+  SearchResult,
+} from "@brains/types";
 
 /**
  * Dashboard template definition
@@ -13,16 +17,20 @@ export const dashboardTemplate: Template<DashboardData> = {
   // No basePrompt - uses getData instead
   requiredPermission: "public",
   formatter: new DashboardFormatter(),
-  getData: async ({ dependencies }: TemplateDataContext): Promise<DashboardData> => {
+  getData: async ({
+    dependencies,
+  }: TemplateDataContext): Promise<DashboardData> => {
     try {
       // Get entity statistics by type
       const entityTypes = ["note", "task", "profile", "project"];
       const entityStats = await Promise.all(
         entityTypes.map(async (type) => {
           // Use listEntities with limit 0 to just get the count
-          const entities = await dependencies.entityService.listEntities(type, { limit: 100 });
+          const entities = await dependencies.entityService.listEntities(type, {
+            limit: 100,
+          });
           return { type, count: entities.length };
-        })
+        }),
       );
 
       // Get recent entities
@@ -37,7 +45,8 @@ export const dashboardTemplate: Template<DashboardData> = {
         recentEntities: recentEntities.map((result: SearchResult) => ({
           id: result.entity.id,
           type: result.entity.entityType,
-          title: (result.entity.metadata?.['title'] as string) ?? result.entity.id,
+          title:
+            (result.entity.metadata?.["title"] as string) ?? result.entity.id,
           created: result.entity.created,
         })),
         buildInfo: {

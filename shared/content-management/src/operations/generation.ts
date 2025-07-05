@@ -500,7 +500,6 @@ export class GenerationOperations {
           );
           const content = generationResult.content;
 
-
           // Create entity
           const newEntity = {
             id: entityId,

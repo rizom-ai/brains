@@ -75,20 +75,28 @@ describe("JobQueueWorker", () => {
 
   describe("Configuration", () => {
     it("should accept custom configuration", () => {
-      const customWorker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
-        concurrency: 5,
-        pollInterval: 2000,
-        maxJobs: 100,
-        autoStart: false,
-      });
+      const customWorker = JobQueueWorker.createFresh(
+        mockService,
+        createSilentLogger(),
+        {
+          concurrency: 5,
+          pollInterval: 2000,
+          maxJobs: 100,
+          autoStart: false,
+        },
+      );
 
       expect(customWorker.isWorkerRunning()).toBe(false);
     });
 
     it("should auto-start when configured", async () => {
-      const autoWorker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
-        autoStart: true,
-      });
+      const autoWorker = JobQueueWorker.createFresh(
+        mockService,
+        createSilentLogger(),
+        {
+          autoStart: true,
+        },
+      );
 
       expect(autoWorker.isWorkerRunning()).toBe(true);
       await autoWorker.stop(); // Cleanup
@@ -166,12 +174,15 @@ describe("JobQueueWorker", () => {
     });
   });
 
-
   describe("Max jobs limit", () => {
     it("should accept maxJobs configuration", () => {
-      const limitedWorker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
-        maxJobs: 5,
-      });
+      const limitedWorker = JobQueueWorker.createFresh(
+        mockService,
+        createSilentLogger(),
+        {
+          maxJobs: 5,
+        },
+      );
 
       // Worker should be created successfully
       expect(limitedWorker.isWorkerRunning()).toBe(false);

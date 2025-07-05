@@ -1,4 +1,4 @@
-import { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils";
 import type { JobQueueService } from "./jobQueueService";
 import type { JobQueue } from "@brains/db";
 
@@ -60,7 +60,11 @@ export class JobQueueWorker {
     logger: Logger,
     config?: JobQueueWorkerConfig,
   ): JobQueueWorker {
-    JobQueueWorker.instance ??= new JobQueueWorker(jobQueueService, logger, config);
+    JobQueueWorker.instance ??= new JobQueueWorker(
+      jobQueueService,
+      logger,
+      config,
+    );
     return JobQueueWorker.instance;
   }
 
