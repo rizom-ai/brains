@@ -260,7 +260,10 @@ describe("EntityService - Database Operations", () => {
     });
 
     test("returns false when deleting non-existent entity", async () => {
-      const result = await entityService.deleteEntity("note", "non-existent-id");
+      const result = await entityService.deleteEntity(
+        "note",
+        "non-existent-id",
+      );
       expect(result).toBe(false);
     });
   });

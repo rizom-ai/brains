@@ -25,35 +25,31 @@ This document tracks technical debt and cleanup tasks that should be addressed b
 - **Async Embedding Generation** - Implemented job queue system with background embedding processing via JobQueueService and JobQueueWorker
 - **TypeScript, Test, and Lint Error Resolution** - Fixed all compilation errors, test failures, and lint violations across codebase
 
-## In Progress: Content Management Package Extraction
+## In Progress: Content Management Package - Final Steps
 
 ### Completed:
 
 - ✅ Package structure created at `shared/content-management/`
 - ✅ Core operations implemented:
-  - GenerationOperations (with regenerateAsync)
+  - GenerationOperations (removed regenerate - can be achieved by delete + generate)
   - DerivationOperations
   - EntityQueryService
   - JobTrackingService
   - ContentManager facade
-- ✅ 64 tests passing for content management package
-- ✅ Basic integration with site-builder plugin
+- ✅ Moved utilities (comparator, id-generator) from site-builder to shared package
+- ✅ Refactored SiteContentManager (1652 lines → ~235 lines in SiteOperations):
+  - Removed all generation/regeneration methods (use ContentManager)
+  - Removed all query methods (use ContentManager)
+  - Kept ONLY promote/rollback operations (site-specific)
+- ✅ Updated site-builder plugin to fully use shared ContentManager
+- ✅ 88 tests passing for content management package
+- ✅ Fixed entity deletion to require entityType parameter (breaking change)
+- ✅ Added database schema constraint for (entityType, id) uniqueness
 
-### Remaining (2-3 days):
+### Remaining (TODAY):
 
-- ⏳ Move utilities (comparator, id-generator) from site-builder to shared package
-- ⏳ Refactor SiteContentManager (1652 lines → ~200 lines):
-  - Remove all generation/regeneration methods (use ContentManager)
-  - Remove all query methods (use ContentManager)
-  - Keep ONLY promote/rollback operations (site-specific)
-- ⏳ Update site-builder plugin to fully use shared ContentManager
-- ⏳ Make batch operations (generate-all, regenerate-all) use async internally to prevent blocking
+- ⏳ Make batch operations (generate-all) use async internally to prevent blocking
 - ⏳ Add promoteAsync/rollbackAsync for batch promote/rollback operations
-
-### Key Decision:
-
-- Promote/rollback operations remain in site-builder (site-specific workflow)
-- All other content operations use shared package
 
 ## Cleanup Tasks
 
@@ -191,15 +187,14 @@ await embeddingQueue.add({ entityId, text });
 - **Phase 2**: ✅ Completed
 - **Phase 3**: ✅ Completed
 - **Phase 4**: 2-3 days remaining (optional performance improvements)
-- **Total elapsed**: ~7-8 days of cleanup completed
-- **Status**: In Progress: Content Management Package Extraction (70% complete)
+- **Total elapsed**: ~9-10 days of cleanup completed
+- **Status**: In Progress: Content Management Package Extraction (90% complete)
 
 ## Next Steps
 
-1. **Complete Content Management Package Extraction** (2-3 days)
-   - Slim down SiteContentManager to ~200 lines
-   - Move utilities to shared package
-   - Full integration with site-builder
+1. **Complete Async Operations for Content Management** (TODAY)
+   - Make generate-all use async internally
+   - Add promoteAsync/rollbackAsync methods
 2. **Begin Link Plugin Development** - Core infrastructure is now stable
    - First plugin to demonstrate the new architecture
    - Web content capture with AI

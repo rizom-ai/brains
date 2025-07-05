@@ -23,7 +23,7 @@ export const dashboardTemplate: Template<DashboardData> = {
     try {
       // Get all registered entity types
       const registeredTypes = dependencies.entityService.getEntityTypes();
-      
+
       // Get entity statistics for registered types
       const entityStats = await Promise.all(
         registeredTypes.map(async (type) => {

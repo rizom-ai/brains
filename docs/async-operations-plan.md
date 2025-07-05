@@ -3,6 +3,7 @@
 ## Overview
 
 This document outlines the plan for:
+
 1. Extracting job queue into a new shared package (`@brains/job-queue`)
 2. Implementing non-blocking batch operations using the job queue
 3. Updating interfaces (CLI, Matrix) to handle async operations with progress reporting
@@ -10,6 +11,7 @@ This document outlines the plan for:
 ## Current State
 
 Currently:
+
 - Job queue components are embedded in entity-service package
 - Batch operations are synchronous and blocking
 - No batch promote/rollback operations exist
@@ -41,11 +43,13 @@ shared/job-queue/
 ### 1.2 Move Core Components
 
 From `shell/entity-service/src/job-queue/`:
+
 - `jobQueueService.ts` → `shared/job-queue/src/job-queue-service.ts`
 - `jobQueueWorker.ts` → `shared/job-queue/src/job-queue-worker.ts`
 - `types.ts` → `shared/job-queue/src/types.ts`
 
 Job handlers stay in their respective packages:
+
 - Embedding handler remains in entity-service
 - Content generation handler moves to content-management
 
@@ -64,6 +68,7 @@ Job handlers stay in their respective packages:
 ```
 
 Update consumers:
+
 - `@brains/entity-service` to depend on `@brains/job-queue`
 - `@brains/content-management` to depend on `@brains/job-queue`
 
@@ -75,7 +80,7 @@ Location: `shared/content-management/src/operations/batch-job-manager.ts`
 
 ```typescript
 export interface BatchOperation {
-  type: 'generate' | 'promote' | 'rollback';
+  type: "generate" | "promote" | "rollback";
   entityId?: string;
   entityType?: string;
   options?: Record<string, unknown>;
@@ -88,48 +93,48 @@ export interface BatchStatus {
   failedOperations: number;
   currentOperation?: string;
   errors: string[];
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "processing" | "completed" | "failed";
 }
 
 export class BatchJobManager {
   constructor(
     private jobQueue: IJobQueueService,
     private messageBus: MessageBus,
-    private contentManager: ContentManager
+    private contentManager: ContentManager,
   ) {}
 
   async enqueueBatch(
     operations: BatchOperation[],
-    userId?: string
+    userId?: string,
   ): Promise<string> {
     // Create parent batch job
-    const batchId = await this.jobQueue.enqueue('batch-operation', {
+    const batchId = await this.jobQueue.enqueue("batch-operation", {
       operations,
       userId,
-      startedAt: new Date().toISOString()
+      startedAt: new Date().toISOString(),
     });
-    
+
     // Start progress tracking
     this.trackProgress(batchId, operations);
-    
+
     return batchId;
   }
 
   async getBatchStatus(batchId: string): Promise<BatchStatus | null> {
     const job = await this.jobQueue.getStatus(batchId);
     if (!job) return null;
-    
+
     // Parse job data to get batch status
     return this.parseBatchStatus(job);
   }
 
   private async trackProgress(batchId: string, operations: BatchOperation[]) {
     // Emit progress updates via MessageBus
-    await this.messageBus.publish('batch-progress', {
+    await this.messageBus.publish("batch-progress", {
       batchId,
       totalOperations: operations.length,
       completedOperations: 0,
-      status: 'processing'
+      status: "processing",
     });
   }
 }
@@ -145,13 +150,13 @@ class ContentManager {
   async generateSync(...): Promise<T>
   async promoteSync(...): Promise<T>
   async deriveSync(...): Promise<T>
-  
+
   // New async batch operations
   async generateAllAsync(options: GenerateAllOptions): Promise<string> {
     const operations = await this.buildGenerateOperations(options);
     return this.batchJobManager.enqueueBatch(operations, options.userId);
   }
-  
+
   async promoteAsync(ids: string[], userId?: string): Promise<string> {
     const operations = ids.map(id => ({
       type: 'promote' as const,
@@ -159,7 +164,7 @@ class ContentManager {
     }));
     return this.batchJobManager.enqueueBatch(operations, userId);
   }
-  
+
   async rollbackAsync(ids: string[], userId?: string): Promise<string> {
     const operations = ids.map(id => ({
       type: 'rollback' as const,
@@ -176,29 +181,28 @@ Create new job handlers in content-management:
 
 ```typescript
 // shared/content-management/src/job-handlers/batch-operation-handler.ts
-export class BatchOperationHandler implements JobHandler<'batch-operation'> {
+export class BatchOperationHandler implements JobHandler<"batch-operation"> {
   async process(data: BatchOperationData): Promise<BatchOperationResult> {
     const results = [];
-    
+
     for (const [index, operation] of data.operations.entries()) {
       try {
         // Emit progress
-        await this.messageBus.publish('batch-progress', {
+        await this.messageBus.publish("batch-progress", {
           batchId: data.batchId,
           currentOperation: `${operation.type} ${operation.entityId}`,
           completedOperations: index,
-          totalOperations: data.operations.length
+          totalOperations: data.operations.length,
         });
-        
+
         // Process operation
         const result = await this.processOperation(operation);
         results.push({ success: true, result });
-        
       } catch (error) {
         results.push({ success: false, error: error.message });
       }
     }
-    
+
     return { results };
   }
 }
@@ -214,7 +218,7 @@ Update CLI to show progress bars:
 // interfaces/cli/src/components/BatchProgress.tsx
 export function BatchProgress({ batchId, onComplete }) {
   const [status, setStatus] = useState<BatchStatus>();
-  
+
   useEffect(() => {
     const unsubscribe = messageBus.subscribe('batch-progress', (msg) => {
       if (msg.batchId === batchId) {
@@ -226,13 +230,13 @@ export function BatchProgress({ batchId, onComplete }) {
     });
     return unsubscribe;
   }, [batchId]);
-  
+
   if (!status) return <Text>Starting batch operation...</Text>;
-  
+
   return (
     <Box flexDirection="column">
       <Text>{status.currentOperation || 'Processing...'}</Text>
-      <ProgressBar 
+      <ProgressBar
         percent={status.completedOperations / status.totalOperations * 100}
       />
       <Text dimColor>
@@ -259,10 +263,10 @@ private async handleBatchOperation(
     context.channelId,
     "Starting batch operation..."
   );
-  
+
   // Start operation
   const batchId = await this.executeBatchCommand(command, args);
-  
+
   // Subscribe to progress
   const unsubscribe = this.messageBus.subscribe('batch-progress', async (msg) => {
     if (msg.batchId === batchId) {
@@ -273,7 +277,7 @@ private async handleBatchOperation(
         `Progress: ${msg.completedOperations}/${msg.totalOperations}\n` +
         `Current: ${msg.currentOperation}`
       );
-      
+
       if (msg.status === 'completed') {
         unsubscribe();
         await this.client.editMessage(

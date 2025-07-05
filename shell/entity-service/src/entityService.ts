@@ -380,12 +380,16 @@ export class EntityService implements IEntityService {
       .limit(1);
 
     if (existingEntity.length === 0) {
-      this.logger.info(`Entity of type ${entityType} with ID ${id} not found for deletion`);
+      this.logger.info(
+        `Entity of type ${entityType} with ID ${id} not found for deletion`,
+      );
       return false;
     }
 
     // Delete from database (cascades to chunks and embeddings)
-    await this.db.delete(entities).where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
+    await this.db
+      .delete(entities)
+      .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
 
     this.logger.info(`Deleted entity of type ${entityType} with ID ${id}`);
     return true;
