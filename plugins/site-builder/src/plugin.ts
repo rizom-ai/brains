@@ -5,8 +5,7 @@ import type {
   PluginResource,
 } from "@brains/plugin-utils";
 import type { Template } from "@brains/types";
-import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
-import type { ProgressNotification } from "@brains/utils";
+import type { SectionDefinition } from "@brains/view-registry";
 import { RouteDefinitionSchema } from "@brains/view-registry";
 import { TemplateSchema } from "@brains/types";
 import { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
@@ -223,56 +222,85 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           // Get all registered routes
           const routes = this.context.listRoutes();
 
-          // Create the content generation callback
-          const generateCallback = async (
-            route: RouteDefinition,
-            section: SectionDefinition,
-            progress: ProgressNotification,
-          ): Promise<{
-            content: string;
-          }> => {
-            const config = this.config;
 
-            // Validate section has template
+          // Use the shared content manager with async generation
+          const templateResolver = (section: SectionDefinition): string => {
             if (!section.template) {
               throw new Error(
                 `No template specified for section ${section.id}`,
               );
             }
-
-            if (!this.context) {
-              throw new Error("Plugin context not available");
-            }
-
-            // Use generateWithRoute which returns formatted string
-            const formattedContent = await this.context.generateWithRoute(
-              route,
-              section,
-              {
-                current: progress.progress,
-                total: progress.total ?? 100,
-                message: progress.message ?? "Generating content",
-              },
-              {
-                ...(config.siteConfig ?? {
-                  title: "Personal Brain",
-                  description: "A knowledge management system",
-                }),
-              },
-            );
-
-            return {
-              content: formattedContent,
-            };
+            return section.template;
           };
 
-          // Use the shared content manager with progress reporting
-          const result = await this.contentManager.generateSync(
+          const { jobs, totalSections } = await this.contentManager.generate(
             options,
             routes,
-            generateCallback,
+            templateResolver,
             "site-content-preview",
+            this.config.siteConfig,
           );
+
+          // Wait for jobs to complete
+          const results = await this.contentManager.waitForContentJobs(
+            jobs,
+            60000, // 1 minute timeout
+            async (progress) => {
+              if (context?.sendProgress) {
+                await context.sendProgress(progress);
+              }
+            },
+          );
+
+          // Build result from job results  
+          const generated: Array<{
+            page: string;
+            section: string;
+            entityId: string;
+            entityType: string;
+          }> = [];
+          const skipped: Array<{
+            page: string;
+            section: string;
+            reason: string;
+          }> = [];
+          const errors: string[] = [];
+
+          // Map results back to jobs to get metadata
+          for (let i = 0; i < results.length; i++) {
+            const result = results[i];
+            const job = jobs[i];
+            
+            if (!result || !job) continue;
+            
+            if (result.success) {
+              generated.push({
+                page: job.pageId,
+                section: job.sectionId,
+                entityId: result.entityId,
+                entityType: "site-content-preview",
+              });
+            } else {
+              skipped.push({
+                page: job.pageId,
+                section: job.sectionId,
+                reason: result.error || "Unknown error",
+              });
+              if (result.error) {
+                errors.push(result.error);
+              }
+            }
+          }
+
+          const result = {
+            success: results.every((r) => r.success),
+            sectionsGenerated: generated.length,
+            totalSections,
+            message: `Generated content for ${generated.length} sections`,
+            generated,
+            skipped,
+            errors,
+          };
 
           // Report progress if context is available
           if (context?.sendProgress) {
@@ -442,8 +470,14 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Parse and validate input
           const options = PromoteOptionsSchema.parse(input);
-          const result = await this.siteOperations.promoteSync(options);
-          return result;
+          const batchId = await this.siteOperations.promote(options);
+          
+          return {
+            status: "queued",
+            message: "Promotion operation queued.",
+            batchId,
+            tip: "Use the status tool to check progress of this operation.",
+          };
         },
         "anchor", // Internal tool - modifies entities
       ),
@@ -459,8 +493,14 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             throw new Error("Site operations not initialized");
           }
 
-          const result = await this.siteOperations.promoteAllSync();
-          return result;
+          const batchId = await this.siteOperations.promoteAll();
+          
+          return {
+            status: "queued",
+            message: "Promotion of all preview content queued.",
+            batchId,
+            tip: "Use the status tool to check progress of this operation.",
+          };
         },
         "anchor", // Internal tool - modifies entities
       ),
@@ -495,8 +535,14 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Parse and validate input
           const options = RollbackOptionsSchema.parse(input);
-          const result = await this.siteOperations.rollbackSync(options);
-          return result;
+          const batchId = await this.siteOperations.rollback(options);
+          
+          return {
+            status: "queued",
+            message: "Rollback operation queued.",
+            batchId,
+            tip: "Use the status tool to check progress of this operation.",
+          };
         },
         "anchor", // Internal tool - modifies entities
       ),
@@ -541,7 +587,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             return section.template;
           };
 
-          const batchId = await this.contentManager.generateAllAsync(
+          const batchId = await this.contentManager.generateAll(
             options,
             routes,
             templateResolver,

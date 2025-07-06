@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/types";
-import type { ProgressNotification, ProgressCallback } from "@brains/utils";
+import type { ProgressCallback } from "@brains/utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
@@ -16,10 +16,8 @@ import type {
   SiteContent,
   SiteContentEntityType,
   GenerateOptions,
-  GenerateResult,
   ContentGenerationJob,
   DeriveOptions,
-  DeriveResult,
 } from "./types";
 
 /**
@@ -94,31 +92,11 @@ export class ContentManager {
   // Content Generation Operations
   // ========================================
 
-  /**
-   * Generate content synchronously for specified routes
-   */
-  async generateSync(
-    options: GenerateOptions,
-    routes: RouteDefinition[],
-    generateCallback: (
-      route: RouteDefinition,
-      sectionId: SectionDefinition,
-      progress: ProgressNotification,
-    ) => Promise<{ content: string }>,
-    targetEntityType: SiteContentEntityType,
-  ): Promise<GenerateResult> {
-    return this.generationOps.generateSync(
-      options,
-      routes,
-      generateCallback,
-      targetEntityType,
-    );
-  }
 
   /**
-   * Generate content asynchronously by queuing jobs
+   * Generate content by queuing jobs
    */
-  async generateAsync(
+  async generate(
     options: GenerateOptions,
     routes: RouteDefinition[],
     templateResolver: (sectionId: SectionDefinition) => string,
@@ -129,7 +107,7 @@ export class ContentManager {
     totalSections: number;
     queuedSections: number;
   }> {
-    return this.generationOps.generateAsync(
+    return this.generationOps.generate(
       options,
       routes,
       templateResolver,
@@ -325,33 +303,17 @@ export class ContentManager {
   // Content Derivation Operations
   // ========================================
 
-  /**
-   * Derive content from one entity type to another synchronously
-   */
-  async deriveSync(
-    sourceEntityId: string,
-    sourceEntityType: SiteContentEntityType,
-    targetEntityType: SiteContentEntityType,
-    options: DeriveOptions = {},
-  ): Promise<DeriveResult> {
-    return this.derivationOps.deriveSync(
-      sourceEntityId,
-      sourceEntityType,
-      targetEntityType,
-      options,
-    );
-  }
 
   /**
-   * Derive content asynchronously (queues jobs and returns immediately)
+   * Derive content (queues jobs and returns immediately)
    */
-  async deriveAsync(
+  async derive(
     sourceEntityId: string,
     sourceEntityType: SiteContentEntityType,
     targetEntityType: SiteContentEntityType,
     options: DeriveOptions = {},
   ): Promise<{ jobId: string }> {
-    return this.derivationOps.deriveAsync(
+    return this.derivationOps.derive(
       sourceEntityId,
       sourceEntityType,
       targetEntityType,
@@ -364,10 +326,10 @@ export class ContentManager {
   // ========================================
 
   /**
-   * Generate all content asynchronously using batch operations
+   * Generate all content using batch operations
    * This queues all sections as a single batch job for better tracking
    */
-  async generateAllAsync(
+  async generateAll(
     options: GenerateOptions & { userId?: string; priority?: number },
     routes: RouteDefinition[],
     templateResolver: (sectionId: SectionDefinition) => string,
@@ -473,9 +435,9 @@ export class ContentManager {
   }
 
   /**
-   * Promote multiple preview entities to production asynchronously
+   * Promote multiple preview entities to production
    */
-  async promoteAsync(
+  async promote(
     previewIds: string[],
     options?: { userId?: string; priority?: number },
   ): Promise<string> {
@@ -516,9 +478,9 @@ export class ContentManager {
   }
 
   /**
-   * Rollback multiple production entities asynchronously
+   * Rollback multiple production entities
    */
-  async rollbackAsync(
+  async rollback(
     productionIds: string[],
     options?: { userId?: string; priority?: number },
   ): Promise<string> {

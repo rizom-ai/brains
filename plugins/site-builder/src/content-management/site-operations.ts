@@ -4,9 +4,7 @@ import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type {
   PromoteOptions,
-  PromoteResult,
   RollbackOptions,
-  RollbackResult,
 } from "./types";
 
 /**
@@ -21,7 +19,7 @@ export class SiteOperations {
   constructor(
     entityService: EntityService,
     private readonly logger: Logger,
-    private readonly pluginContext: PluginContext,
+    pluginContext: PluginContext,
   ) {
     this.contentManager = ContentManager.createFresh(
       entityService,
@@ -32,17 +30,10 @@ export class SiteOperations {
 
   /**
    * Promote preview content to production
-   * Uses ContentManager's derive functionality under the hood
+   * Returns a batch ID for async tracking
    */
-  async promoteSync(options: PromoteOptions): Promise<PromoteResult> {
+  async promote(options: PromoteOptions): Promise<string> {
     this.logger.info("Starting promote operation", { options });
-
-    const result: PromoteResult = {
-      success: true,
-      promoted: [],
-      skipped: [],
-      errors: [],
-    };
 
     try {
       // Get preview entities to promote based on options
@@ -51,77 +42,47 @@ export class SiteOperations {
         options,
       );
 
-      for (const previewEntity of previewEntities) {
-        try {
-          if (options.dryRun) {
-            this.logger.debug("Dry run: would promote", {
-              previewId: previewEntity.id,
-              page: previewEntity.pageId,
-              section: previewEntity.sectionId,
-            });
-            continue;
-          }
-
-          // Use derive to create/update production from preview
-          const deriveResult = await this.contentManager.deriveSync(
-            previewEntity.id,
-            "site-content-preview",
-            "site-content-production",
-            { deleteSource: false }, // Keep preview entity
-          );
-
-          result.promoted.push({
-            pageId: previewEntity.pageId,
-            sectionId: previewEntity.sectionId,
+      if (options.dryRun) {
+        // For dry run, log what would be promoted and return mock batch ID
+        for (const previewEntity of previewEntities) {
+          this.logger.debug("Dry run: would promote", {
             previewId: previewEntity.id,
-            productionId: deriveResult.derivedEntityId,
-          });
-
-          this.logger.debug("Promoted entity", {
-            previewId: previewEntity.id,
-            productionId: deriveResult.derivedEntityId,
-          });
-        } catch (error) {
-          const errorMessage = `Failed to promote ${previewEntity.pageId}/${previewEntity.sectionId}: ${
-            error instanceof Error ? error.message : String(error)
-          }`;
-          result.errors?.push(errorMessage);
-          result.success = false;
-          this.logger.error("Failed to promote entity", {
-            error: errorMessage,
+            page: previewEntity.pageId,
+            section: previewEntity.sectionId,
           });
         }
+        return `dry-run-${Date.now()}`;
       }
 
-      this.logger.info("Promote operation completed", {
-        promoted: result.promoted.length,
-        errors: result.errors?.length ?? 0,
+      if (previewEntities.length === 0) {
+        throw new Error("No entities to promote");
+      }
+
+      // Use batch promote for all entities
+      const entityIds = previewEntities.map((e) => e.id);
+      const batchId = await this.contentManager.promote(entityIds);
+
+      this.logger.info("Promote operation queued", {
+        batchId,
+        entityCount: entityIds.length,
       });
 
-      return result;
+      return batchId;
     } catch (error) {
       const errorMessage = `Promote operation failed: ${
         error instanceof Error ? error.message : String(error)
       }`;
-      result.errors = [errorMessage];
-      result.success = false;
       this.logger.error("Promote operation failed", { error: errorMessage });
-      return result;
+      throw new Error(errorMessage);
     }
   }
 
   /**
    * Rollback production content (removes production entities)
+   * Returns a batch ID for async tracking
    */
-  async rollbackSync(options: RollbackOptions): Promise<RollbackResult> {
+  async rollback(options: RollbackOptions): Promise<string> {
     this.logger.info("Starting rollback operation", { options });
-
-    const result: RollbackResult = {
-      success: true,
-      rolledBack: [],
-      skipped: [],
-      errors: [],
-    };
 
     try {
       // Get production entities to rollback based on options
@@ -130,66 +91,46 @@ export class SiteOperations {
         options,
       );
 
-      for (const productionEntity of productionEntities) {
-        try {
-          if (options.dryRun) {
-            this.logger.debug("Dry run: would rollback", {
-              productionId: productionEntity.id,
-              page: productionEntity.pageId,
-              section: productionEntity.sectionId,
-            });
-            continue;
-          }
-
-          // Delete the production entity
-          await this.pluginContext.entityService.deleteEntity(
-            "site-content-production",
-            productionEntity.id,
-          );
-
-          result.rolledBack.push({
-            pageId: productionEntity.pageId,
-            sectionId: productionEntity.sectionId,
+      if (options.dryRun) {
+        // For dry run, log what would be rolled back and return mock batch ID
+        for (const productionEntity of productionEntities) {
+          this.logger.debug("Dry run: would rollback", {
             productionId: productionEntity.id,
-          });
-
-          this.logger.debug("Rolled back entity", {
-            productionId: productionEntity.id,
-          });
-        } catch (error) {
-          const errorMessage = `Failed to rollback ${productionEntity.pageId}/${productionEntity.sectionId}: ${
-            error instanceof Error ? error.message : String(error)
-          }`;
-          result.errors?.push(errorMessage);
-          result.success = false;
-          this.logger.error("Failed to rollback entity", {
-            error: errorMessage,
+            page: productionEntity.pageId,
+            section: productionEntity.sectionId,
           });
         }
+        return `dry-run-${Date.now()}`;
       }
 
-      this.logger.info("Rollback operation completed", {
-        rolledBack: result.rolledBack.length,
-        errors: result.errors?.length ?? 0,
+      if (productionEntities.length === 0) {
+        throw new Error("No entities to rollback");
+      }
+
+      // Use batch rollback for all entities
+      const entityIds = productionEntities.map((e) => e.id);
+      const batchId = await this.contentManager.rollback(entityIds);
+
+      this.logger.info("Rollback operation queued", {
+        batchId,
+        entityCount: entityIds.length,
       });
 
-      return result;
+      return batchId;
     } catch (error) {
       const errorMessage = `Rollback operation failed: ${
         error instanceof Error ? error.message : String(error)
       }`;
-      result.errors = [errorMessage];
-      result.success = false;
       this.logger.error("Rollback operation failed", { error: errorMessage });
-      return result;
+      throw new Error(errorMessage);
     }
   }
 
   /**
    * Promote all preview content to production
    */
-  async promoteAllSync(): Promise<PromoteResult> {
-    return this.promoteSync({ dryRun: false });
+  async promoteAll(): Promise<string> {
+    return this.promote({ dryRun: false });
   }
 
   /**
