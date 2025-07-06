@@ -56,27 +56,92 @@ Job handlers stay in their respective packages:
 ### 1.3 Update Dependencies
 
 ```json
-// shared/job-queue/package.json
+// shell/job-queue/package.json
 {
   "name": "@brains/job-queue",
   "dependencies": {
     "@brains/db": "workspace:*",
     "@brains/types": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "@brains/messaging-service": "workspace:*"
   }
 }
 ```
 
-Update consumers:
+Update direct consumers (core services only):
 
-- `@brains/entity-service` to depend on `@brains/job-queue`
-- `@brains/content-management` to depend on `@brains/job-queue`
+- `@brains/entity-service` to depend on `@brains/job-queue` (for EmbeddingJobHandler)
+- `@brains/core` to depend on `@brains/job-queue` (for Shell initialization)
 
-## Phase 2: Batch Operations Infrastructure (Day 1 Afternoon)
+**Important**: Plugins should NOT directly import from `@brains/job-queue`. They access job queue functionality through their plugin context.
 
-### 2.1 Create BatchJobManager
+## Phase 2: Plugin Context Updates (Day 1 Afternoon)
 
-Location: `shared/content-management/src/operations/batch-job-manager.ts`
+### 2.1 Update Plugin Context Interface
+
+Add generic job queue operations to `shared/plugin-utils/src/interfaces.ts`:
+
+```typescript
+export interface PluginContext {
+  // ... existing methods ...
+
+  // Generic job queue access (required)
+  enqueueJob: (
+    type: string,
+    data: unknown,
+    options?: {
+      priority?: number;
+      maxRetries?: number;
+    },
+  ) => Promise<string>;
+
+  getJobStatus: (jobId: string) => Promise<{
+    status: "pending" | "processing" | "completed" | "failed";
+    result?: unknown;
+    error?: string;
+  } | null>;
+
+  waitForJob: (jobId: string, timeoutMs?: number) => Promise<unknown>;
+
+  // Batch operations (required)
+  enqueueBatch: (
+    operations: Array<{
+      type: string;
+      entityId?: string;
+      entityType?: string;
+      options?: Record<string, unknown>;
+    }>,
+    options?: {
+      userId?: string;
+      priority?: number;
+      maxRetries?: number;
+    },
+  ) => Promise<string>;
+
+  getBatchStatus: (batchId: string) => Promise<{
+    batchId: string;
+    totalOperations: number;
+    completedOperations: number;
+    failedOperations: number;
+    currentOperation?: string;
+    errors: string[];
+    status: "pending" | "processing" | "completed" | "failed";
+  } | null>;
+
+  // Job handler registration (for plugins that process jobs)
+  registerJobHandler?: (type: string, handler: JobHandler) => void;
+}
+```
+
+### 2.2 Update PluginContextFactory
+
+Implement the new methods in `shell/core/src/plugins/pluginContextFactory.ts` to properly expose job queue functionality to plugins.
+
+## Phase 3: Batch Operations Infrastructure (Day 1 Afternoon - continued)
+
+### 3.1 Create BatchJobManager
+
+Location: `shell/job-queue/src/batch-job-manager.ts`
 
 ```typescript
 export interface BatchOperation {
@@ -140,73 +205,87 @@ export class BatchJobManager {
 }
 ```
 
-### 2.2 Update ContentManager
+### 3.2 Update ContentManager
 
-Add async batch methods:
+ContentManager should use job queue through plugin context, not direct imports:
 
 ```typescript
 class ContentManager {
+  constructor(
+    private context: PluginContext,  // Injected during plugin registration
+    // ... other dependencies
+  ) {}
+
   // Existing sync methods remain unchanged
   async generateSync(...): Promise<T>
   async promoteSync(...): Promise<T>
   async deriveSync(...): Promise<T>
 
-  // New async batch operations
+  // New async batch operations using plugin context
   async generateAllAsync(options: GenerateAllOptions): Promise<string> {
     const operations = await this.buildGenerateOperations(options);
-    return this.batchJobManager.enqueueBatch(operations, options.userId);
+    return this.context.enqueueBatch(operations, {
+      userId: options.userId,
+      priority: options.priority
+    });
   }
 
   async promoteAsync(ids: string[], userId?: string): Promise<string> {
     const operations = ids.map(id => ({
       type: 'promote' as const,
-      entityId: id
+      entityId: id,
+      entityType: 'site-content'
     }));
-    return this.batchJobManager.enqueueBatch(operations, userId);
+    return this.context.enqueueBatch(operations, { userId });
   }
 
   async rollbackAsync(ids: string[], userId?: string): Promise<string> {
     const operations = ids.map(id => ({
       type: 'rollback' as const,
-      entityId: id
+      entityId: id,
+      entityType: 'site-content'
     }));
-    return this.batchJobManager.enqueueBatch(operations, userId);
+    return this.context.enqueueBatch(operations, { userId });
+  }
+
+  // Check batch status
+  async getBatchStatus(batchId: string): Promise<BatchStatus | null> {
+    return this.context.getBatchStatus(batchId);
   }
 }
 ```
 
-### 2.3 Job Handlers
+### 3.3 Job Handler Registration Pattern
 
-Create new job handlers in content-management:
+Plugins register their job handlers during the registration phase:
 
 ```typescript
-// shared/content-management/src/job-handlers/batch-operation-handler.ts
-export class BatchOperationHandler implements JobHandler<"batch-operation"> {
-  async process(data: BatchOperationData): Promise<BatchOperationResult> {
-    const results = [];
+// plugins/site-builder/src/plugin.ts
+export class SiteBuilderPlugin extends BasePlugin {
+  async register(context: PluginContext): Promise<PluginCapabilities> {
+    // Create content-specific job handlers
+    const generateHandler = new ContentGenerationJobHandler(
+      context,
+      this.contentManager,
+    );
+    const promoteHandler = new ContentPromotionJobHandler(
+      context,
+      this.contentManager,
+    );
 
-    for (const [index, operation] of data.operations.entries()) {
-      try {
-        // Emit progress
-        await this.messageBus.publish("batch-progress", {
-          batchId: data.batchId,
-          currentOperation: `${operation.type} ${operation.entityId}`,
-          completedOperations: index,
-          totalOperations: data.operations.length,
-        });
-
-        // Process operation
-        const result = await this.processOperation(operation);
-        results.push({ success: true, result });
-      } catch (error) {
-        results.push({ success: false, error: error.message });
-      }
+    // Register handlers if the plugin processes jobs
+    if (context.registerJobHandler) {
+      context.registerJobHandler("content-generate", generateHandler);
+      context.registerJobHandler("content-promote", promoteHandler);
+      context.registerJobHandler("content-rollback", rollbackHandler);
     }
 
-    return { results };
+    // ... rest of plugin registration
   }
 }
 ```
+
+The generic batch operation handler in job-queue will delegate to these registered handlers based on operation type.
 
 ## Phase 3: Interface Updates (Day 2 Morning)
 
@@ -350,13 +429,27 @@ Update tools to support async operations:
 - Add examples for each interface
 - Document migration from sync to async
 
+## Architectural Principles
+
+1. **Plugin Context Boundary**: Plugins should NEVER directly import from core services like `@brains/job-queue`. All system interaction goes through the plugin context.
+
+2. **Job Handler Registration**: Plugins that process jobs register their handlers during the `register()` phase, not by importing job queue directly.
+
+3. **Dependency Flow**:
+   - Core services (shell/\*) can import from each other
+   - Plugins can only import from shared/\* packages
+   - Plugins access shell services through their context
+
+4. **Batch Operations as Core Infrastructure**: BatchJobManager lives in shell/job-queue because it's generic infrastructure, not domain-specific logic.
+
 ## Benefits
 
-1. **Clean Architecture**: Job queue as a reusable package
+1. **Clean Architecture**: Job queue as a reusable package with proper boundaries
 2. **Non-blocking Operations**: No more frozen interfaces
 3. **Progress Visibility**: Real-time updates for long operations
 4. **Scalability**: Easy to add new job types
 5. **Testability**: Isolated components with clear responsibilities
+6. **Plugin Isolation**: Plugins remain decoupled from core infrastructure
 
 ## Timeline
 
