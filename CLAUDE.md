@@ -51,6 +51,16 @@ When you encounter uncertainty about implementation details or architectural dec
    - Run `bun run lint` or `bun run lint:fix`
 3. Commit frequently with clear messages
 
+### CRITICAL: Never Bypass Tests
+
+**NEVER EVER use `--no-verify` flag when committing!** This is absolutely forbidden.
+
+- Tests MUST pass before committing any code
+- If tests are failing, FIX THEM before committing
+- Never commit broken code that will break CI/CD or block other developers
+- If you need to refactor tests, do it in the SAME commit as the implementation changes
+- No exceptions to this rule
+
 ### Testing Philosophy
 
 - Focus exclusively on unit tests

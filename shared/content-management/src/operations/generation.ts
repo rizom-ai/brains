@@ -3,10 +3,7 @@ import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { SiteContentEntityType } from "@brains/types";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { PluginContext } from "@brains/plugin-utils";
-import type {
-  GenerateOptions,
-  ContentGenerationJob,
-} from "../types";
+import type { GenerateOptions, ContentGenerationJob } from "../types";
 
 /**
  * Generate deterministic entity ID for site content
@@ -53,13 +50,10 @@ export class GenerationOperations {
 
   // Private constructor to enforce factory methods
   private constructor(
-    entityService: EntityService,
+    _entityService: EntityService, // TODO: Use for checking if entities already exist before queuing
     private readonly logger: Logger,
     private readonly pluginContext: PluginContext,
-  ) {
-    // entityService will be used for checking existing entities
-  }
-
+  ) {}
 
   /**
    * Generate content (queues jobs and returns immediately)

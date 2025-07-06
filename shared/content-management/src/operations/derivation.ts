@@ -1,9 +1,6 @@
 import type { Logger } from "@brains/types";
 import type { IEntityService as EntityService } from "@brains/entity-service";
-import type {
-  SiteContentEntityType,
-  DeriveOptions,
-} from "../types";
+import type { SiteContentEntityType, DeriveOptions } from "../types";
 
 /**
  * Content derivation operations
@@ -39,11 +36,9 @@ export class DerivationOperations {
 
   // Private constructor to enforce factory methods
   private constructor(
-    entityService: EntityService,
+    _entityService: EntityService, // TODO: Use when implementing actual async derivation
     private readonly logger: Logger,
-  ) {
-    // entityService will be used when implementing actual async derivation
-  }
+  ) {}
 
   /**
    * Derive content (queues jobs and returns immediately)
@@ -65,7 +60,7 @@ export class DerivationOperations {
     // TODO: Implement async derivation with job queue
     // For now, return a mock job ID
     const jobId = `derive-${sourceEntityId}-${Date.now()}`;
-    
+
     return { jobId };
   }
 }

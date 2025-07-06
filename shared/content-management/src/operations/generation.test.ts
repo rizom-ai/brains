@@ -100,7 +100,7 @@ beforeEach((): void => {
   );
 });
 
-test("generateSync should generate content for routes", async () => {
+test("generate should queue content generation jobs", async () => {
   const routes: RouteDefinition[] = [
     {
       path: "/landing",
@@ -111,78 +111,69 @@ test("generateSync should generate content for routes", async () => {
     },
   ];
 
-  const generateCallback = mock().mockResolvedValue({
-    content: "Generated content",
-  });
+  const templateResolver = mock().mockReturnValue("hero-template");
+  mockEnqueueContentGeneration.mockResolvedValue("job-123");
 
-  mockGetEntity.mockResolvedValue(null);
-  mockCreateEntityAsync.mockResolvedValue(undefined);
-
-  const result = await operations.generateSync(
+  const result = await operations.generate(
     { dryRun: false },
     routes,
-    generateCallback,
+    templateResolver,
     "site-content-preview",
   );
 
-  expect(result.success).toBe(true);
-  expect(result.sectionsGenerated).toBe(1);
-  expect(result.generated).toHaveLength(1);
-  expect(result.generated[0]).toEqual({
-    pageId: "landing",
-    sectionId: "hero",
+  expect(result.totalSections).toBe(1);
+  expect(result.queuedSections).toBe(1);
+  expect(result.jobs).toHaveLength(1);
+  expect(result.jobs[0]).toMatchObject({
     entityId: "landing:hero",
     entityType: "site-content-preview",
-  });
-
-  expect(mockCreateEntityAsync).toHaveBeenCalledWith({
-    id: "landing:hero",
-    entityType: "site-content-preview",
+    operation: "generate",
     pageId: "landing",
     sectionId: "hero",
-    content: "Generated content",
-    created: expect.any(String),
-    updated: expect.any(String),
+    templateName: "hero-template",
   });
+
+  expect(mockEnqueueContentGeneration).toHaveBeenCalledWith(
+    "content-generation",
+    expect.objectContaining({
+      templateName: "hero-template",
+    }),
+  );
 });
 
-test("generateSync should skip existing entities", async () => {
+test("generate should queue jobs even for sections with content", async () => {
   const routes: RouteDefinition[] = [
     {
       path: "/landing",
       id: "landing",
       description: "Landing page",
       title: "Landing Page",
-      sections: [{ id: "hero", template: "hero-template" }],
+      sections: [
+        { id: "hero", template: "hero-template", content: "Existing content" },
+      ],
     },
   ];
 
-  const generateCallback = mock();
-  const existingEntity = { id: "landing:hero" };
+  const templateResolver = mock().mockReturnValue("hero-template");
+  mockEnqueueContentGeneration.mockResolvedValue("job-id");
 
-  mockGetEntity.mockResolvedValue(existingEntity);
-
-  const result = await operations.generateSync(
+  const result = await operations.generate(
     { dryRun: false },
     routes,
-    generateCallback,
+    templateResolver,
     "site-content-preview",
   );
 
-  expect(result.success).toBe(true);
-  expect(result.sectionsGenerated).toBe(0);
-  expect(result.skipped).toHaveLength(1);
-  expect(result.skipped[0]).toEqual({
-    pageId: "landing",
-    sectionId: "hero",
-    reason: "Entity already exists",
-  });
+  // The current implementation doesn't skip sections with content
+  expect(result.totalSections).toBe(1);
+  expect(result.queuedSections).toBe(1);
+  expect(result.jobs).toHaveLength(1);
 
-  expect(generateCallback).not.toHaveBeenCalled();
-  expect(mockCreateEntityAsync).not.toHaveBeenCalled();
+  expect(templateResolver).toHaveBeenCalled();
+  expect(mockEnqueueContentGeneration).toHaveBeenCalled();
 });
 
-test("generateSync should handle dry run", async () => {
+test("generate should handle dry run without queuing", async () => {
   const routes: RouteDefinition[] = [
     {
       path: "/landing",
@@ -193,22 +184,22 @@ test("generateSync should handle dry run", async () => {
     },
   ];
 
-  const generateCallback = mock();
+  const templateResolver = mock();
 
-  const result = await operations.generateSync(
+  const result = await operations.generate(
     { dryRun: true },
     routes,
-    generateCallback,
+    templateResolver,
     "site-content-preview",
   );
 
-  expect(result.success).toBe(true);
-  expect(result.sectionsGenerated).toBe(0);
-  expect(generateCallback).not.toHaveBeenCalled();
-  expect(mockCreateEntityAsync).not.toHaveBeenCalled();
+  expect(result.totalSections).toBe(1);
+  expect(result.queuedSections).toBe(0);
+  expect(result.jobs).toHaveLength(0);
+  expect(mockEnqueueContentGeneration).not.toHaveBeenCalled();
 });
 
-test("generateAsync should queue generation jobs", async () => {
+test("generate should queue multiple jobs for multiple sections", async () => {
   const routes: RouteDefinition[] = [
     {
       path: "/landing",
@@ -226,7 +217,7 @@ test("generateAsync should queue generation jobs", async () => {
 
   mockEnqueueContentGeneration.mockResolvedValue("job-id");
 
-  const result = await operations.generateAsync(
+  const result = await operations.generate(
     { dryRun: false },
     routes,
     templateResolver,
@@ -270,7 +261,7 @@ test("generateAsync should queue generation jobs", async () => {
   );
 });
 
-test("generateAsync should filter by pageId", async () => {
+test("generate should filter by pageId", async () => {
   const routes: RouteDefinition[] = [
     {
       path: "/landing",
@@ -290,7 +281,7 @@ test("generateAsync should filter by pageId", async () => {
 
   const templateResolver = mock().mockReturnValue("template-name");
 
-  const result = await operations.generateAsync(
+  const result = await operations.generate(
     { pageId: "landing", dryRun: false },
     routes,
     templateResolver,

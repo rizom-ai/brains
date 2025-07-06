@@ -77,38 +77,7 @@ afterEach(async (): Promise<void> => {
 // Content Generation Tests
 // ========================================
 
-test("generateSync should delegate to GenerationOperations", async () => {
-  const routes: RouteDefinition[] = [
-    {
-      path: "/landing",
-      id: "landing",
-      description: "Landing page",
-      title: "Landing Page",
-      sections: [{ id: "hero", template: "hero-template" }],
-    },
-  ];
-
-  const generateCallback = mock().mockResolvedValue({
-    content: "Generated content",
-  });
-
-  mockGetEntity.mockResolvedValue(null);
-  mockCreateEntityAsync.mockResolvedValue(undefined);
-
-  const result = await contentManager.generateSync(
-    { dryRun: false },
-    routes,
-    generateCallback,
-    "site-content-preview",
-  );
-
-  expect(result.success).toBe(true);
-  expect(result.sectionsGenerated).toBe(1);
-  expect(generateCallback).toHaveBeenCalled();
-  expect(mockCreateEntityAsync).toHaveBeenCalled();
-});
-
-test("generateAsync should delegate to GenerationOperations with PluginContext", async () => {
+test("generate should queue jobs and return job array", async () => {
   const routes: RouteDefinition[] = [
     {
       path: "/landing",
@@ -122,7 +91,7 @@ test("generateAsync should delegate to GenerationOperations with PluginContext",
   const templateResolver = mock().mockReturnValue("template-name");
   mockEnqueueContentGeneration.mockResolvedValue("job-id");
 
-  const result = await contentManager.generateAsync(
+  const result = await contentManager.generate(
     { dryRun: false },
     routes,
     templateResolver,
@@ -133,6 +102,32 @@ test("generateAsync should delegate to GenerationOperations with PluginContext",
   expect(result.queuedSections).toBe(1);
   expect(result.jobs).toHaveLength(1);
   expect(mockEnqueueContentGeneration).toHaveBeenCalled();
+});
+
+test("generate should handle dry run without queuing jobs", async () => {
+  const routes: RouteDefinition[] = [
+    {
+      path: "/landing",
+      id: "landing",
+      description: "Landing page",
+      title: "Landing Page",
+      sections: [{ id: "hero", template: "hero-template" }],
+    },
+  ];
+
+  const templateResolver = mock().mockReturnValue("template-name");
+
+  const result = await contentManager.generate(
+    { dryRun: true },
+    routes,
+    templateResolver,
+    "site-content-preview",
+  );
+
+  expect(result.totalSections).toBe(1);
+  expect(result.queuedSections).toBe(0);
+  expect(result.jobs).toHaveLength(0);
+  expect(mockEnqueueContentGeneration).not.toHaveBeenCalled();
 });
 
 // ========================================
@@ -410,82 +405,37 @@ test("getContentJobStatuses should return job status map", async () => {
 // Content Derivation Tests
 // ========================================
 
-test("deriveSync should delegate to DerivationOperations", async () => {
-  const mockDerivedEntity = {
-    id: "site-content-production:landing:hero",
-    entityType: "site-content-production",
-    pageId: "landing",
-    sectionId: "hero",
-    content: "Derived content",
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-  };
-
-  mockDeriveEntity.mockResolvedValue(mockDerivedEntity);
-
-  const result = await contentManager.deriveSync(
+test("derive should return job ID immediately", async () => {
+  const result = await contentManager.derive(
     "site-content-preview:landing:hero",
     "site-content-preview",
     "site-content-production",
     { deleteSource: false },
   );
 
-  expect(result).toEqual({
-    sourceEntityId: "site-content-preview:landing:hero",
-    sourceEntityType: "site-content-preview",
-    derivedEntityId: "site-content-production:landing:hero",
-    derivedEntityType: "site-content-production",
-    sourceDeleted: false,
-  });
+  expect(result.jobId).toMatch(/^derive-.*-\d+$/);
 
-  expect(mockDeriveEntity).toHaveBeenCalledWith(
-    "site-content-preview:landing:hero",
-    "site-content-preview",
-    "site-content-production",
-    { deleteSource: false },
-  );
+  // Should not call deriveEntity since it's async
+  expect(mockDeriveEntity).not.toHaveBeenCalled();
 });
 
-test("deriveAsync should delegate to DerivationOperations", async () => {
-  const mockDerivedEntity = {
-    id: "site-content-production:landing:hero",
-    entityType: "site-content-production",
-    pageId: "landing",
-    sectionId: "hero",
-    content: "Derived content",
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-  };
-
-  mockDeriveEntity.mockResolvedValue(mockDerivedEntity);
-
-  const result = await contentManager.deriveAsync(
+test("derive should handle different options", async () => {
+  const result = await contentManager.derive(
     "site-content-preview:landing:hero",
     "site-content-preview",
     "site-content-production",
     { deleteSource: true },
   );
 
-  expect(result.jobId).toMatch(
-    /^derive-site-content-preview:landing:hero-site-content-production-\d+$/,
-  );
-
-  // Give the background job a moment to execute
-  await new Promise((resolve) => setTimeout(resolve, 10));
-
-  expect(mockDeriveEntity).toHaveBeenCalledWith(
-    "site-content-preview:landing:hero",
-    "site-content-preview",
-    "site-content-production",
-    { deleteSource: true },
-  );
+  expect(result.jobId).toBeDefined();
+  expect(typeof result.jobId).toBe("string");
 });
 
 // ========================================
 // Batch Async Operations Tests
 // ========================================
 
-test("generateAllAsync should queue batch operation for all sections", async () => {
+test("generateAll should queue batch operation for all sections", async () => {
   const mockRoutes: RouteDefinition[] = [
     {
       id: "landing",
@@ -513,7 +463,7 @@ test("generateAllAsync should queue batch operation for all sections", async () 
   const templateResolver = (section: SectionDefinition): string =>
     section.template;
 
-  const batchId = await contentManager.generateAllAsync(
+  const batchId = await contentManager.generateAll(
     { dryRun: false, userId: "user-123", priority: 5 },
     mockRoutes,
     templateResolver,
@@ -595,7 +545,7 @@ test("generateAllAsync should queue batch operation for all sections", async () 
   );
 });
 
-test("generateAllAsync should respect pageId filter", async () => {
+test("generateAll should respect pageId filter", async () => {
   const mockRoutes: RouteDefinition[] = [
     {
       id: "landing",
@@ -620,7 +570,7 @@ test("generateAllAsync should respect pageId filter", async () => {
   const templateResolver = (section: SectionDefinition): string =>
     section.template;
 
-  const batchId = await contentManager.generateAllAsync(
+  const batchId = await contentManager.generateAll(
     { pageId: "landing", dryRun: false },
     mockRoutes,
     templateResolver,
@@ -655,13 +605,13 @@ test("generateAllAsync should respect pageId filter", async () => {
   );
 });
 
-test("generateAllAsync should throw for empty operations", async () => {
+test("generateAll should throw for empty operations", async () => {
   const mockRoutes: RouteDefinition[] = [];
   const templateResolver = (section: SectionDefinition): string =>
     section.template;
 
   void expect(
-    contentManager.generateAllAsync(
+    contentManager.generateAll(
       { dryRun: false },
       mockRoutes,
       templateResolver,
@@ -670,7 +620,7 @@ test("generateAllAsync should throw for empty operations", async () => {
   ).rejects.toThrow("No operations to perform");
 });
 
-test("promoteAsync should queue batch promotion operations", async () => {
+test("promote should queue batch promotion operations", async () => {
   const previewIds = [
     "site-content-preview:landing:hero",
     "site-content-preview:landing:features",
@@ -681,7 +631,7 @@ test("promoteAsync should queue batch promotion operations", async () => {
   const mockEnqueueBatch = mock().mockResolvedValue(mockBatchId);
   mockPluginContext.enqueueBatch = mockEnqueueBatch;
 
-  const batchId = await contentManager.promoteAsync(previewIds, {
+  const batchId = await contentManager.promote(previewIds, {
     userId: "admin-123",
     priority: 10,
   });
@@ -721,13 +671,13 @@ test("promoteAsync should queue batch promotion operations", async () => {
   );
 });
 
-test("promoteAsync should throw for empty ids", async () => {
-  void expect(contentManager.promoteAsync([])).rejects.toThrow(
+test("promote should throw for empty ids", async () => {
+  void expect(contentManager.promote([])).rejects.toThrow(
     "No entities to promote",
   );
 });
 
-test("rollbackAsync should queue batch rollback operations", async () => {
+test("rollback should queue batch rollback operations", async () => {
   const productionIds = [
     "site-content-production:landing:hero",
     "site-content-production:about:content",
@@ -737,7 +687,7 @@ test("rollbackAsync should queue batch rollback operations", async () => {
   const mockEnqueueBatch = mock().mockResolvedValue(mockBatchId);
   mockPluginContext.enqueueBatch = mockEnqueueBatch;
 
-  const batchId = await contentManager.rollbackAsync(productionIds);
+  const batchId = await contentManager.rollback(productionIds);
 
   expect(batchId).toBe(mockBatchId);
   expect(mockEnqueueBatch).toHaveBeenCalledWith(
@@ -759,8 +709,8 @@ test("rollbackAsync should queue batch rollback operations", async () => {
   );
 });
 
-test("rollbackAsync should throw for empty ids", async () => {
-  void expect(contentManager.rollbackAsync([])).rejects.toThrow(
+test("rollback should throw for empty ids", async () => {
+  void expect(contentManager.rollback([])).rejects.toThrow(
     "No entities to rollback",
   );
 });

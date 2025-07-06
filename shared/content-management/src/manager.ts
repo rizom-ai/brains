@@ -92,7 +92,6 @@ export class ContentManager {
   // Content Generation Operations
   // ========================================
 
-
   /**
    * Generate content by queuing jobs
    */
@@ -302,7 +301,6 @@ export class ContentManager {
   // ========================================
   // Content Derivation Operations
   // ========================================
-
 
   /**
    * Derive content (queues jobs and returns immediately)

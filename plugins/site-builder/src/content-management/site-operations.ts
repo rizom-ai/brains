@@ -2,10 +2,7 @@ import type { Logger, SiteContent } from "@brains/types";
 import { ContentManager } from "@brains/content-management";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
-import type {
-  PromoteOptions,
-  RollbackOptions,
-} from "./types";
+import type { PromoteOptions, RollbackOptions } from "./types";
 
 /**
  * Site-specific content operations for preview/production workflow

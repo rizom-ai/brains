@@ -222,7 +222,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           // Get all registered routes
           const routes = this.context.listRoutes();
 
-
           // Use the shared content manager with async generation
           const templateResolver = (section: SectionDefinition): string => {
             if (!section.template) {
@@ -252,7 +251,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             },
           );
 
-          // Build result from job results  
+          // Build result from job results
           const generated: Array<{
             page: string;
             section: string;
@@ -270,9 +269,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           for (let i = 0; i < results.length; i++) {
             const result = results[i];
             const job = jobs[i];
-            
+
             if (!result || !job) continue;
-            
+
             if (result.success) {
               generated.push({
                 page: job.pageId,
@@ -471,7 +470,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           // Parse and validate input
           const options = PromoteOptionsSchema.parse(input);
           const batchId = await this.siteOperations.promote(options);
-          
+
           return {
             status: "queued",
             message: "Promotion operation queued.",
@@ -494,7 +493,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           const batchId = await this.siteOperations.promoteAll();
-          
+
           return {
             status: "queued",
             message: "Promotion of all preview content queued.",
@@ -536,7 +535,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           // Parse and validate input
           const options = RollbackOptionsSchema.parse(input);
           const batchId = await this.siteOperations.rollback(options);
-          
+
           return {
             status: "queued",
             message: "Rollback operation queued.",

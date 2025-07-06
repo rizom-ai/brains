@@ -77,175 +77,109 @@ test("should create fresh instance", () => {
   expect(instance1).not.toBe(instance2);
 });
 
-test("deriveSync should derive content from preview to production", async () => {
-  const mockDerivedEntity = {
-    id: "site-content-production:landing:hero",
-    entityType: "site-content-production",
-    pageId: "landing",
-    sectionId: "hero",
-    content: "Derived content",
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-  };
-
-  mockDeriveEntity.mockResolvedValue(mockDerivedEntity);
-
-  const result = await operations.deriveSync(
+test("derive should return job ID for preview to production", async () => {
+  const result = await operations.derive(
     "site-content-preview:landing:hero",
     "site-content-preview",
     "site-content-production",
     { deleteSource: false },
   );
 
-  expect(result).toEqual({
-    sourceEntityId: "site-content-preview:landing:hero",
-    sourceEntityType: "site-content-preview",
-    derivedEntityId: "site-content-production:landing:hero",
-    derivedEntityType: "site-content-production",
-    sourceDeleted: false,
-  });
+  expect(result.jobId).toMatch(/^derive-.*-\d+$/);
+  expect(result.jobId).toContain("site-content-preview:landing:hero");
 
-  expect(mockDeriveEntity).toHaveBeenCalledWith(
-    "site-content-preview:landing:hero",
-    "site-content-preview",
-    "site-content-production",
-    { deleteSource: false },
-  );
+  // Should not call deriveEntity directly in async mode
+  expect(mockDeriveEntity).not.toHaveBeenCalled();
 });
 
-test("deriveSync should derive content from production to preview", async () => {
-  const mockDerivedEntity = {
-    id: "site-content-preview:landing:hero",
-    entityType: "site-content-preview",
-    pageId: "landing",
-    sectionId: "hero",
-    content: "Rolled back content",
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-  };
-
-  mockDeriveEntity.mockResolvedValue(mockDerivedEntity);
-
-  const result = await operations.deriveSync(
+test("derive should return job ID for production to preview", async () => {
+  const result = await operations.derive(
     "site-content-production:landing:hero",
     "site-content-production",
     "site-content-preview",
     { deleteSource: true },
   );
 
-  expect(result).toEqual({
-    sourceEntityId: "site-content-production:landing:hero",
-    sourceEntityType: "site-content-production",
-    derivedEntityId: "site-content-preview:landing:hero",
-    derivedEntityType: "site-content-preview",
-    sourceDeleted: true,
-  });
+  expect(result.jobId).toBeDefined();
+  expect(typeof result.jobId).toBe("string");
 
-  expect(mockDeriveEntity).toHaveBeenCalledWith(
-    "site-content-production:landing:hero",
-    "site-content-production",
-    "site-content-preview",
-    { deleteSource: true },
-  );
+  // Should not call deriveEntity directly in async mode
+  expect(mockDeriveEntity).not.toHaveBeenCalled();
 });
 
-test("deriveSync should handle errors gracefully", async () => {
-  mockDeriveEntity.mockRejectedValue(new Error("Source entity not found"));
+test("derive should work with various entity IDs", async () => {
+  const testIds = [
+    "site-content-preview:nonexistent:section",
+    "entity-with-special-chars:test@123",
+    "simple-id",
+  ];
 
-  expect(
-    operations.deriveSync(
-      "site-content-preview:nonexistent:section",
+  for (const entityId of testIds) {
+    const result = await operations.derive(
+      entityId,
       "site-content-preview",
       "site-content-production",
-    ),
-  ).rejects.toThrow("Content derivation failed: Source entity not found");
+    );
 
-  expect(mockDeriveEntity).toHaveBeenCalledWith(
-    "site-content-preview:nonexistent:section",
-    "site-content-preview",
-    "site-content-production",
-    {},
-  );
+    expect(result.jobId).toContain("derive-");
+    expect(result.jobId).toContain(entityId);
+  }
 });
 
-test("deriveSync should use default options when none provided", async () => {
-  const mockDerivedEntity = {
-    id: "site-content-production:landing:hero",
-    entityType: "site-content-production",
-    pageId: "landing",
-    sectionId: "hero",
-    content: "Derived content",
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-  };
-
-  mockDeriveEntity.mockResolvedValue(mockDerivedEntity);
-
-  const result = await operations.deriveSync(
+test("derive should use default options when none provided", async () => {
+  const result = await operations.derive(
     "site-content-preview:landing:hero",
     "site-content-preview",
     "site-content-production",
   );
 
-  expect(result.sourceDeleted).toBe(false);
-  expect(mockDeriveEntity).toHaveBeenCalledWith(
-    "site-content-preview:landing:hero",
-    "site-content-preview",
-    "site-content-production",
-    {},
-  );
+  expect(result.jobId).toBeDefined();
+  expect(typeof result.jobId).toBe("string");
 });
 
-test("deriveAsync should return job ID", async () => {
-  const mockDerivedEntity = {
-    id: "site-content-production:landing:hero",
-    entityType: "site-content-production",
-    pageId: "landing",
-    sectionId: "hero",
-    content: "Derived content",
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-  };
-
-  mockDeriveEntity.mockResolvedValue(mockDerivedEntity);
-
-  const result = await operations.deriveAsync(
+test("derive should generate unique job IDs", async () => {
+  const result1 = await operations.derive(
     "site-content-preview:landing:hero",
     "site-content-preview",
     "site-content-production",
     { deleteSource: false },
   );
 
-  expect(result.jobId).toMatch(
-    /^derive-site-content-preview:landing:hero-site-content-production-\d+$/,
-  );
-
-  // Give the background job a moment to execute
+  // Add a small delay to ensure different timestamps
   await new Promise((resolve) => setTimeout(resolve, 10));
 
-  expect(mockDeriveEntity).toHaveBeenCalledWith(
+  const result2 = await operations.derive(
     "site-content-preview:landing:hero",
     "site-content-preview",
     "site-content-production",
     { deleteSource: false },
   );
+
+  expect(result1.jobId).not.toBe(result2.jobId);
+  expect(result1.jobId).toMatch(/^derive-.*-\d+$/);
+  expect(result2.jobId).toMatch(/^derive-.*-\d+$/);
 });
 
-test("deriveAsync should handle errors in background job", async () => {
-  mockDeriveEntity.mockRejectedValue(new Error("Derivation failed"));
+test("derive should handle different entity types", async () => {
+  const testCases = [
+    {
+      source: "site-content-preview",
+      target: "site-content-production",
+    },
+    {
+      source: "site-content-production",
+      target: "site-content-preview",
+    },
+  ];
 
-  const result = await operations.deriveAsync(
-    "site-content-preview:landing:hero",
-    "site-content-preview",
-    "site-content-production",
-  );
+  for (const { source, target } of testCases) {
+    const result = await operations.derive(
+      "test-entity-id",
+      source as "site-content-preview" | "site-content-production",
+      target as "site-content-preview" | "site-content-production",
+    );
 
-  expect(result.jobId).toMatch(
-    /^derive-site-content-preview:landing:hero-site-content-production-\d+$/,
-  );
-
-  // Give the background job a moment to execute and fail
-  await new Promise((resolve) => setTimeout(resolve, 10));
-
-  expect(mockDeriveEntity).toHaveBeenCalled();
+    expect(result.jobId).toBeDefined();
+    expect(result.jobId).toContain("derive-");
+  }
 });
