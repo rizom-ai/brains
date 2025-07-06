@@ -81,6 +81,8 @@ Update direct consumers (core services only):
 
 Add generic job queue operations to `shared/plugin-utils/src/interfaces.ts`:
 
+**Important**: The plugin context interface is kept purely generic. No domain-specific job methods (like `enqueueContentGeneration`) are included. All job types use the generic `enqueueJob` method with appropriate type strings.
+
 ```typescript
 export interface PluginContext {
   // ... existing methods ...
@@ -136,6 +138,24 @@ export interface PluginContext {
 ### 2.2 Update PluginContextFactory
 
 Implement the new methods in `shell/core/src/plugins/pluginContextFactory.ts` to properly expose job queue functionality to plugins.
+
+**Implementation Notes**:
+- Remove any domain-specific job methods (like `enqueueContentGeneration`)
+- Implement only the generic job queue methods listed above
+- All job types (content generation, embeddings, batch operations, etc.) go through the generic interface
+- Example: Content generation would use `context.enqueueJob("content-generation", { templateName, context, userId })`
+
+### 2.3 Removed Methods
+
+The following methods were removed from PluginContext to maintain a clean, generic interface:
+
+1. **`enqueueContentGeneration`** - Replaced by `enqueueJob("content-generation", data)`
+   - This was a domain-specific wrapper that added no value over the generic method
+   - Plugins can achieve the same result with the generic `enqueueJob`
+
+2. **Duplicate `getJobStatus`** - Consolidated into one generic method
+   - Previously had both content-specific and generic versions
+   - Now only the generic version remains
 
 ## Phase 3: Batch Operations Infrastructure (Day 1 Afternoon - continued)
 
@@ -433,14 +453,16 @@ Update tools to support async operations:
 
 1. **Plugin Context Boundary**: Plugins should NEVER directly import from core services like `@brains/job-queue`. All system interaction goes through the plugin context.
 
-2. **Job Handler Registration**: Plugins that process jobs register their handlers during the `register()` phase, not by importing job queue directly.
+2. **Generic Infrastructure Only**: Plugin context provides only generic infrastructure methods. Domain-specific job types (content generation, embeddings, etc.) are handled through the generic `enqueueJob` with appropriate type strings. This keeps the plugin boundary clean and extensible.
 
-3. **Dependency Flow**:
+3. **Job Handler Registration**: Plugins that process jobs register their handlers during the `register()` phase, not by importing job queue directly.
+
+4. **Dependency Flow**:
    - Core services (shell/\*) can import from each other
    - Plugins can only import from shared/\* packages
    - Plugins access shell services through their context
 
-4. **Batch Operations as Core Infrastructure**: BatchJobManager lives in shell/job-queue because it's generic infrastructure, not domain-specific logic.
+5. **Batch Operations as Core Infrastructure**: BatchJobManager lives in shell/job-queue because it's generic infrastructure, not domain-specific logic.
 
 ## Benefits
 
