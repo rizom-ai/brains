@@ -1,6 +1,10 @@
 import type { IJobQueueService } from "./types";
 import type { BatchOperation, BatchJobStatus } from "./schemas";
-import { BatchJobStatusSchema, BatchJobDataSchema, JOB_STATUS } from "./schemas";
+import {
+  BatchJobStatusSchema,
+  BatchJobDataSchema,
+  JOB_STATUS,
+} from "./schemas";
 import type { Logger } from "@brains/utils";
 import type { JobOptions } from "@brains/db";
 
@@ -117,15 +121,19 @@ export class BatchJobManager {
       if (job.data) {
         try {
           const batchData = BatchJobDataSchema.parse(job.data);
-          
+
           // Determine status based on progress and job status
           let status = job.status;
-          if (job.status === JOB_STATUS.PENDING && (batchData.completedOperations > 0 || batchData.failedOperations > 0)) {
+          if (
+            job.status === JOB_STATUS.PENDING &&
+            (batchData.completedOperations > 0 ||
+              batchData.failedOperations > 0)
+          ) {
             // If job is still pending but we have progress, we're processing
             status = JOB_STATUS.PROCESSING;
           }
           // If job has completed or failed, use that status
-          
+
           return {
             batchId,
             totalOperations: batchData.operations.length,
@@ -175,26 +183,30 @@ export class BatchJobManager {
 
       // Parse current batch data
       const batchData = BatchJobDataSchema.parse(job.data);
-      
+
       // Update batch data with new progress
       const updatedData = {
         ...batchData,
-        completedOperations: update.completedOperations !== undefined 
-          ? update.completedOperations 
-          : batchData.completedOperations,
-        failedOperations: update.failedOperations !== undefined
-          ? update.failedOperations
-          : batchData.failedOperations,
-        currentOperation: update.currentOperation !== undefined
-          ? update.currentOperation
-          : batchData.currentOperation,
+        completedOperations:
+          update.completedOperations !== undefined
+            ? update.completedOperations
+            : batchData.completedOperations,
+        failedOperations:
+          update.failedOperations !== undefined
+            ? update.failedOperations
+            : batchData.failedOperations,
+        currentOperation:
+          update.currentOperation !== undefined
+            ? update.currentOperation
+            : batchData.currentOperation,
         errors: update.errors
           ? [...batchData.errors, ...update.errors]
           : batchData.errors,
       };
 
       // Determine if batch is complete
-      const totalProcessed = updatedData.completedOperations + updatedData.failedOperations;
+      const totalProcessed =
+        updatedData.completedOperations + updatedData.failedOperations;
       const isComplete = totalProcessed >= batchData.operations.length;
 
       if (isComplete) {
@@ -205,7 +217,10 @@ export class BatchJobManager {
           completedOperations: updatedData.completedOperations,
           failedOperations: updatedData.failedOperations,
           errors: updatedData.errors,
-          status: updatedData.failedOperations > 0 ? JOB_STATUS.FAILED : JOB_STATUS.COMPLETED,
+          status:
+            updatedData.failedOperations > 0
+              ? JOB_STATUS.FAILED
+              : JOB_STATUS.COMPLETED,
           currentOperation: updatedData.currentOperation,
         };
 

@@ -21,7 +21,11 @@ class BatchOperationHandler {
     // Process batch operations here
   }
 
-  async onError(_error: Error, _data: BatchJobData, _jobId: string): Promise<void> {
+  async onError(
+    _error: Error,
+    _data: BatchJobData,
+    _jobId: string,
+  ): Promise<void> {
     // No-op for tests
   }
 
@@ -51,7 +55,10 @@ describe("BatchJobManager", () => {
 
     // Register batch operation handler
     batchHandler = new BatchOperationHandler();
-    jobQueueService.registerHandler("batch-operation", batchHandler as unknown as JobHandler);
+    jobQueueService.registerHandler(
+      "batch-operation",
+      batchHandler as unknown as JobHandler,
+    );
   });
 
   afterEach(async () => {

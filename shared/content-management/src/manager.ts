@@ -3,6 +3,7 @@ import type { ProgressNotification, ProgressCallback } from "@brains/utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import type { BatchJobStatus } from "@brains/job-queue";
 import { GenerationOperations } from "./operations/generation";
 import { DerivationOperations } from "./operations/derivation";
 import { EntityQueryService } from "./services/entity-query";
@@ -38,6 +39,7 @@ export class ContentManager {
   private readonly derivationOps: DerivationOperations;
   private readonly entityQuery: EntityQueryService;
   private readonly pluginContext: PluginContext;
+  private readonly logger: Logger;
 
   // Singleton access
   public static getInstance(
@@ -74,6 +76,7 @@ export class ContentManager {
     pluginContext: PluginContext,
   ) {
     this.pluginContext = pluginContext;
+    this.logger = logger.child("ContentManager");
     // Always available services
     this.entityQuery = EntityQueryService.createFresh(entityService, logger);
     this.generationOps = GenerationOperations.createFresh(
@@ -354,5 +357,179 @@ export class ContentManager {
       targetEntityType,
       options,
     );
+  }
+
+  // ========================================
+  // Batch Async Operations
+  // ========================================
+
+  /**
+   * Generate all content asynchronously using batch operations
+   * This queues all sections as a single batch job for better tracking
+   */
+  async generateAllAsync(
+    options: GenerateOptions & { userId?: string; priority?: number },
+    routes: RouteDefinition[],
+    templateResolver: (sectionId: SectionDefinition) => string,
+    targetEntityType: SiteContentEntityType,
+    siteConfig?: Record<string, unknown>,
+  ): Promise<string> {
+    this.logger.info("Starting batch async content generation", { options });
+
+    const operations: Array<{
+      type: string;
+      entityId?: string;
+      entityType?: string;
+      options?: Record<string, unknown>;
+    }> = [];
+
+    // Build operations for all sections
+    for (const route of routes) {
+      const pageId = route.id;
+      if (options.pageId && pageId !== options.pageId) {
+        continue;
+      }
+
+      const sectionsToGenerate = options.sectionId
+        ? route.sections.filter((s) => s.id === options.sectionId)
+        : route.sections;
+
+      for (const sectionDefinition of sectionsToGenerate) {
+        const entityId = `${targetEntityType}:${pageId}:${sectionDefinition.id}`;
+
+        // Skip if dry run
+        if (options.dryRun) {
+          this.logger.debug("Dry run: would generate", {
+            pageId,
+            sectionId: sectionDefinition.id,
+            entityId,
+          });
+          continue;
+        }
+
+        operations.push({
+          type: "content-generation",
+          entityId,
+          entityType: targetEntityType,
+          options: {
+            pageId,
+            sectionId: sectionDefinition.id,
+            templateName: templateResolver(sectionDefinition),
+            route,
+            sectionDefinition,
+            siteConfig,
+          },
+        });
+      }
+    }
+
+    if (operations.length === 0) {
+      throw new Error("No operations to perform");
+    }
+
+    // Queue as batch operation
+    const batchOptions: { userId?: string; priority?: number } = {};
+    if (options.userId !== undefined) {
+      batchOptions.userId = options.userId;
+    }
+    if (options.priority !== undefined) {
+      batchOptions.priority = options.priority;
+    }
+    const batchId = await this.pluginContext.enqueueBatch(
+      operations,
+      batchOptions,
+    );
+
+    this.logger.info("Batch content generation queued", {
+      batchId,
+      operationCount: operations.length,
+    });
+
+    return batchId;
+  }
+
+  /**
+   * Promote multiple preview entities to production asynchronously
+   */
+  async promoteAsync(
+    previewIds: string[],
+    options?: { userId?: string; priority?: number },
+  ): Promise<string> {
+    if (previewIds.length === 0) {
+      throw new Error("No entities to promote");
+    }
+
+    const operations = previewIds.map((id) => ({
+      type: "content-promote",
+      entityId: id,
+      entityType: "site-content-preview" as const,
+      options: {
+        targetEntityType: "site-content-production",
+      },
+    }));
+
+    const batchOptions: { userId?: string; priority?: number } = {};
+    if (options?.userId !== undefined) {
+      batchOptions.userId = options.userId;
+    }
+    if (options?.priority !== undefined) {
+      batchOptions.priority = options.priority;
+    }
+    const batchId = await this.pluginContext.enqueueBatch(
+      operations,
+      batchOptions,
+    );
+
+    this.logger.info("Batch promotion queued", {
+      batchId,
+      entityCount: previewIds.length,
+    });
+
+    return batchId;
+  }
+
+  /**
+   * Rollback multiple production entities asynchronously
+   */
+  async rollbackAsync(
+    productionIds: string[],
+    options?: { userId?: string; priority?: number },
+  ): Promise<string> {
+    if (productionIds.length === 0) {
+      throw new Error("No entities to rollback");
+    }
+
+    const operations = productionIds.map((id) => ({
+      type: "content-rollback",
+      entityId: id,
+      entityType: "site-content-production" as const,
+      options: {},
+    }));
+
+    const batchOptions: { userId?: string; priority?: number } = {};
+    if (options?.userId !== undefined) {
+      batchOptions.userId = options.userId;
+    }
+    if (options?.priority !== undefined) {
+      batchOptions.priority = options.priority;
+    }
+    const batchId = await this.pluginContext.enqueueBatch(
+      operations,
+      batchOptions,
+    );
+
+    this.logger.info("Batch rollback queued", {
+      batchId,
+      entityCount: productionIds.length,
+    });
+
+    return batchId;
+  }
+
+  /**
+   * Get batch operation status
+   */
+  async getBatchStatus(batchId: string): Promise<BatchJobStatus | null> {
+    return this.pluginContext.getBatchStatus(batchId);
   }
 }

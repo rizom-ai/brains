@@ -4,7 +4,7 @@ import { createSilentLogger } from "@brains/utils";
 import { PluginTestHarness } from "@brains/test-utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
-import type { RouteDefinition } from "@brains/view-registry";
+import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 
 // Mock dependencies
 const mockGetEntity = mock();
@@ -479,4 +479,276 @@ test("deriveAsync should delegate to DerivationOperations", async () => {
     "site-content-production",
     { deleteSource: true },
   );
+});
+
+// ========================================
+// Batch Async Operations Tests
+// ========================================
+
+test("generateAllAsync should queue batch operation for all sections", async () => {
+  const mockRoutes: RouteDefinition[] = [
+    {
+      id: "landing",
+      path: "/",
+      title: "Landing Page",
+      description: "Main landing page",
+      sections: [
+        { id: "hero", template: "hero" },
+        { id: "features", template: "features" },
+      ],
+    },
+    {
+      id: "about",
+      path: "/about",
+      title: "About Page",
+      description: "About us page",
+      sections: [{ id: "content", template: "content" }],
+    },
+  ];
+
+  const mockBatchId = "batch-123";
+  const mockEnqueueBatch = mock().mockResolvedValue(mockBatchId);
+  mockPluginContext.enqueueBatch = mockEnqueueBatch;
+
+  const templateResolver = (section: SectionDefinition): string =>
+    section.template;
+
+  const batchId = await contentManager.generateAllAsync(
+    { dryRun: false, userId: "user-123", priority: 5 },
+    mockRoutes,
+    templateResolver,
+    "site-content-preview",
+    { siteTitle: "Test Site" },
+  );
+
+  expect(batchId).toBe(mockBatchId);
+  expect(mockEnqueueBatch).toHaveBeenCalledWith(
+    [
+      {
+        type: "content-generation",
+        entityId: "site-content-preview:landing:hero",
+        entityType: "site-content-preview",
+        options: {
+          pageId: "landing",
+          sectionId: "hero",
+          templateName: "hero",
+          route: mockRoutes[0],
+          sectionDefinition: mockRoutes[0]?.sections[0],
+          siteConfig: { siteTitle: "Test Site" },
+        },
+      },
+      {
+        type: "content-generation",
+        entityId: "site-content-preview:landing:features",
+        entityType: "site-content-preview",
+        options: {
+          pageId: "landing",
+          sectionId: "features",
+          templateName: "features",
+          route: mockRoutes[0],
+          sectionDefinition: mockRoutes[0]?.sections[1],
+          siteConfig: { siteTitle: "Test Site" },
+        },
+      },
+      {
+        type: "content-generation",
+        entityId: "site-content-preview:about:content",
+        entityType: "site-content-preview",
+        options: {
+          pageId: "about",
+          sectionId: "content",
+          templateName: "content",
+          route: mockRoutes[1],
+          sectionDefinition: mockRoutes[1]?.sections[0],
+          siteConfig: { siteTitle: "Test Site" },
+        },
+      },
+    ],
+    {
+      userId: "user-123",
+      priority: 5,
+    },
+  );
+});
+
+test("generateAllAsync should respect pageId filter", async () => {
+  const mockRoutes: RouteDefinition[] = [
+    {
+      id: "landing",
+      path: "/",
+      title: "Landing Page",
+      description: "Main landing page",
+      sections: [{ id: "hero", template: "hero" }],
+    },
+    {
+      id: "about",
+      path: "/about",
+      title: "About Page",
+      description: "About us page",
+      sections: [{ id: "content", template: "content" }],
+    },
+  ];
+
+  const mockBatchId = "batch-456";
+  const mockEnqueueBatch = mock().mockResolvedValue(mockBatchId);
+  mockPluginContext.enqueueBatch = mockEnqueueBatch;
+
+  const templateResolver = (section: SectionDefinition): string =>
+    section.template;
+
+  const batchId = await contentManager.generateAllAsync(
+    { pageId: "landing", dryRun: false },
+    mockRoutes,
+    templateResolver,
+    "site-content-preview",
+  );
+
+  expect(batchId).toBe(mockBatchId);
+  expect(mockEnqueueBatch).toHaveBeenCalledWith(
+    [
+      {
+        type: "content-generation",
+        entityId: "site-content-preview:landing:hero",
+        entityType: "site-content-preview",
+        options: {
+          pageId: "landing",
+          sectionId: "hero",
+          templateName: "hero",
+          route: mockRoutes[0],
+          sectionDefinition: mockRoutes[0]?.sections[0],
+          siteConfig: undefined,
+        },
+      },
+    ],
+    {},
+  );
+});
+
+test("generateAllAsync should throw for empty operations", async () => {
+  const mockRoutes: RouteDefinition[] = [];
+  const templateResolver = (section: SectionDefinition): string =>
+    section.template;
+
+  void expect(
+    contentManager.generateAllAsync(
+      { dryRun: false },
+      mockRoutes,
+      templateResolver,
+      "site-content-preview",
+    ),
+  ).rejects.toThrow("No operations to perform");
+});
+
+test("promoteAsync should queue batch promotion operations", async () => {
+  const previewIds = [
+    "site-content-preview:landing:hero",
+    "site-content-preview:landing:features",
+    "site-content-preview:about:content",
+  ];
+
+  const mockBatchId = "batch-promote-123";
+  const mockEnqueueBatch = mock().mockResolvedValue(mockBatchId);
+  mockPluginContext.enqueueBatch = mockEnqueueBatch;
+
+  const batchId = await contentManager.promoteAsync(previewIds, {
+    userId: "admin-123",
+    priority: 10,
+  });
+
+  expect(batchId).toBe(mockBatchId);
+  expect(mockEnqueueBatch).toHaveBeenCalledWith(
+    [
+      {
+        type: "content-promote",
+        entityId: "site-content-preview:landing:hero",
+        entityType: "site-content-preview",
+        options: {
+          targetEntityType: "site-content-production",
+        },
+      },
+      {
+        type: "content-promote",
+        entityId: "site-content-preview:landing:features",
+        entityType: "site-content-preview",
+        options: {
+          targetEntityType: "site-content-production",
+        },
+      },
+      {
+        type: "content-promote",
+        entityId: "site-content-preview:about:content",
+        entityType: "site-content-preview",
+        options: {
+          targetEntityType: "site-content-production",
+        },
+      },
+    ],
+    {
+      userId: "admin-123",
+      priority: 10,
+    },
+  );
+});
+
+test("promoteAsync should throw for empty ids", async () => {
+  void expect(contentManager.promoteAsync([])).rejects.toThrow(
+    "No entities to promote",
+  );
+});
+
+test("rollbackAsync should queue batch rollback operations", async () => {
+  const productionIds = [
+    "site-content-production:landing:hero",
+    "site-content-production:about:content",
+  ];
+
+  const mockBatchId = "batch-rollback-789";
+  const mockEnqueueBatch = mock().mockResolvedValue(mockBatchId);
+  mockPluginContext.enqueueBatch = mockEnqueueBatch;
+
+  const batchId = await contentManager.rollbackAsync(productionIds);
+
+  expect(batchId).toBe(mockBatchId);
+  expect(mockEnqueueBatch).toHaveBeenCalledWith(
+    [
+      {
+        type: "content-rollback",
+        entityId: "site-content-production:landing:hero",
+        entityType: "site-content-production",
+        options: {},
+      },
+      {
+        type: "content-rollback",
+        entityId: "site-content-production:about:content",
+        entityType: "site-content-production",
+        options: {},
+      },
+    ],
+    {},
+  );
+});
+
+test("rollbackAsync should throw for empty ids", async () => {
+  void expect(contentManager.rollbackAsync([])).rejects.toThrow(
+    "No entities to rollback",
+  );
+});
+
+test("getBatchStatus should delegate to plugin context", async () => {
+  const mockBatchStatus = {
+    batchId: "batch-123",
+    totalOperations: 10,
+    completedOperations: 5,
+    failedOperations: 1,
+    errors: ["Failed to generate content"],
+    status: "processing" as const,
+  };
+
+  const mockGetBatchStatus = mock().mockResolvedValue(mockBatchStatus);
+  mockPluginContext.getBatchStatus = mockGetBatchStatus;
+
+  const status = await contentManager.getBatchStatus("batch-123");
+
+  expect(status).toBe(mockBatchStatus);
+  expect(mockGetBatchStatus).toHaveBeenCalledWith("batch-123");
 });
