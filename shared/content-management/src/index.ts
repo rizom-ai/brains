@@ -33,9 +33,7 @@ export {
 } from "./schemas";
 
 // Job tracking types
-export type {
-  ContentGenerationResult,
-} from "./services/job-tracking";
+export type { ContentGenerationResult } from "./services/job-tracking";
 
 // Utility functions
 export {

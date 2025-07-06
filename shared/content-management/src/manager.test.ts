@@ -37,19 +37,19 @@ beforeEach(async (): Promise<void> => {
   harness = new PluginTestHarness();
   mockPluginContext = harness.getPluginContext();
   mockEntityService = mockPluginContext.entityService;
-  
+
   // Setup mocks on the harness services
   mockEntityService.getEntity = mockGetEntity;
   mockEntityService.createEntityAsync = mockCreateEntityAsync;
   mockEntityService.updateEntityAsync = mockUpdateEntityAsync;
   mockEntityService.listEntities = mockListEntities;
   mockEntityService.deriveEntity = mockDeriveEntity;
-  
+
   // Setup job queue mocks
   mockPluginContext.getJobStatus = mockGetJobStatus;
   mockPluginContext.waitForJob = mock().mockResolvedValue("Generated content");
   mockPluginContext.enqueueJob = mockEnqueueContentGeneration;
-  
+
   // Reset all mocks
   mockGetEntity.mockClear();
   mockCreateEntityAsync.mockClear();
@@ -366,11 +366,8 @@ test("waitForContentJobs should delegate to JobTrackingService", async () => {
 
   // waitForContentJobs uses waitForJob, not getJobStatus
   // The mock is already set up in beforeEach
-  
-  const result = await contentManager.waitForContentJobs(
-    mockJobs,
-    5000,
-  );
+
+  const result = await contentManager.waitForContentJobs(mockJobs, 5000);
 
   expect(result).toHaveLength(1);
   expect(result[0]?.success).toBe(true);

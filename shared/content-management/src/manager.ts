@@ -6,7 +6,7 @@ import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import { GenerationOperations } from "./operations/generation";
 import { DerivationOperations } from "./operations/derivation";
 import { EntityQueryService } from "./services/entity-query";
-import { 
+import {
   waitForContentJobs,
   getContentJobStatuses,
   type ContentGenerationResult,
@@ -242,7 +242,12 @@ export class ContentManager {
     timeoutMs: number = 60000,
     progressCallback?: ProgressCallback,
   ): Promise<ContentGenerationResult[]> {
-    return waitForContentJobs(jobs, this.pluginContext, timeoutMs, progressCallback);
+    return waitForContentJobs(
+      jobs,
+      this.pluginContext,
+      timeoutMs,
+      progressCallback,
+    );
   }
 
   /**
@@ -251,7 +256,7 @@ export class ContentManager {
   async getContentJobStatuses(
     jobs: ContentGenerationJob[],
   ): Promise<Map<string, { status: string; error?: string }>> {
-    const jobIds = jobs.map(job => job.jobId);
+    const jobIds = jobs.map((job) => job.jobId);
     return getContentJobStatuses(jobIds, this.pluginContext);
   }
 

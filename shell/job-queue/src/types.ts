@@ -67,6 +67,11 @@ export interface IJobQueueService {
   fail(jobId: string, error: Error): Promise<void>;
 
   /**
+   * Update job data
+   */
+  update(jobId: string, data: unknown): Promise<void>;
+
+  /**
    * Get job status by job ID
    */
   getStatus(jobId: string): Promise<JobQueue | null>;

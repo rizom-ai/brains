@@ -130,7 +130,10 @@ export class JobQueueService implements IJobQueueService {
         .select()
         .from(jobQueue)
         .where(
-          and(eq(jobQueue.status, JOB_STATUS.PENDING), lte(jobQueue.scheduledFor, now)),
+          and(
+            eq(jobQueue.status, JOB_STATUS.PENDING),
+            lte(jobQueue.scheduledFor, now),
+          ),
         )
         .orderBy(desc(jobQueue.priority), asc(jobQueue.scheduledFor))
         .limit(1);
@@ -252,6 +255,28 @@ export class JobQueueService implements IJobQueueService {
       this.logger.debug("Completed job", { jobId });
     } catch (error) {
       this.logger.error("Failed to mark job as completed", {
+        jobId,
+        error,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Update job data
+   */
+  public async update(jobId: string, data: unknown): Promise<void> {
+    try {
+      await this.db
+        .update(jobQueue)
+        .set({
+          data: JSON.stringify(data),
+        })
+        .where(eq(jobQueue.id, jobId));
+
+      this.logger.debug("Updated job data", { jobId });
+    } catch (error) {
+      this.logger.error("Failed to update job data", {
         jobId,
         error,
       });

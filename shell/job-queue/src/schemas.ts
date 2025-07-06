@@ -3,7 +3,12 @@ import { z } from "zod";
 /**
  * Job status enum - reusable across all job-related types
  */
-export const JobStatusEnum = z.enum(["pending", "processing", "completed", "failed"]);
+export const JobStatusEnum = z.enum([
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+]);
 export type JobStatusType = z.infer<typeof JobStatusEnum>;
 
 /**

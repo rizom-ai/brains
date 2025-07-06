@@ -17,7 +17,7 @@ import type {
   ViewTemplate,
 } from "@brains/view-registry";
 import type { IEntityService } from "@brains/entity-service";
-import type { BatchJobStatus } from "@brains/job-queue";
+import type { BatchJobStatus, JobStatusType } from "@brains/job-queue";
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -192,7 +192,7 @@ export interface PluginContext {
   ) => Promise<string>;
 
   getJobStatus: (jobId: string) => Promise<{
-    status: "pending" | "processing" | "completed" | "failed";
+    status: JobStatusType;
     result?: unknown;
     error?: string;
   } | null>;

@@ -16,6 +16,7 @@ import {
   BatchJobDataSchema,
   BatchJobStatusSchema,
   type BatchJobStatus,
+  type JobStatusType,
 } from "@brains/job-queue";
 import type { JobOptions } from "@brains/db";
 import {
@@ -423,7 +424,7 @@ export class PluginContextFactory {
       getJobStatus: async (
         jobId: string,
       ): Promise<{
-        status: "pending" | "processing" | "completed" | "failed";
+        status: JobStatusType;
         result?: unknown;
         error?: string;
       } | null> => {
@@ -444,21 +445,21 @@ export class PluginContextFactory {
 
           // Transform to plugin context format
           const result: {
-            status: "pending" | "processing" | "completed" | "failed";
+            status: JobStatusType;
             result?: unknown;
             error?: string;
           } = {
             status: job.status,
           };
-          
+
           if (job.result !== undefined && job.result !== null) {
             result.result = job.result;
           }
-          
+
           if (job.lastError !== null && job.lastError !== undefined) {
             result.error = job.lastError;
           }
-          
+
           return result;
         } catch (error) {
           this.logger.error("Failed to get job status", { jobId, error });

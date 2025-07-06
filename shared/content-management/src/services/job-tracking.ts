@@ -20,33 +20,33 @@ export async function waitForContentJobs(
   jobs: ContentGenerationJob[],
   context: PluginContext,
   timeoutMs: number = 60000,
-  progressCallback?: ProgressCallback
+  progressCallback?: ProgressCallback,
 ): Promise<ContentGenerationResult[]> {
   const reporter = ProgressReporter.from(progressCallback);
   const total = jobs.length;
   let completed = 0;
-  
+
   // Start heartbeat for long operations
   reporter?.startHeartbeat("Processing content generation jobs...", 5000);
-  
+
   try {
     // Report initial progress
     await reporter?.report("Starting content generation", 0, total);
-    
+
     // Wait for all jobs in parallel
     const results = await Promise.all(
       jobs.map(async (job): Promise<ContentGenerationResult> => {
         try {
           const content = await context.waitForJob(job.jobId, timeoutMs);
-          
+
           // Update progress
           completed++;
           await reporter?.report(
             `Generated content for ${job.sectionId}`,
             completed,
-            total
+            total,
           );
-          
+
           return {
             jobId: job.jobId,
             entityId: job.entityId,
@@ -59,9 +59,9 @@ export async function waitForContentJobs(
           await reporter?.report(
             `Failed to generate ${job.sectionId}`,
             completed,
-            total
+            total,
           );
-          
+
           return {
             jobId: job.jobId,
             entityId: job.entityId,
@@ -69,7 +69,7 @@ export async function waitForContentJobs(
             error: error instanceof Error ? error.message : String(error),
           };
         }
-      })
+      }),
     );
 
     return results;
@@ -84,7 +84,7 @@ export async function waitForContentJobs(
  */
 export async function getContentJobStatuses(
   jobIds: string[],
-  context: PluginContext
+  context: PluginContext,
 ): Promise<Map<string, { status: string; error?: string }>> {
   const statuses = new Map<string, { status: string; error?: string }>();
 
@@ -97,7 +97,7 @@ export async function getContentJobStatuses(
           ...(status.error && { error: status.error }),
         });
       }
-    })
+    }),
   );
 
   return statuses;
