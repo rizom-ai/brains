@@ -604,11 +604,13 @@ MCP interface leverages native progress support - no special handling needed.
 #### 3.1 Generate Tool Blocking Behavior (HIGH PRIORITY) 🔴
 
 **Problem**: Generate tool still blocks despite async refactoring
+
 - Uses `waitForContentJobs()` with 60-second timeout
 - Inconsistent with promote/rollback tools that return batch IDs immediately
 - Creates confusing LLM experience (some tools async, some blocking)
 
 **Solution**:
+
 - Remove blocking `waitForContentJobs()` call from generate tool
 - Return batch ID immediately like other tools
 - Ensure consistent async behavior across all tools
@@ -616,32 +618,45 @@ MCP interface leverages native progress support - no special handling needed.
 #### 3.2 Missing rollbackAll Feature (HIGH PRIORITY) 🔴
 
 **Problem**: Incomplete feature parity
+
 - `promoteAll()` method and `promote-all` tool exist
 - No equivalent `rollbackAll()` method or `rollback-all` tool
 - LLMs can promote all but can't rollback all
 
 **Solution**:
+
 - Add `rollbackAll()` method to SiteOperations class
 - Add `rollback-all` tool to plugin (parallel to `promote-all`)
 - Follow same pattern as promoteAll: calls `rollback({ dryRun: false })`
 
-#### 3.3 Missing Status Tool (MEDIUM PRIORITY) 🟡
+#### 3.3 Missing Site-Builder Status Tool (MEDIUM PRIORITY) 🟡
 
-**Problem**: All tools reference non-existent status tool
+**Problem**: Site-builder tools reference non-existent status tool
+
 - Promote, rollback, generate tools all say "Use the status tool to check progress"
-- No actual status tool exists
-- LLMs have no way to check background operations
+- No `site-builder:status` tool exists (though other plugins have their own)
+- LLMs have no way to check site-builder background operations
+
+**Context**: Each plugin implements its own domain-specific status tool
+- `directory-sync:status` - Shows sync operations status
+- `git-sync:status` - Shows git operations status (if exists)
+- **Missing**: `site-builder:status` - Should show content operations status
 
 **Solution**:
-- Implement unified status tool in site-builder plugin
-- Show all active batch operations with progress
+
+- Implement `site-builder:status` tool following the plugin pattern
+- Show all active content-related batch operations:
+  - Content generation batches
+  - Promotion batches
+  - Rollback batches
 - Provide LLM-friendly operation summaries
 - Include operation types, progress percentages, current tasks
+- Follow the same pattern as directory-sync:status for consistency
 
 #### 3.4 User Experience Improvements (MEDIUM PRIORITY) 🟡
 
 1. Implement CLI progress bars for batch operations
-2. Add Matrix message editing for progress updates  
+2. Add Matrix message editing for progress updates
 3. Update tool descriptions for clarity
 4. Add operation time estimates
 
@@ -667,6 +682,8 @@ MCP interface leverages native progress support - no special handling needed.
 
 5. **Batch Operations as Core Infrastructure**: BatchJobManager lives in shell/job-queue because it's generic infrastructure, not domain-specific logic.
 
+6. **Plugin-Specific Status Tools**: Each plugin should implement its own domain-specific status tool (e.g., `directory-sync:status`, `site-builder:status`) to provide visibility into operations it manages. This follows the principle of plugin autonomy and domain separation.
+
 ## Benefits
 
 1. **Clean Architecture**: Job queue as a reusable package with proper boundaries
@@ -687,7 +704,7 @@ MCP interface leverages native progress support - no special handling needed.
 LLM: generate --page landing
 System: {
   "status": "queued",
-  "batchId": "batch-123", 
+  "batchId": "batch-123",
   "message": "Generating 3 sections",
   "tip": "Use the status tool to check progress"
 }
@@ -696,7 +713,7 @@ LLM: promote-all
 System: {
   "status": "queued",
   "batchId": "batch-456",
-  "message": "Promoting 12 sections to production", 
+  "message": "Promoting 12 sections to production",
   "tip": "Use the status tool to check progress"
 }
 
@@ -708,25 +725,31 @@ System: {
   "tip": "Use the status tool to check progress"
 }
 
-LLM: status
+LLM: site-builder:status
 System: {
-  "message": "3 operations in progress",
+  "message": "3 content operations in progress",
   "operations": [
     {
+      "batchId": "batch-123",
       "type": "Content Generation",
       "progress": "3/3 sections (100%)",
-      "status": "completed"
+      "status": "completed",
+      "startedAt": "2 minutes ago"
     },
     {
-      "type": "Content Promotion", 
+      "batchId": "batch-456",
+      "type": "Content Promotion",
       "progress": "8/12 sections (67%)",
       "status": "processing",
-      "currentTask": "Promoting about:team"
+      "currentTask": "Promoting about:team",
+      "startedAt": "30 seconds ago"
     },
     {
+      "batchId": "batch-789",
       "type": "Content Rollback",
       "progress": "2/8 sections (25%)",
-      "status": "processing"
+      "status": "processing",
+      "startedAt": "10 seconds ago"
     }
   ]
 }
@@ -740,7 +763,7 @@ System: Queued generation of 1 section.
         This operation is running in the background.
         Use 'status' to check progress.
 
-User: promote-all  
+User: promote-all
 System: Queued promotion of 12 sections to production.
         This operation is running in the background.
         Use 'status' to check progress.
@@ -750,11 +773,11 @@ System: Queued rollback of 8 production sections.
         This operation is running in the background.
         Use 'status' to check progress.
 
-User: status
-System: 3 operations in progress:
-        - Content Generation: 1/1 sections (100%) - completed
-        - Content Promotion: 8/12 sections (67%) - promoting about:team
-        - Content Rollback: 2/8 sections (25%) - processing
+User: site-builder:status
+System: 3 content operations in progress:
+        - Content Generation [batch-123]: 1/1 sections (100%) - completed
+        - Content Promotion [batch-456]: 8/12 sections (67%) - promoting about:team
+        - Content Rollback [batch-789]: 2/8 sections (25%) - processing
 ```
 
 ## Timeline
