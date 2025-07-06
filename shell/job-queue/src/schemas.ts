@@ -1,12 +1,34 @@
 import { z } from "zod";
 
 /**
+ * Job status enum - reusable across all job-related types
+ */
+export const JobStatusEnum = z.enum(["pending", "processing", "completed", "failed"]);
+export type JobStatusType = z.infer<typeof JobStatusEnum>;
+
+/**
+ * Job result status enum - only final states
+ */
+export const JobResultStatusEnum = z.enum(["completed", "failed"]);
+export type JobResultStatusType = z.infer<typeof JobResultStatusEnum>;
+
+/**
+ * Job status constants for easier usage
+ */
+export const JOB_STATUS = {
+  PENDING: "pending" as const,
+  PROCESSING: "processing" as const,
+  COMPLETED: "completed" as const,
+  FAILED: "failed" as const,
+} as const;
+
+/**
  * Base job status schema - common fields for all job types
  */
 export const JobStatusSchema = z.object({
   id: z.string(),
   type: z.string(),
-  status: z.enum(["pending", "processing", "completed", "failed"]),
+  status: JobStatusEnum,
   data: z.unknown(),
   result: z.unknown().optional(),
   lastError: z.string().optional().nullable(),
@@ -26,7 +48,7 @@ export const JobStatusSchema = z.object({
 export const JobResultSchema = z.object({
   jobId: z.string(),
   type: z.string(),
-  status: z.enum(["completed", "failed"]),
+  status: JobResultStatusEnum,
   result: z.unknown().optional(),
   error: z.string().optional(),
 });
@@ -65,7 +87,7 @@ export const BatchJobStatusSchema = z.object({
   failedOperations: z.number(),
   currentOperation: z.string().optional(),
   errors: z.array(z.string()),
-  status: z.enum(["pending", "processing", "completed", "failed"]),
+  status: JobStatusEnum,
 });
 
 export type JobStatus = z.infer<typeof JobStatusSchema>;

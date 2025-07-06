@@ -14,6 +14,7 @@ import {
 import { Logger } from "@brains/utils";
 import type { IJobQueueService, JobHandler } from "./types";
 import type { JobResult } from "./schemas";
+import { JOB_STATUS } from "./schemas";
 
 /**
  * Service for managing the generic job queue
@@ -61,10 +62,7 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Register a job handler for a specific type
    */
-  public registerHandler(
-    type: string,
-    handler: JobHandler,
-  ): void {
+  public registerHandler(type: string, handler: JobHandler): void {
     this.handlers.set(type, handler as JobHandler);
     this.logger.debug("Registered job handler", { type });
   }
@@ -132,7 +130,7 @@ export class JobQueueService implements IJobQueueService {
         .select()
         .from(jobQueue)
         .where(
-          and(eq(jobQueue.status, "pending"), lte(jobQueue.scheduledFor, now)),
+          and(eq(jobQueue.status, JOB_STATUS.PENDING), lte(jobQueue.scheduledFor, now)),
         )
         .orderBy(desc(jobQueue.priority), asc(jobQueue.scheduledFor))
         .limit(1);
@@ -150,7 +148,7 @@ export class JobQueueService implements IJobQueueService {
       await this.db
         .update(jobQueue)
         .set({
-          status: "processing",
+          status: JOB_STATUS.PROCESSING,
           startedAt: now,
         })
         .where(eq(jobQueue.id, job.id));
@@ -160,7 +158,7 @@ export class JobQueueService implements IJobQueueService {
         type: job.type,
       });
 
-      return { ...job, status: "processing", startedAt: now };
+      return { ...job, status: JOB_STATUS.PROCESSING, startedAt: now };
     } catch (error) {
       this.logger.error("Failed to dequeue job", { error });
       throw error;
@@ -180,7 +178,7 @@ export class JobQueueService implements IJobQueueService {
       return {
         jobId: job.id,
         type: job.type,
-        status: "failed",
+        status: JOB_STATUS.FAILED,
         error: error.message,
       };
     }
@@ -204,7 +202,7 @@ export class JobQueueService implements IJobQueueService {
       return {
         jobId: job.id,
         type: job.type,
-        status: "completed",
+        status: JOB_STATUS.COMPLETED,
         result,
       };
     } catch (error) {
@@ -231,7 +229,7 @@ export class JobQueueService implements IJobQueueService {
       return {
         jobId: job.id,
         type: job.type,
-        status: "failed",
+        status: JOB_STATUS.FAILED,
         error: processError.message,
       };
     }
@@ -240,15 +238,12 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Mark job as completed
    */
-  public async complete(
-    jobId: string,
-    result: unknown,
-  ): Promise<void> {
+  public async complete(jobId: string, result: unknown): Promise<void> {
     try {
       await this.db
         .update(jobQueue)
         .set({
-          status: "completed",
+          status: JOB_STATUS.COMPLETED,
           completedAt: Date.now(),
           result: result as unknown,
         })
@@ -294,7 +289,7 @@ export class JobQueueService implements IJobQueueService {
         await this.db
           .update(jobQueue)
           .set({
-            status: "pending",
+            status: JOB_STATUS.PENDING,
             retryCount: newRetryCount,
             lastError: error.message,
             scheduledFor: Date.now() + delayMs,
@@ -312,7 +307,7 @@ export class JobQueueService implements IJobQueueService {
         await this.db
           .update(jobQueue)
           .set({
-            status: "failed",
+            status: JOB_STATUS.FAILED,
             retryCount: newRetryCount,
             lastError: error.message,
             completedAt: Date.now(),
@@ -448,7 +443,7 @@ export class JobQueueService implements IJobQueueService {
         .delete(jobQueue)
         .where(
           and(
-            eq(jobQueue.status, "completed"),
+            eq(jobQueue.status, JOB_STATUS.COMPLETED),
             lte(jobQueue.completedAt, cutoffTime),
           ),
         );

@@ -32,7 +32,6 @@ export interface JobHandler<
   validateAndParse(data: unknown): TInput | null;
 }
 
-
 /**
  * Job queue service interface
  */
@@ -45,11 +44,7 @@ export interface IJobQueueService {
   /**
    * Enqueue a job for processing
    */
-  enqueue(
-    type: string,
-    data: unknown,
-    options?: JobOptions,
-  ): Promise<string>;
+  enqueue(type: string, data: unknown, options?: JobOptions): Promise<string>;
 
   /**
    * Get next job to process (marks as processing)
@@ -64,10 +59,7 @@ export interface IJobQueueService {
   /**
    * Mark job as completed
    */
-  complete(
-    jobId: string,
-    result: unknown,
-  ): Promise<void>;
+  complete(jobId: string, result: unknown): Promise<void>;
 
   /**
    * Mark job as failed and handle retry
