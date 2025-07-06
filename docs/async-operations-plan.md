@@ -234,9 +234,16 @@ export class BatchJobManager {
 }
 ```
 
-### 3.2 Update ContentManager ✅
+### 3.2 Update ContentManager (REVISED - Async Only) ✅
 
-ContentManager should use job queue through plugin context, not direct imports:
+After implementation review, we've decided to eliminate sync methods entirely for a cleaner, more consistent API:
+
+**Benefits of Async-Only:**
+- Single, consistent API - no confusion about which method to use
+- Always non-blocking - better performance and UX
+- Simpler codebase - no duplicate logic to maintain
+- Built-in progress tracking for all operations
+- Future-proof - scales naturally with workload
 
 ```typescript
 class ContentManager {
@@ -245,13 +252,8 @@ class ContentManager {
     // ... other dependencies
   ) {}
 
-  // Existing sync methods remain unchanged
-  async generateSync(...): Promise<T>
-  async promoteSync(...): Promise<T>
-  async deriveSync(...): Promise<T>
-
-  // New async batch operations using plugin context
-  async generateAllAsync(options: GenerateAllOptions): Promise<string> {
+  // All operations are now async-only
+  async generate(options: GenerateOptions): Promise<string> {
     const operations = await this.buildGenerateOperations(options);
     return this.context.enqueueBatch(operations, {
       userId: options.userId,
@@ -259,27 +261,40 @@ class ContentManager {
     });
   }
 
-  async promoteAsync(ids: string[], userId?: string): Promise<string> {
+  async promote(ids: string[], options?: BatchOptions): Promise<string> {
     const operations = ids.map(id => ({
-      type: 'promote' as const,
+      type: 'content-promote' as const,
       entityId: id,
-      entityType: 'site-content'
+      entityType: 'site-content-preview'
     }));
-    return this.context.enqueueBatch(operations, { userId });
+    return this.context.enqueueBatch(operations, options);
   }
 
-  async rollbackAsync(ids: string[], userId?: string): Promise<string> {
+  async rollback(ids: string[], options?: BatchOptions): Promise<string> {
     const operations = ids.map(id => ({
-      type: 'rollback' as const,
+      type: 'content-rollback' as const,
       entityId: id,
-      entityType: 'site-content'
+      entityType: 'site-content-production'
     }));
-    return this.context.enqueueBatch(operations, { userId });
+    return this.context.enqueueBatch(operations, options);
   }
 
   // Check batch status
   async getBatchStatus(batchId: string): Promise<BatchStatus | null> {
     return this.context.getBatchStatus(batchId);
+  }
+
+  // Helper to wait for batch completion (useful for tests/scripts)
+  async waitForBatch(batchId: string, timeoutMs = 60000): Promise<BatchStatus> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const status = await this.getBatchStatus(batchId);
+      if (status && (status.status === 'completed' || status.status === 'failed')) {
+        return status;
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    throw new Error(`Batch ${batchId} timed out after ${timeoutMs}ms`);
   }
 }
 ```
@@ -316,11 +331,79 @@ export class SiteBuilderPlugin extends BasePlugin {
 
 The generic batch operation handler in job-queue will delegate to these registered handlers based on operation type.
 
-## Phase 4: Smart Tool Design Pattern (NEW)
+## Phase 4: Simplified Async-Only API Design
 
-### 4.1 Auto-Detection Pattern
+### 4.1 ContentManager API Simplification
 
-Update all long-running tools to follow this pattern:
+Remove all sync methods and create a clean, consistent async-only API:
+
+```typescript
+// BEFORE: Confusing dual APIs
+class ContentManager {
+  async generateSync(options, routes, callback): Promise<GenerateResult>
+  async generateAsync(options, routes, templateResolver): Promise<{ jobs: Job[] }>
+  async generateAllAsync(options, routes, templateResolver): Promise<string>
+  async promoteSync(options): Promise<PromoteResult>
+  async promoteAsync(ids): Promise<string>
+  async rollbackSync(options): Promise<RollbackResult>
+  async rollbackAsync(ids): Promise<string>
+}
+
+// AFTER: Clean, consistent API
+class ContentManager {
+  async generate(options: GenerateOptions, routes: RouteDefinition[]): Promise<string>
+  async promote(ids: string[], options?: BatchOptions): Promise<string>
+  async rollback(ids: string[], options?: BatchOptions): Promise<string>
+  async getBatchStatus(batchId: string): Promise<BatchStatus | null>
+  async waitForBatch(batchId: string, timeoutMs?: number): Promise<BatchStatus>
+}
+```
+
+### 4.2 Tool Implementation Pattern
+
+All tools follow the same pattern - immediate return with batch ID:
+
+```typescript
+// Generate tool (single or multiple sections)
+this.createTool(
+  "generate",
+  "Generate content for pages",
+  {
+    page: z.string().optional(),
+    section: z.string().optional(),
+    dryRun: z.boolean().default(false),
+  },
+  async (input) => {
+    const batchId = await this.contentManager.generate(
+      input,
+      this.context.listRoutes()
+    );
+    
+    const sectionCount = calculateSections(input);
+    return {
+      status: "queued",
+      message: `Generating ${sectionCount} section(s).`,
+      batchId,
+      tip: "This operation is running in the background."
+    };
+  }
+);
+```
+
+## Phase 5: Smart Tool Design Pattern (REVISED)
+
+### 5.1 Always-Async Pattern
+
+After implementation review, we've decided to use an "always-async" approach for better consistency:
+
+**Benefits of Always-Async:**
+- Consistent user experience - always returns immediately
+- Never blocks the interface, even for small operations  
+- Simpler implementation - no threshold logic needed
+- Unified progress tracking for all operations
+- Users can always continue working
+
+**Implementation Pattern:**
 
 ```typescript
 // Example: generate-all tool in site-builder
@@ -333,52 +416,30 @@ this.createTool(
       .optional()
       .default(false)
       .describe("Preview changes without executing"),
-    // Note: NO async parameter - system decides automatically
   },
   async (input, context) => {
     const routes = this.context.listRoutes();
     const totalSections = countTotalSections(routes);
 
-    // Smart threshold detection
-    const USE_ASYNC_THRESHOLD = 10; // Configurable per operation type
+    // Always use async for consistent UX
+    const batchId = await this.contentManager.generateAllAsync(
+      { dryRun: input.dryRun },
+      routes,
+      templateResolver,
+      "site-content-preview",
+      this.config.siteConfig,
+    );
 
-    if (totalSections > USE_ASYNC_THRESHOLD) {
-      // Large operation - use async with immediate return
-      const batchId = await this.contentManager.generateAllAsync(
-        { dryRun: input.dryRun },
-        routes,
-        templateResolver,
-        "site-content-preview",
-        this.config.siteConfig,
-      );
-
-      // Return user-friendly response
-      return {
-        status: "queued",
-        message: `Generating ${totalSections} sections. This will take a few minutes.`,
-        batchId,
-        estimatedTime: estimateTime(totalSections),
-        tip: "You can continue working while this runs in the background.",
-      };
-    } else {
-      // Small operation - do synchronously with progress
-      return await this.contentManager.generateSync(
-        { dryRun: input.dryRun },
-        routes,
-        async (route, section, progress) => {
-          // Report progress if available
-          if (context?.sendProgress) {
-            await context.sendProgress({
-              progress: progress.current,
-              total: progress.total,
-              message: `Generating ${route.id}/${section.id}`,
-            });
-          }
-          return generateCallback(route, section, progress);
-        },
-        "site-content-preview",
-      );
-    }
+    // Return user-friendly response
+    return {
+      status: "queued",
+      message: `Generating ${totalSections} sections.`,
+      batchId,
+      totalSections,
+      tip: totalSections > 0
+        ? "This operation is running in the background."
+        : "No sections to generate.",
+    };
   },
 );
 ```
@@ -508,28 +569,29 @@ private async handleBatchOperation(
 
 MCP interface leverages native progress support - no special handling needed.
 
-## Migration Strategy
+## Migration Strategy (REVISED)
 
-### Week 1: Core Implementation
-
+### Phase 1: Core Infrastructure ✅
 1. ~~Extract job queue package~~ ✅
 2. ~~Implement batch operations~~ ✅
-3. Update tool implementations to use smart detection
-4. Remove async flags from all tools
-5. Implement unified status checking tool
+3. ~~Always-async pattern for all tools~~ ✅
 
-### Week 2: Interface Polish
+### Phase 2: API Simplification (NEW)
+1. Remove all sync methods from ContentManager
+2. Update all tools to use async-only API
+3. Ensure consistent return format (batch ID + status message)
+4. Update tests to work with async-only operations
 
-1. Enhance CLI progress displays
-2. Improve Matrix message formatting
-3. Add operation history tracking
-4. Implement notification preferences
+### Phase 3: User Experience
+1. Implement unified status checking tool
+2. Enhance CLI progress displays  
+3. Improve Matrix message formatting
+4. Add operation time estimates
 
-### Week 3: Documentation & Testing
-
-1. Update all tool documentation
-2. Add integration tests for progress flow
-3. Create user guide for background operations
+### Phase 4: Documentation & Polish
+1. Update all tool documentation for async-only
+2. Create user guide for background operations
+3. Add integration tests for async flows
 4. Deploy and gather feedback
 
 ## Architectural Principles
@@ -559,30 +621,46 @@ MCP interface leverages native progress support - no special handling needed.
 8. **Simpler API**: Tools have fewer parameters
 9. **Smarter System**: Automatic optimization based on workload
 
-## Example User Flows
+## Example User Flows (Async-Only)
 
-### Small Operation (< 10 sections)
-
-```
-User: generate-all
-System: Generating content for 5 sections...
-[Progress bar shows real-time updates]
-System: ✓ Generated 5 sections successfully
-```
-
-### Large Operation (> 10 sections)
+### All Operations (Consistent Experience)
 
 ```
 User: generate-all
-System: Queued generation of 47 sections. This will take about 5 minutes.
-        You can continue working while this runs in the background.
+System: Queued generation of 5 sections.
+        This operation is running in the background.
+
+User: generate --page landing --section hero  
+System: Queued generation of 1 section.
+        This operation is running in the background.
+
+User: promote-all
+System: Queued promotion of 12 sections to production.
+        This operation is running in the background.
 
 User: status
-System: 1 operation in progress:
-        - Content Generation: 23/47 sections (49%)
-          Currently: Generating landing/hero
-          Started: 2 minutes ago
-          Est. completion: 3 minutes
+System: 3 operations in progress:
+        - Content Generation: 5/5 sections (100%) - completing...
+        - Content Generation: 1/1 sections (100%) - completed
+        - Content Promotion: 8/12 sections (67%)
+          Currently: Promoting about/team
+          Started: 30 seconds ago
+```
+
+### Single vs Batch - Same Experience
+
+```
+# Single section
+User: generate --page landing --section hero
+System: Queued generation of 1 section.
+        This operation is running in the background.
+
+# All sections  
+User: generate-all
+System: Queued generation of 47 sections.
+        This operation is running in the background.
+
+# Both return immediately, both trackable via status
 ```
 
 ## Timeline
