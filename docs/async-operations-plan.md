@@ -590,18 +590,59 @@ MCP interface leverages native progress support - no special handling needed.
 2. ~~Implement batch operations~~ ✅
 3. ~~Always-async pattern for all tools~~ ✅
 
-### Phase 2: API Simplification (NEW)
+### Phase 2: API Simplification ✅
 
-1. Remove all sync methods from ContentManager
-2. Update all tools to use async-only API
-3. Ensure consistent return format (batch ID + status message)
-4. Update tests to work with async-only operations
+1. ~~Remove all sync methods from ContentManager~~ ✅
+2. ~~Update all tools to use async-only API~~ ✅
+3. ~~Ensure consistent return format (batch ID + status message)~~ ✅
+4. ~~Update tests to work with async-only operations~~ ✅
 
-### Phase 3: User Experience
+### Phase 3: MCP Compatibility & User Experience
 
-1. Implement unified status checking tool
-2. Enhance CLI progress displays
-3. Improve Matrix message formatting
+**Critical Issues Discovered During MCP Testing:**
+
+#### 3.1 Generate Tool Blocking Behavior (HIGH PRIORITY) 🔴
+
+**Problem**: Generate tool still blocks despite async refactoring
+- Uses `waitForContentJobs()` with 60-second timeout
+- Inconsistent with promote/rollback tools that return batch IDs immediately
+- Creates confusing LLM experience (some tools async, some blocking)
+
+**Solution**:
+- Remove blocking `waitForContentJobs()` call from generate tool
+- Return batch ID immediately like other tools
+- Ensure consistent async behavior across all tools
+
+#### 3.2 Missing rollbackAll Feature (HIGH PRIORITY) 🔴
+
+**Problem**: Incomplete feature parity
+- `promoteAll()` method and `promote-all` tool exist
+- No equivalent `rollbackAll()` method or `rollback-all` tool
+- LLMs can promote all but can't rollback all
+
+**Solution**:
+- Add `rollbackAll()` method to SiteOperations class
+- Add `rollback-all` tool to plugin (parallel to `promote-all`)
+- Follow same pattern as promoteAll: calls `rollback({ dryRun: false })`
+
+#### 3.3 Missing Status Tool (MEDIUM PRIORITY) 🟡
+
+**Problem**: All tools reference non-existent status tool
+- Promote, rollback, generate tools all say "Use the status tool to check progress"
+- No actual status tool exists
+- LLMs have no way to check background operations
+
+**Solution**:
+- Implement unified status tool in site-builder plugin
+- Show all active batch operations with progress
+- Provide LLM-friendly operation summaries
+- Include operation types, progress percentages, current tasks
+
+#### 3.4 User Experience Improvements (MEDIUM PRIORITY) 🟡
+
+1. Implement CLI progress bars for batch operations
+2. Add Matrix message editing for progress updates  
+3. Update tool descriptions for clarity
 4. Add operation time estimates
 
 ### Phase 4: Documentation & Polish
@@ -638,46 +679,82 @@ MCP interface leverages native progress support - no special handling needed.
 8. **Simpler API**: Tools have fewer parameters
 9. **Smarter System**: Automatic optimization based on workload
 
-## Example User Flows (Async-Only)
+## Example User Flows (Fixed Async-Only)
 
-### All Operations (Consistent Experience)
+### MCP LLM Experience (After Fixes)
 
 ```
-User: generate-all
-System: Queued generation of 5 sections.
-        This operation is running in the background.
+LLM: generate --page landing
+System: {
+  "status": "queued",
+  "batchId": "batch-123", 
+  "message": "Generating 3 sections",
+  "tip": "Use the status tool to check progress"
+}
 
+LLM: promote-all
+System: {
+  "status": "queued",
+  "batchId": "batch-456",
+  "message": "Promoting 12 sections to production", 
+  "tip": "Use the status tool to check progress"
+}
+
+LLM: rollback-all
+System: {
+  "status": "queued",
+  "batchId": "batch-789",
+  "message": "Rolling back 8 production sections",
+  "tip": "Use the status tool to check progress"
+}
+
+LLM: status
+System: {
+  "message": "3 operations in progress",
+  "operations": [
+    {
+      "type": "Content Generation",
+      "progress": "3/3 sections (100%)",
+      "status": "completed"
+    },
+    {
+      "type": "Content Promotion", 
+      "progress": "8/12 sections (67%)",
+      "status": "processing",
+      "currentTask": "Promoting about:team"
+    },
+    {
+      "type": "Content Rollback",
+      "progress": "2/8 sections (25%)",
+      "status": "processing"
+    }
+  ]
+}
+```
+
+### CLI/Matrix Experience (Consistent)
+
+```
 User: generate --page landing --section hero
 System: Queued generation of 1 section.
         This operation is running in the background.
+        Use 'status' to check progress.
 
-User: promote-all
+User: promote-all  
 System: Queued promotion of 12 sections to production.
         This operation is running in the background.
+        Use 'status' to check progress.
+
+User: rollback-all
+System: Queued rollback of 8 production sections.
+        This operation is running in the background.
+        Use 'status' to check progress.
 
 User: status
 System: 3 operations in progress:
-        - Content Generation: 5/5 sections (100%) - completing...
         - Content Generation: 1/1 sections (100%) - completed
-        - Content Promotion: 8/12 sections (67%)
-          Currently: Promoting about/team
-          Started: 30 seconds ago
-```
-
-### Single vs Batch - Same Experience
-
-```
-# Single section
-User: generate --page landing --section hero
-System: Queued generation of 1 section.
-        This operation is running in the background.
-
-# All sections
-User: generate-all
-System: Queued generation of 47 sections.
-        This operation is running in the background.
-
-# Both return immediately, both trackable via status
+        - Content Promotion: 8/12 sections (67%) - promoting about:team
+        - Content Rollback: 2/8 sections (25%) - processing
 ```
 
 ## Timeline
