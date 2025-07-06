@@ -13,6 +13,12 @@ import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
 import type { JobQueueService } from "@brains/job-queue";
 import {
+  BatchJobDataSchema,
+  BatchJobStatusSchema,
+  type BatchJobStatus,
+} from "@brains/job-queue";
+import type { JobOptions } from "@brains/db";
+import {
   EntityRegistrationError,
   ContentGenerationError,
   TemplateRegistrationError,
@@ -330,104 +336,11 @@ export class PluginContextFactory {
       // Entity service access - clean interface for plugin usage
       entityService,
 
-      // Async content generation - queues content generation jobs
-      enqueueContentGeneration: async (request: {
-        templateName: string;
-        context: {
-          prompt?: string | undefined;
-          data?: Record<string, unknown> | undefined;
-        };
-        userId?: string | undefined;
-      }): Promise<string> => {
-        try {
-          const namespacedTemplateName = this.ensureNamespaced(
-            request.templateName,
-            pluginId,
-          );
-
-          const jobQueueService =
-            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (
-            !jobQueueService ||
-            typeof jobQueueService.enqueue !== "function"
-          ) {
-            throw new Error("JobQueueService not available");
-          }
-
-          const jobId = await jobQueueService.enqueue("content-generation", {
-            templateName: namespacedTemplateName,
-            context: request.context,
-            userId: request.userId,
-          });
-
-          this.logger.debug("Enqueued content generation job", {
-            jobId,
-            templateName: namespacedTemplateName,
-            pluginId,
-          });
-
-          return jobId;
-        } catch (error) {
-          this.logger.error("Failed to enqueue content generation", error);
-          throw new ContentGenerationError(
-            request.templateName,
-            "generation",
-            error,
-          );
-        }
-      },
-
-      // Check status of content generation job
-      getJobStatus: async (
-        jobId: string,
-      ): Promise<{
-        status: "pending" | "processing" | "completed" | "failed";
-        result?: string;
-        error?: string;
-      } | null> => {
-        try {
-          const jobQueueService =
-            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (
-            !jobQueueService ||
-            typeof jobQueueService.getStatus !== "function"
-          ) {
-            throw new Error("JobQueueService not available");
-          }
-
-          const job = await jobQueueService.getStatus(jobId);
-          if (!job) {
-            return null;
-          }
-
-          const result: {
-            status: "pending" | "processing" | "completed" | "failed";
-            result?: string;
-            error?: string;
-          } = {
-            status: job.status,
-          };
-
-          if (job.result !== undefined && job.result !== null) {
-            result.result = job.result as string;
-          }
-
-          if (job.lastError) {
-            result.error = job.lastError;
-          }
-
-          return result;
-        } catch (error) {
-          this.logger.error("Failed to get job status", { jobId, error });
-          throw error;
-        }
-      },
-
       // Wait for job completion (with timeout)
       waitForJob: async (
         jobId: string,
         timeoutMs: number = 30000,
-      ): Promise<string> => {
+      ): Promise<unknown> => {
         try {
           const jobQueueService =
             this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
@@ -468,6 +381,181 @@ export class PluginContextFactory {
             jobId,
             error,
           });
+          throw error;
+        }
+      },
+
+      // Generic job queue access (required)
+      enqueueJob: async (
+        type: string,
+        data: unknown,
+        options?: {
+          priority?: number;
+          maxRetries?: number;
+        },
+      ): Promise<string> => {
+        try {
+          const jobQueueService =
+            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (
+            !jobQueueService ||
+            typeof jobQueueService.enqueue !== "function"
+          ) {
+            throw new Error("JobQueueService not available");
+          }
+
+          const jobId = await jobQueueService.enqueue(type, data, options);
+
+          this.logger.debug("Enqueued job", {
+            jobId,
+            type,
+            pluginId,
+          });
+
+          return jobId;
+        } catch (error) {
+          this.logger.error("Failed to enqueue job", { type, error });
+          throw error;
+        }
+      },
+
+      // Get job status
+      getJobStatus: async (
+        jobId: string,
+      ): Promise<{
+        status: "pending" | "processing" | "completed" | "failed";
+        result?: unknown;
+        error?: string;
+      } | null> => {
+        try {
+          const jobQueueService =
+            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (
+            !jobQueueService ||
+            typeof jobQueueService.getStatus !== "function"
+          ) {
+            throw new Error("JobQueueService not available");
+          }
+
+          const job = await jobQueueService.getStatus(jobId);
+          if (!job) {
+            return null;
+          }
+
+          // Transform to plugin context format
+          const result: {
+            status: "pending" | "processing" | "completed" | "failed";
+            result?: unknown;
+            error?: string;
+          } = {
+            status: job.status,
+          };
+          
+          if (job.result !== undefined && job.result !== null) {
+            result.result = job.result;
+          }
+          
+          if (job.lastError !== null && job.lastError !== undefined) {
+            result.error = job.lastError;
+          }
+          
+          return result;
+        } catch (error) {
+          this.logger.error("Failed to get job status", { jobId, error });
+          throw error;
+        }
+      },
+
+      // Batch operations (required)
+      enqueueBatch: async (
+        operations: Array<{
+          type: string;
+          entityId?: string;
+          entityType?: string;
+          options?: Record<string, unknown>;
+        }>,
+        options?: {
+          userId?: string;
+          priority?: number;
+          maxRetries?: number;
+        },
+      ): Promise<string> => {
+        try {
+          const jobQueueService =
+            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (
+            !jobQueueService ||
+            typeof jobQueueService.enqueue !== "function"
+          ) {
+            throw new Error("JobQueueService not available");
+          }
+
+          // Validate and create batch job data
+          const batchData = BatchJobDataSchema.parse({
+            operations,
+            userId: options?.userId,
+            startedAt: new Date().toISOString(),
+          });
+
+          const jobOptions: JobOptions = {};
+          if (options?.priority !== undefined) {
+            jobOptions.priority = options.priority;
+          }
+          if (options?.maxRetries !== undefined) {
+            jobOptions.maxRetries = options.maxRetries;
+          }
+
+          const batchId = await jobQueueService.enqueue(
+            "batch-operation",
+            batchData,
+            jobOptions,
+          );
+
+          this.logger.debug("Enqueued batch operation", {
+            batchId,
+            operationCount: operations.length,
+            pluginId,
+          });
+
+          return batchId;
+        } catch (error) {
+          this.logger.error("Failed to enqueue batch operation", error);
+          throw error;
+        }
+      },
+
+      getBatchStatus: async (
+        batchId: string,
+      ): Promise<BatchJobStatus | null> => {
+        try {
+          const jobQueueService =
+            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (
+            !jobQueueService ||
+            typeof jobQueueService.getStatus !== "function"
+          ) {
+            throw new Error("JobQueueService not available");
+          }
+
+          const job = await jobQueueService.getStatus(batchId);
+          if (!job) {
+            return null;
+          }
+
+          // Parse batch data from job
+          const batchData = BatchJobDataSchema.parse(job.data);
+
+          return BatchJobStatusSchema.parse({
+            batchId,
+            totalOperations: batchData.operations.length,
+            completedOperations: batchData.completedOperations,
+            failedOperations: batchData.failedOperations,
+            errors: batchData.errors,
+            status: job.status,
+            currentOperation: batchData.currentOperation,
+          });
+        } catch (error) {
+          this.logger.error("Failed to get batch status", { batchId, error });
           throw error;
         }
       },

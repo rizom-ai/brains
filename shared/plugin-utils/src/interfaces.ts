@@ -17,6 +17,7 @@ import type {
   ViewTemplate,
 } from "@brains/view-registry";
 import type { IEntityService } from "@brains/entity-service";
+import type { BatchJobStatus } from "@brains/job-queue";
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -177,25 +178,41 @@ export interface PluginContext {
   // Entity service access - direct access to public service interface
   entityService: IEntityService;
 
-  // Async content generation - queues content generation jobs
-  enqueueContentGeneration: (request: {
-    templateName: string;
-    context: {
-      prompt?: string | undefined;
-      data?: Record<string, unknown> | undefined;
-    };
-    userId?: string | undefined;
-  }) => Promise<string>; // Returns job ID
+  // Wait for job completion (with timeout)
+  waitForJob: (jobId: string, timeoutMs?: number) => Promise<unknown>;
 
-  // Check status of content generation job
+  // Generic job queue access (required)
+  enqueueJob: (
+    type: string,
+    data: unknown,
+    options?: {
+      priority?: number;
+      maxRetries?: number;
+    },
+  ) => Promise<string>;
+
   getJobStatus: (jobId: string) => Promise<{
     status: "pending" | "processing" | "completed" | "failed";
-    result?: string;
+    result?: unknown;
     error?: string;
   } | null>;
 
-  // Wait for job completion (with timeout)
-  waitForJob: (jobId: string, timeoutMs?: number) => Promise<string>;
+  // Batch operations (required)
+  enqueueBatch: (
+    operations: Array<{
+      type: string;
+      entityId?: string;
+      entityType?: string;
+      options?: Record<string, unknown>;
+    }>,
+    options?: {
+      userId?: string;
+      priority?: number;
+      maxRetries?: number;
+    },
+  ) => Promise<string>;
+
+  getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
 
   // Interface plugin capabilities
   registerDaemon: (name: string, daemon: Daemon) => void;

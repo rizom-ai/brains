@@ -5,6 +5,7 @@ import type {
   JobDataFor,
   JobResultFor,
 } from "@brains/db";
+import type { JobResult } from "./schemas";
 
 /**
  * Job handler interface for processing specific job types
@@ -31,16 +32,6 @@ export interface JobHandler<
   validateAndParse(data: unknown): TInput | null;
 }
 
-/**
- * Job result after processing
- */
-export interface JobResult<T extends JobType = JobType> {
-  jobId: string;
-  type: T;
-  status: "completed" | "failed";
-  result?: JobResultFor<T>;
-  error?: string;
-}
 
 /**
  * Job queue service interface
@@ -49,14 +40,14 @@ export interface IJobQueueService {
   /**
    * Register a job handler for a specific type
    */
-  registerHandler<T extends JobType>(type: T, handler: JobHandler<T>): void;
+  registerHandler(type: string, handler: JobHandler): void;
 
   /**
    * Enqueue a job for processing
    */
-  enqueue<T extends JobType>(
-    type: T,
-    data: JobDataFor<T>,
+  enqueue(
+    type: string,
+    data: unknown,
     options?: JobOptions,
   ): Promise<string>;
 
@@ -73,9 +64,9 @@ export interface IJobQueueService {
   /**
    * Mark job as completed
    */
-  complete<T extends JobType>(
+  complete(
     jobId: string,
-    result?: JobResultFor<T>,
+    result: unknown,
   ): Promise<void>;
 
   /**

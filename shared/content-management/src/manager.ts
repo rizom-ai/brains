@@ -1,12 +1,16 @@
 import type { Logger } from "@brains/types";
-import type { ProgressNotification } from "@brains/utils";
+import type { ProgressNotification, ProgressCallback } from "@brains/utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import { GenerationOperations } from "./operations/generation";
 import { DerivationOperations } from "./operations/derivation";
 import { EntityQueryService } from "./services/entity-query";
-import { JobTrackingService } from "./services/job-tracking";
+import { 
+  waitForContentJobs,
+  getContentJobStatuses,
+  type ContentGenerationResult,
+} from "./services/job-tracking";
 import type {
   SiteContent,
   SiteContentEntityType,
@@ -16,10 +20,6 @@ import type {
   DeriveOptions,
   DeriveResult,
 } from "./types";
-import type {
-  ProgressCallback,
-  ContentGenerationResult,
-} from "./services/job-tracking";
 
 /**
  * ContentManager facade that provides a unified interface for content management operations
@@ -28,7 +28,6 @@ import type {
  * - GenerationOperations: Content generation and regeneration
  * - DerivationOperations: Content transformation between entity types
  * - EntityQueryService: Content querying and retrieval
- * - JobTrackingService: Async job monitoring and progress tracking
  *
  * All dependencies (EntityService, Logger, PluginContext) are required for full functionality
  */
@@ -38,7 +37,7 @@ export class ContentManager {
   private readonly generationOps: GenerationOperations;
   private readonly derivationOps: DerivationOperations;
   private readonly entityQuery: EntityQueryService;
-  private readonly jobTracking: JobTrackingService;
+  private readonly pluginContext: PluginContext;
 
   // Singleton access
   public static getInstance(
@@ -74,6 +73,7 @@ export class ContentManager {
     logger: Logger,
     pluginContext: PluginContext,
   ) {
+    this.pluginContext = pluginContext;
     // Always available services
     this.entityQuery = EntityQueryService.createFresh(entityService, logger);
     this.generationOps = GenerationOperations.createFresh(
@@ -85,9 +85,6 @@ export class ContentManager {
       entityService,
       logger,
     );
-
-    // Async services
-    this.jobTracking = JobTrackingService.createFresh(pluginContext, logger);
   }
 
   // ========================================
@@ -242,33 +239,20 @@ export class ContentManager {
    */
   async waitForContentJobs(
     jobs: ContentGenerationJob[],
-    progressCallback?: ProgressCallback,
     timeoutMs: number = 60000,
+    progressCallback?: ProgressCallback,
   ): Promise<ContentGenerationResult[]> {
-    return this.jobTracking.waitForContentJobs(
-      jobs,
-      progressCallback,
-      timeoutMs,
-    );
+    return waitForContentJobs(jobs, this.pluginContext, timeoutMs, progressCallback);
   }
 
   /**
-   * Get current status summary for content generation jobs
+   * Get current status of content generation jobs
    */
-  async getContentJobStatuses(jobs: ContentGenerationJob[]): Promise<{
-    total: number;
-    pending: number;
-    processing: number;
-    completed: number;
-    failed: number;
-    jobs: Array<{
-      jobId: string;
-      sectionId: string;
-      status: "pending" | "processing" | "completed" | "failed";
-      error?: string;
-    }>;
-  }> {
-    return this.jobTracking.getContentJobStatuses(jobs);
+  async getContentJobStatuses(
+    jobs: ContentGenerationJob[],
+  ): Promise<Map<string, { status: string; error?: string }>> {
+    const jobIds = jobs.map(job => job.jobId);
+    return getContentJobStatuses(jobIds, this.pluginContext);
   }
 
   // ========================================

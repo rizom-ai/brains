@@ -1,6 +1,7 @@
-import { test, expect, beforeEach, mock } from "bun:test";
+import { test, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentManager } from "./manager";
 import { createSilentLogger } from "@brains/utils";
+import { PluginTestHarness } from "@brains/test-utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition } from "@brains/view-registry";
@@ -14,73 +15,12 @@ const mockEnqueueContentGeneration = mock();
 const mockGetJobStatus = mock();
 const mockDeriveEntity = mock();
 
-const mockEntityService = {
-  getEntity: mockGetEntity,
-  createEntityAsync: mockCreateEntityAsync,
-  updateEntityAsync: mockUpdateEntityAsync,
-  listEntities: mockListEntities,
-  createEntitySync: mock(),
-  updateEntitySync: mock(),
-  deleteEntity: mock(),
-  getAsyncJobStatus: mock(),
-  waitForAsyncJob: mock(),
-  listAsyncJobs: mock(),
-  cancelAsyncJob: mock(),
-  search: mock(),
-  deriveEntity: mockDeriveEntity,
-  getEntityTypes: mock(),
-  serializeEntity: mock(),
-  deserializeEntity: mock(),
-} as unknown as EntityService;
+// Test harness instances
+let harness: PluginTestHarness;
+let mockPluginContext: PluginContext;
+let mockEntityService: EntityService;
 
-const mockPluginContext = {
-  pluginId: "test-plugin",
-  logger: createSilentLogger("content-manager-test"),
-  enqueueContentGeneration: mockEnqueueContentGeneration,
-  getJobStatus: mockGetJobStatus,
-  waitForJob: mock(),
-  sendMessage: mock(),
-  subscribe: mock(),
-  unsubscribe: mock(),
-  getPluginConfig: mock(),
-  updatePluginConfig: mock(),
-  getGlobalConfig: mock(),
-  updateGlobalConfig: mock(),
-  getSecrets: mock(),
-  updateSecrets: mock(),
-  listPlugins: mock(),
-  getPluginStatus: mock(),
-  enablePlugin: mock(),
-  disablePlugin: mock(),
-  installPlugin: mock(),
-  uninstallPlugin: mock(),
-  updatePlugin: mock(),
-  getPluginMetadata: mock(),
-  validatePluginConfig: mock(),
-  getPluginDependencies: mock(),
-  resolvePluginDependencies: mock(),
-  getPluginPermissions: mock(),
-  requestPluginPermissions: mock(),
-  revokePluginPermissions: mock(),
-  registerEntityType: mock(),
-  generateContent: mock(),
-  parseContent: mock(),
-  formatContent: mock(),
-  validateContent: mock(),
-  getContentTypes: mock(),
-  getContentMetadata: mock(),
-  updateContentMetadata: mock(),
-  deleteContentMetadata: mock(),
-  getContentHistory: mock(),
-  getContentDiff: mock(),
-  applyContentPatch: mock(),
-  getContentStats: mock(),
-  searchContent: mock(),
-  indexContent: mock(),
-  deleteContentIndex: mock(),
-  getContentIndex: mock(),
-  updateContentIndex: mock(),
-} as unknown as PluginContext;
+// Removed - using test harness instead
 
 const mockLogger = createSilentLogger("content-manager-test");
 
@@ -92,7 +32,24 @@ const mockGenerateId = (
 
 let contentManager: ContentManager;
 
-beforeEach((): void => {
+beforeEach(async (): Promise<void> => {
+  // Create test harness
+  harness = new PluginTestHarness();
+  mockPluginContext = harness.getPluginContext();
+  mockEntityService = mockPluginContext.entityService;
+  
+  // Setup mocks on the harness services
+  mockEntityService.getEntity = mockGetEntity;
+  mockEntityService.createEntityAsync = mockCreateEntityAsync;
+  mockEntityService.updateEntityAsync = mockUpdateEntityAsync;
+  mockEntityService.listEntities = mockListEntities;
+  mockEntityService.deriveEntity = mockDeriveEntity;
+  
+  // Setup job queue mocks
+  mockPluginContext.getJobStatus = mockGetJobStatus;
+  mockPluginContext.waitForJob = mock().mockResolvedValue("Generated content");
+  mockPluginContext.enqueueJob = mockEnqueueContentGeneration;
+  
   // Reset all mocks
   mockGetEntity.mockClear();
   mockCreateEntityAsync.mockClear();
@@ -110,6 +67,10 @@ beforeEach((): void => {
     mockLogger,
     mockPluginContext,
   );
+});
+
+afterEach(async (): Promise<void> => {
+  await harness.cleanup();
 });
 
 // ========================================
@@ -403,24 +364,22 @@ test("waitForContentJobs should delegate to JobTrackingService", async () => {
     },
   ];
 
-  mockGetJobStatus.mockResolvedValue({
-    status: "completed",
-    result: "Generated content",
-  });
-
+  // waitForContentJobs uses waitForJob, not getJobStatus
+  // The mock is already set up in beforeEach
+  
   const result = await contentManager.waitForContentJobs(
     mockJobs,
-    undefined,
     5000,
   );
 
   expect(result).toHaveLength(1);
   expect(result[0]?.success).toBe(true);
   expect(result[0]?.jobId).toBe("job-1");
-  expect(mockGetJobStatus).toHaveBeenCalledWith("job-1");
+  expect(result[0]?.content).toBe("Generated content");
+  expect(mockPluginContext.waitForJob).toHaveBeenCalledWith("job-1", 5000);
 });
 
-test("getContentJobStatuses should delegate to JobTrackingService", async () => {
+test("getContentJobStatuses should return job status map", async () => {
   const mockJobs = [
     {
       jobId: "job-1",
@@ -445,10 +404,8 @@ test("getContentJobStatuses should delegate to JobTrackingService", async () => 
 
   const result = await contentManager.getContentJobStatuses(mockJobs);
 
-  expect(result.total).toBe(1);
-  expect(result.completed).toBe(1);
-  expect(result.jobs).toHaveLength(1);
-  expect(result.jobs[0]?.status).toBe("completed");
+  expect(result.size).toBe(1);
+  expect(result.get("job-1")?.status).toBe("completed");
   expect(mockGetJobStatus).toHaveBeenCalledWith("job-1");
 });
 

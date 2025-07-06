@@ -37,6 +37,7 @@ const mockPluginContext = {
   pluginId: "test-plugin",
   logger: mockLogger,
   enqueueContentGeneration: mockEnqueueContentGeneration,
+  enqueueJob: mockEnqueueContentGeneration, // Add the generic enqueueJob
   sendMessage: mock(),
   subscribe: mock(),
   unsubscribe: mock(),
@@ -255,15 +256,18 @@ test("generateAsync should queue generation jobs", async () => {
   expect(result.jobs[0]?.sectionDefinition.id).toBe("hero");
 
   expect(mockEnqueueContentGeneration).toHaveBeenCalledTimes(2);
-  expect(mockEnqueueContentGeneration).toHaveBeenCalledWith({
-    templateName: "template-name",
-    context: {
-      data: {
-        ...result.jobs[0],
-        siteConfig: { siteTitle: "Test Site" },
+  expect(mockEnqueueContentGeneration).toHaveBeenCalledWith(
+    "content-generation",
+    {
+      templateName: "template-name",
+      context: {
+        data: {
+          ...result.jobs[0],
+          siteConfig: { siteTitle: "Test Site" },
+        },
       },
     },
-  });
+  );
 });
 
 test("generateAsync should filter by pageId", async () => {

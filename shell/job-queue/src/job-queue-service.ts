@@ -10,12 +10,10 @@ import {
   createId,
   type JobOptions,
   type JobQueue,
-  type JobType,
-  type JobDataFor,
-  type JobResultFor,
 } from "@brains/db";
 import { Logger } from "@brains/utils";
-import type { IJobQueueService, JobHandler, JobResult } from "./types";
+import type { IJobQueueService, JobHandler } from "./types";
+import type { JobResult } from "./schemas";
 
 /**
  * Service for managing the generic job queue
@@ -63,9 +61,9 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Register a job handler for a specific type
    */
-  public registerHandler<T extends JobType>(
-    type: T,
-    handler: JobHandler<T>,
+  public registerHandler(
+    type: string,
+    handler: JobHandler,
   ): void {
     this.handlers.set(type, handler as JobHandler);
     this.logger.debug("Registered job handler", { type });
@@ -74,9 +72,9 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Enqueue a job for processing
    */
-  public async enqueue<T extends JobType>(
-    type: T,
-    data: JobDataFor<T>,
+  public async enqueue(
+    type: string,
+    data: unknown,
     options: JobOptions = {},
   ): Promise<string> {
     const jobId = createId();
@@ -181,7 +179,7 @@ export class JobQueueService implements IJobQueueService {
       await this.fail(job.id, error);
       return {
         jobId: job.id,
-        type: job.type as JobType,
+        type: job.type,
         status: "failed",
         error: error.message,
       };
@@ -205,7 +203,7 @@ export class JobQueueService implements IJobQueueService {
 
       return {
         jobId: job.id,
-        type: job.type as JobType,
+        type: job.type,
         status: "completed",
         result,
       };
@@ -232,7 +230,7 @@ export class JobQueueService implements IJobQueueService {
 
       return {
         jobId: job.id,
-        type: job.type as JobType,
+        type: job.type,
         status: "failed",
         error: processError.message,
       };
@@ -242,9 +240,9 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Mark job as completed
    */
-  public async complete<T extends JobType>(
+  public async complete(
     jobId: string,
-    result?: JobResultFor<T>,
+    result: unknown,
   ): Promise<void> {
     try {
       await this.db

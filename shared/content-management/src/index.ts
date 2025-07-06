@@ -12,7 +12,6 @@ export { ContentManager } from "./manager";
 export { GenerationOperations } from "./operations/generation";
 export { DerivationOperations } from "./operations/derivation";
 export { EntityQueryService } from "./services/entity-query";
-export { JobTrackingService } from "./services/job-tracking";
 
 // Types and interfaces
 export type {
@@ -35,7 +34,6 @@ export {
 
 // Job tracking types
 export type {
-  ProgressCallback,
   ContentGenerationResult,
 } from "./services/job-tracking";
 
@@ -43,7 +41,7 @@ export type {
 export {
   waitForContentJobs,
   getContentJobStatuses,
-} from "./utils/job-tracking";
+} from "./services/job-tracking";
 
 // Content utilities
 export {

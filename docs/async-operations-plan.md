@@ -140,6 +140,7 @@ export interface PluginContext {
 Implement the new methods in `shell/core/src/plugins/pluginContextFactory.ts` to properly expose job queue functionality to plugins.
 
 **Implementation Notes**:
+
 - Remove any domain-specific job methods (like `enqueueContentGeneration`)
 - Implement only the generic job queue methods listed above
 - All job types (content generation, embeddings, batch operations, etc.) go through the generic interface

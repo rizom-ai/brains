@@ -151,8 +151,8 @@ export class GenerationOperations {
         jobs.push(job);
         queuedSections++;
 
-        // Queue the job
-        await this.pluginContext.enqueueContentGeneration({
+        // Queue the job using generic enqueueJob method
+        await this.pluginContext.enqueueJob("content-generation", {
           templateName: job.templateName,
           context: {
             data: {

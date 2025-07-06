@@ -7,6 +7,17 @@ export type {
 export type {
   IJobQueueService,
   JobHandler,
-  JobResult,
   EnqueueJob,
 } from "./types";
+export {
+  JobStatusSchema,
+  JobResultSchema,
+  BatchOperationSchema,
+  BatchJobDataSchema,
+  BatchJobStatusSchema,
+  type JobStatus,
+  type JobResult,
+  type BatchOperation,
+  type BatchJobData,
+  type BatchJobStatus,
+} from "./schemas";

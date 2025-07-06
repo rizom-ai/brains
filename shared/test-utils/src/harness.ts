@@ -14,6 +14,7 @@ import type {
 import type { IEntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
+import type { BatchJobStatus } from "@brains/job-queue";
 import type { z } from "zod";
 
 export interface PluginTestHarnessOptions {
@@ -277,29 +278,46 @@ export class PluginTestHarness {
       registerRoutes: (): void => {
         // Mock implementation for test harness
       },
-      // Daemon registration
-      registerDaemon: (): void => {
-        // Mock implementation for test harness
-      },
-      // Async content generation methods
-      enqueueContentGeneration: async (): Promise<string> => {
+      // Generic job queue access (required)
+      enqueueJob: async (): Promise<string> => {
         // Mock implementation - return a fake job ID
         return "mock-job-id-" + Date.now();
       },
       getJobStatus: async (): Promise<{
         status: "pending" | "processing" | "completed" | "failed";
-        result?: string;
+        result?: unknown;
         error?: string;
       } | null> => {
-        // Mock implementation - return completed status
+        // Mock implementation - return completed job status
         return {
           status: "completed",
-          result: "Mock generated content",
+          result: "mock-result",
         };
       },
-      waitForJob: async (): Promise<string> => {
+      // Batch operations (required)
+      enqueueBatch: async (): Promise<string> => {
+        // Mock implementation - return a fake batch ID
+        return "mock-batch-id-" + Date.now();
+      },
+      getBatchStatus: async (): Promise<BatchJobStatus | null> => {
+        // Mock implementation - return completed batch status
+        return {
+          batchId: "mock-batch-id",
+          totalOperations: 1,
+          completedOperations: 1,
+          failedOperations: 0,
+          errors: [],
+          status: "completed",
+        };
+      },
+      // Wait for job completion (with timeout)
+      waitForJob: async (): Promise<unknown> => {
         // Mock implementation - return mock content
         return "Mock generated content";
+      },
+      // Daemon registration
+      registerDaemon: (): void => {
+        // Mock implementation for test harness
       },
     };
   }
