@@ -7,6 +7,7 @@ This document outlines the plan for:
 1. Extracting job queue into a new shared package (`@brains/job-queue`)
 2. Implementing non-blocking batch operations using the job queue
 3. Updating interfaces (CLI, Matrix) to handle async operations with progress reporting
+4. **[NEW]** Smart auto-detection of async operations without exposing sync/async choice to users
 
 ## Current State
 
@@ -17,9 +18,16 @@ Currently:
 - No batch promote/rollback operations exist
 - CLI and Matrix interfaces freeze during long operations
 
-## Phase 1: Job Queue Package Extraction (Day 1 Morning)
+## Core Design Principles (Updated)
 
-### 1.1 Create New Package Structure
+1. **Smart Auto-Detection**: Tools automatically determine if an operation should be async based on workload
+2. **Transparent Progress**: All tools leverage MCP's native progress notification support
+3. **Consistent UX**: Same experience across CLI, Matrix, and MCP interfaces
+4. **No Mode Switching**: Remove explicit async flags from user-facing APIs
+
+## Phase 1: Job Queue Package Extraction (Day 1 Morning) ✅
+
+### 1.1 Create New Package Structure ✅
 
 ```
 shared/job-queue/
@@ -40,7 +48,7 @@ shared/job-queue/
     └── utils/
 ```
 
-### 1.2 Move Core Components
+### 1.2 Move Core Components ✅
 
 From `shell/entity-service/src/job-queue/`:
 
@@ -53,7 +61,7 @@ Job handlers stay in their respective packages:
 - Embedding handler remains in entity-service
 - Content generation handler moves to content-management
 
-### 1.3 Update Dependencies
+### 1.3 Update Dependencies ✅
 
 ```json
 // shell/job-queue/package.json
@@ -75,9 +83,9 @@ Update direct consumers (core services only):
 
 **Important**: Plugins should NOT directly import from `@brains/job-queue`. They access job queue functionality through their plugin context.
 
-## Phase 2: Plugin Context Updates (Day 1 Afternoon)
+## Phase 2: Plugin Context Updates (Day 1 Afternoon) ✅
 
-### 2.1 Update Plugin Context Interface
+### 2.1 Update Plugin Context Interface ✅
 
 Add generic job queue operations to `shared/plugin-utils/src/interfaces.ts`:
 
@@ -135,7 +143,7 @@ export interface PluginContext {
 }
 ```
 
-### 2.2 Update PluginContextFactory
+### 2.2 Update PluginContextFactory ✅
 
 Implement the new methods in `shell/core/src/plugins/pluginContextFactory.ts` to properly expose job queue functionality to plugins.
 
@@ -146,7 +154,7 @@ Implement the new methods in `shell/core/src/plugins/pluginContextFactory.ts` to
 - All job types (content generation, embeddings, batch operations, etc.) go through the generic interface
 - Example: Content generation would use `context.enqueueJob("content-generation", { templateName, context, userId })`
 
-### 2.3 Removed Methods
+### 2.3 Removed Methods ✅
 
 The following methods were removed from PluginContext to maintain a clean, generic interface:
 
@@ -158,9 +166,9 @@ The following methods were removed from PluginContext to maintain a clean, gener
    - Previously had both content-specific and generic versions
    - Now only the generic version remains
 
-## Phase 3: Batch Operations Infrastructure (Day 1 Afternoon - continued)
+## Phase 3: Batch Operations Infrastructure (Day 1 Afternoon - continued) ✅
 
-### 3.1 Create BatchJobManager
+### 3.1 Create BatchJobManager ✅
 
 Location: `shell/job-queue/src/batch-job-manager.ts`
 
@@ -226,7 +234,7 @@ export class BatchJobManager {
 }
 ```
 
-### 3.2 Update ContentManager
+### 3.2 Update ContentManager ✅
 
 ContentManager should use job queue through plugin context, not direct imports:
 
@@ -308,9 +316,108 @@ export class SiteBuilderPlugin extends BasePlugin {
 
 The generic batch operation handler in job-queue will delegate to these registered handlers based on operation type.
 
-## Phase 3: Interface Updates (Day 2 Morning)
+## Phase 4: Smart Tool Design Pattern (NEW)
 
-### 3.1 CLI Interface
+### 4.1 Auto-Detection Pattern
+
+Update all long-running tools to follow this pattern:
+
+```typescript
+// Example: generate-all tool in site-builder
+this.createTool(
+  "generate-all",
+  "Generate content for all sections across all pages",
+  {
+    dryRun: z.boolean().optional().default(false).describe("Preview changes without executing"),
+    // Note: NO async parameter - system decides automatically
+  },
+  async (input, context) => {
+    const routes = this.context.listRoutes();
+    const totalSections = countTotalSections(routes);
+    
+    // Smart threshold detection
+    const USE_ASYNC_THRESHOLD = 10; // Configurable per operation type
+    
+    if (totalSections > USE_ASYNC_THRESHOLD) {
+      // Large operation - use async with immediate return
+      const batchId = await this.contentManager.generateAllAsync(
+        { dryRun: input.dryRun },
+        routes,
+        templateResolver,
+        "site-content-preview",
+        this.config.siteConfig
+      );
+      
+      // Return user-friendly response
+      return {
+        status: "queued",
+        message: `Generating ${totalSections} sections. This will take a few minutes.`,
+        batchId,
+        estimatedTime: estimateTime(totalSections),
+        tip: "You can continue working while this runs in the background."
+      };
+    } else {
+      // Small operation - do synchronously with progress
+      return await this.contentManager.generateSync(
+        { dryRun: input.dryRun },
+        routes,
+        async (route, section, progress) => {
+          // Report progress if available
+          if (context?.sendProgress) {
+            await context.sendProgress({
+              progress: progress.current,
+              total: progress.total,
+              message: `Generating ${route.id}/${section.id}`
+            });
+          }
+          return generateCallback(route, section, progress);
+        },
+        "site-content-preview"
+      );
+    }
+  }
+)
+```
+
+### 4.2 Unified Status Tool
+
+Add a single, user-friendly tool for checking all background operations:
+
+```typescript
+this.createTool(
+  "status",
+  "Check status of background operations",
+  {},
+  async (input, context) => {
+    // Get all active operations across the system
+    const batches = await this.context.getActiveBatches();
+    
+    if (batches.length === 0) {
+      return {
+        message: "No background operations running.",
+        operations: []
+      };
+    }
+    
+    return {
+      message: `${batches.length} operation(s) in progress`,
+      operations: batches.map(batch => ({
+        type: humanizeOperationType(batch.type),
+        status: batch.status,
+        progress: `${batch.completedOperations}/${batch.totalOperations}`,
+        percentComplete: Math.round((batch.completedOperations / batch.totalOperations) * 100),
+        currentTask: batch.currentOperation,
+        startedAt: new Date(batch.startedAt).toRelativeTime(),
+        estimatedCompletion: estimateCompletion(batch)
+      }))
+    };
+  }
+)
+```
+
+## Phase 5: Interface Updates
+
+### 5.1 CLI Interface
 
 Update CLI to show progress bars:
 
@@ -347,7 +454,7 @@ export function BatchProgress({ batchId, onComplete }) {
 }
 ```
 
-### 3.2 Matrix Interface
+### 5.2 Matrix Interface
 
 Implement message editing for progress:
 
@@ -391,64 +498,30 @@ private async handleBatchOperation(
 }
 ```
 
-### 3.3 MCP Tools
+### 5.3 MCP Interface
 
-Update tools to support async operations:
+MCP interface leverages native progress support - no special handling needed.
 
-```typescript
-{
-  name: "generate-all",
-  description: "Generate all content (async)",
-  inputSchema: {
-    async: z.boolean().optional().describe("Use async processing"),
-    // ... other params
-  },
-  handler: async (input) => {
-    if (input.async) {
-      const jobId = await contentManager.generateAllAsync(input);
-      return {
-        jobId,
-        message: "Batch generation started. Use get-job-status to track progress."
-      };
-    } else {
-      // Legacy sync behavior (will be deprecated)
-      return await generateAllSync(input);
-    }
-  }
-}
-```
+## Migration Strategy
 
-## Phase 4: Testing & Migration (Day 2 Afternoon)
+### Week 1: Core Implementation
+1. ~~Extract job queue package~~ ✅
+2. ~~Implement batch operations~~ ✅
+3. Update tool implementations to use smart detection
+4. Remove async flags from all tools
+5. Implement unified status checking tool
 
-### 4.1 Testing Strategy
+### Week 2: Interface Polish  
+1. Enhance CLI progress displays
+2. Improve Matrix message formatting
+3. Add operation history tracking
+4. Implement notification preferences
 
-1. **Unit Tests**:
-   - BatchJobManager logic
-   - Job handlers for each operation type
-   - Progress tracking
-
-2. **Integration Tests**:
-   - End-to-end batch operations
-   - Progress message flow
-   - Error handling and recovery
-
-3. **Interface Tests**:
-   - CLI progress bar rendering
-   - Matrix message editing
-   - MCP async tool handling
-
-### 4.2 Migration Path
-
-1. **Step 1**: Deploy with both sync and async methods available
-2. **Step 2**: Update all consumers to use async methods
-3. **Step 3**: Mark sync batch methods as deprecated
-4. **Step 4**: Remove sync batch methods in next major version
-
-### 4.3 Documentation Updates
-
-- Update API documentation for new async methods
-- Add examples for each interface
-- Document migration from sync to async
+### Week 3: Documentation & Testing
+1. Update all tool documentation
+2. Add integration tests for progress flow
+3. Create user guide for background operations
+4. Deploy and gather feedback
 
 ## Architectural Principles
 
@@ -473,11 +546,38 @@ Update tools to support async operations:
 4. **Scalability**: Easy to add new job types
 5. **Testability**: Isolated components with clear responsibilities
 6. **Plugin Isolation**: Plugins remain decoupled from core infrastructure
+7. **Better UX**: No confusing async/sync choice for users
+8. **Simpler API**: Tools have fewer parameters
+9. **Smarter System**: Automatic optimization based on workload
+
+## Example User Flows
+
+### Small Operation (< 10 sections)
+```
+User: generate-all
+System: Generating content for 5 sections...
+[Progress bar shows real-time updates]
+System: ✓ Generated 5 sections successfully
+```
+
+### Large Operation (> 10 sections)  
+```
+User: generate-all
+System: Queued generation of 47 sections. This will take about 5 minutes.
+        You can continue working while this runs in the background.
+
+User: status
+System: 1 operation in progress:
+        - Content Generation: 23/47 sections (49%) 
+          Currently: Generating landing/hero
+          Started: 2 minutes ago
+          Est. completion: 3 minutes
+```
 
 ## Timeline
 
-- **Day 1 Morning** (4 hours): Extract job queue package
-- **Day 1 Afternoon** (4 hours): Implement batch operations
+- **Day 1 Morning** (4 hours): Extract job queue package ✅
+- **Day 1 Afternoon** (4 hours): Implement batch operations ✅
 - **Day 2 Morning** (4 hours): Update interfaces
 - **Day 2 Afternoon** (4 hours): Testing and migration
 - **Total**: 2 days (16 hours)
@@ -490,3 +590,6 @@ Update tools to support async operations:
 4. Persistent job history
 5. Web UI for job monitoring
 6. Distributed job processing
+7. WebSocket support for real-time updates
+8. Batch operation templates
+9. Scheduled operations
