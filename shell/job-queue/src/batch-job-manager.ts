@@ -1,21 +1,30 @@
 import type { IJobQueueService } from "./types";
 import type { BatchOperation, BatchJobStatus } from "./schemas";
-import {
-  BatchJobStatusSchema,
-  BatchJobDataSchema,
-  JOB_STATUS,
-} from "./schemas";
+import { JOB_STATUS } from "./schemas";
 import type { Logger } from "@brains/utils";
-import type { JobOptions } from "@brains/db";
+import { createBatchId } from "@brains/utils";
 
 /**
- * Batch job manager for handling batch operations
+ * Batch job manager for tracking groups of related jobs
  *
- * This manager coordinates multiple related jobs and tracks their collective progress.
- * It's generic infrastructure that can handle any type of batch operation.
+ * This manager tracks multiple related jobs as a logical batch without
+ * creating a special "batch-operation" job type. Instead, it monitors
+ * the individual jobs and provides aggregated status.
  */
 export class BatchJobManager {
   private static instance: BatchJobManager | null = null;
+
+  // In-memory tracking of batch metadata
+  // In production, this could be stored in a database table
+  private batches = new Map<
+    string,
+    {
+      jobIds: string[];
+      operations: BatchOperation[];
+      userId?: string;
+      startedAt: string;
+    }
+  >();
 
   public static getInstance(
     jobQueue: IJobQueueService,
@@ -42,7 +51,7 @@ export class BatchJobManager {
   ) {}
 
   /**
-   * Enqueue a batch of operations
+   * Enqueue a batch of operations as individual jobs
    */
   async enqueueBatch(
     operations: BatchOperation[],
@@ -56,106 +65,140 @@ export class BatchJobManager {
       throw new Error("Cannot enqueue empty batch");
     }
 
+    const batchId = createBatchId();
+    const jobIds: string[] = [];
+
     try {
-      // Create the batch job that tracks all operations
-      const batchData = {
+      // Enqueue each operation as an individual job
+      for (const operation of operations) {
+        // Build job options conditionally to avoid undefined values
+        const jobOptions: Parameters<IJobQueueService["enqueue"]>[2] = {};
+        if (options?.priority !== undefined) {
+          jobOptions.priority = options.priority;
+        }
+        if (options?.maxRetries !== undefined) {
+          jobOptions.maxRetries = options.maxRetries;
+        }
+
+        const jobId = await this.jobQueue.enqueue(
+          operation.type,
+          operation.options || {},
+          jobOptions,
+        );
+        jobIds.push(jobId);
+      }
+
+      // Store batch metadata
+      const batchMetadata: {
+        jobIds: string[];
+        operations: BatchOperation[];
+        userId?: string;
+        startedAt: string;
+      } = {
+        jobIds,
         operations,
-        totalOperations: operations.length,
-        completedOperations: 0,
-        failedOperations: 0,
-        errors: [] as string[],
-        status: JOB_STATUS.PENDING,
-        userId: options?.userId,
         startedAt: new Date().toISOString(),
       };
 
-      const jobOptions: JobOptions = {};
-      if (options?.priority !== undefined) {
-        jobOptions.priority = options.priority;
-      }
-      if (options?.maxRetries !== undefined) {
-        jobOptions.maxRetries = options.maxRetries;
+      if (options?.userId !== undefined) {
+        batchMetadata.userId = options.userId;
       }
 
-      const batchId = await this.jobQueue.enqueue(
-        "batch-operation",
-        batchData,
-        jobOptions,
-      );
+      this.batches.set(batchId, batchMetadata);
 
-      this.logger.info("Enqueued batch operation", {
+      this.logger.info("Enqueued batch operations", {
         batchId,
         operationCount: operations.length,
+        jobIds,
         userId: options?.userId,
       });
 
       return batchId;
     } catch (error) {
-      this.logger.error("Failed to enqueue batch operation", {
+      this.logger.error("Failed to enqueue batch operations", {
         error,
         operations,
+        enqueuedJobs: jobIds.length,
       });
       throw error;
     }
   }
 
   /**
-   * Get batch status by batch ID
+   * Get batch status by aggregating individual job statuses
    */
   async getBatchStatus(batchId: string): Promise<BatchJobStatus | null> {
+    const batch = this.batches.get(batchId);
+    if (!batch) {
+      return null;
+    }
+
     try {
-      const job = await this.jobQueue.getStatus(batchId);
-      if (!job) {
-        return null;
-      }
+      // Get status of all jobs in the batch
+      const jobStatuses = await Promise.all(
+        batch.jobIds.map((jobId) => this.jobQueue.getStatus(jobId)),
+      );
 
-      // If job has result data, parse it as BatchJobStatus
-      if (job.result && typeof job.result === "object") {
-        const parseResult = BatchJobStatusSchema.safeParse(job.result);
-        if (parseResult.success) {
-          return parseResult.data;
+      // Count statuses
+      let completedOperations = 0;
+      let failedOperations = 0;
+      let pendingOperations = 0;
+      let processingOperations = 0;
+      const errors: string[] = [];
+
+      for (const job of jobStatuses) {
+        if (!job) continue;
+
+        switch (job.status) {
+          case "completed":
+            completedOperations++;
+            break;
+          case "failed":
+            failedOperations++;
+            if (job.lastError) {
+              errors.push(job.lastError);
+            }
+            break;
+          case "processing":
+            processingOperations++;
+            break;
+          case "pending":
+            pendingOperations++;
+            break;
         }
       }
 
-      // If job data contains batch info, construct status from it
-      if (job.data) {
-        try {
-          const batchData = BatchJobDataSchema.parse(job.data);
+      // Determine overall batch status
+      let status: (typeof JOB_STATUS)[keyof typeof JOB_STATUS];
+      if (processingOperations > 0 || pendingOperations > 0) {
+        status = JOB_STATUS.PROCESSING;
+      } else if (failedOperations > 0) {
+        status = JOB_STATUS.FAILED;
+      } else {
+        status = JOB_STATUS.COMPLETED;
+      }
 
-          // Determine status based on progress and job status
-          let status = job.status;
-          if (
-            job.status === JOB_STATUS.PENDING &&
-            (batchData.completedOperations > 0 ||
-              batchData.failedOperations > 0)
-          ) {
-            // If job is still pending but we have progress, we're processing
-            status = JOB_STATUS.PROCESSING;
+      // Find current operation (first non-completed job)
+      let currentOperation: string | undefined;
+      for (let i = 0; i < batch.jobIds.length; i++) {
+        const job = jobStatuses[i];
+        if (job && job.status !== "completed" && job.status !== "failed") {
+          const operation = batch.operations[i];
+          if (operation) {
+            currentOperation = `Processing ${operation.type} ${operation.entityId ? `for ${operation.entityId}` : ""}`;
           }
-          // If job has completed or failed, use that status
-
-          return {
-            batchId,
-            totalOperations: batchData.operations.length,
-            completedOperations: batchData.completedOperations,
-            failedOperations: batchData.failedOperations,
-            errors: batchData.errors,
-            status,
-            currentOperation: batchData.currentOperation,
-          };
-        } catch {
-          // Data doesn't match batch schema, fall through to basic status
+          break;
         }
       }
 
-      // Fallback: basic status based on job status
       return {
         batchId,
-        totalOperations: 1,
-        completedOperations: job.status === JOB_STATUS.COMPLETED ? 1 : 0,
-        failedOperations: job.status === JOB_STATUS.FAILED ? 1 : 0,
-        errors: job.lastError ? [job.lastError] : [],
-        status: job.status,
+        totalOperations: batch.operations.length,
+        completedOperations,
+        failedOperations,
+        errors,
+        status,
+        currentOperation,
       };
     } catch (error) {
       this.logger.error("Failed to get batch status", { batchId, error });
@@ -164,7 +207,35 @@ export class BatchJobManager {
   }
 
   /**
-   * Update batch progress (called by batch job handler)
+   * Clean up old batch metadata
+   */
+  async cleanup(olderThanMs: number): Promise<number> {
+    const cutoffTime = Date.now() - olderThanMs;
+    let cleaned = 0;
+
+    for (const [batchId, batch] of this.batches.entries()) {
+      const batchTime = new Date(batch.startedAt).getTime();
+      if (batchTime < cutoffTime) {
+        // Check if all jobs are completed
+        const status = await this.getBatchStatus(batchId);
+        if (
+          status &&
+          (status.status === JOB_STATUS.COMPLETED ||
+            status.status === JOB_STATUS.FAILED)
+        ) {
+          this.batches.delete(batchId);
+          cleaned++;
+        }
+      }
+    }
+
+    this.logger.debug("Cleaned up batch metadata", { cleaned });
+    return cleaned;
+  }
+
+  /**
+   * For backwards compatibility - this method is no longer needed
+   * since we don't create batch jobs anymore
    */
   async updateBatchProgress(
     batchId: string,
@@ -175,79 +246,11 @@ export class BatchJobManager {
       errors?: string[];
     },
   ): Promise<void> {
-    try {
-      const job = await this.jobQueue.getStatus(batchId);
-      if (!job) {
-        throw new Error(`Batch ${batchId} not found`);
-      }
-
-      // Parse current batch data
-      const batchData = BatchJobDataSchema.parse(job.data);
-
-      // Update batch data with new progress
-      const updatedData = {
-        ...batchData,
-        completedOperations:
-          update.completedOperations !== undefined
-            ? update.completedOperations
-            : batchData.completedOperations,
-        failedOperations:
-          update.failedOperations !== undefined
-            ? update.failedOperations
-            : batchData.failedOperations,
-        currentOperation:
-          update.currentOperation !== undefined
-            ? update.currentOperation
-            : batchData.currentOperation,
-        errors: update.errors
-          ? [...batchData.errors, ...update.errors]
-          : batchData.errors,
-      };
-
-      // Determine if batch is complete
-      const totalProcessed =
-        updatedData.completedOperations + updatedData.failedOperations;
-      const isComplete = totalProcessed >= batchData.operations.length;
-
-      if (isComplete) {
-        // Build final status for completed/failed jobs
-        const finalStatus: BatchJobStatus = {
-          batchId,
-          totalOperations: batchData.operations.length,
-          completedOperations: updatedData.completedOperations,
-          failedOperations: updatedData.failedOperations,
-          errors: updatedData.errors,
-          status:
-            updatedData.failedOperations > 0
-              ? JOB_STATUS.FAILED
-              : JOB_STATUS.COMPLETED,
-          currentOperation: updatedData.currentOperation,
-        };
-
-        if (updatedData.failedOperations > 0) {
-          // Store the batch status as result before failing
-          await this.jobQueue.update(batchId, updatedData);
-          await this.jobQueue.fail(
-            batchId,
-            new Error(
-              `Batch failed: ${updatedData.failedOperations} operations failed`,
-            ),
-          );
-        } else {
-          await this.jobQueue.complete(batchId, finalStatus);
-        }
-      } else {
-        // Update job data for in-progress jobs
-        await this.jobQueue.update(batchId, updatedData);
-      }
-
-      this.logger.debug("Updated batch progress", {
-        batchId,
-        ...updatedData,
-      });
-    } catch (error) {
-      this.logger.error("Failed to update batch progress", { batchId, error });
-      throw error;
-    }
+    // This method is no longer needed since we track progress
+    // by monitoring individual job statuses
+    this.logger.debug("updateBatchProgress called (no-op)", {
+      batchId,
+      update,
+    });
   }
 }

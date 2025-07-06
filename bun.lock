@@ -373,6 +373,7 @@
         "gray-matter": "^4.0.3",
         "js-yaml": "^4.1.0",
         "marked": "^12.0.0",
+        "nanoid": "^5.0.4",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",

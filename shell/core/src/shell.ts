@@ -250,6 +250,7 @@ export class Shell {
     // Register content generation job handler
     const contentGenerationJobHandler = ContentGenerationJobHandler.createFresh(
       this.contentGenerator,
+      this.entityService,
     );
     this.jobQueueService.registerHandler(
       "content-generation",

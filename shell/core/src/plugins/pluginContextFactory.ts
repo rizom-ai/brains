@@ -12,13 +12,8 @@ import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
 import type { JobQueueService } from "@brains/job-queue";
-import {
-  BatchJobDataSchema,
-  BatchJobStatusSchema,
-  type BatchJobStatus,
-  type JobStatusType,
-} from "@brains/job-queue";
-import type { JobOptions } from "@brains/db";
+import { BatchJobManager } from "@brains/job-queue";
+import { type BatchJobStatus, type JobStatusType } from "@brains/job-queue";
 import {
   EntityRegistrationError,
   ContentGenerationError,
@@ -484,32 +479,19 @@ export class PluginContextFactory {
         try {
           const jobQueueService =
             this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (
-            !jobQueueService ||
-            typeof jobQueueService.enqueue !== "function"
-          ) {
+          if (!jobQueueService) {
             throw new Error("JobQueueService not available");
           }
 
-          // Validate and create batch job data
-          const batchData = BatchJobDataSchema.parse({
+          // Use BatchJobManager to handle batch operations
+          const batchJobManager = BatchJobManager.getInstance(
+            jobQueueService,
+            this.logger,
+          );
+
+          const batchId = await batchJobManager.enqueueBatch(
             operations,
-            userId: options?.userId,
-            startedAt: new Date().toISOString(),
-          });
-
-          const jobOptions: JobOptions = {};
-          if (options?.priority !== undefined) {
-            jobOptions.priority = options.priority;
-          }
-          if (options?.maxRetries !== undefined) {
-            jobOptions.maxRetries = options.maxRetries;
-          }
-
-          const batchId = await jobQueueService.enqueue(
-            "batch-operation",
-            batchData,
-            jobOptions,
+            options,
           );
 
           this.logger.debug("Enqueued batch operation", {
@@ -531,30 +513,17 @@ export class PluginContextFactory {
         try {
           const jobQueueService =
             this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (
-            !jobQueueService ||
-            typeof jobQueueService.getStatus !== "function"
-          ) {
+          if (!jobQueueService) {
             throw new Error("JobQueueService not available");
           }
 
-          const job = await jobQueueService.getStatus(batchId);
-          if (!job) {
-            return null;
-          }
+          // Use BatchJobManager to get batch status
+          const batchJobManager = BatchJobManager.getInstance(
+            jobQueueService,
+            this.logger,
+          );
 
-          // Parse batch data from job
-          const batchData = BatchJobDataSchema.parse(job.data);
-
-          return BatchJobStatusSchema.parse({
-            batchId,
-            totalOperations: batchData.operations.length,
-            completedOperations: batchData.completedOperations,
-            failedOperations: batchData.failedOperations,
-            errors: batchData.errors,
-            status: job.status,
-            currentOperation: batchData.currentOperation,
-          });
+          return await batchJobManager.getBatchStatus(batchId);
         } catch (error) {
           this.logger.error("Failed to get batch status", { batchId, error });
           throw error;

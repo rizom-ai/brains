@@ -314,15 +314,10 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
       "shell:query",
       "Query the knowledge base using AI-powered search",
       {
-        query: {
-          type: "string",
-          description: "Natural language query to search the knowledge base",
-        },
-        userId: {
-          type: "string",
-          description: "Optional user ID for context",
-          optional: true,
-        },
+        query: z
+          .string()
+          .describe("Natural language query to search the knowledge base"),
+        userId: z.string().optional().describe("Optional user ID for context"),
       },
       async (params) => {
         try {
@@ -351,19 +346,11 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
       "shell:search",
       "Search entities by type and query",
       {
-        entityType: {
-          type: "string",
-          description: "Type of entity to search (e.g., 'note', 'base')",
-        },
-        query: {
-          type: "string",
-          description: "Search query",
-        },
-        limit: {
-          type: "number",
-          description: "Maximum number of results",
-          optional: true,
-        },
+        entityType: z
+          .string()
+          .describe("Type of entity to search (e.g., 'note', 'base')"),
+        query: z.string().describe("Search query"),
+        limit: z.number().optional().describe("Maximum number of results"),
       },
       async (params) => {
         try {
@@ -395,14 +382,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
       "shell:get",
       "Get a specific entity by type and ID",
       {
-        entityType: {
-          type: "string",
-          description: "Type of entity",
-        },
-        id: {
-          type: "string",
-          description: "Entity ID",
-        },
+        entityType: z.string().describe("Type of entity"),
+        id: z.string().describe("Entity ID"),
       },
       async (params) => {
         try {
@@ -428,6 +409,108 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
       },
     );
 
+    // Register job status checking tool
+    this.mcpServer.tool(
+      "shell:check-job-status",
+      "Check the status of background operations",
+      {
+        batchId: z
+          .string()
+          .optional()
+          .describe("Specific batch ID to check (leave empty for help)"),
+      },
+      async (params) => {
+        try {
+          const batchId = params["batchId"] as string | undefined;
+
+          if (batchId) {
+            // Check specific batch
+            const status = await context.getBatchStatus(batchId);
+
+            if (!status) {
+              return {
+                content: [
+                  {
+                    type: "text" as const,
+                    text: JSON.stringify(
+                      {
+                        error: "Batch not found",
+                        message: `No batch found with ID: ${batchId}`,
+                      },
+                      null,
+                      2,
+                    ),
+                  },
+                ],
+              };
+            }
+
+            const percentComplete =
+              status.totalOperations > 0
+                ? Math.round(
+                    (status.completedOperations / status.totalOperations) * 100,
+                  )
+                : 0;
+
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(
+                    {
+                      batchId,
+                      status: status.status,
+                      progress: {
+                        total: status.totalOperations,
+                        completed: status.completedOperations,
+                        failed: status.failedOperations,
+                        percentComplete,
+                      },
+                      currentOperation: status.currentOperation,
+                      errors: status.errors,
+                      message:
+                        status.status === "processing"
+                          ? `Processing: ${status.completedOperations}/${status.totalOperations} operations (${percentComplete}%)`
+                          : status.status === "completed"
+                            ? `Completed: ${status.completedOperations} operations`
+                            : status.status === "failed"
+                              ? `Failed: ${status.failedOperations} operations failed`
+                              : "Unknown status",
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          } else {
+            // Show help message
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(
+                    {
+                      message:
+                        "To check a specific batch, provide the batchId parameter",
+                      tip: "Batch IDs are returned when you run operations like generate-all",
+                      example:
+                        "shell:check-job-status --batchId batch_1234567890_abc123",
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          }
+        } catch (error) {
+          this.logger.error("Check job status tool error", error);
+          throw error;
+        }
+      },
+    );
+
     // Register entity types resource
     this.mcpServer.resource(
       "entity://types",
@@ -447,7 +530,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
     );
 
     this.logger.info(
-      `Registered ${3} tools and ${1} resources with MCP server`,
+      `Registered ${4} tools and ${1} resources with MCP server`,
     );
   }
 

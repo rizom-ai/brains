@@ -395,7 +395,16 @@ export class ContentManager {
         : route.sections;
 
       for (const sectionDefinition of sectionsToGenerate) {
-        const entityId = `${targetEntityType}:${pageId}:${sectionDefinition.id}`;
+        // Skip sections that already have content
+        if (sectionDefinition.content) {
+          this.logger.debug("Skipping section with existing content", {
+            pageId,
+            sectionId: sectionDefinition.id,
+          });
+          continue;
+        }
+
+        const entityId = `${pageId}:${sectionDefinition.id}`;
 
         // Skip if dry run
         if (options.dryRun) {
@@ -407,18 +416,33 @@ export class ContentManager {
           continue;
         }
 
+        // Create operation with correct structure for content-generation job
+        const jobData: Record<string, unknown> = {
+          templateName: templateResolver(sectionDefinition),
+          context: {
+            data: {
+              entityId,
+              pageId,
+              sectionId: sectionDefinition.id,
+              route,
+              sectionDefinition,
+              siteConfig,
+            },
+          },
+          // Include entity information for saving after generation
+          entityId,
+          entityType: targetEntityType,
+        };
+
+        if (options.userId) {
+          jobData["userId"] = options.userId;
+        }
+
         operations.push({
           type: "content-generation",
           entityId,
           entityType: targetEntityType,
-          options: {
-            pageId,
-            sectionId: sectionDefinition.id,
-            templateName: templateResolver(sectionDefinition),
-            route,
-            sectionDefinition,
-            siteConfig,
-          },
+          options: jobData,
         });
       }
     }
@@ -459,6 +483,9 @@ export class ContentManager {
       throw new Error("No entities to promote");
     }
 
+    // TODO: Currently there's no job handler for "content-promote"
+    // This will fail unless we create a ContentPromoteJobHandler
+    // For now, these operations should remain synchronous
     const operations = previewIds.map((id) => ({
       type: "content-promote",
       entityId: id,
@@ -499,6 +526,9 @@ export class ContentManager {
       throw new Error("No entities to rollback");
     }
 
+    // TODO: Currently there's no job handler for "content-rollback"
+    // This will fail unless we create a ContentRollbackJobHandler
+    // For now, these operations should remain synchronous
     const operations = productionIds.map((id) => ({
       type: "content-rollback",
       entityId: id,

@@ -1,20 +1,28 @@
 import { z } from "zod";
-import type { ContentGenerationRequest } from "@brains/db";
+// Remove ContentGenerationRequest import - we'll define our own schema
 import { Logger } from "@brains/utils";
 import type { ContentGenerator } from "@brains/content-generator";
 import type { JobHandler } from "@brains/job-queue";
+import type { IEntityService } from "@brains/entity-service";
 
 /**
  * Zod schema for content generation job data validation
  */
-const contentGenerationJobDataSchema = z.object({
+export const contentGenerationJobDataSchema = z.object({
   templateName: z.string().min(1, "Template name is required"),
   context: z.object({
     prompt: z.string().optional(),
     data: z.record(z.unknown()).optional(),
   }),
   userId: z.string().optional(),
+  // Entity information for saving generated content
+  entityId: z.string(),
+  entityType: z.string(),
 });
+
+export type ContentGenerationJobData = z.infer<
+  typeof contentGenerationJobDataSchema
+>;
 
 /**
  * Job handler for content generation
@@ -27,15 +35,18 @@ export class ContentGenerationJobHandler
   private static instance: ContentGenerationJobHandler | null = null;
   private logger: Logger;
   private contentGenerator: ContentGenerator;
+  private entityService: IEntityService;
 
   /**
    * Get the singleton instance
    */
   public static getInstance(
     contentGenerator: ContentGenerator,
+    entityService: IEntityService,
   ): ContentGenerationJobHandler {
     ContentGenerationJobHandler.instance ??= new ContentGenerationJobHandler(
       contentGenerator,
+      entityService,
     );
     return ContentGenerationJobHandler.instance;
   }
@@ -52,16 +63,21 @@ export class ContentGenerationJobHandler
    */
   public static createFresh(
     contentGenerator: ContentGenerator,
+    entityService: IEntityService,
   ): ContentGenerationJobHandler {
-    return new ContentGenerationJobHandler(contentGenerator);
+    return new ContentGenerationJobHandler(contentGenerator, entityService);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(contentGenerator: ContentGenerator) {
+  private constructor(
+    contentGenerator: ContentGenerator,
+    entityService: IEntityService,
+  ) {
     this.logger = Logger.getInstance().child("ContentGenerationJobHandler");
     this.contentGenerator = contentGenerator;
+    this.entityService = entityService;
   }
 
   /**
@@ -69,7 +85,7 @@ export class ContentGenerationJobHandler
    * Generates content using the specified template and context
    */
   public async process(
-    data: ContentGenerationRequest,
+    data: ContentGenerationJobData,
     jobId: string,
   ): Promise<string> {
     try {
@@ -92,6 +108,43 @@ export class ContentGenerationJobHandler
         data.templateName,
         content,
       );
+
+      // Save the generated content as an entity if entityId and entityType are provided
+      if (data.entityId && data.entityType) {
+        const pageId = data.context.data?.["pageId"] as string | undefined;
+        const sectionId = data.context.data?.["sectionId"] as
+          | string
+          | undefined;
+
+        // Only save if we have the required metadata
+        if (pageId && sectionId) {
+          const newEntity = {
+            id: data.entityId,
+            entityType: data.entityType,
+            content: formattedContent,
+            pageId,
+            sectionId,
+          };
+
+          await this.entityService.createEntityAsync(newEntity);
+
+          this.logger.debug("Saved generated content as entity", {
+            jobId,
+            entityId: data.entityId,
+            entityType: data.entityType,
+            pageId,
+            sectionId,
+          });
+        } else {
+          this.logger.warn("Cannot save entity without pageId and sectionId", {
+            jobId,
+            entityId: data.entityId,
+            entityType: data.entityType,
+            hasPageId: !!pageId,
+            hasSectionId: !!sectionId,
+          });
+        }
+      }
 
       this.logger.debug("Content generation job completed successfully", {
         jobId,
@@ -117,7 +170,7 @@ export class ContentGenerationJobHandler
    */
   public async onError(
     error: Error,
-    data: ContentGenerationRequest,
+    data: ContentGenerationJobData,
     jobId: string,
   ): Promise<void> {
     this.logger.error("Content generation job error handler called", {
@@ -141,7 +194,7 @@ export class ContentGenerationJobHandler
    * Validate and parse content generation job data using Zod schema
    * Ensures type safety and data integrity
    */
-  public validateAndParse(data: unknown): ContentGenerationRequest | null {
+  public validateAndParse(data: unknown): ContentGenerationJobData | null {
     try {
       const result = contentGenerationJobDataSchema.parse(data);
 

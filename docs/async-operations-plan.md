@@ -328,16 +328,20 @@ this.createTool(
   "generate-all",
   "Generate content for all sections across all pages",
   {
-    dryRun: z.boolean().optional().default(false).describe("Preview changes without executing"),
+    dryRun: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe("Preview changes without executing"),
     // Note: NO async parameter - system decides automatically
   },
   async (input, context) => {
     const routes = this.context.listRoutes();
     const totalSections = countTotalSections(routes);
-    
+
     // Smart threshold detection
     const USE_ASYNC_THRESHOLD = 10; // Configurable per operation type
-    
+
     if (totalSections > USE_ASYNC_THRESHOLD) {
       // Large operation - use async with immediate return
       const batchId = await this.contentManager.generateAllAsync(
@@ -345,16 +349,16 @@ this.createTool(
         routes,
         templateResolver,
         "site-content-preview",
-        this.config.siteConfig
+        this.config.siteConfig,
       );
-      
+
       // Return user-friendly response
       return {
         status: "queued",
         message: `Generating ${totalSections} sections. This will take a few minutes.`,
         batchId,
         estimatedTime: estimateTime(totalSections),
-        tip: "You can continue working while this runs in the background."
+        tip: "You can continue working while this runs in the background.",
       };
     } else {
       // Small operation - do synchronously with progress
@@ -367,16 +371,16 @@ this.createTool(
             await context.sendProgress({
               progress: progress.current,
               total: progress.total,
-              message: `Generating ${route.id}/${section.id}`
+              message: `Generating ${route.id}/${section.id}`,
             });
           }
           return generateCallback(route, section, progress);
         },
-        "site-content-preview"
+        "site-content-preview",
       );
     }
-  }
-)
+  },
+);
 ```
 
 ### 4.2 Unified Status Tool
@@ -391,28 +395,30 @@ this.createTool(
   async (input, context) => {
     // Get all active operations across the system
     const batches = await this.context.getActiveBatches();
-    
+
     if (batches.length === 0) {
       return {
         message: "No background operations running.",
-        operations: []
+        operations: [],
       };
     }
-    
+
     return {
       message: `${batches.length} operation(s) in progress`,
-      operations: batches.map(batch => ({
+      operations: batches.map((batch) => ({
         type: humanizeOperationType(batch.type),
         status: batch.status,
         progress: `${batch.completedOperations}/${batch.totalOperations}`,
-        percentComplete: Math.round((batch.completedOperations / batch.totalOperations) * 100),
+        percentComplete: Math.round(
+          (batch.completedOperations / batch.totalOperations) * 100,
+        ),
         currentTask: batch.currentOperation,
         startedAt: new Date(batch.startedAt).toRelativeTime(),
-        estimatedCompletion: estimateCompletion(batch)
-      }))
+        estimatedCompletion: estimateCompletion(batch),
+      })),
     };
-  }
-)
+  },
+);
 ```
 
 ## Phase 5: Interface Updates
@@ -505,19 +511,22 @@ MCP interface leverages native progress support - no special handling needed.
 ## Migration Strategy
 
 ### Week 1: Core Implementation
+
 1. ~~Extract job queue package~~ ✅
 2. ~~Implement batch operations~~ ✅
 3. Update tool implementations to use smart detection
 4. Remove async flags from all tools
 5. Implement unified status checking tool
 
-### Week 2: Interface Polish  
+### Week 2: Interface Polish
+
 1. Enhance CLI progress displays
 2. Improve Matrix message formatting
 3. Add operation history tracking
 4. Implement notification preferences
 
 ### Week 3: Documentation & Testing
+
 1. Update all tool documentation
 2. Add integration tests for progress flow
 3. Create user guide for background operations
@@ -553,6 +562,7 @@ MCP interface leverages native progress support - no special handling needed.
 ## Example User Flows
 
 ### Small Operation (< 10 sections)
+
 ```
 User: generate-all
 System: Generating content for 5 sections...
@@ -560,7 +570,8 @@ System: Generating content for 5 sections...
 System: ✓ Generated 5 sections successfully
 ```
 
-### Large Operation (> 10 sections)  
+### Large Operation (> 10 sections)
+
 ```
 User: generate-all
 System: Queued generation of 47 sections. This will take about 5 minutes.
@@ -568,7 +579,7 @@ System: Queued generation of 47 sections. This will take about 5 minutes.
 
 User: status
 System: 1 operation in progress:
-        - Content Generation: 23/47 sections (49%) 
+        - Content Generation: 23/47 sections (49%)
           Currently: Generating landing/hero
           Started: 2 minutes ago
           Est. completion: 3 minutes

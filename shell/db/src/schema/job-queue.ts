@@ -2,6 +2,7 @@ import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { createId } from "./utils";
+import type { ContentGenerationJobData } from "@brains/content-generator";
 
 /**
  * Generic job queue table for async background processing
@@ -118,7 +119,7 @@ export interface CoreJobDefinitions {
     output: void;
   };
   "content-generation": {
-    input: ContentGenerationRequest;
+    input: ContentGenerationJobData;
     output: string;
   };
 }

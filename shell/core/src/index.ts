@@ -23,7 +23,3 @@ export type { ShellConfig } from "./config";
 export type { IEmbeddingService } from "@brains/embedding-service";
 export type { DrizzleDB } from "@brains/db";
 export type { SerializableEntity, SerializableQueryResult } from "./types";
-export type { ShellMCPOptions } from "./mcp";
-
-// Export MCP registration function for the MCP interface plugin
-export { registerShellMCP } from "./mcp";

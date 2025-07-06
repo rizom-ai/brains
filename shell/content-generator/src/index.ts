@@ -10,4 +10,8 @@ export type {
   ContentGeneratorDependencies,
   ProgressInfo,
 } from "./content-generator";
-export { ContentGenerationJobHandler } from "./handlers/contentGenerationJobHandler";
+export {
+  ContentGenerationJobHandler,
+  contentGenerationJobDataSchema,
+  type ContentGenerationJobData,
+} from "./handlers/contentGenerationJobHandler";

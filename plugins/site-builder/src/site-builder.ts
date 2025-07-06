@@ -208,10 +208,11 @@ export class SiteBuilder implements ISiteBuilder {
         const templateName = section.template.includes(":")
           ? section.template
           : `site-builder:${section.template}`;
+        this.logger.debug(`Found entity ${entityId}, parsing content`);
         return this.context.parseContent(templateName, entity.content);
       }
-    } catch {
-      this.logger.debug(`No entity found with ID ${entityId}`);
+    } catch (error) {
+      this.logger.debug(`No entity found with ID ${entityId}`, { error });
     }
 
     return null;

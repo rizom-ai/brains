@@ -261,20 +261,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               },
             );
 
-            // Save as entity with required metadata
-            if (!section.contentEntity?.query) {
-              throw new Error(
-                `Site content entity requires query data for page and section`,
-              );
-            }
-
-            const { contentEntity } = section;
-            if (!contentEntity.query) {
-              throw new Error(
-                `Site content entity requires query data for page and section`,
-              );
-            }
-
             return {
               content: formattedContent,
             };
@@ -521,100 +507,59 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       this.createTool(
         "generate-all",
         "Generate content for all sections across all pages",
-        {},
-        async (_input, context): Promise<Record<string, unknown>> => {
+        {
+          dryRun: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe("Preview changes without executing"),
+        },
+        async (input): Promise<Record<string, unknown>> => {
           if (!this.contentManager || !this.context) {
             throw new Error("Content manager not initialized");
           }
 
-          // Create a safe progress reporter
-          const reportProgress = async (notification: {
-            message: string;
-            progress: number;
-            total: number;
-          }): Promise<void> => {
-            if (context?.sendProgress) {
-              await context.sendProgress(notification);
-            }
-          };
+          // Parse and validate input
+          const options = GenerateOptionsSchema.parse(input);
 
           // Get all registered routes
           const routes = this.context.listRoutes();
 
-          // Create the content generation callback (reuse from generate tool)
-          const generateCallback = async (
-            route: RouteDefinition,
-            section: SectionDefinition,
-            progress: ProgressNotification,
-          ): Promise<{
-            content: string;
-          }> => {
-            // Report progress
-            const progressPercent = Math.round(
-              (progress.progress / (progress.total ?? 100)) * 100,
-            );
-            await reportProgress({
-              message: progress.message ?? "Generating content",
-              progress: progressPercent,
-              total: 100,
-            });
-            const config = this.config;
+          // Count total sections for user feedback
+          let totalSections = 0;
+          for (const route of routes) {
+            totalSections += route.sections.length;
+          }
 
-            // Validate section has template
+          // Always use async for better UX
+          const templateResolver = (section: SectionDefinition): string => {
             if (!section.template) {
               throw new Error(
                 `No template specified for section ${section.id}`,
               );
             }
-
-            if (!this.context) {
-              throw new Error("Plugin context not available");
-            }
-
-            // Use generateWithRoute to get properly formatted string content
-            const formattedContent = await this.context.generateWithRoute(
-              route,
-              section,
-              {
-                current: progress.progress,
-                total: progress.total ?? 100,
-                message: progress.message ?? "Generating content",
-              },
-              {
-                ...(config.siteConfig ?? {
-                  title: "Personal Brain",
-                  description: "A knowledge management system",
-                }),
-              },
-            );
-
-            // Save as entity with required metadata
-            if (!section.contentEntity?.query) {
-              throw new Error(
-                `Site content entity requires query data for page and section`,
-              );
-            }
-
-            const { contentEntity } = section;
-            if (!contentEntity.query) {
-              throw new Error(
-                `Site content entity requires query data for page and section`,
-              );
-            }
-
-            return {
-              content: formattedContent,
-            };
+            return section.template;
           };
 
-          const result = await this.contentManager.generateSync(
-            { dryRun: false },
+          const batchId = await this.contentManager.generateAllAsync(
+            options,
             routes,
-            generateCallback,
+            templateResolver,
             "site-content-preview",
+            this.config.siteConfig,
           );
 
-          return result;
+          // Return user-friendly response
+          return {
+            status: "queued",
+            message: `Generating ${totalSections} sections.`,
+            batchId,
+            totalSections,
+            tip:
+              totalSections > 0
+                ? "This operation is running in the background."
+                : "No sections to generate.",
+          };
         },
         "anchor", // Internal tool - modifies entities
       ),
