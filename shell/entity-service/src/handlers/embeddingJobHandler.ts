@@ -3,7 +3,7 @@ import type { EntityWithoutEmbedding, DrizzleDB } from "@brains/db";
 import { entities } from "@brains/db";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import { Logger } from "@brains/utils";
-import type { JobHandler } from "../types";
+import type { JobHandler } from "@brains/job-queue";
 
 /**
  * Zod schema for embedding job data validation

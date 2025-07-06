@@ -6,18 +6,19 @@ import { ServiceRegistry } from "@brains/service-registry";
 import {
   EntityRegistry,
   EntityService,
-  JobQueueService,
-  JobQueueWorker,
   EmbeddingJobHandler,
-  ContentGenerationJobHandler,
 } from "@brains/entity-service";
+import { JobQueueService, JobQueueWorker } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "./plugins/pluginManager";
 import {
   EmbeddingService,
   type IEmbeddingService,
 } from "@brains/embedding-service";
-import { ContentGenerator } from "@brains/content-generator";
+import {
+  ContentGenerator,
+  ContentGenerationJobHandler,
+} from "@brains/content-generator";
 import { AIService } from "@brains/ai-service";
 import { Logger, LogLevel, PermissionHandler } from "@brains/utils";
 import type { Plugin } from "@brains/plugin-utils";

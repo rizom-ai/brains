@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
 import { z } from "zod";
 import { EntityService, EntityRegistry } from "@brains/entity-service";
 import { createTestDatabase } from "../helpers/test-db";
@@ -7,6 +7,7 @@ import { createSilentLogger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
 import type { IEmbeddingService } from "@brains/core";
 import type { EntityAdapter } from "@brains/base-entity";
+import type { JobQueueService } from "@brains/job-queue";
 
 // Create a mock embedding service
 const mockEmbeddingService: IEmbeddingService = {
@@ -98,6 +99,7 @@ describe("EntityService - Database Operations", () => {
   let cleanup: () => Promise<void>;
   let entityService: EntityService;
   let entityRegistry: EntityRegistry;
+  let mockJobQueueService: Partial<JobQueueService>;
 
   beforeEach(async () => {
     // Reset singletons
@@ -109,6 +111,28 @@ describe("EntityService - Database Operations", () => {
     db = testDb.db;
     cleanup = testDb.cleanup;
 
+    // Create mock job queue service
+    mockJobQueueService = {
+      enqueue: mock(() => Promise.resolve("mock-job-id")),
+      getStatus: mock(() =>
+        Promise.resolve({
+          status: "completed" as const,
+          id: "mock-job-id",
+          type: "embedding",
+          data: "",
+          priority: 0,
+          maxRetries: 3,
+          retryCount: 0,
+          lastError: null,
+          createdAt: Date.now(),
+          scheduledFor: Date.now(),
+          startedAt: Date.now(),
+          completedAt: Date.now(),
+        }),
+      ),
+      registerHandler: mock(),
+    };
+
     // Create fresh instances
     const logger = createSilentLogger();
     entityRegistry = EntityRegistry.createFresh(logger);
@@ -117,6 +141,7 @@ describe("EntityService - Database Operations", () => {
       embeddingService: mockEmbeddingService,
       entityRegistry,
       logger,
+      jobQueueService: mockJobQueueService as unknown as JobQueueService,
     });
 
     // Register note entity type

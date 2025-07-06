@@ -10,7 +10,8 @@ import { DaemonRegistry } from "@brains/daemon-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
-import type { EntityRegistry, JobQueueService } from "@brains/entity-service";
+import type { EntityRegistry } from "@brains/entity-service";
+import type { JobQueueService } from "@brains/job-queue";
 import {
   EntityRegistrationError,
   ContentGenerationError,

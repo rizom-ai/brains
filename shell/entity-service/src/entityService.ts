@@ -1,5 +1,5 @@
 import type { DrizzleDB } from "@brains/db";
-import { entities, createId, jobQueue } from "@brains/db/schema";
+import { entities, createId } from "@brains/db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type { BaseEntity, SearchResult } from "@brains/types";
@@ -8,8 +8,7 @@ import type { EntityService as IEntityService, SearchOptions } from "./types";
 import { eq, and, inArray, desc, asc, sql } from "@brains/db";
 import { z } from "zod";
 import { EntityNotFoundError } from "./errors";
-import { JobQueueService } from "./job-queue/jobQueueService";
-import { EmbeddingJobHandler } from "./job-queue/handlers/embeddingJobHandler";
+import type { JobQueueService } from "@brains/job-queue";
 import type { EntityWithoutEmbedding } from "@brains/db";
 
 /**
@@ -97,18 +96,12 @@ export class EntityService implements IEntityService {
     this.logger = (options.logger ?? Logger.getInstance()).child(
       "EntityService",
     );
-    this.jobQueueService =
-      options.jobQueueService ??
-      JobQueueService.createFresh(this.db, this.logger);
-
-    // If we created a fresh JobQueueService, register the EmbeddingJobHandler
     if (!options.jobQueueService) {
-      const embeddingJobHandler = EmbeddingJobHandler.createFresh(
-        this.db,
-        this.embeddingService,
+      throw new Error(
+        "JobQueueService is required for EntityService initialization",
       );
-      this.jobQueueService.registerHandler("embedding", embeddingJobHandler);
     }
+    this.jobQueueService = options.jobQueueService;
   }
 
   /**
@@ -818,70 +811,21 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Check async entity creation status
+   * Check async job status
    */
   public async getAsyncJobStatus(jobId: string): Promise<{
     status: "pending" | "processing" | "completed" | "failed";
-    entityId?: string;
     error?: string;
   } | null> {
-    // Get job status from the generic job queue
-    const jobs = await this.db
-      .select()
-      .from(jobQueue)
-      .where(eq(jobQueue.id, jobId))
-      .limit(1);
+    const status = await this.jobQueueService.getStatus(jobId);
 
-    const job = jobs[0];
-    if (!job) {
+    if (!status) {
       return null;
     }
 
-    this.logger.info(`Found job ${jobId} with type: ${job.type}`);
-
-    // Parse the job data using the EmbeddingJobHandler's validation
-    let entityId: string | undefined;
-    try {
-      const handler = EmbeddingJobHandler.createFresh(
-        this.db,
-        this.embeddingService,
-      );
-      const parsedData = JSON.parse(job.data as string);
-      this.logger.info(`Parsing job data for job ${jobId}`, {
-        jobType: job.type,
-        dataType: typeof parsedData,
-        hasId: "id" in (parsedData as object),
-      });
-      const jobData = handler.validateAndParse(parsedData);
-      if (jobData) {
-        entityId = jobData.id;
-        this.logger.info(`Successfully parsed job data for job ${jobId}`, {
-          entityId,
-        });
-      } else {
-        this.logger.info(`validateAndParse returned null for job ${jobId}`);
-      }
-    } catch (error) {
-      // If parsing fails, entityId will remain undefined
-      this.logger.info(`Failed to parse job data for job ${jobId}`, { error });
-    }
-
-    const result: {
-      status: "pending" | "processing" | "completed" | "failed";
-      entityId?: string;
-      error?: string;
-    } = {
-      status: job.status,
+    return {
+      status: status.status,
+      ...(status.lastError && { error: status.lastError }),
     };
-
-    if (entityId) {
-      result.entityId = entityId;
-    }
-
-    if (job.lastError) {
-      result.error = job.lastError;
-    }
-
-    return result;
   }
 }

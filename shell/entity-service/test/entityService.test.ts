@@ -4,6 +4,7 @@ import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { DrizzleDB } from "@brains/db";
+import type { JobQueueService } from "@brains/job-queue";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
@@ -64,6 +65,7 @@ describe("EntityService", (): void => {
   let logger: Logger;
   let entityRegistry: EntityRegistry;
   let entityService: EntityService;
+  let mockJobQueueService: Partial<JobQueueService>;
 
   beforeEach((): void => {
     // Reset singletons
@@ -73,6 +75,28 @@ describe("EntityService", (): void => {
     // Create minimal mock database (we're not testing DB operations)
     mockDb = {} as DrizzleDB;
 
+    // Create mock job queue service
+    mockJobQueueService = {
+      enqueue: mock(() => Promise.resolve("mock-job-id")),
+      getStatus: mock(() =>
+        Promise.resolve({
+          status: "completed" as const,
+          id: "mock-job-id",
+          type: "embedding",
+          data: "",
+          priority: 0,
+          maxRetries: 3,
+          retryCount: 0,
+          lastError: null,
+          createdAt: Date.now(),
+          scheduledFor: Date.now(),
+          startedAt: Date.now(),
+          completedAt: Date.now(),
+        }),
+      ),
+      registerHandler: mock(),
+    };
+
     // Create fresh instances
     logger = createSilentLogger();
     entityRegistry = EntityRegistry.createFresh(logger);
@@ -81,6 +105,7 @@ describe("EntityService", (): void => {
       embeddingService: mockEmbeddingService,
       entityRegistry,
       logger,
+      jobQueueService: mockJobQueueService as unknown as JobQueueService,
     });
   });
 

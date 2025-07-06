@@ -1,9 +1,6 @@
 export { EntityService } from "./entityService";
 export { EntityRegistry } from "./entityRegistry";
-export { JobQueueService } from "./job-queue/jobQueueService";
-export { JobQueueWorker } from "./job-queue/jobQueueWorker";
-export { EmbeddingJobHandler } from "./job-queue/handlers/embeddingJobHandler";
-export { ContentGenerationJobHandler } from "./job-queue/handlers/contentGenerationJobHandler";
+export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 
 // Export types
 export type {

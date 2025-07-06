@@ -48,10 +48,9 @@ export interface EntityService extends IEntityService {
     options?: { priority?: number; maxRetries?: number },
   ): Promise<{ entityId: string; jobId: string }>;
 
-  // Check async entity creation/update status
+  // Check async job status
   getAsyncJobStatus(jobId: string): Promise<{
     status: "pending" | "processing" | "completed" | "failed";
-    entityId?: string;
     error?: string;
   } | null>;
 

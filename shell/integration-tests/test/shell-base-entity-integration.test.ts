@@ -238,7 +238,6 @@ describe("Shell and Base Entity Integration", () => {
     // Check job status
     const jobStatus = await entityService.getAsyncJobStatus(result.jobId);
     expect(jobStatus).toBeDefined();
-    expect(jobStatus?.entityId).toBe(result.entityId);
     // Job should be completed or processing
     expect(["pending", "processing", "completed"]).toContain(jobStatus?.status);
 
@@ -296,7 +295,6 @@ describe("Shell and Base Entity Integration", () => {
     // Check job status
     const jobStatus = await entityService.getAsyncJobStatus(result.jobId);
     expect(jobStatus).toBeDefined();
-    expect(jobStatus?.entityId).toBe(result.entityId);
     // Job should be completed or processing
     expect(["pending", "processing", "completed"]).toContain(jobStatus?.status);
 

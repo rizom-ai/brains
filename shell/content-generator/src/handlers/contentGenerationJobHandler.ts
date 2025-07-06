@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ContentGenerationRequest } from "@brains/db";
 import { Logger } from "@brains/utils";
 import type { ContentGenerator } from "@brains/content-generator";
-import type { JobHandler } from "../types";
+import type { JobHandler } from "@brains/job-queue";
 
 /**
  * Zod schema for content generation job data validation

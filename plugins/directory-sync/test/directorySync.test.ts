@@ -113,12 +113,10 @@ class MockEntityService implements Partial<EntityService> {
 
   async getAsyncJobStatus(): Promise<{
     status: "pending" | "processing" | "completed" | "failed";
-    entityId?: string;
     error?: string;
   } | null> {
     return {
       status: "completed",
-      entityId: "mock-entity",
     };
   }
 
