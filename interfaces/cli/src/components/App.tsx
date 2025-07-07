@@ -3,14 +3,14 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import React from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import Spinner from "ink-spinner";
-import type { MessageInterfacePlugin } from "@brains/plugin-utils";
 import { MessageList, type Message } from "./MessageList";
 import { EnhancedInput } from "./EnhancedInput";
-import { StatusBar } from "./StatusBar";
+import { StatusBarWithProgress } from "./StatusBarWithProgress";
 import { CommandHistory } from "../features/history";
+import type { CLIInterface } from "../cli-interface";
 
 interface Props {
-  interface: MessageInterfacePlugin;
+  interface: CLIInterface;
 }
 
 export default function App({
@@ -25,7 +25,6 @@ export default function App({
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
-  const [currentContext, setCurrentContext] = useState("default");
   const { exit } = useApp();
   const { stdout } = useStdout();
 
@@ -37,13 +36,6 @@ export default function App({
     const handleResponse = (...args: unknown[]): void => {
       const response = args[0] as string;
 
-      // Check for context switch
-      if (response.startsWith("[Context switched to:")) {
-        const match = response.match(/\[Context switched to: (.+)\]/);
-        if (match?.[1]) {
-          setCurrentContext(match[1]);
-        }
-      }
 
       setMessages((prev) => [
         ...prev,
@@ -134,24 +126,18 @@ export default function App({
 
   // Calculate available height for message list
   const terminalHeight = stdout.rows || 24;
-  const messageListHeight = Math.max(terminalHeight - 6, 10); // Reserve space for input and status
+  // Reserve space for status bar (up to 4 lines for progress), input (2 lines), and margins (2 lines)
+  const messageListHeight = Math.max(terminalHeight - 8, 10);
 
   return (
-    <Box flexDirection="column" height="100%">
+    <Box flexDirection="column" height={terminalHeight}>
       {/* Message history with scrolling */}
-      <MessageList messages={messages} height={messageListHeight} />
-
-      {/* Status bar */}
-      <Box marginBottom={1}>
-        <StatusBar
-          context={currentContext}
-          messageCount={messages.length}
-          isConnected={isConnected}
-        />
+      <Box flexGrow={1} height={messageListHeight} overflow="hidden">
+        <MessageList messages={messages} height={messageListHeight} />
       </Box>
 
-      {/* Input area */}
-      <Box>
+      {/* Input area above status bar */}
+      <Box flexShrink={0} marginTop={1}>
         {isLoading ? (
           <Box>
             <Text color="green">
@@ -166,6 +152,16 @@ export default function App({
             history={history}
           />
         )}
+      </Box>
+
+      {/* Status bar at the bottom */}
+      <Box flexShrink={0} marginTop={1}>
+        <StatusBarWithProgress
+          messageCount={messages.length}
+          isConnected={isConnected}
+          getActiveJobs={() => cliInterface.getActiveJobs()}
+          getActiveBatches={() => cliInterface.getActiveBatches()}
+        />
       </Box>
     </Box>
   );

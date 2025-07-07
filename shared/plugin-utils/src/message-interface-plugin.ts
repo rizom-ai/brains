@@ -1,5 +1,5 @@
 import type { DefaultQueryResponse } from "@brains/types";
-import type { IMessageInterfacePlugin, MessageContext } from "./interfaces";
+import type { IMessageInterfacePlugin, MessageContext, PluginContext } from "./interfaces";
 import type { z } from "zod";
 import { InterfacePlugin } from "./interface-plugin";
 import { EventEmitter } from "node:events";
@@ -48,6 +48,44 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
 
   public emit(event: string, ...args: unknown[]): boolean {
     return this.eventEmitter.emit(event, ...args);
+  }
+
+  /**
+   * Override onRegister to register test handlers for all message interfaces
+   */
+  protected override async onRegister(context: PluginContext): Promise<void> {
+    await super.onRegister(context);
+    
+    // Register test batch job handler for progress testing
+    // Available to all message interfaces (CLI, Matrix, etc.)
+    context.registerJobHandler("test-batch-job", {
+      process: async (data: any) => {
+        const duration = data.duration || 1000;
+        await new Promise(resolve => setTimeout(resolve, duration));
+        return { success: true, item: data.item };
+      },
+      validateAndParse: (data: unknown) => data
+    });
+    
+    // Register test slow job handler for single job progress testing
+    // Available to all message interfaces (CLI, Matrix, etc.)
+    context.registerJobHandler("test-slow-job", {
+      process: async (data: any) => {
+        const duration = data.duration || 5000;
+        const steps = 10;
+        const stepDuration = duration / steps;
+        
+        for (let i = 0; i < steps; i++) {
+          await new Promise(resolve => setTimeout(resolve, stepDuration));
+          // Progress is tracked automatically by the job queue
+        }
+        
+        return { success: true, message: "Test completed!" };
+      },
+      validateAndParse: (data: unknown) => data
+    });
+    
+    this.logger.debug("Registered test job handlers for message interface");
   }
 
   /**
@@ -162,7 +200,56 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     command: string,
     _context: MessageContext,
   ): Promise<string> {
-    // Default: Return unknown command (interfaces should override this)
-    return `Unknown command: ${command}. Type /help for available commands.`;
+    const [cmd, ...args] = command.slice(1).split(" ");
+
+    // Handle test commands that are common to all message interfaces
+    switch (cmd) {
+      case "test-progress":
+        // Test command to verify progress tracking
+        if (!this.context) {
+          return "Plugin context not initialized";
+        }
+        try {
+          const jobId = await this.context.enqueueJob("test-slow-job", {
+            duration: 10000, // 10 seconds
+            message: "Testing progress tracking"
+          });
+          return `Test job enqueued with ID: ${jobId}\nWatch the status bar for progress!`;
+        } catch (error) {
+          return `Failed to enqueue test job: ${error instanceof Error ? error.message : String(error)}`;
+        }
+        
+      case "test-batch":
+        // Test command to verify batch progress tracking
+        if (!this.context) {
+          return "Plugin context not initialized";
+        }
+        try {
+          const count = parseInt(args[0] || "5") || 5;
+          
+          // Create batch operations - use scoped type name based on interface ID
+          const operations = Array.from({ length: count }, (_, i) => ({
+            type: `${this.id}:test-batch-job`, // Scoped to the specific interface
+            entityId: `test-entity-${i}`,
+            entityType: "test",
+            options: {
+              item: i + 1,
+              duration: 1000 + (i * 500), // Each job takes progressively longer
+            }
+          }));
+          
+          const batchId = await this.context.enqueueBatch(operations, {
+            priority: 5,
+          });
+          
+          return `Batch operation enqueued with ID: ${batchId}\n${count} operations queued. Watch the status bar for progress!`;
+        } catch (error) {
+          return `Failed to enqueue batch: ${error instanceof Error ? error.message : String(error)}`;
+        }
+        
+      default:
+        // Default: Return unknown command (interfaces should override this)
+        return `Unknown command: ${command}. Type /help for available commands.`;
+    }
   }
 }

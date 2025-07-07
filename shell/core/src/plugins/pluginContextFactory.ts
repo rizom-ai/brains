@@ -384,11 +384,16 @@ export class PluginContextFactory {
         },
       ): Promise<string> => {
         try {
-          const jobId = await jobQueueService.enqueue(type, data, options);
+          // Check if this is a shell-provided job type (no scoping needed)
+          const shellJobTypes = ["content-generation", "content-derivation", "embedding-generation"];
+          const scopedType = shellJobTypes.includes(type) ? type : `${pluginId}:${type}`;
+          
+          const jobId = await jobQueueService.enqueue(scopedType, data, options);
 
           this.logger.debug("Enqueued job", {
             jobId,
-            type,
+            type: scopedType,
+            originalType: type,
             pluginId,
           });
 
@@ -572,13 +577,16 @@ export class PluginContextFactory {
       try {
         const shell = this.serviceRegistry.resolve<Shell>("shell");
         const jobQueueService = shell.getJobQueueService();
-        
+
         for (const [type, _handler] of handlers) {
           jobQueueService.unregisterHandler(type);
           this.logger.debug(`Unregistered handler for job type: ${type}`);
         }
       } catch (error) {
-        this.logger.warn("Could not unregister job handlers during cleanup", error);
+        this.logger.warn(
+          "Could not unregister job handlers during cleanup",
+          error,
+        );
       }
       this.pluginHandlers.delete(pluginId);
     }

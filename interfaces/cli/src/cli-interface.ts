@@ -2,7 +2,7 @@ import {
   MessageInterfacePlugin,
   PluginInitializationError,
 } from "@brains/plugin-utils";
-import type { MessageContext } from "@brains/plugin-utils";
+import type { MessageContext, PluginContext } from "@brains/plugin-utils";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { DefaultQueryResponse } from "@brains/types";
 import type { Instance } from "ink";
@@ -19,17 +19,46 @@ interface Command {
 export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
+  
+  /**
+   * Get active jobs from the context
+   */
+  public async getActiveJobs(types?: string[]): ReturnType<NonNullable<typeof this.context>["getActiveJobs"]> {
+    if (!this.context) {
+      throw new Error("Plugin context not initialized");
+    }
+    const jobs = await this.context.getActiveJobs(types);
+    this.logger.debug("Active jobs fetched", { count: jobs.length, types });
+    return jobs;
+  }
+  
+  /**
+   * Get active batches from the context
+   */
+  public async getActiveBatches(): ReturnType<NonNullable<typeof this.context>["getActiveBatches"]> {
+    if (!this.context) {
+      throw new Error("Plugin context not initialized");
+    }
+    const batches = await this.context.getActiveBatches();
+    this.logger.debug("Active batches fetched", { count: batches.length });
+    return batches;
+  }
+  
+  /**
+   * Get batch status from the context
+   */
+  public async getBatchStatus(batchId: string): ReturnType<NonNullable<typeof this.context>["getBatchStatus"]> {
+    if (!this.context) {
+      throw new Error("Plugin context not initialized");
+    }
+    return this.context.getBatchStatus(batchId);
+  }
 
   private readonly localCommands: Command[] = [
     { name: "help", description: "Show this help message" },
     { name: "clear", description: "Clear the screen" },
     { name: "exit", description: "Exit the CLI" },
     { name: "quit", description: "Exit the CLI" },
-    {
-      name: "context",
-      description: "Switch to a different context",
-      usage: "/context <name>",
-    },
     {
       name: "search",
       description: "Search your knowledge base",
@@ -39,6 +68,16 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
       name: "list",
       description: "List entities (notes, tasks, etc.)",
       usage: "/list [type]",
+    },
+    {
+      name: "test-progress",
+      description: "Test progress tracking with a slow job",
+      usage: "/test-progress",
+    },
+    {
+      name: "test-batch",
+      description: "Test batch progress tracking",
+      usage: "/test-batch [count]",
     },
   ];
 
@@ -66,6 +105,14 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
    */
   protected getInterfacePermissionGrant(): UserPermissionLevel {
     return "anchor";
+  }
+
+  /**
+   * Register handlers and other initialization when plugin is registered
+   */
+  protected override async onRegister(context: PluginContext): Promise<void> {
+    await super.onRegister(context);
+    // Test handlers are now registered in the base MessageInterfacePlugin class
   }
 
   /**
@@ -114,7 +161,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     command: string,
     context: MessageContext,
   ): Promise<string> {
-    const [cmd, ...args] = command.slice(1).split(" ");
+    const [cmd] = command.slice(1).split(" ");
 
     switch (cmd) {
       case "help":
@@ -126,15 +173,29 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
       case "quit":
         void this.stop().then(() => process.exit(0));
         return "Exiting...";
-      case "context":
-        if (args.length === 0) {
-          const contextCmd = this.localCommands.find(
-            (c) => c.name === "context",
-          );
-          return `Usage: ${contextCmd?.usage}`;
-        }
-        // Let parent handle unknown commands (will delegate to shell)
+      case "test-progress":
+      case "test-batch":
+        // These test commands are now handled by the parent class
         return super.executeCommand(command, context);
+      case "test-handlers":
+        // Debug command to check registered handlers
+        if (!this.context) {
+          return "Plugin context not initialized";
+        }
+        try {
+          // Try to get registered types through a test job
+          // Since we can't directly access the job queue service from here
+          const testJobId = await this.context.enqueueJob("get-registered-types", {});
+          return `Attempting to get registered handlers (job ${testJobId}).\nNote: This is a debug attempt - check logs for actual registered types.`;
+        } catch (error) {
+          // The error message might tell us something useful
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          if (errorMsg.includes("No handler registered")) {
+            // Extract registered types from similar errors if possible
+            return `Could not find handler for debug job.\nError: ${errorMsg}\n\nThis suggests the CLI handler may not be registered yet. Try restarting the Brain.`;
+          }
+          return `Failed to get handlers: ${errorMsg}`;
+        }
       default:
         // Let parent handle unknown commands
         return super.executeCommand(command, context);

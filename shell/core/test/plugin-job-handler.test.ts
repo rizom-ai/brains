@@ -190,7 +190,7 @@ describe("Plugin Job Handler Lifecycle", () => {
     context.registerJobHandler("test-job", handler);
 
     const jobData = { message: "Hello from test" };
-    const jobId = await context.enqueueJob("test-plugin:test-job", jobData);
+    const jobId = await context.enqueueJob("test-job", jobData);
 
     // Verify job was enqueued
     expect(mockJobQueueService.enqueue).toHaveBeenCalledWith(
@@ -259,7 +259,7 @@ describe("Plugin Job Handler Lifecycle", () => {
 
     // Try to enqueue invalid data
     try {
-      await context.enqueueJob("validation-test:validate-job", {
+      await context.enqueueJob("validate-job", {
         invalid: true,
       });
       expect(false).toBe(true); // Should not reach here
@@ -292,8 +292,8 @@ describe("Plugin Job Handler Lifecycle", () => {
     expect(types).toContain("plugin-2:task");
 
     // Enqueue jobs for each plugin
-    await plugin1Context.enqueueJob("plugin-1:task", {});
-    await plugin2Context.enqueueJob("plugin-2:task", {});
+    await plugin1Context.enqueueJob("task", {});
+    await plugin2Context.enqueueJob("task", {});
 
     // Verify both were enqueued with correct types
     expect(mockJobQueueService.enqueue).toHaveBeenCalledWith(
