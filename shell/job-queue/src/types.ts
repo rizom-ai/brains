@@ -40,6 +40,11 @@ export interface IJobQueueService {
   registerHandler(type: string, handler: JobHandler): void;
 
   /**
+   * Unregister a job handler for a specific type
+   */
+  unregisterHandler(type: string): void;
+
+  /**
    * Enqueue a job for processing
    */
   enqueue(type: string, data: unknown, options?: JobOptions): Promise<string>;
