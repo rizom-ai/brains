@@ -120,6 +120,7 @@ describe("SiteBuilderPlugin", () => {
     expect(toolNames).toContain("site-builder:list_routes");
     expect(toolNames).toContain("site-builder:list_templates");
     expect(toolNames).toContain("site-builder:promote-all");
+    expect(toolNames).toContain("site-builder:rollback-all");
   });
 
   it("should provide generate tool when routes have content entities", async () => {
@@ -207,10 +208,12 @@ describe("SiteBuilderPlugin", () => {
     );
     if (generateTool) {
       const result = (await generateTool.handler({})) as {
-        success: boolean;
-        sectionsGenerated: number;
+        status: string;
+        message: string;
+        sectionsGenerated?: number;
       };
-      expect(result.success).toBe(true);
+      expect(result.status).toBe("completed");
+      expect(result.message).toBe("No sections to generate");
       expect(result.sectionsGenerated).toBe(0);
     }
   });

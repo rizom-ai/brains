@@ -131,6 +131,13 @@ export class SiteOperations {
   }
 
   /**
+   * Rollback all production content
+   */
+  async rollbackAll(): Promise<string> {
+    return this.rollback({ dryRun: false });
+  }
+
+  /**
    * Helper to get filtered entities based on options
    */
   private async getFilteredEntities(

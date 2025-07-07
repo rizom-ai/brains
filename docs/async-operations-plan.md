@@ -638,6 +638,7 @@ MCP interface leverages native progress support - no special handling needed.
 - LLMs have no way to check site-builder background operations
 
 **Context**: Each plugin implements its own domain-specific status tool
+
 - `directory-sync:status` - Shows sync operations status
 - `git-sync:status` - Shows git operations status (if exists)
 - **Missing**: `site-builder:status` - Should show content operations status

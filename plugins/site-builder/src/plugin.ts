@@ -207,7 +207,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .default(false)
             .describe("Optional: preview changes without executing"),
         },
-        async (input, context): Promise<Record<string, unknown>> => {
+        async (input, _context): Promise<Record<string, unknown>> => {
           if (!this.contentManager || !this.context) {
             throw new SiteBuilderInitializationError(
               "Content manager not initialized",
@@ -232,7 +232,29 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             return section.template;
           };
 
-          const { jobs, totalSections } = await this.contentManager.generate(
+          // Count the sections that will be generated first
+          let sectionsToGenerate = 0;
+          for (const route of routes) {
+            if (options.pageId && route.id !== options.pageId) continue;
+            
+            const sections = options.sectionId
+              ? route.sections.filter((s) => s.id === options.sectionId)
+              : route.sections;
+            
+            sectionsToGenerate += sections.length;
+          }
+
+          // If no sections to generate, return early
+          if (sectionsToGenerate === 0) {
+            return {
+              status: "completed",
+              message: "No sections to generate",
+              sectionsGenerated: 0,
+            };
+          }
+
+          // Get batch ID using generateAll with filters
+          const batchId = await this.contentManager.generateAll(
             options,
             routes,
             templateResolver,
@@ -240,79 +262,12 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             this.config.siteConfig,
           );
 
-          // Wait for jobs to complete
-          const results = await this.contentManager.waitForContentJobs(
-            jobs,
-            60000, // 1 minute timeout
-            async (progress) => {
-              if (context?.sendProgress) {
-                await context.sendProgress(progress);
-              }
-            },
-          );
-
-          // Build result from job results
-          const generated: Array<{
-            page: string;
-            section: string;
-            entityId: string;
-            entityType: string;
-          }> = [];
-          const skipped: Array<{
-            page: string;
-            section: string;
-            reason: string;
-          }> = [];
-          const errors: string[] = [];
-
-          // Map results back to jobs to get metadata
-          for (let i = 0; i < results.length; i++) {
-            const result = results[i];
-            const job = jobs[i];
-
-            if (!result || !job) continue;
-
-            if (result.success) {
-              generated.push({
-                page: job.pageId,
-                section: job.sectionId,
-                entityId: result.entityId,
-                entityType: "site-content-preview",
-              });
-            } else {
-              skipped.push({
-                page: job.pageId,
-                section: job.sectionId,
-                reason: result.error || "Unknown error",
-              });
-              if (result.error) {
-                errors.push(result.error);
-              }
-            }
-          }
-
-          const result = {
-            success: results.every((r) => r.success),
-            sectionsGenerated: generated.length,
-            totalSections,
-            message: `Generated content for ${generated.length} sections`,
-            generated,
-            skipped,
-            errors,
+          return {
+            status: "queued",
+            message: `Generating ${sectionsToGenerate} section${sectionsToGenerate !== 1 ? 's' : ''}`,
+            batchId,
+            tip: "Use the status tool to check progress of this operation.",
           };
-
-          // Report progress if context is available
-          if (context?.sendProgress) {
-            await context.sendProgress({
-              message:
-                result.message ??
-                `Generated content for ${result.sectionsGenerated} sections`,
-              progress: 100,
-              total: 100,
-            });
-          }
-
-          return result;
         },
       ),
     );
@@ -539,6 +494,29 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           return {
             status: "queued",
             message: "Rollback operation queued.",
+            batchId,
+            tip: "Use the status tool to check progress of this operation.",
+          };
+        },
+        "anchor", // Internal tool - modifies entities
+      ),
+    );
+
+    tools.push(
+      this.createTool(
+        "rollback-all",
+        "Remove all production content (rollback to preview-only)",
+        {},
+        async (): Promise<Record<string, unknown>> => {
+          if (!this.siteOperations) {
+            throw new Error("Site operations not initialized");
+          }
+
+          const batchId = await this.siteOperations.rollbackAll();
+
+          return {
+            status: "queued",
+            message: "Rollback of all production content queued.",
             batchId,
             tip: "Use the status tool to check progress of this operation.",
           };
