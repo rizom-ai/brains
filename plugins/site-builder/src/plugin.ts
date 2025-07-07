@@ -329,11 +329,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           if (async) {
             // Queue the job for async processing
-            const jobId = await this.context.enqueueJob(
-              "site-build",
-              jobData,
-              { priority: 5 },
-            );
+            const jobId = await this.context.enqueueJob("site-build", jobData, {
+              priority: 5,
+            });
 
             return {
               status: "queued",

@@ -257,6 +257,40 @@ export class MatrixClientWrapper {
   }
 
   /**
+   * Edit a previously sent message
+   */
+  async editMessage(
+    roomId: string,
+    eventId: string,
+    newText: string,
+    newHtml?: string,
+  ): Promise<string> {
+    const content: Record<string, unknown> = {
+      msgtype: "m.text",
+      body: `* ${newText}`,
+      "m.new_content": {
+        msgtype: "m.text",
+        body: newText,
+      },
+      "m.relates_to": {
+        rel_type: "m.replace",
+        event_id: eventId,
+      },
+    };
+
+    if (newHtml) {
+      content["format"] = "org.matrix.custom.html";
+      content["formatted_body"] = `* ${newHtml}`;
+      (content["m.new_content"] as Record<string, unknown>)["format"] =
+        "org.matrix.custom.html";
+      (content["m.new_content"] as Record<string, unknown>)["formatted_body"] =
+        newHtml;
+    }
+
+    return this.client.sendMessage(roomId, content);
+  }
+
+  /**
    * Get the underlying MatrixClient for advanced operations
    */
   getClient(): MatrixClient {

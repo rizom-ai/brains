@@ -1,6 +1,12 @@
 export { JobQueueService } from "./job-queue-service";
 export { JobQueueWorker } from "./job-queue-worker";
 export { BatchJobManager } from "./batch-job-manager";
+export {
+  JobProgressMonitor,
+  type JobProgressEvent,
+  type IEventEmitter,
+  type IProgressReporter,
+} from "./job-progress-monitor";
 export type {
   JobQueueWorkerConfig,
   JobQueueWorkerStats,

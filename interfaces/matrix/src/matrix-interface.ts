@@ -18,6 +18,11 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   declare protected config: MatrixConfig;
   private client?: MatrixClientWrapper;
   private permissionHandler?: PermissionHandler;
+  // Track batch operation messages for progress updates
+  private batchProgressMessages = new Map<
+    string,
+    { roomId: string; eventId: string }
+  >();
 
   constructor(config: MatrixConfigInput, sessionId?: string) {
     super(
@@ -94,7 +99,26 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     }
 
     // Use default routing (commands start with /, everything else is query)
-    return super.handleInput(input, context);
+    const result = await super.handleInput(input, context);
+
+    // Check if the result contains a batch operation
+    try {
+      const parsed = JSON.parse(result);
+      if (parsed.batchId && parsed.status === "queued" && context.messageId) {
+        // Track this message for progress updates
+        this.batchProgressMessages.set(parsed.batchId, {
+          roomId: context.channelId,
+          eventId: context.messageId,
+        });
+
+        // Subscribe to progress updates for this batch
+        this.subscribeToProgressUpdates(parsed.batchId);
+      }
+    } catch {
+      // Not JSON or doesn't contain batch info, ignore
+    }
+
+    return result;
   }
 
   /**
@@ -422,5 +446,98 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     return baseHelp
       .replace("Available commands:", "**Available commands:**")
       .replace(/• \/(\w+)/g, "• `/$$1`"); // Wrap commands in backticks
+  }
+
+  /**
+   * Subscribe to progress updates for a batch operation
+   */
+  private subscribeToProgressUpdates(batchId: string): void {
+    if (!this.context) {
+      this.logger.warn("Cannot subscribe to progress updates - no context");
+      return;
+    }
+
+    // Subscribe to batch progress updates
+    const unsubscribe = this.context.subscribe(
+      "batch-progress",
+      async (message) => {
+        const progressData = message.payload as {
+          batchId: string;
+          totalOperations: number;
+          completedOperations: number;
+          failedOperations: number;
+          currentOperation?: string;
+          status: string;
+        };
+
+        if (progressData.batchId !== batchId) {
+          return { success: true };
+        }
+
+        // Get the message to update
+        const messageInfo = this.batchProgressMessages.get(batchId);
+        if (!messageInfo || !this.client) {
+          return { success: true };
+        }
+
+        // Format progress message
+        const progressPercent = Math.round(
+          (progressData.completedOperations / progressData.totalOperations) *
+            100,
+        );
+
+        let progressText = `**Progress:** ${progressData.completedOperations}/${progressData.totalOperations} operations (${progressPercent}%)\n`;
+
+        if (progressData.currentOperation) {
+          progressText += `**Current:** ${progressData.currentOperation}\n`;
+        }
+
+        if (progressData.failedOperations > 0) {
+          progressText += `**Failed:** ${progressData.failedOperations} operations\n`;
+        }
+
+        // Update the message based on status
+        if (progressData.status === "completed") {
+          progressText = `✅ **Batch operation completed**\n`;
+          progressText += `**Total:** ${progressData.totalOperations} operations\n`;
+          progressText += `**Completed:** ${progressData.completedOperations}\n`;
+          if (progressData.failedOperations > 0) {
+            progressText += `**Failed:** ${progressData.failedOperations}\n`;
+          }
+
+          // Clean up
+          this.batchProgressMessages.delete(batchId);
+          unsubscribe();
+        } else if (progressData.status === "failed") {
+          progressText = `❌ **Batch operation failed**\n`;
+          progressText += `**Completed:** ${progressData.completedOperations}/${progressData.totalOperations}\n`;
+          if (progressData.failedOperations > 0) {
+            progressText += `**Failed:** ${progressData.failedOperations}\n`;
+          }
+
+          // Clean up
+          this.batchProgressMessages.delete(batchId);
+          unsubscribe();
+        }
+
+        // Convert to HTML and edit the message
+        const html = markdownToHtml(progressText);
+        try {
+          await this.client.editMessage(
+            messageInfo.roomId,
+            messageInfo.eventId,
+            progressText,
+            html,
+          );
+        } catch (error) {
+          this.logger.error("Failed to edit progress message", {
+            batchId,
+            error,
+          });
+        }
+
+        return { success: true };
+      },
+    );
   }
 }

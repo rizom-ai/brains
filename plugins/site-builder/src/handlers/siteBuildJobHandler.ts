@@ -12,8 +12,7 @@ import {
  * Job handler for site building operations
  */
 export class SiteBuildJobHandler
-  implements
-    JobHandler<"site-build", SiteBuildJobData, SiteBuildJobResult>
+  implements JobHandler<"site-build", SiteBuildJobData, SiteBuildJobResult>
 {
   constructor(
     private logger: Logger,
