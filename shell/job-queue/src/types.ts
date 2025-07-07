@@ -98,6 +98,11 @@ export interface IJobQueueService {
   cleanup(olderThanMs: number): Promise<number>;
 
   /**
+   * Get active jobs (pending or processing)
+   */
+  getActiveJobs(types?: string[]): Promise<JobQueue[]>;
+
+  /**
    * Get registered job types
    */
   getRegisteredTypes(): string[];

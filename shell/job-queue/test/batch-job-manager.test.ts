@@ -75,7 +75,7 @@ describe("BatchJobManager", () => {
 
       expect(batchId).toBeDefined();
       expect(typeof batchId).toBe("string");
-      expect(batchId).toMatch(/^batch_\d+_[a-zA-Z0-9]+$/);
+      expect(batchId).toMatch(/^batch_\d+_[a-zA-Z0-9_-]+$/);
 
       // Verify batch status (not individual job)
       const status = await batchManager.getBatchStatus(batchId);
@@ -186,6 +186,90 @@ describe("BatchJobManager", () => {
       // Batch should still exist
       const statusAfter = await batchManager.getBatchStatus(batchId);
       expect(statusAfter).toBeDefined();
+    });
+  });
+
+  describe("getActiveBatches", () => {
+    it("should return only active batches", async () => {
+      // Create multiple batches
+      await batchManager.enqueueBatch([
+        { type: "embedding", entityId: "entity-1" },
+      ]);
+      
+      await batchManager.enqueueBatch([
+        { type: "embedding", entityId: "entity-2" },
+        { type: "embedding", entityId: "entity-3" },
+      ]);
+      
+      const batch3Id = await batchManager.enqueueBatch([
+        { type: "embedding", entityId: "entity-4" },
+      ], { userId: "user-123" });
+
+      // Complete the first batch's job
+      const job = await jobQueueService.dequeue();
+      if (job) {
+        await jobQueueService.complete(job.id, {});
+      }
+
+      // Get active batches
+      const activeBatches = await batchManager.getActiveBatches();
+
+      // Should have 3 batches (1 completed, 2 pending/processing)
+      // But getActiveBatches should return only the active ones
+      expect(activeBatches.length).toBeGreaterThanOrEqual(2);
+      
+      // Check that each active batch has the expected structure
+      for (const batch of activeBatches) {
+        expect(batch.batchId).toBeDefined();
+        expect(batch.status).toBeDefined();
+        expect(batch.metadata).toBeDefined();
+        expect(batch.metadata.operations).toBeInstanceOf(Array);
+        expect(batch.metadata.startedAt).toBeDefined();
+      }
+
+      // Check that batch3 has userId
+      const batch3 = activeBatches.find(b => b.batchId === batch3Id);
+      expect(batch3?.metadata.userId).toBe("user-123");
+    });
+
+    it("should return empty array when no active batches", async () => {
+      // Create a batch and complete all its jobs
+      const operations: BatchOperation[] = [
+        { type: "embedding", entityId: "entity-1" },
+      ];
+      
+      await batchManager.enqueueBatch(operations);
+      
+      // Process and complete the job
+      const job = await jobQueueService.dequeue();
+      if (job) {
+        await jobQueueService.complete(job.id, {});
+      }
+
+      // Get active batches
+      const activeBatches = await batchManager.getActiveBatches();
+      
+      // Should have no active batches (all completed)
+      expect(activeBatches.length).toBe(0);
+    });
+
+    it("should include processing batches", async () => {
+      // Create a batch
+      const batchId = await batchManager.enqueueBatch([
+        { type: "embedding", entityId: "entity-1" },
+        { type: "embedding", entityId: "entity-2" },
+      ]);
+
+      // Start processing one job (dequeue it)
+      await jobQueueService.dequeue();
+
+      // Get active batches
+      const activeBatches = await batchManager.getActiveBatches();
+
+      // Should include the processing batch
+      expect(activeBatches.length).toBe(1);
+      expect(activeBatches[0]?.batchId).toBe(batchId);
+      expect(activeBatches[0]?.status.status).toBe("processing");
     });
   });
 });

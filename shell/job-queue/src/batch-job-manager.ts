@@ -234,23 +234,55 @@ export class BatchJobManager {
   }
 
   /**
-   * For backwards compatibility - this method is no longer needed
-   * since we don't create batch jobs anymore
+   * Get all active batches (pending or processing)
    */
-  async updateBatchProgress(
-    batchId: string,
-    update: {
-      completedOperations?: number;
-      failedOperations?: number;
-      currentOperation?: string;
-      errors?: string[];
-    },
-  ): Promise<void> {
-    // This method is no longer needed since we track progress
-    // by monitoring individual job statuses
-    this.logger.debug("updateBatchProgress called (no-op)", {
-      batchId,
-      update,
-    });
+  async getActiveBatches(): Promise<
+    Array<{
+      batchId: string;
+      status: BatchJobStatus;
+      metadata: {
+        operations: BatchOperation[];
+        userId?: string;
+        startedAt: string;
+      };
+    }>
+  > {
+    const activeBatches: Array<{
+      batchId: string;
+      status: BatchJobStatus;
+      metadata: {
+        operations: BatchOperation[];
+        userId?: string;
+        startedAt: string;
+      };
+    }> = [];
+
+    try {
+      // Check each batch's status
+      for (const [batchId, metadata] of this.batches) {
+        const status = await this.getBatchStatus(batchId);
+        
+        if (status && (status.status === "pending" || status.status === "processing")) {
+          activeBatches.push({
+            batchId,
+            status,
+            metadata: {
+              operations: metadata.operations,
+              ...(metadata.userId !== undefined && { userId: metadata.userId }),
+              startedAt: metadata.startedAt,
+            },
+          });
+        }
+      }
+
+      this.logger.debug("Retrieved active batches", {
+        count: activeBatches.length,
+      });
+
+      return activeBatches;
+    } catch (error) {
+      this.logger.error("Failed to get active batches", { error });
+      throw error;
+    }
   }
 }

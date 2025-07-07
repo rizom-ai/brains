@@ -3,6 +3,8 @@ import {
   jobQueue,
   eq,
   and,
+  or,
+  inArray,
   sql,
   desc,
   asc,
@@ -482,6 +484,40 @@ export class JobQueueService implements IJobQueueService {
       return deletedCount;
     } catch (error) {
       this.logger.error("Failed to cleanup old jobs", { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Get active jobs (pending or processing)
+   */
+  public async getActiveJobs(types?: string[]): Promise<JobQueue[]> {
+    try {
+      const conditions = [
+        or(
+          eq(jobQueue.status, JOB_STATUS.PENDING),
+          eq(jobQueue.status, JOB_STATUS.PROCESSING),
+        ),
+      ];
+
+      if (types && types.length > 0) {
+        conditions.push(inArray(jobQueue.type, types));
+      }
+
+      const activeJobs = await this.db
+        .select()
+        .from(jobQueue)
+        .where(and(...conditions))
+        .orderBy(desc(jobQueue.createdAt));
+
+      this.logger.debug("Retrieved active jobs", {
+        count: activeJobs.length,
+        types,
+      });
+
+      return activeJobs;
+    } catch (error) {
+      this.logger.error("Failed to get active jobs", { error });
       throw error;
     }
   }

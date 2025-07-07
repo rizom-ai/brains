@@ -693,6 +693,7 @@ MCP interface leverages native progress support - no special handling needed.
 ## Infrastructure vs Domain Concerns
 
 ### Infrastructure (Shell-Level):
+
 - Job queue management
 - Batch operation tracking
 - Status reporting for jobs/batches
@@ -700,6 +701,7 @@ MCP interface leverages native progress support - no special handling needed.
 - Operation timing and estimates
 
 ### Domain (Plugin-Level):
+
 - Business logic and rules
 - Domain-specific formatting
 - Entity-specific operations
