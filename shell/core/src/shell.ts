@@ -12,6 +12,7 @@ import {
   JobQueueService,
   JobQueueWorker,
   BatchJobManager,
+  type BatchJobStatus,
 } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "./plugins/pluginManager";
@@ -549,12 +550,16 @@ export class Shell {
    * Get a public context for shell tools
    * This provides access to shell services with public permissions
    */
-  public getPublicContext() {
+  public getPublicContext(): {
+    entityService: EntityService;
+    generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
+    getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
+  } {
     return {
       entityService: this.entityService,
-      generateContent: (config: ContentGenerationConfig) =>
-        this.generateContent(config),
-      getBatchStatus: async (batchId: string) => {
+      generateContent: <T = unknown>(config: ContentGenerationConfig): Promise<T> =>
+        this.generateContent<T>(config),
+      getBatchStatus: async (batchId: string): Promise<BatchJobStatus | null> => {
         const batchManager = BatchJobManager.getInstance(
           this.jobQueueService,
           this.logger,

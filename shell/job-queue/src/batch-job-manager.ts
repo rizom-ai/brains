@@ -82,7 +82,7 @@ export class BatchJobManager {
 
         const jobId = await this.jobQueue.enqueue(
           operation.type,
-          operation.options || {},
+          operation.options ?? {},
           jobOptions,
         );
         jobIds.push(jobId);

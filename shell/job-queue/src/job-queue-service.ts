@@ -70,6 +70,21 @@ export class JobQueueService implements IJobQueueService {
   }
 
   /**
+   * Unregister a job handler
+   */
+  public unregisterHandler(type: string): void {
+    this.handlers.delete(type);
+    this.logger.debug("Unregistered job handler", { type });
+  }
+
+  /**
+   * Get all registered job types
+   */
+  public getRegisteredTypes(): string[] {
+    return Array.from(this.handlers.keys());
+  }
+
+  /**
    * Enqueue a job for processing
    */
   public async enqueue(
@@ -520,12 +535,5 @@ export class JobQueueService implements IJobQueueService {
       this.logger.error("Failed to get active jobs", { error });
       throw error;
     }
-  }
-
-  /**
-   * Get registered job types
-   */
-  public getRegisteredTypes(): string[] {
-    return Array.from(this.handlers.keys());
   }
 }

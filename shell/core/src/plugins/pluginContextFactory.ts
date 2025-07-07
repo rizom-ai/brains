@@ -11,7 +11,7 @@ import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
-import type { JobQueueService } from "@brains/job-queue";
+import type { JobQueueService, JobHandler } from "@brains/job-queue";
 import { BatchJobManager } from "@brains/job-queue";
 import { type BatchJobStatus, type JobStatusType } from "@brains/job-queue";
 import {
@@ -33,6 +33,8 @@ export class PluginContextFactory {
   private logger: Logger;
   private plugins: Map<string, { plugin: { packageName?: string } }>;
   private daemonRegistry: DaemonRegistry;
+  private pluginHandlers = new Map<string, Map<string, JobHandler>>();
+  private jobQueueService: JobQueueService | null = null;
 
   /**
    * Get the singleton instance of PluginContextFactory
@@ -80,6 +82,13 @@ export class PluginContextFactory {
     this.logger = logger.child("PluginContextFactory");
     this.plugins = plugins;
     this.daemonRegistry = DaemonRegistry.getInstance(logger);
+    
+    // Resolve JobQueueService once on initialization
+    try {
+      this.jobQueueService = this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+    } catch (error) {
+      this.logger.warn("JobQueueService not available during initialization", error);
+    }
   }
 
   /**
@@ -338,12 +347,7 @@ export class PluginContextFactory {
         timeoutMs: number = 30000,
       ): Promise<unknown> => {
         try {
-          const jobQueueService =
-            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (
-            !jobQueueService ||
-            typeof jobQueueService.getStatus !== "function"
-          ) {
+          if (!this.jobQueueService) {
             throw new Error("JobQueueService not available");
           }
 
@@ -351,7 +355,7 @@ export class PluginContextFactory {
           const pollInterval = 100; // Poll every 100ms
 
           while (Date.now() - startTime < timeoutMs) {
-            const job = await jobQueueService.getStatus(jobId);
+            const job = await this.jobQueueService.getStatus(jobId);
 
             if (!job) {
               throw new Error(`Job ${jobId} not found`);
@@ -391,16 +395,11 @@ export class PluginContextFactory {
         },
       ): Promise<string> => {
         try {
-          const jobQueueService =
-            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (
-            !jobQueueService ||
-            typeof jobQueueService.enqueue !== "function"
-          ) {
+          if (!this.jobQueueService) {
             throw new Error("JobQueueService not available");
           }
 
-          const jobId = await jobQueueService.enqueue(type, data, options);
+          const jobId = await this.jobQueueService.enqueue(type, data, options);
 
           this.logger.debug("Enqueued job", {
             jobId,
@@ -424,16 +423,11 @@ export class PluginContextFactory {
         error?: string;
       } | null> => {
         try {
-          const jobQueueService =
-            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (
-            !jobQueueService ||
-            typeof jobQueueService.getStatus !== "function"
-          ) {
+          if (!this.jobQueueService) {
             throw new Error("JobQueueService not available");
           }
 
-          const job = await jobQueueService.getStatus(jobId);
+          const job = await this.jobQueueService.getStatus(jobId);
           if (!job) {
             return null;
           }
@@ -451,7 +445,7 @@ export class PluginContextFactory {
             result.result = job.result;
           }
 
-          if (job.lastError !== null && job.lastError !== undefined) {
+          if (job.lastError) {
             result.error = job.lastError;
           }
 
@@ -477,15 +471,13 @@ export class PluginContextFactory {
         },
       ): Promise<string> => {
         try {
-          const jobQueueService =
-            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (!jobQueueService) {
+          if (!this.jobQueueService) {
             throw new Error("JobQueueService not available");
           }
 
           // Use BatchJobManager to handle batch operations
           const batchJobManager = BatchJobManager.getInstance(
-            jobQueueService,
+            this.jobQueueService,
             this.logger,
           );
 
@@ -511,15 +503,13 @@ export class PluginContextFactory {
         batchId: string,
       ): Promise<BatchJobStatus | null> => {
         try {
-          const jobQueueService =
-            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (!jobQueueService) {
+          if (!this.jobQueueService) {
             throw new Error("JobQueueService not available");
           }
 
           // Use BatchJobManager to get batch status
           const batchJobManager = BatchJobManager.getInstance(
-            jobQueueService,
+            this.jobQueueService,
             this.logger,
           );
 
@@ -533,14 +523,12 @@ export class PluginContextFactory {
       // Get all active jobs
       getActiveJobs: async (types?: string[]) => {
         try {
-          const jobQueueService =
-            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (!jobQueueService) {
+          if (!this.jobQueueService) {
             throw new Error("JobQueueService not available");
           }
 
           // JobQueue from DB already satisfies Job interface
-          return await jobQueueService.getActiveJobs(types);
+          return await this.jobQueueService.getActiveJobs(types);
         } catch (error) {
           this.logger.error("Failed to get active jobs", { error });
           throw error;
@@ -550,20 +538,46 @@ export class PluginContextFactory {
       // Get all active batches
       getActiveBatches: async () => {
         try {
-          const jobQueueService =
-            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
-          if (!jobQueueService) {
+          if (!this.jobQueueService) {
             throw new Error("JobQueueService not available");
           }
 
           const batchJobManager = BatchJobManager.getInstance(
-            jobQueueService,
+            this.jobQueueService,
             this.logger,
           );
 
           return await batchJobManager.getActiveBatches();
         } catch (error) {
           this.logger.error("Failed to get active batches", { error });
+          throw error;
+        }
+      },
+
+      // Job handler registration (for plugins that process jobs)
+      registerJobHandler: (type: string, handler: JobHandler): void => {
+        try {
+          // Scope handler to plugin
+          const scopedType = `${pluginId}:${type}`;
+
+          // Track for cleanup
+          if (!this.pluginHandlers.has(pluginId)) {
+            this.pluginHandlers.set(pluginId, new Map());
+          }
+          const handlers = this.pluginHandlers.get(pluginId);
+          if (handlers) {
+            handlers.set(scopedType, handler);
+          }
+
+          // Register with job queue
+          if (!this.jobQueueService) {
+            throw new Error("JobQueueService not available");
+          }
+          this.jobQueueService.registerHandler(scopedType, handler);
+
+          this.logger.debug(`Registered job handler ${scopedType}`);
+        } catch (error) {
+          this.logger.error(`Failed to register job handler: ${type}`, error);
           throw error;
         }
       },
@@ -585,5 +599,21 @@ export class PluginContextFactory {
     };
 
     return context;
+  }
+
+  /**
+   * Clean up handlers when plugin is unloaded
+   */
+  public cleanupPlugin(pluginId: string): void {
+    const handlers = this.pluginHandlers.get(pluginId);
+    if (handlers) {
+      if (this.jobQueueService) {
+        for (const [type, _handler] of handlers) {
+          this.jobQueueService.unregisterHandler(type);
+          this.logger.debug(`Unregistered handler for job type: ${type}`);
+        }
+      }
+      this.pluginHandlers.delete(pluginId);
+    }
   }
 }

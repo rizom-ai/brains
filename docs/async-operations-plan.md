@@ -19,6 +19,7 @@ The async operations system has been successfully extracted into a dedicated job
 ### 🚧 In Progress
 
 **Phase 6: Plugin-Specific Job Handlers** (HIGH PRIORITY)
+
 - Enable plugins to register custom job handlers
 - Remove hardcoded job handlers from shell
 - Implement proper plugin boundary separation
@@ -26,11 +27,13 @@ The async operations system has been successfully extracted into a dedicated job
 ### 📋 Planned Work
 
 **Phase 7: Interface Updates** (MEDIUM PRIORITY)
+
 - CLI progress bars for batch operations
 - Matrix message editing for progress updates
 - Operation time estimates
 
 **Phase 8: Documentation & Polish** (LOW PRIORITY)
+
 - User guide for background operations
 - Integration tests for async flows
 - Tool documentation updates
@@ -42,6 +45,7 @@ The async operations system has been successfully extracted into a dedicated job
 #### Problem Statement
 
 Currently, all job handlers are registered directly in the shell, which:
+
 - Violates plugin boundaries (shell shouldn't know about plugin-specific jobs)
 - Prevents plugins from defining custom background operations
 - Limits extensibility of the job queue system
@@ -92,16 +96,16 @@ export class PluginContextFactory {
       registerJobHandler: (type: string, handler: JobHandler) => {
         // Automatic namespacing
         const scopedType = `${pluginId}:${type}`;
-        
+
         // Track for cleanup
         if (!this.pluginHandlers.has(pluginId)) {
           this.pluginHandlers.set(pluginId, new Map());
         }
         this.pluginHandlers.get(pluginId)!.set(scopedType, handler);
-        
+
         // Register with job queue
         this.jobQueueService.registerHandler(scopedType, handler);
-        
+
         this.logger.debug(`Registered job handler ${scopedType}`);
       },
     };
@@ -149,14 +153,19 @@ export class JobQueueService implements IJobQueueService {
 
 ```typescript
 // plugins/site-builder/src/handlers/siteBuildJobHandler.ts
-export class SiteBuildJobHandler implements JobHandler<"site-builder:site-build"> {
+export class SiteBuildJobHandler
+  implements JobHandler<"site-builder:site-build">
+{
   constructor(
     private siteBuilder: SiteBuilder,
     private logger: Logger,
   ) {}
 
   async process(data: SiteBuildJobData, jobId: string): Promise<BuildResult> {
-    this.logger.info("Starting site build job", { jobId, outputDir: data.outputDir });
+    this.logger.info("Starting site build job", {
+      jobId,
+      outputDir: data.outputDir,
+    });
 
     try {
       const result = await this.siteBuilder.build(
@@ -193,7 +202,11 @@ export class SiteBuildJobHandler implements JobHandler<"site-builder:site-build"
     }
   }
 
-  async onError(error: Error, data: SiteBuildJobData, jobId: string): Promise<void> {
+  async onError(
+    error: Error,
+    data: SiteBuildJobData,
+    jobId: string,
+  ): Promise<void> {
     this.logger.error("Site build job error handler", {
       jobId,
       outputDir: data.outputDir,
@@ -234,7 +247,11 @@ export class SiteBuilderPlugin extends BasePlugin {
           "Build static site from content",
           {
             outputDir: z.string().describe("Output directory for built site"),
-            clean: z.boolean().optional().default(true).describe("Clean output directory first"),
+            clean: z
+              .boolean()
+              .optional()
+              .default(true)
+              .describe("Clean output directory first"),
           },
           async (input) => {
             const jobId = await this.context.enqueueJob(
@@ -362,10 +379,10 @@ function estimateCompletion(batch: BatchJobStatus): string {
   if (!batch.averageOperationTime || batch.completedOperations === 0) {
     return "Calculating...";
   }
-  
+
   const remainingOps = batch.totalOperations - batch.completedOperations;
   const estimatedMs = remainingOps * batch.averageOperationTime;
-  
+
   return formatDuration(estimatedMs);
 }
 ```
@@ -391,8 +408,8 @@ function estimateCompletion(batch: BatchJobStatus): string {
 2. **Generic Infrastructure** - Plugin context provides only generic methods
 3. **Job Handler Registration** - Plugins register handlers during initialization
 4. **Dependency Flow**:
-   - Core services (shell/*) can import from each other
-   - Plugins can only import from shared/* packages
+   - Core services (shell/\*) can import from each other
+   - Plugins can only import from shared/\* packages
    - Plugins access shell services through context
 5. **Infrastructure vs Domain**:
    - Infrastructure: Job queue, batch tracking, status reporting
@@ -469,6 +486,7 @@ System: {
 ### Phase 1: Job Queue Package Extraction
 
 Successfully extracted job queue components from entity-service into a dedicated `@brains/job-queue` package:
+
 - Created proper package structure with clear boundaries
 - Moved core components while keeping handlers in their domains
 - Updated dependencies to prevent circular imports
@@ -477,6 +495,7 @@ Successfully extracted job queue components from entity-service into a dedicated
 ### Phase 2: Plugin Context Updates
 
 Implemented generic job queue interface in PluginContext:
+
 - Added `enqueueJob`, `getJobStatus`, `waitForJob` methods
 - Added batch operations support
 - Removed domain-specific methods for cleaner API
@@ -485,6 +504,7 @@ Implemented generic job queue interface in PluginContext:
 ### Phase 3: Batch Operations Infrastructure
 
 Created BatchJobManager for coordinating multi-operation jobs:
+
 - Tracks progress across multiple operations
 - Emits progress events via MessageBus
 - Provides status aggregation
@@ -493,6 +513,7 @@ Created BatchJobManager for coordinating multi-operation jobs:
 ### Phase 4: API Simplification
 
 Converted ContentManager to async-only API:
+
 - Removed all synchronous methods
 - Unified return pattern (always returns job/batch ID)
 - Consistent user experience across all tools
@@ -501,6 +522,7 @@ Converted ContentManager to async-only API:
 ### Phase 5: MCP Compatibility Fixes
 
 Resolved critical issues discovered during MCP testing:
+
 - Fixed generate tool blocking behavior
 - Added missing rollbackAll feature
 - Implemented shell-level status tool

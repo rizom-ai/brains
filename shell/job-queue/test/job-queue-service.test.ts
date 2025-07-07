@@ -124,6 +124,39 @@ describe("JobQueueService", () => {
       expect(types).toContain("embedding");
       expect(types).toContain("content-generation");
     });
+
+    it("should unregister a job handler successfully", () => {
+      // Register handler
+      service.registerHandler("embedding", testHandler);
+      expect(service.getRegisteredTypes()).toContain("embedding");
+
+      // Unregister handler
+      service.unregisterHandler("embedding");
+      expect(service.getRegisteredTypes()).not.toContain("embedding");
+    });
+
+    it("should handle unregistering non-existent handler gracefully", () => {
+      // Should not throw when unregistering handler that wasn't registered
+      expect(() => {
+        service.unregisterHandler("non-existent");
+      }).not.toThrow();
+    });
+
+    it("should prevent job enqueuing after handler is unregistered", async () => {
+      // Register and then unregister handler
+      service.registerHandler("embedding", testHandler);
+      service.unregisterHandler("embedding");
+
+      // Try to enqueue job
+      try {
+        await service.enqueue("embedding", testEntity);
+        expect().fail("Should have thrown an error");
+      } catch (error) {
+        expect(ErrorUtils.getErrorMessage(error)).toContain(
+          "No handler registered for job type: embedding",
+        );
+      }
+    });
   });
 
   describe("Job enqueueing", () => {

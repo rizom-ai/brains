@@ -21,6 +21,7 @@ import type {
   BatchJobStatus,
   JobStatusType,
   BatchOperation,
+  JobHandler,
 } from "@brains/job-queue";
 import type { Job } from "@brains/types";
 
@@ -234,6 +235,9 @@ export interface PluginContext {
       };
     }>
   >;
+
+  // Job handler registration (for plugins that process jobs)
+  registerJobHandler: (type: string, handler: JobHandler) => void;
 
   // Interface plugin capabilities
   registerDaemon: (name: string, daemon: Daemon) => void;
