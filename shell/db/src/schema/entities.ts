@@ -4,11 +4,10 @@ import {
   text,
   integer,
   real,
-  uniqueIndex,
+  primaryKey,
 } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { createId } from "./utils";
 import { vector } from "./vector";
 
 /**
@@ -19,9 +18,7 @@ export const entities = sqliteTable(
   "entities",
   {
     // Core fields
-    id: text("id")
-      .notNull()
-      .$defaultFn(() => createId()),
+    id: text("id").notNull(),
     entityType: text("entityType").notNull(),
 
     // Content with frontmatter
@@ -52,11 +49,8 @@ export const entities = sqliteTable(
   },
   (table) => {
     return {
-      // Composite unique constraint on entityType + id
-      entityTypeIdUnique: uniqueIndex("entity_type_id_unique").on(
-        table.entityType,
-        table.id,
-      ),
+      // Composite primary key on id + entityType
+      pk: primaryKey({ columns: [table.id, table.entityType] }),
     };
   },
 );

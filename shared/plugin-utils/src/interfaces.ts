@@ -17,7 +17,11 @@ import type {
   ViewTemplate,
 } from "@brains/view-registry";
 import type { IEntityService } from "@brains/entity-service";
-import type { BatchJobStatus, JobStatusType, BatchOperation } from "@brains/job-queue";
+import type {
+  BatchJobStatus,
+  JobStatusType,
+  BatchOperation,
+} from "@brains/job-queue";
 import type { Job } from "@brains/types";
 
 /**

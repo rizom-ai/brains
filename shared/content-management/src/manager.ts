@@ -443,15 +443,15 @@ export class ContentManager {
       throw new Error("No entities to promote");
     }
 
-    // TODO: Currently there's no job handler for "content-promote"
-    // This will fail unless we create a ContentPromoteJobHandler
-    // For now, these operations should remain synchronous
     const operations = previewIds.map((id) => ({
-      type: "content-promote",
+      type: "content-derivation",
       entityId: id,
       entityType: "site-content-preview" as const,
       options: {
+        entityId: id,
+        sourceEntityType: "site-content-preview",
         targetEntityType: "site-content-production",
+        // options.deleteSource defaults to false in the handler
       },
     }));
 
@@ -486,14 +486,16 @@ export class ContentManager {
       throw new Error("No entities to rollback");
     }
 
-    // TODO: Currently there's no job handler for "content-rollback"
-    // This will fail unless we create a ContentRollbackJobHandler
-    // For now, these operations should remain synchronous
     const operations = productionIds.map((id) => ({
-      type: "content-rollback",
+      type: "content-derivation",
       entityId: id,
       entityType: "site-content-production" as const,
-      options: {},
+      options: {
+        entityId: id,
+        sourceEntityType: "site-content-production",
+        targetEntityType: "site-content-preview",
+        // options.deleteSource defaults to false in the handler
+      },
     }));
 
     const batchOptions: { userId?: string; priority?: number } = {};

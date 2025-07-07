@@ -417,11 +417,15 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
         batchId: z
           .string()
           .optional()
-          .describe("Specific batch ID to check (leave empty for all active operations)"),
+          .describe(
+            "Specific batch ID to check (leave empty for all active operations)",
+          ),
         jobTypes: z
           .array(z.string())
           .optional()
-          .describe("Filter by specific job types (only when batchId is not provided)"),
+          .describe(
+            "Filter by specific job types (only when batchId is not provided)",
+          ),
       },
       async (params) => {
         try {

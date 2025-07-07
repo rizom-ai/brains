@@ -107,7 +107,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
           embedding,
         })
         .onConflictDoUpdate({
-          target: entities.id,
+          target: [entities.id, entities.entityType],
           set: {
             content: data.content,
             metadata: data.metadata,

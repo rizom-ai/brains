@@ -157,21 +157,44 @@ export class EntityService implements IEntityService {
     // Generate embedding synchronously
     const embedding = await this.embeddingService.generateEmbedding(markdown);
 
-    // Store in database
-    await this.db.insert(entities).values({
-      id: validatedEntity.id,
-      entityType: validatedEntity.entityType,
-      content: markdown,
-      metadata,
-      created: new Date(validatedEntity.created).getTime(),
-      updated: new Date(validatedEntity.updated).getTime(),
-      contentWeight,
-      embedding,
-    });
+    // Store in database with upsert (insert or update on conflict)
+    await this.db
+      .insert(entities)
+      .values({
+        id: validatedEntity.id,
+        entityType: validatedEntity.entityType,
+        content: markdown,
+        metadata,
+        created: new Date(validatedEntity.created).getTime(),
+        updated: new Date(validatedEntity.updated).getTime(),
+        contentWeight,
+        embedding,
+      })
+      .onConflictDoUpdate({
+        target: [entities.id, entities.entityType],
+        set: {
+          content: markdown,
+          metadata,
+          updated: new Date(validatedEntity.updated).getTime(),
+          contentWeight,
+          embedding,
+        },
+      });
 
     this.logger.info(
-      `Created entity of type ${entity["entityType"]} with ID ${validatedEntity.id}`,
+      `Created/Updated entity of type ${entity["entityType"]} with ID ${validatedEntity.id}`,
     );
+
+    // Verify the entity was actually persisted
+    const verification = await this.getEntity(validatedEntity.entityType, validatedEntity.id);
+    if (!verification) {
+      throw new Error(`Failed to persist entity ${validatedEntity.id} of type ${validatedEntity.entityType}`);
+    }
+    
+    this.logger.info("Entity persistence verified", {
+      id: validatedEntity.id,
+      entityType: validatedEntity.entityType,
+    });
 
     return validatedEntity;
   }
@@ -705,18 +728,30 @@ export class EntityService implements IEntityService {
       );
     }
 
+    this.logger.info("Deriving entity", {
+      sourceId: source.id,
+      sourceEntityId,
+      sourceEntityType,
+      targetEntityType,
+    });
+
     // Create the derived entity by copying source fields
-    // Exclude metadata fields that are auto-generated
+    // Exclude auto-generated fields but KEEP the ID
     const {
-      id: _id,
       created: _created,
       updated: _updated,
       entityType: _entityType,
       ...sourceFields
     } = source;
 
+    this.logger.info("Source fields for derivation", {
+      sourceFields,
+      hasId: 'id' in sourceFields,
+      id: sourceFields.id,
+    });
+
     const derived = await this.createEntitySync<T>({
-      ...sourceFields,
+      ...sourceFields, // This includes the ID
       entityType: targetEntityType,
     } as T);
 
