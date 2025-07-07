@@ -552,14 +552,19 @@ export class Shell {
    */
   public getPublicContext(): {
     entityService: EntityService;
-    generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
+    generateContent: <T = unknown>(
+      config: ContentGenerationConfig,
+    ) => Promise<T>;
     getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
   } {
     return {
       entityService: this.entityService,
-      generateContent: <T = unknown>(config: ContentGenerationConfig): Promise<T> =>
-        this.generateContent<T>(config),
-      getBatchStatus: async (batchId: string): Promise<BatchJobStatus | null> => {
+      generateContent: <T = unknown>(
+        config: ContentGenerationConfig,
+      ): Promise<T> => this.generateContent<T>(config),
+      getBatchStatus: async (
+        batchId: string,
+      ): Promise<BatchJobStatus | null> => {
         const batchManager = BatchJobManager.getInstance(
           this.jobQueueService,
           this.logger,

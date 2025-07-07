@@ -124,6 +124,45 @@ export class PluginContextFactory {
 }
 ```
 
+##### Step 2.5: Update JobHandler Interface Type Constraints
+
+The current JobHandler interface is constrained to only accept core job types, which prevents plugins from registering their own handlers:
+
+```typescript
+// Current implementation in job-queue/src/types.ts (too restrictive):
+export interface JobHandler<
+  TJobType extends JobType = JobType, // JobType = keyof (CoreJobDefinitions & PluginJobDefinitions)
+  TInput = JobDataFor<TJobType>,
+  TOutput = JobResultFor<TJobType>,
+> {
+  process(data: TInput, jobId: string): Promise<TOutput>;
+  onError?(error: Error, data: TInput, jobId: string): Promise<void>;
+  validateAndParse(data: unknown): TInput | null;
+}
+```
+
+This needs to be updated to allow any string as a job type:
+
+```typescript
+// Updated to support dynamic plugin job types:
+export interface JobHandler<
+  TJobType extends string = string, // Allow any string job type
+  TInput = any, // Default to any for flexibility
+  TOutput = any, // Default to any for flexibility
+> {
+  process(data: TInput, jobId: string): Promise<TOutput>;
+  onError?(error: Error, data: TInput, jobId: string): Promise<void>;
+  validateAndParse(data: unknown): TInput | null;
+}
+```
+
+This change:
+
+- Allows plugins to define their own job types (e.g., "site-builder:site-build")
+- Maintains type safety for core handlers that specify exact types
+- Enables the handlers Map to store `JobHandler` without type parameters
+- Relies on runtime validation through `validateAndParse` for safety
+
 ##### Step 3: Update JobQueueService
 
 Add dynamic registration support:
@@ -149,6 +188,8 @@ export class JobQueueService implements IJobQueueService {
 
 #### Trial Implementation: Site Builder Build Job
 
+**Note**: This implementation assumes the JobHandler interface has been updated as described in Step 2.5 to support plugin-defined job types.
+
 ##### Create Job Handler
 
 ```typescript
@@ -156,6 +197,7 @@ export class JobQueueService implements IJobQueueService {
 export class SiteBuildJobHandler
   implements JobHandler<"site-builder:site-build">
 {
+  // Plugin-specific job type
   constructor(
     private siteBuilder: SiteBuilder,
     private logger: Logger,

@@ -27,6 +27,7 @@ import {
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
 import { SiteBuilderInitializationError, SiteBuildError } from "./errors";
+import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import packageJson from "../package.json";
 
 /**
@@ -179,6 +180,14 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       context,
     );
 
+    // Register job handler for site builds
+    const siteBuildHandler = new SiteBuildJobHandler(
+      this.logger.child("SiteBuildJobHandler"),
+      context,
+    );
+    context.registerJobHandler("site-build", siteBuildHandler);
+    this.logger.debug("Registered site-build job handler");
+
     // Site builder is now encapsulated within the plugin
   }
 
@@ -272,7 +281,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       ),
     );
 
-    // Build tool - builds the site without content generation
+    // Build tool - now uses job queue for async processing
     tools.push(
       this.createTool(
         "build",
@@ -282,16 +291,21 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .enum(["preview", "production"])
             .default("preview")
             .describe("Build environment: preview (default) or production"),
+          async: z
+            .boolean()
+            .default(true)
+            .describe("Run asynchronously via job queue (default: true)"),
         },
         async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.siteBuilder) {
-            throw new Error("Site builder not initialized");
+          if (!this.context) {
+            throw new Error("Plugin context not initialized");
           }
 
           // Parse input for environment option
-          const environment =
-            (input as { environment?: "preview" | "production" }).environment ??
-            "preview";
+          const { environment = "preview", async = true } = input as {
+            environment?: "preview" | "production";
+            async?: boolean;
+          };
 
           // Use the plugin's configuration
           const config = this.config;
@@ -302,40 +316,68 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               ? config.productionOutputDir
               : config.previewOutputDir;
 
-          try {
-            const result = await this.siteBuilder.build(
-              {
-                outputDir,
-                workingDir: config.workingDir,
-                enableContentGeneration: false,
-                environment,
-                siteConfig: config.siteConfig ?? {
-                  title: "Personal Brain",
-                  description: "A knowledge management system",
-                },
-              },
-              context?.sendProgress,
+          const jobData = {
+            environment,
+            outputDir,
+            workingDir: config.workingDir,
+            enableContentGeneration: false,
+            siteConfig: config.siteConfig ?? {
+              title: "Personal Brain",
+              description: "A knowledge management system",
+            },
+          };
+
+          if (async) {
+            // Queue the job for async processing
+            const jobId = await this.context.enqueueJob(
+              "site-builder:site-build",
+              jobData,
+              { priority: 5 },
             );
 
             return {
-              success: result.success,
-              routesBuilt: result.routesBuilt,
+              status: "queued",
+              message: `Site build for ${environment} environment queued`,
+              jobId,
               outputDir,
-              environment,
-              errors: result.errors,
-              warnings: result.warnings,
+              tip: "Use the status tool to check progress of this operation.",
             };
-          } catch (error) {
-            const buildError = new SiteBuildError("Site build failed", error, {
-              tool: "build",
-              outputDir,
-              environment,
-            });
-            const message = buildError.message;
-            return {
-              success: false,
-              error: message,
-            };
+          } else {
+            // Run synchronously (for backward compatibility)
+            if (!this.siteBuilder) {
+              throw new Error("Site builder not initialized");
+            }
+
+            try {
+              const result = await this.siteBuilder.build(
+                jobData,
+                context?.sendProgress,
+              );
+
+              return {
+                success: result.success,
+                routesBuilt: result.routesBuilt,
+                outputDir,
+                environment,
+                errors: result.errors,
+                warnings: result.warnings,
+              };
+            } catch (error) {
+              const buildError = new SiteBuildError(
+                "Site build failed",
+                error,
+                {
+                  tool: "build",
+                  outputDir,
+                  environment,
+                },
+              );
+              const message = buildError.message;
+              return {
+                success: false,
+                error: message,
+              };
+            }
           }
         },
         "anchor", // Internal tool - modifies filesystem
@@ -522,6 +564,60 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           };
         },
         "anchor", // Internal tool - modifies entities
+      ),
+    );
+
+    // Build site tool - combines content generation and site building
+    tools.push(
+      this.createTool(
+        "build-site",
+        "Generate content and build site in one operation",
+        {
+          environment: z
+            .enum(["preview", "production"])
+            .default("preview")
+            .describe("Build environment: preview (default) or production"),
+        },
+        async (input): Promise<Record<string, unknown>> => {
+          if (!this.context) {
+            throw new Error("Plugin context not initialized");
+          }
+
+          const { environment = "preview" } = input as {
+            environment?: "preview" | "production";
+          };
+
+          const config = this.config;
+          const outputDir =
+            environment === "production"
+              ? config.productionOutputDir
+              : config.previewOutputDir;
+
+          // Queue the build job with content generation enabled
+          const jobId = await this.context.enqueueJob(
+            "site-builder:site-build",
+            {
+              environment,
+              outputDir,
+              workingDir: config.workingDir,
+              enableContentGeneration: true,
+              siteConfig: config.siteConfig ?? {
+                title: "Personal Brain",
+                description: "A knowledge management system",
+              },
+            },
+            { priority: 5 },
+          );
+
+          return {
+            status: "queued",
+            message: `Site build with content generation for ${environment} environment queued`,
+            jobId,
+            outputDir,
+            tip: "This will generate all missing content and build the site. Use the status tool to check progress.",
+          };
+        },
+        "anchor", // Internal tool - modifies filesystem and entities
       ),
     );
 

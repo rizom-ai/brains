@@ -1,19 +1,17 @@
-import type {
-  JobQueue,
-  JobOptions,
-  JobType,
-  JobDataFor,
-  JobResultFor,
-} from "@brains/db";
+import type { JobQueue, JobOptions, JobType, JobDataFor } from "@brains/db";
 import type { JobResult } from "./schemas";
 
 /**
  * Job handler interface for processing specific job types
+ *
+ * @template TJobType - The job type string (can be any string for plugin extensibility)
+ * @template TInput - The input data type for the job
+ * @template TOutput - The output data type for the job
  */
 export interface JobHandler<
-  TJobType extends JobType = JobType,
-  TInput = JobDataFor<TJobType>,
-  TOutput = JobResultFor<TJobType>,
+  _TJobType extends string = string,
+  TInput = unknown,
+  TOutput = unknown,
 > {
   /**
    * Process a job of this type

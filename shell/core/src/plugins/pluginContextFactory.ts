@@ -82,12 +82,16 @@ export class PluginContextFactory {
     this.logger = logger.child("PluginContextFactory");
     this.plugins = plugins;
     this.daemonRegistry = DaemonRegistry.getInstance(logger);
-    
+
     // Resolve JobQueueService once on initialization
     try {
-      this.jobQueueService = this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+      this.jobQueueService =
+        this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
     } catch (error) {
-      this.logger.warn("JobQueueService not available during initialization", error);
+      this.logger.warn(
+        "JobQueueService not available during initialization",
+        error,
+      );
     }
   }
 

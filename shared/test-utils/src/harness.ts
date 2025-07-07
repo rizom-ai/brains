@@ -336,6 +336,10 @@ export class PluginTestHarness {
         // Mock implementation - return empty array
         return [];
       },
+      // Job handler registration
+      registerJobHandler: (): void => {
+        // Mock implementation for test harness
+      },
       // Daemon registration
       registerDaemon: (): void => {
         // Mock implementation for test harness
