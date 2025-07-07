@@ -1,10 +1,12 @@
 ---
 type: strategy
 ---
+
 ## What is Rizom?
+
 Rizom is a decentralized professional ecosystem where talented individuals like you can combine your skills without sacrificing your unique style and approach. We're building an organic, resilient community inspired by rhizomes—plant systems that thrive through connection, knowledge sharing, and adaptability.
 
-## How does Rizom work? 
+## How does Rizom work?
 
 We operate through three interconnected layers supported by a foundational infrastructure:
 
@@ -27,6 +29,7 @@ Unlike traditional workplaces or freelance platforms, we're creating a genuine e
 - You'll work in pre-vetted empowered product teams, not as an isolated freelancer
 
 As a Rizom collaborator, you'll benefit from:
+
 - Access to a thriving ecosystem of like-minded professionals
 - Opportunities to work on curated, purpose-driven projects
 - Continuous learning through structured knowledge exchange
@@ -40,18 +43,21 @@ We're a band of "misfits"—creative, talented professionals who haven't found t
 We focus on purpose-driven projects centered around digital transformation and AI transition, with particular strength in these areas:
 
 **Digital Transformation Projects**
+
 - Enterprise-wide digital strategy implementation
 - Business process digitization and optimization
 - Technology modernization and integration
 - Digital experience design and deployment
 
 **AI Strategy and Implementation**
+
 - AI readiness assessments and roadmapping
 - AI solution design and development
 - Ethical AI governance frameworks
 - Human-AI collaboration models
 
 **Public Sector Digital Initiatives**
+
 - Citizen service modernization
 - Digital policy implementation
 - Open data initiatives
@@ -59,6 +65,7 @@ We focus on purpose-driven projects centered around digital transformation and A
 - Government technology modernization
 
 **Education Transformation**
+
 - Digital learning environment design
 - Educational technology implementation
 - AI-enhanced teaching and learning tools
@@ -72,21 +79,25 @@ Our projects typically require diverse skill sets and collaborative approaches, 
 INFRA is the technological and methodological foundation that powers the entire Rizom ecosystem. It serves multiple critical functions:
 
 **Infrastructure Development**
+
 - Creates and maintains the technological platforms and tools that enable seamless collaboration
 - Develops and refines our Theory of Mind System (TMS) and knowledge amplification tools
 - Ensures security, privacy, and ethical considerations in all our systems
 
 **Knowledge Management**
+
 - Designs frameworks and methodologies for capturing, organizing, and sharing knowledge
 - Facilitates knowledge circulation between projects, teams, and members
 - Creates AI-assisted workflows that enhance human capability rather than replacing it
 
 **Ecosystem Enablement**
+
 - Supports onboarding and integration of new members into the ecosystem
 - Provides training and development resources for community growth
 - Measures and optimizes ecosystem health and effectiveness
 
 **Innovation Hub**
+
 - Researches emerging collaboration methods and knowledge management approaches
 - Tests and develops new tools that enhance collective intelligence
 - Creates pathways for productizing successful methodologies
@@ -99,6 +110,7 @@ At the heart of our ecosystem is a unique approach to creating, sharing, and app
 
 **Our Theory of Mind System (TMS)**
 TMS is our proprietary framework that helps capture how individual minds work and collaborate. This system:
+
 - Maps each member's unique thinking patterns, skills, and knowledge areas
 - Identifies optimal collaboration patterns between different thinking styles
 - Facilitates more effective team formation by matching complementary capabilities
@@ -106,6 +118,7 @@ TMS is our proprietary framework that helps capture how individual minds work an
 
 **Knowledge Amplification Tools**
 Built on our TMS foundation, our collaboration tools help:
+
 - Transform tacit knowledge (what you know but can't easily explain) into explicit, shareable insights
 - Create AI-assisted workflows that enhance rather than replace human creativity
 - Build collective intelligence that's greater than the sum of individual contributions
@@ -218,6 +231,7 @@ We're particularly interested in professionals who feel constrained by tradition
 ## How is Rizom structured legally?
 
 We operate through two main legal entities:
+
 - **Cores**: Organizations responsible for client acquisition and project management (starting with Core 0 in the Netherlands)
 - **INFRA**: The organization developing tools and methods to facilitate the collective (based in Singapore)
 
@@ -230,6 +244,7 @@ No. Unlike platforms that simply match talent with work, Rizom creates an ecosys
 
 **"How stable is the work opportunity?"**
 While we can't guarantee continuous work, our model is designed to create sustainability through:
+
 - Cores absorbing client acquisition costs and risks
 - Knowledge systems that help match you to appropriate opportunities
 - Transparent revenue sharing that creates mutual interest in long-term success
@@ -264,6 +279,7 @@ The path to client work varies based on your experience, skills, and our current
 ## What types of professionals are currently in the Rizom ecosystem?
 
 Our community includes a diverse range of talents:
+
 - Designers and creative directors
 - Software engineers and technologists
 - Business strategists and consultants

@@ -36,7 +36,6 @@ export default function App({
     const handleResponse = (...args: unknown[]): void => {
       const response = args[0] as string;
 
-
       setMessages((prev) => [
         ...prev,
         {

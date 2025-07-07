@@ -13,6 +13,7 @@ When evaluating Rizom's revenue model, comparing raw percentages to traditional 
 ### The Freelancer Experience: Traditional Platforms vs. Rizom
 
 **Traditional Freelance Platform (e.gRevenue., Upwork)**
+
 - Platform fee: 20% (declining to 5-10% for long-term clients)
 - Freelancer receives: 80-95% of project value
 - **BUT** freelancers must personally absorb:
@@ -25,11 +26,12 @@ When evaluating Rizom's revenue model, comparing raw percentages to traditional 
   - No pathway to increased platform ownership or governance
 
 **Rizom Ecosystem**
+
 - Collaborator receives: 60% of project value
 - **BUT** Rizom absorbs:
   - All client acquisition costs and efforts
   - Project management and client relationship maintenance
-  - Financial risks (payment guarantees) 
+  - Financial risks (payment guarantees)
   - Team formation and coordination
   - Infrastructure development and maintenance
   - Knowledge sharing and professional development
@@ -40,6 +42,7 @@ When evaluating Rizom's revenue model, comparing raw percentages to traditional 
 ### The 60% to Collaborators
 
 This represents the fair value of the direct work contribution, recognizing that significant value also comes from:
+
 - The ecosystem that enables the collaboration
 - The risk mitigation provided by Cores
 - The infrastructure that enhances productivity

@@ -40,7 +40,7 @@ export function StatusBarWithProgress({
 
     const fetchData = async (): Promise<void> => {
       if (isLoadingJobs) return; // Prevent overlapping fetches
-      
+
       setIsLoadingJobs(true);
       try {
         const [jobs, batches] = await Promise.all([
@@ -51,7 +51,7 @@ export function StatusBarWithProgress({
         if (isMounted) {
           setActiveJobs(jobs);
           setActiveBatches(batches);
-          
+
           // Removed debug logging - too noisy
         }
       } catch {
@@ -84,9 +84,9 @@ export function StatusBarWithProgress({
   const hasActiveOps = totalActiveOps > 0;
 
   // Get the most relevant batch for progress display
-  const activeBatch = activeBatches.find(
-    (b) => b.status.status === "processing"
-  ) ?? activeBatches[0];
+  const activeBatch =
+    activeBatches.find((b) => b.status.status === "processing") ??
+    activeBatches[0];
 
   return (
     <Box width="100%">
@@ -102,7 +102,7 @@ export function StatusBarWithProgress({
           <Text color={isConnected ? "green" : "red"}>
             {isConnected ? "Connected" : "Disconnected"}
           </Text>
-          <Text color="gray">  │  </Text>
+          <Text color="gray"> │ </Text>
           <Text color="gray">Messages: </Text>
           <Text color="yellow">{messageCount}</Text>
         </Box>

@@ -26,11 +26,6 @@ async function main(): Promise<void> {
         primaryColor: "#00ff00",
         accentColor: "#ffff00",
       },
-      shortcuts: {
-        nn: "create note",
-        ln: "list notes",
-        sn: "search notes",
-      },
     },
     interfaces: [],
     plugins: [

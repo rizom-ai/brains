@@ -126,18 +126,18 @@ export class App {
     };
     const logLevel =
       logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
-    
+
     // Check if CLI interface is enabled
     const hasCLI = this.config.interfaces.some(
       (i) => i.type === "cli" && i.enabled,
     );
-    
+
     const logger = Logger.createFresh({
       level: logLevel,
       context: this.config.name,
       useStderr: hasCLI, // Use stderr when CLI is active to avoid interfering with Ink UI
     });
-    
+
     // Configure global logger instance to also use stderr if CLI is active
     if (hasCLI) {
       Logger.getInstance().setUseStderr(true);
@@ -178,7 +178,7 @@ export class App {
       const hasCLI = this.config.interfaces.some(
         (i) => i.type === "cli" && i.enabled,
       );
-      
+
       if (hasCLI) {
         console.error(`\nReceived ${signal}, shutting down gracefully...`);
       } else {

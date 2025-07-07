@@ -27,15 +27,15 @@ export function ProgressBar({
 }: ProgressBarProps): React.ReactElement {
   // Calculate percentage
   const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
-  
+
   // Calculate filled width
   const filledWidth = Math.round((current / total) * width);
   const emptyWidth = width - filledWidth;
-  
+
   // Create bar string
   const filledBar = barCompleteChar.repeat(Math.max(0, filledWidth));
   const emptyBar = barIncompleteChar.repeat(Math.max(0, emptyWidth));
-  
+
   return (
     <Box>
       {message && (

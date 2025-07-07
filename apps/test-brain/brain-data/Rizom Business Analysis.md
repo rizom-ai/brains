@@ -1,6 +1,7 @@
 ---
 type: research
 ---
+
 ## 1. Business Model & Pain Points
 
 ### Proposition
@@ -11,15 +12,15 @@ Rizom transforms how organizations share knowledge by combining expert talent, p
 
 #### Organizations
 
-During the growth phase, most collectives (organization, networks, ecosystems)  go through a similar trajectory. In the early stages, they evolve smoothly and organically until a certain critical mass has been realized. 
+During the growth phase, most collectives (organization, networks, ecosystems) go through a similar trajectory. In the early stages, they evolve smoothly and organically until a certain critical mass has been realized.
 
 After that bottlenecks start to appears, the most common ones are:
 
-* Dependence on certain key people (f.i. founders)
-* Perceived need to be physically present in the office
-* Coordination issues between departments
-* Abundance of regular and ad-hoc meetings
-* Over-reliance on tools and procedures
+- Dependence on certain key people (f.i. founders)
+- Perceived need to be physically present in the office
+- Coordination issues between departments
+- Abundance of regular and ad-hoc meetings
+- Over-reliance on tools and procedures
 
 The common cause of all these bottleneck is insufficient access to trusted shared knowledge. Rizom helps collectives to overcome this bottleneck by providing methods, tools, and services to manage shared knowledge.
 
@@ -27,13 +28,13 @@ The common cause of all these bottleneck is insufficient access to trusted share
 
 Current professionals are caught between a rock and a hard place. They either have to chose the secure but constrained path of a regular job, or they have to walk the free but risky path of self-employment. The gig economy and its corresponding platforms promised a third option between these two extremes, but offered the worst of both world: meaning it combined the constraints of a regular job with the risks of self-employment.
 
-***Employees****:*
+**\*Employees\*\***:\*
 
-* Rigid work schedules
-* Limited career growth
-* Fixed salary constraints
+- Rigid work schedules
+- Limited career growth
+- Fixed salary constraints
 
-***Freelancers****:*
+**\*Freelancers\*\***:\*
 
 Unstable freelance income
 
@@ -41,7 +42,7 @@ Self-managed benefits
 
 Unpaid administrative work
 
-***Common****:*
+**\*Common\*\***:\*
 
 Poor work-life balance
 
@@ -54,7 +55,6 @@ Boundary setting challenges
 Lacking meaningful purpose
 
 The common cause of all these pain points is an unsustainable risk/reward distribution between companies and professionals. Rizom helps collectives to overcome this bottleneck by a fair shared compensation and ownership model. This model is based on contributed value rather than mere time/revenue.
-
 
 ## 2. Key Services & Products
 
@@ -76,15 +76,15 @@ Rizom operates as a dynamic professional collective, bringing together seasoned 
 
 ### Solutions
 
-Rizom offers a decentralized knowledge-sharing solution that transforms organizations into dynamic learning ecosystems. At its core, it employs a git-like versioning system that breaks down complex organizational knowledge into atomic, trackable units. 
+Rizom offers a decentralized knowledge-sharing solution that transforms organizations into dynamic learning ecosystems. At its core, it employs a git-like versioning system that breaks down complex organizational knowledge into atomic, trackable units.
 
 This innovative approach directly addresses the key bottleneck of insufficient access to trusted shared knowledge by:
 
-* Reducing dependence on key individuals through distributed knowledge management
-* Enabling effective remote collaboration without physical presence requirements
-* Streamlining cross-departmental coordination through transparent information flow
-* Minimizing the need for excessive meetings through asynchronous knowledge sharing
-* Replacing rigid tools and procedures with adaptive learning systems
+- Reducing dependence on key individuals through distributed knowledge management
+- Enabling effective remote collaboration without physical presence requirements
+- Streamlining cross-departmental coordination through transparent information flow
+- Minimizing the need for excessive meetings through asynchronous knowledge sharing
+- Replacing rigid tools and procedures with adaptive learning systems
 
 #### Services
 
@@ -108,12 +108,11 @@ Q2 2025: Scale Offcourse platform capabilities with focus on distributed knowled
 
 Q3 2025: Develop new team knowledge flow measurement tools
 
-
 ## 3. Customer Analysis
 
 ### Ideal Customer Profile
 
-* Organizations experiencing knowledge-sharing bottlenecks
+- Organizations experiencing knowledge-sharing bottlenecks
 
   Forward-thinking organizations ready for transformation
 
@@ -127,15 +126,15 @@ Q3 2025: Develop new team knowledge flow measurement tools
 
 Strengths:
 
-* Strong adoption of Offcourse methodology
-* Successful cross-industry partnerships
-* High engagement with play-based approaches
+- Strong adoption of Offcourse methodology
+- Successful cross-industry partnerships
+- High engagement with play-based approaches
 
 Areas for Growth:
 
-* Need for longer-term engagement tracking
-* Opportunity for more structured feedback loops
-* Potential for deeper integration of tools
+- Need for longer-term engagement tracking
+- Opportunity for more structured feedback loops
+- Potential for deeper integration of tools
 
 ## 4. Company Identity
 
@@ -153,29 +152,25 @@ Rizom empowers collectives to thrive by curating meaningful connections, moderat
 
 ### Core Values
 
-* Celebrate Differences
-* Collaborative Innovation
-* Playful Exploration
-* Personal Growth
-* Ecosystem Thinking
-* Knowledge Sharing
+- Celebrate Differences
+- Collaborative Innovation
+- Playful Exploration
+- Personal Growth
+- Ecosystem Thinking
+- Knowledge Sharing
 
 ### Company Descriptors
 
-* Visionary
-* Transformative
-* Playful
-* Innovative
-* Empowering
-* Collaborative
-* Knowledge-Centric
+- Visionary
+- Transformative
+- Playful
+- Innovative
+- Empowering
+- Collaborative
+- Knowledge-Centric
 
 ### Key Differentiators
 
-* Proven knowledge-sharing methodology
-* Strong institutional partnerships
-* Innovative product suite for distributed knowledge management
-
-
-
-
+- Proven knowledge-sharing methodology
+- Strong institutional partnerships
+- Innovative product suite for distributed knowledge management

@@ -412,4 +412,15 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       message.startsWith(this.config.anchorPrefix)
     );
   }
+
+  /**
+   * Override getHelpText to format for Matrix (with markdown)
+   */
+  protected override getHelpText(): string {
+    const baseHelp = super.getHelpText();
+    // Convert plain text formatting to Matrix markdown
+    return baseHelp
+      .replace("Available commands:", "**Available commands:**")
+      .replace(/• \/(\w+)/g, "• `/$$1`"); // Wrap commands in backticks
+  }
 }

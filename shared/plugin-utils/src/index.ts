@@ -20,7 +20,10 @@ export { pluginMetadataSchema, DaemonHealthSchema } from "./interfaces";
 // Plugin base classes
 export { BasePlugin } from "./base-plugin";
 export { InterfacePlugin } from "./interface-plugin";
-export { MessageInterfacePlugin } from "./message-interface-plugin";
+export {
+  MessageInterfacePlugin,
+  type Command,
+} from "./message-interface-plugin";
 
 // Plugin utilities
 export { validatePluginConfig, createPluginConfig } from "./config";

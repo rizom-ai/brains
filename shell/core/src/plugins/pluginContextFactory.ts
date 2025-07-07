@@ -385,10 +385,20 @@ export class PluginContextFactory {
       ): Promise<string> => {
         try {
           // Check if this is a shell-provided job type (no scoping needed)
-          const shellJobTypes = ["content-generation", "content-derivation", "embedding-generation"];
-          const scopedType = shellJobTypes.includes(type) ? type : `${pluginId}:${type}`;
-          
-          const jobId = await jobQueueService.enqueue(scopedType, data, options);
+          const shellJobTypes = [
+            "content-generation",
+            "content-derivation",
+            "embedding-generation",
+          ];
+          const scopedType = shellJobTypes.includes(type)
+            ? type
+            : `${pluginId}:${type}`;
+
+          const jobId = await jobQueueService.enqueue(
+            scopedType,
+            data,
+            options,
+          );
 
           this.logger.debug("Enqueued job", {
             jobId,

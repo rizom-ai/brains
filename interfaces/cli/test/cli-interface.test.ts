@@ -62,9 +62,9 @@ describe("CLIInterface", () => {
 
     it("should create instance with custom config", async () => {
       const config = {
-        shortcuts: {
-          h: "/help",
-          q: "/quit",
+        theme: {
+          primaryColor: "#ff0000",
+          accentColor: "#00ff00",
         },
       };
       cliInterface = new CLIInterface(config);

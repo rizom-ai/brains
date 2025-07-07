@@ -1,9 +1,37 @@
 import type { DefaultQueryResponse } from "@brains/types";
-import type { IMessageInterfacePlugin, MessageContext, PluginContext } from "./interfaces";
-import type { z } from "zod";
+import type {
+  IMessageInterfacePlugin,
+  MessageContext,
+  PluginContext,
+} from "./interfaces";
+import { z } from "zod";
 import { InterfacePlugin } from "./interface-plugin";
 import { EventEmitter } from "node:events";
 import PQueue from "p-queue";
+
+/**
+ * Command definition interface
+ */
+export interface Command {
+  name: string;
+  description: string;
+  usage?: string;
+  handler: (args: string[], context: MessageContext) => Promise<string>;
+}
+
+// Test job schemas
+const testBatchJobSchema = z.object({
+  duration: z.number().optional().default(1000),
+  item: z.number().optional(),
+});
+
+const testSlowJobSchema = z.object({
+  duration: z.number().optional().default(5000),
+  message: z.string().optional(),
+});
+
+type TestBatchJobData = z.infer<typeof testBatchJobSchema>;
+type TestSlowJobData = z.infer<typeof testSlowJobSchema>;
 
 /**
  * Base implementation of MessageInterfacePlugin
@@ -51,40 +79,127 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   }
 
   /**
+   * Get base commands available to all message interfaces
+   * Override this to add interface-specific commands
+   */
+  protected getCommands(): Command[] {
+    return [
+      {
+        name: "help",
+        description: "Show this help message",
+        handler: async () => this.getHelpText(),
+      },
+      {
+        name: "search",
+        description: "Search your knowledge base",
+        usage: "/search <query>",
+        handler: async (args, context) => {
+          if (args.length === 0) {
+            return "Please provide a search query. Usage: /search <query>";
+          }
+          const searchQuery = args.join(" ");
+          return this.processQuery(searchQuery, context);
+        },
+      },
+      {
+        name: "list",
+        description: "List entities (notes, tasks, etc.)",
+        usage: "/list [type]",
+        handler: async (args, context) => {
+          const listQuery = args[0] ? `list all ${args[0]}` : "list all notes";
+          return this.processQuery(listQuery, context);
+        },
+      },
+      {
+        name: "test-progress",
+        description: "Test progress tracking with a slow job",
+        handler: async () => {
+          if (!this.context) {
+            return "Plugin context not initialized";
+          }
+          try {
+            const jobId = await this.context.enqueueJob("test-slow-job", {
+              duration: 10000,
+              message: "Testing progress tracking",
+            });
+            return `Test job enqueued with ID: ${jobId}\nWatch the status bar for progress!`;
+          } catch (error) {
+            return `Failed to enqueue test job: ${error instanceof Error ? error.message : String(error)}`;
+          }
+        },
+      },
+      {
+        name: "test-batch",
+        description: "Test batch progress tracking",
+        usage: "/test-batch [count]",
+        handler: async (args) => {
+          if (!this.context) {
+            return "Plugin context not initialized";
+          }
+          try {
+            const count = parseInt(args[0] ?? "5") || 5;
+            const operations = Array.from({ length: count }, (_, i) => ({
+              type: `${this.id}:test-batch-job`,
+              entityId: `test-entity-${i}`,
+              entityType: "test",
+              options: {
+                item: i + 1,
+                duration: 1000 + i * 500,
+              },
+            }));
+            const batchId = await this.context.enqueueBatch(operations, {
+              priority: 5,
+            });
+            return `Batch operation enqueued with ID: ${batchId}\n${count} operations queued. Watch the status bar for progress!`;
+          } catch (error) {
+            return `Failed to enqueue batch: ${error instanceof Error ? error.message : String(error)}`;
+          }
+        },
+      },
+    ];
+  }
+
+  /**
    * Override onRegister to register test handlers for all message interfaces
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
-    
+
     // Register test batch job handler for progress testing
     // Available to all message interfaces (CLI, Matrix, etc.)
     context.registerJobHandler("test-batch-job", {
-      process: async (data: any) => {
-        const duration = data.duration || 1000;
-        await new Promise(resolve => setTimeout(resolve, duration));
+      process: async (data: TestBatchJobData) => {
+        const duration = data.duration;
+        await new Promise((resolve) => setTimeout(resolve, duration));
         return { success: true, item: data.item };
       },
-      validateAndParse: (data: unknown) => data
+      validateAndParse: (data: unknown): TestBatchJobData | null => {
+        const parsed = testBatchJobSchema.safeParse(data);
+        return parsed.success ? parsed.data : null;
+      },
     });
-    
+
     // Register test slow job handler for single job progress testing
     // Available to all message interfaces (CLI, Matrix, etc.)
     context.registerJobHandler("test-slow-job", {
-      process: async (data: any) => {
-        const duration = data.duration || 5000;
+      process: async (data: TestSlowJobData) => {
+        const duration = data.duration;
         const steps = 10;
         const stepDuration = duration / steps;
-        
+
         for (let i = 0; i < steps; i++) {
-          await new Promise(resolve => setTimeout(resolve, stepDuration));
+          await new Promise((resolve) => setTimeout(resolve, stepDuration));
           // Progress is tracked automatically by the job queue
         }
-        
-        return { success: true, message: "Test completed!" };
+
+        return { success: true, message: data.message ?? "Test completed!" };
       },
-      validateAndParse: (data: unknown) => data
+      validateAndParse: (data: unknown): TestSlowJobData | null => {
+        const parsed = testSlowJobSchema.safeParse(data);
+        return parsed.success ? parsed.data : null;
+      },
     });
-    
+
     this.logger.debug("Registered test job handlers for message interface");
   }
 
@@ -198,58 +313,37 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
    */
   public async executeCommand(
     command: string,
-    _context: MessageContext,
+    context: MessageContext,
   ): Promise<string> {
     const [cmd, ...args] = command.slice(1).split(" ");
 
-    // Handle test commands that are common to all message interfaces
-    switch (cmd) {
-      case "test-progress":
-        // Test command to verify progress tracking
-        if (!this.context) {
-          return "Plugin context not initialized";
-        }
-        try {
-          const jobId = await this.context.enqueueJob("test-slow-job", {
-            duration: 10000, // 10 seconds
-            message: "Testing progress tracking"
-          });
-          return `Test job enqueued with ID: ${jobId}\nWatch the status bar for progress!`;
-        } catch (error) {
-          return `Failed to enqueue test job: ${error instanceof Error ? error.message : String(error)}`;
-        }
-        
-      case "test-batch":
-        // Test command to verify batch progress tracking
-        if (!this.context) {
-          return "Plugin context not initialized";
-        }
-        try {
-          const count = parseInt(args[0] || "5") || 5;
-          
-          // Create batch operations - use scoped type name based on interface ID
-          const operations = Array.from({ length: count }, (_, i) => ({
-            type: `${this.id}:test-batch-job`, // Scoped to the specific interface
-            entityId: `test-entity-${i}`,
-            entityType: "test",
-            options: {
-              item: i + 1,
-              duration: 1000 + (i * 500), // Each job takes progressively longer
-            }
-          }));
-          
-          const batchId = await this.context.enqueueBatch(operations, {
-            priority: 5,
-          });
-          
-          return `Batch operation enqueued with ID: ${batchId}\n${count} operations queued. Watch the status bar for progress!`;
-        } catch (error) {
-          return `Failed to enqueue batch: ${error instanceof Error ? error.message : String(error)}`;
-        }
-        
-      default:
-        // Default: Return unknown command (interfaces should override this)
-        return `Unknown command: ${command}. Type /help for available commands.`;
+    // Get all available commands
+    const commands = this.getCommands();
+    const commandDef = commands.find((c) => c.name === cmd);
+
+    if (commandDef) {
+      return commandDef.handler(args, context);
     }
+
+    return `Unknown command: ${command}. Type /help for available commands.`;
+  }
+
+  /**
+   * Get help text for common commands
+   * Override this to customize or extend the help message
+   */
+  protected getHelpText(): string {
+    const commands = this.getCommands();
+    const commandList = commands
+      .map((cmd) => {
+        const usage = cmd.usage ?? `/${cmd.name}`;
+        return `• ${usage} - ${cmd.description}`;
+      })
+      .join("\n");
+
+    return `Available commands:
+${commandList}
+
+Type any message to interact with the brain.`;
   }
 }

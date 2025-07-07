@@ -67,9 +67,7 @@ export function BatchProgress({
           {successfulOperations > 0 && (
             <Box>
               <Text color="green">✓ </Text>
-              <Text color="gray">
-                {successfulOperations} successful
-              </Text>
+              <Text color="gray">{successfulOperations} successful</Text>
             </Box>
           )}
 
@@ -77,9 +75,7 @@ export function BatchProgress({
           {failedOperations > 0 && (
             <Box>
               <Text color="red">✗ </Text>
-              <Text color="gray">
-                {failedOperations} failed
-              </Text>
+              <Text color="gray">{failedOperations} failed</Text>
             </Box>
           )}
 
@@ -97,9 +93,7 @@ export function BatchProgress({
               ))}
               {errors.length > 3 && (
                 <Box marginLeft={2}>
-                  <Text color="gray">
-                    ... and {errors.length - 3} more
-                  </Text>
+                  <Text color="gray">... and {errors.length - 3} more</Text>
                 </Box>
               )}
             </Box>

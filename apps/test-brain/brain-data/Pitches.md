@@ -2,16 +2,13 @@
 type: research
 ---
 
-
 ## Y-Combinator Version
 
 Rizom is the Spotify for work
 
-
 ## Elevator Pitch
 
 Rizom is the Spotify for work, bringing together top professionals into high-performing teams. Our platform makes it easy for companies to access elite talent that's already organized into effective teams, while giving professionals the tools to work independently with the stability of traditional employment. Using transparent performance metrics and fair compensation systems, we are creating a new way for talent to collaborate that benefits everyone.
-
 
 ## Long Pitch
 

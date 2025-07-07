@@ -5,7 +5,6 @@ export const cliConfigSchema = z.object({
     primaryColor: z.string(),
     accentColor: z.string(),
   }),
-  shortcuts: z.record(z.string()),
 });
 
 export type CLIConfig = z.infer<typeof cliConfigSchema>;
