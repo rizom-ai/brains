@@ -10,9 +10,11 @@ export const contentDerivationJobDataSchema = z.object({
   entityId: z.string(),
   sourceEntityType: z.string(),
   targetEntityType: z.string().nullable(), // null means delete the source
-  options: z.object({
-    deleteSource: z.boolean().optional().default(false),
-  }).optional(),
+  options: z
+    .object({
+      deleteSource: z.boolean().optional().default(false),
+    })
+    .optional(),
 });
 
 export type ContentDerivationJobData = z.infer<
@@ -107,8 +109,8 @@ export class ContentDerivationJobHandler
           data.targetEntityType,
           derivedEntity.id,
         );
-        
-        this.logger.info("Derivation verification", {
+
+        this.logger.debug("Derivation verification", {
           jobId,
           derivedEntityId: derivedEntity.id,
           exists: !!verification,

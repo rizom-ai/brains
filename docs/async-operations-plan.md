@@ -814,6 +814,317 @@ System: 3 background operations in progress:
 - **Day 2 Afternoon** (4 hours): Testing and migration
 - **Total**: 2 days (16 hours)
 
+## Phase 6: Plugin-Specific Job Handlers (NEW)
+
+### 6.1 Problem Statement
+
+Currently, all job handlers are registered directly in the shell, which:
+- Violates plugin boundaries (shell shouldn't know about plugin-specific jobs)
+- Prevents plugins from defining truly custom background operations
+- Limits extensibility of the job queue system
+
+### 6.2 Solution: Dynamic Job Handler Registration
+
+#### 6.2.1 Enable PluginJobDefinitions Augmentation
+
+Plugins can augment the job type definitions:
+
+```typescript
+// plugins/site-builder/src/types.ts
+declare module "@brains/db" {
+  interface PluginJobDefinitions {
+    "site-build": {
+      input: SiteBuildJobData;
+      output: BuildResult;
+    };
+  }
+}
+
+export interface SiteBuildJobData {
+  outputDir: string;
+  siteConfig?: SiteConfig;
+  workingDir?: string;
+  clean?: boolean;
+}
+
+export interface BuildResult {
+  success: boolean;
+  routesBuilt: number;
+  errors: string[];
+  warnings: string[];
+  outputDir: string;
+}
+```
+
+#### 6.2.2 Implement registerJobHandler in PluginContextFactory
+
+Update `shell/core/src/plugins/pluginContextFactory.ts`:
+
+```typescript
+export class PluginContextFactory {
+  // Track plugin-specific handlers
+  private pluginHandlers = new Map<string, Map<string, JobHandler>>();
+
+  createContext(pluginId: string): PluginContext {
+    return {
+      // ... existing methods ...
+
+      registerJobHandler: (type: string, handler: JobHandler) => {
+        // Scope handler to plugin
+        const scopedType = `${pluginId}:${type}`;
+        
+        // Track for cleanup
+        if (!this.pluginHandlers.has(pluginId)) {
+          this.pluginHandlers.set(pluginId, new Map());
+        }
+        this.pluginHandlers.get(pluginId)!.set(scopedType, handler);
+        
+        // Register with job queue
+        this.jobQueueService.registerHandler(scopedType, handler);
+        
+        this.logger.debug(`Registered job handler ${scopedType}`);
+      },
+    };
+  }
+
+  // Clean up handlers when plugin is unloaded
+  cleanupPlugin(pluginId: string): void {
+    const handlers = this.pluginHandlers.get(pluginId);
+    if (handlers) {
+      for (const [type, _handler] of handlers) {
+        this.jobQueueService.unregisterHandler(type);
+      }
+      this.pluginHandlers.delete(pluginId);
+    }
+  }
+}
+```
+
+#### 6.2.3 Update JobQueueService for Dynamic Registration
+
+Add handler unregistration support:
+
+```typescript
+export class JobQueueService implements IJobQueueService {
+  private handlers = new Map<string, JobHandler>();
+
+  // Existing method
+  public registerHandler(type: string, handler: JobHandler): void {
+    this.handlers.set(type, handler);
+  }
+
+  // New method for cleanup
+  public unregisterHandler(type: string): void {
+    this.handlers.delete(type);
+    this.logger.debug(`Unregistered handler for job type: ${type}`);
+  }
+
+  // Update getRegisteredTypes to show all types
+  public getRegisteredTypes(): string[] {
+    return Array.from(this.handlers.keys());
+  }
+}
+```
+
+### 6.3 Trial Case: Site Builder Build Job
+
+#### 6.3.1 Create SiteBuildJobHandler
+
+```typescript
+// plugins/site-builder/src/handlers/siteBuildJobHandler.ts
+export class SiteBuildJobHandler implements JobHandler<"site-builder:site-build"> {
+  constructor(
+    private siteBuilder: SiteBuilder,
+    private logger: Logger,
+  ) {}
+
+  async process(
+    data: SiteBuildJobData,
+    jobId: string,
+  ): Promise<BuildResult> {
+    this.logger.info("Starting site build job", { jobId, outputDir: data.outputDir });
+
+    try {
+      // Use existing build method with progress callback
+      const result = await this.siteBuilder.build(
+        {
+          outputDir: data.outputDir,
+          siteConfig: data.siteConfig,
+          workingDir: data.workingDir,
+          clean: data.clean ?? true,
+        },
+        (message, current, total) => {
+          // Could emit progress events here
+          this.logger.debug("Build progress", { message, current, total });
+        },
+      );
+
+      this.logger.info("Site build completed", {
+        jobId,
+        routesBuilt: result.routesBuilt,
+        success: result.errors.length === 0,
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error("Site build failed", { jobId, error });
+      throw error;
+    }
+  }
+
+  validateAndParse(data: unknown): SiteBuildJobData | null {
+    try {
+      return siteBuildJobDataSchema.parse(data);
+    } catch (error) {
+      this.logger.warn("Invalid site build job data", { data, error });
+      return null;
+    }
+  }
+
+  async onError(error: Error, data: SiteBuildJobData, jobId: string): Promise<void> {
+    this.logger.error("Site build job error handler", {
+      jobId,
+      outputDir: data.outputDir,
+      error: error.message,
+    });
+  }
+}
+```
+
+#### 6.3.2 Register Handler in Plugin
+
+Update `plugins/site-builder/src/plugin.ts`:
+
+```typescript
+export class SiteBuilderPlugin extends BasePlugin {
+  async register(context: PluginContext): Promise<PluginCapabilities> {
+    // ... existing registration ...
+
+    // Register job handler if supported
+    if (context.registerJobHandler && this.siteBuilder) {
+      const buildHandler = new SiteBuildJobHandler(
+        this.siteBuilder,
+        this.logger,
+      );
+      context.registerJobHandler("site-build", buildHandler);
+    }
+
+    return {
+      tools: await this.getTools(),
+      resources: await this.getResources(),
+    };
+  }
+
+  protected override async getTools(): Promise<PluginTool[]> {
+    const tools = await super.getTools();
+
+    // Add build-site tool
+    if (this.siteBuilder) {
+      tools.push(
+        this.createTool(
+          "build-site",
+          "Build static site from content",
+          {
+            outputDir: z.string().describe("Output directory for built site"),
+            clean: z.boolean().optional().default(true).describe("Clean output directory first"),
+          },
+          async (input) => {
+            // Queue the build job
+            const jobId = await this.context.enqueueJob(
+              `${this.metadata.id}:site-build`,
+              {
+                outputDir: input.outputDir,
+                siteConfig: this.config.siteConfig,
+                clean: input.clean,
+              },
+            );
+
+            return {
+              status: "queued",
+              message: "Site build queued",
+              jobId,
+              tip: "Use the status tool to check build progress",
+            };
+          },
+          "admin", // Building sites is an admin operation
+        ),
+      );
+    }
+
+    return tools;
+  }
+}
+```
+
+### 6.4 Benefits of Plugin Job Handlers
+
+1. **True Plugin Extensibility**: Plugins can define any background operation
+2. **Clean Architecture**: Shell doesn't need to know about plugin-specific jobs
+3. **Type Safety**: Plugins augment PluginJobDefinitions for full type support
+4. **Lifecycle Management**: Handlers are automatically cleaned up when plugins unload
+5. **Namespacing**: Plugin job types are automatically scoped to prevent conflicts
+
+### 6.5 Usage Pattern
+
+```typescript
+// Plugin defines job type
+"site-builder:site-build"
+
+// User triggers via tool
+> build-site --output-dir ./dist
+
+// System response
+{
+  "status": "queued",
+  "jobId": "job-xyz",
+  "message": "Site build queued",
+  "tip": "Use the status tool to check build progress"
+}
+
+// Check status
+> shell:status
+{
+  "operations": [{
+    "jobId": "job-xyz",
+    "type": "site-builder:site-build",
+    "status": "processing",
+    "plugin": "site-builder",
+    "progress": "Building route: /about"
+  }]
+}
+```
+
+### 6.6 Implementation Checklist
+
+- [ ] Update PluginContext interface to make `registerJobHandler` required
+- [ ] Implement `registerJobHandler` in PluginContextFactory
+- [ ] Add `unregisterHandler` to JobQueueService
+- [ ] Create SiteBuildJobHandler in site-builder plugin
+- [ ] Add build-site tool to site-builder plugin
+- [ ] Update plugin cleanup to unregister handlers
+- [ ] Test handler lifecycle (register, process, unregister)
+- [ ] Document pattern for other plugins to follow
+
+## Appendix: Completed Work Details
+
+### Phase 1: Job Queue Package Extraction ✅
+
+Successfully extracted job queue from entity-service into `@brains/job-queue` package with proper dependency boundaries.
+
+### Phase 2: Plugin Context Updates ✅
+
+Implemented generic job queue methods in PluginContext, removing all domain-specific methods for cleaner architecture.
+
+### Phase 3: Batch Operations Infrastructure ✅
+
+Created BatchJobManager and converted ContentManager to async-only API with consistent batch operation support.
+
+### Phase 4: MCP Compatibility Fixes ✅
+
+- Fixed generate tool blocking behavior
+- Added missing rollbackAll feature
+- Implemented shell-level status tool
+
 ## Future Enhancements
 
 1. Job cancellation support
@@ -825,3 +1136,4 @@ System: 3 background operations in progress:
 7. WebSocket support for real-time updates
 8. Batch operation templates
 9. Scheduled operations
+10. Plugin-specific job queues with isolation

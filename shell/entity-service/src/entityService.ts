@@ -186,12 +186,17 @@ export class EntityService implements IEntityService {
     );
 
     // Verify the entity was actually persisted
-    const verification = await this.getEntity(validatedEntity.entityType, validatedEntity.id);
+    const verification = await this.getEntity(
+      validatedEntity.entityType,
+      validatedEntity.id,
+    );
     if (!verification) {
-      throw new Error(`Failed to persist entity ${validatedEntity.id} of type ${validatedEntity.entityType}`);
+      throw new Error(
+        `Failed to persist entity ${validatedEntity.id} of type ${validatedEntity.entityType}`,
+      );
     }
-    
-    this.logger.info("Entity persistence verified", {
+
+    this.logger.debug("Entity persistence verified", {
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
     });
@@ -728,7 +733,7 @@ export class EntityService implements IEntityService {
       );
     }
 
-    this.logger.info("Deriving entity", {
+    this.logger.debug("Deriving entity", {
       sourceId: source.id,
       sourceEntityId,
       sourceEntityType,
@@ -744,9 +749,9 @@ export class EntityService implements IEntityService {
       ...sourceFields
     } = source;
 
-    this.logger.info("Source fields for derivation", {
+    this.logger.debug("Source fields for derivation", {
       sourceFields,
-      hasId: 'id' in sourceFields,
+      hasId: "id" in sourceFields,
       id: sourceFields.id,
     });
 

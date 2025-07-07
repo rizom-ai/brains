@@ -2,7 +2,7 @@ import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { createId } from "./utils";
-import type { 
+import type {
   ContentGenerationJobData,
   ContentDerivationJobData,
 } from "@brains/content-generator";
