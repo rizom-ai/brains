@@ -96,7 +96,7 @@ export class ContentDerivationJobHandler
           { deleteSource: data.options?.deleteSource ?? false },
         );
 
-        this.logger.info("Content derivation completed successfully", {
+        this.logger.debug("Content derivation completed successfully", {
           jobId,
           sourceEntityId: data.entityId,
           derivedEntityId: derivedEntity.id,
