@@ -530,6 +530,44 @@ export class PluginContextFactory {
         }
       },
 
+      // Get all active jobs
+      getActiveJobs: async (types?: string[]) => {
+        try {
+          const jobQueueService =
+            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (!jobQueueService) {
+            throw new Error("JobQueueService not available");
+          }
+
+          // JobQueue from DB already satisfies Job interface
+          return await jobQueueService.getActiveJobs(types);
+        } catch (error) {
+          this.logger.error("Failed to get active jobs", { error });
+          throw error;
+        }
+      },
+
+      // Get all active batches
+      getActiveBatches: async () => {
+        try {
+          const jobQueueService =
+            this.serviceRegistry.resolve<JobQueueService>("jobQueueService");
+          if (!jobQueueService) {
+            throw new Error("JobQueueService not available");
+          }
+
+          const batchJobManager = BatchJobManager.getInstance(
+            jobQueueService,
+            this.logger,
+          );
+
+          return await batchJobManager.getActiveBatches();
+        } catch (error) {
+          this.logger.error("Failed to get active batches", { error });
+          throw error;
+        }
+      },
+
       // Interface plugin capabilities
       registerDaemon: (name: string, daemon: Daemon): void => {
         try {

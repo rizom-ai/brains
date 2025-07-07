@@ -44,6 +44,10 @@ export type {
 // Formatter types
 export type { SchemaFormatter, ContentFormatter } from "./formatters";
 
+// Job types
+export type { Job } from "./jobs";
+export { jobSchema } from "./jobs";
+
 // View types have been moved to @brains/view-registry
 
 // Re-export commonly used types from utils

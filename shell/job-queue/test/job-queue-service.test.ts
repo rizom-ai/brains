@@ -501,29 +501,29 @@ describe("JobQueueService", () => {
         ...testEntity,
         id: "test-789",
       });
-      
+
       // Mark one as processing by dequeuing it
       const processingJob = await service.dequeue();
       expect(processingJob?.id).toBe(pendingId); // First job gets dequeued
-      
+
       // Complete one job
       await service.complete(completedId, {});
-      
+
       // Get active jobs
       const activeJobs = await service.getActiveJobs();
-      
+
       // Should have 2 active jobs (1 pending, 1 processing)
       expect(activeJobs.length).toBe(2);
-      expect(activeJobs.some(j => j.id === pendingId)).toBe(true);
-      expect(activeJobs.some(j => j.id === processingId)).toBe(true);
-      expect(activeJobs.some(j => j.id === completedId)).toBe(false);
+      expect(activeJobs.some((j) => j.id === pendingId)).toBe(true);
+      expect(activeJobs.some((j) => j.id === processingId)).toBe(true);
+      expect(activeJobs.some((j) => j.id === completedId)).toBe(false);
     });
 
     it("should filter by job types when specified", async () => {
       // Register another handler
       const testHandler2 = new TestJobHandler();
       service.registerHandler("content-generation", testHandler2);
-      
+
       // Create jobs of different types
       const embeddingId = await service.enqueue("embedding", testEntity);
       const contentId = await service.enqueue("content-generation", {
@@ -531,19 +531,22 @@ describe("JobQueueService", () => {
         context: {},
         userId: "user-123",
       });
-      
+
       // Get only embedding jobs
       const embeddingJobs = await service.getActiveJobs(["embedding"]);
       expect(embeddingJobs.length).toBe(1);
       expect(embeddingJobs[0]?.id).toBe(embeddingId);
-      
+
       // Get only content generation jobs
       const contentJobs = await service.getActiveJobs(["content-generation"]);
       expect(contentJobs.length).toBe(1);
       expect(contentJobs[0]?.id).toBe(contentId);
-      
+
       // Get both types
-      const allJobs = await service.getActiveJobs(["embedding", "content-generation"]);
+      const allJobs = await service.getActiveJobs([
+        "embedding",
+        "content-generation",
+      ]);
       expect(allJobs.length).toBe(2);
     });
 
@@ -551,7 +554,7 @@ describe("JobQueueService", () => {
       // Create and complete a job
       const jobId = await service.enqueue("embedding", testEntity);
       await service.complete(jobId, {});
-      
+
       const activeJobs = await service.getActiveJobs();
       expect(activeJobs).toEqual([]);
     });
@@ -562,21 +565,21 @@ describe("JobQueueService", () => {
         ...testEntity,
         id: "test-1",
       });
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       const job2 = await service.enqueue("embedding", {
         ...testEntity,
         id: "test-2",
       });
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       const job3 = await service.enqueue("embedding", {
         ...testEntity,
         id: "test-3",
       });
-      
+
       const activeJobs = await service.getActiveJobs();
-      
+
       // Most recent first
       expect(activeJobs[0]?.id).toBe(job3);
       expect(activeJobs[1]?.id).toBe(job2);

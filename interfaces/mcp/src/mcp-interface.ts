@@ -417,7 +417,11 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
         batchId: z
           .string()
           .optional()
-          .describe("Specific batch ID to check (leave empty for help)"),
+          .describe("Specific batch ID to check (leave empty for all active operations)"),
+        jobTypes: z
+          .array(z.string())
+          .optional()
+          .describe("Filter by specific job types (only when batchId is not provided)"),
       },
       async (params) => {
         try {
@@ -484,18 +488,53 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
               ],
             };
           } else {
-            // Show help message
+            // Show all active operations
+            const jobTypes = params["jobTypes"] as string[] | undefined;
+            const activeJobs = await context.getActiveJobs(jobTypes);
+            const activeBatches = await context.getActiveBatches();
+
+            // Format individual jobs
+            const formattedJobs = activeJobs.map((job) => ({
+              id: job.id,
+              type: job.type,
+              status: job.status,
+              priority: job.priority,
+              retryCount: job.retryCount,
+              createdAt: new Date(job.createdAt).toISOString(),
+              startedAt: job.startedAt
+                ? new Date(job.startedAt).toISOString()
+                : null,
+            }));
+
+            // Format batch operations
+            const formattedBatches = activeBatches.map((batch) => ({
+              batchId: batch.batchId,
+              status: batch.status.status,
+              totalOperations: batch.status.totalOperations,
+              completedOperations: batch.status.completedOperations,
+              failedOperations: batch.status.failedOperations,
+              currentOperation: batch.status.currentOperation,
+              userId: batch.metadata.userId,
+              startedAt: batch.metadata.startedAt,
+              errors: batch.status.errors,
+            }));
+
             return {
               content: [
                 {
                   type: "text" as const,
                   text: JSON.stringify(
                     {
-                      message:
-                        "To check a specific batch, provide the batchId parameter",
-                      tip: "Batch IDs are returned when you run operations like generate-all",
-                      example:
-                        "shell:check-job-status --batchId batch_1234567890_abc123",
+                      summary: {
+                        activeJobs: formattedJobs.length,
+                        activeBatches: formattedBatches.length,
+                      },
+                      jobs: formattedJobs,
+                      batches: formattedBatches,
+                      tip:
+                        formattedBatches.length > 0
+                          ? "Use shell:check-job-status --batchId <id> to check specific batch progress"
+                          : undefined,
                     },
                     null,
                     2,

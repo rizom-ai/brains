@@ -17,7 +17,8 @@ import type {
   ViewTemplate,
 } from "@brains/view-registry";
 import type { IEntityService } from "@brains/entity-service";
-import type { BatchJobStatus, JobStatusType } from "@brains/job-queue";
+import type { BatchJobStatus, JobStatusType, BatchOperation } from "@brains/job-queue";
+import type { Job } from "@brains/types";
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -213,6 +214,22 @@ export interface PluginContext {
   ) => Promise<string>;
 
   getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
+
+  // Get all active jobs (pending or processing)
+  getActiveJobs: (types?: string[]) => Promise<Job[]>;
+
+  // Get all active batches
+  getActiveBatches: () => Promise<
+    Array<{
+      batchId: string;
+      status: BatchJobStatus;
+      metadata: {
+        operations: BatchOperation[];
+        userId?: string;
+        startedAt: string;
+      };
+    }>
+  >;
 
   // Interface plugin capabilities
   registerDaemon: (name: string, daemon: Daemon) => void;

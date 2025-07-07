@@ -195,15 +195,16 @@ describe("BatchJobManager", () => {
       await batchManager.enqueueBatch([
         { type: "embedding", entityId: "entity-1" },
       ]);
-      
+
       await batchManager.enqueueBatch([
         { type: "embedding", entityId: "entity-2" },
         { type: "embedding", entityId: "entity-3" },
       ]);
-      
-      const batch3Id = await batchManager.enqueueBatch([
-        { type: "embedding", entityId: "entity-4" },
-      ], { userId: "user-123" });
+
+      const batch3Id = await batchManager.enqueueBatch(
+        [{ type: "embedding", entityId: "entity-4" }],
+        { userId: "user-123" },
+      );
 
       // Complete the first batch's job
       const job = await jobQueueService.dequeue();
@@ -217,7 +218,7 @@ describe("BatchJobManager", () => {
       // Should have 3 batches (1 completed, 2 pending/processing)
       // But getActiveBatches should return only the active ones
       expect(activeBatches.length).toBeGreaterThanOrEqual(2);
-      
+
       // Check that each active batch has the expected structure
       for (const batch of activeBatches) {
         expect(batch.batchId).toBeDefined();
@@ -228,7 +229,7 @@ describe("BatchJobManager", () => {
       }
 
       // Check that batch3 has userId
-      const batch3 = activeBatches.find(b => b.batchId === batch3Id);
+      const batch3 = activeBatches.find((b) => b.batchId === batch3Id);
       expect(batch3?.metadata.userId).toBe("user-123");
     });
 
@@ -237,9 +238,9 @@ describe("BatchJobManager", () => {
       const operations: BatchOperation[] = [
         { type: "embedding", entityId: "entity-1" },
       ];
-      
+
       await batchManager.enqueueBatch(operations);
-      
+
       // Process and complete the job
       const job = await jobQueueService.dequeue();
       if (job) {
@@ -248,7 +249,7 @@ describe("BatchJobManager", () => {
 
       // Get active batches
       const activeBatches = await batchManager.getActiveBatches();
-      
+
       // Should have no active batches (all completed)
       expect(activeBatches.length).toBe(0);
     });

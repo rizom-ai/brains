@@ -14,7 +14,8 @@ import type {
 import type { IEntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
-import type { BatchJobStatus } from "@brains/job-queue";
+import type { BatchJobStatus, BatchOperation } from "@brains/job-queue";
+import type { Job } from "@brains/types";
 import type { z } from "zod";
 
 export interface PluginTestHarnessOptions {
@@ -314,6 +315,26 @@ export class PluginTestHarness {
       waitForJob: async (): Promise<unknown> => {
         // Mock implementation - return mock content
         return "Mock generated content";
+      },
+      // Get all active jobs
+      getActiveJobs: async (): Promise<Job[]> => {
+        // Mock implementation - return empty array
+        return [];
+      },
+      // Get all active batches
+      getActiveBatches: async (): Promise<
+        Array<{
+          batchId: string;
+          status: BatchJobStatus;
+          metadata: {
+            operations: BatchOperation[];
+            userId?: string;
+            startedAt: string;
+          };
+        }>
+      > => {
+        // Mock implementation - return empty array
+        return [];
       },
       // Daemon registration
       registerDaemon: (): void => {

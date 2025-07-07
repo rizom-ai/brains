@@ -8,7 +8,7 @@ import {
   EntityService,
   EmbeddingJobHandler,
 } from "@brains/entity-service";
-import { JobQueueService, JobQueueWorker } from "@brains/job-queue";
+import { JobQueueService, JobQueueWorker, BatchJobManager } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "./plugins/pluginManager";
 import {
@@ -525,5 +525,28 @@ export class Shell {
 
   public getLogger(): Logger {
     return this.logger;
+  }
+
+  public getJobQueueService(): JobQueueService {
+    return this.jobQueueService;
+  }
+
+  /**
+   * Get a public context for shell tools
+   * This provides access to shell services with public permissions
+   */
+  public getPublicContext() {
+    return {
+      entityService: this.entityService,
+      generateContent: (config: ContentGenerationConfig) =>
+        this.generateContent(config),
+      getBatchStatus: async (batchId: string) => {
+        const batchManager = BatchJobManager.getInstance(
+          this.jobQueueService,
+          this.logger,
+        );
+        return batchManager.getBatchStatus(batchId);
+      },
+    };
   }
 }

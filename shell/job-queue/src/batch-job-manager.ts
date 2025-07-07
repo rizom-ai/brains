@@ -261,8 +261,11 @@ export class BatchJobManager {
       // Check each batch's status
       for (const [batchId, metadata] of this.batches) {
         const status = await this.getBatchStatus(batchId);
-        
-        if (status && (status.status === "pending" || status.status === "processing")) {
+
+        if (
+          status &&
+          (status.status === "pending" || status.status === "processing")
+        ) {
           activeBatches.push({
             batchId,
             status,
