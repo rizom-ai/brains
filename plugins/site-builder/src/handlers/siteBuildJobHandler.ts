@@ -13,7 +13,7 @@ import {
  */
 export class SiteBuildJobHandler
   implements
-    JobHandler<"site-builder:site-build", SiteBuildJobData, SiteBuildJobResult>
+    JobHandler<"site-build", SiteBuildJobData, SiteBuildJobResult>
 {
   constructor(
     private logger: Logger,
