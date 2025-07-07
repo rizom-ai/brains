@@ -152,6 +152,28 @@ describe("PluginManager", (): void => {
         validateViewTemplate: (): boolean => true,
       }),
       getMessageBus: (): MessageBus => MessageBus.getInstance(logger),
+      getJobQueueService: () => ({
+        registerHandler: mock(() => {}),
+        unregisterHandler: mock(() => {}),
+        enqueue: mock(async () => "job-123"),
+        dequeue: mock(async () => null),
+        processJob: mock(async () => ({ status: "completed", jobId: "job-123", type: "test" })),
+        complete: mock(async () => {}),
+        fail: mock(async () => {}),
+        update: mock(async () => {}),
+        getStatus: mock(async () => null),
+        getStatusByEntityId: mock(async () => null),
+        getStats: mock(async () => ({
+          pending: 0,
+          processing: 0,
+          failed: 0,
+          completed: 0,
+          total: 0,
+        })),
+        cleanup: mock(async () => 0),
+        getActiveJobs: mock(async () => []),
+        getRegisteredTypes: mock(() => []),
+      }),
     };
     serviceRegistry.register("shell", () => mockShell as unknown as Shell);
 

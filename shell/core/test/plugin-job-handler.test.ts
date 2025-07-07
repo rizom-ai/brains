@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ServiceRegistry } from "@brains/service-registry";
 import { createSilentLogger } from "@brains/utils";
 import { PluginContextFactory } from "../src/plugins/pluginContextFactory";
-import type { JobHandler, IJobQueueService, JobResult } from "@brains/job-queue";
+import type {
+  JobHandler,
+  IJobQueueService,
+  JobResult,
+} from "@brains/job-queue";
 import type { Logger } from "@brains/utils";
 import type { JobQueue } from "@brains/db";
 
