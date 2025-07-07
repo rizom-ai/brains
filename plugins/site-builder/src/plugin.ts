@@ -236,11 +236,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           let sectionsToGenerate = 0;
           for (const route of routes) {
             if (options.pageId && route.id !== options.pageId) continue;
-            
+
             const sections = options.sectionId
               ? route.sections.filter((s) => s.id === options.sectionId)
               : route.sections;
-            
+
             sectionsToGenerate += sections.length;
           }
 
@@ -264,7 +264,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           return {
             status: "queued",
-            message: `Generating ${sectionsToGenerate} section${sectionsToGenerate !== 1 ? 's' : ''}`,
+            message: `Generating ${sectionsToGenerate} section${sectionsToGenerate !== 1 ? "s" : ""}`,
             batchId,
             tip: "Use the status tool to check progress of this operation.",
           };

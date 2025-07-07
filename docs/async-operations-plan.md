@@ -629,30 +629,35 @@ MCP interface leverages native progress support - no special handling needed.
 - Add `rollback-all` tool to plugin (parallel to `promote-all`)
 - Follow same pattern as promoteAll: calls `rollback({ dryRun: false })`
 
-#### 3.3 Missing Site-Builder Status Tool (MEDIUM PRIORITY) 🟡
+#### 3.3 Missing Unified Status Tool (HIGH PRIORITY) 🔴
 
-**Problem**: Site-builder tools reference non-existent status tool
+**Problem**: No unified way to check job/batch operation status
 
-- Promote, rollback, generate tools all say "Use the status tool to check progress"
-- No `site-builder:status` tool exists (though other plugins have their own)
-- LLMs have no way to check site-builder background operations
+- Tools say "Use the status tool to check progress" but no status tool exists
+- Current plugin-specific status tools (directory-sync:status) are for domain-specific info, not job status
+- No way to see all active operations across the system
 
-**Context**: Each plugin implements its own domain-specific status tool
+**Architectural Insight**: Job status is an infrastructure concern
 
-- `directory-sync:status` - Shows sync operations status
-- `git-sync:status` - Shows git operations status (if exists)
-- **Missing**: `site-builder:status` - Should show content operations status
+- Job queue is managed at shell level, status should be too
+- Plugin-specific status tools create redundancy and inconsistency
+- Users need one place to check all background operations
 
-**Solution**:
+**Solution**: Implement shell-level status tool
 
-- Implement `site-builder:status` tool following the plugin pattern
-- Show all active content-related batch operations:
-  - Content generation batches
-  - Promotion batches
-  - Rollback batches
-- Provide LLM-friendly operation summaries
-- Include operation types, progress percentages, current tasks
-- Follow the same pattern as directory-sync:status for consistency
+1. Add to JobQueueService:
+   - `getActiveJobs(types?: string[])` - Query active jobs by type
+   - `getJobsByStatus(status: JobStatus)` - Get jobs by status
+
+2. Add to BatchJobManager:
+   - `getActiveBatches()` - Return active batch metadata
+   - Track which plugin initiated each batch
+
+3. Create shell:status tool:
+   - Registered by shell itself, not plugins
+   - Shows all active operations across all plugins
+   - Unified format for consistent UX
+   - Filterable by plugin, type, or status
 
 #### 3.4 User Experience Improvements (MEDIUM PRIORITY) 🟡
 
@@ -683,7 +688,22 @@ MCP interface leverages native progress support - no special handling needed.
 
 5. **Batch Operations as Core Infrastructure**: BatchJobManager lives in shell/job-queue because it's generic infrastructure, not domain-specific logic.
 
-6. **Plugin-Specific Status Tools**: Each plugin should implement its own domain-specific status tool (e.g., `directory-sync:status`, `site-builder:status`) to provide visibility into operations it manages. This follows the principle of plugin autonomy and domain separation.
+6. **Status as Infrastructure**: Job and batch status reporting is an infrastructure concern that belongs at the shell level. The shell manages the job queue, so it should also provide unified status reporting. Plugin-specific status tools should only report domain-specific information, not job queue status.
+
+## Infrastructure vs Domain Concerns
+
+### Infrastructure (Shell-Level):
+- Job queue management
+- Batch operation tracking
+- Status reporting for jobs/batches
+- Progress notifications
+- Operation timing and estimates
+
+### Domain (Plugin-Level):
+- Business logic and rules
+- Domain-specific formatting
+- Entity-specific operations
+- Domain-specific status (e.g., "sync conflicts" for directory-sync)
 
 ## Benefits
 
@@ -726,20 +746,22 @@ System: {
   "tip": "Use the status tool to check progress"
 }
 
-LLM: site-builder:status
+LLM: shell:status
 System: {
-  "message": "3 content operations in progress",
+  "message": "3 background operations in progress",
   "operations": [
     {
       "batchId": "batch-123",
-      "type": "Content Generation",
+      "plugin": "site-builder",
+      "type": "content-generation",
       "progress": "3/3 sections (100%)",
       "status": "completed",
       "startedAt": "2 minutes ago"
     },
     {
       "batchId": "batch-456",
-      "type": "Content Promotion",
+      "plugin": "site-builder",
+      "type": "content-promotion",
       "progress": "8/12 sections (67%)",
       "status": "processing",
       "currentTask": "Promoting about:team",
@@ -747,7 +769,8 @@ System: {
     },
     {
       "batchId": "batch-789",
-      "type": "Content Rollback",
+      "plugin": "site-builder",
+      "type": "content-rollback",
       "progress": "2/8 sections (25%)",
       "status": "processing",
       "startedAt": "10 seconds ago"
@@ -774,11 +797,11 @@ System: Queued rollback of 8 production sections.
         This operation is running in the background.
         Use 'status' to check progress.
 
-User: site-builder:status
-System: 3 content operations in progress:
-        - Content Generation [batch-123]: 1/1 sections (100%) - completed
-        - Content Promotion [batch-456]: 8/12 sections (67%) - promoting about:team
-        - Content Rollback [batch-789]: 2/8 sections (25%) - processing
+User: status
+System: 3 background operations in progress:
+        - [site-builder] content-generation [batch-123]: 1/1 sections (100%) - completed
+        - [site-builder] content-promotion [batch-456]: 8/12 sections (67%) - promoting about:team
+        - [site-builder] content-rollback [batch-789]: 2/8 sections (25%) - processing
 ```
 
 ## Timeline
