@@ -3,6 +3,7 @@ import type {
   MessageResponse as MessageBusResponse,
   MessageHandler,
   BaseMessage,
+  MessageWithPayload,
 } from "@brains/types";
 
 export {
@@ -45,6 +46,16 @@ export function hasPayload<P = unknown>(
 }
 
 /**
+ * Subscription filter for targeted message delivery
+ */
+export interface SubscriptionFilter {
+  source?: string | RegExp;
+  target?: string | RegExp;
+  metadata?: Record<string, unknown>;
+  predicate?: (message: MessageWithPayload) => boolean;
+}
+
+/**
  * Message bus interface
  */
 export interface IMessageBus {
@@ -52,11 +63,14 @@ export interface IMessageBus {
     type: string,
     payload: T,
     sender: string,
+    target?: string,
+    metadata?: Record<string, unknown>,
   ): Promise<MessageBusResponse<R>>;
 
   subscribe<T = unknown, R = unknown>(
     type: string,
     handler: MessageHandler<T, R>,
+    filter?: SubscriptionFilter,
   ): () => void;
 
   unsubscribe<T = unknown, R = unknown>(

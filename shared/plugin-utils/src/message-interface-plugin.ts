@@ -202,9 +202,10 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
 
-    // Listen for batch operation events and auto-subscribe to their progress
+    // Listen for batch operation events and emit for interfaces to handle
     this.on("batch-operation-created", (...args: unknown[]) => {
       const response = args[0] as BatchOperationResponse;
+
       // Auto-subscribe to progress updates for this batch
       const unsubscribe = context.subscribe("job-progress", async (message) => {
         const validationResult = JobProgressEventSchema.safeParse(
@@ -219,7 +220,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
           progressEvent.type === "batch" &&
           progressEvent.id === response.batchId
         ) {
-          // Emit for any listeners (CLI React components, Matrix tracking, etc.)
+          // Emit for any listeners (CLI React components, Matrix, etc.)
           this.emit("batch-progress", progressEvent);
 
           // Unsubscribe when complete

@@ -1,7 +1,6 @@
 import {
   MessageInterfacePlugin,
   type MessageContext,
-  type BatchOperationResponse,
 } from "@brains/plugin-utils";
 import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
@@ -19,13 +18,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   declare protected config: MatrixConfig;
   private client?: MatrixClientWrapper;
   private permissionHandler?: PermissionHandler;
-  // Track batch operation messages for progress updates
-  private batchProgressMessages = new Map<
-    string,
-    { roomId: string; eventId: string }
-  >();
-  // Track pending batch operations by message context
-  private pendingBatchOperations = new Map<string, BatchOperationResponse>();
 
   constructor(config: MatrixConfigInput, sessionId?: string) {
     super(
@@ -62,27 +54,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     // Set up event handlers
     this.setupEventHandlers();
 
-    // Listen for batch progress events from the base class
-    this.on("batch-progress", (...args: unknown[]) => {
-      const progressEvent = args[0] as {
-        id: string;
-        type: "batch";
-        status: string;
-        batchDetails?: {
-          totalOperations: number;
-          completedOperations: number;
-          failedOperations: number;
-          currentOperation?: string;
-        };
-      };
-
-      // Update the message if we're tracking this batch
-      const messageInfo = this.batchProgressMessages.get(progressEvent.id);
-      if (messageInfo && this.client) {
-        void this.updateBatchProgressMessage(messageInfo, progressEvent);
-      }
-    });
-
     this.logger.info("Starting Matrix interface...");
     await this.client.start();
     this.logger.info("Matrix interface started", {
@@ -112,39 +83,18 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     input: string,
     context: MessageContext,
   ): Promise<string> {
-    // Set up listener for batch operations created by this command
-    const batchHandler = (...args: unknown[]): void => {
-      const response = args[0] as BatchOperationResponse;
-      // Store the batch operation associated with this message
-      if (context.messageId) {
-        this.pendingBatchOperations.set(context.messageId, response);
-      }
-    };
-
-    this.once("batch-operation-created", batchHandler);
-
     // Check for anchor-only commands (!!command)
     if (input.startsWith(this.config.anchorPrefix)) {
       if (context.userId !== this.config.anchorUserId) {
-        // Clean up listener
-        this.off("batch-operation-created", batchHandler);
         throw new Error("This command is restricted to the anchor user");
       }
       // Process as command but remove extra prefix
       const command = input.slice(this.config.anchorPrefix.length - 1);
-      const result = await this.executeCommand(command, context);
-      // Clean up listener if not used
-      this.off("batch-operation-created", batchHandler);
-      return result;
+      return this.executeCommand(command, context);
     }
 
     // Use default routing (commands start with /, everything else is query)
-    const result = await super.handleInput(input, context);
-
-    // Clean up listener if not used
-    this.off("batch-operation-created", batchHandler);
-
-    return result;
+    return super.handleInput(input, context);
   }
 
   /**
@@ -366,7 +316,12 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       const response = await this.handleInput(message, messageContext);
 
       // Send the response
-      await this.sendResponse(roomId, eventId, response);
+      const sentEventId = await this.sendResponse(roomId, eventId, response);
+
+      // Update the message context with the sent event ID for updates
+      if (sentEventId) {
+        messageContext.messageId = sentEventId;
+      }
 
       // Add done reaction
       if (this.config.enableReactions) {
@@ -413,20 +368,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         response,
         html,
       );
-    }
-
-    // Check if this response is for a batch operation
-    const originalMessageId = replyToEventId; // The message that triggered this response
-    const batchOp = this.pendingBatchOperations.get(originalMessageId);
-    if (batchOp) {
-      // Clean up
-      this.pendingBatchOperations.delete(originalMessageId);
-
-      // Track for updates
-      this.batchProgressMessages.set(batchOp.batchId, {
-        roomId,
-        eventId: sentEventId,
-      });
     }
 
     return sentEventId;
@@ -498,88 +439,5 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     return baseHelp
       .replace("Available commands:", "**Available commands:**")
       .replace(/• \/(\w+)/g, "• `/$$1`"); // Wrap commands in backticks
-  }
-
-  /**
-   * Update a Matrix message with batch progress
-   */
-  private async updateBatchProgressMessage(
-    messageInfo: { roomId: string; eventId: string },
-    progressEvent: {
-      id: string;
-      type: "batch";
-      status: string;
-      batchDetails?: {
-        totalOperations: number;
-        completedOperations: number;
-        failedOperations: number;
-        currentOperation?: string;
-      };
-    },
-  ): Promise<void> {
-    if (!this.client) return;
-
-    const batchDetails = progressEvent.batchDetails;
-    if (!batchDetails) {
-      this.logger.warn("Batch progress event missing batchDetails", {
-        event: progressEvent,
-      });
-      return;
-    }
-
-    // Format progress message
-    let progressText = "";
-
-    const progressPercent = Math.round(
-      (batchDetails.completedOperations / batchDetails.totalOperations) * 100,
-    );
-
-    // Update the message based on status
-    if (progressEvent.status === "completed") {
-      progressText = `✅ **Batch operation completed**\n`;
-      progressText += `**Total:** ${batchDetails.totalOperations} operations\n`;
-      progressText += `**Completed:** ${batchDetails.completedOperations}\n`;
-      if (batchDetails.failedOperations > 0) {
-        progressText += `**Failed:** ${batchDetails.failedOperations}\n`;
-      }
-
-      // Clean up
-      this.batchProgressMessages.delete(progressEvent.id);
-    } else if (progressEvent.status === "failed") {
-      progressText = `❌ **Batch operation failed**\n`;
-      progressText += `**Completed:** ${batchDetails.completedOperations}/${batchDetails.totalOperations}\n`;
-      if (batchDetails.failedOperations > 0) {
-        progressText += `**Failed:** ${batchDetails.failedOperations}\n`;
-      }
-
-      // Clean up
-      this.batchProgressMessages.delete(progressEvent.id);
-    } else {
-      progressText = `**Progress:** ${batchDetails.completedOperations}/${batchDetails.totalOperations} operations (${progressPercent}%)\n`;
-
-      if (batchDetails.currentOperation) {
-        progressText += `**Current:** ${batchDetails.currentOperation}\n`;
-      }
-
-      if (batchDetails.failedOperations > 0) {
-        progressText += `**Failed:** ${batchDetails.failedOperations} operations\n`;
-      }
-    }
-
-    // Convert to HTML and edit the message
-    const html = markdownToHtml(progressText);
-    try {
-      await this.client.editMessage(
-        messageInfo.roomId,
-        messageInfo.eventId,
-        progressText,
-        html,
-      );
-    } catch (error) {
-      this.logger.error("Failed to edit progress message", {
-        batchId: progressEvent.id,
-        error,
-      });
-    }
   }
 }

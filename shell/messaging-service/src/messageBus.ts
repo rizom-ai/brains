@@ -5,6 +5,7 @@ import type {
   IMessageBus,
   MessageBusResponse,
   MessageWithPayload,
+  SubscriptionFilter,
 } from "./types";
 import { z } from "zod";
 
@@ -13,6 +14,12 @@ type WrappedHandler = (
   message: MessageWithPayload<unknown>,
 ) => Promise<MessageResponse | null>;
 
+// Handler entry with filter
+interface HandlerEntry {
+  handler: WrappedHandler;
+  filter?: SubscriptionFilter;
+}
+
 /**
  * Message bus for handling messages between components
  * Implements Component Interface Standardization pattern
@@ -20,8 +27,8 @@ type WrappedHandler = (
 export class MessageBus implements IMessageBus {
   private static instance: MessageBus | null = null;
 
-  // Store handlers that work with messages with payload
-  private handlers = new Map<string, Set<WrappedHandler>>();
+  // Store handlers with optional filters
+  private handlers = new Map<string, Set<HandlerEntry>>();
   private logger: Logger;
 
   /**
@@ -59,6 +66,7 @@ export class MessageBus implements IMessageBus {
   subscribe<T = unknown, R = unknown>(
     type: string,
     handler: MessageHandler<T, R>,
+    filter?: SubscriptionFilter,
   ): () => void {
     const wrappedHandler: WrappedHandler = async (
       message: MessageWithPayload<unknown>,
@@ -77,19 +85,33 @@ export class MessageBus implements IMessageBus {
       };
     };
 
+    const entry: HandlerEntry = filter
+      ? { handler: wrappedHandler, filter }
+      : { handler: wrappedHandler };
+
     if (!this.handlers.has(type)) {
       this.handlers.set(type, new Set());
     }
 
     const handlers = this.handlers.get(type);
     if (handlers) {
-      handlers.add(wrappedHandler);
+      handlers.add(entry);
     }
-    this.logger.info(`Registered handler for message type: ${type}`);
+    this.logger.info(`Registered handler for message type: ${type}`, {
+      hasFilter: !!filter,
+      filterTarget: filter?.target,
+    });
 
-    // Return unsubscribe function
-    // We just clear all handlers for the type since we wrap them
-    return () => this.clearHandlers(type);
+    // Return unsubscribe function for this specific handler
+    return () => {
+      const handlers = this.handlers.get(type);
+      if (handlers) {
+        handlers.delete(entry);
+        if (handlers.size === 0) {
+          this.handlers.delete(type);
+        }
+      }
+    };
   }
 
   /**
@@ -99,12 +121,16 @@ export class MessageBus implements IMessageBus {
     type: string,
     payload: T,
     sender: string,
+    target?: string,
+    metadata?: Record<string, unknown>,
   ): Promise<MessageBusResponse<R>> {
     const message: MessageWithPayload<T> = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type,
       timestamp: new Date().toISOString(),
       source: sender,
+      target,
+      metadata,
       payload,
     };
 
@@ -142,7 +168,11 @@ export class MessageBus implements IMessageBus {
     const { type } = message;
     const handlers = this.handlers.get(type) ?? new Set();
 
-    this.logger.debug(`Publishing message of type: ${type}`);
+    this.logger.debug(`Publishing message of type: ${type}`, {
+      source: message.source,
+      target: message.target,
+      hasMetadata: !!message.metadata,
+    });
 
     // If no handlers, log warning and return null
     if (handlers.size === 0) {
@@ -150,10 +180,23 @@ export class MessageBus implements IMessageBus {
       return null;
     }
 
-    // Call handlers in sequence until one returns a response
-    for (const handler of handlers) {
+    // Filter handlers based on their subscription filters
+    const matchingHandlers = Array.from(handlers).filter((entry) =>
+      this.matchesFilter(message, entry.filter),
+    );
+
+    if (matchingHandlers.length === 0) {
+      this.logger.debug(`No matching handlers for message type: ${type}`, {
+        totalHandlers: handlers.size,
+        target: message.target,
+      });
+      return null;
+    }
+
+    // Call matching handlers in sequence until one returns a response
+    for (const entry of matchingHandlers) {
       try {
-        const response = await handler(message);
+        const response = await entry.handler(message);
         if (response) {
           return response;
         }
@@ -163,6 +206,80 @@ export class MessageBus implements IMessageBus {
     }
 
     return null;
+  }
+
+  /**
+   * Check if a message matches a subscription filter
+   */
+  private matchesFilter(
+    message: MessageWithPayload,
+    filter?: SubscriptionFilter,
+  ): boolean {
+    if (!filter) {
+      return true; // No filter means accept all messages
+    }
+
+    // Check source filter
+    if (filter.source) {
+      if (!this.matchesPattern(message.source, filter.source)) {
+        return false;
+      }
+    }
+
+    // Check target filter
+    if (filter.target) {
+      if (
+        !message.target ||
+        !this.matchesPattern(message.target, filter.target)
+      ) {
+        return false;
+      }
+    }
+
+    // Check metadata filter
+    if (filter.metadata) {
+      if (!message.metadata) {
+        return false;
+      }
+      // Check if all filter metadata keys match
+      for (const [key, value] of Object.entries(filter.metadata)) {
+        if (message.metadata[key] !== value) {
+          return false;
+        }
+      }
+    }
+
+    // Check custom predicate
+    if (filter.predicate) {
+      return filter.predicate(message);
+    }
+
+    return true;
+  }
+
+  /**
+   * Check if a value matches a pattern (string or RegExp)
+   */
+  private matchesPattern(
+    value: string | undefined,
+    pattern: string | RegExp,
+  ): boolean {
+    if (!value) return false;
+
+    if (pattern instanceof RegExp) {
+      return pattern.test(value);
+    }
+
+    // Support simple wildcards for string patterns
+    if (pattern.includes("*")) {
+      const regexPattern = pattern
+        .split("*")
+        .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+        .join(".*");
+      return new RegExp(`^${regexPattern}$`).test(value);
+    }
+
+    return value === pattern;
   }
 
   /**
@@ -229,5 +346,17 @@ export class MessageBus implements IMessageBus {
    */
   getHandlerCount(messageType: string): number {
     return this.handlers.get(messageType)?.size ?? 0;
+  }
+
+  /**
+   * Get the number of handlers with a specific target filter
+   */
+  getTargetedHandlerCount(messageType: string, target: string): number {
+    const handlers = this.handlers.get(messageType);
+    if (!handlers) return 0;
+
+    return Array.from(handlers).filter(
+      (entry) => entry.filter?.target === target,
+    ).length;
   }
 }
