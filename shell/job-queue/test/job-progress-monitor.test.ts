@@ -133,33 +133,47 @@ describe("JobProgressMonitor", () => {
       // Wait a bit for the first check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(mockEventEmitter.send).toHaveBeenCalledWith("job-progress", {
-        id: "job-123",
-        type: "job",
-        status: "processing",
-        message: "Processing test-job...",
-        jobDetails: {
-          jobType: "test-job",
-          priority: 5,
-          retryCount: 0,
+      expect(mockEventEmitter.send).toHaveBeenCalledWith(
+        "job-progress",
+        {
+          id: "job-123",
+          type: "job",
+          status: "processing",
+          message: "Processing test-job...",
+          jobDetails: {
+            jobType: "test-job",
+            priority: 5,
+            retryCount: 0,
+          },
         },
-      });
+        undefined, // target is undefined since job has no source
+      );
     });
 
-    it("should include progress information when reportProgress is called", () => {
+    it("should include progress information when reportProgress is called", async () => {
+      // Mock the getStatus call to return null (no source)
+      (mockJobQueueService.getStatus as any).mockResolvedValue(null);
+
       monitor.reportProgress("job-123", 5, 10, "Processing item 5");
 
-      expect(mockEventEmitter.send).toHaveBeenCalledWith("job-progress", {
-        id: "job-123",
-        type: "job",
-        status: "processing",
-        progress: {
-          current: 5,
-          total: 10,
-          percentage: 50,
+      // Wait for async operations
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(mockEventEmitter.send).toHaveBeenCalledWith(
+        "job-progress",
+        {
+          id: "job-123",
+          type: "job",
+          status: "processing",
+          progress: {
+            current: 5,
+            total: 10,
+            percentage: 50,
+          },
+          message: "Processing item 5",
         },
-        message: "Processing item 5",
-      });
+        undefined, // target is undefined since job has no source
+      );
     });
 
     it("should track jobs with progress", () => {
@@ -170,6 +184,41 @@ describe("JobProgressMonitor", () => {
 
       monitor.reportProgress("job-2", 3, 20);
       expect(monitor.getStats().jobsWithProgress).toBe(2);
+    });
+
+    it("should include target when job has source", async () => {
+      // Mock active job with source
+      const mockJob: JobQueue = {
+        id: "job-789",
+        type: "test-job",
+        data: "{}",
+        status: "processing",
+        priority: 5,
+        retryCount: 0,
+        maxRetries: 3,
+        scheduledFor: Date.now() - 1000,
+        createdAt: Date.now() - 2000,
+        startedAt: Date.now() - 1500,
+        completedAt: null,
+        lastError: null,
+        source: "matrix:room123", // Job has a source
+        metadata: null,
+      };
+      (mockJobQueueService.getActiveJobs as any).mockResolvedValue([mockJob]);
+
+      monitor.start();
+
+      // Wait for check
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      expect(mockEventEmitter.send).toHaveBeenCalledWith(
+        "job-progress",
+        expect.objectContaining({
+          id: "job-789",
+          type: "job",
+        }),
+        "matrix:room123", // Target should be the job's source
+      );
     });
   });
 
@@ -202,23 +251,27 @@ describe("JobProgressMonitor", () => {
       // Wait for the first check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(mockEventEmitter.send).toHaveBeenCalledWith("job-progress", {
-        id: "batch-456",
-        type: "batch",
-        status: "processing",
-        batchDetails: {
-          totalOperations: 10,
-          completedOperations: 3,
-          failedOperations: 0,
-          currentOperation: "Processing operation 4",
-          errors: [],
+      expect(mockEventEmitter.send).toHaveBeenCalledWith(
+        "job-progress",
+        {
+          id: "batch-456",
+          type: "batch",
+          status: "processing",
+          batchDetails: {
+            totalOperations: 10,
+            completedOperations: 3,
+            failedOperations: 0,
+            currentOperation: "Processing operation 4",
+            errors: [],
+          },
+          progress: {
+            current: 3,
+            total: 10,
+            percentage: 30,
+          },
         },
-        progress: {
-          current: 3,
-          total: 10,
-          percentage: 30,
-        },
-      });
+        undefined, // target is undefined since batch metadata has no source
+      );
     });
 
     it("should calculate percentage correctly", async () => {
@@ -240,6 +293,35 @@ describe("JobProgressMonitor", () => {
 
       const call = (mockEventEmitter.send as any).mock.calls[0];
       expect(call[1].progress.percentage).toBe(75);
+    });
+
+    it("should include target when batch has source", async () => {
+      const mockBatch = createMockBatch();
+      (mockBatchJobManager.getActiveBatches as any).mockResolvedValue([
+        {
+          batchId: "batch-789",
+          status: mockBatch,
+          metadata: {
+            operations: [],
+            source: "cli:interactive", // Batch has a source
+            startedAt: new Date().toISOString(),
+          },
+        },
+      ]);
+
+      monitor.start();
+
+      // Wait for check
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      expect(mockEventEmitter.send).toHaveBeenCalledWith(
+        "job-progress",
+        expect.objectContaining({
+          id: "batch-789",
+          type: "batch",
+        }),
+        "cli:interactive", // Target should be the batch's source
+      );
     });
   });
 

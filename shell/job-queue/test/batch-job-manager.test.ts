@@ -185,7 +185,10 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(operations, "test:batch-manager");
+      const batchId = await batchManager.enqueueBatch(
+        operations,
+        "test:batch-manager",
+      );
 
       // Verify batch exists
       const statusBefore = await batchManager.getBatchStatus(batchId);

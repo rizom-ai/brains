@@ -3,7 +3,7 @@ import type { IJobQueueService } from "./types";
 import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
 import type { JobQueue } from "@brains/db";
-import { type z } from "zod";
+import type { z } from "zod";
 import { JobProgressEventSchema } from "./schemas";
 
 /**
@@ -15,7 +15,7 @@ export type JobProgressEvent = z.infer<typeof JobProgressEventSchema>;
  * Event emitter interface required by the monitor
  */
 export interface IEventEmitter {
-  send(event: string, data: unknown): Promise<void>;
+  send(event: string, data: unknown, target?: string): Promise<void>;
 }
 
 /**
@@ -302,13 +302,17 @@ export class JobProgressMonitor implements IProgressReporter {
           };
         }
 
-        await this.eventEmitter.send("job-progress", event);
+        // Extract source from job and use as target for the event
+        const target = job.source ?? undefined;
+
+        await this.eventEmitter.send("job-progress", event, target);
 
         this.logger.debug("Emitted job progress update", {
           jobId: job.id,
           type: job.type,
           status: job.status,
           progress: progressInfo,
+          target,
         });
       }
     } catch (error) {
@@ -365,12 +369,18 @@ export class JobProgressMonitor implements IProgressReporter {
           };
         }
 
-        await this.eventEmitter.send("job-progress", event);
+        // Get batch metadata to extract source for targeting
+        const activeBatches = await this.batchJobManager.getActiveBatches();
+        const batchMetadata = activeBatches.find((b) => b.batchId === batchId);
+        const target = batchMetadata?.metadata.source ?? undefined;
+
+        await this.eventEmitter.send("job-progress", event, target);
 
         this.logger.debug("Emitted batch progress update", {
           batchId,
           status: status.status,
           progress: `${status.completedOperations}/${status.totalOperations}`,
+          target,
         });
       }
     } catch (error) {
@@ -401,7 +411,11 @@ export class JobProgressMonitor implements IProgressReporter {
         message: progress.message ?? "Processing...",
       };
 
-      await this.eventEmitter.send("job-progress", event);
+      // Get job to extract source for targeting
+      const job = await this.jobQueueService.getStatus(jobId);
+      const target = job?.source ?? undefined;
+
+      await this.eventEmitter.send("job-progress", event, target);
     } catch (error) {
       this.logger.error("Error emitting immediate job progress", {
         jobId,

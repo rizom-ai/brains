@@ -300,7 +300,10 @@ export class Shell {
       this.jobQueueService,
       this.logger,
     );
-    const messageBusAdapter = new MessageBusAdapter(this.messageBus);
+    const messageBusAdapter = new MessageBusAdapter(
+      this.messageBus,
+      "job-progress-monitor",
+    );
     this.jobProgressMonitor =
       dependencies?.jobProgressMonitor ??
       JobProgressMonitor.getInstance(
