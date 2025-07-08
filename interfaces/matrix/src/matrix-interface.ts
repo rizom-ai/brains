@@ -6,6 +6,7 @@ import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
 import { MatrixClientWrapper } from "./client/matrix-client";
+import type { JobProgressEvent } from "@brains/job-queue";
 // MentionPill is for creating mentions, not detecting them
 import packageJson from "../package.json";
 
@@ -53,6 +54,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
 
     // Set up event handlers
     this.setupEventHandlers();
+    this.setupProgressHandlers();
 
     this.logger.info("Starting Matrix interface...");
     await this.client.start();
@@ -428,6 +430,147 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       message.startsWith(this.config.commandPrefix) ||
       message.startsWith(this.config.anchorPrefix)
     );
+  }
+
+  // Track progress messages for editing
+  private progressMessages = new Map<string, string>();
+
+  /**
+   * Extract Matrix room ID from event target
+   */
+  private extractRoomIdFromTarget(target: string): string | null {
+    // Extract room ID from the target (e.g., "matrix:!roomId:homeserver" -> "!roomId:homeserver")
+    const parts = target.split(":");
+    if (parts.length < 3 || parts[0] !== "matrix") {
+      this.logger.warn(
+        "Invalid target format, expected matrix:!roomId:homeserver",
+        { target },
+      );
+      return null;
+    }
+    return parts.slice(1).join(":"); // Rejoin everything after "matrix:"
+  }
+
+  /**
+   * Set up progress event handlers
+   */
+  private setupProgressHandlers(): void {
+    // Listen for job progress events
+    this.on("job-progress", (progressEvent: JobProgressEvent, target: string) => {
+      void this.handleJobProgress(progressEvent, target);
+    });
+
+    // Listen for batch progress events
+    this.on("batch-progress", (progressEvent: JobProgressEvent, target: string) => {
+      void this.handleBatchProgress(progressEvent, target);
+    });
+  }
+
+  /**
+   * Handle individual job progress updates
+   */
+  private async handleJobProgress(
+    progressEvent: JobProgressEvent,
+    target?: string,
+  ): Promise<void> {
+    if (!this.client || !target) return;
+
+    const roomId = this.extractRoomIdFromTarget(target);
+    if (!roomId) return;
+
+    // Only show completion message for individual jobs
+    if (progressEvent.status === "completed") {
+      const message = "✅ Task completed";
+      try {
+        await this.client.sendFormattedMessage(
+          roomId,
+          message,
+          markdownToHtml(message),
+        );
+      } catch (error) {
+        this.logger.error("Failed to send job completion message", {
+          error,
+          roomId,
+        });
+      }
+    } else if (progressEvent.status === "failed") {
+      const message = "❌ Task failed";
+      try {
+        await this.client.sendFormattedMessage(
+          roomId,
+          message,
+          markdownToHtml(message),
+        );
+      } catch (error) {
+        this.logger.error("Failed to send job failure message", {
+          error,
+          roomId,
+        });
+      }
+    }
+  }
+
+  /**
+   * Handle batch progress updates
+   */
+  private async handleBatchProgress(
+    progressEvent: JobProgressEvent,
+    target?: string,
+  ): Promise<void> {
+    if (!this.client || !target) return;
+
+    const roomId = this.extractRoomIdFromTarget(target);
+    if (!roomId) return;
+
+    const { batchDetails } = progressEvent;
+    if (!batchDetails) return;
+
+    let message: string;
+    if (
+      progressEvent.status === "completed" ||
+      batchDetails.completedOperations >= batchDetails.totalOperations
+    ) {
+      message = `✅ All ${batchDetails.totalOperations} tasks completed`;
+    } else if (progressEvent.status === "failed") {
+      message = `❌ Batch failed: ${batchDetails.completedOperations}/${batchDetails.totalOperations} tasks completed`;
+    } else {
+      message = `✅ ${batchDetails.completedOperations} of ${batchDetails.totalOperations} tasks completed`;
+    }
+
+    const progressKey = `batch:${progressEvent.id}:${roomId}`;
+    const existingMessageId = this.progressMessages.get(progressKey);
+
+    try {
+      if (existingMessageId) {
+        await this.client.editMessage(
+          roomId,
+          existingMessageId,
+          message,
+          markdownToHtml(message),
+        );
+      } else {
+        const messageId = await this.client.sendFormattedMessage(
+          roomId,
+          message,
+          markdownToHtml(message),
+        );
+        this.progressMessages.set(progressKey, messageId);
+      }
+
+      // Clean up when done
+      if (
+        progressEvent.status === "completed" ||
+        progressEvent.status === "failed" ||
+        batchDetails.completedOperations >= batchDetails.totalOperations
+      ) {
+        this.progressMessages.delete(progressKey);
+      }
+    } catch (error) {
+      this.logger.error("Failed to send batch progress update", {
+        error,
+        roomId,
+      });
+    }
   }
 
   /**
