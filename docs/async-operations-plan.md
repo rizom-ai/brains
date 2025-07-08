@@ -295,7 +295,10 @@ export class SiteBuilderPlugin extends BasePlugin {
               .default(true)
               .describe("Clean output directory first"),
           },
-          async (input) => {
+          async (input, context) => {
+            // Get source from tool execution context
+            const source = context?.source || "plugin:site-builder";
+            
             const jobId = await this.context.enqueueJob(
               `${this.metadata.id}:site-build`,
               {
@@ -303,6 +306,10 @@ export class SiteBuilderPlugin extends BasePlugin {
                 siteConfig: this.config.siteConfig,
                 clean: input.clean,
               },
+              {
+                source,  // Pass source so progress events are targeted back
+                metadata: { tool: "build-site" }
+              }
             );
 
             return {
@@ -332,6 +339,70 @@ export class SiteBuilderPlugin extends BasePlugin {
 - [ ] Update plugin cleanup to unregister handlers
 - [ ] Test handler lifecycle (register, process, unregister)
 - [ ] Document pattern for other plugins to follow
+- [ ] Update JobOptions interface to include source and metadata fields
+- [ ] Modify JobQueueService.enqueue to store source/metadata with job data
+- [ ] Update BatchJobManager to accept and propagate source/metadata
+- [ ] Update PluginContext job methods to accept JobOptions with source
+- [ ] Modify JobProgressMonitor to extract source and use as event target
+- [ ] Update interfaces to use filtered subscriptions for their events
+
+### Event Flow Architecture for Job Progress
+
+#### Source vs Target Clarification
+
+Jobs track their **source** (who created them), while events have **targets** (who should receive them):
+
+1. **Job Creation**:
+   - Interface creates job with `source: "matrix:room123"` in JobOptions
+   - Job stored with source metadata for later reference
+   - Source identifies the originating interface/component
+
+2. **Progress Events**:
+   - JobProgressMonitor processes jobs and emits events
+   - Events include:
+     - `source: "job-progress-monitor"` (who's emitting)
+     - `target: "matrix:room123"` (who should receive - from job's source)
+   - This creates targeted delivery without manual tracking
+
+3. **Event Delivery**:
+   - MessageBus filters events by target using new filtering capability
+   - Only the originating interface receives its job updates
+   - No need for interfaces to maintain job ID lists
+
+#### Implementation Flow
+
+```typescript
+// Step 1: Job creation with source
+const jobId = await context.enqueueJob("site-build", data, {
+  source: "matrix:room123",  // Who's creating this job
+  metadata: { userId: "user123" }
+});
+
+// Step 2: Job stored with metadata
+{
+  id: "job-xyz",
+  type: "site-build",
+  data: JSON.stringify({
+    jobData: { outputDir: "./dist" },
+    _meta: { source: "matrix:room123", metadata: { userId: "user123" } }
+  })
+}
+
+// Step 3: JobProgressMonitor emits targeted event
+messageBus.publish({
+  type: "job:progress",
+  source: "job-progress-monitor",
+  target: "matrix:room123",  // From job's source
+  data: { jobId: "job-xyz", progress: 50 }
+});
+
+// Step 4: Matrix interface receives only its events
+messageBus.subscribe("job:progress", handler, {
+  target: "matrix:room123"  // Filter subscription
+});
+```
+
+This architecture eliminates complex job tracking logic in interfaces while ensuring events reach only their intended recipients.
 
 ### Phase 2: Interface Updates
 
