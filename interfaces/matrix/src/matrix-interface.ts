@@ -6,6 +6,7 @@ import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
 import { MatrixClientWrapper } from "./client/matrix-client";
+import { JobProgressEventSchema } from "@brains/job-queue";
 // MentionPill is for creating mentions, not detecting them
 import packageJson from "../package.json";
 
@@ -364,7 +365,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     roomId: string,
     replyToEventId: string,
     response: string,
-  ): Promise<void> {
+  ): Promise<string | void> {
     // Convert markdown to HTML
     const html = markdownToHtml(response);
 
@@ -372,12 +373,49 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       throw new Error("Matrix client not initialized");
     }
 
+    let sentEventId: string;
     // Send as a reply if threading is enabled
     if (this.config.enableThreading) {
-      await this.client.sendReply(roomId, replyToEventId, response, html);
+      sentEventId = await this.client.sendReply(
+        roomId,
+        replyToEventId,
+        response,
+        html,
+      );
     } else {
-      await this.client.sendFormattedMessage(roomId, response, html);
+      sentEventId = await this.client.sendFormattedMessage(
+        roomId,
+        response,
+        html,
+      );
     }
+
+    // Check if the response contains batch info and track it
+    try {
+      const parsed = JSON.parse(response);
+      if (parsed.batchId && parsed.status === "queued") {
+        // First, update the message to show the user-friendly text
+        if (parsed.message) {
+          await this.client.editMessage(
+            roomId,
+            sentEventId,
+            parsed.message,
+            markdownToHtml(parsed.message),
+          );
+        }
+
+        // Then track for updates
+        this.batchProgressMessages.set(parsed.batchId, {
+          roomId,
+          eventId: sentEventId,
+        });
+        this.subscribeToProgressUpdates(parsed.batchId);
+      }
+    } catch {
+      // Not JSON, ignore
+    }
+
+    return sentEventId;
   }
 
   /**
@@ -457,20 +495,26 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       return;
     }
 
-    // Subscribe to batch progress updates
+    // Subscribe to job progress updates (includes batch progress)
     const unsubscribe = this.context.subscribe(
-      "batch-progress",
+      "job-progress",
       async (message) => {
-        const progressData = message.payload as {
-          batchId: string;
-          totalOperations: number;
-          completedOperations: number;
-          failedOperations: number;
-          currentOperation?: string;
-          status: string;
-        };
+        // Validate the event payload
+        const validationResult = JobProgressEventSchema.safeParse(
+          message.payload,
+        );
+        if (!validationResult.success) {
+          this.logger.warn("Invalid job progress event", {
+            error: validationResult.error,
+            payload: message.payload,
+          });
+          return { success: true };
+        }
 
-        if (progressData.batchId !== batchId) {
+        const progressEvent = validationResult.data;
+
+        // Only handle batch progress events for this batch
+        if (progressEvent.type !== "batch" || progressEvent.id !== batchId) {
           return { success: true };
         }
 
@@ -480,39 +524,53 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
           return { success: true };
         }
 
-        // Format progress message
-        const progressPercent = Math.round(
-          (progressData.completedOperations / progressData.totalOperations) *
-            100,
-        );
-
-        let progressText = `**Progress:** ${progressData.completedOperations}/${progressData.totalOperations} operations (${progressPercent}%)\n`;
-
-        if (progressData.currentOperation) {
-          progressText += `**Current:** ${progressData.currentOperation}\n`;
+        // Extract batch details
+        const batchDetails = progressEvent.batchDetails;
+        if (!batchDetails) {
+          this.logger.warn("Batch progress event missing batchDetails", {
+            event: progressEvent,
+          });
+          return { success: true };
         }
 
-        if (progressData.failedOperations > 0) {
-          progressText += `**Failed:** ${progressData.failedOperations} operations\n`;
+        // Format progress message
+        let progressText = "";
+
+        if (progressEvent.progress) {
+          progressText = `**Progress:** ${batchDetails.completedOperations}/${batchDetails.totalOperations} operations (${progressEvent.progress.percentage}%)\n`;
+        } else {
+          const progressPercent = Math.round(
+            (batchDetails.completedOperations / batchDetails.totalOperations) *
+              100,
+          );
+          progressText = `**Progress:** ${batchDetails.completedOperations}/${batchDetails.totalOperations} operations (${progressPercent}%)\n`;
+        }
+
+        if (batchDetails.currentOperation) {
+          progressText += `**Current:** ${batchDetails.currentOperation}\n`;
+        }
+
+        if (batchDetails.failedOperations > 0) {
+          progressText += `**Failed:** ${batchDetails.failedOperations} operations\n`;
         }
 
         // Update the message based on status
-        if (progressData.status === "completed") {
+        if (progressEvent.status === "completed") {
           progressText = `✅ **Batch operation completed**\n`;
-          progressText += `**Total:** ${progressData.totalOperations} operations\n`;
-          progressText += `**Completed:** ${progressData.completedOperations}\n`;
-          if (progressData.failedOperations > 0) {
-            progressText += `**Failed:** ${progressData.failedOperations}\n`;
+          progressText += `**Total:** ${batchDetails.totalOperations} operations\n`;
+          progressText += `**Completed:** ${batchDetails.completedOperations}\n`;
+          if (batchDetails.failedOperations > 0) {
+            progressText += `**Failed:** ${batchDetails.failedOperations}\n`;
           }
 
           // Clean up
           this.batchProgressMessages.delete(batchId);
           unsubscribe();
-        } else if (progressData.status === "failed") {
+        } else if (progressEvent.status === "failed") {
           progressText = `❌ **Batch operation failed**\n`;
-          progressText += `**Completed:** ${progressData.completedOperations}/${progressData.totalOperations}\n`;
-          if (progressData.failedOperations > 0) {
-            progressText += `**Failed:** ${progressData.failedOperations}\n`;
+          progressText += `**Completed:** ${batchDetails.completedOperations}/${batchDetails.totalOperations}\n`;
+          if (batchDetails.failedOperations > 0) {
+            progressText += `**Failed:** ${batchDetails.failedOperations}\n`;
           }
 
           // Clean up

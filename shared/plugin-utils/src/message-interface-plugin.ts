@@ -150,7 +150,13 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
             const batchId = await this.context.enqueueBatch(operations, {
               priority: 5,
             });
-            return `Batch operation enqueued with ID: ${batchId}\n${count} operations queued. Watch the status bar for progress!`;
+            // Return JSON for interfaces that want to track progress
+            return JSON.stringify({
+              batchId,
+              status: "queued",
+              message: `Batch operation enqueued with ID: ${batchId}\n${count} operations queued.`,
+              operationCount: count,
+            });
           } catch (error) {
             return `Failed to enqueue batch: ${error instanceof Error ? error.message : String(error)}`;
           }

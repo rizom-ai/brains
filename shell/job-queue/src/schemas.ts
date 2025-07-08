@@ -100,3 +100,43 @@ export type JobResult = z.infer<typeof JobResultSchema>;
 export type BatchOperation = z.infer<typeof BatchOperationSchema>;
 export type BatchJobData = z.infer<typeof BatchJobDataSchema>;
 export type BatchJobStatus = z.infer<typeof BatchJobStatusSchema>;
+
+/**
+ * Schema for job progress events
+ */
+export const JobProgressEventSchema = z.object({
+  // Common fields
+  id: z.string(),
+  type: z.enum(["job", "batch"]),
+  status: JobStatusEnum,
+  message: z.string().optional(),
+
+  // Progress tracking
+  progress: z
+    .object({
+      current: z.number(),
+      total: z.number(),
+      percentage: z.number(),
+    })
+    .optional(),
+
+  // Batch-specific fields
+  batchDetails: z
+    .object({
+      totalOperations: z.number(),
+      completedOperations: z.number(),
+      failedOperations: z.number(),
+      currentOperation: z.string().optional(),
+      errors: z.array(z.string()).optional(),
+    })
+    .optional(),
+
+  // Job-specific fields
+  jobDetails: z
+    .object({
+      jobType: z.string(),
+      priority: z.number(),
+      retryCount: z.number(),
+    })
+    .optional(),
+});

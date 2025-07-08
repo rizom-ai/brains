@@ -29,4 +29,5 @@ export {
   type BatchOperation,
   type BatchJobData,
   type BatchJobStatus,
+  JobProgressEventSchema,
 } from "./schemas";

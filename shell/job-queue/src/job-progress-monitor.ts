@@ -3,40 +3,13 @@ import type { IJobQueueService } from "./types";
 import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
 import type { JobQueue } from "@brains/db";
+import type { z } from "zod";
+import { JobProgressEventSchema } from "./schemas";
 
 /**
  * Progress event emitted by the monitor
  */
-export interface JobProgressEvent {
-  // Common fields
-  id: string; // jobId or batchId
-  type: "job" | "batch";
-  status: "pending" | "processing" | "completed" | "failed";
-  message?: string;
-
-  // Progress tracking
-  progress?: {
-    current: number;
-    total: number;
-    percentage: number;
-  };
-
-  // Batch-specific fields
-  batchDetails?: {
-    totalOperations: number;
-    completedOperations: number;
-    failedOperations: number;
-    currentOperation?: string;
-    errors?: string[];
-  };
-
-  // Job-specific fields
-  jobDetails?: {
-    jobType: string;
-    priority: number;
-    retryCount: number;
-  };
-}
+export type JobProgressEvent = z.infer<typeof JobProgressEventSchema>;
 
 /**
  * Event emitter interface required by the monitor
@@ -72,6 +45,8 @@ export class JobProgressMonitor implements IProgressReporter {
   // Track last known states to avoid duplicate events
   private lastJobStates = new Map<string, string>();
   private lastBatchStates = new Map<string, string>();
+  // Track batches we've seen to emit final completion event
+  private knownBatches = new Set<string>();
 
   // Track jobs that are reporting progress
   private jobsWithProgress = new Map<
@@ -179,6 +154,7 @@ export class JobProgressMonitor implements IProgressReporter {
     this.lastJobStates.clear();
     this.lastBatchStates.clear();
     this.jobsWithProgress.clear();
+    this.knownBatches.clear();
   }
 
   /**
@@ -253,7 +229,27 @@ export class JobProgressMonitor implements IProgressReporter {
       const activeBatches = await this.batchJobManager.getActiveBatches();
 
       for (const { batchId, status } of activeBatches) {
+        this.knownBatches.add(batchId);
         await this.emitBatchProgressUpdate(batchId, status);
+      }
+
+      // Check for completed batches that are no longer active
+      const activeBatchIds = new Set(activeBatches.map((b) => b.batchId));
+      for (const knownBatchId of this.knownBatches) {
+        if (!activeBatchIds.has(knownBatchId)) {
+          // This batch was known but is no longer active - check if it completed
+          const status =
+            await this.batchJobManager.getBatchStatus(knownBatchId);
+          if (
+            status &&
+            (status.status === "completed" || status.status === "failed")
+          ) {
+            // Emit final status
+            await this.emitBatchProgressUpdate(knownBatchId, status);
+            // Remove from known batches
+            this.knownBatches.delete(knownBatchId);
+          }
+        }
       }
 
       // Clean up completed batches
