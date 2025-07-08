@@ -8,10 +8,7 @@ import { z } from "zod";
 import { InterfacePlugin } from "./interface-plugin";
 import { EventEmitter } from "node:events";
 import PQueue from "p-queue";
-import {
-  JobProgressEventSchema,
-  type JobProgressEvent,
-} from "@brains/job-queue";
+import { JobProgressEventSchema } from "@brains/job-queue";
 
 /**
  * Structured response schemas
@@ -91,16 +88,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     this.eventEmitter = new EventEmitter();
   }
 
-  // EventEmitter delegation - typed event handlers
-  public on(
-    event: "job-progress",
-    listener: (progressEvent: JobProgressEvent, target: string) => void,
-  ): this;
-  public on(
-    event: "batch-progress",
-    listener: (progressEvent: JobProgressEvent, target: string) => void,
-  ): this;
-  public on(event: string, listener: (...args: unknown[]) => void): this;
+  // EventEmitter delegation
   public on(event: string, listener: (...args: unknown[]) => void): this {
     this.eventEmitter.on(event, listener);
     return this;

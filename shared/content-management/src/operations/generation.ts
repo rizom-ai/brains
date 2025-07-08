@@ -118,11 +118,20 @@ export class GenerationOperations {
         queuedSections++;
 
         // Queue the job using generic enqueueJob method
+        // Only pass the data that the job handler actually needs
         await this.pluginContext.enqueueJob("content-generation", {
           templateName: job.templateName,
+          entityId: job.entityId,
+          entityType: job.entityType,
           context: {
             data: {
-              ...job,
+              jobId: job.jobId,
+              entityId: job.entityId,
+              entityType: job.entityType,
+              operation: job.operation,
+              pageId: job.pageId,
+              sectionId: job.sectionId,
+              templateName: job.templateName,
               siteConfig,
             },
           },

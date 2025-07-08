@@ -1,40 +1,68 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Home</title>
-  <meta name="description" content="Welcome to your Personal Brain">
-  
-  <!-- Favicons -->
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="icon" type="image/png" href="/favicon.png">
-  
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
-  
-  <!-- Styles -->
-  <link rel="stylesheet" href="/styles/main.css">
-  
-  <!-- Open Graph -->
-  <meta property="og:title" content="Home">
-  <meta property="og:description" content="Welcome to your Personal Brain">
-  <meta property="og:type" content="website">
-  
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Home">
-  <meta name="twitter:description" content="Welcome to your Personal Brain">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Brain - Not Built Yet</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        .status {
+            background-color: #fffbeb;
+            border: 1px solid #fbbf24;
+            color: #92400e;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        .instructions {
+            background-color: #f0f9ff;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        code {
+            background-color: #f3f4f6;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
 </head>
-<body class="h-full bg-white font-sans">
-  <div id="root" class="min-h-full">
-    <section class="hero-section py-20 md:py-32 text-center relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100"><div class="absolute inset-0 opacity-5 pointer-events-none hero-bg-pattern"></div><div class="absolute top-20 left-10 w-72 h-72 bg-brand-light rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div><div class="absolute top-40 right-10 w-72 h-72 bg-accent rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div><div class="absolute -bottom-8 left-1/2 w-72 h-72 bg-brand rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div><div class="container mx-auto px-4 max-w-5xl relative z-10"><h1 class="text-4xl md:text-6xl font-bold mb-6 text-theme">Unlock Your Full Potential with Rizom</h1><p class="text-xl md:text-2xl text-theme-muted mb-8 max-w-3xl mx-auto">Harness the power of personal knowledge management to drive your growth and success</p><div class="flex flex-col sm:flex-row gap-4 justify-center"><a href="#features" class="group inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-accent to-orange-600 rounded-xl shadow-lg hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-orange-500/20">Get Started<svg class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg></a><a href="#features" class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-brand border-2 border-brand rounded-xl hover:bg-brand hover:text-white hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-brand/20">Learn More<svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg></a></div></div></section>
-<section class="py-16 md:py-24 bg-theme-subtle"><div class="container mx-auto px-4 max-w-7xl"><div class="text-center mb-12"><h2 class="text-3xl md:text-4xl font-bold text-theme mb-4">Elevate Your Knowledge Work</h2><p class="text-xl text-theme-muted max-w-3xl mx-auto">Rizom is a personal knowledge management system that empowers you to organize, search, secure, and harness the full potential of your information and insights.</p></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><div class="bg-theme rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"><div class="text-brand mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></div><h3 class="text-xl font-semibold text-theme mb-2">Intelligent Search</h3><p class="text-theme-muted">Find what you need quickly with advanced search capabilities that surface relevant information across your personal knowledge base.</p></div><div class="bg-theme rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"><div class="text-brand mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lock"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><h3 class="text-xl font-semibold text-theme mb-2">Secure Storage</h3><p class="text-theme-muted">Keep your sensitive information safe with robust encryption and granular access controls, ensuring your knowledge remains private and protected.</p></div><div class="bg-theme rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"><div class="text-brand mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-column"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg></div><h3 class="text-xl font-semibold text-theme mb-2">Analytical Insights</h3><p class="text-theme-muted">Uncover patterns, trends, and connections in your data to gain deeper understanding and make more informed decisions.</p></div></div></div></section>
-<section class="py-16 md:py-24 bg-theme"><div class="container mx-auto px-4 max-w-7xl"><div class="text-center mb-12"><h2 class="text-3xl md:text-4xl font-bold text-theme mb-4">Explore Rizom's Transformative Solutions</h2><p class="text-xl text-theme-muted max-w-3xl mx-auto">Rizom offers a curated portfolio of innovative solutions that empower organizations to navigate the complexities of digital transformation, organizational development, and ecosystem design. Our products are designed to help our clients unlock new possibilities, foster collaboration, and drive sustainable growth.</p></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8"><div class="bg-theme-subtle rounded-2xl p-8 hover:bg-theme hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-brand-light"><div class="flex items-start justify-between mb-6"><div class="text-brand"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cpu"><rect width="16" height="16" x="4" y="4" rx="2"></rect><rect width="6" height="6" x="9" y="9" rx="1"></rect><path d="M15 2v2"></path><path d="M15 20v2"></path><path d="M2 15h2"></path><path d="M2 9h2"></path><path d="M20 15h2"></path><path d="M20 9h2"></path><path d="M9 2v2"></path><path d="M9 20v2"></path></svg></div><span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">live</span></div><h3 class="text-2xl font-bold text-theme mb-2">Practice Innovation</h3><p class="text-sm font-semibold text-brand mb-4">Accelerate your digital transformation</p><p class="text-theme-muted leading-relaxed mb-6">Leverage our proven methodologies to reimagine your business practices, unlock new opportunities, and drive meaningful change.</p></div><div class="bg-theme-subtle rounded-2xl p-8 hover:bg-theme hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-brand-light"><div class="flex items-start justify-between mb-6"><div class="text-brand"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-network"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"></path><path d="M12 12V8"></path></svg></div><span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">live</span></div><h3 class="text-2xl font-bold text-theme mb-2">Ecosystem Design</h3><p class="text-sm font-semibold text-brand mb-4">Build dynamic, resilient ecosystems</p><p class="text-theme-muted leading-relaxed mb-6">Harness the power of collaborative networks to create adaptable, value-driven ecosystems that thrive in a rapidly evolving landscape.</p></div><div class="bg-theme-subtle rounded-2xl p-8 hover:bg-theme hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-brand-light"><div class="flex items-start justify-between mb-6"><div class="text-brand"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path><path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path><path d="M19.938 10.5a4 4 0 0 1 .585.396"></path><path d="M6 18a4 4 0 0 1-1.967-.516"></path><path d="M19.967 17.484A4 4 0 0 1 18 18"></path></svg></div><span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">live</span></div><h3 class="text-2xl font-bold text-theme mb-2">Organizational Development</h3><p class="text-sm font-semibold text-brand mb-4">Empower your people, transform your culture</p><p class="text-theme-muted leading-relaxed mb-6">Unlock the full potential of your organization by fostering a culture of innovation, collaboration, and continuous learning.</p></div><div class="bg-theme-subtle rounded-2xl p-8 hover:bg-theme hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-brand-light"><div class="flex items-start justify-between mb-6"><div class="text-brand"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></div><span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">beta</span></div><h3 class="text-2xl font-bold text-theme mb-2">Economy of Garbage</h3><p class="text-sm font-semibold text-brand mb-4">Rethink waste as a valuable resource</p><p class="text-theme-muted leading-relaxed mb-6">Discover innovative ways to transform waste into new revenue streams, drive sustainability, and create a more circular economy.</p></div></div></div></section>
-<section class="relative py-16 md:py-24 overflow-hidden"><div class="absolute inset-0 bg-gradient-to-br from-brand-dark to-brand"></div><div class="absolute inset-0 opacity-10 pointer-events-none cta-bg-pattern"></div><div class="relative max-w-7xl mx-auto px-4 text-center"><h2 class="text-3xl md:text-4xl lg:text-5xl font-bold text-theme-inverse mb-6">Transform Your Knowledge, Unleash Your Potential</h2><p class="text-xl md:text-2xl text-brand-light mb-10 max-w-3xl mx-auto leading-relaxed">Join the growing community building their second brain with Rizom - the ultimate personal knowledge management platform.</p><div class="flex flex-col sm:flex-row gap-4 justify-center"><a href="/signup" class="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-theme bg-theme-inverse rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">Start Free Trial<svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg></a><a href="/demo" class="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-theme-inverse border-2 border-white/80 rounded-2xl hover:bg-theme-inverse hover:text-brand hover:border-theme-inverse transition-all duration-300">View Demo<svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></a></div></div></section>
-  </div>
+<body>
+    <div class="container">
+        <h1>🧠 Personal Brain</h1>
+        
+        <div class="status">
+            <strong>⚠️ Site Not Built Yet</strong>
+            <p>The Personal Brain website hasn't been built yet. This is a placeholder page.</p>
+        </div>
+        
+        <div class="instructions">
+            <strong>To build your site:</strong>
+            <p>Run the build command to generate your Personal Brain website:</p>
+            <p><code>brain build:site</code></p>
+        </div>
+        
+        <p>Once built, this page will be replaced with your actual Personal Brain website.</p>
+    </div>
 </body>
 </html>

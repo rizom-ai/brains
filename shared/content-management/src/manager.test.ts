@@ -464,7 +464,7 @@ test("generateAll should queue batch operation for all sections", async () => {
     section.template;
 
   const batchId = await contentManager.generateAll(
-    { dryRun: false, userId: "user-123", priority: 5 },
+    { dryRun: false, userId: "user-123", priority: 5, source: "test" },
     mockRoutes,
     templateResolver,
     "site-content-preview",
@@ -482,11 +482,13 @@ test("generateAll should queue batch operation for all sections", async () => {
           templateName: "hero",
           context: {
             data: {
+              jobId: expect.stringMatching(/^generate-landing:hero-\d+$/),
               entityId: "landing:hero",
+              entityType: "site-content-preview",
+              operation: "generate",
               pageId: "landing",
               sectionId: "hero",
-              route: mockRoutes[0],
-              sectionDefinition: mockRoutes[0]?.sections[0],
+              templateName: "hero",
               siteConfig: { siteTitle: "Test Site" },
             },
           },
@@ -503,11 +505,13 @@ test("generateAll should queue batch operation for all sections", async () => {
           templateName: "features",
           context: {
             data: {
+              jobId: expect.stringMatching(/^generate-landing:features-\d+$/),
               entityId: "landing:features",
+              entityType: "site-content-preview",
+              operation: "generate",
               pageId: "landing",
               sectionId: "features",
-              route: mockRoutes[0],
-              sectionDefinition: mockRoutes[0]?.sections[1],
+              templateName: "features",
               siteConfig: { siteTitle: "Test Site" },
             },
           },
@@ -524,11 +528,13 @@ test("generateAll should queue batch operation for all sections", async () => {
           templateName: "content",
           context: {
             data: {
+              jobId: expect.stringMatching(/^generate-about:content-\d+$/),
               entityId: "about:content",
+              entityType: "site-content-preview",
+              operation: "generate",
               pageId: "about",
               sectionId: "content",
-              route: mockRoutes[1],
-              sectionDefinition: mockRoutes[1]?.sections[0],
+              templateName: "content",
               siteConfig: { siteTitle: "Test Site" },
             },
           },
@@ -538,6 +544,7 @@ test("generateAll should queue batch operation for all sections", async () => {
         },
       },
     ],
+    "test",
     {
       userId: "user-123",
       priority: 5,
@@ -571,7 +578,7 @@ test("generateAll should respect pageId filter", async () => {
     section.template;
 
   const batchId = await contentManager.generateAll(
-    { pageId: "landing", dryRun: false },
+    { pageId: "landing", dryRun: false, source: "test" },
     mockRoutes,
     templateResolver,
     "site-content-preview",
@@ -588,11 +595,13 @@ test("generateAll should respect pageId filter", async () => {
           templateName: "hero",
           context: {
             data: {
+              jobId: expect.stringMatching(/^generate-landing:hero-\d+$/),
               entityId: "landing:hero",
+              entityType: "site-content-preview",
+              operation: "generate",
               pageId: "landing",
               sectionId: "hero",
-              route: mockRoutes[0],
-              sectionDefinition: mockRoutes[0]?.sections[0],
+              templateName: "hero",
               siteConfig: undefined,
             },
           },
@@ -601,6 +610,7 @@ test("generateAll should respect pageId filter", async () => {
         },
       },
     ],
+    "test",
     {},
   );
 });
@@ -612,7 +622,7 @@ test("generateAll should throw for empty operations", async () => {
 
   void expect(
     contentManager.generateAll(
-      { dryRun: false },
+      { dryRun: false, source: "test" },
       mockRoutes,
       templateResolver,
       "site-content-preview",
@@ -634,6 +644,7 @@ test("promote should queue batch promotion operations", async () => {
   const batchId = await contentManager.promote(previewIds, {
     userId: "admin-123",
     priority: 10,
+    source: "test",
   });
 
   expect(batchId).toBe(mockBatchId);
@@ -670,6 +681,7 @@ test("promote should queue batch promotion operations", async () => {
         },
       },
     ],
+    "test",
     {
       userId: "admin-123",
       priority: 10,
@@ -678,7 +690,7 @@ test("promote should queue batch promotion operations", async () => {
 });
 
 test("promote should throw for empty ids", async () => {
-  void expect(contentManager.promote([])).rejects.toThrow(
+  void expect(contentManager.promote([], { source: "test" })).rejects.toThrow(
     "No entities to promote",
   );
 });
@@ -693,7 +705,9 @@ test("rollback should queue batch rollback operations", async () => {
   const mockEnqueueBatch = mock().mockResolvedValue(mockBatchId);
   mockPluginContext.enqueueBatch = mockEnqueueBatch;
 
-  const batchId = await contentManager.rollback(productionIds);
+  const batchId = await contentManager.rollback(productionIds, {
+    source: "test",
+  });
 
   expect(batchId).toBe(mockBatchId);
   expect(mockEnqueueBatch).toHaveBeenCalledWith(
@@ -719,12 +733,13 @@ test("rollback should queue batch rollback operations", async () => {
         },
       },
     ],
+    "test",
     {},
   );
 });
 
 test("rollback should throw for empty ids", async () => {
-  void expect(contentManager.rollback([])).rejects.toThrow(
+  void expect(contentManager.rollback([], { source: "test" })).rejects.toThrow(
     "No entities to rollback",
   );
 });

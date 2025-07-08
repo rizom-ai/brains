@@ -98,6 +98,7 @@ export class BatchJobManager {
       }
 
       // Store batch metadata
+      // Store the full BatchOperation type
       const batchMetadata: {
         jobIds: string[];
         operations: BatchOperation[];
@@ -107,7 +108,7 @@ export class BatchJobManager {
         metadata?: Record<string, unknown>;
       } = {
         jobIds,
-        operations,
+        operations: operations,
         source,
         startedAt: new Date().toISOString(),
       };
@@ -121,7 +122,7 @@ export class BatchJobManager {
 
       this.batches.set(batchId, batchMetadata);
 
-      this.logger.info("Enqueued batch operations", {
+      this.logger.debug("Enqueued batch operations", {
         batchId,
         operationCount: operations.length,
         jobIds,
@@ -132,7 +133,7 @@ export class BatchJobManager {
     } catch (error) {
       this.logger.error("Failed to enqueue batch operations", {
         error,
-        operations,
+        operationCount: operations.length,
         enqueuedJobs: jobIds.length,
       });
       throw error;

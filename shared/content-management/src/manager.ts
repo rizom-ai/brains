@@ -328,7 +328,11 @@ export class ContentManager {
    * This queues all sections as a single batch job for better tracking
    */
   async generateAll(
-    options: GenerateOptions & { userId?: string; priority?: number },
+    options: GenerateOptions & {
+      userId?: string;
+      priority?: number;
+      source: string;
+    },
     routes: RouteDefinition[],
     templateResolver: (sectionId: SectionDefinition) => string,
     targetEntityType: SiteContentEntityType,
@@ -377,15 +381,18 @@ export class ContentManager {
         }
 
         // Create operation with correct structure for content-generation job
+        // Only pass serializable data - no complex objects
         const jobData: Record<string, unknown> = {
           templateName: templateResolver(sectionDefinition),
           context: {
             data: {
+              jobId: `generate-${entityId}-${Date.now()}`,
               entityId,
+              entityType: targetEntityType,
+              operation: "generate",
               pageId,
               sectionId: sectionDefinition.id,
-              route,
-              sectionDefinition,
+              templateName: templateResolver(sectionDefinition),
               siteConfig,
             },
           },
@@ -421,6 +428,7 @@ export class ContentManager {
     }
     const batchId = await this.pluginContext.enqueueBatch(
       operations,
+      options.source,
       batchOptions,
     );
 
@@ -437,7 +445,7 @@ export class ContentManager {
    */
   async promote(
     previewIds: string[],
-    options?: { userId?: string; priority?: number },
+    options: { userId?: string; priority?: number; source: string },
   ): Promise<string> {
     if (previewIds.length === 0) {
       throw new Error("No entities to promote");
@@ -464,6 +472,7 @@ export class ContentManager {
     }
     const batchId = await this.pluginContext.enqueueBatch(
       operations,
+      options.source,
       batchOptions,
     );
 
@@ -480,7 +489,7 @@ export class ContentManager {
    */
   async rollback(
     productionIds: string[],
-    options?: { userId?: string; priority?: number },
+    options: { userId?: string; priority?: number; source: string },
   ): Promise<string> {
     if (productionIds.length === 0) {
       throw new Error("No entities to rollback");
@@ -507,6 +516,7 @@ export class ContentManager {
     }
     const batchId = await this.pluginContext.enqueueBatch(
       operations,
+      options.source,
       batchOptions,
     );
 

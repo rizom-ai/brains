@@ -110,7 +110,9 @@ export class JobQueueService implements IJobQueueService {
       // Use the parsed data for the job
       data = parsedData;
 
-      await this.db.insert(jobQueue).values({
+      // Metadata will be automatically serialized by Drizzle's JSON mode
+
+      const values = {
         id: jobId,
         type,
         data: JSON.stringify(data),
@@ -119,7 +121,23 @@ export class JobQueueService implements IJobQueueService {
         scheduledFor: Date.now() + (options.delayMs ?? 0),
         source: options.source ?? null,
         metadata: options.metadata ?? null,
+      };
+
+      // Log to see what we're trying to insert
+      this.logger.debug("Inserting job with values", {
+        id: values.id,
+        type: values.type,
+        dataLength: values.data.length,
+        priority: values.priority,
+        maxRetries: values.maxRetries,
+        scheduledFor: values.scheduledFor,
+        source: values.source,
+        metadataLength: values.metadata
+          ? Object.keys(values.metadata).length
+          : 0,
       });
+
+      await this.db.insert(jobQueue).values(values);
 
       this.logger.debug("Enqueued job", {
         jobId,

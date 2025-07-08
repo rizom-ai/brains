@@ -3,7 +3,7 @@ import { JobProgressMonitor } from "../src/job-progress-monitor";
 import type { IJobQueueService } from "../src/types";
 import type { BatchJobManager } from "../src/batch-job-manager";
 import type { IEventEmitter } from "../src/job-progress-monitor";
-import { Logger } from "@brains/utils";
+import { createSilentLogger, type Logger } from "@brains/utils";
 import type { JobQueue } from "@brains/db";
 import type { BatchJobStatus } from "../src/schemas";
 
@@ -58,7 +58,7 @@ describe("JobProgressMonitor", () => {
       send: mock(() => Promise.resolve()),
     };
 
-    mockLogger = Logger.createFresh({ context: "test" });
+    mockLogger = createSilentLogger();
 
     // Reset singleton before each test
     JobProgressMonitor.resetInstance();

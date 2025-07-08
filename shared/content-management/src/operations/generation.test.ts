@@ -251,9 +251,17 @@ test("generate should queue multiple jobs for multiple sections", async () => {
     "content-generation",
     {
       templateName: "template-name",
+      entityId: "landing:hero",
+      entityType: "site-content-preview",
       context: {
         data: {
-          ...result.jobs[0],
+          jobId: expect.stringMatching(/^generate-landing:hero-\d+$/),
+          entityId: "landing:hero",
+          entityType: "site-content-preview",
+          operation: "generate",
+          pageId: "landing",
+          sectionId: "hero",
+          templateName: "template-name",
           siteConfig: { siteTitle: "Test Site" },
         },
       },
