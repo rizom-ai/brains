@@ -8,6 +8,28 @@ import { z } from "zod";
 import { InterfacePlugin } from "./interface-plugin";
 import { EventEmitter } from "node:events";
 import PQueue from "p-queue";
+import { JobProgressEventSchema } from "@brains/job-queue";
+
+/**
+ * Structured response schemas
+ */
+const batchOperationResponseSchema = z.object({
+  type: z.literal("batch-operation"),
+  batchId: z.string(),
+  message: z.string(),
+  operationCount: z.number(),
+});
+
+export type BatchOperationResponse = z.infer<
+  typeof batchOperationResponseSchema
+>;
+
+const commandResponseSchema = z.union([
+  z.string(),
+  batchOperationResponseSchema,
+]);
+
+export type CommandResponse = z.infer<typeof commandResponseSchema>;
 
 /**
  * Command definition interface
@@ -16,7 +38,10 @@ export interface Command {
   name: string;
   description: string;
   usage?: string;
-  handler: (args: string[], context: MessageContext) => Promise<string>;
+  handler: (
+    args: string[],
+    context: MessageContext,
+  ) => Promise<CommandResponse>;
 }
 
 // Test job schemas
@@ -66,6 +91,11 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   // EventEmitter delegation
   public on(event: string, listener: (...args: unknown[]) => void): this {
     this.eventEmitter.on(event, listener);
+    return this;
+  }
+
+  public once(event: string, listener: (...args: unknown[]) => void): this {
+    this.eventEmitter.once(event, listener);
     return this;
   }
 
@@ -150,13 +180,14 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
             const batchId = await this.context.enqueueBatch(operations, {
               priority: 5,
             });
-            // Return JSON for interfaces that want to track progress
-            return JSON.stringify({
+
+            // Return structured response
+            return {
+              type: "batch-operation" as const,
               batchId,
-              status: "queued",
               message: `Batch operation enqueued with ID: ${batchId}\n${count} operations queued.`,
               operationCount: count,
-            });
+            };
           } catch (error) {
             return `Failed to enqueue batch: ${error instanceof Error ? error.message : String(error)}`;
           }
@@ -170,6 +201,39 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
+
+    // Listen for batch operation events and auto-subscribe to their progress
+    this.on("batch-operation-created", (...args: unknown[]) => {
+      const response = args[0] as BatchOperationResponse;
+      // Auto-subscribe to progress updates for this batch
+      const unsubscribe = context.subscribe("job-progress", async (message) => {
+        const validationResult = JobProgressEventSchema.safeParse(
+          message.payload,
+        );
+        if (!validationResult.success) {
+          return { success: true };
+        }
+
+        const progressEvent = validationResult.data;
+        if (
+          progressEvent.type === "batch" &&
+          progressEvent.id === response.batchId
+        ) {
+          // Emit for any listeners (CLI React components, Matrix tracking, etc.)
+          this.emit("batch-progress", progressEvent);
+
+          // Unsubscribe when complete
+          if (
+            progressEvent.status === "completed" ||
+            progressEvent.status === "failed"
+          ) {
+            unsubscribe();
+          }
+        }
+
+        return { success: true };
+      });
+    });
 
     // Register test batch job handler for progress testing
     // Available to all message interfaces (CLI, Matrix, etc.)
@@ -248,6 +312,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   ): Promise<string> {
     // Default routing logic: commands start with '/', everything else is a query
     if (input.startsWith("/")) {
+      // executeCommand already handles structured responses
       return this.executeCommand(input, context);
     }
 
@@ -328,7 +393,20 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     const commandDef = commands.find((c) => c.name === cmd);
 
     if (commandDef) {
-      return commandDef.handler(args, context);
+      const response = await commandDef.handler(args, context);
+
+      // Validate and handle the response
+      const parsed = commandResponseSchema.parse(response);
+
+      if (typeof parsed === "string") {
+        return parsed;
+      }
+
+      // Handle batch operation response
+      // Emit event for interfaces that want to track this batch
+      this.emit("batch-operation-created", parsed);
+      // Return the user-friendly message
+      return parsed.message;
     }
 
     return `Unknown command: ${command}. Type /help for available commands.`;

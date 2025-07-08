@@ -160,6 +160,7 @@ export default function App({
           isConnected={isConnected}
           getActiveJobs={() => cliInterface.getActiveJobs()}
           getActiveBatches={() => cliInterface.getActiveBatches()}
+          cliInterface={cliInterface}
         />
       </Box>
     </Box>

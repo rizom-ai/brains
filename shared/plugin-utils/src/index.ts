@@ -23,6 +23,8 @@ export { InterfacePlugin } from "./interface-plugin";
 export {
   MessageInterfacePlugin,
   type Command,
+  type CommandResponse,
+  type BatchOperationResponse,
 } from "./message-interface-plugin";
 
 // Plugin utilities

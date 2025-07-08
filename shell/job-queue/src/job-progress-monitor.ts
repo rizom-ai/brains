@@ -3,7 +3,7 @@ import type { IJobQueueService } from "./types";
 import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
 import type { JobQueue } from "@brains/db";
-import type { z } from "zod";
+import { type z } from "zod";
 import { JobProgressEventSchema } from "./schemas";
 
 /**
