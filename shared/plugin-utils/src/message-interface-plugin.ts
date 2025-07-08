@@ -100,10 +100,8 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     event: "batch-progress",
     listener: (progressEvent: JobProgressEvent, target: string) => void,
   ): this;
-  public on(
-    event: "job-progress" | "batch-progress",
-    listener: (progressEvent: JobProgressEvent, target: string) => void,
-  ): this {
+  public on(event: string, listener: (...args: unknown[]) => void): this;
+  public on(event: string, listener: (...args: unknown[]) => void): this {
     this.eventEmitter.on(event, listener);
     return this;
   }

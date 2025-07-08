@@ -60,4 +60,7 @@ describe("CLI Progress Integration", () => {
     expect(helpText).toContain("/test-progress");
     expect(helpText).toContain("Test progress tracking with a slow job");
   });
+
+  // Note: Progress event re-emission is tested through integration testing with React components
+  // The re-emission logic is in onRegister() and bridges base class events to React components
 });

@@ -6,7 +6,6 @@ import {
 import type { MessageContext, PluginContext } from "@brains/plugin-utils";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { DefaultQueryResponse } from "@brains/types";
-import { JobProgressEventSchema } from "@brains/job-queue";
 import type { Instance } from "ink";
 import type { CLIConfig, CLIConfigInput } from "./types";
 import { cliConfigSchema } from "./types";
@@ -15,7 +14,6 @@ import packageJson from "../package.json";
 export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
-  private jobProgressUnsubscribe: (() => void) | null = null;
 
   /**
    * Get active jobs from the context
@@ -124,33 +122,16 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     await super.onRegister(context);
     // Test handlers are now registered in the base MessageInterfacePlugin class
 
-    // Subscribe to job progress events and re-emit them for React components
-    this.jobProgressUnsubscribe = context.subscribe(
-      "job-progress",
-      async (message) => {
-        // Validate the event payload
-        const validationResult = JobProgressEventSchema.safeParse(
-          message.payload,
-        );
-        if (!validationResult.success) {
-          this.logger.warn("Invalid job progress event", {
-            error: validationResult.error,
-            payload: message.payload,
-          });
-          return { success: true };
-        }
+    // Listen for job progress events from the base class and re-emit for React components
+    this.on("job-progress", (progressEvent, _target) => {
+      // Re-emit for React components (React components don't need the target parameter)
+      this.emit("job-progress", progressEvent);
+    });
 
-        // Emit the validated progress event for React components
-        this.emit("job-progress", validationResult.data);
-
-        return { success: true };
-      },
-    );
-
-    // Listen for batch progress events from the base class
-    this.on("batch-progress", (...args: unknown[]) => {
-      // Re-emit as job-progress for React components
-      this.emit("job-progress", args[0]);
+    // Listen for batch progress events from the base class and re-emit for React components
+    this.on("batch-progress", (progressEvent, _target) => {
+      // Re-emit as job-progress for React components (unified interface)
+      this.emit("job-progress", progressEvent);
     });
   }
 
@@ -239,11 +220,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   public async stop(): Promise<void> {
     this.logger.info("Stopping CLI interface");
 
-    // Unsubscribe from job progress events
-    if (this.jobProgressUnsubscribe) {
-      this.jobProgressUnsubscribe();
-      this.jobProgressUnsubscribe = null;
-    }
+    // Job progress event cleanup is now handled by React components
 
     if (this.inkApp) {
       this.inkApp.unmount();
