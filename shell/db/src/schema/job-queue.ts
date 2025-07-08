@@ -28,6 +28,14 @@ export const jobQueue = sqliteTable(
     // Job result (JSON - type-specific result after completion)
     result: text("result", { mode: "json" }).$type<unknown>(),
 
+    // Job source (who created this job)
+    source: text("source"),
+
+    // Job metadata (additional context for progress events)
+    metadata: text("metadata", { mode: "json" }).$type<
+      Record<string, unknown>
+    >(),
+
     // Queue metadata
     status: text("status", {
       enum: ["pending", "processing", "completed", "failed"],
@@ -58,6 +66,8 @@ export const jobQueue = sqliteTable(
     ),
     // Index for job type filtering
     jobTypeIdx: index("idx_job_queue_type").on(table.type, table.status),
+    // Index for source filtering
+    jobSourceIdx: index("idx_job_queue_source").on(table.source),
   }),
 );
 
@@ -68,6 +78,8 @@ export const insertJobQueueSchema = createInsertSchema(jobQueue, {
   type: z.string().min(1),
   data: z.string(),
   result: z.unknown().optional(),
+  source: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
   status: z
     .enum(["pending", "processing", "completed", "failed"])
     .default("pending"),
@@ -80,6 +92,8 @@ export const selectJobQueueSchema = createSelectSchema(jobQueue, {
   type: z.string(),
   data: z.string(),
   result: z.unknown().optional(),
+  source: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
   status: z.enum(["pending", "processing", "completed", "failed"]),
   priority: z.number().int(),
   retryCount: z.number().int().min(0),
@@ -100,6 +114,8 @@ export interface JobOptions {
   priority?: number; // Job priority (higher = more important)
   maxRetries?: number; // Override default retry count
   delayMs?: number; // Initial delay before processing
+  source?: string; // Source identifier for job progress events
+  metadata?: Record<string, unknown>; // Additional metadata for job progress events
 }
 
 /**

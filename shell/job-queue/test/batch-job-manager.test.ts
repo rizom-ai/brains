@@ -71,7 +71,8 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-2", entityType: "note" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(operations);
+      const source = "test:batch-manager";
+      const batchId = await batchManager.enqueueBatch(operations, source);
 
       expect(batchId).toBeDefined();
       expect(typeof batchId).toBe("string");
@@ -89,10 +90,12 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(operations, {
+      const source = "test:batch-manager";
+      const batchId = await batchManager.enqueueBatch(operations, source, {
         userId: "user-123",
         priority: 5,
         maxRetries: 1,
+        metadata: { batchType: "test" },
       });
 
       // Get batch status to verify it was created
@@ -108,7 +111,7 @@ describe("BatchJobManager", () => {
 
     it("should throw error for empty batch", async () => {
       expect(async () => {
-        await batchManager.enqueueBatch([]);
+        await batchManager.enqueueBatch([], "test:batch-manager");
       }).toThrow("Cannot enqueue empty batch");
     });
   });
@@ -124,7 +127,10 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(operations);
+      const batchId = await batchManager.enqueueBatch(
+        operations,
+        "test:batch-manager",
+      );
       const status = await batchManager.getBatchStatus(batchId);
 
       expect(status).toBeDefined();
@@ -143,7 +149,10 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-2" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(operations);
+      const batchId = await batchManager.enqueueBatch(
+        operations,
+        "test:batch-manager",
+      );
       const status = await batchManager.getBatchStatus(batchId);
 
       expect(status?.totalOperations).toBe(2);
@@ -159,7 +168,10 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(operations);
+      const batchId = await batchManager.enqueueBatch(
+        operations,
+        "test:batch-manager",
+      );
       const status = await batchManager.getBatchStatus(batchId);
 
       // Initially, job should be pending or processing
@@ -173,7 +185,7 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(operations);
+      const batchId = await batchManager.enqueueBatch(operations, "test:batch-manager");
 
       // Verify batch exists
       const statusBefore = await batchManager.getBatchStatus(batchId);
@@ -192,17 +204,22 @@ describe("BatchJobManager", () => {
   describe("getActiveBatches", () => {
     it("should return only active batches", async () => {
       // Create multiple batches
-      await batchManager.enqueueBatch([
-        { type: "embedding", entityId: "entity-1" },
-      ]);
+      await batchManager.enqueueBatch(
+        [{ type: "embedding", entityId: "entity-1" }],
+        "test:batch-manager",
+      );
 
-      await batchManager.enqueueBatch([
-        { type: "embedding", entityId: "entity-2" },
-        { type: "embedding", entityId: "entity-3" },
-      ]);
+      await batchManager.enqueueBatch(
+        [
+          { type: "embedding", entityId: "entity-2" },
+          { type: "embedding", entityId: "entity-3" },
+        ],
+        "test:batch-manager",
+      );
 
       const batch3Id = await batchManager.enqueueBatch(
         [{ type: "embedding", entityId: "entity-4" }],
+        "test:batch-manager",
         { userId: "user-123" },
       );
 
@@ -231,6 +248,11 @@ describe("BatchJobManager", () => {
       // Check that batch3 has userId
       const batch3 = activeBatches.find((b) => b.batchId === batch3Id);
       expect(batch3?.metadata.userId).toBe("user-123");
+
+      // Check that all batches have source
+      for (const batch of activeBatches) {
+        expect(batch.metadata.source).toBe("test:batch-manager");
+      }
     });
 
     it("should return empty array when no active batches", async () => {
@@ -239,7 +261,7 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      await batchManager.enqueueBatch(operations);
+      await batchManager.enqueueBatch(operations, "test:batch-manager");
 
       // Process and complete the job
       const job = await jobQueueService.dequeue();
@@ -256,10 +278,13 @@ describe("BatchJobManager", () => {
 
     it("should include processing batches", async () => {
       // Create a batch
-      const batchId = await batchManager.enqueueBatch([
-        { type: "embedding", entityId: "entity-1" },
-        { type: "embedding", entityId: "entity-2" },
-      ]);
+      const batchId = await batchManager.enqueueBatch(
+        [
+          { type: "embedding", entityId: "entity-1" },
+          { type: "embedding", entityId: "entity-2" },
+        ],
+        "test:batch-manager",
+      );
 
       // Start processing one job (dequeue it)
       await jobQueueService.dequeue();

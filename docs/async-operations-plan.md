@@ -298,7 +298,7 @@ export class SiteBuilderPlugin extends BasePlugin {
           async (input, context) => {
             // Get source from tool execution context
             const source = context?.source || "plugin:site-builder";
-            
+
             const jobId = await this.context.enqueueJob(
               `${this.metadata.id}:site-build`,
               {
@@ -307,9 +307,9 @@ export class SiteBuilderPlugin extends BasePlugin {
                 clean: input.clean,
               },
               {
-                source,  // Pass source so progress events are targeted back
-                metadata: { tool: "build-site" }
-              }
+                source, // Pass source so progress events are targeted back
+                metadata: { tool: "build-site" },
+              },
             );
 
             return {

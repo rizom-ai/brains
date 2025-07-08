@@ -177,9 +177,13 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
                 duration: 1000 + i * 500,
               },
             }));
-            const batchId = await this.context.enqueueBatch(operations, {
-              priority: 5,
-            });
+            const batchId = await this.context.enqueueBatch(
+              operations,
+              `${this.id}:test`, // source
+              {
+                priority: 5,
+              },
+            );
 
             // Return structured response
             return {

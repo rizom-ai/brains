@@ -117,6 +117,8 @@ export class JobQueueService implements IJobQueueService {
         priority: options.priority ?? 0,
         maxRetries: options.maxRetries ?? 3,
         scheduledFor: Date.now() + (options.delayMs ?? 0),
+        source: options.source ?? null,
+        metadata: options.metadata ?? null,
       });
 
       this.logger.debug("Enqueued job", {

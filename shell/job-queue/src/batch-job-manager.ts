@@ -21,8 +21,10 @@ export class BatchJobManager {
     {
       jobIds: string[];
       operations: BatchOperation[];
+      source: string;
       userId?: string;
       startedAt: string;
+      metadata?: Record<string, unknown>;
     }
   >();
 
@@ -55,10 +57,12 @@ export class BatchJobManager {
    */
   async enqueueBatch(
     operations: BatchOperation[],
+    source: string,
     options?: {
       userId?: string;
       priority?: number;
       maxRetries?: number;
+      metadata?: Record<string, unknown>;
     },
   ): Promise<string> {
     if (operations.length === 0) {
@@ -72,12 +76,17 @@ export class BatchJobManager {
       // Enqueue each operation as an individual job
       for (const operation of operations) {
         // Build job options conditionally to avoid undefined values
-        const jobOptions: Parameters<IJobQueueService["enqueue"]>[2] = {};
+        const jobOptions: Parameters<IJobQueueService["enqueue"]>[2] = {
+          source, // Always include source
+        };
         if (options?.priority !== undefined) {
           jobOptions.priority = options.priority;
         }
         if (options?.maxRetries !== undefined) {
           jobOptions.maxRetries = options.maxRetries;
+        }
+        if (options?.metadata !== undefined) {
+          jobOptions.metadata = options.metadata;
         }
 
         const jobId = await this.jobQueue.enqueue(
@@ -92,16 +101,22 @@ export class BatchJobManager {
       const batchMetadata: {
         jobIds: string[];
         operations: BatchOperation[];
+        source: string;
         userId?: string;
         startedAt: string;
+        metadata?: Record<string, unknown>;
       } = {
         jobIds,
         operations,
+        source,
         startedAt: new Date().toISOString(),
       };
 
       if (options?.userId !== undefined) {
         batchMetadata.userId = options.userId;
+      }
+      if (options?.metadata !== undefined) {
+        batchMetadata.metadata = options.metadata;
       }
 
       this.batches.set(batchId, batchMetadata);
@@ -242,8 +257,10 @@ export class BatchJobManager {
       status: BatchJobStatus;
       metadata: {
         operations: BatchOperation[];
+        source: string;
         userId?: string;
         startedAt: string;
+        metadata?: Record<string, unknown>;
       };
     }>
   > {
@@ -252,8 +269,10 @@ export class BatchJobManager {
       status: BatchJobStatus;
       metadata: {
         operations: BatchOperation[];
+        source: string;
         userId?: string;
         startedAt: string;
+        metadata?: Record<string, unknown>;
       };
     }> = [];
 
@@ -271,8 +290,12 @@ export class BatchJobManager {
             status,
             metadata: {
               operations: metadata.operations,
+              source: metadata.source,
               ...(metadata.userId !== undefined && { userId: metadata.userId }),
               startedAt: metadata.startedAt,
+              ...(metadata.metadata !== undefined && {
+                metadata: metadata.metadata,
+              }),
             },
           });
         }

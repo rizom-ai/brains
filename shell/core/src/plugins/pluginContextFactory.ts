@@ -381,6 +381,8 @@ export class PluginContextFactory {
         options?: {
           priority?: number;
           maxRetries?: number;
+          source?: string;
+          metadata?: Record<string, unknown>;
         },
       ): Promise<string> => {
         try {
@@ -460,10 +462,12 @@ export class PluginContextFactory {
           entityType?: string;
           options?: Record<string, unknown>;
         }>,
+        source: string,
         options?: {
           userId?: string;
           priority?: number;
           maxRetries?: number;
+          metadata?: Record<string, unknown>;
         },
       ): Promise<string> => {
         try {
@@ -475,6 +479,7 @@ export class PluginContextFactory {
 
           const batchId = await batchJobManager.enqueueBatch(
             operations,
+            source,
             options,
           );
 

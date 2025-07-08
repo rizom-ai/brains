@@ -178,6 +178,31 @@ describe("JobQueueService", () => {
       expect(job?.status).toBe("pending");
     });
 
+    it("should store source and metadata when provided", async () => {
+      const source = "matrix:room123";
+      const metadata = { userId: "user-123", command: "test" };
+
+      const jobId = await service.enqueue("embedding", testEntity, {
+        source,
+        metadata,
+      });
+
+      // Get the job from database directly
+      const job = await service.getStatus(jobId);
+      expect(job).toBeTruthy();
+      expect(job?.source).toBe(source);
+      expect(job?.metadata).toEqual(metadata);
+    });
+
+    it("should handle null source and metadata", async () => {
+      const jobId = await service.enqueue("embedding", testEntity);
+
+      const job = await service.getStatus(jobId);
+      expect(job).toBeTruthy();
+      expect(job?.source).toBeNull();
+      expect(job?.metadata).toBeNull();
+    });
+
     it("should throw error when enqueueing job with no registered handler", async () => {
       service = JobQueueService.createFresh(db, createSilentLogger());
 

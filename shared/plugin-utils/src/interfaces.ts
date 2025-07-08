@@ -194,6 +194,8 @@ export interface PluginContext {
     options?: {
       priority?: number;
       maxRetries?: number;
+      source?: string;
+      metadata?: Record<string, unknown>;
     },
   ) => Promise<string>;
 
@@ -211,10 +213,12 @@ export interface PluginContext {
       entityType?: string;
       options?: Record<string, unknown>;
     }>,
+    source: string,
     options?: {
       userId?: string;
       priority?: number;
       maxRetries?: number;
+      metadata?: Record<string, unknown>;
     },
   ) => Promise<string>;
 
@@ -230,8 +234,10 @@ export interface PluginContext {
       status: BatchJobStatus;
       metadata: {
         operations: BatchOperation[];
+        source: string;
         userId?: string;
         startedAt: string;
+        metadata?: Record<string, unknown>;
       };
     }>
   >;
