@@ -143,15 +143,23 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
       {
         name: "test-progress",
         description: "Test progress tracking with a slow job",
-        handler: async () => {
+        handler: async (_args, context) => {
           if (!this.context) {
             return "Plugin context not initialized";
           }
           try {
-            const jobId = await this.context.enqueueJob("test-slow-job", {
-              duration: 10000,
-              message: "Testing progress tracking",
-            });
+            // Use context-specific source for proper event targeting
+            const source = `${this.id}:${context.channelId}`;
+            const jobId = await this.context.enqueueJob(
+              "test-slow-job", 
+              {
+                duration: 10000,
+                message: "Testing progress tracking",
+              },
+              {
+                source,
+              },
+            );
             return `Test job enqueued with ID: ${jobId}\nWatch the status bar for progress!`;
           } catch (error) {
             return `Failed to enqueue test job: ${error instanceof Error ? error.message : String(error)}`;
@@ -162,7 +170,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
         name: "test-batch",
         description: "Test batch progress tracking",
         usage: "/test-batch [count]",
-        handler: async (args) => {
+        handler: async (args, context) => {
           if (!this.context) {
             return "Plugin context not initialized";
           }
@@ -177,9 +185,11 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
                 duration: 1000 + i * 500,
               },
             }));
+            // Use context-specific source for proper event targeting
+            const source = `${this.id}:${context.channelId}`;
             const batchId = await this.context.enqueueBatch(
               operations,
-              `${this.id}:test`, // source
+              source,
               {
                 priority: 5,
               },
@@ -206,12 +216,12 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
 
-    // Listen for batch operation events and emit for interfaces to handle
-    this.on("batch-operation-created", (...args: unknown[]) => {
-      const response = args[0] as BatchOperationResponse;
-
-      // Auto-subscribe to progress updates for this batch
-      const unsubscribe = context.subscribe("job-progress", async (message) => {
+    // Subscribe to job progress events targeted at this interface
+    // Use target filter to only receive events addressed to this interface
+    // This will match patterns like "matrix:*", "cli:*", etc.
+    context.subscribe(
+      "job-progress",
+      async (message) => {
         const validationResult = JobProgressEventSchema.safeParse(
           message.payload,
         );
@@ -220,25 +230,20 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
         }
 
         const progressEvent = validationResult.data;
-        if (
-          progressEvent.type === "batch" &&
-          progressEvent.id === response.batchId
-        ) {
-          // Emit for any listeners (CLI React components, Matrix, etc.)
+        
+        // Emit for any listeners (CLI React components, Matrix message editing, etc.)
+        if (progressEvent.type === "batch") {
           this.emit("batch-progress", progressEvent);
-
-          // Unsubscribe when complete
-          if (
-            progressEvent.status === "completed" ||
-            progressEvent.status === "failed"
-          ) {
-            unsubscribe();
-          }
+        } else if (progressEvent.type === "job") {
+          this.emit("job-progress", progressEvent);
         }
 
         return { success: true };
-      });
-    });
+      },
+      {
+        target: `${this.id}:*`, // Match events targeted at this interface (e.g., "matrix:roomId", "matrix:roomId:userId")
+      },
+    );
 
     // Register test batch job handler for progress testing
     // Available to all message interfaces (CLI, Matrix, etc.)

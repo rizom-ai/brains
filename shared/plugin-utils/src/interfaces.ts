@@ -6,10 +6,10 @@ import type {
 } from "@brains/utils";
 import type {
   BaseEntity,
-  MessageHandler,
   MessageSender,
   Template,
 } from "@brains/types";
+import type { IMessageBus } from "@brains/messaging-service";
 import type { EntityAdapter } from "@brains/base-entity";
 import type {
   RouteDefinition,
@@ -127,14 +127,10 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
  * Plugin context passed to plugins during registration
  * Provides clean, minimal interface following principle of least privilege
  */
-export interface PluginContext {
+export interface PluginContext extends Pick<IMessageBus, 'subscribe'> {
   pluginId: string;
   logger: Logger;
   sendMessage: MessageSender;
-  subscribe: <T = unknown, R = unknown>(
-    type: string,
-    handler: MessageHandler<T, R>,
-  ) => () => void;
   registerEntityType: <T extends BaseEntity>(
     entityType: string,
     schema: z.ZodType<T>,
