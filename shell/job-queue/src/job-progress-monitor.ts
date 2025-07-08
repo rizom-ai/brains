@@ -4,7 +4,7 @@ import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
 import type { JobQueue } from "@brains/db";
 import type { z } from "zod";
-import { JobProgressEventSchema } from "./schemas";
+import type { JobProgressEventSchema } from "./schemas";
 
 /**
  * Progress event emitted by the monitor
@@ -47,6 +47,8 @@ export class JobProgressMonitor implements IProgressReporter {
   private lastBatchStates = new Map<string, string>();
   // Track batches we've seen to emit final completion event
   private knownBatches = new Set<string>();
+  // Cache batch metadata for completed batches to ensure proper targeting
+  private batchMetadataCache = new Map<string, string>();
 
   // Track jobs that are reporting progress
   private jobsWithProgress = new Map<
@@ -155,6 +157,7 @@ export class JobProgressMonitor implements IProgressReporter {
     this.lastBatchStates.clear();
     this.jobsWithProgress.clear();
     this.knownBatches.clear();
+    this.batchMetadataCache.clear();
   }
 
   /**
@@ -228,8 +231,10 @@ export class JobProgressMonitor implements IProgressReporter {
     try {
       const activeBatches = await this.batchJobManager.getActiveBatches();
 
-      for (const { batchId, status } of activeBatches) {
+      for (const { batchId, status, metadata } of activeBatches) {
         this.knownBatches.add(batchId);
+        // Cache the source for completed batch events
+        this.batchMetadataCache.set(batchId, metadata.source);
         await this.emitBatchProgressUpdate(batchId, status);
       }
 
@@ -246,8 +251,9 @@ export class JobProgressMonitor implements IProgressReporter {
           ) {
             // Emit final status
             await this.emitBatchProgressUpdate(knownBatchId, status);
-            // Remove from known batches
+            // Remove from known batches and clear cache
             this.knownBatches.delete(knownBatchId);
+            this.batchMetadataCache.delete(knownBatchId);
           }
         }
       }
@@ -370,9 +376,12 @@ export class JobProgressMonitor implements IProgressReporter {
         }
 
         // Get batch metadata to extract source for targeting
+        // First try to get from active batches, then fall back to cache
         const activeBatches = await this.batchJobManager.getActiveBatches();
         const batchMetadata = activeBatches.find((b) => b.batchId === batchId);
-        const target = batchMetadata?.metadata.source ?? undefined;
+        const target =
+          batchMetadata?.metadata.source ??
+          this.batchMetadataCache.get(batchId);
 
         await this.eventEmitter.send("job-progress", event, target);
 

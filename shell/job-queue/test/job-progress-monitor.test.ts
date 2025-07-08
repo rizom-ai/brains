@@ -222,20 +222,20 @@ describe("JobProgressMonitor", () => {
     });
   });
 
-  describe("batch monitoring", () => {
-    const createMockBatch = (
-      overrides: Partial<BatchJobStatus> = {},
-    ): BatchJobStatus => ({
-      batchId: "batch-456",
-      totalOperations: 10,
-      completedOperations: 3,
-      failedOperations: 0,
-      errors: [],
-      status: "processing",
-      currentOperation: "Processing operation 4",
-      ...overrides,
-    });
+  const createMockBatch = (
+    overrides: Partial<BatchJobStatus> = {},
+  ): BatchJobStatus => ({
+    batchId: "batch-456",
+    totalOperations: 10,
+    completedOperations: 3,
+    failedOperations: 0,
+    errors: [],
+    status: "processing",
+    currentOperation: "Processing operation 4",
+    ...overrides,
+  });
 
+  describe("batch monitoring", () => {
     it("should emit progress event for batch operations", async () => {
       const mockBatch = createMockBatch();
       (mockBatchJobManager.getActiveBatches as any).mockResolvedValue([
@@ -408,6 +408,230 @@ describe("JobProgressMonitor", () => {
       );
 
       expect(instance1).not.toBe(instance2);
+    });
+  });
+
+  describe("batch completion event targeting", () => {
+    it("should emit final batch completion event with proper targeting", async () => {
+      const mockBatch = createMockBatch({
+        status: "processing",
+        totalOperations: 2,
+        completedOperations: 1,
+      });
+
+      // First call: batch is active
+      (mockBatchJobManager.getActiveBatches as any)
+        .mockResolvedValueOnce([
+          {
+            batchId: "batch-123",
+            status: mockBatch,
+            metadata: {
+              operations: [],
+              source: "matrix:!testroom:example.com",
+              startedAt: new Date().toISOString(),
+            },
+          },
+        ])
+        // Second call: batch is no longer active (completed)
+        .mockResolvedValueOnce([]);
+
+      // When getBatchStatus is called for completed batch
+      (mockBatchJobManager.getBatchStatus as any).mockResolvedValue({
+        ...mockBatch,
+        status: "completed",
+        completedOperations: 2,
+      });
+
+      monitor.start();
+
+      // Wait for initial check (batch is active)
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      // Wait for second check (batch completion)
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      // Verify final completion event was emitted with correct target
+      const completionCalls = (mockEventEmitter.send as any).mock.calls.filter(
+        (call: any) => call[1].status === "completed",
+      );
+
+      expect(completionCalls).toHaveLength(1);
+      expect(completionCalls[0]).toEqual([
+        "job-progress",
+        expect.objectContaining({
+          id: "batch-123",
+          type: "batch",
+          status: "completed",
+          batchDetails: expect.objectContaining({
+            completedOperations: 2,
+            totalOperations: 2,
+          }),
+        }),
+        "matrix:!testroom:example.com", // Target should be preserved from cache
+      ]);
+    });
+
+    it("should handle batch completion without cached metadata gracefully", async () => {
+      const mockBatch = createMockBatch({
+        status: "completed",
+        totalOperations: 1,
+        completedOperations: 1,
+      });
+
+      // Batch is no longer active (completed)
+      (mockBatchJobManager.getActiveBatches as any).mockResolvedValue([]);
+
+      // When getBatchStatus is called for unknown batch
+      (mockBatchJobManager.getBatchStatus as any).mockResolvedValue(mockBatch);
+
+      monitor.start();
+
+      // Wait for check
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      // Should not emit any events for unknown batches
+      expect(mockEventEmitter.send).not.toHaveBeenCalled();
+    });
+
+    it("should clean up batch metadata cache after completion", async () => {
+      const mockBatch = createMockBatch({
+        status: "processing",
+        totalOperations: 1,
+        completedOperations: 0,
+      });
+
+      // First call: batch is active
+      (mockBatchJobManager.getActiveBatches as any)
+        .mockResolvedValueOnce([
+          {
+            batchId: "batch-cleanup-test",
+            status: mockBatch,
+            metadata: {
+              operations: [],
+              source: "cli:test",
+              startedAt: new Date().toISOString(),
+            },
+          },
+        ])
+        // Second call: batch is no longer active
+        .mockResolvedValueOnce([]);
+
+      // When getBatchStatus is called for completed batch
+      (mockBatchJobManager.getBatchStatus as any).mockResolvedValue({
+        ...mockBatch,
+        status: "completed",
+        completedOperations: 1,
+      });
+
+      monitor.start();
+
+      // Wait for initial check (caches metadata)
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      // Wait for completion check (should clean up cache)
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      // Verify cache was cleaned up by checking that subsequent calls don't use cache
+      (mockBatchJobManager.getActiveBatches as any).mockResolvedValue([]);
+      (mockBatchJobManager.getBatchStatus as any).mockResolvedValue({
+        ...mockBatch,
+        status: "completed",
+        completedOperations: 1,
+      });
+
+      // Reset mock calls
+      (mockEventEmitter.send as any).mockClear();
+
+      // Wait for another check
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      // Should not emit events for cleaned up batches
+      expect(mockEventEmitter.send).not.toHaveBeenCalled();
+    });
+
+    it("should handle multiple batches with different sources correctly", async () => {
+      const mockBatch1 = createMockBatch({
+        status: "processing",
+        totalOperations: 1,
+        completedOperations: 0,
+      });
+
+      const mockBatch2 = createMockBatch({
+        status: "processing",
+        totalOperations: 1,
+        completedOperations: 0,
+      });
+
+      // Both batches are initially active
+      (mockBatchJobManager.getActiveBatches as any)
+        .mockResolvedValueOnce([
+          {
+            batchId: "batch-matrix",
+            status: mockBatch1,
+            metadata: {
+              operations: [],
+              source: "matrix:!room1:example.com",
+              startedAt: new Date().toISOString(),
+            },
+          },
+          {
+            batchId: "batch-cli",
+            status: mockBatch2,
+            metadata: {
+              operations: [],
+              source: "cli:session-123",
+              startedAt: new Date().toISOString(),
+            },
+          },
+        ])
+        // Second call: both batches complete
+        .mockResolvedValueOnce([]);
+
+      // Mock completion for both batches
+      (mockBatchJobManager.getBatchStatus as any).mockImplementation(
+        (batchId: string) => {
+          if (batchId === "batch-matrix") {
+            return Promise.resolve({
+              ...mockBatch1,
+              status: "completed",
+              completedOperations: 1,
+            });
+          }
+          if (batchId === "batch-cli") {
+            return Promise.resolve({
+              ...mockBatch2,
+              status: "completed",
+              completedOperations: 1,
+            });
+          }
+          return Promise.resolve(null);
+        },
+      );
+
+      monitor.start();
+
+      // Wait for initial check
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      // Wait for completion check
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      // Verify both completion events were emitted with correct targets
+      const completionCalls = (mockEventEmitter.send as any).mock.calls.filter(
+        (call: any) => call[1].status === "completed",
+      );
+
+      expect(completionCalls).toHaveLength(2);
+
+      const matrixCall = completionCalls.find(
+        (call: any) => call[1].id === "batch-matrix",
+      );
+      const cliCall = completionCalls.find(
+        (call: any) => call[1].id === "batch-cli",
+      );
+
+      expect(matrixCall[2]).toBe("matrix:!room1:example.com");
+      expect(cliCall[2]).toBe("cli:session-123");
     });
   });
 });

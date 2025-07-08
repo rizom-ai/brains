@@ -328,8 +328,10 @@ export class PluginTestHarness {
           status: BatchJobStatus;
           metadata: {
             operations: BatchOperation[];
+            source: string;
             userId?: string;
             startedAt: string;
+            metadata?: Record<string, unknown>;
           };
         }>
       > => {

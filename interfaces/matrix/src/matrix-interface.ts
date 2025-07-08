@@ -456,14 +456,20 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
    */
   private setupProgressHandlers(): void {
     // Listen for job progress events
-    this.on("job-progress", (progressEvent: JobProgressEvent, target: string) => {
-      void this.handleJobProgress(progressEvent, target);
-    });
+    this.on(
+      "job-progress",
+      (progressEvent: JobProgressEvent, target: string) => {
+        void this.handleJobProgress(progressEvent, target);
+      },
+    );
 
     // Listen for batch progress events
-    this.on("batch-progress", (progressEvent: JobProgressEvent, target: string) => {
-      void this.handleBatchProgress(progressEvent, target);
-    });
+    this.on(
+      "batch-progress",
+      (progressEvent: JobProgressEvent, target: string) => {
+        void this.handleBatchProgress(progressEvent, target);
+      },
+    );
   }
 
   /**
@@ -526,10 +532,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     if (!batchDetails) return;
 
     let message: string;
-    if (
-      progressEvent.status === "completed" ||
-      batchDetails.completedOperations >= batchDetails.totalOperations
-    ) {
+    if (batchDetails.completedOperations >= batchDetails.totalOperations) {
       message = `✅ All ${batchDetails.totalOperations} tasks completed`;
     } else if (progressEvent.status === "failed") {
       message = `❌ Batch failed: ${batchDetails.completedOperations}/${batchDetails.totalOperations} tasks completed`;
@@ -560,8 +563,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       // Clean up when done
       if (
         progressEvent.status === "completed" ||
-        progressEvent.status === "failed" ||
-        batchDetails.completedOperations >= batchDetails.totalOperations
+        progressEvent.status === "failed"
       ) {
         this.progressMessages.delete(progressKey);
       }

@@ -8,7 +8,10 @@ import { z } from "zod";
 import { InterfacePlugin } from "./interface-plugin";
 import { EventEmitter } from "node:events";
 import PQueue from "p-queue";
-import { JobProgressEventSchema } from "@brains/job-queue";
+import {
+  JobProgressEventSchema,
+  type JobProgressEvent,
+} from "@brains/job-queue";
 
 /**
  * Structured response schemas
@@ -88,8 +91,19 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     this.eventEmitter = new EventEmitter();
   }
 
-  // EventEmitter delegation
-  public on(event: string, listener: (...args: unknown[]) => void): this {
+  // EventEmitter delegation - typed event handlers
+  public on(
+    event: "job-progress",
+    listener: (progressEvent: JobProgressEvent, target: string) => void,
+  ): this;
+  public on(
+    event: "batch-progress",
+    listener: (progressEvent: JobProgressEvent, target: string) => void,
+  ): this;
+  public on(
+    event: "job-progress" | "batch-progress",
+    listener: (progressEvent: JobProgressEvent, target: string) => void,
+  ): this {
     this.eventEmitter.on(event, listener);
     return this;
   }
@@ -151,7 +165,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
             // Use context-specific source for proper event targeting
             const source = `${this.id}:${context.channelId}`;
             const jobId = await this.context.enqueueJob(
-              "test-slow-job", 
+              "test-slow-job",
               {
                 duration: 10000,
                 message: "Testing progress tracking",
@@ -230,12 +244,13 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
         }
 
         const progressEvent = validationResult.data;
-        
+
         // Emit for any listeners (CLI React components, Matrix message editing, etc.)
+        // Include the message target information so interfaces can route correctly
         if (progressEvent.type === "batch") {
-          this.emit("batch-progress", progressEvent);
+          this.emit("batch-progress", progressEvent, message.target);
         } else if (progressEvent.type === "job") {
-          this.emit("job-progress", progressEvent);
+          this.emit("job-progress", progressEvent, message.target);
         }
 
         return { success: true };

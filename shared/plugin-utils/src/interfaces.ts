@@ -4,11 +4,7 @@ import type {
   ProgressNotification,
   UserPermissionLevel,
 } from "@brains/utils";
-import type {
-  BaseEntity,
-  MessageSender,
-  Template,
-} from "@brains/types";
+import type { BaseEntity, MessageSender, Template } from "@brains/types";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { EntityAdapter } from "@brains/base-entity";
 import type {
@@ -127,7 +123,7 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
  * Plugin context passed to plugins during registration
  * Provides clean, minimal interface following principle of least privilege
  */
-export interface PluginContext extends Pick<IMessageBus, 'subscribe'> {
+export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
   pluginId: string;
   logger: Logger;
   sendMessage: MessageSender;
