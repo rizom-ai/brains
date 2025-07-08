@@ -195,8 +195,8 @@ export class JobProgressMonitor implements IProgressReporter {
       total,
       message: message ?? "Processing...",
       lastUpdate: Date.now(),
-    }
-    
+    };
+
     this.jobsWithProgress.set(jobId, progressData);
 
     // Emit progress event immediately
@@ -204,8 +204,8 @@ export class JobProgressMonitor implements IProgressReporter {
       current,
       total,
       message: message ?? "Processing...",
-    }
-    
+    };
+
     void this.emitJobProgress(jobId, progressInfo);
   }
 

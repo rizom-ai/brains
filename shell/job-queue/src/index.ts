@@ -7,6 +7,7 @@ export {
   type IEventEmitter,
   type IProgressReporter,
 } from "./job-progress-monitor";
+export { MessageBusAdapter } from "./message-bus-adapter";
 export type {
   JobQueueWorkerConfig,
   JobQueueWorkerStats,

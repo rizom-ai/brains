@@ -24,20 +24,26 @@ describe("JobProgressMonitor", () => {
       fail: mock(() => Promise.resolve()),
       getActiveJobs: mock(() => Promise.resolve([])),
       processJob: mock(() =>
-        Promise.resolve({ status: "completed" as const, type: "test", jobId: "test" }),
+        Promise.resolve({
+          status: "completed" as const,
+          type: "test",
+          jobId: "test",
+        }),
       ),
       registerHandler: mock(() => {}),
       unregisterHandler: mock(() => {}),
       getRegisteredTypes: mock(() => []),
       update: mock(() => Promise.resolve()),
       getStatusByEntityId: mock(() => Promise.resolve(null)),
-      getStats: mock(() => Promise.resolve({
-        pending: 0,
-        processing: 0,
-        failed: 0,
-        completed: 0,
-        total: 0,
-      })),
+      getStats: mock(() =>
+        Promise.resolve({
+          pending: 0,
+          processing: 0,
+          failed: 0,
+          completed: 0,
+          total: 0,
+        }),
+      ),
       cleanup: mock(() => Promise.resolve(0)),
     };
 
@@ -323,4 +329,3 @@ describe("JobProgressMonitor", () => {
     });
   });
 });
-

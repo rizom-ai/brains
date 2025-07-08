@@ -12,6 +12,8 @@ import {
   JobQueueService,
   JobQueueWorker,
   BatchJobManager,
+  JobProgressMonitor,
+  MessageBusAdapter,
   type BatchJobStatus,
 } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
@@ -54,6 +56,7 @@ export interface ShellDependencies {
   contentGenerator?: ContentGenerator;
   jobQueueService?: JobQueueService;
   jobQueueWorker?: JobQueueWorker;
+  jobProgressMonitor?: JobProgressMonitor;
 }
 
 /**
@@ -81,6 +84,7 @@ export class Shell {
   private readonly contentGenerator: ContentGenerator;
   private readonly jobQueueService: JobQueueService;
   private readonly jobQueueWorker: JobQueueWorker;
+  private readonly jobProgressMonitor: JobProgressMonitor;
   private initialized = false;
 
   /**
@@ -101,6 +105,7 @@ export class Shell {
     }
     // Also reset dependent singletons
     ShellInitializer.resetInstance();
+    JobProgressMonitor.resetInstance();
   }
 
   /**
@@ -289,6 +294,25 @@ export class Shell {
       () => this.jobQueueService,
     );
     this.serviceRegistry.register("jobQueueWorker", () => this.jobQueueWorker);
+
+    // Initialize JobProgressMonitor with MessageBus adapter
+    const batchJobManager = BatchJobManager.getInstance(
+      this.jobQueueService,
+      this.logger,
+    );
+    const messageBusAdapter = new MessageBusAdapter(this.messageBus);
+    this.jobProgressMonitor =
+      dependencies?.jobProgressMonitor ??
+      JobProgressMonitor.getInstance(
+        this.jobQueueService,
+        batchJobManager,
+        messageBusAdapter,
+        this.logger,
+      );
+    this.serviceRegistry.register(
+      "jobProgressMonitor",
+      () => this.jobProgressMonitor,
+    );
   }
 
   /**
@@ -318,6 +342,10 @@ export class Shell {
       // Start the job queue worker
       await this.jobQueueWorker.start();
       this.logger.info("Job queue worker started");
+
+      // Start the job progress monitor
+      this.jobProgressMonitor.start();
+      this.logger.info("Job progress monitor started");
 
       this.initialized = true;
       this.logger.info("Shell initialized successfully");
@@ -421,7 +449,11 @@ export class Shell {
     this.logger.info("Shutting down Shell");
 
     // Cleanup in reverse order of initialization
-    // Stop the job queue worker first
+    // Stop the job progress monitor first
+    this.jobProgressMonitor.stop();
+    this.logger.info("Job progress monitor stopped");
+
+    // Stop the job queue worker
     await this.jobQueueWorker.stop();
     this.logger.info("Job queue worker stopped");
 
