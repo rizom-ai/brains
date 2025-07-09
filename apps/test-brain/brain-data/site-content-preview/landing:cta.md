@@ -11,13 +11,13 @@ Elevate Your Mind, Amplify Your Impact
 
 ## Description
 
-Unlock the power of your knowledge and take your personal growth to the next level with our intuitive personal knowledge management system.
+Unlock the power of your knowledge and take your personal growth to the next level with our cutting-edge personal knowledge management system.
 
 ## Primary Button
 
 ### Text
 
-Start Your Free Trial
+Start Free Trial
 
 ### Link
 
@@ -27,7 +27,7 @@ Start Your Free Trial
 
 ### Text
 
-Learn More
+View Demo
 
 ### Link
 

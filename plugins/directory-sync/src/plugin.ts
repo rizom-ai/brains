@@ -83,7 +83,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
       throw error; // Fail plugin registration if init fails
     }
 
-    // Register job handlers for batch operations
+    // Register job handlers for async operations
     this.registerJobHandlers(context);
 
     // Register message handlers for plugin communication
@@ -469,7 +469,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
   }
 
   /**
-   * Register job handlers for batch operations
+   * Register job handlers for async operations
    */
   private registerJobHandlers(context: PluginContext): void {
     // Check if job handler registration is available
@@ -490,7 +490,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
       );
       context.registerJobHandler("directory-import", importHandler);
 
-      this.info("Registered batch job handlers");
+      this.info("Registered async job handlers");
     }
   }
 }

@@ -16,8 +16,8 @@ const directoryImportJobSchema = z.object({
 export type DirectoryImportJobData = z.infer<typeof directoryImportJobSchema>;
 
 /**
- * Job handler for batch directory import operations
- * Processes file imports in batches with progress tracking
+ * Job handler for async directory import operations
+ * Processes file imports asynchronously with chunked processing
  * Implements Component Interface Standardization pattern
  */
 export class DirectoryImportJobHandler

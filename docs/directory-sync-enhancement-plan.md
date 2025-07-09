@@ -1,4 +1,4 @@
-# Directory Sync Plugin - Batch Operations Enhancement Plan
+# Directory Sync Plugin - Async Operations Enhancement Plan
 
 ## Current Implementation Analysis
 
@@ -9,7 +9,7 @@
    - Base entities: `syncPath/{entityId}.md`
    - Other entities: `syncPath/{entityType}/{entityId}.md`
 3. **Supported Operations**: sync, export, import, watch, status
-4. **No Batch Support**: No batch operation infrastructure or TODO comments found
+4. **No Async Support**: No async operation infrastructure or TODO comments found
 
 ### Key Issues
 
@@ -20,27 +20,27 @@
 
 ## Improvement Plan
 
-### Phase 1: Add Batch Entity Operations Support
+### Phase 1: Add Async Entity Operations Support
 
-1. **Create Batch Job Handlers**:
-   - `BatchExportJobHandler` - Handle batch entity exports
-   - `BatchImportJobHandler` - Handle batch entity imports
+1. **Create Async Job Handlers**:
+   - `DirectoryExportJobHandler` - Handle async entity exports
+   - `DirectoryImportJobHandler` - Handle async entity imports
    - Register handlers during plugin initialization
 
 2. **Update Plugin to Use Async Operations**:
    - Modify export/import tools to use job queue
-   - Return job/batch IDs instead of blocking
+   - Return job IDs instead of blocking
    - Add progress tracking support
 
-3. **Implement Batch Processing Logic**:
-   - Process entities in chunks (e.g., 50 at a time)
-   - Emit progress events via MessageBus
-   - Handle errors gracefully without stopping entire batch
+3. **Implement Chunked Processing Logic**:
+   - Process entities in chunks (e.g., 100 at a time)
+   - Provide progress visibility via job status
+   - Handle errors gracefully without stopping entire operation
 
 ### Phase 2: Add Progress Monitoring
 
 1. **Progress Events**:
-   - Emit events for: batch started, progress update, batch completed
+   - Emit events for: operation started, progress update, operation completed
    - Include current/total counts and current operation details
 2. **Status Tool Enhancement**:
    - Show detailed progress for running operations
@@ -57,33 +57,33 @@
 
 ## Implementation Details
 
-### 1. Create `batchHandlers.ts`:
+### 1. Create async job handlers:
 
 ```typescript
-// Batch export handler
-export class BatchExportJobHandler
-  implements JobHandler<"directory-sync:batch-export">
+// Async export handler
+export class DirectoryExportJobHandler
+  implements JobHandler<"directory-export">
 {
   async process(
-    data: BatchExportData,
+    data: DirectoryExportJobData,
     jobId: string,
-  ): Promise<BatchExportResult> {
+  ): Promise<ExportResult> {
     // Process entities in chunks
-    // Emit progress events
+    // Track progress via job status
     // Return aggregate results
   }
 }
 
-// Batch import handler
-export class BatchImportJobHandler
-  implements JobHandler<"directory-sync:batch-import">
+// Async import handler
+export class DirectoryImportJobHandler
+  implements JobHandler<"directory-import">
 {
   async process(
-    data: BatchImportData,
+    data: DirectoryImportJobData,
     jobId: string,
-  ): Promise<BatchImportResult> {
+  ): Promise<ImportResult> {
     // Process files in chunks
-    // Emit progress events
+    // Track progress via job status
     // Return aggregate results
   }
 }
@@ -94,8 +94,8 @@ export class BatchImportJobHandler
 ```typescript
 // In plugin.ts onRegister()
 if (context.registerJobHandler) {
-  context.registerJobHandler("batch-export", new BatchExportJobHandler(...));
-  context.registerJobHandler("batch-import", new BatchImportJobHandler(...));
+  context.registerJobHandler("directory-export", new DirectoryExportJobHandler(...));
+  context.registerJobHandler("directory-import", new DirectoryImportJobHandler(...));
 }
 ```
 
@@ -105,9 +105,9 @@ if (context.registerJobHandler) {
 // Update export tool
 async (input, context) => {
   const jobId = await this.context.enqueueJob(
-    `${this.metadata.id}:batch-export`,
+    "directory-export",
     { entityTypes: input.entityTypes },
-    { source: context?.source || "plugin:directory-sync" },
+    { source: "plugin:directory-sync" },
   );
 
   return {
@@ -122,24 +122,26 @@ async (input, context) => {
 ### 4. Add Chunked Processing:
 
 ```typescript
-// In batch handlers
-const CHUNK_SIZE = 50;
-const chunks = chunk(entities, CHUNK_SIZE);
+// In async handlers
+const BATCH_SIZE = 100;
+let offset = 0;
 
-for (let i = 0; i < chunks.length; i++) {
-  const chunk = chunks[i];
-
-  // Process chunk in parallel
-  const results = await Promise.all(
-    chunk.map((entity) => this.processEntity(entity)),
-  );
-
-  // Emit progress
-  await this.emitProgress(jobId, {
-    current: (i + 1) * CHUNK_SIZE,
-    total: entities.length,
-    currentOperation: `Processing chunk ${i + 1}/${chunks.length}`,
+while (hasMore) {
+  // Get batch of entities
+  const entities = await this.context.entityService.listEntities(entityType, {
+    limit: BATCH_SIZE,
+    offset,
   });
+
+  // Process batch in parallel
+  const batchPromises = entities.map(async (entity) => {
+    // Process individual entity
+  });
+
+  await Promise.all(batchPromises);
+
+  offset += BATCH_SIZE;
+  hasMore = entities.length === BATCH_SIZE;
 }
 ```
 
@@ -148,15 +150,15 @@ for (let i = 0; i < chunks.length; i++) {
 - **Non-blocking Operations**: Better UX, no frozen interfaces
 - **Progress Visibility**: Real-time operation tracking
 - **Better Performance**: Parallel processing within chunks
-- **Error Resilience**: Individual failures don't stop entire batch
+- **Error Resilience**: Individual failures don't stop entire operation
 - **Scalability**: Can handle large numbers of entities efficiently
 
 ## Next Steps
 
-1. Implement batch job handlers
+1. Implement async job handlers
 2. Update plugin to register handlers
 3. Convert tools to async pattern
-4. Add progress event emission
+4. Add progress tracking via job status
 5. Test with large datasets
 6. Update documentation
 
@@ -164,8 +166,8 @@ for (let i = 0; i < chunks.length; i++) {
 
 ### Unit Tests
 
-- Test batch handler logic with mock data
-- Verify progress event emission
+- Test async handler logic with mock data
+- Verify job completion and results
 - Test error handling scenarios
 
 ### Integration Tests
@@ -177,12 +179,12 @@ for (let i = 0; i < chunks.length; i++) {
 ### Performance Tests
 
 - Measure improvement over sequential processing
-- Monitor memory usage during batch operations
+- Monitor memory usage during async operations
 - Test with various chunk sizes
 
 ## Migration Path
 
-1. Add batch handlers alongside existing sync methods
+1. Add async handlers alongside existing sync methods
 2. Update tools to use async pattern
 3. Maintain backward compatibility initially
 4. Deprecate synchronous methods in future release

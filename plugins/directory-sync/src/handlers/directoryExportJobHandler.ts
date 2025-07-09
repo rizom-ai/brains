@@ -16,8 +16,8 @@ const directoryExportJobSchema = z.object({
 export type DirectoryExportJobData = z.infer<typeof directoryExportJobSchema>;
 
 /**
- * Job handler for batch directory export operations
- * Processes entity exports in batches with progress tracking
+ * Job handler for async directory export operations
+ * Processes entity exports asynchronously with chunked processing
  * Implements Component Interface Standardization pattern
  */
 export class DirectoryExportJobHandler

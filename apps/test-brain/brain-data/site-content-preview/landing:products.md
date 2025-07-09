@@ -11,11 +11,11 @@ Our Ecosystem
 
 ## Headline
 
-Explore Rizom's Transformative Solutions
+The Tools and Solutions We Build
 
 ## Description
 
-Rizom offers a diverse portfolio of products and services designed to empower organizations and communities in their digital transformation journeys. From strategic consulting to cutting-edge technology platforms, our ecosystem of solutions helps clients navigate the complexities of the modern business landscape and unlock new possibilities.
+Rizom is a dynamic professional collective that brings together seasoned experts in digital transformation, organizational development, and ecosystem design. Our product portfolio spans a range of innovative tools and solutions to help organizations navigate the complexities of modern business.
 
 ## Products
 
@@ -23,19 +23,19 @@ Rizom offers a diverse portfolio of products and services designed to empower or
 
 #### ID
 
-rizom-hub
+rizom-canvas
 
 #### Name
 
-Rizom Hub
+Rizom Canvas
 
 #### Tagline
 
-Your centralized hub for digital transformation
+Visualize and design your ecosystem
 
 #### Description
 
-Rizom Hub is an all-in-one platform that integrates essential tools and services for managing your digital transformation initiatives. From project planning to stakeholder collaboration, Rizom Hub streamlines your workflow and provides real-time insights to drive success.
+An intuitive diagramming tool that empowers organizations to map out their ecosystem, identify key stakeholders and dependencies, and plan strategic initiatives.
 
 #### Status
 
@@ -51,19 +51,47 @@ Brain
 
 #### ID
 
-rizom-strategy
+rizom-hub
 
 #### Name
 
-Rizom Strategy
+Rizom Hub
 
 #### Tagline
 
-Align your organization for digital success
+Centralize your ecosystem knowledge
 
 #### Description
 
-Rizom Strategy is a comprehensive consulting service that helps organizations develop and execute tailored digital transformation strategies. Our expert team guides you through the complexities of organizational change, ensuring your initiatives are aligned with your business goals and core values.
+A collaborative platform that enables organizations to capture, organize, and share critical information about their ecosystem, fostering alignment and informed decision-making.
+
+#### Status
+
+beta
+
+#### Link
+
+#### Icon
+
+Database
+
+### Product 3
+
+#### ID
+
+rizom-flow
+
+#### Name
+
+Rizom Flow
+
+#### Tagline
+
+Optimize your ecosystem workflows
+
+#### Description
+
+A workflow automation tool that helps organizations streamline processes, improve efficiency, and enhance collaboration within their ecosystem.
 
 #### Status
 
@@ -74,34 +102,6 @@ live
 #### Icon
 
 Network
-
-### Product 3
-
-#### ID
-
-rizom-studio
-
-#### Name
-
-Rizom Studio
-
-#### Tagline
-
-Design exceptional digital experiences
-
-#### Description
-
-Rizom Studio is a creative powerhouse that specializes in crafting visually stunning and user-centric digital experiences. From website design to mobile app development, our team of designers and developers bring your ideas to life with cutting-edge technology and a human-centered approach.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Wrench
 
 ### Product 4
 
@@ -115,74 +115,18 @@ Rizom Insights
 
 #### Tagline
 
-Unlock the power of data-driven decision making
+Unlock the power of your ecosystem data
 
 #### Description
 
-Rizom Insights is an advanced analytics platform that transforms your data into actionable intelligence. Leveraging the latest in artificial intelligence and machine learning, our tools provide deep insights to help you make informed decisions and drive meaningful business outcomes.
+A data analytics platform that provides organizations with deep insights into their ecosystem, enabling them to make informed decisions and drive strategic initiatives.
 
 #### Status
 
-beta
-
-#### Link
-
-#### Icon
-
-Database
-
-### Product 5
-
-#### ID
-
-rizom-academy
-
-#### Name
-
-Rizom Academy
-
-#### Tagline
-
-Empower your team with cutting-edge digital skills
-
-#### Description
-
-Rizom Academy offers a comprehensive suite of training programs and workshops to upskill your team in the latest digital technologies and methodologies. From beginner-level courses to advanced certifications, our expert-led curriculum ensures your organization stays ahead of the curve.
-
-#### Status
-
-live
+alpha
 
 #### Link
 
 #### Icon
 
 Cpu
-
-### Product 6
-
-#### ID
-
-rizom-connect
-
-#### Name
-
-Rizom Connect
-
-#### Tagline
-
-Build thriving digital ecosystems
-
-#### Description
-
-Rizom Connect is a powerful platform that enables the creation and management of dynamic digital ecosystems. By facilitating seamless collaboration, knowledge sharing, and resource exchange, Rizom Connect empowers organizations to unlock the full potential of their partner networks and drive collective innovation.
-
-#### Status
-
-beta
-
-#### Link
-
-#### Icon
-
-Globe
