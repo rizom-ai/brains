@@ -376,7 +376,7 @@ export class DirectorySync {
   /**
    * Get all markdown files in sync directory
    */
-  private getAllMarkdownFiles(): string[] {
+  public getAllMarkdownFiles(): string[] {
     const files: string[] = [];
 
     // Get all entries in the sync directory

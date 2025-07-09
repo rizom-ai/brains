@@ -1,0 +1,270 @@
+import { z } from "zod";
+import type { JobHandler } from "@brains/job-queue";
+import type { Logger } from "@brains/types";
+import type { PluginContext } from "@brains/plugin-utils";
+import type { DirectorySync } from "../directorySync";
+import type { ImportResult } from "../types";
+
+/**
+ * Schema for directory import job data
+ */
+const directoryImportJobSchema = z.object({
+  paths: z.array(z.string()).optional(),
+  batchSize: z.number().min(1).default(100),
+});
+
+export type DirectoryImportJobData = z.infer<typeof directoryImportJobSchema>;
+
+/**
+ * Job handler for batch directory import operations
+ * Processes file imports in batches with progress tracking
+ * Implements Component Interface Standardization pattern
+ */
+export class DirectoryImportJobHandler
+  implements
+    JobHandler<"directory-import", DirectoryImportJobData, ImportResult>
+{
+  private static instance: DirectoryImportJobHandler | null = null;
+  private logger: Logger;
+  private context: PluginContext;
+  private directorySync: DirectorySync;
+
+  /**
+   * Get the singleton instance
+   */
+  public static getInstance(
+    logger: Logger,
+    context: PluginContext,
+    directorySync: DirectorySync,
+  ): DirectoryImportJobHandler {
+    DirectoryImportJobHandler.instance ??= new DirectoryImportJobHandler(
+      logger,
+      context,
+      directorySync,
+    );
+    return DirectoryImportJobHandler.instance;
+  }
+
+  /**
+   * Reset the singleton instance (primarily for testing)
+   */
+  public static resetInstance(): void {
+    DirectoryImportJobHandler.instance = null;
+  }
+
+  /**
+   * Create a fresh instance without affecting the singleton
+   */
+  public static createFresh(
+    logger: Logger,
+    context: PluginContext,
+    directorySync: DirectorySync,
+  ): DirectoryImportJobHandler {
+    return new DirectoryImportJobHandler(logger, context, directorySync);
+  }
+
+  /**
+   * Private constructor to enforce singleton pattern
+   */
+  private constructor(
+    logger: Logger,
+    context: PluginContext,
+    directorySync: DirectorySync,
+  ) {
+    this.logger = logger;
+    this.context = context;
+    this.directorySync = directorySync;
+  }
+
+  /**
+   * Process directory import job
+   * Imports files in batches with progress tracking
+   */
+  public async process(
+    data: DirectoryImportJobData,
+    jobId: string,
+  ): Promise<ImportResult> {
+    this.logger.debug("Processing directory import job", { jobId, data });
+
+    const startTime = Date.now();
+    const result: ImportResult = {
+      imported: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    try {
+      // Get files to import
+      const filesToImport =
+        data.paths ?? this.directorySync.getAllMarkdownFiles();
+
+      // Log start
+      this.logger.info("Starting import", {
+        jobId,
+        totalFiles: filesToImport.length,
+      });
+
+      // Process files in batches
+      const batchSize = data.batchSize;
+      for (let i = 0; i < filesToImport.length; i += batchSize) {
+        const batch = filesToImport.slice(i, i + batchSize);
+        await this.importBatch(batch, jobId, result, i, filesToImport.length);
+      }
+
+      // Log completion
+      this.logger.info("Import completed", {
+        jobId,
+        imported: result.imported,
+        skipped: result.skipped,
+        failed: result.failed,
+        duration: Date.now() - startTime,
+      });
+
+      this.logger.info("Directory import job completed", {
+        jobId,
+        imported: result.imported,
+        skipped: result.skipped,
+        failed: result.failed,
+        duration: Date.now() - startTime,
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error("Directory import job failed", { jobId, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Import a batch of files
+   */
+  private async importBatch(
+    batch: string[],
+    jobId: string,
+    result: ImportResult,
+    startIndex: number,
+    totalFiles: number,
+  ): Promise<void> {
+    // Process batch in parallel
+    const batchPromises = batch.map(async (filePath) => {
+      try {
+        const rawEntity = await this.directorySync.readEntity(filePath);
+
+        // Check if entity type is registered
+        const entityTypes = this.context.entityService.getEntityTypes();
+        if (!entityTypes.includes(rawEntity.entityType)) {
+          result.skipped++;
+          return { success: false, skipped: true };
+        }
+
+        // Try to deserialize and import
+        try {
+          const parsedEntity = this.context.entityService.deserializeEntity(
+            rawEntity.content,
+            rawEntity.entityType,
+          );
+
+          // Check if entity exists
+          const existing = await this.context.entityService.getEntity(
+            rawEntity.entityType,
+            rawEntity.id,
+          );
+
+          if (existing) {
+            // Update if modified
+            const existingTime = new Date(existing.updated).getTime();
+            const newTime = rawEntity.updated.getTime();
+            if (existingTime < newTime) {
+              const entityUpdate = {
+                ...existing,
+                content: rawEntity.content,
+                ...parsedEntity,
+                id: rawEntity.id,
+                entityType: rawEntity.entityType,
+                updated: rawEntity.updated.toISOString(),
+              };
+              await this.context.entityService.updateEntityAsync(entityUpdate);
+              result.imported++;
+            } else {
+              result.skipped++;
+            }
+          } else {
+            // Create new entity
+            const entityCreate = {
+              id: rawEntity.id,
+              entityType: rawEntity.entityType,
+              content: rawEntity.content,
+              ...parsedEntity,
+              created: rawEntity.created.toISOString(),
+              updated: rawEntity.updated.toISOString(),
+            };
+            await this.context.entityService.createEntityAsync(entityCreate);
+            result.imported++;
+          }
+          return { success: true };
+        } catch (deserializeError) {
+          // Deserialization failed
+          result.skipped++;
+          return { success: false, skipped: true };
+        }
+      } catch (error) {
+        result.failed++;
+        result.errors.push({
+          path: filePath,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return { success: false, error };
+      }
+    });
+
+    await Promise.all(batchPromises);
+
+    // Log progress
+    this.logger.debug("Import progress", {
+      jobId,
+      processed: startIndex + batch.length,
+      total: totalFiles,
+      imported: result.imported,
+      skipped: result.skipped,
+      failed: result.failed,
+    });
+  }
+
+  /**
+   * Handle import job errors
+   */
+  public async onError(
+    error: Error,
+    data: DirectoryImportJobData,
+    jobId: string,
+  ): Promise<void> {
+    this.logger.error("Directory import job error handler called", {
+      jobId,
+      data,
+      errorMessage: error.message,
+      errorStack: error.stack,
+    });
+
+    // Additional error handling could be added here
+  }
+
+  /**
+   * Validate and parse import job data
+   */
+  public validateAndParse(data: unknown): DirectoryImportJobData | null {
+    try {
+      const result = directoryImportJobSchema.parse(data);
+      this.logger.debug("Directory import job data validation successful", {
+        data: result,
+      });
+      return result;
+    } catch (error) {
+      this.logger.warn("Invalid directory import job data", {
+        data,
+        validationError: error instanceof z.ZodError ? error.errors : error,
+      });
+      return null;
+    }
+  }
+}

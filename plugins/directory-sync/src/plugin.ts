@@ -9,12 +9,12 @@ import {
   type DirectorySyncConfigInput,
 } from "./types";
 import { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
+import { directorySyncStatusSchema } from "./schemas";
 import {
-  directorySyncStatusSchema,
-  exportResultSchema,
-  importResultSchema,
-  syncResultSchema,
-} from "./schemas";
+  DirectoryExportJobHandler,
+  DirectoryImportJobHandler,
+} from "./handlers";
+import "./types/job-augmentation";
 import packageJson from "../package.json";
 
 const DIRECTORY_SYNC_CONFIG_DEFAULTS = {
@@ -32,6 +32,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
   // After validation with defaults, config is complete
   declare protected config: DirectorySyncConfig;
   private directorySync?: DirectorySync;
+  private pluginContext?: PluginContext;
 
   constructor(config: DirectorySyncConfigInput = {}) {
     super(
@@ -47,6 +48,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
    * Initialize the plugin
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
+    this.pluginContext = context;
     const { logger, entityService } = context;
 
     // Register our template for directory sync status
@@ -81,6 +83,9 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
       throw error; // Fail plugin registration if init fails
     }
 
+    // Register job handlers for batch operations
+    this.registerJobHandlers(context);
+
     // Register message handlers for plugin communication
     this.registerMessageHandlers(context);
   }
@@ -100,9 +105,9 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
     return [
       this.createTool(
         "sync",
-        "Synchronize all entities with directory",
+        "Synchronize all entities with directory (async)",
         {},
-        async (): Promise<unknown> => {
+        async (_input: unknown): Promise<unknown> => {
           if (!this.directorySync) {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
@@ -110,15 +115,42 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
               { tool: "directory-sync" },
             );
           }
-          const result = await this.directorySync.sync();
-          return syncResultSchema.parse(result);
+
+          // Queue both export and import operations
+          const exportJobId = await this.pluginContext!.enqueueJob(
+            "directory-export",
+            {
+              batchSize: 100,
+            },
+            {
+              source: "plugin:directory-sync",
+            },
+          );
+
+          const importJobId = await this.pluginContext!.enqueueJob(
+            "directory-import",
+            {
+              batchSize: 100,
+            },
+            {
+              source: "plugin:directory-sync",
+            },
+          );
+
+          return {
+            status: "queued",
+            message: "Sync operations queued",
+            exportJobId,
+            importJobId,
+            tip: "Use the status tool to check progress",
+          };
         },
         "anchor", // Only anchor user can sync
       ),
 
       this.createTool(
         "export",
-        "Export entities to directory",
+        "Export entities to directory (async)",
         toolInput()
           .custom(
             "entityTypes",
@@ -137,17 +169,31 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
             );
           }
           const params = input as { entityTypes?: string[] };
-          const result = await this.directorySync.exportEntities(
-            params.entityTypes,
+
+          const jobId = await this.pluginContext!.enqueueJob(
+            "directory-export",
+            {
+              entityTypes: params.entityTypes,
+              batchSize: 100,
+            },
+            {
+              source: "plugin:directory-sync",
+            },
           );
-          return exportResultSchema.parse(result);
+
+          return {
+            status: "queued",
+            message: "Export operation queued",
+            jobId,
+            tip: "Use the status tool to check progress",
+          };
         },
         "anchor", // Only anchor user can export
       ),
 
       this.createTool(
         "import",
-        "Import entities from directory",
+        "Import entities from directory (async)",
         toolInput()
           .custom(
             "paths",
@@ -166,8 +212,24 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
             );
           }
           const params = input as { paths?: string[] };
-          const result = await this.directorySync.importEntities(params.paths);
-          return importResultSchema.parse(result);
+
+          const jobId = await this.pluginContext!.enqueueJob(
+            "directory-import",
+            {
+              paths: params.paths,
+              batchSize: 100,
+            },
+            {
+              source: "plugin:directory-sync",
+            },
+          );
+
+          return {
+            status: "queued",
+            message: "Import operation queued",
+            jobId,
+            tip: "Use the status tool to check progress",
+          };
         },
         "anchor", // Only anchor user can import
       ),
@@ -404,6 +466,32 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
     );
 
     this.info("Registered message handlers for inter-plugin communication");
+  }
+
+  /**
+   * Register job handlers for batch operations
+   */
+  private registerJobHandlers(context: PluginContext): void {
+    // Check if job handler registration is available
+    if (context.registerJobHandler) {
+      // Register export job handler
+      const exportHandler = DirectoryExportJobHandler.getInstance(
+        this.logger.child("DirectoryExportJobHandler"),
+        context,
+        this.directorySync!,
+      );
+      context.registerJobHandler("directory-export", exportHandler);
+
+      // Register import job handler
+      const importHandler = DirectoryImportJobHandler.getInstance(
+        this.logger.child("DirectoryImportJobHandler"),
+        context,
+        this.directorySync!,
+      );
+      context.registerJobHandler("directory-import", importHandler);
+
+      this.info("Registered batch job handlers");
+    }
   }
 }
 
