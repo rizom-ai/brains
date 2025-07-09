@@ -453,23 +453,20 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
 
   /**
    * Set up progress event handlers
+   * TODO: Refactor to use message bus directly instead of EventEmitter
    */
   private setupProgressHandlers(): void {
     // Listen for job progress events
-    this.on(
-      "job-progress",
-      (progressEvent: JobProgressEvent, target: string) => {
-        void this.handleJobProgress(progressEvent, target);
-      },
-    );
+    this.on("job-progress", (...args: unknown[]) => {
+      const [progressEvent, target] = args as [JobProgressEvent, string];
+      void this.handleJobProgress(progressEvent, target);
+    });
 
     // Listen for batch progress events
-    this.on(
-      "batch-progress",
-      (progressEvent: JobProgressEvent, target: string) => {
-        void this.handleBatchProgress(progressEvent, target);
-      },
-    );
+    this.on("batch-progress", (...args: unknown[]) => {
+      const [progressEvent, target] = args as [JobProgressEvent, string];
+      void this.handleBatchProgress(progressEvent, target);
+    });
   }
 
   /**

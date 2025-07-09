@@ -203,7 +203,7 @@ export class DirectoryImportJobHandler
             result.imported++;
           }
           return { success: true };
-        } catch (deserializeError) {
+        } catch {
           // Deserialization failed
           result.skipped++;
           return { success: false, skipped: true };

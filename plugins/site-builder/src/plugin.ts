@@ -264,7 +264,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Get batch ID using generateAll with filters
           const batchId = await this.contentManager.generateAll(
-            options,
+            { ...options, source: "plugin:site-builder" },
             routes,
             templateResolver,
             "site-content-preview",
@@ -659,7 +659,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           };
 
           const batchId = await this.contentManager.generateAll(
-            options,
+            { ...options, source: "plugin:site-builder" },
             routes,
             templateResolver,
             "site-content-preview",

@@ -57,7 +57,9 @@ export class SiteOperations {
 
       // Use batch promote for all entities
       const entityIds = previewEntities.map((e) => e.id);
-      const batchId = await this.contentManager.promote(entityIds);
+      const batchId = await this.contentManager.promote(entityIds, {
+        source: "plugin:site-builder",
+      });
 
       this.logger.info("Promote operation queued", {
         batchId,
@@ -106,7 +108,9 @@ export class SiteOperations {
 
       // Use batch rollback for all entities
       const entityIds = productionEntities.map((e) => e.id);
-      const batchId = await this.contentManager.rollback(entityIds);
+      const batchId = await this.contentManager.rollback(entityIds, {
+        source: "plugin:site-builder",
+      });
 
       this.logger.info("Rollback operation queued", {
         batchId,

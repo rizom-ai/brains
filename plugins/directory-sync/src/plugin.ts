@@ -1,5 +1,5 @@
 import type { Plugin, PluginContext, PluginTool } from "@brains/plugin-utils";
-import { BasePlugin, pluginConfig, toolInput } from "@brains/plugin-utils";
+import { BasePlugin, pluginConfig, toolInput, PluginInitializationError } from "@brains/plugin-utils";
 import { DirectorySyncInitializationError } from "./errors";
 import { z } from "zod";
 import { DirectorySync } from "./directorySync";
@@ -108,7 +108,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
         "Synchronize all entities with directory (async)",
         {},
         async (_input: unknown): Promise<unknown> => {
-          if (!this.directorySync) {
+          if (!this.directorySync || !this.pluginContext) {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
               "Plugin not properly configured",
@@ -117,7 +117,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           }
 
           // Queue both export and import operations
-          const exportJobId = await this.pluginContext!.enqueueJob(
+          const exportJobId = await this.pluginContext.enqueueJob(
             "directory-export",
             {
               batchSize: 100,
@@ -127,7 +127,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
             },
           );
 
-          const importJobId = await this.pluginContext!.enqueueJob(
+          const importJobId = await this.pluginContext.enqueueJob(
             "directory-import",
             {
               batchSize: 100,
@@ -161,7 +161,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           )
           .build(),
         async (input: unknown): Promise<unknown> => {
-          if (!this.directorySync) {
+          if (!this.directorySync || !this.pluginContext) {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
               "Plugin not properly configured",
@@ -170,7 +170,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           }
           const params = input as { entityTypes?: string[] };
 
-          const jobId = await this.pluginContext!.enqueueJob(
+          const jobId = await this.pluginContext.enqueueJob(
             "directory-export",
             {
               entityTypes: params.entityTypes,
@@ -204,7 +204,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           )
           .build(),
         async (input: unknown): Promise<unknown> => {
-          if (!this.directorySync) {
+          if (!this.directorySync || !this.pluginContext) {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
               "Plugin not properly configured",
@@ -213,7 +213,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           }
           const params = input as { paths?: string[] };
 
-          const jobId = await this.pluginContext!.enqueueJob(
+          const jobId = await this.pluginContext.enqueueJob(
             "directory-import",
             {
               paths: params.paths,
@@ -472,26 +472,30 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
    * Register job handlers for async operations
    */
   private registerJobHandlers(context: PluginContext): void {
-    // Check if job handler registration is available
-    if (context.registerJobHandler) {
-      // Register export job handler
-      const exportHandler = DirectoryExportJobHandler.getInstance(
-        this.logger.child("DirectoryExportJobHandler"),
-        context,
-        this.directorySync!,
+    if (!this.directorySync) {
+      throw new PluginInitializationError(
+        this.id,
+        "DirectorySync not initialized",
       );
-      context.registerJobHandler("directory-export", exportHandler);
-
-      // Register import job handler
-      const importHandler = DirectoryImportJobHandler.getInstance(
-        this.logger.child("DirectoryImportJobHandler"),
-        context,
-        this.directorySync!,
-      );
-      context.registerJobHandler("directory-import", importHandler);
-
-      this.info("Registered async job handlers");
     }
+
+    // Register export job handler
+    const exportHandler = DirectoryExportJobHandler.getInstance(
+      this.logger.child("DirectoryExportJobHandler"),
+      context,
+      this.directorySync,
+    );
+    context.registerJobHandler("directory-export", exportHandler);
+
+    // Register import job handler
+    const importHandler = DirectoryImportJobHandler.getInstance(
+      this.logger.child("DirectoryImportJobHandler"),
+      context,
+      this.directorySync,
+    );
+    context.registerJobHandler("directory-import", importHandler);
+
+    this.info("Registered async job handlers");
   }
 }
 
