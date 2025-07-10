@@ -299,14 +299,7 @@ export interface IMessageInterfacePlugin extends IInterfacePlugin {
   readonly sessionId: string;
 
   /**
-   * Process user input and emit response/error events
+   * Process user input with context
    */
   processInput(input: string, context?: Partial<MessageContext>): Promise<void>;
-
-  /**
-   * EventEmitter methods for message interfaces
-   */
-  on(event: string, listener: (...args: unknown[]) => void): this;
-  off(event: string, listener: (...args: unknown[]) => void): this;
-  emit(event: string, ...args: unknown[]): boolean;
 }

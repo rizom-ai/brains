@@ -525,4 +525,60 @@ describe("MessageBus", () => {
       expect(handler3).toHaveBeenCalledTimes(0);
     });
   });
+
+  describe("broadcast functionality", () => {
+    it("should call ALL handlers for broadcast messages", async () => {
+      const handler1 = mock(() => ({ success: true, data: "first" }));
+      const handler2 = mock(() => ({ success: true, data: "second" }));
+      const handler3 = mock(() => ({ success: true, data: "third" }));
+
+      messageBus.subscribe("test.broadcast", handler1);
+      messageBus.subscribe("test.broadcast", handler2);
+      messageBus.subscribe("test.broadcast", handler3);
+
+      // Send with broadcast=true
+      const result = await messageBus.send(
+        "test.broadcast",
+        { content: "broadcast message" },
+        "sender",
+        undefined, // no target
+        undefined, // no metadata
+        true, // broadcast=true
+      );
+
+      // All handlers should be called
+      expect(handler1).toHaveBeenCalledTimes(1);
+      expect(handler2).toHaveBeenCalledTimes(1);
+      expect(handler3).toHaveBeenCalledTimes(1);
+
+      // Broadcast messages don't return responses
+      expect(result.success).toBe(false);
+    });
+
+    it("should stop at first success for non-broadcast messages", async () => {
+      const handler1 = mock(() => ({ success: true, data: "first" }));
+      const handler2 = mock(() => ({ success: true, data: "second" }));
+      const handler3 = mock(() => ({ success: true, data: "third" }));
+
+      messageBus.subscribe("test.normal", handler1);
+      messageBus.subscribe("test.normal", handler2);
+      messageBus.subscribe("test.normal", handler3);
+
+      // Send with broadcast=false (default)
+      const result = await messageBus.send(
+        "test.normal",
+        { content: "normal message" },
+        "sender",
+      );
+
+      // Only first handler should be called
+      expect(handler1).toHaveBeenCalledTimes(1);
+      expect(handler2).toHaveBeenCalledTimes(0);
+      expect(handler3).toHaveBeenCalledTimes(0);
+
+      // Normal messages return the first handler's response
+      expect(result.success).toBe(true);
+      expect(result.data).toBe("first");
+    });
+  });
 });

@@ -123,6 +123,7 @@ export class MessageBus implements IMessageBus {
     sender: string,
     target?: string,
     metadata?: Record<string, unknown>,
+    broadcast?: boolean,
   ): Promise<MessageBusResponse<R>> {
     const message: MessageWithPayload<T> = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -134,7 +135,7 @@ export class MessageBus implements IMessageBus {
       payload,
     };
 
-    const response = await this.publish(message);
+    const response = await this.publish(message, broadcast);
     if (response?.success) {
       return {
         success: true,
@@ -156,6 +157,7 @@ export class MessageBus implements IMessageBus {
    */
   private async publish<T = unknown>(
     message: MessageWithPayload<T>,
+    broadcast?: boolean,
   ): Promise<MessageResponse | null> {
     // Validate message structure
     if (typeof message !== "object" || !message.type || !message.id) {
@@ -193,19 +195,33 @@ export class MessageBus implements IMessageBus {
       return null;
     }
 
-    // Call matching handlers in sequence until one returns a response
-    for (const entry of matchingHandlers) {
-      try {
-        const response = await entry.handler(message);
-        if (response) {
-          return response;
-        }
-      } catch (error) {
-        this.logger.error(`Error in message handler for ${type}`, error);
-      }
-    }
+    // Check if this is a broadcast message
+    const isBroadcast = broadcast === true;
 
-    return null;
+    if (isBroadcast) {
+      // For broadcast messages, call ALL matching handlers regardless of responses
+      for (const entry of matchingHandlers) {
+        try {
+          await entry.handler(message);
+        } catch (error) {
+          this.logger.error(`Error in message handler for ${type}`, error);
+        }
+      }
+      return null; // Broadcast messages don't return responses
+    } else {
+      // For regular messages, call handlers until one returns a response
+      for (const entry of matchingHandlers) {
+        try {
+          const response = await entry.handler(message);
+          if (response) {
+            return response;
+          }
+        } catch (error) {
+          this.logger.error(`Error in message handler for ${type}`, error);
+        }
+      }
+      return null;
+    }
   }
 
   /**

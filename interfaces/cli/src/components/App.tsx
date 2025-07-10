@@ -16,12 +16,18 @@ interface Props {
     callback: (events: Map<string, JobProgressEvent>) => void,
   ) => void;
   unregisterProgressCallback: () => void;
+  registerResponseCallback: (callback: (response: string) => void) => void;
+  registerErrorCallback: (callback: (error: Error) => void) => void;
+  unregisterMessageCallbacks: () => void;
 }
 
 export default function App({
   interface: cliInterface,
   registerProgressCallback,
   unregisterProgressCallback,
+  registerResponseCallback,
+  registerErrorCallback,
+  unregisterMessageCallbacks,
 }: Props): React.ReactElement {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -41,10 +47,9 @@ export default function App({
   // Create command history instance
   const history = useMemo(() => new CommandHistory(), []);
 
-  // Listen for responses from the interface
+  // Register callbacks for responses and errors
   useEffect(() => {
-    const handleResponse = (...args: unknown[]): void => {
-      const response = args[0] as string;
+    const handleResponse = (response: string): void => {
       setMessages((prev) => [
         ...prev,
         {
@@ -56,8 +61,7 @@ export default function App({
       setIsLoading(false);
     };
 
-    const handleError = (...args: unknown[]): void => {
-      const error = args[0] as Error;
+    const handleError = (error: Error): void => {
       setMessages((prev) => [
         ...prev,
         {
@@ -70,14 +74,17 @@ export default function App({
       setIsConnected(false);
     };
 
-    cliInterface.on("response", handleResponse);
-    cliInterface.on("error", handleError);
+    registerResponseCallback(handleResponse);
+    registerErrorCallback(handleError);
 
     return (): void => {
-      cliInterface.off("response", handleResponse);
-      cliInterface.off("error", handleError);
+      unregisterMessageCallbacks();
     };
-  }, [cliInterface]);
+  }, [
+    registerResponseCallback,
+    registerErrorCallback,
+    unregisterMessageCallbacks,
+  ]);
 
   // Subscribe to progress events via callback pattern
   useEffect(() => {

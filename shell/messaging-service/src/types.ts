@@ -65,6 +65,7 @@ export interface IMessageBus {
     sender: string,
     target?: string,
     metadata?: Record<string, unknown>,
+    broadcast?: boolean,
   ): Promise<MessageBusResponse<R>>;
 
   subscribe<T = unknown, R = unknown>(

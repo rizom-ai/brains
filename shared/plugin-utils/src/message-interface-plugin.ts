@@ -6,7 +6,6 @@ import type {
 } from "./interfaces";
 import { z } from "zod";
 import { InterfacePlugin } from "./interface-plugin";
-import { EventEmitter } from "node:events";
 import PQueue from "p-queue";
 import {
   JobProgressEventSchema,
@@ -71,7 +70,6 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
 {
   protected queue: PQueue;
   public readonly sessionId: string;
-  private eventEmitter: EventEmitter;
 
   constructor(
     id: string,
@@ -88,27 +86,6 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
       interval: 1000,
       intervalCap: 10,
     });
-    this.eventEmitter = new EventEmitter();
-  }
-
-  // EventEmitter delegation
-  public on(event: string, listener: (...args: unknown[]) => void): this {
-    this.eventEmitter.on(event, listener);
-    return this;
-  }
-
-  public once(event: string, listener: (...args: unknown[]) => void): this {
-    this.eventEmitter.once(event, listener);
-    return this;
-  }
-
-  public off(event: string, listener: (...args: unknown[]) => void): this {
-    this.eventEmitter.off(event, listener);
-    return this;
-  }
-
-  public emit(event: string, ...args: unknown[]): boolean {
-    return this.eventEmitter.emit(event, ...args);
   }
 
   /**
@@ -237,7 +214,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
           message.payload,
         );
         if (!validationResult.success) {
-          return { success: true };
+          return { success: false, error: "Invalid progress event schema" };
         }
 
         const progressEvent = validationResult.data;
@@ -245,6 +222,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
         // Handle progress events with unified handler
         await this.handleProgressEvent(progressEvent, message.target);
 
+        // Progress events are broadcast events - all handlers will be called
         return { success: true };
       },
       {
@@ -311,11 +289,14 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     };
 
     try {
-      const response = await this.handleInput(input, fullContext);
-      this.emit("response", response);
+      await this.handleInput(input, fullContext);
+      // Base implementation does not handle response - subclasses should override
+      // processInput to handle responses via their preferred method (callbacks, etc.)
     } catch (error) {
       this.logger.error("Failed to process input", { error });
-      this.emit("error", error);
+      // Base implementation does not handle errors - subclasses should override
+      // processInput to handle errors via their preferred method (callbacks, etc.)
+      throw error;
     }
   }
 
@@ -420,8 +401,6 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
       }
 
       // Handle batch operation response
-      // Emit event for interfaces that want to track this batch
-      this.emit("batch-operation-created", parsed);
       // Return the user-friendly message
       return parsed.message;
     }

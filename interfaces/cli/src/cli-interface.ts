@@ -19,6 +19,8 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   private progressCallback:
     | ((events: Map<string, JobProgressEvent>) => void)
     | undefined;
+  private responseCallback: ((response: string) => void) | undefined;
+  private errorCallback: ((error: Error) => void) | undefined;
 
   /**
    * Get active jobs from the context
@@ -148,12 +150,39 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   }
 
   /**
+   * Register callback to receive response events
+   */
+  public registerResponseCallback(callback: (response: string) => void): void {
+    this.responseCallback = callback;
+  }
+
+  /**
+   * Register callback to receive error events
+   */
+  public registerErrorCallback(callback: (error: Error) => void): void {
+    this.errorCallback = callback;
+  }
+
+  /**
+   * Unregister response and error callbacks
+   */
+  public unregisterMessageCallbacks(): void {
+    this.responseCallback = undefined;
+    this.errorCallback = undefined;
+  }
+
+  /**
    * Handle progress events - unified handler using reducer pattern
    */
   protected async handleProgressEvent(
     progressEvent: JobProgressEvent,
-    _target?: string,
+    target?: string,
   ): Promise<void> {
+    // Only process events targeted at CLI interfaces
+    if (target && !target.startsWith(`cli:`)) {
+      return;
+    }
+
     // Reducer pattern: dispatch action to update state
     this.progressEvents = this.progressReducer(this.progressEvents, {
       type: "UPDATE_PROGRESS",
@@ -252,10 +281,40 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     return result;
   }
 
-  // processInput no longer needs override - batch tracking is handled via events in onRegister
+  /**
+   * Override processInput to use callbacks instead of EventEmitter
+   */
+  public override async processInput(
+    input: string,
+    context?: Partial<MessageContext>,
+  ): Promise<void> {
+    const userId = context?.userId ?? "default-user";
+    const userPermissionLevel = this.determineUserPermissionLevel(userId);
 
-  // No need to override executeCommand or getHelpText anymore
-  // The base class handles it using getCommands()
+    const fullContext: MessageContext = {
+      userId,
+      channelId: context?.channelId ?? this.sessionId,
+      messageId: context?.messageId ?? `msg-${Date.now()}`,
+      timestamp: context?.timestamp ?? new Date(),
+      interfaceType: this.id,
+      userPermissionLevel,
+      ...context,
+    };
+
+    try {
+      const response = await this.handleInput(input, fullContext);
+      // Use callback instead of EventEmitter
+      if (this.responseCallback) {
+        this.responseCallback(response);
+      }
+    } catch (error) {
+      this.logger.error("Failed to process input", { error });
+      // Use callback instead of EventEmitter
+      if (this.errorCallback) {
+        this.errorCallback(error as Error);
+      }
+    }
+  }
 
   public async start(): Promise<void> {
     if (!this.context) {
@@ -285,6 +344,11 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
         registerProgressCallback: (callback) =>
           this.registerProgressCallback(callback),
         unregisterProgressCallback: () => this.unregisterProgressCallback(),
+        registerResponseCallback: (callback) =>
+          this.registerResponseCallback(callback),
+        registerErrorCallback: (callback) =>
+          this.registerErrorCallback(callback),
+        unregisterMessageCallbacks: () => this.unregisterMessageCallbacks(),
       });
       this.inkApp = render(element);
 
@@ -300,8 +364,9 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   public async stop(): Promise<void> {
     this.logger.info("Stopping CLI interface");
 
-    // Clean up progress callback
+    // Clean up all callbacks
     this.unregisterProgressCallback();
+    this.unregisterMessageCallbacks();
 
     if (this.inkApp) {
       this.inkApp.unmount();

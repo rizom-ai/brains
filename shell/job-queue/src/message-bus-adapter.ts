@@ -11,7 +11,17 @@ export class MessageBusAdapter implements IEventEmitter {
   ) {}
 
   async send(event: string, data: unknown, target?: string): Promise<void> {
-    // Use the messageBus send method with all parameters including target
-    await this.messageBus.send(event, data, this.source, target);
+    // Progress events should be broadcast to all matching handlers
+    const broadcast = event === "job-progress";
+
+    // Use the messageBus send method with all parameters including broadcast flag
+    await this.messageBus.send(
+      event,
+      data,
+      this.source,
+      target,
+      undefined,
+      broadcast,
+    );
   }
 }

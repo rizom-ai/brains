@@ -84,7 +84,7 @@ describe("CLIInterface", () => {
 
     it("should process regular input through handleInput", async () => {
       const responseHandler = mock(() => {});
-      cliInterface.on("response", responseHandler);
+      cliInterface.registerResponseCallback(responseHandler);
 
       await cliInterface.processInput("Hello world");
 
@@ -100,7 +100,7 @@ describe("CLIInterface", () => {
 
     it("should handle /help command", async () => {
       const responseHandler = mock(() => {});
-      cliInterface.on("response", responseHandler);
+      cliInterface.registerResponseCallback(responseHandler);
 
       await cliInterface.processInput("/help");
 
@@ -111,7 +111,7 @@ describe("CLIInterface", () => {
 
     it("should handle /clear command", async () => {
       const responseHandler = mock(() => {});
-      cliInterface.on("response", responseHandler);
+      cliInterface.registerResponseCallback(responseHandler);
 
       await cliInterface.processInput("/clear");
 
@@ -128,7 +128,7 @@ describe("CLIInterface", () => {
       await cliInterface.register(mockContext);
 
       const errorHandler = mock(() => {});
-      cliInterface.on("error", errorHandler);
+      cliInterface.registerErrorCallback(errorHandler);
 
       await cliInterface.processInput("Failing input");
 
@@ -136,26 +136,25 @@ describe("CLIInterface", () => {
     });
   });
 
-  describe("event emitter", () => {
+  describe("callback registration", () => {
     beforeEach(async () => {
       cliInterface = new CLIInterface();
       await cliInterface.register(mockContext);
     });
 
-    it("should support event listeners", () => {
+    it("should support callback registration and unregistration", () => {
       const responseHandler = mock(() => {});
       const errorHandler = mock(() => {});
+      const progressHandler = mock(() => {});
 
-      // Test adding listeners
-      cliInterface.on("response", responseHandler);
-      cliInterface.on("error", errorHandler);
+      // Test registering callbacks
+      cliInterface.registerResponseCallback(responseHandler);
+      cliInterface.registerErrorCallback(errorHandler);
+      cliInterface.registerProgressCallback(progressHandler);
 
-      // Listeners will be called when processInput triggers events
-      // We've already tested this in the processInput tests above
-
-      // Test removing listeners
-      cliInterface.off("response", responseHandler);
-      cliInterface.off("error", errorHandler);
+      // Test unregistering callbacks
+      cliInterface.unregisterProgressCallback();
+      cliInterface.unregisterMessageCallbacks();
     });
   });
 
