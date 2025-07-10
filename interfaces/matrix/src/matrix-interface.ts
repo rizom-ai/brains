@@ -54,7 +54,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
 
     // Set up event handlers
     this.setupEventHandlers();
-    this.setupProgressHandlers();
 
     this.logger.info("Starting Matrix interface...");
     await this.client.start();
@@ -452,21 +451,20 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   }
 
   /**
-   * Set up progress event handlers
-   * TODO: Refactor to use message bus directly instead of EventEmitter
+   * Handle progress events - unified handler
    */
-  private setupProgressHandlers(): void {
-    // Listen for job progress events
-    this.on("job-progress", (...args: unknown[]) => {
-      const [progressEvent, target] = args as [JobProgressEvent, string];
-      void this.handleJobProgress(progressEvent, target);
-    });
-
-    // Listen for batch progress events
-    this.on("batch-progress", (...args: unknown[]) => {
-      const [progressEvent, target] = args as [JobProgressEvent, string];
-      void this.handleBatchProgress(progressEvent, target);
-    });
+  protected async handleProgressEvent(
+    progressEvent: JobProgressEvent,
+    target?: string,
+  ): Promise<void> {
+    // Handle job progress events
+    if (progressEvent.type === "job") {
+      await this.handleJobProgress(progressEvent, target);
+    }
+    // Handle batch progress events
+    else if (progressEvent.type === "batch") {
+      await this.handleBatchProgress(progressEvent, target);
+    }
   }
 
   /**

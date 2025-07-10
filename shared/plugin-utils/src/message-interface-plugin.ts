@@ -8,7 +8,10 @@ import { z } from "zod";
 import { InterfacePlugin } from "./interface-plugin";
 import { EventEmitter } from "node:events";
 import PQueue from "p-queue";
-import { JobProgressEventSchema } from "@brains/job-queue";
+import {
+  JobProgressEventSchema,
+  type JobProgressEvent,
+} from "@brains/job-queue";
 
 /**
  * Structured response schemas
@@ -107,6 +110,14 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   public emit(event: string, ...args: unknown[]): boolean {
     return this.eventEmitter.emit(event, ...args);
   }
+
+  /**
+   * Handle progress events - must be implemented by each interface
+   */
+  protected abstract handleProgressEvent(
+    progressEvent: JobProgressEvent,
+    target?: string,
+  ): Promise<void>;
 
   /**
    * Get base commands available to all message interfaces
@@ -231,13 +242,8 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
 
         const progressEvent = validationResult.data;
 
-        // Emit for any listeners (CLI React components, Matrix message editing, etc.)
-        // Include the message target information so interfaces can route correctly
-        if (progressEvent.type === "batch") {
-          this.emit("batch-progress", progressEvent, message.target);
-        } else if (progressEvent.type === "job") {
-          this.emit("job-progress", progressEvent, message.target);
-        }
+        // Handle progress events with unified handler
+        await this.handleProgressEvent(progressEvent, message.target);
 
         return { success: true };
       },

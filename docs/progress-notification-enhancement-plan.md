@@ -108,17 +108,18 @@ When a user triggers an async operation (e.g., `/generate-all` in CLI):
 Matrix has unique requirements that need special handling:
 
 1. **Message Editing**: Matrix tracks progress messages to edit them in-place
+
    ```typescript
    class MatrixInterface {
      // Currently uses EventEmitter + Map to track message IDs
      private progressMessages = new Map<string, string>();
-     
+
      // After refactor: Direct MessageBus subscription
      private setupProgressHandlers(): void {
        this.context.subscribe("job-progress", async (message) => {
          const progressEvent = message.payload;
          const roomId = this.extractRoomIdFromTarget(message.target);
-         
+
          // Edit existing message or send new one
          const messageId = this.progressMessages.get(progressKey);
          if (messageId) {
@@ -134,7 +135,7 @@ Matrix has unique requirements that need special handling:
 
 2. **Room ID Extraction**: Matrix needs to parse targets like `"matrix:!roomId:homeserver"`
 
-3. **Different Event Handling**: 
+3. **Different Event Handling**:
    - Job events: Send completion messages only
    - Batch events: Edit messages to show progress
 
@@ -347,17 +348,20 @@ Continue using source-based targeting:
 ### Phase 1 Migration (EventEmitter Removal)
 
 #### General Approach
+
 1. Create adapter layer for backward compatibility
 2. Update one interface at a time (CLI first, then Matrix)
 3. Remove EventEmitter once all interfaces migrated
 4. Update tests to use MessageBus directly
 
 #### CLI Migration (Simpler)
+
 - Pass PluginContext to React components via props
 - Update useEffect hooks to use context.subscribe directly
 - Remove re-emission logic from cli-interface.ts
 
 #### Matrix Migration (More Complex)
+
 - **Challenge**: Matrix needs stateful message tracking for editing
 - **Solution**: Keep progressMessages Map, but subscribe directly to MessageBus
 - **Steps**:
@@ -385,12 +389,15 @@ Continue using source-based targeting:
 ## Risks and Mitigations
 
 **Risk**: Breaking existing interfaces during EventEmitter removal
+
 - **Mitigation**: Careful testing, adapter layer, incremental migration
 
 **Risk**: High-frequency progress updates overwhelming the system
+
 - **Mitigation**: Throttle progress updates to max 10/second per job
 
 **Risk**: Breaking existing job handlers
+
 - **Mitigation**: Optional progressReporter parameter, extensive testing
 
 ## Conclusion

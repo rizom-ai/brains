@@ -7,6 +7,7 @@ import type { MessageContext, PluginContext } from "@brains/plugin-utils";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { DefaultQueryResponse } from "@brains/types";
 import type { Instance } from "ink";
+import type { JobProgressEvent } from "@brains/job-queue";
 import type { CLIConfig, CLIConfigInput } from "./types";
 import { cliConfigSchema } from "./types";
 import packageJson from "../package.json";
@@ -14,6 +15,10 @@ import packageJson from "../package.json";
 export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
+  private progressEvents = new Map<string, JobProgressEvent>();
+  private progressCallback:
+    | ((events: Map<string, JobProgressEvent>) => void)
+    | undefined;
 
   /**
    * Get active jobs from the context
@@ -120,8 +125,89 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
-    // Test handlers are now registered in the base MessageInterfacePlugin class
-    // Progress event subscriptions are now handled directly in React components
+    // Test handlers and MessageBus subscriptions are now handled in the base MessageInterfacePlugin class
+    // Progress events will be routed to our handleJobProgressEvent and handleBatchProgressEvent methods
+  }
+
+  /**
+   * Register callback to receive progress event updates
+   */
+  public registerProgressCallback(
+    callback: (events: Map<string, JobProgressEvent>) => void,
+  ): void {
+    this.progressCallback = callback;
+    // Send current state immediately
+    callback(new Map(this.progressEvents));
+  }
+
+  /**
+   * Unregister progress callback
+   */
+  public unregisterProgressCallback(): void {
+    this.progressCallback = undefined;
+  }
+
+  /**
+   * Handle progress events - unified handler using reducer pattern
+   */
+  protected async handleProgressEvent(
+    progressEvent: JobProgressEvent,
+    _target?: string,
+  ): Promise<void> {
+    // Reducer pattern: dispatch action to update state
+    this.progressEvents = this.progressReducer(this.progressEvents, {
+      type: "UPDATE_PROGRESS",
+      payload: progressEvent,
+    });
+
+    // Notify React component of the change
+    if (this.progressCallback) {
+      this.progressCallback(new Map(this.progressEvents));
+    }
+
+    // Handle cleanup for completed/failed events
+    if (
+      progressEvent.status === "completed" ||
+      progressEvent.status === "failed"
+    ) {
+      setTimeout(() => {
+        this.progressEvents = this.progressReducer(this.progressEvents, {
+          type: "CLEANUP_PROGRESS",
+          payload: progressEvent,
+        });
+
+        // Notify React component of the cleanup
+        if (this.progressCallback) {
+          this.progressCallback(new Map(this.progressEvents));
+        }
+      }, 2000);
+    }
+  }
+
+  /**
+   * Progress reducer for state management
+   */
+  private progressReducer(
+    state: Map<string, JobProgressEvent>,
+    action: {
+      type: "UPDATE_PROGRESS" | "CLEANUP_PROGRESS";
+      payload: JobProgressEvent;
+    },
+  ): Map<string, JobProgressEvent> {
+    const newState = new Map(state);
+
+    switch (action.type) {
+      case "UPDATE_PROGRESS":
+        newState.set(action.payload.id, action.payload);
+        break;
+      case "CLEANUP_PROGRESS":
+        newState.delete(action.payload.id);
+        break;
+      default:
+        return state;
+    }
+
+    return newState;
   }
 
   /**
@@ -196,7 +282,9 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
       // Ensure we're using React's createElement, not any bundled version
       const element = React.createElement(App, {
         interface: this,
-        subscribe: this.context.subscribe,
+        registerProgressCallback: (callback) =>
+          this.registerProgressCallback(callback),
+        unregisterProgressCallback: () => this.unregisterProgressCallback(),
       });
       this.inkApp = render(element);
 
@@ -212,7 +300,8 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   public async stop(): Promise<void> {
     this.logger.info("Stopping CLI interface");
 
-    // Job progress event cleanup is now handled by React components
+    // Clean up progress callback
+    this.unregisterProgressCallback();
 
     if (this.inkApp) {
       this.inkApp.unmount();

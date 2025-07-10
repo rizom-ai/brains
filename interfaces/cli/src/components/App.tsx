@@ -8,19 +8,20 @@ import { EnhancedInput } from "./EnhancedInput";
 import { StatusBarWithProgress } from "./StatusBarWithProgress";
 import { CommandHistory } from "../features/history";
 import type { CLIInterface } from "../cli-interface";
-import type { IMessageBus } from "@brains/messaging-service";
 import type { JobProgressEvent } from "@brains/job-queue";
-import { JobProgressEventSchema } from "@brains/job-queue";
-import type { MessageWithPayload, MessageResponse } from "@brains/types";
 
 interface Props {
   interface: CLIInterface;
-  subscribe: IMessageBus["subscribe"];
+  registerProgressCallback: (
+    callback: (events: Map<string, JobProgressEvent>) => void,
+  ) => void;
+  unregisterProgressCallback: () => void;
 }
 
 export default function App({
   interface: cliInterface,
-  subscribe,
+  registerProgressCallback,
+  unregisterProgressCallback,
 }: Props): React.ReactElement {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -78,61 +79,17 @@ export default function App({
     };
   }, [cliInterface]);
 
-  // Subscribe to job progress events directly from MessageBus
+  // Subscribe to progress events via callback pattern
   useEffect(() => {
-    const sessionId = cliInterface.sessionId || "default";
-
-    // Common handler for both job and batch progress events
-    const handleProgress = (message: MessageWithPayload): MessageResponse => {
-      try {
-        const progressEvent = JobProgressEventSchema.parse(message.payload);
-
-        setProgressEvents((prev) => {
-          const updated = new Map(prev);
-
-          // Update or add the progress event
-          if (
-            progressEvent.status === "completed" ||
-            progressEvent.status === "failed"
-          ) {
-            // Remove completed/failed items after a short delay
-            setTimeout(() => {
-              setProgressEvents((p) => {
-                const newMap = new Map(p);
-                newMap.delete(progressEvent.id);
-                return newMap;
-              });
-            }, 2000);
-          }
-
-          updated.set(progressEvent.id, progressEvent);
-          return updated;
-        });
-
-        return { success: true };
-      } catch (error) {
-        // Silently ignore unsupported/malformed progress events
-        console.debug("Ignoring invalid progress event:", error);
-        return { success: true }; // Still return success to avoid retries
-      }
-    };
-
-    // Subscribe to both event types with the same handler
-    const unsubscribeJobProgress = subscribe("job-progress", handleProgress, {
-      target: `cli:${sessionId}`,
+    // Register callback to receive progress updates
+    registerProgressCallback((events) => {
+      setProgressEvents(events);
     });
 
-    const unsubscribeBatchProgress = subscribe(
-      "batch-progress",
-      handleProgress,
-      { target: `cli:${sessionId}` },
-    );
-
     return (): void => {
-      unsubscribeJobProgress();
-      unsubscribeBatchProgress();
+      unregisterProgressCallback();
     };
-  }, [subscribe, cliInterface.sessionId]);
+  }, [registerProgressCallback, unregisterProgressCallback]);
 
   const handleSubmit = useCallback(
     async (value: string): Promise<void> => {
