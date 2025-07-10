@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the plan to enhance progress notifications in the Personal Brain system, focusing on enabling granular progress reporting from job handlers while maintaining the clean architecture of the current implementation.
+This document outlines the plan to enhance progress notifications in the Personal Brain system, addressing both architectural improvements and user experience enhancements. The plan prioritizes removing technical debt before building new features.
 
 ## Current State Analysis
 
@@ -43,15 +43,113 @@ When a user triggers an async operation (e.g., `/generate-all` in CLI):
 
 ### Current Limitations
 
-1. **No Granular Handler Progress**: Job handlers can't report detailed progress
-2. **Polling Latency**: 500ms delay for status updates
-3. **Limited Progress Info**: Only completion counts, no operation details
-4. **MCP Disconnect**: MCP progressToken not integrated with job system
-5. **EventEmitter Anti-pattern**: Interfaces use redundant EventEmitter instead of MessageBus directly
+1. **EventEmitter Anti-pattern**: Interfaces use redundant EventEmitter instead of MessageBus directly
+2. **No Granular Handler Progress**: Job handlers can't report detailed progress
+3. **Polling Latency**: 500ms delay for status updates
+4. **Limited Progress Info**: Only completion counts, no operation details
+5. **MCP Disconnect**: MCP progressToken not integrated with job system
 
 ## Proposed Enhancements
 
-### Phase 1: Enable Job Handler Progress Reporting
+### Phase 1: Remove EventEmitter Anti-pattern
+
+**Goal**: Eliminate redundant EventEmitter layer in interfaces and use MessageBus directly.
+
+**Current Problem**:
+
+- MessageInterfacePlugin has its own EventEmitter
+- Creates two-layer event system: MessageBus → EventEmitter → UI
+- Results in awkward double event handling:
+  ```typescript
+  // Current anti-pattern
+  context.subscribe("job-progress", async (message) => {
+    // Validate and re-emit locally
+    this.emit("job-progress", progressEvent, message.target);
+  });
+  ```
+
+**Changes**:
+
+1. Remove EventEmitter from MessageInterfacePlugin:
+
+   ```typescript
+   export abstract class MessageInterfacePlugin<TConfig = unknown>
+     extends InterfacePlugin<TConfig>
+     implements IMessageInterfacePlugin {
+     // Remove: private eventEmitter: EventEmitter;
+     // Remove: on(), off(), emit() methods
+   }
+   ```
+
+2. Pass MessageBus or PluginContext to UI components:
+
+   ```typescript
+   // CLI App component
+   interface Props {
+     interface: CLIInterface;
+     context: PluginContext; // Provides subscribe method
+   }
+   ```
+
+3. UI components subscribe directly:
+   ```typescript
+   useEffect(() => {
+     const unsubscribe = context.subscribe(
+       "job-progress",
+       (message) => handleProgress(message.payload),
+       { target: `cli:${sessionId}` },
+     );
+     return unsubscribe;
+   }, [context, sessionId]);
+   ```
+
+**Matrix-Specific Considerations**:
+
+Matrix has unique requirements that need special handling:
+
+1. **Message Editing**: Matrix tracks progress messages to edit them in-place
+   ```typescript
+   class MatrixInterface {
+     // Currently uses EventEmitter + Map to track message IDs
+     private progressMessages = new Map<string, string>();
+     
+     // After refactor: Direct MessageBus subscription
+     private setupProgressHandlers(): void {
+       this.context.subscribe("job-progress", async (message) => {
+         const progressEvent = message.payload;
+         const roomId = this.extractRoomIdFromTarget(message.target);
+         
+         // Edit existing message or send new one
+         const messageId = this.progressMessages.get(progressKey);
+         if (messageId) {
+           await this.client.editMessage(roomId, messageId, text);
+         } else {
+           const newId = await this.client.sendMessage(roomId, text);
+           this.progressMessages.set(progressKey, newId);
+         }
+       });
+     }
+   }
+   ```
+
+2. **Room ID Extraction**: Matrix needs to parse targets like `"matrix:!roomId:homeserver"`
+
+3. **Different Event Handling**: 
+   - Job events: Send completion messages only
+   - Batch events: Edit messages to show progress
+
+4. **State Management**: Must maintain message ID mapping without EventEmitter
+
+**Benefits**:
+
+- Single event system (MessageBus only)
+- Type-safe event handling
+- Simpler debugging and event tracing
+- Reduced memory overhead
+- Consistent event patterns
+- Prevents building more features on flawed foundation
+
+### Phase 2: Enable Job Handler Progress Reporting
 
 **Goal**: Allow job handlers to report granular progress during execution.
 
@@ -96,10 +194,11 @@ When a user triggers an async operation (e.g., `/generate-all` in CLI):
 - Handlers can report: "Processing page 1/10: dashboard..."
 - Real-time updates without polling delay
 - Backward compatible (progressReporter is optional)
+- Foundation for rich progress feedback
 
-### Phase 2: Enhanced Progress Event Data
+### Phase 3: Enhanced Progress Events & Real-time Updates
 
-**Goal**: Provide richer progress information to interfaces.
+**Goal**: Provide richer progress information and eliminate polling delays.
 
 **Changes**:
 
@@ -122,7 +221,12 @@ When a user triggers an async operation (e.g., `/generate-all` in CLI):
    }
    ```
 
-2. Calculate progress metrics in JobProgressMonitor:
+2. Real-time progress updates:
+   - When handlers call progressReporter, emit event immediately
+   - Keep polling as fallback for handlers that don't report progress
+   - Hybrid approach ensures all jobs show progress
+
+3. Calculate progress metrics in JobProgressMonitor:
    - Track start times and calculate rates
    - Estimate completion time based on current rate
    - Include operation descriptions
@@ -132,8 +236,9 @@ When a user triggers an async operation (e.g., `/generate-all` in CLI):
 - Better user feedback: "Generating content (3/10) - 2 min remaining"
 - Progress rate visualization
 - More informative status messages
+- Eliminates delay for handler-reported progress
 
-### Phase 3: MCP Progress Integration
+### Phase 4: MCP Progress Integration
 
 **Goal**: Enable MCP tools with progressToken to report progress.
 
@@ -159,7 +264,7 @@ When a user triggers an async operation (e.g., `/generate-all` in CLI):
 - Maintains separation between job queue and MCP progress
 - Leverages existing MCP notification infrastructure
 
-### Phase 4: UI Enhancements
+### Phase 5: UI Enhancements
 
 **Goal**: Improve progress visualization across interfaces.
 
@@ -174,101 +279,51 @@ When a user triggers an async operation (e.g., `/generate-all` in CLI):
 - Richer progress messages with operation details
 - Emoji indicators for different operation types
 - Completion summaries
-
-### Phase 5: Remove EventEmitter Anti-pattern
-
-**Goal**: Eliminate redundant EventEmitter layer in interfaces and use MessageBus directly.
-
-**Current Problem**:
-
-- MessageInterfacePlugin has its own EventEmitter
-- Creates two-layer event system: MessageBus → EventEmitter → UI
-- Results in awkward double event handling:
-  ```typescript
-  // Current anti-pattern
-  context.subscribe("job-progress", async (message) => {
-    // Validate and re-emit locally
-    this.emit("job-progress", progressEvent, message.target);
-  });
-  ```
-
-**Changes**:
-
-1. Remove EventEmitter from MessageInterfacePlugin:
-
-   ```typescript
-   export abstract class MessageInterfacePlugin<TConfig = unknown>
-     extends InterfacePlugin<TConfig>
-     implements IMessageInterfacePlugin {
-     // Remove: private eventEmitter: EventEmitter;
-     // Remove: on(), off(), emit() methods
-   }
-   ```
-
-2. Pass MessageBus access to UI components:
-
-   ```typescript
-   // CLI App component
-   interface Props {
-     interface: CLIInterface;
-     messageBus: IMessageBus; // New: direct access
-   }
-   ```
-
-3. UI components subscribe directly:
-   ```typescript
-   useEffect(() => {
-     const unsubscribe = messageBus.subscribe(
-       "job-progress",
-       (message) => handleProgress(message),
-       { target: `cli:${sessionId}` },
-     );
-     return unsubscribe;
-   }, [messageBus, sessionId]);
-   ```
-
-**Benefits**:
-
-- Single event system (MessageBus only)
-- Type-safe event handling
-- Simpler debugging and event tracing
-- Reduced memory overhead
-- Consistent event patterns
-
-**Migration Notes**:
-
-- Matrix interface already has TODO comment acknowledging this
-- Each interface can be migrated independently
-- Backward compatibility through adapter if needed
+- Improved message editing for smoother updates
+- Batched updates to reduce message edit spam
+- Thread support for grouping related operations
 
 ## Implementation Priority
 
-1. **Phase 1** (High Priority): Job handler progress reporting
+### High Priority (Do First)
+
+1. **Phase 1: Remove EventEmitter anti-pattern**
+   - Prevents building more code on flawed foundation
+   - Simplifies architecture significantly
+   - Makes all subsequent phases cleaner
+
+2. **Phase 2: Enable Job Handler Progress Reporting**
    - Biggest impact on user experience
    - Enables detailed progress for all async operations
-   - Foundation for other enhancements
+   - Foundation for rich progress feedback
 
-2. **Phase 5** (High Priority): Remove EventEmitter anti-pattern
-   - Simplifies architecture significantly
-   - Reduces technical debt
-   - Makes event flow clearer and more maintainable
-   - Should be done early to avoid building more features on flawed foundation
+### Medium Priority
 
-3. **Phase 2** (Medium Priority): Enhanced progress data
-   - Builds on Phase 1
-   - Provides richer feedback
+3. **Phase 3: Enhanced Progress Events & Real-time Updates**
+   - Builds on Phase 2 foundation
+   - Eliminates polling delays
+   - Provides rich progress information
 
-4. **Phase 3** (Low Priority): MCP integration
-   - Only affects MCP users
-   - Can work independently
+4. **Phase 4: MCP Progress Integration**
+   - Important for MCP users
+   - Relatively isolated change
+   - Can be done in parallel with Phase 3
 
-5. **Phase 4** (Medium Priority): UI improvements
+5. **Phase 5: UI Enhancements**
    - Can be done incrementally
    - Each interface can enhance independently
+   - Builds on all previous phases
 
 ## Architecture Decisions
 
-### Why Keep Current Architecture
+### Why Remove EventEmitter First
+
+- Technical debt compounds - the longer we wait, the more code depends on it
+- Every new feature built on EventEmitter needs migration later
+- Clean architecture enables better implementations of subsequent phases
+- Reduces complexity for developers working on interfaces
+
+### Why Keep Current Job Queue Architecture
 
 The current design correctly separates concerns:
 
@@ -277,15 +332,6 @@ The current design correctly separates concerns:
 - **Monitor**: Report progress changes
 - **Events**: Route to correct interface
 - **UI**: Display progress
-
-### Why Not Direct Tool Progress
-
-Direct tool progress would:
-
-- Bypass centralized job monitoring
-- Create inconsistency between sync/async operations
-- Complicate the clean separation of concerns
-- Require tools to manage progress state
 
 ### Event Targeting Strategy
 
@@ -298,23 +344,39 @@ Continue using source-based targeting:
 
 ## Migration Strategy
 
-1. **Backward Compatibility**: All changes are additive
-   - Existing handlers continue to work
-   - progressReporter parameter is optional
-   - New event fields are optional
+### Phase 1 Migration (EventEmitter Removal)
 
-2. **Incremental Rollout**:
-   - Start with high-value handlers (content generation, directory sync)
-   - Add progress reporting to one handler at a time
-   - Monitor performance impact
+#### General Approach
+1. Create adapter layer for backward compatibility
+2. Update one interface at a time (CLI first, then Matrix)
+3. Remove EventEmitter once all interfaces migrated
+4. Update tests to use MessageBus directly
 
-3. **Testing Strategy**:
-   - Unit tests for progress reporting
-   - Integration tests for event flow
-   - Performance tests for high-frequency progress updates
+#### CLI Migration (Simpler)
+- Pass PluginContext to React components via props
+- Update useEffect hooks to use context.subscribe directly
+- Remove re-emission logic from cli-interface.ts
+
+#### Matrix Migration (More Complex)
+- **Challenge**: Matrix needs stateful message tracking for editing
+- **Solution**: Keep progressMessages Map, but subscribe directly to MessageBus
+- **Steps**:
+  1. Replace setupProgressHandlers to use context.subscribe
+  2. Move room ID extraction logic into subscription handlers
+  3. Maintain message ID tracking without EventEmitter
+  4. Test message editing functionality thoroughly
+- **Special Care**: Matrix's TODO comment shows awareness of the issue
+
+### Phase 2+ Migration
+
+1. All changes are additive
+2. Existing handlers continue to work
+3. New features are opt-in
+4. Monitor performance impact
 
 ## Success Metrics
 
+- **Code Quality**: Reduced abstraction layers, cleaner event flow
 - **User Experience**: Detailed progress instead of generic "Processing..."
 - **Responsiveness**: Real-time updates vs 500ms polling delay
 - **Information**: Operation details, ETA, completion rates
@@ -322,20 +384,15 @@ Continue using source-based targeting:
 
 ## Risks and Mitigations
 
-**Risk**: High-frequency progress updates overwhelming the system
+**Risk**: Breaking existing interfaces during EventEmitter removal
+- **Mitigation**: Careful testing, adapter layer, incremental migration
 
+**Risk**: High-frequency progress updates overwhelming the system
 - **Mitigation**: Throttle progress updates to max 10/second per job
 
 **Risk**: Breaking existing job handlers
-
 - **Mitigation**: Optional progressReporter parameter, extensive testing
-
-**Risk**: Event bus congestion
-
-- **Mitigation**: Monitor event rates, implement backpressure if needed
 
 ## Conclusion
 
-The proposed enhancements maintain the clean architecture while addressing the main limitation: lack of granular progress reporting from job handlers. By making the IProgressReporter available to handlers, we enable rich progress feedback without compromising the system's design principles.
-
-The phased approach allows incremental implementation with immediate benefits from Phase 1, while maintaining backward compatibility throughout.
+By prioritizing the removal of the EventEmitter anti-pattern, we ensure a clean foundation for building enhanced progress notifications. The phased approach allows incremental implementation while maintaining backward compatibility, with immediate benefits from addressing technical debt in Phase 1.
