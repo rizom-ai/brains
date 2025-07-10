@@ -117,8 +117,13 @@ export const JobProgressEventSchema = z.object({
       current: z.number(),
       total: z.number(),
       percentage: z.number(),
+      eta: z.number().optional(), // Estimated time remaining in milliseconds
+      rate: z.number().optional(), // Items per second
     })
     .optional(),
+  
+  // Current operation description (required for better UX)
+  operation: z.string(), // Current operation name/description
 
   // Batch-specific fields
   batchDetails: z

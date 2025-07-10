@@ -133,7 +133,8 @@ describe("JobProgressMonitor", () => {
           id: "job-123",
           type: "job",
           status: "processing",
-          message: "Processing test-job...",
+          operation: "Processing test-job",
+          message: undefined,
           jobDetails: {
             jobType: "test-job",
             priority: 5,
@@ -215,6 +216,7 @@ describe("JobProgressMonitor", () => {
           id: "batch-456",
           type: "batch",
           status: "processing",
+          operation: "Processing operation 4",
           batchDetails: {
             totalOperations: 10,
             completedOperations: 3,

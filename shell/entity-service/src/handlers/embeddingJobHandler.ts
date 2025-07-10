@@ -90,10 +90,24 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         contentLength: data.content.length,
       });
 
+      // Report initial progress
+      await progressReporter.report({
+        progress: 0,
+        total: 2,
+        message: `Generating embedding for ${data.entityType} ${data.id}`,
+      });
+
       // Generate embedding for the entity content
       const embedding = await this.embeddingService.generateEmbedding(
         data.content,
       );
+
+      // Report progress after embedding generation
+      await progressReporter.report({
+        progress: 1,
+        total: 2,
+        message: `Storing embedding for ${data.entityType} ${data.id}`,
+      });
 
       // Upsert the complete entity with embedding (handles both create and update)
       await this.db

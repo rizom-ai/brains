@@ -5,6 +5,8 @@ export interface ProgressNotification {
   progress: number;
   total?: number;
   message?: string;
+  rate?: number; // Items per second
+  eta?: number; // Estimated time remaining in milliseconds
 }
 
 /**
