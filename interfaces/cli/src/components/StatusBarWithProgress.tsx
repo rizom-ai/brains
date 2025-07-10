@@ -16,55 +16,63 @@ export function StatusBarWithProgress({
   progressEvents,
 }: StatusBarWithProgressProps): React.ReactElement {
   const MIN_DISPLAY_DURATION = 400; // 400ms minimum display
-  
+
   // Track displayed events with timestamps
-  const [displayedEvents, setDisplayedEvents] = useState<JobProgressEvent[]>([]);
+  const [displayedEvents, setDisplayedEvents] = useState<JobProgressEvent[]>(
+    [],
+  );
   const eventTimestamps = useRef<Map<string, number>>(new Map());
   const removalTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  
+
   // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      removalTimeouts.current.forEach(timeout => clearTimeout(timeout));
+    return (): void => {
+      removalTimeouts.current.forEach((timeout) => clearTimeout(timeout));
       removalTimeouts.current.clear();
     };
   }, []);
 
   useEffect(() => {
     const now = Date.now();
-    
+
     // Build a map of current events for easy lookup
-    const currentEventsMap = new Map(progressEvents.map(e => [e.id, e]));
-    
+    const currentEventsMap = new Map(progressEvents.map((e) => [e.id, e]));
+
     // Track first appearance of events
-    progressEvents.forEach(event => {
+    progressEvents.forEach((event) => {
       if (!eventTimestamps.current.has(event.id)) {
         eventTimestamps.current.set(event.id, now);
       }
     });
-    
+
     // Update displayed events to match current events (for events still incoming)
-    setDisplayedEvents(prev => {
-      const prevMap = new Map(prev.map(e => [e.id, e]));
+    setDisplayedEvents((prev) => {
+      const prevMap = new Map(prev.map((e) => [e.id, e]));
       const updatedEvents: JobProgressEvent[] = [];
-      
+
       // Update or keep existing displayed events
-      prev.forEach(displayedEvent => {
+      prev.forEach((displayedEvent) => {
         const currentEvent = currentEventsMap.get(displayedEvent.id);
         if (currentEvent) {
           // Event still exists, update it
           updatedEvents.push(currentEvent);
         } else if (!removalTimeouts.current.has(displayedEvent.id)) {
           // Event gone but not scheduled for removal, schedule it now
-          const displayedFor = now - (eventTimestamps.current.get(displayedEvent.id) || now);
-          const remainingTime = Math.max(0, MIN_DISPLAY_DURATION - displayedFor);
-          
+          const displayedFor =
+            now - (eventTimestamps.current.get(displayedEvent.id) ?? now);
+          const remainingTime = Math.max(
+            0,
+            MIN_DISPLAY_DURATION - displayedFor,
+          );
+
           const timeout = setTimeout(() => {
-            setDisplayedEvents(prev => prev.filter(e => e.id !== displayedEvent.id));
+            setDisplayedEvents((prev) =>
+              prev.filter((e) => e.id !== displayedEvent.id),
+            );
             eventTimestamps.current.delete(displayedEvent.id);
             removalTimeouts.current.delete(displayedEvent.id);
           }, remainingTime);
-          
+
           removalTimeouts.current.set(displayedEvent.id, timeout);
           // Keep it displayed until timeout
           updatedEvents.push(displayedEvent);
@@ -73,34 +81,34 @@ export function StatusBarWithProgress({
           updatedEvents.push(displayedEvent);
         }
       });
-      
+
       // Add new events
-      progressEvents.forEach(event => {
+      progressEvents.forEach((event) => {
         if (!prevMap.has(event.id)) {
           updatedEvents.push(event);
         }
       });
-      
+
       return updatedEvents;
     });
 
     // Cleanup function
-    return () => {
+    return (): void => {
       // Don't clear timeouts here, they need to persist
     };
   }, [progressEvents]);
 
   // Get all batch and job progress events from displayed events
   const batchProgressEvents = displayedEvents.filter(
-    (event) => event.type === "batch"
+    (event) => event.type === "batch",
   );
-  
+
   const jobProgressEvents = displayedEvents.filter(
-    (event) => event.type === "job"
+    (event) => event.type === "job",
   );
-  
+
   // For display, prioritize the first batch, then the first job
-  const primaryEvent = batchProgressEvents[0] || jobProgressEvents[0];
+  const primaryEvent = batchProgressEvents[0] ?? jobProgressEvents[0];
 
   return (
     <Box width="100%">
@@ -125,9 +133,7 @@ export function StatusBarWithProgress({
         <Box>
           {primaryEvent ? (
             <Box>
-              <Text color="cyan">
-                {primaryEvent.operation}
-              </Text>
+              <Text color="cyan">{primaryEvent.operation}</Text>
               <Text color="gray"> </Text>
               {primaryEvent.type === "batch" && primaryEvent.batchDetails ? (
                 <ProgressBar

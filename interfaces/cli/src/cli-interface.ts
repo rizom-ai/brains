@@ -16,9 +16,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
   private progressEvents = new Map<string, JobProgressEvent>();
-  private progressCallback:
-    | ((events: JobProgressEvent[]) => void)
-    | undefined;
+  private progressCallback: ((events: JobProgressEvent[]) => void) | undefined;
   private responseCallback: ((response: string) => void) | undefined;
   private errorCallback: ((error: Error) => void) | undefined;
 
@@ -140,7 +138,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     this.progressCallback = callback;
     // Send current state immediately (only processing events)
     const processingEvents = Array.from(this.progressEvents.values()).filter(
-      event => event.status === "processing"
+      (event) => event.status === "processing",
     );
     callback(processingEvents);
   }
@@ -205,7 +203,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     if (this.progressCallback) {
       // Only send processing events to the UI as an array
       const processingEvents = Array.from(this.progressEvents.values()).filter(
-        event => event.status === "processing"
+        (event) => event.status === "processing",
       );
       this.progressCallback(processingEvents);
     }

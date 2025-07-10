@@ -567,7 +567,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       // Get the last known progress info
       const progressInfo = this.jobsWithProgress.get(jobId);
       const target = job.source ?? undefined;
-      
+
       // First emit a 100% progress event with "processing" status
       if (progressInfo) {
         const finalProgressEvent: JobProgressEvent = {
@@ -587,12 +587,16 @@ export class JobProgressMonitor implements IJobProgressMonitor {
             retryCount: job.retryCount,
           },
         };
-        await this.eventEmitter.send("job-progress", finalProgressEvent, target);
-        
+        await this.eventEmitter.send(
+          "job-progress",
+          finalProgressEvent,
+          target,
+        );
+
         // Delay to ensure the progress event is displayed
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
-      
+
       // Then emit the completion event
       const completionEvent: JobProgressEvent = {
         id: jobId,

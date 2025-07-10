@@ -97,7 +97,11 @@ export default function App({
     return (): void => {
       unregisterProgressCallback();
     };
-  }, [registerProgressCallback, unregisterProgressCallback, handleProgressUpdate]);
+  }, [
+    registerProgressCallback,
+    unregisterProgressCallback,
+    handleProgressUpdate,
+  ]);
 
   const handleSubmit = useCallback(
     async (value: string): Promise<void> => {

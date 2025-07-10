@@ -352,7 +352,7 @@ export class JobQueueWorker {
         job.id,
         progressReporter,
       );
-      
+
       await this.jobQueueService.complete(job.id, result);
 
       // Emit completion event immediately

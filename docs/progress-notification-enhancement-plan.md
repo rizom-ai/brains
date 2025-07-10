@@ -274,6 +274,13 @@ Matrix has unique requirements that need special handling:
 - Multi-line progress for batch operations
 - Show current operation details
 - ETA and rate display
+- Different rendering for batch vs individual jobs:
+  - Individual jobs: Show single progress bar with operation details
+  - Batch jobs: Show aggregated progress (e.g., "Processing files: 3/40")
+- Smart aggregation for directory sync:
+  - Instead of showing each file individually
+  - Show total progress: "Syncing: 15/40 files processed"
+  - Current file name below progress bar
 
 **Matrix Enhancements**:
 
@@ -283,37 +290,53 @@ Matrix has unique requirements that need special handling:
 - Improved message editing for smoother updates
 - Batched updates to reduce message edit spam
 - Thread support for grouping related operations
+- Similar batch vs individual job differentiation
 
-## Implementation Priority
+## Implementation Status
 
-### High Priority (Do First)
+### ✅ Completed
 
-1. **Phase 1: Remove EventEmitter anti-pattern**
-   - Prevents building more code on flawed foundation
-   - Simplifies architecture significantly
-   - Makes all subsequent phases cleaner
+1. **Phase 1: Remove EventEmitter anti-pattern** ✅
+   - Removed EventEmitter from MessageInterfacePlugin
+   - Interfaces now use callback pattern instead
+   - Clean single event system via MessageBus
 
-2. **Phase 2: Enable Job Handler Progress Reporting**
-   - Biggest impact on user experience
-   - Enables detailed progress for all async operations
-   - Foundation for rich progress feedback
+2. **Phase 2: Enable Job Handler Progress Reporting** ✅
+   - JobHandler interface extended with progressReporter
+   - IProgressReporter implemented in JobProgressMonitor
+   - Handlers can report granular progress
 
-### Medium Priority
+3. **Phase 3: Enhanced Progress Events & Real-time Updates** ✅
+   - Extended JobProgressEvent schema with eta, rate, operation
+   - Real-time progress updates when handlers report
+   - Immediate completion event emission
+   - 400ms minimum display duration in UI
 
-3. **Phase 3: Enhanced Progress Events & Real-time Updates**
-   - Builds on Phase 2 foundation
-   - Eliminates polling delays
-   - Provides rich progress information
+### 📋 To Do
 
-4. **Phase 4: MCP Progress Integration**
-   - Important for MCP users
-   - Relatively isolated change
-   - Can be done in parallel with Phase 3
+4. **Phase 3.5: Remove IEventEmitter Abstraction** (NEW)
+   - Remove unnecessary IEventEmitter interface from JobProgressMonitor
+   - Pass MessageBus directly instead of through MessageBusAdapter
+   - Delete MessageBusAdapter as it's no longer needed
+   - Update JobProgressMonitor to call `messageBus.send()` directly
+   - Consistent with Phase 1 EventEmitter removal
 
-5. **Phase 5: UI Enhancements**
-   - Can be done incrementally
-   - Each interface can enhance independently
-   - Builds on all previous phases
+5. **Phase 4: UI Enhancements** (Previously Phase 5)
+   - Multi-line progress for batch operations
+   - Show current operation details
+   - ETA and rate display
+   - **NEW: Differentiate batch vs individual job rendering**
+     - Check event.type to determine rendering style
+     - Batch: Show aggregated count and overall progress
+     - Individual: Show detailed operation with progress bar
+   - **NEW: Aggregate directory sync progress (e.g., 3/40 files)**
+     - Directory sync emits batch events with total file count
+     - Show "Syncing: X/Y files" instead of individual file progress
+     - Display current file being processed as subtitle
+
+6. **Phase 5: MCP Progress Integration** (Previously Phase 4)
+   - Enable MCP tools with progressToken to report progress
+   - Integrate with existing job progress system
 
 ## Architecture Decisions
 
