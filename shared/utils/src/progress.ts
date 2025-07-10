@@ -22,11 +22,15 @@ export type ProgressCallback = (
  * // Create from a callback
  * const progress = ProgressReporter.from(sendProgress);
  *
- * // Report a message
- * await progress?.report("Building project");
+ * // Report progress
+ * await progress?.report({
+ *   message: "Building project",
+ *   progress: 10,
+ *   total: 100
+ * });
  *
- * // Create sub-progress
- * const subProgress = progress?.createSub("Compiling");
+ * // Create sub-progress with scaled range
+ * const subProgress = progress?.createSub({ scale: { start: 10, end: 90 } });
  *
  * // Use with APIs that expect a callback
  * await someApi(subProgress?.toCallback());
@@ -35,10 +39,7 @@ export type ProgressCallback = (
 export class ProgressReporter {
   private heartbeatInterval: Timer | undefined;
 
-  private constructor(
-    private readonly callback: ProgressCallback,
-    private readonly prefix?: string,
-  ) {}
+  private constructor(private readonly callback: ProgressCallback) {}
 
   /**
    * Create a progress reporter from a callback
@@ -51,29 +52,34 @@ export class ProgressReporter {
   }
 
   /**
-   * Create a sub-progress reporter with an optional prefix
+   * Create a sub-reporter with scaled progress range
    */
-  createSub(prefix: string): ProgressReporter {
-    const newPrefix = this.prefix ? `${this.prefix}: ${prefix}` : prefix;
-    return new ProgressReporter(this.callback, newPrefix);
+  createSub(options?: {
+    scale?: { start: number; end: number };
+  }): ProgressReporter {
+    const { scale } = options ?? {};
+
+    if (scale) {
+      const { start, end } = scale;
+      const range = end - start;
+      return new ProgressReporter(async (notification) => {
+        const scaledProgress =
+          start + (notification.progress / (notification.total ?? 100)) * range;
+        await this.callback({
+          ...notification,
+          progress: scaledProgress,
+          total: 100,
+        });
+      });
+    }
+
+    return new ProgressReporter(this.callback);
   }
 
   /**
    * Report progress
    */
-  async report(
-    message: string,
-    progress?: number,
-    total?: number,
-  ): Promise<void> {
-    const fullMessage = this.prefix ? `${this.prefix}: ${message}` : message;
-
-    const notification: ProgressNotification = {
-      progress: progress ?? 0,
-      message: fullMessage,
-    };
-    if (total !== undefined) notification.total = total;
-
+  async report(notification: ProgressNotification): Promise<void> {
     await this.callback(notification);
   }
 
@@ -85,7 +91,7 @@ export class ProgressReporter {
     this.stopHeartbeat(); // Clear any existing heartbeat
 
     this.heartbeatInterval = setInterval(() => {
-      this.report(message).catch(() => {
+      this.report({ message, progress: 0 }).catch(() => {
         // Ignore errors from progress reporting
       });
     }, intervalMs);
@@ -105,16 +111,17 @@ export class ProgressReporter {
    * Get the underlying callback function
    */
   toCallback(): ProgressCallback {
-    return async (notification) => {
-      const message =
-        this.prefix && notification.message
-          ? `${this.prefix}: ${notification.message}`
-          : (this.prefix ?? notification.message);
-
-      await this.callback({
-        ...notification,
-        ...(message && { message }),
-      });
-    };
+    return this.callback;
   }
+}
+
+/**
+ * Interface for job progress monitoring
+ * Allows different implementations for production and testing
+ */
+export interface IJobProgressMonitor {
+  /**
+   * Create a ProgressReporter for a specific job
+   */
+  createProgressReporter(jobId: string): ProgressReporter;
 }

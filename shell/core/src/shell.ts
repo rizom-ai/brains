@@ -231,14 +231,6 @@ export class Shell {
     );
     this.jobQueueService.registerHandler("embedding", embeddingJobHandler);
 
-    this.jobQueueWorker =
-      dependencies?.jobQueueWorker ??
-      JobQueueWorker.createFresh(this.jobQueueService, this.logger, {
-        pollInterval: 100, // 100ms for responsive processing
-        concurrency: 1, // Process one job at a time
-        autoStart: false, // Start manually during initialization
-      });
-
     // Initialize EntityService with the configured JobQueueService
     this.entityService =
       dependencies?.entityService ??
@@ -293,8 +285,6 @@ export class Shell {
       "jobQueueService",
       () => this.jobQueueService,
     );
-    this.serviceRegistry.register("jobQueueWorker", () => this.jobQueueWorker);
-
     // Initialize JobProgressMonitor with MessageBus adapter
     const batchJobManager = BatchJobManager.getInstance(
       this.jobQueueService,
@@ -316,6 +306,21 @@ export class Shell {
       "jobProgressMonitor",
       () => this.jobProgressMonitor,
     );
+
+    // Initialize JobQueueWorker after JobProgressMonitor
+    this.jobQueueWorker =
+      dependencies?.jobQueueWorker ??
+      JobQueueWorker.createFresh(
+        this.jobQueueService,
+        this.jobProgressMonitor,
+        this.logger,
+        {
+          pollInterval: 100, // 100ms for responsive processing
+          concurrency: 1, // Process one job at a time
+          autoStart: false, // Start manually during initialization
+        },
+      );
+    this.serviceRegistry.register("jobQueueWorker", () => this.jobQueueWorker);
   }
 
   /**

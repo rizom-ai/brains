@@ -2,12 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ServiceRegistry } from "@brains/service-registry";
 import { createSilentLogger } from "@brains/utils";
 import { PluginContextFactory } from "../src/plugins/pluginContextFactory";
-import type {
-  JobHandler,
-  IJobQueueService,
-  JobResult,
-} from "@brains/job-queue";
-import type { Logger } from "@brains/utils";
+import type { JobHandler, IJobQueueService } from "@brains/job-queue";
+import type { Logger, ProgressReporter } from "@brains/utils";
 import type { JobQueue } from "@brains/db";
 
 describe("Plugin Job Handler Lifecycle", () => {
@@ -58,21 +54,12 @@ describe("Plugin Job Handler Lifecycle", () => {
           lastError: null,
         }),
       ),
-      processJob: mock(async (job: JobQueue): Promise<JobResult> => {
-        const handler = registeredHandlers.get(job.type);
-        if (handler) {
-          const parsedData = JSON.parse(job.data);
-          await handler.process(parsedData, job.id);
-        }
-        return {
-          status: "completed",
-          jobId: job.id,
-          type: job.type,
-        };
+      getHandler: mock((type: string) => {
+        return registeredHandlers.get(type);
       }),
-      getStatus: mock(async (_jobId: string) => null),
-      complete: mock(async (_jobId: string, _result: unknown) => {}),
+      complete: mock(async (_jobId: string, _result?: unknown) => {}),
       fail: mock(async (_jobId: string, _error: Error) => {}),
+      getStatus: mock(async (_jobId: string) => null),
       update: mock(async (_jobId: string, _data: unknown) => {}),
       getStatusByEntityId: mock(async (_entityId: string) => null),
       getStats: mock(async () => ({
@@ -203,7 +190,22 @@ describe("Plugin Job Handler Lifecycle", () => {
     const registeredHandler = registeredHandlers.get("test-plugin:test-job");
     expect(registeredHandler).toBeTruthy();
     if (registeredHandler) {
-      const result = await registeredHandler.process(jobData, jobId);
+      const mockProgressReporter = {
+        async report(): Promise<void> {},
+        createSub(): ProgressReporter {
+          return mockProgressReporter as unknown as ProgressReporter;
+        },
+        startHeartbeat(): void {},
+        stopHeartbeat(): void {},
+        toCallback() {
+          return async () => {};
+        },
+      } as unknown as ProgressReporter;
+      const result = await registeredHandler.process(
+        jobData,
+        jobId,
+        mockProgressReporter,
+      );
       expect(result).toEqual({
         success: true,
         result: `Processed: ${JSON.stringify(jobData)}`,
@@ -314,8 +316,27 @@ describe("Plugin Job Handler Lifecycle", () => {
 
     // Test that handlers return different results
     if (registeredHandler1 && registeredHandler2) {
-      const result1 = await registeredHandler1.process({}, "test-1");
-      const result2 = await registeredHandler2.process({}, "test-2");
+      const mockProgressReporter = {
+        async report(): Promise<void> {},
+        createSub(): ProgressReporter {
+          return mockProgressReporter as unknown as ProgressReporter;
+        },
+        startHeartbeat(): void {},
+        stopHeartbeat(): void {},
+        toCallback() {
+          return async () => {};
+        },
+      } as unknown as ProgressReporter;
+      const result1 = await registeredHandler1.process(
+        {},
+        "test-1",
+        mockProgressReporter,
+      );
+      const result2 = await registeredHandler2.process(
+        {},
+        "test-2",
+        mockProgressReporter,
+      );
       expect(result1).toEqual({ plugin: 1 });
       expect(result2).toEqual({ plugin: 2 });
     }

@@ -4,6 +4,7 @@ import { entities } from "@brains/db";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import { Logger } from "@brains/utils";
 import type { JobHandler } from "@brains/job-queue";
+import type { ProgressReporter } from "@brains/utils";
 
 /**
  * Zod schema for embedding job data validation
@@ -79,6 +80,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   public async process(
     data: EntityWithoutEmbedding,
     jobId: string,
+    progressReporter: ProgressReporter,
   ): Promise<void> {
     try {
       this.logger.debug("Processing embedding job", {
@@ -116,6 +118,13 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
             embedding,
           },
         });
+
+      // Report completion
+      await progressReporter.report({
+        progress: 2,
+        total: 2,
+        message: `Completed embedding for ${data.entityType} ${data.id}`,
+      });
 
       this.logger.debug("Embedding job completed successfully", {
         jobId,

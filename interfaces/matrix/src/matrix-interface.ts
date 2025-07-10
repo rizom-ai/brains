@@ -440,13 +440,21 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   private extractRoomIdFromTarget(target: string): string | null {
     // Extract room ID from the target (e.g., "matrix:!roomId:homeserver" -> "!roomId:homeserver")
     const parts = target.split(":");
-    if (parts.length < 3 || parts[0] !== "matrix") {
+
+    // If not a matrix target, silently ignore
+    if (parts[0] !== "matrix") {
+      return null;
+    }
+
+    // If it's a matrix target but malformed, warn
+    if (parts.length < 3) {
       this.logger.warn(
-        "Invalid target format, expected matrix:!roomId:homeserver",
+        "Invalid matrix target format, expected matrix:!roomId:homeserver",
         { target },
       );
       return null;
     }
+
     return parts.slice(1).join(":"); // Rejoin everything after "matrix:"
   }
 

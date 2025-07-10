@@ -5,7 +5,6 @@ export {
   JobProgressMonitor,
   type JobProgressEvent,
   type IEventEmitter,
-  type IProgressReporter,
 } from "./job-progress-monitor";
 export { MessageBusAdapter } from "./message-bus-adapter";
 export type {

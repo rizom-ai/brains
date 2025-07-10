@@ -3,10 +3,31 @@ import { JobQueueWorker } from "../src/job-queue-worker";
 import type { JobQueue } from "@brains/db";
 import type { JobQueueService } from "../src/job-queue-service";
 import { createSilentLogger } from "@brains/utils";
+import type { IJobProgressMonitor, ProgressReporter } from "@brains/utils";
+
+// Mock progress monitor for testing
+const mockProgressReporter: ProgressReporter = {
+  async report(): Promise<void> {},
+  createSub(): ProgressReporter {
+    return mockProgressReporter;
+  },
+  startHeartbeat(): void {},
+  stopHeartbeat(): void {},
+  toCallback() {
+    return async () => {};
+  },
+} as unknown as ProgressReporter;
+
+class MockProgressMonitor implements IJobProgressMonitor {
+  createProgressReporter(): ProgressReporter {
+    return mockProgressReporter;
+  }
+}
 
 describe("JobQueueWorker", () => {
   let worker: JobQueueWorker;
   let mockService: JobQueueService;
+  let mockProgressMonitor: IJobProgressMonitor;
 
   const testJob: JobQueue = {
     id: "test-job-123",
@@ -27,21 +48,29 @@ describe("JobQueueWorker", () => {
   beforeEach(() => {
     JobQueueWorker.resetInstance();
 
+    // Create mock progress monitor
+    mockProgressMonitor = new MockProgressMonitor();
+
     // Create fresh mock service for each test
     mockService = {
       dequeue: mock(() => Promise.resolve(null)),
-      processJob: mock(() =>
-        Promise.resolve({
-          status: "completed",
-          jobId: "test",
-          type: "embedding",
-        }),
-      ),
+      complete: mock(() => Promise.resolve()),
+      fail: mock(() => Promise.resolve()),
+      getHandler: mock(() => ({
+        process: mock(() => Promise.resolve({ success: true })),
+        onError: mock(() => Promise.resolve()),
+        validateAndParse: mock(() => ({ id: "entity-123", content: "test" })),
+      })),
     } as unknown as JobQueueService;
 
-    worker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
-      pollInterval: 50, // Fast for tests
-    });
+    worker = JobQueueWorker.createFresh(
+      mockService,
+      mockProgressMonitor,
+      createSilentLogger(),
+      {
+        pollInterval: 50, // Fast for tests
+      },
+    );
   });
 
   afterEach(async () => {
@@ -77,6 +106,7 @@ describe("JobQueueWorker", () => {
     it("should accept custom configuration", () => {
       const customWorker = JobQueueWorker.createFresh(
         mockService,
+        mockProgressMonitor,
         createSilentLogger(),
         {
           concurrency: 5,
@@ -92,6 +122,7 @@ describe("JobQueueWorker", () => {
     it("should auto-start when configured", async () => {
       const autoWorker = JobQueueWorker.createFresh(
         mockService,
+        mockProgressMonitor,
         createSilentLogger(),
         {
           autoStart: true,
@@ -146,25 +177,30 @@ describe("JobQueueWorker", () => {
             ? Promise.resolve(testJob)
             : Promise.resolve(null);
         }),
-        processJob: mock(() =>
-          Promise.resolve({
-            status: "completed",
-            jobId: "test",
-            type: "embedding",
-          }),
-        ),
+        complete: mock(() => Promise.resolve()),
+        fail: mock(() => Promise.resolve()),
+        getHandler: mock(() => ({
+          process: mock(() => Promise.resolve({ success: true })),
+          onError: mock(() => Promise.resolve()),
+          validateAndParse: mock(() => ({ id: "entity-123", content: "test" })),
+        })),
       } as unknown as JobQueueService;
 
-      worker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
-        pollInterval: 50,
-      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        {
+          pollInterval: 50,
+        },
+      );
 
       await worker.start();
 
       // Wait for processing
       await new Promise((resolve) => setTimeout(resolve, 150));
 
-      expect(mockService.processJob).toHaveBeenCalledWith(testJob);
+      expect(mockService.getHandler).toHaveBeenCalledWith(testJob.type);
     });
 
     it("should handle service errors gracefully", async () => {
@@ -178,6 +214,7 @@ describe("JobQueueWorker", () => {
     it("should accept maxJobs configuration", () => {
       const limitedWorker = JobQueueWorker.createFresh(
         mockService,
+        mockProgressMonitor,
         createSilentLogger(),
         {
           maxJobs: 5,
@@ -200,15 +237,26 @@ describe("JobQueueWorker", () => {
             ? Promise.resolve(testJob)
             : Promise.resolve(null);
         }),
-        processJob: mock(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          return { status: "completed", jobId: testJob.id, type: testJob.type };
-        }),
+        complete: mock(() => Promise.resolve()),
+        fail: mock(() => Promise.resolve()),
+        getHandler: mock(() => ({
+          process: mock(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            return { success: true };
+          }),
+          onError: mock(() => Promise.resolve()),
+          validateAndParse: mock(() => ({ id: "entity-123", content: "test" })),
+        })),
       } as unknown as JobQueueService;
 
-      worker = JobQueueWorker.createFresh(mockService, createSilentLogger(), {
-        pollInterval: 50,
-      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        {
+          pollInterval: 50,
+        },
+      );
 
       await worker.start();
 

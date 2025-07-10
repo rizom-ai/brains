@@ -1,4 +1,5 @@
-import type { Logger } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils";
+import type { Logger, IJobProgressMonitor } from "@brains/utils";
 import type { IJobQueueService } from "./types";
 import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
@@ -19,24 +20,12 @@ export interface IEventEmitter {
 }
 
 /**
- * Progress reporter interface for job handlers
- */
-export interface IProgressReporter {
-  reportProgress(
-    jobId: string,
-    current: number,
-    total: number,
-    message?: string,
-  ): void;
-}
-
-/**
  * Service that monitors job and batch progress and emits events
  *
  * This service monitors both individual long-running jobs and batch operations,
  * emitting progress events through the provided event emitter.
  */
-export class JobProgressMonitor implements IProgressReporter {
+export class JobProgressMonitor implements IJobProgressMonitor {
   private static instance: JobProgressMonitor | null = null;
   private monitoringInterval: NodeJS.Timeout | null = null;
   private isRunning = false;
@@ -161,32 +150,36 @@ export class JobProgressMonitor implements IProgressReporter {
   }
 
   /**
-   * Report progress for a specific job (called by job handlers)
+   * Create a ProgressReporter for a specific job
    */
-  public reportProgress(
-    jobId: string,
-    current: number,
-    total: number,
-    message?: string,
-  ): void {
-    const progressData = {
-      current,
-      total,
-      message: message ?? "Processing...",
-      lastUpdate: Date.now(),
-    };
+  public createProgressReporter(jobId: string): ProgressReporter {
+    const reporter = ProgressReporter.from(async (notification) => {
+      // Store progress data
+      const progressData = {
+        current: notification.progress,
+        total: notification.total ?? 0,
+        message: notification.message ?? "Processing...",
+        lastUpdate: Date.now(),
+      };
 
-    this.jobsWithProgress.set(jobId, progressData);
+      this.jobsWithProgress.set(jobId, progressData);
 
-    // Emit progress event immediately
-    const progressInfo = {
-      current,
-      total,
-      message: message ?? "Processing...",
-    };
+      // Emit progress event immediately
+      await this.emitJobProgress(jobId, {
+        current: notification.progress,
+        total: notification.total ?? 0,
+        message: notification.message ?? "Processing...",
+      });
+    });
 
-    void this.emitJobProgress(jobId, progressInfo);
+    if (!reporter) {
+      // This should never happen since we always provide a callback
+      throw new Error("Failed to create ProgressReporter");
+    }
+
+    return reporter;
   }
+
 
   /**
    * Check progress of all active jobs and batches

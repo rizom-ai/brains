@@ -93,7 +93,11 @@ export class SiteBuilder implements ISiteBuilder {
     const warnings: string[] = [];
 
     try {
-      await reporter?.report("Starting site build", 0, 100);
+      await reporter?.report({
+        message: "Starting site build",
+        progress: 0,
+        total: 100,
+      });
 
       // Create static site builder instance
       const workingDir =
@@ -110,7 +114,11 @@ export class SiteBuilder implements ISiteBuilder {
         warnings.push("No routes registered for site build");
       }
 
-      await reporter?.report(`Building ${routes.length} routes`, 20, 100);
+      await reporter?.report({
+        message: `Building ${routes.length} routes`,
+        progress: 20,
+        total: 100,
+      });
 
       // Create build context
       const siteConfig = options.siteConfig ?? {
@@ -138,15 +146,23 @@ export class SiteBuilder implements ISiteBuilder {
       };
 
       // Run static site build
-      await reporter?.report("Running static site build", 85, 100);
+      await reporter?.report({
+        message: "Running static site build",
+        progress: 85,
+        total: 100,
+      });
       await staticSiteBuilder.build(buildContext, (message) => {
         // Report progress without await to avoid blocking
-        reporter?.report(message).catch(() => {
+        reporter?.report({ message, progress: 0 }).catch(() => {
           // Ignore progress reporting errors
         });
       });
 
-      await reporter?.report("Site build complete", 100, 100);
+      await reporter?.report({
+        message: "Site build complete",
+        progress: 100,
+        total: 100,
+      });
 
       const result: BuildResult = {
         success: errors.length === 0,

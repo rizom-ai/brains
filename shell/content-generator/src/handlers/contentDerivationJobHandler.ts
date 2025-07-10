@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Logger } from "@brains/utils";
 import type { JobHandler } from "@brains/job-queue";
 import type { IEntityService } from "@brains/entity-service";
+import type { ProgressReporter } from "@brains/utils";
 
 /**
  * Zod schema for content derivation job data validation
@@ -77,6 +78,7 @@ export class ContentDerivationJobHandler
   public async process(
     data: ContentDerivationJobData,
     jobId: string,
+    progressReporter: ProgressReporter,
   ): Promise<{ entityId: string; success: boolean }> {
     try {
       this.logger.debug("Processing content derivation job", {
@@ -88,6 +90,13 @@ export class ContentDerivationJobHandler
       });
 
       if (data.targetEntityType) {
+        // Report derivation start
+        await progressReporter.report({
+          message: `Deriving ${data.sourceEntityType} to ${data.targetEntityType}`,
+          progress: 0,
+          total: 2,
+        });
+
         // Derive to target entity type
         const derivedEntity = await this.entityService.deriveEntity(
           data.entityId,
@@ -117,11 +126,25 @@ export class ContentDerivationJobHandler
           verificationType: verification?.entityType,
         });
 
+        // Report completion
+        await progressReporter.report({
+          message: `Derived ${data.sourceEntityType} to ${data.targetEntityType}`,
+          progress: 2,
+          total: 2,
+        });
+
         return {
           entityId: derivedEntity.id,
           success: true,
         };
       } else {
+        // Report deletion start
+        await progressReporter.report({
+          message: `Deleting ${data.sourceEntityType} entity`,
+          progress: 1,
+          total: 2,
+        });
+
         // No target type means delete the source
         const success = await this.entityService.deleteEntity(
           data.sourceEntityType,
@@ -141,6 +164,13 @@ export class ContentDerivationJobHandler
             entityType: data.sourceEntityType,
           });
         }
+
+        // Report completion
+        await progressReporter.report({
+          message: `Deleted ${data.sourceEntityType} entity`,
+          progress: 2,
+          total: 2,
+        });
 
         return {
           entityId: data.entityId,

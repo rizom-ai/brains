@@ -1,5 +1,5 @@
 import type { JobQueue, JobOptions, JobType, JobDataFor } from "@brains/db";
-import type { JobResult } from "./schemas";
+import type { ProgressReporter } from "@brains/utils";
 
 /**
  * Job handler interface for processing specific job types
@@ -15,13 +15,25 @@ export interface JobHandler<
 > {
   /**
    * Process a job of this type
+   * @param data - The job input data
+   * @param jobId - Unique identifier for this job
+   * @param progressReporter - Progress reporter for granular updates
    */
-  process(data: TInput, jobId: string): Promise<TOutput>;
+  process(
+    data: TInput,
+    jobId: string,
+    progressReporter: ProgressReporter,
+  ): Promise<TOutput>;
 
   /**
    * Handle job failure (optional)
    */
-  onError?(error: Error, data: TInput, jobId: string): Promise<void>;
+  onError?(
+    error: Error,
+    data: TInput,
+    jobId: string,
+    progressReporter: ProgressReporter,
+  ): Promise<void>;
 
   /**
    * Validate and parse job data
@@ -45,6 +57,11 @@ export interface IJobQueueService {
   unregisterHandler(type: string): void;
 
   /**
+   * Get a handler for a specific job type
+   */
+  getHandler(type: string): JobHandler | undefined;
+
+  /**
    * Enqueue a job for processing
    */
   enqueue(type: string, data: unknown, options?: JobOptions): Promise<string>;
@@ -53,11 +70,6 @@ export interface IJobQueueService {
    * Get next job to process (marks as processing)
    */
   dequeue(): Promise<JobQueue | null>;
-
-  /**
-   * Process a job using its registered handler
-   */
-  processJob(job: JobQueue): Promise<JobResult>;
 
   /**
    * Mark job as completed

@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { JobHandler } from "@brains/job-queue";
 import type { Logger } from "@brains/types";
 import type { PluginContext } from "@brains/plugin-utils";
+import type { ProgressReporter } from "@brains/utils";
 import type { DirectorySync } from "../directorySync";
 import type { ImportResult } from "../types";
 
@@ -83,6 +84,7 @@ export class DirectoryImportJobHandler
   public async process(
     data: DirectoryImportJobData,
     jobId: string,
+    progressReporter: ProgressReporter,
   ): Promise<ImportResult> {
     this.logger.debug("Processing directory import job", { jobId, data });
 
@@ -105,11 +107,26 @@ export class DirectoryImportJobHandler
         totalFiles: filesToImport.length,
       });
 
+      // Report initial progress
+      await progressReporter.report({
+        message: `Starting import of ${filesToImport.length} files`,
+        progress: 0,
+        total: filesToImport.length,
+      });
+
       // Process files in batches
       const batchSize = data.batchSize;
       for (let i = 0; i < filesToImport.length; i += batchSize) {
         const batch = filesToImport.slice(i, i + batchSize);
         await this.importBatch(batch, jobId, result, i, filesToImport.length);
+
+        // Report progress after each batch
+        const processed = Math.min(i + batchSize, filesToImport.length);
+        await progressReporter.report({
+          message: `Imported ${processed}/${filesToImport.length} files (${result.imported} successful, ${result.failed} failed)`,
+          progress: processed,
+          total: filesToImport.length,
+        });
       }
 
       // Log completion

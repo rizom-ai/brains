@@ -23,16 +23,10 @@ describe("JobProgressMonitor", () => {
       complete: mock(() => Promise.resolve()),
       fail: mock(() => Promise.resolve()),
       getActiveJobs: mock(() => Promise.resolve([])),
-      processJob: mock(() =>
-        Promise.resolve({
-          status: "completed" as const,
-          type: "test",
-          jobId: "test",
-        }),
-      ),
       registerHandler: mock(() => {}),
       unregisterHandler: mock(() => {}),
       getRegisteredTypes: mock(() => []),
+      getHandler: mock(() => undefined),
       update: mock(() => Promise.resolve()),
       getStatusByEntityId: mock(() => Promise.resolve(null)),
       getStats: mock(() =>
@@ -148,42 +142,6 @@ describe("JobProgressMonitor", () => {
         },
         undefined, // target is undefined since job has no source
       );
-    });
-
-    it("should include progress information when reportProgress is called", async () => {
-      // Mock the getStatus call to return null (no source)
-      (mockJobQueueService.getStatus as any).mockResolvedValue(null);
-
-      monitor.reportProgress("job-123", 5, 10, "Processing item 5");
-
-      // Wait for async operations
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      expect(mockEventEmitter.send).toHaveBeenCalledWith(
-        "job-progress",
-        {
-          id: "job-123",
-          type: "job",
-          status: "processing",
-          progress: {
-            current: 5,
-            total: 10,
-            percentage: 50,
-          },
-          message: "Processing item 5",
-        },
-        undefined, // target is undefined since job has no source
-      );
-    });
-
-    it("should track jobs with progress", () => {
-      expect(monitor.getStats().jobsWithProgress).toBe(0);
-
-      monitor.reportProgress("job-1", 5, 10);
-      expect(monitor.getStats().jobsWithProgress).toBe(1);
-
-      monitor.reportProgress("job-2", 3, 20);
-      expect(monitor.getStats().jobsWithProgress).toBe(2);
     });
 
     it("should include target when job has source", async () => {

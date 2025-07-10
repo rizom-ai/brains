@@ -33,7 +33,11 @@ export {
 
 // Progress utilities
 export { ProgressReporter } from "./progress";
-export type { ProgressCallback, ProgressNotification } from "./progress";
+export type {
+  ProgressCallback,
+  ProgressNotification,
+  IJobProgressMonitor,
+} from "./progress";
 
 // YAML utilities
 export { toYaml, fromYaml, isValidYaml } from "./yaml";

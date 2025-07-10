@@ -1,6 +1,8 @@
-import type { Logger } from "@brains/utils";
+import type { Logger, IJobProgressMonitor } from "@brains/utils";
 import type { JobQueueService } from "./job-queue-service";
 import type { JobQueue } from "@brains/db";
+import type { JobResult } from "./schemas";
+import { JOB_STATUS } from "./schemas";
 
 /**
  * Configuration options for the JobQueueWorker
@@ -43,6 +45,7 @@ export class JobQueueWorker {
   private static instance: JobQueueWorker | null = null;
   private logger: Logger;
   private jobQueueService: JobQueueService;
+  private progressMonitor: IJobProgressMonitor;
   private config: Required<JobQueueWorkerConfig>;
   private isRunning: boolean = false;
   private shouldStop: boolean = false;
@@ -57,11 +60,13 @@ export class JobQueueWorker {
    */
   public static getInstance(
     jobQueueService: JobQueueService,
+    progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
   ): JobQueueWorker {
     JobQueueWorker.instance ??= new JobQueueWorker(
       jobQueueService,
+      progressMonitor,
       logger,
       config,
     );
@@ -80,10 +85,11 @@ export class JobQueueWorker {
    */
   public static createFresh(
     jobQueueService: JobQueueService,
+    progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
   ): JobQueueWorker {
-    return new JobQueueWorker(jobQueueService, logger, config);
+    return new JobQueueWorker(jobQueueService, progressMonitor, logger, config);
   }
 
   /**
@@ -91,11 +97,13 @@ export class JobQueueWorker {
    */
   private constructor(
     jobQueueService: JobQueueService,
+    progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
   ) {
     this.logger = logger.child("JobQueueWorker");
     this.jobQueueService = jobQueueService;
+    this.progressMonitor = progressMonitor;
     this.config = {
       concurrency: config?.concurrency ?? 1,
       pollInterval: config?.pollInterval ?? 1000,
@@ -258,7 +266,7 @@ export class JobQueueWorker {
       });
 
       // Process the job
-      const result = await this.jobQueueService.processJob(job);
+      const result = await this.processJob(job);
 
       if (result.status === "completed") {
         this.stats.processedJobs++;
@@ -301,5 +309,93 @@ export class JobQueueWorker {
       await this.processAvailableJobs();
       this.scheduleNextPoll();
     }, this.config.pollInterval);
+  }
+
+  /**
+   * Process a job using its registered handler
+   */
+  private async processJob(job: JobQueue): Promise<JobResult> {
+    const handler = this.jobQueueService.getHandler(job.type);
+    if (!handler) {
+      const error = new Error(
+        `No handler registered for job type: ${job.type}`,
+      );
+      await this.jobQueueService.fail(job.id, error);
+      return {
+        jobId: job.id,
+        type: job.type,
+        status: JOB_STATUS.FAILED,
+        error: error.message,
+      };
+    }
+
+    try {
+      this.logger.debug("Processing job", {
+        jobId: job.id,
+        type: job.type,
+      });
+
+      // Validate and parse job data before processing
+      const rawData = JSON.parse(job.data);
+      const parsedData = handler.validateAndParse(rawData);
+      if (parsedData === null) {
+        throw new Error(`Invalid job data for type: ${job.type}`);
+      }
+
+      // Create progress reporter for this job
+      const progressReporter = this.progressMonitor.createProgressReporter(
+        job.id,
+      );
+
+      const result = await handler.process(
+        parsedData,
+        job.id,
+        progressReporter,
+      );
+      await this.jobQueueService.complete(job.id, result);
+
+      return {
+        jobId: job.id,
+        type: job.type,
+        status: JOB_STATUS.COMPLETED,
+        result,
+      };
+    } catch (error) {
+      const processError =
+        error instanceof Error ? error : new Error(String(error));
+
+      // Call handler's error callback if available
+      try {
+        // Validate and parse job data for error handler
+        const rawData = JSON.parse(job.data);
+        const parsedData = handler.validateAndParse(rawData);
+        if (parsedData !== null) {
+          // Create progress reporter for error handling
+          const progressReporter = this.progressMonitor.createProgressReporter(
+            job.id,
+          );
+          await handler.onError?.(
+            processError,
+            parsedData,
+            job.id,
+            progressReporter,
+          );
+        }
+      } catch (callbackError) {
+        this.logger.error("Job handler error callback failed", {
+          jobId: job.id,
+          error: callbackError,
+        });
+      }
+
+      await this.jobQueueService.fail(job.id, processError);
+
+      return {
+        jobId: job.id,
+        type: job.type,
+        status: JOB_STATUS.FAILED,
+        error: processError.message,
+      };
+    }
   }
 }

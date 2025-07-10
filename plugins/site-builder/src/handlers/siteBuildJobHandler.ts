@@ -1,5 +1,5 @@
 import type { JobHandler } from "@brains/job-queue";
-import type { Logger } from "@brains/utils";
+import type { Logger, ProgressReporter } from "@brains/utils";
 import type { PluginContext } from "@brains/plugin-utils";
 import { SiteBuilder } from "../site-builder";
 import {
@@ -22,6 +22,7 @@ export class SiteBuildJobHandler
   async process(
     data: SiteBuildJobData,
     jobId: string,
+    progressReporter: ProgressReporter,
   ): Promise<SiteBuildJobResult> {
     try {
       this.logger.info("Starting site build job", {
@@ -30,22 +31,44 @@ export class SiteBuildJobHandler
         outputDir: data.outputDir,
       });
 
+      // Report initial progress
+      await progressReporter.report({
+        progress: 0,
+        total: 100,
+        message: `Starting site build for ${data.environment} environment`,
+      });
+
       // Get or create site builder instance
       const siteBuilder = SiteBuilder.getInstance(
         this.logger.child("SiteBuilder"),
         this.context,
       );
 
+      // Create a sub-reporter that maps build progress to job progress
+      const buildProgressReporter = progressReporter.createSub({
+        scale: { start: 10, end: 90 },
+      });
+
       // Perform the build
-      const result = await siteBuilder.build({
-        outputDir: data.outputDir,
-        workingDir: data.workingDir,
-        enableContentGeneration: data.enableContentGeneration,
-        environment: data.environment,
-        siteConfig: data.siteConfig ?? {
-          title: "Personal Brain",
-          description: "A knowledge management system",
+      const result = await siteBuilder.build(
+        {
+          outputDir: data.outputDir,
+          workingDir: data.workingDir,
+          enableContentGeneration: data.enableContentGeneration,
+          environment: data.environment,
+          siteConfig: data.siteConfig ?? {
+            title: "Personal Brain",
+            description: "A knowledge management system",
+          },
         },
+        buildProgressReporter.toCallback(),
+      );
+
+      // Report completion
+      await progressReporter.report({
+        progress: 100,
+        total: 100,
+        message: `Site build completed: ${result.routesBuilt} routes built`,
       });
 
       this.logger.info("Site build job completed", {

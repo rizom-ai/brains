@@ -4,6 +4,7 @@ import { Logger } from "@brains/utils";
 import type { ContentGenerator } from "@brains/content-generator";
 import type { JobHandler } from "@brains/job-queue";
 import type { IEntityService } from "@brains/entity-service";
+import type { ProgressReporter } from "@brains/utils";
 
 /**
  * Zod schema for content generation job data validation
@@ -87,6 +88,7 @@ export class ContentGenerationJobHandler
   public async process(
     data: ContentGenerationJobData,
     jobId: string,
+    progressReporter: ProgressReporter,
   ): Promise<string> {
     try {
       this.logger.debug("Processing content generation job", {
@@ -97,11 +99,25 @@ export class ContentGenerationJobHandler
         userId: data.userId,
       });
 
+      // Report initial progress
+      await progressReporter.report({
+        progress: 0,
+        total: 3,
+        message: `Generating content with template: ${data.templateName}`,
+      });
+
       // Generate content using the ContentGenerator service
       const content = await this.contentGenerator.generateContent<unknown>(
         data.templateName,
         data.context,
       );
+
+      // Report progress after content generation
+      await progressReporter.report({
+        progress: 1,
+        total: 3,
+        message: `Formatting content for template: ${data.templateName}`,
+      });
 
       // Format the content to string using the template's formatter
       const formattedContent = this.contentGenerator.formatContent(
@@ -145,6 +161,13 @@ export class ContentGenerationJobHandler
           });
         }
       }
+
+      // Report completion
+      await progressReporter.report({
+        progress: 3,
+        total: 3,
+        message: `Completed content generation for: ${data.templateName}`,
+      });
 
       this.logger.debug("Content generation job completed successfully", {
         jobId,

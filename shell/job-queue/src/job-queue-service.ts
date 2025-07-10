@@ -15,7 +15,6 @@ import {
 } from "@brains/db";
 import { Logger } from "@brains/utils";
 import type { IJobQueueService, JobHandler } from "./types";
-import type { JobResult } from "./schemas";
 import { JOB_STATUS } from "./schemas";
 
 /**
@@ -82,6 +81,13 @@ export class JobQueueService implements IJobQueueService {
    */
   public getRegisteredTypes(): string[] {
     return Array.from(this.handlers.keys());
+  }
+
+  /**
+   * Get a handler for a specific job type
+   */
+  public getHandler(type: string): JobHandler | undefined {
+    return this.handlers.get(type);
   }
 
   /**
@@ -202,76 +208,6 @@ export class JobQueueService implements IJobQueueService {
     } catch (error) {
       this.logger.error("Failed to dequeue job", { error });
       throw error;
-    }
-  }
-
-  /**
-   * Process a job using its registered handler
-   */
-  public async processJob(job: JobQueue): Promise<JobResult> {
-    const handler = this.handlers.get(job.type);
-    if (!handler) {
-      const error = new Error(
-        `No handler registered for job type: ${job.type}`,
-      );
-      await this.fail(job.id, error);
-      return {
-        jobId: job.id,
-        type: job.type,
-        status: JOB_STATUS.FAILED,
-        error: error.message,
-      };
-    }
-
-    try {
-      this.logger.debug("Processing job", {
-        jobId: job.id,
-        type: job.type,
-      });
-
-      // Validate and parse job data before processing
-      const rawData = JSON.parse(job.data);
-      const parsedData = handler.validateAndParse(rawData);
-      if (parsedData === null) {
-        throw new Error(`Invalid job data for type: ${job.type}`);
-      }
-
-      const result = await handler.process(parsedData, job.id);
-      await this.complete(job.id, result);
-
-      return {
-        jobId: job.id,
-        type: job.type,
-        status: JOB_STATUS.COMPLETED,
-        result,
-      };
-    } catch (error) {
-      const processError =
-        error instanceof Error ? error : new Error(String(error));
-
-      // Call handler's error callback if available
-      try {
-        // Validate and parse job data for error handler
-        const rawData = JSON.parse(job.data);
-        const parsedData = handler.validateAndParse(rawData);
-        if (parsedData !== null) {
-          await handler.onError?.(processError, parsedData, job.id);
-        }
-      } catch (callbackError) {
-        this.logger.error("Job handler error callback failed", {
-          jobId: job.id,
-          error: callbackError,
-        });
-      }
-
-      await this.fail(job.id, processError);
-
-      return {
-        jobId: job.id,
-        type: job.type,
-        status: JOB_STATUS.FAILED,
-        error: processError.message,
-      };
     }
   }
 

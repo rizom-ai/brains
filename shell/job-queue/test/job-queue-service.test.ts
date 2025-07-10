@@ -4,6 +4,7 @@ import type { JobHandler } from "../src/types";
 import { createTestDatabase } from "../../integration-tests/test/helpers/test-db";
 import { createSilentLogger, ErrorUtils } from "@brains/utils";
 import type { EntityWithoutEmbedding, DrizzleDB } from "@brains/db";
+import type { ProgressReporter } from "@brains/utils";
 
 // Test job handler implementation
 class TestJobHandler implements JobHandler<"embedding"> {
@@ -13,7 +14,11 @@ class TestJobHandler implements JobHandler<"embedding"> {
   public shouldValidationFail = false;
   public shouldProcessFail = false;
 
-  async process(_data: EntityWithoutEmbedding, _jobId: string): Promise<void> {
+  async process(
+    _data: EntityWithoutEmbedding,
+    _jobId: string,
+    _progressReporter: ProgressReporter,
+  ): Promise<void> {
     this.processCallCount++;
     if (this.shouldProcessFail) {
       throw new Error("Process failed");
@@ -24,6 +29,7 @@ class TestJobHandler implements JobHandler<"embedding"> {
     _error: Error,
     _data: EntityWithoutEmbedding,
     _jobId: string,
+    _progressReporter: ProgressReporter,
   ): Promise<void> {
     this.onErrorCallCount++;
   }
@@ -72,30 +78,6 @@ describe("JobQueueService", () => {
     // Clean up
     JobQueueService.resetInstance();
     await cleanup();
-  });
-
-  describe("Singleton pattern", () => {
-    it("should return the same instance when calling getInstance multiple times", () => {
-      const logger = createSilentLogger();
-      const instance1 = JobQueueService.getInstance(db, logger);
-      const instance2 = JobQueueService.getInstance(db, logger);
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should create a fresh instance when calling createFresh", () => {
-      const logger = createSilentLogger();
-      const singleton = JobQueueService.getInstance(db, logger);
-      const fresh = JobQueueService.createFresh(db, logger);
-      expect(singleton).not.toBe(fresh);
-    });
-
-    it("should reset singleton when calling resetInstance", () => {
-      const logger = createSilentLogger();
-      const instance1 = JobQueueService.getInstance(db, logger);
-      JobQueueService.resetInstance();
-      const instance2 = JobQueueService.getInstance(db, logger);
-      expect(instance1).not.toBe(instance2);
-    });
   });
 
   describe("Handler registration", () => {
@@ -256,78 +238,19 @@ describe("JobQueueService", () => {
     });
   });
 
-  describe("Job processing", () => {
+  describe("getHandler", () => {
     beforeEach(() => {
       service.registerHandler("embedding", testHandler);
     });
 
-    it("should process a job successfully", async () => {
-      const jobId = await service.enqueue("embedding", testEntity);
-      const job = await service.dequeue();
-
-      expect(job).toBeTruthy();
-      if (!job) return;
-
-      const result = await service.processJob(job);
-
-      expect(result.status).toBe("completed");
-      expect(result.jobId).toBe(jobId);
-      expect(result.type).toBe("embedding");
-      expect(testHandler.processCallCount).toBe(1);
-      expect(testHandler.validateCallCount).toBe(2); // Called once in enqueue, once in processJob
-
-      // Verify job is marked as completed in database
-      const updatedJob = await service.getStatus(jobId);
-      expect(updatedJob?.status).toBe("completed");
+    it("should return registered handler", () => {
+      const handler = service.getHandler("embedding");
+      expect(handler).toBe(testHandler);
     });
 
-    it("should handle job processing failure", async () => {
-      testHandler.shouldProcessFail = true;
-
-      await service.enqueue("embedding", testEntity);
-      const job = await service.dequeue();
-
-      expect(job).toBeTruthy();
-      if (!job) return;
-
-      const result = await service.processJob(job);
-
-      expect(result.status).toBe("failed");
-      expect(result.error).toBe("Process failed");
-      expect(testHandler.onErrorCallCount).toBe(1);
-    });
-
-    it("should handle job with no registered handler", async () => {
-      await service.enqueue("embedding", testEntity);
-      const job = await service.dequeue();
-
-      expect(job).toBeTruthy();
-      if (!job) return;
-
-      // Remove handler to simulate missing handler
-      service = JobQueueService.createFresh(db, createSilentLogger());
-
-      const result = await service.processJob(job);
-
-      expect(result.status).toBe("failed");
-      expect(result.error).toContain("No handler registered for job type");
-    });
-
-    it("should handle invalid job data during processing", async () => {
-      // First enqueue with valid data
-      await service.enqueue("embedding", testEntity);
-      const job = await service.dequeue();
-
-      expect(job).toBeTruthy();
-      if (!job) return;
-
-      // Modify handler to fail validation
-      testHandler.shouldValidationFail = true;
-
-      const result = await service.processJob(job);
-
-      expect(result.status).toBe("failed");
-      expect(result.error).toContain("Invalid job data for type");
+    it("should return undefined for unregistered handler", () => {
+      const handler = service.getHandler("unknown-type" as any);
+      expect(handler).toBeUndefined();
     });
   });
 

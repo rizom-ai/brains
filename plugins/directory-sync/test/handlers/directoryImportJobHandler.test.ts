@@ -6,6 +6,7 @@ import type { DirectorySync } from "../../src/directorySync";
 import type { BaseEntity } from "@brains/types";
 import type { RawEntity } from "../../src/types";
 import { createSilentLogger } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils";
 
 describe("DirectoryImportJobHandler", () => {
   let handler: DirectoryImportJobHandler;
@@ -164,7 +165,18 @@ describe("DirectoryImportJobHandler", () => {
       const jobId = "test-job-123";
       const data = { batchSize: 100 };
 
-      const result = await handler.process(data, jobId);
+      const mockProgressReporter = {
+        async report(): Promise<void> {},
+        createSub(): ProgressReporter {
+          return mockProgressReporter as unknown as ProgressReporter;
+        },
+        startHeartbeat(): void {},
+        stopHeartbeat(): void {},
+        toCallback() {
+          return async () => {};
+        },
+      } as unknown as ProgressReporter;
+      const result = await handler.process(data, jobId, mockProgressReporter);
 
       expect(result.imported).toBe(3); // 2 new entities + 1 updated
       expect(result.skipped).toBe(0);
@@ -187,7 +199,18 @@ describe("DirectoryImportJobHandler", () => {
         batchSize: 100,
       };
 
-      const result = await handler.process(data, jobId);
+      const mockProgressReporter = {
+        async report(): Promise<void> {},
+        createSub(): ProgressReporter {
+          return mockProgressReporter as unknown as ProgressReporter;
+        },
+        startHeartbeat(): void {},
+        stopHeartbeat(): void {},
+        toCallback() {
+          return async () => {};
+        },
+      } as unknown as ProgressReporter;
+      const result = await handler.process(data, jobId, mockProgressReporter);
 
       expect(result.imported).toBe(1);
       expect(result.skipped).toBe(0);
@@ -207,7 +230,18 @@ describe("DirectoryImportJobHandler", () => {
       const jobId = "test-job-125";
       const data = { batchSize: 100 };
 
-      const result = await handler.process(data, jobId);
+      const mockProgressReporter = {
+        async report(): Promise<void> {},
+        createSub(): ProgressReporter {
+          return mockProgressReporter as unknown as ProgressReporter;
+        },
+        startHeartbeat(): void {},
+        stopHeartbeat(): void {},
+        toCallback() {
+          return async () => {};
+        },
+      } as unknown as ProgressReporter;
+      const result = await handler.process(data, jobId, mockProgressReporter);
 
       expect(result.imported).toBe(2); // Only base entities
       expect(result.skipped).toBe(1); // note entity skipped
@@ -226,7 +260,18 @@ describe("DirectoryImportJobHandler", () => {
       const jobId = "test-job-126";
       const data = { batchSize: 100 };
 
-      const result = await handler.process(data, jobId);
+      const mockProgressReporter = {
+        async report(): Promise<void> {},
+        createSub(): ProgressReporter {
+          return mockProgressReporter as unknown as ProgressReporter;
+        },
+        startHeartbeat(): void {},
+        stopHeartbeat(): void {},
+        toCallback() {
+          return async () => {};
+        },
+      } as unknown as ProgressReporter;
+      const result = await handler.process(data, jobId, mockProgressReporter);
 
       expect(result.imported).toBe(2); // entity1 and note1
       expect(result.skipped).toBe(1); // entity2 skipped
@@ -243,7 +288,18 @@ describe("DirectoryImportJobHandler", () => {
       const jobId = "test-job-127";
       const data = { batchSize: 100 };
 
-      const result = await handler.process(data, jobId);
+      const mockProgressReporter = {
+        async report(): Promise<void> {},
+        createSub(): ProgressReporter {
+          return mockProgressReporter as unknown as ProgressReporter;
+        },
+        startHeartbeat(): void {},
+        stopHeartbeat(): void {},
+        toCallback() {
+          return async () => {};
+        },
+      } as unknown as ProgressReporter;
+      const result = await handler.process(data, jobId, mockProgressReporter);
 
       expect(result.imported).toBe(1);
       expect(result.skipped).toBe(0);
@@ -269,7 +325,18 @@ describe("DirectoryImportJobHandler", () => {
       const jobId = "test-job-128";
       const data = { batchSize: 100 };
 
-      const result = await handler.process(data, jobId);
+      const mockProgressReporter = {
+        async report(): Promise<void> {},
+        createSub(): ProgressReporter {
+          return mockProgressReporter as unknown as ProgressReporter;
+        },
+        startHeartbeat(): void {},
+        stopHeartbeat(): void {},
+        toCallback() {
+          return async () => {};
+        },
+      } as unknown as ProgressReporter;
+      const result = await handler.process(data, jobId, mockProgressReporter);
 
       expect(result.imported).toBe(0);
       expect(result.skipped).toBe(3); // All skipped
@@ -306,7 +373,18 @@ describe("DirectoryImportJobHandler", () => {
         batchSize: 10, // Small batch size
       };
 
-      const result = await handler.process(data, jobId);
+      const mockProgressReporter = {
+        async report(): Promise<void> {},
+        createSub(): ProgressReporter {
+          return mockProgressReporter as unknown as ProgressReporter;
+        },
+        startHeartbeat(): void {},
+        stopHeartbeat(): void {},
+        toCallback() {
+          return async () => {};
+        },
+      } as unknown as ProgressReporter;
+      const result = await handler.process(data, jobId, mockProgressReporter);
 
       expect(result.imported).toBe(25);
       expect(result.failed).toBe(0);

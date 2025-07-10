@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { JobHandler } from "@brains/job-queue";
 import type { Logger } from "@brains/types";
 import type { PluginContext } from "@brains/plugin-utils";
+import type { ProgressReporter } from "@brains/utils";
 import type { DirectorySync } from "../directorySync";
 import type { ExportResult } from "../types";
 
@@ -83,6 +84,7 @@ export class DirectoryExportJobHandler
   public async process(
     data: DirectoryExportJobData,
     jobId: string,
+    progressReporter: ProgressReporter,
   ): Promise<ExportResult> {
     this.logger.debug("Processing directory export job", { jobId, data });
 
@@ -104,9 +106,23 @@ export class DirectoryExportJobHandler
         entityTypes: typesToExport,
       });
 
+      // Report initial progress
+      await progressReporter.report({
+        message: `Starting export of ${typesToExport.length} entity types`,
+        progress: 0,
+        total: typesToExport.length,
+      });
+
       // Process each entity type
-      for (const entityType of typesToExport) {
+      for (const [index, entityType] of typesToExport.entries()) {
         await this.exportEntityType(entityType, data.batchSize, jobId, result);
+
+        // Report progress after each entity type
+        await progressReporter.report({
+          message: `Exported ${index + 1}/${typesToExport.length} entity types (${result.exported} entities)`,
+          progress: index + 1,
+          total: typesToExport.length,
+        });
       }
 
       // Log completion

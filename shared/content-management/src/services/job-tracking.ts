@@ -31,7 +31,11 @@ export async function waitForContentJobs(
 
   try {
     // Report initial progress
-    await reporter?.report("Starting content generation", 0, total);
+    await reporter?.report({
+      message: "Starting content generation",
+      progress: 0,
+      total,
+    });
 
     // Wait for all jobs in parallel
     const results = await Promise.all(
@@ -41,11 +45,11 @@ export async function waitForContentJobs(
 
           // Update progress
           completed++;
-          await reporter?.report(
-            `Generated content for ${job.sectionId}`,
-            completed,
+          await reporter?.report({
+            message: `Generated content for ${job.sectionId}`,
+            progress: completed,
             total,
-          );
+          });
 
           return {
             jobId: job.jobId,
@@ -56,11 +60,11 @@ export async function waitForContentJobs(
         } catch (error) {
           // Still update progress even on failure
           completed++;
-          await reporter?.report(
-            `Failed to generate ${job.sectionId}`,
-            completed,
+          await reporter?.report({
+            message: `Failed to generate ${job.sectionId}`,
+            progress: completed,
             total,
-          );
+          });
 
           return {
             jobId: job.jobId,

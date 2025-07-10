@@ -24,7 +24,10 @@ describe("ProgressReporter", () => {
   describe("report", () => {
     it("should call callback with message", async () => {
       const progress = ProgressReporter.from(mockCallback);
-      await progress?.report("Test message");
+      await progress?.report({
+        message: "Test message",
+        progress: 0,
+      });
 
       expect(mockCallback).toHaveBeenCalledWith({
         progress: 0,
@@ -34,7 +37,11 @@ describe("ProgressReporter", () => {
 
     it("should call callback with progress and total", async () => {
       const progress = ProgressReporter.from(mockCallback);
-      await progress?.report("Test message", 5, 10);
+      await progress?.report({
+        message: "Test message",
+        progress: 5,
+        total: 10,
+      });
 
       expect(mockCallback).toHaveBeenCalledWith({
         progress: 5,
@@ -45,7 +52,10 @@ describe("ProgressReporter", () => {
 
     it("should not include total when undefined", async () => {
       const progress = ProgressReporter.from(mockCallback);
-      await progress?.report("Test message", 5);
+      await progress?.report({
+        message: "Test message",
+        progress: 5,
+      });
 
       expect(mockCallback).toHaveBeenCalledWith({
         progress: 5,
@@ -55,28 +65,60 @@ describe("ProgressReporter", () => {
   });
 
   describe("createSub", () => {
-    it("should create sub-progress with prefix", async () => {
+    it("should create sub-progress without scaling", async () => {
       const progress = ProgressReporter.from(mockCallback);
-      const sub = progress?.createSub("Sub task");
+      const sub = progress?.createSub();
 
-      await sub?.report("Working");
+      await sub?.report({
+        message: "Working",
+        progress: 5,
+        total: 10,
+      });
 
       expect(mockCallback).toHaveBeenCalledWith({
-        progress: 0,
-        message: "Sub task: Working",
+        progress: 5,
+        total: 10,
+        message: "Working",
       });
     });
 
-    it("should chain prefixes for nested sub-progress", async () => {
+    it("should scale progress for sub-reporters", async () => {
       const progress = ProgressReporter.from(mockCallback);
-      const sub1 = progress?.createSub("Level 1");
-      const sub2 = sub1?.createSub("Level 2");
+      // Create sub-reporter for range 10-90
+      const sub = progress?.createSub({ scale: { start: 10, end: 90 } });
 
-      await sub2?.report("Working");
+      await sub?.report({
+        message: "Processing sub-task",
+        progress: 50,
+        total: 100,
+      });
 
+      // 50% of range 10-90 = 50
       expect(mockCallback).toHaveBeenCalledWith({
-        progress: 0,
-        message: "Level 1: Level 2: Working",
+        progress: 50,
+        total: 100,
+        message: "Processing sub-task",
+      });
+    });
+
+    it("should chain scaled ranges for nested sub-progress", async () => {
+      const progress = ProgressReporter.from(mockCallback);
+      // First sub: maps 0-100 to 20-80 (60% of parent)
+      const sub1 = progress?.createSub({ scale: { start: 20, end: 80 } });
+      // Second sub: maps 0-100 to 0-50 of sub1's range
+      const sub2 = sub1?.createSub({ scale: { start: 0, end: 50 } });
+
+      await sub2?.report({
+        message: "Deep nested task",
+        progress: 100,
+        total: 100,
+      });
+
+      // 100% of sub2 = 50% of sub1 = 50% of (20-80) = 50
+      expect(mockCallback).toHaveBeenCalledWith({
+        progress: 50,
+        total: 100,
+        message: "Deep nested task",
       });
     });
   });
@@ -99,28 +141,30 @@ describe("ProgressReporter", () => {
       expect(mockCallback).toHaveBeenCalledWith(notification);
     });
 
-    it("should add prefix to callback messages", async () => {
+    it("should scale progress in callback for sub-reporters", async () => {
       const progress = ProgressReporter.from(mockCallback);
-      const sub = progress?.createSub("Prefix");
+      const sub = progress?.createSub({ scale: { start: 10, end: 90 } });
       const callback = sub?.toCallback();
 
       const notification: ProgressNotification = {
-        progress: 5,
+        progress: 50,
+        total: 100,
         message: "Test",
       };
 
       await callback?.(notification);
 
+      // 50% of range 10-90 = 50
       expect(mockCallback).toHaveBeenCalledWith({
-        progress: 5,
-        message: "Prefix: Test",
+        progress: 50,
+        total: 100,
+        message: "Test",
       });
     });
 
     it("should handle notifications without message", async () => {
       const progress = ProgressReporter.from(mockCallback);
-      const sub = progress?.createSub("Prefix");
-      const callback = sub?.toCallback();
+      const callback = progress?.toCallback();
 
       const notification: ProgressNotification = {
         progress: 5,
@@ -130,7 +174,6 @@ describe("ProgressReporter", () => {
 
       expect(mockCallback).toHaveBeenCalledWith({
         progress: 5,
-        message: "Prefix",
       });
     });
   });
@@ -199,7 +242,7 @@ describe("ProgressReporter", () => {
 
     it("should include prefix in heartbeat messages", async () => {
       const progress = ProgressReporter.from(mockCallback);
-      const sub = progress?.createSub("Task");
+      const sub = progress?.createSub();
 
       sub?.startHeartbeat("Still working...", 50);
 
@@ -207,7 +250,7 @@ describe("ProgressReporter", () => {
 
       expect(mockCallback).toHaveBeenCalledWith({
         progress: 0,
-        message: "Task: Still working...",
+        message: "Still working...",
       });
 
       // Clean up
