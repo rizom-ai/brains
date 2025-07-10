@@ -121,7 +121,7 @@ export const JobProgressEventSchema = z.object({
       rate: z.number().optional(), // Items per second
     })
     .optional(),
-  
+
   // Current operation description (required for better UX)
   operation: z.string(), // Current operation name/description
 

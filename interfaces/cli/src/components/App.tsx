@@ -13,7 +13,7 @@ import type { JobProgressEvent } from "@brains/job-queue";
 interface Props {
   interface: CLIInterface;
   registerProgressCallback: (
-    callback: (events: Map<string, JobProgressEvent>) => void,
+    callback: (events: JobProgressEvent[]) => void,
   ) => void;
   unregisterProgressCallback: () => void;
   registerResponseCallback: (callback: (response: string) => void) => void;
@@ -38,9 +38,7 @@ export default function App({
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
-  const [progressEvents, setProgressEvents] = useState<
-    Map<string, JobProgressEvent>
-  >(new Map());
+  const [progressEvents, setProgressEvents] = useState<JobProgressEvent[]>([]);
   const { exit } = useApp();
   const { stdout } = useStdout();
 
@@ -86,17 +84,20 @@ export default function App({
     unregisterMessageCallbacks,
   ]);
 
-  // Subscribe to progress events via callback pattern
+  // Create stable callback for progress updates
+  const handleProgressUpdate = useCallback((events: JobProgressEvent[]) => {
+    // Directly set the filtered array from CLI interface
+    setProgressEvents(events);
+  }, []);
+
+  // Register the callback
   useEffect(() => {
-    // Register callback to receive progress updates
-    registerProgressCallback((events) => {
-      setProgressEvents(events);
-    });
+    registerProgressCallback(handleProgressUpdate);
 
     return (): void => {
       unregisterProgressCallback();
     };
-  }, [registerProgressCallback, unregisterProgressCallback]);
+  }, [registerProgressCallback, unregisterProgressCallback, handleProgressUpdate]);
 
   const handleSubmit = useCallback(
     async (value: string): Promise<void> => {
@@ -186,8 +187,6 @@ export default function App({
         <StatusBarWithProgress
           messageCount={messages.length}
           isConnected={isConnected}
-          getActiveJobs={() => cliInterface.getActiveJobs()}
-          getActiveBatches={() => cliInterface.getActiveBatches()}
           progressEvents={progressEvents}
         />
       </Box>

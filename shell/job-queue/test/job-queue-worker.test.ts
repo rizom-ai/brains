@@ -22,6 +22,14 @@ class MockProgressMonitor implements IJobProgressMonitor {
   createProgressReporter(): ProgressReporter {
     return mockProgressReporter;
   }
+
+  async emitJobCompletion(_jobId: string): Promise<void> {
+    // Mock implementation
+  }
+
+  async emitJobFailure(_jobId: string): Promise<void> {
+    // Mock implementation
+  }
 }
 
 describe("JobQueueWorker", () => {

@@ -1,5 +1,9 @@
 import { ProgressReporter } from "@brains/utils";
-import type { Logger, IJobProgressMonitor, ProgressNotification } from "@brains/utils";
+import type {
+  Logger,
+  IJobProgressMonitor,
+  ProgressNotification,
+} from "@brains/utils";
 import type { IJobQueueService } from "./types";
 import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
@@ -160,21 +164,21 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   public createProgressReporter(jobId: string): ProgressReporter {
     const reporter = ProgressReporter.from(async (notification) => {
       const now = Date.now();
-      
+
       // Get existing progress data or create new
       const existing = this.jobsWithProgress.get(jobId);
-      
+
       // Calculate rate if we have previous data
       let rate: number | undefined;
       let eta: number | undefined;
-      
+
       if (existing && now > existing.lastUpdate) {
         const timeDelta = (now - existing.lastUpdate) / 1000; // seconds
         const progressDelta = notification.progress - existing.lastCurrent;
-        
+
         if (progressDelta > 0 && timeDelta > 0) {
           rate = progressDelta / timeDelta;
-          
+
           // Calculate ETA based on current rate
           const remaining = (notification.total ?? 0) - notification.progress;
           if (rate > 0 && remaining > 0) {
@@ -191,11 +195,11 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         startTime: existing?.startTime ?? now,
         lastCurrent: notification.progress,
       };
-      
+
       if (notification.message !== undefined) {
         progressData.message = notification.message;
       }
-      
+
       if (rate !== undefined) {
         progressData.lastRate = rate;
       } else if (existing?.lastRate !== undefined) {
@@ -208,7 +212,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       const progressNotification: ProgressNotification = {
         progress: notification.progress,
       };
-      
+
       if (notification.total !== undefined) {
         progressNotification.total = notification.total;
       }
@@ -221,7 +225,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       if (eta !== undefined) {
         progressNotification.eta = eta;
       }
-      
+
       await this.emitJobProgress(jobId, progressNotification);
     });
 
@@ -333,10 +337,10 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         // Calculate current metrics if we have progress info
         let rate: number | undefined;
         let eta: number | undefined;
-        
+
         if (progressInfo && progressInfo.lastRate !== undefined) {
           rate = progressInfo.lastRate;
-          
+
           // Calculate ETA based on last known rate
           const remaining = progressInfo.total - progressInfo.current;
           if (rate > 0 && remaining > 0) {
@@ -479,7 +483,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         progress: {
           current: progress.progress,
           total: total,
-          percentage: total > 0 ? Math.round((progress.progress / total) * 100) : 0,
+          percentage:
+            total > 0 ? Math.round((progress.progress / total) * 100) : 0,
           rate: progress.rate,
           eta: progress.eta,
         },
@@ -544,6 +549,124 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         this.jobsWithProgress.delete(jobId);
         this.logger.debug("Cleaned up stale progress report", { jobId });
       }
+    }
+  }
+
+  /**
+   * Emit job completion event
+   */
+  public async emitJobCompletion(jobId: string): Promise<void> {
+    try {
+      // Get job details to extract source for targeting
+      const job = await this.jobQueueService.getStatus(jobId);
+      if (!job) {
+        this.logger.warn("Cannot emit completion for unknown job", { jobId });
+        return;
+      }
+
+      // Get the last known progress info
+      const progressInfo = this.jobsWithProgress.get(jobId);
+      const target = job.source ?? undefined;
+      
+      // First emit a 100% progress event with "processing" status
+      if (progressInfo) {
+        const finalProgressEvent: JobProgressEvent = {
+          id: jobId,
+          type: "job",
+          status: "processing",
+          operation: progressInfo.message ?? `Completing ${job.type}`,
+          message: progressInfo.message,
+          progress: {
+            current: progressInfo.total,
+            total: progressInfo.total,
+            percentage: 100,
+          },
+          jobDetails: {
+            jobType: job.type,
+            priority: job.priority,
+            retryCount: job.retryCount,
+          },
+        };
+        await this.eventEmitter.send("job-progress", finalProgressEvent, target);
+        
+        // Delay to ensure the progress event is displayed
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      // Then emit the completion event
+      const completionEvent: JobProgressEvent = {
+        id: jobId,
+        type: "job",
+        status: "completed",
+        operation: `Completed ${job.type}`,
+        jobDetails: {
+          jobType: job.type,
+          priority: job.priority,
+          retryCount: job.retryCount,
+        },
+      };
+
+      await this.eventEmitter.send("job-progress", completionEvent, target);
+
+      // Clean up tracking data
+      this.lastJobStates.delete(jobId);
+      this.jobsWithProgress.delete(jobId);
+
+      this.logger.debug("Emitted job completion event", {
+        jobId,
+        type: job.type,
+        target,
+      });
+    } catch (error) {
+      this.logger.error("Error emitting job completion event", {
+        jobId,
+        error,
+      });
+    }
+  }
+
+  /**
+   * Emit job failure event
+   */
+  public async emitJobFailure(jobId: string): Promise<void> {
+    try {
+      // Get job details to extract source for targeting
+      const job = await this.jobQueueService.getStatus(jobId);
+      if (!job) {
+        this.logger.warn("Cannot emit failure for unknown job", { jobId });
+        return;
+      }
+
+      const event: JobProgressEvent = {
+        id: jobId,
+        type: "job",
+        status: "failed",
+        operation: `Failed ${job.type}`,
+        message: job.lastError ?? undefined,
+        jobDetails: {
+          jobType: job.type,
+          priority: job.priority,
+          retryCount: job.retryCount,
+        },
+      };
+
+      const target = job.source ?? undefined;
+      await this.eventEmitter.send("job-progress", event, target);
+
+      // Clean up tracking data
+      this.lastJobStates.delete(jobId);
+      this.jobsWithProgress.delete(jobId);
+
+      this.logger.debug("Emitted job failure event", {
+        jobId,
+        type: job.type,
+        target,
+      });
+    } catch (error) {
+      this.logger.error("Error emitting job failure event", {
+        jobId,
+        error,
+      });
     }
   }
 

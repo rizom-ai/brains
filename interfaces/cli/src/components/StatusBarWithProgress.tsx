@@ -1,117 +1,106 @@
 /** @jsxImportSource react */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Box, Text } from "ink";
-import type { Job } from "@brains/types";
-import type { BatchJobStatus } from "@brains/job-queue";
 import type { JobProgressEvent } from "@brains/job-queue";
 import { ProgressBar } from "./ProgressBar";
 
 interface StatusBarWithProgressProps {
   messageCount: number;
   isConnected: boolean;
-  getActiveJobs: () => Promise<Job[]>;
-  getActiveBatches: () => Promise<
-    Array<{
-      batchId: string;
-      status: BatchJobStatus;
-      metadata: unknown;
-    }>
-  >;
-  updateInterval?: number;
-  progressEvents: Map<string, JobProgressEvent>;
+  progressEvents: JobProgressEvent[];
 }
 
 export function StatusBarWithProgress({
   messageCount,
   isConnected,
-  getActiveJobs,
-  getActiveBatches,
-  updateInterval = 500, // Faster updates for status bar
   progressEvents,
 }: StatusBarWithProgressProps): React.ReactElement {
-  const [activeJobs, setActiveJobs] = useState<Job[]>([]);
-  const [activeBatches, setActiveBatches] = useState<
-    Array<{
-      batchId: string;
-      status: BatchJobStatus;
-    }>
-  >([]);
-  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+  const MIN_DISPLAY_DURATION = 400; // 400ms minimum display
+  
+  // Track displayed events with timestamps
+  const [displayedEvents, setDisplayedEvents] = useState<JobProgressEvent[]>([]);
+  const eventTimestamps = useRef<Map<string, number>>(new Map());
+  const removalTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      removalTimeouts.current.forEach(timeout => clearTimeout(timeout));
+      removalTimeouts.current.clear();
+    };
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchData = async (): Promise<void> => {
-      if (isLoadingJobs) return; // Prevent overlapping fetches
-
-      setIsLoadingJobs(true);
-      try {
-        const [jobs, batches] = await Promise.all([
-          getActiveJobs().catch(() => []),
-          getActiveBatches().catch(() => []),
-        ]);
-
-        if (isMounted) {
-          setActiveJobs(jobs);
-          setActiveBatches(batches);
-        }
-      } catch {
-        // Silently handle errors in status bar
-        if (isMounted) {
-          setActiveJobs([]);
-          setActiveBatches([]);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingJobs(false);
-        }
+    const now = Date.now();
+    
+    // Build a map of current events for easy lookup
+    const currentEventsMap = new Map(progressEvents.map(e => [e.id, e]));
+    
+    // Track first appearance of events
+    progressEvents.forEach(event => {
+      if (!eventTimestamps.current.has(event.id)) {
+        eventTimestamps.current.set(event.id, now);
       }
+    });
+    
+    // Update displayed events to match current events (for events still incoming)
+    setDisplayedEvents(prev => {
+      const prevMap = new Map(prev.map(e => [e.id, e]));
+      const updatedEvents: JobProgressEvent[] = [];
+      
+      // Update or keep existing displayed events
+      prev.forEach(displayedEvent => {
+        const currentEvent = currentEventsMap.get(displayedEvent.id);
+        if (currentEvent) {
+          // Event still exists, update it
+          updatedEvents.push(currentEvent);
+        } else if (!removalTimeouts.current.has(displayedEvent.id)) {
+          // Event gone but not scheduled for removal, schedule it now
+          const displayedFor = now - (eventTimestamps.current.get(displayedEvent.id) || now);
+          const remainingTime = Math.max(0, MIN_DISPLAY_DURATION - displayedFor);
+          
+          const timeout = setTimeout(() => {
+            setDisplayedEvents(prev => prev.filter(e => e.id !== displayedEvent.id));
+            eventTimestamps.current.delete(displayedEvent.id);
+            removalTimeouts.current.delete(displayedEvent.id);
+          }, remainingTime);
+          
+          removalTimeouts.current.set(displayedEvent.id, timeout);
+          // Keep it displayed until timeout
+          updatedEvents.push(displayedEvent);
+        } else {
+          // Already scheduled for removal, keep displaying
+          updatedEvents.push(displayedEvent);
+        }
+      });
+      
+      // Add new events
+      progressEvents.forEach(event => {
+        if (!prevMap.has(event.id)) {
+          updatedEvents.push(event);
+        }
+      });
+      
+      return updatedEvents;
+    });
+
+    // Cleanup function
+    return () => {
+      // Don't clear timeouts here, they need to persist
     };
+  }, [progressEvents]);
 
-    // Initial fetch
-    void fetchData();
-
-    // Set up interval for updates
-    const intervalId = setInterval(() => void fetchData(), updateInterval);
-
-    return (): void => {
-      isMounted = false;
-      clearInterval(intervalId);
-    };
-  }, [getActiveJobs, getActiveBatches, updateInterval]);
-
-  // Merge progress events with batch data for real-time updates
-  const enhancedBatches = activeBatches.map((batch) => {
-    const progressEvent = progressEvents.get(batch.batchId);
-    if (progressEvent?.type === "batch" && progressEvent.batchDetails) {
-      // Use real-time progress data if available
-      return {
-        ...batch,
-        status: {
-          ...batch.status,
-          completedOperations: progressEvent.batchDetails.completedOperations,
-          currentOperation:
-            progressEvent.batchDetails.currentOperation ??
-            batch.status.currentOperation,
-        },
-      };
-    }
-    return batch;
-  });
-
-  // Calculate total active operations
-  const totalActiveOps = activeJobs.length + activeBatches.length;
-  const hasActiveOps = totalActiveOps > 0 || progressEvents.size > 0;
-
-  // Get the most relevant batch for progress display
-  const activeBatch =
-    enhancedBatches.find((b) => b.status.status === "processing") ??
-    enhancedBatches[0];
-
-  // Check if we have any processing progress events
-  const activeProgressEvent = Array.from(progressEvents.values()).find(
-    (event) => event.status === "processing",
+  // Get all batch and job progress events from displayed events
+  const batchProgressEvents = displayedEvents.filter(
+    (event) => event.type === "batch"
   );
+  
+  const jobProgressEvents = displayedEvents.filter(
+    (event) => event.type === "job"
+  );
+  
+  // For display, prioritize the first batch, then the first job
+  const primaryEvent = batchProgressEvents[0] || jobProgressEvents[0];
 
   return (
     <Box width="100%">
@@ -134,42 +123,34 @@ export function StatusBarWithProgress({
 
         {/* Right side - Progress or Ready status */}
         <Box>
-          {hasActiveOps && activeBatch ? (
+          {primaryEvent ? (
             <Box>
               <Text color="cyan">
-                {activeBatch.status.currentOperation ?? "Processing..."}
+                {primaryEvent.operation}
               </Text>
               <Text color="gray"> </Text>
-              <ProgressBar
-                current={activeBatch.status.completedOperations}
-                total={activeBatch.status.totalOperations}
-                width={30}
-                color="cyan"
-                showPercentage={true}
-                showCounts={false}
-              />
+              {primaryEvent.type === "batch" && primaryEvent.batchDetails ? (
+                <ProgressBar
+                  current={primaryEvent.batchDetails.completedOperations}
+                  total={primaryEvent.batchDetails.totalOperations}
+                  width={30}
+                  color="cyan"
+                  showPercentage={true}
+                  showCounts={false}
+                />
+              ) : primaryEvent.progress ? (
+                <ProgressBar
+                  current={primaryEvent.progress.current}
+                  total={primaryEvent.progress.total}
+                  width={30}
+                  color="cyan"
+                  showPercentage={true}
+                  showCounts={false}
+                />
+              ) : (
+                <Text color="gray"> Active</Text>
+              )}
             </Box>
-          ) : activeProgressEvent &&
-            activeProgressEvent.type === "job" &&
-            activeProgressEvent.progress ? (
-            <Box>
-              <Text color="cyan">
-                {activeProgressEvent.message ?? "Processing..."}
-              </Text>
-              <Text color="gray"> </Text>
-              <ProgressBar
-                current={activeProgressEvent.progress.current}
-                total={activeProgressEvent.progress.total}
-                width={30}
-                color="cyan"
-                showPercentage={true}
-                showCounts={false}
-              />
-            </Box>
-          ) : hasActiveOps ? (
-            <Text color="cyan">
-              {totalActiveOps} job{totalActiveOps !== 1 ? "s" : ""} active
-            </Text>
           ) : (
             <Text color="gray" dimColor>
               Ready

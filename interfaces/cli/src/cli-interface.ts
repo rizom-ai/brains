@@ -17,7 +17,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   private inkApp: Instance | null = null;
   private progressEvents = new Map<string, JobProgressEvent>();
   private progressCallback:
-    | ((events: Map<string, JobProgressEvent>) => void)
+    | ((events: JobProgressEvent[]) => void)
     | undefined;
   private responseCallback: ((response: string) => void) | undefined;
   private errorCallback: ((error: Error) => void) | undefined;
@@ -135,11 +135,14 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
    * Register callback to receive progress event updates
    */
   public registerProgressCallback(
-    callback: (events: Map<string, JobProgressEvent>) => void,
+    callback: (events: JobProgressEvent[]) => void,
   ): void {
     this.progressCallback = callback;
-    // Send current state immediately
-    callback(new Map(this.progressEvents));
+    // Send current state immediately (only processing events)
+    const processingEvents = Array.from(this.progressEvents.values()).filter(
+      event => event.status === "processing"
+    );
+    callback(processingEvents);
   }
 
   /**
@@ -183,33 +186,28 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
       return;
     }
 
-    // Reducer pattern: dispatch action to update state
-    this.progressEvents = this.progressReducer(this.progressEvents, {
-      type: "UPDATE_PROGRESS",
-      payload: progressEvent,
-    });
-
-    // Notify React component of the change
-    if (this.progressCallback) {
-      this.progressCallback(new Map(this.progressEvents));
+    // Only show progress for jobs that are actively processing
+    if (progressEvent.status === "processing") {
+      // Add/update processing event
+      this.progressEvents = this.progressReducer(this.progressEvents, {
+        type: "UPDATE_PROGRESS",
+        payload: progressEvent,
+      });
+    } else {
+      // Remove any non-processing events (pending, completed, failed)
+      this.progressEvents = this.progressReducer(this.progressEvents, {
+        type: "CLEANUP_PROGRESS",
+        payload: progressEvent,
+      });
     }
 
-    // Handle cleanup for completed/failed events
-    if (
-      progressEvent.status === "completed" ||
-      progressEvent.status === "failed"
-    ) {
-      setTimeout(() => {
-        this.progressEvents = this.progressReducer(this.progressEvents, {
-          type: "CLEANUP_PROGRESS",
-          payload: progressEvent,
-        });
-
-        // Notify React component of the cleanup
-        if (this.progressCallback) {
-          this.progressCallback(new Map(this.progressEvents));
-        }
-      }, 2000);
+    // Always notify React component of the change
+    if (this.progressCallback) {
+      // Only send processing events to the UI as an array
+      const processingEvents = Array.from(this.progressEvents.values()).filter(
+        event => event.status === "processing"
+      );
+      this.progressCallback(processingEvents);
     }
   }
 

@@ -126,4 +126,14 @@ export interface IJobProgressMonitor {
    * Create a ProgressReporter for a specific job
    */
   createProgressReporter(jobId: string): ProgressReporter;
+
+  /**
+   * Emit job completion event
+   */
+  emitJobCompletion(jobId: string): Promise<void>;
+
+  /**
+   * Emit job failure event
+   */
+  emitJobFailure(jobId: string): Promise<void>;
 }
