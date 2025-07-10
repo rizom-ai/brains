@@ -121,18 +121,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
     // Test handlers are now registered in the base MessageInterfacePlugin class
-
-    // Listen for job progress events from the base class and re-emit for React components
-    this.on("job-progress", (progressEvent, _target) => {
-      // Re-emit for React components (React components don't need the target parameter)
-      this.emit("job-progress", progressEvent);
-    });
-
-    // Listen for batch progress events from the base class and re-emit for React components
-    this.on("batch-progress", (progressEvent, _target) => {
-      // Re-emit as job-progress for React components (unified interface)
-      this.emit("job-progress", progressEvent);
-    });
+    // Progress event subscriptions are now handled directly in React components
   }
 
   /**
@@ -205,7 +194,10 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
       const App = appModule.default;
 
       // Ensure we're using React's createElement, not any bundled version
-      const element = React.createElement(App, { interface: this });
+      const element = React.createElement(App, {
+        interface: this,
+        subscribe: this.context.subscribe,
+      });
       this.inkApp = render(element);
 
       // Handle process termination gracefully
