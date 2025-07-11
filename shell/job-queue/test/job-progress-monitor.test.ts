@@ -151,14 +151,14 @@ describe("JobProgressMonitor", () => {
           },
         },
         "job-progress-monitor", // source
-        undefined, // target is undefined since job has no source
+        undefined, // no target - use metadata for routing
         undefined, // metadata
-        true, // broadcast
+        true, // broadcast to all subscribers
       );
     });
 
-    it("should include target when job has source", async () => {
-      // Mock active job with source
+    it("should include metadata when job has metadata", async () => {
+      // Mock active job with metadata
       const mockJob: JobQueue = {
         id: "job-789",
         type: "test-job",
@@ -173,7 +173,7 @@ describe("JobProgressMonitor", () => {
         completedAt: null,
         lastError: null,
         source: "matrix:room123", // Job has a source
-        metadata: null,
+        metadata: { roomId: "room123", interfaceId: "test", userId: "user123" }, // Job has metadata
       };
       (mockJobQueueService.getActiveJobs as any).mockResolvedValue([mockJob]);
 
@@ -187,11 +187,12 @@ describe("JobProgressMonitor", () => {
         expect.objectContaining({
           id: "job-789",
           type: "job",
+          metadata: { roomId: "room123", interfaceId: "test", userId: "user123" },
         }),
         "job-progress-monitor", // source
-        "matrix:room123", // Target should be the job's source
+        undefined, // no target - use metadata for routing
         undefined, // metadata
-        true, // broadcast
+        true, // broadcast to all subscribers
       );
     });
   });
@@ -246,9 +247,9 @@ describe("JobProgressMonitor", () => {
           },
         },
         "job-progress-monitor", // source
-        undefined, // target is undefined since batch metadata has no source
+        undefined, // no target - use metadata for routing
         undefined, // metadata
-        true, // broadcast
+        true, // broadcast to all subscribers
       );
     });
 
@@ -273,7 +274,7 @@ describe("JobProgressMonitor", () => {
       expect(call[1].progress.percentage).toBe(75);
     });
 
-    it("should include target when batch has source", async () => {
+    it("should include metadata when batch has roomId", async () => {
       const mockBatch = createMockBatch();
       (mockBatchJobManager.getActiveBatches as any).mockResolvedValue([
         {
@@ -283,6 +284,7 @@ describe("JobProgressMonitor", () => {
             operations: [],
             source: "cli:interactive", // Batch has a source
             startedAt: new Date().toISOString(),
+            metadata: { roomId: "interactive", interfaceId: "test", userId: "user123" }, // Batch has roomId in metadata
           },
         },
       ]);
@@ -297,11 +299,12 @@ describe("JobProgressMonitor", () => {
         expect.objectContaining({
           id: "batch-789",
           type: "batch",
+          metadata: { roomId: "interactive", interfaceId: "test", userId: "user123" },
         }),
         "job-progress-monitor", // source
-        "cli:interactive", // Target should be the batch's source
+        undefined, // no target - use metadata for routing
         undefined, // metadata
-        true, // broadcast
+        true, // broadcast to all subscribers
       );
     });
   });
@@ -410,6 +413,7 @@ describe("JobProgressMonitor", () => {
               operations: [],
               source: "matrix:!testroom:example.com",
               startedAt: new Date().toISOString(),
+              metadata: { roomId: "!testroom:example.com", interfaceId: "test", userId: "user123" },
             },
           },
         ])
@@ -431,7 +435,7 @@ describe("JobProgressMonitor", () => {
       // Wait for second check (batch completion)
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      // Verify final completion event was emitted with correct target
+      // Verify final completion event was emitted with correct metadata
       const completionCalls = (mockMessageBus.send as any).mock.calls.filter(
         (call: any) => call[1].status === "completed",
       );
@@ -443,15 +447,16 @@ describe("JobProgressMonitor", () => {
           id: "batch-123",
           type: "batch",
           status: "completed",
+          metadata: { roomId: "!testroom:example.com", interfaceId: "test", userId: "user123" },
           batchDetails: expect.objectContaining({
             completedOperations: 2,
             totalOperations: 2,
           }),
         }),
         "job-progress-monitor", // source
-        "matrix:!testroom:example.com", // Target should be preserved from cache
+        undefined, // no target - use metadata for routing
         undefined, // metadata
-        true, // broadcast
+        true, // broadcast to all subscribers
       ]);
     });
 
@@ -494,6 +499,7 @@ describe("JobProgressMonitor", () => {
               operations: [],
               source: "cli:test",
               startedAt: new Date().toISOString(),
+              metadata: { roomId: "test", interfaceId: "test", userId: "user123" },
             },
           },
         ])
@@ -556,6 +562,7 @@ describe("JobProgressMonitor", () => {
               operations: [],
               source: "matrix:!room1:example.com",
               startedAt: new Date().toISOString(),
+              metadata: { roomId: "!room1:example.com", interfaceId: "test", userId: "user123" },
             },
           },
           {
@@ -565,6 +572,7 @@ describe("JobProgressMonitor", () => {
               operations: [],
               source: "cli:session-123",
               startedAt: new Date().toISOString(),
+              metadata: { roomId: "session-123", interfaceId: "test", userId: "user123" },
             },
           },
         ])
@@ -600,7 +608,7 @@ describe("JobProgressMonitor", () => {
       // Wait for completion check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      // Verify both completion events were emitted with correct targets
+      // Verify both completion events were emitted with correct metadata
       const completionCalls = (mockMessageBus.send as any).mock.calls.filter(
         (call: any) => call[1].status === "completed",
       );
@@ -614,8 +622,8 @@ describe("JobProgressMonitor", () => {
         (call: any) => call[1].id === "batch-cli",
       );
 
-      expect(matrixCall[3]).toBe("matrix:!room1:example.com"); // target is at index 3
-      expect(cliCall[3]).toBe("cli:session-123"); // target is at index 3
+      expect(matrixCall[1].metadata.roomId).toBe("!room1:example.com"); // metadata is in event payload
+      expect(cliCall[1].metadata.roomId).toBe("session-123"); // metadata is in event payload
     });
   });
 });

@@ -9,8 +9,9 @@ import type { IJobQueueService } from "./types";
 import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
 import type { JobQueue } from "@brains/db";
-import type { z } from "zod";
+import { z } from "zod";
 import type { JobProgressEventSchema } from "./schemas";
+import { ProgressEventContextSchema, type ProgressEventContext } from "./schemas";
 
 /**
  * Progress event emitted by the monitor
@@ -48,7 +49,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   // Track batches we've seen to emit final completion event
   private knownBatches = new Set<string>();
   // Cache batch metadata for completed batches to ensure proper targeting
-  private batchMetadataCache = new Map<string, string>();
+  private batchMetadataCache = new Map<string, ProgressEventContext>();
 
   // Track jobs that are reporting progress
   private jobsWithProgress = new Map<string, JobProgressTrackingData>();
@@ -276,8 +277,11 @@ export class JobProgressMonitor implements IJobProgressMonitor {
 
       for (const { batchId, status, metadata } of activeBatches) {
         this.knownBatches.add(batchId);
-        // Cache the source for completed batch events
-        this.batchMetadataCache.set(batchId, metadata.source);
+        // Cache the metadata for completed batch events
+        if (metadata.metadata) {
+          const parsedMetadata = ProgressEventContextSchema.parse(metadata.metadata);
+          this.batchMetadataCache.set(batchId, parsedMetadata);
+        }
         await this.emitBatchProgressUpdate(batchId, status);
       }
 
@@ -368,16 +372,20 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           };
         }
 
-        // Extract source from job and use as target for the event
-        const target = job.source ?? undefined;
+        // Extract metadata from job for routing
+        let eventMetadata: ProgressEventContext | undefined;
+        if (job.metadata) {
+          eventMetadata = ProgressEventContextSchema.parse(job.metadata);
+          event.metadata = eventMetadata;
+        }
 
         await this.messageBus.send(
           "job-progress",
           event,
           "job-progress-monitor",
-          target,
+          undefined, // no target - use metadata for routing
           undefined,
-          true, // broadcast to all matching handlers
+          true, // broadcast to all subscribers
         );
 
         this.logger.debug("Emitted job progress update", {
@@ -385,7 +393,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           type: job.type,
           status: job.status,
           progress: progressInfo,
-          target,
+          metadata: eventMetadata,
         });
       }
     } catch (error) {
@@ -443,28 +451,34 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           };
         }
 
-        // Get batch metadata to extract source for targeting
+        // Get batch metadata for routing
         // First try to get from active batches, then fall back to cache
         const activeBatches = await this.batchJobManager.getActiveBatches();
         const batchMetadata = activeBatches.find((b) => b.batchId === batchId);
-        const target =
-          batchMetadata?.metadata.source ??
-          this.batchMetadataCache.get(batchId);
+        let eventMetadata = this.batchMetadataCache.get(batchId);
+        if (batchMetadata?.metadata.metadata) {
+          eventMetadata = ProgressEventContextSchema.parse(batchMetadata.metadata.metadata);
+        }
+
+        // Include routing metadata in event
+        if (eventMetadata) {
+          event.metadata = eventMetadata;
+        }
 
         await this.messageBus.send(
           "job-progress",
           event,
           "job-progress-monitor",
-          target,
+          undefined, // no target - use metadata for routing
           undefined,
-          true, // broadcast to all matching handlers
+          true, // broadcast to all subscribers
         );
 
         this.logger.debug("Emitted batch progress update", {
           batchId,
           status: status.status,
           progress: `${status.completedOperations}/${status.totalOperations}`,
-          target,
+          metadata: eventMetadata,
         });
       }
     } catch (error) {
@@ -500,17 +514,25 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         message: progress.message,
       };
 
-      // Get job to extract source for targeting
+      // Get job to extract metadata for routing
       const job = await this.jobQueueService.getStatus(jobId);
-      const target = job?.source ?? undefined;
+      let eventMetadata: ProgressEventContext | undefined;
+      if (job?.metadata) {
+        eventMetadata = ProgressEventContextSchema.parse(job.metadata);
+      }
+
+      // Include routing metadata in event
+      if (eventMetadata) {
+        event.metadata = eventMetadata;
+      }
 
       await this.messageBus.send(
         "job-progress",
         event,
         "job-progress-monitor",
-        target,
+        undefined, // no target - use metadata for routing
         undefined,
-        true, // broadcast to all matching handlers
+        true, // broadcast to all subscribers
       );
     } catch (error) {
       this.logger.error("Error emitting immediate job progress", {
@@ -581,7 +603,12 @@ export class JobProgressMonitor implements IJobProgressMonitor {
 
       // Get the last known progress info
       const progressInfo = this.jobsWithProgress.get(jobId);
-      const target = job.source ?? undefined;
+      
+      // Extract metadata from job for routing
+      let eventMetadata: ProgressEventContext | undefined;
+      if (job.metadata) {
+        eventMetadata = ProgressEventContextSchema.parse(job.metadata);
+      }
 
       // First emit a 100% progress event with "processing" status
       if (progressInfo) {
@@ -602,13 +629,19 @@ export class JobProgressMonitor implements IJobProgressMonitor {
             retryCount: job.retryCount,
           },
         };
+        
+        // Include routing metadata in event
+        if (eventMetadata) {
+          finalProgressEvent.metadata = eventMetadata;
+        }
+        
         await this.messageBus.send(
           "job-progress",
           finalProgressEvent,
           "job-progress-monitor",
-          target,
+          undefined, // no target - use metadata for routing
           undefined,
-          true, // broadcast to all matching handlers
+          false, // direct targeting to all subscribers
         );
 
         // Delay to ensure the progress event is displayed
@@ -628,13 +661,18 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         },
       };
 
+      // Include routing metadata in event
+      if (eventMetadata) {
+        completionEvent.metadata = eventMetadata;
+      }
+
       await this.messageBus.send(
         "job-progress",
         completionEvent,
         "job-progress-monitor",
-        target,
+        undefined, // no target - use metadata for routing
         undefined,
-        true, // broadcast to all matching handlers
+        false, // direct targeting to all subscribers
       );
 
       // Clean up tracking data
@@ -644,7 +682,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       this.logger.debug("Emitted job completion event", {
         jobId,
         type: job.type,
-        target,
+        metadata: eventMetadata,
       });
     } catch (error) {
       this.logger.error("Error emitting job completion event", {
@@ -679,14 +717,24 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         },
       };
 
-      const target = job.source ?? undefined;
+      // Extract metadata from job for routing
+      let eventMetadata: ProgressEventContext | undefined;
+      if (job.metadata) {
+        eventMetadata = ProgressEventContextSchema.parse(job.metadata);
+      }
+
+      // Include routing metadata in event
+      if (eventMetadata) {
+        event.metadata = eventMetadata;
+      }
+
       await this.messageBus.send(
         "job-progress",
         event,
         "job-progress-monitor",
-        target,
+        undefined, // no target - use metadata for routing
         undefined,
-        true, // broadcast to all matching handlers
+        true, // broadcast to all subscribers
       );
 
       // Clean up tracking data
@@ -696,7 +744,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       this.logger.debug("Emitted job failure event", {
         jobId,
         type: job.type,
-        target,
+        metadata: eventMetadata,
       });
     } catch (error) {
       this.logger.error("Error emitting job failure event", {

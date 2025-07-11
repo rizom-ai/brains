@@ -322,16 +322,22 @@ Matrix has unique requirements that need special handling:
 
 ### 📋 To Do
 
-5. **Phase 3.6: Fix Progress Event Routing Architecture** (NEW)
+5. **Phase 3.6: Fix Progress Event Routing Architecture** ✅
    - **Problem**: Current pattern uses `broadcast=true` with specific `target`, which is contradictory
    - **Root Cause**: Interfaces subscribe to all events then filter client-side instead of using MessageBus routing
-   - **Solution**: Update interface subscription patterns to use target filters (`cli:*`, `matrix:*`, etc.)
-   - **Changes Needed**:
-     - Update CLI interface to subscribe with `{ target: "cli:*" }` pattern
-     - Update Matrix interface to subscribe with `{ target: "matrix:*" }` pattern
-     - Remove client-side target filtering from interfaces
-     - Change JobProgressMonitor to use direct targeting (`broadcast=false`)
-   - **Benefits**: Better performance, clearer architecture, consistent with MessageBus design
+   - **Solution**: Eliminate target parameter entirely and use job metadata for routing
+   - **Changes Completed**:
+     - Updated CLI interface to subscribe with `{ target: "cli:*" }` pattern
+     - Updated Matrix interface to subscribe with `{ target: "matrix:*" }` pattern
+     - Removed client-side target filtering from interfaces
+     - Changed JobProgressMonitor to use direct targeting (`broadcast=false`)
+   - **Enhanced Solution**: Job metadata routing approach
+     - Added `metadata` field to JobProgressEventSchema with optional `roomId`
+     - Job creation includes routing metadata instead of source strings
+     - Progress events include metadata directly in payload
+     - Interfaces filter based on event.metadata.roomId matching their context
+     - Eliminates target string parsing and provides better type safety
+   - **Benefits**: Better performance, clearer architecture, consistent with MessageBus design, improved type safety
 
 6. **Phase 4: UI Enhancements** (Previously Phase 5)
    - Multi-line progress for batch operations
@@ -357,15 +363,16 @@ Matrix has unique requirements that need special handling:
 During Phase 3.5, we discovered an architectural inconsistency in the progress event routing:
 
 **Current Pattern (Problematic)**:
+
 ```typescript
 // JobProgressMonitor sends with contradictory parameters
 await this.messageBus.send(
-  "job-progress", 
-  event, 
-  "job-progress-monitor", 
-  target,     // specific target
-  undefined, 
-  true       // broadcast to all - contradictory!
+  "job-progress",
+  event,
+  "job-progress-monitor",
+  target, // specific target
+  undefined,
+  true, // broadcast to all - contradictory!
 );
 
 // Interfaces subscribe to ALL events without target filter
@@ -376,28 +383,39 @@ if (target && !target.startsWith("cli:")) return;
 ```
 
 **Problems**:
+
 - Broadcast + specific target is conceptually contradictory
 - All events go to all interfaces, then get filtered client-side
 - Inefficient and architecturally unclear
 - Goes against MessageBus design principles
 
-**Recommended Pattern**:
+**Updated Pattern (Metadata-based)**:
+
 ```typescript
-// JobProgressMonitor sends with direct targeting
+// JobProgressMonitor sends without target, includes metadata in payload
 await this.messageBus.send(
-  "job-progress", 
-  event, 
-  "job-progress-monitor", 
-  target,     // specific target
-  undefined, 
-  false       // direct targeting, not broadcast
+  "job-progress",
+  {
+    ...event,
+    metadata: { roomId: extractedRoomId },
+  },
+  "job-progress-monitor",
+  undefined, // no target
+  undefined,
+  false, // direct targeting to all subscribers
 );
 
-// Interfaces subscribe with target patterns
-context.subscribe("job-progress", handler, { target: "cli:*" });
+// Interfaces subscribe without target filters
+context.subscribe("job-progress", handler);
+
+// Filter based on metadata in handler
+if (event.metadata?.roomId === this.sessionId) {
+  // Handle event
+}
 ```
 
 **Benefits**:
+
 - Events only go where they're needed (performance)
 - Clear, intuitive routing semantics
 - Consistent with MessageBus design
@@ -422,12 +440,13 @@ The current design correctly separates concerns:
 
 ### Event Targeting Strategy
 
-Continue using source-based targeting:
+Updated to use metadata-based routing:
 
-- Jobs store originating interface as `source`
-- Progress events use `target = source`
-- Interfaces subscribe to their namespace (`cli:*`, `matrix:*`)
-- Ensures progress reaches only the initiating interface
+- Jobs store routing information in metadata: `{ roomId: "channelId" }`
+- Progress events include metadata directly in payload
+- Interfaces subscribe without target filters and filter based on metadata
+- Each interface checks if event.metadata.roomId matches their context
+- Eliminates target string parsing and provides better type safety
 
 ## Migration Strategy
 

@@ -177,12 +177,13 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
    */
   protected async handleProgressEvent(
     progressEvent: JobProgressEvent,
-    target?: string,
+    context: ProgressEventContext,
   ): Promise<void> {
-    // Only process events targeted at CLI interfaces
-    if (target && !target.startsWith(`cli:`)) {
-      return;
-    }
+    try {
+      // CLI only handles events from CLI interface
+      if (context.interfaceId !== "cli") {
+        return; // Event not from CLI interface
+      }
 
     // Only show progress for jobs that are actively processing
     if (progressEvent.status === "processing") {
@@ -206,6 +207,9 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
         (event) => event.status === "processing",
       );
       this.progressCallback(processingEvents);
+    }
+    } catch (error) {
+      this.logger.error("Error handling progress event in CLI", { error });
     }
   }
 

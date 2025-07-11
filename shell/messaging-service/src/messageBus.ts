@@ -75,14 +75,32 @@ export class MessageBus implements IMessageBus {
       const typedMessage = message as MessageWithPayload<T>;
       const result = await handler(typedMessage);
 
-      return {
-        id: `resp-${Date.now()}`,
-        requestId: message.id,
-        timestamp: new Date().toISOString(),
-        success: result.success,
-        data: result.data,
-        error: result.error ? { message: result.error } : undefined,
-      };
+      // Handle noop responses for broadcast events
+      if ("noop" in result && result.noop) {
+        return {
+          id: `resp-${Date.now()}`,
+          requestId: message.id,
+          timestamp: new Date().toISOString(),
+          success: true,
+          data: undefined,
+          error: undefined,
+        };
+      }
+
+      // Type guard: if we get here, result must have success/data/error properties
+      if ("success" in result) {
+        return {
+          id: `resp-${Date.now()}`,
+          requestId: message.id,
+          timestamp: new Date().toISOString(),
+          success: result.success,
+          data: result.data,
+          error: result.error ? { message: result.error } : undefined,
+        };
+      }
+
+      // This should never happen, but TypeScript needs it
+      throw new Error("Invalid message response format");
     };
 
     const entry: HandlerEntry = filter

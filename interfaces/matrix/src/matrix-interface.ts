@@ -434,44 +434,32 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   // Track progress messages for editing
   private progressMessages = new Map<string, string>();
 
-  /**
-   * Extract Matrix room ID from event target
-   */
-  private extractRoomIdFromTarget(target: string): string | null {
-    // Extract room ID from the target (e.g., "matrix:!roomId:homeserver" -> "!roomId:homeserver")
-    const parts = target.split(":");
-
-    // If not a matrix target, silently ignore
-    if (parts[0] !== "matrix") {
-      return null;
-    }
-
-    // If it's a matrix target but malformed, warn
-    if (parts.length < 3) {
-      this.logger.warn(
-        "Invalid matrix target format, expected matrix:!roomId:homeserver",
-        { target },
-      );
-      return null;
-    }
-
-    return parts.slice(1).join(":"); // Rejoin everything after "matrix:"
-  }
 
   /**
    * Handle progress events - unified handler
    */
   protected async handleProgressEvent(
     progressEvent: JobProgressEvent,
-    target?: string,
+    context: ProgressEventContext,
   ): Promise<void> {
+    // Matrix only handles events from Matrix interface
+    if (context.interfaceId !== "matrix") {
+      return; // Event not from Matrix interface
+    }
+
+    // Use roomId from metadata instead of parsing target
+    const roomId = context.roomId;
+    if (!roomId) {
+      return; // No routing information
+    }
+
     // Handle job progress events
     if (progressEvent.type === "job") {
-      await this.handleJobProgress(progressEvent, target);
+      await this.handleJobProgress(progressEvent, roomId);
     }
     // Handle batch progress events
     else if (progressEvent.type === "batch") {
-      await this.handleBatchProgress(progressEvent, target);
+      await this.handleBatchProgress(progressEvent, roomId);
     }
   }
 
@@ -480,12 +468,9 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
    */
   private async handleJobProgress(
     progressEvent: JobProgressEvent,
-    target?: string,
+    roomId: string,
   ): Promise<void> {
-    if (!this.client || !target) return;
-
-    const roomId = this.extractRoomIdFromTarget(target);
-    if (!roomId) return;
+    if (!this.client) return;
 
     // Only show completion message for individual jobs
     if (progressEvent.status === "completed") {
@@ -524,12 +509,9 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
    */
   private async handleBatchProgress(
     progressEvent: JobProgressEvent,
-    target?: string,
+    roomId: string,
   ): Promise<void> {
-    if (!this.client || !target) return;
-
-    const roomId = this.extractRoomIdFromTarget(target);
-    if (!roomId) return;
+    if (!this.client) return;
 
     const { batchDetails } = progressEvent;
     if (!batchDetails) return;

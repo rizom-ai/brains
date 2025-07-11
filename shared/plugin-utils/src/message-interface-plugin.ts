@@ -10,7 +10,12 @@ import PQueue from "p-queue";
 import {
   JobProgressEventSchema,
   type JobProgressEvent,
+  ProgressEventContextSchema,
+  type ProgressEventContext,
 } from "@brains/job-queue";
+
+// Export the type from job-queue schemas
+export type { ProgressEventContext } from "@brains/job-queue";
 
 /**
  * Structured response schemas
@@ -90,11 +95,23 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
 
   /**
    * Handle progress events - must be implemented by each interface
+   * @param progressEvent The progress event data
+   * @param context Interface-specific context extracted from metadata
    */
   protected abstract handleProgressEvent(
     progressEvent: JobProgressEvent,
-    target?: string,
+    context: ProgressEventContext,
   ): Promise<void>;
+
+  /**
+   * Extract progress event context from event metadata
+   * Default implementation extracts roomId from metadata
+   * @param metadata The event metadata object
+   * @returns Context object with roomId
+   */
+  protected extractProgressEventContext(metadata?: JobProgressEvent["metadata"]): ProgressEventContext {
+    return ProgressEventContextSchema.parse(metadata);
+  }
 
   /**
    * Get base commands available to all message interfaces
@@ -146,6 +163,11 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
               },
               {
                 source,
+                metadata: { 
+                  roomId: context.channelId,
+                  interfaceId: this.id,
+                  userId: context.userId,
+                },
               },
             );
             return `Test job enqueued with ID: ${jobId}\nWatch the status bar for progress!`;
@@ -180,6 +202,11 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
               source,
               {
                 priority: 5,
+                metadata: { 
+                  roomId: context.channelId,
+                  interfaceId: this.id,
+                  userId: context.userId,
+                },
               },
             );
 
@@ -204,29 +231,32 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   protected override async onRegister(context: PluginContext): Promise<void> {
     await super.onRegister(context);
 
-    // Subscribe to job progress events targeted at this interface
-    // Use target filter to only receive events addressed to this interface
-    // This will match patterns like "matrix:*", "cli:*", etc.
+    // Subscribe to job progress events
+    // Events now include metadata for routing instead of using target patterns
     context.subscribe(
       "job-progress",
       async (message) => {
-        const validationResult = JobProgressEventSchema.safeParse(
-          message.payload,
-        );
-        if (!validationResult.success) {
-          return { success: false, error: "Invalid progress event schema" };
+        try {
+          const validationResult = JobProgressEventSchema.safeParse(
+            message.payload,
+          );
+          if (!validationResult.success) {
+            this.logger.warn("Invalid progress event schema", { interfaceId: this.id });
+            return { noop: true };
+          }
+
+          const progressEvent = validationResult.data;
+
+          // Extract context from event metadata
+          const context = this.extractProgressEventContext(progressEvent.metadata);
+          await this.handleProgressEvent(progressEvent, context);
+
+          return { noop: true };
+        } catch (error) {
+          // Log error but don't break the event chain for other interfaces
+          this.logger.error("Error handling progress event", { error, interfaceId: this.id });
+          return { noop: true };
         }
-
-        const progressEvent = validationResult.data;
-
-        // Handle progress events with unified handler
-        await this.handleProgressEvent(progressEvent, message.target);
-
-        // Progress events are broadcast events - all handlers will be called
-        return { success: true };
-      },
-      {
-        target: `${this.id}:*`, // Match events targeted at this interface (e.g., "matrix:roomId", "matrix:roomId:userId")
       },
     );
 

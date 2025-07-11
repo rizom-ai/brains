@@ -144,4 +144,24 @@ export const JobProgressEventSchema = z.object({
       retryCount: z.number(),
     })
     .optional(),
+
+  // Routing metadata
+  metadata: z
+    .object({
+      roomId: z.string().optional(),
+      interfaceId: z.string(),
+      userId: z.string(),
+    })
+    .optional(),
 });
+
+/**
+ * Schema for progress event context/metadata
+ */
+export const ProgressEventContextSchema = z.object({
+  roomId: z.string().optional(),
+  interfaceId: z.string(),
+  userId: z.string(),
+});
+
+export type ProgressEventContext = z.infer<typeof ProgressEventContextSchema>;
