@@ -51,6 +51,11 @@ describe("JobQueueWorker", () => {
     scheduledFor: Date.now(),
     startedAt: Date.now(),
     completedAt: null,
+    metadata: {
+      interfaceId: "test",
+      userId: "test-user",
+    },
+    source: null,
   };
 
   beforeEach(() => {

@@ -124,6 +124,11 @@ describe("JobProgressMonitor", () => {
       completedAt: null,
       startedAt: null,
       scheduledFor: Date.now(),
+      metadata: {
+        interfaceId: "test",
+        userId: "test-user",
+      },
+      source: null,
       ...overrides,
     });
 
@@ -144,6 +149,10 @@ describe("JobProgressMonitor", () => {
           status: "processing",
           operation: "Processing test-job",
           message: undefined,
+          metadata: {
+            interfaceId: "test",
+            userId: "test-user",
+          },
           jobDetails: {
             jobType: "test-job",
             priority: 5,
@@ -237,6 +246,10 @@ describe("JobProgressMonitor", () => {
           type: "batch",
           status: "processing",
           operation: "Processing operation 4",
+          metadata: {
+            interfaceId: "system",
+            userId: "system",
+          },
           batchDetails: {
             totalOperations: 10,
             completedOperations: 3,

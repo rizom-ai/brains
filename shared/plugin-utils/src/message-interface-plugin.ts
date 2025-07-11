@@ -10,12 +10,11 @@ import PQueue from "p-queue";
 import {
   JobProgressEventSchema,
   type JobProgressEvent,
+} from "@brains/job-queue";
+import {
   ProgressEventContextSchema,
   type ProgressEventContext,
-} from "@brains/job-queue";
-
-// Export the type from job-queue schemas
-export type { ProgressEventContext } from "@brains/job-queue";
+} from "@brains/db";
 
 /**
  * Structured response schemas
@@ -203,12 +202,12 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
               operations,
               source,
               {
+                roomId: context.channelId,
+                interfaceId: this.id,
+                userId: context.userId,
+              },
+              {
                 priority: 5,
-                metadata: {
-                  roomId: context.channelId,
-                  interfaceId: this.id,
-                  userId: context.userId,
-                },
               },
             );
 

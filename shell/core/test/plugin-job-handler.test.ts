@@ -52,6 +52,12 @@ describe("Plugin Job Handler Lifecycle", () => {
           startedAt: null,
           completedAt: null,
           lastError: null,
+          metadata: {
+            interfaceId: "test",
+            userId: "test-user",
+          },
+          source: "test",
+          result: null,
         }),
       ),
       getHandler: mock((type: string) => {
@@ -183,7 +189,12 @@ describe("Plugin Job Handler Lifecycle", () => {
     expect(mockJobQueueService.enqueue).toHaveBeenCalledWith(
       "test-plugin:test-job",
       jobData,
-      undefined,
+      {
+        metadata: {
+          interfaceId: "test-plugin",
+          userId: "system",
+        },
+      },
     );
 
     // Simulate processing by calling the handler directly
@@ -301,12 +312,22 @@ describe("Plugin Job Handler Lifecycle", () => {
     expect(mockJobQueueService.enqueue).toHaveBeenCalledWith(
       "plugin-1:task",
       {},
-      undefined,
+      {
+        metadata: {
+          interfaceId: "plugin-1",
+          userId: "system",
+        },
+      },
     );
     expect(mockJobQueueService.enqueue).toHaveBeenCalledWith(
       "plugin-2:task",
       {},
-      undefined,
+      {
+        metadata: {
+          interfaceId: "plugin-2",
+          userId: "system",
+        },
+      },
     );
 
     // Verify handlers are different

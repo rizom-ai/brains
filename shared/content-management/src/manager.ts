@@ -4,6 +4,7 @@ import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { BatchJobStatus } from "@brains/job-queue";
+import type { ProgressEventContext } from "@brains/db";
 import { GenerationOperations } from "./operations/generation";
 import { DerivationOperations } from "./operations/derivation";
 import { EntityQueryService } from "./services/entity-query";
@@ -329,9 +330,9 @@ export class ContentManager {
    */
   async generateAll(
     options: GenerateOptions & {
-      userId?: string;
-      priority?: number;
       source: string;
+      metadata: ProgressEventContext;
+      priority?: number;
     },
     routes: RouteDefinition[],
     templateResolver: (sectionId: SectionDefinition) => string,
@@ -401,10 +402,6 @@ export class ContentManager {
           entityType: targetEntityType,
         };
 
-        if (options.userId) {
-          jobData["userId"] = options.userId;
-        }
-
         operations.push({
           type: "content-generation",
           entityId,
@@ -418,17 +415,16 @@ export class ContentManager {
       throw new Error("No operations to perform");
     }
 
-    // Queue as batch operation
-    const batchOptions: { userId?: string; priority?: number } = {};
-    if (options.userId !== undefined) {
-      batchOptions.userId = options.userId;
-    }
+    // Queue as batch operation with metadata
+    const batchOptions: { priority?: number; maxRetries?: number } = {};
     if (options.priority !== undefined) {
       batchOptions.priority = options.priority;
     }
+
     const batchId = await this.pluginContext.enqueueBatch(
       operations,
       options.source,
+      options.metadata,
       batchOptions,
     );
 
@@ -445,7 +441,11 @@ export class ContentManager {
    */
   async promote(
     previewIds: string[],
-    options: { userId?: string; priority?: number; source: string },
+    options: {
+      source: string;
+      metadata: ProgressEventContext;
+      priority?: number;
+    },
   ): Promise<string> {
     if (previewIds.length === 0) {
       throw new Error("No entities to promote");
@@ -463,16 +463,15 @@ export class ContentManager {
       },
     }));
 
-    const batchOptions: { userId?: string; priority?: number } = {};
-    if (options?.userId !== undefined) {
-      batchOptions.userId = options.userId;
-    }
-    if (options?.priority !== undefined) {
+    const batchOptions: { priority?: number; maxRetries?: number } = {};
+    if (options.priority !== undefined) {
       batchOptions.priority = options.priority;
     }
+
     const batchId = await this.pluginContext.enqueueBatch(
       operations,
       options.source,
+      options.metadata,
       batchOptions,
     );
 
@@ -489,7 +488,11 @@ export class ContentManager {
    */
   async rollback(
     productionIds: string[],
-    options: { userId?: string; priority?: number; source: string },
+    options: {
+      source: string;
+      metadata: ProgressEventContext;
+      priority?: number;
+    },
   ): Promise<string> {
     if (productionIds.length === 0) {
       throw new Error("No entities to rollback");
@@ -507,16 +510,15 @@ export class ContentManager {
       },
     }));
 
-    const batchOptions: { userId?: string; priority?: number } = {};
-    if (options?.userId !== undefined) {
-      batchOptions.userId = options.userId;
-    }
-    if (options?.priority !== undefined) {
+    const batchOptions: { priority?: number; maxRetries?: number } = {};
+    if (options.priority !== undefined) {
       batchOptions.priority = options.priority;
     }
+
     const batchId = await this.pluginContext.enqueueBatch(
       operations,
       options.source,
+      options.metadata,
       batchOptions,
     );
 

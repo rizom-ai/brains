@@ -363,6 +363,12 @@ export class EntityService implements IEntityService {
     // Note: Entity will be updated with embedding by the background worker
 
     // Queue embedding generation for the updated entity
+    // EntityService operations use system defaults for metadata
+    const defaultMetadata = {
+      interfaceId: "system",
+      userId: "system",
+    };
+
     const jobId = await this.jobQueueService.enqueue(
       "embedding",
       {
@@ -374,7 +380,13 @@ export class EntityService implements IEntityService {
         updated: new Date(validatedEntity.updated).getTime(),
         metadata,
       },
-      options ?? {},
+      {
+        ...(options?.priority !== undefined && { priority: options.priority }),
+        ...(options?.maxRetries !== undefined && {
+          maxRetries: options.maxRetries,
+        }),
+        metadata: defaultMetadata,
+      },
     );
 
     this.logger.info(
@@ -829,6 +841,12 @@ export class EntityService implements IEntityService {
     };
 
     // Enqueue for async embedding generation
+    // EntityService operations use system defaults for metadata
+    const defaultMetadata = {
+      interfaceId: "system",
+      userId: "system",
+    };
+
     const jobId = await this.jobQueueService.enqueue(
       "embedding",
       entityForQueue,
@@ -837,6 +855,7 @@ export class EntityService implements IEntityService {
         ...(options?.maxRetries !== undefined && {
           maxRetries: options.maxRetries,
         }),
+        metadata: defaultMetadata,
       },
     );
 

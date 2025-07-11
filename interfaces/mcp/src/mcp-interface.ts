@@ -7,6 +7,7 @@ import {
   type PluginResource,
 } from "@brains/plugin-utils";
 import type { UserPermissionLevel } from "@brains/utils";
+import type { JobProgressEvent } from "@brains/job-queue";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { mcpConfigSchema, MCP_CONFIG_DEFAULTS } from "./schemas";
@@ -40,6 +41,10 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
   private mcpServer: McpServer | undefined;
   private stdioServer: StdioMCPServer | undefined;
   private httpServer: StreamableHTTPServer | undefined;
+  private activeProgressHandlers = new Map<
+    string | number,
+    (notification: unknown) => unknown
+  >();
 
   constructor(config: MCPConfigInput = {}) {
     super("mcp", packageJson, config, mcpConfigSchema, MCP_CONFIG_DEFAULTS);
@@ -68,6 +73,51 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
   protected override async getResources(): Promise<PluginResource[]> {
     // MCP manages its own resources internally
     return [];
+  }
+
+  /**
+   * Set up listener for job progress events
+   */
+  private setupJobProgressListener(context: PluginContext): void {
+    // Subscribe to job-progress events
+    context.subscribe("job-progress", async (message) => {
+      try {
+        const event = message.payload as JobProgressEvent;
+
+        // Check if this job has an active MCP progress subscription
+        const progressToken = event.metadata.progressToken;
+        const progressHandler = progressToken
+          ? this.activeProgressHandlers.get(progressToken)
+          : undefined;
+
+        if (progressHandler) {
+          // Send progress notification to MCP client
+          await (
+            progressHandler as (notification: {
+              method: string;
+              params: Record<string, unknown>;
+            }) => Promise<void>
+          )({
+            method: "notifications/progress",
+            params: {
+              progressToken,
+              progress: event.progress?.current,
+              total: event.progress?.total,
+              message: event.message ?? event.operation,
+            },
+          });
+        }
+
+        return { noop: true };
+      } catch (error) {
+        this.logger.error("Error handling job progress event", error);
+        return { noop: true };
+      }
+    });
+
+    this.logger.info(
+      "Subscribed to job progress events for MCP progress reporting",
+    );
   }
 
   /**
@@ -121,15 +171,23 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
       tool.description,
       tool.inputSchema,
       async (params, extra) => {
-        try {
-          // Check if progress is supported
-          const progressToken = extra._meta?.progressToken;
-          const hasProgress = progressToken !== undefined;
+        // Check if progress is supported
+        const progressToken = extra._meta?.progressToken;
+        const hasProgress = progressToken !== undefined;
 
+        try {
           // Subscribe to progress notifications if progress is supported
           let unsubscribe: (() => void) | undefined;
           if (hasProgress && this.context) {
-            // Set up progress handler
+            // Store the progress handler for job-based tools
+            this.activeProgressHandlers.set(
+              progressToken,
+              extra.sendNotification.bind(extra) as (
+                notification: unknown,
+              ) => unknown,
+            );
+
+            // Set up progress handler for direct tool progress
             unsubscribe = this.context.subscribe(
               `plugin:${pluginId}:progress`,
               async (message) => {
@@ -173,6 +231,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
             // Clean up progress handler when request completes or is aborted
             extra.signal.addEventListener("abort", () => {
               unsubscribe?.();
+              if (progressToken) {
+                this.activeProgressHandlers.delete(progressToken);
+              }
             });
           }
 
@@ -190,10 +251,13 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
             },
           );
 
-          // Clean up progress handler
+          // Clean up progress handlers
           unsubscribe?.();
+          if (progressToken) {
+            this.activeProgressHandlers.delete(progressToken);
+          }
 
-          if (!response.success) {
+          if ("success" in response && !response.success) {
             throw new Error(response.error ?? "Tool execution failed");
           }
 
@@ -201,11 +265,19 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
             content: [
               {
                 type: "text" as const,
-                text: JSON.stringify(response.data, null, 2),
+                text: JSON.stringify(
+                  "data" in response ? response.data : response,
+                  null,
+                  2,
+                ),
               },
             ],
           };
         } catch (error) {
+          // Clean up on error
+          if (progressToken) {
+            this.activeProgressHandlers.delete(progressToken);
+          }
           this.logger.error(`Tool execution error for ${tool.name}`, error);
           throw error;
         }
@@ -253,7 +325,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
             },
           );
 
-          if (!response.success) {
+          if ("success" in response && !response.success) {
             throw new Error(response.error ?? "Resource fetch failed");
           }
 
@@ -262,7 +334,11 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
               {
                 uri: `${pluginId}:${resource.uri}`,
                 mimeType: resource.mimeType ?? "text/plain",
-                text: JSON.stringify(response.data, null, 2),
+                text: JSON.stringify(
+                  "data" in response ? response.data : response,
+                  null,
+                  2,
+                ),
               },
             ],
           };
@@ -605,6 +681,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
 
     // Subscribe to system events for plugin tools
     this.setupSystemEventListeners(context);
+
+    // Subscribe to job progress events for MCP progress reporting
+    this.setupJobProgressListener(context);
 
     return capabilities;
   }

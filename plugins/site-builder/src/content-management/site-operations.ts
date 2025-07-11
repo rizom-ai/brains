@@ -2,6 +2,7 @@ import type { Logger, SiteContent } from "@brains/types";
 import { ContentManager } from "@brains/content-management";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
+import type { ProgressEventContext } from "@brains/db";
 import type { PromoteOptions, RollbackOptions } from "./types";
 
 /**
@@ -29,7 +30,10 @@ export class SiteOperations {
    * Promote preview content to production
    * Returns a batch ID for async tracking
    */
-  async promote(options: PromoteOptions): Promise<string> {
+  async promote(
+    options: PromoteOptions,
+    metadata: ProgressEventContext,
+  ): Promise<string> {
     this.logger.info("Starting promote operation", { options });
 
     try {
@@ -57,8 +61,10 @@ export class SiteOperations {
 
       // Use batch promote for all entities
       const entityIds = previewEntities.map((e) => e.id);
+
       const batchId = await this.contentManager.promote(entityIds, {
         source: "plugin:site-builder",
+        metadata,
       });
 
       this.logger.info("Promote operation queued", {
@@ -80,7 +86,10 @@ export class SiteOperations {
    * Rollback production content (removes production entities)
    * Returns a batch ID for async tracking
    */
-  async rollback(options: RollbackOptions): Promise<string> {
+  async rollback(
+    options: RollbackOptions,
+    metadata: ProgressEventContext,
+  ): Promise<string> {
     this.logger.info("Starting rollback operation", { options });
 
     try {
@@ -108,8 +117,10 @@ export class SiteOperations {
 
       // Use batch rollback for all entities
       const entityIds = productionEntities.map((e) => e.id);
+
       const batchId = await this.contentManager.rollback(entityIds, {
         source: "plugin:site-builder",
+        metadata,
       });
 
       this.logger.info("Rollback operation queued", {
@@ -130,15 +141,15 @@ export class SiteOperations {
   /**
    * Promote all preview content to production
    */
-  async promoteAll(): Promise<string> {
-    return this.promote({ dryRun: false });
+  async promoteAll(metadata: ProgressEventContext): Promise<string> {
+    return this.promote({ dryRun: false }, metadata);
   }
 
   /**
    * Rollback all production content
    */
-  async rollbackAll(): Promise<string> {
-    return this.rollback({ dryRun: false });
+  async rollbackAll(metadata: ProgressEventContext): Promise<string> {
+    return this.rollback({ dryRun: false }, metadata);
   }
 
   /**

@@ -14,7 +14,7 @@ import type { JobProgressEventSchema } from "./schemas";
 import {
   ProgressEventContextSchema,
   type ProgressEventContext,
-} from "./schemas";
+} from "@brains/db";
 
 /**
  * Progress event emitted by the monitor
@@ -357,6 +357,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           status: job.status,
           operation: progressInfo?.message ?? `Processing ${job.type}`,
           message: progressInfo?.message,
+          metadata: job.metadata,
           jobDetails: {
             jobType: job.type,
             priority: job.priority,
@@ -377,13 +378,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           };
         }
 
-        // Extract metadata from job for routing
-        let eventMetadata: ProgressEventContext | undefined;
-        if (job.metadata) {
-          eventMetadata = ProgressEventContextSchema.parse(job.metadata);
-          event.metadata = eventMetadata;
-        }
-
         await this.messageBus.send(
           "job-progress",
           event,
@@ -398,7 +392,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           type: job.type,
           status: job.status,
           progress: progressInfo,
-          metadata: eventMetadata,
+          metadata: job.metadata,
         });
       }
     } catch (error) {
@@ -442,6 +436,10 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           type: "batch",
           status: status.status,
           operation: status.currentOperation ?? "Processing batch",
+          metadata: {
+            interfaceId: "system",
+            userId: "system",
+          }, // Will be overridden below if we have actual metadata
           batchDetails,
         };
 
@@ -504,11 +502,23 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     progress: ProgressNotification,
   ): Promise<void> {
     try {
+      // Get job to extract metadata for routing
+      const job = await this.jobQueueService.getStatus(jobId);
+      if (!job) {
+        this.logger.warn("Job not found for progress update", { jobId });
+        // Can't emit progress for non-existent job
+        return;
+      }
+
+      // job.metadata is always present now
+      const metadata = job.metadata;
+
       const total = progress.total ?? 0;
       const event: JobProgressEvent = {
         id: jobId,
         type: "job",
         status: "processing",
+        metadata,
         progress: {
           current: progress.progress,
           total: total,
@@ -520,18 +530,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         operation: progress.message ?? "Processing...",
         message: progress.message,
       };
-
-      // Get job to extract metadata for routing
-      const job = await this.jobQueueService.getStatus(jobId);
-      let eventMetadata: ProgressEventContext | undefined;
-      if (job?.metadata) {
-        eventMetadata = ProgressEventContextSchema.parse(job.metadata);
-      }
-
-      // Include routing metadata in event
-      if (eventMetadata) {
-        event.metadata = eventMetadata;
-      }
 
       await this.messageBus.send(
         "job-progress",
@@ -611,12 +609,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       // Get the last known progress info
       const progressInfo = this.jobsWithProgress.get(jobId);
 
-      // Extract metadata from job for routing
-      let eventMetadata: ProgressEventContext | undefined;
-      if (job.metadata) {
-        eventMetadata = ProgressEventContextSchema.parse(job.metadata);
-      }
-
       // First emit a 100% progress event with "processing" status
       if (progressInfo) {
         const finalProgressEvent: JobProgressEvent = {
@@ -625,6 +617,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           status: "processing",
           operation: progressInfo.message ?? `Completing ${job.type}`,
           message: progressInfo.message,
+          metadata: job.metadata, // Always present now
           progress: {
             current: progressInfo.total,
             total: progressInfo.total,
@@ -636,11 +629,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
             retryCount: job.retryCount,
           },
         };
-
-        // Include routing metadata in event
-        if (eventMetadata) {
-          finalProgressEvent.metadata = eventMetadata;
-        }
 
         await this.messageBus.send(
           "job-progress",
@@ -661,17 +649,13 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         type: "job",
         status: "completed",
         operation: `Completed ${job.type}`,
+        metadata: job.metadata, // Always present now
         jobDetails: {
           jobType: job.type,
           priority: job.priority,
           retryCount: job.retryCount,
         },
       };
-
-      // Include routing metadata in event
-      if (eventMetadata) {
-        completionEvent.metadata = eventMetadata;
-      }
 
       await this.messageBus.send(
         "job-progress",
@@ -689,7 +673,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       this.logger.debug("Emitted job completion event", {
         jobId,
         type: job.type,
-        metadata: eventMetadata,
+        metadata: job.metadata,
       });
     } catch (error) {
       this.logger.error("Error emitting job completion event", {
@@ -717,23 +701,13 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         status: "failed",
         operation: `Failed ${job.type}`,
         message: job.lastError ?? undefined,
+        metadata: job.metadata, // Always present now
         jobDetails: {
           jobType: job.type,
           priority: job.priority,
           retryCount: job.retryCount,
         },
       };
-
-      // Extract metadata from job for routing
-      let eventMetadata: ProgressEventContext | undefined;
-      if (job.metadata) {
-        eventMetadata = ProgressEventContextSchema.parse(job.metadata);
-      }
-
-      // Include routing metadata in event
-      if (eventMetadata) {
-        event.metadata = eventMetadata;
-      }
 
       await this.messageBus.send(
         "job-progress",
@@ -751,7 +725,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       this.logger.debug("Emitted job failure event", {
         jobId,
         type: job.type,
-        metadata: eventMetadata,
+        metadata: job.metadata,
       });
     } catch (error) {
       this.logger.error("Error emitting job failure event", {

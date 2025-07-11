@@ -464,7 +464,14 @@ test("generateAll should queue batch operation for all sections", async () => {
     section.template;
 
   const batchId = await contentManager.generateAll(
-    { dryRun: false, userId: "user-123", priority: 5, source: "test" },
+    {
+      dryRun: false,
+      source: "test",
+      metadata: {
+        interfaceId: "test",
+        userId: "user-123",
+      },
+    },
     mockRoutes,
     templateResolver,
     "site-content-preview",
@@ -494,7 +501,6 @@ test("generateAll should queue batch operation for all sections", async () => {
           },
           entityId: "landing:hero",
           entityType: "site-content-preview",
-          userId: "user-123",
         },
       },
       {
@@ -517,7 +523,6 @@ test("generateAll should queue batch operation for all sections", async () => {
           },
           entityId: "landing:features",
           entityType: "site-content-preview",
-          userId: "user-123",
         },
       },
       {
@@ -540,15 +545,15 @@ test("generateAll should queue batch operation for all sections", async () => {
           },
           entityId: "about:content",
           entityType: "site-content-preview",
-          userId: "user-123",
         },
       },
     ],
     "test",
     {
+      interfaceId: "test",
       userId: "user-123",
-      priority: 5,
     },
+    {},
   );
 });
 
@@ -578,7 +583,15 @@ test("generateAll should respect pageId filter", async () => {
     section.template;
 
   const batchId = await contentManager.generateAll(
-    { pageId: "landing", dryRun: false, source: "test" },
+    {
+      pageId: "landing",
+      dryRun: false,
+      source: "test",
+      metadata: {
+        interfaceId: "test",
+        userId: "system",
+      },
+    },
     mockRoutes,
     templateResolver,
     "site-content-preview",
@@ -611,6 +624,10 @@ test("generateAll should respect pageId filter", async () => {
       },
     ],
     "test",
+    {
+      interfaceId: "test",
+      userId: "system",
+    },
     {},
   );
 });
@@ -622,7 +639,14 @@ test("generateAll should throw for empty operations", async () => {
 
   void expect(
     contentManager.generateAll(
-      { dryRun: false, source: "test" },
+      {
+        dryRun: false,
+        source: "test",
+        metadata: {
+          interfaceId: "test",
+          userId: "system",
+        },
+      },
       mockRoutes,
       templateResolver,
       "site-content-preview",
@@ -642,9 +666,12 @@ test("promote should queue batch promotion operations", async () => {
   mockPluginContext.enqueueBatch = mockEnqueueBatch;
 
   const batchId = await contentManager.promote(previewIds, {
-    userId: "admin-123",
     priority: 10,
     source: "test",
+    metadata: {
+      interfaceId: "test",
+      userId: "admin-123",
+    },
   });
 
   expect(batchId).toBe(mockBatchId);
@@ -683,16 +710,25 @@ test("promote should queue batch promotion operations", async () => {
     ],
     "test",
     {
+      interfaceId: "test",
       userId: "admin-123",
+    },
+    {
       priority: 10,
     },
   );
 });
 
 test("promote should throw for empty ids", async () => {
-  void expect(contentManager.promote([], { source: "test" })).rejects.toThrow(
-    "No entities to promote",
-  );
+  void expect(
+    contentManager.promote([], {
+      source: "test",
+      metadata: {
+        interfaceId: "test",
+        userId: "system",
+      },
+    }),
+  ).rejects.toThrow("No entities to promote");
 });
 
 test("rollback should queue batch rollback operations", async () => {
@@ -707,6 +743,10 @@ test("rollback should queue batch rollback operations", async () => {
 
   const batchId = await contentManager.rollback(productionIds, {
     source: "test",
+    metadata: {
+      interfaceId: "test",
+      userId: "system",
+    },
   });
 
   expect(batchId).toBe(mockBatchId);
@@ -734,14 +774,24 @@ test("rollback should queue batch rollback operations", async () => {
       },
     ],
     "test",
+    {
+      interfaceId: "test",
+      userId: "system",
+    },
     {},
   );
 });
 
 test("rollback should throw for empty ids", async () => {
-  void expect(contentManager.rollback([], { source: "test" })).rejects.toThrow(
-    "No entities to rollback",
-  );
+  void expect(
+    contentManager.rollback([], {
+      source: "test",
+      metadata: {
+        interfaceId: "test",
+        userId: "system",
+      },
+    }),
+  ).rejects.toThrow("No entities to rollback");
 });
 
 test("getBatchStatus should delegate to plugin context", async () => {

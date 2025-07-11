@@ -19,6 +19,7 @@ import type {
   BatchOperation,
   JobHandler,
 } from "@brains/job-queue";
+import type { ProgressEventContext } from "@brains/db";
 import type { Job } from "@brains/types";
 
 /**
@@ -215,11 +216,10 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
       options?: Record<string, unknown>;
     }>,
     source: string,
+    metadata: ProgressEventContext,
     options?: {
-      userId?: string;
       priority?: number;
       maxRetries?: number;
-      metadata?: Record<string, unknown>;
     },
   ) => Promise<string>;
 

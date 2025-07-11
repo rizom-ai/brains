@@ -92,6 +92,12 @@ describe("EntityService", (): void => {
           scheduledFor: Date.now(),
           startedAt: Date.now(),
           completedAt: Date.now(),
+          metadata: {
+            interfaceId: "system",
+            userId: "system",
+          },
+          source: null,
+          result: null,
         }),
       ),
       registerHandler: mock(),

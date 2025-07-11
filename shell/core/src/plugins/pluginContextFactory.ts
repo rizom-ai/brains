@@ -12,8 +12,10 @@ import type { EntityAdapter } from "@brains/base-entity";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
+import type { JobOptions } from "@brains/db";
 import { BatchJobManager } from "@brains/job-queue";
 import { type BatchJobStatus, type JobStatusType } from "@brains/job-queue";
+import type { ProgressEventContext } from "@brains/db";
 import {
   EntityRegistrationError,
   ContentGenerationError,
@@ -115,13 +117,20 @@ export class PluginContextFactory {
         payload: T,
       ): Promise<{ success: boolean; data?: R; error?: string }> => {
         const result = await messageBus.send<T, R>(type, payload, pluginId);
+
+        // Handle noop case
+        if ("noop" in result && result.noop) {
+          return { success: true };
+        }
+
+        // Handle normal response
         const response: { success: boolean; data?: R; error?: string } = {
-          success: result.success,
+          success: "success" in result ? result.success : true,
         };
-        if (result.data !== undefined) {
+        if ("data" in result && result.data !== undefined) {
           response.data = result.data;
         }
-        if (result.error !== undefined) {
+        if ("error" in result && result.error !== undefined) {
           response.error = result.error;
         }
         return response;
@@ -396,10 +405,27 @@ export class PluginContextFactory {
             ? type
             : `${pluginId}:${type}`;
 
+          const jobOptions: JobOptions = {
+            metadata: (options?.metadata as ProgressEventContext) ?? {
+              interfaceId: pluginId,
+              userId: "system",
+            },
+          };
+
+          if (options?.priority !== undefined) {
+            jobOptions.priority = options.priority;
+          }
+          if (options?.maxRetries !== undefined) {
+            jobOptions.maxRetries = options.maxRetries;
+          }
+          if (options?.source !== undefined) {
+            jobOptions.source = options.source;
+          }
+
           const jobId = await jobQueueService.enqueue(
             scopedType,
             data,
-            options,
+            jobOptions,
           );
 
           this.logger.debug("Enqueued job", {
@@ -477,10 +503,28 @@ export class PluginContextFactory {
             this.logger,
           );
 
+          // Pass metadata directly if provided, expecting it to be ProgressEventContext
+          const metadata = options?.metadata as
+            | ProgressEventContext
+            | undefined;
+
+          if (!metadata) {
+            throw new Error("Metadata is required for batch operations");
+          }
+
+          const batchOptions: { priority?: number; maxRetries?: number } = {};
+          if (options?.priority !== undefined) {
+            batchOptions.priority = options.priority;
+          }
+          if (options?.maxRetries !== undefined) {
+            batchOptions.maxRetries = options.maxRetries;
+          }
+
           const batchId = await batchJobManager.enqueueBatch(
             operations,
             source,
-            options,
+            metadata,
+            batchOptions,
           );
 
           this.logger.debug("Enqueued batch operation", {

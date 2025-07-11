@@ -96,7 +96,7 @@ export class JobQueueService implements IJobQueueService {
   public async enqueue(
     type: string,
     data: unknown,
-    options: JobOptions = {},
+    options: JobOptions,
   ): Promise<string> {
     const jobId = createId();
 
@@ -126,7 +126,7 @@ export class JobQueueService implements IJobQueueService {
         maxRetries: options.maxRetries ?? 3,
         scheduledFor: Date.now() + (options.delayMs ?? 0),
         source: options.source ?? null,
-        metadata: options.metadata ?? null,
+        metadata: options.metadata,
       };
 
       // Log to see what we're trying to insert

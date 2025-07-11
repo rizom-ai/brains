@@ -15,6 +15,7 @@ import type { IEntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { BatchJobStatus, BatchOperation } from "@brains/job-queue";
+import type { ProgressEventContext } from "@brains/db";
 import type { Job } from "@brains/types";
 import type { z } from "zod";
 
@@ -296,7 +297,21 @@ export class PluginTestHarness {
         };
       },
       // Batch operations (required)
-      enqueueBatch: async (): Promise<string> => {
+      enqueueBatch: async (
+        _operations: Array<{
+          type: string;
+          entityId?: string;
+          entityType?: string;
+          options?: Record<string, unknown>;
+        }>,
+        _source: string,
+        _metadata: ProgressEventContext,
+        _options?: {
+          userId?: string;
+          priority?: number;
+          maxRetries?: number;
+        },
+      ): Promise<string> => {
         // Mock implementation - return a fake batch ID
         return "mock-batch-id-" + Date.now();
       },

@@ -8,6 +8,19 @@ import type {
 } from "@brains/content-generator";
 
 /**
+ * Progress event context schema - moved here to avoid circular dependency
+ */
+export const ProgressEventContextSchema = z.object({
+  interfaceId: z.string(),
+  userId: z.string(),
+  pluginId: z.string().optional(),
+  roomId: z.string().optional(),
+  progressToken: z.union([z.string(), z.number()]).optional(),
+});
+
+export type ProgressEventContext = z.infer<typeof ProgressEventContextSchema>;
+
+/**
  * Generic job queue table for async background processing
  * Supports different job types with discriminated unions
  */
@@ -32,9 +45,9 @@ export const jobQueue = sqliteTable(
     source: text("source"),
 
     // Job metadata (additional context for progress events)
-    metadata: text("metadata", { mode: "json" }).$type<
-      Record<string, unknown>
-    >(),
+    metadata: text("metadata", { mode: "json" })
+      .notNull()
+      .$type<ProgressEventContext>(),
 
     // Queue metadata
     status: text("status", {
@@ -79,7 +92,7 @@ export const insertJobQueueSchema = createInsertSchema(jobQueue, {
   data: z.string(),
   result: z.unknown().optional(),
   source: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: ProgressEventContextSchema,
   status: z
     .enum(["pending", "processing", "completed", "failed"])
     .default("pending"),
@@ -93,7 +106,7 @@ export const selectJobQueueSchema = createSelectSchema(jobQueue, {
   data: z.string(),
   result: z.unknown().optional(),
   source: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: ProgressEventContextSchema,
   status: z.enum(["pending", "processing", "completed", "failed"]),
   priority: z.number().int(),
   retryCount: z.number().int().min(0),
@@ -115,7 +128,7 @@ export interface JobOptions {
   maxRetries?: number; // Override default retry count
   delayMs?: number; // Initial delay before processing
   source?: string; // Source identifier for job progress events
-  metadata?: Record<string, unknown>; // Additional metadata for job progress events
+  metadata: ProgressEventContext; // Additional metadata for job progress events (required)
 }
 
 /**

@@ -64,7 +64,7 @@ export interface IJobQueueService {
   /**
    * Enqueue a job for processing
    */
-  enqueue(type: string, data: unknown, options?: JobOptions): Promise<string>;
+  enqueue(type: string, data: unknown, options: JobOptions): Promise<string>;
 
   /**
    * Get next job to process (marks as processing)
@@ -129,5 +129,5 @@ export interface IJobQueueService {
 export type EnqueueJob = <T extends JobType>(
   type: T,
   data: JobDataFor<T>,
-  options?: JobOptions,
+  options: JobOptions,
 ) => Promise<string>;

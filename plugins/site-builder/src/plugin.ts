@@ -4,6 +4,7 @@ import type {
   PluginTool,
   PluginResource,
 } from "@brains/plugin-utils";
+import type { ProgressEventContext } from "@brains/db";
 import type { Template } from "@brains/types";
 import type { SectionDefinition } from "@brains/view-registry";
 import { RouteDefinitionSchema } from "@brains/view-registry";
@@ -216,7 +217,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .default(false)
             .describe("Optional: preview changes without executing"),
         },
-        async (input, _context): Promise<Record<string, unknown>> => {
+        async (input, context): Promise<Record<string, unknown>> => {
           if (!this.contentManager || !this.context) {
             throw new SiteBuilderInitializationError(
               "Content manager not initialized",
@@ -263,8 +264,16 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           // Get batch ID using generateAll with filters
+          const metadata: ProgressEventContext = {
+            interfaceId: context?.interfaceId || "mcp",
+            userId: context?.userId || "system",
+            roomId: context?.roomId,
+            progressToken: context?.progressToken,
+            pluginId: this.id,
+          };
+
           const batchId = await this.contentManager.generateAll(
-            { ...options, source: "plugin:site-builder" },
+            { ...options, source: "plugin:site-builder", metadata },
             routes,
             templateResolver,
             "site-content-preview",
@@ -457,14 +466,24 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .default(false)
             .describe("Optional: preview changes without executing"),
         },
-        async (input): Promise<Record<string, unknown>> => {
+        async (input, context): Promise<Record<string, unknown>> => {
           if (!this.siteOperations) {
             throw new Error("Site operations not initialized");
           }
 
           // Parse and validate input
           const options = PromoteOptionsSchema.parse(input);
-          const batchId = await this.siteOperations.promote(options);
+
+          // Create metadata from context
+          const metadata: ProgressEventContext = {
+            interfaceId: context?.interfaceId || "mcp",
+            userId: context?.userId || "system",
+            roomId: context?.roomId,
+            progressToken: context?.progressToken,
+            pluginId: this.id,
+          };
+
+          const batchId = await this.siteOperations.promote(options, metadata);
 
           return {
             status: "queued",
@@ -482,12 +501,21 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         "promote-all",
         "Promote all preview content to production",
         {},
-        async (): Promise<Record<string, unknown>> => {
+        async (_input, context): Promise<Record<string, unknown>> => {
           if (!this.siteOperations) {
             throw new Error("Site operations not initialized");
           }
 
-          const batchId = await this.siteOperations.promoteAll();
+          // Create metadata from context
+          const metadata: ProgressEventContext = {
+            interfaceId: context?.interfaceId || "mcp",
+            userId: context?.userId || "system",
+            roomId: context?.roomId,
+            progressToken: context?.progressToken,
+            pluginId: this.id,
+          };
+
+          const batchId = await this.siteOperations.promoteAll(metadata);
 
           return {
             status: "queued",
@@ -522,14 +550,24 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .default(false)
             .describe("Optional: preview changes without executing"),
         },
-        async (input): Promise<Record<string, unknown>> => {
+        async (input, context): Promise<Record<string, unknown>> => {
           if (!this.siteOperations) {
             throw new Error("Site operations not initialized");
           }
 
           // Parse and validate input
           const options = RollbackOptionsSchema.parse(input);
-          const batchId = await this.siteOperations.rollback(options);
+
+          // Create metadata from context
+          const metadata: ProgressEventContext = {
+            interfaceId: context?.interfaceId || "mcp",
+            userId: context?.userId || "system",
+            roomId: context?.roomId,
+            progressToken: context?.progressToken,
+            pluginId: this.id,
+          };
+
+          const batchId = await this.siteOperations.rollback(options, metadata);
 
           return {
             status: "queued",
@@ -547,12 +585,21 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         "rollback-all",
         "Remove all production content (rollback to preview-only)",
         {},
-        async (): Promise<Record<string, unknown>> => {
+        async (_input, context): Promise<Record<string, unknown>> => {
           if (!this.siteOperations) {
             throw new Error("Site operations not initialized");
           }
 
-          const batchId = await this.siteOperations.rollbackAll();
+          // Create metadata from context
+          const metadata: ProgressEventContext = {
+            interfaceId: context?.interfaceId || "mcp",
+            userId: context?.userId || "system",
+            roomId: context?.roomId,
+            progressToken: context?.progressToken,
+            pluginId: this.id,
+          };
+
+          const batchId = await this.siteOperations.rollbackAll(metadata);
 
           return {
             status: "queued",
@@ -631,7 +678,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .default(false)
             .describe("Preview changes without executing"),
         },
-        async (input): Promise<Record<string, unknown>> => {
+        async (input, context): Promise<Record<string, unknown>> => {
           if (!this.contentManager || !this.context) {
             throw new Error("Content manager not initialized");
           }
@@ -658,8 +705,16 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             return section.template;
           };
 
+          const metadata: ProgressEventContext = {
+            interfaceId: context?.interfaceId || "mcp",
+            userId: context?.userId || "system",
+            roomId: context?.roomId,
+            progressToken: context?.progressToken,
+            pluginId: this.id,
+          };
+
           const batchId = await this.contentManager.generateAll(
-            { ...options, source: "plugin:site-builder" },
+            { ...options, source: "plugin:site-builder", metadata },
             routes,
             templateResolver,
             "site-content-preview",
