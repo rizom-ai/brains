@@ -307,7 +307,6 @@ export class PluginTestHarness {
         _source: string,
         _metadata: ProgressEventContext,
         _options?: {
-          userId?: string;
           priority?: number;
           maxRetries?: number;
         },

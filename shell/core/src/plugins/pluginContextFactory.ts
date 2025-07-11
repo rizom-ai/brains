@@ -489,11 +489,10 @@ export class PluginContextFactory {
           options?: Record<string, unknown>;
         }>,
         source: string,
+        metadata: ProgressEventContext,
         options?: {
-          userId?: string;
           priority?: number;
           maxRetries?: number;
-          metadata?: Record<string, unknown>;
         },
       ): Promise<string> => {
         try {
@@ -502,15 +501,6 @@ export class PluginContextFactory {
             jobQueueService,
             this.logger,
           );
-
-          // Pass metadata directly if provided, expecting it to be ProgressEventContext
-          const metadata = options?.metadata as
-            | ProgressEventContext
-            | undefined;
-
-          if (!metadata) {
-            throw new Error("Metadata is required for batch operations");
-          }
 
           const batchOptions: { priority?: number; maxRetries?: number } = {};
           if (options?.priority !== undefined) {
