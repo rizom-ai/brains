@@ -312,16 +312,28 @@ Matrix has unique requirements that need special handling:
    - Immediate completion event emission
    - 400ms minimum display duration in UI
 
+4. **Phase 3.5: Remove IEventEmitter Abstraction** ✅
+   - Removed unnecessary IEventEmitter interface from JobProgressMonitor
+   - Pass MessageBus directly instead of through MessageBusAdapter
+   - Deleted MessageBusAdapter as it's no longer needed
+   - Updated JobProgressMonitor to call `messageBus.send()` directly
+   - Consistent with Phase 1 EventEmitter removal
+   - **Issue Discovered**: Current broadcast+target pattern is architecturally inconsistent
+
 ### 📋 To Do
 
-4. **Phase 3.5: Remove IEventEmitter Abstraction** (NEW)
-   - Remove unnecessary IEventEmitter interface from JobProgressMonitor
-   - Pass MessageBus directly instead of through MessageBusAdapter
-   - Delete MessageBusAdapter as it's no longer needed
-   - Update JobProgressMonitor to call `messageBus.send()` directly
-   - Consistent with Phase 1 EventEmitter removal
+5. **Phase 3.6: Fix Progress Event Routing Architecture** (NEW)
+   - **Problem**: Current pattern uses `broadcast=true` with specific `target`, which is contradictory
+   - **Root Cause**: Interfaces subscribe to all events then filter client-side instead of using MessageBus routing
+   - **Solution**: Update interface subscription patterns to use target filters (`cli:*`, `matrix:*`, etc.)
+   - **Changes Needed**:
+     - Update CLI interface to subscribe with `{ target: "cli:*" }` pattern
+     - Update Matrix interface to subscribe with `{ target: "matrix:*" }` pattern
+     - Remove client-side target filtering from interfaces
+     - Change JobProgressMonitor to use direct targeting (`broadcast=false`)
+   - **Benefits**: Better performance, clearer architecture, consistent with MessageBus design
 
-5. **Phase 4: UI Enhancements** (Previously Phase 5)
+6. **Phase 4: UI Enhancements** (Previously Phase 5)
    - Multi-line progress for batch operations
    - Show current operation details
    - ETA and rate display
@@ -334,11 +346,62 @@ Matrix has unique requirements that need special handling:
      - Show "Syncing: X/Y files" instead of individual file progress
      - Display current file being processed as subtitle
 
-6. **Phase 5: MCP Progress Integration** (Previously Phase 4)
+7. **Phase 5: MCP Progress Integration** (Previously Phase 4)
    - Enable MCP tools with progressToken to report progress
    - Integrate with existing job progress system
 
 ## Architecture Decisions
+
+### Progress Event Routing Pattern Issue (Discovered in Phase 3.5)
+
+During Phase 3.5, we discovered an architectural inconsistency in the progress event routing:
+
+**Current Pattern (Problematic)**:
+```typescript
+// JobProgressMonitor sends with contradictory parameters
+await this.messageBus.send(
+  "job-progress", 
+  event, 
+  "job-progress-monitor", 
+  target,     // specific target
+  undefined, 
+  true       // broadcast to all - contradictory!
+);
+
+// Interfaces subscribe to ALL events without target filter
+context.subscribe("job-progress", handler);
+
+// Then filter client-side
+if (target && !target.startsWith("cli:")) return;
+```
+
+**Problems**:
+- Broadcast + specific target is conceptually contradictory
+- All events go to all interfaces, then get filtered client-side
+- Inefficient and architecturally unclear
+- Goes against MessageBus design principles
+
+**Recommended Pattern**:
+```typescript
+// JobProgressMonitor sends with direct targeting
+await this.messageBus.send(
+  "job-progress", 
+  event, 
+  "job-progress-monitor", 
+  target,     // specific target
+  undefined, 
+  false       // direct targeting, not broadcast
+);
+
+// Interfaces subscribe with target patterns
+context.subscribe("job-progress", handler, { target: "cli:*" });
+```
+
+**Benefits**:
+- Events only go where they're needed (performance)
+- Clear, intuitive routing semantics
+- Consistent with MessageBus design
+- Easier to debug and understand
 
 ### Why Remove EventEmitter First
 
