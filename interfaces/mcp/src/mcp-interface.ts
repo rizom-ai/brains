@@ -145,7 +145,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
         const userId = extra._meta?.["userId"];
         const roomId = extra._meta?.["roomId"];
         const progressToken = extra._meta?.progressToken;
-        
+
         // Log metadata for debugging
         this.logger.debug("MCP client metadata", {
           tool: `${pluginId}:${tool.name}`,
@@ -160,7 +160,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
           if (!this.context) {
             throw new Error("Plugin context not initialized");
           }
-          
+
           const response = await this.context.sendMessage(
             `plugin:${pluginId}:tool:execute`,
             {

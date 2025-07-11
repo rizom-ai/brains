@@ -358,7 +358,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           jobMetadata: job.metadata,
           progressInfo,
         });
-        
+
         const event: JobProgressEvent = {
           id: job.id,
           type: "job",

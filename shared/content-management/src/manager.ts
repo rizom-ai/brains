@@ -339,7 +339,7 @@ export class ContentManager {
     targetEntityType: SiteContentEntityType,
     siteConfig?: Record<string, unknown>,
   ): Promise<string> {
-    this.logger.info("Starting batch async content generation", { options });
+    this.logger.debug("Starting batch async content generation", { options });
 
     const operations: Array<{
       type: string;
@@ -428,7 +428,7 @@ export class ContentManager {
       batchOptions,
     );
 
-    this.logger.info("Batch content generation queued", {
+    this.logger.debug("Batch content generation queued", {
       batchId,
       operationCount: operations.length,
     });
@@ -475,7 +475,7 @@ export class ContentManager {
       batchOptions,
     );
 
-    this.logger.info("Batch promotion queued", {
+    this.logger.debug("Batch promotion queued", {
       batchId,
       entityCount: previewIds.length,
     });
@@ -522,7 +522,7 @@ export class ContentManager {
       batchOptions,
     );
 
-    this.logger.info("Batch rollback queued", {
+    this.logger.debug("Batch rollback queued", {
       batchId,
       entityCount: productionIds.length,
     });
