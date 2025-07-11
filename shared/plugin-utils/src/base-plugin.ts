@@ -4,11 +4,13 @@ import type {
   PluginCapabilities,
   PluginTool,
   PluginResource,
+  ToolContext,
 } from "./interfaces";
 import {
   Logger,
   type UserPermissionLevel,
   type ProgressNotification,
+  ProgressReporter,
 } from "@brains/utils";
 import { z } from "zod";
 
@@ -18,6 +20,10 @@ const toolExecuteRequestSchema = z.object({
   args: z.unknown(),
   progressToken: z.union([z.string(), z.number()]).optional(),
   hasProgress: z.boolean().optional(),
+  // Routing metadata
+  interfaceId: z.string().optional(),
+  userId: z.string().optional(),
+  roomId: z.string().optional(),
 });
 
 const resourceGetRequestSchema = z.object({
@@ -85,8 +91,15 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
     context.subscribe(`plugin:${this.id}:tool:execute`, async (message) => {
       try {
         // Validate and parse the message payload
-        const { toolName, args, progressToken, hasProgress } =
-          toolExecuteRequestSchema.parse(message.payload);
+        const {
+          toolName,
+          args,
+          progressToken,
+          hasProgress,
+          interfaceId,
+          userId,
+          roomId,
+        } = toolExecuteRequestSchema.parse(message.payload);
 
         const tools = await this.getTools();
         const tool = tools.find((t) => t.name === toolName);
@@ -98,8 +111,8 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
           };
         }
 
-        // Create context with progress callback if progress is supported
-        let toolContext;
+        // Create context with progress callback and routing metadata
+        let toolContext: ToolContext | undefined;
         if (hasProgress && progressToken !== undefined) {
           toolContext = {
             progressToken,
@@ -113,6 +126,16 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
               });
             },
           };
+          // Add routing metadata only if present
+          if (interfaceId) toolContext.interfaceId = interfaceId;
+          if (userId) toolContext.userId = userId;
+          if (roomId) toolContext.roomId = roomId;
+        } else if (interfaceId || userId || roomId) {
+          // Even without progress, include routing metadata if provided
+          toolContext = {};
+          if (interfaceId) toolContext.interfaceId = interfaceId;
+          if (userId) toolContext.userId = userId;
+          if (roomId) toolContext.roomId = roomId;
         }
 
         // Execute the tool with optional context
@@ -341,5 +364,30 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
    */
   public determineUserPermissionLevel(_userId: string): UserPermissionLevel {
     return "public";
+  }
+
+  /**
+   * Create a progress bridge that converts job queue ProgressReporter to MCP progress events
+   * Used by job-based tools to report progress via MCP progressToken
+   */
+  protected createProgressBridge(
+    progressToken?: string | number,
+  ): ProgressReporter | undefined {
+    if (!progressToken) return undefined;
+
+    const context = this.context;
+    if (!context) return undefined;
+
+    const pluginId = this.id;
+    return ProgressReporter.from(async (notification: ProgressNotification) => {
+      await context.sendMessage(`plugin:${pluginId}:progress`, {
+        progressToken,
+        notification: {
+          progress: notification.progress,
+          total: notification.total,
+          message: notification.message,
+        },
+      });
+    });
   }
 }

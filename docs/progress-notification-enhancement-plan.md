@@ -270,7 +270,8 @@ Matrix has unique requirements that need special handling:
 
 **Goal**: Enable MCP tools with progressToken to report progress.
 
-**Current State**: 
+**Current State**:
+
 - MCP interface already subscribes to `plugin:*:progress` events and forwards to MCP clients ✅
 - BasePlugin provides `sendProgress` callback to tools when `progressToken` is present ✅
 - **Gap**: Job-based tools can't report progress via MCP progressToken
@@ -283,7 +284,7 @@ Matrix has unique requirements that need special handling:
    // In BasePlugin - create a bridge for job-based tools
    protected createProgressBridge(progressToken?: string | number): IProgressReporter | undefined {
      if (!progressToken || !this.context) return undefined;
-     
+
      return ProgressReporter.from(async (notification) => {
        await this.context!.sendMessage(`plugin:${this.id}:progress`, {
          progressToken,
@@ -303,13 +304,13 @@ Matrix has unique requirements that need special handling:
    // In tool handler
    async (input, context) => {
      const progressReporter = this.createProgressBridge(context?.progressToken);
-     
+
      const jobId = await this.context.enqueueJob("job-type", data, {
        progressReporter, // Pass to job handler
      });
-     
+
      return { status: "queued", jobId };
-   }
+   };
    ```
 
 3. Enhance job handlers to accept optional progressReporter:
@@ -396,70 +397,106 @@ Matrix has unique requirements that need special handling:
 7. **Phase 5: MCP Progress Integration**
    - **Current State**:
      - MCP interface already handles `progressToken` and forwards progress to clients ✅
-     - BasePlugin provides `sendProgress` callback when `progressToken` present ✅ 
+     - BasePlugin provides `sendProgress` callback when `progressToken` present ✅
+     - Tools receive routing metadata (`interfaceId`, `userId`, `roomId`) ✅
      - **Gap**: Job-based tools can't report progress via MCP `progressToken`
-     - **Critical Gap**: Tools don't receive routing metadata (`interfaceId`, `userId`, `roomId`)
-   - **Implementation Needed**:
-     
-     a) **Extend tool context with routing metadata**:
+     - **Key Insight**: All tools that need progress tracking are job-based (no synchronous tools need progress)
+   - **Simplified Implementation**:
+
+     a) **MCP subscribes to job-progress events**:
+
      ```typescript
-     interface ToolContext {
-       progressToken?: string | number;
-       sendProgress?: (notification: ProgressNotification) => Promise<void>;
-       // NEW: Routing metadata
-       interfaceId?: string;     // Which interface called the tool
-       userId?: string;          // User who invoked the tool
-       roomId?: string;          // Channel/room context (for Matrix, etc.)
-     }
-     ```
-     
-     b) **MCP interface must pass routing context**:
-     ```typescript
-     // In MCP interface tool registration
-     const response = await context.sendMessage(`plugin:${pluginId}:tool:execute`, {
-       toolName: tool.name,
-       args: params,
-       progressToken,
-       hasProgress,
-       // NEW: Include routing metadata
-       interfaceId: "mcp",
-       userId: extractUserId(extra),    // Need to determine from MCP context
-       roomId: extractRoomId(extra),    // Optional, may not apply to MCP
+     // In MCP's onRegister method
+     context.subscribe("job-progress", async (message) => {
+       const event = message.payload as JobProgressEvent;
+
+       // Check if this job has an active MCP progress subscription
+       const progressToken = event.metadata?.progressToken;
+       if (progressToken && this.activeProgressTokens.has(progressToken)) {
+         // Transform job progress to MCP format and send to client
+         await this.sendProgressToClient(progressToken, {
+           progress: event.progress?.current,
+           total: event.progress?.total,
+           message: event.message || event.operation,
+         });
+       }
+
+       return { noop: true };
      });
      ```
-     
-     c) **BasePlugin forwards metadata to tool handlers**:
+
+     b) **Track active progressTokens**:
+
      ```typescript
-     // In BasePlugin tool:execute handler
-     const toolContext = {
-       progressToken,
-       sendProgress: /* ... */,
-       interfaceId: message.payload.interfaceId,
-       userId: message.payload.userId,
-       roomId: message.payload.roomId,
-     };
+     // When tool is called with progressToken
+     if (progressToken) {
+       this.activeProgressTokens.add(progressToken);
+     }
+
+     // When tool completes or aborts
+     this.activeProgressTokens.delete(progressToken);
      ```
-     
-     d) **Tools use metadata for job creation**:
+
+     c) **Tools already pass progressToken in job metadata**:
+
      ```typescript
-     // In tool handler
+     // Existing pattern in tools
      const jobId = await this.context.enqueueJob("job-type", data, {
-       source: `${context?.interfaceId}:${context?.roomId || "default"}`,
        metadata: {
-         interfaceId: context?.interfaceId || "unknown",
-         userId: context?.userId || "unknown", 
+         progressToken: context?.progressToken,
+         interfaceId: context?.interfaceId,
+         userId: context?.userId,
          roomId: context?.roomId,
        },
-       progressReporter, // Bridge for MCP progress
      });
      ```
-     
+
    - **Benefits**:
-     - Unified progress reporting for all tool types
-     - MCP clients see real-time progress from async job operations
-     - Progress events properly routed to originating interface
-     - Maintains user context throughout async operations
-     - Backward compatible - all changes are additive
+     - Zero changes to JobProgressMonitor or tools
+     - Reuses existing job-progress infrastructure
+     - Single event stream for all progress
+     - Simple mental model
+     - Backward compatible
+
+8. **Phase 6: Clean up unused progress infrastructure**
+   - **Current State**:
+     - `plugin:${pluginId}:progress` channel exists but is unused (all progress goes through job-progress)
+     - `context.sendProgress` callback in tools is unused
+     - BasePlugin has progress event handling that's never triggered
+   - **Cleanup Tasks**:
+
+     a) **Remove unused progress subscription in MCP**:
+
+     ```typescript
+     // Remove this entire block from MCP tool handler
+     unsubscribe = this.context.subscribe(
+       `plugin:${pluginId}:progress`,
+       async (message) => { ... }
+     );
+     ```
+
+     b) **Simplify BasePlugin tool context**:
+
+     ```typescript
+     // Remove sendProgress when no progressToken
+     const toolContext = {
+       progressToken,
+       // Remove: sendProgress callback
+       interfaceId,
+       userId,
+       roomId,
+     };
+     ```
+
+     c) **Remove progressMessageSchema** from MCP interface
+
+     d) **Update documentation** to reflect that all progress goes through job-progress
+
+   - **Benefits**:
+     - Simpler codebase
+     - Less confusion about progress flow
+     - Smaller message bus traffic
+     - Clear architectural pattern: all async operations use jobs
 
 ## Architecture Decisions
 

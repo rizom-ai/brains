@@ -71,19 +71,28 @@ export interface Daemon {
 export type ToolVisibility = UserPermissionLevel;
 
 /**
+ * Tool execution context
+ * Provides progress reporting and routing metadata
+ */
+export interface ToolContext {
+  // Progress reporting
+  progressToken?: string | number;
+  sendProgress?: (notification: ProgressNotification) => Promise<void>;
+
+  // Routing metadata for job creation
+  interfaceId?: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
+  userId?: string; // User who invoked the tool
+  roomId?: string; // Channel/room context (for Matrix, etc.)
+}
+
+/**
  * Plugin tool definition
  */
 export interface PluginTool {
   name: string;
   description: string;
   inputSchema: ZodRawShape; // Same type as MCP expects
-  handler: (
-    input: unknown,
-    context?: {
-      progressToken?: string | number;
-      sendProgress?: (notification: ProgressNotification) => Promise<void>;
-    },
-  ) => Promise<unknown>;
+  handler: (input: unknown, context?: ToolContext) => Promise<unknown>;
   visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
 }
 

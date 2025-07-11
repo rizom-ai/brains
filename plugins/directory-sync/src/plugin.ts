@@ -112,7 +112,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
         "sync",
         "Synchronize all entities with directory (async)",
         {},
-        async (_input: unknown): Promise<unknown> => {
+        async (_input: unknown, context): Promise<unknown> => {
           if (!this.directorySync || !this.pluginContext) {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
@@ -121,14 +121,27 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
             );
           }
 
-          // Queue both export and import operations
+          // Determine source string based on context
+          const source =
+            context?.interfaceId && context?.roomId
+              ? `${context.interfaceId}:${context.roomId}`
+              : "plugin:directory-sync";
+
+          // Queue both export and import operations with routing metadata
           const exportJobId = await this.pluginContext.enqueueJob(
             "directory-export",
             {
               batchSize: 100,
             },
             {
-              source: "plugin:directory-sync",
+              source,
+              metadata: {
+                interfaceId: context?.interfaceId,
+                userId: context?.userId,
+                roomId: context?.roomId,
+                progressToken: context?.progressToken,
+                pluginId: this.id,
+              },
             },
           );
 
@@ -138,7 +151,14 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
               batchSize: 100,
             },
             {
-              source: "plugin:directory-sync",
+              source,
+              metadata: {
+                interfaceId: context?.interfaceId,
+                userId: context?.userId,
+                roomId: context?.roomId,
+                progressToken: context?.progressToken,
+                pluginId: this.id,
+              },
             },
           );
 
