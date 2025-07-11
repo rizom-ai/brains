@@ -379,9 +379,28 @@ Matrix has unique requirements that need special handling:
      - All interfaces filter by `interfaceId` in metadata
      - Fixed MessageBus test types to handle new response variant
 
+6. **Phase 5: MCP Progress Integration** ✅
+   - **Discovered**: MCP's HTTP transport fundamentally cannot support async progress notifications
+   - **Root Cause**: HTTP request-response lifecycle closes connection after tool response
+   - **Investigation Results**:
+     - MCP SDK tries to send notifications after connection is closed
+     - Results in "No connection established for request ID" errors
+     - This is a protocol-level limitation, not a bug in our implementation
+   - **Resolution**:
+     - Removed all MCP-specific progress notification code (~150 lines)
+     - Removed activeProgressHandlers map and related handler management
+     - Simplified setupJobProgressListener to only log for debugging
+     - Removed progress handler setup from tool registration
+     - Cleaned up stop method
+   - **Current State**:
+     - MCP can still receive immediate tool responses with jobId/batchId
+     - Progress events are still emitted but MCP can't forward them to clients
+     - Other interfaces (CLI, Matrix) continue to work perfectly
+   - **Conclusion**: MCP progress integration is complete as far as technically possible given protocol limitations
+
 ### 📋 To Do
 
-6. **Phase 4: UI Enhancements**
+7. **Phase 4: UI Enhancements**
    - Multi-line progress for batch operations
    - Show current operation details
    - ETA and rate display
@@ -393,70 +412,6 @@ Matrix has unique requirements that need special handling:
      - Directory sync emits batch events with total file count
      - Show "Syncing: X/Y files" instead of individual file progress
      - Display current file being processed as subtitle
-
-7. **Phase 5: MCP Progress Integration**
-   - **Current State**:
-     - MCP interface already handles `progressToken` and forwards progress to clients ✅
-     - BasePlugin provides `sendProgress` callback when `progressToken` present ✅
-     - Tools receive routing metadata (`interfaceId`, `userId`, `roomId`) ✅
-     - **Gap**: Job-based tools can't report progress via MCP `progressToken`
-     - **Key Insight**: All tools that need progress tracking are job-based (no synchronous tools need progress)
-   - **Simplified Implementation**:
-
-     a) **MCP subscribes to job-progress events**:
-
-     ```typescript
-     // In MCP's onRegister method
-     context.subscribe("job-progress", async (message) => {
-       const event = message.payload as JobProgressEvent;
-
-       // Check if this job has an active MCP progress subscription
-       const progressToken = event.metadata?.progressToken;
-       if (progressToken && this.activeProgressTokens.has(progressToken)) {
-         // Transform job progress to MCP format and send to client
-         await this.sendProgressToClient(progressToken, {
-           progress: event.progress?.current,
-           total: event.progress?.total,
-           message: event.message || event.operation,
-         });
-       }
-
-       return { noop: true };
-     });
-     ```
-
-     b) **Track active progressTokens**:
-
-     ```typescript
-     // When tool is called with progressToken
-     if (progressToken) {
-       this.activeProgressTokens.add(progressToken);
-     }
-
-     // When tool completes or aborts
-     this.activeProgressTokens.delete(progressToken);
-     ```
-
-     c) **Tools already pass progressToken in job metadata**:
-
-     ```typescript
-     // Existing pattern in tools
-     const jobId = await this.context.enqueueJob("job-type", data, {
-       metadata: {
-         progressToken: context?.progressToken,
-         interfaceId: context?.interfaceId,
-         userId: context?.userId,
-         roomId: context?.roomId,
-       },
-     });
-     ```
-
-   - **Benefits**:
-     - Zero changes to JobProgressMonitor or tools
-     - Reuses existing job-progress infrastructure
-     - Single event stream for all progress
-     - Simple mental model
-     - Backward compatible
 
 8. **Phase 6: Clean up unused progress infrastructure**
    - **Current State**:
