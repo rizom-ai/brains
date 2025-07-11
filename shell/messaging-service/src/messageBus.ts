@@ -115,7 +115,7 @@ export class MessageBus implements IMessageBus {
     if (handlers) {
       handlers.add(entry);
     }
-    this.logger.info(`Registered handler for message type: ${type}`, {
+    this.logger.debug(`Registered handler for message type: ${type}`, {
       hasFilter: !!filter,
       filterTarget: filter?.target,
     });
