@@ -4,9 +4,7 @@ export { BatchJobManager } from "./batch-job-manager";
 export {
   JobProgressMonitor,
   type JobProgressEvent,
-  type IEventEmitter,
 } from "./job-progress-monitor";
-export { MessageBusAdapter } from "./message-bus-adapter";
 export type {
   JobQueueWorkerConfig,
   JobQueueWorkerStats,

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { JobProgressMonitor } from "../src/job-progress-monitor";
 import type { IJobQueueService } from "../src/types";
 import type { BatchJobManager } from "../src/batch-job-manager";
-import type { IEventEmitter } from "../src/job-progress-monitor";
+import type { MessageBus } from "@brains/messaging-service";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { JobQueue } from "@brains/db";
 import type { BatchJobStatus } from "../src/schemas";
@@ -11,7 +11,7 @@ describe("JobProgressMonitor", () => {
   let monitor: JobProgressMonitor;
   let mockJobQueueService: IJobQueueService;
   let mockBatchJobManager: BatchJobManager;
-  let mockEventEmitter: IEventEmitter;
+  let mockMessageBus: MessageBus;
   let mockLogger: Logger;
 
   beforeEach(() => {
@@ -46,11 +46,20 @@ describe("JobProgressMonitor", () => {
       getBatchStatus: mock(() => Promise.resolve(null)),
       getActiveBatches: mock(() => Promise.resolve([])),
       cleanup: mock(() => Promise.resolve(0)),
+      getInstance: mock(() => mockBatchJobManager),
+      resetInstance: mock(() => {}),
+      createFresh: mock(() => mockBatchJobManager),
     } as unknown as BatchJobManager;
 
-    mockEventEmitter = {
+    mockMessageBus = {
       send: mock(() => Promise.resolve()),
-    };
+      subscribe: mock(() => () => {}),
+      unsubscribe: mock(() => {}),
+      unsubscribeAll: mock(() => {}),
+      getInstance: mock(() => mockMessageBus),
+      resetInstance: mock(() => {}),
+      createFresh: mock(() => mockMessageBus),
+    } as unknown as MessageBus;
 
     mockLogger = createSilentLogger();
 
@@ -60,7 +69,7 @@ describe("JobProgressMonitor", () => {
     monitor = JobProgressMonitor.createFresh(
       mockJobQueueService,
       mockBatchJobManager,
-      mockEventEmitter,
+      mockMessageBus,
       mockLogger,
     );
   });
@@ -127,7 +136,7 @@ describe("JobProgressMonitor", () => {
       // Wait a bit for the first check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(mockEventEmitter.send).toHaveBeenCalledWith(
+      expect(mockMessageBus.send).toHaveBeenCalledWith(
         "job-progress",
         {
           id: "job-123",
@@ -141,7 +150,10 @@ describe("JobProgressMonitor", () => {
             retryCount: 0,
           },
         },
+        "job-progress-monitor", // source
         undefined, // target is undefined since job has no source
+        undefined, // metadata
+        true, // broadcast
       );
     });
 
@@ -170,13 +182,16 @@ describe("JobProgressMonitor", () => {
       // Wait for check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(mockEventEmitter.send).toHaveBeenCalledWith(
+      expect(mockMessageBus.send).toHaveBeenCalledWith(
         "job-progress",
         expect.objectContaining({
           id: "job-789",
           type: "job",
         }),
+        "job-progress-monitor", // source
         "matrix:room123", // Target should be the job's source
+        undefined, // metadata
+        true, // broadcast
       );
     });
   });
@@ -210,7 +225,7 @@ describe("JobProgressMonitor", () => {
       // Wait for the first check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(mockEventEmitter.send).toHaveBeenCalledWith(
+      expect(mockMessageBus.send).toHaveBeenCalledWith(
         "job-progress",
         {
           id: "batch-456",
@@ -230,7 +245,10 @@ describe("JobProgressMonitor", () => {
             percentage: 30,
           },
         },
+        "job-progress-monitor", // source
         undefined, // target is undefined since batch metadata has no source
+        undefined, // metadata
+        true, // broadcast
       );
     });
 
@@ -251,7 +269,7 @@ describe("JobProgressMonitor", () => {
       monitor.start();
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      const call = (mockEventEmitter.send as any).mock.calls[0];
+      const call = (mockMessageBus.send as any).mock.calls[0];
       expect(call[1].progress.percentage).toBe(75);
     });
 
@@ -274,13 +292,16 @@ describe("JobProgressMonitor", () => {
       // Wait for check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(mockEventEmitter.send).toHaveBeenCalledWith(
+      expect(mockMessageBus.send).toHaveBeenCalledWith(
         "job-progress",
         expect.objectContaining({
           id: "batch-789",
           type: "batch",
         }),
+        "job-progress-monitor", // source
         "cli:interactive", // Target should be the batch's source
+        undefined, // metadata
+        true, // broadcast
       );
     });
   });
@@ -301,7 +322,7 @@ describe("JobProgressMonitor", () => {
     });
 
     it("should handle errors when emitting events", async () => {
-      (mockEventEmitter.send as any).mockRejectedValue(
+      (mockMessageBus.send as any).mockRejectedValue(
         new Error("Event bus error"),
       );
 
@@ -336,14 +357,14 @@ describe("JobProgressMonitor", () => {
       const instance1 = JobProgressMonitor.getInstance(
         mockJobQueueService,
         mockBatchJobManager,
-        mockEventEmitter,
+        mockMessageBus,
         mockLogger,
       );
 
       const instance2 = JobProgressMonitor.getInstance(
         mockJobQueueService,
         mockBatchJobManager,
-        mockEventEmitter,
+        mockMessageBus,
         mockLogger,
       );
 
@@ -354,7 +375,7 @@ describe("JobProgressMonitor", () => {
       const instance1 = JobProgressMonitor.getInstance(
         mockJobQueueService,
         mockBatchJobManager,
-        mockEventEmitter,
+        mockMessageBus,
         mockLogger,
       );
 
@@ -363,7 +384,7 @@ describe("JobProgressMonitor", () => {
       const instance2 = JobProgressMonitor.getInstance(
         mockJobQueueService,
         mockBatchJobManager,
-        mockEventEmitter,
+        mockMessageBus,
         mockLogger,
       );
 
@@ -411,7 +432,7 @@ describe("JobProgressMonitor", () => {
       await new Promise((resolve) => setTimeout(resolve, 600));
 
       // Verify final completion event was emitted with correct target
-      const completionCalls = (mockEventEmitter.send as any).mock.calls.filter(
+      const completionCalls = (mockMessageBus.send as any).mock.calls.filter(
         (call: any) => call[1].status === "completed",
       );
 
@@ -427,7 +448,10 @@ describe("JobProgressMonitor", () => {
             totalOperations: 2,
           }),
         }),
+        "job-progress-monitor", // source
         "matrix:!testroom:example.com", // Target should be preserved from cache
+        undefined, // metadata
+        true, // broadcast
       ]);
     });
 
@@ -450,7 +474,7 @@ describe("JobProgressMonitor", () => {
       await new Promise((resolve) => setTimeout(resolve, 600));
 
       // Should not emit any events for unknown batches
-      expect(mockEventEmitter.send).not.toHaveBeenCalled();
+      expect(mockMessageBus.send).not.toHaveBeenCalled();
     });
 
     it("should clean up batch metadata cache after completion", async () => {
@@ -500,13 +524,13 @@ describe("JobProgressMonitor", () => {
       });
 
       // Reset mock calls
-      (mockEventEmitter.send as any).mockClear();
+      (mockMessageBus.send as any).mockClear();
 
       // Wait for another check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
       // Should not emit events for cleaned up batches
-      expect(mockEventEmitter.send).not.toHaveBeenCalled();
+      expect(mockMessageBus.send).not.toHaveBeenCalled();
     });
 
     it("should handle multiple batches with different sources correctly", async () => {
@@ -577,7 +601,7 @@ describe("JobProgressMonitor", () => {
       await new Promise((resolve) => setTimeout(resolve, 600));
 
       // Verify both completion events were emitted with correct targets
-      const completionCalls = (mockEventEmitter.send as any).mock.calls.filter(
+      const completionCalls = (mockMessageBus.send as any).mock.calls.filter(
         (call: any) => call[1].status === "completed",
       );
 
@@ -590,8 +614,8 @@ describe("JobProgressMonitor", () => {
         (call: any) => call[1].id === "batch-cli",
       );
 
-      expect(matrixCall[2]).toBe("matrix:!room1:example.com");
-      expect(cliCall[2]).toBe("cli:session-123");
+      expect(matrixCall[3]).toBe("matrix:!room1:example.com"); // target is at index 3
+      expect(cliCall[3]).toBe("cli:session-123"); // target is at index 3
     });
   });
 });

@@ -4,6 +4,7 @@ import type {
   IJobProgressMonitor,
   ProgressNotification,
 } from "@brains/utils";
+import type { MessageBus } from "@brains/messaging-service";
 import type { IJobQueueService } from "./types";
 import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
@@ -15,13 +16,6 @@ import type { JobProgressEventSchema } from "./schemas";
  * Progress event emitted by the monitor
  */
 export type JobProgressEvent = z.infer<typeof JobProgressEventSchema>;
-
-/**
- * Event emitter interface required by the monitor
- */
-export interface IEventEmitter {
-  send(event: string, data: unknown, target?: string): Promise<void>;
-}
 
 /**
  * Internal job progress tracking data
@@ -65,13 +59,13 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   public static getInstance(
     jobQueueService: IJobQueueService,
     batchJobManager: BatchJobManager,
-    eventEmitter: IEventEmitter,
+    messageBus: MessageBus,
     logger: Logger,
   ): JobProgressMonitor {
     JobProgressMonitor.instance ??= new JobProgressMonitor(
       jobQueueService,
       batchJobManager,
-      eventEmitter,
+      messageBus,
       logger,
     );
     return JobProgressMonitor.instance;
@@ -93,13 +87,13 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   public static createFresh(
     jobQueueService: IJobQueueService,
     batchJobManager: BatchJobManager,
-    eventEmitter: IEventEmitter,
+    messageBus: MessageBus,
     logger: Logger,
   ): JobProgressMonitor {
     return new JobProgressMonitor(
       jobQueueService,
       batchJobManager,
-      eventEmitter,
+      messageBus,
       logger,
     );
   }
@@ -110,7 +104,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   private constructor(
     private jobQueueService: IJobQueueService,
     private batchJobManager: BatchJobManager,
-    private eventEmitter: IEventEmitter,
+    private messageBus: MessageBus,
     private logger: Logger,
   ) {}
 
@@ -377,7 +371,14 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         // Extract source from job and use as target for the event
         const target = job.source ?? undefined;
 
-        await this.eventEmitter.send("job-progress", event, target);
+        await this.messageBus.send(
+          "job-progress",
+          event,
+          "job-progress-monitor",
+          target,
+          undefined,
+          true, // broadcast to all matching handlers
+        );
 
         this.logger.debug("Emitted job progress update", {
           jobId: job.id,
@@ -450,7 +451,14 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           batchMetadata?.metadata.source ??
           this.batchMetadataCache.get(batchId);
 
-        await this.eventEmitter.send("job-progress", event, target);
+        await this.messageBus.send(
+          "job-progress",
+          event,
+          "job-progress-monitor",
+          target,
+          undefined,
+          true, // broadcast to all matching handlers
+        );
 
         this.logger.debug("Emitted batch progress update", {
           batchId,
@@ -496,7 +504,14 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       const job = await this.jobQueueService.getStatus(jobId);
       const target = job?.source ?? undefined;
 
-      await this.eventEmitter.send("job-progress", event, target);
+      await this.messageBus.send(
+        "job-progress",
+        event,
+        "job-progress-monitor",
+        target,
+        undefined,
+        true, // broadcast to all matching handlers
+      );
     } catch (error) {
       this.logger.error("Error emitting immediate job progress", {
         jobId,
@@ -587,10 +602,13 @@ export class JobProgressMonitor implements IJobProgressMonitor {
             retryCount: job.retryCount,
           },
         };
-        await this.eventEmitter.send(
+        await this.messageBus.send(
           "job-progress",
           finalProgressEvent,
+          "job-progress-monitor",
           target,
+          undefined,
+          true, // broadcast to all matching handlers
         );
 
         // Delay to ensure the progress event is displayed
@@ -610,7 +628,14 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         },
       };
 
-      await this.eventEmitter.send("job-progress", completionEvent, target);
+      await this.messageBus.send(
+        "job-progress",
+        completionEvent,
+        "job-progress-monitor",
+        target,
+        undefined,
+        true, // broadcast to all matching handlers
+      );
 
       // Clean up tracking data
       this.lastJobStates.delete(jobId);
@@ -655,7 +680,14 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       };
 
       const target = job.source ?? undefined;
-      await this.eventEmitter.send("job-progress", event, target);
+      await this.messageBus.send(
+        "job-progress",
+        event,
+        "job-progress-monitor",
+        target,
+        undefined,
+        true, // broadcast to all matching handlers
+      );
 
       // Clean up tracking data
       this.lastJobStates.delete(jobId);

@@ -13,7 +13,6 @@ import {
   JobQueueWorker,
   BatchJobManager,
   JobProgressMonitor,
-  MessageBusAdapter,
   type BatchJobStatus,
 } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
@@ -285,21 +284,17 @@ export class Shell {
       "jobQueueService",
       () => this.jobQueueService,
     );
-    // Initialize JobProgressMonitor with MessageBus adapter
+    // Initialize JobProgressMonitor with MessageBus directly
     const batchJobManager = BatchJobManager.getInstance(
       this.jobQueueService,
       this.logger,
-    );
-    const messageBusAdapter = new MessageBusAdapter(
-      this.messageBus,
-      "job-progress-monitor",
     );
     this.jobProgressMonitor =
       dependencies?.jobProgressMonitor ??
       JobProgressMonitor.getInstance(
         this.jobQueueService,
         batchJobManager,
-        messageBusAdapter,
+        this.messageBus,
         this.logger,
       );
     this.serviceRegistry.register(
