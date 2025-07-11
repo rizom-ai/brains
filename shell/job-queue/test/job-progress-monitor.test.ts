@@ -187,7 +187,11 @@ describe("JobProgressMonitor", () => {
         expect.objectContaining({
           id: "job-789",
           type: "job",
-          metadata: { roomId: "room123", interfaceId: "test", userId: "user123" },
+          metadata: {
+            roomId: "room123",
+            interfaceId: "test",
+            userId: "user123",
+          },
         }),
         "job-progress-monitor", // source
         undefined, // no target - use metadata for routing
@@ -284,7 +288,11 @@ describe("JobProgressMonitor", () => {
             operations: [],
             source: "cli:interactive", // Batch has a source
             startedAt: new Date().toISOString(),
-            metadata: { roomId: "interactive", interfaceId: "test", userId: "user123" }, // Batch has roomId in metadata
+            metadata: {
+              roomId: "interactive",
+              interfaceId: "test",
+              userId: "user123",
+            }, // Batch has roomId in metadata
           },
         },
       ]);
@@ -299,7 +307,11 @@ describe("JobProgressMonitor", () => {
         expect.objectContaining({
           id: "batch-789",
           type: "batch",
-          metadata: { roomId: "interactive", interfaceId: "test", userId: "user123" },
+          metadata: {
+            roomId: "interactive",
+            interfaceId: "test",
+            userId: "user123",
+          },
         }),
         "job-progress-monitor", // source
         undefined, // no target - use metadata for routing
@@ -413,7 +425,11 @@ describe("JobProgressMonitor", () => {
               operations: [],
               source: "matrix:!testroom:example.com",
               startedAt: new Date().toISOString(),
-              metadata: { roomId: "!testroom:example.com", interfaceId: "test", userId: "user123" },
+              metadata: {
+                roomId: "!testroom:example.com",
+                interfaceId: "test",
+                userId: "user123",
+              },
             },
           },
         ])
@@ -447,7 +463,11 @@ describe("JobProgressMonitor", () => {
           id: "batch-123",
           type: "batch",
           status: "completed",
-          metadata: { roomId: "!testroom:example.com", interfaceId: "test", userId: "user123" },
+          metadata: {
+            roomId: "!testroom:example.com",
+            interfaceId: "test",
+            userId: "user123",
+          },
           batchDetails: expect.objectContaining({
             completedOperations: 2,
             totalOperations: 2,
@@ -499,7 +519,11 @@ describe("JobProgressMonitor", () => {
               operations: [],
               source: "cli:test",
               startedAt: new Date().toISOString(),
-              metadata: { roomId: "test", interfaceId: "test", userId: "user123" },
+              metadata: {
+                roomId: "test",
+                interfaceId: "test",
+                userId: "user123",
+              },
             },
           },
         ])
@@ -562,7 +586,11 @@ describe("JobProgressMonitor", () => {
               operations: [],
               source: "matrix:!room1:example.com",
               startedAt: new Date().toISOString(),
-              metadata: { roomId: "!room1:example.com", interfaceId: "test", userId: "user123" },
+              metadata: {
+                roomId: "!room1:example.com",
+                interfaceId: "test",
+                userId: "user123",
+              },
             },
           },
           {
@@ -572,7 +600,11 @@ describe("JobProgressMonitor", () => {
               operations: [],
               source: "cli:session-123",
               startedAt: new Date().toISOString(),
-              metadata: { roomId: "session-123", interfaceId: "test", userId: "user123" },
+              metadata: {
+                roomId: "session-123",
+                interfaceId: "test",
+                userId: "user123",
+              },
             },
           },
         ])

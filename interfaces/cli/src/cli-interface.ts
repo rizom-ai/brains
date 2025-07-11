@@ -7,7 +7,7 @@ import type { MessageContext, PluginContext } from "@brains/plugin-utils";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { DefaultQueryResponse } from "@brains/types";
 import type { Instance } from "ink";
-import type { JobProgressEvent } from "@brains/job-queue";
+import type { JobProgressEvent, ProgressEventContext } from "@brains/job-queue";
 import type { CLIConfig, CLIConfigInput } from "./types";
 import { cliConfigSchema } from "./types";
 import packageJson from "../package.json";
@@ -185,29 +185,29 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
         return; // Event not from CLI interface
       }
 
-    // Only show progress for jobs that are actively processing
-    if (progressEvent.status === "processing") {
-      // Add/update processing event
-      this.progressEvents = this.progressReducer(this.progressEvents, {
-        type: "UPDATE_PROGRESS",
-        payload: progressEvent,
-      });
-    } else {
-      // Remove any non-processing events (pending, completed, failed)
-      this.progressEvents = this.progressReducer(this.progressEvents, {
-        type: "CLEANUP_PROGRESS",
-        payload: progressEvent,
-      });
-    }
+      // Only show progress for jobs that are actively processing
+      if (progressEvent.status === "processing") {
+        // Add/update processing event
+        this.progressEvents = this.progressReducer(this.progressEvents, {
+          type: "UPDATE_PROGRESS",
+          payload: progressEvent,
+        });
+      } else {
+        // Remove any non-processing events (pending, completed, failed)
+        this.progressEvents = this.progressReducer(this.progressEvents, {
+          type: "CLEANUP_PROGRESS",
+          payload: progressEvent,
+        });
+      }
 
-    // Always notify React component of the change
-    if (this.progressCallback) {
-      // Only send processing events to the UI as an array
-      const processingEvents = Array.from(this.progressEvents.values()).filter(
-        (event) => event.status === "processing",
-      );
-      this.progressCallback(processingEvents);
-    }
+      // Always notify React component of the change
+      if (this.progressCallback) {
+        // Only send processing events to the UI as an array
+        const processingEvents = Array.from(
+          this.progressEvents.values(),
+        ).filter((event) => event.status === "processing");
+        this.progressCallback(processingEvents);
+      }
     } catch (error) {
       this.logger.error("Error handling progress event in CLI", { error });
     }

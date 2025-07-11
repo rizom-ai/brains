@@ -76,8 +76,8 @@ describe("MessageBus", () => {
       );
 
       expect(handler).toHaveBeenCalled();
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual({ result: "test" });
+      expect("success" in result && result.success).toBe(true);
+      expect("data" in result && result.data).toEqual({ result: "test" });
     });
 
     it("should return error if no handlers registered", async () => {
@@ -87,8 +87,8 @@ describe("MessageBus", () => {
         "test-source",
       );
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("No handler found");
+      expect("success" in result && result.success).toBe(false);
+      expect("error" in result && result.error).toContain("No handler found");
     });
 
     it("should return first handler's response", async () => {
@@ -114,8 +114,8 @@ describe("MessageBus", () => {
       // In the current implementation, it returns the first handler's response
       // even if it's a failure
       expect(handler2).not.toHaveBeenCalled();
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("handler1 error");
+      expect("success" in result && result.success).toBe(false);
+      expect("error" in result && result.error).toBe("handler1 error");
     });
 
     it("should handle errors in handlers gracefully", async () => {
@@ -138,8 +138,8 @@ describe("MessageBus", () => {
 
       expect(errorHandler).toHaveBeenCalled();
       expect(successHandler).toHaveBeenCalled();
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual({ result: "success" });
+      expect("success" in result && result.success).toBe(true);
+      expect("data" in result && result.data).toEqual({ result: "success" });
     });
 
     it("should return error if all handlers throw errors", async () => {
@@ -161,7 +161,7 @@ describe("MessageBus", () => {
 
       expect(errorHandler1).toHaveBeenCalled();
       expect(errorHandler2).toHaveBeenCalled();
-      expect(result.success).toBe(false);
+      expect("success" in result && result.success).toBe(false);
     });
   });
 
@@ -177,7 +177,7 @@ describe("MessageBus", () => {
 
       expect(result.valid).toBe(true);
       if (result.valid) {
-        expect(result.data).toEqual(validMessage);
+        expect("data" in result && result.data).toEqual(validMessage);
       }
     });
 
@@ -192,7 +192,7 @@ describe("MessageBus", () => {
 
       expect(result.valid).toBe(false);
       if (!result.valid) {
-        expect(result.error).toBeDefined();
+        expect("error" in result && result.error).toBeDefined();
       }
     });
   });
@@ -216,8 +216,8 @@ describe("MessageBus", () => {
         "sender",
         "service1",
       );
-      expect(result1.success).toBe(true);
-      expect(result1.data).toBe("handler1");
+      expect("success" in result1 && result1.success).toBe(true);
+      expect("data" in result1 && result1.data).toBe("handler1");
       expect(handler1).toHaveBeenCalledTimes(1);
       expect(handler2).toHaveBeenCalledTimes(0);
 
@@ -228,8 +228,8 @@ describe("MessageBus", () => {
         "sender",
         "service2",
       );
-      expect(result2.success).toBe(true);
-      expect(result2.data).toBe("handler2");
+      expect("success" in result2 && result2.success).toBe(true);
+      expect("data" in result2 && result2.data).toBe("handler2");
       expect(handler1).toHaveBeenCalledTimes(1);
       expect(handler2).toHaveBeenCalledTimes(1);
 
@@ -239,8 +239,8 @@ describe("MessageBus", () => {
         { content: "test" },
         "sender",
       );
-      expect(result3.success).toBe(false);
-      expect(result3.error).toContain("No handler found");
+      expect("success" in result3 && result3.success).toBe(false);
+      expect("error" in result3 && result3.error).toContain("No handler found");
     });
 
     it("should filter messages by source", async () => {
@@ -256,7 +256,7 @@ describe("MessageBus", () => {
         { content: "test" },
         "trusted-source",
       );
-      expect(result1.success).toBe(true);
+      expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Send from untrusted source
@@ -265,7 +265,7 @@ describe("MessageBus", () => {
         { content: "test" },
         "untrusted-source",
       );
-      expect(result2.success).toBe(false);
+      expect("success" in result2 && result2.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
@@ -284,7 +284,7 @@ describe("MessageBus", () => {
         undefined,
         { batchId: "batch-123", priority: 5, extra: "ignored" },
       );
-      expect(result1.success).toBe(true);
+      expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Send with partial metadata (missing priority)
@@ -295,7 +295,7 @@ describe("MessageBus", () => {
         undefined,
         { batchId: "batch-123" },
       );
-      expect(result2.success).toBe(false);
+      expect("success" in result2 && result2.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Send with wrong metadata value
@@ -306,7 +306,7 @@ describe("MessageBus", () => {
         undefined,
         { batchId: "batch-456", priority: 5 },
       );
-      expect(result3.success).toBe(false);
+      expect("success" in result3 && result3.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
@@ -324,7 +324,7 @@ describe("MessageBus", () => {
         "sender",
         "matrix:room1",
       );
-      expect(result1.success).toBe(true);
+      expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Should match matrix:room2
@@ -334,7 +334,7 @@ describe("MessageBus", () => {
         "sender",
         "matrix:room2",
       );
-      expect(result2.success).toBe(true);
+      expect("success" in result2 && result2.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(2);
 
       // Should not match cli:session1
@@ -344,7 +344,7 @@ describe("MessageBus", () => {
         "sender",
         "cli:session1",
       );
-      expect(result3.success).toBe(false);
+      expect("success" in result3 && result3.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(2);
     });
 
@@ -361,7 +361,7 @@ describe("MessageBus", () => {
         { content: "test" },
         "plugin:note",
       );
-      expect(result1.success).toBe(true);
+      expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Should not match plugin:note:extra
@@ -370,7 +370,7 @@ describe("MessageBus", () => {
         { content: "test" },
         "plugin:note:extra",
       );
-      expect(result2.success).toBe(false);
+      expect("success" in result2 && result2.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
@@ -390,7 +390,7 @@ describe("MessageBus", () => {
         { content: "test", priority: 10 },
         "sender",
       );
-      expect(result1.success).toBe(true);
+      expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Low priority message
@@ -399,7 +399,7 @@ describe("MessageBus", () => {
         { content: "test", priority: 3 },
         "sender",
       );
-      expect(result2.success).toBe(false);
+      expect("success" in result2 && result2.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
@@ -420,7 +420,7 @@ describe("MessageBus", () => {
         "matrix",
         { enabled: true },
       );
-      expect(result1.success).toBe(true);
+      expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Wrong source
@@ -431,7 +431,7 @@ describe("MessageBus", () => {
         "matrix",
         { enabled: true },
       );
-      expect(result2.success).toBe(false);
+      expect("success" in result2 && result2.success).toBe(false);
 
       // Wrong target
       const result3 = await messageBus.send(
@@ -441,7 +441,7 @@ describe("MessageBus", () => {
         "cli",
         { enabled: true },
       );
-      expect(result3.success).toBe(false);
+      expect("success" in result3 && result3.success).toBe(false);
 
       // Wrong metadata
       const result4 = await messageBus.send(
@@ -451,7 +451,7 @@ describe("MessageBus", () => {
         "matrix",
         { enabled: false },
       );
-      expect(result4.success).toBe(false);
+      expect("success" in result4 && result4.success).toBe(false);
     });
 
     it("should count targeted handlers", () => {
@@ -489,8 +489,8 @@ describe("MessageBus", () => {
       );
 
       // Should get response from first handler
-      expect(result.success).toBe(true);
-      expect(result.data).toBe("first");
+      expect("success" in result && result.success).toBe(true);
+      expect("data" in result && result.data).toBe("first");
 
       // Only first handler is called (stops after getting response)
       expect(handler1).toHaveBeenCalledTimes(1);
@@ -516,8 +516,8 @@ describe("MessageBus", () => {
       );
 
       // Should skip erroring handler and get response from second
-      expect(result.success).toBe(true);
-      expect(result.data).toBe("second");
+      expect("success" in result && result.success).toBe(true);
+      expect("data" in result && result.data).toBe("second");
 
       // First two handlers called
       expect(handler1).toHaveBeenCalledTimes(1);
@@ -552,7 +552,7 @@ describe("MessageBus", () => {
       expect(handler3).toHaveBeenCalledTimes(1);
 
       // Broadcast messages don't return responses
-      expect(result.success).toBe(false);
+      expect("success" in result && result.success).toBe(false);
     });
 
     it("should stop at first success for non-broadcast messages", async () => {
@@ -577,8 +577,8 @@ describe("MessageBus", () => {
       expect(handler3).toHaveBeenCalledTimes(0);
 
       // Normal messages return the first handler's response
-      expect(result.success).toBe(true);
-      expect(result.data).toBe("first");
+      expect("success" in result && result.success).toBe(true);
+      expect("data" in result && result.data).toBe("first");
     });
   });
 });

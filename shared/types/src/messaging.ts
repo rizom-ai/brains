@@ -32,7 +32,7 @@ export const messageWithPayloadSchema = <T extends z.ZodType>(
   });
 
 // Derive types from schemas
-export type MessageResponse<T = unknown> = 
+export type MessageResponse<T = unknown> =
   | (Omit<z.infer<typeof messageResponseSchema>, "data"> & { data?: T })
   | { noop: true };
 

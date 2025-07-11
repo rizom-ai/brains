@@ -109,7 +109,9 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
    * @param metadata The event metadata object
    * @returns Context object with roomId
    */
-  protected extractProgressEventContext(metadata?: JobProgressEvent["metadata"]): ProgressEventContext {
+  protected extractProgressEventContext(
+    metadata?: JobProgressEvent["metadata"],
+  ): ProgressEventContext {
     return ProgressEventContextSchema.parse(metadata);
   }
 
@@ -163,7 +165,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
               },
               {
                 source,
-                metadata: { 
+                metadata: {
                   roomId: context.channelId,
                   interfaceId: this.id,
                   userId: context.userId,
@@ -202,7 +204,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
               source,
               {
                 priority: 5,
-                metadata: { 
+                metadata: {
                   roomId: context.channelId,
                   interfaceId: this.id,
                   userId: context.userId,
@@ -233,32 +235,36 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
 
     // Subscribe to job progress events
     // Events now include metadata for routing instead of using target patterns
-    context.subscribe(
-      "job-progress",
-      async (message) => {
-        try {
-          const validationResult = JobProgressEventSchema.safeParse(
-            message.payload,
-          );
-          if (!validationResult.success) {
-            this.logger.warn("Invalid progress event schema", { interfaceId: this.id });
-            return { noop: true };
-          }
-
-          const progressEvent = validationResult.data;
-
-          // Extract context from event metadata
-          const context = this.extractProgressEventContext(progressEvent.metadata);
-          await this.handleProgressEvent(progressEvent, context);
-
-          return { noop: true };
-        } catch (error) {
-          // Log error but don't break the event chain for other interfaces
-          this.logger.error("Error handling progress event", { error, interfaceId: this.id });
+    context.subscribe("job-progress", async (message) => {
+      try {
+        const validationResult = JobProgressEventSchema.safeParse(
+          message.payload,
+        );
+        if (!validationResult.success) {
+          this.logger.warn("Invalid progress event schema", {
+            interfaceId: this.id,
+          });
           return { noop: true };
         }
-      },
-    );
+
+        const progressEvent = validationResult.data;
+
+        // Extract context from event metadata
+        const context = this.extractProgressEventContext(
+          progressEvent.metadata,
+        );
+        await this.handleProgressEvent(progressEvent, context);
+
+        return { noop: true };
+      } catch (error) {
+        // Log error but don't break the event chain for other interfaces
+        this.logger.error("Error handling progress event", {
+          error,
+          interfaceId: this.id,
+        });
+        return { noop: true };
+      }
+    });
 
     // Register test batch job handler for progress testing
     // Available to all message interfaces (CLI, Matrix, etc.)

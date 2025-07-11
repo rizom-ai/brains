@@ -11,7 +11,10 @@ import type { BatchJobStatus } from "./schemas";
 import type { JobQueue } from "@brains/db";
 import { z } from "zod";
 import type { JobProgressEventSchema } from "./schemas";
-import { ProgressEventContextSchema, type ProgressEventContext } from "./schemas";
+import {
+  ProgressEventContextSchema,
+  type ProgressEventContext,
+} from "./schemas";
 
 /**
  * Progress event emitted by the monitor
@@ -279,7 +282,9 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         this.knownBatches.add(batchId);
         // Cache the metadata for completed batch events
         if (metadata.metadata) {
-          const parsedMetadata = ProgressEventContextSchema.parse(metadata.metadata);
+          const parsedMetadata = ProgressEventContextSchema.parse(
+            metadata.metadata,
+          );
           this.batchMetadataCache.set(batchId, parsedMetadata);
         }
         await this.emitBatchProgressUpdate(batchId, status);
@@ -457,7 +462,9 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         const batchMetadata = activeBatches.find((b) => b.batchId === batchId);
         let eventMetadata = this.batchMetadataCache.get(batchId);
         if (batchMetadata?.metadata.metadata) {
-          eventMetadata = ProgressEventContextSchema.parse(batchMetadata.metadata.metadata);
+          eventMetadata = ProgressEventContextSchema.parse(
+            batchMetadata.metadata.metadata,
+          );
         }
 
         // Include routing metadata in event
@@ -603,7 +610,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
 
       // Get the last known progress info
       const progressInfo = this.jobsWithProgress.get(jobId);
-      
+
       // Extract metadata from job for routing
       let eventMetadata: ProgressEventContext | undefined;
       if (job.metadata) {
@@ -629,12 +636,12 @@ export class JobProgressMonitor implements IJobProgressMonitor {
             retryCount: job.retryCount,
           },
         };
-        
+
         // Include routing metadata in event
         if (eventMetadata) {
           finalProgressEvent.metadata = eventMetadata;
         }
-        
+
         await this.messageBus.send(
           "job-progress",
           finalProgressEvent,

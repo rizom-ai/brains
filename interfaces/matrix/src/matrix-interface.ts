@@ -6,7 +6,7 @@ import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
 import { MatrixClientWrapper } from "./client/matrix-client";
-import type { JobProgressEvent } from "@brains/job-queue";
+import type { JobProgressEvent, ProgressEventContext } from "@brains/job-queue";
 // MentionPill is for creating mentions, not detecting them
 import packageJson from "../package.json";
 
@@ -433,7 +433,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
 
   // Track progress messages for editing
   private progressMessages = new Map<string, string>();
-
 
   /**
    * Handle progress events - unified handler
