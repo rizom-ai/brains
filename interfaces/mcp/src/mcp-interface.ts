@@ -15,16 +15,6 @@ import type { MCPConfigInput, MCPConfig } from "./types";
 import packageJson from "../package.json";
 import { z } from "zod";
 
-// Schema for progress notification messages
-const progressMessageSchema = z.object({
-  progressToken: z.union([z.string(), z.number()]),
-  notification: z.object({
-    progress: z.number(),
-    total: z.number().optional(),
-    message: z.string().optional(),
-  }),
-});
-
 /**
  * MCP Interface Plugin
  * Provides Model Context Protocol server functionality with transport-based permissions
@@ -41,10 +31,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
   private mcpServer: McpServer | undefined;
   private stdioServer: StdioMCPServer | undefined;
   private httpServer: StreamableHTTPServer | undefined;
-  private activeProgressHandlers = new Map<
-    string | number,
-    (notification: unknown) => unknown
-  >();
 
   constructor(config: MCPConfigInput = {}) {
     super("mcp", packageJson, config, mcpConfigSchema, MCP_CONFIG_DEFAULTS);
@@ -76,37 +62,22 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
   }
 
   /**
-   * Set up listener for job progress events
+   * Set up listener for job progress events (for logging only)
    */
   private setupJobProgressListener(context: PluginContext): void {
-    // Subscribe to job-progress events
+    // Subscribe to job-progress events for debugging
     context.subscribe("job-progress", async (message) => {
       try {
         const event = message.payload as JobProgressEvent;
 
-        // Check if this job has an active MCP progress subscription
-        const progressToken = event.metadata.progressToken;
-        const progressHandler = progressToken
-          ? this.activeProgressHandlers.get(progressToken)
-          : undefined;
-
-        if (progressHandler) {
-          // Send progress notification to MCP client
-          await (
-            progressHandler as (notification: {
-              method: string;
-              params: Record<string, unknown>;
-            }) => Promise<void>
-          )({
-            method: "notifications/progress",
-            params: {
-              progressToken,
-              progress: event.progress?.current,
-              total: event.progress?.total,
-              message: event.message ?? event.operation,
-            },
-          });
-        }
+        // Debug logging only - MCP cannot send async notifications after tool returns
+        this.logger.debug("Job progress event", {
+          id: event.id,
+          type: event.type,
+          status: event.status,
+          progress: event.progress,
+          progressToken: event.metadata.progressToken,
+        });
 
         return { noop: true };
       } catch (error) {
@@ -115,9 +86,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
       }
     });
 
-    this.logger.info(
-      "Subscribed to job progress events for MCP progress reporting",
-    );
+    this.logger.info("Subscribed to job progress events for debugging");
   }
 
   /**
@@ -171,91 +140,40 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
       tool.description,
       tool.inputSchema,
       async (params, extra) => {
-        // Check if progress is supported
+        // Extract context from MCP client metadata
+        const interfaceId = extra._meta?.["interfaceId"];
+        const userId = extra._meta?.["userId"];
+        const roomId = extra._meta?.["roomId"];
         const progressToken = extra._meta?.progressToken;
-        const hasProgress = progressToken !== undefined;
+        
+        // Log metadata for debugging
+        this.logger.debug("MCP client metadata", {
+          tool: `${pluginId}:${tool.name}`,
+          interfaceId,
+          userId,
+          roomId,
+          progressToken,
+        });
 
         try {
-          // Subscribe to progress notifications if progress is supported
-          let unsubscribe: (() => void) | undefined;
-          if (hasProgress && this.context) {
-            // Store the progress handler for job-based tools
-            this.activeProgressHandlers.set(
-              progressToken,
-              extra.sendNotification.bind(extra) as (
-                notification: unknown,
-              ) => unknown,
-            );
-
-            // Set up progress handler for direct tool progress
-            unsubscribe = this.context.subscribe(
-              `plugin:${pluginId}:progress`,
-              async (message) => {
-                try {
-                  // Validate and parse the message payload
-                  const { progressToken: msgToken, notification } =
-                    progressMessageSchema.parse(message.payload);
-
-                  // Only handle progress for this specific request
-                  if (msgToken === progressToken) {
-                    // Send progress notification to MCP client
-                    await extra.sendNotification({
-                      method: "notifications/progress",
-                      params: {
-                        progressToken,
-                        progress: notification.progress,
-                        ...(notification.total !== undefined && {
-                          total: notification.total,
-                        }),
-                        ...(notification.message && {
-                          message: notification.message,
-                        }),
-                      },
-                    });
-                  }
-
-                  return { success: true };
-                } catch (error) {
-                  this.logger.warn("Invalid progress message format", {
-                    error,
-                    payload: message.payload,
-                  });
-                  return {
-                    success: false,
-                    error: "Invalid progress message format",
-                  };
-                }
-              },
-            );
-
-            // Clean up progress handler when request completes or is aborted
-            extra.signal.addEventListener("abort", () => {
-              unsubscribe?.();
-              if (progressToken) {
-                this.activeProgressHandlers.delete(progressToken);
-              }
-            });
-          }
-
           // Execute tool through message bus using plugin-specific message type
           if (!this.context) {
             throw new Error("Plugin context not initialized");
           }
+          
           const response = await this.context.sendMessage(
             `plugin:${pluginId}:tool:execute`,
             {
               toolName: tool.name,
               args: params,
               progressToken,
-              hasProgress,
+              hasProgress: progressToken !== undefined,
+              // Pass through context from MCP client
+              interfaceId,
+              userId,
+              roomId,
             },
           );
-
-          // Clean up progress handlers
-          unsubscribe?.();
-          if (progressToken) {
-            this.activeProgressHandlers.delete(progressToken);
-          }
 
           if ("success" in response && !response.success) {
             throw new Error(response.error ?? "Tool execution failed");
@@ -274,10 +192,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
             ],
           };
         } catch (error) {
-          // Clean up on error
-          if (progressToken) {
-            this.activeProgressHandlers.delete(progressToken);
-          }
           this.logger.error(`Tool execution error for ${tool.name}`, error);
           throw error;
         }

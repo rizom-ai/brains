@@ -859,7 +859,7 @@ export class EntityService implements IEntityService {
       },
     );
 
-    this.logger.info(
+    this.logger.debug(
       `Created entity asynchronously of type ${entity["entityType"]} with ID ${validatedEntity.id}, job ID ${jobId}`,
     );
 

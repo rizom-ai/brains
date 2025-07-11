@@ -351,6 +351,14 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           }
         }
 
+        // Log job details for debugging
+        this.logger.debug("Creating job progress event", {
+          jobId: job.id,
+          jobType: job.type,
+          jobMetadata: job.metadata,
+          progressInfo,
+        });
+        
         const event: JobProgressEvent = {
           id: job.id,
           type: "job",

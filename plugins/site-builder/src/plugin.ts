@@ -266,7 +266,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           // Get batch ID using generateAll with filters
           const metadata: ProgressEventContext = {
             interfaceId: context?.interfaceId || "mcp",
-            userId: context?.userId || "system",
+            userId: context?.userId || "mcp-user",
             roomId: context?.roomId,
             progressToken: context?.progressToken,
             pluginId: this.id,
