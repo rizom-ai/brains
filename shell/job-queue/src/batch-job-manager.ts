@@ -1,7 +1,7 @@
 import type { IJobQueueService } from "./types";
 import type { BatchOperation, BatchJobStatus } from "./schemas";
 import { JOB_STATUS } from "./schemas";
-import type { ProgressEventContext } from "@brains/db";
+import type { ProgressEventContext, OperationType } from "@brains/db";
 import type { Logger } from "@brains/utils";
 import { createBatchId } from "@brains/utils";
 
@@ -59,6 +59,7 @@ export class BatchJobManager {
     operations: BatchOperation[],
     source: string,
     metadata: ProgressEventContext,
+    operationType: OperationType,
     options?: {
       priority?: number;
       maxRetries?: number;
@@ -78,6 +79,8 @@ export class BatchJobManager {
         const jobOptions: Parameters<IJobQueueService["enqueue"]>[2] = {
           source, // Always include source
           metadata, // Always include metadata
+          operationType,
+          operationTarget: operation.entityId ?? operation.type,
         };
         if (options?.priority !== undefined) {
           jobOptions.priority = options.priority;

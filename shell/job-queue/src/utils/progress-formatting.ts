@@ -3,7 +3,7 @@
  * Used by interfaces for consistent progress message formatting
  */
 
-import type { JobProgressEvent } from "@brains/job-queue";
+import type { JobProgressEvent, OperationType } from "@brains/job-queue";
 import {
   calculateETA,
   formatRate,
@@ -15,7 +15,8 @@ import {
  * Progress message template data
  */
 export interface ProgressMessageData {
-  operation: string;
+  operationType: OperationType;
+  operationTarget?: string | undefined;
   status: "processing" | "completed" | "failed";
   current?: number | undefined;
   total?: number | undefined;
@@ -36,21 +37,12 @@ export function generateProgressKey(
 }
 
 /**
- * Extract operation name from job event
- */
-export function extractOperationName(event: JobProgressEvent): string {
-  // Operation is required in JobProgressEvent schema
-  return event.operation;
-}
-
-/**
  * Create progress message data from event
  */
 export function createProgressMessageData(
   event: JobProgressEvent,
   startTime?: Date,
 ): ProgressMessageData {
-  const operation = extractOperationName(event);
   const current = event.progress?.current;
   const total = event.progress?.total;
 
@@ -58,7 +50,7 @@ export function createProgressMessageData(
   let percentage: number | undefined;
 
   if (current !== undefined && total !== undefined && startTime) {
-    calculation = calculateETA(current, total, startTime) || undefined;
+    calculation = calculateETA(current, total, startTime) ?? undefined;
     percentage = total > 0 ? Math.round((current / total) * 100) : 0;
   }
 
@@ -71,7 +63,8 @@ export function createProgressMessageData(
   }
 
   return {
-    operation,
+    operationType: event.operationType,
+    operationTarget: event.operationTarget,
     status: event.status as "processing" | "completed" | "failed",
     current,
     total,
@@ -88,7 +81,7 @@ export function createProgressMessageData(
  */
 export function formatProgressMessage(data: ProgressMessageData): string {
   const {
-    operation,
+    operationType,
     status,
     current,
     total,
@@ -100,7 +93,7 @@ export function formatProgressMessage(data: ProgressMessageData): string {
 
   switch (status) {
     case "processing": {
-      let message = `🔄 ${operation}`;
+      let message = `🔄 ${operationType}`;
 
       if (current !== undefined && total !== undefined) {
         message += ` - ${current}/${total}`;
@@ -118,7 +111,7 @@ export function formatProgressMessage(data: ProgressMessageData): string {
     }
 
     case "completed": {
-      let message = `✅ ${operation} completed`;
+      let message = `✅ ${operationType} completed`;
 
       if (current !== undefined && total !== undefined) {
         message += ` - ${total} items processed`;
@@ -132,7 +125,7 @@ export function formatProgressMessage(data: ProgressMessageData): string {
     }
 
     case "failed": {
-      let message = `❌ ${operation} failed`;
+      let message = `❌ ${operationType} failed`;
 
       if (current !== undefined && total !== undefined) {
         message += ` - ${current}/${total} items processed`;
@@ -146,7 +139,7 @@ export function formatProgressMessage(data: ProgressMessageData): string {
     }
 
     default:
-      return `⚙️ ${operation}`;
+      return `⚙️ ${operationType}`;
   }
 }
 
@@ -162,13 +155,12 @@ export function formatBatchProgressMessage(
   }
 
   const { batchDetails } = event;
-  const operation = extractOperationName(event);
   const completed = batchDetails.completedOperations;
   const total = batchDetails.totalOperations;
 
   switch (event.status) {
     case "processing": {
-      let message = `🔄 ${operation} - ${completed}/${total} operations`;
+      let message = `🔄 ${event.operationType} - ${completed}/${total} operations`;
 
       if (startTime) {
         const calculation = calculateETA(completed, total, startTime);
@@ -181,7 +173,7 @@ export function formatBatchProgressMessage(
     }
 
     case "completed": {
-      let message = `✅ ${operation} completed - ${total} operations processed`;
+      let message = `✅ ${event.operationType} completed - ${total} operations processed`;
 
       if (startTime) {
         const duration = (Date.now() - startTime.getTime()) / 1000;
@@ -192,11 +184,11 @@ export function formatBatchProgressMessage(
     }
 
     case "failed": {
-      return `❌ ${operation} failed - ${completed}/${total} operations completed`;
+      return `❌ ${event.operationType} failed - ${completed}/${total} operations completed`;
     }
 
     default:
-      return `⚙️ ${operation} - ${total} operations`;
+      return `⚙️ ${event.operationType} - ${total} operations`;
   }
 }
 

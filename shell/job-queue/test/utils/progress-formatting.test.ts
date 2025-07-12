@@ -1,7 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import {
   generateProgressKey,
-  extractOperationName,
   createProgressMessageData,
   formatProgressMessage,
   formatBatchProgressMessage,
@@ -13,7 +12,7 @@ const mockJobEvent: JobProgressEvent = {
   id: "job-1",
   type: "job",
   status: "processing",
-  operation: "Processing files",
+  operationType: "file_processing",
   progress: {
     current: 50,
     total: 100,
@@ -29,7 +28,7 @@ const mockBatchEvent: JobProgressEvent = {
   id: "batch-1",
   type: "batch",
   status: "processing",
-  operation: "Batch file processing",
+  operationType: "batch_processing",
   batchDetails: {
     completedOperations: 3,
     totalOperations: 10,
@@ -54,24 +53,12 @@ describe("generateProgressKey", () => {
   });
 });
 
-describe("extractOperationName", () => {
-  test("extracts description when available", () => {
-    const name = extractOperationName(mockJobEvent);
-    expect(name).toBe("Processing files");
-  });
-
-  test("returns operation field directly", () => {
-    const name = extractOperationName(mockJobEvent);
-    expect(name).toBe("Processing files");
-  });
-});
-
 describe("createProgressMessageData", () => {
   test("creates data for processing job with progress", () => {
     const startTime = new Date(Date.now() - 10000); // 10s ago
     const data = createProgressMessageData(mockJobEvent, startTime);
 
-    expect(data.operation).toBe("Processing files");
+    expect(data.operationType).toBe("file_processing");
     expect(data.status).toBe("processing");
     expect(data.current).toBe(50);
     expect(data.total).toBe(100);
@@ -118,7 +105,7 @@ describe("createProgressMessageData", () => {
 describe("formatProgressMessage", () => {
   test("formats processing message with progress", () => {
     const data = {
-      operation: "Processing files",
+      operationType: "file_processing" as const,
       status: "processing" as const,
       current: 50,
       total: 100,
@@ -131,24 +118,22 @@ describe("formatProgressMessage", () => {
     };
 
     const message = formatProgressMessage(data);
-    expect(message).toBe(
-      "🔄 Processing files - 50/100 (50%) • 2.5/s • ETA 20s",
-    );
+    expect(message).toBe("🔄 file_processing - 50/100 (50%) • 2.5/s • ETA 20s");
   });
 
   test("formats processing message without progress", () => {
     const data = {
-      operation: "Starting process",
+      operationType: "entity_processing" as const,
       status: "processing" as const,
     };
 
     const message = formatProgressMessage(data);
-    expect(message).toBe("🔄 Starting process");
+    expect(message).toBe("🔄 entity_processing");
   });
 
   test("formats completed message with stats", () => {
     const data = {
-      operation: "File processing",
+      operationType: "file_processing" as const,
       status: "completed" as const,
       current: 100,
       total: 100,
@@ -157,13 +142,13 @@ describe("formatProgressMessage", () => {
 
     const message = formatProgressMessage(data);
     expect(message).toBe(
-      "✅ File processing completed - 100 items processed in 45s",
+      "✅ file_processing completed - 100 items processed in 45s",
     );
   });
 
   test("formats failed message with error", () => {
     const data = {
-      operation: "File processing",
+      operationType: "file_processing" as const,
       status: "failed" as const,
       current: 50,
       total: 100,
@@ -172,18 +157,18 @@ describe("formatProgressMessage", () => {
 
     const message = formatProgressMessage(data);
     expect(message).toBe(
-      "❌ File processing failed - 50/100 items processed - Permission denied",
+      "❌ file_processing failed - 50/100 items processed - Permission denied",
     );
   });
 
   test("formats unknown status", () => {
     const data = {
-      operation: "Unknown process",
+      operationType: "entity_processing" as const,
       status: "pending" as any,
     };
 
     const message = formatProgressMessage(data);
-    expect(message).toBe("⚙️ Unknown process");
+    expect(message).toBe("⚙️ entity_processing");
   });
 });
 
@@ -192,7 +177,7 @@ describe("formatBatchProgressMessage", () => {
     const startTime = new Date(Date.now() - 15000); // 15s ago
     const message = formatBatchProgressMessage(mockBatchEvent, startTime);
 
-    expect(message).toContain("🔄 Batch file processing - 3/10 operations");
+    expect(message).toContain("🔄 batch_processing - 3/10 operations");
     expect(message).toContain("ETA");
   });
 
@@ -210,7 +195,7 @@ describe("formatBatchProgressMessage", () => {
     const message = formatBatchProgressMessage(completedBatch, startTime);
 
     expect(message).toContain(
-      "✅ Batch file processing completed - 10 operations processed",
+      "✅ batch_processing completed - 10 operations processed",
     );
     expect(message).toContain("30s");
   });
@@ -228,18 +213,18 @@ describe("formatBatchProgressMessage", () => {
     const message = formatBatchProgressMessage(failedBatch);
 
     expect(message).toBe(
-      "❌ Batch file processing failed - 7/10 operations completed",
+      "❌ batch_processing failed - 7/10 operations completed",
     );
   });
 
   test("falls back to regular formatting for non-batch events", () => {
     const message = formatBatchProgressMessage(mockJobEvent);
-    expect(message).toContain("🔄 Processing files");
+    expect(message).toContain("🔄 file_processing");
   });
 
   test("handles batch without start time", () => {
     const message = formatBatchProgressMessage(mockBatchEvent);
-    expect(message).toBe("🔄 Batch file processing - 3/10 operations");
+    expect(message).toBe("🔄 batch_processing - 3/10 operations");
   });
 });
 

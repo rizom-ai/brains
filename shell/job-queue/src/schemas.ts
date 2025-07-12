@@ -1,6 +1,6 @@
 import { z } from "zod";
 // Import ProgressEventContextSchema from db to avoid circular dependency
-import { ProgressEventContextSchema } from "@brains/db";
+import { ProgressEventContextSchema, OperationTypeEnum } from "@brains/db";
 
 /**
  * Job status enum - reusable across all job-related types
@@ -103,6 +103,7 @@ export type BatchOperation = z.infer<typeof BatchOperationSchema>;
 export type BatchJobData = z.infer<typeof BatchJobDataSchema>;
 export type BatchJobStatus = z.infer<typeof BatchJobStatusSchema>;
 
+
 /**
  * Schema for job progress events
  */
@@ -126,8 +127,12 @@ export const JobProgressEventSchema = z.object({
     })
     .optional(),
 
-  // Current operation description (required for better UX)
-  operation: z.string(), // Current operation name/description
+  // Operation type and details for structured aggregation
+  operationType: OperationTypeEnum,
+  operationTarget: z.string().optional(), // e.g., directory path, entity ID
+
+  // Optional aggregation metadata
+  aggregationKey: z.string().optional(), // explicit grouping override
 
   // Batch-specific fields
   batchDetails: z
@@ -152,3 +157,5 @@ export const JobProgressEventSchema = z.object({
   // Routing metadata
   metadata: ProgressEventContextSchema,
 });
+
+export type JobProgressEvent = z.infer<typeof JobProgressEventSchema>;

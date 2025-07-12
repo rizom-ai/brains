@@ -9,7 +9,7 @@ import type { IJobQueueService } from "./types";
 import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
 import type { JobQueue } from "@brains/db";
-import { z } from "zod";
+import type { z } from "zod";
 import type { JobProgressEventSchema } from "./schemas";
 import {
   ProgressEventContextSchema,
@@ -281,12 +281,10 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       for (const { batchId, status, metadata } of activeBatches) {
         this.knownBatches.add(batchId);
         // Cache the metadata for completed batch events
-        if (metadata.metadata) {
-          const parsedMetadata = ProgressEventContextSchema.parse(
-            metadata.metadata,
-          );
-          this.batchMetadataCache.set(batchId, parsedMetadata);
-        }
+        const parsedMetadata = ProgressEventContextSchema.parse(
+          metadata.metadata,
+        );
+        this.batchMetadataCache.set(batchId, parsedMetadata);
         await this.emitBatchProgressUpdate(batchId, status);
       }
 
@@ -341,7 +339,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         let rate: number | undefined;
         let eta: number | undefined;
 
-        if (progressInfo && progressInfo.lastRate !== undefined) {
+        if (progressInfo?.lastRate !== undefined) {
           rate = progressInfo.lastRate;
 
           // Calculate ETA based on last known rate
@@ -363,7 +361,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           id: job.id,
           type: "job",
           status: job.status,
-          operation: progressInfo?.message ?? `Processing ${job.type}`,
+          operationType: "entity_processing", // Default for jobs
+          operationTarget: job.type,
           message: progressInfo?.message,
           metadata: job.metadata,
           jobDetails: {
@@ -443,7 +442,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           id: batchId,
           type: "batch",
           status: status.status,
-          operation: status.currentOperation ?? "Processing batch",
+          operationType: "batch_processing",
+          operationTarget: status.currentOperation,
           metadata: {
             interfaceId: "system",
             userId: "system",
@@ -535,7 +535,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           rate: progress.rate,
           eta: progress.eta,
         },
-        operation: progress.message ?? "Processing...",
+        operationType: "entity_processing", // Default progress event
+        operationTarget: progress.message,
         message: progress.message,
       };
 
@@ -623,7 +624,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           id: jobId,
           type: "job",
           status: "processing",
-          operation: progressInfo.message ?? `Completing ${job.type}`,
+          operationType: "entity_processing",
+          operationTarget: job.type,
           message: progressInfo.message,
           metadata: job.metadata, // Always present now
           progress: {
@@ -656,7 +658,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         id: jobId,
         type: "job",
         status: "completed",
-        operation: `Completed ${job.type}`,
+        operationType: "entity_processing",
+        operationTarget: job.type,
         metadata: job.metadata, // Always present now
         jobDetails: {
           jobType: job.type,
@@ -707,7 +710,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         id: jobId,
         type: "job",
         status: "failed",
-        operation: `Failed ${job.type}`,
+        operationType: "entity_processing",
+        operationTarget: job.type,
         message: job.lastError ?? undefined,
         metadata: job.metadata, // Always present now
         jobDetails: {

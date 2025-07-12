@@ -138,9 +138,7 @@ export class JobQueueService implements IJobQueueService {
         maxRetries: values.maxRetries,
         scheduledFor: values.scheduledFor,
         source: values.source,
-        metadataLength: values.metadata
-          ? Object.keys(values.metadata).length
-          : 0,
+        metadataLength: Object.keys(values.metadata).length,
       });
 
       await this.db.insert(jobQueue).values(values);

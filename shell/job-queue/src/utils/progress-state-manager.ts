@@ -50,10 +50,7 @@ export function progressReducer(
 
         // Calculate ETA and rate for events with progress info
         let enhancedEvent = { ...event };
-        if (
-          event.progress?.current !== undefined &&
-          event.progress?.total !== undefined
-        ) {
+        if (event.progress?.current !== undefined) {
           const startTime = newStartTimes.get(event.id);
           if (startTime) {
             const calculation = calculateETA(
@@ -157,9 +154,9 @@ export function groupProgressEvents(
   // Primary event selection: prefer batch events, then most recent job
   let primaryEvent: JobProgressEvent | null = null;
   if (batchEvents.length > 0) {
-    primaryEvent = batchEvents[batchEvents.length - 1] || null;
+    primaryEvent = batchEvents[batchEvents.length - 1] ?? null;
   } else if (jobEvents.length > 0) {
-    primaryEvent = jobEvents[jobEvents.length - 1] || null;
+    primaryEvent = jobEvents[jobEvents.length - 1] ?? null;
   }
 
   return {

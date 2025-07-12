@@ -2,7 +2,6 @@
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import type { JobProgressEvent } from "@brains/job-queue";
-import { calculateETA, formatRate } from "@brains/job-queue";
 import { ProgressBar } from "./ProgressBar";
 
 interface MultiLineProgressProps {
@@ -17,29 +16,6 @@ interface AggregatedProgress {
   startTime: number | undefined;
   isDirectory?: boolean;
   fileCount?: number;
-}
-
-// Helper function to use shared calculateETA with legacy interface
-function calculateETAHelper(
-  current: number,
-  total: number,
-  startTime?: number,
-): { eta: string; rate: string } {
-  if (!startTime || current === 0) {
-    return { eta: "calculating...", rate: "..." };
-  }
-
-  const startDate = new Date(startTime);
-  const calculation = calculateETA(current, total, startDate);
-  
-  if (!calculation) {
-    return { eta: "calculating...", rate: "..." };
-  }
-
-  return { 
-    eta: calculation.eta, 
-    rate: formatRate(calculation.rate) 
-  };
 }
 
 // Track start times for jobs
@@ -57,13 +33,12 @@ function aggregateDirectoryOperations(
     }
 
     // Check if this is a directory sync operation
-    const dirMatch = event.operation.match(
-      /^(Importing|Exporting|Syncing): (.+)$/,
-    );
-    if (dirMatch) {
-      const [, action, path] = dirMatch;
-      const dirPath = path ? path.substring(0, path.lastIndexOf("/")) : "";
-      const key = `${action}:${dirPath}`;
+    const isDirectoryOperation = event.operationType === "directory_import" || 
+                                event.operationType === "directory_export" || 
+                                event.operationType === "directory_sync";
+    if (isDirectoryOperation && event.operationTarget) {
+      const dirPath = event.operationTarget.substring(0, event.operationTarget.lastIndexOf("/")) || event.operationTarget;
+      const key = `${event.operationType}:${dirPath}`;
 
       const existing = aggregated.get(key);
       if (existing) {
@@ -74,7 +49,7 @@ function aggregateDirectoryOperations(
         existing.fileCount = (existing.fileCount ?? 0) + 1;
       } else {
         aggregated.set(key, {
-          operation: `${action} ${dirPath}`,
+          operation: `${event.operationType} ${dirPath}`,
           current: event.progress?.current ?? 0,
           total: event.progress?.total ?? 0,
           startTime: jobStartTimes.get(event.id),
@@ -85,7 +60,7 @@ function aggregateDirectoryOperations(
     } else {
       // Non-directory operation, add as-is
       aggregated.set(event.id, {
-        operation: event.operation,
+        operation: event.operationType + (event.operationTarget ? `: ${event.operationTarget}` : ""),
         current: event.progress?.current ?? 0,
         total: event.progress?.total ?? 0,
         startTime: jobStartTimes.get(event.id),
@@ -164,11 +139,9 @@ export function MultiLineProgress({
             jobStartTimes.set(batch.id, Date.now());
           }
 
-          const { eta, rate } = calculateETAHelper(
-            batch.batchDetails?.completedOperations ?? 0,
-            batch.batchDetails?.totalOperations ?? 0,
-            jobStartTimes.get(batch.id),
-          );
+          // Use pre-calculated ETA/rate from progress reducer if available
+          const eta = batch.progress?.etaFormatted ?? "calculating...";
+          const rate = batch.progress?.rateFormatted ?? "...";
 
           return (
             <Box
@@ -179,7 +152,7 @@ export function MultiLineProgress({
               <Box justifyContent="space-between">
                 <Box>
                   <Text bold color="cyan">
-                    ▶ {batch.operation}
+                    ▶ {batch.operationType}{batch.operationTarget ? `: ${batch.operationTarget}` : ""}
                   </Text>
                 </Box>
                 <Box>
@@ -207,11 +180,9 @@ export function MultiLineProgress({
           );
         } else {
           const job = item.data as AggregatedProgress;
-          const { eta, rate } = calculateETAHelper(
-            job.current,
-            job.total,
-            job.startTime,
-          );
+          // For aggregated operations, don't show ETA/rate since they combine multiple events
+          const eta = "...";
+          const rate = "...";
 
           return (
             <Box key={index} flexDirection="column" marginBottom={1}>

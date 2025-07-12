@@ -147,7 +147,8 @@ describe("JobProgressMonitor", () => {
           id: "job-123",
           type: "job",
           status: "processing",
-          operation: "Processing test-job",
+          operationType: "entity_processing",
+          operationTarget: "test-job",
           message: undefined,
           metadata: {
             interfaceId: "test",
@@ -230,7 +231,15 @@ describe("JobProgressMonitor", () => {
         {
           batchId: "batch-456",
           status: mockBatch,
-          metadata: {},
+          metadata: {
+            operations: [],
+            source: "test",
+            startedAt: new Date().toISOString(),
+            metadata: {
+              interfaceId: "system",
+              userId: "system",
+            },
+          },
         },
       ]);
 
@@ -245,7 +254,8 @@ describe("JobProgressMonitor", () => {
           id: "batch-456",
           type: "batch",
           status: "processing",
-          operation: "Processing operation 4",
+          operationType: "batch_processing",
+          operationTarget: "Processing operation 4",
           metadata: {
             interfaceId: "system",
             userId: "system",
@@ -280,7 +290,15 @@ describe("JobProgressMonitor", () => {
         {
           batchId: "batch-456",
           status: mockBatch,
-          metadata: {},
+          metadata: {
+            operations: [],
+            source: "test",
+            startedAt: new Date().toISOString(),
+            metadata: {
+              interfaceId: "system",
+              userId: "system",
+            },
+          },
         },
       ]);
 

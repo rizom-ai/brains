@@ -1,10 +1,7 @@
 export { JobQueueService } from "./job-queue-service";
 export { JobQueueWorker } from "./job-queue-worker";
 export { BatchJobManager } from "./batch-job-manager";
-export {
-  JobProgressMonitor,
-  type JobProgressEvent,
-} from "./job-progress-monitor";
+export { JobProgressMonitor } from "./job-progress-monitor";
 export type {
   JobQueueWorkerConfig,
   JobQueueWorkerStats,
@@ -27,14 +24,14 @@ export {
   type BatchJobData,
   type BatchJobStatus,
   JobProgressEventSchema,
+  type JobProgressEvent,
 } from "./schemas";
 
+// Re-export OperationType from db package to maintain compatibility
+export { OperationTypeEnum, type OperationType } from "@brains/db";
+
 // Progress utilities (public API for interfaces)
-export {
-  calculateETA,
-  formatRate,
-  type ProgressCalculation,
-} from "./utils/progress-calculations";
+export { type ProgressCalculation } from "./utils/progress-calculations";
 export {
   progressReducer,
   createInitialProgressState,

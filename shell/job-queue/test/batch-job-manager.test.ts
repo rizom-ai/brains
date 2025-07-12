@@ -83,6 +83,7 @@ describe("BatchJobManager", () => {
         operations,
         source,
         defaultTestMetadata,
+        "entity_processing",
       );
 
       expect(batchId).toBeDefined();
@@ -109,6 +110,7 @@ describe("BatchJobManager", () => {
           ...defaultTestMetadata,
           userId: "user-123",
         },
+        "entity_processing",
         {
           priority: 5,
           maxRetries: 1,
@@ -132,6 +134,7 @@ describe("BatchJobManager", () => {
           [],
           "test:batch-manager",
           defaultTestMetadata,
+          "entity_processing",
         );
       }).toThrow("Cannot enqueue empty batch");
     });
@@ -152,6 +155,7 @@ describe("BatchJobManager", () => {
         operations,
         "test:batch-manager",
         defaultTestMetadata,
+        "entity_processing",
       );
       const status = await batchManager.getBatchStatus(batchId);
 
@@ -175,6 +179,7 @@ describe("BatchJobManager", () => {
         operations,
         "test:batch-manager",
         defaultTestMetadata,
+        "entity_processing",
       );
       const status = await batchManager.getBatchStatus(batchId);
 
@@ -195,6 +200,7 @@ describe("BatchJobManager", () => {
         operations,
         "test:batch-manager",
         defaultTestMetadata,
+        "entity_processing",
       );
       const status = await batchManager.getBatchStatus(batchId);
 
@@ -213,6 +219,7 @@ describe("BatchJobManager", () => {
         operations,
         "test:batch-manager",
         defaultTestMetadata,
+        "entity_processing",
       );
 
       // Verify batch exists
@@ -236,6 +243,7 @@ describe("BatchJobManager", () => {
         [{ type: "embedding", entityId: "entity-1" }],
         "test:batch-manager",
         defaultTestMetadata,
+        "entity_processing",
       );
 
       await batchManager.enqueueBatch(
@@ -245,12 +253,14 @@ describe("BatchJobManager", () => {
         ],
         "test:batch-manager",
         defaultTestMetadata,
+        "entity_processing",
       );
 
       const batch3Id = await batchManager.enqueueBatch(
         [{ type: "embedding", entityId: "entity-4" }],
         "test:batch-manager",
         { ...defaultTestMetadata, userId: "user-123" },
+        "entity_processing",
       );
 
       // Complete the first batch's job
@@ -295,6 +305,7 @@ describe("BatchJobManager", () => {
         operations,
         "test:batch-manager",
         defaultTestMetadata,
+        "entity_processing",
       );
 
       // Process and complete the job
@@ -319,6 +330,7 @@ describe("BatchJobManager", () => {
         ],
         "test:batch-manager",
         defaultTestMetadata,
+        "entity_processing",
       );
 
       // Start processing one job (dequeue it)
