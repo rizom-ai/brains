@@ -1,7 +1,7 @@
 import {
   MessageInterfacePlugin,
   type MessageContext,
-} from "@brains/plugin-utils";
+} from "@brains/message-interface";
 import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
@@ -304,6 +304,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         messageId: eventId,
         timestamp: new Date(),
         interfaceType: this.id,
+        userPermissionLevel: this.determineUserPermissionLevel(senderId),
       };
 
       // Check if message is an anchor-only command
@@ -563,7 +564,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   /**
    * Override getHelpText to format for Matrix (with markdown)
    */
-  protected override getHelpText(): string {
+  public override getHelpText(): string {
     const baseHelp = super.getHelpText();
     // Convert plain text formatting to Matrix markdown
     return baseHelp

@@ -1,31 +1,32 @@
 {
-  "name": "@brains/matrix",
+  "name": "@brains/message-interface",
   "version": "0.0.1",
-  "description": "Matrix interface for Personal Brain",
+  "description": "Base classes and utilities for message-based interfaces in the Brain system",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
-    "test": "bun test"
+    "test": "bun test",
+    "lint": "eslint .",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@brains/message-interface": "workspace:*",
     "@brains/plugin-utils": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
-    "matrix-bot-sdk": "^0.7.1",
+    "@brains/db": "workspace:*",
+    "@brains/job-queue": "workspace:*",
     "p-queue": "^8.0.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
-    "@brains/core": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "latest"
+    "@types/bun": "^1.1.17",
+    "eslint": "^8.48.0",
+    "typescript": "^5.7.3"
   }
 }

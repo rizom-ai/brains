@@ -16,6 +16,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@brains/message-interface": "workspace:*",
     "@brains/plugin-utils": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",

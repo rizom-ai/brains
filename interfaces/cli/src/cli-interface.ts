@@ -1,9 +1,10 @@
 import {
   MessageInterfacePlugin,
-  PluginInitializationError,
   type Command,
-} from "@brains/plugin-utils";
-import type { MessageContext, PluginContext } from "@brains/plugin-utils";
+  type MessageContext,
+} from "@brains/message-interface";
+import { PluginInitializationError } from "@brains/plugin-utils";
+import type { PluginContext } from "@brains/plugin-utils";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { DefaultQueryResponse } from "@brains/types";
 import type { Instance } from "ink";

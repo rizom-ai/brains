@@ -242,6 +242,7 @@ describe("MatrixInterface", () => {
         messageId: "msg_123",
         timestamp: new Date(),
         interfaceType: "matrix",
+        userPermissionLevel: "public",
       });
 
       // The result should be the default mock response, proving the base method was called
