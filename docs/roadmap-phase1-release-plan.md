@@ -37,15 +37,24 @@ This document outlines the roadmap for completing Phase 1 of the Brain system, c
 
 **Objective**: Implement beautiful, informative progress displays
 
+**Architectural Note**: To avoid code duplication and ensure consistency, progress logic (ETA calculations, throttling, utilities) is being extracted to the shared message-interface package first, then both CLI and Matrix will use this shared foundation.
+
 **CLI Enhancements**:
 
-- [ ] Multi-line progress bars for batch operations
-- [ ] Current operation details display
-- [ ] ETA and processing rate calculations
-- [ ] Different rendering for batch vs individual jobs
-- [ ] Smart aggregation for directory sync (e.g., "Syncing: 15/40 files")
+- [x] Multi-line progress bars for batch operations
+- [x] Current operation details display
+- [x] ETA and processing rate calculations
+- [x] Different rendering for batch vs individual jobs
+- [x] Smart aggregation for directory sync (e.g., "Syncing: 15/40 files")
 
-**Matrix Enhancements**:
+**Shared Progress Logic Extraction**:
+
+- [ ] Extract ETA and rate calculations from CLI to message-interface package
+- [ ] Extract batch update throttling logic to message-interface package  
+- [ ] Move progress utilities and operation detection to shared package
+- [ ] Update CLI to use shared progress utilities
+
+**Matrix Enhancements** (depends on shared logic extraction):
 
 - [ ] Richer progress messages with operation details
 - [ ] Emoji indicators for different operation types
