@@ -56,11 +56,11 @@ This document outlines the roadmap for completing Phase 1 of the Brain system, c
 
 **Enum-Based Operation Architecture**:
 
-- [ ] Update JobProgressEvent schema with Zod enum for operation types
-- [ ] Add type-safe aggregation logic to progressReducer
-- [ ] Update job creators to use structured operation types
-- [ ] Remove CLI string-based aggregation logic
-- [ ] Enable consistent operation aggregation across interfaces
+- [x] Update JobProgressEvent schema with Zod enum for operation types
+- [x] Add type-safe aggregation logic to progressReducer
+- [x] Update job creators to use structured operation types
+- [x] Remove CLI string-based aggregation logic
+- [x] Enable consistent operation aggregation across interfaces
 
 **Matrix Enhancements** (depends on shared logic extraction):
 

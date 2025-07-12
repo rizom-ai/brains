@@ -21,7 +21,7 @@ export function MultiLineProgress({
   // Use the shared progress reducer to process events
   const { processedEvents } = useMemo(() => {
     const state = createInitialProgressState();
-    
+
     // Process all events through the reducer
     const finalState = progressEvents.reduce((currentState, event) => {
       return progressReducer(currentState, {
@@ -38,7 +38,7 @@ export function MultiLineProgress({
   // Group events using shared utility
   const { batchEvents, jobEvents } = useMemo(() => {
     const eventsMap = new Map();
-    processedEvents.forEach(event => eventsMap.set(event.id, event));
+    processedEvents.forEach((event) => eventsMap.set(event.id, event));
     return groupProgressEvents(eventsMap);
   }, [processedEvents]);
 
@@ -120,7 +120,11 @@ export function MultiLineProgress({
           const rate = event.progress?.rateFormatted ?? "...";
 
           return (
-            <Box key={`job-${event.id}`} flexDirection="column" marginBottom={1}>
+            <Box
+              key={`job-${event.id}`}
+              flexDirection="column"
+              marginBottom={1}
+            >
               <Box justifyContent="space-between">
                 <Box>
                   <Text color="blue">
