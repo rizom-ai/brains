@@ -13,6 +13,7 @@ import type { DrizzleDB } from "@brains/db";
 const defaultTestMetadata: ProgressEventContext = {
   interfaceId: "test",
   userId: "test-user",
+  operationType: "entity_processing",
 };
 
 // Mock embedding handler for individual operations
@@ -78,13 +79,13 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-2", entityType: "note" },
       ];
 
-      const source = "test:batch-manager";
-      const batchId = await batchManager.enqueueBatch(
-        operations,
-        source,
-        defaultTestMetadata,
-        "entity_processing",
-      );
+      const batchId = await batchManager.enqueueBatch(operations, {
+        source: "test:batch-manager",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "entity_processing",
+        },
+      });
 
       expect(batchId).toBeDefined();
       expect(typeof batchId).toBe("string");
@@ -102,20 +103,16 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      const source = "test:batch-manager";
-      const batchId = await batchManager.enqueueBatch(
-        operations,
-        source,
-        {
+      const batchId = await batchManager.enqueueBatch(operations, {
+        source: "test:batch-manager",
+        metadata: {
           ...defaultTestMetadata,
           userId: "user-123",
+          operationType: "entity_processing",
         },
-        "entity_processing",
-        {
-          priority: 5,
-          maxRetries: 1,
-        },
-      );
+        priority: 5,
+        maxRetries: 1,
+      });
 
       // Get batch status to verify it was created
       const status = await batchManager.getBatchStatus(batchId);
@@ -130,12 +127,13 @@ describe("BatchJobManager", () => {
 
     it("should throw error for empty batch", async () => {
       expect(async () => {
-        await batchManager.enqueueBatch(
-          [],
-          "test:batch-manager",
-          defaultTestMetadata,
-          "entity_processing",
-        );
+        await batchManager.enqueueBatch([], {
+          source: "test:batch-manager",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "entity_processing",
+          },
+        });
       }).toThrow("Cannot enqueue empty batch");
     });
   });
@@ -151,12 +149,13 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(
-        operations,
-        "test:batch-manager",
-        defaultTestMetadata,
-        "entity_processing",
-      );
+      const batchId = await batchManager.enqueueBatch(operations, {
+        source: "test:batch-manager",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "entity_processing",
+        },
+      });
       const status = await batchManager.getBatchStatus(batchId);
 
       expect(status).toBeDefined();
@@ -175,12 +174,13 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-2" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(
-        operations,
-        "test:batch-manager",
-        defaultTestMetadata,
-        "entity_processing",
-      );
+      const batchId = await batchManager.enqueueBatch(operations, {
+        source: "test:batch-manager",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "entity_processing",
+        },
+      });
       const status = await batchManager.getBatchStatus(batchId);
 
       expect(status?.totalOperations).toBe(2);
@@ -196,12 +196,13 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(
-        operations,
-        "test:batch-manager",
-        defaultTestMetadata,
-        "entity_processing",
-      );
+      const batchId = await batchManager.enqueueBatch(operations, {
+        source: "test:batch-manager",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "entity_processing",
+        },
+      });
       const status = await batchManager.getBatchStatus(batchId);
 
       // Initially, job should be pending or processing
@@ -215,12 +216,13 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      const batchId = await batchManager.enqueueBatch(
-        operations,
-        "test:batch-manager",
-        defaultTestMetadata,
-        "entity_processing",
-      );
+      const batchId = await batchManager.enqueueBatch(operations, {
+        source: "test:batch-manager",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "entity_processing",
+        },
+      });
 
       // Verify batch exists
       const statusBefore = await batchManager.getBatchStatus(batchId);
@@ -241,9 +243,13 @@ describe("BatchJobManager", () => {
       // Create multiple batches
       await batchManager.enqueueBatch(
         [{ type: "embedding", entityId: "entity-1" }],
-        "test:batch-manager",
-        defaultTestMetadata,
-        "entity_processing",
+        {
+          source: "test:batch-manager",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "entity_processing",
+          },
+        },
       );
 
       await batchManager.enqueueBatch(
@@ -251,16 +257,25 @@ describe("BatchJobManager", () => {
           { type: "embedding", entityId: "entity-2" },
           { type: "embedding", entityId: "entity-3" },
         ],
-        "test:batch-manager",
-        defaultTestMetadata,
-        "entity_processing",
+        {
+          source: "test:batch-manager",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "entity_processing",
+          },
+        },
       );
 
       const batch3Id = await batchManager.enqueueBatch(
         [{ type: "embedding", entityId: "entity-4" }],
-        "test:batch-manager",
-        { ...defaultTestMetadata, userId: "user-123" },
-        "entity_processing",
+        {
+          source: "test:batch-manager",
+          metadata: {
+            ...defaultTestMetadata,
+            userId: "user-123",
+            operationType: "entity_processing",
+          },
+        },
       );
 
       // Complete the first batch's job
@@ -287,7 +302,7 @@ describe("BatchJobManager", () => {
 
       // Check that batch3 has userId in metadata
       const batch3 = activeBatches.find((b) => b.batchId === batch3Id);
-      expect(batch3?.metadata.metadata?.userId).toBe("user-123");
+      expect(batch3?.metadata.metadata.userId).toBe("user-123");
 
       // Check that all batches have source
       for (const batch of activeBatches) {
@@ -301,12 +316,13 @@ describe("BatchJobManager", () => {
         { type: "embedding", entityId: "entity-1" },
       ];
 
-      await batchManager.enqueueBatch(
-        operations,
-        "test:batch-manager",
-        defaultTestMetadata,
-        "entity_processing",
-      );
+      await batchManager.enqueueBatch(operations, {
+        source: "test:batch-manager",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "entity_processing",
+        },
+      });
 
       // Process and complete the job
       const job = await jobQueueService.dequeue();
@@ -328,9 +344,13 @@ describe("BatchJobManager", () => {
           { type: "embedding", entityId: "entity-1" },
           { type: "embedding", entityId: "entity-2" },
         ],
-        "test:batch-manager",
-        defaultTestMetadata,
-        "entity_processing",
+        {
+          source: "test:batch-manager",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "entity_processing",
+          },
+        },
       );
 
       // Start processing one job (dequeue it)

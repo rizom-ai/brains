@@ -34,6 +34,8 @@ export const ProgressEventContextSchema = z.object({
   pluginId: z.string().optional(),
   roomId: z.string().optional(),
   progressToken: z.union([z.string(), z.number()]).optional(),
+  operationType: OperationTypeEnum,
+  operationTarget: z.string().optional(),
 });
 
 export type ProgressEventContext = z.infer<typeof ProgressEventContextSchema>;
@@ -145,10 +147,8 @@ export interface JobOptions {
   priority?: number; // Job priority (higher = more important)
   maxRetries?: number; // Override default retry count
   delayMs?: number; // Initial delay before processing
-  source?: string; // Source identifier for job progress events
+  source: string; // Source identifier for job progress events
   metadata: ProgressEventContext; // Additional metadata for job progress events (required)
-  operationType: OperationType; // Required: Type of operation for structured progress tracking
-  operationTarget?: string; // Optional: Target of operation (e.g., entity ID, file path)
 }
 
 /**

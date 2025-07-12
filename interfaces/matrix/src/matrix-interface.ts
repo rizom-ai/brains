@@ -457,9 +457,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     // Handle job progress events
     if (progressEvent.type === "job") {
       await this.handleJobProgress(progressEvent, roomId);
-    }
-    // Handle batch progress events
-    else if (progressEvent.type === "batch") {
+    } else {
+      // Handle batch progress events
       await this.handleBatchProgress(progressEvent, roomId);
     }
   }
@@ -473,35 +472,90 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   ): Promise<void> {
     if (!this.client) return;
 
-    // Only show completion message for individual jobs
+    // Create rich message with operation details
+    let message: string;
+    const operationDisplay = this.formatOperationDisplay(progressEvent);
+
     if (progressEvent.status === "completed") {
-      const message = "✅ Task completed";
-      try {
-        await this.client.sendFormattedMessage(
-          roomId,
-          message,
-          markdownToHtml(message),
-        );
-      } catch (error) {
-        this.logger.error("Failed to send job completion message", {
-          error,
-          roomId,
-        });
+      message = `✅ **${operationDisplay}** completed`;
+      
+      // Add progress details if available
+      if (progressEvent.progress) {
+        const { current, total } = progressEvent.progress;
+        if (total && total > 1) {
+          message += ` (${current}/${total} items processed)`;
+        }
       }
     } else if (progressEvent.status === "failed") {
-      const message = "❌ Task failed";
-      try {
-        await this.client.sendFormattedMessage(
+      message = `❌ **${operationDisplay}** failed`;
+      
+      // Add error details if available
+      if (progressEvent.message) {
+        message += `\n> ${progressEvent.message}`;
+      }
+    } else if (progressEvent.status === "processing" && progressEvent.progress) {
+      // Show processing status with details for long-running jobs
+      const { current, total, percentage, etaFormatted, rateFormatted } = progressEvent.progress;
+      
+      message = `🔄 **${operationDisplay}** in progress`;
+      
+      if (total && total > 1) {
+        message += `\n📊 Progress: ${current}/${total} (${percentage}%)`;
+        
+        if (etaFormatted) {
+          message += `\n⏱️ ETA: ${etaFormatted}`;
+        }
+        
+        if (rateFormatted) {
+          message += `\n⚡ Rate: ${rateFormatted}`;
+        }
+      }
+      
+      if (progressEvent.operationTarget) {
+        message += `\n📂 Target: \`${progressEvent.operationTarget}\``;
+      }
+    } else {
+      // Don't send messages for other statuses (pending) to avoid spam
+      return;
+    }
+
+    const progressKey = `job:${progressEvent.id}:${roomId}`;
+    const existingMessageId = this.progressMessages.get(progressKey);
+
+    try {
+      if (existingMessageId) {
+        // Edit existing message for all updates (processing, completion, failure)
+        await this.client.editMessage(
+          roomId,
+          existingMessageId,
+          message,
+          markdownToHtml(message),
+        );
+      } else {
+        // Send new message only if we don't have one yet
+        const messageId = await this.client.sendFormattedMessage(
           roomId,
           message,
           markdownToHtml(message),
         );
-      } catch (error) {
-        this.logger.error("Failed to send job failure message", {
-          error,
-          roomId,
-        });
+        
+        // Store message ID for all future edits
+        this.progressMessages.set(progressKey, messageId);
       }
+
+      // Clean up when done
+      if (
+        progressEvent.status === "completed" ||
+        progressEvent.status === "failed"
+      ) {
+        this.progressMessages.delete(progressKey);
+      }
+    } catch (error) {
+      this.logger.error("Failed to send job progress message", {
+        error,
+        roomId,
+        status: progressEvent.status,
+      });
     }
   }
 
@@ -517,13 +571,53 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     const { batchDetails } = progressEvent;
     if (!batchDetails) return;
 
+    const operationDisplay = this.formatOperationDisplay(progressEvent);
     let message: string;
+
     if (batchDetails.completedOperations >= batchDetails.totalOperations) {
-      message = `✅ All ${batchDetails.totalOperations} tasks completed`;
+      message = `✅ **${operationDisplay}** batch completed`;
+      message += `\n📊 **${batchDetails.totalOperations}** operations processed successfully`;
+      
+      if (batchDetails.failedOperations > 0) {
+        message += `\n⚠️ ${batchDetails.failedOperations} operations failed`;
+      }
     } else if (progressEvent.status === "failed") {
-      message = `❌ Batch failed: ${batchDetails.completedOperations}/${batchDetails.totalOperations} tasks completed`;
+      message = `❌ **${operationDisplay}** batch failed`;
+      message += `\n📊 Progress: ${batchDetails.completedOperations}/${batchDetails.totalOperations} completed`;
+      
+      if (batchDetails.failedOperations > 0) {
+        message += `\n❌ ${batchDetails.failedOperations} operations failed`;
+      }
+      
+      if (batchDetails.errors && batchDetails.errors.length > 0) {
+        const latestError = batchDetails.errors[batchDetails.errors.length - 1];
+        message += `\n> Latest error: ${latestError}`;
+      }
     } else {
-      message = `✅ ${batchDetails.completedOperations} of ${batchDetails.totalOperations} tasks completed`;
+      // In progress
+      message = `🔄 **${operationDisplay}** batch in progress`;
+      message += `\n📊 Progress: ${batchDetails.completedOperations}/${batchDetails.totalOperations}`;
+      
+      // Add percentage if we have progress info
+      if (progressEvent.progress?.percentage !== undefined) {
+        message += ` (${progressEvent.progress.percentage}%)`;
+      }
+      
+      if (progressEvent.progress?.etaFormatted) {
+        message += `\n⏱️ ETA: ${progressEvent.progress.etaFormatted}`;
+      }
+      
+      if (progressEvent.progress?.rateFormatted) {
+        message += `\n⚡ Rate: ${progressEvent.progress.rateFormatted}`;
+      }
+      
+      if (batchDetails.currentOperation) {
+        message += `\n🔄 Current: ${batchDetails.currentOperation}`;
+      }
+      
+      if (batchDetails.failedOperations > 0) {
+        message += `\n⚠️ ${batchDetails.failedOperations} failed so far`;
+      }
     }
 
     const progressKey = `batch:${progressEvent.id}:${roomId}`;
@@ -559,6 +653,25 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         roomId,
       });
     }
+  }
+
+  /**
+   * Format operation display name
+   */
+  private formatOperationDisplay(progressEvent: JobProgressEvent): string {
+    const { operationType, operationTarget } = progressEvent;
+    
+    // Convert snake_case to Title Case
+    const displayName = operationType
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    if (operationTarget) {
+      return `${displayName}: ${operationTarget}`;
+    }
+    
+    return displayName;
   }
 
   /**

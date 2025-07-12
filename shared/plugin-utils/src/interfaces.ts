@@ -19,7 +19,7 @@ import type {
   BatchOperation,
   JobHandler,
 } from "@brains/job-queue";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobOptions } from "@brains/db";
 import type { Job } from "@brains/types";
 
 /**
@@ -193,12 +193,7 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
   enqueueJob: (
     type: string,
     data: unknown,
-    options?: {
-      priority?: number;
-      maxRetries?: number;
-      source?: string;
-      metadata?: Record<string, unknown>;
-    },
+    options: JobOptions,
   ) => Promise<string>;
 
   getJobStatus: (jobId: string) => Promise<{
@@ -215,12 +210,7 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
       entityType?: string;
       options?: Record<string, unknown>;
     }>,
-    source: string,
-    metadata: ProgressEventContext,
-    options?: {
-      priority?: number;
-      maxRetries?: number;
-    },
+    options: JobOptions,
   ) => Promise<string>;
 
   getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;

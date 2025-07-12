@@ -21,6 +21,7 @@ const mockJobEvent: JobProgressEvent = {
   metadata: {
     userId: "user-1",
     interfaceId: "test",
+    operationType: "file_processing",
   },
 };
 
@@ -37,6 +38,7 @@ const mockBatchEvent: JobProgressEvent = {
   metadata: {
     userId: "user-1",
     interfaceId: "test",
+    operationType: "file_processing",
   },
 };
 
@@ -164,11 +166,11 @@ describe("formatProgressMessage", () => {
   test("formats unknown status", () => {
     const data = {
       operationType: "entity_processing" as const,
-      status: "pending" as any,
+      status: "processing" as const,
     };
 
     const message = formatProgressMessage(data);
-    expect(message).toBe("⚙️ entity_processing");
+    expect(message).toBe("🔄 entity_processing");
   });
 });
 
@@ -237,6 +239,6 @@ describe("getStatusEmoji", () => {
   });
 
   test("returns default emoji for unknown status", () => {
-    expect(getStatusEmoji("unknown" as any)).toBe("⚙️");
+    expect(getStatusEmoji("unknown" as never)).toBe("⚙️");
   });
 });

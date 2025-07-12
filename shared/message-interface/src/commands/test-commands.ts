@@ -42,9 +42,11 @@ export function getTestCommands(
             {
               source,
               metadata: {
-                roomId: messageContext.channelId,
                 interfaceId,
                 userId: messageContext.userId,
+                roomId: messageContext.channelId,
+                operationType: "entity_processing",
+                operationTarget: "test-slow-job",
               },
             },
           );
@@ -76,13 +78,14 @@ export function getTestCommands(
           const source = `${interfaceId}:${messageContext.channelId}`;
           const batchId = await context.enqueueBatch(
             operations,
-            source,
             {
-              roomId: messageContext.channelId,
-              interfaceId,
-              userId: messageContext.userId,
-            },
-            {
+              source,
+              metadata: {
+                roomId: messageContext.channelId,
+                interfaceId,
+                userId: messageContext.userId,
+                operationType: "batch_processing",
+              },
               priority: 5,
             },
           );

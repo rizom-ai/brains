@@ -281,7 +281,17 @@ export class PluginTestHarness {
         // Mock implementation for test harness
       },
       // Generic job queue access (required)
-      enqueueJob: async (): Promise<string> => {
+      enqueueJob: async (
+        _type: string,
+        _data: unknown,
+        _options: {
+          source: string;
+          metadata: ProgressEventContext;
+          priority?: number;
+          maxRetries?: number;
+          delayMs?: number;
+        },
+      ): Promise<string> => {
         // Mock implementation - return a fake job ID
         return "mock-job-id-" + Date.now();
       },
@@ -304,9 +314,9 @@ export class PluginTestHarness {
           entityType?: string;
           options?: Record<string, unknown>;
         }>,
-        _source: string,
-        _metadata: ProgressEventContext,
-        _options?: {
+        _options: {
+          source: string;
+          metadata: ProgressEventContext;
           priority?: number;
           maxRetries?: number;
         },

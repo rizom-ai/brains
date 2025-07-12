@@ -1,7 +1,7 @@
 import type { IJobQueueService } from "./types";
 import type { BatchOperation, BatchJobStatus } from "./schemas";
 import { JOB_STATUS } from "./schemas";
-import type { ProgressEventContext, OperationType } from "@brains/db";
+import type { ProgressEventContext, JobOptions } from "@brains/db";
 import type { Logger } from "@brains/utils";
 import { createBatchId } from "@brains/utils";
 
@@ -57,13 +57,7 @@ export class BatchJobManager {
    */
   async enqueueBatch(
     operations: BatchOperation[],
-    source: string,
-    metadata: ProgressEventContext,
-    operationType: OperationType,
-    options?: {
-      priority?: number;
-      maxRetries?: number;
-    },
+    options: JobOptions,
   ): Promise<string> {
     if (operations.length === 0) {
       throw new Error("Cannot enqueue empty batch");
@@ -75,19 +69,14 @@ export class BatchJobManager {
     try {
       // Enqueue each operation as an individual job
       for (const operation of operations) {
-        // Build job options conditionally to avoid undefined values
+        // Build job options for each individual job
         const jobOptions: Parameters<IJobQueueService["enqueue"]>[2] = {
-          source, // Always include source
-          metadata, // Always include metadata
-          operationType,
-          operationTarget: operation.entityId ?? operation.type,
+          ...options,
+          metadata: {
+            ...options.metadata,
+            operationTarget: operation.entityId ?? operation.type,
+          },
         };
-        if (options?.priority !== undefined) {
-          jobOptions.priority = options.priority;
-        }
-        if (options?.maxRetries !== undefined) {
-          jobOptions.maxRetries = options.maxRetries;
-        }
 
         const jobId = await this.jobQueue.enqueue(
           operation.type,
@@ -108,9 +97,9 @@ export class BatchJobManager {
       } = {
         jobIds,
         operations: operations,
-        source,
+        source: options.source,
         startedAt: new Date().toISOString(),
-        metadata,
+        metadata: options.metadata,
       };
 
       this.batches.set(batchId, batchMetadata);
@@ -119,7 +108,7 @@ export class BatchJobManager {
         batchId,
         operationCount: operations.length,
         jobIds,
-        userId: metadata.userId,
+        userId: options.metadata.userId,
       });
 
       return batchId;

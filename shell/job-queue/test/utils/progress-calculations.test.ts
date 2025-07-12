@@ -24,9 +24,11 @@ describe("calculateETA", () => {
     const result = calculateETA(25, 100, startTime); // 25% complete in 10s
 
     expect(result).not.toBeNull();
-    expect(result!.rate).toBeCloseTo(2.5, 1); // 2.5 items per second
-    expect(result!.etaSeconds).toBeCloseTo(30, 1); // 30s remaining
-    expect(result!.eta).toBe("30s");
+    if (result) {
+      expect(result.rate).toBeCloseTo(2.5, 1); // 2.5 items per second
+      expect(result.etaSeconds).toBeCloseTo(30, 1); // 30s remaining
+      expect(result.eta).toBe("30s");
+    }
   });
 
   test("formats ETA in minutes for longer durations", () => {
@@ -34,9 +36,11 @@ describe("calculateETA", () => {
     const result = calculateETA(10, 100, startTime); // 10% complete in 10s
 
     expect(result).not.toBeNull();
-    expect(result!.rate).toBeCloseTo(1, 1); // 1 item per second
-    expect(result!.etaSeconds).toBeCloseTo(90, 1); // 90s remaining
-    expect(result!.eta).toBe("2m"); // Should round to 2 minutes
+    if (result) {
+      expect(result.rate).toBeCloseTo(1, 1); // 1 item per second
+      expect(result.etaSeconds).toBeCloseTo(90, 1); // 90s remaining
+      expect(result.eta).toBe("2m"); // Should round to 2 minutes
+    }
   });
 
   test("formats ETA in hours for very long durations", () => {
@@ -44,9 +48,11 @@ describe("calculateETA", () => {
     const result = calculateETA(1, 100, startTime); // 1% complete in 100s
 
     expect(result).not.toBeNull();
-    expect(result!.rate).toBeCloseTo(0.01, 2); // 0.01 items per second
-    expect(result!.etaSeconds).toBeCloseTo(9900, 100); // ~2.75 hours remaining
-    expect(result!.eta).toBe("2h 45m"); // Actual output: 2h 45m
+    if (result) {
+      expect(result.rate).toBeCloseTo(0.01, 2); // 0.01 items per second
+      expect(result.etaSeconds).toBeCloseTo(9900, 100); // ~2.75 hours remaining
+      expect(result.eta).toBe("2h 45m"); // Actual output: 2h 45m
+    }
   });
 
   test("handles edge case of negative rate", () => {

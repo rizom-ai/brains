@@ -95,6 +95,7 @@ describe("EntityService", (): void => {
           metadata: {
             interfaceId: "system",
             userId: "system",
+            operationType: "embedding_generation" as const,
           },
           source: null,
           result: null,

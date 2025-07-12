@@ -367,6 +367,7 @@ export class EntityService implements IEntityService {
     const defaultMetadata = {
       interfaceId: "system",
       userId: "system",
+      operationType: "embedding_generation" as const,
     };
 
     const jobId = await this.jobQueueService.enqueue(
@@ -385,9 +386,11 @@ export class EntityService implements IEntityService {
         ...(options?.maxRetries !== undefined && {
           maxRetries: options.maxRetries,
         }),
-        metadata: defaultMetadata,
-        operationType: "embedding_generation",
-        operationTarget: validatedEntity.id,
+        source: "entity-service",
+        metadata: {
+          ...defaultMetadata,
+          operationTarget: validatedEntity.id,
+        },
       },
     );
 
@@ -847,6 +850,7 @@ export class EntityService implements IEntityService {
     const defaultMetadata = {
       interfaceId: "system",
       userId: "system",
+      operationType: "embedding_generation" as const,
     };
 
     const jobId = await this.jobQueueService.enqueue(
@@ -857,9 +861,11 @@ export class EntityService implements IEntityService {
         ...(options?.maxRetries !== undefined && {
           maxRetries: options.maxRetries,
         }),
-        metadata: defaultMetadata,
-        operationType: "embedding_generation",
-        operationTarget: validatedEntity.id,
+        source: "entity-service",
+        metadata: {
+          ...defaultMetadata,
+          operationTarget: validatedEntity.id,
+        },
       },
     );
 

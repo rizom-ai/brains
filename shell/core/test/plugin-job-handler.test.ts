@@ -55,6 +55,7 @@ describe("Plugin Job Handler Lifecycle", () => {
           metadata: {
             interfaceId: "test",
             userId: "test-user",
+            operationType: "entity_processing",
           },
           source: "test",
           result: null,
@@ -183,16 +184,25 @@ describe("Plugin Job Handler Lifecycle", () => {
     context.registerJobHandler("test-job", handler);
 
     const jobData = { message: "Hello from test" };
-    const jobId = await context.enqueueJob("test-job", jobData);
+    const jobId = await context.enqueueJob("test-job", jobData, {
+      source: "test-plugin",
+      metadata: {
+        interfaceId: "test-plugin",
+        userId: "system",
+        operationType: "entity_processing",
+      },
+    });
 
     // Verify job was enqueued
     expect(mockJobQueueService.enqueue).toHaveBeenCalledWith(
       "test-plugin:test-job",
       jobData,
       {
+        source: "test-plugin",
         metadata: {
           interfaceId: "test-plugin",
           userId: "system",
+          operationType: "entity_processing",
         },
       },
     );
@@ -274,6 +284,13 @@ describe("Plugin Job Handler Lifecycle", () => {
     try {
       await context.enqueueJob("validate-job", {
         invalid: true,
+      }, {
+        source: "test-plugin",
+        metadata: {
+          interfaceId: "test-plugin",
+          userId: "system",
+          operationType: "entity_processing",
+        },
       });
       expect(false).toBe(true); // Should not reach here
     } catch (error) {
@@ -305,17 +322,33 @@ describe("Plugin Job Handler Lifecycle", () => {
     expect(types).toContain("plugin-2:task");
 
     // Enqueue jobs for each plugin
-    await plugin1Context.enqueueJob("task", {});
-    await plugin2Context.enqueueJob("task", {});
+    await plugin1Context.enqueueJob("task", {}, {
+      source: "plugin-1",
+      metadata: {
+        interfaceId: "plugin-1",
+        userId: "system",
+        operationType: "entity_processing",
+      },
+    });
+    await plugin2Context.enqueueJob("task", {}, {
+      source: "plugin-2",
+      metadata: {
+        interfaceId: "plugin-2",
+        userId: "system",
+        operationType: "entity_processing",
+      },
+    });
 
     // Verify both were enqueued with correct types
     expect(mockJobQueueService.enqueue).toHaveBeenCalledWith(
       "plugin-1:task",
       {},
       {
+        source: "plugin-1",
         metadata: {
           interfaceId: "plugin-1",
           userId: "system",
+          operationType: "entity_processing",
         },
       },
     );
@@ -323,9 +356,11 @@ describe("Plugin Job Handler Lifecycle", () => {
       "plugin-2:task",
       {},
       {
+        source: "plugin-2",
         metadata: {
           interfaceId: "plugin-2",
           userId: "system",
+          operationType: "entity_processing",
         },
       },
     );

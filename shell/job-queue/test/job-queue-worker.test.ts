@@ -54,6 +54,7 @@ describe("JobQueueWorker", () => {
     metadata: {
       interfaceId: "test",
       userId: "test-user",
+      operationType: "entity_processing",
     },
     source: null,
   };

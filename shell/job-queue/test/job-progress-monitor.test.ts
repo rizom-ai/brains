@@ -4,8 +4,9 @@ import type { IJobQueueService } from "../src/types";
 import type { BatchJobManager } from "../src/batch-job-manager";
 import type { MessageBus } from "@brains/messaging-service";
 import { createSilentLogger, type Logger } from "@brains/utils";
-import type { JobQueue } from "@brains/db";
+import type { JobQueue, ProgressEventContext } from "@brains/db";
 import type { BatchJobStatus } from "../src/schemas";
+import type { Mock } from "bun:test";
 
 describe("JobProgressMonitor", () => {
   let monitor: JobProgressMonitor;
@@ -13,16 +14,26 @@ describe("JobProgressMonitor", () => {
   let mockBatchJobManager: BatchJobManager;
   let mockMessageBus: MessageBus;
   let mockLogger: Logger;
+  
+  // Properly typed mock functions
+  let getActiveJobsMock: Mock<() => Promise<JobQueue[]>>;
+  let getStatusMock: Mock<(id: string) => Promise<JobQueue | null>>;
+  let getActiveBatchesMock: Mock<() => Promise<Array<{ batchId: string; status: BatchJobStatus; metadata: { operations: unknown[]; source: string; startedAt: string; metadata: ProgressEventContext } }>>>;
+  let getBatchStatusMock: Mock<(id: string) => Promise<BatchJobStatus | null>>;
+  let messageBusSendMock: Mock<(...args: unknown[]) => Promise<void>>;
 
   beforeEach(() => {
     // Create fresh mocks for each test
+    getActiveJobsMock = mock(() => Promise.resolve([]));
+    getStatusMock = mock(() => Promise.resolve(null));
+    
     mockJobQueueService = {
       enqueue: mock(() => Promise.resolve("job-id")),
       dequeue: mock(() => Promise.resolve(null)),
-      getStatus: mock(() => Promise.resolve(null)),
+      getStatus: getStatusMock,
       complete: mock(() => Promise.resolve()),
       fail: mock(() => Promise.resolve()),
-      getActiveJobs: mock(() => Promise.resolve([])),
+      getActiveJobs: getActiveJobsMock,
       registerHandler: mock(() => {}),
       unregisterHandler: mock(() => {}),
       getRegisteredTypes: mock(() => []),
@@ -41,19 +52,24 @@ describe("JobProgressMonitor", () => {
       cleanup: mock(() => Promise.resolve(0)),
     };
 
+    getActiveBatchesMock = mock(() => Promise.resolve([]));
+    getBatchStatusMock = mock(() => Promise.resolve(null));
+    
     mockBatchJobManager = {
       enqueueBatch: mock(() => Promise.resolve("batch-id")),
-      getBatchStatus: mock(() => Promise.resolve(null)),
-      getActiveBatches: mock(() => Promise.resolve([])),
+      getBatchStatus: getBatchStatusMock,
+      getActiveBatches: getActiveBatchesMock,
       cleanup: mock(() => Promise.resolve(0)),
       getInstance: mock(() => mockBatchJobManager),
       resetInstance: mock(() => {}),
       createFresh: mock(() => mockBatchJobManager),
     } as unknown as BatchJobManager;
 
+    messageBusSendMock = mock(() => Promise.resolve());
+    
     mockMessageBus = {
-      send: mock(() => Promise.resolve()),
-      subscribe: mock(() => () => {}),
+      send: messageBusSendMock,
+      subscribe: mock((): (() => void) => () => {}),
       unsubscribe: mock(() => {}),
       unsubscribeAll: mock(() => {}),
       getInstance: mock(() => mockMessageBus),
@@ -127,21 +143,22 @@ describe("JobProgressMonitor", () => {
       metadata: {
         interfaceId: "test",
         userId: "test-user",
+        operationType: "entity_processing",
       },
-      source: null,
+      source: "test-source",
       ...overrides,
     });
 
     it("should emit progress event for active jobs", async () => {
       const mockJob = createMockJob();
-      (mockJobQueueService.getActiveJobs as any).mockResolvedValue([mockJob]);
+      getActiveJobsMock.mockResolvedValue([mockJob]);
 
       monitor.start();
 
       // Wait a bit for the first check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(mockMessageBus.send).toHaveBeenCalledWith(
+      expect(messageBusSendMock).toHaveBeenCalledWith(
         "job-progress",
         {
           id: "job-123",
@@ -153,6 +170,7 @@ describe("JobProgressMonitor", () => {
           metadata: {
             interfaceId: "test",
             userId: "test-user",
+            operationType: "entity_processing",
           },
           jobDetails: {
             jobType: "test-job",
@@ -183,16 +201,21 @@ describe("JobProgressMonitor", () => {
         completedAt: null,
         lastError: null,
         source: "matrix:room123", // Job has a source
-        metadata: { roomId: "room123", interfaceId: "test", userId: "user123" }, // Job has metadata
+        metadata: {
+          roomId: "room123",
+          interfaceId: "test",
+          userId: "user123",
+          operationType: "entity_processing",
+        }, // Job has metadata
       };
-      (mockJobQueueService.getActiveJobs as any).mockResolvedValue([mockJob]);
+      getActiveJobsMock.mockResolvedValue([mockJob]);
 
       monitor.start();
 
       // Wait for check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(mockMessageBus.send).toHaveBeenCalledWith(
+      expect(messageBusSendMock).toHaveBeenCalledWith(
         "job-progress",
         expect.objectContaining({
           id: "job-789",
@@ -201,6 +224,7 @@ describe("JobProgressMonitor", () => {
             roomId: "room123",
             interfaceId: "test",
             userId: "user123",
+            operationType: "entity_processing",
           },
         }),
         "job-progress-monitor", // source
@@ -227,7 +251,7 @@ describe("JobProgressMonitor", () => {
   describe("batch monitoring", () => {
     it("should emit progress event for batch operations", async () => {
       const mockBatch = createMockBatch();
-      (mockBatchJobManager.getActiveBatches as any).mockResolvedValue([
+      getActiveBatchesMock.mockResolvedValue([
         {
           batchId: "batch-456",
           status: mockBatch,
@@ -238,6 +262,7 @@ describe("JobProgressMonitor", () => {
             metadata: {
               interfaceId: "system",
               userId: "system",
+              operationType: "batch_processing",
             },
           },
         },
@@ -248,7 +273,7 @@ describe("JobProgressMonitor", () => {
       // Wait for the first check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(mockMessageBus.send).toHaveBeenCalledWith(
+      expect(messageBusSendMock).toHaveBeenCalledWith(
         "job-progress",
         {
           id: "batch-456",
@@ -259,6 +284,7 @@ describe("JobProgressMonitor", () => {
           metadata: {
             interfaceId: "system",
             userId: "system",
+            operationType: "batch_processing",
           },
           batchDetails: {
             totalOperations: 10,
@@ -286,7 +312,7 @@ describe("JobProgressMonitor", () => {
         completedOperations: 3,
       });
 
-      (mockBatchJobManager.getActiveBatches as any).mockResolvedValue([
+      getActiveBatchesMock.mockResolvedValue([
         {
           batchId: "batch-456",
           status: mockBatch,
@@ -297,6 +323,7 @@ describe("JobProgressMonitor", () => {
             metadata: {
               interfaceId: "system",
               userId: "system",
+              operationType: "batch_processing",
             },
           },
         },
@@ -305,13 +332,15 @@ describe("JobProgressMonitor", () => {
       monitor.start();
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      const call = (mockMessageBus.send as any).mock.calls[0];
-      expect(call[1].progress.percentage).toBe(75);
+      const call = messageBusSendMock.mock.calls[0];
+      if (call) {
+        expect((call[1] as { progress: { percentage: number } }).progress.percentage).toBe(75);
+      }
     });
 
     it("should include metadata when batch has roomId", async () => {
       const mockBatch = createMockBatch();
-      (mockBatchJobManager.getActiveBatches as any).mockResolvedValue([
+      getActiveBatchesMock.mockResolvedValue([
         {
           batchId: "batch-789",
           status: mockBatch,
@@ -323,6 +352,7 @@ describe("JobProgressMonitor", () => {
               roomId: "interactive",
               interfaceId: "test",
               userId: "user123",
+              operationType: "batch_processing",
             }, // Batch has roomId in metadata
           },
         },
@@ -333,7 +363,7 @@ describe("JobProgressMonitor", () => {
       // Wait for check
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(mockMessageBus.send).toHaveBeenCalledWith(
+      expect(messageBusSendMock).toHaveBeenCalledWith(
         "job-progress",
         expect.objectContaining({
           id: "batch-789",
@@ -342,6 +372,7 @@ describe("JobProgressMonitor", () => {
             roomId: "interactive",
             interfaceId: "test",
             userId: "user123",
+            operationType: "batch_processing",
           },
         }),
         "job-progress-monitor", // source
@@ -354,7 +385,7 @@ describe("JobProgressMonitor", () => {
 
   describe("error handling", () => {
     it("should handle errors when checking job progress", async () => {
-      (mockJobQueueService.getActiveJobs as any).mockRejectedValue(
+      getActiveJobsMock.mockRejectedValue(
         new Error("Database error"),
       );
 
@@ -368,7 +399,7 @@ describe("JobProgressMonitor", () => {
     });
 
     it("should handle errors when emitting events", async () => {
-      (mockMessageBus.send as any).mockRejectedValue(
+      messageBusSendMock.mockRejectedValue(
         new Error("Event bus error"),
       );
 
@@ -386,8 +417,14 @@ describe("JobProgressMonitor", () => {
         completedAt: null,
         startedAt: null,
         scheduledFor: Date.now(),
+        source: "test-source",
+        metadata: {
+          interfaceId: "test",
+          userId: "test-user",
+          operationType: "entity_processing" as const,
+        },
       };
-      (mockJobQueueService.getActiveJobs as any).mockResolvedValue([mockJob]);
+      getActiveJobsMock.mockResolvedValue([mockJob]);
 
       monitor.start();
 
@@ -447,7 +484,7 @@ describe("JobProgressMonitor", () => {
       });
 
       // First call: batch is active
-      (mockBatchJobManager.getActiveBatches as any)
+      getActiveBatchesMock
         .mockResolvedValueOnce([
           {
             batchId: "batch-123",
@@ -460,6 +497,7 @@ describe("JobProgressMonitor", () => {
                 roomId: "!testroom:example.com",
                 interfaceId: "test",
                 userId: "user123",
+                operationType: "batch_processing",
               },
             },
           },
@@ -468,7 +506,7 @@ describe("JobProgressMonitor", () => {
         .mockResolvedValueOnce([]);
 
       // When getBatchStatus is called for completed batch
-      (mockBatchJobManager.getBatchStatus as any).mockResolvedValue({
+      getBatchStatusMock.mockResolvedValue({
         ...mockBatch,
         status: "completed",
         completedOperations: 2,
@@ -483,8 +521,8 @@ describe("JobProgressMonitor", () => {
       await new Promise((resolve) => setTimeout(resolve, 600));
 
       // Verify final completion event was emitted with correct metadata
-      const completionCalls = (mockMessageBus.send as any).mock.calls.filter(
-        (call: any) => call[1].status === "completed",
+      const completionCalls = messageBusSendMock.mock.calls.filter(
+        (call: unknown[]) => (call[1] as { status: string }).status === "completed",
       );
 
       expect(completionCalls).toHaveLength(1);
@@ -498,6 +536,7 @@ describe("JobProgressMonitor", () => {
             roomId: "!testroom:example.com",
             interfaceId: "test",
             userId: "user123",
+            operationType: "batch_processing",
           },
           batchDetails: expect.objectContaining({
             completedOperations: 2,
@@ -519,10 +558,10 @@ describe("JobProgressMonitor", () => {
       });
 
       // Batch is no longer active (completed)
-      (mockBatchJobManager.getActiveBatches as any).mockResolvedValue([]);
+      getActiveBatchesMock.mockResolvedValue([]);
 
       // When getBatchStatus is called for unknown batch
-      (mockBatchJobManager.getBatchStatus as any).mockResolvedValue(mockBatch);
+      getBatchStatusMock.mockResolvedValue(mockBatch);
 
       monitor.start();
 
@@ -541,7 +580,7 @@ describe("JobProgressMonitor", () => {
       });
 
       // First call: batch is active
-      (mockBatchJobManager.getActiveBatches as any)
+      getActiveBatchesMock
         .mockResolvedValueOnce([
           {
             batchId: "batch-cleanup-test",
@@ -554,6 +593,7 @@ describe("JobProgressMonitor", () => {
                 roomId: "test",
                 interfaceId: "test",
                 userId: "user123",
+                operationType: "batch_processing",
               },
             },
           },
@@ -562,7 +602,7 @@ describe("JobProgressMonitor", () => {
         .mockResolvedValueOnce([]);
 
       // When getBatchStatus is called for completed batch
-      (mockBatchJobManager.getBatchStatus as any).mockResolvedValue({
+      getBatchStatusMock.mockResolvedValue({
         ...mockBatch,
         status: "completed",
         completedOperations: 1,
@@ -577,15 +617,15 @@ describe("JobProgressMonitor", () => {
       await new Promise((resolve) => setTimeout(resolve, 600));
 
       // Verify cache was cleaned up by checking that subsequent calls don't use cache
-      (mockBatchJobManager.getActiveBatches as any).mockResolvedValue([]);
-      (mockBatchJobManager.getBatchStatus as any).mockResolvedValue({
+      getActiveBatchesMock.mockResolvedValue([]);
+      getBatchStatusMock.mockResolvedValue({
         ...mockBatch,
         status: "completed",
         completedOperations: 1,
       });
 
       // Reset mock calls
-      (mockMessageBus.send as any).mockClear();
+      messageBusSendMock.mockClear();
 
       // Wait for another check
       await new Promise((resolve) => setTimeout(resolve, 600));
@@ -608,7 +648,7 @@ describe("JobProgressMonitor", () => {
       });
 
       // Both batches are initially active
-      (mockBatchJobManager.getActiveBatches as any)
+      getActiveBatchesMock
         .mockResolvedValueOnce([
           {
             batchId: "batch-matrix",
@@ -621,6 +661,7 @@ describe("JobProgressMonitor", () => {
                 roomId: "!room1:example.com",
                 interfaceId: "test",
                 userId: "user123",
+                operationType: "batch_processing",
               },
             },
           },
@@ -635,6 +676,7 @@ describe("JobProgressMonitor", () => {
                 roomId: "session-123",
                 interfaceId: "test",
                 userId: "user123",
+                operationType: "batch_processing",
               },
             },
           },
@@ -643,7 +685,7 @@ describe("JobProgressMonitor", () => {
         .mockResolvedValueOnce([]);
 
       // Mock completion for both batches
-      (mockBatchJobManager.getBatchStatus as any).mockImplementation(
+      getBatchStatusMock.mockImplementation(
         (batchId: string) => {
           if (batchId === "batch-matrix") {
             return Promise.resolve({
@@ -672,21 +714,25 @@ describe("JobProgressMonitor", () => {
       await new Promise((resolve) => setTimeout(resolve, 600));
 
       // Verify both completion events were emitted with correct metadata
-      const completionCalls = (mockMessageBus.send as any).mock.calls.filter(
-        (call: any) => call[1].status === "completed",
+      const completionCalls = messageBusSendMock.mock.calls.filter(
+        (call: unknown[]) => (call[1] as { status: string }).status === "completed",
       );
 
       expect(completionCalls).toHaveLength(2);
 
       const matrixCall = completionCalls.find(
-        (call: any) => call[1].id === "batch-matrix",
+        (call: unknown[]) => (call[1] as { id: string }).id === "batch-matrix",
       );
       const cliCall = completionCalls.find(
-        (call: any) => call[1].id === "batch-cli",
+        (call: unknown[]) => (call[1] as { id: string }).id === "batch-cli",
       );
 
-      expect(matrixCall[1].metadata.roomId).toBe("!room1:example.com"); // metadata is in event payload
-      expect(cliCall[1].metadata.roomId).toBe("session-123"); // metadata is in event payload
+      expect(matrixCall).toBeDefined();
+      expect(cliCall).toBeDefined();
+      if (matrixCall && cliCall) {
+        expect((matrixCall[1] as { metadata: { roomId: string } }).metadata.roomId).toBe("!room1:example.com"); // metadata is in event payload
+        expect((cliCall[1] as { metadata: { roomId: string } }).metadata.roomId).toBe("session-123"); // metadata is in event payload
+      }
     });
   });
 });

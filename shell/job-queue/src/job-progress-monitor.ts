@@ -447,6 +447,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           metadata: {
             interfaceId: "system",
             userId: "system",
+            operationType: "batch_processing" as const,
           }, // Will be overridden below if we have actual metadata
           batchDetails,
         };
@@ -535,8 +536,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           rate: progress.rate,
           eta: progress.eta,
         },
-        operationType: "entity_processing", // Default progress event
-        operationTarget: progress.message,
+        operationType: job.metadata.operationType,
+        operationTarget: job.metadata.operationTarget ?? job.type,
         message: progress.message,
       };
 
@@ -658,8 +659,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         id: jobId,
         type: "job",
         status: "completed",
-        operationType: "entity_processing",
-        operationTarget: job.type,
+        operationType: job.metadata.operationType,
+        operationTarget: job.metadata.operationTarget ?? job.type,
         metadata: job.metadata, // Always present now
         jobDetails: {
           jobType: job.type,
@@ -710,8 +711,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         id: jobId,
         type: "job",
         status: "failed",
-        operationType: "entity_processing",
-        operationTarget: job.type,
+        operationType: job.metadata.operationType,
+        operationTarget: job.metadata.operationTarget ?? job.type,
         message: job.lastError ?? undefined,
         metadata: job.metadata, // Always present now
         jobDetails: {

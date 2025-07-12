@@ -11,6 +11,7 @@ import type { ProgressEventContext } from "@brains/db";
 const defaultTestMetadata: ProgressEventContext = {
   interfaceId: "test",
   userId: "test-user",
+  operationType: "entity_processing",
 };
 
 // Test job handler implementation
@@ -139,8 +140,11 @@ describe("JobQueueService", () => {
       // Try to enqueue job
       try {
         await service.enqueue("embedding", testEntity, {
-          metadata: defaultTestMetadata,
-          operationType: "embedding_generation",
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "embedding_generation",
+          },
         });
         expect().fail("Should have thrown an error");
       } catch (error) {
@@ -158,8 +162,11 @@ describe("JobQueueService", () => {
 
     it("should enqueue a job successfully with valid data", async () => {
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
 
       expect(typeof jobId).toBe("string");
@@ -179,12 +186,12 @@ describe("JobQueueService", () => {
         userId: "user-123",
         interfaceId: "matrix",
         roomId: "room123",
+        operationType: "entity_processing",
       };
 
       const jobId = await service.enqueue("embedding", testEntity, {
         source,
         metadata,
-        operationType: "embedding_generation",
       });
 
       // Get the job from database directly
@@ -194,16 +201,23 @@ describe("JobQueueService", () => {
       expect(job?.metadata).toEqual(metadata);
     });
 
-    it("should handle null source with required metadata", async () => {
+    it("should store source and metadata correctly", async () => {
+      const source = "test-service";
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source,
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
 
       const job = await service.getStatus(jobId);
       expect(job).toBeTruthy();
-      expect(job?.source).toBeNull();
-      expect(job?.metadata).toEqual(defaultTestMetadata);
+      expect(job?.source).toBe(source);
+      expect(job?.metadata).toEqual({
+        ...defaultTestMetadata,
+        operationType: "embedding_generation",
+      });
     });
 
     it("should throw error when enqueueing job with no registered handler", async () => {
@@ -211,8 +225,11 @@ describe("JobQueueService", () => {
 
       try {
         await service.enqueue("embedding", testEntity, {
-          metadata: defaultTestMetadata,
-          operationType: "embedding_generation",
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "embedding_generation",
+          },
         });
         expect().fail("Should have thrown an error");
       } catch (error) {
@@ -227,8 +244,11 @@ describe("JobQueueService", () => {
 
       try {
         await service.enqueue("embedding", testEntity, {
-          metadata: defaultTestMetadata,
-          operationType: "embedding_generation",
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "embedding_generation",
+          },
         });
         expect().fail("Should have thrown an error");
       } catch (error) {
@@ -242,11 +262,14 @@ describe("JobQueueService", () => {
 
     it("should apply job options correctly", async () => {
       const options = {
-        metadata: defaultTestMetadata,
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation" as const,
+        },
         priority: 5,
         maxRetries: 5,
         delayMs: 1000,
-        operationType: "embedding_generation" as const,
       };
 
       const jobId = await service.enqueue("embedding", testEntity, options);
@@ -259,8 +282,11 @@ describe("JobQueueService", () => {
 
     it("should use default options when metadata provided", async () => {
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
       const job = await service.getStatus(jobId);
 
@@ -281,7 +307,7 @@ describe("JobQueueService", () => {
     });
 
     it("should return undefined for unregistered handler", () => {
-      const handler = service.getHandler("unknown-type" as any);
+      const handler = service.getHandler("unknown-type");
       expect(handler).toBeUndefined();
     });
   });
@@ -293,8 +319,11 @@ describe("JobQueueService", () => {
 
     it("should dequeue next pending job", async () => {
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
 
       const job = await service.dequeue();
@@ -312,14 +341,20 @@ describe("JobQueueService", () => {
 
     it("should respect job priority order", async () => {
       const lowPriorityId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
         priority: 1,
-        operationType: "embedding_generation",
       });
       const highPriorityId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
         priority: 5,
-        operationType: "embedding_generation",
       });
 
       const firstJob = await service.dequeue();
@@ -331,13 +366,19 @@ describe("JobQueueService", () => {
 
     it("should respect scheduled time", async () => {
       await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
         delayMs: 5000,
-        operationType: "embedding_generation",
       });
       const immediateJob = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
 
       const job = await service.dequeue();
@@ -356,8 +397,11 @@ describe("JobQueueService", () => {
 
     it("should mark job as completed", async () => {
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
 
       await service.complete(jobId, undefined);
@@ -369,8 +413,11 @@ describe("JobQueueService", () => {
 
     it("should handle job failure with retry", async () => {
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
 
       await service.fail(jobId, new Error("Test error"));
@@ -383,9 +430,12 @@ describe("JobQueueService", () => {
 
     it("should mark job as permanently failed when max retries exceeded", async () => {
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
         maxRetries: 0,
-        operationType: "embedding_generation",
       });
 
       await service.fail(jobId, new Error("Test error"));
@@ -397,8 +447,11 @@ describe("JobQueueService", () => {
 
     it("should use exponential backoff for retries", async () => {
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
       const originalTime = Date.now();
 
@@ -417,24 +470,36 @@ describe("JobQueueService", () => {
     it("should return accurate queue statistics", async () => {
       // Create jobs in different states
       await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       }); // pending
       await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       }); // pending
 
       const job1Id = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
       await service.complete(job1Id, undefined); // completed
 
       const job2Id = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
         maxRetries: 1,
-        operationType: "embedding_generation",
       });
       await service.fail(job2Id, new Error("Test error"));
       await service.fail(job2Id, new Error("Test error")); // failed after retries
@@ -465,8 +530,11 @@ describe("JobQueueService", () => {
 
     it("should clean up old completed jobs", async () => {
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
       await service.complete(jobId, undefined);
 
@@ -479,8 +547,11 @@ describe("JobQueueService", () => {
 
     it("should not clean up recent completed jobs", async () => {
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
       await service.complete(jobId, undefined);
 
@@ -502,8 +573,11 @@ describe("JobQueueService", () => {
 
     it("should get job status by ID", async () => {
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
 
       const job = await service.getStatus(jobId);
@@ -514,8 +588,11 @@ describe("JobQueueService", () => {
 
     it("should get job status by entity ID for embedding jobs", async () => {
       await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
 
       const job = await service.getStatusByEntityId(testEntity.id);
@@ -536,13 +613,19 @@ describe("JobQueueService", () => {
     it("should return most recent job for entity", async () => {
       // Enqueue multiple jobs for the same entity
       await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
       await new Promise((resolve) => setTimeout(resolve, 1));
       const recentJobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
 
       const job = await service.getStatusByEntityId(testEntity.id);
@@ -558,8 +641,11 @@ describe("JobQueueService", () => {
     it("should return only pending and processing jobs", async () => {
       // Create jobs in different states
       const pendingId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
       const processingId = await service.enqueue(
         "embedding",
@@ -568,8 +654,11 @@ describe("JobQueueService", () => {
           id: "test-456",
         },
         {
-          metadata: defaultTestMetadata,
-          operationType: "embedding_generation",
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "embedding_generation",
+          },
         },
       );
       const completedId = await service.enqueue(
@@ -579,8 +668,11 @@ describe("JobQueueService", () => {
           id: "test-789",
         },
         {
-          metadata: defaultTestMetadata,
-          operationType: "embedding_generation",
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "embedding_generation",
+          },
         },
       );
 
@@ -608,8 +700,11 @@ describe("JobQueueService", () => {
 
       // Create jobs of different types
       const embeddingId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
       const contentId = await service.enqueue(
         "content-generation",
@@ -619,8 +714,11 @@ describe("JobQueueService", () => {
           userId: "user-123",
         },
         {
-          metadata: defaultTestMetadata,
-          operationType: "content_generation",
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "content_generation",
+          },
         },
       );
 
@@ -645,8 +743,11 @@ describe("JobQueueService", () => {
     it("should return empty array when no active jobs", async () => {
       // Create and complete a job
       const jobId = await service.enqueue("embedding", testEntity, {
-        metadata: defaultTestMetadata,
-        operationType: "embedding_generation",
+        source: "test",
+        metadata: {
+          ...defaultTestMetadata,
+          operationType: "embedding_generation",
+        },
       });
       await service.complete(jobId, {});
 
@@ -663,8 +764,11 @@ describe("JobQueueService", () => {
           id: "test-1",
         },
         {
-          metadata: defaultTestMetadata,
-          operationType: "embedding_generation",
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "embedding_generation",
+          },
         },
       );
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -676,8 +780,11 @@ describe("JobQueueService", () => {
           id: "test-2",
         },
         {
-          metadata: defaultTestMetadata,
-          operationType: "embedding_generation",
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "embedding_generation",
+          },
         },
       );
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -689,8 +796,11 @@ describe("JobQueueService", () => {
           id: "test-3",
         },
         {
-          metadata: defaultTestMetadata,
-          operationType: "embedding_generation",
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "embedding_generation",
+          },
         },
       );
 

@@ -15,7 +15,6 @@ import type { JobHandler } from "@brains/job-queue";
 import type { JobOptions } from "@brains/db";
 import { BatchJobManager } from "@brains/job-queue";
 import { type BatchJobStatus, type JobStatusType } from "@brains/job-queue";
-import type { ProgressEventContext } from "@brains/db";
 import {
   EntityRegistrationError,
   ContentGenerationError,
@@ -387,12 +386,7 @@ export class PluginContextFactory {
       enqueueJob: async (
         type: string,
         data: unknown,
-        options?: {
-          priority?: number;
-          maxRetries?: number;
-          source?: string;
-          metadata?: Record<string, unknown>;
-        },
+        options: JobOptions,
       ): Promise<string> => {
         try {
           // Check if this is a shell-provided job type (no scoping needed)
@@ -406,21 +400,8 @@ export class PluginContextFactory {
             : `${pluginId}:${type}`;
 
           const jobOptions: JobOptions = {
-            metadata: (options?.metadata as ProgressEventContext) ?? {
-              interfaceId: pluginId,
-              userId: "system",
-            },
+            ...options,
           };
-
-          if (options?.priority !== undefined) {
-            jobOptions.priority = options.priority;
-          }
-          if (options?.maxRetries !== undefined) {
-            jobOptions.maxRetries = options.maxRetries;
-          }
-          if (options?.source !== undefined) {
-            jobOptions.source = options.source;
-          }
 
           const jobId = await jobQueueService.enqueue(
             scopedType,
@@ -488,12 +469,7 @@ export class PluginContextFactory {
           entityType?: string;
           options?: Record<string, unknown>;
         }>,
-        source: string,
-        metadata: ProgressEventContext,
-        options?: {
-          priority?: number;
-          maxRetries?: number;
-        },
+        options: JobOptions,
       ): Promise<string> => {
         try {
           // Use BatchJobManager to handle batch operations
@@ -502,19 +478,9 @@ export class PluginContextFactory {
             this.logger,
           );
 
-          const batchOptions: { priority?: number; maxRetries?: number } = {};
-          if (options?.priority !== undefined) {
-            batchOptions.priority = options.priority;
-          }
-          if (options?.maxRetries !== undefined) {
-            batchOptions.maxRetries = options.maxRetries;
-          }
-
           const batchId = await batchJobManager.enqueueBatch(
             operations,
-            source,
-            metadata,
-            batchOptions,
+            options,
           );
 
           this.logger.debug("Enqueued batch operation", {

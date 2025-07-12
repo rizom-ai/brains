@@ -21,6 +21,7 @@ const mockJobEvent: JobProgressEvent = {
   metadata: {
     userId: "user-1",
     interfaceId: "test",
+    operationType: "entity_processing",
   },
 };
 
@@ -37,6 +38,7 @@ const mockBatchEvent: JobProgressEvent = {
   metadata: {
     userId: "user-1",
     interfaceId: "test",
+    operationType: "entity_processing",
   },
 };
 
@@ -55,7 +57,9 @@ describe("progressReducer", () => {
 
     const storedEvent = state.events.get("job-1");
     expect(storedEvent).toBeDefined();
-    expect(storedEvent!.id).toBe("job-1");
+    if (storedEvent) {
+      expect(storedEvent.id).toBe("job-1");
+    }
     expect(state.startTimes.has("job-1")).toBe(true);
     expect(state.lastUpdates.has("job-1")).toBe(true);
   });
@@ -88,10 +92,12 @@ describe("progressReducer", () => {
 
     const storedEvent = state.events.get("job-1");
     expect(storedEvent).toBeDefined();
-    expect(storedEvent!.progress?.etaFormatted).toBeDefined();
-    expect(storedEvent!.progress?.rateFormatted).toBeDefined();
-    expect(storedEvent!.progress?.eta).toBeTypeOf("number");
-    expect(storedEvent!.progress?.rate).toBeTypeOf("number");
+    if (storedEvent) {
+      expect(storedEvent.progress?.etaFormatted).toBeDefined();
+      expect(storedEvent.progress?.rateFormatted).toBeDefined();
+      expect(storedEvent.progress?.eta).toBeTypeOf("number");
+      expect(storedEvent.progress?.rate).toBeTypeOf("number");
+    }
   });
 
   test("UPDATE_PROGRESS handles events without progress info", () => {
@@ -107,7 +113,9 @@ describe("progressReducer", () => {
 
     const storedEvent = state.events.get("job-1");
     expect(storedEvent).toBeDefined();
-    expect(storedEvent!.progress).toBeUndefined();
+    if (storedEvent) {
+      expect(storedEvent.progress).toBeUndefined();
+    }
   });
 
   test("UPDATE_PROGRESS updates existing events", () => {
@@ -135,7 +143,9 @@ describe("progressReducer", () => {
     });
 
     expect(state.events.get("job-1")).toEqual(updatedEvent);
-    expect(state.startTimes.get("job-1")).toBe(originalStartTime!); // Start time preserved
+    if (originalStartTime !== undefined) {
+      expect(state.startTimes.get("job-1")).toBe(originalStartTime); // Start time preserved
+    }
   });
 
   test("UPDATE_PROGRESS handles completed events", () => {
