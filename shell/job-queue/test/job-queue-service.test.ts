@@ -567,7 +567,7 @@ describe("JobQueueService", () => {
           ...testEntity,
           id: "test-456",
         },
-        { 
+        {
           metadata: defaultTestMetadata,
           operationType: "embedding_generation",
         },
@@ -578,7 +578,7 @@ describe("JobQueueService", () => {
           ...testEntity,
           id: "test-789",
         },
-        { 
+        {
           metadata: defaultTestMetadata,
           operationType: "embedding_generation",
         },
@@ -618,7 +618,7 @@ describe("JobQueueService", () => {
           context: {},
           userId: "user-123",
         },
-        { 
+        {
           metadata: defaultTestMetadata,
           operationType: "content_generation",
         },
@@ -662,7 +662,7 @@ describe("JobQueueService", () => {
           ...testEntity,
           id: "test-1",
         },
-        { 
+        {
           metadata: defaultTestMetadata,
           operationType: "embedding_generation",
         },
@@ -675,7 +675,7 @@ describe("JobQueueService", () => {
           ...testEntity,
           id: "test-2",
         },
-        { 
+        {
           metadata: defaultTestMetadata,
           operationType: "embedding_generation",
         },
@@ -688,7 +688,7 @@ describe("JobQueueService", () => {
           ...testEntity,
           id: "test-3",
         },
-        { 
+        {
           metadata: defaultTestMetadata,
           operationType: "embedding_generation",
         },

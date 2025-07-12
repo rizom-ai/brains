@@ -8,6 +8,24 @@ import type {
 } from "@brains/content-generator";
 
 /**
+ * Operation type enum for structured progress tracking and aggregation
+ */
+export const OperationTypeEnum = z.enum([
+  "directory_import",
+  "directory_export",
+  "directory_sync",
+  "content_generation",
+  "batch_processing",
+  "file_processing",
+  "entity_processing",
+  "embedding_generation",
+  "search_indexing",
+  "site_building",
+]);
+
+export type OperationType = z.infer<typeof OperationTypeEnum>;
+
+/**
  * Progress event context schema - moved here to avoid circular dependency
  */
 export const ProgressEventContextSchema = z.object({
@@ -129,6 +147,8 @@ export interface JobOptions {
   delayMs?: number; // Initial delay before processing
   source?: string; // Source identifier for job progress events
   metadata: ProgressEventContext; // Additional metadata for job progress events (required)
+  operationType: OperationType; // Required: Type of operation for structured progress tracking
+  operationTarget?: string; // Optional: Target of operation (e.g., entity ID, file path)
 }
 
 /**

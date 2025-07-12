@@ -49,10 +49,18 @@ This document outlines the roadmap for completing Phase 1 of the Brain system, c
 
 **Shared Progress Logic Extraction**:
 
-- [ ] Extract ETA and rate calculations from CLI to message-interface package
-- [ ] Extract batch update throttling logic to message-interface package
-- [ ] Move progress utilities and operation detection to shared package
-- [ ] Update CLI to use shared progress utilities
+- [x] Extract ETA and rate calculations from CLI to job-queue package
+- [x] Extract batch update throttling logic to job-queue package
+- [x] Move progress utilities and operation detection to shared package
+- [x] Update CLI to use shared progress utilities
+
+**Enum-Based Operation Architecture**:
+
+- [ ] Update JobProgressEvent schema with Zod enum for operation types
+- [ ] Add type-safe aggregation logic to progressReducer
+- [ ] Update job creators to use structured operation types
+- [ ] Remove CLI string-based aggregation logic
+- [ ] Enable consistent operation aggregation across interfaces
 
 **Matrix Enhancements** (depends on shared logic extraction):
 

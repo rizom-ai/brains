@@ -386,6 +386,8 @@ export class EntityService implements IEntityService {
           maxRetries: options.maxRetries,
         }),
         metadata: defaultMetadata,
+        operationType: "embedding_generation",
+        operationTarget: validatedEntity.id,
       },
     );
 
@@ -856,6 +858,8 @@ export class EntityService implements IEntityService {
           maxRetries: options.maxRetries,
         }),
         metadata: defaultMetadata,
+        operationType: "embedding_generation",
+        operationTarget: validatedEntity.id,
       },
     );
 

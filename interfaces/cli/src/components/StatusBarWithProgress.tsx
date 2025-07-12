@@ -133,7 +133,12 @@ export function StatusBarWithProgress({
         <Box>
           {primaryEvent ? (
             <Box>
-              <Text color="cyan">{primaryEvent.operationType}{primaryEvent.operationTarget ? `: ${primaryEvent.operationTarget}` : ""}</Text>
+              <Text color="cyan">
+                {primaryEvent.operationType}
+                {primaryEvent.operationTarget
+                  ? `: ${primaryEvent.operationTarget}`
+                  : ""}
+              </Text>
               <Text color="gray"> </Text>
               {primaryEvent.type === "batch" && primaryEvent.batchDetails ? (
                 <ProgressBar

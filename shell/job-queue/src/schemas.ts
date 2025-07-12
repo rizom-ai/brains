@@ -103,7 +103,6 @@ export type BatchOperation = z.infer<typeof BatchOperationSchema>;
 export type BatchJobData = z.infer<typeof BatchJobDataSchema>;
 export type BatchJobStatus = z.infer<typeof BatchJobStatusSchema>;
 
-
 /**
  * Schema for job progress events
  */
