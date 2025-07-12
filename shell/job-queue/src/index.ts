@@ -28,3 +28,25 @@ export {
   type BatchJobStatus,
   JobProgressEventSchema,
 } from "./schemas";
+
+// Progress utilities (public API for interfaces)
+export {
+  calculateETA,
+  type ProgressCalculation,
+} from "./utils/progress-calculations";
+export {
+  progressReducer,
+  createInitialProgressState,
+  groupProgressEvents,
+  ProgressThrottleManager,
+  DEFAULT_THROTTLE_CONFIG,
+  type ProgressState,
+  type ProgressAction,
+  type ProgressEventGroups,
+  type ThrottleConfig,
+} from "./utils/progress-state-manager";
+export {
+  formatProgressMessage,
+  formatBatchProgressMessage,
+  type ProgressMessageData,
+} from "./utils/progress-formatting";

@@ -50,7 +50,7 @@ This document outlines the roadmap for completing Phase 1 of the Brain system, c
 **Shared Progress Logic Extraction**:
 
 - [ ] Extract ETA and rate calculations from CLI to message-interface package
-- [ ] Extract batch update throttling logic to message-interface package  
+- [ ] Extract batch update throttling logic to message-interface package
 - [ ] Move progress utilities and operation detection to shared package
 - [ ] Update CLI to use shared progress utilities
 
