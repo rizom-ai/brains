@@ -115,8 +115,9 @@ describe("CLIInterface", () => {
 
       await cliInterface.processInput("/clear");
 
-      expect(console.clear).toHaveBeenCalled();
-      expect(responseHandler).toHaveBeenCalledWith("");
+      // /clear is now handled in EnhancedApp component, not by calling console.clear
+      // The handler returns a message about clearing being handled in the component
+      expect(responseHandler).toHaveBeenCalledWith("Screen cleared.");
     });
 
     it("should emit error event on failure", async () => {

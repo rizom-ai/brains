@@ -107,9 +107,24 @@ export function getTestCommands(
 export function registerTestJobHandlers(context: PluginContext): void {
   // Register test batch job handler
   context.registerJobHandler("test-batch-job", {
-    process: async (data: TestBatchJobData) => {
+    process: async (
+      data: TestBatchJobData,
+      _jobId: string,
+      progressReporter,
+    ) => {
       const duration = data.duration;
-      await new Promise((resolve) => setTimeout(resolve, duration));
+      const steps = 5; // Simulate progress steps
+      const stepDuration = duration / steps;
+
+      for (let i = 0; i < steps; i++) {
+        await progressReporter.report({
+          message: `Processing item ${data.item} - step ${i + 1}/${steps}`,
+          progress: i + 1,
+          total: steps,
+        });
+        await new Promise<void>((resolve) => setTimeout(resolve, stepDuration));
+      }
+
       return { success: true, item: data.item };
     },
     validateAndParse: (data: unknown): TestBatchJobData | null => {
@@ -120,13 +135,24 @@ export function registerTestJobHandlers(context: PluginContext): void {
 
   // Register test slow job handler
   context.registerJobHandler("test-slow-job", {
-    process: async (data: TestSlowJobData) => {
+    process: async (
+      data: TestSlowJobData,
+      _jobId: string,
+      progressReporter,
+    ) => {
       const duration = data.duration;
       const steps = 10;
       const stepDuration = duration / steps;
 
       for (let i = 0; i < steps; i++) {
-        await new Promise((resolve) => setTimeout(resolve, stepDuration));
+        // Report progress
+        await progressReporter.report({
+          message: `Processing step ${i + 1} of ${steps}`,
+          progress: i + 1,
+          total: steps,
+        });
+
+        await new Promise<void>((resolve) => setTimeout(resolve, stepDuration));
       }
 
       return { success: true, message: data.message ?? "Test completed!" };

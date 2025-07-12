@@ -88,41 +88,6 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   }
 
   /**
-   * Override to add CLI-specific commands
-   */
-  protected override getCommands(): Command[] {
-    const baseCommands = super.getCommands();
-    const cliCommands: Command[] = [
-      {
-        name: "clear",
-        description: "Clear the screen",
-        handler: async (): Promise<string> => {
-          console.clear();
-          return "";
-        },
-      },
-      {
-        name: "exit",
-        description: "Exit the CLI",
-        handler: async (): Promise<string> => {
-          void this.stop().then(() => process.exit(0));
-          return "Exiting...";
-        },
-      },
-      {
-        name: "quit",
-        description: "Exit the CLI",
-        handler: async (): Promise<string> => {
-          void this.stop().then(() => process.exit(0));
-          return "Exiting...";
-        },
-      },
-    ];
-
-    return [...baseCommands, ...cliCommands];
-  }
-
-  /**
    * Register handlers and other initialization when plugin is registered
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
@@ -242,6 +207,35 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   }
 
   /**
+   * Override getCommands to add CLI-specific commands
+   */
+  protected override getCommands(): Command[] {
+    const baseCommands = super.getCommands();
+
+    // Add CLI-specific commands
+    const cliCommands: Command[] = [
+      {
+        name: "progress",
+        description: "Toggle detailed progress display",
+        handler: async (): Promise<string> => {
+          // This is handled in the EnhancedApp component directly
+          return "Progress display toggled. You can also use Ctrl+P for quick toggle.";
+        },
+      },
+      {
+        name: "clear",
+        description: "Clear the screen",
+        handler: async (): Promise<string> => {
+          // This is handled in the EnhancedApp component directly
+          return "Screen cleared.";
+        },
+      },
+    ];
+
+    return [...baseCommands, ...cliCommands];
+  }
+
+  /**
    * Override processQuery to grant interface permissions for CLI users
    */
   public override async processQuery(
@@ -333,7 +327,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
       const [inkModule, reactModule, appModule] = await Promise.all([
         import("ink"),
         import("react"),
-        import("./components/App"),
+        import("./components/EnhancedApp"),
       ]);
 
       const { render } = inkModule;
