@@ -131,7 +131,9 @@ describe("formatProgressMessage", () => {
     };
 
     const message = formatProgressMessage(data);
-    expect(message).toBe("🔄 Processing files - 50/100 (50%) • 2.5/s • ETA 20s");
+    expect(message).toBe(
+      "🔄 Processing files - 50/100 (50%) • 2.5/s • ETA 20s",
+    );
   });
 
   test("formats processing message without progress", () => {
@@ -154,7 +156,9 @@ describe("formatProgressMessage", () => {
     };
 
     const message = formatProgressMessage(data);
-    expect(message).toBe("✅ File processing completed - 100 items processed in 45s");
+    expect(message).toBe(
+      "✅ File processing completed - 100 items processed in 45s",
+    );
   });
 
   test("formats failed message with error", () => {
@@ -167,7 +171,9 @@ describe("formatProgressMessage", () => {
     };
 
     const message = formatProgressMessage(data);
-    expect(message).toBe("❌ File processing failed - 50/100 items processed - Permission denied");
+    expect(message).toBe(
+      "❌ File processing failed - 50/100 items processed - Permission denied",
+    );
   });
 
   test("formats unknown status", () => {
@@ -185,7 +191,7 @@ describe("formatBatchProgressMessage", () => {
   test("formats batch processing message", () => {
     const startTime = new Date(Date.now() - 15000); // 15s ago
     const message = formatBatchProgressMessage(mockBatchEvent, startTime);
-    
+
     expect(message).toContain("🔄 Batch file processing - 3/10 operations");
     expect(message).toContain("ETA");
   });
@@ -202,8 +208,10 @@ describe("formatBatchProgressMessage", () => {
     };
     const startTime = new Date(Date.now() - 30000); // 30s ago
     const message = formatBatchProgressMessage(completedBatch, startTime);
-    
-    expect(message).toContain("✅ Batch file processing completed - 10 operations processed");
+
+    expect(message).toContain(
+      "✅ Batch file processing completed - 10 operations processed",
+    );
     expect(message).toContain("30s");
   });
 
@@ -218,8 +226,10 @@ describe("formatBatchProgressMessage", () => {
       },
     };
     const message = formatBatchProgressMessage(failedBatch);
-    
-    expect(message).toBe("❌ Batch file processing failed - 7/10 operations completed");
+
+    expect(message).toBe(
+      "❌ Batch file processing failed - 7/10 operations completed",
+    );
   });
 
   test("falls back to regular formatting for non-batch events", () => {

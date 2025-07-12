@@ -2,6 +2,7 @@
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import type { JobProgressEvent } from "@brains/job-queue";
+import { calculateETA, formatRate } from "@brains/job-queue";
 import { ProgressBar } from "./ProgressBar";
 
 interface MultiLineProgressProps {
@@ -18,7 +19,8 @@ interface AggregatedProgress {
   fileCount?: number;
 }
 
-function calculateETA(
+// Helper function to use shared calculateETA with legacy interface
+function calculateETAHelper(
   current: number,
   total: number,
   startTime?: number,
@@ -27,38 +29,17 @@ function calculateETA(
     return { eta: "calculating...", rate: "..." };
   }
 
-  const now = Date.now();
-  const elapsed = now - startTime;
-
-  // Require at least 100ms of elapsed time to calculate rate
-  if (elapsed < 100) {
+  const startDate = new Date(startTime);
+  const calculation = calculateETA(current, total, startDate);
+  
+  if (!calculation) {
     return { eta: "calculating...", rate: "..." };
   }
 
-  const rate = current / (elapsed / 1000); // items per second
-  const remaining = total - current;
-  const etaMs = (remaining / rate) * 1000;
-
-  if (!isFinite(etaMs) || rate === 0) {
-    return { eta: "calculating...", rate: "..." };
-  }
-
-  // Format ETA
-  const etaSeconds = Math.ceil(etaMs / 1000);
-  let eta: string;
-  if (etaSeconds < 60) {
-    eta = `${etaSeconds}s`;
-  } else if (etaSeconds < 3600) {
-    const minutes = Math.floor(etaSeconds / 60);
-    const seconds = etaSeconds % 60;
-    eta = `${minutes}m ${seconds}s`;
-  } else {
-    const hours = Math.floor(etaSeconds / 3600);
-    const minutes = Math.floor((etaSeconds % 3600) / 60);
-    eta = `${hours}h ${minutes}m`;
-  }
-
-  return { eta, rate: rate.toFixed(1) };
+  return { 
+    eta: calculation.eta, 
+    rate: formatRate(calculation.rate) 
+  };
 }
 
 // Track start times for jobs
@@ -183,7 +164,7 @@ export function MultiLineProgress({
             jobStartTimes.set(batch.id, Date.now());
           }
 
-          const { eta, rate } = calculateETA(
+          const { eta, rate } = calculateETAHelper(
             batch.batchDetails?.completedOperations ?? 0,
             batch.batchDetails?.totalOperations ?? 0,
             jobStartTimes.get(batch.id),
@@ -226,7 +207,7 @@ export function MultiLineProgress({
           );
         } else {
           const job = item.data as AggregatedProgress;
-          const { eta, rate } = calculateETA(
+          const { eta, rate } = calculateETAHelper(
             job.current,
             job.total,
             job.startTime,

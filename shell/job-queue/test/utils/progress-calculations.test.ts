@@ -22,7 +22,7 @@ describe("calculateETA", () => {
   test("calculates ETA correctly for normal progress", () => {
     const startTime = new Date(Date.now() - 10000); // 10s ago
     const result = calculateETA(25, 100, startTime); // 25% complete in 10s
-    
+
     expect(result).not.toBeNull();
     expect(result!.rate).toBeCloseTo(2.5, 1); // 2.5 items per second
     expect(result!.etaSeconds).toBeCloseTo(30, 1); // 30s remaining
@@ -32,7 +32,7 @@ describe("calculateETA", () => {
   test("formats ETA in minutes for longer durations", () => {
     const startTime = new Date(Date.now() - 10000); // 10s ago
     const result = calculateETA(10, 100, startTime); // 10% complete in 10s
-    
+
     expect(result).not.toBeNull();
     expect(result!.rate).toBeCloseTo(1, 1); // 1 item per second
     expect(result!.etaSeconds).toBeCloseTo(90, 1); // 90s remaining
@@ -42,7 +42,7 @@ describe("calculateETA", () => {
   test("formats ETA in hours for very long durations", () => {
     const startTime = new Date(Date.now() - 100000); // 100s ago
     const result = calculateETA(1, 100, startTime); // 1% complete in 100s
-    
+
     expect(result).not.toBeNull();
     expect(result!.rate).toBeCloseTo(0.01, 2); // 0.01 items per second
     expect(result!.etaSeconds).toBeCloseTo(9900, 100); // ~2.75 hours remaining

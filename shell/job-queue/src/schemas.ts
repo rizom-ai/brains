@@ -121,6 +121,8 @@ export const JobProgressEventSchema = z.object({
       percentage: z.number(),
       eta: z.number().optional(), // Estimated time remaining in milliseconds
       rate: z.number().optional(), // Items per second
+      etaFormatted: z.string().optional(), // Human-readable ETA (e.g., "2m 30s")
+      rateFormatted: z.string().optional(), // Human-readable rate (e.g., "5.2/s")
     })
     .optional(),
 

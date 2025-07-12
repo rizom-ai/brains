@@ -4,7 +4,12 @@
  */
 
 import type { JobProgressEvent } from "@brains/job-queue";
-import { calculateETA, formatRate, formatDuration, type ProgressCalculation } from "./progress-calculations";
+import {
+  calculateETA,
+  formatRate,
+  formatDuration,
+  type ProgressCalculation,
+} from "./progress-calculations";
 
 /**
  * Progress message template data
@@ -23,7 +28,10 @@ export interface ProgressMessageData {
 /**
  * Generate progress message key for tracking updates
  */
-export function generateProgressKey(event: JobProgressEvent, target: string): string {
+export function generateProgressKey(
+  event: JobProgressEvent,
+  target: string,
+): string {
   return `${event.type}:${event.id}:${target}`;
 }
 
@@ -45,17 +53,20 @@ export function createProgressMessageData(
   const operation = extractOperationName(event);
   const current = event.progress?.current;
   const total = event.progress?.total;
-  
+
   let calculation: ProgressCalculation | undefined;
   let percentage: number | undefined;
-  
+
   if (current !== undefined && total !== undefined && startTime) {
     calculation = calculateETA(current, total, startTime) || undefined;
     percentage = total > 0 ? Math.round((current / total) * 100) : 0;
   }
 
   let duration: number | undefined;
-  if (startTime && (event.status === "completed" || event.status === "failed")) {
+  if (
+    startTime &&
+    (event.status === "completed" || event.status === "failed")
+  ) {
     duration = (Date.now() - startTime.getTime()) / 1000;
   }
 
@@ -67,7 +78,8 @@ export function createProgressMessageData(
     percentage,
     calculation,
     duration,
-    error: event.message && event.status === "failed" ? event.message : undefined,
+    error:
+      event.message && event.status === "failed" ? event.message : undefined,
   };
 }
 
@@ -75,55 +87,64 @@ export function createProgressMessageData(
  * Format progress message for display
  */
 export function formatProgressMessage(data: ProgressMessageData): string {
-  const { operation, status, current, total, percentage, calculation, duration, error } = data;
+  const {
+    operation,
+    status,
+    current,
+    total,
+    percentage,
+    calculation,
+    duration,
+    error,
+  } = data;
 
   switch (status) {
     case "processing": {
       let message = `🔄 ${operation}`;
-      
+
       if (current !== undefined && total !== undefined) {
         message += ` - ${current}/${total}`;
-        
+
         if (percentage !== undefined) {
           message += ` (${percentage}%)`;
         }
-        
+
         if (calculation) {
           message += ` • ${formatRate(calculation.rate)} • ETA ${calculation.eta}`;
         }
       }
-      
+
       return message;
     }
-    
+
     case "completed": {
       let message = `✅ ${operation} completed`;
-      
+
       if (current !== undefined && total !== undefined) {
         message += ` - ${total} items processed`;
       }
-      
+
       if (duration !== undefined) {
         message += ` in ${formatDuration(duration)}`;
       }
-      
+
       return message;
     }
-    
+
     case "failed": {
       let message = `❌ ${operation} failed`;
-      
+
       if (current !== undefined && total !== undefined) {
         message += ` - ${current}/${total} items processed`;
       }
-      
+
       if (error) {
         message += ` - ${error}`;
       }
-      
+
       return message;
     }
-    
+
     default:
       return `⚙️ ${operation}`;
   }
@@ -148,32 +169,32 @@ export function formatBatchProgressMessage(
   switch (event.status) {
     case "processing": {
       let message = `🔄 ${operation} - ${completed}/${total} operations`;
-      
+
       if (startTime) {
         const calculation = calculateETA(completed, total, startTime);
         if (calculation) {
           message += ` • ${formatRate(calculation.rate)} • ETA ${calculation.eta}`;
         }
       }
-      
+
       return message;
     }
-    
+
     case "completed": {
       let message = `✅ ${operation} completed - ${total} operations processed`;
-      
+
       if (startTime) {
         const duration = (Date.now() - startTime.getTime()) / 1000;
         message += ` in ${formatDuration(duration)}`;
       }
-      
+
       return message;
     }
-    
+
     case "failed": {
       return `❌ ${operation} failed - ${completed}/${total} operations completed`;
     }
-    
+
     default:
       return `⚙️ ${operation} - ${total} operations`;
   }

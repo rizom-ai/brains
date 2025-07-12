@@ -53,9 +53,61 @@ describe("progressReducer", () => {
       event: mockJobEvent,
     });
 
-    expect(state.events.get("job-1")).toEqual(mockJobEvent);
+    const storedEvent = state.events.get("job-1");
+    expect(storedEvent).toBeDefined();
+    expect(storedEvent!.id).toBe("job-1");
     expect(state.startTimes.has("job-1")).toBe(true);
     expect(state.lastUpdates.has("job-1")).toBe(true);
+  });
+
+  test("UPDATE_PROGRESS calculates ETA and rate for events with progress", () => {
+    // First add the event to establish start time
+    let state = progressReducer(initialState, {
+      type: "UPDATE_PROGRESS",
+      event: mockJobEvent,
+    });
+
+    // Wait a bit to simulate progress by setting a past start time
+    const mockStartTime = new Date(Date.now() - 5000); // 5 seconds ago
+    state.startTimes.set("job-1", mockStartTime);
+
+    // Update with more progress
+    const updatedEvent = {
+      ...mockJobEvent,
+      progress: {
+        current: 75,
+        total: 100,
+        percentage: 75,
+      },
+    };
+
+    state = progressReducer(state, {
+      type: "UPDATE_PROGRESS",
+      event: updatedEvent,
+    });
+
+    const storedEvent = state.events.get("job-1");
+    expect(storedEvent).toBeDefined();
+    expect(storedEvent!.progress?.etaFormatted).toBeDefined();
+    expect(storedEvent!.progress?.rateFormatted).toBeDefined();
+    expect(storedEvent!.progress?.eta).toBeTypeOf("number");
+    expect(storedEvent!.progress?.rate).toBeTypeOf("number");
+  });
+
+  test("UPDATE_PROGRESS handles events without progress info", () => {
+    const eventWithoutProgress = {
+      ...mockJobEvent,
+      progress: undefined,
+    };
+
+    const state = progressReducer(initialState, {
+      type: "UPDATE_PROGRESS",
+      event: eventWithoutProgress,
+    });
+
+    const storedEvent = state.events.get("job-1");
+    expect(storedEvent).toBeDefined();
+    expect(storedEvent!.progress).toBeUndefined();
   });
 
   test("UPDATE_PROGRESS updates existing events", () => {
@@ -69,13 +121,13 @@ describe("progressReducer", () => {
     expect(originalStartTime).toBeDefined(); // Ensure it exists
 
     // Update the same event
-    const updatedEvent = { 
-      ...mockJobEvent, 
-      progress: { 
-        current: 75, 
-        total: 100, 
-        percentage: 75 
-      } 
+    const updatedEvent = {
+      ...mockJobEvent,
+      progress: {
+        current: 75,
+        total: 100,
+        percentage: 75,
+      },
     };
     state = progressReducer(state, {
       type: "UPDATE_PROGRESS",
@@ -151,7 +203,7 @@ describe("progressReducer", () => {
 describe("createInitialProgressState", () => {
   test("creates empty state", () => {
     const state = createInitialProgressState();
-    
+
     expect(state.events.size).toBe(0);
     expect(state.startTimes.size).toBe(0);
     expect(state.lastUpdates.size).toBe(0);
@@ -197,7 +249,7 @@ describe("groupProgressEvents", () => {
   test("returns null primary when no events", () => {
     const events = new Map<string, JobProgressEvent>();
     const groups = groupProgressEvents(events);
-    
+
     expect(groups.primaryEvent).toBeNull();
     expect(groups.batchEvents).toHaveLength(0);
     expect(groups.jobEvents).toHaveLength(0);
@@ -225,42 +277,42 @@ describe("ProgressThrottleManager", () => {
 
   test("allows updates after interval", async () => {
     manager.markUpdated("event-1");
-    
+
     // Wait for interval to pass
-    await new Promise(resolve => setTimeout(resolve, 60));
-    
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
     expect(manager.shouldUpdate("event-1")).toBe(true);
   });
 
   test("schedules cleanup callbacks", async () => {
     let cleanupCalled = false;
-    
+
     manager.scheduleCleanup("event-1", () => {
       cleanupCalled = true;
     });
 
     // Wait for cleanup
-    await new Promise(resolve => setTimeout(resolve, 120));
-    
+    await new Promise((resolve) => setTimeout(resolve, 120));
+
     expect(cleanupCalled).toBe(true);
   });
 
   test("cancels previous cleanup when rescheduled", async () => {
     let firstCleanupCalled = false;
     let secondCleanupCalled = false;
-    
+
     manager.scheduleCleanup("event-1", () => {
       firstCleanupCalled = true;
     });
-    
+
     // Reschedule before first cleanup fires
     manager.scheduleCleanup("event-1", () => {
       secondCleanupCalled = true;
     });
 
     // Wait for cleanup
-    await new Promise(resolve => setTimeout(resolve, 120));
-    
+    await new Promise((resolve) => setTimeout(resolve, 120));
+
     expect(firstCleanupCalled).toBe(false);
     expect(secondCleanupCalled).toBe(true);
   });
@@ -268,9 +320,9 @@ describe("ProgressThrottleManager", () => {
   test("resets all state", () => {
     manager.markUpdated("event-1");
     manager.scheduleCleanup("event-2", () => {});
-    
+
     manager.reset();
-    
+
     expect(manager.shouldUpdate("event-1")).toBe(true);
   });
 

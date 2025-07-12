@@ -4,6 +4,7 @@
  */
 
 import type { JobProgressEvent } from "@brains/job-queue";
+import { calculateETA, formatRate } from "./progress-calculations";
 
 /**
  * Progress state for tracking multiple operations
@@ -17,7 +18,7 @@ export interface ProgressState {
 /**
  * Progress update action types
  */
-export type ProgressAction = 
+export type ProgressAction =
   | { type: "UPDATE_PROGRESS"; event: JobProgressEvent }
   | { type: "CLEANUP_PROGRESS"; eventId: string }
   | { type: "RESET_PROGRESS" };
@@ -25,7 +26,10 @@ export type ProgressAction =
 /**
  * Progress reducer for state management
  */
-export function progressReducer(state: ProgressState, action: ProgressAction): ProgressState {
+export function progressReducer(
+  state: ProgressState,
+  action: ProgressAction,
+): ProgressState {
   switch (action.type) {
     case "UPDATE_PROGRESS": {
       const event = action.event;
@@ -34,14 +38,47 @@ export function progressReducer(state: ProgressState, action: ProgressAction): P
       const newLastUpdates = new Map(state.lastUpdates);
 
       // Only track events that are actively processing
-      if (event.status === "processing" || event.status === "completed" || event.status === "failed") {
-        newEvents.set(event.id, event);
-        newLastUpdates.set(event.id, Date.now());
-
+      if (
+        event.status === "processing" ||
+        event.status === "completed" ||
+        event.status === "failed"
+      ) {
         // Track start time for new events
         if (!state.startTimes.has(event.id) && event.status === "processing") {
           newStartTimes.set(event.id, new Date());
         }
+
+        // Calculate ETA and rate for events with progress info
+        let enhancedEvent = { ...event };
+        if (
+          event.progress?.current !== undefined &&
+          event.progress?.total !== undefined
+        ) {
+          const startTime = newStartTimes.get(event.id);
+          if (startTime) {
+            const calculation = calculateETA(
+              event.progress.current,
+              event.progress.total,
+              startTime,
+            );
+
+            if (calculation) {
+              enhancedEvent = {
+                ...event,
+                progress: {
+                  ...event.progress,
+                  eta: calculation.etaSeconds * 1000, // Convert to milliseconds
+                  rate: calculation.rate,
+                  etaFormatted: calculation.eta,
+                  rateFormatted: formatRate(calculation.rate),
+                },
+              };
+            }
+          }
+        }
+
+        newEvents.set(event.id, enhancedEvent);
+        newLastUpdates.set(event.id, Date.now());
       }
 
       return {
@@ -50,7 +87,7 @@ export function progressReducer(state: ProgressState, action: ProgressAction): P
         lastUpdates: newLastUpdates,
       };
     }
-    
+
     case "CLEANUP_PROGRESS": {
       const newEvents = new Map(state.events);
       const newStartTimes = new Map(state.startTimes);
@@ -66,7 +103,7 @@ export function progressReducer(state: ProgressState, action: ProgressAction): P
         lastUpdates: newLastUpdates,
       };
     }
-    
+
     case "RESET_PROGRESS": {
       return {
         events: new Map(),
@@ -74,7 +111,7 @@ export function progressReducer(state: ProgressState, action: ProgressAction): P
         lastUpdates: new Map(),
       };
     }
-    
+
     default:
       return state;
   }
@@ -103,7 +140,9 @@ export interface ProgressEventGroups {
 /**
  * Group and prioritize progress events
  */
-export function groupProgressEvents(events: Map<string, JobProgressEvent>): ProgressEventGroups {
+export function groupProgressEvents(
+  events: Map<string, JobProgressEvent>,
+): ProgressEventGroups {
   const batchEvents: JobProgressEvent[] = [];
   const jobEvents: JobProgressEvent[] = [];
 

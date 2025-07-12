@@ -21,14 +21,14 @@ export function calculateETA(
   startTime: Date,
 ): ProgressCalculation | null {
   const elapsed = Date.now() - startTime.getTime();
-  
+
   // Need at least 1 second of elapsed time for meaningful calculation
   if (elapsed < 1000 || current === 0) {
     return null;
   }
 
   const rate = current / (elapsed / 1000); // items per second
-  
+
   // Avoid division by zero and ensure we have a positive rate
   if (rate <= 0) {
     return null;
@@ -60,7 +60,10 @@ export function calculateETA(
 /**
  * Calculate progress percentage with protection against division by zero
  */
-export function calculateProgressPercentage(current: number, total: number): number {
+export function calculateProgressPercentage(
+  current: number,
+  total: number,
+): number {
   if (total <= 0) return 0;
   return Math.min(100, Math.max(0, (current / total) * 100));
 }
@@ -90,6 +93,8 @@ export function formatDuration(seconds: number): string {
   } else {
     const hours = Math.floor(seconds / 3600);
     const remainingMinutes = Math.round((seconds % 3600) / 60);
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    return remainingMinutes > 0
+      ? `${hours}h ${remainingMinutes}m`
+      : `${hours}h`;
   }
 }

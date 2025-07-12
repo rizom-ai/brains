@@ -32,6 +32,7 @@ export {
 // Progress utilities (public API for interfaces)
 export {
   calculateETA,
+  formatRate,
   type ProgressCalculation,
 } from "./utils/progress-calculations";
 export {
