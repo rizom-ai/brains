@@ -70,6 +70,15 @@ This document outlines the roadmap for completing Phase 1 of the Brain system, c
 - [ ] Improved message editing for smoother updates
 - [ ] Batched updates to reduce message spam
 
+**MCP Tool Command Bridge**:
+
+- [ ] Add MCP tool discovery to MessageInterfacePlugin base class
+- [ ] Extend PluginContext interface with listTools() and callTool() methods
+- [ ] Implement context methods in PluginContextFactory
+- [ ] Expose all MCP tools as commands in message interfaces (CLI/Matrix)
+- [ ] Enable `/generate-all`, `/build`, `/promote-all` commands across all interfaces
+- [ ] Leverage existing progress tracking for automatic tool progress display
+
 **Testing & Polish**:
 
 - [ ] Test all progress scenarios
@@ -91,6 +100,8 @@ This document outlines the roadmap for completing Phase 1 of the Brain system, c
 - 📱 Rich progress messages in Matrix
 - ⚡ Real-time progress updates
 - 🎯 Clear operation status indicators
+- 🔧 MCP tools accessible as commands (`/generate-all`, `/build`, etc.)
+- 🔄 Unified tool access across CLI and Matrix interfaces
 
 **Developer Improvements**:
 
@@ -129,6 +140,12 @@ This document outlines the roadmap for completing Phase 1 of the Brain system, c
    - Process large batches efficiently
    - Show ETA accuracy
    - Demonstrate smooth UI updates
+
+5. **MCP Tool Integration Demo**
+   - Type `/generate-all` in CLI to trigger site generation
+   - Show automatic progress tracking for tool operations
+   - Demonstrate same command working in Matrix interface
+   - Showcase unified tool access across all interfaces
 
 ### Success Criteria
 
@@ -173,6 +190,8 @@ This document outlines the roadmap for completing Phase 1 of the Brain system, c
 3. **Stakeholder Value**
    - Immediate visible improvements
    - Professional, polished experience
+   - MCP tool accessibility through simple commands
+   - Consistent interface experience across CLI/Matrix
    - Clear roadmap for future
 
 4. **Technical Excellence**
