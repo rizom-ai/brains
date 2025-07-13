@@ -282,16 +282,20 @@ describe("Plugin Job Handler Lifecycle", () => {
 
     // Try to enqueue invalid data
     try {
-      await context.enqueueJob("validate-job", {
-        invalid: true,
-      }, {
-        source: "test-plugin",
-        metadata: {
-          interfaceId: "test-plugin",
-          userId: "system",
-          operationType: "entity_processing",
+      await context.enqueueJob(
+        "validate-job",
+        {
+          invalid: true,
         },
-      });
+        {
+          source: "test-plugin",
+          metadata: {
+            interfaceId: "test-plugin",
+            userId: "system",
+            operationType: "entity_processing",
+          },
+        },
+      );
       expect(false).toBe(true); // Should not reach here
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -322,22 +326,30 @@ describe("Plugin Job Handler Lifecycle", () => {
     expect(types).toContain("plugin-2:task");
 
     // Enqueue jobs for each plugin
-    await plugin1Context.enqueueJob("task", {}, {
-      source: "plugin-1",
-      metadata: {
-        interfaceId: "plugin-1",
-        userId: "system",
-        operationType: "entity_processing",
+    await plugin1Context.enqueueJob(
+      "task",
+      {},
+      {
+        source: "plugin-1",
+        metadata: {
+          interfaceId: "plugin-1",
+          userId: "system",
+          operationType: "entity_processing",
+        },
       },
-    });
-    await plugin2Context.enqueueJob("task", {}, {
-      source: "plugin-2",
-      metadata: {
-        interfaceId: "plugin-2",
-        userId: "system",
-        operationType: "entity_processing",
+    );
+    await plugin2Context.enqueueJob(
+      "task",
+      {},
+      {
+        source: "plugin-2",
+        metadata: {
+          interfaceId: "plugin-2",
+          userId: "system",
+          operationType: "entity_processing",
+        },
       },
-    });
+    );
 
     // Verify both were enqueued with correct types
     expect(mockJobQueueService.enqueue).toHaveBeenCalledWith(

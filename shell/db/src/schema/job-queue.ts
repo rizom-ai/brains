@@ -26,9 +26,9 @@ export const OperationTypeEnum = z.enum([
 export type OperationType = z.infer<typeof OperationTypeEnum>;
 
 /**
- * Progress event context schema - moved here to avoid circular dependency
+ * Job context schema - metadata for job progress tracking and routing
  */
-export const ProgressEventContextSchema = z.object({
+export const JobContextSchema = z.object({
   interfaceId: z.string(),
   userId: z.string(),
   pluginId: z.string().optional(),
@@ -38,7 +38,7 @@ export const ProgressEventContextSchema = z.object({
   operationTarget: z.string().optional(),
 });
 
-export type ProgressEventContext = z.infer<typeof ProgressEventContextSchema>;
+export type JobContext = z.infer<typeof JobContextSchema>;
 
 /**
  * Generic job queue table for async background processing
@@ -65,9 +65,7 @@ export const jobQueue = sqliteTable(
     source: text("source"),
 
     // Job metadata (additional context for progress events)
-    metadata: text("metadata", { mode: "json" })
-      .notNull()
-      .$type<ProgressEventContext>(),
+    metadata: text("metadata", { mode: "json" }).notNull().$type<JobContext>(),
 
     // Queue metadata
     status: text("status", {
@@ -112,7 +110,7 @@ export const insertJobQueueSchema = createInsertSchema(jobQueue, {
   data: z.string(),
   result: z.unknown().optional(),
   source: z.string().optional(),
-  metadata: ProgressEventContextSchema,
+  metadata: JobContextSchema,
   status: z
     .enum(["pending", "processing", "completed", "failed"])
     .default("pending"),
@@ -126,7 +124,7 @@ export const selectJobQueueSchema = createSelectSchema(jobQueue, {
   data: z.string(),
   result: z.unknown().optional(),
   source: z.string().optional(),
-  metadata: ProgressEventContextSchema,
+  metadata: JobContextSchema,
   status: z.enum(["pending", "processing", "completed", "failed"]),
   priority: z.number().int(),
   retryCount: z.number().int().min(0),
@@ -148,7 +146,7 @@ export interface JobOptions {
   maxRetries?: number; // Override default retry count
   delayMs?: number; // Initial delay before processing
   source: string; // Source identifier for job progress events
-  metadata: ProgressEventContext; // Additional metadata for job progress events (required)
+  metadata: JobContext; // Additional metadata for job progress events (required)
 }
 
 /**

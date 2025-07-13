@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Command, CommandResponse } from "../base/types";
+import type { Command, CommandResponse, JobResponse } from "../base/types";
 import type { PluginContext } from "@brains/plugin-utils";
 
 // Test job schemas
@@ -27,33 +27,35 @@ export function getTestCommands(
     {
       name: "test-progress",
       description: "Test progress tracking with a slow job",
-      handler: async (_args, messageContext): Promise<string> => {
+      handler: async (_args, messageContext): Promise<JobResponse> => {
         if (!context) {
-          return "Plugin context not initialized";
+          throw new Error("Plugin context not initialized");
         }
-        try {
-          const source = `${interfaceId}:${messageContext.channelId}`;
-          const jobId = await context.enqueueJob(
-            "test-slow-job",
-            {
-              duration: 10000,
-              message: "Testing progress tracking",
+
+        const source = `${interfaceId}:${messageContext.channelId}`;
+        const jobId = await context.enqueueJob(
+          "test-slow-job",
+          {
+            duration: 10000,
+            message: "Testing progress tracking",
+          },
+          {
+            source,
+            metadata: {
+              interfaceId,
+              userId: messageContext.userId,
+              roomId: messageContext.channelId,
+              operationType: "entity_processing",
+              operationTarget: "test-slow-job",
             },
-            {
-              source,
-              metadata: {
-                interfaceId,
-                userId: messageContext.userId,
-                roomId: messageContext.channelId,
-                operationType: "entity_processing",
-                operationTarget: "test-slow-job",
-              },
-            },
-          );
-          return `Test job enqueued with ID: ${jobId}\nWatch the status bar for progress!`;
-        } catch (error) {
-          return `Failed to enqueue test job: ${error instanceof Error ? error.message : String(error)}`;
-        }
+          },
+        );
+
+        return {
+          type: "job-operation",
+          jobId,
+          message: `Test job enqueued with ID: ${jobId}\nWatch the status bar for progress!`,
+        };
       },
     },
     {
@@ -62,7 +64,10 @@ export function getTestCommands(
       usage: "/test-batch [count]",
       handler: async (args, messageContext): Promise<CommandResponse> => {
         if (!context) {
-          return "Plugin context not initialized";
+          return {
+            type: "message",
+            message: "Plugin context not initialized",
+          };
         }
         try {
           const count = parseInt(args[0] ?? "5") || 5;
@@ -76,19 +81,16 @@ export function getTestCommands(
             },
           }));
           const source = `${interfaceId}:${messageContext.channelId}`;
-          const batchId = await context.enqueueBatch(
-            operations,
-            {
-              source,
-              metadata: {
-                roomId: messageContext.channelId,
-                interfaceId,
-                userId: messageContext.userId,
-                operationType: "batch_processing",
-              },
-              priority: 5,
+          const batchId = await context.enqueueBatch(operations, {
+            source,
+            metadata: {
+              roomId: messageContext.channelId,
+              interfaceId,
+              userId: messageContext.userId,
+              operationType: "batch_processing",
             },
-          );
+            priority: 5,
+          });
 
           return {
             type: "batch-operation" as const,
@@ -97,7 +99,10 @@ export function getTestCommands(
             operationCount: count,
           };
         } catch (error) {
-          return `Failed to enqueue batch: ${error instanceof Error ? error.message : String(error)}`;
+          return {
+            type: "message",
+            message: `Failed to enqueue batch: ${error instanceof Error ? error.message : String(error)}`,
+          };
         }
       },
     },

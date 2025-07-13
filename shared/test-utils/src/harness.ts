@@ -15,7 +15,7 @@ import type { IEntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/base-entity";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { BatchJobStatus, BatchOperation } from "@brains/job-queue";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobContext } from "@brains/db";
 import type { Job } from "@brains/types";
 import type { z } from "zod";
 
@@ -286,7 +286,7 @@ export class PluginTestHarness {
         _data: unknown,
         _options: {
           source: string;
-          metadata: ProgressEventContext;
+          metadata: JobContext;
           priority?: number;
           maxRetries?: number;
           delayMs?: number;
@@ -316,7 +316,7 @@ export class PluginTestHarness {
         }>,
         _options: {
           source: string;
-          metadata: ProgressEventContext;
+          metadata: JobContext;
           priority?: number;
           maxRetries?: number;
         },

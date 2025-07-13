@@ -9,7 +9,7 @@ import type { UserPermissionLevel } from "@brains/utils";
 import type { DefaultQueryResponse } from "@brains/types";
 import type { Instance } from "ink";
 import type { JobProgressEvent } from "@brains/job-queue";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobContext } from "@brains/db";
 import type { CLIConfig, CLIConfigInput } from "./types";
 import { cliConfigSchema } from "./types";
 import packageJson from "../package.json";
@@ -20,7 +20,6 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   private progressEvents = new Map<string, JobProgressEvent>();
   private progressCallback: ((events: JobProgressEvent[]) => void) | undefined;
   private responseCallback: ((response: string) => void) | undefined;
-  private errorCallback: ((error: Error) => void) | undefined;
 
   /**
    * Get active jobs from the context
@@ -125,18 +124,10 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   }
 
   /**
-   * Register callback to receive error events
-   */
-  public registerErrorCallback(callback: (error: Error) => void): void {
-    this.errorCallback = callback;
-  }
-
-  /**
-   * Unregister response and error callbacks
+   * Unregister response callbacks
    */
   public unregisterMessageCallbacks(): void {
     this.responseCallback = undefined;
-    this.errorCallback = undefined;
   }
 
   /**
@@ -144,7 +135,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
    */
   protected async handleProgressEvent(
     progressEvent: JobProgressEvent,
-    context: ProgressEventContext,
+    context: JobContext,
   ): Promise<void> {
     try {
       // CLI only handles events from CLI interface
@@ -152,28 +143,57 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
         return; // Event not from CLI interface
       }
 
-      // Only show progress for jobs that are actively processing
-      if (progressEvent.status === "processing") {
-        // Add/update processing event
-        this.progressEvents = this.progressReducer(this.progressEvents, {
-          type: "UPDATE_PROGRESS",
-          payload: progressEvent,
-        });
-      } else {
-        // Remove any non-processing events (pending, completed, failed)
-        this.progressEvents = this.progressReducer(this.progressEvents, {
-          type: "CLEANUP_PROGRESS",
-          payload: progressEvent,
-        });
-      }
+      // Add/update all events (processing, completed, failed)
+      this.progressEvents = this.progressReducer(this.progressEvents, {
+        type: "UPDATE_PROGRESS",
+        payload: progressEvent,
+      });
 
       // Always notify React component of the change
       if (this.progressCallback) {
-        // Only send processing events to the UI as an array
-        const processingEvents = Array.from(
-          this.progressEvents.values(),
-        ).filter((event) => event.status === "processing");
-        this.progressCallback(processingEvents);
+        // Send all events to the status bar
+        const allEvents = Array.from(this.progressEvents.values());
+        this.progressCallback(allEvents);
+      }
+
+      // Also send progress update as message edit for inline progress bars
+      const existingMessageId = this.jobMessages.get(progressEvent.id);
+      if (existingMessageId) {
+        // Format progress message similar to Matrix style
+        const operationType = progressEvent.metadata.operationType.replace(
+          /_/g,
+          " ",
+        );
+        const operationTarget = progressEvent.metadata.operationTarget ?? "";
+
+        let message = "";
+        if (progressEvent.status === "completed") {
+          message = `✅ **${operationType}${operationTarget ? `: ${operationTarget}` : ""}** completed`;
+        } else if (progressEvent.status === "failed") {
+          message = `❌ **${operationType}${operationTarget ? `: ${operationTarget}` : ""}** failed`;
+        } else if (
+          progressEvent.status === "processing" &&
+          progressEvent.progress
+        ) {
+          message = `🔄 **${operationType}${operationTarget ? `: ${operationTarget}` : ""}** in progress`;
+          if (progressEvent.progress.total > 0) {
+            message += `\n📊 Progress: ${progressEvent.progress.current}/${progressEvent.progress.total} (${progressEvent.progress.percentage}%)`;
+          }
+          if (operationTarget) {
+            message += `\n📂 Target: \`${operationTarget}\``;
+          }
+        }
+
+        if (message) {
+          await this.editMessage(existingMessageId, message, {
+            userId: progressEvent.metadata.userId,
+            channelId: progressEvent.metadata.roomId ?? "cli",
+            messageId: existingMessageId,
+            timestamp: new Date(),
+            interfaceType: "cli",
+            userPermissionLevel: "anchor",
+          });
+        }
       }
     } catch (error) {
       this.logger.error("Error handling progress event in CLI", { error });
@@ -217,18 +237,19 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
       {
         name: "progress",
         description: "Toggle detailed progress display",
-        handler: async (): Promise<string> => {
-          // This is handled in the EnhancedApp component directly
-          return "Progress display toggled. You can also use Ctrl+P for quick toggle.";
-        },
+        handler: async () => ({
+          type: "message" as const,
+          message:
+            "Progress display toggled. You can also use Ctrl+P for quick toggle.",
+        }),
       },
       {
         name: "clear",
         description: "Clear the screen",
-        handler: async (): Promise<string> => {
-          // This is handled in the EnhancedApp component directly
-          return "Screen cleared.";
-        },
+        handler: async () => ({
+          type: "message" as const,
+          message: "Screen cleared.",
+        }),
       },
     ];
 
@@ -278,37 +299,33 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   }
 
   /**
-   * Override processInput to use callbacks instead of EventEmitter
+   * Send a message using CLI callback system
    */
-  public override async processInput(
-    input: string,
-    context?: Partial<MessageContext>,
+  protected async sendMessage(
+    content: string,
+    _context: MessageContext,
+    _replyToId?: string,
+  ): Promise<string> {
+    // Use callback to send response
+    if (this.responseCallback) {
+      this.responseCallback(content);
+    }
+    // Return a synthetic message ID for CLI
+    return `cli-msg-${Date.now()}`;
+  }
+
+  /**
+   * Edit message - for CLI, just send new message (React component will handle replacement)
+   */
+  protected async editMessage(
+    _messageId: string,
+    content: string,
+    _context: MessageContext,
   ): Promise<void> {
-    const userId = context?.userId ?? "default-user";
-    const userPermissionLevel = this.determineUserPermissionLevel(userId);
-
-    const fullContext: MessageContext = {
-      userId,
-      channelId: context?.channelId ?? this.sessionId,
-      messageId: context?.messageId ?? `msg-${Date.now()}`,
-      timestamp: context?.timestamp ?? new Date(),
-      interfaceType: this.id,
-      userPermissionLevel,
-      ...context,
-    };
-
-    try {
-      const response = await this.handleInput(input, fullContext);
-      // Use callback instead of EventEmitter
-      if (this.responseCallback) {
-        this.responseCallback(response);
-      }
-    } catch (error) {
-      this.logger.error("Failed to process input", { error });
-      // Use callback instead of EventEmitter
-      if (this.errorCallback) {
-        this.errorCallback(error as Error);
-      }
+    // For CLI, editing means sending a new message
+    // The React component will detect progress messages and handle replacement
+    if (this.responseCallback) {
+      this.responseCallback(content);
     }
   }
 
@@ -342,8 +359,6 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
         unregisterProgressCallback: () => this.unregisterProgressCallback(),
         registerResponseCallback: (callback) =>
           this.registerResponseCallback(callback),
-        registerErrorCallback: (callback) =>
-          this.registerErrorCallback(callback),
         unregisterMessageCallbacks: () => this.unregisterMessageCallbacks(),
       });
       this.inkApp = render(element);

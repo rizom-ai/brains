@@ -18,7 +18,6 @@ interface Props {
   ) => void;
   unregisterProgressCallback: () => void;
   registerResponseCallback: (callback: (response: string) => void) => void;
-  registerErrorCallback: (callback: (error: Error) => void) => void;
   unregisterMessageCallbacks: () => void;
 }
 
@@ -27,7 +26,6 @@ export default function EnhancedApp({
   registerProgressCallback,
   unregisterProgressCallback,
   registerResponseCallback,
-  registerErrorCallback,
   unregisterMessageCallbacks,
 }: Props): React.ReactElement {
   const [messages, setMessages] = useState<Message[]>([
@@ -50,41 +48,61 @@ export default function EnhancedApp({
   // Register callbacks for responses and errors
   useEffect(() => {
     const handleResponse = (response: string): void => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: response,
-          timestamp: new Date(),
-        },
-      ]);
-      setIsLoading(false);
-    };
+      setMessages((prev) => {
+        // Check if this looks like a progress message (contains progress indicators)
+        const isProgressMessage =
+          response.includes("🔄") ||
+          response.includes("✅") ||
+          response.includes("❌") ||
+          response.includes("in progress") ||
+          response.includes("completed") ||
+          response.includes("failed");
 
-    const handleError = (error: Error): void => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "error",
-          content: error.message,
-          timestamp: new Date(),
-        },
-      ]);
+        if (isProgressMessage) {
+          const lastMessage = prev[prev.length - 1];
+
+          // Replace if the last message was from assistant and either:
+          // 1. Contains "enqueued with ID" (initial job message), OR
+          // 2. Also looks like a progress message (progress update)
+          const shouldReplace =
+            lastMessage &&
+            lastMessage.role === "assistant" &&
+            (lastMessage.content.includes("enqueued with ID") ||
+              lastMessage.content.includes("🔄") ||
+              lastMessage.content.includes("✅") ||
+              lastMessage.content.includes("❌"));
+
+          const newMessage = {
+            role: "assistant" as const,
+            content: response,
+            timestamp: new Date(),
+          };
+
+          return shouldReplace
+            ? [...prev.slice(0, -1), newMessage]
+            : [...prev, newMessage];
+        }
+
+        // Regular message - just add it
+        return [
+          ...prev,
+          {
+            role: "assistant",
+            content: response,
+            timestamp: new Date(),
+          },
+        ];
+      });
+
       setIsLoading(false);
-      setIsConnected(false);
     };
 
     registerResponseCallback(handleResponse);
-    registerErrorCallback(handleError);
 
     return (): void => {
       unregisterMessageCallbacks();
     };
-  }, [
-    registerResponseCallback,
-    registerErrorCallback,
-    unregisterMessageCallbacks,
-  ]);
+  }, [registerResponseCallback, unregisterMessageCallbacks]);
 
   // Create stable callback for progress updates
   const handleProgressUpdate = useCallback((events: JobProgressEvent[]) => {

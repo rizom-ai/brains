@@ -87,8 +87,10 @@ export function MultiLineProgress({
               <Box justifyContent="space-between">
                 <Box>
                   <Text bold color="cyan">
-                    ▶ {event.operationType}
-                    {event.operationTarget ? `: ${event.operationTarget}` : ""}
+                    ▶ {event.metadata.operationType}
+                    {event.metadata.operationTarget
+                      ? `: ${event.metadata.operationTarget}`
+                      : ""}
                   </Text>
                 </Box>
                 <Box>
@@ -128,8 +130,10 @@ export function MultiLineProgress({
               <Box justifyContent="space-between">
                 <Box>
                   <Text color="blue">
-                    • {event.operationType}
-                    {event.operationTarget ? `: ${event.operationTarget}` : ""}
+                    • {event.metadata.operationType}
+                    {event.metadata.operationTarget
+                      ? `: ${event.metadata.operationTarget}`
+                      : ""}
                   </Text>
                 </Box>
                 <Box>

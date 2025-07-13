@@ -128,12 +128,12 @@ describe("CLIInterface", () => {
       cliInterface = new CLIInterface();
       await cliInterface.register(mockContext);
 
-      const errorHandler = mock(() => {});
-      cliInterface.registerErrorCallback(errorHandler);
+      const responseHandler = mock(() => {});
+      cliInterface.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("Failing input");
-
-      expect(errorHandler).toHaveBeenCalledWith(expect.any(Error));
+      await expect(cliInterface.processInput("Failing input")).rejects.toThrow(
+        "Process failed",
+      );
     });
   });
 
@@ -145,12 +145,10 @@ describe("CLIInterface", () => {
 
     it("should support callback registration and unregistration", () => {
       const responseHandler = mock(() => {});
-      const errorHandler = mock(() => {});
       const progressHandler = mock(() => {});
 
       // Test registering callbacks
       cliInterface.registerResponseCallback(responseHandler);
-      cliInterface.registerErrorCallback(errorHandler);
       cliInterface.registerProgressCallback(progressHandler);
 
       // Test unregistering callbacks

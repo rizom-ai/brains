@@ -1,4 +1,4 @@
-import type { Command } from "../base/types";
+import type { Command, MessageResponse } from "../base/types";
 import type { MessageInterfacePlugin } from "../base/message-interface-plugin";
 
 /**
@@ -11,27 +11,41 @@ export function getBaseCommands(
     {
       name: "help",
       description: "Show this help message",
-      handler: async () => plugin.getHelpText(),
+      handler: async (): Promise<MessageResponse> => ({
+        type: "message",
+        message: plugin.getHelpText(),
+      }),
     },
     {
       name: "search",
       description: "Search your knowledge base",
       usage: "/search <query>",
-      handler: async (args, context): Promise<string> => {
+      handler: async (args, context): Promise<MessageResponse> => {
         if (args.length === 0) {
-          return "Please provide a search query. Usage: /search <query>";
+          return {
+            type: "message",
+            message: "Please provide a search query. Usage: /search <query>",
+          };
         }
         const searchQuery = args.join(" ");
-        return plugin.processQuery(searchQuery, context);
+        const result = await plugin.processQuery(searchQuery, context);
+        return {
+          type: "message",
+          message: result,
+        };
       },
     },
     {
       name: "list",
       description: "List entities (notes, tasks, etc.)",
       usage: "/list [type]",
-      handler: async (args, context): Promise<string> => {
+      handler: async (args, context): Promise<MessageResponse> => {
         const listQuery = args[0] ? `list all ${args[0]}` : "list all notes";
-        return plugin.processQuery(listQuery, context);
+        const result = await plugin.processQuery(listQuery, context);
+        return {
+          type: "message",
+          message: result,
+        };
       },
     },
   ];

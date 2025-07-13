@@ -3,19 +3,13 @@ import {
   JobProgressEventSchema,
   type JobProgressEvent,
 } from "@brains/job-queue";
-import {
-  ProgressEventContextSchema,
-  type ProgressEventContext,
-} from "@brains/db";
+import { JobContextSchema, type JobContext } from "@brains/db";
 
 /**
  * Handlers for progress event processing
  */
 export interface ProgressHandlers {
-  onProgress: (
-    event: JobProgressEvent,
-    context: ProgressEventContext,
-  ) => Promise<void>;
+  onProgress: (event: JobProgressEvent, context: JobContext) => Promise<void>;
   onError: (error: unknown) => void;
   onInvalidSchema: () => void;
 }
@@ -23,10 +17,10 @@ export interface ProgressHandlers {
 /**
  * Extract progress event context from event metadata
  */
-export function extractProgressEventContext(
+export function extractJobContext(
   metadata?: JobProgressEvent["metadata"],
-): ProgressEventContext {
-  return ProgressEventContextSchema.parse(metadata);
+): JobContext {
+  return JobContextSchema.parse(metadata);
 }
 
 /**
@@ -47,7 +41,7 @@ export function setupProgressHandler(
       }
 
       const progressEvent = validationResult.data;
-      const eventContext = extractProgressEventContext(progressEvent.metadata);
+      const eventContext = extractJobContext(progressEvent.metadata);
 
       await handlers.onProgress(progressEvent, eventContext);
 

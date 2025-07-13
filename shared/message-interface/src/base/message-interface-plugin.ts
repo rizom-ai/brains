@@ -2,7 +2,7 @@ import type { DefaultQueryResponse } from "@brains/types";
 import type { PluginContext } from "@brains/plugin-utils";
 import { InterfacePlugin } from "@brains/plugin-utils";
 import type { JobProgressEvent } from "@brains/job-queue";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobContext } from "@brains/db";
 import type { z } from "zod";
 import PQueue from "p-queue";
 
@@ -25,6 +25,8 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
 {
   protected queue: PQueue;
   public readonly sessionId: string;
+  // Track job/batch messages for editing (jobId/batchId -> messageId)
+  protected jobMessages = new Map<string, string>();
 
   constructor(
     id: string,
@@ -48,7 +50,25 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
    */
   protected abstract handleProgressEvent(
     progressEvent: JobProgressEvent,
-    context: ProgressEventContext,
+    context: JobContext,
+  ): Promise<void>;
+
+  /**
+   * Send a message and return the message ID - must be implemented by each interface
+   */
+  protected abstract sendMessage(
+    content: string,
+    context: MessageContext,
+    replyToId?: string,
+  ): Promise<string>;
+
+  /**
+   * Edit an existing message - must be implemented by each interface
+   */
+  protected abstract editMessage(
+    messageId: string,
+    content: string,
+    context: MessageContext,
   ): Promise<void>;
 
   /**
@@ -131,16 +151,43 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   }
 
   /**
-   * Route input to appropriate handler
+   * Route input to appropriate handler and send response with job/batch mapping
    */
   protected async handleInput(
     input: string,
     context: MessageContext,
-  ): Promise<string> {
-    if (input.startsWith("/")) {
-      return this.executeCommand(input, context);
+    replyToId?: string,
+  ): Promise<void> {
+    // Route to command or query
+    const response = input.startsWith("/")
+      ? await this.executeCommand(input, context)
+      : await this.processQuery(input, context);
+
+    // Handle structured response or plain string
+    let messageText: string;
+    let jobId: string | undefined;
+    let batchId: string | undefined;
+
+    if (typeof response === "string") {
+      messageText = response;
+    } else {
+      messageText = response.message;
+      jobId = response.jobId;
+      batchId = response.batchId;
     }
-    return this.processQuery(input, context);
+
+    // Send the message and get the message ID
+    const messageId = await this.sendMessage(messageText, context, replyToId);
+
+    // Store job/batch message mapping if we have IDs
+    if (jobId) {
+      this.jobMessages.set(jobId, messageId);
+      this.logger.info("Stored job message mapping", { jobId, messageId });
+    }
+    if (batchId) {
+      this.jobMessages.set(batchId, messageId);
+      this.logger.info("Stored batch message mapping", { batchId, messageId });
+    }
   }
 
   /**
@@ -189,7 +236,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   public async executeCommand(
     command: string,
     context: MessageContext,
-  ): Promise<string> {
+  ): Promise<{ message: string; jobId?: string; batchId?: string }> {
     const [cmd, ...args] = command.slice(1).split(" ");
     const commands = this.getCommands();
     const commandDef = commands.find((c) => c.name === cmd);
@@ -198,14 +245,29 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
       const response = await commandDef.handler(args, context);
       const parsed = commandResponseSchema.parse(response);
 
-      if (typeof parsed === "string") {
-        return parsed;
+      // Return structured data with the message and relevant IDs
+      switch (parsed.type) {
+        case "job-operation":
+          return {
+            message: parsed.message,
+            jobId: parsed.jobId,
+          };
+        case "batch-operation":
+          return {
+            message: parsed.message,
+            batchId: parsed.batchId,
+          };
+        case "message":
+          return {
+            message: parsed.message,
+          };
       }
-
-      return parsed.message;
     }
 
-    return `Unknown command: ${command}. Type /help for available commands.`;
+    // Return a simple message response for unknown commands
+    return {
+      message: `Unknown command: ${command}. Type /help for available commands.`,
+    };
   }
 
   /**

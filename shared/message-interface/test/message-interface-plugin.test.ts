@@ -1,7 +1,8 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { MessageInterfacePlugin } from "../src/base/message-interface-plugin";
+import type { MessageContext } from "../src/base/types";
 import type { JobProgressEvent } from "@brains/job-queue";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobContext } from "@brains/db";
 import { z } from "zod";
 
 // Test implementation
@@ -18,7 +19,23 @@ class TestMessageInterface extends MessageInterfacePlugin<object> {
 
   protected async handleProgressEvent(
     _progressEvent: JobProgressEvent,
-    _context: ProgressEventContext,
+    _context: JobContext,
+  ): Promise<void> {
+    // Test implementation
+  }
+
+  protected async sendMessage(
+    _content: string,
+    _context: MessageContext,
+    _replyToId?: string,
+  ): Promise<string> {
+    return "test-message-id";
+  }
+
+  protected async editMessage(
+    _messageId: string,
+    _content: string,
+    _context: MessageContext,
   ): Promise<void> {
     // Test implementation
   }
@@ -53,10 +70,10 @@ describe("MessageInterfacePlugin", () => {
       userPermissionLevel: "public",
     });
 
-    expect(result).toContain("Available commands:");
-    expect(result).toContain("/help");
-    expect(result).toContain("/search");
-    expect(result).toContain("/list");
+    expect(result.message).toContain("Available commands:");
+    expect(result.message).toContain("/help");
+    expect(result.message).toContain("/search");
+    expect(result.message).toContain("/list");
   });
 
   it("should handle unknown commands", async () => {
@@ -69,7 +86,7 @@ describe("MessageInterfacePlugin", () => {
       userPermissionLevel: "public",
     });
 
-    expect(result).toBe(
+    expect(result.message).toBe(
       "Unknown command: /unknown. Type /help for available commands.",
     );
   });

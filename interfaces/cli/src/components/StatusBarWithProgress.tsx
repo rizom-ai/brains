@@ -134,9 +134,9 @@ export function StatusBarWithProgress({
           {primaryEvent ? (
             <Box>
               <Text color="cyan">
-                {primaryEvent.operationType}
-                {primaryEvent.operationTarget
-                  ? `: ${primaryEvent.operationTarget}`
+                {primaryEvent.metadata.operationType}
+                {primaryEvent.metadata.operationTarget
+                  ? `: ${primaryEvent.metadata.operationTarget}`
                   : ""}
               </Text>
               <Text color="gray"> </Text>

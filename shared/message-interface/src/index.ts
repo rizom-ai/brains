@@ -6,6 +6,8 @@ export type {
   Command,
   CommandResponse,
   BatchOperationResponse,
+  JobResponse,
+  MessageResponse,
   MessageContext,
   IMessageInterfacePlugin,
 } from "./base/types";
@@ -14,6 +16,8 @@ export type {
 export {
   commandResponseSchema,
   batchOperationResponseSchema,
+  jobResponseSchema,
+  messageResponseSchema,
 } from "./base/types";
 
 // Utilities
@@ -24,5 +28,5 @@ export {
 } from "./commands/test-commands";
 export {
   setupProgressHandler,
-  extractProgressEventContext,
+  extractJobContext,
 } from "./utils/progress-handler";
