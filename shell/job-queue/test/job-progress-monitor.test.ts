@@ -177,8 +177,6 @@ describe("JobProgressMonitor", () => {
           id: "job-123",
           type: "job",
           status: "processing",
-          operationType: "entity_processing",
-          operationTarget: "test-job",
           message: undefined,
           metadata: {
             interfaceId: "test",
@@ -292,12 +290,11 @@ describe("JobProgressMonitor", () => {
           id: "batch-456",
           type: "batch",
           status: "processing",
-          operationType: "batch_processing",
-          operationTarget: "Processing operation 4",
           metadata: {
             interfaceId: "system",
             userId: "system",
             operationType: "batch_processing",
+            operationTarget: "Processing operation 4",
           },
           batchDetails: {
             totalOperations: 10,
@@ -388,6 +385,7 @@ describe("JobProgressMonitor", () => {
             interfaceId: "test",
             userId: "user123",
             operationType: "batch_processing",
+            operationTarget: "Processing operation 4",
           },
         }),
         "job-progress-monitor", // source
@@ -544,15 +542,20 @@ describe("JobProgressMonitor", () => {
           id: "batch-123",
           type: "batch",
           status: "completed",
-          metadata: {
+          metadata: expect.objectContaining({
             roomId: "!testroom:example.com",
             interfaceId: "test",
             userId: "user123",
             operationType: "batch_processing",
-          },
+          }),
           batchDetails: expect.objectContaining({
             completedOperations: 2,
             totalOperations: 2,
+          }),
+          progress: expect.objectContaining({
+            current: 2,
+            total: 2,
+            percentage: 100,
           }),
         }),
         "job-progress-monitor", // source

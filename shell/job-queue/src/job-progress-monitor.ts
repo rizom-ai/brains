@@ -356,8 +356,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           id: job.id,
           type: "job",
           status: job.status,
-          operationType: "entity_processing", // Default for jobs
-          operationTarget: job.metadata.operationTarget ?? job.type,
           message: progressInfo?.message,
           metadata: job.metadata,
           jobDetails: {
@@ -437,8 +435,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           id: batchId,
           type: "batch",
           status: status.status,
-          operationType: "batch_processing",
-          operationTarget: status.currentOperation,
           metadata: {
             interfaceId: "system",
             userId: "system",
@@ -472,6 +468,13 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         // Include routing metadata in event
         if (eventMetadata) {
           event.metadata = eventMetadata;
+          // For batches, use currentOperation as operationTarget if not already set
+          if (!event.metadata.operationTarget && status.currentOperation) {
+            event.metadata = {
+              ...event.metadata,
+              operationTarget: status.currentOperation,
+            };
+          }
         }
 
         await this.messageBus.send(
@@ -531,8 +534,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           rate: progress.rate,
           eta: progress.eta,
         },
-        operationType: job.metadata.operationType,
-        operationTarget: job.metadata.operationTarget ?? job.type,
         message: progress.message,
       };
 
@@ -620,8 +621,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           id: jobId,
           type: "job",
           status: "processing",
-          operationType: "entity_processing",
-          operationTarget: job.metadata.operationTarget ?? job.type,
           message: progressInfo.message,
           metadata: job.metadata, // Always present now
           progress: {
@@ -654,8 +653,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         id: jobId,
         type: "job",
         status: "completed",
-        operationType: job.metadata.operationType,
-        operationTarget: job.metadata.operationTarget ?? job.type,
         metadata: job.metadata, // Always present now
         jobDetails: {
           jobType: job.type,
@@ -706,8 +703,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         id: jobId,
         type: "job",
         status: "failed",
-        operationType: job.metadata.operationType,
-        operationTarget: job.metadata.operationTarget ?? job.type,
         message: job.lastError ?? undefined,
         metadata: job.metadata, // Always present now
         jobDetails: {

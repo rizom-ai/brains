@@ -7,7 +7,7 @@ import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
 import { MatrixClientWrapper } from "./client/matrix-client";
 import type { JobProgressEvent } from "@brains/job-queue";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobContext } from "@brains/db";
 // MentionPill is for creating mentions, not detecting them
 import packageJson from "../package.json";
 
@@ -84,7 +84,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   protected override async handleInput(
     input: string,
     context: MessageContext,
-  ): Promise<string> {
+    replyToId?: string,
+  ): Promise<void> {
     // Check for anchor-only commands (!!command)
     if (input.startsWith(this.config.anchorPrefix)) {
       if (context.userId !== this.config.anchorUserId) {
@@ -92,40 +93,35 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       }
       // Process as command but remove extra prefix
       const command = input.slice(this.config.anchorPrefix.length - 1);
-      return this.executeCommand(command, context);
+      const response = await this.executeCommand(command, context);
+
+      // Send the message and get the message ID
+      const messageId = await this.sendMessage(
+        response.message,
+        context,
+        replyToId,
+      );
+
+      // Store job/batch message mapping if we have IDs
+      if (response.jobId) {
+        this.jobMessages.set(response.jobId, messageId);
+        this.logger.info("Stored job message mapping", {
+          jobId: response.jobId,
+          messageId,
+        });
+      }
+      if (response.batchId) {
+        this.jobMessages.set(response.batchId, messageId);
+        this.logger.info("Stored batch message mapping", {
+          batchId: response.batchId,
+          messageId,
+        });
+      }
+      return;
     }
 
     // Use default routing (commands start with /, everything else is query)
-    return super.handleInput(input, context);
-  }
-
-  /**
-   * Execute Matrix-specific commands
-   */
-  public override async executeCommand(
-    command: string,
-    context: MessageContext,
-  ): Promise<string> {
-    const [cmd, ...args] = command.slice(1).split(" ");
-
-    switch (cmd) {
-      case "join": {
-        if (args.length === 0) return "Usage: /join <room-id>";
-        const roomId = args[0];
-        if (!roomId) return "Room ID is required";
-        if (this.client) {
-          await this.client.joinRoom(roomId);
-          return `Joined room ${roomId}`;
-        }
-        return "Matrix client not available";
-      }
-      case "leave":
-        // Could implement leave room logic here
-        return "Leave room functionality not implemented yet";
-      default:
-        // Let parent handle unknown commands
-        return super.executeCommand(command, context);
-    }
+    await super.handleInput(input, context, replyToId);
   }
 
   /**
@@ -315,16 +311,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         }
       }
 
-      // Process the message using our handleInput method
-      const response = await this.handleInput(message, messageContext);
-
-      // Send the response
-      const sentEventId = await this.sendResponse(roomId, eventId, response);
-
-      // Update the message context with the sent event ID for updates
-      if (sentEventId) {
-        messageContext.messageId = sentEventId;
-      }
+      // Process the message using the base class method with mapping
+      await this.handleInput(message, messageContext, eventId);
 
       // Add done reaction
       if (this.config.enableReactions) {
@@ -339,41 +327,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         await this.client.setTyping(roomId, false);
       }
     }
-  }
-
-  /**
-   * Send a response message
-   */
-  private async sendResponse(
-    roomId: string,
-    replyToEventId: string,
-    response: string,
-  ): Promise<string | void> {
-    // Convert markdown to HTML
-    const html = markdownToHtml(response);
-
-    if (!this.client) {
-      throw new Error("Matrix client not initialized");
-    }
-
-    let sentEventId: string;
-    // Send as a reply if threading is enabled
-    if (this.config.enableThreading) {
-      sentEventId = await this.client.sendReply(
-        roomId,
-        replyToEventId,
-        response,
-        html,
-      );
-    } else {
-      sentEventId = await this.client.sendFormattedMessage(
-        roomId,
-        response,
-        html,
-      );
-    }
-
-    return sentEventId;
   }
 
   /**
@@ -433,15 +386,51 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     );
   }
 
-  // Track progress messages for editing
-  private progressMessages = new Map<string, string>();
+  /**
+   * Send a message and return the message ID
+   */
+  protected async sendMessage(
+    content: string,
+    context: MessageContext,
+    replyToId?: string,
+  ): Promise<string> {
+    const html = markdownToHtml(content);
+
+    if (!this.client) {
+      throw new Error("Matrix client not initialized");
+    }
+
+    return this.config.enableThreading && replyToId
+      ? this.client.sendReply(context.channelId, replyToId, content, html)
+      : this.client.sendFormattedMessage(context.channelId, content, html);
+  }
+
+  /**
+   * Edit an existing message - Matrix supports true message editing
+   */
+  protected override async editMessage(
+    messageId: string,
+    content: string,
+    context: MessageContext,
+  ): Promise<void> {
+    if (!this.client) {
+      throw new Error("Matrix client not initialized");
+    }
+
+    await this.client.editMessage(
+      context.channelId,
+      messageId,
+      content,
+      markdownToHtml(content),
+    );
+  }
 
   /**
    * Handle progress events - unified handler
    */
   protected async handleProgressEvent(
     progressEvent: JobProgressEvent,
-    context: ProgressEventContext,
+    context: JobContext,
   ): Promise<void> {
     // Matrix only handles events from Matrix interface
     if (context.interfaceId !== "matrix") {
@@ -478,7 +467,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
 
     if (progressEvent.status === "completed") {
       message = `✅ **${operationDisplay}** completed`;
-      
+
       // Add progress details if available
       if (progressEvent.progress) {
         const { current, total } = progressEvent.progress;
@@ -488,43 +477,52 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       }
     } else if (progressEvent.status === "failed") {
       message = `❌ **${operationDisplay}** failed`;
-      
+
       // Add error details if available
       if (progressEvent.message) {
         message += `\n> ${progressEvent.message}`;
       }
-    } else if (progressEvent.status === "processing" && progressEvent.progress) {
+    } else if (
+      progressEvent.status === "processing" &&
+      progressEvent.progress
+    ) {
       // Show processing status with details for long-running jobs
-      const { current, total, percentage, etaFormatted, rateFormatted } = progressEvent.progress;
-      
+      const { current, total, percentage, etaFormatted, rateFormatted } =
+        progressEvent.progress;
+
       message = `🔄 **${operationDisplay}** in progress`;
-      
+
       if (total && total > 1) {
         message += `\n📊 Progress: ${current}/${total} (${percentage}%)`;
-        
+
         if (etaFormatted) {
           message += `\n⏱️ ETA: ${etaFormatted}`;
         }
-        
+
         if (rateFormatted) {
           message += `\n⚡ Rate: ${rateFormatted}`;
         }
       }
-      
-      if (progressEvent.operationTarget) {
-        message += `\n📂 Target: \`${progressEvent.operationTarget}\``;
+
+      if (progressEvent.metadata.operationTarget) {
+        message += `\n📂 Target: \`${progressEvent.metadata.operationTarget}\``;
       }
     } else {
       // Don't send messages for other statuses (pending) to avoid spam
       return;
     }
 
-    const progressKey = `job:${progressEvent.id}:${roomId}`;
-    const existingMessageId = this.progressMessages.get(progressKey);
+    const existingMessageId = this.jobMessages.get(progressEvent.id);
+
+    this.logger.info("Checking for existing job message", {
+      jobId: progressEvent.id,
+      existingMessageId,
+      allMappings: Array.from(this.jobMessages.entries()),
+    });
 
     try {
       if (existingMessageId) {
-        // Edit existing message for all updates (processing, completion, failure)
+        // Edit the original command response message with progress
         await this.client.editMessage(
           roomId,
           existingMessageId,
@@ -532,15 +530,15 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
           markdownToHtml(message),
         );
       } else {
-        // Send new message only if we don't have one yet
-        const messageId = await this.client.sendFormattedMessage(
-          roomId,
-          message,
-          markdownToHtml(message),
+        // No original message found, skip this update (race condition)
+        this.logger.debug(
+          "Skipping progress update due to missing message mapping",
+          {
+            jobId: progressEvent.id,
+            status: progressEvent.status,
+          },
         );
-        
-        // Store message ID for all future edits
-        this.progressMessages.set(progressKey, messageId);
+        return;
       }
 
       // Clean up when done
@@ -548,7 +546,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         progressEvent.status === "completed" ||
         progressEvent.status === "failed"
       ) {
-        this.progressMessages.delete(progressKey);
+        this.jobMessages.delete(progressEvent.id);
       }
     } catch (error) {
       this.logger.error("Failed to send job progress message", {
@@ -577,18 +575,18 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     if (batchDetails.completedOperations >= batchDetails.totalOperations) {
       message = `✅ **${operationDisplay}** batch completed`;
       message += `\n📊 **${batchDetails.totalOperations}** operations processed successfully`;
-      
+
       if (batchDetails.failedOperations > 0) {
         message += `\n⚠️ ${batchDetails.failedOperations} operations failed`;
       }
     } else if (progressEvent.status === "failed") {
       message = `❌ **${operationDisplay}** batch failed`;
       message += `\n📊 Progress: ${batchDetails.completedOperations}/${batchDetails.totalOperations} completed`;
-      
+
       if (batchDetails.failedOperations > 0) {
         message += `\n❌ ${batchDetails.failedOperations} operations failed`;
       }
-      
+
       if (batchDetails.errors && batchDetails.errors.length > 0) {
         const latestError = batchDetails.errors[batchDetails.errors.length - 1];
         message += `\n> Latest error: ${latestError}`;
@@ -597,34 +595,34 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       // In progress
       message = `🔄 **${operationDisplay}** batch in progress`;
       message += `\n📊 Progress: ${batchDetails.completedOperations}/${batchDetails.totalOperations}`;
-      
+
       // Add percentage if we have progress info
       if (progressEvent.progress?.percentage !== undefined) {
         message += ` (${progressEvent.progress.percentage}%)`;
       }
-      
+
       if (progressEvent.progress?.etaFormatted) {
         message += `\n⏱️ ETA: ${progressEvent.progress.etaFormatted}`;
       }
-      
+
       if (progressEvent.progress?.rateFormatted) {
         message += `\n⚡ Rate: ${progressEvent.progress.rateFormatted}`;
       }
-      
+
       if (batchDetails.currentOperation) {
         message += `\n🔄 Current: ${batchDetails.currentOperation}`;
       }
-      
+
       if (batchDetails.failedOperations > 0) {
         message += `\n⚠️ ${batchDetails.failedOperations} failed so far`;
       }
     }
 
-    const progressKey = `batch:${progressEvent.id}:${roomId}`;
-    const existingMessageId = this.progressMessages.get(progressKey);
+    const existingMessageId = this.jobMessages.get(progressEvent.id);
 
     try {
       if (existingMessageId) {
+        // Edit the original command response message with batch progress
         await this.client.editMessage(
           roomId,
           existingMessageId,
@@ -632,12 +630,15 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
           markdownToHtml(message),
         );
       } else {
-        const messageId = await this.client.sendFormattedMessage(
-          roomId,
-          message,
-          markdownToHtml(message),
+        // No original message found, skip this update (race condition)
+        this.logger.debug(
+          "Skipping batch progress update due to missing message mapping",
+          {
+            jobId: progressEvent.id,
+            status: progressEvent.status,
+          },
         );
-        this.progressMessages.set(progressKey, messageId);
+        return;
       }
 
       // Clean up when done
@@ -645,7 +646,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
         progressEvent.status === "completed" ||
         progressEvent.status === "failed"
       ) {
-        this.progressMessages.delete(progressKey);
+        this.jobMessages.delete(progressEvent.id);
       }
     } catch (error) {
       this.logger.error("Failed to send batch progress update", {
@@ -659,18 +660,20 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
    * Format operation display name
    */
   private formatOperationDisplay(progressEvent: JobProgressEvent): string {
-    const { operationType, operationTarget } = progressEvent;
-    
+    const { metadata } = progressEvent;
+    const operationType = metadata.operationType;
+    const operationTarget = metadata.operationTarget;
+
     // Convert snake_case to Title Case
     const displayName = operationType
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-    
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+
     if (operationTarget) {
       return `${displayName}: ${operationTarget}`;
     }
-    
+
     return displayName;
   }
 

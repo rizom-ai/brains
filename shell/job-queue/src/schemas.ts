@@ -1,6 +1,6 @@
 import { z } from "zod";
 // Import JobContextSchema from db to avoid circular dependency
-import { JobContextSchema, OperationTypeEnum } from "@brains/db";
+import { JobContextSchema } from "@brains/db";
 
 /**
  * Job status enum - reusable across all job-related types
@@ -125,10 +125,6 @@ export const JobProgressEventSchema = z.object({
       rateFormatted: z.string().optional(), // Human-readable rate (e.g., "5.2/s")
     })
     .optional(),
-
-  // Operation type and details for structured aggregation
-  operationType: OperationTypeEnum,
-  operationTarget: z.string().optional(), // e.g., directory path, entity ID
 
   // Optional aggregation metadata
   aggregationKey: z.string().optional(), // explicit grouping override

@@ -12,7 +12,6 @@ const mockJobEvent: JobProgressEvent = {
   id: "job-1",
   type: "job",
   status: "processing",
-  operationType: "file_processing",
   progress: {
     current: 50,
     total: 100,
@@ -29,7 +28,6 @@ const mockBatchEvent: JobProgressEvent = {
   id: "batch-1",
   type: "batch",
   status: "processing",
-  operationType: "batch_processing",
   batchDetails: {
     completedOperations: 3,
     totalOperations: 10,
@@ -38,7 +36,7 @@ const mockBatchEvent: JobProgressEvent = {
   metadata: {
     userId: "user-1",
     interfaceId: "test",
-    operationType: "file_processing",
+    operationType: "batch_processing",
   },
 };
 
