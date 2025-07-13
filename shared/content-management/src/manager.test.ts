@@ -5,6 +5,17 @@ import { PluginTestHarness } from "@brains/test-utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import type { JobOptions } from "@brains/db";
+
+// Test JobOptions for manager.generate calls
+const testJobOptions: JobOptions = {
+  source: "test",
+  metadata: {
+    interfaceId: "test",
+    userId: "test-user",
+    operationType: "content_generation",
+  },
+};
 
 // Mock dependencies
 const mockGetEntity = mock();
@@ -96,6 +107,7 @@ test("generate should queue jobs and return job array", async () => {
     routes,
     templateResolver,
     "site-content-preview",
+    testJobOptions,
   );
 
   expect(result.totalSections).toBe(1);
@@ -122,6 +134,7 @@ test("generate should handle dry run without queuing jobs", async () => {
     routes,
     templateResolver,
     "site-content-preview",
+    testJobOptions,
   );
 
   expect(result.totalSections).toBe(1);
@@ -470,6 +483,7 @@ test("generateAll should queue batch operation for all sections", async () => {
       metadata: {
         interfaceId: "test",
         userId: "user-123",
+        operationType: "content_generation",
       },
     },
     mockRoutes,
@@ -548,12 +562,14 @@ test("generateAll should queue batch operation for all sections", async () => {
         },
       },
     ],
-    "test",
     {
-      interfaceId: "test",
-      userId: "user-123",
+      source: "test",
+      metadata: {
+        interfaceId: "test",
+        userId: "user-123",
+        operationType: "content_generation",
+      },
     },
-    {},
   );
 });
 
@@ -590,6 +606,7 @@ test("generateAll should respect pageId filter", async () => {
       metadata: {
         interfaceId: "test",
         userId: "system",
+        operationType: "content_generation",
       },
     },
     mockRoutes,
@@ -623,12 +640,14 @@ test("generateAll should respect pageId filter", async () => {
         },
       },
     ],
-    "test",
     {
-      interfaceId: "test",
-      userId: "system",
+      source: "test",
+      metadata: {
+        interfaceId: "test",
+        userId: "system",
+        operationType: "content_generation",
+      },
     },
-    {},
   );
 });
 
@@ -645,6 +664,7 @@ test("generateAll should throw for empty operations", async () => {
         metadata: {
           interfaceId: "test",
           userId: "system",
+          operationType: "content_generation",
         },
       },
       mockRoutes,
@@ -671,6 +691,7 @@ test("promote should queue batch promotion operations", async () => {
     metadata: {
       interfaceId: "test",
       userId: "admin-123",
+      operationType: "content_generation",
     },
   });
 
@@ -708,12 +729,13 @@ test("promote should queue batch promotion operations", async () => {
         },
       },
     ],
-    "test",
     {
-      interfaceId: "test",
-      userId: "admin-123",
-    },
-    {
+      source: "test",
+      metadata: {
+        interfaceId: "test",
+        userId: "admin-123",
+        operationType: "content_generation",
+      },
       priority: 10,
     },
   );
@@ -726,6 +748,7 @@ test("promote should throw for empty ids", async () => {
       metadata: {
         interfaceId: "test",
         userId: "system",
+        operationType: "content_generation",
       },
     }),
   ).rejects.toThrow("No entities to promote");
@@ -746,6 +769,7 @@ test("rollback should queue batch rollback operations", async () => {
     metadata: {
       interfaceId: "test",
       userId: "system",
+      operationType: "content_generation",
     },
   });
 
@@ -773,12 +797,14 @@ test("rollback should queue batch rollback operations", async () => {
         },
       },
     ],
-    "test",
     {
-      interfaceId: "test",
-      userId: "system",
+      source: "test",
+      metadata: {
+        interfaceId: "test",
+        userId: "system",
+        operationType: "content_generation",
+      },
     },
-    {},
   );
 });
 
@@ -789,6 +815,7 @@ test("rollback should throw for empty ids", async () => {
       metadata: {
         interfaceId: "test",
         userId: "system",
+        operationType: "content_generation",
       },
     }),
   ).rejects.toThrow("No entities to rollback");

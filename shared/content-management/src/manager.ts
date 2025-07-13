@@ -4,7 +4,7 @@ import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { BatchJobStatus } from "@brains/job-queue";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobContext, JobOptions } from "@brains/db";
 import { GenerationOperations } from "./operations/generation";
 import { DerivationOperations } from "./operations/derivation";
 import { EntityQueryService } from "./services/entity-query";
@@ -101,6 +101,7 @@ export class ContentManager {
     routes: RouteDefinition[],
     templateResolver: (sectionId: SectionDefinition) => string,
     targetEntityType: SiteContentEntityType,
+    jobOptions: JobOptions,
     siteConfig?: Record<string, unknown>,
   ): Promise<{
     jobs: ContentGenerationJob[];
@@ -112,6 +113,7 @@ export class ContentManager {
       routes,
       templateResolver,
       targetEntityType,
+      jobOptions,
       siteConfig,
     );
   }
@@ -331,7 +333,7 @@ export class ContentManager {
   async generateAll(
     options: GenerateOptions & {
       source: string;
-      metadata: ProgressEventContext;
+      metadata: JobContext;
       priority?: number;
     },
     routes: RouteDefinition[],
@@ -416,16 +418,17 @@ export class ContentManager {
     }
 
     // Queue as batch operation with metadata
-    const batchOptions: { priority?: number; maxRetries?: number } = {};
+    const jobOptions: JobOptions = {
+      source: options.source,
+      metadata: options.metadata,
+    };
     if (options.priority !== undefined) {
-      batchOptions.priority = options.priority;
+      jobOptions.priority = options.priority;
     }
 
     const batchId = await this.pluginContext.enqueueBatch(
       operations,
-      options.source,
-      options.metadata,
-      batchOptions,
+      jobOptions,
     );
 
     this.logger.debug("Batch content generation queued", {
@@ -443,7 +446,7 @@ export class ContentManager {
     previewIds: string[],
     options: {
       source: string;
-      metadata: ProgressEventContext;
+      metadata: JobContext;
       priority?: number;
     },
   ): Promise<string> {
@@ -463,16 +466,17 @@ export class ContentManager {
       },
     }));
 
-    const batchOptions: { priority?: number; maxRetries?: number } = {};
+    const jobOptions: JobOptions = {
+      source: options.source,
+      metadata: options.metadata,
+    };
     if (options.priority !== undefined) {
-      batchOptions.priority = options.priority;
+      jobOptions.priority = options.priority;
     }
 
     const batchId = await this.pluginContext.enqueueBatch(
       operations,
-      options.source,
-      options.metadata,
-      batchOptions,
+      jobOptions,
     );
 
     this.logger.debug("Batch promotion queued", {
@@ -490,7 +494,7 @@ export class ContentManager {
     productionIds: string[],
     options: {
       source: string;
-      metadata: ProgressEventContext;
+      metadata: JobContext;
       priority?: number;
     },
   ): Promise<string> {
@@ -510,16 +514,17 @@ export class ContentManager {
       },
     }));
 
-    const batchOptions: { priority?: number; maxRetries?: number } = {};
+    const jobOptions: JobOptions = {
+      source: options.source,
+      metadata: options.metadata,
+    };
     if (options.priority !== undefined) {
-      batchOptions.priority = options.priority;
+      jobOptions.priority = options.priority;
     }
 
     const batchId = await this.pluginContext.enqueueBatch(
       operations,
-      options.source,
-      options.metadata,
-      batchOptions,
+      jobOptions,
     );
 
     this.logger.debug("Batch rollback queued", {

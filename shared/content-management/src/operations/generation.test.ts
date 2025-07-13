@@ -4,6 +4,17 @@ import { createSilentLogger } from "@brains/utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition } from "@brains/view-registry";
+import type { JobOptions } from "@brains/db";
+
+// Test JobOptions
+const testJobOptions: JobOptions = {
+  source: "test",
+  metadata: {
+    interfaceId: "test",
+    userId: "test-user",
+    operationType: "content_generation",
+  },
+};
 
 // Mock dependencies
 const mockGetEntity = mock();
@@ -119,6 +130,7 @@ test("generate should queue content generation jobs", async () => {
     routes,
     templateResolver,
     "site-content-preview",
+    testJobOptions,
   );
 
   expect(result.totalSections).toBe(1);
@@ -138,6 +150,7 @@ test("generate should queue content generation jobs", async () => {
     expect.objectContaining({
       templateName: "hero-template",
     }),
+    testJobOptions,
   );
 });
 
@@ -162,6 +175,7 @@ test("generate should queue jobs even for sections with content", async () => {
     routes,
     templateResolver,
     "site-content-preview",
+    testJobOptions,
   );
 
   // The current implementation doesn't skip sections with content
@@ -191,6 +205,7 @@ test("generate should handle dry run without queuing", async () => {
     routes,
     templateResolver,
     "site-content-preview",
+    testJobOptions,
   );
 
   expect(result.totalSections).toBe(1);
@@ -222,6 +237,7 @@ test("generate should queue multiple jobs for multiple sections", async () => {
     routes,
     templateResolver,
     "site-content-preview",
+    testJobOptions,
     { siteTitle: "Test Site" },
   );
 
@@ -266,6 +282,7 @@ test("generate should queue multiple jobs for multiple sections", async () => {
         },
       },
     },
+    testJobOptions,
   );
 });
 
@@ -294,6 +311,7 @@ test("generate should filter by pageId", async () => {
     routes,
     templateResolver,
     "site-content-preview",
+    testJobOptions,
   );
 
   expect(result.totalSections).toBe(1);

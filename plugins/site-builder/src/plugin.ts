@@ -4,7 +4,7 @@ import type {
   PluginTool,
   PluginResource,
 } from "@brains/plugin-utils";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobContext } from "@brains/db";
 import type { Template } from "@brains/types";
 import type { SectionDefinition } from "@brains/view-registry";
 import { RouteDefinitionSchema } from "@brains/view-registry";
@@ -264,12 +264,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           // Get batch ID using generateAll with filters
-          const metadata: ProgressEventContext = {
+          const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "mcp-user",
             roomId: context?.roomId,
             progressToken: context?.progressToken,
             pluginId: this.id,
+            operationType: "site_building",
           };
 
           const batchId = await this.contentManager.generateAll(
@@ -336,10 +337,21 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             },
           };
 
+          const metadata: JobContext = {
+            interfaceId: context?.interfaceId || "mcp",
+            userId: context?.userId || "mcp-user",
+            roomId: context?.roomId,
+            progressToken: context?.progressToken,
+            pluginId: this.id,
+            operationType: "site_building",
+          };
+
           if (async) {
             // Queue the job for async processing
             const jobId = await this.context.enqueueJob("site-build", jobData, {
               priority: 5,
+              source: this.id,
+              metadata,
             });
 
             return {
@@ -475,12 +487,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const options = PromoteOptionsSchema.parse(input);
 
           // Create metadata from context
-          const metadata: ProgressEventContext = {
+          const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "system",
             roomId: context?.roomId,
             progressToken: context?.progressToken,
             pluginId: this.id,
+            operationType: "site_building",
           };
 
           const batchId = await this.siteOperations.promote(options, metadata);
@@ -507,12 +520,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           // Create metadata from context
-          const metadata: ProgressEventContext = {
+          const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "system",
             roomId: context?.roomId,
             progressToken: context?.progressToken,
             pluginId: this.id,
+            operationType: "site_building",
           };
 
           const batchId = await this.siteOperations.promoteAll(metadata);
@@ -559,12 +573,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const options = RollbackOptionsSchema.parse(input);
 
           // Create metadata from context
-          const metadata: ProgressEventContext = {
+          const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "system",
             roomId: context?.roomId,
             progressToken: context?.progressToken,
             pluginId: this.id,
+            operationType: "site_building",
           };
 
           const batchId = await this.siteOperations.rollback(options, metadata);
@@ -591,12 +606,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           // Create metadata from context
-          const metadata: ProgressEventContext = {
+          const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "system",
             roomId: context?.roomId,
             progressToken: context?.progressToken,
             pluginId: this.id,
+            operationType: "site_building",
           };
 
           const batchId = await this.siteOperations.rollbackAll(metadata);
@@ -638,6 +654,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               ? config.productionOutputDir
               : config.previewOutputDir;
 
+          const metadata: JobContext = {
+            interfaceId: "mcp",
+            userId: "system",
+            operationType: "site_building",
+            pluginId: this.id,
+          };
+
           // Queue the build job with content generation enabled
           const jobId = await this.context.enqueueJob(
             "site-build",
@@ -651,7 +674,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
                 description: "A knowledge management system",
               },
             },
-            { priority: 5 },
+            {
+              priority: 5,
+              source: this.id,
+              metadata,
+            },
           );
 
           return {
@@ -705,12 +732,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             return section.template;
           };
 
-          const metadata: ProgressEventContext = {
+          const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "system",
             roomId: context?.roomId,
             progressToken: context?.progressToken,
             pluginId: this.id,
+            operationType: "site_building",
           };
 
           const batchId = await this.contentManager.generateAll(

@@ -4,6 +4,7 @@ import type { SiteContentEntityType } from "@brains/types";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { GenerateOptions, ContentGenerationJob } from "../types";
+import type { JobOptions } from "@brains/db";
 
 /**
  * Generate deterministic entity ID for site content
@@ -63,6 +64,7 @@ export class GenerationOperations {
     routes: RouteDefinition[],
     templateResolver: (sectionId: SectionDefinition) => string,
     targetEntityType: SiteContentEntityType,
+    jobOptions: JobOptions,
     siteConfig?: Record<string, unknown>,
   ): Promise<{
     jobs: ContentGenerationJob[];
@@ -119,23 +121,27 @@ export class GenerationOperations {
 
         // Queue the job using generic enqueueJob method
         // Only pass the data that the job handler actually needs
-        await this.pluginContext.enqueueJob("content-generation", {
-          templateName: job.templateName,
-          entityId: job.entityId,
-          entityType: job.entityType,
-          context: {
-            data: {
-              jobId: job.jobId,
-              entityId: job.entityId,
-              entityType: job.entityType,
-              operation: job.operation,
-              pageId: job.pageId,
-              sectionId: job.sectionId,
-              templateName: job.templateName,
-              siteConfig,
+        await this.pluginContext.enqueueJob(
+          "content-generation",
+          {
+            templateName: job.templateName,
+            entityId: job.entityId,
+            entityType: job.entityType,
+            context: {
+              data: {
+                jobId: job.jobId,
+                entityId: job.entityId,
+                entityType: job.entityType,
+                operation: job.operation,
+                pageId: job.pageId,
+                sectionId: job.sectionId,
+                templateName: job.templateName,
+                siteConfig,
+              },
             },
           },
-        });
+          jobOptions,
+        );
 
         this.logger.debug("Queued content generation job", {
           jobId: job.jobId,

@@ -2,7 +2,7 @@ import type { Logger, SiteContent } from "@brains/types";
 import { ContentManager } from "@brains/content-management";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobContext } from "@brains/db";
 import type { PromoteOptions, RollbackOptions } from "./types";
 
 /**
@@ -32,7 +32,7 @@ export class SiteOperations {
    */
   async promote(
     options: PromoteOptions,
-    metadata: ProgressEventContext,
+    metadata: JobContext,
   ): Promise<string> {
     this.logger.info("Starting promote operation", { options });
 
@@ -88,7 +88,7 @@ export class SiteOperations {
    */
   async rollback(
     options: RollbackOptions,
-    metadata: ProgressEventContext,
+    metadata: JobContext,
   ): Promise<string> {
     this.logger.info("Starting rollback operation", { options });
 
@@ -141,14 +141,14 @@ export class SiteOperations {
   /**
    * Promote all preview content to production
    */
-  async promoteAll(metadata: ProgressEventContext): Promise<string> {
+  async promoteAll(metadata: JobContext): Promise<string> {
     return this.promote({ dryRun: false }, metadata);
   }
 
   /**
    * Rollback all production content
    */
-  async rollbackAll(metadata: ProgressEventContext): Promise<string> {
+  async rollbackAll(metadata: JobContext): Promise<string> {
     return this.rollback({ dryRun: false }, metadata);
   }
 
