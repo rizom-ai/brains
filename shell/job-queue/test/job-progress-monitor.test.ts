@@ -4,7 +4,7 @@ import type { IJobQueueService } from "../src/types";
 import type { BatchJobManager } from "../src/batch-job-manager";
 import type { MessageBus } from "@brains/messaging-service";
 import { createSilentLogger, type Logger } from "@brains/utils";
-import type { JobQueue, ProgressEventContext } from "@brains/db";
+import type { JobQueue, JobContext } from "@brains/db";
 import type { BatchJobStatus } from "../src/schemas";
 import type { Mock } from "bun:test";
 
@@ -14,11 +14,24 @@ describe("JobProgressMonitor", () => {
   let mockBatchJobManager: BatchJobManager;
   let mockMessageBus: MessageBus;
   let mockLogger: Logger;
-  
+
   // Properly typed mock functions
   let getActiveJobsMock: Mock<() => Promise<JobQueue[]>>;
   let getStatusMock: Mock<(id: string) => Promise<JobQueue | null>>;
-  let getActiveBatchesMock: Mock<() => Promise<Array<{ batchId: string; status: BatchJobStatus; metadata: { operations: unknown[]; source: string; startedAt: string; metadata: ProgressEventContext } }>>>;
+  let getActiveBatchesMock: Mock<
+    () => Promise<
+      Array<{
+        batchId: string;
+        status: BatchJobStatus;
+        metadata: {
+          operations: unknown[];
+          source: string;
+          startedAt: string;
+          metadata: JobContext;
+        };
+      }>
+    >
+  >;
   let getBatchStatusMock: Mock<(id: string) => Promise<BatchJobStatus | null>>;
   let messageBusSendMock: Mock<(...args: unknown[]) => Promise<void>>;
 
@@ -26,7 +39,7 @@ describe("JobProgressMonitor", () => {
     // Create fresh mocks for each test
     getActiveJobsMock = mock(() => Promise.resolve([]));
     getStatusMock = mock(() => Promise.resolve(null));
-    
+
     mockJobQueueService = {
       enqueue: mock(() => Promise.resolve("job-id")),
       dequeue: mock(() => Promise.resolve(null)),
@@ -54,7 +67,7 @@ describe("JobProgressMonitor", () => {
 
     getActiveBatchesMock = mock(() => Promise.resolve([]));
     getBatchStatusMock = mock(() => Promise.resolve(null));
-    
+
     mockBatchJobManager = {
       enqueueBatch: mock(() => Promise.resolve("batch-id")),
       getBatchStatus: getBatchStatusMock,
@@ -66,7 +79,7 @@ describe("JobProgressMonitor", () => {
     } as unknown as BatchJobManager;
 
     messageBusSendMock = mock(() => Promise.resolve());
-    
+
     mockMessageBus = {
       send: messageBusSendMock,
       subscribe: mock((): (() => void) => () => {}),
@@ -334,7 +347,9 @@ describe("JobProgressMonitor", () => {
 
       const call = messageBusSendMock.mock.calls[0];
       if (call) {
-        expect((call[1] as { progress: { percentage: number } }).progress.percentage).toBe(75);
+        expect(
+          (call[1] as { progress: { percentage: number } }).progress.percentage,
+        ).toBe(75);
       }
     });
 
@@ -385,9 +400,7 @@ describe("JobProgressMonitor", () => {
 
   describe("error handling", () => {
     it("should handle errors when checking job progress", async () => {
-      getActiveJobsMock.mockRejectedValue(
-        new Error("Database error"),
-      );
+      getActiveJobsMock.mockRejectedValue(new Error("Database error"));
 
       monitor.start();
 
@@ -399,9 +412,7 @@ describe("JobProgressMonitor", () => {
     });
 
     it("should handle errors when emitting events", async () => {
-      messageBusSendMock.mockRejectedValue(
-        new Error("Event bus error"),
-      );
+      messageBusSendMock.mockRejectedValue(new Error("Event bus error"));
 
       const mockJob = {
         id: "job-456",
@@ -522,7 +533,8 @@ describe("JobProgressMonitor", () => {
 
       // Verify final completion event was emitted with correct metadata
       const completionCalls = messageBusSendMock.mock.calls.filter(
-        (call: unknown[]) => (call[1] as { status: string }).status === "completed",
+        (call: unknown[]) =>
+          (call[1] as { status: string }).status === "completed",
       );
 
       expect(completionCalls).toHaveLength(1);
@@ -685,25 +697,23 @@ describe("JobProgressMonitor", () => {
         .mockResolvedValueOnce([]);
 
       // Mock completion for both batches
-      getBatchStatusMock.mockImplementation(
-        (batchId: string) => {
-          if (batchId === "batch-matrix") {
-            return Promise.resolve({
-              ...mockBatch1,
-              status: "completed",
-              completedOperations: 1,
-            });
-          }
-          if (batchId === "batch-cli") {
-            return Promise.resolve({
-              ...mockBatch2,
-              status: "completed",
-              completedOperations: 1,
-            });
-          }
-          return Promise.resolve(null);
-        },
-      );
+      getBatchStatusMock.mockImplementation((batchId: string) => {
+        if (batchId === "batch-matrix") {
+          return Promise.resolve({
+            ...mockBatch1,
+            status: "completed",
+            completedOperations: 1,
+          });
+        }
+        if (batchId === "batch-cli") {
+          return Promise.resolve({
+            ...mockBatch2,
+            status: "completed",
+            completedOperations: 1,
+          });
+        }
+        return Promise.resolve(null);
+      });
 
       monitor.start();
 
@@ -715,7 +725,8 @@ describe("JobProgressMonitor", () => {
 
       // Verify both completion events were emitted with correct metadata
       const completionCalls = messageBusSendMock.mock.calls.filter(
-        (call: unknown[]) => (call[1] as { status: string }).status === "completed",
+        (call: unknown[]) =>
+          (call[1] as { status: string }).status === "completed",
       );
 
       expect(completionCalls).toHaveLength(2);
@@ -730,8 +741,12 @@ describe("JobProgressMonitor", () => {
       expect(matrixCall).toBeDefined();
       expect(cliCall).toBeDefined();
       if (matrixCall && cliCall) {
-        expect((matrixCall[1] as { metadata: { roomId: string } }).metadata.roomId).toBe("!room1:example.com"); // metadata is in event payload
-        expect((cliCall[1] as { metadata: { roomId: string } }).metadata.roomId).toBe("session-123"); // metadata is in event payload
+        expect(
+          (matrixCall[1] as { metadata: { roomId: string } }).metadata.roomId,
+        ).toBe("!room1:example.com"); // metadata is in event payload
+        expect(
+          (cliCall[1] as { metadata: { roomId: string } }).metadata.roomId,
+        ).toBe("session-123"); // metadata is in event payload
       }
     });
   });

@@ -3,14 +3,14 @@ import { BatchJobManager } from "../src/batch-job-manager";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler } from "../src/types";
 import type { BatchOperation } from "../src/schemas";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobContext } from "@brains/db";
 import { JOB_STATUS } from "../src/schemas";
 import { createTestDatabase } from "../../integration-tests/test/helpers/test-db";
 import { createSilentLogger } from "@brains/utils";
 import type { DrizzleDB } from "@brains/db";
 
 // Default test metadata
-const defaultTestMetadata: ProgressEventContext = {
+const defaultTestMetadata: JobContext = {
   interfaceId: "test",
   userId: "test-user",
   operationType: "entity_processing",

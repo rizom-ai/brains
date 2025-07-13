@@ -1,7 +1,7 @@
 import type { IJobQueueService } from "./types";
 import type { BatchOperation, BatchJobStatus } from "./schemas";
 import { JOB_STATUS } from "./schemas";
-import type { ProgressEventContext, JobOptions } from "@brains/db";
+import type { JobContext, JobOptions } from "@brains/db";
 import type { Logger } from "@brains/utils";
 import { createBatchId } from "@brains/utils";
 
@@ -24,7 +24,7 @@ export class BatchJobManager {
       operations: BatchOperation[];
       source: string;
       startedAt: string;
-      metadata: ProgressEventContext;
+      metadata: JobContext;
     }
   >();
 
@@ -93,7 +93,7 @@ export class BatchJobManager {
         operations: BatchOperation[];
         source: string;
         startedAt: string;
-        metadata: ProgressEventContext;
+        metadata: JobContext;
       } = {
         jobIds,
         operations: operations,
@@ -242,7 +242,7 @@ export class BatchJobManager {
         operations: BatchOperation[];
         source: string;
         startedAt: string;
-        metadata: ProgressEventContext;
+        metadata: JobContext;
       };
     }>
   > {
@@ -253,7 +253,7 @@ export class BatchJobManager {
         operations: BatchOperation[];
         source: string;
         startedAt: string;
-        metadata: ProgressEventContext;
+        metadata: JobContext;
       };
     }> = [];
 

@@ -5,10 +5,10 @@ import { createTestDatabase } from "../../integration-tests/test/helpers/test-db
 import { createSilentLogger, ErrorUtils } from "@brains/utils";
 import type { EntityWithoutEmbedding, DrizzleDB } from "@brains/db";
 import type { ProgressReporter } from "@brains/utils";
-import type { ProgressEventContext } from "@brains/db";
+import type { JobContext } from "@brains/db";
 
 // Default test metadata
-const defaultTestMetadata: ProgressEventContext = {
+const defaultTestMetadata: JobContext = {
   interfaceId: "test",
   userId: "test-user",
   operationType: "entity_processing",
@@ -182,7 +182,7 @@ describe("JobQueueService", () => {
 
     it("should store source and metadata when provided", async () => {
       const source = "matrix:room123";
-      const metadata: ProgressEventContext = {
+      const metadata: JobContext = {
         userId: "user-123",
         interfaceId: "matrix",
         roomId: "room123",

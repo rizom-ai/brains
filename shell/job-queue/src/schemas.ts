@@ -1,6 +1,6 @@
 import { z } from "zod";
-// Import ProgressEventContextSchema from db to avoid circular dependency
-import { ProgressEventContextSchema, OperationTypeEnum } from "@brains/db";
+// Import JobContextSchema from db to avoid circular dependency
+import { JobContextSchema, OperationTypeEnum } from "@brains/db";
 
 /**
  * Job status enum - reusable across all job-related types
@@ -154,7 +154,7 @@ export const JobProgressEventSchema = z.object({
     .optional(),
 
   // Routing metadata
-  metadata: ProgressEventContextSchema,
+  metadata: JobContextSchema,
 });
 
 export type JobProgressEvent = z.infer<typeof JobProgressEventSchema>;

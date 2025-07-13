@@ -11,10 +11,7 @@ import type { BatchJobStatus } from "./schemas";
 import type { JobQueue } from "@brains/db";
 import type { z } from "zod";
 import type { JobProgressEventSchema } from "./schemas";
-import {
-  ProgressEventContextSchema,
-  type ProgressEventContext,
-} from "@brains/db";
+import { JobContextSchema, type JobContext } from "@brains/db";
 
 /**
  * Progress event emitted by the monitor
@@ -52,7 +49,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   // Track batches we've seen to emit final completion event
   private knownBatches = new Set<string>();
   // Cache batch metadata for completed batches to ensure proper targeting
-  private batchMetadataCache = new Map<string, ProgressEventContext>();
+  private batchMetadataCache = new Map<string, JobContext>();
 
   // Track jobs that are reporting progress
   private jobsWithProgress = new Map<string, JobProgressTrackingData>();
@@ -281,9 +278,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       for (const { batchId, status, metadata } of activeBatches) {
         this.knownBatches.add(batchId);
         // Cache the metadata for completed batch events
-        const parsedMetadata = ProgressEventContextSchema.parse(
-          metadata.metadata,
-        );
+        const parsedMetadata = JobContextSchema.parse(metadata.metadata);
         this.batchMetadataCache.set(batchId, parsedMetadata);
         await this.emitBatchProgressUpdate(batchId, status);
       }
@@ -362,7 +357,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           type: "job",
           status: job.status,
           operationType: "entity_processing", // Default for jobs
-          operationTarget: job.type,
+          operationTarget: job.metadata.operationTarget ?? job.type,
           message: progressInfo?.message,
           metadata: job.metadata,
           jobDetails: {
@@ -469,7 +464,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         const batchMetadata = activeBatches.find((b) => b.batchId === batchId);
         let eventMetadata = this.batchMetadataCache.get(batchId);
         if (batchMetadata?.metadata.metadata) {
-          eventMetadata = ProgressEventContextSchema.parse(
+          eventMetadata = JobContextSchema.parse(
             batchMetadata.metadata.metadata,
           );
         }
@@ -626,7 +621,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           type: "job",
           status: "processing",
           operationType: "entity_processing",
-          operationTarget: job.type,
+          operationTarget: job.metadata.operationTarget ?? job.type,
           message: progressInfo.message,
           metadata: job.metadata, // Always present now
           progress: {
