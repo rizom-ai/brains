@@ -6,6 +6,7 @@ import type {
   PluginResource,
   ToolContext,
 } from "./interfaces";
+import type { Command } from "@brains/message-interface";
 import {
   Logger,
   type UserPermissionLevel,
@@ -80,6 +81,7 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
     return {
       tools: await this.getTools(),
       resources: await this.getResources(),
+      commands: await this.getCommands(),
     };
   }
 
@@ -218,6 +220,14 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
    * Override this to provide plugin-specific resources
    */
   protected async getResources(): Promise<PluginResource[]> {
+    return [];
+  }
+
+  /**
+   * Get the commands provided by this plugin
+   * Override this to provide plugin-specific commands
+   */
+  protected async getCommands(): Promise<Command[]> {
     return [];
   }
 

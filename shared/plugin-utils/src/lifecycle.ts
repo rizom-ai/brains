@@ -218,8 +218,9 @@ export function composePlugins(
       // Merge capabilities
       const tools = allCapabilities.flatMap((c) => c.tools);
       const resources = allCapabilities.flatMap((c) => c.resources);
+      const commands = allCapabilities.flatMap((c) => c.commands);
 
-      return { tools, resources };
+      return { tools, resources, commands };
     },
   };
 }

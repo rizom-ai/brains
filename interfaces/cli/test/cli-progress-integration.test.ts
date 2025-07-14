@@ -53,9 +53,9 @@ describe("CLI Progress Integration", () => {
     );
   });
 
-  test("should include test-progress command in help", () => {
+  test("should include test-progress command in help", async () => {
     const cli = new CLIInterface();
-    const helpText = (cli as any).getHelpText();
+    const helpText = await cli.getHelpText();
 
     expect(helpText).toContain("/test-progress");
     expect(helpText).toContain("Test progress tracking with a slow job");

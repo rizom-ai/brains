@@ -5,6 +5,7 @@ import type {
   PluginTool,
   PluginResource,
 } from "@brains/plugin-utils";
+import type { Command } from "@brains/message-interface";
 import { z } from "zod";
 
 /**
@@ -17,6 +18,7 @@ export interface MockPluginOptions {
   description?: string;
   tools?: PluginTool[];
   resources?: PluginResource[];
+  commands?: Command[];
   onRegister?: (context: PluginContext) => Promise<void> | void;
   onShutdown?: () => Promise<void> | void;
 }
@@ -40,6 +42,7 @@ export function createMockPlugin(options: MockPluginOptions = {}): Plugin {
       return {
         tools: options.tools ?? [],
         resources: options.resources ?? [],
+        commands: options.commands ?? [],
       };
     },
   };

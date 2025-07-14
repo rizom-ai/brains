@@ -7,6 +7,7 @@ import type {
 import type { BaseEntity, MessageSender, Template } from "@brains/types";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { EntityAdapter } from "@brains/base-entity";
+import type { Command } from "@brains/message-interface";
 import type {
   RouteDefinition,
   SectionDefinition,
@@ -120,6 +121,7 @@ export interface PluginResource {
 export interface PluginCapabilities {
   tools: PluginTool[];
   resources: PluginResource[];
+  commands: Command[];
 }
 
 /**

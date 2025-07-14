@@ -75,7 +75,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
    * Get commands available to this interface
    * Override to add interface-specific commands
    */
-  protected getCommands(): Command[] {
+  protected override async getCommands(): Promise<Command[]> {
     return [
       ...getBaseCommands(this),
       ...getTestCommands(this.id, this.context),
@@ -238,7 +238,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     context: MessageContext,
   ): Promise<{ message: string; jobId?: string; batchId?: string }> {
     const [cmd, ...args] = command.slice(1).split(" ");
-    const commands = this.getCommands();
+    const commands = await this.getCommands();
     const commandDef = commands.find((c) => c.name === cmd);
 
     if (commandDef) {
@@ -287,8 +287,8 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   /**
    * Get help text
    */
-  public getHelpText(): string {
-    const commands = this.getCommands();
+  public async getHelpText(): Promise<string> {
+    const commands = await this.getCommands();
     const commandList = commands
       .map((cmd) => {
         const usage = cmd.usage ?? `/${cmd.name}`;

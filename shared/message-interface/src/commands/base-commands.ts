@@ -13,7 +13,7 @@ export function getBaseCommands(
       description: "Show this help message",
       handler: async (): Promise<MessageResponse> => ({
         type: "message",
-        message: plugin.getHelpText(),
+        message: await plugin.getHelpText(),
       }),
     },
     {

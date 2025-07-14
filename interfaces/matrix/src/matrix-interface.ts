@@ -680,8 +680,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   /**
    * Override getHelpText to format for Matrix (with markdown)
    */
-  public override getHelpText(): string {
-    const baseHelp = super.getHelpText();
+  public override async getHelpText(): Promise<string> {
+    const baseHelp = await super.getHelpText();
     // Convert plain text formatting to Matrix markdown
     return baseHelp
       .replace("Available commands:", "**Available commands:**")
