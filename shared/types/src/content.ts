@@ -60,7 +60,7 @@ export interface ContentRegistry {
   /**
    * Format content using registered formatter
    */
-  formatContent(templateName: string, data: unknown): string;
+  formatContent(templateName: string, data: unknown, options?: { truncate?: number }): string;
 
   /**
    * List all registered content names

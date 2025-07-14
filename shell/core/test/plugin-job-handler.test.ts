@@ -17,7 +17,7 @@ describe("Plugin Job Handler Lifecycle", () => {
     // Ensure clean state by resetting singletons first
     ServiceRegistry.resetInstance();
     PluginContextFactory.resetInstance();
-    
+
     // Setup test environment
     logger = createSilentLogger();
     serviceRegistry = ServiceRegistry.getInstance(logger);

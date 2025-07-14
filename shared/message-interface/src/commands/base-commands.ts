@@ -22,32 +22,110 @@ export function getBaseCommands(
       name: "search",
       description: "Search your knowledge base",
       usage: "/search <query>",
-      handler: async (args, context): Promise<MessageResponse> => {
+      handler: async (args, _context): Promise<MessageResponse> => {
         if (args.length === 0) {
           return {
             type: "message",
             message: "Please provide a search query. Usage: /search <query>",
           };
         }
+
+        if (!context?.entityService) {
+          return {
+            type: "message",
+            message: "Entity service not available",
+          };
+        }
+
         const searchQuery = args.join(" ");
-        const result = await plugin.processQuery(searchQuery, context);
-        return {
-          type: "message",
-          message: result,
-        };
+
+        try {
+          const searchResults = await context.entityService.search(searchQuery, {
+            limit: 10,
+            sortBy: "relevance",
+          });
+
+          if (searchResults.length === 0) {
+            return {
+              type: "message",
+              message: `No results found for "${searchQuery}"`,
+            };
+          }
+
+          // Format search results using template system
+          const formatted = searchResults.map((result, index) => {
+            const formattedEntity = context.formatContent(
+              "shell:base-entity-display", 
+              result.entity,
+              { truncate: 200 }
+            );
+            
+            return `${index + 1}. Score: ${result.score.toFixed(2)}
+${formattedEntity}
+${result.excerpt ? `Excerpt: ${result.excerpt}` : ''}`;
+          }).join("\n\n");
+
+          return {
+            type: "message",
+            message: `Found ${searchResults.length} results for "${searchQuery}":\n\n${formatted}`,
+          };
+        } catch (error) {
+          return {
+            type: "message",
+            message: `Error searching entities: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
       },
     },
     {
       name: "list",
-      description: "List entities (notes, tasks, etc.)",
+      description: "List entities",
       usage: "/list [type]",
-      handler: async (args, context): Promise<MessageResponse> => {
-        const listQuery = args[0] ? `list all ${args[0]}` : "list all notes";
-        const result = await plugin.processQuery(listQuery, context);
-        return {
-          type: "message",
-          message: result,
-        };
+      handler: async (args, _context): Promise<MessageResponse> => {
+        if (!context?.entityService) {
+          return {
+            type: "message",
+            message: "Entity service not available",
+          };
+        }
+
+        const entityType = args[0] || "base";
+
+        try {
+          const entities = await context.entityService.listEntities(entityType, {
+            limit: 20,
+            sortBy: "updated",
+            sortDirection: "desc",
+          });
+
+          if (entities.length === 0) {
+            return {
+              type: "message",
+              message: `No ${entityType} entities found`,
+            };
+          }
+
+          // Format list results using template system
+          const formatted = entities.map((entity, index) => {
+            const formattedEntity = context.formatContent(
+              "shell:base-entity-display", 
+              entity,
+              { truncate: 150 }
+            );
+            
+            return `${index + 1}. ${formattedEntity}`;
+          }).join("\n\n");
+
+          return {
+            type: "message",
+            message: `Found ${entities.length} ${entityType} entities:\n\n${formatted}`,
+          };
+        } catch (error) {
+          return {
+            type: "message",
+            message: `Error listing entities: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
       },
     },
     {

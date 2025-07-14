@@ -210,7 +210,7 @@ export class ContentGenerator {
   /**
    * Format content using a template's formatter
    */
-  formatContent<T = unknown>(templateName: string, data: T): string {
+  formatContent<T = unknown>(templateName: string, data: T, options?: { truncate?: number }): string {
     const template = this.getTemplate(templateName);
     if (!template) {
       throw new Error(`Template not found: ${templateName}`);
@@ -221,7 +221,14 @@ export class ContentGenerator {
     }
 
     // Use the formatter to convert object to string
-    return template.formatter.format(data);
+    let formatted = template.formatter.format(data);
+    
+    // Apply truncation if requested
+    if (options?.truncate && formatted.length > options.truncate) {
+      formatted = formatted.substring(0, options.truncate) + "...";
+    }
+    
+    return formatted;
   }
 
   /**

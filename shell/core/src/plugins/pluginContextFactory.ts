@@ -200,7 +200,7 @@ export class PluginContextFactory {
           throw new ContentGenerationError(templateName, "parsing", error);
         }
       },
-      formatContent: <T = unknown>(templateName: string, data: T): string => {
+      formatContent: <T = unknown>(templateName: string, data: T, options?: { truncate?: number }): string => {
         try {
           const namespacedTemplateName = this.ensureNamespaced(
             templateName,
@@ -210,6 +210,7 @@ export class PluginContextFactory {
           return contentGenerator.formatContent<T>(
             namespacedTemplateName,
             data,
+            options,
           );
         } catch (error) {
           this.logger.error("Failed to format content", error);
