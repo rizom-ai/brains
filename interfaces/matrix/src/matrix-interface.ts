@@ -711,6 +711,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     // Convert plain text formatting to Matrix markdown
     return baseHelp
       .replace("Available commands:", "**Available commands:**")
-      .replace(/• \/(\w+)/g, "• `/$$1`"); // Wrap commands in backticks
+      .replace(/• \/([\w-]+)/g, "• `/$1`"); // Wrap commands in backticks
   }
 }
