@@ -40,13 +40,18 @@ export class TailwindCSSProcessor implements CSSProcessor {
     const relativeOutputPath = "styles/main.css";
     const command = `bunx @tailwindcss/cli -i "${relativeInputPath}" -o "${relativeOutputPath}"`;
 
-    logger.info(`Running Tailwind CSS v4 from ${outputDir}`);
+    logger.debug(`Running Tailwind CSS v4 from ${outputDir}`);
     logger.debug(`Command: ${command}`);
 
-    execSync(command, {
-      stdio: "inherit", // Let's see the output
-      cwd: outputDir, // Run from output directory
-    });
+    try {
+      execSync(command, {
+        stdio: "pipe", // Capture output instead of inheriting
+        cwd: outputDir, // Run from output directory
+      });
+    } catch (error) {
+      logger.error("Tailwind CSS build failed", error);
+      throw error;
+    }
 
     // Clean up temp file
     await fs.unlink(inputPath).catch(() => {});

@@ -25,7 +25,7 @@ export class SiteBuildJobHandler
     progressReporter: ProgressReporter,
   ): Promise<SiteBuildJobResult> {
     try {
-      this.logger.info("Starting site build job", {
+      this.logger.debug("Starting site build job", {
         jobId,
         environment: data.environment,
         outputDir: data.outputDir,
@@ -71,7 +71,7 @@ export class SiteBuildJobHandler
         message: `Site build completed: ${result.routesBuilt} routes built`,
       });
 
-      this.logger.info("Site build job completed", {
+      this.logger.debug("Site build job completed", {
         jobId,
         environment: data.environment,
         routesBuilt: result.routesBuilt,

@@ -981,7 +981,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         usage: "/build-site [preview|production]",
         handler: async (args, context): Promise<CommandResponse> => {
           // Parse environment from args (default to preview)
-          const environment = (args[0] === "production" ? "production" : "preview") as "preview" | "production";
+          const environment = (
+            args[0] === "production" ? "production" : "preview"
+          ) as "preview" | "production";
 
           if (!this.context) {
             return {

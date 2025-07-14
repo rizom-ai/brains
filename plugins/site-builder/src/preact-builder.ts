@@ -71,7 +71,7 @@ export class PreactBuilder implements StaticSiteBuilder {
   }
 
   async clean(): Promise<void> {
-    this.logger.info("Cleaning build artifacts");
+    this.logger.debug("Cleaning build artifacts");
 
     // Remove working directory
     try {
@@ -92,7 +92,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     route: RouteDefinition,
     context: BuildContext,
   ): Promise<void> {
-    this.logger.info(`Building route: ${route.path}`);
+    this.logger.debug(`Building route: ${route.path}`);
 
     // Render sections
     const sections = await this.renderSections(route, route.sections, context);
@@ -163,7 +163,7 @@ export class PreactBuilder implements StaticSiteBuilder {
         );
 
         const html = render(component);
-        this.logger.info(
+        this.logger.debug(
           `Rendered HTML length for ${section.id}: ${html.length}`,
         );
 
@@ -221,7 +221,7 @@ export class PreactBuilder implements StaticSiteBuilder {
   }
 
   private async processStyles(): Promise<void> {
-    this.logger.info("Processing CSS styles");
+    this.logger.debug("Processing CSS styles");
 
     const inputCSS = this.createTailwindInput();
     const outputPath = join(this.outputDir, "styles", "main.css");
@@ -233,7 +233,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       this.outputDir,
       this.logger,
     );
-    this.logger.info("CSS processed successfully");
+    this.logger.debug("CSS processed successfully");
   }
 
   private createTailwindInput(): string {
