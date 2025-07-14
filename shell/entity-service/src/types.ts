@@ -80,4 +80,4 @@ export interface EntityRegistry {
 
 // Import only the necessary types from other packages
 import type { z } from "zod";
-import type { EntityAdapter } from "@brains/base-entity";
+import type { EntityAdapter } from "@brains/types";

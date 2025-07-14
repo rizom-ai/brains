@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { BaseEntityAdapter } from "../src/adapter";
+import { BaseEntityAdapter } from "../base-entity-adapter";
 import type { BaseEntity } from "@brains/types";
 import { z } from "zod";
 
@@ -74,7 +74,7 @@ This is test content`;
     expect(extracted.content).toBe(markdownWithFrontmatter);
 
     // BaseEntity adapter does not extract frontmatter fields
-    expect((extracted as any).title).toBeUndefined();
-    expect((extracted as any).customField).toBeUndefined();
+    expect((extracted as Record<string, unknown>)['title']).toBeUndefined();
+    expect((extracted as Record<string, unknown>)['customField']).toBeUndefined();
   });
 });

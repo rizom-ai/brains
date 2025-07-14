@@ -5,8 +5,9 @@ import type { ShellConfig } from "../config";
 import type { EntityRegistry } from "@brains/entity-service";
 import type { ContentGenerator } from "@brains/content-generator";
 import type { PluginManager } from "../plugins/pluginManager";
-import { BaseEntityAdapter } from "@brains/base-entity";
+import { BaseEntityAdapter } from "../entities/base-entity-adapter";
 import { knowledgeQueryTemplate } from "../templates";
+import { BaseEntityFormatter, baseEntitySchema } from "@brains/types";
 import {
   DatabaseError,
   TemplateRegistrationError,
@@ -122,7 +123,10 @@ export class ShellInitializer {
    * Register base entity support
    * This provides fallback handling for generic entities
    */
-  public registerBaseEntitySupport(entityRegistry: EntityRegistry): void {
+  public registerBaseEntitySupport(
+    entityRegistry: EntityRegistry,
+    contentGenerator: ContentGenerator,
+  ): void {
     this.logger.debug("Registering base entity support");
 
     try {
@@ -135,6 +139,15 @@ export class ShellInitializer {
         baseEntityAdapter.schema,
         baseEntityAdapter,
       );
+
+      // Register base entity display template
+      contentGenerator.registerTemplate("shell:base-entity-display", {
+        name: "shell:base-entity-display",
+        description: "Display template for base entities",
+        schema: baseEntitySchema,
+        formatter: new BaseEntityFormatter(),
+        requiredPermission: "public",
+      });
 
       this.logger.debug("Base entity support registered successfully");
     } catch (error) {
@@ -192,7 +205,7 @@ export class ShellInitializer {
       this.registerShellTemplates(contentGenerator);
 
       // Step 3: Register base entity support
-      this.registerBaseEntitySupport(entityRegistry);
+      this.registerBaseEntitySupport(entityRegistry, contentGenerator);
 
       // Step 4: Initialize plugins
       await this.initializePlugins(pluginManager);

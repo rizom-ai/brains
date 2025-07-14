@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import { z } from "zod";
 import { EntityRegistry } from "../src/entityRegistry";
-import type { EntityAdapter } from "@brains/base-entity";
+import type { EntityAdapter } from "@brains/types";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";

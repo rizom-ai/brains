@@ -2,7 +2,7 @@ import { describe, test, expect, afterEach, beforeEach } from "bun:test";
 import { Shell } from "@brains/core";
 import { EntityRegistry } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/utils";
-import { BaseEntityAdapter } from "@brains/base-entity";
+import { BaseEntityAdapter } from "@brains/core/src/entities/base-entity-adapter";
 import { createTestDatabase } from "./helpers/test-db.js";
 import type { BaseEntity } from "@brains/types";
 

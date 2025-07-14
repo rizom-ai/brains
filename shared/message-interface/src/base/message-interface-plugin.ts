@@ -77,7 +77,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
    */
   public override async getCommands(): Promise<Command[]> {
     return [
-      ...getBaseCommands(this),
+      ...getBaseCommands(this, this.context),
       ...getTestCommands(this.id, this.context),
     ];
   }

@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { z } from "zod";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
-import type { EntityAdapter } from "@brains/base-entity";
+import type { EntityAdapter } from "@brains/types";
 import type { DrizzleDB } from "@brains/db";
 import type { JobQueueService } from "@brains/job-queue";
 

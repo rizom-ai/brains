@@ -1,11 +1,11 @@
-import type { ContentFormatter } from "@brains/types";
-import type { BaseEntity } from "@brains/types";
+import type { ContentFormatter } from "./formatters";
+import type { BaseEntity } from "./entities";
 
 /**
  * Formatter for base entities
  *
- * Provides a bidirectional formatter for BaseEntity instances,
- * converting between BaseEntity objects and markdown representation.
+ * Provides a formatter for BaseEntity instances,
+ * converting them to human-readable markdown representation for display.
  */
 export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
   /**
@@ -41,6 +41,14 @@ export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
       }
     }
 
+    // Display metadata if present
+    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
+      output += "\n## Metadata\n\n";
+      for (const [key, value] of Object.entries(entity.metadata)) {
+        output += `- **${key}**: ${JSON.stringify(value)}\n`;
+      }
+    }
+
     // Display content
     if (entity.content && entity.content.trim().length > 0) {
       output += "\n## Content\n\n";
@@ -51,24 +59,12 @@ export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
   }
 
   /**
-   * Check if this formatter can handle the data
-   */
-  canFormat(data: unknown): boolean {
-    return (
-      typeof data === "object" &&
-      data !== null &&
-      "id" in data &&
-      "entityType" in data
-    );
-  }
-
-  /**
    * Parse is not supported for BaseEntityFormatter
-   * @throws Error always - use BaseEntityAdapter for import/export operations
+   * This formatter is for display only. Use BaseEntityAdapter for parsing operations.
    */
   parse(_content: string): BaseEntity {
     throw new Error(
-      "BaseEntityFormatter is for display only. Use BaseEntityAdapter for import/export operations.",
+      "BaseEntityFormatter is for display only. Use BaseEntityAdapter for parsing operations.",
     );
   }
 }

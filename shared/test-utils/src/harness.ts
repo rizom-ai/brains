@@ -12,7 +12,7 @@ import type {
   ContentGenerationConfig,
 } from "@brains/plugin-utils";
 import type { IEntityService } from "@brains/entity-service";
-import type { EntityAdapter } from "@brains/base-entity";
+import type { EntityAdapter } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { BatchJobStatus, BatchOperation } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";

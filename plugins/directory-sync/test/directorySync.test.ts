@@ -3,7 +3,7 @@ import { DirectorySync } from "../src/directorySync";
 import { createSilentLogger } from "@brains/utils";
 import type { BaseEntity } from "@brains/types";
 import type { IEntityService as EntityService } from "@brains/entity-service";
-import type { EntityAdapter } from "@brains/base-entity";
+import type { EntityAdapter } from "@brains/types";
 import { existsSync, rmSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";

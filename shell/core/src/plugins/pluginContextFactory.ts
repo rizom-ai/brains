@@ -9,7 +9,7 @@ import type {
 import type { Command } from "@brains/message-interface";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
-import type { EntityAdapter } from "@brains/base-entity";
+import type { EntityAdapter } from "@brains/types";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";

@@ -745,10 +745,12 @@ describe("JobProgressMonitor", () => {
       expect(cliCall).toBeDefined();
       if (matrixCall && cliCall) {
         expect(
-          (matrixCall[1] as { metadata: { channelId: string } }).metadata.channelId,
+          (matrixCall[1] as { metadata: { channelId: string } }).metadata
+            .channelId,
         ).toBe("!room1:example.com"); // metadata is in event payload
         expect(
-          (cliCall[1] as { metadata: { channelId: string } }).metadata.channelId,
+          (cliCall[1] as { metadata: { channelId: string } }).metadata
+            .channelId,
         ).toBe("session-123"); // metadata is in event payload
       }
     });

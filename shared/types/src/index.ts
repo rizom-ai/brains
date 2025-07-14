@@ -6,8 +6,14 @@
  */
 
 // Entity types
-export type { BaseEntity, EntityInput, SearchResult } from "./entities";
+export type {
+  BaseEntity,
+  EntityInput,
+  SearchResult,
+  EntityAdapter,
+} from "./entities";
 export { baseEntitySchema } from "./entities";
+export { BaseEntityFormatter } from "./base-entity-formatter";
 
 // Template types (used by both content and plugins)
 export type {

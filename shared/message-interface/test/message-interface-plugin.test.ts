@@ -105,12 +105,13 @@ describe("MessageInterfacePlugin", () => {
     it("should return default base commands", async () => {
       const commands = await plugin.getCommands();
 
-      expect(commands).toHaveLength(5); // help, search, list, test-progress, test-batch
+      expect(commands).toHaveLength(6); // help, search, list, show-entity, test-progress, test-batch
 
       const commandNames = commands.map((cmd) => cmd.name);
       expect(commandNames).toContain("help");
       expect(commandNames).toContain("search");
       expect(commandNames).toContain("list");
+      expect(commandNames).toContain("show-entity");
       expect(commandNames).toContain("test-progress");
       expect(commandNames).toContain("test-batch");
     });
@@ -139,7 +140,7 @@ describe("MessageInterfacePlugin", () => {
       const pluginWithCustomCommands = new TestMessageInterface(customCommands);
       const commands = await pluginWithCustomCommands.getCommands();
 
-      expect(commands).toHaveLength(7); // 5 base + 2 custom
+      expect(commands).toHaveLength(8); // 6 base + 2 custom
 
       const commandNames = commands.map((cmd) => cmd.name);
       expect(commandNames).toContain("custom");
@@ -288,12 +289,13 @@ describe("MessageInterfacePlugin", () => {
       expect(commandNames[0]).toBe("help");
       expect(commandNames[1]).toBe("search");
       expect(commandNames[2]).toBe("list");
-      expect(commandNames[3]).toBe("test-progress");
-      expect(commandNames[4]).toBe("test-batch");
+      expect(commandNames[3]).toBe("show-entity");
+      expect(commandNames[4]).toBe("test-progress");
+      expect(commandNames[5]).toBe("test-batch");
 
       // Custom commands should come after, in the order they were added
-      expect(commandNames[5]).toBe("z-last");
-      expect(commandNames[6]).toBe("a-first");
+      expect(commandNames[6]).toBe("z-last");
+      expect(commandNames[7]).toBe("a-first");
     });
   });
 

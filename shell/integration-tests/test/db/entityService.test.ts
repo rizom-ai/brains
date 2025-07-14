@@ -6,7 +6,7 @@ import type { DrizzleDB } from "@brains/db";
 import { createSilentLogger } from "@brains/utils";
 import { baseEntitySchema } from "@brains/types";
 import type { IEmbeddingService } from "@brains/core";
-import type { EntityAdapter } from "@brains/base-entity";
+import type { EntityAdapter } from "@brains/types";
 import type { JobQueueService } from "@brains/job-queue";
 
 // Create a mock embedding service
@@ -128,6 +128,11 @@ describe("EntityService - Database Operations", () => {
           scheduledFor: Date.now(),
           startedAt: Date.now(),
           completedAt: Date.now(),
+          metadata: {
+            interfaceId: "test",
+            userId: "test-user",
+            operationType: "embedding_generation" as const,
+          },
         }),
       ),
       registerHandler: mock(),

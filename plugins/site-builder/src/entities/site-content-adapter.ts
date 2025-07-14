@@ -1,4 +1,4 @@
-import type { EntityAdapter } from "@brains/base-entity";
+import type { EntityAdapter } from "@brains/types";
 import type { SiteContentPreview, SiteContentProduction } from "../types";
 import {
   siteContentPreviewSchema,

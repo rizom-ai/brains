@@ -6,7 +6,7 @@ import type {
 } from "@brains/utils";
 import type { BaseEntity, MessageSender, Template } from "@brains/types";
 import type { IMessageBus } from "@brains/messaging-service";
-import type { EntityAdapter } from "@brains/base-entity";
+import type { EntityAdapter } from "@brains/types";
 import type { Command } from "@brains/message-interface";
 import type {
   RouteDefinition,

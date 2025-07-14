@@ -1,34 +1,6 @@
 import { z } from "zod";
-import type { BaseEntity } from "@brains/types";
+import type { BaseEntity, EntityAdapter } from "@brains/types";
 import { parseMarkdownWithFrontmatter } from "@brains/utils";
-
-/**
- * Interface for entity adapter - imported here since it's not exported from @brains/types
- * Handles conversion between entities and markdown following the hybrid storage model
- */
-export interface EntityAdapter<T extends BaseEntity> {
-  entityType: string;
-  schema: z.ZodSchema<T>;
-
-  // Convert entity to markdown content (may include frontmatter for entity-specific fields)
-  toMarkdown(entity: T): string;
-
-  // Extract entity-specific fields from markdown
-  // Returns Partial<T> as core fields come from database
-  fromMarkdown(markdown: string): Partial<T>;
-
-  // Extract metadata from entity for search/filtering
-  extractMetadata(entity: T): Record<string, unknown>;
-
-  // Parse frontmatter metadata from markdown
-  parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter;
-
-  // Generate frontmatter for markdown
-  generateFrontMatter(entity: T): string;
-}
 
 /**
  * Adapter for base entity type - handles serialization/deserialization

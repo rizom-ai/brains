@@ -38,3 +38,31 @@ export interface SearchResult {
   excerpt: string;
   highlights: string[];
 }
+
+/**
+ * Interface for entity adapter - handles conversion between entities and markdown
+ * following the hybrid storage model
+ */
+export interface EntityAdapter<T extends BaseEntity> {
+  entityType: string;
+  schema: z.ZodSchema<T>;
+
+  // Convert entity to markdown content (may include frontmatter for entity-specific fields)
+  toMarkdown(entity: T): string;
+
+  // Extract entity-specific fields from markdown
+  // Returns Partial<T> as core fields come from database
+  fromMarkdown(markdown: string): Partial<T>;
+
+  // Extract metadata from entity for search/filtering
+  extractMetadata(entity: T): Record<string, unknown>;
+
+  // Parse frontmatter metadata from markdown
+  parseFrontMatter<TFrontmatter>(
+    markdown: string,
+    schema: z.ZodSchema<TFrontmatter>,
+  ): TFrontmatter;
+
+  // Generate frontmatter for markdown
+  generateFrontMatter(entity: T): string;
+}
