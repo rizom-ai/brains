@@ -2,33 +2,24 @@
 pageId: landing
 sectionId: cta
 ---
-
 # CTA Section
 
 ## Headline
-
-Elevate Your Mind, Amplify Your Impact
+Elevate Your Knowledge, Elevate Your Life
 
 ## Description
-
-Unlock the power of your knowledge and take your personal growth to the next level with our cutting-edge personal knowledge management system.
+Transform your knowledge, unlock your potential. Join the personal knowledge management revolution and start building your second brain today.
 
 ## Primary Button
-
 ### Text
-
 Start Free Trial
 
 ### Link
-
 /signup
 
 ## Secondary Button
-
 ### Text
-
 View Demo
 
 ### Link
-
 /demo

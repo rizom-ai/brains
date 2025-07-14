@@ -5,6 +5,7 @@ import {
   toolInput,
   PluginInitializationError,
 } from "@brains/plugin-utils";
+import type { Command, CommandResponse } from "@brains/message-interface";
 import { DirectorySyncInitializationError } from "./errors";
 import { z } from "zod";
 import { DirectorySync } from "./directorySync";
@@ -47,6 +48,106 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
       directorySyncConfigSchema,
       DIRECTORY_SYNC_CONFIG_DEFAULTS,
     );
+  }
+
+  /**
+   * Get commands provided by this plugin
+   */
+  public override async getCommands(): Promise<Command[]> {
+    return [
+      {
+        name: "sync",
+        description: "Synchronize all entities with directory",
+        usage: "/sync",
+        handler: async (_args, context): Promise<CommandResponse> => {
+          if (!this.directorySync || !this.pluginContext) {
+            throw new DirectorySyncInitializationError(
+              "DirectorySync service not initialized",
+              "Plugin not properly configured",
+              { command: "sync" },
+            );
+          }
+
+          // Queue both export and import operations
+          const exportJobId = await this.pluginContext.enqueueJob(
+            "directory-export",
+            {
+              batchSize: 100,
+            },
+            {
+              source: "plugin:directory-sync",
+              metadata: {
+                interfaceId: context.interfaceType,
+                userId: context.userId,
+                operationType: "directory_export",
+                pluginId: this.id,
+              },
+            },
+          );
+
+          const importJobId = await this.pluginContext.enqueueJob(
+            "directory-import",
+            {
+              batchSize: 100,
+            },
+            {
+              source: "plugin:directory-sync",
+              metadata: {
+                interfaceId: context.interfaceType,
+                userId: context.userId,
+                operationType: "directory_import",
+                pluginId: this.id,
+              },
+            },
+          );
+
+          return {
+            type: "message",
+            message: `🔄 Sync operations queued\n📤 Export job: ${exportJobId}\n📥 Import job: ${importJobId}\n💡 Use /sync-status to check progress`,
+          };
+        },
+      },
+      {
+        name: "sync-status",
+        description: "Get directory sync status",
+        usage: "/sync-status",
+        handler: async (_args, _context): Promise<CommandResponse> => {
+          if (!this.directorySync) {
+            throw new DirectorySyncInitializationError(
+              "DirectorySync service not initialized",
+              "Plugin not properly configured",
+              { command: "sync-status" },
+            );
+          }
+
+          const status = await this.directorySync.getStatus();
+          const { syncPath, exists, watching, lastSync, stats } = status;
+
+          let message = `📊 **Directory Sync Status**\n`;
+          message += `📁 Path: \`${syncPath}\`\n`;
+          message += `✅ Initialized: ${exists ? "Yes" : "No"}\n`;
+          message += `👁️ Watching: ${watching ? "Yes" : "No"}\n`;
+          message += `📝 Entity count: ${stats.totalFiles} total`;
+
+          if (stats.byEntityType && Object.keys(stats.byEntityType).length > 0) {
+            message += " (";
+            const types = Object.entries(stats.byEntityType)
+              .map(([type, count]) => `${type}: ${count}`)
+              .join(", ");
+            message += types + ")";
+          }
+
+          if (lastSync) {
+            message += `\n🕐 Last sync: ${new Date(lastSync).toLocaleString()}`;
+          }
+
+          return {
+            type: "message",
+            message,
+          };
+        },
+      },
+    ];
   }
 
   /**
@@ -136,10 +237,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
             {
               source,
               metadata: {
-                interfaceId: context?.interfaceId,
-                userId: context?.userId,
-                roomId: context?.roomId,
-                progressToken: context?.progressToken,
+                interfaceId: context?.interfaceId || "",
+                userId: context?.userId || "",
+                roomId: context?.roomId || "",
+                progressToken: context?.progressToken || "",
+                operationType: "directory_export",
                 pluginId: this.id,
               },
             },
@@ -153,10 +255,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
             {
               source,
               metadata: {
-                interfaceId: context?.interfaceId,
-                userId: context?.userId,
-                roomId: context?.roomId,
-                progressToken: context?.progressToken,
+                interfaceId: context?.interfaceId || "",
+                userId: context?.userId || "",
+                roomId: context?.roomId || "",
+                progressToken: context?.progressToken || "",
+                operationType: "directory_import",
                 pluginId: this.id,
               },
             },
@@ -203,6 +306,12 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
             },
             {
               source: "plugin:directory-sync",
+              metadata: {
+                interfaceId: "plugin",
+                userId: "system",
+                operationType: "directory_export",
+                pluginId: this.id,
+              },
             },
           );
 
@@ -246,6 +355,12 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
             },
             {
               source: "plugin:directory-sync",
+              metadata: {
+                interfaceId: "plugin",
+                userId: "system",
+                operationType: "directory_import",
+                pluginId: this.id,
+              },
             },
           );
 
