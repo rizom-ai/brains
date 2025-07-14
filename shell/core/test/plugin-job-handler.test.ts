@@ -14,14 +14,18 @@ describe("Plugin Job Handler Lifecycle", () => {
   let registeredHandlers: Map<string, JobHandler>;
 
   beforeEach(async () => {
+    // Ensure clean state by resetting singletons first
+    ServiceRegistry.resetInstance();
+    PluginContextFactory.resetInstance();
+    
     // Setup test environment
     logger = createSilentLogger();
     serviceRegistry = ServiceRegistry.getInstance(logger);
 
-    // Track registered handlers
+    // Track registered handlers - ensure fresh map for each test
     registeredHandlers = new Map();
 
-    // Create mock job queue service
+    // Create mock job queue service with fresh mocks
     mockJobQueueService = {
       registerHandler: mock((type: string, handler: JobHandler) => {
         registeredHandlers.set(type, handler);

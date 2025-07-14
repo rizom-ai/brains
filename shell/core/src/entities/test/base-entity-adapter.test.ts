@@ -74,7 +74,9 @@ This is test content`;
     expect(extracted.content).toBe(markdownWithFrontmatter);
 
     // BaseEntity adapter does not extract frontmatter fields
-    expect((extracted as Record<string, unknown>)['title']).toBeUndefined();
-    expect((extracted as Record<string, unknown>)['customField']).toBeUndefined();
+    expect((extracted as Record<string, unknown>)["title"]).toBeUndefined();
+    expect(
+      (extracted as Record<string, unknown>)["customField"],
+    ).toBeUndefined();
   });
 });
