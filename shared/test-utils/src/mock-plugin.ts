@@ -45,6 +45,10 @@ export function createMockPlugin(options: MockPluginOptions = {}): Plugin {
         commands: options.commands ?? [],
       };
     },
+
+    async getCommands(): Promise<Command[]> {
+      return options.commands ?? [];
+    },
   };
 
   // Add shutdown if handler provided

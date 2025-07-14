@@ -129,6 +129,7 @@ export interface PluginCapabilities {
  */
 export type Plugin = z.infer<typeof pluginMetadataSchema> & {
   register(context: PluginContext): Promise<PluginCapabilities>;
+  getCommands(): Promise<Command[]>;
 };
 
 /**
@@ -240,6 +241,9 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
 
   // Interface plugin capabilities
   registerDaemon: (name: string, daemon: Daemon) => void;
+
+  // Command discovery - get commands from all registered plugins
+  getAllCommands: () => Promise<Command[]>;
 }
 
 /**

@@ -6,6 +6,7 @@ import type {
   Daemon,
   ContentGenerationConfig,
 } from "@brains/plugin-utils";
+import type { Command } from "@brains/message-interface";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/base-entity";
@@ -576,6 +577,24 @@ export class PluginContextFactory {
         } catch (error) {
           this.logger.error(`Failed to register daemon: ${name}`, error);
           throw error;
+        }
+      },
+
+      // Command discovery - get commands from the central registry
+      getAllCommands: async (): Promise<Command[]> => {
+        try {
+          const commandRegistry = shell.getCommandRegistry();
+          const allCommands = commandRegistry.getAllCommands();
+
+          this.logger.debug(
+            `Retrieved ${allCommands.length} commands from CommandRegistry`,
+          );
+          return allCommands;
+        } catch (error) {
+          this.logger.error("Error retrieving commands from registry", {
+            error,
+          });
+          return [];
         }
       },
     };

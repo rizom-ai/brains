@@ -3,7 +3,11 @@ import {
   type Command,
   type MessageContext,
 } from "@brains/message-interface";
-import { PluginInitializationError } from "@brains/plugin-utils";
+import {
+  PluginInitializationError,
+  type PluginTool,
+  type PluginResource,
+} from "@brains/plugin-utils";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { DefaultQueryResponse } from "@brains/types";
@@ -254,6 +258,26 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     ];
 
     return [...baseCommands, ...cliCommands];
+  }
+
+  /**
+   * Override register to NOT include interface commands in plugin capabilities
+   * Interface commands should be handled separately from business logic plugin commands
+   */
+  public override async register(context: PluginContext): Promise<{
+    tools: PluginTool[];
+    resources: PluginResource[];
+    commands: Command[];
+  }> {
+    // Call parent register to set up everything
+    const capabilities = await super.register(context);
+
+    // Return capabilities but with NO commands
+    // Commands are handled through MessageInterfacePlugin.getAllAvailableCommands()
+    return {
+      ...capabilities,
+      commands: [], // No commands registered through plugin system
+    };
   }
 
   /**

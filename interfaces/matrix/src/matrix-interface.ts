@@ -1,7 +1,13 @@
 import {
   MessageInterfacePlugin,
   type MessageContext,
+  type Command,
 } from "@brains/message-interface";
+import {
+  type PluginTool,
+  type PluginResource,
+  type PluginContext,
+} from "@brains/plugin-utils";
 import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
@@ -30,6 +36,26 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       MATRIX_CONFIG_DEFAULTS,
       sessionId,
     );
+  }
+
+  /**
+   * Override register to NOT include interface commands in plugin capabilities
+   * Interface commands should be handled separately from business logic plugin commands
+   */
+  public override async register(context: PluginContext): Promise<{
+    tools: PluginTool[];
+    resources: PluginResource[];
+    commands: Command[];
+  }> {
+    // Call parent register to set up everything
+    const capabilities = await super.register(context);
+
+    // Return capabilities but with NO commands
+    // Commands are handled through MessageInterfacePlugin.getAllAvailableCommands()
+    return {
+      ...capabilities,
+      commands: [], // No commands registered through plugin system
+    };
   }
 
   /**

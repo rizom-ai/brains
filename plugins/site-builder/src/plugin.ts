@@ -4,6 +4,7 @@ import type {
   PluginTool,
   PluginResource,
 } from "@brains/plugin-utils";
+import type { Command, CommandResponse } from "@brains/message-interface";
 import type { JobContext } from "@brains/db";
 import type { Template } from "@brains/types";
 import type { SectionDefinition } from "@brains/view-registry";
@@ -766,6 +767,104 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
     );
 
     return tools;
+  }
+
+  /**
+   * Expose site-builder commands for message interfaces
+   */
+  public override async getCommands(): Promise<Command[]> {
+    return [
+      {
+        name: "generate-all",
+        description: "Generate content for all sections across all pages",
+        usage: "/generate-all [--dry-run]",
+        handler: async (args, context): Promise<CommandResponse> => {
+          const dryRun = args.includes("--dry-run");
+
+          if (!this.contentManager || !this.context) {
+            return {
+              type: "message",
+              message:
+                "❌ Content manager not initialized. Please ensure the plugin is properly registered.",
+            };
+          }
+
+          try {
+            // Get routes and template resolver like the generate-all tool
+            const routes = this.context.listRoutes();
+            const templateResolver = (section: SectionDefinition): string => {
+              if (!this.context) {
+                throw new Error("Plugin context not initialized");
+              }
+              const viewTemplate = this.context.getViewTemplate(
+                section.template,
+              );
+              if (!viewTemplate) {
+                throw new Error(`Template not found: ${section.template}`);
+              }
+              return viewTemplate.name;
+            };
+
+            // Create metadata for job context
+            const metadata: JobContext = {
+              interfaceId: context.interfaceType || "command",
+              userId: context.userId || "command-user",
+              roomId: context.channelId,
+              progressToken: context.messageId,
+              pluginId: this.id,
+              operationType: "site_building",
+            };
+
+            // Use the same logic as the generate-all tool
+            const batchId = await this.contentManager.generateAll(
+              { dryRun, source: "command:generate-all", metadata },
+              routes,
+              templateResolver,
+              "site-content-preview",
+              this.config.siteConfig,
+            );
+
+            if (dryRun) {
+              return {
+                type: "message",
+                message:
+                  "🔍 **Dry run completed** - No content was actually generated. Use `/generate-all` without --dry-run to execute.",
+              };
+            }
+
+            return {
+              type: "batch-operation",
+              message: `🚀 **Content generation started** - Generating content for all sections across all pages. This may take a moment...`,
+              batchId,
+              operationCount: await this.getBatchOperationCount(routes),
+            };
+          } catch (error) {
+            this.error("Generate-all command failed", error);
+            return {
+              type: "message",
+              message: `❌ **Generation failed**: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
+            };
+          }
+        },
+      },
+    ];
+  }
+
+  /**
+   * Helper method to get approximate operation count for progress tracking
+   */
+  private async getBatchOperationCount(
+    routes: Array<{ sections?: Array<unknown> }>,
+  ): Promise<number> {
+    try {
+      // Count actual sections across all routes
+      const totalSections = routes.reduce((total, route) => {
+        return total + (route.sections?.length || 0);
+      }, 0);
+      return Math.max(totalSections, 1);
+    } catch {
+      return 1; // Fallback
+    }
   }
 
   /**

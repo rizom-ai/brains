@@ -227,7 +227,7 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
    * Get the commands provided by this plugin
    * Override this to provide plugin-specific commands
    */
-  protected async getCommands(): Promise<Command[]> {
+  public async getCommands(): Promise<Command[]> {
     return [];
   }
 

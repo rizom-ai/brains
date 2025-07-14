@@ -1,4 +1,5 @@
 import type { Plugin, PluginTool, PluginResource } from "@brains/plugin-utils";
+import type { Command } from "@brains/message-interface";
 
 /**
  * Plugin Manager interface for managing plugin lifecycle
@@ -74,6 +75,7 @@ export enum PluginEvent {
   ENABLED = "plugin:enabled",
   TOOL_REGISTER = "plugin:tool:register",
   RESOURCE_REGISTER = "plugin:resource:register",
+  COMMAND_REGISTER = "plugin:command:register",
 }
 
 /**
@@ -88,6 +90,7 @@ export interface PluginManagerEventMap {
   [PluginEvent.ENABLED]: [pluginId: string];
   [PluginEvent.TOOL_REGISTER]: [event: PluginToolRegisterEvent];
   [PluginEvent.RESOURCE_REGISTER]: [event: PluginResourceRegisterEvent];
+  [PluginEvent.COMMAND_REGISTER]: [event: PluginCommandRegisterEvent];
 }
 
 /**
@@ -104,4 +107,12 @@ export interface PluginToolRegisterEvent {
 export interface PluginResourceRegisterEvent {
   pluginId: string;
   resource: PluginResource;
+}
+
+/**
+ * Event data for plugin command registration
+ */
+export interface PluginCommandRegisterEvent {
+  pluginId: string;
+  command: Command;
 }

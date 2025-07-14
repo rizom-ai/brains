@@ -59,7 +59,12 @@ class TestPlugin implements Plugin {
     return {
       tools: [],
       resources: [],
+      commands: [],
     };
+  }
+
+  async getCommands() {
+    return [];
   }
 }
 
@@ -434,7 +439,11 @@ describe("PluginManager", (): void => {
             },
           ],
           resources: [],
+          commands: [],
         };
+      },
+      async getCommands() {
+        return [];
       },
     };
 

@@ -103,10 +103,10 @@ describe("MessageInterfacePlugin", () => {
   describe("Command Registration System", () => {
     it("should return default base commands", async () => {
       const commands = await plugin.getCommands();
-      
+
       expect(commands).toHaveLength(5); // help, search, list, test-progress, test-batch
-      
-      const commandNames = commands.map(cmd => cmd.name);
+
+      const commandNames = commands.map((cmd) => cmd.name);
       expect(commandNames).toContain("help");
       expect(commandNames).toContain("search");
       expect(commandNames).toContain("list");
@@ -119,25 +119,28 @@ describe("MessageInterfacePlugin", () => {
         {
           name: "custom",
           description: "A custom test command",
-          handler: async () => ({ type: "message", message: "Custom command executed" }),
+          handler: async () => ({
+            type: "message",
+            message: "Custom command executed",
+          }),
         },
         {
           name: "another",
           description: "Another custom command",
           usage: "/another <arg>",
-          handler: async (args) => ({ 
-            type: "message", 
-            message: `Another command with args: ${args.join(" ")}` 
+          handler: async (args) => ({
+            type: "message",
+            message: `Another command with args: ${args.join(" ")}`,
           }),
         },
       ];
 
       const pluginWithCustomCommands = new TestMessageInterface(customCommands);
       const commands = await pluginWithCustomCommands.getCommands();
-      
+
       expect(commands).toHaveLength(7); // 5 base + 2 custom
-      
-      const commandNames = commands.map(cmd => cmd.name);
+
+      const commandNames = commands.map((cmd) => cmd.name);
       expect(commandNames).toContain("custom");
       expect(commandNames).toContain("another");
     });
@@ -147,25 +150,30 @@ describe("MessageInterfacePlugin", () => {
         {
           name: "test-cmd",
           description: "Test command",
-          handler: async (args, context) => ({ 
-            type: "message", 
-            message: `Test executed by ${context.userId} with args: ${args.join(" ")}` 
+          handler: async (args, context) => ({
+            type: "message",
+            message: `Test executed by ${context.userId} with args: ${args.join(" ")}`,
           }),
         },
       ];
 
       const pluginWithCustomCommands = new TestMessageInterface(customCommands);
-      
-      const result = await pluginWithCustomCommands.executeCommand("/test-cmd arg1 arg2", {
-        userId: "test-user",
-        channelId: "test-channel",
-        messageId: "test-message",
-        timestamp: new Date(),
-        interfaceType: "test",
-        userPermissionLevel: "public",
-      });
 
-      expect(result.message).toBe("Test executed by test-user with args: arg1 arg2");
+      const result = await pluginWithCustomCommands.executeCommand(
+        "/test-cmd arg1 arg2",
+        {
+          userId: "test-user",
+          channelId: "test-channel",
+          messageId: "test-message",
+          timestamp: new Date(),
+          interfaceType: "test",
+          userPermissionLevel: "public",
+        },
+      );
+
+      expect(result.message).toBe(
+        "Test executed by test-user with args: arg1 arg2",
+      );
     });
 
     it("should handle job-operation commands", async () => {
@@ -173,16 +181,16 @@ describe("MessageInterfacePlugin", () => {
         {
           name: "job-cmd",
           description: "Command that creates a job",
-          handler: async () => ({ 
-            type: "job-operation", 
+          handler: async () => ({
+            type: "job-operation",
             message: "Job started",
-            jobId: "test-job-123"
+            jobId: "test-job-123",
           }),
         },
       ];
 
       const pluginWithCustomCommands = new TestMessageInterface(customCommands);
-      
+
       const result = await pluginWithCustomCommands.executeCommand("/job-cmd", {
         userId: "test-user",
         channelId: "test-channel",
@@ -201,25 +209,28 @@ describe("MessageInterfacePlugin", () => {
         {
           name: "batch-cmd",
           description: "Command that creates a batch",
-          handler: async () => ({ 
-            type: "batch-operation", 
+          handler: async () => ({
+            type: "batch-operation",
             message: "Batch started",
             batchId: "test-batch-456",
-            operationCount: 5
+            operationCount: 5,
           }),
         },
       ];
 
       const pluginWithCustomCommands = new TestMessageInterface(customCommands);
-      
-      const result = await pluginWithCustomCommands.executeCommand("/batch-cmd", {
-        userId: "test-user",
-        channelId: "test-channel",
-        messageId: "test-message",
-        timestamp: new Date(),
-        interfaceType: "test",
-        userPermissionLevel: "public",
-      });
+
+      const result = await pluginWithCustomCommands.executeCommand(
+        "/batch-cmd",
+        {
+          userId: "test-user",
+          channelId: "test-channel",
+          messageId: "test-message",
+          timestamp: new Date(),
+          interfaceType: "test",
+          userPermissionLevel: "public",
+        },
+      );
 
       expect(result.message).toBe("Batch started");
       expect(result.batchId).toBe("test-batch-456");
@@ -231,45 +242,54 @@ describe("MessageInterfacePlugin", () => {
           name: "custom-help",
           description: "Custom command for help test",
           usage: "/custom-help [option]",
-          handler: async () => ({ type: "message", message: "Custom help executed" }),
+          handler: async () => ({
+            type: "message",
+            message: "Custom help executed",
+          }),
         },
       ];
 
       const pluginWithCustomCommands = new TestMessageInterface(customCommands);
       const helpText = await pluginWithCustomCommands.getHelpText();
-      
-      expect(helpText).toContain("/custom-help [option] - Custom command for help test");
+
+      expect(helpText).toContain(
+        "/custom-help [option] - Custom command for help test",
+      );
       // Should also contain base commands
       expect(helpText).toContain("/help - Show this help message");
-      expect(helpText).toContain("/search <query> - Search your knowledge base");
+      expect(helpText).toContain(
+        "/search <query> - Search your knowledge base",
+      );
     });
 
     it("should preserve command order (base commands first, then custom)", async () => {
       const customCommands: Command[] = [
         {
           name: "z-last",
-          description: "Should come after base commands despite alphabetical order",
+          description:
+            "Should come after base commands despite alphabetical order",
           handler: async () => ({ type: "message", message: "Last command" }),
         },
         {
           name: "a-first",
-          description: "Should come after base commands despite alphabetical order",  
+          description:
+            "Should come after base commands despite alphabetical order",
           handler: async () => ({ type: "message", message: "First command" }),
         },
       ];
 
       const pluginWithCustomCommands = new TestMessageInterface(customCommands);
       const commands = await pluginWithCustomCommands.getCommands();
-      
-      const commandNames = commands.map(cmd => cmd.name);
-      
+
+      const commandNames = commands.map((cmd) => cmd.name);
+
       // Base commands should come first
       expect(commandNames[0]).toBe("help");
       expect(commandNames[1]).toBe("search");
       expect(commandNames[2]).toBe("list");
       expect(commandNames[3]).toBe("test-progress");
       expect(commandNames[4]).toBe("test-batch");
-      
+
       // Custom commands should come after, in the order they were added
       expect(commandNames[5]).toBe("z-last");
       expect(commandNames[6]).toBe("a-first");

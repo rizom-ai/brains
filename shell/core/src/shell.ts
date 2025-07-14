@@ -17,6 +17,7 @@ import {
 } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "./plugins/pluginManager";
+import { CommandRegistry } from "./command-registry";
 import {
   EmbeddingService,
   type IEmbeddingService,
@@ -52,6 +53,7 @@ export interface ShellDependencies {
   messageBus?: MessageBus;
   viewRegistry?: ViewRegistry;
   pluginManager?: PluginManager;
+  commandRegistry?: CommandRegistry;
   contentGenerator?: ContentGenerator;
   jobQueueService?: JobQueueService;
   jobQueueWorker?: JobQueueWorker;
@@ -76,6 +78,7 @@ export class Shell {
   private readonly entityRegistry: EntityRegistry;
   private readonly messageBus: MessageBus;
   private readonly pluginManager: PluginManager;
+  private readonly commandRegistry: CommandRegistry;
   private readonly viewRegistry: ViewRegistry;
   private readonly embeddingService: IEmbeddingService;
   private readonly entityService: EntityService;
@@ -130,6 +133,10 @@ export class Shell {
     const entityRegistry = EntityRegistry.createFresh(logger);
     const messageBus = MessageBus.createFresh(logger);
     const pluginManager = PluginManager.createFresh(serviceRegistry, logger);
+    const commandRegistry = CommandRegistry.createFresh(
+      logger,
+      pluginManager.getEventEmitter(),
+    );
 
     // Merge fresh instances with any provided dependencies (without contentGenerator yet)
     const freshDependencies: ShellDependencies = {
@@ -139,6 +146,7 @@ export class Shell {
       entityRegistry,
       messageBus,
       pluginManager,
+      commandRegistry,
     };
 
     return new Shell(fullConfig, freshDependencies);
@@ -217,6 +225,12 @@ export class Shell {
     this.pluginManager =
       dependencies?.pluginManager ??
       PluginManager.getInstance(this.serviceRegistry, this.logger);
+    this.commandRegistry =
+      dependencies?.commandRegistry ??
+      CommandRegistry.getInstance(
+        this.logger,
+        this.pluginManager.getEventEmitter(),
+      );
 
     // Initialize generic job queue service and worker
     this.jobQueueService =
@@ -579,6 +593,10 @@ export class Shell {
 
   public getJobQueueService(): JobQueueService {
     return this.jobQueueService;
+  }
+
+  public getCommandRegistry(): CommandRegistry {
+    return this.commandRegistry;
   }
 
   /**

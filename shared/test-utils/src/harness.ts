@@ -370,6 +370,11 @@ export class PluginTestHarness {
       registerDaemon: (): void => {
         // Mock implementation for test harness
       },
+      // Command discovery
+      getAllCommands: async () => {
+        // Mock implementation for test harness - return empty array
+        return [];
+      },
     };
   }
 

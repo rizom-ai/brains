@@ -75,11 +75,47 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
    * Get commands available to this interface
    * Override to add interface-specific commands
    */
-  protected override async getCommands(): Promise<Command[]> {
+  public override async getCommands(): Promise<Command[]> {
     return [
       ...getBaseCommands(this),
       ...getTestCommands(this.id, this.context),
     ];
+  }
+
+  /**
+   * Get all available commands - combines interface commands with plugin commands
+   * Use this method when you need the complete command list
+   */
+  protected async getAllAvailableCommands(): Promise<Command[]> {
+    // Get interface commands (base + interface-specific)
+    const interfaceCommands = await this.getCommands();
+
+    // Get plugin commands from registry
+    const pluginCommands = await this.getPluginCommands();
+
+    // Combine both - interface commands come first
+    return [...interfaceCommands, ...pluginCommands];
+  }
+
+  /**
+   * Get commands from all registered plugins using the context
+   */
+  private async getPluginCommands(): Promise<Command[]> {
+    if (!this.context) {
+      this.logger.warn("Plugin context not available for command discovery");
+      return [];
+    }
+
+    try {
+      const allCommands = await this.context.getAllCommands();
+      this.logger.debug(
+        `Retrieved ${allCommands.length} commands from all plugins`,
+      );
+      return allCommands;
+    } catch (error) {
+      this.logger.error("Error getting plugin commands", { error });
+      return [];
+    }
   }
 
   /**
@@ -238,7 +274,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     context: MessageContext,
   ): Promise<{ message: string; jobId?: string; batchId?: string }> {
     const [cmd, ...args] = command.slice(1).split(" ");
-    const commands = await this.getCommands();
+    const commands = await this.getAllAvailableCommands();
     const commandDef = commands.find((c) => c.name === cmd);
 
     if (commandDef) {
@@ -288,7 +324,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
    * Get help text
    */
   public async getHelpText(): Promise<string> {
-    const commands = await this.getCommands();
+    const commands = await this.getAllAvailableCommands();
     const commandList = commands
       .map((cmd) => {
         const usage = cmd.usage ?? `/${cmd.name}`;

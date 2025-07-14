@@ -1,18 +1,18 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { BasePlugin } from "../src/base-plugin";
-import type { PluginContext, PluginTool, PluginResource } from "../src/interfaces";
-import type { Command } from "@brains/message-interface";
+import type {
+  PluginContext,
+  PluginTool,
+  PluginResource,
+} from "../src/interfaces";
+import type { Command, MessageContext } from "@brains/message-interface";
+import { createSilentLogger } from "@brains/utils";
 import { z } from "zod";
 
 // Mock plugin context
 const mockContext: PluginContext = {
   pluginId: "test-plugin",
-  logger: {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-  } as any,
+  logger: createSilentLogger("test-plugin"),
   sendMessage: async () => {},
   subscribe: () => {},
   registerEntityType: () => {},
@@ -32,7 +32,7 @@ const mockContext: PluginContext = {
   listViewTemplates: () => [],
   validateTemplate: () => true,
   getPluginPackageName: () => undefined,
-  entityService: {} as any,
+  entityService: {} as PluginContext["entityService"],
   waitForJob: async () => {},
   enqueueJob: async () => "job-123",
   getJobStatus: async () => null,
@@ -54,14 +54,14 @@ class TestPlugin extends BasePlugin {
     id = "test-plugin",
     customTools: PluginTool[] = [],
     customResources: PluginResource[] = [],
-    customCommands: Command[] = []
+    customCommands: Command[] = [],
   ) {
     super(
       id,
       { name: "test-plugin", version: "1.0.0", description: "Test plugin" },
       {},
       z.object({}),
-      {}
+      {},
     );
     this.customTools = customTools;
     this.customResources = customResources;
@@ -91,7 +91,7 @@ describe("BasePlugin Command Registration", () => {
   describe("Default Command Capabilities", () => {
     it("should return empty commands array by default", async () => {
       const capabilities = await plugin.register(mockContext);
-      
+
       expect(capabilities.commands).toEqual([]);
       expect(capabilities.tools).toEqual([]);
       expect(capabilities.resources).toEqual([]);
@@ -99,7 +99,7 @@ describe("BasePlugin Command Registration", () => {
 
     it("should include all capability types in registration", async () => {
       const capabilities = await plugin.register(mockContext);
-      
+
       expect(capabilities).toHaveProperty("tools");
       expect(capabilities).toHaveProperty("resources");
       expect(capabilities).toHaveProperty("commands");
@@ -116,19 +116,19 @@ describe("BasePlugin Command Registration", () => {
           handler: async () => ({ type: "message", message: "Test executed" }),
         },
         {
-          name: "another-command", 
+          name: "another-command",
           description: "Another test command",
           usage: "/another-command <arg>",
-          handler: async (args) => ({ 
-            type: "message", 
-            message: `Args: ${args.join(" ")}` 
+          handler: async (args) => ({
+            type: "message",
+            message: `Args: ${args.join(" ")}`,
           }),
         },
       ];
 
       plugin = new TestPlugin("test-plugin", [], [], customCommands);
       const capabilities = await plugin.register(mockContext);
-      
+
       expect(capabilities.commands).toHaveLength(2);
       expect(capabilities.commands[0].name).toBe("test-command");
       expect(capabilities.commands[0].description).toBe("A test command");
@@ -151,7 +151,9 @@ describe("BasePlugin Command Registration", () => {
           uri: "test-resource",
           name: "Test Resource",
           description: "A test resource",
-          handler: async () => ({ contents: [{ text: "resource content", uri: "test" }] }),
+          handler: async () => ({
+            contents: [{ text: "resource content", uri: "test" }],
+          }),
         },
       ];
 
@@ -163,13 +165,18 @@ describe("BasePlugin Command Registration", () => {
         },
       ];
 
-      plugin = new TestPlugin("test-plugin", customTools, customResources, customCommands);
+      plugin = new TestPlugin(
+        "test-plugin",
+        customTools,
+        customResources,
+        customCommands,
+      );
       const capabilities = await plugin.register(mockContext);
-      
+
       expect(capabilities.tools).toHaveLength(1);
       expect(capabilities.resources).toHaveLength(1);
       expect(capabilities.commands).toHaveLength(1);
-      
+
       expect(capabilities.tools[0].name).toBe("test-tool");
       expect(capabilities.resources[0].uri).toBe("test-resource");
       expect(capabilities.commands[0].name).toBe("test-command");
@@ -186,7 +193,7 @@ describe("BasePlugin Command Registration", () => {
       };
 
       const jobCommand: Command = {
-        name: "job-cmd", 
+        name: "job-cmd",
         description: "Creates a job",
         handler: async () => ({
           type: "job-operation",
@@ -197,7 +204,7 @@ describe("BasePlugin Command Registration", () => {
 
       const batchCommand: Command = {
         name: "batch-cmd",
-        description: "Creates a batch operation", 
+        description: "Creates a batch operation",
         handler: async () => ({
           type: "batch-operation",
           message: "Batch created",
@@ -206,15 +213,20 @@ describe("BasePlugin Command Registration", () => {
         }),
       };
 
-      plugin = new TestPlugin("test-plugin", [], [], [messageCommand, jobCommand, batchCommand]);
+      plugin = new TestPlugin(
+        "test-plugin",
+        [],
+        [],
+        [messageCommand, jobCommand, batchCommand],
+      );
       const capabilities = await plugin.register(mockContext);
-      
+
       expect(capabilities.commands).toHaveLength(3);
-      
+
       // Test command execution patterns
       const messageResult = await messageCommand.handler(["arg1", "arg2"], {
         userId: "test-user",
-        channelId: "test-channel", 
+        channelId: "test-channel",
         messageId: "test-message",
         timestamp: new Date(),
         interfaceType: "test",
@@ -223,11 +235,11 @@ describe("BasePlugin Command Registration", () => {
       expect(messageResult.type).toBe("message");
       expect(messageResult.message).toBe("Message from test-user: arg1 arg2");
 
-      const jobResult = await jobCommand.handler([], {} as any);
+      const jobResult = await jobCommand.handler([], {} as MessageContext);
       expect(jobResult.type).toBe("job-operation");
       expect(jobResult.jobId).toBe("test-job-123");
 
-      const batchResult = await batchCommand.handler([], {} as any);
+      const batchResult = await batchCommand.handler([], {} as MessageContext);
       expect(batchResult.type).toBe("batch-operation");
       expect(batchResult.batchId).toBe("test-batch-456");
       expect(batchResult.operationCount).toBe(3);
@@ -237,7 +249,7 @@ describe("BasePlugin Command Registration", () => {
   describe("Plugin Lifecycle with Commands", () => {
     it("should call getCommands during registration", async () => {
       let getCommandsCalled = false;
-      
+
       class TestLifecyclePlugin extends BasePlugin {
         constructor() {
           super(
@@ -245,7 +257,7 @@ describe("BasePlugin Command Registration", () => {
             { name: "lifecycle-test", version: "1.0.0" },
             {},
             z.object({}),
-            {}
+            {},
           );
         }
 
@@ -255,7 +267,10 @@ describe("BasePlugin Command Registration", () => {
             {
               name: "lifecycle-command",
               description: "Command to test lifecycle",
-              handler: async () => ({ type: "message", message: "Lifecycle test" }),
+              handler: async () => ({
+                type: "message",
+                message: "Lifecycle test",
+              }),
             },
           ];
         }
@@ -263,17 +278,19 @@ describe("BasePlugin Command Registration", () => {
 
       const lifecyclePlugin = new TestLifecyclePlugin();
       const capabilities = await lifecyclePlugin.register(mockContext);
-      
+
       expect(getCommandsCalled).toBe(true);
       expect(capabilities.commands).toHaveLength(1);
       expect(capabilities.commands[0].name).toBe("lifecycle-command");
     });
 
     it("should maintain plugin context after registration", async () => {
-      const capabilities = await plugin.register(mockContext);
-      
+      await plugin.register(mockContext);
+
       // Plugin should have access to context after registration
-      expect(() => plugin.determineUserPermissionLevel("test-user")).not.toThrow();
+      expect(() =>
+        plugin.determineUserPermissionLevel("test-user"),
+      ).not.toThrow();
     });
   });
 
@@ -289,14 +306,16 @@ describe("BasePlugin Command Registration", () => {
 
       plugin = new TestPlugin("test-plugin", [], [], [errorCommand]);
       const capabilities = await plugin.register(mockContext);
-      
+
       expect(capabilities.commands).toHaveLength(1);
-      
+
       // The command should be registered even if it might throw errors
       expect(capabilities.commands[0].name).toBe("error-command");
-      
+
       // Error handling should be done at the interface level, not during registration
-      await expect(errorCommand.handler([], {} as any)).rejects.toThrow("Test error");
+      expect(errorCommand.handler([], {} as MessageContext)).rejects.toThrow(
+        "Test error",
+      );
     });
   });
 });

@@ -1,18 +1,18 @@
 import { describe, expect, it } from "bun:test";
 import { composePlugins } from "../src/lifecycle";
-import type { Plugin, PluginContext } from "../src/interfaces";
-import type { Command } from "@brains/message-interface";
+import type {
+  Plugin,
+  PluginContext,
+  PluginCapabilities,
+} from "../src/interfaces";
+import type { Command, MessageContext } from "@brains/message-interface";
+import { createSilentLogger } from "@brains/utils";
 import { z } from "zod";
 
 // Mock plugin context
 const mockContext: PluginContext = {
   pluginId: "composite-plugin",
-  logger: {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-  } as any,
+  logger: createSilentLogger("composite-plugin"),
   sendMessage: async () => {},
   subscribe: () => {},
   registerEntityType: () => {},
@@ -32,7 +32,7 @@ const mockContext: PluginContext = {
   listViewTemplates: () => [],
   validateTemplate: () => true,
   getPluginPackageName: () => undefined,
-  entityService: {} as any,
+  entityService: {} as PluginContext["entityService"],
   waitForJob: async () => {},
   enqueueJob: async () => "job-123",
   getJobStatus: async () => null,
@@ -48,15 +48,15 @@ const mockContext: PluginContext = {
 function createMockPlugin(
   id: string,
   commands: Command[] = [],
-  tools: any[] = [],
-  resources: any[] = []
+  tools: unknown[] = [],
+  resources: unknown[] = [],
 ): Plugin {
   return {
     id,
     version: "1.0.0",
     packageName: `@test/${id}`,
     description: `Test plugin ${id}`,
-    async register(_context: PluginContext) {
+    async register(_context: PluginContext): Promise<PluginCapabilities> {
       return {
         tools,
         resources,
@@ -73,20 +73,29 @@ describe("Lifecycle Command Aggregation", () => {
         {
           name: "command1",
           description: "Command from plugin 1",
-          handler: async () => ({ type: "message", message: "Plugin 1 command" }),
+          handler: async () => ({
+            type: "message",
+            message: "Plugin 1 command",
+          }),
         },
       ];
 
       const plugin2Commands: Command[] = [
         {
           name: "command2",
-          description: "Command from plugin 2", 
-          handler: async () => ({ type: "message", message: "Plugin 2 command" }),
+          description: "Command from plugin 2",
+          handler: async () => ({
+            type: "message",
+            message: "Plugin 2 command",
+          }),
         },
         {
           name: "command3",
           description: "Another command from plugin 2",
-          handler: async () => ({ type: "message", message: "Plugin 2 command 3" }),
+          handler: async () => ({
+            type: "message",
+            message: "Plugin 2 command 3",
+          }),
         },
       ];
 
@@ -97,7 +106,7 @@ describe("Lifecycle Command Aggregation", () => {
         "composite-test",
         "@test/composite",
         "Composite plugin for testing",
-        [plugin1, plugin2]
+        [plugin1, plugin2],
       );
 
       const capabilities = await composite.register(mockContext);
@@ -122,16 +131,20 @@ describe("Lifecycle Command Aggregation", () => {
           name: "tool1",
           description: "Tool 1",
           inputSchema: { input: z.string() },
-          handler: async () => "tool1 result",
+          handler: async (): Promise<string> => "tool1 result",
         },
       ];
 
       const plugin2Resources = [
         {
           uri: "resource2",
-          name: "Resource 2", 
+          name: "Resource 2",
           description: "Resource from plugin 2",
-          handler: async () => ({ contents: [{ text: "resource2", uri: "res2" }] }),
+          handler: async (): Promise<{
+            contents: Array<{ text: string; uri: string }>;
+          }> => ({
+            contents: [{ text: "resource2", uri: "res2" }],
+          }),
         },
       ];
 
@@ -143,14 +156,23 @@ describe("Lifecycle Command Aggregation", () => {
         },
       ];
 
-      const plugin1 = createMockPlugin("plugin1", plugin1Commands, plugin1Tools);
-      const plugin2 = createMockPlugin("plugin2", plugin2Commands, [], plugin2Resources);
+      const plugin1 = createMockPlugin(
+        "plugin1",
+        plugin1Commands,
+        plugin1Tools,
+      );
+      const plugin2 = createMockPlugin(
+        "plugin2",
+        plugin2Commands,
+        [],
+        plugin2Resources,
+      );
 
       const composite = composePlugins(
         "multi-capability",
         "@test/multi-capability",
         "Multi-capability composite plugin",
-        [plugin1, plugin2]
+        [plugin1, plugin2],
       );
 
       const capabilities = await composite.register(mockContext);
@@ -171,9 +193,9 @@ describe("Lifecycle Command Aggregation", () => {
 
       const composite = composePlugins(
         "empty-composite",
-        "@test/empty-composite", 
+        "@test/empty-composite",
         "Composite with empty plugins",
-        [emptyPlugin1, emptyPlugin2]
+        [emptyPlugin1, emptyPlugin2],
       );
 
       const capabilities = await composite.register(mockContext);
@@ -198,7 +220,7 @@ describe("Lifecycle Command Aggregation", () => {
         "single-composite",
         "@test/single-composite",
         "Composite with single plugin",
-        [singlePlugin]
+        [singlePlugin],
       );
 
       const capabilities = await composite.register(mockContext);
@@ -236,7 +258,7 @@ describe("Lifecycle Command Aggregation", () => {
         "order-test",
         "@test/order-test",
         "Plugin order test",
-        [plugin1, plugin2]
+        [plugin1, plugin2],
       );
 
       const capabilities = await composite.register(mockContext);
@@ -253,7 +275,10 @@ describe("Lifecycle Command Aggregation", () => {
         {
           name: "duplicate-command",
           description: "Command from plugin 1",
-          handler: async () => ({ type: "message", message: "Plugin 1 version" }),
+          handler: async () => ({
+            type: "message",
+            message: "Plugin 1 version",
+          }),
         },
       ];
 
@@ -261,7 +286,10 @@ describe("Lifecycle Command Aggregation", () => {
         {
           name: "duplicate-command",
           description: "Command from plugin 2",
-          handler: async () => ({ type: "message", message: "Plugin 2 version" }),
+          handler: async () => ({
+            type: "message",
+            message: "Plugin 2 version",
+          }),
         },
       ];
 
@@ -272,7 +300,7 @@ describe("Lifecycle Command Aggregation", () => {
         "conflict-test",
         "@test/conflict-test",
         "Command conflict test",
-        [plugin1, plugin2]
+        [plugin1, plugin2],
       );
 
       const capabilities = await composite.register(mockContext);
@@ -281,11 +309,17 @@ describe("Lifecycle Command Aggregation", () => {
       expect(capabilities.commands).toHaveLength(2);
       expect(capabilities.commands[0].name).toBe("duplicate-command");
       expect(capabilities.commands[1].name).toBe("duplicate-command");
-      
+
       // Execution should use the first matching command
-      const result1 = await capabilities.commands[0].handler([], {} as any);
-      const result2 = await capabilities.commands[1].handler([], {} as any);
-      
+      const result1 = await capabilities.commands[0].handler(
+        [],
+        {} as MessageContext,
+      );
+      const result2 = await capabilities.commands[1].handler(
+        [],
+        {} as MessageContext,
+      );
+
       expect(result1.message).toBe("Plugin 1 version");
       expect(result2.message).toBe("Plugin 2 version");
     });
@@ -295,10 +329,10 @@ describe("Lifecycle Command Aggregation", () => {
         name: "metadata-command",
         description: "Command with all metadata",
         usage: "/metadata-command <arg1> [arg2]",
-        handler: async (args, context) => ({ 
+        handler: async (args, context) => ({
           type: "job-operation",
           message: `Processing ${args.length} args for ${context.userId}`,
-          jobId: "metadata-job-123"
+          jobId: "metadata-job-123",
         }),
       };
 
@@ -308,28 +342,28 @@ describe("Lifecycle Command Aggregation", () => {
         "metadata-test",
         "@test/metadata-test",
         "Metadata preservation test",
-        [plugin]
+        [plugin],
       );
 
       const capabilities = await composite.register(mockContext);
 
       expect(capabilities.commands).toHaveLength(1);
       const command = capabilities.commands[0];
-      
+
       expect(command.name).toBe("metadata-command");
       expect(command.description).toBe("Command with all metadata");
       expect(command.usage).toBe("/metadata-command <arg1> [arg2]");
-      
+
       // Test that handler is preserved and functional
       const result = await command.handler(["arg1", "arg2"], {
         userId: "test-user",
         channelId: "test-channel",
-        messageId: "test-message", 
+        messageId: "test-message",
         timestamp: new Date(),
         interfaceType: "test",
         userPermissionLevel: "public",
       });
-      
+
       expect(result.type).toBe("job-operation");
       expect(result.message).toBe("Processing 2 args for test-user");
       expect(result.jobId).toBe("metadata-job-123");

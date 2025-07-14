@@ -1,4 +1,5 @@
 import type { Plugin, PluginContext, PluginCapabilities } from "./interfaces";
+import type { Command } from "@brains/message-interface";
 
 /**
  * Plugin lifecycle events
@@ -61,6 +62,10 @@ export class PluginWithLifecycle implements Plugin {
     await this.runHooks("afterRegister", context);
 
     return capabilities;
+  }
+
+  async getCommands(): Promise<Command[]> {
+    return this.plugin.getCommands();
   }
 
   /**
@@ -193,6 +198,7 @@ export function delegatePlugin(
     packageName: overrides.packageName ?? delegate.packageName,
     description: overrides.description ?? delegate.description,
     register: overrides.register ?? delegate.register.bind(delegate),
+    getCommands: overrides.getCommands ?? delegate.getCommands.bind(delegate),
   };
 }
 
@@ -221,6 +227,12 @@ export function composePlugins(
       const commands = allCapabilities.flatMap((c) => c.commands);
 
       return { tools, resources, commands };
+    },
+    async getCommands(): Promise<Command[]> {
+      const allCommands = await Promise.all(
+        plugins.map((p) => p.getCommands()),
+      );
+      return allCommands.flat();
     },
   };
 }

@@ -476,4 +476,11 @@ export class PluginManager implements IPluginManager {
   ): void {
     this.events.off(event, listener);
   }
+
+  /**
+   * Get the event emitter for external subscribers
+   */
+  public getEventEmitter(): EventEmitter {
+    return this.events;
+  }
 }
