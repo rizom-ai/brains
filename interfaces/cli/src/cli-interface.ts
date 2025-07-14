@@ -229,7 +229,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   /**
    * Override getCommands to add CLI-specific commands
    */
-  protected override async getCommands(): Promise<Command[]> {
+  public override async getCommands(): Promise<Command[]> {
     const baseCommands = await super.getCommands();
 
     // Add CLI-specific commands
