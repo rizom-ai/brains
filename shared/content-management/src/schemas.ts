@@ -11,7 +11,7 @@ export const ContentEnvironmentSchema = z.enum(["preview"]);
  * Generate operation options schema
  */
 export const GenerateOptionsSchema = z.object({
-  pageId: z.string().optional().describe("Optional: specific page filter"),
+  routeId: z.string().optional().describe("Optional: specific route filter"),
   sectionId: z
     .string()
     .optional()
@@ -31,7 +31,7 @@ export const GenerateResultSchema = z.object({
   totalSections: z.number(),
   generated: z.array(
     z.object({
-      pageId: z.string(),
+      routeId: z.string(),
       sectionId: z.string(),
       entityId: z.string(),
       entityType: z.string(),
@@ -39,7 +39,7 @@ export const GenerateResultSchema = z.object({
   ),
   skipped: z.array(
     z.object({
-      pageId: z.string(),
+      routeId: z.string(),
       sectionId: z.string(),
       reason: z.string(),
     }),

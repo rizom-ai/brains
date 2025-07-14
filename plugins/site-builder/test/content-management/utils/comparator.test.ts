@@ -13,7 +13,7 @@ describe("Content Comparator", () => {
     id: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
     content: "# Hero Section\n\nWelcome to our site!",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
     created: "2024-01-01T00:00:00Z",
     updated: "2024-01-01T01:00:00Z",
@@ -23,7 +23,7 @@ describe("Content Comparator", () => {
     id: "site-content-production:landing:hero",
     entityType: "site-content-production",
     content: "# Hero Section\n\nWelcome to our site!",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
     created: "2024-01-01T00:00:00Z",
     updated: "2024-01-01T00:30:00Z",
@@ -38,7 +38,7 @@ describe("Content Comparator", () => {
         productionEntity,
       );
 
-      expect(result.pageId).toBe("landing");
+      expect(result.routeId).toBe("landing");
       expect(result.sectionId).toBe("hero");
       expect(result.preview).toBe(previewEntity);
       expect(result.production).toBe(productionEntity);
@@ -130,7 +130,7 @@ describe("Content Comparator", () => {
         productionEntity,
       );
 
-      expect(result.differences.some((d) => d.field === "pageId")).toBe(false);
+      expect(result.differences.some((d) => d.field === "routeId")).toBe(false);
       expect(result.differences.some((d) => d.field === "sectionId")).toBe(
         false,
       );
@@ -156,7 +156,7 @@ describe("Content Comparator", () => {
     it("should return false for different page", () => {
       const differentProduction: SiteContentProduction = {
         ...productionEntity,
-        pageId: "about",
+        routeId: "about",
       };
 
       const result = isContentEquivalent(previewEntity, differentProduction);

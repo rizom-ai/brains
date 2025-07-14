@@ -319,7 +319,7 @@ describe("PreactBuilder", () => {
               contentEntity: {
                 entityType: "site-content-preview",
                 template: "test",
-                query: { pageId: "landing", sectionId: "test" },
+                query: { routeId: "landing", sectionId: "test" },
               },
             },
           ],

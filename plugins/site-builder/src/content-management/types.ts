@@ -60,7 +60,7 @@ export interface SiteContentJob {
   section: SectionDefinition;
   templateName: string;
   targetEntityType: "site-content-preview" | "site-content-production";
-  pageId: string;
+  routeId: string;
   sectionId: string;
 }
 
@@ -73,7 +73,7 @@ export interface ContentGenerationJob {
   entityId: string;
   entityType: "site-content-preview" | "site-content-production";
   operation: "generate" | "regenerate";
-  pageId: string;
+  routeId: string;
   sectionId: string;
   templateName: string;
   route: RouteDefinition;
@@ -91,7 +91,7 @@ export interface EntityOperationJob {
   targetEntityId?: string; // For promote operations (production entity ID)
   entityType: "site-content-preview" | "site-content-production";
   operation: "promote" | "rollback";
-  pageId: string;
+  routeId: string;
   sectionId: string;
 }
 

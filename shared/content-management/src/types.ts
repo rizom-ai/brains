@@ -1,4 +1,4 @@
-import type { SiteContent, SiteContentEntityType } from "@brains/types";
+import type { SiteContentEntityType } from "@brains/types";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 
 // Re-export types from schemas
@@ -16,12 +16,7 @@ export {
 } from "./schemas";
 
 // Re-export shared types
-export type {
-  SiteContent,
-  RouteDefinition,
-  SectionDefinition,
-  SiteContentEntityType,
-};
+export type { RouteDefinition, SectionDefinition, SiteContentEntityType };
 
 /**
  * Interface for tracking async content generation jobs
@@ -32,7 +27,7 @@ export interface SiteContentJob {
   section: SectionDefinition;
   templateName: string;
   targetEntityType: "site-content-preview" | "site-content-production";
-  pageId: string;
+  routeId: string;
   sectionId: string;
 }
 
@@ -45,7 +40,7 @@ export interface ContentGenerationJob {
   entityId: string;
   entityType: "site-content-preview" | "site-content-production";
   operation: "generate";
-  pageId: string;
+  routeId: string;
   sectionId: string;
   templateName: string;
   route: RouteDefinition;

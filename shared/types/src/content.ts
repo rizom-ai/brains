@@ -79,10 +79,10 @@ export interface ContentRegistry {
 }
 
 /**
- * Generic site content interface
+ * Generic site content entity interface
  */
-export interface SiteContent extends BaseEntity {
-  pageId: string;
+export interface SiteContentEntity extends BaseEntity {
+  routeId: string;
   sectionId: string;
 }
 

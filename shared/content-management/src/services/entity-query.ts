@@ -1,4 +1,8 @@
-import type { Logger, SiteContentEntityType, SiteContent } from "@brains/types";
+import type {
+  Logger,
+  SiteContentEntityType,
+  SiteContentEntity,
+} from "@brains/types";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 
 /**
@@ -45,12 +49,12 @@ export class EntityQueryService {
   async getContent(
     entityType: SiteContentEntityType,
     entityId: string,
-  ): Promise<SiteContent | null> {
+  ): Promise<SiteContentEntity | null> {
     this.logger.debug("Getting content entity", { entityType, entityId });
 
     try {
       const entity = await this.entityService.getEntity(entityType, entityId);
-      return entity as SiteContent | null;
+      return entity as SiteContentEntity | null;
     } catch (error) {
       this.logger.error("Failed to get content entity", {
         entityType,
@@ -62,26 +66,26 @@ export class EntityQueryService {
   }
 
   /**
-   * Get all content entities for a specific page
+   * Get all content entities for a specific route
    */
-  async getPageContent(
+  async getRouteContent(
     entityType: SiteContentEntityType,
-    pageId: string,
-  ): Promise<SiteContent[]> {
-    this.logger.debug("Getting page content", { entityType, pageId });
+    routeId: string,
+  ): Promise<SiteContentEntity[]> {
+    this.logger.debug("Getting route content", { entityType, routeId });
 
     try {
-      const entities = await this.entityService.listEntities<SiteContent>(
+      const entities = await this.entityService.listEntities<SiteContentEntity>(
         entityType,
         {
-          filter: { metadata: { pageId } },
+          filter: { metadata: { routeId } },
         },
       );
       return entities;
     } catch (error) {
-      this.logger.error("Failed to get page content", {
+      this.logger.error("Failed to get route content", {
         entityType,
-        pageId,
+        routeId,
         error: error instanceof Error ? error.message : String(error),
       });
       return [];
@@ -93,15 +97,15 @@ export class EntityQueryService {
    */
   async getSectionContent(
     entityType: SiteContentEntityType,
-    pageId: string,
+    routeId: string,
     sectionId: string,
     generateId: (
       type: SiteContentEntityType,
-      pageId: string,
+      routeId: string,
       sectionId: string,
     ) => string,
-  ): Promise<SiteContent | null> {
-    const entityId = generateId(entityType, pageId, sectionId);
+  ): Promise<SiteContentEntity | null> {
+    const entityId = generateId(entityType, routeId, sectionId);
     return this.getContent(entityType, entityId);
   }
 
@@ -110,11 +114,11 @@ export class EntityQueryService {
    */
   async getAllContent(
     entityType: SiteContentEntityType,
-  ): Promise<SiteContent[]> {
+  ): Promise<SiteContentEntity[]> {
     this.logger.debug("Getting all content", { entityType });
 
     try {
-      const entities = await this.entityService.listEntities<SiteContent>(
+      const entities = await this.entityService.listEntities<SiteContentEntity>(
         entityType,
         {},
       );
@@ -129,21 +133,21 @@ export class EntityQueryService {
   }
 
   /**
-   * Check if content exists for a specific page/section
+   * Check if content exists for a specific route/section
    */
   async contentExists(
     entityType: SiteContentEntityType,
-    pageId: string,
+    routeId: string,
     sectionId: string,
     generateId: (
       type: SiteContentEntityType,
-      pageId: string,
+      routeId: string,
       sectionId: string,
     ) => string,
   ): Promise<boolean> {
     const content = await this.getSectionContent(
       entityType,
-      pageId,
+      routeId,
       sectionId,
       generateId,
     );
@@ -156,14 +160,14 @@ export class EntityQueryService {
   async queryContent(
     entityType: SiteContentEntityType,
     criteria: Record<string, unknown>,
-  ): Promise<SiteContent[]> {
+  ): Promise<SiteContentEntity[]> {
     this.logger.debug("Querying content with criteria", {
       entityType,
       criteria,
     });
 
     try {
-      const entities = await this.entityService.listEntities<SiteContent>(
+      const entities = await this.entityService.listEntities<SiteContentEntity>(
         entityType,
         {
           filter: { metadata: criteria },
@@ -181,18 +185,18 @@ export class EntityQueryService {
   }
 
   /**
-   * Get content statistics for multiple entity types on a page
+   * Get content statistics for multiple entity types on a route
    */
-  async getPageStats(
-    pageId: string,
+  async getRouteStats(
+    routeId: string,
     entityTypes: SiteContentEntityType[],
   ): Promise<Record<SiteContentEntityType, number> & { total: number }> {
-    this.logger.debug("Getting page stats", { pageId, entityTypes });
+    this.logger.debug("Getting route stats", { routeId, entityTypes });
 
     try {
       const results = await Promise.all(
         entityTypes.map(async (entityType) => {
-          const content = await this.getPageContent(entityType, pageId);
+          const content = await this.getRouteContent(entityType, routeId);
           return { entityType, count: content.length };
         }),
       );
@@ -210,8 +214,8 @@ export class EntityQueryService {
 
       return stats;
     } catch (error) {
-      this.logger.error("Failed to get page stats", {
-        pageId,
+      this.logger.error("Failed to get route stats", {
+        routeId,
         entityTypes,
         error: error instanceof Error ? error.message : String(error),
       });

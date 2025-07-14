@@ -14,8 +14,8 @@ export { DerivationOperations } from "./operations/derivation";
 export { EntityQueryService } from "./services/entity-query";
 
 // Types and interfaces
+export type { SiteContentEntity } from "@brains/types";
 export type {
-  SiteContent,
   SiteContentEntityType,
   GenerateOptions,
   GenerateResult,

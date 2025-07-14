@@ -2,14 +2,14 @@ import type { SiteContentEntityType } from "@brains/view-registry";
 
 /**
  * Generate deterministic entity ID for site content
- * Format: ${entityType}:${page}:${section}
+ * Format: ${entityType}:${route}:${section}
  */
 export function generateSiteContentId(
   entityType: SiteContentEntityType,
-  page: string,
+  route: string,
   section: string,
 ): string {
-  return `${entityType}:${page}:${section}`;
+  return `${entityType}:${route}:${section}`;
 }
 
 /**
@@ -17,7 +17,7 @@ export function generateSiteContentId(
  */
 export function parseSiteContentId(id: string): {
   entityType: SiteContentEntityType;
-  pageId: string;
+  routeId: string;
   sectionId: string;
 } | null {
   const parts = id.split(":");
@@ -25,10 +25,10 @@ export function parseSiteContentId(id: string): {
     return null;
   }
 
-  const [entityType, pageId, sectionId] = parts;
+  const [entityType, routeId, sectionId] = parts;
 
   // Validate entity type and that all parts exist
-  if (!entityType || !pageId || !sectionId) {
+  if (!entityType || !routeId || !sectionId) {
     return null;
   }
 
@@ -41,7 +41,7 @@ export function parseSiteContentId(id: string): {
 
   return {
     entityType: entityType as SiteContentEntityType,
-    pageId,
+    routeId,
     sectionId,
   };
 }
@@ -57,7 +57,7 @@ export function previewToProductionId(previewId: string): string | null {
 
   return generateSiteContentId(
     "site-content-production",
-    parsed.pageId,
+    parsed.routeId,
     parsed.sectionId,
   );
 }
@@ -73,7 +73,7 @@ export function productionToPreviewId(productionId: string): string | null {
 
   return generateSiteContentId(
     "site-content-preview",
-    parsed.pageId,
+    parsed.routeId,
     parsed.sectionId,
   );
 }

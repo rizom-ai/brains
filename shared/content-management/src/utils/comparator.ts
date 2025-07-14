@@ -1,13 +1,13 @@
-import type { SiteContent } from "@brains/types";
+import type { SiteContentEntity } from "@brains/types";
 
 /**
  * Content comparison result
  */
 export interface ContentComparison {
-  pageId: string;
+  routeId: string;
   sectionId: string;
-  contentA: SiteContent;
-  contentB: SiteContent;
+  contentA: SiteContentEntity;
+  contentB: SiteContentEntity;
   differences: Array<{
     field: string;
     valueA: unknown;
@@ -17,13 +17,13 @@ export interface ContentComparison {
 }
 
 /**
- * Compare two site content entities for a given page and section
+ * Compare two site content entities for a given route and section
  */
 export function compareContent(
-  pageId: string,
+  routeId: string,
   sectionId: string,
-  contentA: SiteContent,
-  contentB: SiteContent,
+  contentA: SiteContentEntity,
+  contentB: SiteContentEntity,
 ): ContentComparison {
   const differences: ContentComparison["differences"] = [];
 
@@ -55,12 +55,12 @@ export function compareContent(
     });
   }
 
-  // Note: We don't compare page/section as they should always match for the same content piece
+  // Note: We don't compare route/section as they should always match for the same content piece
   // Note: We don't compare entityType as they are intentionally different
   // Note: We don't compare id as they are intentionally different
 
   return {
-    pageId,
+    routeId,
     sectionId,
     contentA,
     contentB,
@@ -73,12 +73,12 @@ export function compareContent(
  * Check if two content entities are substantially the same (ignoring timestamps and IDs)
  */
 export function isContentEquivalent(
-  contentA: SiteContent,
-  contentB: SiteContent,
+  contentA: SiteContentEntity,
+  contentB: SiteContentEntity,
 ): boolean {
   return (
     contentA.content === contentB.content &&
-    contentA.pageId === contentB.pageId &&
+    contentA.routeId === contentB.routeId &&
     contentA.sectionId === contentB.sectionId
   );
 }

@@ -8,10 +8,10 @@ import type { JobOptions } from "@brains/db";
 
 /**
  * Generate deterministic entity ID for site content
- * Format: ${pageId}:${sectionId}
+ * Format: ${routeId}:${sectionId}
  */
-function generateContentId(pageId: string, sectionId: string): string {
-  return `${pageId}:${sectionId}`;
+function generateContentId(routeId: string, sectionId: string): string {
+  return `${routeId}:${sectionId}`;
 }
 
 /**
@@ -79,8 +79,8 @@ export class GenerationOperations {
 
     for (const route of routes) {
       // Apply page filter if specified
-      const pageId = route.id;
-      if (options.pageId && pageId !== options.pageId) {
+      const routeId = route.id;
+      if (options.routeId && routeId !== options.routeId) {
         continue;
       }
 
@@ -91,12 +91,12 @@ export class GenerationOperations {
       totalSections += sectionsToGenerate.length;
 
       for (const sectionDefinition of sectionsToGenerate) {
-        const entityId = generateContentId(pageId, sectionDefinition.id);
+        const entityId = generateContentId(routeId, sectionDefinition.id);
 
         // Skip if dry run
         if (options.dryRun) {
           this.logger.debug("Dry run: would generate", {
-            pageId,
+            routeId,
             sectionId: sectionDefinition.id,
             entityId,
           });
@@ -109,7 +109,7 @@ export class GenerationOperations {
           entityId,
           entityType: targetEntityType,
           operation: "generate",
-          pageId,
+          routeId,
           sectionId: sectionDefinition.id,
           templateName: templateResolver(sectionDefinition),
           route,
@@ -133,7 +133,7 @@ export class GenerationOperations {
                 entityId: job.entityId,
                 entityType: job.entityType,
                 operation: job.operation,
-                pageId: job.pageId,
+                routeId: job.routeId,
                 sectionId: job.sectionId,
                 templateName: job.templateName,
                 siteConfig,
@@ -145,7 +145,7 @@ export class GenerationOperations {
 
         this.logger.debug("Queued content generation job", {
           jobId: job.jobId,
-          pageId,
+          routeId,
           sectionId: sectionDefinition.id,
         });
       }

@@ -41,7 +41,7 @@ describe("ID Generator", () => {
       const result = parseSiteContentId("site-content-preview:landing:hero");
       expect(result).toEqual({
         entityType: "site-content-preview",
-        pageId: "landing",
+        routeId: "landing",
         sectionId: "hero",
       });
     });
@@ -50,7 +50,7 @@ describe("ID Generator", () => {
       const result = parseSiteContentId("site-content-production:about:team");
       expect(result).toEqual({
         entityType: "site-content-production",
-        pageId: "about",
+        routeId: "about",
         sectionId: "team",
       });
     });
@@ -75,7 +75,7 @@ describe("ID Generator", () => {
       );
       expect(result).toEqual({
         entityType: "site-content-preview",
-        pageId: "user-profile",
+        routeId: "user-profile",
         sectionId: "contact-info",
       });
     });

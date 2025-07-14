@@ -1,9 +1,10 @@
-import type { Logger, SiteContent } from "@brains/types";
+import type { Logger } from "@brains/types";
 import { ContentManager } from "@brains/content-management";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { JobContext } from "@brains/db";
 import type { PromoteOptions, RollbackOptions } from "./types";
+import type { SiteContentEntity } from "@brains/types";
 
 /**
  * Site-specific content operations for preview/production workflow
@@ -48,7 +49,7 @@ export class SiteOperations {
         for (const previewEntity of previewEntities) {
           this.logger.debug("Dry run: would promote", {
             previewId: previewEntity.id,
-            page: previewEntity.pageId,
+            route: previewEntity.routeId,
             section: previewEntity.sectionId,
           });
         }
@@ -104,7 +105,7 @@ export class SiteOperations {
         for (const productionEntity of productionEntities) {
           this.logger.debug("Dry run: would rollback", {
             productionId: productionEntity.id,
-            page: productionEntity.pageId,
+            route: productionEntity.routeId,
             section: productionEntity.sectionId,
           });
         }
@@ -158,16 +159,16 @@ export class SiteOperations {
   private async getFilteredEntities(
     entityType: "site-content-preview" | "site-content-production",
     options: PromoteOptions | RollbackOptions,
-  ): Promise<SiteContent[]> {
+  ): Promise<SiteContentEntity[]> {
     // Handle specific sections if provided
-    if (options.sections && options.sections.length > 0 && options.pageId) {
+    if (options.sections && options.sections.length > 0 && options.routeId) {
       const entities = [];
       for (const sectionId of options.sections) {
         const entity = await this.contentManager.getSectionContent(
           entityType,
-          options.pageId,
+          options.routeId,
           sectionId,
-          (type, page, section) => `${type}:${page}:${section}`,
+          (type, route, section) => `${type}:${route}:${section}`,
         );
         if (entity) {
           entities.push(entity);
@@ -177,19 +178,19 @@ export class SiteOperations {
     }
 
     // Handle single section
-    if (options.sectionId && options.pageId) {
+    if (options.sectionId && options.routeId) {
       const entity = await this.contentManager.getSectionContent(
         entityType,
-        options.pageId,
+        options.routeId,
         options.sectionId,
-        (type, page, section) => `${type}:${page}:${section}`,
+        (type, route, section) => `${type}:${route}:${section}`,
       );
       return entity ? [entity] : [];
     }
 
-    // Handle page-level operations
-    if (options.pageId) {
-      return this.contentManager.getPageContent(entityType, options.pageId);
+    // Handle route-level operations
+    if (options.routeId) {
+      return this.contentManager.getRouteContent(entityType, options.routeId);
     }
 
     // Get all entities

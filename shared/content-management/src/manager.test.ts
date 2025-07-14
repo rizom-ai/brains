@@ -37,9 +37,9 @@ const mockLogger = createSilentLogger("content-manager-test");
 
 const mockGenerateId = (
   type: string,
-  pageId: string,
+  routeId: string,
   sectionId: string,
-): string => `${type}:${pageId}:${sectionId}`;
+): string => `${type}:${routeId}:${sectionId}`;
 
 let contentManager: ContentManager;
 
@@ -151,7 +151,7 @@ test("getContent should delegate to EntityQueryService", async () => {
   const mockEntity = {
     id: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
     content: "Test content",
     created: new Date().toISOString(),
@@ -172,12 +172,12 @@ test("getContent should delegate to EntityQueryService", async () => {
   );
 });
 
-test("getPageContent should delegate to EntityQueryService", async () => {
+test("getRouteContent should delegate to EntityQueryService", async () => {
   const mockEntities = [
     {
       id: "site-content-preview:landing:hero",
       entityType: "site-content-preview",
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "hero",
       content: "Hero content",
       created: new Date().toISOString(),
@@ -187,14 +187,14 @@ test("getPageContent should delegate to EntityQueryService", async () => {
 
   mockListEntities.mockResolvedValue(mockEntities);
 
-  const result = await contentManager.getPageContent(
+  const result = await contentManager.getRouteContent(
     "site-content-preview",
     "landing",
   );
 
   expect(result).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-preview", {
-    filter: { metadata: { pageId: "landing" } },
+    filter: { metadata: { routeId: "landing" } },
   });
 });
 
@@ -202,7 +202,7 @@ test("getSectionContent should delegate to EntityQueryService", async () => {
   const mockEntity = {
     id: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
     content: "Section content",
     created: new Date().toISOString(),
@@ -229,7 +229,7 @@ test("contentExists should delegate to EntityQueryService", async () => {
   mockGetEntity.mockResolvedValue({
     id: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
   });
 
@@ -251,12 +251,12 @@ test("contentExists should delegate to EntityQueryService", async () => {
 // Convenience Methods Tests
 // ========================================
 
-test("getPreviewEntities should work with and without pageId", async () => {
+test("getPreviewEntities should work with and without routeId", async () => {
   const mockEntities = [
     {
       id: "site-content-preview:landing:hero",
       entityType: "site-content-preview",
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "hero",
       content: "Content",
       created: new Date().toISOString(),
@@ -266,29 +266,29 @@ test("getPreviewEntities should work with and without pageId", async () => {
 
   mockListEntities.mockResolvedValue(mockEntities);
 
-  // With pageId
-  const resultWithPage = await contentManager.getPreviewEntities({
-    pageId: "landing",
+  // With routeId
+  const resultWithRoute = await contentManager.getPreviewEntities({
+    routeId: "landing",
   });
-  expect(resultWithPage).toEqual(mockEntities);
+  expect(resultWithRoute).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-preview", {
-    filter: { metadata: { pageId: "landing" } },
+    filter: { metadata: { routeId: "landing" } },
   });
 
   mockListEntities.mockClear();
 
-  // Without pageId
+  // Without routeId
   const resultAll = await contentManager.getPreviewEntities({});
   expect(resultAll).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-preview", {});
 });
 
-test("getProductionEntities should work with and without pageId", async () => {
+test("getProductionEntities should work with and without routeId", async () => {
   const mockEntities = [
     {
       id: "site-content-production:landing:hero",
       entityType: "site-content-production",
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "hero",
       content: "Content",
       created: new Date().toISOString(),
@@ -298,18 +298,18 @@ test("getProductionEntities should work with and without pageId", async () => {
 
   mockListEntities.mockResolvedValue(mockEntities);
 
-  // With pageId
-  const resultWithPage = await contentManager.getProductionEntities({
-    pageId: "landing",
+  // With routeId
+  const resultWithRoute = await contentManager.getProductionEntities({
+    routeId: "landing",
   });
-  expect(resultWithPage).toEqual(mockEntities);
+  expect(resultWithRoute).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-production", {
-    filter: { metadata: { pageId: "landing" } },
+    filter: { metadata: { routeId: "landing" } },
   });
 
   mockListEntities.mockClear();
 
-  // Without pageId
+  // Without routeId
   const resultAll = await contentManager.getProductionEntities({});
   expect(resultAll).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-production", {});
@@ -358,7 +358,7 @@ test("waitForContentJobs should delegate to JobTrackingService", async () => {
       entityId: "site-content-preview:landing:hero",
       entityType: "site-content-preview" as const,
       operation: "generate" as const,
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "hero",
       templateName: "hero-template",
       route: {
@@ -391,7 +391,7 @@ test("getContentJobStatuses should return job status map", async () => {
       entityId: "site-content-preview:landing:hero",
       entityType: "site-content-preview" as const,
       operation: "generate" as const,
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "hero",
       templateName: "hero-template",
       route: {
@@ -507,7 +507,7 @@ test("generateAll should queue batch operation for all sections", async () => {
               entityId: "landing:hero",
               entityType: "site-content-preview",
               operation: "generate",
-              pageId: "landing",
+              routeId: "landing",
               sectionId: "hero",
               templateName: "hero",
               siteConfig: { siteTitle: "Test Site" },
@@ -529,7 +529,7 @@ test("generateAll should queue batch operation for all sections", async () => {
               entityId: "landing:features",
               entityType: "site-content-preview",
               operation: "generate",
-              pageId: "landing",
+              routeId: "landing",
               sectionId: "features",
               templateName: "features",
               siteConfig: { siteTitle: "Test Site" },
@@ -551,7 +551,7 @@ test("generateAll should queue batch operation for all sections", async () => {
               entityId: "about:content",
               entityType: "site-content-preview",
               operation: "generate",
-              pageId: "about",
+              routeId: "about",
               sectionId: "content",
               templateName: "content",
               siteConfig: { siteTitle: "Test Site" },
@@ -573,7 +573,7 @@ test("generateAll should queue batch operation for all sections", async () => {
   );
 });
 
-test("generateAll should respect pageId filter", async () => {
+test("generateAll should respect routeId filter", async () => {
   const mockRoutes: RouteDefinition[] = [
     {
       id: "landing",
@@ -600,7 +600,7 @@ test("generateAll should respect pageId filter", async () => {
 
   const batchId = await contentManager.generateAll(
     {
-      pageId: "landing",
+      routeId: "landing",
       dryRun: false,
       source: "test",
       metadata: {
@@ -629,7 +629,7 @@ test("generateAll should respect pageId filter", async () => {
               entityId: "landing:hero",
               entityType: "site-content-preview",
               operation: "generate",
-              pageId: "landing",
+              routeId: "landing",
               sectionId: "hero",
               templateName: "hero",
               siteConfig: undefined,

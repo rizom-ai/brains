@@ -2,10 +2,10 @@ import type { SiteContentPreview, SiteContentProduction } from "../../types";
 import type { ContentComparison } from "../types";
 
 /**
- * Compare preview and production content for a given page and section
+ * Compare preview and production content for a given route and section
  */
 export function compareContent(
-  pageId: string,
+  routeId: string,
   sectionId: string,
   preview: SiteContentPreview,
   production: SiteContentProduction,
@@ -40,12 +40,12 @@ export function compareContent(
     });
   }
 
-  // Note: We don't compare page/section as they should always match for the same content piece
+  // Note: We don't compare route/section as they should always match for the same content piece
   // Note: We don't compare entityType as they are intentionally different
   // Note: We don't compare id as they are intentionally different
 
   return {
-    pageId,
+    routeId,
     sectionId,
     preview,
     production,
@@ -63,7 +63,7 @@ export function isContentEquivalent(
 ): boolean {
   return (
     preview.content === production.content &&
-    preview.pageId === production.pageId &&
+    preview.routeId === production.routeId &&
     preview.sectionId === production.sectionId
   );
 }

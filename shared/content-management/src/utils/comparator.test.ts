@@ -1,23 +1,23 @@
 import { describe, it, expect } from "bun:test";
-import type { SiteContent } from "@brains/types";
+import type { SiteContentEntity } from "@brains/types";
 import { compareContent, isContentEquivalent } from "./comparator";
 
 describe("Content Comparator", () => {
-  const contentA: SiteContent = {
+  const contentA: SiteContentEntity = {
     id: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
     content: "# Hero Section\n\nWelcome to our site!",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
     created: "2024-01-01T00:00:00Z",
     updated: "2024-01-01T01:00:00Z",
   };
 
-  const contentB: SiteContent = {
+  const contentB: SiteContentEntity = {
     id: "site-content-production:landing:hero",
     entityType: "site-content-production",
     content: "# Hero Section\n\nWelcome to our site!",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
     created: "2024-01-01T00:00:00Z",
     updated: "2024-01-01T00:30:00Z",
@@ -27,7 +27,7 @@ describe("Content Comparator", () => {
     it("should identify identical content", () => {
       const result = compareContent("landing", "hero", contentA, contentB);
 
-      expect(result.pageId).toBe("landing");
+      expect(result.routeId).toBe("landing");
       expect(result.sectionId).toBe("hero");
       expect(result.contentA).toBe(contentA);
       expect(result.contentB).toBe(contentB);
@@ -36,7 +36,7 @@ describe("Content Comparator", () => {
     });
 
     it("should detect content differences", () => {
-      const differentContent: SiteContent = {
+      const differentContent: SiteContentEntity = {
         ...contentB,
         content: "# Hero Section\n\nDifferent content!",
       };
@@ -63,7 +63,7 @@ describe("Content Comparator", () => {
     });
 
     it("should handle perfectly identical entities", () => {
-      const identicalContent: SiteContent = {
+      const identicalContent: SiteContentEntity = {
         ...contentB,
         updated: contentA.updated, // Make timestamps match
       };
@@ -95,11 +95,11 @@ describe("Content Comparator", () => {
       );
     });
 
-    it("should not compare page/section differences", () => {
-      // Page and section should always match for comparison, so no need to flag differences
+    it("should not compare route/section differences", () => {
+      // Route and section should always match for comparison, so no need to flag differences
       const result = compareContent("landing", "hero", contentA, contentB);
 
-      expect(result.differences.some((d) => d.field === "pageId")).toBe(false);
+      expect(result.differences.some((d) => d.field === "routeId")).toBe(false);
       expect(result.differences.some((d) => d.field === "sectionId")).toBe(
         false,
       );
@@ -113,7 +113,7 @@ describe("Content Comparator", () => {
     });
 
     it("should return false for different content", () => {
-      const differentContent: SiteContent = {
+      const differentContent: SiteContentEntity = {
         ...contentB,
         content: "Different content",
       };
@@ -122,18 +122,18 @@ describe("Content Comparator", () => {
       expect(result).toBe(false);
     });
 
-    it("should return false for different page", () => {
-      const differentPage: SiteContent = {
+    it("should return false for different route", () => {
+      const differentRoute: SiteContentEntity = {
         ...contentB,
-        pageId: "about",
+        routeId: "about",
       };
 
-      const result = isContentEquivalent(contentA, differentPage);
+      const result = isContentEquivalent(contentA, differentRoute);
       expect(result).toBe(false);
     });
 
     it("should return false for different section", () => {
-      const differentSection: SiteContent = {
+      const differentSection: SiteContentEntity = {
         ...contentB,
         sectionId: "features",
       };
@@ -143,7 +143,7 @@ describe("Content Comparator", () => {
     });
 
     it("should ignore timestamp differences", () => {
-      const differentTimestamps: SiteContent = {
+      const differentTimestamps: SiteContentEntity = {
         ...contentB,
         created: "2024-01-02T00:00:00Z",
         updated: "2024-01-02T01:00:00Z",
@@ -154,7 +154,7 @@ describe("Content Comparator", () => {
     });
 
     it("should ignore ID differences", () => {
-      const differentId: SiteContent = {
+      const differentId: SiteContentEntity = {
         ...contentB,
         id: "different-id",
       };

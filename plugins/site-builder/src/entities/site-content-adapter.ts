@@ -13,7 +13,7 @@ import { z } from "zod";
 
 // Schema for parsing frontmatter
 const frontmatterSchema = z.object({
-  pageId: z.string(),
+  routeId: z.string(),
   sectionId: z.string(),
   // Content origin metadata
   generatedBy: z.string().optional(),
@@ -38,7 +38,7 @@ abstract class SiteContentAdapter<
     // The content field already contains the formatted content
     // We just need to add/update the frontmatter
     const metadata: Record<string, unknown> = {
-      pageId: entity.pageId,
+      routeId: entity.routeId,
       sectionId: entity.sectionId,
     };
 
@@ -57,7 +57,7 @@ abstract class SiteContentAdapter<
   }
 
   public fromMarkdown(markdown: string): Partial<T> {
-    // Parse frontmatter to get pageId and sectionId
+    // Parse frontmatter to get routeId and sectionId
     const { metadata } = parseMarkdownWithFrontmatter(
       markdown,
       frontmatterSchema,
@@ -66,7 +66,7 @@ abstract class SiteContentAdapter<
     // The content is the formatted markdown
     // For import, we store the full markdown as the source of truth
     const result: Partial<T> = {
-      pageId: metadata.pageId,
+      routeId: metadata.routeId,
       sectionId: metadata.sectionId,
       content: markdown, // Store the full markdown including frontmatter
     } as Partial<T>;
@@ -76,7 +76,7 @@ abstract class SiteContentAdapter<
 
   public extractMetadata(entity: T): Record<string, unknown> {
     return {
-      pageId: entity.pageId,
+      routeId: entity.routeId,
       sectionId: entity.sectionId,
     };
   }
@@ -91,7 +91,7 @@ abstract class SiteContentAdapter<
 
   public generateFrontMatter(entity: T): string {
     const metadata: Record<string, unknown> = {
-      pageId: entity.pageId,
+      routeId: entity.routeId,
       sectionId: entity.sectionId,
     };
 

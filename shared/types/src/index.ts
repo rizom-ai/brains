@@ -20,7 +20,7 @@ export { TemplateSchema } from "./templates";
 
 // Content types (site content, routes, sections)
 export type {
-  SiteContent,
+  SiteContentEntity,
   RouteDefinition,
   SectionDefinition,
   SiteContentEntityType,

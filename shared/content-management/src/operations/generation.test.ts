@@ -140,7 +140,7 @@ test("generate should queue content generation jobs", async () => {
     entityId: "landing:hero",
     entityType: "site-content-preview",
     operation: "generate",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
     templateName: "hero-template",
   });
@@ -251,7 +251,7 @@ test("generate should queue multiple jobs for multiple sections", async () => {
     entityId: "landing:hero",
     entityType: "site-content-preview",
     operation: "generate",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
     templateName: "template-name",
   });
@@ -275,7 +275,7 @@ test("generate should queue multiple jobs for multiple sections", async () => {
           entityId: "landing:hero",
           entityType: "site-content-preview",
           operation: "generate",
-          pageId: "landing",
+          routeId: "landing",
           sectionId: "hero",
           templateName: "template-name",
           siteConfig: { siteTitle: "Test Site" },
@@ -286,7 +286,7 @@ test("generate should queue multiple jobs for multiple sections", async () => {
   );
 });
 
-test("generate should filter by pageId", async () => {
+test("generate should filter by routeId", async () => {
   const routes: RouteDefinition[] = [
     {
       path: "/landing",
@@ -307,7 +307,7 @@ test("generate should filter by pageId", async () => {
   const templateResolver = mock().mockReturnValue("template-name");
 
   const result = await operations.generate(
-    { pageId: "landing", dryRun: false },
+    { routeId: "landing", dryRun: false },
     routes,
     templateResolver,
     "site-content-preview",
@@ -317,5 +317,5 @@ test("generate should filter by pageId", async () => {
   expect(result.totalSections).toBe(1);
   expect(result.queuedSections).toBe(1);
   expect(result.jobs).toHaveLength(1);
-  expect(result.jobs[0]?.pageId).toBe("landing");
+  expect(result.jobs[0]?.routeId).toBe("landing");
 });

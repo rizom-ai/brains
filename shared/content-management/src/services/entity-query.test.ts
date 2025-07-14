@@ -30,9 +30,9 @@ const mockLogger = createSilentLogger("entity-query-test");
 
 const mockGenerateId = (
   type: string,
-  pageId: string,
+  routeId: string,
   sectionId: string,
-): string => `${type}:${pageId}:${sectionId}`;
+): string => `${type}:${routeId}:${sectionId}`;
 
 let queryService: EntityQueryService;
 
@@ -49,7 +49,7 @@ test("getContent should return entity when found", async () => {
   const mockEntity = {
     id: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
     content: "Test content",
     created: new Date().toISOString(),
@@ -93,12 +93,12 @@ test("getContent should handle errors gracefully", async () => {
   // Silent logger doesn't need to be tested for specific calls
 });
 
-test("getPageContent should return entities for page", async () => {
+test("getRouteContent should return entities for route", async () => {
   const mockEntities = [
     {
       id: "site-content-preview:landing:hero",
       entityType: "site-content-preview",
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "hero",
       content: "Hero content",
       created: new Date().toISOString(),
@@ -107,7 +107,7 @@ test("getPageContent should return entities for page", async () => {
     {
       id: "site-content-preview:landing:features",
       entityType: "site-content-preview",
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "features",
       content: "Features content",
       created: new Date().toISOString(),
@@ -117,21 +117,21 @@ test("getPageContent should return entities for page", async () => {
 
   mockListEntities.mockResolvedValue(mockEntities);
 
-  const result = await queryService.getPageContent(
+  const result = await queryService.getRouteContent(
     "site-content-preview",
     "landing",
   );
 
   expect(result).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-preview", {
-    filter: { metadata: { pageId: "landing" } },
+    filter: { metadata: { routeId: "landing" } },
   });
 });
 
-test("getPageContent should handle errors gracefully", async () => {
+test("getRouteContent should handle errors gracefully", async () => {
   mockListEntities.mockRejectedValue(new Error("Query error"));
 
-  const result = await queryService.getPageContent(
+  const result = await queryService.getRouteContent(
     "site-content-preview",
     "landing",
   );
@@ -144,7 +144,7 @@ test("getSectionContent should generate ID and get entity", async () => {
   const mockEntity = {
     id: "site-content-preview:landing:hero",
     entityType: "site-content-preview",
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
     content: "Section content",
     created: new Date().toISOString(),
@@ -172,7 +172,7 @@ test("getAllContent should return all entities of type", async () => {
     {
       id: "entity1",
       entityType: "site-content-preview",
-      pageId: "page1",
+      routeId: "route1",
       sectionId: "section1",
       content: "Content 1",
       created: new Date().toISOString(),
@@ -181,7 +181,7 @@ test("getAllContent should return all entities of type", async () => {
     {
       id: "entity2",
       entityType: "site-content-preview",
-      pageId: "page2",
+      routeId: "route2",
       sectionId: "section2",
       content: "Content 2",
       created: new Date().toISOString(),
@@ -229,7 +229,7 @@ test("queryContent should return entities matching criteria", async () => {
     {
       id: "entity1",
       entityType: "site-content-preview",
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "hero",
       content: "Query content",
       created: new Date().toISOString(),
@@ -240,22 +240,22 @@ test("queryContent should return entities matching criteria", async () => {
   mockListEntities.mockResolvedValue(mockEntities);
 
   const result = await queryService.queryContent("site-content-preview", {
-    pageId: "landing",
+    routeId: "landing",
     sectionId: "hero",
   });
 
   expect(result).toEqual(mockEntities);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-preview", {
-    filter: { metadata: { pageId: "landing", sectionId: "hero" } },
+    filter: { metadata: { routeId: "landing", sectionId: "hero" } },
   });
 });
 
-test("getPageStats should return stats for multiple entity types", async () => {
+test("getRouteStats should return stats for multiple entity types", async () => {
   const previewEntities = [
     {
       id: "preview1",
       entityType: "site-content-preview",
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "hero",
       content: "Preview 1",
       created: new Date().toISOString(),
@@ -264,7 +264,7 @@ test("getPageStats should return stats for multiple entity types", async () => {
     {
       id: "preview2",
       entityType: "site-content-preview",
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "features",
       content: "Preview 2",
       created: new Date().toISOString(),
@@ -275,7 +275,7 @@ test("getPageStats should return stats for multiple entity types", async () => {
     {
       id: "production1",
       entityType: "site-content-production",
-      pageId: "landing",
+      routeId: "landing",
       sectionId: "hero",
       content: "Production 1",
       created: new Date().toISOString(),
@@ -287,7 +287,7 @@ test("getPageStats should return stats for multiple entity types", async () => {
     .mockResolvedValueOnce(previewEntities)
     .mockResolvedValueOnce(productionEntities);
 
-  const result = await queryService.getPageStats("landing", [
+  const result = await queryService.getRouteStats("landing", [
     "site-content-preview",
     "site-content-production",
   ]);
@@ -300,17 +300,17 @@ test("getPageStats should return stats for multiple entity types", async () => {
 
   expect(mockListEntities).toHaveBeenCalledTimes(2);
   expect(mockListEntities).toHaveBeenCalledWith("site-content-preview", {
-    filter: { metadata: { pageId: "landing" } },
+    filter: { metadata: { routeId: "landing" } },
   });
   expect(mockListEntities).toHaveBeenCalledWith("site-content-production", {
-    filter: { metadata: { pageId: "landing" } },
+    filter: { metadata: { routeId: "landing" } },
   });
 });
 
-test("getPageStats should handle errors gracefully", async () => {
+test("getRouteStats should handle errors gracefully", async () => {
   mockListEntities.mockRejectedValue(new Error("Query error"));
 
-  const result = await queryService.getPageStats("landing", [
+  const result = await queryService.getRouteStats("landing", [
     "site-content-preview",
     "site-content-production",
   ]);

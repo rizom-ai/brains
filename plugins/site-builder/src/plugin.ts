@@ -17,14 +17,12 @@ import {
   siteContentPreviewAdapter,
   siteContentProductionAdapter,
 } from "./entities/site-content-adapter";
-import {
-  ContentManager,
-  GenerateOptionsSchema,
-} from "@brains/content-management";
+import { ContentManager } from "@brains/content-management";
 import {
   SiteOperations,
   PromoteOptionsSchema,
   RollbackOptionsSchema,
+  GenerateOptionsSchema,
 } from "./content-management";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
@@ -199,16 +197,16 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
   protected override async getTools(): Promise<PluginTool[]> {
     const tools: PluginTool[] = [];
 
-    // Generate tool - generates content for pages without building
+    // Generate tool - generates content for routes without building
     tools.push(
       this.createTool(
         "generate",
-        "Generate content for pages that don't have it",
+        "Generate content for routes that don't have it",
         {
-          page: z
+          routeId: z
             .string()
             .optional()
-            .describe("Optional: specific page filter"),
+            .describe("Optional: specific route filter"),
           section: z
             .string()
             .optional()
@@ -246,7 +244,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           // Count the sections that will be generated first
           let sectionsToGenerate = 0;
           for (const route of routes) {
-            if (options.pageId && route.id !== options.pageId) continue;
+            if (options.routeId && route.id !== options.routeId) continue;
 
             const sections = options.sectionId
               ? route.sections.filter((s) => s.id === options.sectionId)
@@ -296,7 +294,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
     tools.push(
       this.createTool(
         "build",
-        "Build a static site from registered pages",
+        "Build a static site from registered routes",
         {
           environment: z
             .enum(["preview", "production"])
@@ -404,7 +402,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       ),
     );
 
-    // List pages tool
+    // List routes tool
     tools.push(
       this.createTool(
         "list_routes",
@@ -462,10 +460,10 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         "promote-content",
         "Promote preview content to production",
         {
-          page: z
+          routeId: z
             .string()
             .optional()
-            .describe("Optional: specific page filter"),
+            .describe("Optional: specific route filter"),
           section: z
             .string()
             .optional()
@@ -548,10 +546,10 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         "rollback-content",
         "Remove production content (rollback to preview-only)",
         {
-          page: z
+          routeId: z
             .string()
             .optional()
-            .describe("Optional: specific page filter"),
+            .describe("Optional: specific route filter"),
           section: z
             .string()
             .optional()
@@ -694,11 +692,11 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       ),
     );
 
-    // Generate all tool - generates content for all sections across all pages
+    // Generate all tool - generates content for all sections across all routes
     tools.push(
       this.createTool(
         "generate-all",
-        "Generate content for all sections across all pages",
+        "Generate content for all sections across all routes",
         {
           dryRun: z
             .boolean()
@@ -776,7 +774,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
     return [
       {
         name: "generate-all",
-        description: "Generate content for all sections across all pages",
+        description: "Generate content for all sections across all routes",
         usage: "/generate-all [--dry-run]",
         handler: async (args, context): Promise<CommandResponse> => {
           const dryRun = args.includes("--dry-run");
@@ -834,7 +832,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
             return {
               type: "batch-operation",
-              message: `🚀 **Content generation started** - Generating content for all sections across all pages. This may take a moment...`,
+              message: `🚀 **Content generation started** - Generating content for all sections across all routes. This may take a moment...`,
               batchId,
               operationCount: await this.getBatchOperationCount(routes),
             };

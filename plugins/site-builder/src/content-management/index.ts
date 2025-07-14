@@ -18,4 +18,8 @@ export type {
 } from "./types";
 
 // Export schemas for validation
-export { PromoteOptionsSchema, RollbackOptionsSchema } from "./schemas";
+export {
+  PromoteOptionsSchema,
+  RollbackOptionsSchema,
+  GenerateOptionsSchema,
+} from "./schemas";

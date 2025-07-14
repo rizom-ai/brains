@@ -20,7 +20,7 @@ export const ContentEnvironmentSchema = z.enum(["preview"]);
  * Promote operation options schema
  */
 export const PromoteOptionsSchema = z.object({
-  pageId: z.string().optional().describe("Optional: specific page filter"),
+  routeId: z.string().optional().describe("Optional: specific route filter"),
   sectionId: z
     .string()
     .optional()
@@ -42,7 +42,7 @@ export const PromoteResultSchema = z.object({
   success: z.boolean(),
   promoted: z.array(
     z.object({
-      pageId: z.string(),
+      routeId: z.string(),
       sectionId: z.string(),
       previewId: z.string(),
       productionId: z.string(),
@@ -50,7 +50,7 @@ export const PromoteResultSchema = z.object({
   ),
   skipped: z.array(
     z.object({
-      pageId: z.string(),
+      routeId: z.string(),
       sectionId: z.string(),
       reason: z.string(),
     }),
@@ -62,7 +62,7 @@ export const PromoteResultSchema = z.object({
  * Rollback operation options schema
  */
 export const RollbackOptionsSchema = z.object({
-  pageId: z.string().optional().describe("Optional: specific page filter"),
+  routeId: z.string().optional().describe("Optional: specific route filter"),
   sectionId: z
     .string()
     .optional()
@@ -84,14 +84,14 @@ export const RollbackResultSchema = z.object({
   success: z.boolean(),
   rolledBack: z.array(
     z.object({
-      pageId: z.string(),
+      routeId: z.string(),
       sectionId: z.string(),
       productionId: z.string(),
     }),
   ),
   skipped: z.array(
     z.object({
-      pageId: z.string(),
+      routeId: z.string(),
       sectionId: z.string(),
       reason: z.string(),
     }),
@@ -103,7 +103,7 @@ export const RollbackResultSchema = z.object({
  * Regenerate operation options schema
  */
 export const RegenerateOptionsSchema = z.object({
-  pageId: z.string().describe("Required: target page"),
+  routeId: z.string().describe("Required: target route"),
   sectionId: z.string().optional().describe("Optional: specific section"),
   environment: ContentEnvironmentSchema.default("preview").describe(
     "Environment: only preview content can be regenerated (production content comes from promotion)",
@@ -122,7 +122,7 @@ export const RegenerateResultSchema = z.object({
   success: z.boolean(),
   regenerated: z.array(
     z.object({
-      pageId: z.string(),
+      routeId: z.string(),
       sectionId: z.string(),
       entityId: z.string(),
       mode: RegenerateModeSchema,
@@ -130,7 +130,7 @@ export const RegenerateResultSchema = z.object({
   ),
   skipped: z.array(
     z.object({
-      pageId: z.string(),
+      routeId: z.string(),
       sectionId: z.string(),
       reason: z.string(),
     }),
@@ -145,7 +145,7 @@ export const RegenerateResultSchema = z.object({
  * Generate operation options schema
  */
 export const GenerateOptionsSchema = z.object({
-  pageId: z.string().optional().describe("Optional: specific page filter"),
+  routeId: z.string().optional().describe("Optional: specific route filter"),
   sectionId: z
     .string()
     .optional()
@@ -165,7 +165,7 @@ export const GenerateResultSchema = z.object({
   totalSections: z.number(),
   generated: z.array(
     z.object({
-      pageId: z.string(),
+      routeId: z.string(),
       sectionId: z.string(),
       entityId: z.string(),
       entityType: z.string(),
@@ -173,7 +173,7 @@ export const GenerateResultSchema = z.object({
   ),
   skipped: z.array(
     z.object({
-      pageId: z.string(),
+      routeId: z.string(),
       sectionId: z.string(),
       reason: z.string(),
     }),
@@ -187,7 +187,7 @@ export const GenerateResultSchema = z.object({
  * Content comparison result schema
  */
 export const ContentComparisonSchema = z.object({
-  pageId: z.string(),
+  routeId: z.string(),
   sectionId: z.string(),
   preview: siteContentPreviewSchema,
   production: siteContentProductionSchema,

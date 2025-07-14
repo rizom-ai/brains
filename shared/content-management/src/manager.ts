@@ -13,8 +13,8 @@ import {
   getContentJobStatuses,
   type ContentGenerationResult,
 } from "./services/job-tracking";
+import type { SiteContentEntity } from "@brains/types";
 import type {
-  SiteContent,
   SiteContentEntityType,
   GenerateOptions,
   ContentGenerationJob,
@@ -128,36 +128,36 @@ export class ContentManager {
   async getContent(
     entityType: SiteContentEntityType,
     entityId: string,
-  ): Promise<SiteContent | null> {
+  ): Promise<SiteContentEntity | null> {
     return this.entityQuery.getContent(entityType, entityId);
   }
 
   /**
-   * Get all content for a specific page
+   * Get all content for a specific route
    */
-  async getPageContent(
+  async getRouteContent(
     entityType: SiteContentEntityType,
-    pageId: string,
-  ): Promise<SiteContent[]> {
-    return this.entityQuery.getPageContent(entityType, pageId);
+    routeId: string,
+  ): Promise<SiteContentEntity[]> {
+    return this.entityQuery.getRouteContent(entityType, routeId);
   }
 
   /**
-   * Get content for a specific page section
+   * Get content for a specific route section
    */
   async getSectionContent(
     entityType: SiteContentEntityType,
-    pageId: string,
+    routeId: string,
     sectionId: string,
     generateId: (
       type: SiteContentEntityType,
-      pageId: string,
+      routeId: string,
       sectionId: string,
     ) => string,
-  ): Promise<SiteContent | null> {
+  ): Promise<SiteContentEntity | null> {
     return this.entityQuery.getSectionContent(
       entityType,
-      pageId,
+      routeId,
       sectionId,
       generateId,
     );
@@ -168,7 +168,7 @@ export class ContentManager {
    */
   async getAllContent(
     entityType: SiteContentEntityType,
-  ): Promise<SiteContent[]> {
+  ): Promise<SiteContentEntity[]> {
     return this.entityQuery.getAllContent(entityType);
   }
 
@@ -177,17 +177,17 @@ export class ContentManager {
    */
   async contentExists(
     entityType: SiteContentEntityType,
-    pageId: string,
+    routeId: string,
     sectionId: string,
     generateId: (
       type: SiteContentEntityType,
-      pageId: string,
+      routeId: string,
       sectionId: string,
     ) => string,
   ): Promise<boolean> {
     return this.entityQuery.contentExists(
       entityType,
-      pageId,
+      routeId,
       sectionId,
       generateId,
     );
@@ -199,7 +199,7 @@ export class ContentManager {
   async queryContent(
     entityType: SiteContentEntityType,
     filter: { metadata?: Record<string, unknown> },
-  ): Promise<SiteContent[]> {
+  ): Promise<SiteContentEntity[]> {
     return this.entityQuery.queryContent(entityType, filter);
   }
 
@@ -207,10 +207,10 @@ export class ContentManager {
    * Get page statistics across multiple entity types
    */
   async getPageStats(
-    pageId: string,
+    routeId: string,
     entityTypes: SiteContentEntityType[],
   ): Promise<Record<SiteContentEntityType, number> & { total: number }> {
-    return this.entityQuery.getPageStats(pageId, entityTypes);
+    return this.entityQuery.getRouteStats(routeId, entityTypes);
   }
 
   // ========================================
@@ -251,10 +251,10 @@ export class ContentManager {
    * Get preview entities for a page (convenience method)
    */
   async getPreviewEntities(options: {
-    pageId?: string;
-  }): Promise<SiteContent[]> {
-    if (options.pageId) {
-      return this.getPageContent("site-content-preview", options.pageId);
+    routeId?: string;
+  }): Promise<SiteContentEntity[]> {
+    if (options.routeId) {
+      return this.getRouteContent("site-content-preview", options.routeId);
     }
     return this.getAllContent("site-content-preview");
   }
@@ -263,10 +263,10 @@ export class ContentManager {
    * Get production entities for a page (convenience method)
    */
   async getProductionEntities(options: {
-    pageId?: string;
-  }): Promise<SiteContent[]> {
-    if (options.pageId) {
-      return this.getPageContent("site-content-production", options.pageId);
+    routeId?: string;
+  }): Promise<SiteContentEntity[]> {
+    if (options.routeId) {
+      return this.getRouteContent("site-content-production", options.routeId);
     }
     return this.getAllContent("site-content-production");
   }
@@ -275,12 +275,12 @@ export class ContentManager {
    * Check if content exists (convenience method with default generate function)
    */
   async exists(
-    pageId: string,
+    routeId: string,
     sectionId: string,
     type: "preview" | "production",
     generateId?: (
       type: SiteContentEntityType,
-      pageId: string,
+      routeId: string,
       sectionId: string,
     ) => string,
   ): Promise<boolean> {
@@ -289,13 +289,13 @@ export class ContentManager {
 
     const defaultGenerateId = (
       entityType: SiteContentEntityType,
-      pageId: string,
+      routeId: string,
       sectionId: string,
-    ): string => `${entityType}:${pageId}:${sectionId}`;
+    ): string => `${entityType}:${routeId}:${sectionId}`;
 
     return this.contentExists(
       entityType,
-      pageId,
+      routeId,
       sectionId,
       generateId ?? defaultGenerateId,
     );
@@ -352,8 +352,8 @@ export class ContentManager {
 
     // Build operations for all sections
     for (const route of routes) {
-      const pageId = route.id;
-      if (options.pageId && pageId !== options.pageId) {
+      const routeId = route.id;
+      if (options.routeId && routeId !== options.routeId) {
         continue;
       }
 
@@ -365,18 +365,18 @@ export class ContentManager {
         // Skip sections that already have content
         if (sectionDefinition.content) {
           this.logger.debug("Skipping section with existing content", {
-            pageId,
+            routeId,
             sectionId: sectionDefinition.id,
           });
           continue;
         }
 
-        const entityId = `${pageId}:${sectionDefinition.id}`;
+        const entityId = `${routeId}:${sectionDefinition.id}`;
 
         // Skip if dry run
         if (options.dryRun) {
           this.logger.debug("Dry run: would generate", {
-            pageId,
+            routeId,
             sectionId: sectionDefinition.id,
             entityId,
           });
@@ -393,7 +393,7 @@ export class ContentManager {
               entityId,
               entityType: targetEntityType,
               operation: "generate",
-              pageId,
+              routeId,
               sectionId: sectionDefinition.id,
               templateName: templateResolver(sectionDefinition),
               siteConfig,
