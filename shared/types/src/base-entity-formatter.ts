@@ -1,5 +1,7 @@
 import type { ContentFormatter } from "./formatters";
 import type { BaseEntity } from "./entities";
+import { parseMarkdownWithFrontmatter, stripMarkdown } from "@brains/utils";
+import { z } from "zod";
 
 /**
  * Formatter for base entities
@@ -9,53 +11,68 @@ import type { BaseEntity } from "./entities";
  */
 export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
   /**
-   * Format a base entity as markdown
+   * Format a base entity as concise, single-line text
    */
   format(data: BaseEntity): string {
     const entity = data;
-    let output = "";
+    let parts: string[] = [];
 
-    // Display entity header
-    output += `# Entity: ${entity.id}\n\n`;
+    // Start with ID in brackets (escaped to prevent markdown interpretation)
+    parts.push(`\\[${entity.id}\\]`);
 
-    // Display core fields
-    output += "## Core Fields\n\n";
-    output += `- **ID**: ${entity.id}\n`;
-    output += `- **Type**: ${entity.entityType}\n`;
-
-    if (entity.created) {
-      try {
-        const createdDate = new Date(entity.created);
-        output += `- **Created**: ${createdDate.toLocaleString()}\n`;
-      } catch {
-        output += `- **Created**: ${entity.created}\n`;
-      }
-    }
-
-    if (entity.updated) {
-      try {
-        const updatedDate = new Date(entity.updated);
-        output += `- **Updated**: ${updatedDate.toLocaleString()}\n`;
-      } catch {
-        output += `- **Updated**: ${entity.updated}\n`;
-      }
-    }
-
-    // Display metadata if present
-    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
-      output += "\n## Metadata\n\n";
-      for (const [key, value] of Object.entries(entity.metadata)) {
-        output += `- **${key}**: ${JSON.stringify(value)}\n`;
-      }
-    }
-
-    // Display content
+    // Parse content to separate frontmatter from actual content
+    let actualContent = entity.content;
+    let frontmatter: Record<string, unknown> = {};
+    
     if (entity.content && entity.content.trim().length > 0) {
-      output += "\n## Content\n\n";
-      output += entity.content;
+      try {
+        const parsed = parseMarkdownWithFrontmatter(
+          entity.content,
+          z.record(z.unknown()) // Allow any frontmatter structure
+        );
+        actualContent = parsed.content;
+        frontmatter = parsed.metadata;
+      } catch {
+        // If parsing fails, use content as-is
+        actualContent = entity.content;
+      }
     }
 
-    return output;
+    // Add content as plain text (after frontmatter is removed)
+    if (actualContent && actualContent.trim().length > 0) {
+      let content = actualContent.trim();
+      
+      // Remove markdown formatting
+      content = stripMarkdown(content);
+      
+      // Get title from frontmatter
+      const title = frontmatter['title'] || 
+                    entity.metadata?.['title'] || 
+                    entity.metadata?.['name'];
+      
+      // Remove first line if it matches the title
+      if (title) {
+        const firstLine = content.split('\n')[0];
+        if (firstLine && firstLine.trim().toLowerCase() === String(title).toLowerCase()) {
+          const lines = content.split('\n');
+          content = lines.slice(1).join('\n').trim();
+        }
+      }
+      
+      // Add longer content excerpt - let terminal handle wrapping
+      if (content) {
+        // Clean up whitespace but keep as single paragraph
+        const cleaned = content
+          .replace(/\s+/g, ' ') // All whitespace to single spaces
+          .trim();
+        
+        // Provide more content (about 6-7 lines worth at 80 chars per line)
+        const truncated = cleaned.length > 500 ? cleaned.substring(0, 500) + "..." : cleaned;
+        parts.push(truncated);
+      }
+    }
+
+    return parts.join('\n\n');
   }
 
   /**

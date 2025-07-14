@@ -1,5 +1,7 @@
 import matter from "gray-matter";
 import { marked } from "marked";
+import { remark } from "remark";
+import { toString } from "mdast-util-to-string";
 
 /**
  * Parse frontmatter and content from markdown
@@ -118,4 +120,12 @@ export function markdownToHtml(markdown: string): string {
   });
 
   return marked(markdown) as string;
+}
+
+/**
+ * Strip markdown formatting from text to get plain text
+ */
+export function stripMarkdown(text: string): string {
+  const tree = remark().parse(text);
+  return toString(tree);
 }

@@ -157,7 +157,11 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
   ) => void;
   generateContent: GenerateContentFunction;
   parseContent: <T = unknown>(templateName: string, content: string) => T;
-  formatContent: <T = unknown>(templateName: string, data: T, options?: { truncate?: number }) => string;
+  formatContent: <T = unknown>(
+    templateName: string,
+    data: T,
+    options?: { truncate?: number },
+  ) => string;
   generateWithRoute: (
     route: RouteDefinition,
     section: SectionDefinition,

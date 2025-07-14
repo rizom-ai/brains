@@ -40,10 +40,13 @@ export function getBaseCommands(
         const searchQuery = args.join(" ");
 
         try {
-          const searchResults = await context.entityService.search(searchQuery, {
-            limit: 10,
-            sortBy: "relevance",
-          });
+          const searchResults = await context.entityService.search(
+            searchQuery,
+            {
+              limit: 10,
+              sortBy: "relevance",
+            },
+          );
 
           if (searchResults.length === 0) {
             return {
@@ -53,17 +56,19 @@ export function getBaseCommands(
           }
 
           // Format search results using template system
-          const formatted = searchResults.map((result, index) => {
-            const formattedEntity = context.formatContent(
-              "shell:base-entity-display", 
-              result.entity,
-              { truncate: 200 }
-            );
-            
-            return `${index + 1}. Score: ${result.score.toFixed(2)}
+          const formatted = searchResults
+            .map((result) => {
+              const formattedEntity = context.formatContent(
+                "shell:base-entity-display",
+                result.entity,
+                { truncate: 500 },
+              );
+
+              return `Score: ${result.score.toFixed(2)}
 ${formattedEntity}
-${result.excerpt ? `Excerpt: ${result.excerpt}` : ''}`;
-          }).join("\n\n");
+${result.excerpt ? `Excerpt: ${result.excerpt}` : ""}`;
+            })
+            .join("\n\n");
 
           return {
             type: "message",
@@ -92,11 +97,14 @@ ${result.excerpt ? `Excerpt: ${result.excerpt}` : ''}`;
         const entityType = args[0] || "base";
 
         try {
-          const entities = await context.entityService.listEntities(entityType, {
-            limit: 20,
-            sortBy: "updated",
-            sortDirection: "desc",
-          });
+          const entities = await context.entityService.listEntities(
+            entityType,
+            {
+              limit: 20,
+              sortBy: "updated",
+              sortDirection: "desc",
+            },
+          );
 
           if (entities.length === 0) {
             return {
@@ -106,15 +114,15 @@ ${result.excerpt ? `Excerpt: ${result.excerpt}` : ''}`;
           }
 
           // Format list results using template system
-          const formatted = entities.map((entity, index) => {
-            const formattedEntity = context.formatContent(
-              "shell:base-entity-display", 
-              entity,
-              { truncate: 150 }
-            );
-            
-            return `${index + 1}. ${formattedEntity}`;
-          }).join("\n\n");
+          const formatted = entities
+            .map((entity) => {
+              return context.formatContent(
+                "shell:base-entity-display",
+                entity,
+                { truncate: 500 },
+              );
+            })
+            .join("\n\n");
 
           return {
             type: "message",

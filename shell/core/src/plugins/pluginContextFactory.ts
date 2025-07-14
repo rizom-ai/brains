@@ -200,7 +200,11 @@ export class PluginContextFactory {
           throw new ContentGenerationError(templateName, "parsing", error);
         }
       },
-      formatContent: <T = unknown>(templateName: string, data: T, options?: { truncate?: number }): string => {
+      formatContent: <T = unknown>(
+        templateName: string,
+        data: T,
+        options?: { truncate?: number },
+      ): string => {
         try {
           const namespacedTemplateName = this.ensureNamespaced(
             templateName,

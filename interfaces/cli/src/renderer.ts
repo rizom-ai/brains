@@ -14,7 +14,42 @@ class TerminalRenderer extends marked.Renderer {
   }
 
   override paragraph(text: string): string {
-    return `${text}\n`;
+    // Color entity ID lines that start with [ID]
+    let coloredText = text.replace(/^\[([^\]]+)\]/, (_match, id) => {
+      return chalk.cyan.bold(`[${id}]`);
+    });
+
+    // Wrap text if it's longer than 80 characters and not just an ID line
+    if (coloredText.length > 80 && !coloredText.startsWith("[")) {
+      coloredText = this.wrapText(coloredText, 80);
+    }
+
+    return `${coloredText}\n\n`;
+  }
+
+  private wrapText(text: string, width: number): string {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let currentLine = "";
+
+    for (const word of words) {
+      if (currentLine.length + word.length + 1 <= width) {
+        currentLine = currentLine ? `${currentLine} ${word}` : word;
+      } else {
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          lines.push(word); // Word longer than width
+        }
+      }
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines.join("\n");
   }
 
   override code(code: string, language?: string): string {
@@ -101,6 +136,22 @@ export class CLIMarkdownRenderer {
     };
 
     // Parse and render the markdown
-    return marked(markdown, options) as string;
+    const rendered = marked(markdown, options) as string;
+
+    // Decode HTML entities for clean CLI display
+    return this.decodeHtmlEntities(rendered);
+  }
+
+  /**
+   * Decode HTML entities in text for clean CLI display
+   */
+  private decodeHtmlEntities(text: string): string {
+    return text
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, " ");
   }
 }

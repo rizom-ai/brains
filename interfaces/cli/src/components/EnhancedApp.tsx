@@ -39,6 +39,7 @@ export default function EnhancedApp({
   const [isConnected, setIsConnected] = useState(true);
   const [progressEvents, setProgressEvents] = useState<JobProgressEvent[]>([]);
   const [showDetailedProgress, setShowDetailedProgress] = useState(false);
+  const [scrollOffset, setScrollOffset] = useState(0); // 0 = bottom (newest), positive = scroll up
   const { exit } = useApp();
   const { stdout } = useStdout();
 
@@ -95,6 +96,8 @@ export default function EnhancedApp({
       });
 
       setIsLoading(false);
+      // Auto-scroll to bottom for new assistant messages
+      setScrollOffset(0);
     };
 
     registerResponseCallback(handleResponse);
@@ -187,10 +190,29 @@ export default function EnhancedApp({
           timestamp: new Date(),
         },
       ]);
+      setScrollOffset(0); // Reset scroll position
     }
     if (key.ctrl && input === "p") {
       // Toggle progress display
       setShowDetailedProgress(!showDetailedProgress);
+    }
+
+    // Scroll controls - line-based scrolling
+    if (key.upArrow && key.shift) {
+      // Shift+Up: Scroll up by 1 line
+      setScrollOffset((prev) => prev + 1);
+    }
+    if (key.downArrow && key.shift) {
+      // Shift+Down: Scroll down by 1 line
+      setScrollOffset((prev) => Math.max(prev - 1, 0));
+    }
+    if (key.pageUp) {
+      // Page Up: Scroll up by 10 lines
+      setScrollOffset((prev) => prev + 10);
+    }
+    if (key.pageDown) {
+      // Page Down: Scroll down by 10 lines
+      setScrollOffset((prev) => Math.max(prev - 10, 0));
     }
   });
 
@@ -210,7 +232,11 @@ export default function EnhancedApp({
     <Box flexDirection="column" height={terminalHeight}>
       {/* Message history with scrolling */}
       <Box flexGrow={1} height={messageListHeight} overflow="hidden">
-        <MessageList messages={messages} height={messageListHeight} />
+        <MessageList
+          messages={messages}
+          height={messageListHeight}
+          scrollOffset={scrollOffset}
+        />
       </Box>
 
       {/* Multi-line progress display */}

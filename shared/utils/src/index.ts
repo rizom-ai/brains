@@ -18,6 +18,7 @@ export {
   extractIndexedFields,
   generateMarkdown,
   markdownToHtml,
+  stripMarkdown,
 } from "./markdown";
 
 // Frontmatter utilities

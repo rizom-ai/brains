@@ -245,15 +245,23 @@ export class PluginTestHarness {
           mockParsed: true,
         } as T;
       },
-      formatContent: <T = unknown>(templateName: string, data: T, options?: { truncate?: number }): string => {
+      formatContent: <T = unknown>(
+        templateName: string,
+        data: T,
+        options?: { truncate?: number },
+      ): string => {
         // For test harness, return mock formatted content
-        let formatted = JSON.stringify({ templateName, data, mockFormatted: true });
-        
+        let formatted = JSON.stringify({
+          templateName,
+          data,
+          mockFormatted: true,
+        });
+
         // Apply truncation if requested
         if (options?.truncate && formatted.length > options.truncate) {
           formatted = formatted.substring(0, options.truncate) + "...";
         }
-        
+
         return formatted;
       },
       registerTemplate: (): void => {
