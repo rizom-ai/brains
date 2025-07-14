@@ -25,6 +25,7 @@ describe("CLIInterface", () => {
   let mockContext: PluginContext;
   let testHarness: PluginTestHarness;
   let generateContentMock: ReturnType<typeof mock>;
+  let getAllCommandsMock: ReturnType<typeof mock>;
 
   beforeEach(async () => {
     mock.restore();
@@ -43,6 +44,21 @@ describe("CLIInterface", () => {
       }),
     );
     mockContext.generateContent = generateContentMock;
+
+    // Mock getAllCommands to simulate plugin commands
+    getAllCommandsMock = mock(() =>
+      Promise.resolve([
+        {
+          name: "generate-all",
+          description: "Generate content for all sections",
+          handler: async () => ({
+            type: "message",
+            message: "Generating all content...",
+          }),
+        },
+      ]),
+    );
+    mockContext.getAllCommands = getAllCommandsMock;
   });
 
   afterEach(async () => {
@@ -169,6 +185,93 @@ describe("CLIInterface", () => {
     });
 
     // Remove test that accesses private inkApp property
+  });
+
+  describe("Command Registration", () => {
+    it("should not register interface commands through plugin system", async () => {
+      cliInterface = new CLIInterface({
+        theme: {
+          primaryColor: "#0066cc",
+          accentColor: "#ff6600",
+        },
+      });
+
+      // Register the CLI interface
+      const capabilities = await cliInterface.register(mockContext);
+
+      // Should return empty commands array - interface commands are handled separately
+      expect(capabilities.commands).toBeDefined();
+      expect(capabilities.commands).toHaveLength(0);
+
+      // Should still have tools and resources
+      expect(capabilities.tools).toBeDefined();
+      expect(capabilities.resources).toBeDefined();
+    });
+
+    it("should provide CLI-specific commands through getCommands", async () => {
+      cliInterface = new CLIInterface();
+      await cliInterface.register(mockContext);
+
+      // Get commands directly (not through plugin system)
+      const commands = await cliInterface.getCommands();
+
+      // Should have base commands + CLI-specific commands
+      expect(commands.length).toBeGreaterThan(5); // More than just base commands
+
+      const commandNames = commands.map((cmd) => cmd.name);
+      // Base commands
+      expect(commandNames).toContain("help");
+      expect(commandNames).toContain("search");
+      expect(commandNames).toContain("list");
+
+      // CLI-specific commands
+      expect(commandNames).toContain("progress");
+      expect(commandNames).toContain("clear");
+    });
+
+    it("should combine interface and plugin commands in help text", async () => {
+      cliInterface = new CLIInterface();
+      await cliInterface.register(mockContext);
+
+      const helpText = await cliInterface.getHelpText();
+
+      // Should contain interface commands
+      expect(helpText).toContain("/help - Show this help message");
+      expect(helpText).toContain(
+        "/progress - Toggle detailed progress display",
+      );
+      expect(helpText).toContain("/clear - Clear the screen");
+
+      // Should contain plugin commands from registry
+      expect(helpText).toContain(
+        "/generate-all - Generate content for all sections",
+      );
+
+      // Verify getAllCommands was called to get plugin commands
+      expect(getAllCommandsMock).toHaveBeenCalled();
+    });
+
+    it("should execute plugin commands correctly", async () => {
+      cliInterface = new CLIInterface();
+      await cliInterface.register(mockContext);
+
+      const context: MessageContext = {
+        userId: "test-user",
+        channelId: "test-channel",
+        messageId: "test-message",
+        timestamp: new Date(),
+        interfaceType: "cli",
+        userPermissionLevel: "anchor",
+      };
+
+      const result = await cliInterface.executeCommand(
+        "/generate-all",
+        context,
+      );
+
+      expect(result.message).toBe("Generating all content...");
+      expect(getAllCommandsMock).toHaveBeenCalled();
+    });
   });
 });
 

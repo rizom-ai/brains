@@ -1,8 +1,9 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { MessageInterfacePlugin } from "../src/base/message-interface-plugin";
 import type { MessageContext, Command } from "../src/base/types";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";
+import { PluginTestHarness } from "@brains/test-utils";
 import { z } from "zod";
 
 // Test implementation
@@ -293,6 +294,122 @@ describe("MessageInterfacePlugin", () => {
       // Custom commands should come after, in the order they were added
       expect(commandNames[5]).toBe("z-last");
       expect(commandNames[6]).toBe("a-first");
+    });
+  });
+
+  describe("Command Deduplication", () => {
+    it("should include plugin commands in help text without duplicates", async () => {
+      const testHarness = new PluginTestHarness();
+      await testHarness.setup();
+
+      const mockPluginCommands: Command[] = [
+        {
+          name: "generate-all",
+          description: "Generate content for all sections",
+          usage: "/generate-all [--dry-run]",
+          handler: async () => ({ type: "message", message: "Generating..." }),
+        },
+      ];
+
+      const context = testHarness.getPluginContext();
+      context.getAllCommands = mock(() => Promise.resolve(mockPluginCommands));
+
+      const plugin = new TestMessageInterface();
+      await plugin.register(context);
+
+      const helpText = await plugin.getHelpText();
+
+      // Should contain both interface and plugin commands
+      expect(helpText).toContain("/help - Show this help message");
+      expect(helpText).toContain(
+        "/generate-all [--dry-run] - Generate content for all sections",
+      );
+
+      // Count occurrences of each command to ensure no duplicates
+      const helpLines = helpText.split("\n");
+      const helpCount = helpLines.filter((line) =>
+        line.includes("/help"),
+      ).length;
+      const generateCount = helpLines.filter((line) =>
+        line.includes("/generate-all"),
+      ).length;
+
+      expect(helpCount).toBe(1);
+      expect(generateCount).toBe(1);
+
+      await testHarness.cleanup();
+    });
+
+    it("should execute plugin commands correctly", async () => {
+      const testHarness = new PluginTestHarness();
+      await testHarness.setup();
+
+      const mockPluginCommands: Command[] = [
+        {
+          name: "plugin-exec",
+          description: "Test plugin command execution",
+          handler: async (args) => ({
+            type: "message",
+            message: `Plugin executed with: ${args.join(" ")}`,
+          }),
+        },
+      ];
+
+      const context = testHarness.getPluginContext();
+      context.getAllCommands = mock(() => Promise.resolve(mockPluginCommands));
+
+      const plugin = new TestMessageInterface();
+      await plugin.register(context);
+
+      const result = await plugin.executeCommand("/plugin-exec arg1 arg2", {
+        userId: "test-user",
+        channelId: "test-channel",
+        messageId: "test-message",
+        timestamp: new Date(),
+        interfaceType: "test",
+        userPermissionLevel: "public",
+      });
+
+      expect(result.message).toBe("Plugin executed with: arg1 arg2");
+
+      await testHarness.cleanup();
+    });
+
+    it("should handle missing plugin context gracefully", async () => {
+      const plugin = new TestMessageInterface();
+      // No context set - not calling register()
+
+      const helpText = await plugin.getHelpText();
+
+      // Should still work with only interface commands
+      expect(helpText).toContain("/help - Show this help message");
+      expect(helpText).toContain(
+        "/search <query> - Search your knowledge base",
+      );
+
+      // But no plugin commands
+      expect(helpText).not.toContain("/generate-all");
+    });
+
+    it("should handle plugin command errors gracefully", async () => {
+      const testHarness = new PluginTestHarness();
+      await testHarness.setup();
+
+      const context = testHarness.getPluginContext();
+      context.getAllCommands = mock(() =>
+        Promise.reject(new Error("Registry error")),
+      );
+
+      const plugin = new TestMessageInterface();
+      await plugin.register(context);
+
+      // Should not throw when getting help
+      const helpText = await plugin.getHelpText();
+
+      // Should still show interface commands
+      expect(helpText).toContain("/help - Show this help message");
+
+      await testHarness.cleanup();
     });
   });
 });
