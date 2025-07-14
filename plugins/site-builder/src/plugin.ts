@@ -847,6 +847,186 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
         },
       },
+      {
+        name: "promote-all",
+        description: "Promote all preview content to production",
+        usage: "/promote-all [--dry-run]",
+        handler: async (args, context): Promise<CommandResponse> => {
+          const dryRun = args.includes("--dry-run");
+
+          if (!this.contentManager) {
+            return {
+              type: "message",
+              message:
+                "❌ Content manager not initialized. Please ensure the plugin is properly registered.",
+            };
+          }
+
+          try {
+            // Get all preview entity IDs
+            const previewEntities = await this.contentManager.getPreviewEntities({});
+            const entityIds = previewEntities.map((e) => e.id);
+
+            if (entityIds.length === 0) {
+              return {
+                type: "message",
+                message: "ℹ️ No preview content found to promote.",
+              };
+            }
+
+            if (dryRun) {
+              return {
+                type: "message",
+                message: `🔍 **Dry run** - Would promote ${entityIds.length} preview entities to production. Use \`/promote-all\` without --dry-run to execute.`,
+              };
+            }
+
+            const metadata: JobContext = {
+              interfaceId: context.interfaceType || "command",
+              userId: context.userId || "command-user",
+              roomId: context.channelId,
+              progressToken: context.messageId,
+              pluginId: this.id,
+              operationType: "site_building",
+            };
+
+            const batchId = await this.contentManager.promote(entityIds, {
+              source: "command:promote-all",
+              metadata,
+            });
+
+            return {
+              type: "batch-operation",
+              message: `📤 **Promotion started** - Promoting ${entityIds.length} preview entities to production...`,
+              batchId,
+              operationCount: entityIds.length,
+            };
+          } catch (error) {
+            this.error("Promote-all command failed", error);
+            return {
+              type: "message",
+              message: `❌ **Promotion failed**: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
+            };
+          }
+        },
+      },
+      {
+        name: "rollback-all",
+        description: "Rollback all production content to previous version",
+        usage: "/rollback-all [--dry-run]",
+        handler: async (args, context): Promise<CommandResponse> => {
+          const dryRun = args.includes("--dry-run");
+
+          if (!this.contentManager) {
+            return {
+              type: "message",
+              message:
+                "❌ Content manager not initialized. Please ensure the plugin is properly registered.",
+            };
+          }
+
+          try {
+            // Get all production entity IDs
+            const productionEntities = await this.contentManager.getProductionEntities({});
+            const entityIds = productionEntities.map((e) => e.id);
+
+            if (entityIds.length === 0) {
+              return {
+                type: "message",
+                message: "ℹ️ No production content found to rollback.",
+              };
+            }
+
+            if (dryRun) {
+              return {
+                type: "message",
+                message: `🔍 **Dry run** - Would rollback ${entityIds.length} production entities. Use \`/rollback-all\` without --dry-run to execute.`,
+              };
+            }
+
+            const metadata: JobContext = {
+              interfaceId: context.interfaceType || "command",
+              userId: context.userId || "command-user",
+              roomId: context.channelId,
+              progressToken: context.messageId,
+              pluginId: this.id,
+              operationType: "site_building",
+            };
+
+            const batchId = await this.contentManager.rollback(entityIds, {
+              source: "command:rollback-all",
+              metadata,
+            });
+
+            return {
+              type: "batch-operation",
+              message: `↩️ **Rollback started** - Rolling back ${entityIds.length} production entities...`,
+              batchId,
+              operationCount: entityIds.length,
+            };
+          } catch (error) {
+            this.error("Rollback-all command failed", error);
+            return {
+              type: "message",
+              message: `❌ **Rollback failed**: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
+            };
+          }
+        },
+      },
+      {
+        name: "build-site",
+        description: "Generate content and build static site",
+        usage: "/build-site [--output-dir <path>]",
+        handler: async (args, context): Promise<CommandResponse> => {
+          // Parse output directory from args
+          const outputDirIndex = args.indexOf("--output-dir");
+          const outputDir =
+            outputDirIndex !== -1 && args[outputDirIndex + 1]
+              ? args[outputDirIndex + 1]
+              : undefined;
+
+          if (!this.contentManager || !this.context) {
+            return {
+              type: "message",
+              message:
+                "❌ Site builder not initialized. Please ensure the plugin is properly registered.",
+            };
+          }
+
+          try {
+            const metadata: JobContext = {
+              interfaceId: context.interfaceType || "command",
+              userId: context.userId || "command-user",
+              roomId: context.channelId,
+              progressToken: context.messageId,
+              pluginId: this.id,
+              operationType: "site_building",
+            };
+
+            // Queue the site build job
+            const jobId = await this.context.enqueueJob(
+              "site-build",
+              { outputDir },
+              {
+                source: "command:build-site",
+                metadata,
+              },
+            );
+
+            return {
+              type: "job-operation",
+              message: `🔨 **Site build started** - Generating content and building static site${outputDir ? ` to ${outputDir}` : ""}...`,
+              jobId,
+            };
+          } catch (error) {
+            this.error("Build-site command failed", error);
+            return {
+              type: "message",
+              message: `❌ **Build failed**: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
+            };
+          }
+        },
+      },
     ];
   }
 

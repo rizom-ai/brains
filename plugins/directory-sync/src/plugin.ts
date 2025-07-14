@@ -129,7 +129,10 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           message += `👁️ Watching: ${watching ? "Yes" : "No"}\n`;
           message += `📝 Entity count: ${stats.totalFiles} total`;
 
-          if (stats.byEntityType && Object.keys(stats.byEntityType).length > 0) {
+          if (
+            stats.byEntityType &&
+            Object.keys(stats.byEntityType).length > 0
+          ) {
             message += " (";
             const types = Object.entries(stats.byEntityType)
               .map(([type, count]) => `${type}: ${count}`)
