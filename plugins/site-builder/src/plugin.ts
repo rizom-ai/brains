@@ -864,7 +864,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           try {
             // Get all preview entity IDs
-            const previewEntities = await this.contentManager.getPreviewEntities({});
+            const previewEntities =
+              await this.contentManager.getPreviewEntities({});
             const entityIds = previewEntities.map((e) => e.id);
 
             if (entityIds.length === 0) {
@@ -927,7 +928,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           try {
             // Get all production entity IDs
-            const productionEntities = await this.contentManager.getProductionEntities({});
+            const productionEntities =
+              await this.contentManager.getProductionEntities({});
             const entityIds = productionEntities.map((e) => e.id);
 
             if (entityIds.length === 0) {
@@ -975,17 +977,13 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       },
       {
         name: "build-site",
-        description: "Generate content and build static site",
-        usage: "/build-site [--output-dir <path>]",
+        description: "Generate content and build site in one operation",
+        usage: "/build-site [preview|production]",
         handler: async (args, context): Promise<CommandResponse> => {
-          // Parse output directory from args
-          const outputDirIndex = args.indexOf("--output-dir");
-          const outputDir =
-            outputDirIndex !== -1 && args[outputDirIndex + 1]
-              ? args[outputDirIndex + 1]
-              : undefined;
+          // Parse environment from args (default to preview)
+          const environment = (args[0] === "production" ? "production" : "preview") as "preview" | "production";
 
-          if (!this.contentManager || !this.context) {
+          if (!this.context) {
             return {
               type: "message",
               message:
@@ -994,6 +992,12 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           try {
+            const config = this.config;
+            const outputDir =
+              environment === "production"
+                ? config.productionOutputDir
+                : config.previewOutputDir;
+
             const metadata: JobContext = {
               interfaceId: context.interfaceType || "command",
               userId: context.userId || "command-user",
@@ -1003,19 +1007,29 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               operationType: "site_building",
             };
 
-            // Queue the site build job
+            // Queue the build job with content generation enabled
             const jobId = await this.context.enqueueJob(
               "site-build",
-              { outputDir },
               {
-                source: "command:build-site",
+                environment,
+                outputDir,
+                workingDir: config.workingDir,
+                enableContentGeneration: true,
+                siteConfig: config.siteConfig ?? {
+                  title: "Personal Brain",
+                  description: "A knowledge management system",
+                },
+              },
+              {
+                priority: 5,
+                source: this.id,
                 metadata,
               },
             );
 
             return {
               type: "job-operation",
-              message: `🔨 **Site build started** - Generating content and building static site${outputDir ? ` to ${outputDir}` : ""}...`,
+              message: `🔨 **Site build started** - Generating content and building ${environment} site to \`${outputDir}\`...`,
               jobId,
             };
           } catch (error) {
