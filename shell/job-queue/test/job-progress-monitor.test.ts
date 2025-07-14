@@ -213,7 +213,7 @@ describe("JobProgressMonitor", () => {
         lastError: null,
         source: "matrix:room123", // Job has a source
         metadata: {
-          roomId: "room123",
+          channelId: "room123",
           interfaceId: "test",
           userId: "user123",
           operationType: "entity_processing",
@@ -232,7 +232,7 @@ describe("JobProgressMonitor", () => {
           id: "job-789",
           type: "job",
           metadata: {
-            roomId: "room123",
+            channelId: "room123",
             interfaceId: "test",
             userId: "user123",
             operationType: "entity_processing",
@@ -361,7 +361,7 @@ describe("JobProgressMonitor", () => {
             source: "cli:interactive", // Batch has a source
             startedAt: new Date().toISOString(),
             metadata: {
-              roomId: "interactive",
+              channelId: "interactive",
               interfaceId: "test",
               userId: "user123",
               operationType: "batch_processing",
@@ -381,7 +381,7 @@ describe("JobProgressMonitor", () => {
           id: "batch-789",
           type: "batch",
           metadata: {
-            roomId: "interactive",
+            channelId: "interactive",
             interfaceId: "test",
             userId: "user123",
             operationType: "batch_processing",
@@ -503,7 +503,7 @@ describe("JobProgressMonitor", () => {
               source: "matrix:!testroom:example.com",
               startedAt: new Date().toISOString(),
               metadata: {
-                roomId: "!testroom:example.com",
+                channelId: "!testroom:example.com",
                 interfaceId: "test",
                 userId: "user123",
                 operationType: "batch_processing",
@@ -543,7 +543,7 @@ describe("JobProgressMonitor", () => {
           type: "batch",
           status: "completed",
           metadata: expect.objectContaining({
-            roomId: "!testroom:example.com",
+            channelId: "!testroom:example.com",
             interfaceId: "test",
             userId: "user123",
             operationType: "batch_processing",
@@ -605,7 +605,7 @@ describe("JobProgressMonitor", () => {
               source: "cli:test",
               startedAt: new Date().toISOString(),
               metadata: {
-                roomId: "test",
+                channelId: "test",
                 interfaceId: "test",
                 userId: "user123",
                 operationType: "batch_processing",
@@ -673,7 +673,7 @@ describe("JobProgressMonitor", () => {
               source: "matrix:!room1:example.com",
               startedAt: new Date().toISOString(),
               metadata: {
-                roomId: "!room1:example.com",
+                channelId: "!room1:example.com",
                 interfaceId: "test",
                 userId: "user123",
                 operationType: "batch_processing",
@@ -688,7 +688,7 @@ describe("JobProgressMonitor", () => {
               source: "cli:session-123",
               startedAt: new Date().toISOString(),
               metadata: {
-                roomId: "session-123",
+                channelId: "session-123",
                 interfaceId: "test",
                 userId: "user123",
                 operationType: "batch_processing",
@@ -745,10 +745,10 @@ describe("JobProgressMonitor", () => {
       expect(cliCall).toBeDefined();
       if (matrixCall && cliCall) {
         expect(
-          (matrixCall[1] as { metadata: { roomId: string } }).metadata.roomId,
+          (matrixCall[1] as { metadata: { channelId: string } }).metadata.channelId,
         ).toBe("!room1:example.com"); // metadata is in event payload
         expect(
-          (cliCall[1] as { metadata: { roomId: string } }).metadata.roomId,
+          (cliCall[1] as { metadata: { channelId: string } }).metadata.channelId,
         ).toBe("session-123"); // metadata is in event payload
       }
     });

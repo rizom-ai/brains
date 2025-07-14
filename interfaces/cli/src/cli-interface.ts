@@ -191,7 +191,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
         if (message) {
           await this.editMessage(existingMessageId, message, {
             userId: progressEvent.metadata.userId,
-            channelId: progressEvent.metadata.roomId ?? "cli",
+            channelId: progressEvent.metadata.channelId ?? "cli",
             messageId: existingMessageId,
             timestamp: new Date(),
             interfaceType: "cli",

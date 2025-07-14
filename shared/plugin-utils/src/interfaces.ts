@@ -84,8 +84,18 @@ export interface ToolContext {
   // Routing metadata for job creation
   interfaceId?: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
   userId?: string; // User who invoked the tool
-  roomId?: string; // Channel/room context (for Matrix, etc.)
+  channelId?: string; // Channel/room context (for Matrix, etc.)
 }
+
+/**
+ * Schema for ToolContext routing metadata
+ * Used to validate routing information in tool execution requests
+ */
+export const ToolContextRoutingSchema = z.object({
+  interfaceId: z.string().optional(),
+  userId: z.string().optional(),
+  channelId: z.string().optional(),
+});
 
 /**
  * Plugin tool definition

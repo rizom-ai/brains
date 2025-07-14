@@ -6,6 +6,7 @@ import type {
   PluginResource,
   ToolContext,
 } from "./interfaces";
+import { ToolContextRoutingSchema } from "./interfaces";
 import type { Command } from "@brains/message-interface";
 import {
   Logger,
@@ -21,10 +22,8 @@ const toolExecuteRequestSchema = z.object({
   args: z.unknown(),
   progressToken: z.union([z.string(), z.number()]).optional(),
   hasProgress: z.boolean().optional(),
-  // Routing metadata
-  interfaceId: z.string().optional(),
-  userId: z.string().optional(),
-  roomId: z.string().optional(),
+  // Reuse the shared routing metadata schema
+  ...ToolContextRoutingSchema.shape,
 });
 
 const resourceGetRequestSchema = z.object({
@@ -100,7 +99,7 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
           hasProgress,
           interfaceId,
           userId,
-          roomId,
+          channelId,
         } = toolExecuteRequestSchema.parse(message.payload);
 
         const tools = await this.getTools();
@@ -131,13 +130,13 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
           // Add routing metadata only if present
           if (interfaceId) toolContext.interfaceId = interfaceId;
           if (userId) toolContext.userId = userId;
-          if (roomId) toolContext.roomId = roomId;
-        } else if (interfaceId || userId || roomId) {
+          if (channelId) toolContext.channelId = channelId;
+        } else if (interfaceId || userId || channelId) {
           // Even without progress, include routing metadata if provided
           toolContext = {};
           if (interfaceId) toolContext.interfaceId = interfaceId;
           if (userId) toolContext.userId = userId;
-          if (roomId) toolContext.roomId = roomId;
+          if (channelId) toolContext.channelId = channelId;
         }
 
         // Execute the tool with optional context

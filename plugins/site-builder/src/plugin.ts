@@ -266,7 +266,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "mcp-user",
-            roomId: context?.roomId,
+            channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
             operationType: "site_building",
@@ -339,7 +339,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "mcp-user",
-            roomId: context?.roomId,
+            channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
             operationType: "site_building",
@@ -489,7 +489,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "system",
-            roomId: context?.roomId,
+            channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
             operationType: "site_building",
@@ -522,7 +522,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "system",
-            roomId: context?.roomId,
+            channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
             operationType: "site_building",
@@ -575,7 +575,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "system",
-            roomId: context?.roomId,
+            channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
             operationType: "site_building",
@@ -608,7 +608,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "system",
-            roomId: context?.roomId,
+            channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
             operationType: "site_building",
@@ -734,7 +734,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "system",
-            roomId: context?.roomId,
+            channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
             operationType: "site_building",
@@ -807,7 +807,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             const metadata: JobContext = {
               interfaceId: context.interfaceType || "command",
               userId: context.userId || "command-user",
-              roomId: context.channelId,
+              channelId: context.channelId,
               progressToken: context.messageId,
               pluginId: this.id,
               operationType: "site_building",
@@ -883,7 +883,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             const metadata: JobContext = {
               interfaceId: context.interfaceType || "command",
               userId: context.userId || "command-user",
-              roomId: context.channelId,
+              channelId: context.channelId,
               progressToken: context.messageId,
               pluginId: this.id,
               operationType: "site_building",
@@ -947,7 +947,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             const metadata: JobContext = {
               interfaceId: context.interfaceType || "command",
               userId: context.userId || "command-user",
-              roomId: context.channelId,
+              channelId: context.channelId,
               progressToken: context.messageId,
               pluginId: this.id,
               operationType: "site_building",
@@ -1001,7 +1001,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             const metadata: JobContext = {
               interfaceId: context.interfaceType || "command",
               userId: context.userId || "command-user",
-              roomId: context.channelId,
+              channelId: context.channelId,
               progressToken: context.messageId,
               pluginId: this.id,
               operationType: "site_building",

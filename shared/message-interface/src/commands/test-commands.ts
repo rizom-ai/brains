@@ -44,7 +44,7 @@ export function getTestCommands(
             metadata: {
               interfaceId,
               userId: messageContext.userId,
-              roomId: messageContext.channelId,
+              channelId: messageContext.channelId,
               operationType: "entity_processing",
               operationTarget: "test-slow-job",
             },
@@ -84,7 +84,7 @@ export function getTestCommands(
           const batchId = await context.enqueueBatch(operations, {
             source,
             metadata: {
-              roomId: messageContext.channelId,
+              channelId: messageContext.channelId,
               interfaceId,
               userId: messageContext.userId,
               operationType: "batch_processing",

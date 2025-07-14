@@ -227,8 +227,8 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
 
           // Determine source string based on context
           const source =
-            context?.interfaceId && context?.roomId
-              ? `${context.interfaceId}:${context.roomId}`
+            context?.interfaceId && context?.channelId
+              ? `${context.interfaceId}:${context.channelId}`
               : "plugin:directory-sync";
 
           // Queue both export and import operations with routing metadata
@@ -242,7 +242,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
               metadata: {
                 interfaceId: context?.interfaceId || "",
                 userId: context?.userId || "",
-                roomId: context?.roomId || "",
+                channelId: context?.channelId || "",
                 progressToken: context?.progressToken || "",
                 operationType: "directory_export",
                 pluginId: this.id,
@@ -260,7 +260,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
               metadata: {
                 interfaceId: context?.interfaceId || "",
                 userId: context?.userId || "",
-                roomId: context?.roomId || "",
+                channelId: context?.channelId || "",
                 progressToken: context?.progressToken || "",
                 operationType: "directory_import",
                 pluginId: this.id,

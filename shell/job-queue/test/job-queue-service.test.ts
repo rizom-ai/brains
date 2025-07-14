@@ -185,7 +185,7 @@ describe("JobQueueService", () => {
       const metadata: JobContext = {
         userId: "user-123",
         interfaceId: "matrix",
-        roomId: "room123",
+        channelId: "room123",
         operationType: "entity_processing",
       };
 

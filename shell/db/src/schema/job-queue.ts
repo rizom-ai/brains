@@ -32,7 +32,7 @@ export const JobContextSchema = z.object({
   interfaceId: z.string(),
   userId: z.string(),
   pluginId: z.string().optional(),
-  roomId: z.string().optional(),
+  channelId: z.string().optional(),
   progressToken: z.union([z.string(), z.number()]).optional(),
   operationType: OperationTypeEnum,
   operationTarget: z.string().optional(),

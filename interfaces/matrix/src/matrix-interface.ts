@@ -463,8 +463,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
       return; // Event not from Matrix interface
     }
 
-    // Use roomId from metadata instead of parsing target
-    const roomId = context.roomId;
+    // Use channelId from metadata instead of parsing target
+    const roomId = context.channelId;
     if (!roomId) {
       return; // No routing information
     }

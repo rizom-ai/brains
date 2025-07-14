@@ -143,7 +143,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
         // Extract context from MCP client metadata
         const interfaceId = extra._meta?.["interfaceId"];
         const userId = extra._meta?.["userId"];
-        const roomId = extra._meta?.["roomId"];
+        const channelId = extra._meta?.["channelId"];
         const progressToken = extra._meta?.progressToken;
 
         // Log metadata for debugging
@@ -151,7 +151,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
           tool: `${pluginId}:${tool.name}`,
           interfaceId,
           userId,
-          roomId,
+          channelId,
           progressToken,
         });
 
@@ -171,7 +171,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
               // Pass through context from MCP client
               interfaceId,
               userId,
-              roomId,
+              channelId,
             },
           );
 
