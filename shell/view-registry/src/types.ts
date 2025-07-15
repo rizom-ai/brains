@@ -180,7 +180,6 @@ export const BuildResultSchema = z.object({
 
 export type BuildResult = z.infer<typeof BuildResultSchema>;
 
-
 /**
  * Site builder interface
  */

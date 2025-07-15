@@ -120,7 +120,7 @@ export class PluginContextFactory {
         const result = await messageBus.send<T, R>(type, payload, pluginId);
 
         // Handle noop case
-        if ("noop" in result && result.noop) {
+        if ("noop" in result) {
           return { success: true };
         }
 
@@ -516,32 +516,6 @@ export class PluginContextFactory {
           return await batchJobManager.getBatchStatus(batchId);
         } catch (error) {
           this.logger.error("Failed to get batch status", { batchId, error });
-          throw error;
-        }
-      },
-
-      // Get all active jobs
-      getActiveJobs: async (types?: string[]) => {
-        try {
-          // JobQueue from DB already satisfies Job interface
-          return await jobQueueService.getActiveJobs(types);
-        } catch (error) {
-          this.logger.error("Failed to get active jobs", { error });
-          throw error;
-        }
-      },
-
-      // Get all active batches
-      getActiveBatches: async () => {
-        try {
-          const batchJobManager = BatchJobManager.getInstance(
-            jobQueueService,
-            this.logger,
-          );
-
-          return await batchJobManager.getActiveBatches();
-        } catch (error) {
-          this.logger.error("Failed to get active batches", { error });
           throw error;
         }
       },

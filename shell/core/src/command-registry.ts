@@ -115,7 +115,7 @@ export class CommandRegistry {
 
     for (const entry of this.commands.values()) {
       commandsByPlugin[entry.pluginId] =
-        (commandsByPlugin[entry.pluginId] || 0) + 1;
+        (commandsByPlugin[entry.pluginId] ?? 0) + 1;
     }
 
     return {

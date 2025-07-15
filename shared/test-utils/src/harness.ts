@@ -15,6 +15,7 @@ import type { EntityAdapter } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { JobContext } from "@brains/db";
 import type { BatchJobStatus } from "@brains/job-queue";
+import type { Command } from "@brains/message-interface";
 import type { z } from "zod";
 
 export interface PluginTestHarnessOptions {
@@ -356,7 +357,7 @@ export class PluginTestHarness {
         // Mock implementation for test harness
       },
       // Command discovery
-      getAllCommands: async () => {
+      getAllCommands: async (): Promise<Command[]> => {
         // Mock implementation for test harness - return empty array
         return [];
       },

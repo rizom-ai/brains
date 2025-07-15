@@ -76,7 +76,7 @@ export class MessageBus implements IMessageBus {
       const result = await handler(typedMessage);
 
       // Handle noop responses for broadcast events
-      if ("noop" in result && result.noop) {
+      if ("noop" in result) {
         return {
           id: `resp-${Date.now()}`,
           requestId: message.id,
