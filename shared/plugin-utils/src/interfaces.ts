@@ -16,13 +16,10 @@ import type {
 } from "@brains/view-registry";
 import type { IEntityService } from "@brains/entity-service";
 import type {
-  BatchJobStatus,
   JobStatusType,
-  BatchOperation,
   JobHandler,
 } from "@brains/job-queue";
 import type { JobOptions } from "@brains/db";
-import type { Job } from "@brains/types";
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -231,25 +228,6 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
     options: JobOptions,
   ) => Promise<string>;
 
-  getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
-
-  // Get all active jobs (pending or processing)
-  getActiveJobs: (types?: string[]) => Promise<Job[]>;
-
-  // Get all active batches
-  getActiveBatches: () => Promise<
-    Array<{
-      batchId: string;
-      status: BatchJobStatus;
-      metadata: {
-        operations: BatchOperation[];
-        source: string;
-        userId?: string;
-        startedAt: string;
-        metadata?: Record<string, unknown>;
-      };
-    }>
-  >;
 
   // Job handler registration (for plugins that process jobs)
   registerJobHandler: (type: string, handler: JobHandler) => void;

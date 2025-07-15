@@ -1,7 +1,4 @@
-import type {
-  BaseEntity,
-  EntityInput,
-} from "@brains/types";
+import type { BaseEntity, EntityInput } from "@brains/types";
 import type {
   MessageHandler,
   MessageSender,
@@ -16,9 +13,7 @@ import type {
 import type { IEntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
-import type { BatchJobStatus, BatchOperation } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";
-import type { Job } from "@brains/types";
 import type { z } from "zod";
 
 export interface PluginTestHarnessOptions {
@@ -341,43 +336,10 @@ export class PluginTestHarness {
         // Mock implementation - return a fake batch ID
         return "mock-batch-id-" + Date.now();
       },
-      getBatchStatus: async (): Promise<BatchJobStatus | null> => {
-        // Mock implementation - return completed batch status
-        return {
-          batchId: "mock-batch-id",
-          totalOperations: 1,
-          completedOperations: 1,
-          failedOperations: 0,
-          errors: [],
-          status: "completed",
-        };
-      },
       // Wait for job completion (with timeout)
       waitForJob: async (): Promise<unknown> => {
         // Mock implementation - return mock content
         return "Mock generated content";
-      },
-      // Get all active jobs
-      getActiveJobs: async (): Promise<Job[]> => {
-        // Mock implementation - return empty array
-        return [];
-      },
-      // Get all active batches
-      getActiveBatches: async (): Promise<
-        Array<{
-          batchId: string;
-          status: BatchJobStatus;
-          metadata: {
-            operations: BatchOperation[];
-            source: string;
-            userId?: string;
-            startedAt: string;
-            metadata?: Record<string, unknown>;
-          };
-        }>
-      > => {
-        // Mock implementation - return empty array
-        return [];
       },
       // Job handler registration
       registerJobHandler: (): void => {

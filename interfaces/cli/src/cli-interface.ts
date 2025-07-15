@@ -25,45 +25,6 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   private progressCallback: ((events: JobProgressEvent[]) => void) | undefined;
   private responseCallback: ((response: string) => void) | undefined;
 
-  /**
-   * Get active jobs from the context
-   */
-  public async getActiveJobs(
-    types?: string[],
-  ): ReturnType<NonNullable<typeof this.context>["getActiveJobs"]> {
-    if (!this.context) {
-      throw new Error("Plugin context not initialized");
-    }
-    const jobs = await this.context.getActiveJobs(types);
-    this.logger.debug("Active jobs fetched", { count: jobs.length, types });
-    return jobs;
-  }
-
-  /**
-   * Get active batches from the context
-   */
-  public async getActiveBatches(): ReturnType<
-    NonNullable<typeof this.context>["getActiveBatches"]
-  > {
-    if (!this.context) {
-      throw new Error("Plugin context not initialized");
-    }
-    const batches = await this.context.getActiveBatches();
-    this.logger.debug("Active batches fetched", { count: batches.length });
-    return batches;
-  }
-
-  /**
-   * Get batch status from the context
-   */
-  public async getBatchStatus(
-    batchId: string,
-  ): ReturnType<NonNullable<typeof this.context>["getBatchStatus"]> {
-    if (!this.context) {
-      throw new Error("Plugin context not initialized");
-    }
-    return this.context.getBatchStatus(batchId);
-  }
 
   constructor(config: CLIConfigInput = {}) {
     const defaults: Partial<CLIConfig> = {

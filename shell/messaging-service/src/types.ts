@@ -38,7 +38,9 @@ export const internalMessageResponseSchema = z.object({
 });
 
 // Derive types from schemas
-export type InternalMessageResponse = z.infer<typeof internalMessageResponseSchema>;
+export type InternalMessageResponse = z.infer<
+  typeof internalMessageResponseSchema
+>;
 
 /**
  * Type guard to check if a message has a payload

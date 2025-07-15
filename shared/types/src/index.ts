@@ -39,9 +39,7 @@ export type {
 
 // Formatter types have been moved to @brains/utils
 
-// Job types
-export type { Job } from "./jobs";
-export { jobSchema } from "./jobs";
+// Job types have been moved to @brains/job-queue
 
 // View types have been moved to @brains/view-registry
 
