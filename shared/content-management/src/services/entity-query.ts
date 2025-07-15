@@ -8,35 +8,8 @@ import type { EntityService } from "@brains/entity-service";
  * Provides high-level query operations for content management
  */
 export class EntityQueryService {
-  private static instance: EntityQueryService | null = null;
-
-  // Singleton access
-  public static getInstance(
-    entityService: EntityService,
-    logger: Logger,
-  ): EntityQueryService {
-    EntityQueryService.instance ??= new EntityQueryService(
-      entityService,
-      logger,
-    );
-    return EntityQueryService.instance;
-  }
-
-  // Testing reset
-  public static resetInstance(): void {
-    EntityQueryService.instance = null;
-  }
-
-  // Isolated instance creation
-  public static createFresh(
-    entityService: EntityService,
-    logger: Logger,
-  ): EntityQueryService {
-    return new EntityQueryService(entityService, logger);
-  }
-
-  // Private constructor to enforce factory methods
-  private constructor(
+  // Create a new instance
+  constructor(
     private readonly entityService: EntityService,
     private readonly logger: Logger,
   ) {}

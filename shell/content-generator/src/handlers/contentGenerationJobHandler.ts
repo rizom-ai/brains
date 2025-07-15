@@ -127,18 +127,18 @@ export class ContentGenerationJobHandler
 
       // Save the generated content as an entity if entityId and entityType are provided
       if (data.entityId && data.entityType) {
-        const pageId = data.context.data?.["pageId"] as string | undefined;
+        const routeId = data.context.data?.["routeId"] as string | undefined;
         const sectionId = data.context.data?.["sectionId"] as
           | string
           | undefined;
 
         // Only save if we have the required metadata
-        if (pageId && sectionId) {
+        if (routeId && sectionId) {
           const newEntity = {
             id: data.entityId,
             entityType: data.entityType,
             content: formattedContent,
-            pageId,
+            routeId,
             sectionId,
           };
 
@@ -148,15 +148,15 @@ export class ContentGenerationJobHandler
             jobId,
             entityId: data.entityId,
             entityType: data.entityType,
-            pageId,
+            routeId,
             sectionId,
           });
         } else {
-          this.logger.warn("Cannot save entity without pageId and sectionId", {
+          this.logger.warn("Cannot save entity without routeId and sectionId", {
             jobId,
             entityId: data.entityId,
             entityType: data.entityType,
-            hasPageId: !!pageId,
+            hasRouteId: !!routeId,
             hasSectionId: !!sectionId,
           });
         }

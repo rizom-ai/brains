@@ -34,44 +34,14 @@ import type {
  * All dependencies (EntityService, Logger, PluginContext) are required for full functionality
  */
 export class ContentManager {
-  private static instance: ContentManager | null = null;
-
   private readonly generationOps: GenerationOperations;
   private readonly derivationOps: DerivationOperations;
   private readonly entityQuery: EntityQueryService;
   private readonly pluginContext: PluginContext;
   private readonly logger: Logger;
 
-  // Singleton access
-  public static getInstance(
-    entityService: EntityService,
-    logger: Logger,
-    pluginContext: PluginContext,
-  ): ContentManager {
-    ContentManager.instance ??= new ContentManager(
-      entityService,
-      logger,
-      pluginContext,
-    );
-    return ContentManager.instance;
-  }
-
-  // Testing reset
-  public static resetInstance(): void {
-    ContentManager.instance = null;
-  }
-
-  // Isolated instance creation
-  public static createFresh(
-    entityService: EntityService,
-    logger: Logger,
-    pluginContext: PluginContext,
-  ): ContentManager {
-    return new ContentManager(entityService, logger, pluginContext);
-  }
-
-  // Private constructor to enforce factory methods
-  private constructor(
+  // Create a new instance
+  constructor(
     entityService: EntityService,
     logger: Logger,
     pluginContext: PluginContext,
@@ -79,16 +49,13 @@ export class ContentManager {
     this.pluginContext = pluginContext;
     this.logger = logger.child("ContentManager");
     // Always available services
-    this.entityQuery = EntityQueryService.createFresh(entityService, logger);
+    this.entityQuery = new EntityQueryService(entityService, logger);
     this.generationOps = new GenerationOperations(
       entityService,
       logger,
       pluginContext,
     );
-    this.derivationOps = new DerivationOperations(
-      entityService,
-      logger,
-    );
+    this.derivationOps = new DerivationOperations(entityService, logger);
   }
 
   // ========================================

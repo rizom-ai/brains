@@ -27,7 +27,7 @@ describe("ID Generator", () => {
       expect(id).toBe("site-content-production:about:team");
     });
 
-    it("should handle special characters in page and section", () => {
+    it("should handle special characters in route and section", () => {
       const id = generateSiteContentId(
         "site-content-preview",
         "user-profile",
@@ -42,7 +42,7 @@ describe("ID Generator", () => {
       const result = parseSiteContentId("site-content-preview:landing:hero");
       expect(result).toEqual({
         entityType: "site-content-preview",
-        pageId: "landing",
+        routeId: "landing",
         sectionId: "hero",
       });
     });
@@ -51,7 +51,7 @@ describe("ID Generator", () => {
       const result = parseSiteContentId("site-content-production:about:team");
       expect(result).toEqual({
         entityType: "site-content-production",
-        pageId: "about",
+        routeId: "about",
         sectionId: "team",
       });
     });
@@ -70,13 +70,13 @@ describe("ID Generator", () => {
       expect(parseSiteContentId("site-content:landing:hero")).toBeNull();
     });
 
-    it("should handle special characters in page and section", () => {
+    it("should handle special characters in route and section", () => {
       const result = parseSiteContentId(
         "site-content-preview:user-profile:contact-info",
       );
       expect(result).toEqual({
         entityType: "site-content-preview",
-        pageId: "user-profile",
+        routeId: "user-profile",
         sectionId: "contact-info",
       });
     });

@@ -170,7 +170,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
     );
 
     // Initialize the shared content manager
-    this.contentManager = ContentManager.getInstance(
+    this.contentManager = new ContentManager(
       context.entityService,
       this.logger.child("ContentManager"),
       context,

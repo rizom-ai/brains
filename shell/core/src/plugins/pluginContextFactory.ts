@@ -14,7 +14,7 @@ import type { EntityAdapter } from "@brains/types";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
-import type { JobOptions } from "@brains/db";
+import type { JobOptions, JobContext, JobQueue } from "@brains/db";
 import { BatchJobManager } from "@brains/job-queue";
 import { type BatchJobStatus, type JobStatusType } from "@brains/job-queue";
 import {
@@ -516,6 +516,43 @@ export class PluginContextFactory {
           return await batchJobManager.getBatchStatus(batchId);
         } catch (error) {
           this.logger.error("Failed to get batch status", { batchId, error });
+          throw error;
+        }
+      },
+
+      // Get active jobs (for monitoring)
+      getActiveJobs: async (types?: string[]): Promise<JobQueue[]> => {
+        try {
+          return await jobQueueService.getActiveJobs(types);
+        } catch (error) {
+          this.logger.error("Failed to get active jobs", { error });
+          throw error;
+        }
+      },
+
+      // Get active batches (for monitoring)
+      getActiveBatches: async (): Promise<
+        Array<{
+          batchId: string;
+          status: BatchJobStatus;
+          metadata: JobContext;
+        }>
+      > => {
+        try {
+          const batchJobManager = BatchJobManager.getInstance(
+            jobQueueService,
+            this.logger,
+          );
+          const batches = await batchJobManager.getActiveBatches();
+          
+          // Transform the nested metadata structure to match the expected interface
+          return batches.map(batch => ({
+            batchId: batch.batchId,
+            status: batch.status,
+            metadata: batch.metadata.metadata, // Extract the nested JobContext
+          }));
+        } catch (error) {
+          this.logger.error("Failed to get active batches", { error });
           throw error;
         }
       },

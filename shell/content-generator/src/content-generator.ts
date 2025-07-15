@@ -154,8 +154,9 @@ export class ContentGenerator {
 
     const context: GenerationContext = {
       data: {
-        pageTitle: route.title,
-        pageDescription: route.description,
+        routeId: route.id,
+        routeTitle: route.title,
+        routeDescription: route.description,
         sectionId: section.id,
         progressInfo: {
           currentSection: progressInfo.current,

@@ -70,10 +70,8 @@ beforeEach(async (): Promise<void> => {
   mockGetJobStatus.mockClear();
   mockDeriveEntity.mockClear();
 
-  ContentManager.resetInstance();
-
   // Create content manager - all dependencies are now required
-  contentManager = ContentManager.createFresh(
+  contentManager = new ContentManager(
     mockEntityService,
     mockLogger,
     mockPluginContext,

@@ -41,8 +41,7 @@ beforeEach((): void => {
   mockGetEntity.mockClear();
   mockListEntities.mockClear();
 
-  EntityQueryService.resetInstance();
-  queryService = EntityQueryService.createFresh(mockEntityService, mockLogger);
+  queryService = new EntityQueryService(mockEntityService, mockLogger);
 });
 
 test("getContent should return entity when found", async () => {

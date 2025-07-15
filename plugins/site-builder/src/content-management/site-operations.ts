@@ -20,7 +20,7 @@ export class SiteOperations {
     private readonly logger: Logger,
     pluginContext: PluginContext,
   ) {
-    this.contentManager = ContentManager.createFresh(
+    this.contentManager = new ContentManager(
       entityService,
       logger,
       pluginContext,
