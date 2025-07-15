@@ -1,6 +1,6 @@
 import type { BaseEntity } from "@brains/types";
 import type { Logger } from "@brains/utils";
-import type { IEntityService as EntityService } from "@brains/entity-service";
+import type { EntityService } from "@brains/entity-service";
 import {
   FileSystemError,
   EntitySerializationError,

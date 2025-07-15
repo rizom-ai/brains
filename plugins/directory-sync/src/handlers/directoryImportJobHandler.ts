@@ -25,49 +25,14 @@ export class DirectoryImportJobHandler
   implements
     JobHandler<"directory-import", DirectoryImportJobData, ImportResult>
 {
-  private static instance: DirectoryImportJobHandler | null = null;
   private logger: Logger;
   private context: PluginContext;
   private directorySync: DirectorySync;
 
   /**
-   * Get the singleton instance
+   * Create a new instance of the job handler
    */
-  public static getInstance(
-    logger: Logger,
-    context: PluginContext,
-    directorySync: DirectorySync,
-  ): DirectoryImportJobHandler {
-    DirectoryImportJobHandler.instance ??= new DirectoryImportJobHandler(
-      logger,
-      context,
-      directorySync,
-    );
-    return DirectoryImportJobHandler.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    DirectoryImportJobHandler.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
-  public static createFresh(
-    logger: Logger,
-    context: PluginContext,
-    directorySync: DirectorySync,
-  ): DirectoryImportJobHandler {
-    return new DirectoryImportJobHandler(logger, context, directorySync);
-  }
-
-  /**
-   * Private constructor to enforce singleton pattern
-   */
-  private constructor(
+  constructor(
     logger: Logger,
     context: PluginContext,
     directorySync: DirectorySync,

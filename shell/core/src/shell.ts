@@ -257,7 +257,7 @@ export class Shell {
 
     this.contentGenerator =
       dependencies?.contentGenerator ??
-      ContentGenerator.getInstance({
+      new ContentGenerator({
         logger: this.logger,
         entityService: this.entityService,
         aiService: this.aiService,

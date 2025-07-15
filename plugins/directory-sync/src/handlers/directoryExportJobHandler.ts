@@ -25,49 +25,14 @@ export class DirectoryExportJobHandler
   implements
     JobHandler<"directory-export", DirectoryExportJobData, ExportResult>
 {
-  private static instance: DirectoryExportJobHandler | null = null;
   private logger: Logger;
   private context: PluginContext;
   private directorySync: DirectorySync;
 
   /**
-   * Get the singleton instance
+   * Create a new instance of the job handler
    */
-  public static getInstance(
-    logger: Logger,
-    context: PluginContext,
-    directorySync: DirectorySync,
-  ): DirectoryExportJobHandler {
-    DirectoryExportJobHandler.instance ??= new DirectoryExportJobHandler(
-      logger,
-      context,
-      directorySync,
-    );
-    return DirectoryExportJobHandler.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    DirectoryExportJobHandler.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
-  public static createFresh(
-    logger: Logger,
-    context: PluginContext,
-    directorySync: DirectorySync,
-  ): DirectoryExportJobHandler {
-    return new DirectoryExportJobHandler(logger, context, directorySync);
-  }
-
-  /**
-   * Private constructor to enforce singleton pattern
-   */
-  private constructor(
+  constructor(
     logger: Logger,
     context: PluginContext,
     directorySync: DirectorySync,

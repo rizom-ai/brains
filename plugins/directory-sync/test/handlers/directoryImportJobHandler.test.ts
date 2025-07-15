@@ -15,9 +15,6 @@ describe("DirectoryImportJobHandler", () => {
   let mockDirectorySync: DirectorySync;
 
   beforeEach(() => {
-    // Reset singleton
-    DirectoryImportJobHandler.resetInstance();
-
     // Create mocks
     mockLogger = createSilentLogger();
 
@@ -83,42 +80,11 @@ describe("DirectoryImportJobHandler", () => {
       },
     } as unknown as PluginContext;
 
-    handler = DirectoryImportJobHandler.createFresh(
+    handler = new DirectoryImportJobHandler(
       mockLogger,
       mockContext,
       mockDirectorySync,
     );
-  });
-
-  describe("getInstance", () => {
-    test("should return singleton instance", () => {
-      const instance1 = DirectoryImportJobHandler.getInstance(
-        mockLogger,
-        mockContext,
-        mockDirectorySync,
-      );
-      const instance2 = DirectoryImportJobHandler.getInstance(
-        mockLogger,
-        mockContext,
-        mockDirectorySync,
-      );
-      expect(instance1).toBe(instance2);
-    });
-
-    test("should create new instance after reset", () => {
-      const instance1 = DirectoryImportJobHandler.getInstance(
-        mockLogger,
-        mockContext,
-        mockDirectorySync,
-      );
-      DirectoryImportJobHandler.resetInstance();
-      const instance2 = DirectoryImportJobHandler.getInstance(
-        mockLogger,
-        mockContext,
-        mockDirectorySync,
-      );
-      expect(instance1).not.toBe(instance2);
-    });
   });
 
   describe("validateAndParse", () => {

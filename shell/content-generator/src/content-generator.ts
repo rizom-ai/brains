@@ -29,43 +29,13 @@ export interface ContentGeneratorDependencies {
  * Implements Component Interface Standardization pattern.
  */
 export class ContentGenerator {
-  private static instance: ContentGenerator | null = null;
-
   // Template registry for local template management
   private templates: Map<string, Template<unknown>> = new Map();
 
   /**
-   * Get the singleton instance of ContentGenerator
+   * Create a new instance of ContentGenerator
    */
-  public static getInstance(
-    dependencies: ContentGeneratorDependencies,
-  ): ContentGenerator {
-    ContentGenerator.instance ??= new ContentGenerator(dependencies);
-    return ContentGenerator.instance;
-  }
-
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
-  public static resetInstance(): void {
-    ContentGenerator.instance = null;
-  }
-
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
-  public static createFresh(
-    dependencies: ContentGeneratorDependencies,
-  ): ContentGenerator {
-    return new ContentGenerator(dependencies);
-  }
-
-  /**
-   * Private constructor to enforce singleton pattern
-   */
-  private constructor(
-    private readonly dependencies: ContentGeneratorDependencies,
-  ) {}
+  constructor(private readonly dependencies: ContentGeneratorDependencies) {}
 
   /**
    * Register a reusable template

@@ -22,9 +22,6 @@ describe("ContentGenerator", () => {
   let mockAIGenerateObject: ReturnType<typeof mock>;
 
   beforeEach(() => {
-    // Reset singleton before each test
-    ContentGenerator.resetInstance();
-
     const mockLogger = createSilentLogger();
 
     mockEntitySearch = mock();
@@ -46,29 +43,9 @@ describe("ContentGenerator", () => {
       aiService: mockAIService as AIService,
     };
 
-    contentGenerator = ContentGenerator.createFresh(mockDependencies);
+    contentGenerator = new ContentGenerator(mockDependencies);
   });
 
-  describe("singleton pattern", () => {
-    it("should return the same instance when called multiple times", () => {
-      const instance1 = ContentGenerator.getInstance(mockDependencies);
-      const instance2 = ContentGenerator.getInstance(mockDependencies);
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should create fresh instances independently", () => {
-      const fresh1 = ContentGenerator.createFresh(mockDependencies);
-      const fresh2 = ContentGenerator.createFresh(mockDependencies);
-      expect(fresh1).not.toBe(fresh2);
-    });
-
-    it("should reset instance correctly", () => {
-      const instance1 = ContentGenerator.getInstance(mockDependencies);
-      ContentGenerator.resetInstance();
-      const instance2 = ContentGenerator.getInstance(mockDependencies);
-      expect(instance1).not.toBe(instance2);
-    });
-  });
 
   describe("generateContent", () => {
     const mockTemplate: ContentTemplate = {

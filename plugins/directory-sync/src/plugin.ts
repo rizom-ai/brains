@@ -623,7 +623,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
     }
 
     // Register export job handler
-    const exportHandler = DirectoryExportJobHandler.getInstance(
+    const exportHandler = new DirectoryExportJobHandler(
       this.logger.child("DirectoryExportJobHandler"),
       context,
       this.directorySync,
@@ -631,7 +631,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
     context.registerJobHandler("directory-export", exportHandler);
 
     // Register import job handler
-    const importHandler = DirectoryImportJobHandler.getInstance(
+    const importHandler = new DirectoryImportJobHandler(
       this.logger.child("DirectoryImportJobHandler"),
       context,
       this.directorySync,
