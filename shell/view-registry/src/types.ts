@@ -180,19 +180,6 @@ export const BuildResultSchema = z.object({
 
 export type BuildResult = z.infer<typeof BuildResultSchema>;
 
-/**
- * Content generation request
- */
-export const ContentGenerationRequestSchema = z.object({
-  pageId: z.string(),
-  sectionId: z.string(),
-  template: z.string().optional(),
-  context: z.record(z.unknown()).optional(),
-});
-
-export type ContentGenerationRequest = z.infer<
-  typeof ContentGenerationRequestSchema
->;
 
 /**
  * Site builder interface

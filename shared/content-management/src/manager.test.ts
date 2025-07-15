@@ -820,4 +820,3 @@ test("rollback should throw for empty ids", async () => {
     }),
   ).rejects.toThrow("No entities to rollback");
 });
-

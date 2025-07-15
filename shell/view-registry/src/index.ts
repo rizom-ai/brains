@@ -11,7 +11,6 @@ export type {
   WebRenderer,
   SiteBuilderOptions,
   BuildResult,
-  ContentGenerationRequest,
   RouteRegistry as IRouteRegistry,
   ViewTemplateRegistry as IViewTemplateRegistry,
   ViewRegistry as IViewRegistry,
@@ -25,7 +24,6 @@ export {
   ViewTemplateSchema,
   SiteBuilderOptionsSchema,
   BuildResultSchema,
-  ContentGenerationRequestSchema,
   SiteContentEntityTypeSchema,
 } from "./types";
 
