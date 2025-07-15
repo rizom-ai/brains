@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ContentFormatter } from "./formatters";
+import type { ContentFormatter } from "@brains/utils";
 import type { VNode } from "preact";
 import type { EntityService, AIService } from "./services";
 import type { Logger } from "@brains/utils";

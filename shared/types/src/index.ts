@@ -30,13 +30,10 @@ export type {
   RouteDefinition,
   SectionDefinition,
   SiteContentEntityType,
-  ContentConfig,
-  ContentRegistry,
 } from "./content";
 export { SiteContentEntityTypeSchema } from "./content";
 
-// Registry types
-export type { ServiceRegistry, ComponentFactory } from "./registry";
+// Registry types have been moved to their respective implementation packages
 
 // Service interfaces (minimal shared contracts only)
 export type {
