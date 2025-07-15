@@ -10,7 +10,7 @@ import type {
   PluginTool,
   ContentGenerationConfig,
 } from "@brains/plugin-utils";
-import type { IEntityService } from "@brains/entity-service";
+import type { EntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { JobContext } from "@brains/db";
@@ -413,9 +413,9 @@ export class PluginTestHarness {
   /**
    * Create a mock entity service
    */
-  private createMockEntityService(): IEntityService {
-    const mockService: IEntityService = {
-      createEntitySync: async <T extends BaseEntity>(
+  private createMockEntityService(): EntityService {
+    const mockService = {
+      createEntity: async <T extends BaseEntity>(
         entity: EntityInput<T>,
       ): Promise<T> => {
         const entityType =
@@ -436,7 +436,7 @@ export class PluginTestHarness {
         // For simplicity, ignore filter options in test harness
         return this.listEntities(entityType);
       },
-      updateEntitySync: async <T extends BaseEntity>(entity: T): Promise<T> => {
+      updateEntity: async <T extends BaseEntity>(entity: T): Promise<T> => {
         // Find and update entity in harness storage
         const entities = this.entities.get(entity.entityType) ?? [];
         const index = entities.findIndex((e) => e.id === entity.id);
@@ -447,17 +447,17 @@ export class PluginTestHarness {
         }
         throw new Error(`Entity ${entity.id} not found for update`);
       },
-      deleteEntity: async (id: string): Promise<boolean> => {
+      deleteEntity: async (id: string): Promise<void> => {
         // Find and remove entity from harness storage
         for (const [entityType, entities] of this.entities) {
           const index = entities.findIndex((e) => e.id === id);
           if (index !== -1) {
             entities.splice(index, 1);
             this.entities.set(entityType, entities);
-            return true;
+            return;
           }
         }
-        return false; // Entity not found
+        throw new Error(`Entity with id ${id} not found`);
       },
       search: async (): Promise<never[]> => {
         // Mock implementation - return empty array
@@ -492,6 +492,9 @@ export class PluginTestHarness {
         // Return all registered entity types
         return Array.from(this.entities.keys());
       },
+      hasEntityType: (type: string): boolean => {
+        return this.entities.has(type);
+      },
       createEntityAsync: async (): Promise<{
         entityId: string;
         jobId: string;
@@ -507,33 +510,7 @@ export class PluginTestHarness {
       }> => {
         throw new Error("updateEntityAsync not implemented in test harness");
       },
-      serializeEntity: (entity: BaseEntity): string => {
-        // Mock serialization - return JSON as markdown
-        return `# ${entity.entityType}\n\n${JSON.stringify(entity, null, 2)}`;
-      },
-      deserializeEntity: (
-        markdown: string,
-        entityType: string,
-      ): Partial<BaseEntity> => {
-        // Mock deserialization - try to parse JSON from markdown
-        try {
-          const jsonMatch = markdown.match(/```json\n(.*)\n```/s);
-          if (jsonMatch?.[1]) {
-            return JSON.parse(jsonMatch[1]);
-          }
-          // Simple fallback - just return basic structure
-          return {
-            content: markdown,
-            entityType,
-          };
-        } catch {
-          return {
-            content: markdown,
-            entityType,
-          };
-        }
-      },
     };
-    return mockService;
+    return mockService as unknown as EntityService;
   }
 }

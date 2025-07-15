@@ -1,8 +1,4 @@
-import type {
-  BaseEntity,
-  EntityInput,
-  EntityService as IEntityService,
-} from "@brains/types";
+import type { BaseEntity, EntityInput } from "@brains/types";
 
 /**
  * List entities options
@@ -31,9 +27,32 @@ export interface SearchOptions {
 
 /**
  * Entity service interface for managing brain entities
- * Extends the public interface with additional shell-specific methods
  */
-export interface EntityService extends IEntityService {
+export interface EntityService {
+  // Core entity operations
+  getEntity<T extends BaseEntity>(entityId: string): Promise<T | null>;
+  createEntity<T extends BaseEntity>(entity: EntityInput<T>): Promise<T>;
+  updateEntity<T extends BaseEntity>(entity: T): Promise<T>;
+  deleteEntity(entityId: string): Promise<void>;
+  deriveEntity<T extends BaseEntity>(
+    sourceEntityId: string,
+    targetType: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<T>;
+
+  // Query operations
+  listEntities<T extends BaseEntity>(
+    type: string,
+    options?: ListOptions,
+  ): Promise<T[]>;
+  search<T extends BaseEntity>(
+    query: string,
+    options?: SearchOptions,
+  ): Promise<Array<{ entity: T; score: number }>>;
+
+  // Entity type information
+  getEntityTypes(): string[];
+  hasEntityType(type: string): boolean;
   // Additional shell-specific methods for async operations
 
   // Async entity creation (returns immediately, embedding generated in background)

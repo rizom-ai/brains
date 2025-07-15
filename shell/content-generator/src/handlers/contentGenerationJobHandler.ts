@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Logger } from "@brains/utils";
 import type { ContentGenerator } from "@brains/content-generator";
 import type { JobHandler } from "@brains/job-queue";
-import type { IEntityService } from "@brains/entity-service";
+import type { EntityService } from "@brains/entity-service";
 import type { ProgressReporter } from "@brains/utils";
 
 /**
@@ -36,14 +36,14 @@ export class ContentGenerationJobHandler
   private static instance: ContentGenerationJobHandler | null = null;
   private logger: Logger;
   private contentGenerator: ContentGenerator;
-  private entityService: IEntityService;
+  private entityService: EntityService;
 
   /**
    * Get the singleton instance
    */
   public static getInstance(
     contentGenerator: ContentGenerator,
-    entityService: IEntityService,
+    entityService: EntityService,
   ): ContentGenerationJobHandler {
     ContentGenerationJobHandler.instance ??= new ContentGenerationJobHandler(
       contentGenerator,
@@ -64,7 +64,7 @@ export class ContentGenerationJobHandler
    */
   public static createFresh(
     contentGenerator: ContentGenerator,
-    entityService: IEntityService,
+    entityService: EntityService,
   ): ContentGenerationJobHandler {
     return new ContentGenerationJobHandler(contentGenerator, entityService);
   }
@@ -74,7 +74,7 @@ export class ContentGenerationJobHandler
    */
   private constructor(
     contentGenerator: ContentGenerator,
-    entityService: IEntityService,
+    entityService: EntityService,
   ) {
     this.logger = Logger.getInstance().child("ContentGenerationJobHandler");
     this.contentGenerator = contentGenerator;

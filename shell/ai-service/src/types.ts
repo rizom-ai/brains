@@ -1,4 +1,4 @@
-import type { AIService as IAIService } from "@brains/types";
+import type { z } from "zod";
 
 /**
  * AI model configuration
@@ -12,9 +12,34 @@ export interface AIModelConfig {
 
 /**
  * AI Service interface for generating text and structured objects
- * Extends the public interface (currently identical)
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface AIService extends IAIService {
-  // Currently identical to public interface - no additional methods needed
+export interface AIService {
+  generateText(
+    systemPrompt: string,
+    userPrompt: string,
+  ): Promise<{
+    text: string;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }>;
+
+  generateObject<T>(
+    systemPrompt: string,
+    userPrompt: string,
+    schema: z.ZodType<T>,
+  ): Promise<{
+    object: T;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }>;
+
+  updateConfig(config: Partial<AIModelConfig>): void;
+
+  getConfig(): AIModelConfig;
 }

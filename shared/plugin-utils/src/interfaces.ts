@@ -14,11 +14,8 @@ import type {
   SectionDefinition,
   ViewTemplate,
 } from "@brains/view-registry";
-import type { IEntityService } from "@brains/entity-service";
-import type {
-  JobStatusType,
-  JobHandler,
-} from "@brains/job-queue";
+import type { EntityService } from "@brains/entity-service";
+import type { JobStatusType, JobHandler } from "@brains/job-queue";
 import type { JobOptions } from "@brains/db";
 
 /**
@@ -199,7 +196,7 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
   // Plugin metadata access (scoped to current plugin by default)
   getPluginPackageName: (pluginId?: string) => string | undefined;
   // Entity service access - direct access to public service interface
-  entityService: IEntityService;
+  entityService: EntityService;
 
   // Wait for job completion (with timeout)
   waitForJob: (jobId: string, timeoutMs?: number) => Promise<unknown>;
@@ -227,7 +224,6 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
     }>,
     options: JobOptions,
   ) => Promise<string>;
-
 
   // Job handler registration (for plugins that process jobs)
   registerJobHandler: (type: string, handler: JobHandler) => void;

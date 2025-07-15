@@ -4,7 +4,7 @@ import { EntityRegistry } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type { BaseEntity, SearchResult } from "@brains/types";
 import type { IEmbeddingService } from "@brains/embedding-service";
-import type { EntityService as IEntityService, SearchOptions } from "./types";
+import type { SearchOptions } from "./types";
 import { eq, and, inArray, desc, asc, sql } from "@brains/db";
 import { z } from "zod";
 import { EntityNotFoundError } from "./errors";
@@ -53,7 +53,7 @@ export interface EntityServiceOptions {
  * EntityService provides CRUD operations for entities
  * Implements Component Interface Standardization pattern
  */
-export class EntityService implements IEntityService {
+export class EntityService {
   private static instance: EntityService | null = null;
 
   private db: DrizzleDB;

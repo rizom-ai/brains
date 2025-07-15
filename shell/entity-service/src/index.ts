@@ -6,7 +6,6 @@ export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export type {
   ListOptions,
   SearchOptions,
-  EntityService as IEntityService,
   EntityRegistry as IEntityRegistry,
 } from "./types";
 

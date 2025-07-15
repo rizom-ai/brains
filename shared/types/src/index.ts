@@ -28,14 +28,7 @@ export { TemplateSchema } from "./templates";
 
 // Registry types have been moved to their respective implementation packages
 
-// Service interfaces (minimal shared contracts only)
-export type {
-  Command,
-  CommandResponse,
-  BrainProtocol,
-  EntityService,
-  AIService,
-} from "./services";
+// Service interfaces have been moved to their respective implementation packages
 
 // Formatter types have been moved to @brains/utils
 

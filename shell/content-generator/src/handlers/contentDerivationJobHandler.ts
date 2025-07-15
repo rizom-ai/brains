@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Logger } from "@brains/utils";
 import type { JobHandler } from "@brains/job-queue";
-import type { IEntityService } from "@brains/entity-service";
+import type { EntityService } from "@brains/entity-service";
 import type { ProgressReporter } from "@brains/utils";
 
 /**
@@ -32,13 +32,13 @@ export class ContentDerivationJobHandler
 {
   private static instance: ContentDerivationJobHandler | null = null;
   private logger: Logger;
-  private entityService: IEntityService;
+  private entityService: EntityService;
 
   /**
    * Get the singleton instance
    */
   public static getInstance(
-    entityService: IEntityService,
+    entityService: EntityService,
   ): ContentDerivationJobHandler {
     ContentDerivationJobHandler.instance ??= new ContentDerivationJobHandler(
       entityService,
@@ -57,7 +57,7 @@ export class ContentDerivationJobHandler
    * Create a fresh instance without affecting the singleton
    */
   public static createFresh(
-    entityService: IEntityService,
+    entityService: EntityService,
   ): ContentDerivationJobHandler {
     return new ContentDerivationJobHandler(entityService);
   }
@@ -65,7 +65,7 @@ export class ContentDerivationJobHandler
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(entityService: IEntityService) {
+  private constructor(entityService: EntityService) {
     this.logger = Logger.getInstance().child("ContentDerivationJobHandler");
     this.entityService = entityService;
   }

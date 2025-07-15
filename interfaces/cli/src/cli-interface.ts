@@ -25,7 +25,6 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   private progressCallback: ((events: JobProgressEvent[]) => void) | undefined;
   private responseCallback: ((response: string) => void) | undefined;
 
-
   constructor(config: CLIConfigInput = {}) {
     const defaults: Partial<CLIConfig> = {
       theme: {
