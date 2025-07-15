@@ -6,7 +6,8 @@
  * structured data into human-readable markdown.
  */
 
-export * from "./formatters";
+// Export types first
+export type { SchemaFormatter, ContentFormatter } from "./types";
 
-// Re-export the interface from types for convenience
-export type { SchemaFormatter } from "@brains/types";
+// Export implementations
+export * from "./formatters";

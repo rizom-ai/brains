@@ -47,8 +47,7 @@ export type {
   AIService,
 } from "./services";
 
-// Formatter types
-export type { SchemaFormatter, ContentFormatter } from "./formatters";
+// Formatter types have been moved to @brains/utils
 
 // Job types
 export type { Job } from "./jobs";

@@ -1,4 +1,4 @@
-import type { ContentFormatter } from "@brains/types";
+import type { ContentFormatter } from "../types";
 import * as yaml from "js-yaml";
 
 /**

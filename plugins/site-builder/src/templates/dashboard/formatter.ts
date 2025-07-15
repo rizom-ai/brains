@@ -1,4 +1,4 @@
-import type { ContentFormatter } from "@brains/types";
+import type { ContentFormatter } from "@brains/utils";
 import type { DashboardData } from "./schema";
 
 /**

@@ -1,4 +1,4 @@
-import type { SchemaFormatter } from "@brains/types";
+import type { SchemaFormatter } from "../types";
 
 /**
  * Default formatter - simple fallback for any data

@@ -1,4 +1,4 @@
-import type { ContentFormatter } from "@brains/types";
+import type { ContentFormatter } from "../types";
 import type { z } from "zod";
 import { remark } from "remark";
 import type { Root, Heading, Paragraph, Content } from "mdast";
