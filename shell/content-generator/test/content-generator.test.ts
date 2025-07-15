@@ -46,7 +46,6 @@ describe("ContentGenerator", () => {
     contentGenerator = new ContentGenerator(mockDependencies);
   });
 
-
   describe("generateContent", () => {
     const mockTemplate: ContentTemplate = {
       name: "test-template",

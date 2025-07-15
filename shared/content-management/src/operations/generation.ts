@@ -19,38 +19,8 @@ function generateContentId(routeId: string, sectionId: string): string {
  * Handles AI-driven content generation and regeneration
  */
 export class GenerationOperations {
-  private static instance: GenerationOperations | null = null;
-
-  // Singleton access
-  public static getInstance(
-    entityService: EntityService,
-    logger: Logger,
-    pluginContext: PluginContext,
-  ): GenerationOperations {
-    GenerationOperations.instance ??= new GenerationOperations(
-      entityService,
-      logger,
-      pluginContext,
-    );
-    return GenerationOperations.instance;
-  }
-
-  // Testing reset
-  public static resetInstance(): void {
-    GenerationOperations.instance = null;
-  }
-
-  // Isolated instance creation
-  public static createFresh(
-    entityService: EntityService,
-    logger: Logger,
-    pluginContext: PluginContext,
-  ): GenerationOperations {
-    return new GenerationOperations(entityService, logger, pluginContext);
-  }
-
-  // Private constructor to enforce factory methods
-  private constructor(
+  // Create a new instance
+  constructor(
     _entityService: EntityService, // TODO: Use for checking if entities already exist before queuing
     private readonly logger: Logger,
     private readonly pluginContext: PluginContext,

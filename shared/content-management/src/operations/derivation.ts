@@ -8,35 +8,8 @@ import type { DeriveOptions } from "../types";
  * Handles content transformation between entity types (preview ↔ production)
  */
 export class DerivationOperations {
-  private static instance: DerivationOperations | null = null;
-
-  // Singleton access
-  public static getInstance(
-    entityService: EntityService,
-    logger: Logger,
-  ): DerivationOperations {
-    DerivationOperations.instance ??= new DerivationOperations(
-      entityService,
-      logger,
-    );
-    return DerivationOperations.instance;
-  }
-
-  // Testing reset
-  public static resetInstance(): void {
-    DerivationOperations.instance = null;
-  }
-
-  // Isolated instance creation
-  public static createFresh(
-    entityService: EntityService,
-    logger: Logger,
-  ): DerivationOperations {
-    return new DerivationOperations(entityService, logger);
-  }
-
-  // Private constructor to enforce factory methods
-  private constructor(
+  // Create a new instance
+  constructor(
     _entityService: EntityService, // TODO: Use when implementing actual async derivation
     private readonly logger: Logger,
   ) {}

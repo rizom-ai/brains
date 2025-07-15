@@ -33,48 +33,7 @@ beforeEach((): void => {
   // Reset all mocks
   mockDeriveEntity.mockClear();
 
-  DerivationOperations.resetInstance();
-  operations = DerivationOperations.createFresh(mockEntityService, mockLogger);
-});
-
-test("should implement singleton pattern", () => {
-  const instance1 = DerivationOperations.getInstance(
-    mockEntityService,
-    mockLogger,
-  );
-  const instance2 = DerivationOperations.getInstance(
-    mockEntityService,
-    mockLogger,
-  );
-
-  expect(instance1).toBe(instance2);
-});
-
-test("should reset instance", () => {
-  const instance1 = DerivationOperations.getInstance(
-    mockEntityService,
-    mockLogger,
-  );
-  DerivationOperations.resetInstance();
-  const instance2 = DerivationOperations.getInstance(
-    mockEntityService,
-    mockLogger,
-  );
-
-  expect(instance1).not.toBe(instance2);
-});
-
-test("should create fresh instance", () => {
-  const instance1 = DerivationOperations.getInstance(
-    mockEntityService,
-    mockLogger,
-  );
-  const instance2 = DerivationOperations.createFresh(
-    mockEntityService,
-    mockLogger,
-  );
-
-  expect(instance1).not.toBe(instance2);
+  operations = new DerivationOperations(mockEntityService, mockLogger);
 });
 
 test("derive should return job ID for preview to production", async () => {

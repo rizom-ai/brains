@@ -103,8 +103,7 @@ beforeEach((): void => {
   mockListEntities.mockClear();
   mockEnqueueContentGeneration.mockClear();
 
-  GenerationOperations.resetInstance();
-  operations = GenerationOperations.createFresh(
+  operations = new GenerationOperations(
     mockEntityService,
     mockLogger,
     mockPluginContext,

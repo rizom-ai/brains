@@ -80,12 +80,12 @@ export class ContentManager {
     this.logger = logger.child("ContentManager");
     // Always available services
     this.entityQuery = EntityQueryService.createFresh(entityService, logger);
-    this.generationOps = GenerationOperations.createFresh(
+    this.generationOps = new GenerationOperations(
       entityService,
       logger,
       pluginContext,
     );
-    this.derivationOps = DerivationOperations.createFresh(
+    this.derivationOps = new DerivationOperations(
       entityService,
       logger,
     );
