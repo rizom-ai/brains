@@ -22,11 +22,11 @@ import {
   SiteOperations,
   PromoteOptionsSchema,
   RollbackOptionsSchema,
-  GenerateOptionsSchema,
 } from "./content-management";
+import { GenerateOptionsSchema } from "@brains/content-management";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
-import { SiteBuilderInitializationError, SiteBuildError } from "./errors";
+import { SiteBuilderInitializationError } from "./errors";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import packageJson from "../package.json";
 
@@ -193,20 +193,26 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
   protected override async getTools(): Promise<PluginTool[]> {
     const tools: PluginTool[] = [];
 
-    // Generate tool - generates content for routes without building
+    // Generate tool - generates content for routes
     tools.push(
       this.createTool(
         "generate",
-        "Generate content for routes that don't have it",
+        "Generate content for all routes, a specific route, or a specific section",
         {
           routeId: z
             .string()
             .optional()
-            .describe("Optional: specific route filter"),
-          section: z
+            .describe(
+              "Optional: specific route ID (generates all sections for this route)",
+            ),
+          sectionId: z
             .string()
             .optional()
-            .describe("Optional: specific section filter"),
+            .describe("Optional: specific section ID (requires routeId)"),
+          force: z
+            .boolean()
+            .default(false)
+            .describe("Optional: regenerate existing content"),
           dryRun: z
             .boolean()
             .default(false)
@@ -221,8 +227,16 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             );
           }
 
-          // Parse and validate input
+          // Parse and validate input using the schema
           const options = GenerateOptionsSchema.parse(input);
+
+          // Validate that sectionId is only used with routeId
+          if (options.sectionId && !options.routeId) {
+            return {
+              status: "error",
+              message: "sectionId requires routeId to be specified",
+            };
+          }
 
           // Get all registered routes
           const routes = this.context.listRoutes();
@@ -258,29 +272,41 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             };
           }
 
-          // Get batch ID using generateAll with filters
+          // Generate content using the unified generate method
           const metadata: JobContext = {
             interfaceId: context?.interfaceId || "mcp",
             userId: context?.userId || "mcp-user",
             channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
-            operationType: "site_building",
+            operationType: "content_generation",
           };
 
-          const batchId = await this.contentManager.generateAll(
-            { ...options, source: "plugin:site-builder", metadata },
+          // Use the regular generate method and return job information
+          const result = await this.contentManager.generate(
+            { ...options, force: options.force ?? false },
             routes,
             templateResolver,
             "site-content-preview",
+            { source: "plugin:site-builder", metadata },
             this.config.siteConfig,
           );
 
           return {
             status: "queued",
-            message: `Generating ${sectionsToGenerate} section${sectionsToGenerate !== 1 ? "s" : ""}`,
-            batchId,
-            tip: "Use the status tool to check progress of this operation.",
+            message: `Generated ${result.queuedSections} of ${result.totalSections} section${result.totalSections !== 1 ? "s" : ""}`,
+            batchId: result.batchId,
+            jobsQueued: result.queuedSections,
+            totalSections: result.totalSections,
+            jobs: result.jobs.map((job) => ({
+              jobId: job.jobId,
+              routeId: job.routeId,
+              sectionId: job.sectionId,
+            })),
+            tip:
+              result.queuedSections > 0
+                ? "Use the status tool to check progress of this batch operation."
+                : "No new content to generate.",
           };
         },
       ),
@@ -289,28 +315,27 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
     // Build tool - now uses job queue for async processing
     tools.push(
       this.createTool(
-        "build",
+        "build-site",
         "Build a static site from registered routes",
         {
           environment: z
             .enum(["preview", "production"])
             .default("preview")
             .describe("Build environment: preview (default) or production"),
-          async: z
-            .boolean()
-            .default(true)
-            .describe("Run asynchronously via job queue (default: true)"),
         },
         async (input, context): Promise<Record<string, unknown>> => {
           if (!this.context) {
             throw new Error("Plugin context not initialized");
           }
 
-          // Parse input for environment option
-          const { environment = "preview", async = true } = input as {
-            environment?: "preview" | "production";
-            async?: boolean;
-          };
+          // Parse and validate input using Zod
+          const parsedInput = z
+            .object({
+              environment: z.enum(["preview", "production"]).default("preview"),
+            })
+            .parse(input);
+
+          const { environment } = parsedInput;
 
           // Use the plugin's configuration
           const config = this.config;
@@ -341,58 +366,20 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             operationType: "site_building",
           };
 
-          if (async) {
-            // Queue the job for async processing
-            const jobId = await this.context.enqueueJob("site-build", jobData, {
-              priority: 5,
-              source: this.id,
-              metadata,
-            });
+          // Queue the job for async processing
+          const jobId = await this.context.enqueueJob("site-build", jobData, {
+            priority: 5,
+            source: this.id,
+            metadata,
+          });
 
-            return {
-              status: "queued",
-              message: `Site build for ${environment} environment queued`,
-              jobId,
-              outputDir,
-              tip: "Use the status tool to check progress of this operation.",
-            };
-          } else {
-            // Run synchronously (for backward compatibility)
-            if (!this.siteBuilder) {
-              throw new Error("Site builder not initialized");
-            }
-
-            try {
-              const result = await this.siteBuilder.build(
-                jobData,
-                context?.sendProgress,
-              );
-
-              return {
-                success: result.success,
-                routesBuilt: result.routesBuilt,
-                outputDir,
-                environment,
-                errors: result.errors,
-                warnings: result.warnings,
-              };
-            } catch (error) {
-              const buildError = new SiteBuildError(
-                "Site build failed",
-                error,
-                {
-                  tool: "build",
-                  outputDir,
-                  environment,
-                },
-              );
-              const message = buildError.message;
-              return {
-                success: false,
-                error: message,
-              };
-            }
-          }
+          return {
+            status: "queued",
+            message: `Site build for ${environment} environment queued`,
+            jobId,
+            outputDir,
+            tip: "Use the status tool to check progress of this operation.",
+          };
         },
         "anchor", // Internal tool - modifies filesystem
       ),
@@ -506,39 +493,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
     tools.push(
       this.createTool(
-        "promote-all",
-        "Promote all preview content to production",
-        {},
-        async (_input, context): Promise<Record<string, unknown>> => {
-          if (!this.siteOperations) {
-            throw new Error("Site operations not initialized");
-          }
-
-          // Create metadata from context
-          const metadata: JobContext = {
-            interfaceId: context?.interfaceId || "mcp",
-            userId: context?.userId || "system",
-            channelId: context?.channelId,
-            progressToken: context?.progressToken,
-            pluginId: this.id,
-            operationType: "site_building",
-          };
-
-          const batchId = await this.siteOperations.promoteAll(metadata);
-
-          return {
-            status: "queued",
-            message: "Promotion of all preview content queued.",
-            batchId,
-            tip: "Use the status tool to check progress of this operation.",
-          };
-        },
-        "anchor", // Internal tool - modifies entities
-      ),
-    );
-
-    tools.push(
-      this.createTool(
         "rollback-content",
         "Remove production content (rollback to preview-only)",
         {
@@ -590,176 +544,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       ),
     );
 
-    tools.push(
-      this.createTool(
-        "rollback-all",
-        "Remove all production content (rollback to preview-only)",
-        {},
-        async (_input, context): Promise<Record<string, unknown>> => {
-          if (!this.siteOperations) {
-            throw new Error("Site operations not initialized");
-          }
-
-          // Create metadata from context
-          const metadata: JobContext = {
-            interfaceId: context?.interfaceId || "mcp",
-            userId: context?.userId || "system",
-            channelId: context?.channelId,
-            progressToken: context?.progressToken,
-            pluginId: this.id,
-            operationType: "site_building",
-          };
-
-          const batchId = await this.siteOperations.rollbackAll(metadata);
-
-          return {
-            status: "queued",
-            message: "Rollback of all production content queued.",
-            batchId,
-            tip: "Use the status tool to check progress of this operation.",
-          };
-        },
-        "anchor", // Internal tool - modifies entities
-      ),
-    );
-
-    // Build site tool - combines content generation and site building
-    tools.push(
-      this.createTool(
-        "build-site",
-        "Generate content and build site in one operation",
-        {
-          environment: z
-            .enum(["preview", "production"])
-            .default("preview")
-            .describe("Build environment: preview (default) or production"),
-        },
-        async (input): Promise<Record<string, unknown>> => {
-          if (!this.context) {
-            throw new Error("Plugin context not initialized");
-          }
-
-          const { environment = "preview" } = input as {
-            environment?: "preview" | "production";
-          };
-
-          const config = this.config;
-          const outputDir =
-            environment === "production"
-              ? config.productionOutputDir
-              : config.previewOutputDir;
-
-          const metadata: JobContext = {
-            interfaceId: "mcp",
-            userId: "system",
-            operationType: "site_building",
-            pluginId: this.id,
-          };
-
-          // Queue the build job with content generation enabled
-          const jobId = await this.context.enqueueJob(
-            "site-build",
-            {
-              environment,
-              outputDir,
-              workingDir: config.workingDir,
-              enableContentGeneration: true,
-              siteConfig: config.siteConfig ?? {
-                title: "Personal Brain",
-                description: "A knowledge management system",
-              },
-            },
-            {
-              priority: 5,
-              source: this.id,
-              metadata,
-            },
-          );
-
-          return {
-            status: "queued",
-            message: `Site build with content generation for ${environment} environment queued`,
-            jobId,
-            outputDir,
-            tip: "This will generate all missing content and build the site. Use the status tool to check progress.",
-          };
-        },
-        "anchor", // Internal tool - modifies filesystem and entities
-      ),
-    );
-
-    // Generate all tool - generates content for all sections across all routes
-    tools.push(
-      this.createTool(
-        "generate-all",
-        "Generate content for all sections across all routes",
-        {
-          dryRun: z
-            .boolean()
-            .optional()
-            .default(false)
-            .describe("Preview changes without executing"),
-        },
-        async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.contentManager || !this.context) {
-            throw new Error("Content manager not initialized");
-          }
-
-          // Parse and validate input
-          const options = GenerateOptionsSchema.parse(input);
-
-          // Get all registered routes
-          const routes = this.context.listRoutes();
-
-          // Count total sections for user feedback
-          let totalSections = 0;
-          for (const route of routes) {
-            totalSections += route.sections.length;
-          }
-
-          // Always use async for better UX
-          const templateResolver = (section: SectionDefinition): string => {
-            if (!section.template) {
-              throw new Error(
-                `No template specified for section ${section.id}`,
-              );
-            }
-            return section.template;
-          };
-
-          const metadata: JobContext = {
-            interfaceId: context?.interfaceId || "mcp",
-            userId: context?.userId || "system",
-            channelId: context?.channelId,
-            progressToken: context?.progressToken,
-            pluginId: this.id,
-            operationType: "site_building",
-          };
-
-          const batchId = await this.contentManager.generateAll(
-            { ...options, source: "plugin:site-builder", metadata },
-            routes,
-            templateResolver,
-            "site-content-preview",
-            this.config.siteConfig,
-          );
-
-          // Return user-friendly response
-          return {
-            status: "queued",
-            message: `Generating ${totalSections} sections.`,
-            batchId,
-            totalSections,
-            tip:
-              totalSections > 0
-                ? "This operation is running in the background."
-                : "No sections to generate.",
-          };
-        },
-        "anchor", // Internal tool - modifies entities
-      ),
-    );
-
     return tools;
   }
 
@@ -769,11 +553,25 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
   public override async getCommands(): Promise<Command[]> {
     return [
       {
-        name: "generate-all",
-        description: "Generate content for all sections across all routes",
-        usage: "/generate-all [--dry-run]",
+        name: "generate",
+        description:
+          "Generate content for all routes, a specific route, or a specific section",
+        usage: "/generate [routeId] [sectionId] [--force] [--dry-run]",
         handler: async (args, context): Promise<CommandResponse> => {
+          // Parse command arguments
           const dryRun = args.includes("--dry-run");
+          const force = args.includes("--force");
+          const filteredArgs = args.filter((arg) => !arg.startsWith("--"));
+          const routeId = filteredArgs[0];
+          const sectionId = filteredArgs[1];
+
+          // Validate that sectionId is only used with routeId
+          if (sectionId && !routeId) {
+            return {
+              type: "message",
+              message: "❌ sectionId requires routeId to be specified",
+            };
+          }
 
           if (!this.contentManager || !this.context) {
             return {
@@ -784,7 +582,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           try {
-            // Get routes and template resolver like the generate-all tool
+            // Get routes and template resolver
             const routes = this.context.listRoutes();
             const templateResolver = (section: SectionDefinition): string => {
               if (!this.context) {
@@ -806,34 +604,45 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               channelId: context.channelId,
               progressToken: context.messageId,
               pluginId: this.id,
-              operationType: "site_building",
+              operationType: "content_generation",
             };
 
-            // Use the same logic as the generate-all tool
-            const batchId = await this.contentManager.generateAll(
-              { dryRun, source: "command:generate-all", metadata },
+            // Use the content manager to generate content
+            const result = await this.contentManager.generate(
+              { routeId, sectionId, force, dryRun },
               routes,
               templateResolver,
               "site-content-preview",
+              { source: "command:generate", metadata },
               this.config.siteConfig,
             );
 
             if (dryRun) {
+              const scope = routeId
+                ? sectionId
+                  ? `section ${routeId}:${sectionId}`
+                  : `route ${routeId}`
+                : "all routes";
               return {
                 type: "message",
-                message:
-                  "🔍 **Dry run completed** - No content was actually generated. Use `/generate-all` without --dry-run to execute.",
+                message: `🔍 **Dry run completed** - No content was actually generated for ${scope}. Use \`/generate\` without --dry-run to execute.`,
               };
             }
 
+
+            const scope = routeId
+              ? sectionId
+                ? `section ${routeId}:${sectionId}`
+                : `route ${routeId}`
+              : "all routes";
             return {
               type: "batch-operation",
-              message: `🚀 **Content generation started** - Generating content for all sections across all routes. This may take a moment...`,
-              batchId,
-              operationCount: await this.getBatchOperationCount(routes),
+              message: `🚀 **Content generation started** - Generated ${result.queuedSections} of ${result.totalSections} sections for ${scope}. ${result.queuedSections > 0 ? "Jobs are running in the background." : "No new content to generate."}`,
+              batchId: result.batchId,
+              operationCount: result.queuedSections,
             };
           } catch (error) {
-            this.error("Generate-all command failed", error);
+            this.error("Generate command failed", error);
             return {
               type: "message",
               message: `❌ **Generation failed**: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
@@ -842,11 +651,24 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         },
       },
       {
-        name: "promote-all",
-        description: "Promote all preview content to production",
-        usage: "/promote-all [--dry-run]",
+        name: "promote",
+        description:
+          "Promote all preview content, a specific route, or a specific section to production",
+        usage: "/promote [routeId] [sectionId] [--dry-run]",
         handler: async (args, context): Promise<CommandResponse> => {
+          // Parse command arguments
           const dryRun = args.includes("--dry-run");
+          const filteredArgs = args.filter((arg) => !arg.startsWith("--"));
+          const routeId = filteredArgs[0];
+          const sectionId = filteredArgs[1];
+
+          // Validate that sectionId is only used with routeId
+          if (sectionId && !routeId) {
+            return {
+              type: "message",
+              message: "❌ sectionId requires routeId to be specified",
+            };
+          }
 
           if (!this.contentManager) {
             return {
@@ -857,22 +679,43 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           try {
-            // Get all preview entity IDs
+            // Get filtered preview entities
             const previewEntities =
-              await this.contentManager.getPreviewEntities({});
-            const entityIds = previewEntities.map((e) => e.id);
+              await this.contentManager.getPreviewEntities({
+                ...(routeId && { routeId }),
+              });
+
+            let entityIds: string[];
+            if (sectionId) {
+              // Filter by section
+              entityIds = previewEntities
+                .filter((e) => e.sectionId === sectionId)
+                .map((e) => e.id);
+            } else {
+              entityIds = previewEntities.map((e) => e.id);
+            }
 
             if (entityIds.length === 0) {
+              const scope = routeId
+                ? sectionId
+                  ? `section ${routeId}:${sectionId}`
+                  : `route ${routeId}`
+                : "all routes";
               return {
                 type: "message",
-                message: "ℹ️ No preview content found to promote.",
+                message: `ℹ️ No preview content found to promote for ${scope}.`,
               };
             }
 
             if (dryRun) {
+              const scope = routeId
+                ? sectionId
+                  ? `section ${routeId}:${sectionId}`
+                  : `route ${routeId}`
+                : "all routes";
               return {
                 type: "message",
-                message: `🔍 **Dry run** - Would promote ${entityIds.length} preview entities to production. Use \`/promote-all\` without --dry-run to execute.`,
+                message: `🔍 **Dry run** - Would promote ${entityIds.length} preview entities to production for ${scope}. Use \`/promote\` without --dry-run to execute.`,
               };
             }
 
@@ -886,18 +729,23 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             };
 
             const batchId = await this.contentManager.promote(entityIds, {
-              source: "command:promote-all",
+              source: "command:promote",
               metadata,
             });
 
+            const scope = routeId
+              ? sectionId
+                ? `section ${routeId}:${sectionId}`
+                : `route ${routeId}`
+              : "all routes";
             return {
               type: "batch-operation",
-              message: `📤 **Promotion started** - Promoting ${entityIds.length} preview entities to production...`,
+              message: `📤 **Promotion started** - Promoting ${entityIds.length} preview entities to production for ${scope}...`,
               batchId,
               operationCount: entityIds.length,
             };
           } catch (error) {
-            this.error("Promote-all command failed", error);
+            this.error("Promote command failed", error);
             return {
               type: "message",
               message: `❌ **Promotion failed**: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
@@ -906,11 +754,24 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         },
       },
       {
-        name: "rollback-all",
-        description: "Rollback all production content to previous version",
-        usage: "/rollback-all [--dry-run]",
+        name: "rollback",
+        description:
+          "Rollback all production content, a specific route, or a specific section",
+        usage: "/rollback [routeId] [sectionId] [--dry-run]",
         handler: async (args, context): Promise<CommandResponse> => {
+          // Parse command arguments
           const dryRun = args.includes("--dry-run");
+          const filteredArgs = args.filter((arg) => !arg.startsWith("--"));
+          const routeId = filteredArgs[0];
+          const sectionId = filteredArgs[1];
+
+          // Validate that sectionId is only used with routeId
+          if (sectionId && !routeId) {
+            return {
+              type: "message",
+              message: "❌ sectionId requires routeId to be specified",
+            };
+          }
 
           if (!this.contentManager) {
             return {
@@ -921,22 +782,43 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           try {
-            // Get all production entity IDs
+            // Get filtered production entities
             const productionEntities =
-              await this.contentManager.getProductionEntities({});
-            const entityIds = productionEntities.map((e) => e.id);
+              await this.contentManager.getProductionEntities({
+                ...(routeId && { routeId }),
+              });
+
+            let entityIds: string[];
+            if (sectionId) {
+              // Filter by section
+              entityIds = productionEntities
+                .filter((e) => e.sectionId === sectionId)
+                .map((e) => e.id);
+            } else {
+              entityIds = productionEntities.map((e) => e.id);
+            }
 
             if (entityIds.length === 0) {
+              const scope = routeId
+                ? sectionId
+                  ? `section ${routeId}:${sectionId}`
+                  : `route ${routeId}`
+                : "all routes";
               return {
                 type: "message",
-                message: "ℹ️ No production content found to rollback.",
+                message: `ℹ️ No production content found to rollback for ${scope}.`,
               };
             }
 
             if (dryRun) {
+              const scope = routeId
+                ? sectionId
+                  ? `section ${routeId}:${sectionId}`
+                  : `route ${routeId}`
+                : "all routes";
               return {
                 type: "message",
-                message: `🔍 **Dry run** - Would rollback ${entityIds.length} production entities. Use \`/rollback-all\` without --dry-run to execute.`,
+                message: `🔍 **Dry run** - Would rollback ${entityIds.length} production entities for ${scope}. Use \`/rollback\` without --dry-run to execute.`,
               };
             }
 
@@ -950,18 +832,23 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             };
 
             const batchId = await this.contentManager.rollback(entityIds, {
-              source: "command:rollback-all",
+              source: "command:rollback",
               metadata,
             });
 
+            const scope = routeId
+              ? sectionId
+                ? `section ${routeId}:${sectionId}`
+                : `route ${routeId}`
+              : "all routes";
             return {
               type: "batch-operation",
-              message: `↩️ **Rollback started** - Rolling back ${entityIds.length} production entities...`,
+              message: `↩️ **Rollback started** - Rolling back ${entityIds.length} production entities for ${scope}...`,
               batchId,
               operationCount: entityIds.length,
             };
           } catch (error) {
-            this.error("Rollback-all command failed", error);
+            this.error("Rollback command failed", error);
             return {
               type: "message",
               message: `❌ **Rollback failed**: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
@@ -971,7 +858,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
       },
       {
         name: "build-site",
-        description: "Generate content and build site in one operation",
+        description: "Build static site from existing content",
         usage: "/build-site [preview|production]",
         handler: async (args, context): Promise<CommandResponse> => {
           // Parse environment from args (default to preview)
@@ -988,45 +875,30 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           try {
-            const config = this.config;
-            const outputDir =
-              environment === "production"
-                ? config.productionOutputDir
-                : config.previewOutputDir;
+            // Use the build-site tool with content generation enabled
+            const tools = await this.getTools();
+            const buildTool = tools.find((t) => t.name === "build-site");
 
-            const metadata: JobContext = {
-              interfaceId: context.interfaceType || "command",
-              userId: context.userId || "command-user",
-              channelId: context.channelId,
-              progressToken: context.messageId,
-              pluginId: this.id,
-              operationType: "site_building",
-            };
+            if (!buildTool) {
+              throw new Error("Build-site tool not found");
+            }
 
-            // Queue the build job with content generation enabled
-            const jobId = await this.context.enqueueJob(
-              "site-build",
+            const result = (await buildTool.handler(
               {
                 environment,
-                outputDir,
-                workingDir: config.workingDir,
-                enableContentGeneration: true,
-                siteConfig: config.siteConfig ?? {
-                  title: "Personal Brain",
-                  description: "A knowledge management system",
-                },
               },
               {
-                priority: 5,
-                source: this.id,
-                metadata,
+                interfaceId: context.interfaceType || "command",
+                userId: context.userId || "command-user",
+                channelId: context.channelId,
+                progressToken: context.messageId,
               },
-            );
+            )) as { jobId: string; outputDir: string };
 
             return {
               type: "job-operation",
-              message: `🔨 **Site build started** - Generating content and building ${environment} site to \`${outputDir}\`...`,
-              jobId,
+              message: `🔨 **Site build started** - Building ${environment} site to \`${result.outputDir}\`...`,
+              jobId: result.jobId,
             };
           } catch (error) {
             this.error("Build-site command failed", error);
@@ -1038,23 +910,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
         },
       },
     ];
-  }
-
-  /**
-   * Helper method to get approximate operation count for progress tracking
-   */
-  private async getBatchOperationCount(
-    routes: Array<{ sections?: Array<unknown> }>,
-  ): Promise<number> {
-    try {
-      // Count actual sections across all routes
-      const totalSections = routes.reduce((total, route) => {
-        return total + (route.sections?.length || 0);
-      }, 0);
-      return Math.max(totalSections, 1);
-    } catch {
-      return 1; // Fallback
-    }
   }
 
   /**

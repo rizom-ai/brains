@@ -20,6 +20,10 @@ export const GenerateOptionsSchema = z.object({
     .boolean()
     .default(false)
     .describe("Optional: preview changes without executing"),
+  force: z
+    .boolean()
+    .default(false)
+    .describe("Optional: regenerate existing content"),
 });
 
 /**

@@ -1,9 +1,5 @@
 import type { BaseEntity } from "@brains/types";
-import type {
-  RouteDefinition,
-  SectionDefinition,
-  SiteContentEntityType,
-} from "@brains/view-registry";
+import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 
 // Re-export types from schemas
 export type {
@@ -71,30 +67,6 @@ export interface JobStatusSummary {
     status: "pending" | "processing" | "completed" | "failed";
     error?: string;
   }>;
-}
-
-/**
- * Options for content derivation operations
- */
-export interface DeriveOptions {
-  /** Whether to delete the source entity after successful derivation */
-  deleteSource?: boolean;
-}
-
-/**
- * Result of a content derivation operation
- */
-export interface DeriveResult {
-  /** ID of the source entity */
-  sourceEntityId: string;
-  /** Type of the source entity */
-  sourceEntityType: SiteContentEntityType;
-  /** ID of the newly created derived entity */
-  derivedEntityId: string;
-  /** Type of the derived entity */
-  derivedEntityType: SiteContentEntityType;
-  /** Whether the source entity was deleted */
-  sourceDeleted: boolean;
 }
 
 // Re-export utility types

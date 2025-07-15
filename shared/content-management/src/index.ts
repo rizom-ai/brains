@@ -10,7 +10,6 @@ export { ContentManager } from "./manager";
 
 // Core operation classes
 export { GenerationOperations } from "./operations/generation";
-export { DerivationOperations } from "./operations/derivation";
 export { EntityQueryService } from "./services/entity-query";
 
 // Types and interfaces
@@ -19,8 +18,6 @@ export type {
   GenerateOptions,
   GenerateResult,
   ContentGenerationJob,
-  DeriveOptions,
-  DeriveResult,
   ContentComparison,
 } from "./types";
 

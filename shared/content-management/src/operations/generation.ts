@@ -5,6 +5,7 @@ import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { GenerateOptions, ContentGenerationJob } from "../types";
 import type { JobOptions } from "@brains/db";
+import type { ContentGenerationJobData } from "@brains/content-generator";
 
 /**
  * Generate deterministic entity ID for site content
@@ -21,7 +22,7 @@ function generateContentId(routeId: string, sectionId: string): string {
 export class GenerationOperations {
   // Create a new instance
   constructor(
-    _entityService: EntityService, // TODO: Use for checking if entities already exist before queuing
+    private readonly entityService: EntityService,
     private readonly logger: Logger,
     private readonly pluginContext: PluginContext,
   ) {}
@@ -30,7 +31,7 @@ export class GenerationOperations {
    * Generate content (queues jobs and returns immediately)
    */
   async generate(
-    options: GenerateOptions,
+    rawOptions: Partial<GenerateOptions>,
     routes: RouteDefinition[],
     templateResolver: (sectionId: SectionDefinition) => string,
     targetEntityType: SiteContentEntityType,
@@ -40,10 +41,23 @@ export class GenerationOperations {
     jobs: ContentGenerationJob[];
     totalSections: number;
     queuedSections: number;
+    batchId: string;
   }> {
+    // Apply defaults to options
+    const options: GenerateOptions = {
+      dryRun: false,
+      force: false,
+      ...rawOptions,
+    };
     this.logger.info("Starting async content generation", { options });
 
     const jobs: ContentGenerationJob[] = [];
+    const operations: Array<{
+      type: string;
+      entityId?: string;
+      entityType?: string;
+      options?: ContentGenerationJobData;
+    }> = [];
     let totalSections = 0;
     let queuedSections = 0;
 
@@ -62,6 +76,23 @@ export class GenerationOperations {
 
       for (const sectionDefinition of sectionsToGenerate) {
         const entityId = generateContentId(routeId, sectionDefinition.id);
+
+        // Check if content already exists (unless force flag is set)
+        if (!options.force && !options.dryRun) {
+          const existingEntity = await this.entityService.getEntity(
+            targetEntityType,
+            `${targetEntityType}:${entityId}`,
+          );
+
+          if (existingEntity) {
+            this.logger.debug("Content already exists, skipping", {
+              routeId,
+              sectionId: sectionDefinition.id,
+              entityId,
+            });
+            continue;
+          }
+        }
 
         // Skip if dry run
         if (options.dryRun) {
@@ -89,48 +120,52 @@ export class GenerationOperations {
         jobs.push(job);
         queuedSections++;
 
-        // Queue the job using generic enqueueJob method
-        // Only pass the data that the job handler actually needs
-        await this.pluginContext.enqueueJob(
-          "content-generation",
-          {
-            templateName: job.templateName,
-            entityId: job.entityId,
-            entityType: job.entityType,
-            context: {
-              data: {
-                jobId: job.jobId,
-                entityId: job.entityId,
-                entityType: job.entityType,
-                operation: job.operation,
-                routeId: job.routeId,
-                sectionId: job.sectionId,
-                templateName: job.templateName,
-                siteConfig,
-              },
+        // Create properly typed job data for batch
+        const jobData: ContentGenerationJobData = {
+          templateName: job.templateName,
+          entityId: job.entityId,
+          entityType: job.entityType,
+          context: {
+            data: {
+              jobId: job.jobId,
+              entityId: job.entityId,
+              entityType: job.entityType,
+              operation: job.operation,
+              routeId: job.routeId,
+              sectionId: job.sectionId,
+              templateName: job.templateName,
+              siteConfig,
             },
           },
-          jobOptions,
-        );
+        };
 
-        this.logger.debug("Queued content generation job", {
-          jobId: job.jobId,
-          routeId,
-          sectionId: sectionDefinition.id,
+        operations.push({
+          type: "content-generation",
+          entityId,
+          entityType: targetEntityType,
+          options: jobData,
         });
       }
     }
+
+    // Queue as batch operation
+    const batchId =
+      operations.length > 0
+        ? await this.pluginContext.enqueueBatch(operations, jobOptions)
+        : `empty-batch-${Date.now()}`;
 
     this.logger.info("Async content generation queued", {
       totalSections,
       queuedSections,
       jobCount: jobs.length,
+      batchId,
     });
 
     return {
       jobs,
       totalSections,
       queuedSections,
+      batchId,
     };
   }
 }

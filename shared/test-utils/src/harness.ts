@@ -13,7 +13,7 @@ import type {
 import type { EntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
-import type { JobContext } from "@brains/db";
+import type { JobContext, JobQueue } from "@brains/db";
 import type { BatchJobStatus } from "@brains/job-queue";
 import type { Command } from "@brains/message-interface";
 import type { z } from "zod";
@@ -358,6 +358,24 @@ export class PluginTestHarness {
       },
       // Command discovery
       getAllCommands: async (): Promise<Command[]> => {
+        // Mock implementation for test harness - return empty array
+        return [];
+      },
+
+      // Get active jobs (for monitoring)
+      getActiveJobs: async (_types?: string[]): Promise<JobQueue[]> => {
+        // Mock implementation for test harness - return empty array
+        return [];
+      },
+
+      // Get active batches (for monitoring)
+      getActiveBatches: async (): Promise<
+        Array<{
+          batchId: string;
+          status: BatchJobStatus;
+          metadata: JobContext;
+        }>
+      > => {
         // Mock implementation for test harness - return empty array
         return [];
       },

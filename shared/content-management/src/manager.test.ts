@@ -4,7 +4,7 @@ import { createSilentLogger } from "@brains/utils";
 import { PluginTestHarness } from "@brains/test-utils";
 import type { EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
-import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import type { RouteDefinition } from "@brains/view-registry";
 import type { JobOptions } from "@brains/db";
 
 // Test JobOptions for manager.generate calls
@@ -23,6 +23,7 @@ const mockCreateEntityAsync = mock();
 const mockUpdateEntityAsync = mock();
 const mockListEntities = mock();
 const mockEnqueueContentGeneration = mock();
+const mockEnqueueBatch = mock();
 const mockGetJobStatus = mock();
 const mockDeriveEntity = mock();
 
@@ -60,6 +61,7 @@ beforeEach(async (): Promise<void> => {
   mockPluginContext.getJobStatus = mockGetJobStatus;
   mockPluginContext.waitForJob = mock().mockResolvedValue("Generated content");
   mockPluginContext.enqueueJob = mockEnqueueContentGeneration;
+  mockPluginContext.enqueueBatch = mockEnqueueBatch;
 
   // Reset all mocks
   mockGetEntity.mockClear();
@@ -67,6 +69,7 @@ beforeEach(async (): Promise<void> => {
   mockUpdateEntityAsync.mockClear();
   mockListEntities.mockClear();
   mockEnqueueContentGeneration.mockClear();
+  mockEnqueueBatch.mockClear();
   mockGetJobStatus.mockClear();
   mockDeriveEntity.mockClear();
 
@@ -98,10 +101,10 @@ test("generate should queue jobs and return job array", async () => {
   ];
 
   const templateResolver = mock().mockReturnValue("template-name");
-  mockEnqueueContentGeneration.mockResolvedValue("job-id");
+  mockEnqueueBatch.mockResolvedValue("batch-id");
 
   const result = await contentManager.generate(
-    { dryRun: false },
+    { dryRun: false, force: false },
     routes,
     templateResolver,
     "site-content-preview",
@@ -111,7 +114,8 @@ test("generate should queue jobs and return job array", async () => {
   expect(result.totalSections).toBe(1);
   expect(result.queuedSections).toBe(1);
   expect(result.jobs).toHaveLength(1);
-  expect(mockEnqueueContentGeneration).toHaveBeenCalled();
+  expect(result.batchId).toBe("batch-id");
+  expect(mockEnqueueBatch).toHaveBeenCalled();
 });
 
 test("generate should handle dry run without queuing jobs", async () => {
@@ -128,7 +132,7 @@ test("generate should handle dry run without queuing jobs", async () => {
   const templateResolver = mock().mockReturnValue("template-name");
 
   const result = await contentManager.generate(
-    { dryRun: true },
+    { dryRun: true, force: false },
     routes,
     templateResolver,
     "site-content-preview",
@@ -138,7 +142,8 @@ test("generate should handle dry run without queuing jobs", async () => {
   expect(result.totalSections).toBe(1);
   expect(result.queuedSections).toBe(0);
   expect(result.jobs).toHaveLength(0);
-  expect(mockEnqueueContentGeneration).not.toHaveBeenCalled();
+  expect(result.batchId).toBeDefined(); // Should still have a batch ID even for empty batch
+  expect(mockEnqueueBatch).not.toHaveBeenCalled();
 });
 
 // ========================================
@@ -413,264 +418,8 @@ test("getContentJobStatuses should return job status map", async () => {
 });
 
 // ========================================
-// Content Derivation Tests
-// ========================================
-
-test("derive should return job ID immediately", async () => {
-  const result = await contentManager.derive(
-    "site-content-preview:landing:hero",
-    "site-content-preview",
-    "site-content-production",
-    { deleteSource: false },
-  );
-
-  expect(result.jobId).toMatch(/^derive-.*-\d+$/);
-
-  // Should not call deriveEntity since it's async
-  expect(mockDeriveEntity).not.toHaveBeenCalled();
-});
-
-test("derive should handle different options", async () => {
-  const result = await contentManager.derive(
-    "site-content-preview:landing:hero",
-    "site-content-preview",
-    "site-content-production",
-    { deleteSource: true },
-  );
-
-  expect(result.jobId).toBeDefined();
-  expect(typeof result.jobId).toBe("string");
-});
-
-// ========================================
 // Batch Async Operations Tests
 // ========================================
-
-test("generateAll should queue batch operation for all sections", async () => {
-  const mockRoutes: RouteDefinition[] = [
-    {
-      id: "landing",
-      path: "/",
-      title: "Landing Page",
-      description: "Main landing page",
-      sections: [
-        { id: "hero", template: "hero" },
-        { id: "features", template: "features" },
-      ],
-    },
-    {
-      id: "about",
-      path: "/about",
-      title: "About Page",
-      description: "About us page",
-      sections: [{ id: "content", template: "content" }],
-    },
-  ];
-
-  const mockBatchId = "batch-123";
-  const mockEnqueueBatch = mock().mockResolvedValue(mockBatchId);
-  mockPluginContext.enqueueBatch = mockEnqueueBatch;
-
-  const templateResolver = (section: SectionDefinition): string =>
-    section.template;
-
-  const batchId = await contentManager.generateAll(
-    {
-      dryRun: false,
-      source: "test",
-      metadata: {
-        interfaceId: "test",
-        userId: "user-123",
-        operationType: "content_generation",
-      },
-    },
-    mockRoutes,
-    templateResolver,
-    "site-content-preview",
-    { siteTitle: "Test Site" },
-  );
-
-  expect(batchId).toBe(mockBatchId);
-  expect(mockEnqueueBatch).toHaveBeenCalledWith(
-    [
-      {
-        type: "content-generation",
-        entityId: "landing:hero",
-        entityType: "site-content-preview",
-        options: {
-          templateName: "hero",
-          context: {
-            data: {
-              jobId: expect.stringMatching(/^generate-landing:hero-\d+$/),
-              entityId: "landing:hero",
-              entityType: "site-content-preview",
-              operation: "generate",
-              routeId: "landing",
-              sectionId: "hero",
-              templateName: "hero",
-              siteConfig: { siteTitle: "Test Site" },
-            },
-          },
-          entityId: "landing:hero",
-          entityType: "site-content-preview",
-        },
-      },
-      {
-        type: "content-generation",
-        entityId: "landing:features",
-        entityType: "site-content-preview",
-        options: {
-          templateName: "features",
-          context: {
-            data: {
-              jobId: expect.stringMatching(/^generate-landing:features-\d+$/),
-              entityId: "landing:features",
-              entityType: "site-content-preview",
-              operation: "generate",
-              routeId: "landing",
-              sectionId: "features",
-              templateName: "features",
-              siteConfig: { siteTitle: "Test Site" },
-            },
-          },
-          entityId: "landing:features",
-          entityType: "site-content-preview",
-        },
-      },
-      {
-        type: "content-generation",
-        entityId: "about:content",
-        entityType: "site-content-preview",
-        options: {
-          templateName: "content",
-          context: {
-            data: {
-              jobId: expect.stringMatching(/^generate-about:content-\d+$/),
-              entityId: "about:content",
-              entityType: "site-content-preview",
-              operation: "generate",
-              routeId: "about",
-              sectionId: "content",
-              templateName: "content",
-              siteConfig: { siteTitle: "Test Site" },
-            },
-          },
-          entityId: "about:content",
-          entityType: "site-content-preview",
-        },
-      },
-    ],
-    {
-      source: "test",
-      metadata: {
-        interfaceId: "test",
-        userId: "user-123",
-        operationType: "content_generation",
-      },
-    },
-  );
-});
-
-test("generateAll should respect routeId filter", async () => {
-  const mockRoutes: RouteDefinition[] = [
-    {
-      id: "landing",
-      path: "/",
-      title: "Landing Page",
-      description: "Main landing page",
-      sections: [{ id: "hero", template: "hero" }],
-    },
-    {
-      id: "about",
-      path: "/about",
-      title: "About Page",
-      description: "About us page",
-      sections: [{ id: "content", template: "content" }],
-    },
-  ];
-
-  const mockBatchId = "batch-456";
-  const mockEnqueueBatch = mock().mockResolvedValue(mockBatchId);
-  mockPluginContext.enqueueBatch = mockEnqueueBatch;
-
-  const templateResolver = (section: SectionDefinition): string =>
-    section.template;
-
-  const batchId = await contentManager.generateAll(
-    {
-      routeId: "landing",
-      dryRun: false,
-      source: "test",
-      metadata: {
-        interfaceId: "test",
-        userId: "system",
-        operationType: "content_generation",
-      },
-    },
-    mockRoutes,
-    templateResolver,
-    "site-content-preview",
-  );
-
-  expect(batchId).toBe(mockBatchId);
-  expect(mockEnqueueBatch).toHaveBeenCalledWith(
-    [
-      {
-        type: "content-generation",
-        entityId: "landing:hero",
-        entityType: "site-content-preview",
-        options: {
-          templateName: "hero",
-          context: {
-            data: {
-              jobId: expect.stringMatching(/^generate-landing:hero-\d+$/),
-              entityId: "landing:hero",
-              entityType: "site-content-preview",
-              operation: "generate",
-              routeId: "landing",
-              sectionId: "hero",
-              templateName: "hero",
-              siteConfig: undefined,
-            },
-          },
-          entityId: "landing:hero",
-          entityType: "site-content-preview",
-        },
-      },
-    ],
-    {
-      source: "test",
-      metadata: {
-        interfaceId: "test",
-        userId: "system",
-        operationType: "content_generation",
-      },
-    },
-  );
-});
-
-test("generateAll should throw for empty operations", async () => {
-  const mockRoutes: RouteDefinition[] = [];
-  const templateResolver = (section: SectionDefinition): string =>
-    section.template;
-
-  void expect(
-    contentManager.generateAll(
-      {
-        dryRun: false,
-        source: "test",
-        metadata: {
-          interfaceId: "test",
-          userId: "system",
-          operationType: "content_generation",
-        },
-      },
-      mockRoutes,
-      templateResolver,
-      "site-content-preview",
-    ),
-  ).rejects.toThrow("No operations to perform");
-});
 
 test("promote should queue batch promotion operations", async () => {
   const previewIds = [

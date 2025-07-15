@@ -44,11 +44,14 @@ const mockEntityService = {
 
 const mockLogger = createSilentLogger("generation-test");
 
+const mockEnqueueBatch = mock();
+
 const mockPluginContext = {
   pluginId: "test-plugin",
   logger: mockLogger,
   enqueueContentGeneration: mockEnqueueContentGeneration,
   enqueueJob: mockEnqueueContentGeneration, // Add the generic enqueueJob
+  enqueueBatch: mockEnqueueBatch, // Add the batch enqueue method
   sendMessage: mock(),
   subscribe: mock(),
   unsubscribe: mock(),
@@ -102,6 +105,7 @@ beforeEach((): void => {
   mockUpdateEntityAsync.mockClear();
   mockListEntities.mockClear();
   mockEnqueueContentGeneration.mockClear();
+  mockEnqueueBatch.mockClear();
 
   operations = new GenerationOperations(
     mockEntityService,
@@ -122,7 +126,7 @@ test("generate should queue content generation jobs", async () => {
   ];
 
   const templateResolver = mock().mockReturnValue("hero-template");
-  mockEnqueueContentGeneration.mockResolvedValue("job-123");
+  mockEnqueueBatch.mockResolvedValue("batch-123");
 
   const result = await operations.generate(
     { dryRun: false },
@@ -135,6 +139,7 @@ test("generate should queue content generation jobs", async () => {
   expect(result.totalSections).toBe(1);
   expect(result.queuedSections).toBe(1);
   expect(result.jobs).toHaveLength(1);
+  expect(result.batchId).toBe("batch-123");
   expect(result.jobs[0]).toMatchObject({
     entityId: "landing:hero",
     entityType: "site-content-preview",
@@ -144,11 +149,19 @@ test("generate should queue content generation jobs", async () => {
     templateName: "hero-template",
   });
 
-  expect(mockEnqueueContentGeneration).toHaveBeenCalledWith(
-    "content-generation",
-    expect.objectContaining({
-      templateName: "hero-template",
-    }),
+  expect(mockEnqueueBatch).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: "content-generation",
+        entityId: "landing:hero",
+        entityType: "site-content-preview",
+        options: expect.objectContaining({
+          templateName: "hero-template",
+          entityId: "landing:hero",
+          entityType: "site-content-preview",
+        }),
+      }),
+    ]),
     testJobOptions,
   );
 });
@@ -167,7 +180,7 @@ test("generate should queue jobs even for sections with content", async () => {
   ];
 
   const templateResolver = mock().mockReturnValue("hero-template");
-  mockEnqueueContentGeneration.mockResolvedValue("job-id");
+  mockEnqueueBatch.mockResolvedValue("batch-456");
 
   const result = await operations.generate(
     { dryRun: false },
@@ -181,9 +194,10 @@ test("generate should queue jobs even for sections with content", async () => {
   expect(result.totalSections).toBe(1);
   expect(result.queuedSections).toBe(1);
   expect(result.jobs).toHaveLength(1);
+  expect(result.batchId).toBe("batch-456");
 
   expect(templateResolver).toHaveBeenCalled();
-  expect(mockEnqueueContentGeneration).toHaveBeenCalled();
+  expect(mockEnqueueBatch).toHaveBeenCalled();
 });
 
 test("generate should handle dry run without queuing", async () => {
@@ -210,7 +224,8 @@ test("generate should handle dry run without queuing", async () => {
   expect(result.totalSections).toBe(1);
   expect(result.queuedSections).toBe(0);
   expect(result.jobs).toHaveLength(0);
-  expect(mockEnqueueContentGeneration).not.toHaveBeenCalled();
+  expect(result.batchId).toBeDefined(); // Should still have a batch ID even for empty batch
+  expect(mockEnqueueBatch).not.toHaveBeenCalled();
 });
 
 test("generate should queue multiple jobs for multiple sections", async () => {
@@ -229,7 +244,7 @@ test("generate should queue multiple jobs for multiple sections", async () => {
 
   const templateResolver = mock().mockReturnValue("template-name");
 
-  mockEnqueueContentGeneration.mockResolvedValue("job-id");
+  mockEnqueueBatch.mockResolvedValue("batch-789");
 
   const result = await operations.generate(
     { dryRun: false },
@@ -243,6 +258,7 @@ test("generate should queue multiple jobs for multiple sections", async () => {
   expect(result.totalSections).toBe(2);
   expect(result.queuedSections).toBe(2);
   expect(result.jobs).toHaveLength(2);
+  expect(result.batchId).toBe("batch-789");
 
   expect(result.jobs).toHaveLength(2);
   expect(result.jobs[0]).toMatchObject({
@@ -261,26 +277,30 @@ test("generate should queue multiple jobs for multiple sections", async () => {
   expect(result.jobs[0]?.route.path).toBe("/landing");
   expect(result.jobs[0]?.sectionDefinition.id).toBe("hero");
 
-  expect(mockEnqueueContentGeneration).toHaveBeenCalledTimes(2);
-  expect(mockEnqueueContentGeneration).toHaveBeenCalledWith(
-    "content-generation",
-    {
-      templateName: "template-name",
-      entityId: "landing:hero",
-      entityType: "site-content-preview",
-      context: {
-        data: {
-          jobId: expect.stringMatching(/^generate-landing:hero-\d+$/),
+  expect(mockEnqueueBatch).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: "content-generation",
+        entityId: "landing:hero",
+        entityType: "site-content-preview",
+        options: expect.objectContaining({
+          templateName: "template-name",
           entityId: "landing:hero",
           entityType: "site-content-preview",
-          operation: "generate",
-          routeId: "landing",
-          sectionId: "hero",
-          templateName: "template-name",
-          siteConfig: { siteTitle: "Test Site" },
-        },
-      },
-    },
+          context: expect.objectContaining({
+            data: expect.objectContaining({
+              entityId: "landing:hero",
+              entityType: "site-content-preview",
+              operation: "generate",
+              routeId: "landing",
+              sectionId: "hero",
+              templateName: "template-name",
+              siteConfig: { siteTitle: "Test Site" },
+            }),
+          }),
+        }),
+      }),
+    ]),
     testJobOptions,
   );
 });

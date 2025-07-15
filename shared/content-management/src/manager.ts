@@ -9,7 +9,6 @@ import type {
 } from "@brains/view-registry";
 import type { JobContext, JobOptions } from "@brains/db";
 import { GenerationOperations } from "./operations/generation";
-import { DerivationOperations } from "./operations/derivation";
 import { EntityQueryService } from "./services/entity-query";
 import {
   waitForContentJobs,
@@ -20,7 +19,6 @@ import type {
   SiteContentEntity,
   GenerateOptions,
   ContentGenerationJob,
-  DeriveOptions,
 } from "./types";
 
 /**
@@ -28,14 +26,12 @@ import type {
  *
  * This facade integrates:
  * - GenerationOperations: Content generation and regeneration
- * - DerivationOperations: Content transformation between entity types
  * - EntityQueryService: Content querying and retrieval
  *
  * All dependencies (EntityService, Logger, PluginContext) are required for full functionality
  */
 export class ContentManager {
   private readonly generationOps: GenerationOperations;
-  private readonly derivationOps: DerivationOperations;
   private readonly entityQuery: EntityQueryService;
   private readonly pluginContext: PluginContext;
   private readonly logger: Logger;
@@ -55,7 +51,6 @@ export class ContentManager {
       logger,
       pluginContext,
     );
-    this.derivationOps = new DerivationOperations(entityService, logger);
   }
 
   // ========================================
@@ -76,6 +71,7 @@ export class ContentManager {
     jobs: ContentGenerationJob[];
     totalSections: number;
     queuedSections: number;
+    batchId: string;
   }> {
     return this.generationOps.generate(
       options,
@@ -271,142 +267,8 @@ export class ContentManager {
   }
 
   // ========================================
-  // Content Derivation Operations
-  // ========================================
-
-  /**
-   * Derive content (queues jobs and returns immediately)
-   */
-  async derive(
-    sourceEntityId: string,
-    sourceEntityType: SiteContentEntityType,
-    targetEntityType: SiteContentEntityType,
-    options: DeriveOptions = {},
-  ): Promise<{ jobId: string }> {
-    return this.derivationOps.derive(
-      sourceEntityId,
-      sourceEntityType,
-      targetEntityType,
-      options,
-    );
-  }
-
-  // ========================================
   // Batch Async Operations
   // ========================================
-
-  /**
-   * Generate all content using batch operations
-   * This queues all sections as a single batch job for better tracking
-   */
-  async generateAll(
-    options: GenerateOptions & {
-      source: string;
-      metadata: JobContext;
-      priority?: number;
-    },
-    routes: RouteDefinition[],
-    templateResolver: (sectionId: SectionDefinition) => string,
-    targetEntityType: SiteContentEntityType,
-    siteConfig?: Record<string, unknown>,
-  ): Promise<string> {
-    this.logger.debug("Starting batch async content generation", { options });
-
-    const operations: Array<{
-      type: string;
-      entityId?: string;
-      entityType?: string;
-      options?: Record<string, unknown>;
-    }> = [];
-
-    // Build operations for all sections
-    for (const route of routes) {
-      const routeId = route.id;
-      if (options.routeId && routeId !== options.routeId) {
-        continue;
-      }
-
-      const sectionsToGenerate = options.sectionId
-        ? route.sections.filter((s) => s.id === options.sectionId)
-        : route.sections;
-
-      for (const sectionDefinition of sectionsToGenerate) {
-        // Skip sections that already have content
-        if (sectionDefinition.content) {
-          this.logger.debug("Skipping section with existing content", {
-            routeId,
-            sectionId: sectionDefinition.id,
-          });
-          continue;
-        }
-
-        const entityId = `${routeId}:${sectionDefinition.id}`;
-
-        // Skip if dry run
-        if (options.dryRun) {
-          this.logger.debug("Dry run: would generate", {
-            routeId,
-            sectionId: sectionDefinition.id,
-            entityId,
-          });
-          continue;
-        }
-
-        // Create operation with correct structure for content-generation job
-        // Only pass serializable data - no complex objects
-        const jobData: Record<string, unknown> = {
-          templateName: templateResolver(sectionDefinition),
-          context: {
-            data: {
-              jobId: `generate-${entityId}-${Date.now()}`,
-              entityId,
-              entityType: targetEntityType,
-              operation: "generate",
-              routeId,
-              sectionId: sectionDefinition.id,
-              templateName: templateResolver(sectionDefinition),
-              siteConfig,
-            },
-          },
-          // Include entity information for saving after generation
-          entityId,
-          entityType: targetEntityType,
-        };
-
-        operations.push({
-          type: "content-generation",
-          entityId,
-          entityType: targetEntityType,
-          options: jobData,
-        });
-      }
-    }
-
-    if (operations.length === 0) {
-      throw new Error("No operations to perform");
-    }
-
-    // Queue as batch operation with metadata
-    const jobOptions: JobOptions = {
-      source: options.source,
-      metadata: options.metadata,
-    };
-    if (options.priority !== undefined) {
-      jobOptions.priority = options.priority;
-    }
-
-    const batchId = await this.pluginContext.enqueueBatch(
-      operations,
-      jobOptions,
-    );
-
-    this.logger.debug("Batch content generation queued", {
-      batchId,
-      operationCount: operations.length,
-    });
-
-    return batchId;
-  }
 
   /**
    * Promote multiple preview entities to production

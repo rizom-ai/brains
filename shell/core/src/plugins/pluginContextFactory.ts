@@ -544,9 +544,9 @@ export class PluginContextFactory {
             this.logger,
           );
           const batches = await batchJobManager.getActiveBatches();
-          
+
           // Transform the nested metadata structure to match the expected interface
-          return batches.map(batch => ({
+          return batches.map((batch) => ({
             batchId: batch.batchId,
             status: batch.status,
             metadata: batch.metadata.metadata, // Extract the nested JobContext

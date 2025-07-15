@@ -116,11 +116,11 @@ describe("SiteBuilderPlugin", () => {
     const toolNames = capabilities.tools.map((t) => t.name);
 
     expect(toolNames).toContain("site-builder:generate");
-    expect(toolNames).toContain("site-builder:build");
+    expect(toolNames).toContain("site-builder:build-site");
     expect(toolNames).toContain("site-builder:list_routes");
     expect(toolNames).toContain("site-builder:list_templates");
-    expect(toolNames).toContain("site-builder:promote-all");
-    expect(toolNames).toContain("site-builder:rollback-all");
+    expect(toolNames).toContain("site-builder:promote-content");
+    expect(toolNames).toContain("site-builder:rollback-content");
   });
 
   it("should provide generate tool when routes have content entities", async () => {

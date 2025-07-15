@@ -140,20 +140,6 @@ export class SiteOperations {
   }
 
   /**
-   * Promote all preview content to production
-   */
-  async promoteAll(metadata: JobContext): Promise<string> {
-    return this.promote({ dryRun: false }, metadata);
-  }
-
-  /**
-   * Rollback all production content
-   */
-  async rollbackAll(metadata: JobContext): Promise<string> {
-    return this.rollback({ dryRun: false }, metadata);
-  }
-
-  /**
    * Helper to get filtered entities based on options
    */
   private async getFilteredEntities(
