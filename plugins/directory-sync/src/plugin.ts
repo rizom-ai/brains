@@ -68,42 +68,26 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
             );
           }
 
-          // Queue both export and import operations
-          const exportJobId = await this.pluginContext.enqueueJob(
-            "directory-export",
-            {
-              batchSize: 100,
-            },
-            {
-              source: "plugin:directory-sync",
-              metadata: {
-                interfaceId: context.interfaceType,
-                userId: context.userId,
-                operationType: "directory_export",
-                pluginId: this.id,
-              },
-            },
-          );
+          // Use the sync tool to create batch operations
+          const tools = await this.getTools();
+          const syncTool = tools.find(t => t.name === "sync");
+          
+          if (!syncTool) {
+            throw new Error("Sync tool not found");
+          }
 
-          const importJobId = await this.pluginContext.enqueueJob(
-            "directory-import",
-            {
-              batchSize: 100,
-            },
-            {
-              source: "plugin:directory-sync",
-              metadata: {
-                interfaceId: context.interfaceType,
-                userId: context.userId,
-                operationType: "directory_import",
-                pluginId: this.id,
-              },
-            },
-          );
+          const result = await syncTool.handler({}, {
+            interfaceId: context.interfaceType || "command",
+            userId: context.userId || "command-user",
+            channelId: context.channelId,
+            progressToken: context.messageId,
+          }) as { batchId: string; exportOperations: number; importOperations: number; totalFiles: number };
 
           return {
-            type: "message",
-            message: `🔄 Sync operations queued\n📤 Export job: ${exportJobId}\n📥 Import job: ${importJobId}\n💡 Use /sync-status to check progress`,
+            type: "batch-operation",
+            message: `🔄 **Sync batch started** - ${result.exportOperations} export jobs, ${result.importOperations} import jobs for ${result.totalFiles} files`,
+            batchId: result.batchId,
+            operationCount: result.exportOperations + result.importOperations,
           };
         },
       },
@@ -231,30 +215,49 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
               ? `${context.interfaceId}:${context.channelId}`
               : "plugin:directory-sync";
 
-          // Queue both export and import operations with routing metadata
-          const exportJobId = await this.pluginContext.enqueueJob(
-            "directory-export",
-            {
-              batchSize: 100,
-            },
-            {
-              source,
-              metadata: {
-                interfaceId: context?.interfaceId || "",
-                userId: context?.userId || "",
-                channelId: context?.channelId || "",
-                progressToken: context?.progressToken || "",
-                operationType: "directory_export",
-                pluginId: this.id,
-              },
-            },
-          );
+          // Get entity types and files for batching
+          const entityTypes = this.pluginContext.entityService.getEntityTypes();
+          const filesToImport = this.directorySync.getAllMarkdownFiles();
 
-          const importJobId = await this.pluginContext.enqueueJob(
-            "directory-import",
-            {
+          // Create export operations - one per entity type
+          const exportOps = entityTypes.map((entityType) => ({
+            type: "directory-export",
+            entityType,
+            options: {
+              entityTypes: [entityType],
               batchSize: 100,
             },
+          }));
+
+          // Create import operations - batch files into groups of 50
+          const importBatchSize = 50;
+          const importBatches: string[][] = [];
+          for (let i = 0; i < filesToImport.length; i += importBatchSize) {
+            importBatches.push(filesToImport.slice(i, i + importBatchSize));
+          }
+
+          const importOps = importBatches.map((batchPaths, index) => ({
+            type: "directory-import",
+            batchIndex: index,
+            options: {
+              paths: batchPaths,
+              batchSize: batchPaths.length,
+            },
+          }));
+
+          // Combine all operations
+          const allOperations = [...exportOps, ...importOps];
+
+          if (allOperations.length === 0) {
+            return {
+              status: "completed",
+              message: "No operations needed - no entity types or files to sync",
+              batchId: `empty-sync-${Date.now()}`,
+            };
+          }
+
+          const batchId = await this.pluginContext.enqueueBatch(
+            allOperations,
             {
               source,
               metadata: {
@@ -262,7 +265,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
                 userId: context?.userId || "",
                 channelId: context?.channelId || "",
                 progressToken: context?.progressToken || "",
-                operationType: "directory_import",
+                operationType: "directory_sync",
                 pluginId: this.id,
               },
             },
@@ -270,10 +273,12 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
 
           return {
             status: "queued",
-            message: "Sync operations queued",
-            exportJobId,
-            importJobId,
-            tip: "Use the status tool to check progress",
+            message: `Sync batch operation queued: ${exportOps.length} export jobs, ${importOps.length} import jobs for ${filesToImport.length} files`,
+            batchId,
+            exportOperations: exportOps.length,
+            importOperations: importOps.length,
+            totalFiles: filesToImport.length,
+            tip: "Use the status tool to check progress of this batch operation",
           };
         },
         "anchor", // Only anchor user can sync
@@ -281,7 +286,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
 
       this.createTool(
         "export",
-        "Export entities to directory (async)",
+        "Export entities to directory (async batch operation)",
         toolInput()
           .custom(
             "entityTypes",
@@ -290,8 +295,16 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
               .optional()
               .describe("Specific entity types to export (optional)"),
           )
+          .custom(
+            "batchSize",
+            z
+              .number()
+              .min(1)
+              .default(100)
+              .describe("Number of entities to process per batch"),
+          )
           .build(),
-        async (input: unknown): Promise<unknown> => {
+        async (input: unknown, context): Promise<unknown> => {
           if (!this.directorySync || !this.pluginContext) {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
@@ -299,19 +312,39 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
               { tool: "directory-sync" },
             );
           }
-          const params = input as { entityTypes?: string[] };
+          const params = input as { entityTypes?: string[]; batchSize?: number };
 
-          const jobId = await this.pluginContext.enqueueJob(
-            "directory-export",
-            {
-              entityTypes: params.entityTypes,
-              batchSize: 100,
+          // Get entity types to export
+          const typesToExport =
+            params.entityTypes ?? this.pluginContext.entityService.getEntityTypes();
+
+          // Create batch operations - one job per entity type
+          const operations = typesToExport.map((entityType) => ({
+            type: "directory-export",
+            entityType,
+            options: {
+              entityTypes: [entityType],
+              batchSize: params.batchSize ?? 100,
             },
+          }));
+
+          if (operations.length === 0) {
+            return {
+              status: "completed",
+              message: "No entity types to export",
+              batchId: `empty-export-${Date.now()}`,
+            };
+          }
+
+          const batchId = await this.pluginContext.enqueueBatch(
+            operations,
             {
               source: "plugin:directory-sync",
               metadata: {
-                interfaceId: "plugin",
-                userId: "system",
+                interfaceId: context?.interfaceId || "plugin",
+                userId: context?.userId || "system",
+                channelId: context?.channelId,
+                progressToken: context?.progressToken,
                 operationType: "directory_export",
                 pluginId: this.id,
               },
@@ -320,9 +353,10 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
 
           return {
             status: "queued",
-            message: "Export operation queued",
-            jobId,
-            tip: "Use the status tool to check progress",
+            message: `Export batch operation queued for ${operations.length} entity types`,
+            batchId,
+            entityTypes: typesToExport,
+            tip: "Use the status tool to check progress of this batch operation",
           };
         },
         "anchor", // Only anchor user can export
@@ -330,7 +364,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
 
       this.createTool(
         "import",
-        "Import entities from directory (async)",
+        "Import entities from directory (async batch operation)",
         toolInput()
           .custom(
             "paths",
@@ -339,8 +373,16 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
               .optional()
               .describe("Specific file paths to import (optional)"),
           )
+          .custom(
+            "batchSize",
+            z
+              .number()
+              .min(1)
+              .default(50)
+              .describe("Number of files to process per batch"),
+          )
           .build(),
-        async (input: unknown): Promise<unknown> => {
+        async (input: unknown, context): Promise<unknown> => {
           if (!this.directorySync || !this.pluginContext) {
             throw new DirectorySyncInitializationError(
               "DirectorySync service not initialized",
@@ -348,19 +390,45 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
               { tool: "directory-sync" },
             );
           }
-          const params = input as { paths?: string[] };
+          const params = input as { paths?: string[]; batchSize?: number };
 
-          const jobId = await this.pluginContext.enqueueJob(
-            "directory-import",
-            {
-              paths: params.paths,
-              batchSize: 100,
+          // Get files to import
+          const filesToImport = params.paths ?? this.directorySync.getAllMarkdownFiles();
+          const batchSize = params.batchSize ?? 50;
+
+          // Split files into batches for parallel processing
+          const batches: string[][] = [];
+          for (let i = 0; i < filesToImport.length; i += batchSize) {
+            batches.push(filesToImport.slice(i, i + batchSize));
+          }
+
+          if (batches.length === 0) {
+            return {
+              status: "completed",
+              message: "No files to import",
+              batchId: `empty-import-${Date.now()}`,
+            };
+          }
+
+          // Create batch operations - one job per batch of files
+          const operations = batches.map((batchPaths, index) => ({
+            type: "directory-import",
+            batchIndex: index,
+            options: {
+              paths: batchPaths,
+              batchSize: batchPaths.length,
             },
+          }));
+
+          const batchId = await this.pluginContext.enqueueBatch(
+            operations,
             {
               source: "plugin:directory-sync",
               metadata: {
-                interfaceId: "plugin",
-                userId: "system",
+                interfaceId: context?.interfaceId || "plugin",
+                userId: context?.userId || "system",
+                channelId: context?.channelId,
+                progressToken: context?.progressToken,
                 operationType: "directory_import",
                 pluginId: this.id,
               },
@@ -369,9 +437,11 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
 
           return {
             status: "queued",
-            message: "Import operation queued",
-            jobId,
-            tip: "Use the status tool to check progress",
+            message: `Import batch operation queued for ${filesToImport.length} files in ${batches.length} batches`,
+            batchId,
+            totalFiles: filesToImport.length,
+            totalBatches: batches.length,
+            tip: "Use the status tool to check progress of this batch operation",
           };
         },
         "anchor", // Only anchor user can import

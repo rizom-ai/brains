@@ -629,7 +629,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               };
             }
 
-
             const scope = routeId
               ? sectionId
                 ? `section ${routeId}:${sectionId}`
@@ -875,30 +874,46 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           try {
-            // Use the build-site tool with content generation enabled
-            const tools = await this.getTools();
-            const buildTool = tools.find((t) => t.name === "build-site");
+            // Build site directly (same logic as build-site tool)
+            const config = this.config;
+            
+            // Choose output directory based on environment
+            const outputDir =
+              environment === "production"
+                ? config.productionOutputDir
+                : config.previewOutputDir;
 
-            if (!buildTool) {
-              throw new Error("Build-site tool not found");
-            }
+            const jobData = {
+              environment,
+              outputDir,
+              workingDir: config.workingDir,
+              enableContentGeneration: false,
+              siteConfig: config.siteConfig ?? {
+                title: "Personal Brain",
+                description: "A knowledge management system",
+              },
+            };
 
-            const result = (await buildTool.handler(
-              {
-                environment,
-              },
-              {
-                interfaceId: context.interfaceType || "command",
-                userId: context.userId || "command-user",
-                channelId: context.channelId,
-                progressToken: context.messageId,
-              },
-            )) as { jobId: string; outputDir: string };
+            const metadata: JobContext = {
+              interfaceId: context.interfaceType || "command",
+              userId: context.userId || "command-user",
+              channelId: context.channelId,
+              progressToken: context.messageId,
+              pluginId: this.id,
+              operationType: "site_building",
+            };
+
+            // Queue the job for async processing
+            const jobId = await this.context.enqueueJob("site-build", jobData, {
+              priority: 5,
+              source: "command:build-site",
+              metadata,
+            });
 
             return {
               type: "job-operation",
-              message: `🔨 **Site build started** - Building ${environment} site to \`${result.outputDir}\`...`,
-              jobId: result.jobId,
+              message: `🔨 **Site build started** - Building ${environment} site to \`${outputDir}\`...`,
+              jobId,
             };
           } catch (error) {
             this.error("Build-site command failed", error);

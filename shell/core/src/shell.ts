@@ -242,7 +242,7 @@ export class Shell {
       this.db,
       this.embeddingService,
     );
-    this.jobQueueService.registerHandler("embedding", embeddingJobHandler);
+    this.jobQueueService.registerHandler("shell:embedding", embeddingJobHandler);
 
     // Initialize EntityService with the configured JobQueueService
     this.entityService =
@@ -269,7 +269,7 @@ export class Shell {
       this.entityService,
     );
     this.jobQueueService.registerHandler(
-      "content-generation",
+      "shell:content-generation",
       contentGenerationJobHandler,
     );
 
@@ -278,7 +278,7 @@ export class Shell {
       this.entityService,
     );
     this.jobQueueService.registerHandler(
-      "content-derivation",
+      "shell:content-derivation",
       contentDerivationJobHandler,
     );
 

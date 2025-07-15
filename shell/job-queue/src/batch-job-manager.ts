@@ -232,6 +232,39 @@ export class BatchJobManager {
   }
 
   /**
+   * Register batch metadata for tracking (used when jobs are enqueued separately)
+   */
+  public registerBatch(
+    batchId: string,
+    jobIds: string[],
+    operations: BatchOperation[],
+    source: string,
+    metadata: JobContext,
+  ): void {
+    const batchMetadata: {
+      jobIds: string[];
+      operations: BatchOperation[];
+      source: string;
+      startedAt: string;
+      metadata: JobContext;
+    } = {
+      jobIds,
+      operations,
+      source,
+      startedAt: new Date().toISOString(),
+      metadata,
+    };
+
+    this.batches.set(batchId, batchMetadata);
+
+    this.logger.debug("Registered batch metadata", {
+      batchId,
+      operationCount: operations.length,
+      jobIds,
+    });
+  }
+
+  /**
    * Get all active batches (pending or processing)
    */
   async getActiveBatches(): Promise<

@@ -1,22 +1,17 @@
 ---
-pageId: landing
+routeId: landing
 sectionId: hero
 ---
-
 # Hero Section
 
 ## Headline
-
-Elevate Your Knowledge, Amplify Your Impact
+Unlock Your Knowledge Superpowers
 
 ## Subheadline
-
-Rizom's personal knowledge management system empowers you to capture, connect, and harness your expertise for greater success.
+Rizom's personal knowledge management system empowers you to capture, connect, and harness your expertise like never before.
 
 ## CTA Text
-
 Get Started
 
 ## CTA Link
-
-#features
+/get-started

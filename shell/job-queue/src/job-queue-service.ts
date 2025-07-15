@@ -362,7 +362,7 @@ export class JobQueueService implements IJobQueueService {
         .from(jobQueue)
         .where(
           and(
-            eq(jobQueue.type, "embedding"),
+            eq(jobQueue.type, "shell:embedding"),
             sql`json_extract(${jobQueue.data}, '$.id') = ${entityId}`,
           ),
         )

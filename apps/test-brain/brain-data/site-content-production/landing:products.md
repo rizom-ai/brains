@@ -1,188 +1,154 @@
 ---
-pageId: landing
+routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label
-
 Our Ecosystem
 
 ## Headline
-
-Innovative Products for Digital Transformation
+Explore Rizom's Transformative Solutions
 
 ## Description
-
-Rizom offers a suite of innovative products and services to help organizations navigate the complexities of digital transformation. Our solutions are designed to drive organizational agility, foster ecosystem collaboration, and unlock new value.
+Rizom is a dynamic professional collective that brings together seasoned experts in digital transformation, organizational development, and ecosystem design. Our product portfolio empowers organizations to navigate complex challenges and unlock new possibilities.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
-rizom-studio
+rizom-platform
 
 #### Name
-
-Rizom Studio
+Rizom Platform
 
 #### Tagline
-
-Collaborative design platform for ecosystem innovation
+Collaborative ecosystem management
 
 #### Description
-
-Rizom Studio is a powerful collaborative platform that enables cross-functional teams to ideate, prototype, and design innovative ecosystem solutions.
+A comprehensive SaaS platform that enables organizations to design, orchestrate, and optimize complex business ecosystems.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Brain
+#### Icon
+Database
 
 ### Product 2
 
 #### ID
-
-rizom-insights
+ecosystem-mapping
 
 #### Name
-
-Rizom Insights
+Ecosystem Mapping
 
 #### Tagline
-
-Data-driven intelligence for ecosystem strategy
+Visualize your ecosystem landscape
 
 #### Description
-
-Rizom Insights leverages advanced analytics to provide organizations with data-driven intelligence to inform their ecosystem strategy and decision-making.
+Powerful mapping and analysis tools to help you understand your ecosystem, identify key stakeholders, and uncover new opportunities.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Database
+#### Icon
+Network
 
 ### Product 3
 
 #### ID
-
-rizom-orchestrator
+transformation-accelerator
 
 #### Name
-
-Rizom Orchestrator
+Transformation Accelerator
 
 #### Tagline
-
-Ecosystem coordination and workflow automation
+Rapid organizational change
 
 #### Description
-
-Rizom Orchestrator is a powerful workflow automation tool that helps organizations streamline ecosystem-wide processes and coordination.
+A structured methodology and suite of services to drive agile transformation, overcome resistance, and build future-ready organizations.
 
 #### Status
-
 beta
 
 #### Link
 
-#### Icon
 
-Cpu
+#### Icon
+Wrench
 
 ### Product 4
 
 #### ID
-
-rizom-engage
+ecosystem-strategy
 
 #### Name
-
-Rizom Engage
+Ecosystem Strategy
 
 #### Tagline
-
-Ecosystem engagement and community platform
+Ecosystem-centric business design
 
 #### Description
-
-Rizom Engage is a comprehensive platform that enables organizations to build, nurture, and activate their ecosystem communities.
+Strategic advisory and consulting services to help you reimagine your business model, leverage ecosystems, and create sustainable value.
 
 #### Status
-
-beta
+live
 
 #### Link
 
-#### Icon
 
-Network
+#### Icon
+Brain
 
 ### Product 5
 
 #### ID
-
-rizom-advisory
+impact-analytics
 
 #### Name
-
-Rizom Advisory
+Impact Analytics
 
 #### Tagline
-
-Ecosystem strategy and transformation consulting
+Measure and optimize ecosystem performance
 
 #### Description
-
-Rizom Advisory provides expert consulting services to help organizations design and implement effective ecosystem strategies and digital transformation initiatives.
+Advanced analytics and dashboards to track the health, growth, and impact of your business ecosystem over time.
 
 #### Status
-
-live
+beta
 
 #### Link
 
-#### Icon
 
-Wrench
+#### Icon
+Cpu
 
 ### Product 6
 
 #### ID
-
-rizom-academy
+ecosystem-academy
 
 #### Name
-
-Rizom Academy
+Ecosystem Academy
 
 #### Tagline
-
-Ecosystem leadership and capability development
+Upskill your ecosystem leaders
 
 #### Description
-
-Rizom Academy offers a range of training programs and workshops to help organizations develop the necessary skills and capabilities to thrive in the digital age.
+Comprehensive training programs and workshops to build the capabilities of your ecosystem managers and cross-functional teams.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
+#### Icon
 FileText

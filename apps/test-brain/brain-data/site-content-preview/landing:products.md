@@ -1,188 +1,154 @@
 ---
-pageId: landing
+routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label
-
 Our Ecosystem
 
 ## Headline
-
-Innovative Products for Digital Transformation
+Innovative Solutions for a Sustainable Future
 
 ## Description
-
-Rizom offers a suite of innovative products and services to help organizations navigate the complexities of digital transformation. Our solutions are designed to drive organizational agility, foster ecosystem collaboration, and unlock new value.
+Rizom is a dynamic professional collective that brings together seasoned experts in digital transformation, organizational development, and ecosystem design. Our diverse portfolio of products and services empowers organizations to navigate the complexities of the modern landscape and build resilient, future-ready ecosystems.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
-rizom-studio
+practice-innovation
 
 #### Name
-
-Rizom Studio
+Practice Innovation
 
 #### Tagline
-
-Collaborative design platform for ecosystem innovation
+Accelerate your organization's transformation
 
 #### Description
-
-Rizom Studio is a powerful collaborative platform that enables cross-functional teams to ideate, prototype, and design innovative ecosystem solutions.
+Our expert-led workshops and coaching programs help you unlock new ways of working, foster a culture of innovation, and drive sustainable change.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
+#### Icon
 Brain
 
 ### Product 2
 
 #### ID
-
-rizom-insights
+ecosystem-architecture
 
 #### Name
-
-Rizom Insights
+Ecosystem Architecture
 
 #### Tagline
-
-Data-driven intelligence for ecosystem strategy
+Design resilient, interconnected systems
 
 #### Description
-
-Rizom Insights leverages advanced analytics to provide organizations with data-driven intelligence to inform their ecosystem strategy and decision-making.
+We guide you through the process of mapping your organizational landscape, identifying key interdependencies, and building flexible, future-proof ecosystems.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Database
+#### Icon
+Network
 
 ### Product 3
 
 #### ID
-
-rizom-orchestrator
+economy-of-garbage
 
 #### Name
-
-Rizom Orchestrator
+Economy of Garbage
 
 #### Tagline
-
-Ecosystem coordination and workflow automation
+Transform waste into value
 
 #### Description
-
-Rizom Orchestrator is a powerful workflow automation tool that helps organizations streamline ecosystem-wide processes and coordination.
+Our circular economy solutions unlock new revenue streams by repurposing waste materials and byproducts, reducing environmental impact and boosting your bottom line.
 
 #### Status
-
 beta
 
 #### Link
 
-#### Icon
 
-Cpu
+#### Icon
+Wrench
 
 ### Product 4
 
 #### ID
-
-rizom-engage
+digital-transformation
 
 #### Name
-
-Rizom Engage
+Digital Transformation
 
 #### Tagline
-
-Ecosystem engagement and community platform
+Reimagine your business for the digital age
 
 #### Description
-
-Rizom Engage is a comprehensive platform that enables organizations to build, nurture, and activate their ecosystem communities.
+We help you harness the power of emerging technologies to streamline operations, enhance customer experiences, and stay ahead of the curve in a rapidly evolving landscape.
 
 #### Status
-
-beta
+live
 
 #### Link
 
-#### Icon
 
-Network
+#### Icon
+Cpu
 
 ### Product 5
 
 #### ID
-
-rizom-advisory
+organizational-development
 
 #### Name
-
-Rizom Advisory
+Organizational Development
 
 #### Tagline
-
-Ecosystem strategy and transformation consulting
+Unlock the potential of your people
 
 #### Description
-
-Rizom Advisory provides expert consulting services to help organizations design and implement effective ecosystem strategies and digital transformation initiatives.
+Our human-centric approach to organizational design and talent management empowers your workforce to thrive, driving sustainable growth and competitive advantage.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Wrench
+#### Icon
+Brain
 
 ### Product 6
 
 #### ID
-
-rizom-academy
+ecosystem-engagement
 
 #### Name
-
-Rizom Academy
+Ecosystem Engagement
 
 #### Tagline
-
-Ecosystem leadership and capability development
+Foster collaborative, purpose-driven networks
 
 #### Description
-
-Rizom Academy offers a range of training programs and workshops to help organizations develop the necessary skills and capabilities to thrive in the digital age.
+We facilitate strategic partnerships, community-building initiatives, and cross-pollination of ideas to help you harness the power of collective intelligence.
 
 #### Status
-
-live
+beta
 
 #### Link
 
-#### Icon
 
-FileText
+#### Icon
+Globe
