@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/types";
+import type { Logger } from "@brains/utils";
 import { ContentManager } from "@brains/content-management";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";

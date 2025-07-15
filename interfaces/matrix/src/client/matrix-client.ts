@@ -6,7 +6,7 @@ import {
   LogService,
   RichConsoleLogger,
 } from "matrix-bot-sdk";
-import type { Logger } from "@brains/types";
+import type { Logger } from "@brains/utils";
 import type { MatrixConfig } from "../types";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";

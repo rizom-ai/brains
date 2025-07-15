@@ -1,4 +1,5 @@
-import type { Logger, MessageSender } from "@brains/types";
+import type { Logger } from "@brains/utils";
+import type { MessageSender } from "@brains/types";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 import { GitRepositoryError, GitNetworkError } from "./errors";
@@ -186,9 +187,9 @@ export class GitSync {
       syncPath: this.repoPath,
     });
 
-    if (!configResponse.success) {
+    if ("noop" in configResponse || !configResponse.success) {
       this.logger.warn("Could not configure directory-sync", {
-        error: configResponse.error,
+        error: "noop" in configResponse ? "No operation performed" : configResponse.error,
         repoPath: this.repoPath,
       });
     } else {
@@ -333,7 +334,7 @@ export class GitSync {
         {},
       );
 
-      if (!importResponse.success) {
+      if ("noop" in importResponse || !importResponse.success) {
         this.logger.warn("No directory sync plugin available for import");
       } else {
         this.logger.info("Imported entities after pull", {
@@ -364,7 +365,7 @@ export class GitSync {
         {},
       );
 
-      if (!exportResponse.success) {
+      if ("noop" in exportResponse || !exportResponse.success) {
         this.logger.warn("No directory sync plugin available for export");
       } else {
         this.logger.info("Exported entities", { result: exportResponse.data });

@@ -1,11 +1,11 @@
 import type {
   Template,
   GenerationContext,
-  Logger,
   SearchResult,
   EntityService,
   AIService,
 } from "@brains/types";
+import type { Logger } from "@brains/utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 
 /**

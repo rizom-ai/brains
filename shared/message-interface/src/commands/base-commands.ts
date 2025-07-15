@@ -43,7 +43,7 @@ export function getBaseCommands(
           const searchResults = await context.entityService.search(
             searchQuery,
             {
-              limit: 10,
+              limit: 5,
               sortBy: "relevance",
             },
           );
@@ -61,12 +61,13 @@ export function getBaseCommands(
               const formattedEntity = context.formatContent(
                 "shell:base-entity-display",
                 result.entity,
-                { truncate: 500 },
+                { truncate: 400 },
               );
 
-              return `Score: ${result.score.toFixed(2)}
-${formattedEntity}
-${result.excerpt ? `Excerpt: ${result.excerpt}` : ""}`;
+              return `${formattedEntity}
+
+Score: ${result.score.toFixed(2)}
+`;
             })
             .join("\n\n");
 
@@ -94,13 +95,13 @@ ${result.excerpt ? `Excerpt: ${result.excerpt}` : ""}`;
           };
         }
 
-        const entityType = args[0] || "base";
+        const entityType = args[0] ?? "base";
 
         try {
           const entities = await context.entityService.listEntities(
             entityType,
             {
-              limit: 20,
+              limit: 10,
               sortBy: "updated",
               sortDirection: "desc",
             },
@@ -119,7 +120,7 @@ ${result.excerpt ? `Excerpt: ${result.excerpt}` : ""}`;
               return context.formatContent(
                 "shell:base-entity-display",
                 entity,
-                { truncate: 500 },
+                { truncate: 200 },
               );
             })
             .join("\n\n");
@@ -150,7 +151,7 @@ ${result.excerpt ? `Excerpt: ${result.excerpt}` : ""}`;
         }
 
         const entityId = args[0];
-        const entityType = args[1] || "base"; // Default to base entity type
+        const entityType = args[1] ?? "base"; // Default to base entity type
 
         if (!entityId) {
           return {

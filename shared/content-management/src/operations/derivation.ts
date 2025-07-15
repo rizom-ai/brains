@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/types";
+import type { Logger } from "@brains/utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { SiteContentEntityType, DeriveOptions } from "../types";
 

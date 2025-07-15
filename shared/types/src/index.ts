@@ -56,8 +56,6 @@ export { jobSchema } from "./jobs";
 
 // View types have been moved to @brains/view-registry
 
-// Re-export commonly used types from utils
-export type { Logger } from "@brains/utils";
 
 // Messaging types
 export type {

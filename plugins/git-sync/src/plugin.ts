@@ -19,8 +19,8 @@ import packageJson from "../package.json";
 export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
 
-  constructor(config: unknown) {
-    super("git-sync", packageJson, config, gitSyncConfigSchema);
+  constructor(config: Partial<GitSyncConfig>) {
+    super("git-sync", packageJson, config, gitSyncConfigSchema, {});
   }
 
   /**
@@ -35,6 +35,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
       description: "Git synchronization status",
       schema: gitSyncStatusSchema,
       basePrompt: "",
+      requiredPermission: "public",
       formatter: new GitSyncStatusFormatter(), // Use status formatter for template
     });
 

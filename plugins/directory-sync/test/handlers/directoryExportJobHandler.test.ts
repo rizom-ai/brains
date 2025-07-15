@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 import { DirectoryExportJobHandler } from "../../src/handlers/directoryExportJobHandler";
-import type { Logger } from "@brains/types";
+import type { Logger } from "@brains/utils";
 import type { PluginContext } from "@brains/core";
 import type { DirectorySync } from "../../src/directorySync";
 import type { BaseEntity } from "@brains/types";
