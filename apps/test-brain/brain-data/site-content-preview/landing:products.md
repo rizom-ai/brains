@@ -2,153 +2,131 @@
 routeId: landing
 sectionId: products
 ---
+
 # Products Section
 
 ## Label
+
 Our Ecosystem
 
 ## Headline
+
 Innovative Solutions for a Sustainable Future
 
 ## Description
-Rizom is a dynamic professional collective that brings together seasoned experts in digital transformation, organizational development, and ecosystem design. Our diverse portfolio of products and services empowers organizations to navigate the complexities of the modern landscape and build resilient, future-ready ecosystems.
+
+Rizom is a dynamic professional collective, bringing together seasoned experts in digital transformation, organizational development, and ecosystem design under a shared mission to create a more sustainable future. Our diverse portfolio of products and services empower organizations to navigate complex challenges, unlock new opportunities, and drive positive change.
 
 ## Products
 
 ### Product 1
 
 #### ID
-practice-innovation
+
+rizom-studio
 
 #### Name
-Practice Innovation
+
+Rizom Studio
 
 #### Tagline
-Accelerate your organization's transformation
+
+Design-led innovation for complex challenges
 
 #### Description
-Our expert-led workshops and coaching programs help you unlock new ways of working, foster a culture of innovation, and drive sustainable change.
+
+Rizom Studio is our flagship service offering, providing a collaborative design-led approach to tackle your organization's most pressing challenges. Our multidisciplinary teams work closely with you to uncover insights, ideate solutions, and bring them to life.
 
 #### Status
+
 live
 
 #### Link
 
-
 #### Icon
-Brain
+
+Cpu
 
 ### Product 2
 
 #### ID
+
 ecosystem-architecture
 
 #### Name
+
 Ecosystem Architecture
 
 #### Tagline
-Design resilient, interconnected systems
+
+Blueprints for thriving collaborative networks
 
 #### Description
-We guide you through the process of mapping your organizational landscape, identifying key interdependencies, and building flexible, future-proof ecosystems.
+
+Our Ecosystem Architecture practice helps organizations design and implement robust collaborative ecosystems, unlocking new pathways for growth, innovation, and social impact.
 
 #### Status
+
 live
 
 #### Link
 
-
 #### Icon
+
 Network
 
 ### Product 3
 
 #### ID
-economy-of-garbage
+
+org-transformation
 
 #### Name
-Economy of Garbage
+
+Organizational Transformation
 
 #### Tagline
-Transform waste into value
+
+Catalyze change and unlock human potential
 
 #### Description
-Our circular economy solutions unlock new revenue streams by repurposing waste materials and byproducts, reducing environmental impact and boosting your bottom line.
+
+We guide organizations through comprehensive transformation journeys, empowering them to cultivate agile, purpose-driven cultures that thrive in the face of complexity.
 
 #### Status
-beta
+
+live
 
 #### Link
 
-
 #### Icon
+
 Wrench
 
 ### Product 4
 
 #### ID
-digital-transformation
+
+digital-futures
 
 #### Name
-Digital Transformation
+
+Digital Futures
 
 #### Tagline
-Reimagine your business for the digital age
+
+Reimagine your digital landscape
 
 #### Description
-We help you harness the power of emerging technologies to streamline operations, enhance customer experiences, and stay ahead of the curve in a rapidly evolving landscape.
+
+Our Digital Futures practice helps organizations harness the power of emerging technologies to drive innovation, enhance customer experiences, and future-proof their operations.
 
 #### Status
-live
 
-#### Link
-
-
-#### Icon
-Cpu
-
-### Product 5
-
-#### ID
-organizational-development
-
-#### Name
-Organizational Development
-
-#### Tagline
-Unlock the potential of your people
-
-#### Description
-Our human-centric approach to organizational design and talent management empowers your workforce to thrive, driving sustainable growth and competitive advantage.
-
-#### Status
-live
-
-#### Link
-
-
-#### Icon
-Brain
-
-### Product 6
-
-#### ID
-ecosystem-engagement
-
-#### Name
-Ecosystem Engagement
-
-#### Tagline
-Foster collaborative, purpose-driven networks
-
-#### Description
-We facilitate strategic partnerships, community-building initiatives, and cross-pollination of ideas to help you harness the power of collective intelligence.
-
-#### Status
 beta
 
 #### Link
 
-
 #### Icon
+
 Globe

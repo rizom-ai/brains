@@ -242,7 +242,10 @@ export class Shell {
       this.db,
       this.embeddingService,
     );
-    this.jobQueueService.registerHandler("shell:embedding", embeddingJobHandler);
+    this.jobQueueService.registerHandler(
+      "shell:embedding",
+      embeddingJobHandler,
+    );
 
     // Initialize EntityService with the configured JobQueueService
     this.entityService =

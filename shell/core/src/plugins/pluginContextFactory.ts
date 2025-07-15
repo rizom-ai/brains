@@ -400,7 +400,7 @@ export class PluginContextFactory {
           // Check if this is a shell-provided job type
           const shellJobTypes = [
             "content-generation",
-            "content-derivation", 
+            "content-derivation",
             "embedding",
           ];
           const scopedType = shellJobTypes.includes(type)
@@ -510,7 +510,7 @@ export class PluginContextFactory {
             jobQueueService,
             this.logger,
           );
-          
+
           batchJobManager.registerBatch(
             batchId,
             jobIds,

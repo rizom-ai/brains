@@ -876,7 +876,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           try {
             // Build site directly (same logic as build-site tool)
             const config = this.config;
-            
+
             // Choose output directory based on environment
             const outputDir =
               environment === "production"
