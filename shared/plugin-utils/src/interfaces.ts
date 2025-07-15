@@ -4,7 +4,8 @@ import type {
   ProgressNotification,
   UserPermissionLevel,
 } from "@brains/utils";
-import type { BaseEntity, MessageSender, Template } from "@brains/types";
+import type { BaseEntity, Template } from "@brains/types";
+import type { MessageSender } from "@brains/messaging-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { EntityAdapter } from "@brains/types";
 import type { Command } from "@brains/message-interface";

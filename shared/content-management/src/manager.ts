@@ -2,7 +2,11 @@ import type { Logger } from "@brains/utils";
 import type { ProgressCallback } from "@brains/utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
-import type { RouteDefinition, SectionDefinition, SiteContentEntityType } from "@brains/view-registry";
+import type {
+  RouteDefinition,
+  SectionDefinition,
+  SiteContentEntityType,
+} from "@brains/view-registry";
 import type { BatchJobStatus } from "@brains/job-queue";
 import type { JobContext, JobOptions } from "@brains/db";
 import { GenerationOperations } from "./operations/generation";

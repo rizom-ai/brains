@@ -1,10 +1,12 @@
 import type {
   BaseEntity,
   EntityInput,
+} from "@brains/types";
+import type {
   MessageHandler,
   MessageSender,
   MessageResponse,
-} from "@brains/types";
+} from "@brains/messaging-service";
 import type {
   Plugin,
   PluginContext,

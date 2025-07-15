@@ -1,6 +1,6 @@
 import type { Logger } from "@brains/utils";
 import type {
-  MessageResponse,
+  InternalMessageResponse,
   MessageHandler,
   IMessageBus,
   MessageBusResponse,
@@ -12,7 +12,7 @@ import { z } from "zod";
 // Internal type for wrapped handlers
 type WrappedHandler = (
   message: MessageWithPayload<unknown>,
-) => Promise<MessageResponse | null>;
+) => Promise<InternalMessageResponse | null>;
 
 // Handler entry with filter
 interface HandlerEntry {
@@ -70,7 +70,7 @@ export class MessageBus implements IMessageBus {
   ): () => void {
     const wrappedHandler: WrappedHandler = async (
       message: MessageWithPayload<unknown>,
-    ): Promise<MessageResponse | null> => {
+    ): Promise<InternalMessageResponse | null> => {
       // Cast the message to the expected type for this specific handler
       const typedMessage = message as MessageWithPayload<T>;
       const result = await handler(typedMessage);
@@ -176,7 +176,7 @@ export class MessageBus implements IMessageBus {
   private async publish<T = unknown>(
     message: MessageWithPayload<T>,
     broadcast?: boolean,
-  ): Promise<MessageResponse | null> {
+  ): Promise<InternalMessageResponse | null> {
     // Validate message structure
     if (typeof message !== "object" || !message.type || !message.id) {
       this.logger.error(

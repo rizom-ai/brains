@@ -1,6 +1,7 @@
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
-import type { BaseEntity, Template, MessageHandler } from "@brains/types";
+import type { BaseEntity, Template } from "@brains/types";
+import type { MessageHandler } from "@brains/messaging-service";
 import type {
   PluginContext,
   Daemon,

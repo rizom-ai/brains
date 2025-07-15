@@ -3,6 +3,7 @@ export type {
   BaseMessage,
   MessageResponse,
   MessageHandler,
+  MessageSender,
   MessageWithPayload,
   IMessageBus,
   MessageBusResponse,
@@ -12,6 +13,7 @@ export {
   messageWithPayloadSchema,
   messageBusResponseSchema,
   messageResponseSchema,
+  internalMessageResponseSchema,
   hasPayload,
 } from "./types";
 

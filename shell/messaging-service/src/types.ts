@@ -4,22 +4,26 @@ import type {
   MessageHandler,
   BaseMessage,
   MessageWithPayload,
-} from "@brains/types";
+} from "./base-types";
 
 export {
+  messageResponseSchema,
   messageResponseSchema as messageBusResponseSchema,
   messageWithPayloadSchema,
   baseMessageSchema,
+  type MessageResponse,
   type MessageResponse as MessageBusResponse,
   type MessageWithPayload,
   type MessageHandler,
+  type MessageSender,
   type BaseMessage,
-} from "@brains/types";
+} from "./base-types";
 
 /**
- * Internal message response schema (with more details than the simple one)
+ * Internal message bus response schema (with more details than the simple MessageResponse)
+ * This is used internally by the message bus for tracking and debugging
  */
-export const messageResponseSchema = z.object({
+export const internalMessageResponseSchema = z.object({
   id: z.string().min(1),
   requestId: z.string().min(1),
   success: z.boolean(),
@@ -34,7 +38,7 @@ export const messageResponseSchema = z.object({
 });
 
 // Derive types from schemas
-export type MessageResponse = z.infer<typeof messageResponseSchema>;
+export type InternalMessageResponse = z.infer<typeof internalMessageResponseSchema>;
 
 /**
  * Type guard to check if a message has a payload

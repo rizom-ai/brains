@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { MessageSender } from "@brains/types";
+import type { MessageSender } from "@brains/messaging-service";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 import { GitRepositoryError, GitNetworkError } from "./errors";
