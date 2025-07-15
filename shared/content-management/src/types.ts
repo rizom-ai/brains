@@ -1,5 +1,5 @@
-import type { SiteContentEntityType } from "@brains/types";
-import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import type { BaseEntity } from "@brains/types";
+import type { RouteDefinition, SectionDefinition, SiteContentEntityType } from "@brains/view-registry";
 
 // Re-export types from schemas
 export type {
@@ -15,8 +15,13 @@ export {
   GenerateResultSchema,
 } from "./schemas";
 
-// Re-export shared types
-export type { RouteDefinition, SectionDefinition, SiteContentEntityType };
+/**
+ * Generic site content entity interface
+ */
+export interface SiteContentEntity extends BaseEntity {
+  routeId: string;
+  sectionId: string;
+}
 
 /**
  * Interface for tracking async content generation jobs

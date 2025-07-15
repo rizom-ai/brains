@@ -4,7 +4,7 @@ import type { IEntityService as EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { JobContext } from "@brains/db";
 import type { PromoteOptions, RollbackOptions } from "./types";
-import type { SiteContentEntity } from "@brains/types";
+import type { SiteContentEntity } from "@brains/content-management";
 
 /**
  * Site-specific content operations for preview/production workflow

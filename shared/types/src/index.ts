@@ -24,14 +24,7 @@ export type {
 } from "./templates";
 export { TemplateSchema } from "./templates";
 
-// Content types (site content, routes, sections)
-export type {
-  SiteContentEntity,
-  RouteDefinition,
-  SectionDefinition,
-  SiteContentEntityType,
-} from "./content";
-export { SiteContentEntityTypeSchema } from "./content";
+// Content types have been moved to @brains/content-management
 
 // Registry types have been moved to their respective implementation packages
 

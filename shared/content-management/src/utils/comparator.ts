@@ -1,4 +1,4 @@
-import type { SiteContentEntity } from "@brains/types";
+import type { SiteContentEntity } from "../types";
 
 /**
  * Content comparison result

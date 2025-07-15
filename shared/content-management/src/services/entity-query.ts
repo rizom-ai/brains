@@ -1,4 +1,5 @@
-import type { SiteContentEntityType, SiteContentEntity } from "@brains/types";
+import type { SiteContentEntity } from "../types";
+import type { SiteContentEntityType } from "@brains/view-registry";
 import type { Logger } from "@brains/utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
 

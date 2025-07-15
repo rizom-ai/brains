@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import type { SiteContentEntity } from "@brains/types";
+import type { SiteContentEntity } from "../types";
 import { compareContent, isContentEquivalent } from "./comparator";
 
 describe("Content Comparator", () => {

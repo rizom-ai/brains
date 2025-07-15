@@ -1,6 +1,7 @@
 import type { Logger } from "@brains/utils";
 import type { IEntityService as EntityService } from "@brains/entity-service";
-import type { SiteContentEntityType, DeriveOptions } from "../types";
+import type { SiteContentEntityType } from "@brains/view-registry";
+import type { DeriveOptions } from "../types";
 
 /**
  * Content derivation operations
