@@ -1,6 +1,7 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import { ViewRegistry, RouteRegistry, ViewTemplateRegistry } from "../src";
-import type { RouteDefinition, Template } from "@brains/types";
+import type { RouteDefinition } from "../src";
+import type { Template } from "@brains/types";
 import { z } from "zod";
 
 // Test schemas

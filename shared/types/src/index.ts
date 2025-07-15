@@ -52,6 +52,4 @@ export type {
   UpdateEntityResponse,
 } from "./schemas";
 
-// Permission types
-export { UserPermissionLevelSchema } from "./permissions";
-export type { UserPermissionLevel } from "./permissions";
+// Permission types have been moved to @brains/utils
