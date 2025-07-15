@@ -189,7 +189,10 @@ export class GitSync {
 
     if ("noop" in configResponse || !configResponse.success) {
       this.logger.warn("Could not configure directory-sync", {
-        error: "noop" in configResponse ? "No operation performed" : configResponse.error,
+        error:
+          "noop" in configResponse
+            ? "No operation performed"
+            : configResponse.error,
         repoPath: this.repoPath,
       });
     } else {

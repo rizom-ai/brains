@@ -56,7 +56,6 @@ export { jobSchema } from "./jobs";
 
 // View types have been moved to @brains/view-registry
 
-
 // Messaging types
 export type {
   MessageResponse,
