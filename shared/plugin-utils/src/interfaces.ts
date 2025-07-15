@@ -15,7 +15,7 @@ import type {
   ViewTemplate,
 } from "@brains/view-registry";
 import type { EntityService } from "@brains/entity-service";
-import type { JobStatusType, JobHandler } from "@brains/job-queue";
+import type { JobStatusType, JobHandler, BatchJobStatus } from "@brains/job-queue";
 import type { JobOptions } from "@brains/db";
 
 /**
@@ -224,6 +224,9 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
     }>,
     options: JobOptions,
   ) => Promise<string>;
+
+  // Get batch operation status
+  getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
 
   // Job handler registration (for plugins that process jobs)
   registerJobHandler: (type: string, handler: JobHandler) => void;

@@ -116,10 +116,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
     this.logger.debug("Registered dashboard template");
 
     // Register dashboard route
-    // TODO: Refactor this pattern - templates with formatters should automatically
-    // provide default content when no contentEntity is specified. The preact-builder
-    // should check if a template has a formatter and call formatter.parse("") or
-    // a getDefaultContent() method to get initial data.
     const dashboardFormatter = new DashboardFormatter();
     context.registerRoutes(
       [

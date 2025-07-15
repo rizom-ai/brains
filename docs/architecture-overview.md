@@ -14,35 +14,61 @@ The Personal Brain application features a modular, plugin-based architecture bui
 
 ## Current Implementation State
 
-### Implemented Packages
+The codebase follows a 4-directory monorepo structure:
 
-- **packages/shell**: Core brain infrastructure with all essential components
-  - Registry system with singleton pattern
-  - Plugin framework with lifecycle management
-  - Entity model with adapters and markdown storage
-  - Database layer with Drizzle ORM and vector support
-  - Messaging system with pub/sub pattern
-  - Query processor for natural language processing
-  - AI services (embeddings via FastEmbed, chat via Anthropic)
-  - MCP tool/resource integration
-- **packages/mcp-server**: MCP protocol server implementation
-- **packages/utils**: Shared utilities including logging and markdown processing
+### Shell Packages (Core Infrastructure)
 
-### Implemented Packages
+- **shell/core**: Central shell with plugin management and core infrastructure (~1,900 lines, reduced from ~3,400)
+- **shell/ai-service**: AI text and object generation using Anthropic
+- **shell/app**: Application initialization and lifecycle management
+- **shell/content-generator**: Template-based content generation system
+- **shell/db**: Database layer with Drizzle ORM and vector support
+- **shell/embedding-service**: Text embeddings via FastEmbed
+- **shell/entity-service**: Entity CRUD operations and search
+- **shell/job-queue**: Background job processing system
+- **shell/messaging-service**: Event-driven messaging with pub/sub
+- **shell/service-registry**: Component registration and dependency injection
+- **shell/view-registry**: Route and template management for views
+- **shell/integration-tests**: Cross-package integration testing
 
-- **interfaces/cli**: Command-line interface (as plugin)
-- **interfaces/matrix**: Matrix bot interface (as plugin)
-- **interfaces/webserver**: Static site server (as plugin)
+### Shared Packages (Cross-Cutting Concerns)
+
+- **shared/types**: Core type definitions (entities, templates, schemas)
+- **shared/utils**: Common utilities (logging, markdown, permissions)
+- **shared/plugin-utils**: Base classes for plugin development
+- **shared/message-interface**: Base classes for message-based interfaces
+- **shared/content-management**: Content operations and management
+- **shared/daemon-registry**: Long-running process management
+- **shared/default-site-content**: Default templates and formatters
+- **shared/test-utils**: Testing utilities and harnesses
+- **shared/ui-library**: Shared UI components (Ink-based)
+- **shared/eslint-config**: Shared ESLint configuration
+- **shared/typescript-config**: Shared TypeScript configuration
+
+### Interface Packages (User Interfaces)
+
+- **interfaces/cli**: Command-line interface (MessageInterfacePlugin)
+- **interfaces/matrix**: Matrix bot interface (MessageInterfacePlugin)
+- **interfaces/matrix-setup**: Matrix account setup utility
+- **interfaces/mcp**: MCP interface plugin (InterfacePlugin)
+- **interfaces/mcp-server**: MCP server implementations (stdio, HTTP)
+- **interfaces/webserver**: Static site server (InterfacePlugin)
+
+### Plugin Packages (Feature Extensions)
+
 - **plugins/directory-sync**: File-based entity synchronization
 - **plugins/git-sync**: Version control integration
-- **plugins/site-builder**: Static site generation
-- **apps/test-brain**: Reference implementation application
+- **plugins/site-builder**: Static site generation with Preact
+
+### Application Packages
+
+- **apps/test-brain**: Reference implementation and testing
 
 See [Package Structure](./architecture/package-structure.md) for detailed information.
 
 ## Key Components
 
-### 1. Shell Core (packages/shell)
+### 1. Shell Core (shell/core)
 
 The shell provides the core infrastructure and extension points for plugins:
 

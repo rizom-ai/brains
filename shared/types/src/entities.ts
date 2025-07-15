@@ -36,7 +36,6 @@ export interface SearchResult {
   entity: BaseEntity;
   score: number;
   excerpt: string;
-  highlights: string[];
 }
 
 /**

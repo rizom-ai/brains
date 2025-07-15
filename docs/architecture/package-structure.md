@@ -114,17 +114,27 @@ The shell directory contains the core services that power the brain application.
   - Configuration helpers
   - Environment setup
 
+#### `shell/job-queue`
+
+- **Purpose**: Background job processing
+- **Responsibilities**:
+  - Job enqueuing and processing
+  - Batch operations
+  - Progress monitoring
+  - Worker management
+- **Features**: SQLite-based queue, retry logic
+
 ## Shared (Utilities and Base Packages)
 
 ### Base Packages
 
-#### `shared/base-entity`
+#### `shared/content-management`
 
-- **Purpose**: Base entity framework
+- **Purpose**: Content operations and management
 - **Exports**:
-  - BaseEntity schema
-  - Entity adapters
-  - Markdown formatters
+  - ContentManager for batch operations
+  - Entity query services
+  - Generation and derivation operations
 
 #### `shared/plugin-utils`
 
@@ -158,10 +168,19 @@ The shell directory contains the core services that power the brain application.
   - Mock factories
   - Plugin testing helpers
 
+#### `shared/message-interface`
+
+- **Purpose**: Base classes for message-based interfaces
+- **Exports**:
+  - MessageInterfacePlugin base class
+  - Command registration system
+  - Message handling utilities
+
 #### `shared/daemon-registry`
 
 - **Purpose**: Daemon process management
 - **Features**: Process tracking, graceful shutdown
+- **Note**: Currently in shared/ but only used by shell/core - candidate for relocation
 
 #### `shared/default-site-content`
 
@@ -170,6 +189,11 @@ The shell directory contains the core services that power the brain application.
   - Hero, Features, CTA, Products sections
   - Formatters and layouts
   - Content generation prompts
+
+#### `shared/ui-library`
+
+- **Purpose**: Shared UI components
+- **Features**: Ink-based components for CLI interfaces
 
 ## Interfaces (User Interaction Layers)
 

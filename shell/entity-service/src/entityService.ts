@@ -661,7 +661,6 @@ export class EntityService {
           entity,
           score,
           excerpt,
-          highlights: [], // TODO: Implement highlight extraction
         });
       } catch (error) {
         this.logger.error(`Failed to parse entity during search: ${error}`);

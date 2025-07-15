@@ -1,13 +1,12 @@
 import type { Logger } from "@brains/utils";
 import type { ProgressCallback } from "@brains/utils";
-import type { IEntityService as EntityService } from "@brains/entity-service";
+import type { EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type {
   RouteDefinition,
   SectionDefinition,
   SiteContentEntityType,
 } from "@brains/view-registry";
-import type { BatchJobStatus } from "@brains/job-queue";
 import type { JobContext, JobOptions } from "@brains/db";
 import { GenerationOperations } from "./operations/generation";
 import { DerivationOperations } from "./operations/derivation";
@@ -538,10 +537,4 @@ export class ContentManager {
     return batchId;
   }
 
-  /**
-   * Get batch operation status
-   */
-  async getBatchStatus(batchId: string): Promise<BatchJobStatus | null> {
-    return this.pluginContext.getBatchStatus(batchId);
-  }
 }

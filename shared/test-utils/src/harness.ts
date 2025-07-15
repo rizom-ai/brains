@@ -14,6 +14,7 @@ import type { EntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { JobContext } from "@brains/db";
+import type { BatchJobStatus } from "@brains/job-queue";
 import type { z } from "zod";
 
 export interface PluginTestHarnessOptions {
@@ -340,6 +341,11 @@ export class PluginTestHarness {
       waitForJob: async (): Promise<unknown> => {
         // Mock implementation - return mock content
         return "Mock generated content";
+      },
+      // Get batch operation status
+      getBatchStatus: async (): Promise<BatchJobStatus | null> => {
+        // Mock implementation - return null for test harness
+        return null;
       },
       // Job handler registration
       registerJobHandler: (): void => {

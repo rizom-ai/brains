@@ -2,7 +2,7 @@ import { test, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentManager } from "./manager";
 import { createSilentLogger } from "@brains/utils";
 import { PluginTestHarness } from "@brains/test-utils";
-import type { IEntityService as EntityService } from "@brains/entity-service";
+import type { EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { JobOptions } from "@brains/db";
@@ -821,21 +821,3 @@ test("rollback should throw for empty ids", async () => {
   ).rejects.toThrow("No entities to rollback");
 });
 
-test("getBatchStatus should delegate to plugin context", async () => {
-  const mockBatchStatus = {
-    batchId: "batch-123",
-    totalOperations: 10,
-    completedOperations: 5,
-    failedOperations: 1,
-    errors: ["Failed to generate content"],
-    status: "processing" as const,
-  };
-
-  const mockGetBatchStatus = mock().mockResolvedValue(mockBatchStatus);
-  mockPluginContext.getBatchStatus = mockGetBatchStatus;
-
-  const status = await contentManager.getBatchStatus("batch-123");
-
-  expect(status).toBe(mockBatchStatus);
-  expect(mockGetBatchStatus).toHaveBeenCalledWith("batch-123");
-});

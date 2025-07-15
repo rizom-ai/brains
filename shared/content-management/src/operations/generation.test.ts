@@ -1,7 +1,7 @@
 import { test, expect, beforeEach, mock } from "bun:test";
 import { GenerationOperations } from "./generation";
 import { createSilentLogger } from "@brains/utils";
-import type { IEntityService as EntityService } from "@brains/entity-service";
+import type { EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { JobOptions } from "@brains/db";

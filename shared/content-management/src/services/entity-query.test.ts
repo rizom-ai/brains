@@ -1,7 +1,7 @@
 import { test, expect, beforeEach, mock } from "bun:test";
 import { EntityQueryService } from "./entity-query";
 import { createSilentLogger } from "@brains/utils";
-import type { IEntityService as EntityService } from "@brains/entity-service";
+import type { EntityService } from "@brains/entity-service";
 
 // Mock dependencies
 const mockGetEntity = mock();
