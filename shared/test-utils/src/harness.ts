@@ -497,14 +497,19 @@ export class PluginTestHarness {
       },
       serializeEntity: (entity: BaseEntity): string => {
         // Mock implementation - simple markdown serialization
-        const adapter = this.mockEntityRegistry.registeredTypes.get(entity.entityType);
+        const adapter = this.mockEntityRegistry.registeredTypes.get(
+          entity.entityType,
+        );
         if (adapter) {
           return adapter.adapter.toMarkdown(entity);
         }
         // Fallback simple serialization
         return `# ${entity.id}\n\n${entity.content}`;
       },
-      deserializeEntity: (markdown: string, entityType: string): Partial<BaseEntity> => {
+      deserializeEntity: (
+        markdown: string,
+        entityType: string,
+      ): Partial<BaseEntity> => {
         // Mock implementation - simple markdown deserialization
         const adapter = this.mockEntityRegistry.registeredTypes.get(entityType);
         if (adapter) {

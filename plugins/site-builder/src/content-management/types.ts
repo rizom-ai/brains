@@ -1,5 +1,4 @@
 import type { SiteContentPreview, SiteContentProduction } from "../types";
-import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 
 // Re-export types from schemas
 export type {
@@ -49,23 +48,6 @@ export function isProductionContent(
   content: SiteContent,
 ): content is SiteContentProduction {
   return content.entityType === "site-content-production";
-}
-
-/**
- * Interface for tracking async content generation jobs (generate/regenerate)
- * These operations require AI generation with route/section context
- */
-export interface ContentGenerationJob {
-  jobId: string;
-  entityId: string;
-  entityType: "site-content-preview" | "site-content-production";
-  operation: "generate" | "regenerate";
-  routeId: string;
-  sectionId: string;
-  templateName: string;
-  route: RouteDefinition;
-  sectionDefinition: SectionDefinition;
-  mode?: "leave" | "new" | "with-current"; // For regenerate only
 }
 
 /**

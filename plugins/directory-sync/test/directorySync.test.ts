@@ -2,10 +2,10 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySync } from "../src/directorySync";
 import { PluginTestHarness } from "@brains/test-utils";
 import type { BaseEntity, EntityAdapter } from "@brains/types";
+import { baseEntitySchema } from "@brains/types";
 import { existsSync, rmSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { z } from "zod";
 
 // Mock entity adapter
 class MockEntityAdapter implements EntityAdapter<BaseEntity> {
@@ -28,19 +28,6 @@ class MockEntityAdapter implements EntityAdapter<BaseEntity> {
   }
 }
 
-// Base entity schema for testing
-const baseEntitySchema = z.object({
-  id: z.string(),
-  entityType: z.string(),
-  content: z.string(),
-  created: z.union([z.string(), z.date()]).transform(val => 
-    typeof val === 'string' ? val : val.toISOString()
-  ),
-  updated: z.union([z.string(), z.date()]).transform(val => 
-    typeof val === 'string' ? val : val.toISOString()
-  ),
-});
-
 describe("DirectorySync", (): void => {
   let directorySync: DirectorySync;
   let harness: PluginTestHarness;
@@ -56,8 +43,16 @@ describe("DirectorySync", (): void => {
 
     // Register entity types with adapters
     const pluginContext = harness.getPluginContext();
-    pluginContext.registerEntityType("base", baseEntitySchema, new MockEntityAdapter());
-    pluginContext.registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
+    pluginContext.registerEntityType(
+      "base",
+      baseEntitySchema,
+      new MockEntityAdapter(),
+    );
+    pluginContext.registerEntityType(
+      "note",
+      baseEntitySchema,
+      new MockEntityAdapter(),
+    );
 
     // Create DirectorySync with harness entity service
     directorySync = new DirectorySync({
@@ -133,9 +128,17 @@ describe("DirectorySync", (): void => {
     harness = new PluginTestHarness();
     await harness.setup();
     const pluginContext = harness.getPluginContext();
-    pluginContext.registerEntityType("base", baseEntitySchema, new MockEntityAdapter());
-    pluginContext.registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
-    
+    pluginContext.registerEntityType(
+      "base",
+      baseEntitySchema,
+      new MockEntityAdapter(),
+    );
+    pluginContext.registerEntityType(
+      "note",
+      baseEntitySchema,
+      new MockEntityAdapter(),
+    );
+
     directorySync = new DirectorySync({
       syncPath,
       entityService: pluginContext.entityService,
