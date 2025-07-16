@@ -16,7 +16,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.13.0",
     "@brains/ai-service": "workspace:*",
-    "@brains/base-entity": "workspace:*",
     "@brains/daemon-registry": "workspace:*",
     "@brains/db": "workspace:*",
     "@brains/embedding-service": "workspace:*",

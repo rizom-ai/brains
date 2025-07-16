@@ -65,6 +65,9 @@ export {
   ToolRegistrationError,
   ResourceRegistrationError,
   EntityRegistrationError,
+  JobHandlerRegistrationError,
+  DaemonRegistrationError,
+  JobOperationError,
   ErrorUtils,
   normalizeError,
 } from "./errors";

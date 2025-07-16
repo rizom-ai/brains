@@ -6,7 +6,7 @@
 /**
  * Utility type for error causes that can be a string, Error instance, or unknown (from catch blocks)
  */
-export type ErrorCause = string | Error | unknown;
+export type ErrorCause = string | Error;
 
 /**
  * Base error class for all Brains-related errors
@@ -361,6 +361,62 @@ export class ResourceRegistrationError extends McpError {
 }
 
 /**
+ * Job handler registration errors
+ */
+export class JobHandlerRegistrationError extends BrainsError {
+  constructor(
+    handlerType: string,
+    pluginId: string,
+    cause: ErrorCause,
+    context: Record<string, unknown> = {},
+  ) {
+    super(
+      `Job handler registration failed: ${handlerType}`,
+      "JOB_HANDLER_REGISTRATION_FAILED",
+      cause,
+      { handlerType, pluginId, ...context },
+    );
+  }
+}
+
+/**
+ * Daemon registration errors
+ */
+export class DaemonRegistrationError extends BrainsError {
+  constructor(
+    daemonName: string,
+    pluginId: string,
+    cause: ErrorCause,
+    context: Record<string, unknown> = {},
+  ) {
+    super(
+      `Daemon registration failed: ${daemonName}`,
+      "DAEMON_REGISTRATION_FAILED",
+      cause,
+      { daemonName, pluginId, ...context },
+    );
+  }
+}
+
+/**
+ * Job operation errors
+ */
+export class JobOperationError extends BrainsError {
+  constructor(
+    operation: string,
+    cause: ErrorCause,
+    context: Record<string, unknown> = {},
+  ) {
+    super(
+      `Job operation failed: ${operation}`,
+      "JOB_OPERATION_FAILED",
+      cause,
+      { operation, ...context },
+    );
+  }
+}
+
+/**
  * Entity registration errors
  */
 export class EntityRegistrationError extends BrainsError {
@@ -430,6 +486,42 @@ export class ErrorUtils {
 
     const cause = error instanceof Error ? error : new Error(String(error));
     return new BrainsError(message, code, cause, context);
+  }
+
+  /**
+   * Execute a synchronous operation with standardized error handling and logging
+   */
+  static withLogging<T>(
+    operation: () => T,
+    errorMessage: string,
+    logger: { error: (message: string, error?: unknown) => void },
+    errorClass: new (...args: unknown[]) => Error,
+    ...errorArgs: unknown[]
+  ): T {
+    try {
+      return operation();
+    } catch (error) {
+      logger.error(errorMessage, error);
+      throw new errorClass(...errorArgs, error);
+    }
+  }
+
+  /**
+   * Execute an asynchronous operation with standardized error handling and logging
+   */
+  static async withLoggingAsync<T>(
+    operation: () => Promise<T>,
+    errorMessage: string,
+    logger: { error: (message: string, error?: unknown) => void },
+    errorClass: new (...args: unknown[]) => Error,
+    ...errorArgs: unknown[]
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      logger.error(errorMessage, error);
+      throw new errorClass(...errorArgs, error);
+    }
   }
 }
 

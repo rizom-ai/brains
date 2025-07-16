@@ -26,7 +26,11 @@ import {
   ContentGenerationError,
   TemplateRegistrationError,
   RouteRegistrationError,
+  JobHandlerRegistrationError,
+  DaemonRegistrationError,
+  JobOperationError,
   createBatchId,
+  ErrorUtils,
 } from "@brains/utils";
 import type { z } from "zod";
 
@@ -152,80 +156,86 @@ export class PluginContextFactory {
         schema: z.ZodType<T>,
         adapter: EntityAdapter<T>,
       ): void => {
-        try {
-          const entityRegistry =
-            this.serviceRegistry.resolve<EntityRegistry>("entityRegistry");
-          entityRegistry.registerEntityType(entityType, schema, adapter);
-          this.logger.info(`Registered entity type: ${entityType}`);
-        } catch (error) {
-          this.logger.error(
-            `Failed to register entity type ${entityType}`,
-            error,
-          );
-          throw new EntityRegistrationError(entityType, error);
-        }
+        ErrorUtils.withLogging(
+          () => {
+            const entityRegistry =
+              this.serviceRegistry.resolve<EntityRegistry>("entityRegistry");
+            entityRegistry.registerEntityType(entityType, schema, adapter);
+            this.logger.info(`Registered entity type: ${entityType}`);
+          },
+          `Failed to register entity type ${entityType}`,
+          this.logger,
+          EntityRegistrationError,
+          entityType,
+        );
       },
       generateContent: async <T = unknown>(
         config: ContentGenerationConfig,
       ): Promise<T> => {
-        try {
-          const namespacedTemplateName = this.ensureNamespaced(
-            config.templateName,
-            pluginId,
-          );
+        return ErrorUtils.withLoggingAsync(
+          async () => {
+            const namespacedTemplateName = this.ensureNamespaced(
+              config.templateName,
+              pluginId,
+            );
 
-          // Always route through Shell.generateContent() for consistent permission checking
-          const queryResponse = await shell.generateContent<T>({
-            ...config,
-            templateName: namespacedTemplateName,
-          });
-
-          return queryResponse;
-        } catch (error) {
-          this.logger.error("Failed to generate content", error);
-          throw new ContentGenerationError(
-            config.templateName,
-            "generation",
-            error,
-          );
-        }
+            // Always route through Shell.generateContent() for consistent permission checking
+            return await shell.generateContent<T>({
+              ...config,
+              templateName: namespacedTemplateName,
+            });
+          },
+          "Failed to generate content",
+          this.logger,
+          ContentGenerationError,
+          config.templateName,
+          "generation",
+        );
       },
       parseContent: <T = unknown>(templateName: string, content: string): T => {
-        try {
-          const namespacedTemplateName = this.ensureNamespaced(
-            templateName,
-            pluginId,
-          );
+        return ErrorUtils.withLogging(
+          () => {
+            const namespacedTemplateName = this.ensureNamespaced(
+              templateName,
+              pluginId,
+            );
 
-          return contentGenerator.parseContent<T>(
-            namespacedTemplateName,
-            content,
-          );
-        } catch (error) {
-          this.logger.error("Failed to parse content", error);
-          throw new ContentGenerationError(templateName, "parsing", error);
-        }
+            return contentGenerator.parseContent<T>(
+              namespacedTemplateName,
+              content,
+            );
+          },
+          "Failed to parse content",
+          this.logger,
+          ContentGenerationError,
+          templateName,
+          "parsing",
+        );
       },
       formatContent: <T = unknown>(
         templateName: string,
         data: T,
         options?: { truncate?: number },
       ): string => {
-        try {
-          const namespacedTemplateName = this.ensureNamespaced(
-            templateName,
-            pluginId,
-          );
+        return ErrorUtils.withLogging(
+          () => {
+            const namespacedTemplateName = this.ensureNamespaced(
+              templateName,
+              pluginId,
+            );
 
-          return contentGenerator.formatContent<T>(
-            namespacedTemplateName,
-            data,
-            options,
-          );
-        } catch (error) {
-          this.logger.error("Failed to format content", error);
-          throw new ContentGenerationError(templateName, "formatting", error);
-        }
+            return contentGenerator.formatContent<T>(
+              namespacedTemplateName,
+              data,
+              options,
+            );
+          },
+          "Failed to format content",
+          this.logger,
+          ContentGenerationError,
+          templateName,
+          "formatting",
+        );
       },
       generateWithRoute: async (
         route: RouteDefinition,
@@ -233,80 +243,97 @@ export class PluginContextFactory {
         progressInfo: { current: number; total: number; message: string },
         additionalContext?: Record<string, unknown>,
       ): Promise<string> => {
-        try {
-          return await contentGenerator.generateWithRoute(
-            route,
-            section,
-            progressInfo,
-            additionalContext,
-          );
-        } catch (error) {
-          this.logger.error("Failed to generate content with route", error);
-          throw new ContentGenerationError(route.id, "generation", error, {
+        return ErrorUtils.withLoggingAsync(
+          async () => {
+            return await contentGenerator.generateWithRoute(
+              route,
+              section,
+              progressInfo,
+              additionalContext,
+            );
+          },
+          "Failed to generate content with route",
+          this.logger,
+          ContentGenerationError,
+          route.id,
+          "generation",
+          {
             routeId: route.id,
             sectionId: section.id,
-          });
-        }
+          },
+        );
       },
       // Unified template registration - registers template for both content generation and view rendering
       registerTemplate: <T>(name: string, template: Template<T>): void => {
-        try {
-          // Always prefix with plugin ID to ensure proper namespacing
-          const namespacedName = `${pluginId}:${name}`;
+        ErrorUtils.withLogging(
+          () => {
+            // Always prefix with plugin ID to ensure proper namespacing
+            const namespacedName = `${pluginId}:${name}`;
 
-          // Delegate to shell which handles both content and view registration
-          shell.registerTemplate(namespacedName, template);
+            // Delegate to shell which handles both content and view registration
+            shell.registerTemplate(namespacedName, template);
 
-          this.logger.debug(`Registered unified template: ${namespacedName}`);
-        } catch (error) {
-          this.logger.error("Failed to register template", error);
-          throw new TemplateRegistrationError(name, pluginId, error);
-        }
+            this.logger.debug(`Registered unified template: ${namespacedName}`);
+          },
+          "Failed to register template",
+          this.logger,
+          TemplateRegistrationError,
+          name,
+          pluginId,
+        );
       },
       // Convenience method for registering multiple templates at once
       registerTemplates: (templates: Record<string, Template>): void => {
-        try {
-          Object.entries(templates).forEach(([name, template]) => {
-            const namespacedName = `${pluginId}:${name}`;
-            shell.registerTemplate(namespacedName, template);
-            this.logger.debug(`Registered unified template: ${namespacedName}`);
-          });
-        } catch (error) {
-          this.logger.error("Failed to register templates", error);
-          throw new TemplateRegistrationError("batch", pluginId, error);
-        }
+        ErrorUtils.withLogging(
+          () => {
+            Object.entries(templates).forEach(([name, template]) => {
+              const namespacedName = `${pluginId}:${name}`;
+              shell.registerTemplate(namespacedName, template);
+              this.logger.debug(`Registered unified template: ${namespacedName}`);
+            });
+          },
+          "Failed to register templates",
+          this.logger,
+          TemplateRegistrationError,
+          "batch",
+          pluginId,
+        );
       },
       registerRoutes: (
         routes: RouteDefinition[],
         options?: { environment?: string },
       ): void => {
-        try {
-          // Add plugin prefix to template references in routes
-          const processedRoutes = routes.map((route) => ({
-            ...route,
-            sections: route.sections.map((section) => ({
-              ...section,
-              // Add plugin prefix to template name
-              template: section.template
-                ? `${pluginId}:${section.template}`
-                : section.template,
-            })),
-          }));
+        ErrorUtils.withLogging(
+          () => {
+            // Add plugin prefix to template references in routes
+            const processedRoutes = routes.map((route) => ({
+              ...route,
+              sections: route.sections.map((section) => ({
+                ...section,
+                // Add plugin prefix to template name
+                template: section.template
+                  ? `${pluginId}:${section.template}`
+                  : section.template,
+              })),
+            }));
 
-          const routeOptions: { pluginId?: string; environment?: string } = {
-            pluginId,
-          };
-          if (options?.environment !== undefined) {
-            routeOptions.environment = options.environment;
-          }
-          shell.registerRoutes(processedRoutes, routeOptions);
-          this.logger.debug(
-            `Registered ${routes.length} routes for plugin ${pluginId}`,
-          );
-        } catch (error) {
-          this.logger.error("Failed to register routes", error);
-          throw new RouteRegistrationError("batch", error, pluginId);
-        }
+            const routeOptions: { pluginId?: string; environment?: string } = {
+              pluginId,
+            };
+            if (options?.environment !== undefined) {
+              routeOptions.environment = options.environment;
+            }
+            shell.registerRoutes(processedRoutes, routeOptions);
+            this.logger.debug(
+              `Registered ${routes.length} routes for plugin ${pluginId}`,
+            );
+          },
+          "Failed to register routes",
+          this.logger,
+          RouteRegistrationError,
+          "batch",
+          pluginId,
+        );
       },
       // View template access (replaces direct viewRegistry access)
       getViewTemplate: (name: string) => {
@@ -359,39 +386,40 @@ export class PluginContextFactory {
         jobId: string,
         timeoutMs: number = 30000,
       ): Promise<unknown> => {
-        try {
-          const startTime = Date.now();
-          const pollInterval = 100; // Poll every 100ms
+        return ErrorUtils.withLoggingAsync(
+          async () => {
+            const startTime = Date.now();
+            const pollInterval = 100; // Poll every 100ms
 
-          while (Date.now() - startTime < timeoutMs) {
-            const job = await jobQueueService.getStatus(jobId);
+            while (Date.now() - startTime < timeoutMs) {
+              const job = await jobQueueService.getStatus(jobId);
 
-            if (!job) {
-              throw new Error(`Job ${jobId} not found`);
+              if (!job) {
+                throw new Error(`Job ${jobId} not found`);
+              }
+
+              if (job.status === "completed") {
+                this.logger.debug("Job completed", { jobId, pluginId });
+                return job.result as string;
+              }
+
+              if (job.status === "failed") {
+                const error = job.lastError ?? "Job failed with no error message";
+                throw new Error(`Job ${jobId} failed: ${error}`);
+              }
+
+              // Wait before next poll
+              await new Promise((resolve) => setTimeout(resolve, pollInterval));
             }
 
-            if (job.status === "completed") {
-              this.logger.debug("Job completed", { jobId, pluginId });
-              return job.result as string;
-            }
-
-            if (job.status === "failed") {
-              const error = job.lastError ?? "Job failed with no error message";
-              throw new Error(`Job ${jobId} failed: ${error}`);
-            }
-
-            // Wait before next poll
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
-          }
-
-          throw new Error(`Job ${jobId} timed out after ${timeoutMs}ms`);
-        } catch (error) {
-          this.logger.error("Failed to wait for job completion", {
-            jobId,
-            error,
-          });
-          throw error;
-        }
+            throw new Error(`Job ${jobId} timed out after ${timeoutMs}ms`);
+          },
+          "Failed to wait for job completion",
+          this.logger,
+          JobOperationError,
+          "waitForJob",
+          { jobId, timeoutMs },
+        );
       },
 
       // Generic job queue access (required)
@@ -400,39 +428,43 @@ export class PluginContextFactory {
         data: unknown,
         options: JobOptions,
       ): Promise<string> => {
-        try {
-          // Check if this is a shell-provided job type
-          const shellJobTypes = [
-            "content-generation",
-            "content-derivation",
-            "embedding",
-          ];
-          const scopedType = shellJobTypes.includes(type)
-            ? `shell:${type}`
-            : `${pluginId}:${type}`;
+        return ErrorUtils.withLoggingAsync(
+          async () => {
+            // Check if this is a shell-provided job type
+            const shellJobTypes = [
+              "content-generation",
+              "content-derivation",
+              "embedding",
+            ];
+            const scopedType = shellJobTypes.includes(type)
+              ? `shell:${type}`
+              : `${pluginId}:${type}`;
 
-          const jobOptions: JobOptions = {
-            ...options,
-          };
+            const jobOptions: JobOptions = {
+              ...options,
+            };
 
-          const jobId = await jobQueueService.enqueue(
-            scopedType,
-            data,
-            jobOptions,
-          );
+            const jobId = await jobQueueService.enqueue(
+              scopedType,
+              data,
+              jobOptions,
+            );
 
-          this.logger.debug("Enqueued job", {
-            jobId,
-            type: scopedType,
-            originalType: type,
-            pluginId,
-          });
+            this.logger.debug("Enqueued job", {
+              jobId,
+              type: scopedType,
+              originalType: type,
+              pluginId,
+            });
 
-          return jobId;
-        } catch (error) {
-          this.logger.error("Failed to enqueue job", { type, error });
-          throw error;
-        }
+            return jobId;
+          },
+          "Failed to enqueue job",
+          this.logger,
+          JobOperationError,
+          "enqueueJob",
+          { type, pluginId },
+        );
       },
 
       // Get job status
@@ -443,34 +475,38 @@ export class PluginContextFactory {
         result?: unknown;
         error?: string;
       } | null> => {
-        try {
-          const job = await jobQueueService.getStatus(jobId);
-          if (!job) {
-            return null;
-          }
+        return ErrorUtils.withLoggingAsync(
+          async () => {
+            const job = await jobQueueService.getStatus(jobId);
+            if (!job) {
+              return null;
+            }
 
-          // Transform to plugin context format
-          const result: {
-            status: JobStatusType;
-            result?: unknown;
-            error?: string;
-          } = {
-            status: job.status,
-          };
+            // Transform to plugin context format
+            const result: {
+              status: JobStatusType;
+              result?: unknown;
+              error?: string;
+            } = {
+              status: job.status,
+            };
 
-          if (job.result !== undefined && job.result !== null) {
-            result.result = job.result;
-          }
+            if (job.result !== undefined && job.result !== null) {
+              result.result = job.result;
+            }
 
-          if (job.lastError) {
-            result.error = job.lastError;
-          }
+            if (job.lastError) {
+              result.error = job.lastError;
+            }
 
-          return result;
-        } catch (error) {
-          this.logger.error("Failed to get job status", { jobId, error });
-          throw error;
-        }
+            return result;
+          },
+          "Failed to get job status",
+          this.logger,
+          JobOperationError,
+          "getJobStatus",
+          { jobId },
+        );
       },
 
       // Batch operations (required)
@@ -478,85 +514,97 @@ export class PluginContextFactory {
         operations: BatchOperation[],
         options: JobOptions,
       ): Promise<string> => {
-        try {
-          if (operations.length === 0) {
-            throw new Error("Cannot enqueue empty batch");
-          }
+        return ErrorUtils.withLoggingAsync(
+          async () => {
+            if (operations.length === 0) {
+              throw new Error("Cannot enqueue empty batch");
+            }
 
-          const batchId = createBatchId();
-          const jobIds: string[] = [];
+            const batchId = createBatchId();
+            const jobIds: string[] = [];
 
-          // Enqueue each operation using existing enqueueJob method (which handles scoping)
-          for (const operation of operations) {
-            const jobOptions: JobOptions = {
-              ...options,
-              metadata: {
-                ...options.metadata,
-                operationTarget: operation.entityId ?? operation.type,
-              },
-            };
+            // Enqueue each operation using existing enqueueJob method (which handles scoping)
+            for (const operation of operations) {
+              const jobOptions: JobOptions = {
+                ...options,
+                metadata: {
+                  ...options.metadata,
+                  operationTarget: operation.entityId ?? operation.type,
+                },
+              };
 
-            const jobId = await context.enqueueJob(
-              operation.type,
-              operation.options ?? {},
-              jobOptions,
+              const jobId = await context.enqueueJob(
+                operation.type,
+                operation.options ?? {},
+                jobOptions,
+              );
+              jobIds.push(jobId);
+            }
+
+            // Register the batch with BatchJobManager for status tracking
+            const batchJobManager = BatchJobManager.getInstance(
+              jobQueueService,
+              this.logger,
             );
-            jobIds.push(jobId);
-          }
 
-          // Register the batch with BatchJobManager for status tracking
-          const batchJobManager = BatchJobManager.getInstance(
-            jobQueueService,
-            this.logger,
-          );
+            batchJobManager.registerBatch(
+              batchId,
+              jobIds,
+              operations,
+              options.source,
+              options.metadata,
+            );
 
-          batchJobManager.registerBatch(
-            batchId,
-            jobIds,
-            operations,
-            options.source,
-            options.metadata,
-          );
+            this.logger.debug("Enqueued batch operation", {
+              batchId,
+              operationCount: operations.length,
+              jobIds,
+              pluginId,
+            });
 
-          this.logger.debug("Enqueued batch operation", {
-            batchId,
-            operationCount: operations.length,
-            jobIds,
-            pluginId,
-          });
-
-          return batchId;
-        } catch (error) {
-          this.logger.error("Failed to enqueue batch operation", error);
-          throw error;
-        }
+            return batchId;
+          },
+          "Failed to enqueue batch operation",
+          this.logger,
+          JobOperationError,
+          "enqueueBatch",
+          { operationCount: operations.length, pluginId },
+        );
       },
 
       getBatchStatus: async (
         batchId: string,
       ): Promise<BatchJobStatus | null> => {
-        try {
-          // Use BatchJobManager to get batch status
-          const batchJobManager = BatchJobManager.getInstance(
-            jobQueueService,
-            this.logger,
-          );
+        return ErrorUtils.withLoggingAsync(
+          async () => {
+            // Use BatchJobManager to get batch status
+            const batchJobManager = BatchJobManager.getInstance(
+              jobQueueService,
+              this.logger,
+            );
 
-          return await batchJobManager.getBatchStatus(batchId);
-        } catch (error) {
-          this.logger.error("Failed to get batch status", { batchId, error });
-          throw error;
-        }
+            return await batchJobManager.getBatchStatus(batchId);
+          },
+          "Failed to get batch status",
+          this.logger,
+          JobOperationError,
+          "getBatchStatus",
+          { batchId },
+        );
       },
 
       // Get active jobs (for monitoring)
       getActiveJobs: async (types?: string[]): Promise<JobQueue[]> => {
-        try {
-          return await jobQueueService.getActiveJobs(types);
-        } catch (error) {
-          this.logger.error("Failed to get active jobs", { error });
-          throw error;
-        }
+        return ErrorUtils.withLoggingAsync(
+          async () => {
+            return await jobQueueService.getActiveJobs(types);
+          },
+          "Failed to get active jobs",
+          this.logger,
+          JobOperationError,
+          "getActiveJobs",
+          { types },
+        );
       },
 
       // Get active batches (for monitoring)
@@ -567,63 +615,74 @@ export class PluginContextFactory {
           metadata: JobContext;
         }>
       > => {
-        try {
-          const batchJobManager = BatchJobManager.getInstance(
-            jobQueueService,
-            this.logger,
-          );
-          const batches = await batchJobManager.getActiveBatches();
+        return ErrorUtils.withLoggingAsync(
+          async () => {
+            const batchJobManager = BatchJobManager.getInstance(
+              jobQueueService,
+              this.logger,
+            );
+            const batches = await batchJobManager.getActiveBatches();
 
-          // Transform the nested metadata structure to match the expected interface
-          return batches.map((batch) => ({
-            batchId: batch.batchId,
-            status: batch.status,
-            metadata: batch.metadata.metadata, // Extract the nested JobContext
-          }));
-        } catch (error) {
-          this.logger.error("Failed to get active batches", { error });
-          throw error;
-        }
+            // Transform the nested metadata structure to match the expected interface
+            return batches.map((batch) => ({
+              batchId: batch.batchId,
+              status: batch.status,
+              metadata: batch.metadata.metadata, // Extract the nested JobContext
+            }));
+          },
+          "Failed to get active batches",
+          this.logger,
+          JobOperationError,
+          "getActiveBatches",
+        );
       },
 
       // Job handler registration (for plugins that process jobs)
       registerJobHandler: (type: string, handler: JobHandler): void => {
-        try {
-          // Scope handler to plugin
-          const scopedType = `${pluginId}:${type}`;
+        ErrorUtils.withLogging(
+          () => {
+            // Scope handler to plugin
+            const scopedType = `${pluginId}:${type}`;
 
-          // Track for cleanup
-          if (!this.pluginHandlers.has(pluginId)) {
-            this.pluginHandlers.set(pluginId, new Map());
-          }
-          const handlers = this.pluginHandlers.get(pluginId);
-          if (handlers) {
-            handlers.set(scopedType, handler);
-          }
+            // Track for cleanup
+            if (!this.pluginHandlers.has(pluginId)) {
+              this.pluginHandlers.set(pluginId, new Map());
+            }
+            const handlers = this.pluginHandlers.get(pluginId);
+            if (handlers) {
+              handlers.set(scopedType, handler);
+            }
 
-          // Register with job queue
-          jobQueueService.registerHandler(scopedType, handler);
+            // Register with job queue
+            jobQueueService.registerHandler(scopedType, handler);
 
-          this.logger.debug(`Registered job handler ${scopedType}`);
-        } catch (error) {
-          this.logger.error(`Failed to register job handler: ${type}`, error);
-          throw error;
-        }
+            this.logger.debug(`Registered job handler ${scopedType}`);
+          },
+          `Failed to register job handler: ${type}`,
+          this.logger,
+          JobHandlerRegistrationError,
+          type,
+          pluginId,
+        );
       },
 
       // Interface plugin capabilities
       registerDaemon: (name: string, daemon: Daemon): void => {
-        try {
-          // Ensure daemon name is unique by prefixing with plugin ID
-          const daemonName = `${pluginId}:${name}`;
-          this.daemonRegistry.register(daemonName, daemon, pluginId);
-          this.logger.debug(
-            `Registered daemon: ${daemonName} for plugin: ${pluginId}`,
-          );
-        } catch (error) {
-          this.logger.error(`Failed to register daemon: ${name}`, error);
-          throw error;
-        }
+        ErrorUtils.withLogging(
+          () => {
+            // Ensure daemon name is unique by prefixing with plugin ID
+            const daemonName = `${pluginId}:${name}`;
+            this.daemonRegistry.register(daemonName, daemon, pluginId);
+            this.logger.debug(
+              `Registered daemon: ${daemonName} for plugin: ${pluginId}`,
+            );
+          },
+          `Failed to register daemon: ${name}`,
+          this.logger,
+          DaemonRegistrationError,
+          name,
+          pluginId,
+        );
       },
 
       // Command discovery - get commands from the central registry
@@ -637,9 +696,7 @@ export class PluginContextFactory {
           );
           return allCommands;
         } catch (error) {
-          this.logger.error("Error retrieving commands from registry", {
-            error,
-          });
+          this.logger.error("Error retrieving commands from registry", error);
           return [];
         }
       },

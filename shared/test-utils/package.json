@@ -20,7 +20,6 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@brains/base-entity": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",

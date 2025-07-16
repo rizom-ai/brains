@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@brains/types": "workspace:*",
-    "@brains/base-entity": "workspace:*",
     "@brains/db": "workspace:*",
     "@brains/embedding-service": "workspace:*",
     "@brains/job-queue": "workspace:*",

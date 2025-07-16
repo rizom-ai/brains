@@ -103,7 +103,7 @@ export class ContentValidator {
   /**
    * Safe validation that returns null on failure
    */
-  public safeParse(contentType: string, content: unknown): unknown | null {
+  public safeParse(contentType: string, content: unknown): unknown {
     try {
       return this.validate(contentType, content);
     } catch (error) {

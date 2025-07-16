@@ -31,7 +31,6 @@ The project uses a 4-directory monorepo structure:
 
 ### Shared Base Packages
 
-- **@brains/base-entity** - Base entity schemas and adapters
 - **@brains/plugin-utils** - Plugin base classes:
   - `BasePlugin` - Base plugin functionality
   - `InterfacePlugin` - For non-message interfaces

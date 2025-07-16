@@ -18,7 +18,6 @@
     "clean": "rm -rf .turbo"
   },
   "dependencies": {
-    "@brains/base-entity": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",

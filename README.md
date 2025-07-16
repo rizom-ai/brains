@@ -66,7 +66,6 @@ The project follows a **tool-first architecture** where all functionality is exp
 - **@brains/app**: High-level app framework with CLI and Matrix interfaces
 - **@brains/mcp-server**: MCP protocol implementation
 - **@brains/git-sync**: Git synchronization plugin
-- **@brains/base-entity**: Base entity adapter and formatter
 - **@brains/types**: Shared TypeScript types
 - **@brains/utils**: Common utilities
 

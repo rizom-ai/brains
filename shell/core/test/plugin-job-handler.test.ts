@@ -109,6 +109,8 @@ describe("Plugin Job Handler Lifecycle", () => {
       search: mock(async () => []),
       getEntityTypes: mock(() => []),
       hasEntityType: mock(() => false),
+      serializeEntity: mock(() => "# Mock Entity\n\nMock content"),
+      deserializeEntity: mock(() => ({ content: "Mock content" })),
       getAsyncJobStatus: mock(async () => ({ status: "completed" as const })),
     };
 
