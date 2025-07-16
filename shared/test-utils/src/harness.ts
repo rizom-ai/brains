@@ -14,7 +14,7 @@ import type { EntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { JobContext, JobQueue } from "@brains/db";
-import type { BatchJobStatus } from "@brains/job-queue";
+import type { BatchJobStatus, BatchOperation } from "@brains/job-queue";
 import type { Command } from "@brains/message-interface";
 import type { z } from "zod";
 
@@ -322,12 +322,7 @@ export class PluginTestHarness {
       },
       // Batch operations (required)
       enqueueBatch: async (
-        _operations: Array<{
-          type: string;
-          entityId?: string;
-          entityType?: string;
-          options?: Record<string, unknown>;
-        }>,
+        _operations: BatchOperation[],
         _options: {
           source: string;
           metadata: JobContext;

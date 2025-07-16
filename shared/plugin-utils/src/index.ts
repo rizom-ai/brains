@@ -9,7 +9,6 @@ export type {
   Plugin,
   PluginContext,
   IInterfacePlugin,
-  MessageContext,
   IMessageInterfacePlugin,
   ContentGenerationConfig,
   GenerateContentFunction,

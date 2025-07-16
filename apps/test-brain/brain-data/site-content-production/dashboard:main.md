@@ -2,7 +2,6 @@
 routeId: dashboard
 sectionId: main
 ---
-
 # Dashboard Data
 
 entityStats:

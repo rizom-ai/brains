@@ -23,18 +23,6 @@ export interface SiteContentEntity extends BaseEntity {
   sectionId: string;
 }
 
-/**
- * Interface for tracking async content generation jobs
- */
-export interface SiteContentJob {
-  jobId: string;
-  route: RouteDefinition;
-  section: SectionDefinition;
-  templateName: string;
-  targetEntityType: "site-content-preview" | "site-content-production";
-  routeId: string;
-  sectionId: string;
-}
 
 /**
  * Interface for tracking async content generation jobs

@@ -8,7 +8,7 @@ import type { BaseEntity, Template } from "@brains/types";
 import type { MessageSender } from "@brains/messaging-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { EntityAdapter } from "@brains/types";
-import type { Command } from "@brains/message-interface";
+import type { Command, MessageContext } from "@brains/message-interface";
 import type {
   RouteDefinition,
   SectionDefinition,
@@ -19,6 +19,7 @@ import type {
   JobStatusType,
   JobHandler,
   BatchJobStatus,
+  BatchOperation,
 } from "@brains/job-queue";
 import type { JobOptions, JobContext, JobQueue } from "@brains/db";
 
@@ -220,12 +221,7 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
 
   // Batch operations (required)
   enqueueBatch: (
-    operations: Array<{
-      type: string;
-      entityId?: string;
-      entityType?: string;
-      options?: Record<string, unknown>;
-    }>,
+    operations: BatchOperation[],
     options: JobOptions,
   ) => Promise<string>;
 
@@ -270,18 +266,6 @@ export interface IInterfacePlugin extends Plugin {
   stop(): Promise<void>;
 }
 
-/**
- * Message context for message-based interfaces
- */
-export interface MessageContext {
-  userId: string;
-  channelId: string;
-  messageId: string;
-  threadId?: string;
-  timestamp: Date;
-  interfaceType: string; // The type of interface processing this message (set to pluginId: "cli", "matrix", etc.)
-  userPermissionLevel?: UserPermissionLevel; // Permission level in this specific context (room/channel)
-}
 
 /**
  * Content generation configuration - unified config object

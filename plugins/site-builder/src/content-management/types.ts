@@ -51,18 +51,6 @@ export function isProductionContent(
   return content.entityType === "site-content-production";
 }
 
-/**
- * Interface for tracking async content generation jobs
- */
-export interface SiteContentJob {
-  jobId: string;
-  route: RouteDefinition;
-  section: SectionDefinition;
-  templateName: string;
-  targetEntityType: "site-content-preview" | "site-content-production";
-  routeId: string;
-  sectionId: string;
-}
 
 /**
  * Interface for tracking async content generation jobs (generate/regenerate)
@@ -95,19 +83,3 @@ export interface EntityOperationJob {
   sectionId: string;
 }
 
-/**
- * Summary of job statuses for async operations
- */
-export interface JobStatusSummary {
-  total: number;
-  pending: number;
-  processing: number;
-  completed: number;
-  failed: number;
-  jobs: Array<{
-    jobId: string;
-    sectionId: string;
-    status: "pending" | "processing" | "completed" | "failed";
-    error?: string;
-  }>;
-}

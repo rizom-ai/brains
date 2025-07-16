@@ -2,7 +2,6 @@
 routeId: landing
 sectionId: cta
 ---
-
 # CTA Section
 
 ## Headline

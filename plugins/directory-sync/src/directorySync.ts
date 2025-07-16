@@ -1,6 +1,7 @@
 import type { BaseEntity } from "@brains/types";
 import type { Logger } from "@brains/utils";
 import type { EntityService } from "@brains/entity-service";
+import type { BatchOperation } from "@brains/job-queue";
 import {
   FileSystemError,
   EntitySerializationError,
@@ -452,6 +453,57 @@ export class DirectorySync {
       lastSync: this.lastSync,
       files,
       stats,
+    };
+  }
+
+  /**
+   * Prepare batch operations for sync
+   * Returns the operations needed without executing them
+   */
+  prepareBatchOperations(): {
+    operations: BatchOperation[];
+    totalFiles: number;
+    exportOperationsCount: number;
+    importOperationsCount: number;
+  } {
+    // Get entity types and files for batching
+    const entityTypes = this.entityTypes ?? this.entityService.getEntityTypes();
+    const filesToImport = this.getAllMarkdownFiles();
+
+    // Create export operations - one per entity type
+    const exportOperations: BatchOperation[] = entityTypes.map((entityType): BatchOperation => ({
+      type: "directory-export",
+      entityType,
+      options: {
+        entityTypes: [entityType],
+        batchSize: 100,
+      },
+    }));
+
+    // Create import operations - batch files into groups of 50
+    const importBatchSize = 50;
+    const importBatches: string[][] = [];
+    for (let i = 0; i < filesToImport.length; i += importBatchSize) {
+      importBatches.push(filesToImport.slice(i, i + importBatchSize));
+    }
+
+    const importOperations: BatchOperation[] = importBatches.map((batchPaths, index): BatchOperation => ({
+      type: "directory-import",
+      options: {
+        batchIndex: index,
+        paths: batchPaths,
+        batchSize: batchPaths.length,
+      },
+    }));
+
+    // Combine all operations
+    const operations = [...exportOperations, ...importOperations];
+
+    return {
+      operations,
+      totalFiles: filesToImport.length,
+      exportOperationsCount: exportOperations.length,
+      importOperationsCount: importOperations.length,
     };
   }
 

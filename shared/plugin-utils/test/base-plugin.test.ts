@@ -5,7 +5,8 @@ import type {
   PluginTool,
   PluginResource,
 } from "../src/interfaces";
-import type { Command, MessageContext } from "@brains/message-interface";
+import type { Command } from "@brains/message-interface";
+import type { MessageContext } from "../src/interfaces";
 import { createSilentLogger } from "@brains/utils";
 import { z } from "zod";
 

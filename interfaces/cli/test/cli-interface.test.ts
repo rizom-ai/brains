@@ -8,7 +8,8 @@ import {
   afterAll,
 } from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
-import type { PluginContext, MessageContext } from "@brains/plugin-utils";
+import type { PluginContext } from "@brains/plugin-utils";
+import type { MessageContext } from "@brains/message-interface";
 import { PluginTestHarness } from "@brains/test-utils";
 import type { CLIConfig } from "../src/types";
 
