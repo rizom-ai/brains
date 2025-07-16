@@ -33,7 +33,7 @@ class MockEmbeddingHandler {
     // No-op for tests
   }
 
-  validateAndParse(data: unknown): unknown | null {
+  validateAndParse(data: unknown): unknown {
     // For test purposes, just return the data as-is
     // In real implementation, this would validate and return EntityWithoutEmbedding | null
     return data;

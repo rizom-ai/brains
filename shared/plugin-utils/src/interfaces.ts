@@ -266,7 +266,6 @@ export interface IInterfacePlugin extends Plugin {
   stop(): Promise<void>;
 }
 
-
 /**
  * Content generation configuration - unified config object
  */

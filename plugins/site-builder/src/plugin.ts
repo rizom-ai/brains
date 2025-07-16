@@ -274,8 +274,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Generate content using the unified generate method
           const metadata: JobContext = {
-            interfaceId: context?.interfaceId || "mcp",
-            userId: context?.userId || "mcp-user",
+            interfaceId: context?.interfaceId ?? "mcp",
+            userId: context?.userId ?? "mcp-user",
             channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
@@ -284,7 +284,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Use the regular generate method and return job information
           const result = await this.contentManager.generate(
-            { ...options, force: options.force ?? false },
+            { ...options, force: options.force },
             routes,
             templateResolver,
             "site-content-preview",
@@ -358,8 +358,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           };
 
           const metadata: JobContext = {
-            interfaceId: context?.interfaceId || "mcp",
-            userId: context?.userId || "mcp-user",
+            interfaceId: context?.interfaceId ?? "mcp",
+            userId: context?.userId ?? "mcp-user",
             channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
@@ -470,8 +470,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Create metadata from context
           const metadata: JobContext = {
-            interfaceId: context?.interfaceId || "mcp",
-            userId: context?.userId || "system",
+            interfaceId: context?.interfaceId ?? "mcp",
+            userId: context?.userId ?? "system",
             channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,
@@ -523,8 +523,8 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 
           // Create metadata from context
           const metadata: JobContext = {
-            interfaceId: context?.interfaceId || "mcp",
-            userId: context?.userId || "system",
+            interfaceId: context?.interfaceId ?? "mcp",
+            userId: context?.userId ?? "system",
             channelId: context?.channelId,
             progressToken: context?.progressToken,
             pluginId: this.id,

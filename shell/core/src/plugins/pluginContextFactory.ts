@@ -16,7 +16,11 @@ import type { EntityRegistry } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
 import type { JobOptions, JobContext, JobQueue } from "@brains/db";
 import { BatchJobManager } from "@brains/job-queue";
-import { type BatchJobStatus, type JobStatusType, type BatchOperation } from "@brains/job-queue";
+import {
+  type BatchJobStatus,
+  type JobStatusType,
+  type BatchOperation,
+} from "@brains/job-queue";
 import {
   EntityRegistrationError,
   ContentGenerationError,

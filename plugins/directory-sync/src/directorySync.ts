@@ -471,14 +471,16 @@ export class DirectorySync {
     const filesToImport = this.getAllMarkdownFiles();
 
     // Create export operations - one per entity type
-    const exportOperations: BatchOperation[] = entityTypes.map((entityType): BatchOperation => ({
-      type: "directory-export",
-      entityType,
-      options: {
-        entityTypes: [entityType],
-        batchSize: 100,
-      },
-    }));
+    const exportOperations: BatchOperation[] = entityTypes.map(
+      (entityType): BatchOperation => ({
+        type: "directory-export",
+        entityType,
+        options: {
+          entityTypes: [entityType],
+          batchSize: 100,
+        },
+      }),
+    );
 
     // Create import operations - batch files into groups of 50
     const importBatchSize = 50;
@@ -487,14 +489,16 @@ export class DirectorySync {
       importBatches.push(filesToImport.slice(i, i + importBatchSize));
     }
 
-    const importOperations: BatchOperation[] = importBatches.map((batchPaths, index): BatchOperation => ({
-      type: "directory-import",
-      options: {
-        batchIndex: index,
-        paths: batchPaths,
-        batchSize: batchPaths.length,
-      },
-    }));
+    const importOperations: BatchOperation[] = importBatches.map(
+      (batchPaths, index): BatchOperation => ({
+        type: "directory-import",
+        options: {
+          batchIndex: index,
+          paths: batchPaths,
+          batchSize: batchPaths.length,
+        },
+      }),
+    );
 
     // Combine all operations
     const operations = [...exportOperations, ...importOperations];

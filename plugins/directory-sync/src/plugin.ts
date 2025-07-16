@@ -137,10 +137,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           message += `👁️ Watching: ${watching ? "Yes" : "No"}\n`;
           message += `📝 Entity count: ${stats.totalFiles} total`;
 
-          if (
-            stats.byEntityType &&
-            Object.keys(stats.byEntityType).length > 0
-          ) {
+          if (Object.keys(stats.byEntityType).length > 0) {
             message += " (";
             const types = Object.entries(stats.byEntityType)
               .map(([type, count]) => `${type}: ${count}`)
@@ -246,21 +243,24 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           }
 
           const source =
-            context?.interfaceId && context?.channelId
+            context?.interfaceId && context.channelId
               ? `${context.interfaceId}:${context.channelId}`
               : "plugin:directory-sync";
 
-          const batchId = await this.pluginContext.enqueueBatch(batchData.operations, {
-            source,
-            metadata: {
-              interfaceId: context?.interfaceId || "",
-              userId: context?.userId || "",
-              channelId: context?.channelId || "",
-              progressToken: context?.progressToken || "",
-              operationType: "directory_sync",
-              pluginId: this.id,
+          const batchId = await this.pluginContext.enqueueBatch(
+            batchData.operations,
+            {
+              source,
+              metadata: {
+                interfaceId: context?.interfaceId ?? "",
+                userId: context?.userId ?? "",
+                channelId: context?.channelId ?? "",
+                progressToken: context?.progressToken ?? "",
+                operationType: "directory_sync",
+                pluginId: this.id,
+              },
             },
-          });
+          );
 
           return {
             status: "queued",
@@ -334,8 +334,8 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           const batchId = await this.pluginContext.enqueueBatch(operations, {
             source: "plugin:directory-sync",
             metadata: {
-              interfaceId: context?.interfaceId || "plugin",
-              userId: context?.userId || "system",
+              interfaceId: context?.interfaceId ?? "plugin",
+              userId: context?.userId ?? "system",
               channelId: context?.channelId,
               progressToken: context?.progressToken,
               operationType: "directory_export",
@@ -416,8 +416,8 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           const batchId = await this.pluginContext.enqueueBatch(operations, {
             source: "plugin:directory-sync",
             metadata: {
-              interfaceId: context?.interfaceId || "plugin",
-              userId: context?.userId || "system",
+              interfaceId: context?.interfaceId ?? "plugin",
+              userId: context?.userId ?? "system",
               channelId: context?.channelId,
               progressToken: context?.progressToken,
               operationType: "directory_import",

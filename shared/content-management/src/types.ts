@@ -23,7 +23,6 @@ export interface SiteContentEntity extends BaseEntity {
   sectionId: string;
 }
 
-
 /**
  * Interface for tracking async content generation jobs
  * These operations require AI generation with route/section context

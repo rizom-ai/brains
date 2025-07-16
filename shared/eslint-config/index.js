@@ -42,6 +42,12 @@ module.exports = {
     "@typescript-eslint/consistent-type-imports": "warn",
     "@typescript-eslint/no-unnecessary-condition": "warn",
     "no-return-await": "off",
-    "@typescript-eslint/return-await": "error"
+    "@typescript-eslint/return-await": "error",
+    
+    // Type Consistency Rules for Personal Brain Architecture
+    "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
+    "@typescript-eslint/consistent-type-exports": "error",
+    "@typescript-eslint/no-duplicate-type-constituents": "error",
+    "@typescript-eslint/no-redundant-type-constituents": "error"
   }
 };

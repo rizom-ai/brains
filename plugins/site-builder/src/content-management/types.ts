@@ -51,7 +51,6 @@ export function isProductionContent(
   return content.entityType === "site-content-production";
 }
 
-
 /**
  * Interface for tracking async content generation jobs (generate/regenerate)
  * These operations require AI generation with route/section context
@@ -82,4 +81,3 @@ export interface EntityOperationJob {
   routeId: string;
   sectionId: string;
 }
-
