@@ -9,10 +9,7 @@ import type { MessageSender } from "@brains/messaging-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { EntityAdapter } from "@brains/types";
 import type { Command, MessageContext } from "@brains/message-interface";
-import type {
-  RouteDefinition,
-  ViewTemplate,
-} from "@brains/view-registry";
+import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { EntityService } from "@brains/entity-service";
 import type {
   JobStatusType,
@@ -220,7 +217,6 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
 
   // Job handler registration (for plugins that process jobs)
   registerJobHandler: (type: string, handler: JobHandler) => void;
-
 
   // Interface plugin capabilities
   registerDaemon: (name: string, daemon: Daemon) => void;
