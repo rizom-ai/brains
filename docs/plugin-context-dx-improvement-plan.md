@@ -197,7 +197,88 @@ namespace PluginTypes {
 
 ## Implementation Strategy
 
-### Phase 1: Remove Unused Methods (Breaking Changes)
+### Priority Phase: Move Complex Logic Back to Services
+
+**Goal**: Move business logic from pluginContextFactory back to services before other DX improvements.
+
+**Current Problem**: The pluginContextFactory contains ~500 lines with complex business logic that should live in services:
+
+- **Job queue operations** - polling logic, timeout handling, shell job type checking, batch management
+- **Template namespacing** - `ensureNamespaced` helper and namespacing logic in generateContent/formatContent
+- **Route processing** - complex route transformation with section mapping and plugin prefixing
+- **Message response formatting** - result transformation and response formatting for different result types
+- **Job handler management** - plugin tracking and scoping logic with internal tracking maps
+
+**Solution**: Add pluginId parameters to existing service methods instead of creating new methods.
+
+**Service Enhancements**:
+
+```typescript
+// JobQueueService enhancements
+interface IJobQueueService {
+  waitForJob(jobId: string, timeoutMs?: number, pluginId?: string): Promise<unknown>;
+  enqueue(type: string, data: unknown, options: JobOptions, pluginId?: string): Promise<string>; 
+  enqueueBatch(operations: BatchOperation[], options: JobOptions, pluginId?: string): Promise<string>;
+  getBatchStatus(batchId: string, pluginId?: string): Promise<BatchJobStatus | null>;
+  registerHandler(type: string, handler: JobHandler, pluginId?: string): void;
+}
+
+// ContentGenerator enhancements
+interface IContentGenerator {
+  generateContent<T>(config: ContentGenerationConfig, pluginId?: string): Promise<T>;
+  formatContent<T>(templateName: string, data: T, options?: { truncate?: number }, pluginId?: string): string;
+}
+
+// ViewRegistry enhancements
+interface IViewRegistry {
+  registerRoutes(routes: RouteDefinition[], options?: { environment?: string; pluginId?: string }): void;
+}
+
+// MessageBus enhancements
+interface IMessageBus {
+  send<T, R>(type: string, payload: T, pluginId?: string): Promise<{ success: boolean; data?: R; error?: string }>;
+}
+```
+
+**Expected Result**: Factory reduces from 500+ lines to ~200 lines of simple delegation:
+
+```typescript
+const context: PluginContext = {
+  pluginId,
+  logger: this.logger.child(`Plugin:${pluginId}`),
+  
+  // Simple delegations to enhanced services
+  sendMessage: (type, payload) => messageBus.send(type, payload, pluginId),
+  generateContent: (config) => contentGenerator.generateContent(config, pluginId),
+  formatContent: (templateName, data, options) => contentGenerator.formatContent(templateName, data, options, pluginId),
+  registerRoutes: (routes, options) => viewRegistry.registerRoutes(routes, { ...options, pluginId }),
+  
+  // Job operations become simple delegations
+  waitForJob: (jobId, timeoutMs) => jobQueueService.waitForJob(jobId, timeoutMs, pluginId),
+  enqueueJob: (type, data, options) => jobQueueService.enqueue(type, data, options, pluginId),
+  enqueueBatch: (operations, options) => jobQueueService.enqueueBatch(operations, options, pluginId),
+  getBatchStatus: (batchId) => jobQueueService.getBatchStatus(batchId, pluginId),
+  registerJobHandler: (type, handler) => jobQueueService.registerHandler(type, handler, pluginId),
+  
+  // Direct service access (no changes needed)
+  entityService,
+  // ... other simple delegations
+};
+```
+
+**Implementation Order**: JobQueueService → ContentGenerator → ViewRegistry → MessageBus → Factory cleanup
+
+**Benefits**:
+- Cleaner service APIs with optional pluginId parameters
+- Backward compatibility (existing service calls continue to work)
+- Better testing (services can be unit tested independently)
+- Consistent error handling within services
+- Reduced factory complexity
+- Service ownership of plugin integration concerns
+
+---
+
+### Phase 1: Remove Unused Methods (Breaking Changes) ✅ COMPLETED
 
 1. **Remove never-used methods** like `parseContent`, `formatContent`, etc.
 2. **Provide migration guide** for the few cases where they might be needed
