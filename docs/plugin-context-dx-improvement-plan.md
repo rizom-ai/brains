@@ -9,6 +9,7 @@ Based on analysis of actual plugin usage in the codebase, **~40% of methods are 
 ## Method Usage Analysis
 
 ### ✅ **Essential Methods (used by multiple plugins):**
+
 - **Core lifecycle**: `pluginId`, `logger`, `sendMessage`, `subscribe`
 - **Entity management**: `registerEntityType`, `entityService` (heavily used by directory-sync, site-builder)
 - **Template/Route registration**: `registerTemplate`, `registerTemplates`, `registerRoutes`
@@ -16,11 +17,13 @@ Based on analysis of actual plugin usage in the codebase, **~40% of methods are 
 - **Content generation**: `generateContent`
 
 ### 🟡 **Specialized Methods (used by specific plugin types):**
+
 - **Site Builder only**: `listRoutes`, `listViewTemplates`, `getViewTemplate`
 - **Interface plugins only**: `getAllCommands`, `getActiveJobs`, `getActiveBatches`, `getBatchStatus`
 - **Directory sync only**: Heavy `entityService` usage (getEntity, createEntity, updateEntity, etc.)
 
 ### 🔴 **Rarely/Never Used Methods (~40% of interface):**
+
 - **parseContent**, **formatContent** - not found in actual plugin usage
 - **generateWithRoute** - not found in actual plugin usage
 - **findRoute**, **findViewTemplate** - not found in actual plugin usage
@@ -58,20 +61,20 @@ interface EssentialPluginContext {
   logger: Logger;
   sendMessage: MessageSender;
   subscribe: <T, R>(type: string, handler: MessageHandler<T, R>) => (() => void);
-  
+
   // Entity management (critical for most plugins)
   registerEntityType: <T extends BaseEntity>(entityType: string, schema: z.ZodType<T>, adapter: EntityAdapter<T>) => void;
   entityService: EntityService;
-  
+
   // Template/Content
   registerTemplate: <T>(name: string, template: Template<T>) => void;
   registerTemplates: (templates: Record<string, Template>) => void;
   generateContent: GenerateContentFunction;
-  
+
   // Job processing
   enqueueJob: (type: string, data: unknown, options: JobOptions) => Promise<string>;
   registerJobHandler: (type: string, handler: JobHandler) => void;
-  
+
   // Routes (for content plugins)
   registerRoutes: (routes: RouteDefinition[], options?: { environment?: string }) => void;
 }
@@ -82,13 +85,13 @@ interface AdvancedPluginContext {
   listRoutes: () => RouteDefinition[];
   listViewTemplates: () => ViewTemplate[];
   getViewTemplate: (name: string) => ViewTemplate | undefined;
-  
+
   // System monitoring (interface plugins)
   getAllCommands: () => Promise<Command[]>;
   getActiveJobs: (types?: string[]) => Promise<JobQueue[]>;
   getActiveBatches: () => Promise<Array<{...}>>;
   getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
-  
+
   // Advanced job operations
   waitForJob: (jobId: string, timeoutMs?: number) => Promise<unknown>;
   getJobStatus: (jobId: string) => Promise<{...} | null>;
@@ -105,6 +108,7 @@ interface PluginContext extends EssentialPluginContext {
 ### Solution 2: Remove Unused Methods
 
 **Remove these unused methods entirely:**
+
 - `parseContent` - no actual usage found
 - `formatContent` - no actual usage found
 - `generateWithRoute` - no actual usage found
@@ -116,6 +120,7 @@ interface PluginContext extends EssentialPluginContext {
 - `registerDaemon` - no actual usage found
 
 **Keep but move to advanced:**
+
 - `waitForJob`, `getJobStatus`, `enqueueBatch` - potentially useful but unused
 - `getAllCommands`, `getActiveJobs`, `getActiveBatches` - used by interface plugins
 - `listRoutes`, `listViewTemplates`, `getViewTemplate` - used by site builder
@@ -124,15 +129,15 @@ interface PluginContext extends EssentialPluginContext {
 
 Add comprehensive JSDoc comments based on actual usage patterns:
 
-```typescript
+````typescript
 /**
  * Direct access to the entity service for CRUD operations
- * 
+ *
  * @example Directory Sync Plugin
  * ```typescript
  * // Check if entity exists
  * const existing = await context.entityService.getEntity(entityType, id);
- * 
+ *
  * // Create new entity
  * if (!existing) {
  *   await context.entityService.createEntity({
@@ -143,7 +148,7 @@ Add comprehensive JSDoc comments based on actual usage patterns:
  *   });
  * }
  * ```
- * 
+ *
  * @example Site Builder Plugin
  * ```typescript
  * // Get entity for site content
@@ -154,7 +159,7 @@ Add comprehensive JSDoc comments based on actual usage patterns:
  * ```
  */
 entityService: EntityService;
-```
+````
 
 ### Solution 4: Create Plugin Type Guidance
 
@@ -162,43 +167,57 @@ entityService: EntityService;
 // Plugin type guidance utilities
 namespace PluginTypes {
   // Essential methods every plugin needs
-  export type Essential = Pick<PluginContext, 
-    'pluginId' | 'logger' | 'entityService' | 'registerEntityType' | 
-    'registerTemplate' | 'generateContent' | 'enqueueJob'>;
-  
+  export type Essential = Pick<
+    PluginContext,
+    | "pluginId"
+    | "logger"
+    | "entityService"
+    | "registerEntityType"
+    | "registerTemplate"
+    | "generateContent"
+    | "enqueueJob"
+  >;
+
   // Content plugins (like site-builder)
-  export type ContentPlugin = Essential & Pick<PluginContext, 
-    'registerRoutes' | 'listRoutes' | 'getViewTemplate'>;
-  
+  export type ContentPlugin = Essential &
+    Pick<PluginContext, "registerRoutes" | "listRoutes" | "getViewTemplate">;
+
   // Sync plugins (like directory-sync)
-  export type SyncPlugin = Essential & Pick<PluginContext,
-    'registerJobHandler'>;
-  
+  export type SyncPlugin = Essential &
+    Pick<PluginContext, "registerJobHandler">;
+
   // Interface plugins (like CLI, Matrix, MCP)
-  export type InterfacePlugin = Essential & Pick<PluginContext,
-    'getAllCommands' | 'getActiveJobs' | 'getActiveBatches'>;
+  export type InterfacePlugin = Essential &
+    Pick<
+      PluginContext,
+      "getAllCommands" | "getActiveJobs" | "getActiveBatches"
+    >;
 }
 ```
 
 ## Implementation Strategy
 
 ### Phase 1: Remove Unused Methods (Breaking Changes)
+
 1. **Remove never-used methods** like `parseContent`, `formatContent`, etc.
 2. **Provide migration guide** for the few cases where they might be needed
 3. **Update plugin templates** to use new patterns
 
 ### Phase 2: Interface Restructure (Backward Compatible)
+
 1. **Create EssentialPluginContext** interface with core methods
 2. **Group advanced methods** under `context.advanced.*`
 3. **Maintain backward compatibility** - all existing method calls work
 4. **Add migration guide** for new recommended patterns
 
 ### Phase 3: Immediate DX Improvements (No Breaking Changes)
+
 1. **Add comprehensive JSDoc** with real usage examples from existing plugins
 2. **Create plugin type guidance** utilities to help developers understand what they need
 3. **Mark unused methods as deprecated** with clear migration guidance
 
 ### Phase 4: Advanced Features (Optional)
+
 1. **Add TypeScript utilities** for plugin type checking
 2. **Create plugin scaffolding** tools that generate the right interface subset
 3. **Add runtime validation** to catch incorrect usage patterns
@@ -206,18 +225,21 @@ namespace PluginTypes {
 ## Expected Outcomes
 
 ### Developer Experience Improvements
+
 - **Clearer mental model** - developers focus on essential methods first
 - **Better discoverability** - related methods grouped together
 - **Reduced cognitive load** - 40% fewer methods to understand initially
 - **Improved documentation** - real examples from actual plugin usage
 
 ### Technical Benefits
+
 - **Smaller bundle size** - fewer unused methods
 - **Better type safety** - focused interfaces prevent misuse
 - **Easier testing** - essential methods are easier to mock
 - **Future extensibility** - clear separation of concerns
 
 ### Migration Impact
+
 - **Phase 1: Breaking changes** - remove unused methods (minimal impact since unused)
 - **Phase 2: Backward compatible** - existing code continues to work
 - **Phase 3: Zero breaking changes** - pure documentation and guidance improvements
@@ -234,6 +256,7 @@ namespace PluginTypes {
 ## Critical Finding: EntityService Access
 
 The analysis reveals that **direct `entityService` access is absolutely essential** and heavily used by:
+
 - Directory Sync Plugin (getEntity, createEntity, updateEntity, listEntities, getEntityTypes, deserializeEntity)
 - Site Builder Plugin (getEntity for content retrieval)
 - MCP Interface Plugin (search, getEntity, getEntityTypes)
@@ -243,6 +266,7 @@ This contradicts the original security boundary plan. The `entityService` should
 ## Recommendation
 
 **Focus on DX improvements over security restrictions**. The interface should:
+
 1. Make essential methods (including `entityService`) more discoverable
 2. Group advanced methods to reduce cognitive load
 3. Remove genuinely unused methods

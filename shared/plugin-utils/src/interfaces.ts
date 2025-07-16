@@ -11,7 +11,6 @@ import type { EntityAdapter } from "@brains/types";
 import type { Command, MessageContext } from "@brains/message-interface";
 import type {
   RouteDefinition,
-  SectionDefinition,
   ViewTemplate,
 } from "@brains/view-registry";
 import type { EntityService } from "@brains/entity-service";
@@ -156,18 +155,11 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
     adapter: EntityAdapter<T>,
   ) => void;
   generateContent: GenerateContentFunction;
-  parseContent: <T = unknown>(templateName: string, content: string) => T;
   formatContent: <T = unknown>(
     templateName: string,
     data: T,
     options?: { truncate?: number },
   ) => string;
-  generateWithRoute: (
-    route: RouteDefinition,
-    section: SectionDefinition,
-    progressInfo: { current: number; total: number; message: string },
-    additionalContext?: Record<string, unknown>,
-  ) => Promise<string>;
   // Unified template registration - registers template for both content generation and view rendering
   registerTemplate: <T>(name: string, template: Template<T>) => void;
   // Convenience method for registering multiple templates at once
@@ -182,24 +174,10 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
 
   // Route finding abstraction
   getRoute: (path: string) => RouteDefinition | undefined;
-  findRoute: (filter: {
-    id?: string;
-    pluginId?: string;
-    pathPattern?: string;
-  }) => RouteDefinition | undefined;
   listRoutes: () => RouteDefinition[]; // for tool use only
-  validateRoute: (route: RouteDefinition) => boolean;
 
   // Template finding abstraction
-  findViewTemplate: (filter: {
-    name?: string;
-    pluginId?: string;
-    namePattern?: string;
-  }) => ViewTemplate | undefined;
   listViewTemplates: () => ViewTemplate[]; // for tool use only
-  validateTemplate: (templateName: string, content: unknown) => boolean;
-  // Plugin metadata access (scoped to current plugin by default)
-  getPluginPackageName: (pluginId?: string) => string | undefined;
   // Entity service access - direct access to public service interface
   entityService: EntityService;
 
@@ -243,11 +221,15 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
   // Job handler registration (for plugins that process jobs)
   registerJobHandler: (type: string, handler: JobHandler) => void;
 
+
   // Interface plugin capabilities
   registerDaemon: (name: string, daemon: Daemon) => void;
 
   // Command discovery - get commands from all registered plugins
   getAllCommands: () => Promise<Command[]>;
+
+  // Plugin metadata access (scoped to current plugin by default)
+  getPluginPackageName: (targetPluginId?: string) => string | undefined;
 }
 
 /**

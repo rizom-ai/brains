@@ -9,7 +9,7 @@ import type {
 } from "@brains/plugin-utils";
 import type { Command } from "@brains/message-interface";
 import { DaemonRegistry } from "@brains/daemon-registry";
-import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import type { RouteDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/types";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
@@ -178,17 +178,6 @@ export class PluginContextFactory {
           );
         }
       },
-      parseContent: <T = unknown>(templateName: string, content: string): T => {
-        const namespacedTemplateName = this.ensureNamespaced(
-          templateName,
-          pluginId,
-        );
-
-        return contentGenerator.parseContent<T>(
-          namespacedTemplateName,
-          content,
-        );
-      },
       formatContent: <T = unknown>(
         templateName: string,
         data: T,
@@ -203,19 +192,6 @@ export class PluginContextFactory {
           namespacedTemplateName,
           data,
           options,
-        );
-      },
-      generateWithRoute: async (
-        route: RouteDefinition,
-        section: SectionDefinition,
-        progressInfo: { current: number; total: number; message: string },
-        additionalContext?: Record<string, unknown>,
-      ): Promise<string> => {
-        return contentGenerator.generateWithRoute(
-          route,
-          section,
-          progressInfo,
-          additionalContext,
         );
       },
       // Unified template registration - registers template for both content generation and view rendering
@@ -272,33 +248,13 @@ export class PluginContextFactory {
       getRoute: (path: string) => {
         return viewRegistry.getRoute(path);
       },
-      findRoute: (filter: {
-        id?: string;
-        pluginId?: string;
-        pathPattern?: string;
-      }) => {
-        return viewRegistry.findRoute(filter);
-      },
       listRoutes: () => {
         return viewRegistry.listRoutes();
       },
-      validateRoute: (route: RouteDefinition) => {
-        return viewRegistry.validateRoute(route);
-      },
 
       // Template finding abstraction
-      findViewTemplate: (filter: {
-        name?: string;
-        pluginId?: string;
-        namePattern?: string;
-      }) => {
-        return viewRegistry.findViewTemplate(filter);
-      },
       listViewTemplates: () => {
         return viewRegistry.listViewTemplates();
-      },
-      validateTemplate: (templateName: string, content: unknown) => {
-        return viewRegistry.validateViewTemplate(templateName, content);
       },
       // Plugin metadata access (scoped to current plugin by default)
       getPluginPackageName: (targetPluginId?: string) => {
