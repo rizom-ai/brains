@@ -392,7 +392,7 @@ export class ContentManager {
       sourceEntityType,
       sourceEntityId,
     );
-    
+
     if (!source) {
       throw new Error(
         `Source entity not found: ${sourceEntityType}:${sourceEntityId}`,
@@ -400,7 +400,10 @@ export class ContentManager {
     }
 
     // Convert the ID to the target entity type
-    const targetId = convertSiteContentId(sourceEntityId, targetEntityType as SiteContentEntityType);
+    const targetId = convertSiteContentId(
+      sourceEntityId,
+      targetEntityType as SiteContentEntityType,
+    );
     if (!targetId) {
       throw new Error(
         `Cannot convert entity ID from ${sourceEntityType} to ${targetEntityType}: ${sourceEntityId}`,
@@ -434,7 +437,7 @@ export class ContentManager {
 
     // Create or update the entity and return job info
     let result: { entityId: string; jobId: string };
-    
+
     if (existingTarget) {
       // Update existing entity
       result = await this.entityService.updateEntity({

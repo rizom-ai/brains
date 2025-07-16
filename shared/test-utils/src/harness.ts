@@ -495,6 +495,27 @@ export class PluginTestHarness {
       hasEntityType: (type: string): boolean => {
         return this.entities.has(type);
       },
+      serializeEntity: (entity: BaseEntity): string => {
+        // Mock implementation - simple markdown serialization
+        const adapter = this.mockEntityRegistry.registeredTypes.get(entity.entityType);
+        if (adapter) {
+          return adapter.adapter.toMarkdown(entity);
+        }
+        // Fallback simple serialization
+        return `# ${entity.id}\n\n${entity.content}`;
+      },
+      deserializeEntity: (markdown: string, entityType: string): Partial<BaseEntity> => {
+        // Mock implementation - simple markdown deserialization
+        const adapter = this.mockEntityRegistry.registeredTypes.get(entityType);
+        if (adapter) {
+          return adapter.adapter.fromMarkdown(markdown);
+        }
+        // Fallback simple deserialization
+        const lines = markdown.split("\n");
+        return {
+          content: lines.slice(2).join("\n"),
+        };
+      },
       getAsyncJobStatus: async (): Promise<{
         status: "pending" | "processing" | "completed" | "failed";
         error?: string;

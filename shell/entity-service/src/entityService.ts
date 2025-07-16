@@ -667,7 +667,6 @@ export class EntityService implements IEntityService {
     return this.search(query, searchOptions);
   }
 
-
   /**
    * Check async job status
    */

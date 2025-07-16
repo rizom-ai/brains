@@ -55,6 +55,10 @@ export interface EntityService {
   getEntityTypes(): string[];
   hasEntityType(type: string): boolean;
 
+  // Serialization operations
+  serializeEntity(entity: BaseEntity): string;
+  deserializeEntity(markdown: string, entityType: string): Partial<BaseEntity>;
+
   // Check async job status
   getAsyncJobStatus(jobId: string): Promise<{
     status: "pending" | "processing" | "completed" | "failed";

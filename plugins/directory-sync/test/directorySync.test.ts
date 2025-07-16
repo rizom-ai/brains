@@ -1,19 +1,17 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySync } from "../src/directorySync";
-import { createSilentLogger } from "@brains/utils";
-import type { BaseEntity } from "@brains/types";
-import type { IEntityService as EntityService } from "@brains/entity-service";
-import type { EntityAdapter } from "@brains/types";
+import { PluginTestHarness } from "@brains/test-utils";
+import type { BaseEntity, EntityAdapter } from "@brains/types";
 import { existsSync, rmSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import { z } from "zod";
 
 // Mock entity adapter
 class MockEntityAdapter implements EntityAdapter<BaseEntity> {
   fromMarkdown(markdown: string): Partial<BaseEntity> {
     // Simple mock implementation
     const lines = markdown.split("\n");
-    const firstLine = lines[0]?.replace("# ", "") || "";
     return {
       content: lines.slice(2).join("\n"),
     };
@@ -30,145 +28,52 @@ class MockEntityAdapter implements EntityAdapter<BaseEntity> {
   }
 }
 
-// Mock entity service
-class MockEntityService implements Partial<EntityService> {
-  private entities: Map<string, BaseEntity[]> = new Map();
-  private adapters: Map<string, EntityAdapter<BaseEntity>> = new Map();
-
-  constructor() {
-    this.adapters.set("base", new MockEntityAdapter());
-    this.adapters.set("note", new MockEntityAdapter());
-  }
-
-  async listEntities(entityType: string, options?: any): Promise<BaseEntity[]> {
-    return this.entities.get(entityType) || [];
-  }
-
-  getEntityTypes(): string[] {
-    return ["base", "note"];
-  }
-
-  serializeEntity(entity: BaseEntity): string {
-    const adapter = this.adapters.get(entity.entityType);
-    if (!adapter) {
-      throw new Error(`No adapter for entity type: ${entity.entityType}`);
-    }
-    return adapter.toMarkdown(entity);
-  }
-
-  deserializeEntity(markdown: string, entityType: string): Partial<BaseEntity> {
-    const adapter = this.adapters.get(entityType);
-    if (!adapter) {
-      throw new Error(`No adapter for entity type: ${entityType}`);
-    }
-    return adapter.fromMarkdown(markdown);
-  }
-
-  async createEntity<T extends BaseEntity>(
-    entity: Omit<T, "id" | "created" | "updated"> & {
-      id?: string;
-      created?: string;
-      updated?: string;
-    },
-  ): Promise<{ entityId: string; jobId: string }> {
-    const entities = this.entities.get(entity.entityType) || [];
-    const newEntity = {
-      ...entity,
-      id: entity.id || `generated-${Date.now()}`,
-      created: entity.created || new Date().toISOString(),
-      updated: entity.updated || new Date().toISOString(),
-    } as T;
-    entities.push(newEntity);
-    this.entities.set(entity.entityType, entities);
-    return {
-      entityId: newEntity.id,
-      jobId: `mock-job-${Date.now()}`,
-    };
-  }
-
-  async updateEntity<T extends BaseEntity>(
-    entity: T,
-  ): Promise<{ entityId: string; jobId: string }> {
-    const entities = this.entities.get(entity.entityType) || [];
-    const index = entities.findIndex((e) => e.id === entity.id);
-    if (index >= 0) {
-      entities[index] = entity;
-      this.entities.set(entity.entityType, entities);
-    }
-    return {
-      entityId: entity.id,
-      jobId: `mock-job-${Date.now()}`,
-    };
-  }
-
-  async getAsyncJobStatus(): Promise<{
-    status: "pending" | "processing" | "completed" | "failed";
-    error?: string;
-  } | null> {
-    return {
-      status: "completed",
-    };
-  }
-
-  async getEntity<T extends BaseEntity>(
-    entityType: string,
-    id: string,
-  ): Promise<T | null> {
-    const entities = this.entities.get(entityType) || [];
-    return (entities.find((e) => e.id === id) as T) || null;
-  }
-
-  async deleteEntity(id: string): Promise<boolean> {
-    for (const [entityType, entities] of this.entities) {
-      const index = entities.findIndex((e) => e.id === id);
-      if (index >= 0) {
-        entities.splice(index, 1);
-        this.entities.set(entityType, entities);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  async search(): Promise<any[]> {
-    return [];
-  }
-
-  // Helper methods for testing
-  addEntity(entity: BaseEntity): void {
-    const entities = this.entities.get(entity.entityType) || [];
-    entities.push(entity);
-    this.entities.set(entity.entityType, entities);
-  }
-
-  getEntities(entityType: string): BaseEntity[] {
-    return this.entities.get(entityType) || [];
-  }
-}
+// Base entity schema for testing
+const baseEntitySchema = z.object({
+  id: z.string(),
+  entityType: z.string(),
+  content: z.string(),
+  created: z.union([z.string(), z.date()]).transform(val => 
+    typeof val === 'string' ? val : val.toISOString()
+  ),
+  updated: z.union([z.string(), z.date()]).transform(val => 
+    typeof val === 'string' ? val : val.toISOString()
+  ),
+});
 
 describe("DirectorySync", (): void => {
   let directorySync: DirectorySync;
-  let entityService: MockEntityService;
+  let harness: PluginTestHarness;
   let syncPath: string;
-  const logger = createSilentLogger();
 
-  beforeEach((): void => {
+  beforeEach(async (): Promise<void> => {
     // Create a temporary directory for testing
     syncPath = join(tmpdir(), `brain-test-${Date.now()}`);
 
-    entityService = new MockEntityService();
+    // Set up test harness
+    harness = new PluginTestHarness();
+    await harness.setup();
+
+    // Register entity types with adapters
+    const pluginContext = harness.getPluginContext();
+    pluginContext.registerEntityType("base", baseEntitySchema, new MockEntityAdapter());
+    pluginContext.registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
+
+    // Create DirectorySync with harness entity service
     directorySync = new DirectorySync({
       syncPath,
-      entityService: entityService as any,
-      logger,
+      entityService: pluginContext.entityService,
+      logger: pluginContext.logger,
     });
   });
 
-  afterEach((): void => {
+  afterEach(async (): Promise<void> => {
     // Clean up test directory
     if (existsSync(syncPath)) {
       rmSync(syncPath, { recursive: true, force: true });
     }
+    // Clean up harness
+    await harness.cleanup();
   });
 
   test("initialize creates sync directory", async (): Promise<void> => {
@@ -183,13 +88,13 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // Add test entities
-    await entityService.createEntity({
+    await harness.createTestEntity("base", {
       id: "test-1",
       content: "Test Entity 1\nThis is test content 1",
       entityType: "base",
     });
 
-    await entityService.createEntity({
+    await harness.createTestEntity("note", {
       id: "test-note",
       content: "Test Note\nThis is a test note",
       entityType: "note",
@@ -215,7 +120,7 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // First export some entities
-    await entityService.createEntity({
+    await harness.createTestEntity("base", {
       id: "import-test",
       content: "Import Test\nContent to import",
       entityType: "base",
@@ -223,12 +128,18 @@ describe("DirectorySync", (): void => {
 
     await directorySync.exportEntities();
 
-    // Clear entities
-    entityService = new MockEntityService();
+    // Clear entities and reinitialize
+    await harness.cleanup();
+    harness = new PluginTestHarness();
+    await harness.setup();
+    const pluginContext = harness.getPluginContext();
+    pluginContext.registerEntityType("base", baseEntitySchema, new MockEntityAdapter());
+    pluginContext.registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
+    
     directorySync = new DirectorySync({
       syncPath,
-      entityService: entityService as any,
-      logger,
+      entityService: pluginContext.entityService,
+      logger: pluginContext.logger,
     });
 
     // Import entities
@@ -238,7 +149,7 @@ describe("DirectorySync", (): void => {
     expect(result.failed).toBe(0);
 
     // Check entity was imported
-    const imported = await entityService.listEntities("base");
+    const imported = await harness.listEntities("base");
     expect(imported).toHaveLength(1);
     expect(imported[0].id).toBe("import-test");
   });
@@ -275,7 +186,7 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // Add an entity
-    await entityService.createEntity({
+    await harness.createTestEntity("base", {
       id: "sync-test",
       content: "Sync Test\nSync content",
       entityType: "base",
@@ -296,7 +207,7 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // Add and export some entities
-    await entityService.createEntity({
+    await harness.createTestEntity("base", {
       id: "status-test",
       content: "Status Test\nStatus content",
       entityType: "base",

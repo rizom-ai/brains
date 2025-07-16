@@ -102,7 +102,7 @@ export class ContentDerivationJobHandler
           data.sourceEntityType,
           data.entityId,
         );
-        
+
         if (!source) {
           throw new Error(
             `Source entity not found: ${data.sourceEntityType}:${data.entityId}`,
@@ -113,10 +113,12 @@ export class ContentDerivationJobHandler
         // For content entities, we need to replace the entity type prefix
         const sourceIdParts = data.entityId.split(":");
         let targetId: string;
-        
-        if (sourceIdParts.length === 3 && 
-            (data.sourceEntityType === "site-content-preview" || 
-             data.sourceEntityType === "site-content-production")) {
+
+        if (
+          sourceIdParts.length === 3 &&
+          (data.sourceEntityType === "site-content-preview" ||
+            data.sourceEntityType === "site-content-production")
+        ) {
           // This is a site content entity with format "type:routeId:sectionId"
           targetId = `${data.targetEntityType}:${sourceIdParts[1]}:${sourceIdParts[2]}`;
         } else {
