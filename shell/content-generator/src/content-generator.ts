@@ -3,6 +3,7 @@ import type { EntityService } from "@brains/entity-service";
 import type { AIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import type { ContentGenerator as IContentGenerator } from "./types";
 
 /**
  * Progress information for content generation operations
@@ -28,7 +29,7 @@ export interface ContentGeneratorDependencies {
  * Provides centralized content generation functionality with template-based approach.
  * Implements Component Interface Standardization pattern.
  */
-export class ContentGenerator {
+export class ContentGenerator implements IContentGenerator {
   // Template registry for local template management
   private templates: Map<string, Template<unknown>> = new Map();
 

@@ -64,7 +64,13 @@ class MockEntityService implements Partial<EntityService> {
     return adapter.fromMarkdown(markdown);
   }
 
-  async createEntitySync<T extends BaseEntity>(entity: any): Promise<T> {
+  async createEntity<T extends BaseEntity>(
+    entity: Omit<T, "id" | "created" | "updated"> & {
+      id?: string;
+      created?: string;
+      updated?: string;
+    },
+  ): Promise<{ entityId: string; jobId: string }> {
     const entities = this.entities.get(entity.entityType) || [];
     const newEntity = {
       ...entity,
@@ -74,37 +80,21 @@ class MockEntityService implements Partial<EntityService> {
     } as T;
     entities.push(newEntity);
     this.entities.set(entity.entityType, entities);
-    return newEntity;
+    return {
+      entityId: newEntity.id,
+      jobId: `mock-job-${Date.now()}`,
+    };
   }
 
-  async updateEntitySync<T extends BaseEntity>(entity: T): Promise<T> {
+  async updateEntity<T extends BaseEntity>(
+    entity: T,
+  ): Promise<{ entityId: string; jobId: string }> {
     const entities = this.entities.get(entity.entityType) || [];
     const index = entities.findIndex((e) => e.id === entity.id);
     if (index >= 0) {
       entities[index] = entity;
       this.entities.set(entity.entityType, entities);
     }
-    return entity;
-  }
-
-  async createEntityAsync<T extends BaseEntity>(
-    entity: Omit<T, "id" | "created" | "updated"> & {
-      id?: string;
-      created?: string;
-      updated?: string;
-    },
-  ): Promise<{ entityId: string; jobId: string }> {
-    const created = await this.createEntitySync(entity);
-    return {
-      entityId: created.id,
-      jobId: `mock-job-${Date.now()}`,
-    };
-  }
-
-  async updateEntityAsync<T extends BaseEntity>(
-    entity: T,
-  ): Promise<{ entityId: string; jobId: string }> {
-    await this.updateEntitySync(entity);
     return {
       entityId: entity.id,
       jobId: `mock-job-${Date.now()}`,
@@ -197,13 +187,13 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // Add test entities
-    await entityService.createEntitySync({
+    await entityService.createEntity({
       id: "test-1",
       content: "Test Entity 1\nThis is test content 1",
       entityType: "base",
     });
 
-    await entityService.createEntitySync({
+    await entityService.createEntity({
       id: "test-note",
       content: "Test Note\nThis is a test note",
       entityType: "note",
@@ -229,7 +219,7 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // First export some entities
-    await entityService.createEntitySync({
+    await entityService.createEntity({
       id: "import-test",
       content: "Import Test\nContent to import",
       entityType: "base",
@@ -289,7 +279,7 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // Add an entity
-    await entityService.createEntitySync({
+    await entityService.createEntity({
       id: "sync-test",
       content: "Sync Test\nSync content",
       entityType: "base",
@@ -310,7 +300,7 @@ describe("DirectorySync", (): void => {
     await directorySync.initialize();
 
     // Add and export some entities
-    await entityService.createEntitySync({
+    await entityService.createEntity({
       id: "status-test",
       content: "Status Test\nStatus content",
       entityType: "base",

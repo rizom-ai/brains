@@ -7,6 +7,7 @@ export type {
   ListOptions,
   SearchOptions,
   EntityRegistry as IEntityRegistry,
+  EntityService as IEntityService,
 } from "./types";
 
 // Export error classes

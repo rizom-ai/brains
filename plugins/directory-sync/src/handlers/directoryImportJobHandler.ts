@@ -166,7 +166,7 @@ export class DirectoryImportJobHandler
                 entityType: rawEntity.entityType,
                 updated: rawEntity.updated.toISOString(),
               };
-              await this.context.entityService.updateEntityAsync(entityUpdate);
+              await this.context.entityService.updateEntity(entityUpdate);
               result.imported++;
             } else {
               result.skipped++;
@@ -181,7 +181,7 @@ export class DirectoryImportJobHandler
               created: rawEntity.created.toISOString(),
               updated: rawEntity.updated.toISOString(),
             };
-            await this.context.entityService.createEntityAsync(entityCreate);
+            await this.context.entityService.createEntity(entityCreate);
             result.imported++;
           }
           return { success: true };

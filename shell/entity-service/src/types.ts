@@ -1,4 +1,4 @@
-import type { BaseEntity, EntityInput } from "@brains/types";
+import type { BaseEntity, EntityInput, SearchResult } from "@brains/types";
 
 /**
  * List entities options
@@ -30,50 +30,42 @@ export interface SearchOptions {
  */
 export interface EntityService {
   // Core entity operations
-  getEntity<T extends BaseEntity>(entityId: string): Promise<T | null>;
-  createEntity<T extends BaseEntity>(entity: EntityInput<T>): Promise<T>;
-  updateEntity<T extends BaseEntity>(entity: T): Promise<T>;
-  deleteEntity(entityId: string): Promise<void>;
-  deriveEntity<T extends BaseEntity>(
+  getEntity<T extends BaseEntity>(
+    entityType: string,
+    id: string,
+  ): Promise<T | null>;
+  createEntity<T extends BaseEntity>(
+    entity: EntityInput<T>,
+    options?: { priority?: number; maxRetries?: number },
+  ): Promise<{ entityId: string; jobId: string }>;
+  updateEntity<T extends BaseEntity>(
+    entity: T,
+    options?: { priority?: number; maxRetries?: number },
+  ): Promise<{ entityId: string; jobId: string }>;
+  deleteEntity(entityType: string, id: string): Promise<boolean>;
+  deriveEntity(
     sourceEntityId: string,
-    targetType: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<T>;
+    sourceEntityType: string,
+    targetEntityType: string,
+    options?: { deleteSource?: boolean },
+  ): Promise<{ entityId: string; jobId: string }>;
 
   // Query operations
   listEntities<T extends BaseEntity>(
     type: string,
     options?: ListOptions,
   ): Promise<T[]>;
-  search<T extends BaseEntity>(
-    query: string,
-    options?: SearchOptions,
-  ): Promise<Array<{ entity: T; score: number }>>;
+  search(query: string, options?: SearchOptions): Promise<SearchResult[]>;
 
   // Entity type information
   getEntityTypes(): string[];
   hasEntityType(type: string): boolean;
-  // Additional shell-specific methods for async operations
-
-  // Async entity creation (returns immediately, embedding generated in background)
-  createEntityAsync<T extends BaseEntity>(
-    entity: EntityInput<T>,
-    options?: { priority?: number; maxRetries?: number },
-  ): Promise<{ entityId: string; jobId: string }>;
-
-  // Async entity update (returns immediately, embedding generated in background)
-  updateEntityAsync<T extends BaseEntity>(
-    entity: T,
-    options?: { priority?: number; maxRetries?: number },
-  ): Promise<{ entityId: string; jobId: string }>;
 
   // Check async job status
   getAsyncJobStatus(jobId: string): Promise<{
     status: "pending" | "processing" | "completed" | "failed";
     error?: string;
   } | null>;
-
-  // The sync methods are inherited from the public interface
 }
 
 /**

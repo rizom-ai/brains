@@ -142,7 +142,7 @@ export class ContentGenerationJobHandler
             sectionId,
           };
 
-          await this.entityService.createEntityAsync(newEntity);
+          await this.entityService.createEntity(newEntity);
 
           this.logger.debug("Saved generated content as entity", {
             jobId,

@@ -4,7 +4,7 @@ import { EntityRegistry } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type { BaseEntity, SearchResult } from "@brains/types";
 import type { IEmbeddingService } from "@brains/embedding-service";
-import type { SearchOptions } from "./types";
+import type { SearchOptions, EntityService as IEntityService } from "./types";
 import { eq, and, inArray, desc, asc, sql } from "@brains/db";
 import { z } from "zod";
 import { EntityNotFoundError } from "./errors";
@@ -53,7 +53,7 @@ export interface EntityServiceOptions {
  * EntityService provides CRUD operations for entities
  * Implements Component Interface Standardization pattern
  */
-export class EntityService {
+export class EntityService implements IEntityService {
   private static instance: EntityService | null = null;
 
   private db: DrizzleDB;
@@ -105,16 +105,19 @@ export class EntityService {
   }
 
   /**
-   * Create a new entity (synchronous - waits for embedding)
+   * Create a new entity (returns immediately, embedding generated in background)
    */
-  public async createEntitySync<T extends BaseEntity>(
+  public async createEntity<T extends BaseEntity>(
     entity: Omit<T, "id" | "created" | "updated"> & {
       id?: string;
       created?: string;
       updated?: string;
     },
-  ): Promise<T> {
-    this.logger.debug(`Creating entity of type: ${entity["entityType"]}`);
+    options?: { priority?: number; maxRetries?: number },
+  ): Promise<{ entityId: string; jobId: string }> {
+    this.logger.debug(
+      `Creating entity asynchronously of type: ${entity["entityType"]}`,
+    );
 
     // Generate ID and timestamps if not provided
     const now = new Date().toISOString();
@@ -123,15 +126,7 @@ export class EntityService {
       id: entity.id ?? createId(),
       created: entity.created ?? now,
       updated: entity.updated ?? now,
-    } as T;
-
-    this.logger.debug("Creating entity with timestamps", {
-      provided: { created: entity.created, updated: entity.updated },
-      using: {
-        created: entityWithDefaults.created,
-        updated: entityWithDefaults.updated,
-      },
-    });
+    };
 
     // Validate entity against its schema
     const validatedEntity = this.entityRegistry.validateEntity<T>(
@@ -154,54 +149,49 @@ export class EntityService {
       validatedEntity.id,
     );
 
-    // Generate embedding synchronously
-    const embedding = await this.embeddingService.generateEmbedding(markdown);
-
-    // Store in database with upsert (insert or update on conflict)
-    await this.db
-      .insert(entities)
-      .values({
-        id: validatedEntity.id,
-        entityType: validatedEntity.entityType,
-        content: markdown,
-        metadata,
-        created: new Date(validatedEntity.created).getTime(),
-        updated: new Date(validatedEntity.updated).getTime(),
-        contentWeight,
-        embedding,
-      })
-      .onConflictDoUpdate({
-        target: [entities.id, entities.entityType],
-        set: {
-          content: markdown,
-          metadata,
-          updated: new Date(validatedEntity.updated).getTime(),
-          contentWeight,
-          embedding,
-        },
-      });
-
-    this.logger.info(
-      `Created/Updated entity of type ${entity["entityType"]} with ID ${validatedEntity.id}`,
-    );
-
-    // Verify the entity was actually persisted
-    const verification = await this.getEntity(
-      validatedEntity.entityType,
-      validatedEntity.id,
-    );
-    if (!verification) {
-      throw new Error(
-        `Failed to persist entity ${validatedEntity.id} of type ${validatedEntity.entityType}`,
-      );
-    }
-
-    this.logger.debug("Entity persistence verified", {
+    // Prepare entity data for queue (without embedding)
+    const entityForQueue: EntityWithoutEmbedding = {
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
-    });
+      content: markdown,
+      metadata,
+      created: new Date(validatedEntity.created).getTime(),
+      updated: new Date(validatedEntity.updated).getTime(),
+      contentWeight,
+    };
 
-    return validatedEntity;
+    // Enqueue for async embedding generation
+    // EntityService operations use system defaults for metadata
+    const defaultMetadata = {
+      interfaceId: "system",
+      userId: "system",
+      operationType: "embedding_generation" as const,
+    };
+
+    const jobId = await this.jobQueueService.enqueue(
+      "shell:embedding",
+      entityForQueue,
+      {
+        ...(options?.priority !== undefined && { priority: options.priority }),
+        ...(options?.maxRetries !== undefined && {
+          maxRetries: options.maxRetries,
+        }),
+        source: "entity-service",
+        metadata: {
+          ...defaultMetadata,
+          operationTarget: validatedEntity.id,
+        },
+      },
+    );
+
+    this.logger.debug(
+      `Created entity asynchronously of type ${entity["entityType"]} with ID ${validatedEntity.id}, job ID ${jobId}`,
+    );
+
+    return {
+      entityId: validatedEntity.id,
+      jobId,
+    };
   }
 
   /**
@@ -266,66 +256,9 @@ export class EntityService {
   }
 
   /**
-   * Update an existing entity synchronously (with immediate embedding generation)
+   * Update an existing entity (returns immediately, embedding generated in background)
    */
-  public async updateEntitySync<T extends BaseEntity>(entity: T): Promise<T> {
-    this.logger.debug(
-      `Updating entity of type ${entity.entityType} with ID ${entity.id}`,
-    );
-
-    // Update 'updated' timestamp
-    const updatedEntity = {
-      ...entity,
-      updated: new Date().toISOString(),
-    };
-
-    // Validate entity against its schema
-    const validatedEntity = this.entityRegistry.validateEntity<T>(
-      entity.entityType,
-      updatedEntity,
-    );
-
-    // Convert to markdown using adapter
-    const adapter = this.entityRegistry.getAdapter<T>(
-      validatedEntity.entityType,
-    );
-    const markdown = adapter.toMarkdown(validatedEntity);
-
-    // Extract metadata using adapter
-    const metadata = adapter.extractMetadata(validatedEntity);
-
-    // Extract content weight from markdown
-    const { contentWeight } = extractIndexedFields(
-      markdown,
-      validatedEntity.id,
-    );
-
-    // Generate new embedding
-    const embedding = await this.embeddingService.generateEmbedding(markdown);
-
-    // Update in database
-    await this.db
-      .update(entities)
-      .set({
-        content: markdown,
-        metadata,
-        updated: new Date(validatedEntity.updated).getTime(),
-        contentWeight,
-        embedding,
-      })
-      .where(eq(entities.id, validatedEntity.id));
-
-    this.logger.info(
-      `Updated entity of type ${entity.entityType} with ID ${validatedEntity.id}`,
-    );
-
-    return validatedEntity;
-  }
-
-  /**
-   * Update an existing entity asynchronously (with background embedding generation)
-   */
-  public async updateEntityAsync<T extends BaseEntity>(
+  public async updateEntity<T extends BaseEntity>(
     entity: T,
     options?: { priority?: number; maxRetries?: number },
   ): Promise<{ entityId: string; jobId: string }> {
@@ -549,6 +482,13 @@ export class EntityService {
   }
 
   /**
+   * Check if an entity type is supported
+   */
+  public hasEntityType(type: string): boolean {
+    return this.entityRegistry.hasEntityType(type);
+  }
+
+  /**
    * Serialize an entity to markdown format
    */
   public serializeEntity(entity: BaseEntity): string {
@@ -732,12 +672,12 @@ export class EntityService {
    * Derive a new entity from an existing entity
    * Useful for creating entities based on generated content or transforming between types
    */
-  public async deriveEntity<T extends BaseEntity>(
+  public async deriveEntity(
     sourceEntityId: string,
     sourceEntityType: string,
     targetEntityType: string,
     options?: { deleteSource?: boolean },
-  ): Promise<T> {
+  ): Promise<{ entityId: string; jobId: string }> {
     // Get the source entity
     const source = await this.getEntity(sourceEntityType, sourceEntityId);
     if (!source) {
@@ -771,10 +711,10 @@ export class EntityService {
       id: sourceFields.id,
     });
 
-    const derived = await this.createEntitySync<T>({
+    const result = await this.createEntity({
       ...sourceFields, // This includes the ID
       entityType: targetEntityType,
-    } as T);
+    });
 
     // Optionally delete the source
     if (options?.deleteSource) {
@@ -782,100 +722,10 @@ export class EntityService {
     }
 
     this.logger.info(
-      `Derived ${targetEntityType} ${derived.id} from ${sourceEntityType} ${sourceEntityId}`,
+      `Derived ${targetEntityType} ${result.entityId} from ${sourceEntityType} ${sourceEntityId}`,
     );
 
-    return derived;
-  }
-
-  /**
-   * Create entity asynchronously (embedding generated in background)
-   */
-  public async createEntityAsync<T extends BaseEntity>(
-    entity: Omit<T, "id" | "created" | "updated"> & {
-      id?: string;
-      created?: string;
-      updated?: string;
-    },
-    options?: { priority?: number; maxRetries?: number },
-  ): Promise<{ entityId: string; jobId: string }> {
-    this.logger.debug(
-      `Creating entity asynchronously of type: ${entity["entityType"]}`,
-    );
-
-    // Generate ID and timestamps if not provided
-    const now = new Date().toISOString();
-    const entityWithDefaults = {
-      ...entity,
-      id: entity.id ?? createId(),
-      created: entity.created ?? now,
-      updated: entity.updated ?? now,
-    };
-
-    // Validate entity against its schema
-    const validatedEntity = this.entityRegistry.validateEntity<T>(
-      entity["entityType"],
-      entityWithDefaults,
-    );
-
-    // Convert to markdown using adapter
-    const adapter = this.entityRegistry.getAdapter<T>(
-      validatedEntity.entityType,
-    );
-    const markdown = adapter.toMarkdown(validatedEntity);
-
-    // Extract metadata using adapter
-    const metadata = adapter.extractMetadata(validatedEntity);
-
-    // Extract content weight from markdown
-    const { contentWeight } = extractIndexedFields(
-      markdown,
-      validatedEntity.id,
-    );
-
-    // Prepare entity data for queue (without embedding)
-    const entityForQueue: EntityWithoutEmbedding = {
-      id: validatedEntity.id,
-      entityType: validatedEntity.entityType,
-      content: markdown,
-      metadata,
-      created: new Date(validatedEntity.created).getTime(),
-      updated: new Date(validatedEntity.updated).getTime(),
-      contentWeight,
-    };
-
-    // Enqueue for async embedding generation
-    // EntityService operations use system defaults for metadata
-    const defaultMetadata = {
-      interfaceId: "system",
-      userId: "system",
-      operationType: "embedding_generation" as const,
-    };
-
-    const jobId = await this.jobQueueService.enqueue(
-      "shell:embedding",
-      entityForQueue,
-      {
-        ...(options?.priority !== undefined && { priority: options.priority }),
-        ...(options?.maxRetries !== undefined && {
-          maxRetries: options.maxRetries,
-        }),
-        source: "entity-service",
-        metadata: {
-          ...defaultMetadata,
-          operationTarget: validatedEntity.id,
-        },
-      },
-    );
-
-    this.logger.debug(
-      `Created entity asynchronously of type ${entity["entityType"]} with ID ${validatedEntity.id}, job ID ${jobId}`,
-    );
-
-    return {
-      entityId: validatedEntity.id,
-      jobId,
-    };
+    return result;
   }
 
   /**

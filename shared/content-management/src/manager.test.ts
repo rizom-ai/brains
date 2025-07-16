@@ -19,8 +19,8 @@ const testJobOptions: JobOptions = {
 
 // Mock dependencies
 const mockGetEntity = mock();
-const mockCreateEntityAsync = mock();
-const mockUpdateEntityAsync = mock();
+const mockCreateEntity = mock();
+const mockUpdateEntity = mock();
 const mockListEntities = mock();
 const mockEnqueueContentGeneration = mock();
 const mockEnqueueBatch = mock();
@@ -52,8 +52,8 @@ beforeEach(async (): Promise<void> => {
 
   // Setup mocks on the harness services
   mockEntityService.getEntity = mockGetEntity;
-  mockEntityService.createEntityAsync = mockCreateEntityAsync;
-  mockEntityService.updateEntityAsync = mockUpdateEntityAsync;
+  mockEntityService.createEntity = mockCreateEntity;
+  mockEntityService.updateEntity = mockUpdateEntity;
   mockEntityService.listEntities = mockListEntities;
   mockEntityService.deriveEntity = mockDeriveEntity;
 
@@ -65,8 +65,8 @@ beforeEach(async (): Promise<void> => {
 
   // Reset all mocks
   mockGetEntity.mockClear();
-  mockCreateEntityAsync.mockClear();
-  mockUpdateEntityAsync.mockClear();
+  mockCreateEntity.mockClear();
+  mockUpdateEntity.mockClear();
   mockListEntities.mockClear();
   mockEnqueueContentGeneration.mockClear();
   mockEnqueueBatch.mockClear();

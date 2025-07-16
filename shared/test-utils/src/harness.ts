@@ -437,11 +437,12 @@ export class PluginTestHarness {
     const mockService = {
       createEntity: async <T extends BaseEntity>(
         entity: EntityInput<T>,
-      ): Promise<T> => {
+      ): Promise<{ entityId: string; jobId: string }> => {
         const entityType =
           ((entity as Record<string, unknown>)["entityType"] as string) ||
           "base";
-        return this.createTestEntity(entityType, entity) as Promise<T>;
+        const created = await this.createTestEntity(entityType, entity);
+        return { entityId: created.id, jobId: "mock-job-" + Date.now() };
       },
       getEntity: async <T extends BaseEntity>(
         entityType: string,
@@ -456,39 +457,43 @@ export class PluginTestHarness {
         // For simplicity, ignore filter options in test harness
         return this.listEntities(entityType);
       },
-      updateEntity: async <T extends BaseEntity>(entity: T): Promise<T> => {
+      updateEntity: async <T extends BaseEntity>(
+        entity: T,
+      ): Promise<{ entityId: string; jobId: string }> => {
         // Find and update entity in harness storage
         const entities = this.entities.get(entity.entityType) ?? [];
         const index = entities.findIndex((e) => e.id === entity.id);
         if (index !== -1) {
           entities[index] = { ...entity, updated: new Date().toISOString() };
           this.entities.set(entity.entityType, entities);
-          return entities[index] as T;
+          return { entityId: entity.id, jobId: "mock-job-" + Date.now() };
         }
         throw new Error(`Entity ${entity.id} not found for update`);
       },
-      deleteEntity: async (id: string): Promise<void> => {
+      deleteEntity: async (
+        entityType: string,
+        id: string,
+      ): Promise<boolean> => {
         // Find and remove entity from harness storage
-        for (const [entityType, entities] of this.entities) {
-          const index = entities.findIndex((e) => e.id === id);
-          if (index !== -1) {
-            entities.splice(index, 1);
-            this.entities.set(entityType, entities);
-            return;
-          }
+        const entities = this.entities.get(entityType) ?? [];
+        const index = entities.findIndex((e) => e.id === id);
+        if (index !== -1) {
+          entities.splice(index, 1);
+          this.entities.set(entityType, entities);
+          return true;
         }
-        throw new Error(`Entity with id ${id} not found`);
+        return false;
       },
       search: async (): Promise<never[]> => {
         // Mock implementation - return empty array
         return [];
       },
-      deriveEntity: async <T extends BaseEntity>(
+      deriveEntity: async (
         sourceEntityId: string,
         sourceEntityType: string,
         targetEntityType: string,
         _options?: { deleteSource?: boolean },
-      ): Promise<T> => {
+      ): Promise<{ entityId: string; jobId: string }> => {
         // Mock implementation - get source entity and transform it
         const source = await this.getEntity(sourceEntityType, sourceEntityId);
         if (!source) {
@@ -503,10 +508,11 @@ export class PluginTestHarness {
           updated: _updated,
           ...sourceFields
         } = source;
-        return this.createTestEntity(
+        const created = await this.createTestEntity(
           targetEntityType,
-          sourceFields as EntityInput<T>,
-        ) as Promise<T>;
+          sourceFields as EntityInput<BaseEntity>,
+        );
+        return { entityId: created.id, jobId: "mock-job-" + Date.now() };
       },
       getEntityTypes: (): string[] => {
         // Return all registered entity types
@@ -515,20 +521,12 @@ export class PluginTestHarness {
       hasEntityType: (type: string): boolean => {
         return this.entities.has(type);
       },
-      createEntityAsync: async (): Promise<{
-        entityId: string;
-        jobId: string;
-      }> => {
-        throw new Error("createEntityAsync not implemented in test harness");
-      },
-      getAsyncJobStatus: async (): Promise<null> => {
-        throw new Error("getAsyncJobStatus not implemented in test harness");
-      },
-      updateEntityAsync: async (): Promise<{
-        entityId: string;
-        jobId: string;
-      }> => {
-        throw new Error("updateEntityAsync not implemented in test harness");
+      getAsyncJobStatus: async (): Promise<{
+        status: "pending" | "processing" | "completed" | "failed";
+        error?: string;
+      } | null> => {
+        // Mock implementation - always return completed
+        return { status: "completed" };
       },
     };
     return mockService as unknown as EntityService;

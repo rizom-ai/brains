@@ -5,6 +5,10 @@ import { PluginContextFactory } from "../src/plugins/pluginContextFactory";
 import type { JobHandler, IJobQueueService } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import type { JobQueue } from "@brains/db";
+import type { IEntityService } from "@brains/entity-service";
+import type { IContentGenerator } from "@brains/content-generator";
+import type { IViewRegistry } from "@brains/view-registry";
+import type { IMessageBus } from "@brains/messaging-service";
 
 describe("Plugin Job Handler Lifecycle", () => {
   let serviceRegistry: ServiceRegistry;
@@ -88,37 +92,77 @@ describe("Plugin Job Handler Lifecycle", () => {
     serviceRegistry.register("jobQueueService", () => mockJobQueueService);
 
     // Create mock shell with required services
+    const mockEntityService: IEntityService = {
+      getEntity: mock(async () => null),
+      createEntity: mock(async () => ({
+        entityId: "test-id",
+        jobId: "job-123",
+      })),
+      updateEntity: mock(async () => ({
+        entityId: "test-id",
+        jobId: "job-123",
+      })),
+      deleteEntity: mock(
+        async (_entityType: string, _id: string): Promise<boolean> => true,
+      ),
+      deriveEntity: mock(
+        async (
+          _sourceEntityId: string,
+          _sourceEntityType: string,
+          _targetEntityType: string,
+          _options?: { deleteSource?: boolean },
+        ) => ({ entityId: "derived-id", jobId: "job-123" }),
+      ) as IEntityService["deriveEntity"],
+      listEntities: mock(async () => []),
+      search: mock(async () => []),
+      getEntityTypes: mock(() => []),
+      hasEntityType: mock(() => false),
+      getAsyncJobStatus: mock(async () => ({ status: "completed" as const })),
+    };
+
+    const mockContentGenerator: IContentGenerator = {
+      registerTemplate: mock(() => {}),
+      getTemplate: mock(() => null),
+      listTemplates: mock(() => []),
+      generateContent: mock(
+        async (_templateName: string, _context = {}) => ({}),
+      ) as IContentGenerator["generateContent"],
+      generateWithRoute: mock(async () => ""),
+      formatContent: mock(() => ""),
+      parseContent: mock(
+        (_templateName: string, _content: string) => ({}),
+      ) as IContentGenerator["parseContent"],
+    };
+
+    const mockViewRegistry: IViewRegistry = {
+      registerRoute: mock(() => {}),
+      getRoute: mock(() => undefined),
+      findRoute: mock(() => undefined),
+      listRoutes: mock(() => []),
+      listRoutesByPlugin: mock(() => []),
+      validateRoute: mock(() => true),
+      registerViewTemplate: mock(() => {}),
+      getViewTemplate: mock(() => undefined),
+      listViewTemplates: mock(() => []),
+      validateViewTemplate: mock(() => true),
+      findViewTemplate: mock(() => undefined),
+      getRenderer: mock(() => undefined),
+      hasRenderer: mock(() => false),
+      listFormats: mock(() => []),
+    };
+
+    const mockMessageBus: IMessageBus = {
+      send: mock(async () => ({ success: true })),
+      subscribe: mock(() => () => {}),
+      unsubscribe: mock(() => {}),
+    };
+
     const mockShell = {
-      getEntityService: () => ({
-        createEntity: async () => ({ id: "test-id" }),
-        getEntity: async () => null,
-        updateEntitySync: async (entity: unknown) => entity,
-        deleteEntity: async () => true,
-        listEntities: async () => [],
-        search: async () => [],
-        getEntityTypes: () => [],
-        getAdapter: () => null,
-        hasAdapter: () => false,
-        importRawEntity: async () => undefined,
-      }),
-      getContentGenerator: () => ({
-        generateContent: async () => ({}),
-        parseContent: () => ({}),
-        registerTemplate: () => {},
-        getTemplate: () => null,
-        listTemplates: () => [],
-      }),
-      getViewRegistry: () => ({
-        registerTemplate: () => {},
-        registerRoutes: () => {},
-        getRoutes: () => [],
-        listViewTemplates: () => [],
-      }),
-      getMessageBus: () => ({
-        send: async () => ({ success: true }),
-        subscribe: () => () => {},
-      }),
-      getJobQueueService: () => mockJobQueueService,
+      getEntityService: (): IEntityService => mockEntityService,
+      getContentGenerator: (): IContentGenerator => mockContentGenerator,
+      getViewRegistry: (): IViewRegistry => mockViewRegistry,
+      getMessageBus: (): IMessageBus => mockMessageBus,
+      getJobQueueService: (): IJobQueueService => mockJobQueueService,
     };
 
     // Register mock shell
@@ -222,8 +266,8 @@ describe("Plugin Job Handler Lifecycle", () => {
         },
         startHeartbeat(): void {},
         stopHeartbeat(): void {},
-        toCallback() {
-          return async () => {};
+        toCallback(): () => Promise<void> {
+          return async (): Promise<void> => {};
         },
       } as unknown as ProgressReporter;
       const result = await registeredHandler.process(
@@ -395,8 +439,8 @@ describe("Plugin Job Handler Lifecycle", () => {
         },
         startHeartbeat(): void {},
         stopHeartbeat(): void {},
-        toCallback() {
-          return async () => {};
+        toCallback(): () => Promise<void> {
+          return async (): Promise<void> => {};
         },
       } as unknown as ProgressReporter;
       const result1 = await registeredHandler1.process(

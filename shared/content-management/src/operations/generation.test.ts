@@ -18,28 +18,22 @@ const testJobOptions: JobOptions = {
 
 // Mock dependencies
 const mockGetEntity = mock();
-const mockCreateEntityAsync = mock();
-const mockUpdateEntityAsync = mock();
+const mockCreateEntity = mock();
+const mockUpdateEntity = mock();
 const mockListEntities = mock();
 const mockEnqueueContentGeneration = mock();
 
 const mockEntityService = {
   getEntity: mockGetEntity,
-  createEntityAsync: mockCreateEntityAsync,
-  updateEntityAsync: mockUpdateEntityAsync,
+  createEntity: mockCreateEntity,
+  updateEntity: mockUpdateEntity,
   listEntities: mockListEntities,
-  createEntitySync: mock(),
-  updateEntitySync: mock(),
   deleteEntity: mock(),
   getAsyncJobStatus: mock(),
-  waitForAsyncJob: mock(),
-  listAsyncJobs: mock(),
-  cancelAsyncJob: mock(),
   search: mock(),
   deriveEntity: mock(),
   getEntityTypes: mock(),
-  serializeEntity: mock(),
-  deserializeEntity: mock(),
+  hasEntityType: mock(),
 } as unknown as EntityService;
 
 const mockLogger = createSilentLogger("generation-test");
@@ -101,8 +95,8 @@ let operations: GenerationOperations;
 beforeEach((): void => {
   // Reset all mocks
   mockGetEntity.mockClear();
-  mockCreateEntityAsync.mockClear();
-  mockUpdateEntityAsync.mockClear();
+  mockCreateEntity.mockClear();
+  mockUpdateEntity.mockClear();
   mockListEntities.mockClear();
   mockEnqueueContentGeneration.mockClear();
   mockEnqueueBatch.mockClear();

@@ -10,20 +10,14 @@ const mockListEntities = mock();
 const mockEntityService = {
   getEntity: mockGetEntity,
   listEntities: mockListEntities,
-  createEntitySync: mock(),
-  updateEntitySync: mock(),
+  createEntity: mock(),
+  updateEntity: mock(),
   deleteEntity: mock(),
-  createEntityAsync: mock(),
-  updateEntityAsync: mock(),
   getAsyncJobStatus: mock(),
-  waitForAsyncJob: mock(),
-  listAsyncJobs: mock(),
-  cancelAsyncJob: mock(),
   search: mock(),
   deriveEntity: mock(),
   getEntityTypes: mock(),
-  serializeEntity: mock(),
-  deserializeEntity: mock(),
+  hasEntityType: mock(),
 } as unknown as EntityService;
 
 const mockLogger = createSilentLogger("entity-query-test");

@@ -98,7 +98,7 @@ export class ContentDerivationJobHandler
         });
 
         // Derive to target entity type
-        const derivedEntity = await this.entityService.deriveEntity(
+        const result = await this.entityService.deriveEntity(
           data.entityId,
           data.sourceEntityType,
           data.targetEntityType,
@@ -108,20 +108,47 @@ export class ContentDerivationJobHandler
         this.logger.debug("Content derivation completed successfully", {
           jobId,
           sourceEntityId: data.entityId,
-          derivedEntityId: derivedEntity.id,
+          derivedEntityId: result.entityId,
+          derivedJobId: result.jobId,
           sourceType: data.sourceEntityType,
           targetType: data.targetEntityType,
         });
 
+        // Wait for the derivation job to complete
+        let derivationComplete = false;
+        const maxWaitTime = 30000; // 30 seconds
+        const startTime = Date.now();
+
+        while (!derivationComplete && Date.now() - startTime < maxWaitTime) {
+          const jobStatus = await this.entityService.getAsyncJobStatus(
+            result.jobId,
+          );
+          if (jobStatus?.status === "completed") {
+            derivationComplete = true;
+          } else if (jobStatus?.status === "failed") {
+            throw new Error(
+              `Derivation job failed: ${jobStatus.error || "Unknown error"}`,
+            );
+          }
+          // Wait a bit before checking again
+          if (!derivationComplete) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+        }
+
+        if (!derivationComplete) {
+          throw new Error("Derivation job timed out");
+        }
+
         // Verify the derived entity exists
         const verification = await this.entityService.getEntity(
           data.targetEntityType,
-          derivedEntity.id,
+          result.entityId,
         );
 
         this.logger.debug("Derivation verification", {
           jobId,
-          derivedEntityId: derivedEntity.id,
+          derivedEntityId: result.entityId,
           exists: !!verification,
           verificationType: verification?.entityType,
         });
@@ -134,7 +161,7 @@ export class ContentDerivationJobHandler
         });
 
         return {
-          entityId: derivedEntity.id,
+          entityId: result.entityId,
           success: true,
         };
       } else {

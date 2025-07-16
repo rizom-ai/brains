@@ -75,8 +75,9 @@ describe("DirectoryImportJobHandler", () => {
           }
           return Promise.resolve(null);
         }),
-        createEntityAsync: mock(() => Promise.resolve()),
-        updateEntityAsync: mock(() => Promise.resolve()),
+        createEntity: mock(() => Promise.resolve({ entityId: "test-id", jobId: "job-123" })),
+        updateEntity: mock(() => Promise.resolve({ entityId: "test-id", jobId: "job-123" })),
+        getAsyncJobStatus: mock(() => Promise.resolve({ status: "completed" })),
       },
     } as unknown as PluginContext;
 
@@ -150,10 +151,10 @@ describe("DirectoryImportJobHandler", () => {
       expect(result.errors).toHaveLength(0);
 
       // Check entity operations
-      expect(mockContext.entityService.createEntityAsync).toHaveBeenCalledTimes(
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledTimes(
         2,
       );
-      expect(mockContext.entityService.updateEntityAsync).toHaveBeenCalledTimes(
+      expect(mockContext.entityService.updateEntity).toHaveBeenCalledTimes(
         1,
       );
     });
@@ -310,10 +311,10 @@ describe("DirectoryImportJobHandler", () => {
 
       // No creates or updates should have been called
       expect(
-        mockContext.entityService.createEntityAsync,
+        mockContext.entityService.createEntity,
       ).not.toHaveBeenCalled();
       expect(
-        mockContext.entityService.updateEntityAsync,
+        mockContext.entityService.updateEntity,
       ).not.toHaveBeenCalled();
     });
 

@@ -5,6 +5,8 @@ import type {
   PluginContext,
   PluginCapabilities,
 } from "@brains/plugin-utils";
+import type { Command } from "@brains/message-interface";
+import type { IJobQueueService } from "@brains/job-queue";
 import {
   PluginEvent,
   PluginManager,
@@ -63,7 +65,7 @@ class TestPlugin implements Plugin {
     };
   }
 
-  async getCommands() {
+  async getCommands(): Promise<Command[]> {
     return [];
   }
 }
@@ -88,12 +90,14 @@ describe("PluginManager", (): void => {
       getEntityService: (): {
         createEntity: <T extends BaseEntity>(
           data: Partial<T>,
-        ) => Promise<{ id: string }>;
+        ) => Promise<{ entityId: string; jobId: string }>;
         getEntity: <T extends BaseEntity>(
           entityType: string,
           id: string,
         ) => Promise<T | null>;
-        updateEntitySync: <T extends BaseEntity>(entity: T) => Promise<T>;
+        updateEntity: <T extends BaseEntity>(
+          entity: T,
+        ) => Promise<{ entityId: string; jobId: string }>;
         deleteEntity: (entityType: string, id: string) => Promise<boolean>;
         listEntities: <T extends BaseEntity>(
           entityType: string,
@@ -108,10 +112,15 @@ describe("PluginManager", (): void => {
         hasAdapter: (entityType: string) => boolean;
         importRawEntity: (entityType: string, data: unknown) => Promise<void>;
       } => ({
-        createEntity: async (): Promise<{ id: string }> => ({ id: "test-id" }),
+        createEntity: async (): Promise<{
+          entityId: string;
+          jobId: string;
+        }> => ({ entityId: "test-id", jobId: "job-123" }),
         getEntity: async (): Promise<null> => null,
-        updateEntitySync: async <T extends BaseEntity>(entity: T): Promise<T> =>
-          entity,
+        updateEntity: async (): Promise<{
+          entityId: string;
+          jobId: string;
+        }> => ({ entityId: "test-id", jobId: "job-123" }),
         deleteEntity: async (): Promise<boolean> => true,
         listEntities: async <T extends BaseEntity>(): Promise<T[]> => [] as T[],
         search: async <T extends BaseEntity>(): Promise<T[]> => [] as T[],
@@ -157,16 +166,12 @@ describe("PluginManager", (): void => {
         validateViewTemplate: (): boolean => true,
       }),
       getMessageBus: (): MessageBus => MessageBus.getInstance(logger),
-      getJobQueueService: () => ({
+      getJobQueueService: (): IJobQueueService => ({
         registerHandler: mock(() => {}),
         unregisterHandler: mock(() => {}),
+        getHandler: mock(() => undefined),
         enqueue: mock(async () => "job-123"),
         dequeue: mock(async () => null),
-        processJob: mock(async () => ({
-          status: "completed",
-          jobId: "job-123",
-          type: "test",
-        })),
         complete: mock(async () => {}),
         fail: mock(async () => {}),
         update: mock(async () => {}),
@@ -442,7 +447,7 @@ describe("PluginManager", (): void => {
           commands: [],
         };
       },
-      async getCommands() {
+      async getCommands(): Promise<Command[]> {
         return [];
       },
     };
