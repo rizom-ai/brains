@@ -105,14 +105,6 @@ describe("Plugin Job Handler Lifecycle", () => {
       deleteEntity: mock(
         async (_entityType: string, _id: string): Promise<boolean> => true,
       ),
-      deriveEntity: mock(
-        async (
-          _sourceEntityId: string,
-          _sourceEntityType: string,
-          _targetEntityType: string,
-          _options?: { deleteSource?: boolean },
-        ) => ({ entityId: "derived-id", jobId: "job-123" }),
-      ) as IEntityService["deriveEntity"],
       listEntities: mock(async () => []),
       search: mock(async () => []),
       getEntityTypes: mock(() => []),

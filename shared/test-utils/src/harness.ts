@@ -488,32 +488,6 @@ export class PluginTestHarness {
         // Mock implementation - return empty array
         return [];
       },
-      deriveEntity: async (
-        sourceEntityId: string,
-        sourceEntityType: string,
-        targetEntityType: string,
-        _options?: { deleteSource?: boolean },
-      ): Promise<{ entityId: string; jobId: string }> => {
-        // Mock implementation - get source entity and transform it
-        const source = await this.getEntity(sourceEntityType, sourceEntityId);
-        if (!source) {
-          throw new Error(
-            `Source entity not found: ${sourceEntityType}/${sourceEntityId}`,
-          );
-        }
-        // Create a new entity based on the source
-        const {
-          id: _id,
-          created: _created,
-          updated: _updated,
-          ...sourceFields
-        } = source;
-        const created = await this.createTestEntity(
-          targetEntityType,
-          sourceFields as EntityInput<BaseEntity>,
-        );
-        return { entityId: created.id, jobId: "mock-job-" + Date.now() };
-      },
       getEntityTypes: (): string[] => {
         // Return all registered entity types
         return Array.from(this.entities.keys());

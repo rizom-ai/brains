@@ -97,61 +97,86 @@ export class ContentDerivationJobHandler
           total: 2,
         });
 
-        // Derive to target entity type
-        const result = await this.entityService.deriveEntity(
-          data.entityId,
+        // Get the source entity
+        const source = await this.entityService.getEntity(
           data.sourceEntityType,
+          data.entityId,
+        );
+        
+        if (!source) {
+          throw new Error(
+            `Source entity not found: ${data.sourceEntityType}:${data.entityId}`,
+          );
+        }
+
+        // Convert the ID to the target entity type
+        // For content entities, we need to replace the entity type prefix
+        const sourceIdParts = data.entityId.split(":");
+        let targetId: string;
+        
+        if (sourceIdParts.length === 3 && 
+            (data.sourceEntityType === "site-content-preview" || 
+             data.sourceEntityType === "site-content-production")) {
+          // This is a site content entity with format "type:routeId:sectionId"
+          targetId = `${data.targetEntityType}:${sourceIdParts[1]}:${sourceIdParts[2]}`;
+        } else {
+          // For other entity types, keep the same ID
+          targetId = data.entityId;
+        }
+
+        // Create the derived entity by copying source fields
+        const {
+          created: _created,
+          updated: _updated,
+          entityType: _entityType,
+          id: _id,
+          ...contentFields
+        } = source;
+
+        const derivedEntity = {
+          ...contentFields,
+          id: targetId,
+          entityType: data.targetEntityType,
+        };
+
+        // Check if target already exists
+        const existingTarget = await this.entityService.getEntity(
           data.targetEntityType,
-          { deleteSource: data.options?.deleteSource ?? false },
+          targetId,
         );
 
-        this.logger.debug("Content derivation completed successfully", {
+        // Create or update the entity
+        let result: { entityId: string; jobId: string };
+        if (existingTarget) {
+          result = await this.entityService.updateEntity({
+            ...existingTarget,
+            ...derivedEntity,
+          });
+        } else {
+          result = await this.entityService.createEntity(derivedEntity);
+        }
+
+        // Optionally delete the source (after creating target)
+        if (data.options?.deleteSource) {
+          await this.entityService.deleteEntity(
+            data.sourceEntityType,
+            data.entityId,
+          );
+        }
+
+        this.logger.info("Content derivation job queued", {
           jobId,
           sourceEntityId: data.entityId,
-          derivedEntityId: result.entityId,
-          derivedJobId: result.jobId,
+          targetEntityId: result.entityId,
+          createJobId: result.jobId,
           sourceType: data.sourceEntityType,
           targetType: data.targetEntityType,
+          deleteSource: data.options?.deleteSource,
         });
 
-        // Wait for the derivation job to complete
-        let derivationComplete = false;
-        const maxWaitTime = 30000; // 30 seconds
-        const startTime = Date.now();
-
-        while (!derivationComplete && Date.now() - startTime < maxWaitTime) {
-          const jobStatus = await this.entityService.getAsyncJobStatus(
-            result.jobId,
-          );
-          if (jobStatus?.status === "completed") {
-            derivationComplete = true;
-          } else if (jobStatus?.status === "failed") {
-            throw new Error(
-              `Derivation job failed: ${jobStatus.error || "Unknown error"}`,
-            );
-          }
-          // Wait a bit before checking again
-          if (!derivationComplete) {
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          }
-        }
-
-        if (!derivationComplete) {
-          throw new Error("Derivation job timed out");
-        }
-
-        // Verify the derived entity exists
-        const verification = await this.entityService.getEntity(
-          data.targetEntityType,
-          result.entityId,
-        );
-
-        this.logger.debug("Derivation verification", {
-          jobId,
-          derivedEntityId: result.entityId,
-          exists: !!verification,
-          verificationType: verification?.entityType,
-        });
+        // Note: We don't wait for the entity creation job to complete
+        // to avoid deadlock in single-worker environments.
+        // The entity will be created asynchronously.
 
         // Report completion
         await progressReporter.report({

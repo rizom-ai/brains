@@ -20,6 +20,7 @@ import type {
   GenerateOptions,
   ContentGenerationJob,
 } from "./types";
+import { convertSiteContentId } from "./utils/id-generator";
 
 /**
  * ContentManager facade that provides a unified interface for content management operations
@@ -35,6 +36,7 @@ export class ContentManager {
   private readonly entityQuery: EntityQueryService;
   private readonly pluginContext: PluginContext;
   private readonly logger: Logger;
+  private readonly entityService: EntityService;
 
   // Create a new instance
   constructor(
@@ -42,6 +44,7 @@ export class ContentManager {
     logger: Logger,
     pluginContext: PluginContext,
   ) {
+    this.entityService = entityService;
     this.pluginContext = pluginContext;
     this.logger = logger.child("ContentManager");
     // Always available services
@@ -364,5 +367,108 @@ export class ContentManager {
     });
 
     return batchId;
+  }
+
+  // ========================================
+  // Content Derivation Operations
+  // ========================================
+
+  /**
+   * Derive content from one entity type to another
+   * @param sourceEntityId - The ID of the source entity
+   * @param sourceEntityType - The type of the source entity
+   * @param targetEntityType - The type of the target entity
+   * @param options - Options for the derivation
+   * @returns The entity ID and job ID for tracking the async operation
+   */
+  async deriveContent(
+    sourceEntityId: string,
+    sourceEntityType: string,
+    targetEntityType: string,
+    options?: { deleteSource?: boolean },
+  ): Promise<{ entityId: string; jobId: string }> {
+    // Get the source entity
+    const source = await this.entityService.getEntity(
+      sourceEntityType,
+      sourceEntityId,
+    );
+    
+    if (!source) {
+      throw new Error(
+        `Source entity not found: ${sourceEntityType}:${sourceEntityId}`,
+      );
+    }
+
+    // Convert the ID to the target entity type
+    const targetId = convertSiteContentId(sourceEntityId, targetEntityType as SiteContentEntityType);
+    if (!targetId) {
+      throw new Error(
+        `Cannot convert entity ID from ${sourceEntityType} to ${targetEntityType}: ${sourceEntityId}`,
+      );
+    }
+
+    // Create the derived entity by copying source fields
+    // Exclude auto-generated fields but keep the content and metadata
+    const {
+      created: _created,
+      updated: _updated,
+      entityType: _entityType,
+      id: _id,
+      ...contentFields
+    } = source;
+
+    // Create the derived entity with the new ID and type
+    const derivedEntity = {
+      ...contentFields,
+      id: targetId,
+      entityType: targetEntityType,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    };
+
+    // Check if target entity already exists
+    const existingTarget = await this.entityService.getEntity(
+      targetEntityType,
+      targetId,
+    );
+
+    // Create or update the entity and return job info
+    let result: { entityId: string; jobId: string };
+    
+    if (existingTarget) {
+      // Update existing entity
+      result = await this.entityService.updateEntity({
+        ...existingTarget,
+        ...derivedEntity,
+      });
+      this.logger.debug("Update job created for derived entity", {
+        jobId: result.jobId,
+        entityId: result.entityId,
+      });
+    } else {
+      // Create new entity
+      result = await this.entityService.createEntity(derivedEntity);
+      this.logger.debug("Create job created for derived entity", {
+        jobId: result.jobId,
+        entityId: result.entityId,
+      });
+    }
+
+    // Optionally delete the source
+    // Note: This happens immediately, not after the create/update job completes
+    if (options?.deleteSource) {
+      await this.entityService.deleteEntity(sourceEntityType, sourceEntityId);
+    }
+
+    this.logger.info("Content derivation job created", {
+      sourceId: sourceEntityId,
+      sourceType: sourceEntityType,
+      targetId,
+      targetType: targetEntityType,
+      jobId: result.jobId,
+      deleteSource: options?.deleteSource,
+    });
+
+    return result;
   }
 }

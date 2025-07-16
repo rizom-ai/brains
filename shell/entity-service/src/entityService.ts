@@ -7,7 +7,6 @@ import type { IEmbeddingService } from "@brains/embedding-service";
 import type { SearchOptions, EntityService as IEntityService } from "./types";
 import { eq, and, inArray, desc, asc, sql } from "@brains/db";
 import { z } from "zod";
-import { EntityNotFoundError } from "./errors";
 import type { JobQueueService } from "@brains/job-queue";
 import type { EntityWithoutEmbedding } from "@brains/db";
 
@@ -668,65 +667,6 @@ export class EntityService implements IEntityService {
     return this.search(query, searchOptions);
   }
 
-  /**
-   * Derive a new entity from an existing entity
-   * Useful for creating entities based on generated content or transforming between types
-   */
-  public async deriveEntity(
-    sourceEntityId: string,
-    sourceEntityType: string,
-    targetEntityType: string,
-    options?: { deleteSource?: boolean },
-  ): Promise<{ entityId: string; jobId: string }> {
-    // Get the source entity
-    const source = await this.getEntity(sourceEntityType, sourceEntityId);
-    if (!source) {
-      throw new EntityNotFoundError(
-        sourceEntityId,
-        sourceEntityType,
-        undefined,
-        { operation: "deriveEntity" },
-      );
-    }
-
-    this.logger.debug("Deriving entity", {
-      sourceId: source.id,
-      sourceEntityId,
-      sourceEntityType,
-      targetEntityType,
-    });
-
-    // Create the derived entity by copying source fields
-    // Exclude auto-generated fields but KEEP the ID
-    const {
-      created: _created,
-      updated: _updated,
-      entityType: _entityType,
-      ...sourceFields
-    } = source;
-
-    this.logger.debug("Source fields for derivation", {
-      sourceFields,
-      hasId: "id" in sourceFields,
-      id: sourceFields.id,
-    });
-
-    const result = await this.createEntity({
-      ...sourceFields, // This includes the ID
-      entityType: targetEntityType,
-    });
-
-    // Optionally delete the source
-    if (options?.deleteSource) {
-      await this.deleteEntity(sourceEntityType, sourceEntityId);
-    }
-
-    this.logger.info(
-      `Derived ${targetEntityType} ${result.entityId} from ${sourceEntityType} ${sourceEntityId}`,
-    );
-
-    return result;
-  }
 
   /**
    * Check async job status

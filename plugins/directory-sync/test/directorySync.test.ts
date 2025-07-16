@@ -134,10 +134,6 @@ class MockEntityService implements Partial<EntityService> {
     return [];
   }
 
-  async deriveEntity(): Promise<any> {
-    throw new Error("Not implemented in mock");
-  }
-
   // Helper methods for testing
   addEntity(entity: BaseEntity): void {
     const entities = this.entities.get(entity.entityType) || [];

@@ -43,12 +43,6 @@ export interface EntityService {
     options?: { priority?: number; maxRetries?: number },
   ): Promise<{ entityId: string; jobId: string }>;
   deleteEntity(entityType: string, id: string): Promise<boolean>;
-  deriveEntity(
-    sourceEntityId: string,
-    sourceEntityType: string,
-    targetEntityType: string,
-    options?: { deleteSource?: boolean },
-  ): Promise<{ entityId: string; jobId: string }>;
 
   // Query operations
   listEntities<T extends BaseEntity>(

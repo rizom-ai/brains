@@ -25,7 +25,6 @@ const mockListEntities = mock();
 const mockEnqueueContentGeneration = mock();
 const mockEnqueueBatch = mock();
 const mockGetJobStatus = mock();
-const mockDeriveEntity = mock();
 
 // Test harness instances
 let harness: PluginTestHarness;
@@ -55,7 +54,6 @@ beforeEach(async (): Promise<void> => {
   mockEntityService.createEntity = mockCreateEntity;
   mockEntityService.updateEntity = mockUpdateEntity;
   mockEntityService.listEntities = mockListEntities;
-  mockEntityService.deriveEntity = mockDeriveEntity;
 
   // Setup job queue mocks
   mockPluginContext.getJobStatus = mockGetJobStatus;
@@ -71,7 +69,6 @@ beforeEach(async (): Promise<void> => {
   mockEnqueueContentGeneration.mockClear();
   mockEnqueueBatch.mockClear();
   mockGetJobStatus.mockClear();
-  mockDeriveEntity.mockClear();
 
   // Create content manager - all dependencies are now required
   contentManager = new ContentManager(

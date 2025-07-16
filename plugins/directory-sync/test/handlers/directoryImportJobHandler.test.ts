@@ -75,8 +75,12 @@ describe("DirectoryImportJobHandler", () => {
           }
           return Promise.resolve(null);
         }),
-        createEntity: mock(() => Promise.resolve({ entityId: "test-id", jobId: "job-123" })),
-        updateEntity: mock(() => Promise.resolve({ entityId: "test-id", jobId: "job-123" })),
+        createEntity: mock(() =>
+          Promise.resolve({ entityId: "test-id", jobId: "job-123" }),
+        ),
+        updateEntity: mock(() =>
+          Promise.resolve({ entityId: "test-id", jobId: "job-123" }),
+        ),
         getAsyncJobStatus: mock(() => Promise.resolve({ status: "completed" })),
       },
     } as unknown as PluginContext;
@@ -151,12 +155,8 @@ describe("DirectoryImportJobHandler", () => {
       expect(result.errors).toHaveLength(0);
 
       // Check entity operations
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledTimes(
-        2,
-      );
-      expect(mockContext.entityService.updateEntity).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledTimes(2);
+      expect(mockContext.entityService.updateEntity).toHaveBeenCalledTimes(1);
     });
 
     test("should import specific paths", async () => {
@@ -310,12 +310,8 @@ describe("DirectoryImportJobHandler", () => {
       expect(result.failed).toBe(0);
 
       // No creates or updates should have been called
-      expect(
-        mockContext.entityService.createEntity,
-      ).not.toHaveBeenCalled();
-      expect(
-        mockContext.entityService.updateEntity,
-      ).not.toHaveBeenCalled();
+      expect(mockContext.entityService.createEntity).not.toHaveBeenCalled();
+      expect(mockContext.entityService.updateEntity).not.toHaveBeenCalled();
     });
 
     test("should process files in batches", async () => {
