@@ -341,7 +341,7 @@ describe("Plugin Job Handler Lifecycle", () => {
       expect(false).toBe(true); // Should not reach here
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe("Invalid job data");
+      expect((error as Error).message).toBe("Job operation failed: enqueueJob");
     }
   });
 

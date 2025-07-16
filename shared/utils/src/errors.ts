@@ -6,7 +6,7 @@
 /**
  * Utility type for error causes that can be a string, Error instance, or unknown (from catch blocks)
  */
-export type ErrorCause = string | Error;
+export type ErrorCause = string | Error | unknown;
 
 /**
  * Base error class for all Brains-related errors
@@ -407,12 +407,10 @@ export class JobOperationError extends BrainsError {
     cause: ErrorCause,
     context: Record<string, unknown> = {},
   ) {
-    super(
-      `Job operation failed: ${operation}`,
-      "JOB_OPERATION_FAILED",
-      cause,
-      { operation, ...context },
-    );
+    super(`Job operation failed: ${operation}`, "JOB_OPERATION_FAILED", cause, {
+      operation,
+      ...context,
+    });
   }
 }
 
@@ -486,42 +484,6 @@ export class ErrorUtils {
 
     const cause = error instanceof Error ? error : new Error(String(error));
     return new BrainsError(message, code, cause, context);
-  }
-
-  /**
-   * Execute a synchronous operation with standardized error handling and logging
-   */
-  static withLogging<T>(
-    operation: () => T,
-    errorMessage: string,
-    logger: { error: (message: string, error?: unknown) => void },
-    errorClass: new (...args: unknown[]) => Error,
-    ...errorArgs: unknown[]
-  ): T {
-    try {
-      return operation();
-    } catch (error) {
-      logger.error(errorMessage, error);
-      throw new errorClass(...errorArgs, error);
-    }
-  }
-
-  /**
-   * Execute an asynchronous operation with standardized error handling and logging
-   */
-  static async withLoggingAsync<T>(
-    operation: () => Promise<T>,
-    errorMessage: string,
-    logger: { error: (message: string, error?: unknown) => void },
-    errorClass: new (...args: unknown[]) => Error,
-    ...errorArgs: unknown[]
-  ): Promise<T> {
-    try {
-      return await operation();
-    } catch (error) {
-      logger.error(errorMessage, error);
-      throw new errorClass(...errorArgs, error);
-    }
   }
 }
 

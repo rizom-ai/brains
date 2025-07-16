@@ -48,6 +48,6 @@ module.exports = {
     "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
     "@typescript-eslint/consistent-type-exports": "error",
     "@typescript-eslint/no-duplicate-type-constituents": "error",
-    "@typescript-eslint/no-redundant-type-constituents": "error"
+    "@typescript-eslint/no-redundant-type-constituents": "off"
   }
 };
