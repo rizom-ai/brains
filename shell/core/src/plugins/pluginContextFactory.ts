@@ -14,13 +14,10 @@ import type { EntityAdapter } from "@brains/types";
 import type { Shell } from "../shell";
 import type { EntityRegistry } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
-import type { JobOptions, JobContext, JobQueue } from "@brains/db";
+import type { JobOptions, JobQueue } from "@brains/db";
 import { BatchJobManager } from "@brains/job-queue";
-import { type BatchJobStatus, type BatchOperation } from "@brains/job-queue";
-import {
-  ContentGenerationError,
-  JobOperationError,
-} from "@brains/utils";
+import { type BatchJobStatus, type BatchOperation, type Batch } from "@brains/job-queue";
+import { ContentGenerationError } from "@brains/utils";
 import type { z } from "zod";
 
 /**
@@ -299,18 +296,11 @@ export class PluginContextFactory {
       getBatchStatus: async (
         batchId: string,
       ): Promise<BatchJobStatus | null> => {
-        try {
-          // Use BatchJobManager to get batch status
-          const batchJobManager = BatchJobManager.getInstance(
-            jobQueueService,
-            this.logger,
-          );
-
-          return await batchJobManager.getBatchStatus(batchId);
-        } catch (error) {
-          this.logger.error("Failed to get batch status", error);
-          throw new JobOperationError("getBatchStatus", error, { batchId });
-        }
+        const batchJobManager = BatchJobManager.getInstance(
+          jobQueueService,
+          this.logger,
+        );
+        return batchJobManager.getBatchStatus(batchId);
       },
 
       // Get active jobs (for monitoring)
@@ -319,25 +309,12 @@ export class PluginContextFactory {
       },
 
       // Get active batches (for monitoring)
-      getActiveBatches: async (): Promise<
-        Array<{
-          batchId: string;
-          status: BatchJobStatus;
-          metadata: JobContext;
-        }>
-      > => {
+      getActiveBatches: async (): Promise<Batch[]> => {
         const batchJobManager = BatchJobManager.getInstance(
           jobQueueService,
           this.logger,
         );
-        const batches = await batchJobManager.getActiveBatches();
-
-        // Transform the nested metadata structure to match the expected interface
-        return batches.map((batch) => ({
-          batchId: batch.batchId,
-          status: batch.status,
-          metadata: batch.metadata.metadata, // Extract the nested JobContext
-        }));
+        return batchJobManager.getActiveBatches();
       },
 
       // Job handler registration (for plugins that process jobs)

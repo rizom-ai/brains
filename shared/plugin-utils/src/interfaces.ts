@@ -15,8 +15,9 @@ import type {
   JobHandler,
   BatchJobStatus,
   BatchOperation,
+  Batch,
 } from "@brains/job-queue";
-import type { JobOptions, JobContext, JobQueue } from "@brains/db";
+import type { JobOptions, JobQueue } from "@brains/db";
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -200,13 +201,7 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
   getActiveJobs: (types?: string[]) => Promise<JobQueue[]>;
 
   // Get active batches (for monitoring)
-  getActiveBatches: () => Promise<
-    Array<{
-      batchId: string;
-      status: BatchJobStatus;
-      metadata: JobContext;
-    }>
-  >;
+  getActiveBatches: () => Promise<Batch[]>;
 
   // Job handler registration (for plugins that process jobs)
   registerJobHandler: (type: string, handler: JobHandler) => void;

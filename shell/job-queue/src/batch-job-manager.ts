@@ -1,5 +1,5 @@
 import type { IJobQueueService } from "./types";
-import type { BatchOperation, BatchJobStatus } from "./schemas";
+import type { BatchOperation, BatchJobStatus, Batch } from "./schemas";
 import { JOB_STATUS } from "./schemas";
 import type { JobContext, JobOptions } from "@brains/db";
 import type { Logger } from "@brains/utils";
@@ -269,28 +269,8 @@ export class BatchJobManager {
   /**
    * Get all active batches (pending or processing)
    */
-  async getActiveBatches(): Promise<
-    Array<{
-      batchId: string;
-      status: BatchJobStatus;
-      metadata: {
-        operations: BatchOperation[];
-        source: string;
-        startedAt: string;
-        metadata: JobContext;
-      };
-    }>
-  > {
-    const activeBatches: Array<{
-      batchId: string;
-      status: BatchJobStatus;
-      metadata: {
-        operations: BatchOperation[];
-        source: string;
-        startedAt: string;
-        metadata: JobContext;
-      };
-    }> = [];
+  async getActiveBatches(): Promise<Batch[]> {
+    const activeBatches: Batch[] = [];
 
     try {
       // Check each batch's status

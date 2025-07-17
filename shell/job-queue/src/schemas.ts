@@ -97,11 +97,26 @@ export const BatchJobStatusSchema = z.object({
   status: JobStatusEnum,
 });
 
+/**
+ * Schema for batch result with full metadata
+ */
+export const BatchSchema = z.object({
+  batchId: z.string(),
+  status: BatchJobStatusSchema,
+  metadata: z.object({
+    operations: z.array(BatchOperationSchema),
+    source: z.string(),
+    startedAt: z.string(),
+    metadata: JobContextSchema,
+  }),
+});
+
 export type JobStatus = z.infer<typeof JobStatusSchema>;
 export type JobResult = z.infer<typeof JobResultSchema>;
 export type BatchOperation = z.infer<typeof BatchOperationSchema>;
 export type BatchJobData = z.infer<typeof BatchJobDataSchema>;
 export type BatchJobStatus = z.infer<typeof BatchJobStatusSchema>;
+export type Batch = z.infer<typeof BatchSchema>;
 
 /**
  * Schema for job progress events

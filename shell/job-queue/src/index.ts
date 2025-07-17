@@ -13,6 +13,7 @@ export {
   BatchOperationSchema,
   BatchJobDataSchema,
   BatchJobStatusSchema,
+  BatchSchema,
   JobStatusEnum,
   JobResultStatusEnum,
   JOB_STATUS,
@@ -23,6 +24,7 @@ export {
   type BatchOperation,
   type BatchJobData,
   type BatchJobStatus,
+  type Batch,
   JobProgressEventSchema,
   type JobProgressEvent,
 } from "./schemas";
