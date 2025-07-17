@@ -7,16 +7,19 @@ This plan consolidates and replaces previous plugin context redesign proposals. 
 ## Plugin Types by Access Level
 
 ### 1. **Core Plugin** - Basic functionality
+
 **Examples**: git-sync  
 **Access**: Commands, tools, messaging  
 **Cannot**: Access entities or system-wide data
 
-### 2. **Entity Plugin** - Data management  
+### 2. **Entity Plugin** - Data management
+
 **Examples**: directory-sync, site-builder  
 **Access**: Everything from Core + EntityService  
 **Cannot**: Access system-wide commands or other plugins
 
 ### 3. **Interface Plugin** - User interfaces
+
 **Examples**: cli, matrix, mcp, webserver  
 **Access**: Everything from Core + System-wide access  
 **Cannot**: Direct entity access (use commands instead)
@@ -24,12 +27,13 @@ This plan consolidates and replaces previous plugin context redesign proposals. 
 ## Context Interfaces
 
 ### Core Plugin Context
+
 ```typescript
 interface CorePluginContext {
   // Identity
   readonly pluginId: string;
   readonly logger: Logger;
-  
+
   // Command registration
   registerCommand(command: {
     name: string;
@@ -37,7 +41,7 @@ interface CorePluginContext {
     parameters?: Record<string, ParamDef>;
     handler: (params: any) => string | Promise<string>;
   }): void;
-  
+
   // Tool registration (for MCP)
   registerTool(tool: {
     name: string;
@@ -45,7 +49,7 @@ interface CorePluginContext {
     inputSchema: ZodSchema;
     handler: (input: any) => Promise<any>;
   }): void;
-  
+
   // Inter-plugin messaging
   sendMessage: MessageSender;
   subscribe: (channel: string, handler: MessageHandler) => () => void;
@@ -53,21 +57,23 @@ interface CorePluginContext {
 ```
 
 ### Entity Plugin Context
+
 ```typescript
 interface EntityPluginContext extends CorePluginContext {
   // Full entity service access
   readonly entityService: EntityService;
-  
+
   // Entity type registration (already exists)
   registerEntityType<T extends BaseEntity>(
     entityType: string,
     schema: ZodSchema<T>,
-    adapter: EntityAdapter<T>
+    adapter: EntityAdapter<T>,
   ): void;
 }
 ```
 
 ### Interface Plugin Context
+
 ```typescript
 interface InterfacePluginContext extends CorePluginContext {
   // System-wide access (but no direct entity access)
@@ -77,17 +83,19 @@ interface InterfacePluginContext extends CorePluginContext {
     executeCommand(
       name: string,
       params: Record<string, any>,
-      context?: { userId?: string; source?: string }
+      context?: { userId?: string; source?: string },
     ): Promise<string>;
-    
+
     // Plugin discovery
-    getPlugins(): Promise<Array<{
-      id: string;
-      version: string;
-      type: PluginType;
-    }>>;
+    getPlugins(): Promise<
+      Array<{
+        id: string;
+        version: string;
+        type: PluginType;
+      }>
+    >;
   };
-  
+
   // Daemon support for long-running interfaces
   registerDaemon(name: string, daemon: Daemon): void;
 }
@@ -129,6 +137,7 @@ type Plugin = CorePlugin | EntityPlugin | InterfacePlugin;
 ### Phase 1: Create plugin-context Package (2 days)
 
 #### 1.1 Package Structure
+
 ```
 shell/plugin-context/
 ├── src/
@@ -154,6 +163,7 @@ shell/plugin-context/
 ```
 
 #### 1.2 Package Dependencies
+
 ```json
 {
   "name": "@brains/plugin-context",
@@ -175,6 +185,7 @@ shell/plugin-context/
 ### Phase 2: Build Mock Infrastructure (2 days)
 
 #### 2.1 Mock Service Interfaces
+
 ```typescript
 // shell/plugin-context/src/mocks/mockServices.ts
 
@@ -184,11 +195,11 @@ export interface MockServices {
   commandRegistry: MockCommandRegistry;
   toolRegistry: MockToolRegistry;
   messageBus: MockMessageBus;
-  
+
   // Entity services (for entity plugins)
   entityService?: MockEntityService;
   entityRegistry?: MockEntityRegistry;
-  
+
   // System services (for interface plugins)
   pluginManager?: MockPluginManager;
   shell?: MockShell;
@@ -196,15 +207,15 @@ export interface MockServices {
 
 export class MockCommandRegistry {
   private commands = new Map<string, Command>();
-  
+
   register(command: Command): void {
     this.commands.set(command.name, command);
   }
-  
+
   getAll(): Command[] {
     return Array.from(this.commands.values());
   }
-  
+
   execute(name: string, params: any): Promise<string> {
     const command = this.commands.get(name);
     if (!command) throw new Error(`Command not found: ${name}`);
@@ -216,38 +227,39 @@ export class MockCommandRegistry {
 ```
 
 #### 2.2 Context Builders with Mocks
+
 ```typescript
 // shell/plugin-context/src/contexts/corePluginContext.ts
 
 export function createCorePluginContext(
   plugin: Plugin,
-  services: MockServices
+  services: MockServices,
 ): CorePluginContext {
   return {
     pluginId: plugin.id,
     logger: services.logger.child(plugin.id),
-    
+
     registerCommand: (cmd) => {
       services.commandRegistry.register({
         ...cmd,
-        metadata: { pluginId: plugin.id }
+        metadata: { pluginId: plugin.id },
       });
     },
-    
+
     registerTool: (tool) => {
       services.toolRegistry.register({
         ...tool,
-        metadata: { pluginId: plugin.id }
+        metadata: { pluginId: plugin.id },
       });
     },
-    
+
     sendMessage: async (type, payload) => {
       return services.messageBus.send(type, payload, plugin.id);
     },
-    
+
     subscribe: (type, handler) => {
       return services.messageBus.subscribe(type, handler);
-    }
+    },
   };
 }
 ```
@@ -255,13 +267,14 @@ export function createCorePluginContext(
 ### Phase 3: Comprehensive Testing (3 days)
 
 #### 3.1 Unit Tests for Each Context Type
+
 ```typescript
 // shell/plugin-context/test/unit/corePluginContext.test.ts
 
 describe("CorePluginContext", () => {
   let mockServices: MockServices;
   let testPlugin: CorePlugin;
-  
+
   beforeEach(() => {
     mockServices = createMockServices();
     testPlugin = {
@@ -272,84 +285,85 @@ describe("CorePluginContext", () => {
         ctx.registerCommand({
           name: "test:hello",
           description: "Test command",
-          handler: () => "Hello!"
+          handler: () => "Hello!",
         });
-      }
+      },
     };
   });
-  
+
   test("provides plugin identity", async () => {
     const context = createCorePluginContext(testPlugin, mockServices);
     expect(context.pluginId).toBe("test-plugin");
   });
-  
+
   test("provides scoped logger", async () => {
     const context = createCorePluginContext(testPlugin, mockServices);
     expect(context.logger).toBeDefined();
     // Verify logger has plugin context
   });
-  
+
   test("registers commands with plugin metadata", async () => {
     const context = createCorePluginContext(testPlugin, mockServices);
     await testPlugin.register(context);
-    
+
     const commands = mockServices.commandRegistry.getAll();
     expect(commands).toHaveLength(1);
     expect(commands[0].metadata?.pluginId).toBe("test-plugin");
   });
-  
+
   test("handles messaging", async () => {
     const context = createCorePluginContext(testPlugin, mockServices);
-    
+
     const received: any[] = [];
     const unsubscribe = context.subscribe("test.event", async (payload) => {
       received.push(payload);
       return { success: true };
     });
-    
+
     await context.sendMessage("test.event", { message: "hello" });
-    
+
     expect(received).toHaveLength(1);
     expect(received[0]).toEqual({ message: "hello" });
-    
+
     unsubscribe();
   });
 });
 ```
 
 #### 3.2 Entity Plugin Context Tests
+
 ```typescript
 // shell/plugin-context/test/unit/entityPluginContext.test.ts
 
 describe("EntityPluginContext", () => {
   test("extends core context", () => {
     const context = createEntityPluginContext(testPlugin, mockServices);
-    
+
     // Has all core functionality
     expect(context.pluginId).toBeDefined();
     expect(context.logger).toBeDefined();
     expect(context.registerCommand).toBeDefined();
     expect(context.sendMessage).toBeDefined();
     expect(context.subscribe).toBeDefined();
-    
+
     // Plus entity service
     expect(context.entityService).toBeDefined();
     expect(context.registerEntityType).toBeDefined();
   });
-  
+
   test("provides entity service access", async () => {
     const context = createEntityPluginContext(testPlugin, mockServices);
-    
+
     // Can use entity service
     const entities = await context.entityService.listEntities("test");
     expect(entities).toEqual([]);
   });
-  
+
   test("registers entity types", () => {
     const context = createEntityPluginContext(testPlugin, mockServices);
-    
+
     context.registerEntityType("note", noteSchema, noteAdapter);
-    
+
     // Should be registered in the entity registry
     const registered = mockServices.entityRegistry.getRegisteredTypes();
     expect(registered).toContain("note");
@@ -358,6 +372,7 @@ describe("EntityPluginContext", () => {
 ```
 
 #### 3.3 Integration Tests
+
 ```typescript
 // shell/plugin-context/test/integration/pluginLoading.test.ts
 
@@ -365,32 +380,32 @@ describe("Plugin Loading Integration", () => {
   test("loads core plugin", async () => {
     const loader = new PluginContextLoader(mockServices);
     const plugin = createMockCorePlugin();
-    
+
     await loader.loadPlugin(plugin);
-    
+
     expect(loader.getLoadedPlugins()).toContain(plugin.id);
   });
-  
+
   test("loads entity plugin with correct context", async () => {
     const loader = new PluginContextLoader(mockServices);
     const plugin = createMockEntityPlugin();
-    
+
     await loader.loadPlugin(plugin);
-    
+
     // Verify entity operations work
     const entities = await mockServices.entityService.listEntities("test");
     expect(entities).toBeDefined();
   });
-  
+
   test("loads interface plugin and starts it", async () => {
     const loader = new PluginContextLoader(mockServices);
     const plugin = createMockInterfacePlugin();
-    
+
     await loader.loadPlugin(plugin);
-    
+
     expect(plugin.started).toBe(true);
   });
-  
+
   test("prevents entity access from core plugin", async () => {
     const loader = new PluginContextLoader(mockServices);
     const plugin: CorePlugin = {
@@ -399,9 +414,9 @@ describe("Plugin Loading Integration", () => {
       register: async (ctx: any) => {
         // Try to access entity service (should not exist)
         expect(ctx.entityService).toBeUndefined();
-      }
+      },
     };
-    
+
     await loader.loadPlugin(plugin);
   });
 });
@@ -418,38 +433,42 @@ export const calculatorPlugin: CorePlugin = {
   version: "1.0.0",
   type: "core",
   description: "Simple calculator plugin",
-  
+
   async register(context: CorePluginContext) {
     context.registerCommand({
       name: "calc:add",
       description: "Add two numbers",
       parameters: {
         a: { type: "number", required: true },
-        b: { type: "number", required: true }
+        b: { type: "number", required: true },
       },
-      handler: ({ a, b }) => `Result: ${a + b}`
+      handler: ({ a, b }) => `Result: ${a + b}`,
     });
-    
+
     context.registerTool({
       name: "calculate",
       description: "Perform calculations",
       inputSchema: z.object({
         operation: z.enum(["add", "subtract", "multiply", "divide"]),
         a: z.number(),
-        b: z.number()
+        b: z.number(),
       }),
       handler: async ({ operation, a, b }) => {
         switch (operation) {
-          case "add": return a + b;
-          case "subtract": return a - b;
-          case "multiply": return a * b;
-          case "divide": return a / b;
+          case "add":
+            return a + b;
+          case "subtract":
+            return a - b;
+          case "multiply":
+            return a * b;
+          case "divide":
+            return a / b;
         }
-      }
+      },
     });
-    
+
     context.logger.info("Calculator plugin registered");
-  }
+  },
 };
 
 // shell/plugin-context/examples/notes-plugin.ts (Entity)
@@ -457,11 +476,11 @@ export const notesPlugin: EntityPlugin = {
   id: "notes",
   version: "1.0.0",
   type: "entity",
-  
+
   async register(context: EntityPluginContext) {
     // Register entity type
     context.registerEntityType("note", noteSchema, noteAdapter);
-    
+
     // Add commands that use entity service
     context.registerCommand({
       name: "note:create",
@@ -470,21 +489,21 @@ export const notesPlugin: EntityPlugin = {
         const result = await context.entityService.createEntity({
           entityType: "note",
           title,
-          content
+          content,
         });
         return `Created note: ${result.entityId}`;
-      }
+      },
     });
-    
+
     context.registerCommand({
       name: "note:list",
       description: "List all notes",
       handler: async () => {
         const notes = await context.entityService.listEntities("note");
         return `You have ${notes.length} notes`;
-      }
+      },
     });
-  }
+  },
 };
 ```
 
@@ -493,10 +512,11 @@ export const notesPlugin: EntityPlugin = {
 Only after the plugin-context package is fully tested in isolation:
 
 1. **Update Shell to use plugin-context**
+
    ```typescript
    // shell/core/src/shell.ts
    import { PluginContextLoader } from "@brains/plugin-context";
-   
+
    // Create loader with real services instead of mocks
    this.pluginLoader = new PluginContextLoader({
      logger: this.logger,
@@ -508,9 +528,13 @@ Only after the plugin-context package is fully tested in isolation:
    ```
 
 2. **Create adapter for existing PluginContext**
+
    ```typescript
    // shell/core/src/pluginContextAdapter.ts
-   export function adaptOldContext(newContext: any, plugin: Plugin): OldPluginContext {
+   export function adaptOldContext(
+     newContext: any,
+     plugin: Plugin,
+   ): OldPluginContext {
      // Map new context to old for backward compatibility
    }
    ```
@@ -535,7 +559,7 @@ export const gitSyncPlugin = {
   version: "1.0.0",
   register: async (context: PluginContext) => {
     // Has access to everything
-  }
+  },
 };
 
 // AFTER
@@ -545,7 +569,7 @@ export const gitSyncPlugin: CorePlugin = {
   type: "core", // Added
   register: async (context: CorePluginContext) => {
     // Only has access to core features
-  }
+  },
 };
 ```
 

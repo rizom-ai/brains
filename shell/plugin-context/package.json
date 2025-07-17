@@ -1,0 +1,23 @@
+{
+  "name": "@brains/plugin-context",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@brains/types": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@brains/plugin-utils": "workspace:*",
+    "@brains/messaging-service": "workspace:*",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@brains/test-utils": "workspace:*",
+    "bun-types": "latest"
+  }
+}
