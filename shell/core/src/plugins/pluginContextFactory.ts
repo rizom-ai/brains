@@ -173,28 +173,7 @@ export class PluginContextFactory {
         routes: RouteDefinition[],
         options?: { environment?: string },
       ): void => {
-        // Add plugin prefix to template references in routes
-        const processedRoutes = routes.map((route) => ({
-          ...route,
-          sections: route.sections.map((section) => ({
-            ...section,
-            // Add plugin prefix to template name
-            template: section.template
-              ? `${pluginId}:${section.template}`
-              : section.template,
-          })),
-        }));
-
-        const routeOptions: { pluginId?: string; environment?: string } = {
-          pluginId,
-        };
-        if (options?.environment !== undefined) {
-          routeOptions.environment = options.environment;
-        }
-        shell.registerRoutes(processedRoutes, routeOptions);
-        this.logger.debug(
-          `Registered ${routes.length} routes for plugin ${pluginId}`,
-        );
+        shell.registerRoutes(routes, { pluginId, ...options });
       },
       // View template access (replaces direct viewRegistry access)
       getViewTemplate: (name: string) => {

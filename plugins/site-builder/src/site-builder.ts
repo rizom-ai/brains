@@ -80,11 +80,14 @@ export class SiteBuilder implements ISiteBuilder {
 
   private registerBuiltInTemplates(): void {
     // Convert array to object for registerTemplates
-    const templatesObj = builtInTemplates.reduce((acc, template) => {
-      acc[template.name] = template;
-      return acc;
-    }, {} as Record<string, Template>);
-    
+    const templatesObj = builtInTemplates.reduce(
+      (acc, template) => {
+        acc[template.name] = template;
+        return acc;
+      },
+      {} as Record<string, Template>,
+    );
+
     // Register built-in templates
     this.context.registerTemplates(templatesObj);
   }

@@ -379,7 +379,10 @@ export class Shell {
     templates: Record<string, Template>,
     pluginId?: string,
   ): void {
-    this.logger.debug("Registering templates", { pluginId, count: Object.keys(templates).length });
+    this.logger.debug("Registering templates", {
+      pluginId,
+      count: Object.keys(templates).length,
+    });
 
     Object.entries(templates).forEach(([name, template]) => {
       this.registerTemplate(name, template, pluginId);
@@ -428,19 +431,13 @@ export class Shell {
     this.logger.debug("Registering routes", { pluginId, count: routes.length });
 
     routes.forEach((route) => {
-      // Add convention-based contentEntity if not already present
       const processedRoute = {
         ...route,
         pluginId,
         sections: route.sections.map((section) => ({
           ...section,
-          contentEntity: section.contentEntity ?? {
-            entityType: "site-content-preview",
-            query: {
-              page: route.id,
-              section: section.id,
-            },
-          },
+          // Add scoping prefix to template name: shell templates get "shell:" prefix, plugins get "pluginId:" prefix
+          template: section.template && `${pluginId || 'shell'}:${section.template}`,
         })),
       };
 
