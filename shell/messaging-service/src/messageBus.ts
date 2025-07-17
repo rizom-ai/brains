@@ -154,7 +154,7 @@ export class MessageBus implements IMessageBus {
     };
 
     const response = await this.publish(message, broadcast);
-    
+
     // Handle successful response
     if (response?.success) {
       return {

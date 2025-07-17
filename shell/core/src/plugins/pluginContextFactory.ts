@@ -84,16 +84,6 @@ export class PluginContextFactory {
     this.daemonRegistry = DaemonRegistry.getInstance(logger);
   }
 
-  /**
-   * Ensure template name is properly namespaced with plugin ID
-   */
-  private ensureNamespaced(templateName: string, pluginId: string): string {
-    const parts = templateName.split(":");
-    // If already namespaced (has a prefix), use as-is
-    const isAlreadyNamespaced = parts.length >= 2;
-
-    return isAlreadyNamespaced ? templateName : `${pluginId}:${templateName}`;
-  }
 
   /**
    * Create a plugin context for the specified plugin
@@ -137,15 +127,14 @@ export class PluginContextFactory {
         config: ContentGenerationConfig,
       ): Promise<T> => {
         try {
-          const namespacedTemplateName = this.ensureNamespaced(
-            config.templateName,
-            pluginId,
-          );
+          const scopedTemplateName = config.templateName.includes(":") 
+            ? config.templateName 
+            : `${pluginId}:${config.templateName}`;
 
           // Always route through Shell.generateContent() for consistent permission checking
           return await shell.generateContent<T>({
             ...config,
-            templateName: namespacedTemplateName,
+            templateName: scopedTemplateName,
           });
         } catch (error) {
           this.logger.error("Failed to generate content", error);
@@ -161,43 +150,33 @@ export class PluginContextFactory {
         data: T,
         options?: { truncate?: number },
       ): string => {
-        const namespacedTemplateName = this.ensureNamespaced(
-          templateName,
-          pluginId,
-        );
+        const scopedTemplateName = templateName.includes(":") 
+          ? templateName 
+          : `${pluginId}:${templateName}`;
 
         return contentGenerator.formatContent<T>(
-          namespacedTemplateName,
+          scopedTemplateName,
           data,
           options,
         );
       },
       parseContent: <T = unknown>(templateName: string, content: string): T => {
-        const namespacedTemplateName = this.ensureNamespaced(
-          templateName,
-          pluginId,
-        );
+        const scopedTemplateName = templateName.includes(":") 
+          ? templateName 
+          : `${pluginId}:${templateName}`;
         return contentGenerator.parseContent<T>(
-          namespacedTemplateName,
+          scopedTemplateName,
           content,
         );
       },
       // Unified template registration - registers template for both content generation and view rendering
       registerTemplate: <T>(name: string, template: Template<T>): void => {
-        // Always prefix with plugin ID to ensure proper namespacing
-        const namespacedName = `${pluginId}:${name}`;
-
-        // Delegate to shell which handles both content and view registration
-        shell.registerTemplate(namespacedName, template);
-
-        this.logger.debug(`Registered unified template: ${namespacedName}`);
+        shell.registerTemplate(name, template, pluginId);
       },
       // Convenience method for registering multiple templates at once
       registerTemplates: (templates: Record<string, Template>): void => {
         Object.entries(templates).forEach(([name, template]) => {
-          const namespacedName = `${pluginId}:${name}`;
-          shell.registerTemplate(namespacedName, template);
-          this.logger.debug(`Registered unified template: ${namespacedName}`);
+          shell.registerTemplate(name, template, pluginId);
         });
       },
       registerRoutes: (

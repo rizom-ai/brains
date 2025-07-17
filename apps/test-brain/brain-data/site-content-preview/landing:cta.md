@@ -2,33 +2,24 @@
 routeId: landing
 sectionId: cta
 ---
-
 # CTA Section
 
 ## Headline
-
-Unlock the Power of Your Mind
+Elevate Your Knowledge, Amplify Your Impact
 
 ## Description
-
-Elevate your personal knowledge with a powerful platform designed to transform how you think and learn.
+Unlock your full potential with Rizom - the personal knowledge management system that helps you build your second brain.
 
 ## Primary Button
-
 ### Text
-
-Get Started Now
+Start Free Trial
 
 ### Link
-
 /signup
 
 ## Secondary Button
-
 ### Text
-
-Learn More
+View Demo
 
 ### Link
-
 /demo

@@ -2,7 +2,6 @@
 routeId: landing
 sectionId: hero
 ---
-
 # Hero Section
 
 ## Headline

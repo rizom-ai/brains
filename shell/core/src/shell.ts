@@ -409,18 +409,29 @@ export class Shell {
   /**
    * Register a unified template for both content generation and view rendering
    */
-  public registerTemplate<T>(name: string, template: Template<T>): void {
-    this.logger.debug("Registering unified template", { name });
+  public registerTemplate<T>(
+    name: string,
+    template: Template<T>,
+    pluginId?: string,
+  ): void {
+    // Apply scoping: shell templates get "shell:" prefix, plugins get "pluginId:" prefix
+    const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
+    
+    this.logger.debug("Registering unified template", { 
+      originalName: name, 
+      scopedName, 
+      pluginId: pluginId ?? "shell"
+    });
 
     // Register with ContentGenerator for content generation
-    this.contentGenerator.registerTemplate(name, template);
+    this.contentGenerator.registerTemplate(scopedName, template);
 
     // Register with ViewRegistry for rendering if layout is provided
     if (template.layout?.component) {
-      this.viewRegistry.registerTemplate(name, template);
+      this.viewRegistry.registerTemplate(scopedName, template);
     }
 
-    this.logger.debug(`Registered unified template: ${name}`);
+    this.logger.debug(`Registered unified template: ${scopedName}`);
   }
 
   /**
