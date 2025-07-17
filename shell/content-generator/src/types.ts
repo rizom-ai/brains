@@ -46,11 +46,11 @@ export interface ContentGenerator {
   formatContent<T = unknown>(
     templateName: string,
     data: T,
-    options?: { truncate?: number },
+    options?: { truncate?: number; pluginId?: string },
   ): string;
 
   /**
    * Parse existing content using a template's formatter
    */
-  parseContent<T = unknown>(templateName: string, content: string): T;
+  parseContent<T = unknown>(templateName: string, content: string, pluginId?: string): T;
 }

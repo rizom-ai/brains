@@ -39,6 +39,24 @@ export class ContentGenerator implements IContentGenerator {
   constructor(private readonly dependencies: ContentGeneratorDependencies) {}
 
   /**
+   * Apply template scoping logic
+   */
+  private applyTemplateScoping(templateName: string, pluginId?: string): string {
+    // If no pluginId provided, use template name as-is
+    if (!pluginId) {
+      return templateName;
+    }
+    
+    // If template name already has scoping (contains ":"), use as-is
+    if (templateName.includes(":")) {
+      return templateName;
+    }
+    
+    // Apply plugin scoping
+    return `${pluginId}:${templateName}`;
+  }
+
+  /**
    * Register a reusable template
    */
   registerTemplate<T>(name: string, template: Template<T>): void {
@@ -119,10 +137,13 @@ export class ContentGenerator implements IContentGenerator {
   /**
    * Parse existing content using a template's formatter
    */
-  parseContent<T = unknown>(templateName: string, content: string): T {
-    const template = this.getTemplate(templateName);
+  parseContent<T = unknown>(templateName: string, content: string, pluginId?: string): T {
+    // Apply template scoping if pluginId is provided
+    const scopedTemplateName = this.applyTemplateScoping(templateName, pluginId);
+    
+    const template = this.getTemplate(scopedTemplateName);
     if (!template) {
-      throw new Error(`Template not found: ${templateName}`);
+      throw new Error(`Template not found: ${scopedTemplateName}`);
     }
 
     // Cast template to correct type
@@ -130,7 +151,7 @@ export class ContentGenerator implements IContentGenerator {
 
     if (!typedTemplate.formatter) {
       throw new Error(
-        `Template ${templateName} does not have a formatter for parsing`,
+        `Template ${scopedTemplateName} does not have a formatter for parsing`,
       );
     }
 
@@ -181,15 +202,18 @@ export class ContentGenerator implements IContentGenerator {
   formatContent<T = unknown>(
     templateName: string,
     data: T,
-    options?: { truncate?: number },
+    options?: { truncate?: number; pluginId?: string },
   ): string {
-    const template = this.getTemplate(templateName);
+    // Apply template scoping if pluginId is provided
+    const scopedTemplateName = this.applyTemplateScoping(templateName, options?.pluginId);
+    
+    const template = this.getTemplate(scopedTemplateName);
     if (!template) {
-      throw new Error(`Template not found: ${templateName}`);
+      throw new Error(`Template not found: ${scopedTemplateName}`);
     }
 
     if (!template.formatter) {
-      throw new Error(`Template ${templateName} does not have a formatter`);
+      throw new Error(`Template ${scopedTemplateName} does not have a formatter`);
     }
 
     // Use the formatter to convert object to string

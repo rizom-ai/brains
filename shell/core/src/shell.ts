@@ -437,7 +437,8 @@ export class Shell {
         sections: route.sections.map((section) => ({
           ...section,
           // Add scoping prefix to template name: shell templates get "shell:" prefix, plugins get "pluginId:" prefix
-          template: section.template && `${pluginId || 'shell'}:${section.template}`,
+          template:
+            section.template && `${pluginId || "shell"}:${section.template}`,
         })),
       };
 

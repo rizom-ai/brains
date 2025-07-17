@@ -21,7 +21,6 @@ import {
   type BatchOperation,
   type Batch,
 } from "@brains/job-queue";
-import { ContentGenerationError } from "@brains/utils";
 import type { z } from "zod";
 
 /**
@@ -125,45 +124,28 @@ export class PluginContextFactory {
       generateContent: async <T = unknown>(
         config: ContentGenerationConfig,
       ): Promise<T> => {
-        try {
-          const scopedTemplateName = config.templateName.includes(":")
-            ? config.templateName
-            : `${pluginId}:${config.templateName}`;
+        const scopedTemplateName = config.templateName.includes(":")
+          ? config.templateName
+          : `${pluginId}:${config.templateName}`;
 
-          // Always route through Shell.generateContent() for consistent permission checking
-          return await shell.generateContent<T>({
-            ...config,
-            templateName: scopedTemplateName,
-          });
-        } catch (error) {
-          this.logger.error("Failed to generate content", error);
-          throw new ContentGenerationError(
-            config.templateName,
-            "generation",
-            error,
-          );
-        }
+        return shell.generateContent<T>({
+          ...config,
+          templateName: scopedTemplateName,
+        });
       },
       formatContent: <T = unknown>(
         templateName: string,
         data: T,
         options?: { truncate?: number },
       ): string => {
-        const scopedTemplateName = templateName.includes(":")
-          ? templateName
-          : `${pluginId}:${templateName}`;
-
         return contentGenerator.formatContent<T>(
-          scopedTemplateName,
+          templateName,
           data,
-          options,
+          { ...options, pluginId },
         );
       },
       parseContent: <T = unknown>(templateName: string, content: string): T => {
-        const scopedTemplateName = templateName.includes(":")
-          ? templateName
-          : `${pluginId}:${templateName}`;
-        return contentGenerator.parseContent<T>(scopedTemplateName, content);
+        return contentGenerator.parseContent<T>(templateName, content, pluginId);
       },
       // Register templates - handles both single and multiple templates
       registerTemplates: (templates: Record<string, Template>): void => {
