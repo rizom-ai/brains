@@ -508,7 +508,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
               completedOperations: batch.status.completedOperations,
               failedOperations: batch.status.failedOperations,
               currentOperation: batch.status.currentOperation,
-              userId: batch.metadata.userId,
+              userId: batch.metadata.metadata.userId,
               errors: batch.status.errors,
             }));
 

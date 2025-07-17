@@ -169,6 +169,7 @@ describe("PluginManager", (): void => {
       getJobQueueService: (): IJobQueueService => ({
         registerHandler: mock(() => {}),
         unregisterHandler: mock(() => {}),
+        unregisterPluginHandlers: mock(() => {}),
         getHandler: mock(() => undefined),
         enqueue: mock(async () => "job-123"),
         dequeue: mock(async () => null),

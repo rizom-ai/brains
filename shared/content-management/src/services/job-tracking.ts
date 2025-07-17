@@ -26,7 +26,7 @@ export async function getContentJobStatuses(
       if (status) {
         statuses.set(jobId, {
           status: status.status,
-          ...(status.error && { error: status.error }),
+          ...(status.lastError && { error: status.lastError }),
         });
       }
     }),

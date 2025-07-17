@@ -87,6 +87,26 @@ export class JobQueueService implements IJobQueueService {
   }
 
   /**
+   * Unregister all handlers for a specific plugin
+   */
+  public unregisterPluginHandlers(pluginId: string): void {
+    const prefix = `${pluginId}:`;
+    const pluginHandlers = Array.from(this.handlers.keys()).filter((type) =>
+      type.startsWith(prefix),
+    );
+
+    for (const type of pluginHandlers) {
+      this.handlers.delete(type);
+      this.logger.debug("Unregistered plugin job handler", { type, pluginId });
+    }
+
+    this.logger.debug("Unregistered all handlers for plugin", {
+      pluginId,
+      count: pluginHandlers.length,
+    });
+  }
+
+  /**
    * Get all registered job types
    */
   public getRegisteredTypes(): string[] {

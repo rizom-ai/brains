@@ -16,7 +16,11 @@ import type { EntityRegistry } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
 import type { JobOptions, JobQueue } from "@brains/db";
 import { BatchJobManager } from "@brains/job-queue";
-import { type BatchJobStatus, type BatchOperation, type Batch } from "@brains/job-queue";
+import {
+  type BatchJobStatus,
+  type BatchOperation,
+  type Batch,
+} from "@brains/job-queue";
 import { ContentGenerationError } from "@brains/utils";
 import type { z } from "zod";
 
@@ -31,7 +35,6 @@ export class PluginContextFactory {
   private logger: Logger;
   private plugins: Map<string, { plugin: { packageName?: string } }>;
   private daemonRegistry: DaemonRegistry;
-  private pluginHandlers = new Map<string, Map<string, JobHandler>>();
 
   /**
    * Get the singleton instance of PluginContextFactory
@@ -319,20 +322,7 @@ export class PluginContextFactory {
 
       // Job handler registration (for plugins that process jobs)
       registerJobHandler: (type: string, handler: JobHandler): void => {
-        // Register with job queue - let the service handle scoping
         jobQueueService.registerHandler(type, handler, pluginId);
-
-        // Track for cleanup using the same scoping logic as the service
-        const scopedType = `${pluginId}:${type}`;
-        if (!this.pluginHandlers.has(pluginId)) {
-          this.pluginHandlers.set(pluginId, new Map());
-        }
-        const handlers = this.pluginHandlers.get(pluginId);
-        if (handlers) {
-          handlers.set(scopedType, handler);
-        }
-
-        this.logger.debug(`Registered job handler ${scopedType}`);
       },
 
       // Interface plugin capabilities
@@ -369,23 +359,15 @@ export class PluginContextFactory {
    * Clean up handlers when plugin is unloaded
    */
   public cleanupPlugin(pluginId: string): void {
-    const handlers = this.pluginHandlers.get(pluginId);
-    if (handlers) {
-      try {
-        const shell = this.serviceRegistry.resolve<Shell>("shell");
-        const jobQueueService = shell.getJobQueueService();
-
-        for (const [type, _handler] of handlers) {
-          jobQueueService.unregisterHandler(type);
-          this.logger.debug(`Unregistered handler for job type: ${type}`);
-        }
-      } catch (error) {
-        this.logger.warn(
-          "Could not unregister job handlers during cleanup",
-          error,
-        );
-      }
-      this.pluginHandlers.delete(pluginId);
+    try {
+      const shell = this.serviceRegistry.resolve<Shell>("shell");
+      const jobQueueService = shell.getJobQueueService();
+      jobQueueService.unregisterPluginHandlers(pluginId);
+    } catch (error) {
+      this.logger.warn(
+        "Could not unregister job handlers during cleanup",
+        error,
+      );
     }
   }
 }

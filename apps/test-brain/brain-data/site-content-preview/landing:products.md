@@ -15,7 +15,7 @@ Explore Rizom's Transformative Solutions
 
 ## Description
 
-Rizom is a dynamic professional collective bringing together seasoned experts in digital transformation, organizational development, and ecosystem design under a shared mission to help organizations thrive in the modern landscape. Our product portfolio offers a range of transformative solutions to empower our clients and drive sustainable progress.
+Rizom is a dynamic professional collective bringing together seasoned experts in digital transformation, organizational development, and ecosystem design under a shared mission to help organizations thrive in the modern world. Our products and services empower leaders to navigate complexity, unlock innovation, and build resilient, future-ready ecosystems.
 
 ## Products
 
@@ -31,11 +31,11 @@ Practice Innovation
 
 #### Tagline
 
-Accelerate organizational transformation
+Accelerate your innovation capabilities
 
 #### Description
 
-Our Practice Innovation solution helps organizations develop agile, human-centric approaches to problem-solving and continuous improvement.
+Leverage our proven frameworks and methodologies to cultivate a culture of continuous innovation and equip your teams with the mindsets and tools to ideate, prototype, and scale transformative solutions.
 
 #### Status
 
@@ -59,11 +59,11 @@ Ecosystem Architecture
 
 #### Tagline
 
-Design resilient, adaptive systems
+Design resilient, future-ready ecosystems
 
 #### Description
 
-Ecosystem Architecture provides a framework for building interconnected, future-proof ecosystems that drive growth and adaptability.
+Navigate the complexities of ecosystem dynamics and build adaptable, value-generating systems that enable your organization to thrive in the face of uncertainty.
 
 #### Status
 
@@ -91,7 +91,7 @@ Unlock value from waste streams
 
 #### Description
 
-Our Economy of Garbage solution empowers organizations to rethink waste as a resource, creating circular systems that generate new revenue streams.
+Discover new revenue streams and sustainable business models by reimagining waste as a resource. Our experts help you identify and capitalize on circular economy opportunities.
 
 #### Status
 
@@ -101,4 +101,4 @@ beta
 
 #### Icon
 
-Zap
+Wrench

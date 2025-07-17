@@ -57,6 +57,11 @@ export interface IJobQueueService {
   unregisterHandler(type: string): void;
 
   /**
+   * Unregister all handlers for a specific plugin
+   */
+  unregisterPluginHandlers(pluginId: string): void;
+
+  /**
    * Get a handler for a specific job type
    */
   getHandler(type: string): JobHandler | undefined;

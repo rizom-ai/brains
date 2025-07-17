@@ -14,7 +14,7 @@ import type { EntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { JobContext, JobQueue } from "@brains/db";
-import type { BatchJobStatus, BatchOperation } from "@brains/job-queue";
+import type { BatchJobStatus, BatchOperation, Batch } from "@brains/job-queue";
 import type { Command } from "@brains/message-interface";
 import type { z } from "zod";
 
@@ -255,6 +255,14 @@ export class PluginTestHarness {
 
         return formatted;
       },
+      parseContent: <T = unknown>(templateName: string, content: string): T => {
+        // For test harness, return mock parsed content
+        try {
+          return JSON.parse(content) as T;
+        } catch {
+          return { templateName, content, mockParsed: true } as T;
+        }
+      },
       registerTemplate: (): void => {
         // Mock implementation for test harness
       },
@@ -293,15 +301,28 @@ export class PluginTestHarness {
         // Mock implementation - return a fake job ID
         return "mock-job-id-" + Date.now();
       },
-      getJobStatus: async (): Promise<{
-        status: "pending" | "processing" | "completed" | "failed";
-        result?: unknown;
-        error?: string;
-      } | null> => {
+      getJobStatus: async (): Promise<JobQueue | null> => {
         // Mock implementation - return completed job status
         return {
+          id: "mock-job-id",
+          type: "mock-job-type",
+          data: "{}",
           status: "completed",
+          priority: 0,
+          retryCount: 0,
+          maxRetries: 3,
+          lastError: null,
+          createdAt: Date.now(),
+          scheduledFor: Date.now(),
+          startedAt: Date.now(),
+          completedAt: Date.now(),
           result: "mock-result",
+          source: "test-harness",
+          metadata: {
+            interfaceId: "test",
+            userId: "test-user",
+            operationType: "content_generation",
+          },
         };
       },
       // Batch operations (required)
@@ -343,13 +364,7 @@ export class PluginTestHarness {
       },
 
       // Get active batches (for monitoring)
-      getActiveBatches: async (): Promise<
-        Array<{
-          batchId: string;
-          status: BatchJobStatus;
-          metadata: JobContext;
-        }>
-      > => {
+      getActiveBatches: async (): Promise<Batch[]> => {
         // Mock implementation for test harness - return empty array
         return [];
       },
