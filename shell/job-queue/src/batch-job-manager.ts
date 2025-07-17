@@ -58,6 +58,7 @@ export class BatchJobManager {
   async enqueueBatch(
     operations: BatchOperation[],
     options: JobOptions,
+    pluginId?: string,
   ): Promise<string> {
     if (operations.length === 0) {
       throw new Error("Cannot enqueue empty batch");
@@ -82,6 +83,7 @@ export class BatchJobManager {
           operation.type,
           operation.options ?? {},
           jobOptions,
+          pluginId,
         );
         jobIds.push(jobId);
       }

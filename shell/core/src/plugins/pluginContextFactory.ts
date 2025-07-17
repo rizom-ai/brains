@@ -16,14 +16,10 @@ import type { EntityRegistry } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
 import type { JobOptions, JobContext, JobQueue } from "@brains/db";
 import { BatchJobManager } from "@brains/job-queue";
-import {
-  type BatchJobStatus,
-  type BatchOperation,
-} from "@brains/job-queue";
+import { type BatchJobStatus, type BatchOperation } from "@brains/job-queue";
 import {
   ContentGenerationError,
   JobOperationError,
-  createBatchId,
 } from "@brains/utils";
 import type { z } from "zod";
 
@@ -198,7 +194,10 @@ export class PluginContextFactory {
           templateName,
           pluginId,
         );
-        return contentGenerator.parseContent<T>(namespacedTemplateName, content);
+        return contentGenerator.parseContent<T>(
+          namespacedTemplateName,
+          content,
+        );
       },
       // Unified template registration - registers template for both content generation and view rendering
       registerTemplate: <T>(name: string, template: Template<T>): void => {
@@ -290,61 +289,11 @@ export class PluginContextFactory {
         operations: BatchOperation[],
         options: JobOptions,
       ): Promise<string> => {
-        try {
-          if (operations.length === 0) {
-            throw new Error("Cannot enqueue empty batch");
-          }
-
-          const batchId = createBatchId();
-          const jobIds: string[] = [];
-
-          // Enqueue each operation using existing enqueueJob method (which handles scoping)
-          for (const operation of operations) {
-            const jobOptions: JobOptions = {
-              ...options,
-              metadata: {
-                ...options.metadata,
-                operationTarget: operation.entityId ?? operation.type,
-              },
-            };
-
-            const jobId = await context.enqueueJob(
-              operation.type,
-              operation.options ?? {},
-              jobOptions,
-            );
-            jobIds.push(jobId);
-          }
-
-          // Register the batch with BatchJobManager for status tracking
-          const batchJobManager = BatchJobManager.getInstance(
-            jobQueueService,
-            this.logger,
-          );
-
-          batchJobManager.registerBatch(
-            batchId,
-            jobIds,
-            operations,
-            options.source,
-            options.metadata,
-          );
-
-          this.logger.debug("Enqueued batch operation", {
-            batchId,
-            operationCount: operations.length,
-            jobIds,
-            pluginId,
-          });
-
-          return batchId;
-        } catch (error) {
-          this.logger.error("Failed to enqueue batch operation", error);
-          throw new JobOperationError("enqueueBatch", error, {
-            operationCount: operations.length,
-            pluginId,
-          });
-        }
+        const batchJobManager = BatchJobManager.getInstance(
+          jobQueueService,
+          this.logger,
+        );
+        return batchJobManager.enqueueBatch(operations, options, pluginId);
       },
 
       getBatchStatus: async (
