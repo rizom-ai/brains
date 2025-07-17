@@ -271,40 +271,7 @@ export class PluginContextFactory {
         data: unknown,
         options: JobOptions,
       ): Promise<string> => {
-        try {
-          // Check if this is a shell-provided job type
-          const shellJobTypes = [
-            "content-generation",
-            "content-derivation",
-            "embedding",
-          ];
-          const scopedType = shellJobTypes.includes(type)
-            ? `shell:${type}`
-            : `${pluginId}:${type}`;
-
-          const jobOptions: JobOptions = {
-            ...options,
-          };
-
-          const jobId = await jobQueueService.enqueue(
-            scopedType,
-            data,
-            jobOptions,
-            pluginId,
-          );
-
-          this.logger.debug("Enqueued job", {
-            jobId,
-            type: scopedType,
-            originalType: type,
-            pluginId,
-          });
-
-          return jobId;
-        } catch (error) {
-          this.logger.error("Failed to enqueue job", error);
-          throw new JobOperationError("enqueueJob", error, { type, pluginId });
-        }
+        return jobQueueService.enqueue(type, data, options, pluginId);
       },
 
       // Get job status
@@ -448,10 +415,11 @@ export class PluginContextFactory {
 
       // Job handler registration (for plugins that process jobs)
       registerJobHandler: (type: string, handler: JobHandler): void => {
-        // Scope handler to plugin
-        const scopedType = `${pluginId}:${type}`;
+        // Register with job queue - let the service handle scoping
+        jobQueueService.registerHandler(type, handler, pluginId);
 
-        // Track for cleanup
+        // Track for cleanup using the same scoping logic as the service
+        const scopedType = `${pluginId}:${type}`;
         if (!this.pluginHandlers.has(pluginId)) {
           this.pluginHandlers.set(pluginId, new Map());
         }
@@ -459,9 +427,6 @@ export class PluginContextFactory {
         if (handlers) {
           handlers.set(scopedType, handler);
         }
-
-        // Register with job queue
-        jobQueueService.registerHandler(scopedType, handler, pluginId);
 
         this.logger.debug(`Registered job handler ${scopedType}`);
       },

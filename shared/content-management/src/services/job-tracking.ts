@@ -11,7 +11,6 @@ export interface ContentGenerationResult {
   error?: string;
 }
 
-
 /**
  * Get the current status of content generation jobs
  */

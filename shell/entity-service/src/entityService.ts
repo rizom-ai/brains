@@ -168,7 +168,7 @@ export class EntityService implements IEntityService {
     };
 
     const jobId = await this.jobQueueService.enqueue(
-      "shell:embedding",
+      "embedding",
       entityForQueue,
       {
         ...(options?.priority !== undefined && { priority: options.priority }),
@@ -303,7 +303,7 @@ export class EntityService implements IEntityService {
     };
 
     const jobId = await this.jobQueueService.enqueue(
-      "shell:embedding",
+      "embedding",
       {
         id: validatedEntity.id,
         entityType: validatedEntity.entityType,

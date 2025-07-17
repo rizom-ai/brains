@@ -350,7 +350,6 @@ test("exists convenience method should work with default and custom generateId",
 // Job Tracking Tests (Async Only)
 // ========================================
 
-
 test("getContentJobStatuses should return job status map", async () => {
   const mockJobs = [
     {

@@ -64,7 +64,12 @@ export interface IJobQueueService {
   /**
    * Enqueue a job for processing
    */
-  enqueue(type: string, data: unknown, options: JobOptions, pluginId?: string): Promise<string>;
+  enqueue(
+    type: string,
+    data: unknown,
+    options: JobOptions,
+    pluginId?: string,
+  ): Promise<string>;
 
   /**
    * Get next job to process (marks as processing)

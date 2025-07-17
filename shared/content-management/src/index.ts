@@ -32,9 +32,7 @@ export {
 export type { ContentGenerationResult } from "./services/job-tracking";
 
 // Utility functions
-export {
-  getContentJobStatuses,
-} from "./services/job-tracking";
+export { getContentJobStatuses } from "./services/job-tracking";
 
 // Content utilities
 export {

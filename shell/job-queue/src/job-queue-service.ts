@@ -13,7 +13,7 @@ import {
   type JobOptions,
   type JobQueue,
 } from "@brains/db";
-import { Logger } from "@brains/utils";
+import { Logger, JobOperationError } from "@brains/utils";
 import type { IJobQueueService, JobHandler } from "./types";
 import { JOB_STATUS } from "./schemas";
 
@@ -63,9 +63,19 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Register a job handler for a specific type
    */
-  public registerHandler(type: string, handler: JobHandler): void {
-    this.handlers.set(type, handler as JobHandler);
-    this.logger.debug("Registered job handler", { type });
+  public registerHandler(
+    type: string,
+    handler: JobHandler,
+    pluginId?: string,
+  ): void {
+    // Apply job type scoping: no pluginId means shell, otherwise plugin
+    const scopedType = pluginId ? `${pluginId}:${type}` : `shell:${type}`;
+    this.handlers.set(scopedType, handler as JobHandler);
+    this.logger.debug("Registered job handler", {
+      type: scopedType,
+      originalType: type,
+      pluginId,
+    });
   }
 
   /**
@@ -97,20 +107,37 @@ export class JobQueueService implements IJobQueueService {
     type: string,
     data: unknown,
     options: JobOptions,
+    pluginId?: string,
   ): Promise<string> {
     const jobId = createId();
 
     try {
-      // Get handler and validate data
-      const handler = this.handlers.get(type);
+      // Apply job type scoping with fallback to shell for plugins
+      let scopedType = pluginId ? `${pluginId}:${type}` : `shell:${type}`;
+      let handler = this.handlers.get(scopedType);
+
+      // If not found and came from plugin, try shell handler as fallback
+      if (!handler && pluginId) {
+        scopedType = `shell:${type}`;
+        handler = this.handlers.get(scopedType);
+      }
+
       if (!handler) {
-        throw new Error(`No handler registered for job type: ${type}`);
+        throw new JobOperationError(
+          "enqueue",
+          new Error(`No handler registered for job type: ${scopedType}`),
+          { type, pluginId },
+        );
       }
 
       // Always validate and parse data
       const parsedData = handler.validateAndParse(data);
       if (parsedData === null) {
-        throw new Error(`Invalid job data for type: ${type}`);
+        throw new JobOperationError(
+          "enqueue",
+          new Error(`Invalid job data for type: ${type}`),
+          { type, pluginId },
+        );
       }
 
       // Use the parsed data for the job
@@ -120,7 +147,7 @@ export class JobQueueService implements IJobQueueService {
 
       const values = {
         id: jobId,
-        type,
+        type: scopedType,
         data: JSON.stringify(data),
         priority: options.priority ?? 0,
         maxRetries: options.maxRetries ?? 3,
@@ -139,20 +166,24 @@ export class JobQueueService implements IJobQueueService {
         scheduledFor: values.scheduledFor,
         source: values.source,
         metadataLength: Object.keys(values.metadata).length,
+        pluginId,
       });
 
       await this.db.insert(jobQueue).values(values);
 
       this.logger.debug("Enqueued job", {
         jobId,
-        type,
+        type: scopedType,
+        originalType: type,
         priority: options.priority,
+        pluginId,
       });
 
       return jobId;
     } catch (error) {
       this.logger.error("Failed to enqueue job", {
         type,
+        pluginId,
         error,
       });
       throw error;
