@@ -373,36 +373,16 @@ export class Shell {
   }
 
   /**
-   * Register templates from plugins
+   * Register multiple templates at once
    */
   public registerTemplates(
     templates: Record<string, Template>,
     pluginId?: string,
   ): void {
-    this.logger.debug("Registering templates", { pluginId });
+    this.logger.debug("Registering templates", { pluginId, count: Object.keys(templates).length });
 
-    // Register templates from plugins
-    // Note: template names are already prefixed by PluginManager
-
-    Object.values(templates).forEach((template: Template) => {
-      // Register with ContentGenerator (for AI generation)
-      this.contentGenerator.registerTemplate(template.name, template);
-
-      // Register with ViewRegistry (for rendering) if it has a layout component
-      if (template.layout?.component) {
-        this.viewRegistry.registerViewTemplate({
-          name: template.name, // Already prefixed
-          schema: template.schema,
-          description: template.description,
-          pluginId: pluginId ?? "shell", // Default to shell if no pluginId
-          renderers: { web: template.layout.component },
-          interactive: template.layout.interactive ?? false,
-        });
-      }
-    });
-
-    this.logger.debug(`Registered ${Object.keys(templates).length} templates`, {
-      pluginId,
+    Object.entries(templates).forEach(([name, template]) => {
+      this.registerTemplate(name, template, pluginId);
     });
   }
 
@@ -416,11 +396,11 @@ export class Shell {
   ): void {
     // Apply scoping: shell templates get "shell:" prefix, plugins get "pluginId:" prefix
     const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
-    
-    this.logger.debug("Registering unified template", { 
-      originalName: name, 
-      scopedName, 
-      pluginId: pluginId ?? "shell"
+
+    this.logger.debug("Registering unified template", {
+      originalName: name,
+      scopedName,
+      pluginId: pluginId ?? "shell",
     });
 
     // Register with ContentGenerator for content generation

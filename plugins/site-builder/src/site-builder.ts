@@ -8,6 +8,7 @@ import type {
   SectionDefinition,
   RouteDefinition,
 } from "@brains/view-registry";
+import type { Template } from "@brains/types";
 import { builtInTemplates } from "./view-template-schemas";
 import type {
   StaticSiteBuilderFactory,
@@ -78,10 +79,14 @@ export class SiteBuilder implements ISiteBuilder {
   }
 
   private registerBuiltInTemplates(): void {
-    for (const template of builtInTemplates) {
-      // Register built-in templates directly
-      this.context.registerTemplate(template.name, template);
-    }
+    // Convert array to object for registerTemplates
+    const templatesObj = builtInTemplates.reduce((acc, template) => {
+      acc[template.name] = template;
+      return acc;
+    }, {} as Record<string, Template>);
+    
+    // Register built-in templates
+    this.context.registerTemplates(templatesObj);
   }
 
   async build(

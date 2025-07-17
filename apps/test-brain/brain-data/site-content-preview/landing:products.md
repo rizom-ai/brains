@@ -11,7 +11,7 @@ Our Ecosystem
 Explore Rizom's Transformative Solutions
 
 ## Description
-Rizom is a dynamic professional collective, bringing together seasoned experts in digital transformation, organizational development, and ecosystem design under a shared mission to help organizations unlock their full potential. Our diverse portfolio of transformative solutions empowers our clients to navigate the complexities of the modern business landscape and thrive in the face of constant change.
+Rizom is a dynamic professional collective, bringing together seasoned experts in digital transformation, organizational development, and ecosystem design under a shared mission to empower organizations and communities. Our diverse portfolio of products and services harnesses the power of collaboration, innovation, and sustainable practices to drive meaningful change.
 
 ## Products
 
@@ -24,10 +24,10 @@ practice-innovation
 Practice Innovation
 
 #### Tagline
-Unlock your organization's creative potential
+Accelerate your digital transformation
 
 #### Description
-Our Practice Innovation solutions combine design thinking, agile methodologies, and organizational psychology to help teams and leaders cultivate a culture of continuous improvement and innovation.
+Leverage our proven methodologies and expert guidance to reimagine your organizational practices and unlock new avenues for growth.
 
 #### Status
 live
@@ -36,7 +36,7 @@ live
 
 
 #### Icon
-BrainIcon
+Wrench
 
 ### Product 2
 
@@ -47,10 +47,10 @@ ecosystem-architecture
 Ecosystem Architecture
 
 #### Tagline
-Build resilient, adaptive business ecosystems
+Design resilient, collaborative systems
 
 #### Description
-Our Ecosystem Architecture services empower organizations to design and implement flexible, interconnected business ecosystems that can adapt to rapid change and unlock new sources of value.
+Unlock the power of interconnected ecosystems through our holistic approach to system design and implementation.
 
 #### Status
 live
@@ -59,7 +59,7 @@ live
 
 
 #### Icon
-NetworkIcon
+Network
 
 ### Product 3
 
@@ -70,10 +70,10 @@ economy-of-garbage
 Economy of Garbage
 
 #### Tagline
-Transform waste into opportunity
+Unlock value from waste streams
 
 #### Description
-The Economy of Garbage framework helps organizations identify and capitalize on underutilized resources, turning liabilities into profitable revenue streams and driving sustainable growth.
+Discover innovative ways to transform waste into valuable resources, driving sustainable growth and environmental stewardship.
 
 #### Status
 beta
@@ -82,4 +82,4 @@ beta
 
 
 #### Icon
-WrenchIcon
+Zap

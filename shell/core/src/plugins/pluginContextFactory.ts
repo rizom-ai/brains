@@ -84,7 +84,6 @@ export class PluginContextFactory {
     this.daemonRegistry = DaemonRegistry.getInstance(logger);
   }
 
-
   /**
    * Create a plugin context for the specified plugin
    */
@@ -127,8 +126,8 @@ export class PluginContextFactory {
         config: ContentGenerationConfig,
       ): Promise<T> => {
         try {
-          const scopedTemplateName = config.templateName.includes(":") 
-            ? config.templateName 
+          const scopedTemplateName = config.templateName.includes(":")
+            ? config.templateName
             : `${pluginId}:${config.templateName}`;
 
           // Always route through Shell.generateContent() for consistent permission checking
@@ -150,8 +149,8 @@ export class PluginContextFactory {
         data: T,
         options?: { truncate?: number },
       ): string => {
-        const scopedTemplateName = templateName.includes(":") 
-          ? templateName 
+        const scopedTemplateName = templateName.includes(":")
+          ? templateName
           : `${pluginId}:${templateName}`;
 
         return contentGenerator.formatContent<T>(
@@ -161,23 +160,14 @@ export class PluginContextFactory {
         );
       },
       parseContent: <T = unknown>(templateName: string, content: string): T => {
-        const scopedTemplateName = templateName.includes(":") 
-          ? templateName 
+        const scopedTemplateName = templateName.includes(":")
+          ? templateName
           : `${pluginId}:${templateName}`;
-        return contentGenerator.parseContent<T>(
-          scopedTemplateName,
-          content,
-        );
+        return contentGenerator.parseContent<T>(scopedTemplateName, content);
       },
-      // Unified template registration - registers template for both content generation and view rendering
-      registerTemplate: <T>(name: string, template: Template<T>): void => {
-        shell.registerTemplate(name, template, pluginId);
-      },
-      // Convenience method for registering multiple templates at once
+      // Register templates - handles both single and multiple templates
       registerTemplates: (templates: Record<string, Template>): void => {
-        Object.entries(templates).forEach(([name, template]) => {
-          shell.registerTemplate(name, template, pluginId);
-        });
+        shell.registerTemplates(templates, pluginId);
       },
       registerRoutes: (
         routes: RouteDefinition[],

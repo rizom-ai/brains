@@ -112,7 +112,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
     this.logger.debug("Registered site-content-production entity type");
 
     // Register built-in dashboard template using unified method
-    context.registerTemplate("dashboard", dashboardTemplate);
+    context.registerTemplates({ dashboard: dashboardTemplate });
     this.logger.debug("Registered dashboard template");
 
     // Register dashboard route

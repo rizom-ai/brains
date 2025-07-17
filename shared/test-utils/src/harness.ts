@@ -263,9 +263,6 @@ export class PluginTestHarness {
           return { templateName, content, mockParsed: true } as T;
         }
       },
-      registerTemplate: (): void => {
-        // Mock implementation for test harness
-      },
       registerTemplates: (): void => {
         // Mock implementation for test harness
       },

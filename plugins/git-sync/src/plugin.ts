@@ -30,13 +30,15 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
     const { logger } = context;
 
     // Register our template for git sync status
-    context.registerTemplate("status", {
-      name: "status",
-      description: "Git synchronization status",
-      schema: gitSyncStatusSchema,
-      basePrompt: "",
-      requiredPermission: "public",
-      formatter: new GitSyncStatusFormatter(), // Use status formatter for template
+    context.registerTemplates({
+      status: {
+        name: "status",
+        description: "Git synchronization status",
+        schema: gitSyncStatusSchema,
+        basePrompt: "",
+        requiredPermission: "public",
+        formatter: new GitSyncStatusFormatter(), // Use status formatter for template
+      },
     });
 
     // Create GitSync instance

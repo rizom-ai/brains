@@ -21,7 +21,6 @@ const mockContext: PluginContext = {
   parseContent: () => ({}),
   formatContent: () => "",
   generateWithRoute: async () => "",
-  registerTemplate: () => {},
   registerTemplates: () => {},
   registerRoutes: () => {},
   getViewTemplate: () => undefined,

@@ -166,13 +166,15 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
     const { logger, entityService } = context;
 
     // Register our template for directory sync status
-    context.registerTemplate("status", {
-      name: "status",
-      description: "Directory synchronization status",
-      schema: directorySyncStatusSchema,
-      basePrompt: "",
-      formatter: new DirectorySyncStatusFormatter(), // Use status formatter for template
-      requiredPermission: "anchor",
+    context.registerTemplates({
+      status: {
+        name: "status",
+        description: "Directory synchronization status",
+        schema: directorySyncStatusSchema,
+        basePrompt: "",
+        formatter: new DirectorySyncStatusFormatter(), // Use status formatter for template
+        requiredPermission: "anchor",
+      },
     });
 
     // Create DirectorySync instance
