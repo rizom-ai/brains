@@ -265,46 +265,6 @@ export class PluginContextFactory {
       // Entity service access - clean interface for plugin usage
       entityService,
 
-      // Wait for job completion (with timeout)
-      waitForJob: async (
-        jobId: string,
-        timeoutMs: number = 30000,
-      ): Promise<unknown> => {
-        try {
-          const startTime = Date.now();
-          const pollInterval = 100; // Poll every 100ms
-
-          while (Date.now() - startTime < timeoutMs) {
-            const job = await jobQueueService.getStatus(jobId);
-
-            if (!job) {
-              throw new Error(`Job ${jobId} not found`);
-            }
-
-            if (job.status === "completed") {
-              this.logger.debug("Job completed", { jobId, pluginId });
-              return job.result as string;
-            }
-
-            if (job.status === "failed") {
-              const error = job.lastError ?? "Job failed with no error message";
-              throw new Error(`Job ${jobId} failed: ${error}`);
-            }
-
-            // Wait before next poll
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
-          }
-
-          throw new Error(`Job ${jobId} timed out after ${timeoutMs}ms`);
-        } catch (error) {
-          this.logger.error("Failed to wait for job completion", error);
-          throw new JobOperationError("waitForJob", error, {
-            jobId,
-            timeoutMs,
-          });
-        }
-      },
-
       // Generic job queue access (required)
       enqueueJob: async (
         type: string,

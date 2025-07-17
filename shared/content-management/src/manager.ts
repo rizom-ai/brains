@@ -1,5 +1,4 @@
 import type { Logger } from "@brains/utils";
-import type { ProgressCallback } from "@brains/utils";
 import type { EntityService } from "@brains/entity-service";
 import type { PluginContext } from "@brains/plugin-utils";
 import type {
@@ -10,11 +9,7 @@ import type {
 import type { JobContext, JobOptions } from "@brains/db";
 import { GenerationOperations } from "./operations/generation";
 import { EntityQueryService } from "./services/entity-query";
-import {
-  waitForContentJobs,
-  getContentJobStatuses,
-  type ContentGenerationResult,
-} from "./services/job-tracking";
+import { getContentJobStatuses } from "./services/job-tracking";
 import type {
   SiteContentEntity,
   GenerateOptions,
@@ -184,22 +179,6 @@ export class ContentManager {
   // ========================================
   // Job Tracking Operations
   // ========================================
-
-  /**
-   * Wait for content generation jobs to complete with progress tracking
-   */
-  async waitForContentJobs(
-    jobs: ContentGenerationJob[],
-    timeoutMs: number = 60000,
-    progressCallback?: ProgressCallback,
-  ): Promise<ContentGenerationResult[]> {
-    return waitForContentJobs(
-      jobs,
-      this.pluginContext,
-      timeoutMs,
-      progressCallback,
-    );
-  }
 
   /**
    * Get current status of content generation jobs

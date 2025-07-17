@@ -57,7 +57,6 @@ beforeEach(async (): Promise<void> => {
 
   // Setup job queue mocks
   mockPluginContext.getJobStatus = mockGetJobStatus;
-  mockPluginContext.waitForJob = mock().mockResolvedValue("Generated content");
   mockPluginContext.enqueueJob = mockEnqueueContentGeneration;
   mockPluginContext.enqueueBatch = mockEnqueueBatch;
 
@@ -351,38 +350,6 @@ test("exists convenience method should work with default and custom generateId",
 // Job Tracking Tests (Async Only)
 // ========================================
 
-test("waitForContentJobs should delegate to JobTrackingService", async () => {
-  const mockJobs = [
-    {
-      jobId: "job-1",
-      entityId: "site-content-preview:landing:hero",
-      entityType: "site-content-preview" as const,
-      operation: "generate" as const,
-      routeId: "landing",
-      sectionId: "hero",
-      templateName: "hero-template",
-      route: {
-        path: "/landing",
-        id: "landing",
-        description: "Landing page",
-        title: "Landing Page",
-        sections: [{ id: "hero", template: "hero-template" }],
-      },
-      sectionDefinition: { id: "hero", template: "hero-template" },
-    },
-  ];
-
-  // waitForContentJobs uses waitForJob, not getJobStatus
-  // The mock is already set up in beforeEach
-
-  const result = await contentManager.waitForContentJobs(mockJobs, 5000);
-
-  expect(result).toHaveLength(1);
-  expect(result[0]?.success).toBe(true);
-  expect(result[0]?.jobId).toBe("job-1");
-  expect(result[0]?.content).toBe("Generated content");
-  expect(mockPluginContext.waitForJob).toHaveBeenCalledWith("job-1", 5000);
-});
 
 test("getContentJobStatuses should return job status map", async () => {
   const mockJobs = [

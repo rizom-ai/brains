@@ -236,14 +236,6 @@ export class PluginTestHarness {
           results: [],
         } as T;
       },
-      parseContent: <T = unknown>(templateName: string, content: string): T => {
-        // For test harness, return mock parsed data
-        return {
-          parsedContent: content,
-          templateName,
-          mockParsed: true,
-        } as T;
-      },
       formatContent: <T = unknown>(
         templateName: string,
         data: T,
@@ -269,23 +261,15 @@ export class PluginTestHarness {
       registerTemplates: (): void => {
         // Mock implementation for test harness
       },
-      generateWithRoute: async (): Promise<string> => {
-        // Mock implementation for test harness
-        return "mock route content";
-      },
       // View template access (replaces direct viewRegistry access)
       getViewTemplate: (): undefined => undefined,
 
       // Route finding abstraction
       getRoute: (): undefined => undefined,
-      findRoute: (): undefined => undefined,
       listRoutes: () => [],
-      validateRoute: (): boolean => true,
 
       // Template finding abstraction
-      findViewTemplate: (): undefined => undefined,
       listViewTemplates: () => [],
-      validateTemplate: (): boolean => true,
       // Plugin metadata access (scoped to current plugin by default)
       getPluginPackageName: (): string => "test-plugin-package",
       // Entity service access - direct access to mock entity service
@@ -332,11 +316,6 @@ export class PluginTestHarness {
       ): Promise<string> => {
         // Mock implementation - return a fake batch ID
         return "mock-batch-id-" + Date.now();
-      },
-      // Wait for job completion (with timeout)
-      waitForJob: async (): Promise<unknown> => {
-        // Mock implementation - return mock content
-        return "Mock generated content";
       },
       // Get batch operation status
       getBatchStatus: async (): Promise<BatchJobStatus | null> => {

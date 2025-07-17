@@ -49,7 +49,7 @@ export interface IJobQueueService {
   /**
    * Register a job handler for a specific type
    */
-  registerHandler(type: string, handler: JobHandler): void;
+  registerHandler(type: string, handler: JobHandler, pluginId?: string): void;
 
   /**
    * Unregister a job handler for a specific type
@@ -64,7 +64,7 @@ export interface IJobQueueService {
   /**
    * Enqueue a job for processing
    */
-  enqueue(type: string, data: unknown, options: JobOptions): Promise<string>;
+  enqueue(type: string, data: unknown, options: JobOptions, pluginId?: string): Promise<string>;
 
   /**
    * Get next job to process (marks as processing)

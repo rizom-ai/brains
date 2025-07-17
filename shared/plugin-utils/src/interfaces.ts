@@ -178,9 +178,6 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
   // Entity service access - direct access to public service interface
   entityService: EntityService;
 
-  // Wait for job completion (with timeout)
-  waitForJob: (jobId: string, timeoutMs?: number) => Promise<unknown>;
-
   // Generic job queue access (required)
   enqueueJob: (
     type: string,

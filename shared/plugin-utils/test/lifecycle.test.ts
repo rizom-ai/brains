@@ -34,7 +34,6 @@ const mockContext: PluginContext = {
   validateTemplate: () => true,
   getPluginPackageName: () => undefined,
   entityService: {} as PluginContext["entityService"],
-  waitForJob: async () => {},
   enqueueJob: async () => "job-123",
   getJobStatus: async () => null,
   enqueueBatch: async () => "batch-123",
