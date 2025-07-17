@@ -6,12 +6,10 @@ export type {
   MessageSender,
   MessageWithPayload,
   IMessageBus,
-  MessageBusResponse,
 } from "./types";
 export {
   baseMessageSchema,
   messageWithPayloadSchema,
-  messageBusResponseSchema,
   messageResponseSchema,
   internalMessageResponseSchema,
   hasPayload,

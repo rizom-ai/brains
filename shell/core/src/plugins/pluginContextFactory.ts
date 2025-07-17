@@ -114,25 +114,8 @@ export class PluginContextFactory {
       sendMessage: async <T = unknown, R = unknown>(
         type: string,
         payload: T,
-      ): Promise<{ success: boolean; data?: R; error?: string }> => {
-        const result = await messageBus.send<T, R>(type, payload, pluginId);
-
-        // Handle noop case
-        if ("noop" in result) {
-          return { success: true };
-        }
-
-        // Handle normal response
-        const response: { success: boolean; data?: R; error?: string } = {
-          success: "success" in result ? result.success : true,
-        };
-        if ("data" in result && result.data !== undefined) {
-          response.data = result.data;
-        }
-        if ("error" in result && result.error !== undefined) {
-          response.error = result.error;
-        }
-        return response;
+      ) => {
+        return messageBus.send<T, R>(type, payload, pluginId);
       },
       subscribe: <T = unknown, R = unknown>(
         type: string,

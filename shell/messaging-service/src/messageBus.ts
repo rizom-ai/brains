@@ -3,7 +3,7 @@ import type {
   InternalMessageResponse,
   MessageHandler,
   IMessageBus,
-  MessageBusResponse,
+  MessageResponse,
   MessageWithPayload,
   SubscriptionFilter,
 } from "./types";
@@ -142,7 +142,7 @@ export class MessageBus implements IMessageBus {
     target?: string,
     metadata?: Record<string, unknown>,
     broadcast?: boolean,
-  ): Promise<MessageBusResponse<R>> {
+  ): Promise<MessageResponse<R>> {
     const message: MessageWithPayload<T> = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type,
@@ -154,6 +154,8 @@ export class MessageBus implements IMessageBus {
     };
 
     const response = await this.publish(message, broadcast);
+    
+    // Handle successful response
     if (response?.success) {
       return {
         success: true,

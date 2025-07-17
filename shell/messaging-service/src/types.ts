@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type {
-  MessageResponse as MessageBusResponse,
+  MessageResponse,
   MessageHandler,
   BaseMessage,
   MessageWithPayload,
@@ -8,11 +8,9 @@ import type {
 
 export {
   messageResponseSchema,
-  messageResponseSchema as messageBusResponseSchema,
   messageWithPayloadSchema,
   baseMessageSchema,
   type MessageResponse,
-  type MessageResponse as MessageBusResponse,
   type MessageWithPayload,
   type MessageHandler,
   type MessageSender,
@@ -72,7 +70,7 @@ export interface IMessageBus {
     target?: string,
     metadata?: Record<string, unknown>,
     broadcast?: boolean,
-  ): Promise<MessageBusResponse<R>>;
+  ): Promise<MessageResponse<R>>;
 
   subscribe<T = unknown, R = unknown>(
     type: string,
