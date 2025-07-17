@@ -157,6 +157,7 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
     data: T,
     options?: { truncate?: number },
   ) => string;
+  parseContent: <T = unknown>(templateName: string, content: string) => T;
   // Unified template registration - registers template for both content generation and view rendering
   registerTemplate: <T>(name: string, template: Template<T>) => void;
   // Convenience method for registering multiple templates at once

@@ -7,17 +7,17 @@ sectionId: cta
 
 ## Headline
 
-Elevate Your Knowledge, Amplify Your Impact
+Elevate Your Expertise. Amplify Your Impact.
 
 ## Description
 
-Unlock your full potential with Rizom - the personal knowledge management system that transforms how you build your second brain.
+Unlock your full potential with Rizom - the ultimate personal knowledge management system. Join thousands who are already building their second brain.
 
 ## Primary Button
 
 ### Text
 
-Start Your Free Trial
+Start Free Trial
 
 ### Link
 
@@ -27,7 +27,7 @@ Start Your Free Trial
 
 ### Text
 
-Learn More
+View Demo
 
 ### Link
 

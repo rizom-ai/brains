@@ -7,11 +7,11 @@ sectionId: hero
 
 ## Headline
 
-Unlock Your Knowledge Potential
+Elevate Your Knowledge, Empower Your Potential
 
 ## Subheadline
 
-Effortlessly capture, organize, and amplify your expertise with Rizom's personal knowledge management system.
+Effortlessly capture, organize, and amplify your expertise with Rizom's intuitive personal knowledge management system.
 
 ## CTA Text
 

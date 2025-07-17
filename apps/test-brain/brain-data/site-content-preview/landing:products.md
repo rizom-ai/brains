@@ -15,7 +15,7 @@ Explore Rizom's Transformative Solutions
 
 ## Description
 
-Rizom is a dynamic professional collective that brings together seasoned experts in digital transformation, organizational development, and ecosystem design. Our portfolio of solutions empowers organizations to navigate the complex challenges of the modern business landscape.
+Rizom is a dynamic professional collective bringing together seasoned experts in digital transformation, organizational development, and ecosystem design under a shared mission to help organizations thrive in the modern landscape. Our product portfolio offers a range of transformative solutions to empower our clients and drive sustainable progress.
 
 ## Products
 
@@ -31,11 +31,11 @@ Practice Innovation
 
 #### Tagline
 
-Unlock new frontiers of organizational agility
+Accelerate organizational transformation
 
 #### Description
 
-Our Practice Innovation solutions help organizations build the capabilities to rapidly prototype, test, and scale new business models and operational practices.
+Our Practice Innovation solution helps organizations develop agile, human-centric approaches to problem-solving and continuous improvement.
 
 #### Status
 
@@ -59,11 +59,11 @@ Ecosystem Architecture
 
 #### Tagline
 
-Design resilient, adaptable business ecosystems
+Design resilient, adaptive systems
 
 #### Description
 
-Through our Ecosystem Architecture services, we guide organizations in developing interconnected systems that foster collaboration, innovation, and sustainable growth.
+Ecosystem Architecture provides a framework for building interconnected, future-proof ecosystems that drive growth and adaptability.
 
 #### Status
 
@@ -87,11 +87,11 @@ Economy of Garbage
 
 #### Tagline
 
-Unlock value from waste and inefficiency
+Unlock value from waste streams
 
 #### Description
 
-Our Economy of Garbage solutions empower organizations to transform underutilized resources and byproducts into new revenue streams and circular business models.
+Our Economy of Garbage solution empowers organizations to rethink waste as a resource, creating circular systems that generate new revenue streams.
 
 #### Status
 
@@ -101,4 +101,4 @@ beta
 
 #### Icon
 
-Wrench
+Zap

@@ -194,6 +194,13 @@ export class PluginContextFactory {
           options,
         );
       },
+      parseContent: <T = unknown>(templateName: string, content: string): T => {
+        const namespacedTemplateName = this.ensureNamespaced(
+          templateName,
+          pluginId,
+        );
+        return contentGenerator.parseContent<T>(namespacedTemplateName, content);
+      },
       // Unified template registration - registers template for both content generation and view rendering
       registerTemplate: <T>(name: string, template: Template<T>): void => {
         // Always prefix with plugin ID to ensure proper namespacing
