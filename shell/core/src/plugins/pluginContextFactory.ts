@@ -290,6 +290,7 @@ export class PluginContextFactory {
             scopedType,
             data,
             jobOptions,
+            pluginId,
           );
 
           this.logger.debug("Enqueued job", {
@@ -460,7 +461,7 @@ export class PluginContextFactory {
         }
 
         // Register with job queue
-        jobQueueService.registerHandler(scopedType, handler);
+        jobQueueService.registerHandler(scopedType, handler, pluginId);
 
         this.logger.debug(`Registered job handler ${scopedType}`);
       },

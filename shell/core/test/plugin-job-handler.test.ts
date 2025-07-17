@@ -204,6 +204,7 @@ describe("Plugin Job Handler Lifecycle", () => {
     expect(mockJobQueueService.registerHandler).toHaveBeenCalledWith(
       "test-plugin:process-data",
       mockHandler,
+      "test-plugin",
     );
   });
 
@@ -247,6 +248,7 @@ describe("Plugin Job Handler Lifecycle", () => {
           operationType: "entity_processing",
         },
       },
+      "test-plugin",
     );
 
     // Simulate processing by calling the handler directly
@@ -405,6 +407,7 @@ describe("Plugin Job Handler Lifecycle", () => {
           operationType: "entity_processing",
         },
       },
+      "plugin-1",
     );
     expect(mockJobQueueService.enqueue).toHaveBeenCalledWith(
       "plugin-2:task",
@@ -417,6 +420,7 @@ describe("Plugin Job Handler Lifecycle", () => {
           operationType: "entity_processing",
         },
       },
+      "plugin-2",
     );
 
     // Verify handlers are different
