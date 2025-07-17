@@ -250,18 +250,13 @@ export class PluginContextFactory {
 
       // Command discovery - get commands from the central registry
       getAllCommands: async (): Promise<Command[]> => {
-        try {
-          const commandRegistry = shell.getCommandRegistry();
-          const allCommands = commandRegistry.getAllCommands();
+        const commandRegistry = shell.getCommandRegistry();
+        const allCommands = commandRegistry.getAllCommands();
 
-          this.logger.debug(
-            `Retrieved ${allCommands.length} commands from CommandRegistry`,
-          );
-          return allCommands;
-        } catch (error) {
-          this.logger.error("Error retrieving commands from registry", error);
-          return [];
-        }
+        this.logger.debug(
+          `Retrieved ${allCommands.length} commands from CommandRegistry`,
+        );
+        return allCommands;
       },
     };
 
