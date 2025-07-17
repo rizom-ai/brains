@@ -327,7 +327,7 @@ export class DirectorySync {
 
     // Write markdown file
     writeFileSync(filePath, markdown, "utf-8");
-    
+
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs
     const updatedTime = new Date(entity.updated);
     utimesSync(filePath, updatedTime, updatedTime);
