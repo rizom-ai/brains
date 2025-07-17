@@ -12,7 +12,6 @@ import type { Command, MessageContext } from "@brains/message-interface";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { EntityService } from "@brains/entity-service";
 import type {
-  JobStatusType,
   JobHandler,
   BatchJobStatus,
   BatchOperation,
@@ -186,11 +185,7 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
     options: JobOptions,
   ) => Promise<string>;
 
-  getJobStatus: (jobId: string) => Promise<{
-    status: JobStatusType;
-    result?: unknown;
-    error?: string;
-  } | null>;
+  getJobStatus: (jobId: string) => Promise<JobQueue | null>;
 
   // Batch operations (required)
   enqueueBatch: (

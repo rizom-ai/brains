@@ -18,7 +18,6 @@ import type { JobOptions, JobContext, JobQueue } from "@brains/db";
 import { BatchJobManager } from "@brains/job-queue";
 import {
   type BatchJobStatus,
-  type JobStatusType,
   type BatchOperation,
 } from "@brains/job-queue";
 import {
@@ -282,36 +281,8 @@ export class PluginContextFactory {
       },
 
       // Get job status
-      getJobStatus: async (
-        jobId: string,
-      ): Promise<{
-        status: JobStatusType;
-        result?: unknown;
-        error?: string;
-      } | null> => {
-        const job = await jobQueueService.getStatus(jobId);
-        if (!job) {
-          return null;
-        }
-
-        // Transform to plugin context format
-        const result: {
-          status: JobStatusType;
-          result?: unknown;
-          error?: string;
-        } = {
-          status: job.status,
-        };
-
-        if (job.result !== undefined && job.result !== null) {
-          result.result = job.result;
-        }
-
-        if (job.lastError) {
-          result.error = job.lastError;
-        }
-
-        return result;
+      getJobStatus: async (jobId: string): Promise<JobQueue | null> => {
+        return jobQueueService.getStatus(jobId);
       },
 
       // Batch operations (required)
