@@ -41,17 +41,20 @@ export class ContentGenerator implements IContentGenerator {
   /**
    * Apply template scoping logic
    */
-  private applyTemplateScoping(templateName: string, pluginId?: string): string {
+  private applyTemplateScoping(
+    templateName: string,
+    pluginId?: string,
+  ): string {
     // If no pluginId provided, use template name as-is
     if (!pluginId) {
       return templateName;
     }
-    
+
     // If template name already has scoping (contains ":"), use as-is
     if (templateName.includes(":")) {
       return templateName;
     }
-    
+
     // Apply plugin scoping
     return `${pluginId}:${templateName}`;
   }
@@ -85,10 +88,17 @@ export class ContentGenerator implements IContentGenerator {
   async generateContent<T = unknown>(
     templateName: string,
     context: GenerationContext = {},
+    pluginId?: string,
   ): Promise<T> {
-    const template = this.getTemplate(templateName);
+    // Apply template scoping if pluginId is provided
+    const scopedTemplateName = this.applyTemplateScoping(
+      templateName,
+      pluginId,
+    );
+
+    const template = this.getTemplate(scopedTemplateName);
     if (!template) {
-      throw new Error(`Template not found: ${templateName}`);
+      throw new Error(`Template not found: ${scopedTemplateName}`);
     }
 
     // Cast template to correct type
@@ -137,10 +147,17 @@ export class ContentGenerator implements IContentGenerator {
   /**
    * Parse existing content using a template's formatter
    */
-  parseContent<T = unknown>(templateName: string, content: string, pluginId?: string): T {
+  parseContent<T = unknown>(
+    templateName: string,
+    content: string,
+    pluginId?: string,
+  ): T {
     // Apply template scoping if pluginId is provided
-    const scopedTemplateName = this.applyTemplateScoping(templateName, pluginId);
-    
+    const scopedTemplateName = this.applyTemplateScoping(
+      templateName,
+      pluginId,
+    );
+
     const template = this.getTemplate(scopedTemplateName);
     if (!template) {
       throw new Error(`Template not found: ${scopedTemplateName}`);
@@ -205,15 +222,20 @@ export class ContentGenerator implements IContentGenerator {
     options?: { truncate?: number; pluginId?: string },
   ): string {
     // Apply template scoping if pluginId is provided
-    const scopedTemplateName = this.applyTemplateScoping(templateName, options?.pluginId);
-    
+    const scopedTemplateName = this.applyTemplateScoping(
+      templateName,
+      options?.pluginId,
+    );
+
     const template = this.getTemplate(scopedTemplateName);
     if (!template) {
       throw new Error(`Template not found: ${scopedTemplateName}`);
     }
 
     if (!template.formatter) {
-      throw new Error(`Template ${scopedTemplateName} does not have a formatter`);
+      throw new Error(
+        `Template ${scopedTemplateName} does not have a formatter`,
+      );
     }
 
     // Use the formatter to convert object to string

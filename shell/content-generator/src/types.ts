@@ -28,6 +28,7 @@ export interface ContentGenerator {
   generateContent<T = unknown>(
     templateName: string,
     context?: GenerationContext,
+    pluginId?: string,
   ): Promise<T>;
 
   /**
@@ -52,5 +53,9 @@ export interface ContentGenerator {
   /**
    * Parse existing content using a template's formatter
    */
-  parseContent<T = unknown>(templateName: string, content: string, pluginId?: string): T;
+  parseContent<T = unknown>(
+    templateName: string,
+    content: string,
+    pluginId?: string,
+  ): T;
 }

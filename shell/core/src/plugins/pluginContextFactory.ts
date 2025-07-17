@@ -124,28 +124,28 @@ export class PluginContextFactory {
       generateContent: async <T = unknown>(
         config: ContentGenerationConfig,
       ): Promise<T> => {
-        const scopedTemplateName = config.templateName.includes(":")
-          ? config.templateName
-          : `${pluginId}:${config.templateName}`;
-
-        return shell.generateContent<T>({
-          ...config,
-          templateName: scopedTemplateName,
-        });
+        return contentGenerator.generateContent<T>(
+          config.templateName,
+          config,
+          pluginId,
+        );
       },
       formatContent: <T = unknown>(
         templateName: string,
         data: T,
         options?: { truncate?: number },
       ): string => {
-        return contentGenerator.formatContent<T>(
-          templateName,
-          data,
-          { ...options, pluginId },
-        );
+        return contentGenerator.formatContent<T>(templateName, data, {
+          ...options,
+          pluginId,
+        });
       },
       parseContent: <T = unknown>(templateName: string, content: string): T => {
-        return contentGenerator.parseContent<T>(templateName, content, pluginId);
+        return contentGenerator.parseContent<T>(
+          templateName,
+          content,
+          pluginId,
+        );
       },
       // Register templates - handles both single and multiple templates
       registerTemplates: (templates: Record<string, Template>): void => {
