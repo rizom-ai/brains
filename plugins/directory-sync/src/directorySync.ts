@@ -17,6 +17,7 @@ import {
   existsSync,
   readdirSync,
   statSync,
+  utimesSync,
 } from "fs";
 import { z } from "zod";
 import type {
@@ -226,7 +227,7 @@ export class DirectorySync {
           // - Handle timestamp precision differences between file systems and DB
           // - Add force option to override timestamp checks
           // - Use <= instead of < to handle equal timestamps
-          
+
           // Check if entity exists to determine if we should check timestamps
           const existing = await this.entityService.getEntity(
             rawEntity.entityType,
@@ -326,6 +327,10 @@ export class DirectorySync {
 
     // Write markdown file
     writeFileSync(filePath, markdown, "utf-8");
+    
+    // Preserve entity timestamps on the file to prevent unnecessary re-syncs
+    const updatedTime = new Date(entity.updated);
+    utimesSync(filePath, updatedTime, updatedTime);
   }
 
   /**

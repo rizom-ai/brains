@@ -480,7 +480,7 @@ export class PluginTestHarness {
       ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
         // Check if entity exists
         const existing = await this.getEntity(entity.entityType, entity.id);
-        
+
         if (existing) {
           // Update existing entity
           const entities = this.entities.get(entity.entityType) ?? [];
@@ -489,18 +489,21 @@ export class PluginTestHarness {
             entities[index] = { ...entity, updated: new Date().toISOString() };
             this.entities.set(entity.entityType, entities);
           }
-          return { 
-            entityId: entity.id, 
+          return {
+            entityId: entity.id,
             jobId: "mock-job-" + Date.now(),
-            created: false 
+            created: false,
           };
         } else {
           // Create new entity
-          const created = await this.createTestEntity(entity.entityType, entity);
-          return { 
-            entityId: created.id, 
+          const created = await this.createTestEntity(
+            entity.entityType,
+            entity,
+          );
+          return {
+            entityId: created.id,
             jobId: "mock-job-" + Date.now(),
-            created: true 
+            created: true,
           };
         }
       },

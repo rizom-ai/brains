@@ -333,11 +333,13 @@ describe("EntityService", (): void => {
     };
 
     // Mock getEntity to return null (entity doesn't exist)
-    entityService.getEntity = mock((_entityType: string, _id: string) => Promise.resolve(null));
+    entityService.getEntity = mock((_entityType: string, _id: string) =>
+      Promise.resolve(null),
+    );
 
     // Mock createEntity
-    entityService.createEntity = mock(() => 
-      Promise.resolve({ entityId: "new-entity", jobId: "job-123" })
+    entityService.createEntity = mock(() =>
+      Promise.resolve({ entityId: "new-entity", jobId: "job-123" }),
     );
 
     const result = await entityService.upsertEntity(testEntity);
@@ -348,9 +350,12 @@ describe("EntityService", (): void => {
 
     // Verify getEntity was called
     expect(entityService.getEntity).toHaveBeenCalledWith("base", "new-entity");
-    
+
     // Verify createEntity was called
-    expect(entityService.createEntity).toHaveBeenCalledWith(testEntity, undefined);
+    expect(entityService.createEntity).toHaveBeenCalledWith(
+      testEntity,
+      undefined,
+    );
   });
 
   test("upsertEntity updates existing entity", async () => {
@@ -369,13 +374,13 @@ describe("EntityService", (): void => {
     };
 
     // Mock getEntity to return existing entity
-    entityService.getEntity = mock(
-      (_entityType: string, _id: string) => Promise.resolve(existingEntity)
+    entityService.getEntity = mock((_entityType: string, _id: string) =>
+      Promise.resolve(existingEntity),
     ) as typeof entityService.getEntity;
 
     // Mock updateEntity
-    entityService.updateEntity = mock(() => 
-      Promise.resolve({ entityId: "existing-entity", jobId: "job-456" })
+    entityService.updateEntity = mock(() =>
+      Promise.resolve({ entityId: "existing-entity", jobId: "job-456" }),
     );
 
     const result = await entityService.upsertEntity(updatedEntity);
@@ -385,10 +390,16 @@ describe("EntityService", (): void => {
     expect(result.created).toBe(false);
 
     // Verify getEntity was called
-    expect(entityService.getEntity).toHaveBeenCalledWith("base", "existing-entity");
-    
+    expect(entityService.getEntity).toHaveBeenCalledWith(
+      "base",
+      "existing-entity",
+    );
+
     // Verify updateEntity was called
-    expect(entityService.updateEntity).toHaveBeenCalledWith(updatedEntity, undefined);
+    expect(entityService.updateEntity).toHaveBeenCalledWith(
+      updatedEntity,
+      undefined,
+    );
   });
 
   test("upsertEntity passes options to create/update", async () => {
@@ -403,17 +414,22 @@ describe("EntityService", (): void => {
     const options = { priority: 5, maxRetries: 10 };
 
     // Mock getEntity to return null
-    entityService.getEntity = mock((_entityType: string, _id: string) => Promise.resolve(null));
+    entityService.getEntity = mock((_entityType: string, _id: string) =>
+      Promise.resolve(null),
+    );
 
     // Mock createEntity
-    entityService.createEntity = mock(() => 
-      Promise.resolve({ entityId: "test-entity", jobId: "job-789" })
+    entityService.createEntity = mock(() =>
+      Promise.resolve({ entityId: "test-entity", jobId: "job-789" }),
     );
 
     await entityService.upsertEntity(testEntity, options);
 
     // Verify options were passed through
-    expect(entityService.createEntity).toHaveBeenCalledWith(testEntity, options);
+    expect(entityService.createEntity).toHaveBeenCalledWith(
+      testEntity,
+      options,
+    );
   });
 
   test("getAllEntityTypes returns same as getEntityTypes", () => {
