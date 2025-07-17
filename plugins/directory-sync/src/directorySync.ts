@@ -221,7 +221,13 @@ export class DirectorySync {
             rawEntity.entityType,
           );
 
-          // Check if entity exists
+          // TODO: Improve timestamp comparison logic:
+          // - Consider using content hashes for change detection
+          // - Handle timestamp precision differences between file systems and DB
+          // - Add force option to override timestamp checks
+          // - Use <= instead of < to handle equal timestamps
+          
+          // Check if entity exists to determine if we should check timestamps
           const existing = await this.entityService.getEntity(
             rawEntity.entityType,
             rawEntity.id,
@@ -231,30 +237,24 @@ export class DirectorySync {
             // Update if modified (compare timestamps)
             const existingTime = new Date(existing.updated).getTime();
             const newTime = rawEntity.updated.getTime();
-            if (existingTime < newTime) {
-              // Build entity for update, preserving existing fields and merging parsed content
-              const entityUpdate = {
-                ...existing,
-                content: rawEntity.content,
-                ...parsedEntity,
-                id: rawEntity.id,
-                entityType: rawEntity.entityType,
-                updated: rawEntity.updated.toISOString(),
-              };
-              await this.entityService.updateEntity(entityUpdate);
+            if (existingTime >= newTime) {
+              // Skip if existing entity is newer or same time
+              result.skipped++;
+              continue;
             }
-          } else {
-            // Create new entity with all required fields
-            const entityCreate = {
-              id: rawEntity.id,
-              entityType: rawEntity.entityType,
-              content: rawEntity.content,
-              ...parsedEntity,
-              created: rawEntity.created.toISOString(),
-              updated: rawEntity.updated.toISOString(),
-            };
-            await this.entityService.createEntity(entityCreate);
           }
+
+          // Build entity for upsert
+          const entity = {
+            id: rawEntity.id,
+            entityType: rawEntity.entityType,
+            content: rawEntity.content,
+            ...parsedEntity,
+            created: existing?.created ?? rawEntity.created.toISOString(),
+            updated: rawEntity.updated.toISOString(),
+          };
+
+          await this.entityService.upsertEntity(entity);
         } catch (deserializeError) {
           // Skip if entity type is not registered or deserialization fails
           const serializationError = new EntitySerializationError(

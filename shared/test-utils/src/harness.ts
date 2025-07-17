@@ -475,6 +475,35 @@ export class PluginTestHarness {
         }
         return false;
       },
+      upsertEntity: async <T extends BaseEntity>(
+        entity: T,
+      ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
+        // Check if entity exists
+        const existing = await this.getEntity(entity.entityType, entity.id);
+        
+        if (existing) {
+          // Update existing entity
+          const entities = this.entities.get(entity.entityType) ?? [];
+          const index = entities.findIndex((e) => e.id === entity.id);
+          if (index !== -1) {
+            entities[index] = { ...entity, updated: new Date().toISOString() };
+            this.entities.set(entity.entityType, entities);
+          }
+          return { 
+            entityId: entity.id, 
+            jobId: "mock-job-" + Date.now(),
+            created: false 
+          };
+        } else {
+          // Create new entity
+          const created = await this.createTestEntity(entity.entityType, entity);
+          return { 
+            entityId: created.id, 
+            jobId: "mock-job-" + Date.now(),
+            created: true 
+          };
+        }
+      },
       search: async (): Promise<never[]> => {
         // Mock implementation - return empty array
         return [];

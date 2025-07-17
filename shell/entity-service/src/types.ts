@@ -43,6 +43,10 @@ export interface EntityService {
     options?: { priority?: number; maxRetries?: number },
   ): Promise<{ entityId: string; jobId: string }>;
   deleteEntity(entityType: string, id: string): Promise<boolean>;
+  upsertEntity<T extends BaseEntity>(
+    entity: T,
+    options?: { priority?: number; maxRetries?: number },
+  ): Promise<{ entityId: string; jobId: string; created: boolean }>;
 
   // Query operations
   listEntities<T extends BaseEntity>(

@@ -7,7 +7,7 @@ import type { DrizzleDB } from "@brains/db";
 import type { JobQueueService } from "@brains/job-queue";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
-import { baseEntitySchema } from "@brains/types";
+import { baseEntitySchema, type BaseEntity } from "@brains/types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import { createId } from "@brains/db/schema";
 
@@ -321,6 +321,99 @@ describe("EntityService", (): void => {
     ).toThrow(
       "Entity type registration failed for unknownType: No adapter registered for entity type",
     );
+  });
+
+  test("upsertEntity creates new entity when it doesn't exist", async () => {
+    const testEntity: BaseEntity = {
+      id: "new-entity",
+      entityType: "base",
+      content: "New content",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    };
+
+    // Mock getEntity to return null (entity doesn't exist)
+    entityService.getEntity = mock((_entityType: string, _id: string) => Promise.resolve(null));
+
+    // Mock createEntity
+    entityService.createEntity = mock(() => 
+      Promise.resolve({ entityId: "new-entity", jobId: "job-123" })
+    );
+
+    const result = await entityService.upsertEntity(testEntity);
+
+    expect(result.entityId).toBe("new-entity");
+    expect(result.jobId).toBe("job-123");
+    expect(result.created).toBe(true);
+
+    // Verify getEntity was called
+    expect(entityService.getEntity).toHaveBeenCalledWith("base", "new-entity");
+    
+    // Verify createEntity was called
+    expect(entityService.createEntity).toHaveBeenCalledWith(testEntity, undefined);
+  });
+
+  test("upsertEntity updates existing entity", async () => {
+    const existingEntity: BaseEntity = {
+      id: "existing-entity",
+      entityType: "base",
+      content: "Initial content",
+      created: "2023-01-01T00:00:00.000Z",
+      updated: "2023-01-01T00:00:00.000Z",
+    };
+
+    const updatedEntity: BaseEntity = {
+      ...existingEntity,
+      content: "Updated content",
+      updated: new Date().toISOString(),
+    };
+
+    // Mock getEntity to return existing entity
+    entityService.getEntity = mock(
+      (_entityType: string, _id: string) => Promise.resolve(existingEntity)
+    ) as typeof entityService.getEntity;
+
+    // Mock updateEntity
+    entityService.updateEntity = mock(() => 
+      Promise.resolve({ entityId: "existing-entity", jobId: "job-456" })
+    );
+
+    const result = await entityService.upsertEntity(updatedEntity);
+
+    expect(result.entityId).toBe("existing-entity");
+    expect(result.jobId).toBe("job-456");
+    expect(result.created).toBe(false);
+
+    // Verify getEntity was called
+    expect(entityService.getEntity).toHaveBeenCalledWith("base", "existing-entity");
+    
+    // Verify updateEntity was called
+    expect(entityService.updateEntity).toHaveBeenCalledWith(updatedEntity, undefined);
+  });
+
+  test("upsertEntity passes options to create/update", async () => {
+    const testEntity: BaseEntity = {
+      id: "test-entity",
+      entityType: "base",
+      content: "Test content",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    };
+
+    const options = { priority: 5, maxRetries: 10 };
+
+    // Mock getEntity to return null
+    entityService.getEntity = mock((_entityType: string, _id: string) => Promise.resolve(null));
+
+    // Mock createEntity
+    entityService.createEntity = mock(() => 
+      Promise.resolve({ entityId: "test-entity", jobId: "job-789" })
+    );
+
+    await entityService.upsertEntity(testEntity, options);
+
+    // Verify options were passed through
+    expect(entityService.createEntity).toHaveBeenCalledWith(testEntity, options);
   });
 
   test("getAllEntityTypes returns same as getEntityTypes", () => {

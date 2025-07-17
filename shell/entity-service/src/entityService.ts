@@ -366,6 +366,31 @@ export class EntityService implements IEntityService {
   }
 
   /**
+   * Create or update an entity based on existence
+   */
+  public async upsertEntity<T extends BaseEntity>(
+    entity: T,
+    options?: { priority?: number; maxRetries?: number },
+  ): Promise<{ entityId: string; jobId: string; created: boolean }> {
+    this.logger.debug(
+      `Upserting entity of type ${entity.entityType} with ID ${entity.id}`,
+    );
+
+    // Check if entity exists
+    const existing = await this.getEntity<T>(entity.entityType, entity.id);
+
+    if (existing) {
+      // Update existing entity
+      const result = await this.updateEntity(entity, options);
+      return { ...result, created: false };
+    } else {
+      // Create new entity
+      const result = await this.createEntity(entity, options);
+      return { ...result, created: true };
+    }
+  }
+
+  /**
    * List entities by type with pagination
    */
   public async listEntities<T extends BaseEntity>(
