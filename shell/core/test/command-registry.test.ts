@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { CommandRegistry } from "../src/command-registry";
+import {
+  CommandRegistry,
+  CommandRegistryEvent,
+} from "@brains/command-registry";
 import { EventEmitter } from "events";
 import type { Command } from "@brains/message-interface";
 import { Logger, LogLevel } from "@brains/utils";
-import { PluginEvent } from "../src/types/plugin-manager";
 
 describe("CommandRegistry", () => {
   let registry: CommandRegistry;
@@ -230,7 +232,7 @@ describe("CommandRegistry", () => {
         handler: async () => ({ type: "message", message: "Event" }),
       };
 
-      eventEmitter.emit(PluginEvent.COMMAND_REGISTER, {
+      eventEmitter.emit(CommandRegistryEvent.COMMAND_REGISTER, {
         pluginId: "event-plugin",
         command: command,
       });
@@ -253,12 +255,12 @@ describe("CommandRegistry", () => {
         handler: async () => ({ type: "message", message: "2" }),
       };
 
-      eventEmitter.emit(PluginEvent.COMMAND_REGISTER, {
+      eventEmitter.emit(CommandRegistryEvent.COMMAND_REGISTER, {
         pluginId: "event-plugin",
         command: command1,
       });
 
-      eventEmitter.emit(PluginEvent.COMMAND_REGISTER, {
+      eventEmitter.emit(CommandRegistryEvent.COMMAND_REGISTER, {
         pluginId: "event-plugin",
         command: command2,
       });

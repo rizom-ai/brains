@@ -124,11 +124,8 @@ export class PluginContextFactory {
       generateContent: async <T = unknown>(
         config: ContentGenerationConfig,
       ): Promise<T> => {
-        return contentGenerator.generateContent<T>(
-          config.templateName,
-          config,
-          pluginId,
-        );
+        // This delegates to Shell which handles permission checking
+        return shell.generateContent<T>(config);
       },
       formatContent: <T = unknown>(
         templateName: string,

@@ -408,6 +408,20 @@
         "typescript": "^5.3.3",
       },
     },
+    "shell/command-registry": {
+      "name": "@brains/command-registry",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/message-interface": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/test-utils": "workspace:*",
+        "bun-types": "latest",
+      },
+    },
     "shell/content-generator": {
       "name": "@brains/content-generator",
       "version": "0.1.0",
@@ -431,6 +445,7 @@
       "dependencies": {
         "@anthropic-ai/sdk": "^0.13.0",
         "@brains/ai-service": "workspace:*",
+        "@brains/command-registry": "workspace:*",
         "@brains/daemon-registry": "workspace:*",
         "@brains/db": "workspace:*",
         "@brains/embedding-service": "workspace:*",
@@ -588,6 +603,24 @@
         "typescript": "^5.3.3",
       },
     },
+    "shell/plugin-context": {
+      "name": "@brains/plugin-context",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/command-registry": "workspace:*",
+        "@brains/content-generator": "workspace:*",
+        "@brains/entity-service": "workspace:*",
+        "@brains/messaging-service": "workspace:*",
+        "@brains/plugin-utils": "workspace:*",
+        "@brains/types": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/test-utils": "workspace:*",
+        "bun-types": "latest",
+      },
+    },
     "shell/service-registry": {
       "name": "@brains/service-registry",
       "version": "0.1.0",
@@ -661,6 +694,8 @@
 
     "@brains/cli": ["@brains/cli@workspace:interfaces/cli"],
 
+    "@brains/command-registry": ["@brains/command-registry@workspace:shell/command-registry"],
+
     "@brains/content-generator": ["@brains/content-generator@workspace:shell/content-generator"],
 
     "@brains/content-management": ["@brains/content-management@workspace:shared/content-management"],
@@ -698,6 +733,8 @@
     "@brains/message-interface": ["@brains/message-interface@workspace:shared/message-interface"],
 
     "@brains/messaging-service": ["@brains/messaging-service@workspace:shell/messaging-service"],
+
+    "@brains/plugin-context": ["@brains/plugin-context@workspace:shell/plugin-context"],
 
     "@brains/plugin-utils": ["@brains/plugin-utils@workspace:shared/plugin-utils"],
 

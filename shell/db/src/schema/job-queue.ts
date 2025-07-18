@@ -209,7 +209,7 @@ export type JobResultFor<T extends JobType> = AllJobDefinitions[T]["output"];
 /**
  * Entity data without embedding - used for embedding jobs
  */
-export type EntityWithoutEmbedding = {
+export interface EntityWithoutEmbedding {
   id: string;
   entityType: string;
   content: string;
@@ -217,7 +217,7 @@ export type EntityWithoutEmbedding = {
   created: number;
   updated: number;
   contentWeight: number;
-};
+}
 
 /**
  * Content generation request - used for content generation jobs

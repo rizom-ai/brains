@@ -1,14 +1,28 @@
 import type { Logger } from "@brains/utils";
 import type { Command } from "@brains/message-interface";
 import type { EventEmitter } from "events";
-import { PluginEvent } from "./types/plugin-manager";
-import type { PluginCommandRegisterEvent } from "./types/plugin-manager";
+import type { ICommandRegistry } from "./types";
+
+/**
+ * Plugin command registration event
+ */
+export interface PluginCommandRegisterEvent {
+  pluginId: string;
+  command: Command;
+}
+
+/**
+ * Command registry events
+ */
+export enum CommandRegistryEvent {
+  COMMAND_REGISTER = "plugin:command:register",
+}
 
 /**
  * Central registry for commands from all plugins
  * Follows the Component Interface Standardization pattern
  */
-export class CommandRegistry {
+export class CommandRegistry implements ICommandRegistry {
   private static instance: CommandRegistry | null = null;
 
   private commands: Map<string, { command: Command; pluginId: string }> =
@@ -51,7 +65,7 @@ export class CommandRegistry {
 
     // Subscribe to command registration events
     events.on(
-      PluginEvent.COMMAND_REGISTER,
+      CommandRegistryEvent.COMMAND_REGISTER,
       (event: PluginCommandRegisterEvent) => {
         this.registerCommand(event.pluginId, event.command);
       },

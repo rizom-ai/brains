@@ -1,5 +1,5 @@
 {
-  "name": "@brains/plugin-context",
+  "name": "@brains/command-registry",
   "version": "0.1.0",
   "type": "module",
   "main": "./src/index.ts",
@@ -12,11 +12,7 @@
   "dependencies": {
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@brains/plugin-utils": "workspace:*",
-    "@brains/messaging-service": "workspace:*",
-    "@brains/entity-service": "workspace:*",
-    "@brains/content-generator": "workspace:*",
-    "@brains/command-registry": "workspace:*",
+    "@brains/message-interface": "workspace:*",
     "zod": "^3.22.4"
   },
   "devDependencies": {

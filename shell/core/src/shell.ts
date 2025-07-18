@@ -17,7 +17,7 @@ import {
 } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "./plugins/pluginManager";
-import { CommandRegistry } from "./command-registry";
+import { CommandRegistry } from "@brains/command-registry";
 import {
   EmbeddingService,
   type IEmbeddingService,

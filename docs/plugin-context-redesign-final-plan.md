@@ -8,21 +8,21 @@ This plan consolidates and replaces previous plugin context redesign proposals. 
 
 ### 1. **Core Plugin** - Basic functionality
 
-**Examples**: git-sync  
-**Access**: Commands, tools, messaging  
-**Cannot**: Access entities or system-wide data
+**Examples**: Simple command/messaging plugins  
+**Access**: Identity, logging, messaging, template registration/formatting  
+**Cannot**: Generate content, access entities or system-wide data
 
-### 2. **Entity Plugin** - Data management
+### 2. **Service Plugin** - Data and content operations (formerly Entity Plugin)
 
-**Examples**: directory-sync, site-builder  
-**Access**: Everything from Core + EntityService  
+**Examples**: git-sync, directory-sync, site-builder  
+**Access**: Everything from Core + content generation, entity service, job queues  
 **Cannot**: Access system-wide commands or other plugins
 
 ### 3. **Interface Plugin** - User interfaces
 
 **Examples**: cli, matrix, mcp, webserver  
-**Access**: Everything from Core + System-wide access  
-**Cannot**: Direct entity access (use commands instead)
+**Access**: Everything from Core + system-wide command discovery, daemon support  
+**Cannot**: Direct entity access or content generation (use commands instead)
 
 ## Context Interfaces
 
@@ -34,41 +34,65 @@ interface CorePluginContext {
   readonly pluginId: string;
   readonly logger: Logger;
 
-  // Command registration
-  registerCommand(command: {
-    name: string;
-    description: string;
-    parameters?: Record<string, ParamDef>;
-    handler: (params: any) => string | Promise<string>;
-  }): void;
-
-  // Tool registration (for MCP)
-  registerTool(tool: {
-    name: string;
-    description: string;
-    inputSchema: ZodSchema;
-    handler: (input: any) => Promise<any>;
-  }): void;
-
   // Inter-plugin messaging
   sendMessage: MessageSender;
   subscribe: (channel: string, handler: MessageHandler) => () => void;
+
+  // Template operations (lightweight, no AI generation)
+  registerTemplates: (templates: Record<string, Template>) => void;
+  formatContent: <T = unknown>(
+    templateName: string,
+    data: T,
+    options?: { truncate?: number },
+  ) => string;
+  parseContent: <T = unknown>(templateName: string, content: string) => T;
 }
 ```
 
-### Entity Plugin Context
+Note: Plugins return capabilities (tools, resources, commands) from their register() method rather than registering them via context methods.
+
+### Service Plugin Context (formerly Entity Plugin Context)
 
 ```typescript
-interface EntityPluginContext extends CorePluginContext {
+interface ServicePluginContext extends CorePluginContext {
+  // Content generation (AI-powered, needs entity storage)
+  generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
+
   // Full entity service access
   readonly entityService: EntityService;
 
-  // Entity type registration (already exists)
+  // Entity type registration
   registerEntityType<T extends BaseEntity>(
     entityType: string,
     schema: ZodSchema<T>,
     adapter: EntityAdapter<T>,
   ): void;
+
+  // Job queue operations
+  enqueueJob: (
+    type: string,
+    data: unknown,
+    options: JobOptions,
+  ) => Promise<string>;
+  getJobStatus: (jobId: string) => Promise<JobQueue | null>;
+  enqueueBatch: (
+    operations: BatchOperation[],
+    options: JobOptions,
+  ) => Promise<string>;
+  getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
+  getActiveJobs: (types?: string[]) => Promise<JobQueue[]>;
+  getActiveBatches: () => Promise<Batch[]>;
+  registerJobHandler: (type: string, handler: JobHandler) => void;
+
+  // Route and view registration
+  registerRoutes: (
+    routes: RouteDefinition[],
+    options?: { environment?: string },
+  ) => void;
+  getViewTemplate: (name: string) => ViewTemplate | undefined;
+  getRoute: (path: string) => RouteDefinition | undefined;
+  listRoutes: () => RouteDefinition[];
+  listViewTemplates: () => ViewTemplate[];
 }
 ```
 
@@ -76,30 +100,22 @@ interface EntityPluginContext extends CorePluginContext {
 
 ```typescript
 interface InterfacePluginContext extends CorePluginContext {
-  // System-wide access (but no direct entity access)
-  readonly system: {
-    // Command discovery and execution
-    getAllCommands(): Promise<Command[]>;
-    executeCommand(
-      name: string,
-      params: Record<string, any>,
-      context?: { userId?: string; source?: string },
-    ): Promise<string>;
+  // Command discovery (no direct data manipulation)
+  getAllCommands: () => Promise<Command[]>;
 
-    // Plugin discovery
-    getPlugins(): Promise<
-      Array<{
-        id: string;
-        version: string;
-        type: PluginType;
-      }>
-    >;
-  };
+  // Plugin metadata access
+  getPluginPackageName: (targetPluginId?: string) => string | undefined;
 
   // Daemon support for long-running interfaces
-  registerDaemon(name: string, daemon: Daemon): void;
+  registerDaemon: (name: string, daemon: Daemon) => void;
+
+  // Job monitoring (read-only for status updates)
+  getActiveJobs: (types?: string[]) => Promise<JobQueue[]>;
+  getActiveBatches: () => Promise<Batch[]>;
 }
 ```
+
+Note: Interface plugins coordinate but don't manipulate data directly. They use commands/tools exposed by other plugins.
 
 ## Plugin Type Definitions
 
@@ -114,23 +130,45 @@ interface BasePlugin {
 
 interface CorePlugin extends BasePlugin {
   type: "core";
-  register(context: CorePluginContext): Promise<void>;
+  register(context: CorePluginContext): Promise<PluginCapabilities>;
 }
 
-interface EntityPlugin extends BasePlugin {
-  type: "entity";
-  register(context: EntityPluginContext): Promise<void>;
+interface ServicePlugin extends BasePlugin {
+  type: "service";
+  register(context: ServicePluginContext): Promise<PluginCapabilities>;
 }
 
 interface InterfacePlugin extends BasePlugin {
   type: "interface";
-  register(context: InterfacePluginContext): Promise<void>;
+  register(context: InterfacePluginContext): Promise<PluginCapabilities>;
   start(): Promise<void>;
   stop(): Promise<void>;
 }
 
-type Plugin = CorePlugin | EntityPlugin | InterfacePlugin;
+type Plugin = CorePlugin | ServicePlugin | InterfacePlugin;
 ```
+
+## Capability Distribution Rationale
+
+### Core Plugin Context
+
+- **Templates**: Lightweight capability used by all plugins for formatting output
+- **Messaging**: Fundamental communication mechanism
+- **No content generation**: This requires AI calls and entity storage, too heavy for core
+
+### Service Plugin Context
+
+- **Content generation**: Needs entity service to store generated content
+- **Entity access**: Required for data manipulation
+- **Job queues**: Heavy operations need background processing
+- **Routes/views**: Site-builder and similar plugins need these
+
+### Interface Plugin Context
+
+- **Command discovery**: Interfaces need to know available commands
+- **No data generation**: Interfaces coordinate, not create
+- **Read-only monitoring**: Can check job status but not create jobs
+- **Daemon support**: Long-running processes for servers
 
 ## Implementation Plan - Isolated Package First
 
@@ -434,75 +472,190 @@ export const calculatorPlugin: CorePlugin = {
   type: "core",
   description: "Simple calculator plugin",
 
-  async register(context: CorePluginContext) {
-    context.registerCommand({
-      name: "calc:add",
-      description: "Add two numbers",
-      parameters: {
-        a: { type: "number", required: true },
-        b: { type: "number", required: true },
+  async register(context: CorePluginContext): Promise<PluginCapabilities> {
+    // Register templates for formatting
+    context.registerTemplates({
+      "calc-result": {
+        name: "calc-result",
+        description: "Format calculation results",
+        generate: async (data: { result: number }) => {
+          return `🧮 Result: ${data.result}`;
+        },
       },
-      handler: ({ a, b }) => `Result: ${a + b}`,
     });
 
-    context.registerTool({
-      name: "calculate",
-      description: "Perform calculations",
-      inputSchema: z.object({
-        operation: z.enum(["add", "subtract", "multiply", "divide"]),
-        a: z.number(),
-        b: z.number(),
-      }),
-      handler: async ({ operation, a, b }) => {
-        switch (operation) {
-          case "add":
-            return a + b;
-          case "subtract":
-            return a - b;
-          case "multiply":
-            return a * b;
-          case "divide":
-            return a / b;
-        }
-      },
+    // Set up message handling
+    context.subscribe("calc:request", async (message) => {
+      const { a, b, operation } = message.payload;
+      let result: number;
+
+      switch (operation) {
+        case "add":
+          result = a + b;
+          break;
+        case "subtract":
+          result = a - b;
+          break;
+        default:
+          throw new Error("Unknown operation");
+      }
+
+      await context.sendMessage("calc:result", { result });
+      return { success: true };
     });
 
     context.logger.info("Calculator plugin registered");
+
+    // Return capabilities
+    return {
+      tools: [],
+      resources: [],
+      commands: [
+        {
+          name: "calc:add",
+          description: "Add two numbers",
+          usage: "calc:add <a> <b>",
+          handler: async (args) => {
+            const [a, b] = args.map(Number);
+            return context.formatContent("calc-result", { result: a + b });
+          },
+        },
+      ],
+    };
   },
 };
 
-// shell/plugin-context/examples/notes-plugin.ts (Entity)
-export const notesPlugin: EntityPlugin = {
+// shell/plugin-context/examples/notes-plugin.ts (Service)
+export const notesPlugin: ServicePlugin = {
   id: "notes",
   version: "1.0.0",
-  type: "entity",
+  type: "service",
 
-  async register(context: EntityPluginContext) {
+  async register(context: ServicePluginContext): Promise<PluginCapabilities> {
     // Register entity type
     context.registerEntityType("note", noteSchema, noteAdapter);
 
-    // Add commands that use entity service
-    context.registerCommand({
-      name: "note:create",
-      description: "Create a note",
-      handler: async ({ title, content }) => {
-        const result = await context.entityService.createEntity({
-          entityType: "note",
-          title,
-          content,
-        });
-        return `Created note: ${result.entityId}`;
+    // Register templates
+    context.registerTemplates({
+      "note-summary": {
+        name: "note-summary",
+        description: "Format note summary",
+        formatter: {
+          format: (note: Note) =>
+            `📝 ${note.title}\n${note.content.substring(0, 100)}...`,
+          parse: (content: string) => ({ content }),
+        },
       },
     });
 
-    context.registerCommand({
-      name: "note:list",
-      description: "List all notes",
-      handler: async () => {
-        const notes = await context.entityService.listEntities("note");
-        return `You have ${notes.length} notes`;
+    // Register job handlers
+    context.registerJobHandler("note:summarize", async (job) => {
+      const { noteId } = job.data;
+      const note = await context.entityService.getEntity("note", noteId);
+
+      if (!note) throw new Error("Note not found");
+
+      // Generate AI summary
+      const summary = await context.generateContent({
+        templateName: "summarize",
+        entityType: "note",
+        entityId: noteId,
+        prompt: "Summarize this note in 2-3 sentences",
+      });
+
+      return { summary };
+    });
+
+    // Return capabilities
+    return {
+      tools: [
+        {
+          name: "create_note",
+          description: "Create a new note",
+          inputSchema: z.object({
+            title: z.string(),
+            content: z.string(),
+            tags: z.array(z.string()).optional(),
+          }),
+          handler: async (input) => {
+            const result = await context.entityService.createEntity({
+              entityType: "note",
+              ...input,
+            });
+            return { noteId: result.entityId };
+          },
+        },
+      ],
+      resources: [],
+      commands: [
+        {
+          name: "note:list",
+          description: "List all notes",
+          handler: async () => {
+            const notes = await context.entityService.listEntities("note");
+            return notes
+              .map((n) => context.formatContent("note-summary", n))
+              .join("\n\n");
+          },
+        },
+      ],
+    };
+  },
+};
+
+// shell/plugin-context/examples/cli-interface-plugin.ts (Interface)
+export const cliInterfacePlugin: InterfacePlugin = {
+  id: "cli-interface",
+  version: "1.0.0",
+  type: "interface",
+
+  async register(context: InterfacePluginContext): Promise<PluginCapabilities> {
+    // Register daemon for CLI server
+    context.registerDaemon("cli-server", {
+      name: "cli-server",
+      start: async () => {
+        console.log("CLI interface started");
+        // Set up readline interface
+      },
+      stop: async () => {
+        console.log("CLI interface stopped");
       },
     });
+
+    // Monitor active jobs
+    context.subscribe("job:status", async (message) => {
+      const activeJobs = await context.getActiveJobs();
+      console.log(`Active jobs: ${activeJobs.length}`);
+      return { success: true };
+    });
+
+    // Return interface-specific capabilities
+    return {
+      tools: [],
+      resources: [],
+      commands: [
+        {
+          name: "cli:help",
+          description: "Show available commands",
+          handler: async () => {
+            const commands = await context.getAllCommands();
+            return commands
+              .map((cmd) => `${cmd.name} - ${cmd.description}`)
+              .join("\n");
+          },
+        },
+      ],
+    };
+  },
+
+  async start() {
+    // Start the CLI interface
+    console.log("Starting CLI interface...");
+  },
+
+  async stop() {
+    // Stop the CLI interface
+    console.log("Stopping CLI interface...");
   },
 };
 ```
@@ -596,3 +749,14 @@ export const gitSyncPlugin: CorePlugin = {
 3. Clear examples for each plugin type
 4. Zero dependencies on Shell internals
 5. Existing plugins continue to work during migration
+
+## Key Updates from Original Plan
+
+Based on analysis of actual plugin usage patterns:
+
+1. **Renamed "Entity Plugin" to "Service Plugin"** - Better reflects their role as data/content services
+2. **Moved content generation from Core to Service** - Requires entity storage, too heavy for core
+3. **Added template operations to Core** - All plugins use templates for formatting
+4. **Clarified Interface plugin role** - Coordinate via commands, no direct data manipulation
+5. **Plugins return capabilities** - Commands, tools, resources returned from register(), not registered via context
+6. **Refined capability distribution** - Based on actual plugin needs, not theoretical organization

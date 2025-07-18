@@ -1,83 +1,124 @@
-import type { CorePlugin, CorePluginContext } from "../src";
-import { z } from "zod";
+import type { CorePlugin, CorePluginContext, PluginCapabilities } from "../src";
 
 /**
  * Example Calculator Plugin
- * Demonstrates how to create a simple core plugin that:
- * - Registers commands
- * - Registers tools (for MCP)
- * - Uses messaging
+ * Tests all CorePluginContext capabilities:
+ * - Command definition and execution
+ * - Inter-plugin messaging
+ * - Content generation and templating
+ * - Logging
  */
 export const calculatorPlugin: CorePlugin = {
   id: "calculator",
   version: "1.0.0",
   type: "core",
-  description: "Simple calculator plugin",
+  description: "Calculator plugin testing CorePluginContext",
 
-  async register(context: CorePluginContext) {
-    // Register calculator commands
-    context.registerCommand({
-      name: "calc:add",
-      description: "Add two numbers",
-      usage: "calc:add <num1> <num2>",
-      handler: async (args) => {
-        const [a, b] = args.map(Number);
-        if (isNaN(a) || isNaN(b)) {
-          return "Error: Please provide two valid numbers";
-        }
-        return `${a} + ${b} = ${a + b}`;
+  async register(context: CorePluginContext): Promise<PluginCapabilities> {
+    // Test template registration
+    context.registerTemplates({
+      "calculation-result": {
+        name: "calculation-result",
+        description: "Format calculation results",
+        generate: async (data: { result: string; timestamp: string }) => {
+          return `🧮 Result: ${data.result} (calculated at ${data.timestamp})`;
+        },
+      },
+      "math-explanation": {
+        name: "math-explanation",
+        description: "Explain math operations",
+        generate: async (data: { operation: string; operands?: string[] }) => {
+          return `The operation ${data.operation} was performed on ${data.operands?.join(", ")}`;
+        },
       },
     });
 
-    context.registerCommand({
-      name: "calc:multiply",
-      description: "Multiply two numbers",
-      usage: "calc:multiply <num1> <num2>",
-      handler: async (args) => {
-        const [a, b] = args.map(Number);
-        if (isNaN(a) || isNaN(b)) {
-          return "Error: Please provide two valid numbers";
-        }
-        return `${a} × ${b} = ${a * b}`;
-      },
-    });
+    // Test messaging - subscribe to requests
+    context.subscribe(
+      "calc:request",
+      async (message: {
+        id?: string;
+        payload?: { operation: string; a: number; b: number };
+      }) => {
+        context.logger.info("Processing calculation request", message);
 
-    // Register MCP tool for more complex calculations
-    context.registerTool({
-      name: "calculate",
-      description: "Perform calculations",
-      inputSchema: z.object({
-        operation: z.enum(["add", "subtract", "multiply", "divide"]),
-        a: z.number(),
-        b: z.number(),
-      }),
-      handler: async ({ operation, a, b }) => {
+        const { operation, a, b } = message.payload || {};
+        let result: number;
+
         switch (operation) {
           case "add":
-            return { result: a + b, expression: `${a} + ${b} = ${a + b}` };
-          case "subtract":
-            return { result: a - b, expression: `${a} - ${b} = ${a - b}` };
+            result = a + b;
+            break;
           case "multiply":
-            return { result: a * b, expression: `${a} × ${b} = ${a * b}` };
-          case "divide":
-            if (b === 0) {
-              throw new Error("Division by zero");
-            }
-            return { result: a / b, expression: `${a} ÷ ${b} = ${a / b}` };
+            result = a * b;
+            break;
+          default:
+            return { success: false, error: "Unknown operation" };
         }
+
+        // Send result back via messaging
+        await context.sendMessage("calc:result", {
+          requestId: message.id,
+          result,
+          operation,
+          operands: [a, b],
+        });
+
+        return { success: true };
       },
-    });
+    );
 
-    // Subscribe to calculation requests from other plugins
-    context.subscribe("calc:request", async (message) => {
-      context.logger.debug("Received calculation request", message);
-      
-      // For now, just acknowledge the request
-      // In a real implementation, you might process the request
-      // and send back results
-      return { success: true };
-    });
+    // Test content generation
+    try {
+      const explanation = await context.generateContent({
+        templateName: "math-explanation",
+        prompt: "Explain addition",
+        data: {
+          operation: "addition",
+          operands: ["numbers", "values"],
+        },
+      });
+      context.logger.info("Generated explanation:", explanation);
+    } catch (error) {
+      context.logger.warn("Content generation failed:", error);
+    }
 
-    context.logger.info("Calculator plugin registered successfully");
+    context.logger.info(
+      "Calculator plugin registered with all CorePluginContext features tested",
+    );
+
+    // Return capabilities (standard plugin pattern)
+    return {
+      tools: [], // Core plugins focus on commands and messaging
+      resources: [],
+      commands: [
+        {
+          name: "calc:add",
+          description: "Add two numbers",
+          usage: "calc:add <num1> <num2>",
+          handler: async (args) => {
+            const [a, b] = args.map(Number);
+            if (isNaN(a) || isNaN(b)) {
+              return "Error: Please provide two valid numbers";
+            }
+            context.logger.info(`Adding ${a} + ${b}`);
+            return `${a} + ${b} = ${a + b}`;
+          },
+        },
+        {
+          name: "calc:format",
+          description: "Format a calculation result",
+          usage: "calc:format <result>",
+          handler: async (args) => {
+            const result = args[0];
+            // Test content formatting
+            return context.formatContent("calculation-result", {
+              result,
+              timestamp: new Date().toISOString(),
+            });
+          },
+        },
+      ],
+    };
   },
 };

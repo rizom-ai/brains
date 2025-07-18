@@ -1,6 +1,9 @@
 import type { Logger } from "@brains/utils";
-import type { PluginTool } from "@brains/plugin-utils";
+import type { ContentGenerationConfig } from "@brains/plugin-utils";
 import type { MessageSender, MessageHandler } from "@brains/messaging-service";
+import type { BaseEntity, EntityAdapter, Template } from "@brains/types";
+import type { EntityService } from "@brains/entity-service";
+import type { z } from "zod";
 
 // Command interface - core concept for all plugins
 export interface Command {
@@ -10,28 +13,87 @@ export interface Command {
   handler: (args: string[]) => Promise<string> | string;
 }
 
-// Core Plugin types
-export interface CorePlugin {
+// Plugin type union
+export type PluginType = "core" | "entity" | "interface";
+
+// Base Plugin interface - shared by all plugin types
+export interface BasePlugin {
   id: string;
   version: string;
-  type: "core";
   description?: string;
-  register(context: CorePluginContext): Promise<void>;
 }
 
-// Core Plugin Context - minimal interface for core plugins
+// Plugin capabilities (matching application pattern)
+export interface PluginCapabilities {
+  tools: PluginTool[];
+  resources: PluginResource[];
+  commands: Command[];
+}
+
+// Tool and Resource types (from application system)
+export interface PluginTool {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>; // ZodRawShape equivalent
+  handler: (input: unknown) => Promise<unknown>;
+}
+
+export interface PluginResource {
+  uri: string;
+  name: string;
+  description?: string;
+  mimeType?: string;
+  handler: () => Promise<{
+    contents: Array<{
+      text: string;
+      uri: string;
+      mimeType?: string;
+    }>;
+  }>;
+}
+
+// Core Plugin - basic functionality
+export interface CorePlugin extends BasePlugin {
+  type: "core";
+  register(context: CorePluginContext): Promise<PluginCapabilities>;
+}
+
+// Entity Plugin - adds entity management
+export interface EntityPlugin extends BasePlugin {
+  type: "entity";
+  register(context: EntityPluginContext): Promise<PluginCapabilities>;
+}
+
+// Core Plugin Context - provides services to core plugins
 export interface CorePluginContext {
   // Identity
   readonly pluginId: string;
   readonly logger: Logger;
 
-  // Command registration
-  registerCommand(command: Command): void;
-
-  // Tool registration (for MCP) - uses existing PluginTool interface
-  registerTool(tool: PluginTool): void;
-
-  // Inter-plugin messaging - uses existing types from messaging-service
+  // Inter-plugin messaging
   sendMessage: MessageSender;
   subscribe: (channel: string, handler: MessageHandler) => () => void;
+
+  // Content generation capabilities
+  generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
+  formatContent: <T = unknown>(
+    templateName: string,
+    data: T,
+    options?: { truncate?: number },
+  ) => string;
+  parseContent: <T = unknown>(templateName: string, content: string) => T;
+  registerTemplates: (templates: Record<string, Template>) => void;
+}
+
+// Entity Plugin Context - extends Core with entity capabilities
+export interface EntityPluginContext extends CorePluginContext {
+  // Full entity service access
+  readonly entityService: EntityService;
+
+  // Entity type registration
+  registerEntityType<T extends BaseEntity>(
+    entityType: string,
+    schema: z.ZodSchema<T>,
+    adapter: EntityAdapter<T>,
+  ): void;
 }
