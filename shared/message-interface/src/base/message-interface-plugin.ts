@@ -250,8 +250,10 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
         "Available commands:",
         "",
         ...commands.map((c) => {
-          const usage = c.usage ? ` ${c.usage}` : "";
-          return `  /${c.name}${usage} - ${c.description}`;
+          if (c.usage) {
+            return `  /${c.name} - ${c.description}\n    Usage: ${c.usage}`;
+          }
+          return `  /${c.name} - ${c.description}`;
         }),
       ].join("\n");
 

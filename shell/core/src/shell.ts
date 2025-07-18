@@ -308,11 +308,8 @@ export class Shell {
       this.jobQueueService,
       this.logger,
     );
-    this.serviceRegistry.register(
-      "batchJobManager",
-      () => batchJobManager,
-    );
-    
+    this.serviceRegistry.register("batchJobManager", () => batchJobManager);
+
     this.jobProgressMonitor =
       dependencies?.jobProgressMonitor ??
       JobProgressMonitor.getInstance(
