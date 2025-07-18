@@ -5,8 +5,8 @@ export type {
   BasePlugin,
   CorePlugin,
   CorePluginContext,
-  EntityPlugin,
-  EntityPluginContext,
+  ServicePlugin,
+  ServicePluginContext,
   PluginCapabilities,
   PluginTool,
   PluginResource,
@@ -16,5 +16,5 @@ export type {
 export { createCorePluginContext } from "./contexts/corePluginContext";
 export type { CoreServices } from "./contexts/corePluginContext";
 
-export { createEntityPluginContext } from "./contexts/entityPluginContext";
-export type { EntityServices } from "./contexts/entityPluginContext";
+export { createServicePluginContext } from "./contexts/servicePluginContext";
+export type { ServiceServices } from "./contexts/servicePluginContext";

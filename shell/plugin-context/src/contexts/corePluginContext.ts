@@ -1,6 +1,7 @@
 import type { Logger } from "@brains/utils";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { IContentGenerator } from "@brains/content-generator";
+import type { Template } from "@brains/types";
 import type { BasePlugin, CorePluginContext } from "../types";
 
 // Services that Shell provides to build the plugin context
@@ -24,23 +25,19 @@ export function createCorePluginContext(
       services.messageBus.send(type, payload, plugin.id),
     subscribe: services.messageBus.subscribe,
 
-    // Content generation capabilities
-    generateContent: async (config) => {
-      return services.contentGenerator.generateContent(
-        config.templateName,
-        config.data,
-        plugin.id,
-      );
-    },
-
-    formatContent: (templateName, data, options) => {
+    // Template operations (lightweight, no AI generation)
+    formatContent: <T = unknown>(
+      templateName: string,
+      data: T,
+      options?: { truncate?: number },
+    ): string => {
       return services.contentGenerator.formatContent(templateName, data, {
         ...options,
         pluginId: plugin.id,
       });
     },
 
-    parseContent: (templateName, content) => {
+    parseContent: <T = unknown>(templateName: string, content: string): T => {
       return services.contentGenerator.parseContent(
         templateName,
         content,
@@ -48,7 +45,7 @@ export function createCorePluginContext(
       );
     },
 
-    registerTemplates: (templates) => {
+    registerTemplates: (templates: Record<string, Template>): void => {
       Object.entries(templates).forEach(([name, template]) => {
         services.contentGenerator.registerTemplate(name, template);
         scopedLogger.debug(`Registered template: ${name}`);

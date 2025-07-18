@@ -14,7 +14,7 @@ export interface Command {
 }
 
 // Plugin type union
-export type PluginType = "core" | "entity" | "interface";
+export type PluginType = "core" | "service" | "interface";
 
 // Base Plugin interface - shared by all plugin types
 export interface BasePlugin {
@@ -58,10 +58,10 @@ export interface CorePlugin extends BasePlugin {
   register(context: CorePluginContext): Promise<PluginCapabilities>;
 }
 
-// Entity Plugin - adds entity management
-export interface EntityPlugin extends BasePlugin {
-  type: "entity";
-  register(context: EntityPluginContext): Promise<PluginCapabilities>;
+// Service Plugin - adds entity management and other services
+export interface ServicePlugin extends BasePlugin {
+  type: "service";
+  register(context: ServicePluginContext): Promise<PluginCapabilities>;
 }
 
 // Core Plugin Context - provides services to core plugins
@@ -74,8 +74,7 @@ export interface CorePluginContext {
   sendMessage: MessageSender;
   subscribe: (channel: string, handler: MessageHandler) => () => void;
 
-  // Content generation capabilities
-  generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
+  // Template operations (lightweight, no AI generation)
   formatContent: <T = unknown>(
     templateName: string,
     data: T,
@@ -85,8 +84,11 @@ export interface CorePluginContext {
   registerTemplates: (templates: Record<string, Template>) => void;
 }
 
-// Entity Plugin Context - extends Core with entity capabilities
-export interface EntityPluginContext extends CorePluginContext {
+// Service Plugin Context - extends Core with service capabilities
+export interface ServicePluginContext extends CorePluginContext {
+  // Content generation (AI-powered, needs entity storage)
+  generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
+
   // Full entity service access
   readonly entityService: EntityService;
 

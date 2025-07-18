@@ -102,17 +102,19 @@ describe("Calculator Plugin - CorePluginContext Integration", () => {
     );
   });
 
-  test("plugin attempts content generation during registration", async () => {
+  test("plugin uses template formatting during registration", async () => {
     await calculatorPlugin.register(context);
 
-    // Verify generateContent was called
-    expect(mockServices.contentGenerator.generateContent).toHaveBeenCalledWith(
+    // Verify formatContent was called (Core plugins don't have generateContent)
+    expect(mockServices.contentGenerator.formatContent).toHaveBeenCalledWith(
       "math-explanation",
-      expect.objectContaining({
+      {
         operation: "addition",
-        operands: ["numbers", "values"],
+        operands: ["5", "3"],
+      },
+      expect.objectContaining({
+        pluginId: "calculator",
       }),
-      "calculator",
     );
   });
 

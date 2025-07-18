@@ -1,18 +1,18 @@
 import type { CorePlugin, CorePluginContext, PluginCapabilities } from "../src";
 
 /**
- * Example Calculator Plugin
- * Tests all CorePluginContext capabilities:
+ * Example Calculator Plugin - Core Plugin
+ * Tests CorePluginContext capabilities:
  * - Command definition and execution
- * - Inter-plugin messaging
- * - Content generation and templating
+ * - Inter-plugin messaging  
+ * - Template formatting (no AI generation)
  * - Logging
  */
 export const calculatorPlugin: CorePlugin = {
   id: "calculator",
   version: "1.0.0",
   type: "core",
-  description: "Calculator plugin testing CorePluginContext",
+  description: "Simple calculator plugin demonstrating Core plugin capabilities",
 
   async register(context: CorePluginContext): Promise<PluginCapabilities> {
     // Test template registration
@@ -68,20 +68,12 @@ export const calculatorPlugin: CorePlugin = {
       },
     );
 
-    // Test content generation
-    try {
-      const explanation = await context.generateContent({
-        templateName: "math-explanation",
-        prompt: "Explain addition",
-        data: {
-          operation: "addition",
-          operands: ["numbers", "values"],
-        },
-      });
-      context.logger.info("Generated explanation:", explanation);
-    } catch (error) {
-      context.logger.warn("Content generation failed:", error);
-    }
+    // Test template formatting (no AI generation in Core plugins)
+    const formatted = context.formatContent("math-explanation", {
+      operation: "addition",
+      operands: ["5", "3"],
+    });
+    context.logger.info("Formatted content:", formatted);
 
     context.logger.info(
       "Calculator plugin registered with all CorePluginContext features tested",
@@ -89,7 +81,7 @@ export const calculatorPlugin: CorePlugin = {
 
     // Return capabilities (standard plugin pattern)
     return {
-      tools: [], // Core plugins focus on commands and messaging
+      tools: [], // Core plugins don't expose tools
       resources: [],
       commands: [
         {
