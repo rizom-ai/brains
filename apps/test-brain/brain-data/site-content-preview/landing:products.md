@@ -2,131 +2,107 @@
 routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label
-
 Our Ecosystem
 
 ## Headline
-
-The Tools and Services Powering Rizom
+Transformative Solutions for a Sustainable Future
 
 ## Description
-
-Rizom offers a suite of innovative digital solutions and advisory services to help organizations navigate the complexities of digital transformation and ecosystem design. Our products are built on the latest technologies and designed to empower teams, optimize workflows, and drive sustainable growth.
+Rizom offers a curated suite of innovative products and services that empower organizations to navigate the complex challenges of the 21st century. Our solutions leverage the power of digital transformation, organizational development, and ecosystem design to unlock new possibilities and drive lasting positive impact.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
 rizom-studio
 
 #### Name
-
 Rizom Studio
 
 #### Tagline
-
 Collaborative design for complex systems
 
 #### Description
-
-Rizom Studio is a powerful visual modeling platform that enables teams to design, simulate, and optimize their organizational ecosystems. Leveraging the latest in systems thinking and network analysis, Studio helps uncover hidden interdependencies and identify strategic leverage points.
+A powerful visual platform that enables cross-functional teams to map, model, and orchestrate intricate organizational and ecosystem dynamics.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
+#### Icon
 Brain
 
 ### Product 2
 
 #### ID
-
-rizom-insights
-
-#### Name
-
-Rizom Insights
-
-#### Tagline
-
-Data-driven intelligence for ecosystem transformation
-
-#### Description
-
-Rizom Insights is a comprehensive analytics suite that provides deep visibility into the health and performance of organizational ecosystems. By integrating data from multiple sources, Insights delivers actionable insights to guide strategic decision-making and unlock new opportunities for growth.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Database
-
-### Product 3
-
-#### ID
-
-rizom-advisory
+impact-navigator
 
 #### Name
-
-Rizom Advisory
-
-#### Tagline
-
-Expert guidance for ecosystem development
-
-#### Description
-
-Rizom Advisory offers tailored consulting services to help organizations design, implement, and optimize their digital ecosystems. Our team of seasoned experts draw on extensive experience in organizational transformation, change management, and ecosystem architecture to deliver sustainable, high-impact solutions.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Wrench
-
-### Product 4
-
-#### ID
-
-rizom-community
-
-#### Name
-
-Rizom Community
+Impact Navigator
 
 #### Tagline
-
-Collaborative platform for ecosystem leaders
+Measure and optimize social impact
 
 #### Description
-
-Rizom Community is an exclusive network for senior executives and ecosystem innovators. Through facilitated discussions, peer-to-peer learning, and collaborative problem-solving, Community members gain access to the latest insights, tools, and best practices for driving ecosystem-level transformation.
+A comprehensive impact assessment and reporting tool that helps organizations track, analyze, and communicate their social, environmental, and economic contributions.
 
 #### Status
-
 beta
 
 #### Link
 
-#### Icon
 
+#### Icon
+Cpu
+
+### Product 3
+
+#### ID
+ecosystem-orchestrator
+
+#### Name
+Ecosystem Orchestrator
+
+#### Tagline
+Activate and scale collaborative networks
+
+#### Description
+A flexible platform that facilitates the cultivation, coordination, and expansion of multi-stakeholder ecosystems, unlocking new avenues for collective impact.
+
+#### Status
+alpha
+
+#### Link
+
+
+#### Icon
 Network
+
+### Product 4
+
+#### ID
+catalyst-academy
+
+#### Name
+Catalyst Academy
+
+#### Tagline
+Empower the next generation of change-makers
+
+#### Description
+An immersive learning experience that equips emerging leaders with the knowledge, skills, and mindsets to drive sustainable transformation within their organizations and communities.
+
+#### Status
+concept
+
+#### Link
+
+
+#### Icon
+Zap
