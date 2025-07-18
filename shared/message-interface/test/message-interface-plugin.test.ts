@@ -225,9 +225,9 @@ describe("MessageInterfacePlugin", () => {
       const plugin = new TestMessageInterface();
       // No context set - not calling register()
 
-      expect(
-        plugin.executeCommand("/help", defaultContext),
-      ).rejects.toThrow("Plugin test-interface: Initialization failed");
+      expect(plugin.executeCommand("/help", defaultContext)).rejects.toThrow(
+        "Plugin test-interface: Initialization failed",
+      );
     });
   });
 

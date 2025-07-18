@@ -23,6 +23,11 @@ import {
   type IEmbeddingService,
 } from "@brains/embedding-service";
 import {
+  createSearchCommand,
+  createGetCommand,
+  createGetJobStatusCommand,
+} from "./commands";
+import {
   ContentGenerator,
   ContentGenerationJobHandler,
   ContentDerivationJobHandler,
@@ -364,12 +369,37 @@ export class Shell {
       this.jobProgressMonitor.start();
       this.logger.info("Job progress monitor started");
 
+      // Register shell commands
+      this.registerShellCommands();
+      this.logger.info("Shell commands registered");
+
       this.initialized = true;
       this.logger.info("Shell initialized successfully");
     } catch (error) {
       this.logger.error("Failed to initialize Shell", error);
       throw error;
     }
+  }
+
+  /**
+   * Register shell commands with the command registry
+   */
+  private registerShellCommands(): void {
+    this.logger.debug("Registering shell commands");
+
+    // Register each shell command
+    const commands = [
+      createSearchCommand(this),
+      createGetCommand(this),
+      createGetJobStatusCommand(this),
+    ];
+
+    commands.forEach((command) => {
+      this.commandRegistry.registerCommand("shell", command);
+      this.logger.debug(`Registered shell command: ${command.name}`);
+    });
+
+    this.logger.info(`Registered ${commands.length} shell commands`);
   }
 
   /**
@@ -438,7 +468,7 @@ export class Shell {
           ...section,
           // Add scoping prefix to template name: shell templates get "shell:" prefix, plugins get "pluginId:" prefix
           template:
-            section.template && `${pluginId || "shell"}:${section.template}`,
+            section.template && `${pluginId ?? "shell"}:${section.template}`,
         })),
       };
 
@@ -586,6 +616,10 @@ export class Shell {
 
   public getCommandRegistry(): CommandRegistry {
     return this.commandRegistry;
+  }
+
+  public getServiceRegistry(): ServiceRegistry {
+    return this.serviceRegistry;
   }
 
   /**
