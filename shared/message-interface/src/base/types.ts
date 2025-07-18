@@ -66,16 +66,3 @@ export const commandResponseSchema = z.union([
 ]);
 
 export type CommandResponse = z.infer<typeof commandResponseSchema>;
-
-/**
- * Command definition interface
- */
-export interface Command {
-  name: string;
-  description: string;
-  usage?: string;
-  handler: (
-    args: string[],
-    context: MessageContext,
-  ) => Promise<CommandResponse>;
-}

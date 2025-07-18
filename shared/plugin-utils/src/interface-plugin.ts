@@ -6,6 +6,7 @@ import type {
   IInterfacePlugin,
 } from "./interfaces";
 import { BasePlugin } from "./base-plugin";
+import type { Command } from "@brains/command-registry";
 
 /**
  * Base implementation of InterfacePlugin that provides daemon registration
@@ -63,6 +64,13 @@ export abstract class InterfacePlugin<TConfig = unknown>
    * Interfaces don't provide resources by default
    */
   protected override async getResources(): Promise<PluginResource[]> {
+    return [];
+  }
+
+  /**
+   * Interfaces don't provide commands by default
+   */
+  protected override async getCommands(): Promise<Command[]> {
     return [];
   }
 

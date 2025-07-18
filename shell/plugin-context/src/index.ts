@@ -1,6 +1,5 @@
 // Export types
 export type {
-  Command,
   PluginType,
   BasePlugin,
   CorePlugin,
@@ -13,6 +12,9 @@ export type {
   PluginTool,
   PluginResource,
 } from "./types";
+
+// Re-export command types from command-registry
+export type { Command, CommandInfo } from "@brains/command-registry";
 
 // Export context creators
 export { createCorePluginContext } from "./contexts/corePluginContext";

@@ -1,7 +1,6 @@
 import type { Logger } from "@brains/utils";
-import type { Command } from "@brains/message-interface";
 import type { EventEmitter } from "events";
-import type { ICommandRegistry } from "./types";
+import type { ICommandRegistry, Command, CommandInfo } from "./types";
 
 /**
  * Plugin command registration event
@@ -91,10 +90,19 @@ export class CommandRegistry implements ICommandRegistry {
   }
 
   /**
-   * Get all registered commands
+   * List all registered commands (metadata only)
    */
-  public getAllCommands(): Command[] {
-    return Array.from(this.commands.values()).map((entry) => entry.command);
+  public listCommands(): CommandInfo[] {
+    return Array.from(this.commands.values()).map((entry) => {
+      const info: CommandInfo = {
+        name: entry.command.name,
+        description: entry.command.description,
+      };
+      if (entry.command.usage !== undefined) {
+        info.usage = entry.command.usage;
+      }
+      return info;
+    });
   }
 
   /**

@@ -21,14 +21,34 @@ export function createMockInterfaceServices(): InterfaceServices {
       ),
     },
     commandRegistry: {
-      getAllCommands: mock(() => [
+      listCommands: mock(() => [
         {
           name: "test:command",
           description: "Test command",
-          handler: () => "Test",
+          usage: "test:command [args]",
         },
-        { name: "help", description: "Show help", handler: () => "Help" },
+        { name: "help", description: "Show help", usage: "help [command]" },
       ]),
+      findCommand: mock((name: string) => {
+        const commands = [
+          {
+            name: "test:command",
+            description: "Test command",
+            usage: "test:command [args]",
+            handler: async () => ({
+              type: "message",
+              message: "Test command executed",
+            }),
+          },
+          {
+            name: "help",
+            description: "Show help",
+            usage: "help [command]",
+            handler: async () => ({ type: "message", message: "Help text" }),
+          },
+        ];
+        return commands.find((cmd) => cmd.name === name);
+      }),
     },
     daemonRegistry: {
       register: mock(() => {}),

@@ -1,13 +1,9 @@
 import {
   MessageInterfacePlugin,
-  type Command,
   type MessageContext,
 } from "@brains/message-interface";
-import {
-  PluginInitializationError,
-  type PluginTool,
-  type PluginResource,
-} from "@brains/plugin-utils";
+import type { Command } from "@brains/command-registry";
+import { PluginInitializationError } from "@brains/plugin-utils";
 import type { PluginContext } from "@brains/plugin-utils";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { DefaultQueryResponse } from "@brains/types";
@@ -193,15 +189,13 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   /**
    * Override getCommands to add CLI-specific commands
    */
-  public override async getCommands(): Promise<Command[]> {
-    const baseCommands = await super.getCommands();
-
+  protected override async getCommands(): Promise<Command[]> {
     // Add CLI-specific commands
     const cliCommands: Command[] = [
       {
         name: "progress",
         description: "Toggle detailed progress display",
-        handler: async () => ({
+        handler: async (_args, _context) => ({
           type: "message" as const,
           message:
             "Progress display toggled. You can also use Ctrl+P for quick toggle.",
@@ -210,34 +204,14 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
       {
         name: "clear",
         description: "Clear the screen",
-        handler: async () => ({
+        handler: async (_args, _context) => ({
           type: "message" as const,
-          message: "Screen cleared.",
+          message: "\x1B[2J\x1B[H", // ANSI escape codes to clear screen and move cursor to top
         }),
       },
     ];
 
-    return [...baseCommands, ...cliCommands];
-  }
-
-  /**
-   * Override register to NOT include interface commands in plugin capabilities
-   * Interface commands should be handled separately from business logic plugin commands
-   */
-  public override async register(context: PluginContext): Promise<{
-    tools: PluginTool[];
-    resources: PluginResource[];
-    commands: Command[];
-  }> {
-    // Call parent register to set up everything
-    const capabilities = await super.register(context);
-
-    // Return capabilities but with NO commands
-    // Commands are handled through MessageInterfacePlugin.getAllAvailableCommands()
-    return {
-      ...capabilities,
-      commands: [], // No commands registered through plugin system
-    };
+    return cliCommands;
   }
 
   /**

@@ -6,8 +6,8 @@ import type {
   PluginResource,
   ToolContext,
 } from "./interfaces";
+import type { Command } from "@brains/command-registry";
 import { ToolContextRoutingSchema } from "./interfaces";
-import type { Command } from "@brains/message-interface";
 import {
   Logger,
   type UserPermissionLevel,
@@ -226,7 +226,7 @@ export abstract class BasePlugin<TConfig = unknown> implements Plugin {
    * Get the commands provided by this plugin
    * Override this to provide plugin-specific commands
    */
-  public async getCommands(): Promise<Command[]> {
+  protected async getCommands(): Promise<Command[]> {
     return [];
   }
 

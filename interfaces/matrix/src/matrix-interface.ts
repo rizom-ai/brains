@@ -1,13 +1,13 @@
 import {
   MessageInterfacePlugin,
   type MessageContext,
-  type Command,
 } from "@brains/message-interface";
 import {
   type PluginTool,
   type PluginResource,
   type PluginContext,
 } from "@brains/plugin-utils";
+import type { Command } from "@brains/command-registry";
 import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
@@ -701,16 +701,5 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     }
 
     return displayName;
-  }
-
-  /**
-   * Override getHelpText to format for Matrix (with markdown)
-   */
-  public override async getHelpText(): Promise<string> {
-    const baseHelp = await super.getHelpText();
-    // Convert plain text formatting to Matrix markdown
-    return baseHelp
-      .replace("Available commands:", "**Available commands:**")
-      .replace(/• \/([\w-]+)/g, "• `/$1`"); // Wrap commands in backticks
   }
 }

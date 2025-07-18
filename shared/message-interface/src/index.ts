@@ -3,7 +3,6 @@ export { MessageInterfacePlugin } from "./base/message-interface-plugin";
 
 // Types
 export type {
-  Command,
   CommandResponse,
   BatchOperationResponse,
   JobResponse,
@@ -21,11 +20,6 @@ export {
 } from "./base/types";
 
 // Utilities
-export { getBaseCommands } from "./commands/base-commands";
-export {
-  getTestCommands,
-  registerTestJobHandlers,
-} from "./commands/test-commands";
 export {
   setupProgressHandler,
   extractJobContext,

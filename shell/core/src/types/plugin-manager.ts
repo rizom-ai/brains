@@ -1,5 +1,5 @@
 import type { Plugin, PluginTool, PluginResource } from "@brains/plugin-utils";
-import type { Command } from "@brains/message-interface";
+import type { Command } from "@brains/command-registry";
 
 /**
  * Plugin Manager interface for managing plugin lifecycle

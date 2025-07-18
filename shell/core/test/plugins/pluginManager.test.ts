@@ -5,7 +5,6 @@ import type {
   PluginContext,
   PluginCapabilities,
 } from "@brains/plugin-utils";
-import type { Command } from "@brains/message-interface";
 import type { IJobQueueService } from "@brains/job-queue";
 import {
   PluginEvent,
@@ -63,10 +62,6 @@ class TestPlugin implements Plugin {
       resources: [],
       commands: [],
     };
-  }
-
-  async getCommands(): Promise<Command[]> {
-    return [];
   }
 }
 
@@ -447,9 +442,6 @@ describe("PluginManager", (): void => {
           resources: [],
           commands: [],
         };
-      },
-      async getCommands(): Promise<Command[]> {
-        return [];
       },
     };
 

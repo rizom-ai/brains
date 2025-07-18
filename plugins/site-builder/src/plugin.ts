@@ -4,7 +4,7 @@ import type {
   PluginTool,
   PluginResource,
 } from "@brains/plugin-utils";
-import type { Command, CommandResponse } from "@brains/message-interface";
+import type { Command, CommandResponse } from "@brains/command-registry";
 import type { JobContext } from "@brains/db";
 import type { Template } from "@brains/types";
 import type { SectionDefinition } from "@brains/view-registry";
@@ -602,7 +602,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               interfaceId: context.interfaceType || "command",
               userId: context.userId || "command-user",
               channelId: context.channelId,
-              progressToken: context.messageId,
+              progressToken: "", // CommandContext doesn't have messageId
               pluginId: this.id,
               operationType: "content_generation",
             };
@@ -722,7 +722,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               interfaceId: context.interfaceType || "command",
               userId: context.userId || "command-user",
               channelId: context.channelId,
-              progressToken: context.messageId,
+              progressToken: "", // CommandContext doesn't have messageId
               pluginId: this.id,
               operationType: "site_building",
             };
@@ -825,7 +825,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               interfaceId: context.interfaceType || "command",
               userId: context.userId || "command-user",
               channelId: context.channelId,
-              progressToken: context.messageId,
+              progressToken: "", // CommandContext doesn't have messageId
               pluginId: this.id,
               operationType: "site_building",
             };
@@ -898,7 +898,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
               interfaceId: context.interfaceType || "command",
               userId: context.userId || "command-user",
               channelId: context.channelId,
-              progressToken: context.messageId,
+              progressToken: "", // CommandContext doesn't have messageId
               pluginId: this.id,
               operationType: "site_building",
             };

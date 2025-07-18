@@ -9,7 +9,6 @@ import {
 } from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
 import type { PluginContext } from "@brains/plugin-utils";
-import type { MessageContext } from "@brains/message-interface";
 import { PluginTestHarness } from "@brains/test-utils";
 import type { CLIConfig } from "../src/types";
 
@@ -26,7 +25,8 @@ describe("CLIInterface", () => {
   let mockContext: PluginContext;
   let testHarness: PluginTestHarness;
   let generateContentMock: ReturnType<typeof mock>;
-  let getAllCommandsMock: ReturnType<typeof mock>;
+  let listCommandsMock: ReturnType<typeof mock>;
+  let executeCommandMock: ReturnType<typeof mock>;
 
   beforeEach(async () => {
     mock.restore();
@@ -46,20 +46,56 @@ describe("CLIInterface", () => {
     );
     mockContext.generateContent = generateContentMock;
 
-    // Mock getAllCommands to simulate plugin commands
-    getAllCommandsMock = mock(() =>
+    // Mock listCommands to simulate plugin commands
+    listCommandsMock = mock(() =>
       Promise.resolve([
         {
           name: "generate-all",
           description: "Generate content for all sections",
-          handler: async () => ({
-            type: "message",
-            message: "Generating all content...",
-          }),
+        },
+        {
+          name: "help",
+          description: "Show available commands",
+        },
+        {
+          name: "progress",
+          description: "Toggle detailed progress display",
+        },
+        {
+          name: "clear",
+          description: "Clear the screen",
         },
       ]),
     );
-    mockContext.getAllCommands = getAllCommandsMock;
+    mockContext.listCommands = listCommandsMock;
+
+    // Mock executeCommand
+    executeCommandMock = mock((commandName: string) => {
+      if (commandName === "generate-all") {
+        return Promise.resolve({
+          type: "message",
+          message: "Generating all content...",
+        });
+      }
+      if (commandName === "clear") {
+        return Promise.resolve({
+          type: "message",
+          message: "\x1B[2J\x1B[H",
+        });
+      }
+      if (commandName === "progress") {
+        return Promise.resolve({
+          type: "message",
+          message:
+            "Progress display toggled. You can also use Ctrl+P for quick toggle.",
+        });
+      }
+      return Promise.resolve({
+        type: "message",
+        message: `Unknown command: /${commandName}`,
+      });
+    });
+    mockContext.executeCommand = executeCommandMock;
   });
 
   afterEach(async () => {
@@ -132,9 +168,8 @@ describe("CLIInterface", () => {
 
       await cliInterface.processInput("/clear");
 
-      // /clear is now handled in EnhancedApp component, not by calling console.clear
-      // The handler returns a message about clearing being handled in the component
-      expect(responseHandler).toHaveBeenCalledWith("Screen cleared.");
+      // /clear returns ANSI escape codes to clear the screen
+      expect(responseHandler).toHaveBeenCalledWith("\x1B[2J\x1B[H");
     });
 
     it("should emit error event on failure", async () => {
@@ -200,9 +235,9 @@ describe("CLIInterface", () => {
       // Register the CLI interface
       const capabilities = await cliInterface.register(mockContext);
 
-      // Should return empty commands array - interface commands are handled separately
+      // CLI provides its own commands (progress and clear)
       expect(capabilities.commands).toBeDefined();
-      expect(capabilities.commands).toHaveLength(0);
+      expect(capabilities.commands).toHaveLength(2);
 
       // Should still have tools and resources
       expect(capabilities.tools).toBeDefined();
@@ -216,62 +251,31 @@ describe("CLIInterface", () => {
       // Get commands directly (not through plugin system)
       const commands = await cliInterface.getCommands();
 
-      // Should have base commands + CLI-specific commands
-      expect(commands.length).toBeGreaterThan(5); // More than just base commands
+      // Should have CLI-specific commands
+      expect(commands.length).toBe(2); // progress and clear
 
       const commandNames = commands.map((cmd) => cmd.name);
-      // Base commands
-      expect(commandNames).toContain("help");
-      expect(commandNames).toContain("search");
-      expect(commandNames).toContain("list");
-
       // CLI-specific commands
       expect(commandNames).toContain("progress");
       expect(commandNames).toContain("clear");
-    });
-
-    it("should combine interface and plugin commands in help text", async () => {
-      cliInterface = new CLIInterface();
-      await cliInterface.register(mockContext);
-
-      const helpText = await cliInterface.getHelpText();
-
-      // Should contain interface commands
-      expect(helpText).toContain("/help - Show this help message");
-      expect(helpText).toContain(
-        "/progress - Toggle detailed progress display",
-      );
-      expect(helpText).toContain("/clear - Clear the screen");
-
-      // Should contain plugin commands from registry
-      expect(helpText).toContain(
-        "/generate-all - Generate content for all sections",
-      );
-
-      // Verify getAllCommands was called to get plugin commands
-      expect(getAllCommandsMock).toHaveBeenCalled();
     });
 
     it("should execute plugin commands correctly", async () => {
       cliInterface = new CLIInterface();
       await cliInterface.register(mockContext);
 
-      const context: MessageContext = {
-        userId: "test-user",
-        channelId: "test-channel",
-        messageId: "test-message",
-        timestamp: new Date(),
-        interfaceType: "cli",
-        userPermissionLevel: "anchor",
-      };
+      const responseHandler = mock(() => {});
+      cliInterface.registerResponseCallback(responseHandler);
 
-      const result = await cliInterface.executeCommand(
-        "/generate-all",
-        context,
+      await cliInterface.processInput("/generate-all");
+
+      // Since executeCommandMock returns the message for generate-all,
+      // verify it was called
+      expect(executeCommandMock).toHaveBeenCalledWith(
+        "generate-all",
+        [],
+        expect.any(Object),
       );
-
-      expect(result.message).toBe("Generating all content...");
-      expect(getAllCommandsMock).toHaveBeenCalled();
     });
   });
 });

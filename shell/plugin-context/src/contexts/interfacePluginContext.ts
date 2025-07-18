@@ -1,13 +1,14 @@
 import type { Daemon, ContentGenerationConfig } from "@brains/plugin-utils";
-import type { Command } from "@brains/message-interface";
+import type {
+  CommandInfo,
+  Command,
+  CommandResponse,
+  CommandContext,
+} from "@brains/command-registry";
 import type { JobQueue } from "@brains/db";
 import type { Batch } from "@brains/job-queue";
 import type { DefaultQueryResponse } from "@brains/types";
-import type {
-  InterfacePlugin,
-  InterfacePluginContext,
-  CommandInfo,
-} from "../types";
+import type { InterfacePlugin, InterfacePluginContext } from "../types";
 import {
   createCorePluginContext,
   type CoreServices,
@@ -21,9 +22,10 @@ export interface InterfaceServices extends CoreServices {
       config: ContentGenerationConfig,
     ) => Promise<T>;
   };
-  // Command discovery
+  // Command discovery and execution
   commandRegistry: {
-    getAllCommands: () => Command[];
+    listCommands: () => CommandInfo[];
+    findCommand: (commandName: string) => Command | undefined;
   };
   // Daemon management
   daemonRegistry: {
@@ -71,22 +73,45 @@ export function createInterfacePluginContext(
 
     // Command discovery - returns metadata only
     listCommands: async (): Promise<CommandInfo[]> => {
-      // TODO: commandRegistry.getAllCommands() should also be renamed to listCommands()
-      // and return CommandInfo[] to avoid the need for mapping here
-      const commands = services.commandRegistry.getAllCommands();
+      const commands = services.commandRegistry.listCommands();
       coreContext.logger.debug(`Retrieved ${commands.length} commands`);
+      return commands;
+    },
 
-      // Return just the metadata for discovery
-      return commands.map((cmd) => {
-        const info: CommandInfo = {
-          name: cmd.name,
-          description: cmd.description,
-        };
-        if (cmd.usage !== undefined) {
-          info.usage = cmd.usage;
-        }
-        return info;
-      });
+    // Command execution - find and execute by name
+    executeCommand: async (
+      commandName: string,
+      args: string[],
+      context: CommandContext,
+    ): Promise<CommandResponse> => {
+      const command = services.commandRegistry.findCommand(commandName);
+      if (!command) {
+        throw new Error(`Command "${commandName}" not found`);
+      }
+
+      try {
+        // Pass both args and context to the command handler
+        const result = await command.handler(args, context);
+        coreContext.logger.debug(
+          `Executed command "${commandName}" with args: ${args.join(", ")}`,
+          {
+            userId: context.userId,
+            channelId: context.channelId,
+            interfaceType: context.interfaceType,
+          },
+        );
+        return result;
+      } catch (error) {
+        coreContext.logger.error(`Error executing command "${commandName}"`, {
+          error,
+          userId: context.userId,
+          channelId: context.channelId,
+          interfaceType: context.interfaceType,
+        });
+        throw new Error(
+          `Failed to execute command "${commandName}": ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     },
 
     // Daemon support

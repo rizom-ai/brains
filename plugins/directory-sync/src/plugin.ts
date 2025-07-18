@@ -5,7 +5,7 @@ import {
   toolInput,
   PluginInitializationError,
 } from "@brains/plugin-utils";
-import type { Command, CommandResponse } from "@brains/message-interface";
+import type { Command, CommandResponse } from "@brains/command-registry";
 import { DirectorySyncInitializationError } from "./errors";
 import { z } from "zod";
 import { DirectorySync } from "./directorySync";
@@ -93,7 +93,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
                   interfaceId: context.interfaceType || "command",
                   userId: context.userId || "command-user",
                   channelId: context.channelId || "",
-                  progressToken: context.messageId || "",
+                  progressToken: "", // CommandContext doesn't have messageId
                   operationType: "directory_sync",
                   pluginId: this.id,
                 },
@@ -102,7 +102,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
 
             return {
               type: "batch-operation",
-              message: `🔄 **Sync batch started** - ${batchData.exportOperationsCount} export jobs, ${batchData.importOperationsCount} import jobs for ${batchData.totalFiles} files`,
+              message: `🔄 **Sync batch started** - ${batchData.exportOperationsCount} export jobs, ${batchData.importOperationsCount} import jobs for ${batchData.totalFiles} files (${batchData.operations.length} operations)`,
               batchId,
               operationCount: batchData.operations.length,
             };

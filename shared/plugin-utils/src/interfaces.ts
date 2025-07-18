@@ -8,7 +8,7 @@ import type { BaseEntity, Template } from "@brains/types";
 import type { MessageSender } from "@brains/messaging-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { EntityAdapter } from "@brains/types";
-import type { Command, MessageContext } from "@brains/message-interface";
+import type { MessageContext } from "@brains/message-interface";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { EntityService } from "@brains/entity-service";
 import type {
@@ -18,6 +18,7 @@ import type {
   Batch,
 } from "@brains/job-queue";
 import type { JobOptions, JobQueue } from "@brains/db";
+import type { Command } from "@brains/command-registry";
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -135,7 +136,6 @@ export interface PluginCapabilities {
  */
 export type Plugin = z.infer<typeof pluginMetadataSchema> & {
   register(context: PluginContext): Promise<PluginCapabilities>;
-  getCommands(): Promise<Command[]>;
 };
 
 /**
@@ -207,11 +207,24 @@ export interface PluginContext extends Pick<IMessageBus, "subscribe"> {
   // Interface plugin capabilities
   registerDaemon: (name: string, daemon: Daemon) => void;
 
-  // Command discovery - get commands from all registered plugins
-  getAllCommands: () => Promise<Command[]>;
-
   // Plugin metadata access (scoped to current plugin by default)
   getPluginPackageName: (targetPluginId?: string) => string | undefined;
+
+  // Temporary: Command discovery and execution for interface plugins
+  // TODO: Remove once shell uses plugin-context package
+  listCommands: () => Promise<
+    Array<{ name: string; description: string; usage?: string }>
+  >;
+  executeCommand: (
+    commandName: string,
+    args: string[],
+    context: {
+      userId: string;
+      channelId: string;
+      interfaceType: string;
+      userPermissionLevel: UserPermissionLevel;
+    },
+  ) => Promise<unknown>;
 }
 
 /**

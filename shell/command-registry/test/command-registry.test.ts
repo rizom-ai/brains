@@ -1,10 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import {
-  CommandRegistry,
-  CommandRegistryEvent,
-} from "@brains/command-registry";
+import { CommandRegistry, CommandRegistryEvent, type Command } from "../src";
 import { EventEmitter } from "events";
-import type { Command } from "@brains/message-interface";
 import { Logger, LogLevel } from "@brains/utils";
 
 describe("CommandRegistry", () => {
@@ -23,12 +19,12 @@ describe("CommandRegistry", () => {
       const command: Command = {
         name: "test-command",
         description: "Test command",
-        handler: async () => ({ type: "message", message: "Test" }),
+        handler: async () => "Test",
       };
 
       registry.registerCommand("test-plugin", command);
 
-      const commands = registry.getAllCommands();
+      const commands = registry.listCommands();
       expect(commands).toHaveLength(1);
       expect(commands[0]?.name).toBe("test-command");
     });
@@ -37,19 +33,19 @@ describe("CommandRegistry", () => {
       const command1: Command = {
         name: "command1",
         description: "First command",
-        handler: async () => ({ type: "message", message: "First" }),
+        handler: async () => "First",
       };
 
       const command2: Command = {
         name: "command2",
         description: "Second command",
-        handler: async () => ({ type: "message", message: "Second" }),
+        handler: async () => "Second",
       };
 
       registry.registerCommand("test-plugin", command1);
       registry.registerCommand("test-plugin", command2);
 
-      const commands = registry.getAllCommands();
+      const commands = registry.listCommands();
       expect(commands).toHaveLength(2);
 
       const commandNames = commands.map((cmd) => cmd.name);
@@ -61,19 +57,19 @@ describe("CommandRegistry", () => {
       const pluginACommand: Command = {
         name: "plugin-a-cmd",
         description: "Plugin A command",
-        handler: async () => ({ type: "message", message: "Plugin A" }),
+        handler: async () => "Plugin A",
       };
 
       const pluginBCommand: Command = {
         name: "plugin-b-cmd",
         description: "Plugin B command",
-        handler: async () => ({ type: "message", message: "Plugin B" }),
+        handler: async () => "Plugin B",
       };
 
       registry.registerCommand("plugin-a", pluginACommand);
       registry.registerCommand("plugin-b", pluginBCommand);
 
-      const commands = registry.getAllCommands();
+      const commands = registry.listCommands();
       expect(commands).toHaveLength(2);
     });
 
@@ -81,14 +77,14 @@ describe("CommandRegistry", () => {
       const command: Command = {
         name: "duplicate",
         description: "Duplicate command",
-        handler: async () => ({ type: "message", message: "Duplicate" }),
+        handler: async () => "Duplicate",
       };
 
       registry.registerCommand("test-plugin", command);
       // Register same command again
       registry.registerCommand("test-plugin", command);
 
-      const commands = registry.getAllCommands();
+      const commands = registry.listCommands();
       // Should still have only one command
       expect(commands).toHaveLength(1);
     });
@@ -97,19 +93,19 @@ describe("CommandRegistry", () => {
       const commandA: Command = {
         name: "shared-name",
         description: "Plugin A version",
-        handler: async () => ({ type: "message", message: "From A" }),
+        handler: async () => "From A",
       };
 
       const commandB: Command = {
         name: "shared-name",
         description: "Plugin B version",
-        handler: async () => ({ type: "message", message: "From B" }),
+        handler: async () => "From B",
       };
 
       registry.registerCommand("plugin-a", commandA);
       registry.registerCommand("plugin-b", commandB);
 
-      const commands = registry.getAllCommands();
+      const commands = registry.listCommands();
       // Should have both commands
       expect(commands).toHaveLength(2);
 
@@ -126,13 +122,13 @@ describe("CommandRegistry", () => {
       const commandA: Command = {
         name: "plugin-a-cmd",
         description: "Plugin A command",
-        handler: async () => ({ type: "message", message: "A" }),
+        handler: async () => "A",
       };
 
       const commandB: Command = {
         name: "plugin-b-cmd",
         description: "Plugin B command",
-        handler: async () => ({ type: "message", message: "B" }),
+        handler: async () => "B",
       };
 
       registry.registerCommand("plugin-a", commandA);
@@ -158,7 +154,7 @@ describe("CommandRegistry", () => {
       const command: Command = {
         name: "find-me",
         description: "Test command",
-        handler: async () => ({ type: "message", message: "Found" }),
+        handler: async () => "Found",
       };
 
       registry.registerCommand("test-plugin", command);
@@ -178,13 +174,13 @@ describe("CommandRegistry", () => {
       const commandA: Command = {
         name: "shared",
         description: "From plugin A",
-        handler: async () => ({ type: "message", message: "A" }),
+        handler: async () => "A",
       };
 
       const commandB: Command = {
         name: "shared",
         description: "From plugin B",
-        handler: async () => ({ type: "message", message: "B" }),
+        handler: async () => "B",
       };
 
       registry.registerCommand("plugin-a", commandA);
@@ -202,19 +198,19 @@ describe("CommandRegistry", () => {
       registry.registerCommand("plugin-a", {
         name: "cmd1",
         description: "Command 1",
-        handler: async () => ({ type: "message", message: "1" }),
+        handler: async () => "1",
       });
 
       registry.registerCommand("plugin-a", {
         name: "cmd2",
         description: "Command 2",
-        handler: async () => ({ type: "message", message: "2" }),
+        handler: async () => "2",
       });
 
       registry.registerCommand("plugin-b", {
         name: "cmd3",
         description: "Command 3",
-        handler: async () => ({ type: "message", message: "3" }),
+        handler: async () => "3",
       });
 
       const stats = registry.getStats();
@@ -229,7 +225,7 @@ describe("CommandRegistry", () => {
       const command: Command = {
         name: "event-cmd",
         description: "Event command",
-        handler: async () => ({ type: "message", message: "Event" }),
+        handler: async () => "Event",
       };
 
       eventEmitter.emit(CommandRegistryEvent.COMMAND_REGISTER, {
@@ -237,7 +233,7 @@ describe("CommandRegistry", () => {
         command: command,
       });
 
-      const commands = registry.getAllCommands();
+      const commands = registry.listCommands();
       expect(commands).toHaveLength(1);
       expect(commands[0]?.name).toBe("event-cmd");
     });
@@ -246,13 +242,13 @@ describe("CommandRegistry", () => {
       const command1: Command = {
         name: "cmd1",
         description: "Command 1",
-        handler: async () => ({ type: "message", message: "1" }),
+        handler: async () => "1",
       };
 
       const command2: Command = {
         name: "cmd2",
         description: "Command 2",
-        handler: async () => ({ type: "message", message: "2" }),
+        handler: async () => "2",
       };
 
       eventEmitter.emit(CommandRegistryEvent.COMMAND_REGISTER, {
@@ -265,7 +261,7 @@ describe("CommandRegistry", () => {
         command: command2,
       });
 
-      const commands = registry.getAllCommands();
+      const commands = registry.listCommands();
       expect(commands).toHaveLength(2);
       expect(commands.map((c) => c.name)).toContain("cmd1");
       expect(commands.map((c) => c.name)).toContain("cmd2");

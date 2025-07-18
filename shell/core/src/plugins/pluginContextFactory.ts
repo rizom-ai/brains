@@ -1,5 +1,5 @@
 import type { ServiceRegistry } from "@brains/service-registry";
-import type { Logger } from "@brains/utils";
+import type { Logger, UserPermissionLevel } from "@brains/utils";
 import type { BaseEntity, Template } from "@brains/types";
 import type { MessageHandler } from "@brains/messaging-service";
 import type {
@@ -7,7 +7,6 @@ import type {
   Daemon,
   ContentGenerationConfig,
 } from "@brains/plugin-utils";
-import type { Command } from "@brains/message-interface";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { EntityAdapter } from "@brains/types";
@@ -245,15 +244,35 @@ export class PluginContextFactory {
         );
       },
 
-      // Command discovery - get commands from the central registry
-      getAllCommands: async (): Promise<Command[]> => {
+      // Temporary command methods until shell uses plugin-context package
+      listCommands: async () => {
         const commandRegistry = shell.getCommandRegistry();
-        const allCommands = commandRegistry.getAllCommands();
-
+        const commands = commandRegistry.listCommands();
         this.logger.debug(
-          `Retrieved ${allCommands.length} commands from CommandRegistry`,
+          `Listed ${commands.length} commands from CommandRegistry`,
         );
-        return allCommands;
+        return commands;
+      },
+
+      executeCommand: async (
+        commandName: string,
+        args: string[],
+        context: {
+          userId: string;
+          channelId: string;
+          interfaceType: string;
+          userPermissionLevel: UserPermissionLevel;
+        },
+      ) => {
+        const commandRegistry = shell.getCommandRegistry();
+        const command = commandRegistry.findCommand(commandName);
+        if (!command) {
+          throw new Error(`Command "${commandName}" not found`);
+        }
+
+        // Execute command with context
+        const result = await command.handler(args, context);
+        return result;
       },
     };
 

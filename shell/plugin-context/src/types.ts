@@ -16,22 +16,13 @@ import type {
   Batch,
 } from "@brains/job-queue";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
+import type {
+  Command,
+  CommandInfo,
+  CommandResponse,
+  CommandContext,
+} from "@brains/command-registry";
 import type { z } from "zod";
-
-// Command interface - core concept for all plugins
-export interface Command {
-  name: string;
-  description: string;
-  usage?: string;
-  handler: (args: string[]) => Promise<string> | string;
-}
-
-// Command metadata for discovery (no handler)
-export interface CommandInfo {
-  name: string;
-  description: string;
-  usage?: string;
-}
 
 // Plugin type union
 export type PluginType = "core" | "service" | "interface";
@@ -167,6 +158,13 @@ export interface InterfacePluginContext extends CorePluginContext {
 
   // Command discovery (metadata only, no handlers)
   listCommands: () => Promise<CommandInfo[]>;
+
+  // Command execution (by name)
+  executeCommand: (
+    commandName: string,
+    args: string[],
+    context: CommandContext,
+  ) => Promise<CommandResponse>;
 
   // Daemon support for long-running interfaces
   registerDaemon: (name: string, daemon: Daemon) => void;

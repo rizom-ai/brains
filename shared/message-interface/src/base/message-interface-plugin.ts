@@ -5,14 +5,10 @@ import type { JobProgressEvent } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";
 import type { z } from "zod";
 import PQueue from "p-queue";
+import { PluginInitializationError } from "@brains/utils";
 
-import type { Command, MessageContext, IMessageInterfacePlugin } from "./types";
+import type { MessageContext, IMessageInterfacePlugin } from "./types";
 import { commandResponseSchema } from "./types";
-import { getBaseCommands } from "../commands/base-commands";
-import {
-  getTestCommands,
-  registerTestJobHandlers,
-} from "../commands/test-commands";
 import { setupProgressHandler } from "../utils/progress-handler";
 
 /**
@@ -72,53 +68,6 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
   ): Promise<void>;
 
   /**
-   * Get commands available to this interface
-   * Override to add interface-specific commands
-   */
-  public override async getCommands(): Promise<Command[]> {
-    return [
-      ...getBaseCommands(this, this.context),
-      ...getTestCommands(this.id, this.context),
-    ];
-  }
-
-  /**
-   * Get all available commands - combines interface commands with plugin commands
-   * Use this method when you need the complete command list
-   */
-  protected async getAllAvailableCommands(): Promise<Command[]> {
-    // Get interface commands (base + interface-specific)
-    const interfaceCommands = await this.getCommands();
-
-    // Get plugin commands from registry
-    const pluginCommands = await this.getPluginCommands();
-
-    // Combine both - interface commands come first
-    return [...interfaceCommands, ...pluginCommands];
-  }
-
-  /**
-   * Get commands from all registered plugins using the context
-   */
-  private async getPluginCommands(): Promise<Command[]> {
-    if (!this.context) {
-      this.logger.warn("Plugin context not available for command discovery");
-      return [];
-    }
-
-    try {
-      const allCommands = await this.context.getAllCommands();
-      this.logger.debug(
-        `Retrieved ${allCommands.length} commands from all plugins`,
-      );
-      return allCommands;
-    } catch (error) {
-      this.logger.error("Error getting plugin commands", { error });
-      return [];
-    }
-  }
-
-  /**
    * Register handlers and subscriptions
    */
   protected override async onRegister(context: PluginContext): Promise<void> {
@@ -141,9 +90,6 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
         });
       },
     });
-
-    // Register test job handlers
-    registerTestJobHandlers(context);
 
     this.logger.debug("Message interface registered", { id: this.id });
   }
@@ -234,12 +180,20 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     context: MessageContext,
   ): Promise<string> {
     if (!this.context) {
-      throw new Error("Plugin context not initialized");
+      throw new PluginInitializationError(
+        this.id,
+        new Error("Plugin context not initialized"),
+        { operation: "processQuery" },
+      );
     }
 
     const result = await this.queue.add(async () => {
       if (!this.context) {
-        throw new Error("Plugin context not initialized");
+        throw new PluginInitializationError(
+          this.id,
+          new Error("Plugin context not initialized"),
+          { operation: "processQuery" },
+        );
       }
 
       const queryResponse =
@@ -273,13 +227,57 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
     command: string,
     context: MessageContext,
   ): Promise<{ message: string; jobId?: string; batchId?: string }> {
+    if (!this.context) {
+      throw new PluginInitializationError(
+        this.id,
+        new Error("Plugin context not initialized - cannot execute commands"),
+        { operation: "executeCommand" },
+      );
+    }
+
     const [cmd, ...args] = command.slice(1).split(" ");
-    const commands = await this.getAllAvailableCommands();
+
+    if (!cmd) {
+      return {
+        message: "Invalid command format. Type /help for available commands.",
+      };
+    }
+
+    // Special case for help command
+    if (cmd === "help") {
+      const commands = await this.context.listCommands();
+      const helpText = [
+        "Available commands:",
+        "",
+        ...commands.map((c) => {
+          const usage = c.usage ? ` ${c.usage}` : "";
+          return `  /${c.name}${usage} - ${c.description}`;
+        }),
+      ].join("\n");
+
+      return {
+        message: helpText,
+      };
+    }
+
+    const commands = await this.context.listCommands();
     const commandDef = commands.find((c) => c.name === cmd);
 
     if (commandDef) {
-      const response = await commandDef.handler(args, context);
-      const parsed = commandResponseSchema.parse(response);
+      // Convert MessageContext to CommandContext
+      const commandContext = {
+        userId: context.userId,
+        channelId: context.channelId,
+        interfaceType: context.interfaceType,
+        userPermissionLevel: context.userPermissionLevel,
+      };
+      const result = await this.context.executeCommand(
+        cmd,
+        args,
+        commandContext,
+      );
+      // CommandResponse from command-registry matches our commandResponseSchema
+      const parsed = commandResponseSchema.parse(result);
 
       // Return structured data with the message and relevant IDs
       switch (parsed.type) {
@@ -318,23 +316,5 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
       channelId: context.channelId,
       message: message.substring(0, 100),
     });
-  }
-
-  /**
-   * Get help text
-   */
-  public async getHelpText(): Promise<string> {
-    const commands = await this.getAllAvailableCommands();
-    const commandList = commands
-      .map((cmd) => {
-        const usage = cmd.usage ?? `/${cmd.name}`;
-        return `• ${usage} - ${cmd.description}`;
-      })
-      .join("\n");
-
-    return `Available commands:
-${commandList}
-
-Type any message to interact with the brain.`;
   }
 }

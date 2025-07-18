@@ -15,7 +15,11 @@ import type { EntityAdapter } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { JobContext, JobQueue } from "@brains/db";
 import type { BatchJobStatus, BatchOperation, Batch } from "@brains/job-queue";
-import type { Command } from "@brains/message-interface";
+import type {
+  CommandInfo,
+  CommandResponse,
+  CommandContext,
+} from "@brains/command-registry";
 import type { z } from "zod";
 
 export interface PluginTestHarnessOptions {
@@ -35,6 +39,7 @@ export class PluginTestHarness {
   private entityIdCounter = 0;
   private logger: Logger;
   private installedPlugins: Plugin[] = [];
+  private commands = new Map<string, CommandInfo>();
   private mockEntityRegistry: {
     registeredTypes: Map<
       string,
@@ -348,11 +353,6 @@ export class PluginTestHarness {
       registerDaemon: (): void => {
         // Mock implementation for test harness
       },
-      // Command discovery
-      getAllCommands: async (): Promise<Command[]> => {
-        // Mock implementation for test harness - return empty array
-        return [];
-      },
 
       // Get active jobs (for monitoring)
       getActiveJobs: async (_types?: string[]): Promise<JobQueue[]> => {
@@ -364,6 +364,51 @@ export class PluginTestHarness {
       getActiveBatches: async (): Promise<Batch[]> => {
         // Mock implementation for test harness - return empty array
         return [];
+      },
+      // Command list for InterfacePluginContext
+      listCommands: async (): Promise<CommandInfo[]> => {
+        // Mock implementation - return some test commands
+        return [
+          { name: "help", description: "Show help", usage: "/help" },
+          {
+            name: "search",
+            description: "Search your knowledge base",
+            usage: "/search <query>",
+          },
+          { name: "list", description: "List entities", usage: "/list [type]" },
+          {
+            name: "show-entity",
+            description: "Show detailed information about an entity",
+            usage: "/show-entity <entity-id> [entity-type]",
+          },
+          {
+            name: "status",
+            description: "Show system status",
+            usage: "/status",
+          },
+          {
+            name: "test-progress",
+            description: "Test progress tracking with a slow job",
+            usage: "/test-progress",
+          },
+          {
+            name: "test-batch",
+            description: "Test batch progress tracking",
+            usage: "/test-batch [count]",
+          },
+        ];
+      },
+      // Command execution for InterfacePluginContext
+      executeCommand: async (
+        commandName: string,
+        args: string[],
+        _context: CommandContext,
+      ): Promise<CommandResponse> => {
+        // Mock implementation - just return a simple message
+        return {
+          type: "message",
+          message: `Mock execution of command ${commandName} with args: ${args.join(" ")}`,
+        };
       },
     };
   }
@@ -418,6 +463,7 @@ export class PluginTestHarness {
     this.entities.clear();
     this.entityIdCounter = 0;
     this.installedPlugins = [];
+    this.commands.clear();
     this.mockEntityRegistry.registeredTypes.clear();
   }
 
