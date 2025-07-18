@@ -3,6 +3,9 @@ import type { ContentGenerationConfig } from "@brains/plugin-utils";
 import type { MessageSender, MessageHandler } from "@brains/messaging-service";
 import type { BaseEntity, EntityAdapter, Template } from "@brains/types";
 import type { EntityService } from "@brains/entity-service";
+import type { JobOptions, JobQueue } from "@brains/db";
+import type { JobHandler, BatchOperation, BatchJobStatus, Batch } from "@brains/job-queue";
+import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { z } from "zod";
 
 // Command interface - core concept for all plugins
@@ -98,4 +101,30 @@ export interface ServicePluginContext extends CorePluginContext {
     schema: z.ZodSchema<T>,
     adapter: EntityAdapter<T>,
   ): void;
+
+  // Job queue operations
+  enqueueJob: (
+    type: string,
+    data: unknown,
+    options: JobOptions,
+  ) => Promise<string>;
+  getJobStatus: (jobId: string) => Promise<JobQueue | null>;
+  enqueueBatch: (
+    operations: BatchOperation[],
+    options: JobOptions,
+  ) => Promise<string>;
+  getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
+  getActiveJobs: (types?: string[]) => Promise<JobQueue[]>;
+  getActiveBatches: () => Promise<Batch[]>;
+  registerJobHandler: (type: string, handler: JobHandler) => void;
+
+  // Route and view registration
+  registerRoutes: (
+    routes: RouteDefinition[],
+    options?: { environment?: string },
+  ) => void;
+  getViewTemplate: (name: string) => ViewTemplate | undefined;
+  getRoute: (path: string) => RouteDefinition | undefined;
+  listRoutes: () => RouteDefinition[];
+  listViewTemplates: () => ViewTemplate[];
 }

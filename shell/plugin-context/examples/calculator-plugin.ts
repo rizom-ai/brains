@@ -4,7 +4,7 @@ import type { CorePlugin, CorePluginContext, PluginCapabilities } from "../src";
  * Example Calculator Plugin - Core Plugin
  * Tests CorePluginContext capabilities:
  * - Command definition and execution
- * - Inter-plugin messaging  
+ * - Inter-plugin messaging
  * - Template formatting (no AI generation)
  * - Logging
  */
@@ -12,7 +12,8 @@ export const calculatorPlugin: CorePlugin = {
   id: "calculator",
   version: "1.0.0",
   type: "core",
-  description: "Simple calculator plugin demonstrating Core plugin capabilities",
+  description:
+    "Simple calculator plugin demonstrating Core plugin capabilities",
 
   async register(context: CorePluginContext): Promise<PluginCapabilities> {
     // Test template registration
