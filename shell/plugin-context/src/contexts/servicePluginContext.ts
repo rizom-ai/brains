@@ -3,7 +3,12 @@ import type { BaseEntity, EntityAdapter } from "@brains/types";
 import type { z } from "zod";
 import type { ContentGenerationConfig } from "@brains/plugin-utils";
 import type { JobOptions, JobQueue } from "@brains/db";
-import type { JobHandler, BatchOperation, BatchJobStatus, Batch } from "@brains/job-queue";
+import type {
+  JobHandler,
+  BatchOperation,
+  BatchJobStatus,
+  Batch,
+} from "@brains/job-queue";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { ServicePlugin, ServicePluginContext } from "../types";
 import {
@@ -64,6 +69,10 @@ export interface ServiceServices extends CoreServices {
     listRoutes: () => RouteDefinition[];
     listViewTemplates: () => ViewTemplate[];
   };
+  // Plugin metadata (for component generation/hydration)
+  pluginManager: {
+    getPluginPackageName: (pluginId: string) => string | undefined;
+  };
 }
 
 export function createServicePluginContext(
@@ -113,7 +122,11 @@ export function createServicePluginContext(
       operations: BatchOperation[],
       options: JobOptions,
     ): Promise<string> => {
-      return services.batchJobManager.enqueueBatch(operations, options, plugin.id);
+      return services.batchJobManager.enqueueBatch(
+        operations,
+        options,
+        plugin.id,
+      );
     },
 
     getBatchStatus: (batchId: string): Promise<BatchJobStatus | null> => {
@@ -138,7 +151,10 @@ export function createServicePluginContext(
       routes: RouteDefinition[],
       options?: { environment?: string },
     ): void => {
-      services.shell.registerRoutes(routes, { pluginId: plugin.id, ...options });
+      services.shell.registerRoutes(routes, {
+        pluginId: plugin.id,
+        ...options,
+      });
       coreContext.logger.debug(`Registered ${routes.length} routes`);
     },
 
@@ -156,6 +172,12 @@ export function createServicePluginContext(
 
     listViewTemplates: (): ViewTemplate[] => {
       return services.viewRegistry.listViewTemplates();
+    },
+
+    // Plugin metadata
+    getPluginPackageName: (targetPluginId?: string): string | undefined => {
+      const targetId = targetPluginId ?? plugin.id;
+      return services.pluginManager.getPluginPackageName(targetId);
     },
   };
 }

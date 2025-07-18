@@ -101,7 +101,7 @@ export const calculatorServicePlugin: ServicePlugin = {
       // Simulate complex calculation
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const result = eval(expression); // In real code, use a proper parser!
-      
+
       // Store in entity service
       await context.entityService.createEntity({
         entityType: "calculation",
@@ -109,7 +109,7 @@ export const calculatorServicePlugin: ServicePlugin = {
         result: result.toString(),
         timestamp: new Date().toISOString(),
       });
-      
+
       return { result };
     });
 
@@ -130,7 +130,11 @@ export const calculatorServicePlugin: ServicePlugin = {
             template: "calculation-history",
             contentEntity: {
               entityType: "calculation",
-              query: { limit: 10, orderBy: "timestamp", orderDirection: "desc" },
+              query: {
+                limit: 10,
+                orderBy: "timestamp",
+                orderDirection: "desc",
+              },
             },
           },
         ],
@@ -150,14 +154,17 @@ export const calculatorServicePlugin: ServicePlugin = {
           inputSchema: {
             type: "object",
             properties: {
-              expression: { type: "string", description: "Math expression to evaluate" },
+              expression: {
+                type: "string",
+                description: "Math expression to evaluate",
+              },
             },
             required: ["expression"],
           },
           handler: async (input: any) => {
             const { expression } = input;
             const result = eval(expression); // In real code, use a proper parser!
-            
+
             // Store calculation in entity service
             const calculation = await context.entityService.createEntity({
               entityType: "calculation",
@@ -165,7 +172,7 @@ export const calculatorServicePlugin: ServicePlugin = {
               result: result.toString(),
               timestamp: new Date().toISOString(),
             });
-            
+
             return { result, calculationId: calculation.id };
           },
         },
@@ -229,14 +236,14 @@ export const calculatorServicePlugin: ServicePlugin = {
             if (!concept) {
               return "Error: Please provide a concept to explain";
             }
-            
+
             // Use AI content generation
             const explanation = await context.generateContent({
               templateName: "math-explanation",
               prompt: `Explain the mathematical concept: ${concept}`,
               data: { operation: concept },
             });
-            
+
             return explanation as string;
           },
         },
@@ -246,18 +253,18 @@ export const calculatorServicePlugin: ServicePlugin = {
           usage: "calc:history [limit]",
           handler: async (args) => {
             const limit = parseInt(args[0]) || 10;
-            
+
             const calculations = await context.entityService.listEntities({
               entityType: "calculation",
               limit,
               orderBy: "timestamp",
               orderDirection: "desc",
             });
-            
+
             if (calculations.entities.length === 0) {
               return "No calculations in history";
             }
-            
+
             return context.formatContent("calculation-history", {
               calculations: calculations.entities,
             });
@@ -271,14 +278,16 @@ export const calculatorServicePlugin: ServicePlugin = {
             if (args.length === 0) {
               return "Error: Please provide expressions to calculate";
             }
-            
+
             const operations = args.map((expr) => ({
               type: "complex-calculation",
               data: { expression: expr },
             }));
-            
-            const batchId = await context.enqueueBatch(operations, { priority: 1 });
-            
+
+            const batchId = await context.enqueueBatch(operations, {
+              priority: 1,
+            });
+
             return `Batch calculation queued with ID: ${batchId}`;
           },
         },

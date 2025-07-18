@@ -1,10 +1,20 @@
 import type { Logger } from "@brains/utils";
-import type { ContentGenerationConfig } from "@brains/plugin-utils";
+import type { ContentGenerationConfig, Daemon } from "@brains/plugin-utils";
 import type { MessageSender, MessageHandler } from "@brains/messaging-service";
-import type { BaseEntity, EntityAdapter, Template } from "@brains/types";
+import type {
+  BaseEntity,
+  EntityAdapter,
+  Template,
+  DefaultQueryResponse,
+} from "@brains/types";
 import type { EntityService } from "@brains/entity-service";
 import type { JobOptions, JobQueue } from "@brains/db";
-import type { JobHandler, BatchOperation, BatchJobStatus, Batch } from "@brains/job-queue";
+import type {
+  JobHandler,
+  BatchOperation,
+  BatchJobStatus,
+  Batch,
+} from "@brains/job-queue";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { z } from "zod";
 
@@ -14,6 +24,13 @@ export interface Command {
   description: string;
   usage?: string;
   handler: (args: string[]) => Promise<string> | string;
+}
+
+// Command metadata for discovery (no handler)
+export interface CommandInfo {
+  name: string;
+  description: string;
+  usage?: string;
 }
 
 // Plugin type union
@@ -65,6 +82,14 @@ export interface CorePlugin extends BasePlugin {
 export interface ServicePlugin extends BasePlugin {
   type: "service";
   register(context: ServicePluginContext): Promise<PluginCapabilities>;
+}
+
+// Interface Plugin - user interfaces (CLI, Matrix, Web)
+export interface InterfacePlugin extends BasePlugin {
+  type: "interface";
+  register(context: InterfacePluginContext): Promise<PluginCapabilities>;
+  start(): Promise<void>;
+  stop(): Promise<void>;
 }
 
 // Core Plugin Context - provides services to core plugins
@@ -127,4 +152,26 @@ export interface ServicePluginContext extends CorePluginContext {
   getRoute: (path: string) => RouteDefinition | undefined;
   listRoutes: () => RouteDefinition[];
   listViewTemplates: () => ViewTemplate[];
+
+  // Plugin metadata access (for component generation/hydration)
+  getPluginPackageName: (targetPluginId?: string) => string | undefined;
+}
+
+// Interface Plugin Context - extends Core with interface capabilities
+export interface InterfacePluginContext extends CorePluginContext {
+  // Query processing (uses knowledge-query template internally)
+  query: (
+    prompt: string,
+    context?: Record<string, unknown>,
+  ) => Promise<DefaultQueryResponse>;
+
+  // Command discovery (metadata only, no handlers)
+  listCommands: () => Promise<CommandInfo[]>;
+
+  // Daemon support for long-running interfaces
+  registerDaemon: (name: string, daemon: Daemon) => void;
+
+  // Job monitoring (read-only for status updates)
+  getActiveJobs: (types?: string[]) => Promise<JobQueue[]>;
+  getActiveBatches: () => Promise<Batch[]>;
 }

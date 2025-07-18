@@ -7,6 +7,8 @@ export type {
   CorePluginContext,
   ServicePlugin,
   ServicePluginContext,
+  InterfacePlugin,
+  InterfacePluginContext,
   PluginCapabilities,
   PluginTool,
   PluginResource,
@@ -18,3 +20,6 @@ export type { CoreServices } from "./contexts/corePluginContext";
 
 export { createServicePluginContext } from "./contexts/servicePluginContext";
 export type { ServiceServices } from "./contexts/servicePluginContext";
+
+export { createInterfacePluginContext } from "./contexts/interfacePluginContext";
+export type { InterfaceServices } from "./contexts/interfacePluginContext";
