@@ -38,6 +38,12 @@ export { TemplateSchema } from "./templates";
 
 // Messaging types have been moved to @brains/messaging-service
 
+// Shell interface
+export type { IShell } from "./shell";
+
+// Message context
+export type { MessageContext } from "./interfaces";
+
 // Response schemas
 export {
   defaultQueryResponseSchema,

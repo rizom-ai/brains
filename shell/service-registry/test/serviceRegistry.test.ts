@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { ServiceRegistry } from "../src/serviceRegistry";
+import { ServiceRegistry } from "../src/service-registry";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 

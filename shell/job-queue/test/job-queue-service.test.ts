@@ -149,9 +149,11 @@ describe("JobQueueService", () => {
         expect().fail("Should have thrown an error");
       } catch (error) {
         expect(error).toBeInstanceOf(JobOperationError);
-        expect((error as JobOperationError).cause?.message).toContain(
-          "No handler registered for job type: shell:embedding",
-        );
+        if (error instanceof JobOperationError) {
+          expect(error.cause.message).toContain(
+            "No handler registered for job type: shell:embedding",
+          );
+        }
       }
     });
   });
@@ -235,9 +237,11 @@ describe("JobQueueService", () => {
         expect().fail("Should have thrown an error");
       } catch (error) {
         expect(error).toBeInstanceOf(JobOperationError);
-        expect((error as JobOperationError).cause?.message).toContain(
-          "No handler registered for job type: shell:embedding",
-        );
+        if (error instanceof JobOperationError) {
+          expect(error.cause.message).toContain(
+            "No handler registered for job type: shell:embedding",
+          );
+        }
       }
     });
 
@@ -255,9 +259,11 @@ describe("JobQueueService", () => {
         expect().fail("Should have thrown an error");
       } catch (error) {
         expect(error).toBeInstanceOf(JobOperationError);
-        expect((error as JobOperationError).cause?.message).toContain(
-          "Invalid job data for type: embedding",
-        );
+        if (error instanceof JobOperationError) {
+          expect(error.cause.message).toContain(
+            "Invalid job data for type: embedding",
+          );
+        }
       }
 
       expect(testHandler.validateCallCount).toBe(1);

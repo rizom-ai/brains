@@ -8,6 +8,7 @@ export type {
   SearchOptions,
   EntityRegistry as IEntityRegistry,
   EntityService as IEntityService,
+  ICoreEntityService,
 } from "./types";
 
 // Export error classes

@@ -4,6 +4,10 @@
   "description": "Content generation utilities for the Brain system",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./test": "./test/mock-content-generator.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

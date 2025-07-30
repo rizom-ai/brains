@@ -1,2 +1,2 @@
-export { ServiceRegistry } from "./serviceRegistry";
-export type { ComponentFactory } from "./serviceRegistry";
+export { ServiceRegistry } from "./service-registry";
+export type { ComponentFactory } from "./service-registry";

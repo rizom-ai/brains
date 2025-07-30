@@ -28,7 +28,8 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./test": "./test/index.ts"
   },
   "files": [
     "src"

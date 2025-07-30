@@ -1,0 +1,3 @@
+{
+  "extends": ["@brains/eslint-config"]
+}

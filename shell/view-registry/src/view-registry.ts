@@ -6,8 +6,8 @@ import type {
   ViewRegistry as IViewRegistry,
 } from "./types";
 import type { Template } from "@brains/types";
-import { RouteRegistry } from "./routeRegistry";
-import { ViewTemplateRegistry } from "./viewTemplateRegistry";
+import { RouteRegistry } from "./route-registry";
+import { ViewTemplateRegistry } from "./view-template-registry";
 
 /**
  * ViewRegistry - Combines route and template management

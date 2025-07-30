@@ -1,6 +1,6 @@
-export { ViewRegistry } from "./viewRegistry";
-export { RouteRegistry } from "./routeRegistry";
-export { ViewTemplateRegistry } from "./viewTemplateRegistry";
+export { ViewRegistry } from "./view-registry";
+export { RouteRegistry } from "./route-registry";
+export { ViewTemplateRegistry } from "./view-template-registry";
 
 // Export types
 export type {

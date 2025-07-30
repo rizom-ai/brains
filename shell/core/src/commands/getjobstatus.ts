@@ -61,7 +61,11 @@ export function createGetJobStatusCommand(shell: Shell): Command {
             type: job.type,
             status: job.status,
             priority:
-              (job.metadata as { priority?: string })?.priority ?? "normal",
+              job.priority === 0
+                ? "normal"
+                : job.priority === 1
+                  ? "high"
+                  : "low",
           }));
 
           const formattedBatches = activeBatches.map((batch) => ({

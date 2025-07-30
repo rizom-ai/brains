@@ -26,9 +26,32 @@ export interface SearchOptions {
 }
 
 /**
+ * Core entity service interface for read-only operations
+ * Used by core plugins that need entity access but shouldn't modify entities
+ */
+export interface ICoreEntityService {
+  // Read-only operations
+  getEntity<T extends BaseEntity>(
+    entityType: string,
+    id: string,
+  ): Promise<T | null>;
+
+  listEntities<T extends BaseEntity>(
+    type: string,
+    options?: ListOptions,
+  ): Promise<T[]>;
+
+  search(query: string, options?: SearchOptions): Promise<SearchResult[]>;
+
+  // Entity type information
+  getEntityTypes(): string[];
+  hasEntityType(type: string): boolean;
+}
+
+/**
  * Entity service interface for managing brain entities
  */
-export interface EntityService {
+export interface EntityService extends ICoreEntityService {
   // Core entity operations
   getEntity<T extends BaseEntity>(
     entityType: string,
