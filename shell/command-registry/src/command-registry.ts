@@ -73,7 +73,9 @@ export class CommandRegistry implements ICommandRegistry {
       },
     );
 
-    this.logger.debug("CommandRegistry initialized with MessageBus subscription");
+    this.logger.debug(
+      "CommandRegistry initialized with MessageBus subscription",
+    );
   }
 
   /**

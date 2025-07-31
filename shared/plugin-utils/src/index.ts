@@ -23,7 +23,6 @@ export { InterfacePlugin } from "./interface-plugin";
 // Plugin utilities
 export { validatePluginConfig, createPluginConfig } from "./config";
 export { PluginConfigBuilder, pluginConfig, toolInput } from "./config-builder";
-export type { PluginLifecycleHook } from "./lifecycle";
 
 // Plugin errors
 export { PluginInitializationError } from "./errors";
