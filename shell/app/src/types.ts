@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { pluginMetadataSchema, type Plugin } from "@brains/plugin-utils";
+import { pluginMetadataSchema } from "@brains/plugin-base";
+import type { Plugin } from "@brains/plugin-utils"; // TODO: Update when Plugin interface is migrated
 import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/cli";
 import { matrixConfigSchema } from "@brains/matrix";

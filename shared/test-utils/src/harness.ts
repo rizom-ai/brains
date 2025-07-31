@@ -5,11 +5,13 @@ import type {
   MessageResponse,
 } from "@brains/messaging-service";
 import type {
-  Plugin,
-  PluginContext,
   PluginTool,
   ContentGenerationConfig,
-} from "@brains/plugin-utils";
+} from "@brains/plugin-base";
+import type {
+  Plugin,
+  PluginContext,
+} from "@brains/plugin-utils"; // TODO: Update when migrated
 import type { EntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/types";
 import { createSilentLogger, type Logger } from "@brains/utils";

@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { ContentGenerationConfig, Daemon } from "@brains/plugin-utils";
+import type { ContentGenerationConfig, Daemon } from "@brains/plugin-base";
 import type { MessageSender, MessageHandler } from "@brains/messaging-service";
 import type {
   BaseEntity,

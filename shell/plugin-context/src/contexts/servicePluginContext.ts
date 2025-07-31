@@ -1,7 +1,7 @@
 import type { EntityService } from "@brains/entity-service";
 import type { BaseEntity, EntityAdapter } from "@brains/types";
 import type { z } from "zod";
-import type { ContentGenerationConfig } from "@brains/plugin-utils";
+import type { ContentGenerationConfig } from "@brains/plugin-base";
 import type { JobOptions, JobQueue } from "@brains/db";
 import type {
   JobHandler,

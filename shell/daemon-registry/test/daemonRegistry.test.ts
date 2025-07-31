@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Logger } from "@brains/utils";
 import { DaemonRegistry } from "../src/daemonRegistry";
-import type { Daemon, DaemonHealth } from "@brains/plugin-utils";
+import type { Daemon, DaemonHealth } from "@brains/plugin-base";
 
 describe("DaemonRegistry", () => {
   let registry: DaemonRegistry;

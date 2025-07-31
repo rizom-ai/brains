@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { PluginTool } from "@brains/plugin-utils";
+import type { PluginTool } from "@brains/plugin-base";
 
 /**
  * User permission level schema

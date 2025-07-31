@@ -1,4 +1,4 @@
-import type { Daemon, ContentGenerationConfig } from "@brains/plugin-utils";
+import type { Daemon, ContentGenerationConfig } from "@brains/plugin-base";
 import type {
   CommandInfo,
   Command,
