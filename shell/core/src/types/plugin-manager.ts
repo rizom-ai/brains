@@ -1,4 +1,8 @@
-import type { Plugin as OldPlugin, PluginTool, PluginResource } from "@brains/plugin-utils";
+import type {
+  Plugin as OldPlugin,
+  PluginTool,
+  PluginResource,
+} from "@brains/plugin-utils";
 import type { Plugin as NewPlugin } from "@brains/plugin-base";
 
 // During migration, support both old and new plugin interfaces

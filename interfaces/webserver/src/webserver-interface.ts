@@ -1,17 +1,18 @@
-import { InterfacePlugin } from "@brains/plugin-utils";
+import { InterfacePlugin, type InterfacePluginContext } from "@brains/interface-plugin";
 import { ServerManager } from "./server-manager";
 import { existsSync } from "fs";
 import { join } from "path";
 import { z } from "zod";
 import packageJson from "../package.json";
 
-export const webserverConfigSchema = z.object({
+const webserverConfigSchemaBase = z.object({
   previewDistDir: z.string(),
   productionDistDir: z.string(),
   previewPort: z.number(),
   productionPort: z.number(),
 });
 
+export const webserverConfigSchema = webserverConfigSchemaBase;
 export type WebserverConfig = z.infer<typeof webserverConfigSchema>;
 export type WebserverConfigInput = Partial<WebserverConfig>;
 
@@ -19,22 +20,27 @@ export type WebserverConfigInput = Partial<WebserverConfig>;
  * Webserver interface for serving static sites
  * This is a pure serving interface - site building is handled by site-builder
  */
-export class WebserverInterface extends InterfacePlugin<WebserverConfigInput> {
-  declare protected config: WebserverConfig;
-  private serverManager: ServerManager;
+export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
+  private serverManager!: ServerManager;
 
   constructor(config: WebserverConfigInput = {}) {
-    const defaults: Partial<WebserverConfig> = {
-      previewDistDir: "./dist",
-      productionDistDir: "./dist-production",
-      previewPort: 3456,
-      productionPort: 4567,
+    const defaults: WebserverConfig = {
+      previewDistDir: "./website",
+      productionDistDir: "./website-production",
+      previewPort: 4321,
+      productionPort: 8080,
     };
 
     super("webserver", packageJson, config, webserverConfigSchema, defaults);
+  }
 
+  /**
+   * Initialize server manager after config validation
+   */
+  protected override async onRegister(context: InterfacePluginContext): Promise<void> {
+    // Initialize server manager with validated config
     this.serverManager = new ServerManager({
-      logger: this.logger,
+      logger: context.logger,
       previewDistDir: this.config.previewDistDir,
       productionDistDir: this.config.productionDistDir,
       previewPort: this.config.previewPort,

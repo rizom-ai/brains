@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@brains/plugin-utils": "workspace:*",
+    "@brains/interface-plugin": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "@hono/bun-compress": "^0.1.0",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.1.17",
     "@types/node": "^20.11.5",
