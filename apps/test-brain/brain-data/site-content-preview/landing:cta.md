@@ -7,11 +7,11 @@ sectionId: cta
 
 ## Headline
 
-Revolutionize the Way You Learn and Grow
+Unleash the Power of Your Second Brain
 
 ## Description
 
-Unlock your full potential with Rizom - the ultimate personal knowledge management system. Join thousands who are already building their second brain and transforming the way they learn and grow.
+Unlock Your Knowledge Potential with Rizom
 
 ## Primary Button
 

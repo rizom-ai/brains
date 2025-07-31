@@ -35,7 +35,8 @@ import {
 } from "@brains/content-generator";
 import { AIService } from "@brains/ai-service";
 import { Logger, LogLevel, PermissionHandler } from "@brains/utils";
-import type { Plugin } from "@brains/plugin-utils";
+import type { Plugin as OldPlugin } from "@brains/plugin-utils";
+import type { Plugin as NewPlugin } from "@brains/plugin-base";
 import type { Template } from "@brains/types";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { ShellConfig } from "./config";
@@ -43,6 +44,10 @@ import { createShellConfig } from "./config";
 import { ViewRegistry } from "@brains/view-registry";
 import { ShellInitializer } from "./initialization/shellInitializer";
 import { InitializationError } from "@brains/utils";
+
+// During migration, support both old and new plugin interfaces
+// TODO: Remove OldPlugin type once all plugins are migrated to new interface
+type MigrationPlugin = OldPlugin | NewPlugin;
 
 /**
  * Optional dependencies that can be injected for testing
@@ -555,7 +560,7 @@ export class Shell implements IShell {
   /**
    * Register a plugin
    */
-  public registerPlugin(plugin: Plugin): void {
+  public registerPlugin(plugin: MigrationPlugin): void {
     if (!this.initialized) {
       throw new InitializationError(
         "Shell",

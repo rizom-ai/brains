@@ -1,14 +1,19 @@
-import type { Plugin, PluginTool, PluginResource } from "@brains/plugin-utils";
+import type { Plugin as OldPlugin, PluginTool, PluginResource } from "@brains/plugin-utils";
+import type { Plugin as NewPlugin } from "@brains/plugin-base";
+
+// During migration, support both old and new plugin interfaces
+// TODO: Remove OldPlugin type once all plugins are migrated to new interface
+type MigrationPlugin = OldPlugin | NewPlugin;
 
 /**
  * Plugin Manager interface for managing plugin lifecycle
  */
 export interface PluginManager {
-  registerPlugin(plugin: Plugin): void;
+  registerPlugin(plugin: MigrationPlugin): void;
 
   initializePlugins(): Promise<void>;
 
-  getPlugin(id: string): Plugin | undefined;
+  getPlugin(id: string): MigrationPlugin | undefined;
 
   getPluginStatus(id: string): PluginStatus | undefined;
 
@@ -56,7 +61,7 @@ export enum PluginStatus {
  * Plugin metadata with status
  */
 export interface PluginInfo {
-  plugin: Plugin;
+  plugin: MigrationPlugin;
   status: PluginStatus;
   error?: Error;
   dependencies: string[];
@@ -80,9 +85,9 @@ export enum PluginEvent {
  * Typed event map for PluginManager events
  */
 export interface PluginManagerEventMap {
-  [PluginEvent.REGISTERED]: [pluginId: string, plugin: Plugin];
-  [PluginEvent.BEFORE_INITIALIZE]: [pluginId: string, plugin: Plugin];
-  [PluginEvent.INITIALIZED]: [pluginId: string, plugin: Plugin];
+  [PluginEvent.REGISTERED]: [pluginId: string, plugin: MigrationPlugin];
+  [PluginEvent.BEFORE_INITIALIZE]: [pluginId: string, plugin: MigrationPlugin];
+  [PluginEvent.INITIALIZED]: [pluginId: string, plugin: MigrationPlugin];
   [PluginEvent.ERROR]: [pluginId: string, error: Error];
   [PluginEvent.DISABLED]: [pluginId: string];
   [PluginEvent.ENABLED]: [pluginId: string];

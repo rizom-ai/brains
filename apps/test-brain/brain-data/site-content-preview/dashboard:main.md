@@ -12,7 +12,7 @@ entityStats:
 - type: site-content-preview
   count: 5
 - type: site-content-production
-  count: 0
+  count: 5
 
 recentEntities:
 
@@ -38,5 +38,5 @@ recentEntities:
   created: 2025-07-17T07:28:36.847Z
 
 buildInfo:
-timestamp: 2025-07-18T16:53:19.890Z
+timestamp: 2025-07-31T15:52:46.826Z
 version: 1.0.0

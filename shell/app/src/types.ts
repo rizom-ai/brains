@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { pluginMetadataSchema } from "@brains/plugin-base";
-import type { Plugin } from "@brains/plugin-utils"; // TODO: Update when Plugin interface is migrated
+import type { Plugin as OldPlugin } from "@brains/plugin-utils"; // TODO: Update when Plugin interface is migrated
+import type { Plugin as NewPlugin } from "@brains/plugin-base";
 import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/cli";
 import { matrixConfigSchema } from "@brains/matrix";
@@ -45,8 +46,11 @@ export const appConfigSchema = z.object({
   plugins: z.array(pluginMetadataSchema).default([]),
 });
 
+// During migration, support both old and new plugin interfaces
+export type MigrationPlugin = OldPlugin | NewPlugin;
+
 export type AppConfig = Omit<z.infer<typeof appConfigSchema>, "plugins"> & {
-  plugins?: Plugin[]; // Optional plugins array, same type as Shell expects
+  plugins?: MigrationPlugin[]; // Support both plugin types during migration
   // Advanced: Pass through any Shell config for testing/advanced use cases
   shellConfig?: Parameters<typeof Shell.createFresh>[0];
   // CLI-specific configuration (used when --cli flag is present)

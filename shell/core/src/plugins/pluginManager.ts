@@ -2,7 +2,8 @@ import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
 import type { IShell } from "@brains/types";
 import { EventEmitter } from "events";
-import type { Plugin } from "@brains/plugin-utils";
+import type { Plugin as OldPlugin } from "@brains/plugin-utils";
+import type { Plugin as NewPlugin } from "@brains/plugin-base";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type {
   PluginManager as IPluginManager,
@@ -14,6 +15,10 @@ import { PluginContextFactory } from "./pluginContextFactory";
 import { PluginRegistrationHandler } from "./pluginRegistrationHandler";
 import { registerPluginWithAdapter } from "./pluginAdapter";
 import { PluginRegistrationError, PluginDependencyError } from "@brains/utils";
+
+// During migration, support both old and new plugin interfaces
+// TODO: Remove OldPlugin type once all plugins are migrated to new interface
+type MigrationPlugin = OldPlugin | NewPlugin;
 
 // Re-export enums for convenience
 export { PluginEvent, PluginStatus } from "../types/plugin-manager";
@@ -85,7 +90,7 @@ export class PluginManager implements IPluginManager {
    * Register a plugin with the system
    * This only registers the plugin but doesn't initialize it
    */
-  public registerPlugin(plugin: Plugin): void {
+  public registerPlugin(plugin: MigrationPlugin): void {
     if (!plugin.id) {
       throw new PluginRegistrationError(
         "unknown",
@@ -328,7 +333,7 @@ export class PluginManager implements IPluginManager {
   /**
    * Get a registered plugin by ID
    */
-  public getPlugin(id: string): Plugin | undefined {
+  public getPlugin(id: string): MigrationPlugin | undefined {
     const pluginInfo = this.plugins.get(id);
     return pluginInfo?.plugin;
   }

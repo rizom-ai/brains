@@ -1,5 +1,6 @@
 import { z } from "zod";
-import type { Plugin } from "@brains/plugin-utils";
+import type { Plugin as OldPlugin } from "@brains/plugin-utils";
+import type { Plugin as NewPlugin } from "@brains/plugin-base";
 import { pluginMetadataSchema } from "@brains/plugin-utils";
 
 /**
@@ -50,8 +51,12 @@ export const shellConfigSchema = z.object({
   plugins: z.array(pluginMetadataSchema).default([]),
 });
 
+// During migration, support both old and new plugin interfaces
+// TODO: Remove OldPlugin type once all plugins are migrated to new interface
+export type MigrationPlugin = OldPlugin | NewPlugin;
+
 export type ShellConfig = z.infer<typeof shellConfigSchema> & {
-  plugins: Plugin[];
+  plugins: MigrationPlugin[];
 };
 
 /**

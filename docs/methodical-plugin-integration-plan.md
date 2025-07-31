@@ -85,8 +85,6 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 
 #### Step 4.1: Migrate ALL interface plugins at once
 
-- Update cli to extend InterfacePlugin
-- Update matrix to extend InterfacePlugin
 - Update mcp to extend InterfacePlugin
 - Update webserver to extend InterfacePlugin
 - **Validation**: All interfaces work correctly
@@ -96,6 +94,8 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 #### Step 5.1: Update message-interface plugins
 
 - Update base MessageInterfacePlugin to extend InterfacePlugin
+- Update cli to extend MessageInterfacePlugin
+- Update matrix to extend MessageInterfacePlugin
 - Migrate all message-based interfaces
 - **Validation**: Message interfaces work correctly
 
@@ -173,8 +173,8 @@ This approach:
 
 1. **Core Plugins** (git-sync): Simplest migration - minimal context usage
 2. **Service Plugins** (directory-sync, site-builder): Need entity and job queue access
-3. **Interface Plugins** (cli, matrix, mcp, webserver): Need daemon registration
-4. **Message Interface Plugins**: Extend interface plugins with message processing
+3. **Interface Plugins** (mcp, webserver): Need daemon registration
+4. **Message Interface Plugins** (cli, matrix): Extend interface plugins with message processing
 
 ## Key Principles
 
@@ -269,9 +269,9 @@ this.createTool(
    - directory-sync to use new ServicePlugin base
    - site-builder to use new ServicePlugin base
 7. Migrate interface plugins
-   - CLI, Matrix, MCP, Webserver to use new InterfacePlugin base
+   - MCP, Webserver to use new InterfacePlugin base
 8. Migrate message interface plugins
-   - Update message-based interfaces
+   - CLI, Matrix to use new MessageInterfacePlugin base
 9. Remove adapter layer and old packages
    - Delete PluginManager, PluginContextFactory
    - Remove plugin-utils package

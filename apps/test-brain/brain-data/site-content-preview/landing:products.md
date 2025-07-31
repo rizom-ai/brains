@@ -11,11 +11,11 @@ Our Ecosystem
 
 ## Headline
 
-Transformative Solutions for a Sustainable Future
+The Tools and Solutions Powering Transformation
 
 ## Description
 
-Rizom offers a curated suite of innovative products and services that empower organizations to navigate the complex challenges of the 21st century. Our solutions leverage the power of digital transformation, organizational development, and ecosystem design to unlock new possibilities and drive lasting positive impact.
+Rizom brings together a curated suite of digital tools, services, and solutions to help organizations thrive in the new economy. Our ecosystem empowers teams to drive sustainable innovation, optimize operations, and build resilient systems for the future.
 
 ## Products
 
@@ -31,11 +31,11 @@ Rizom Studio
 
 #### Tagline
 
-Collaborative design for complex systems
+Design-led innovation platform
 
 #### Description
 
-A powerful visual platform that enables cross-functional teams to map, model, and orchestrate intricate organizational and ecosystem dynamics.
+A collaborative workspace for multidisciplinary teams to ideate, prototype, and bring transformative solutions to life.
 
 #### Status
 
@@ -51,51 +51,51 @@ Brain
 
 #### ID
 
-impact-navigator
+rizom-insights
 
 #### Name
 
-Impact Navigator
+Rizom Insights
 
 #### Tagline
 
-Measure and optimize social impact
+Data-driven decision support
 
 #### Description
 
-A comprehensive impact assessment and reporting tool that helps organizations track, analyze, and communicate their social, environmental, and economic contributions.
+Advanced analytics and visualization tools to uncover hidden patterns, forecast trends, and make informed strategic choices.
 
 #### Status
 
-beta
+live
 
 #### Link
 
 #### Icon
 
-Cpu
+Database
 
 ### Product 3
 
 #### ID
 
-ecosystem-orchestrator
+rizom-orchestrate
 
 #### Name
 
-Ecosystem Orchestrator
+Rizom Orchestrate
 
 #### Tagline
 
-Activate and scale collaborative networks
+Ecosystem management system
 
 #### Description
 
-A flexible platform that facilitates the cultivation, coordination, and expansion of multi-stakeholder ecosystems, unlocking new avenues for collective impact.
+A centralized platform to map stakeholders, coordinate workflows, and optimize the performance of complex business ecosystems.
 
 #### Status
 
-alpha
+beta
 
 #### Link
 
@@ -107,26 +107,26 @@ Network
 
 #### ID
 
-catalyst-academy
+rizom-advisory
 
 #### Name
 
-Catalyst Academy
+Rizom Advisory
 
 #### Tagline
 
-Empower the next generation of change-makers
+Strategic transformation consulting
 
 #### Description
 
-An immersive learning experience that equips emerging leaders with the knowledge, skills, and mindsets to drive sustainable transformation within their organizations and communities.
+Expert guidance to help organizations navigate change, build future-ready capabilities, and unlock sustainable growth.
 
 #### Status
 
-concept
+live
 
 #### Link
 
 #### Icon
 
-Zap
+Wrench
