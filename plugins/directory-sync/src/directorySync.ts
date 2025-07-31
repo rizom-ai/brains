@@ -1,6 +1,6 @@
 import type { BaseEntity } from "@brains/types";
 import type { Logger } from "@brains/utils";
-import type { EntityService } from "@brains/entity-service";
+import type { IEntityService } from "@brains/entity-service";
 import type { BatchOperation } from "@brains/job-queue";
 import {
   FileSystemError,
@@ -44,7 +44,7 @@ export const directorySyncOptionsSchema = z.object({
 export type DirectorySyncOptions = z.infer<
   typeof directorySyncOptionsSchema
 > & {
-  entityService: EntityService;
+  entityService: IEntityService;
   logger: Logger;
 };
 
@@ -52,7 +52,7 @@ export type DirectorySyncOptions = z.infer<
  * DirectorySync handles synchronization of entities with a directory structure
  */
 export class DirectorySync {
-  private entityService: EntityService;
+  private entityService: IEntityService;
   private logger: Logger;
   private syncPath: string;
   private watchEnabled: boolean;

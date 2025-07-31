@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { JobHandler } from "@brains/job-queue";
 import type { Logger } from "@brains/utils";
-import type { PluginContext } from "@brains/plugin-utils";
+import type { ServicePluginContext } from "@brains/service-plugin";
 import type { ProgressReporter } from "@brains/utils";
 import type { DirectorySync } from "../directorySync";
 import type { ImportResult } from "../types";
@@ -26,7 +26,7 @@ export class DirectoryImportJobHandler
     JobHandler<"directory-import", DirectoryImportJobData, ImportResult>
 {
   private logger: Logger;
-  private context: PluginContext;
+  private context: ServicePluginContext;
   private directorySync: DirectorySync;
 
   /**
@@ -34,7 +34,7 @@ export class DirectoryImportJobHandler
    */
   constructor(
     logger: Logger,
-    context: PluginContext,
+    context: ServicePluginContext,
     directorySync: DirectorySync,
   ) {
     this.logger = logger;

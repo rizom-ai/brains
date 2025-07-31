@@ -121,7 +121,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
       // Get the shell's registered templates
       const mockShell = harness.getShell();
       const templates = mockShell.getTemplates();
-      
+
       // Templates are registered with plugin scope, so look for "git-sync:status"
       expect(templates.has("git-sync:status")).toBe(true);
 

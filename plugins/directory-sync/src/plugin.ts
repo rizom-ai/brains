@@ -1,5 +1,6 @@
-import type { Plugin, PluginContext, PluginTool } from "@brains/plugin-utils";
-import { BasePlugin, PluginInitializationError } from "@brains/plugin-utils";
+import type { ServicePluginContext } from "@brains/service-plugin";
+import { ServicePlugin } from "@brains/service-plugin";
+import type { Plugin, PluginTool } from "@brains/plugin-base";
 import type { Command, CommandResponse } from "@brains/command-registry";
 import { DirectorySyncInitializationError } from "./errors";
 import { z } from "zod";
@@ -29,12 +30,9 @@ const DIRECTORY_SYNC_CONFIG_DEFAULTS = {
  * Directory Sync plugin that extends BasePlugin
  * Synchronizes brain entities with a directory structure
  */
-export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
-  // After validation with defaults, config is complete
-  declare protected config: DirectorySyncConfig;
+export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   private directorySync?: DirectorySync;
-  private pluginContext?: PluginContext;
-  public readonly type = "service" as const;
+  private pluginContext?: ServicePluginContext;
 
   constructor(config: DirectorySyncConfigInput = {}) {
     super(
@@ -157,7 +155,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
   /**
    * Initialize the plugin
    */
-  protected override async onRegister(context: PluginContext): Promise<void> {
+  protected override async onRegister(context: ServicePluginContext): Promise<void> {
     this.pluginContext = context;
     const { logger, entityService } = context;
 
@@ -196,7 +194,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
     }
 
     // Register job handlers for async operations
-    this.registerJobHandlers(context);
+    await this.registerJobHandlers(context);
 
     // Register message handlers for plugin communication
     this.registerMessageHandlers(context);
@@ -532,7 +530,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
   /**
    * Register message handlers for inter-plugin communication
    */
-  private registerMessageHandlers(context: PluginContext): void {
+  private registerMessageHandlers(context: ServicePluginContext): void {
     const { subscribe } = context;
 
     // Handler for export requests
@@ -659,11 +657,12 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
   /**
    * Register job handlers for async operations
    */
-  private registerJobHandlers(context: PluginContext): void {
+  protected override async registerJobHandlers(context: ServicePluginContext): Promise<void> {
     if (!this.directorySync) {
-      throw new PluginInitializationError(
-        this.id,
+      throw new DirectorySyncInitializationError(
         "DirectorySync not initialized",
+        "Cannot register job handlers without DirectorySync instance",
+        { method: "registerJobHandlers" }
       );
     }
 

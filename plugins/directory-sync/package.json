@@ -18,7 +18,13 @@
     "clean": "rm -rf .turbo"
   },
   "dependencies": {
+    "@brains/command-registry": "workspace:*",
+    "@brains/db": "workspace:*",
     "@brains/entity-service": "workspace:*",
+    "@brains/job-queue": "workspace:*",
+    "@brains/messaging-service": "workspace:*",
+    "@brains/plugin-utils": "workspace:*",
+    "@brains/service-plugin": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "chokidar": "^3.5.3",

@@ -386,6 +386,14 @@ export class PluginManager implements IPluginManager {
   }
 
   /**
+   * Get plugin package name by ID
+   */
+  public getPluginPackageName(pluginId: string): string | undefined {
+    const pluginInfo = this.plugins.get(pluginId);
+    return pluginInfo?.plugin.packageName;
+  }
+
+  /**
    * Disable a plugin
    * This only marks the plugin as disabled but doesn't unregister it
    */

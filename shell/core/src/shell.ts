@@ -1,6 +1,7 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
 import type { ContentGenerationConfig } from "@brains/plugin-utils";
+import type { IShell } from "@brains/types";
 import { createDatabase } from "@brains/db";
 import { ServiceRegistry } from "@brains/service-registry";
 import {
@@ -72,7 +73,7 @@ export interface ShellDependencies {
  * a unified interface for interacting with the Brain.
  * Follows Component Interface Standardization pattern.
  */
-export class Shell {
+export class Shell implements IShell {
   private static instance: Shell | null = null;
 
   private readonly config: ShellConfig;
@@ -582,6 +583,10 @@ export class Shell {
     return this.entityService;
   }
 
+  public getEntityRegistry(): EntityRegistry {
+    return this.entityRegistry;
+  }
+
   public getAIService(): AIService {
     return this.aiService;
   }
@@ -616,6 +621,13 @@ export class Shell {
 
   public getServiceRegistry(): ServiceRegistry {
     return this.serviceRegistry;
+  }
+
+  /**
+   * Get plugin package name by ID
+   */
+  public getPluginPackageName(pluginId: string): string | undefined {
+    return this.pluginManager.getPluginPackageName(pluginId);
   }
 
   /**

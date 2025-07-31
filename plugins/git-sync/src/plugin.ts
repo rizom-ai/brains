@@ -1,4 +1,8 @@
-import type { Plugin, PluginTool, CorePluginContext } from "@brains/core-plugin";
+import type {
+  Plugin,
+  PluginTool,
+  CorePluginContext,
+} from "@brains/core-plugin";
 import { CorePlugin } from "@brains/core-plugin";
 import { GitSyncInitializationError } from "./errors";
 import { z } from "zod";
@@ -26,7 +30,9 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
   /**
    * Initialize the plugin
    */
-  protected override async onRegister(context: CorePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: CorePluginContext,
+  ): Promise<void> {
     const { logger } = context;
 
     // Register our template for git sync status
