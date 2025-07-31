@@ -5,5 +5,4 @@ export type {
   CommandResponse,
   CommandContext,
 } from "./types";
-export { CommandRegistry, CommandRegistryEvent } from "./command-registry";
-export type { PluginCommandRegisterEvent } from "./command-registry";
+export { CommandRegistry } from "./command-registry";

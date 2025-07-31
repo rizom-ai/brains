@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { CommandRegistry, CommandRegistryEvent, type Command } from "../src";
-import { EventEmitter } from "events";
+import { CommandRegistry, type Command } from "../src";
+import { MessageBus } from "@brains/messaging-service";
 import { Logger, LogLevel } from "@brains/utils";
 
 describe("CommandRegistry", () => {
   let registry: CommandRegistry;
-  let eventEmitter: EventEmitter;
+  let messageBus: MessageBus;
   let logger: Logger;
 
   beforeEach(() => {
     logger = Logger.createFresh({ level: LogLevel.INFO });
-    eventEmitter = new EventEmitter();
-    registry = CommandRegistry.createFresh(logger, eventEmitter);
+    messageBus = MessageBus.createFresh(logger);
+    registry = CommandRegistry.createFresh(logger, messageBus);
   });
 
   describe("registerCommand", () => {
@@ -220,25 +220,33 @@ describe("CommandRegistry", () => {
     });
   });
 
-  describe("event listeners", () => {
-    it("should handle plugin:command:register event", () => {
+  describe("message bus integration", () => {
+    it("should handle system:command:register message", async () => {
       const command: Command = {
         name: "event-cmd",
         description: "Event command",
         handler: async () => "Event",
       };
 
-      eventEmitter.emit(CommandRegistryEvent.COMMAND_REGISTER, {
-        pluginId: "event-plugin",
-        command: command,
-      });
+      await messageBus.send(
+        "system:command:register",
+        {
+          pluginId: "event-plugin",
+          command: command,
+          timestamp: Date.now(),
+        },
+        "test",
+      );
+
+      // Give the async handler time to process
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const commands = registry.listCommands();
       expect(commands).toHaveLength(1);
       expect(commands[0]?.name).toBe("event-cmd");
     });
 
-    it("should handle multiple command registration events", () => {
+    it("should handle multiple command registration messages", async () => {
       const command1: Command = {
         name: "cmd1",
         description: "Command 1",
@@ -251,20 +259,51 @@ describe("CommandRegistry", () => {
         handler: async () => "2",
       };
 
-      eventEmitter.emit(CommandRegistryEvent.COMMAND_REGISTER, {
-        pluginId: "event-plugin",
-        command: command1,
-      });
+      await messageBus.send(
+        "system:command:register",
+        {
+          pluginId: "event-plugin",
+          command: command1,
+          timestamp: Date.now(),
+        },
+        "test",
+      );
 
-      eventEmitter.emit(CommandRegistryEvent.COMMAND_REGISTER, {
-        pluginId: "event-plugin",
-        command: command2,
-      });
+      await messageBus.send(
+        "system:command:register",
+        {
+          pluginId: "event-plugin",
+          command: command2,
+          timestamp: Date.now(),
+        },
+        "test",
+      );
+
+      // Give the async handlers time to process
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const commands = registry.listCommands();
       expect(commands).toHaveLength(2);
       expect(commands.map((c) => c.name)).toContain("cmd1");
       expect(commands.map((c) => c.name)).toContain("cmd2");
+    });
+
+    it("should handle invalid command registration messages", async () => {
+      // Send invalid message (missing required fields)
+      await messageBus.send(
+        "system:command:register",
+        {
+          pluginId: "event-plugin",
+          // missing command field
+        },
+        "test",
+      );
+
+      // Give the async handler time to process
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const commands = registry.listCommands();
+      expect(commands).toHaveLength(0);
     });
   });
 });

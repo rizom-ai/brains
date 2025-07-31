@@ -1,21 +1,7 @@
 import type { Logger } from "@brains/utils";
-import type { EventEmitter } from "events";
+import type { IMessageBus } from "@brains/messaging-service";
 import type { ICommandRegistry, Command, CommandInfo } from "./types";
-
-/**
- * Plugin command registration event
- */
-export interface PluginCommandRegisterEvent {
-  pluginId: string;
-  command: Command;
-}
-
-/**
- * Command registry events
- */
-export enum CommandRegistryEvent {
-  COMMAND_REGISTER = "plugin:command:register",
-}
+import { systemCommandRegisterSchema } from "@brains/types";
 
 /**
  * Central registry for commands from all plugins
@@ -27,15 +13,17 @@ export class CommandRegistry implements ICommandRegistry {
   private commands: Map<string, { command: Command; pluginId: string }> =
     new Map();
   private logger: Logger;
+  private messageBus: IMessageBus;
+  private unsubscribe?: () => void;
 
   /**
    * Get the singleton instance of CommandRegistry
    */
   public static getInstance(
     logger: Logger,
-    events: EventEmitter,
+    messageBus: IMessageBus,
   ): CommandRegistry {
-    CommandRegistry.instance ??= new CommandRegistry(logger, events);
+    CommandRegistry.instance ??= new CommandRegistry(logger, messageBus);
     return CommandRegistry.instance;
   }
 
@@ -43,6 +31,9 @@ export class CommandRegistry implements ICommandRegistry {
    * Reset the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
+    if (CommandRegistry.instance?.unsubscribe) {
+      CommandRegistry.instance.unsubscribe();
+    }
     CommandRegistry.instance = null;
   }
 
@@ -51,26 +42,38 @@ export class CommandRegistry implements ICommandRegistry {
    */
   public static createFresh(
     logger: Logger,
-    events: EventEmitter,
+    messageBus: IMessageBus,
   ): CommandRegistry {
-    return new CommandRegistry(logger, events);
+    return new CommandRegistry(logger, messageBus);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(logger: Logger, events: EventEmitter) {
+  private constructor(logger: Logger, messageBus: IMessageBus) {
     this.logger = logger.child("CommandRegistry");
+    this.messageBus = messageBus;
 
-    // Subscribe to command registration events
-    events.on(
-      CommandRegistryEvent.COMMAND_REGISTER,
-      (event: PluginCommandRegisterEvent) => {
-        this.registerCommand(event.pluginId, event.command);
+    // Subscribe to command registration messages
+    this.unsubscribe = this.messageBus.subscribe(
+      "system:command:register",
+      async (message) => {
+        try {
+          const { pluginId, command } = systemCommandRegisterSchema.parse(
+            message.payload,
+          );
+          this.registerCommand(pluginId, command as Command);
+        } catch (error) {
+          this.logger.error("Invalid command registration message", {
+            error,
+            payload: message.payload,
+          });
+        }
+        return { noop: true };
       },
     );
 
-    this.logger.debug("CommandRegistry initialized");
+    this.logger.debug("CommandRegistry initialized with MessageBus subscription");
   }
 
   /**

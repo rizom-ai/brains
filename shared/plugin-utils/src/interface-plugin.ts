@@ -17,6 +17,7 @@ export abstract class InterfacePlugin<TConfig = unknown>
   implements IInterfacePlugin
 {
   protected isStarted = false;
+  public readonly type = "interface" as const;
 
   /**
    * Override onRegister to register daemon

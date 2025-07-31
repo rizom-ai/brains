@@ -140,7 +140,7 @@ export class Shell {
     const pluginManager = PluginManager.createFresh(serviceRegistry, logger);
     const commandRegistry = CommandRegistry.createFresh(
       logger,
-      pluginManager.getEventEmitter(),
+      messageBus,
     );
 
     // Merge fresh instances with any provided dependencies (without contentGenerator yet)
@@ -232,10 +232,7 @@ export class Shell {
       PluginManager.getInstance(this.serviceRegistry, this.logger);
     this.commandRegistry =
       dependencies?.commandRegistry ??
-      CommandRegistry.getInstance(
-        this.logger,
-        this.pluginManager.getEventEmitter(),
-      );
+      CommandRegistry.getInstance(this.logger, this.messageBus);
 
     // Initialize generic job queue service and worker
     this.jobQueueService =

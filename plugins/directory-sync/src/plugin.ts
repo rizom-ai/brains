@@ -39,6 +39,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
   declare protected config: DirectorySyncConfig;
   private directorySync?: DirectorySync;
   private pluginContext?: PluginContext;
+  public readonly type = "service" as const;
 
   constructor(config: DirectorySyncConfigInput = {}) {
     super(

@@ -79,6 +79,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
   private siteBuilder?: SiteBuilder;
   private siteOperations?: SiteOperations;
   private contentManager?: ContentManager;
+  public readonly type = "service" as const;
 
   constructor(config: SiteBuilderConfigInput = {}) {
     super(

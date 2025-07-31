@@ -18,6 +18,7 @@ import packageJson from "../package.json";
  */
 export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
+  public readonly type = "service" as const;
 
   constructor(config: Partial<GitSyncConfig>) {
     super("git-sync", packageJson, config, gitSyncConfigSchema, {});

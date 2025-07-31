@@ -4,7 +4,6 @@ import { PluginEvent } from "../types/plugin-manager";
 import type {
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
-  PluginCommandRegisterEvent,
 } from "../types/plugin-manager";
 import type { PluginTool, PluginResource } from "@brains/plugin-utils";
 import type { Command } from "@brains/command-registry";
@@ -168,14 +167,7 @@ export class PluginRegistrationHandler {
     for (const command of commands) {
       this.logger.debug(`Registering command: /${command.name}`);
 
-      // Emit event for Shell to handle (existing behavior)
-      const commandEvent: PluginCommandRegisterEvent = {
-        pluginId,
-        command,
-      };
-      this.events.emit(PluginEvent.COMMAND_REGISTER, commandEvent);
-
-      // Also publish to MessageBus for plugin consumption
+      // Publish to MessageBus for CommandRegistry to handle
       await messageBus.send(
         "system:command:register",
         {

@@ -59,3 +59,15 @@ export type {
 } from "./schemas";
 
 // Permission types have been moved to @brains/utils
+
+// System event schemas
+export {
+  systemCommandRegisterSchema,
+  systemToolRegisterSchema,
+  systemResourceRegisterSchema,
+} from "./system-events";
+export type {
+  SystemCommandRegisterEvent,
+  SystemToolRegisterEvent,
+  SystemResourceRegisterEvent,
+} from "./system-events";
