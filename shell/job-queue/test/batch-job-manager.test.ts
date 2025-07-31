@@ -75,8 +75,14 @@ describe("BatchJobManager", () => {
   describe("enqueueBatch", () => {
     it("should enqueue a batch of operations successfully", async () => {
       const operations: BatchOperation[] = [
-        { type: "embedding", data: { entityId: "entity-1", entityType: "note" } },
-        { type: "embedding", data: { entityId: "entity-2", entityType: "note" } },
+        {
+          type: "embedding",
+          data: { entityId: "entity-1", entityType: "note" },
+        },
+        {
+          type: "embedding",
+          data: { entityId: "entity-2", entityType: "note" },
+        },
       ];
 
       const batchId = await batchManager.enqueueBatch(operations, {
