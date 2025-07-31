@@ -1,5 +1,5 @@
-import type { Plugin, PluginContext, PluginTool } from "@brains/plugin-utils";
-import { BasePlugin } from "@brains/plugin-utils";
+import type { Plugin, PluginTool, CorePluginContext } from "@brains/core-plugin";
+import { CorePlugin } from "@brains/core-plugin";
 import { GitSyncInitializationError } from "./errors";
 import { z } from "zod";
 import { GitSync } from "./gitSync";
@@ -13,12 +13,11 @@ import { gitSyncStatusSchema } from "./schemas";
 import packageJson from "../package.json";
 
 /**
- * Git Sync plugin that extends BasePlugin
+ * Git Sync plugin that extends CorePlugin
  * Adds git version control to directory-sync
  */
-export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
+export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
-  public readonly type = "service" as const;
 
   constructor(config: Partial<GitSyncConfig>) {
     super("git-sync", packageJson, config, gitSyncConfigSchema, {});
@@ -27,7 +26,7 @@ export class GitSyncPlugin extends BasePlugin<GitSyncConfig> {
   /**
    * Initialize the plugin
    */
-  protected override async onRegister(context: PluginContext): Promise<void> {
+  protected override async onRegister(context: CorePluginContext): Promise<void> {
     const { logger } = context;
 
     // Register our template for git sync status
