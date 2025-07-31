@@ -151,7 +151,9 @@ class PluginAdapter {
       this.registerCapabilities(plugin.id, capabilities);
     } catch (error) {
       // Fall back to old interface (PluginContext)
-      this.logger.info(`Plugin ${plugin.id} still using old PluginContext interface - needs migration`);
+      this.logger.info(
+        `Plugin ${plugin.id} still using old PluginContext interface - needs migration`,
+      );
       const context = this.contextFactory.createPluginContext(plugin.id);
       const capabilities = await plugin.register(context);
       // Registration happens through context handlers
@@ -161,6 +163,7 @@ class PluginAdapter {
 ```
 
 This approach:
+
 - Requires no changes to existing plugins
 - Automatically detects the correct interface
 - Logs which plugins need migration (info level for visibility)

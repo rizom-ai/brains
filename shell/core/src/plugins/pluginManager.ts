@@ -1,5 +1,6 @@
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
+import type { IShell } from "@brains/types";
 import { EventEmitter } from "events";
 import type { Plugin } from "@brains/plugin-utils";
 import { DaemonRegistry } from "@brains/daemon-registry";
@@ -11,6 +12,7 @@ import type {
 import { PluginStatus, PluginEvent } from "../types/plugin-manager";
 import { PluginContextFactory } from "./pluginContextFactory";
 import { PluginRegistrationHandler } from "./pluginRegistrationHandler";
+import { registerPluginWithAdapter } from "./pluginAdapter";
 import { PluginRegistrationError, PluginDependencyError } from "@brains/utils";
 
 // Re-export enums for convenience
@@ -29,6 +31,7 @@ export class PluginManager implements IPluginManager {
   private contextFactory: PluginContextFactory;
   private registrationHandler: PluginRegistrationHandler;
   private daemonRegistry: DaemonRegistry;
+  private serviceRegistry: ServiceRegistry;
 
   /**
    * Get the singleton instance of PluginManager
@@ -62,6 +65,7 @@ export class PluginManager implements IPluginManager {
    * Private constructor to enforce singleton pattern
    */
   private constructor(serviceRegistry: ServiceRegistry, logger: Logger) {
+    this.serviceRegistry = serviceRegistry;
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
     this.contextFactory = PluginContextFactory.getInstance(
@@ -239,18 +243,18 @@ export class PluginManager implements IPluginManager {
     // Emit before initialize event
     this.events.emit(PluginEvent.BEFORE_INITIALIZE, pluginId, plugin);
 
-    // Create plugin context using the factory
-    const context = this.contextFactory.createPluginContext(pluginId);
-
-    // Register the plugin
+    // Register the plugin using the adapter
     try {
-      // Call plugin's register method and get capabilities
-      const capabilities = await plugin.register(context);
+      // Get Shell from ServiceRegistry
+      const shell = this.serviceRegistry.resolve<IShell>("shell");
 
-      // Register plugin capabilities using the registration handler
-      await this.registrationHandler.registerPluginCapabilities(
-        pluginId,
-        capabilities,
+      // Use the adapter to register the plugin with the appropriate interface
+      await registerPluginWithAdapter(
+        plugin,
+        shell,
+        this.contextFactory,
+        this.registrationHandler,
+        this.logger,
       );
 
       // Update plugin status
