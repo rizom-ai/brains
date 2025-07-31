@@ -75,8 +75,8 @@ describe("BatchJobManager", () => {
   describe("enqueueBatch", () => {
     it("should enqueue a batch of operations successfully", async () => {
       const operations: BatchOperation[] = [
-        { type: "embedding", entityId: "entity-1", entityType: "note" },
-        { type: "embedding", entityId: "entity-2", entityType: "note" },
+        { type: "embedding", data: { entityId: "entity-1", entityType: "note" } },
+        { type: "embedding", data: { entityId: "entity-2", entityType: "note" } },
       ];
 
       const batchId = await batchManager.enqueueBatch(operations, {
@@ -100,7 +100,7 @@ describe("BatchJobManager", () => {
 
     it("should enqueue batch with options", async () => {
       const operations: BatchOperation[] = [
-        { type: "embedding", entityId: "entity-1" },
+        { type: "embedding", data: { entityId: "entity-1" } },
       ];
 
       const batchId = await batchManager.enqueueBatch(operations, {
@@ -146,7 +146,7 @@ describe("BatchJobManager", () => {
 
     it("should return basic status for simple batch", async () => {
       const operations: BatchOperation[] = [
-        { type: "embedding", entityId: "entity-1" },
+        { type: "embedding", data: { entityId: "entity-1" } },
       ];
 
       const batchId = await batchManager.enqueueBatch(operations, {
@@ -170,8 +170,8 @@ describe("BatchJobManager", () => {
 
     it("should track multiple operations in batch", async () => {
       const operations: BatchOperation[] = [
-        { type: "embedding", entityId: "entity-1" },
-        { type: "embedding", entityId: "entity-2" },
+        { type: "embedding", data: { entityId: "entity-1" } },
+        { type: "embedding", data: { entityId: "entity-2" } },
       ];
 
       const batchId = await batchManager.enqueueBatch(operations, {
@@ -193,7 +193,7 @@ describe("BatchJobManager", () => {
       // This test would require processing jobs, which is complex in a unit test
       // The key point is that status is now derived from individual job statuses
       const operations: BatchOperation[] = [
-        { type: "embedding", entityId: "entity-1" },
+        { type: "embedding", data: { entityId: "entity-1" } },
       ];
 
       const batchId = await batchManager.enqueueBatch(operations, {
@@ -213,7 +213,7 @@ describe("BatchJobManager", () => {
 
     it("should handle cleanup of old batches", async () => {
       const operations: BatchOperation[] = [
-        { type: "embedding", entityId: "entity-1" },
+        { type: "embedding", data: { entityId: "entity-1" } },
       ];
 
       const batchId = await batchManager.enqueueBatch(operations, {
@@ -242,7 +242,7 @@ describe("BatchJobManager", () => {
     it("should return only active batches", async () => {
       // Create multiple batches
       await batchManager.enqueueBatch(
-        [{ type: "embedding", entityId: "entity-1" }],
+        [{ type: "embedding", data: { entityId: "entity-1" } }],
         {
           source: "test:batch-manager",
           metadata: {
@@ -254,8 +254,8 @@ describe("BatchJobManager", () => {
 
       await batchManager.enqueueBatch(
         [
-          { type: "embedding", entityId: "entity-2" },
-          { type: "embedding", entityId: "entity-3" },
+          { type: "embedding", data: { entityId: "entity-2" } },
+          { type: "embedding", data: { entityId: "entity-3" } },
         ],
         {
           source: "test:batch-manager",
@@ -267,7 +267,7 @@ describe("BatchJobManager", () => {
       );
 
       const batch3Id = await batchManager.enqueueBatch(
-        [{ type: "embedding", entityId: "entity-4" }],
+        [{ type: "embedding", data: { entityId: "entity-4" } }],
         {
           source: "test:batch-manager",
           metadata: {
@@ -313,7 +313,7 @@ describe("BatchJobManager", () => {
     it("should return empty array when no active batches", async () => {
       // Create a batch and complete all its jobs
       const operations: BatchOperation[] = [
-        { type: "embedding", entityId: "entity-1" },
+        { type: "embedding", data: { entityId: "entity-1" } },
       ];
 
       await batchManager.enqueueBatch(operations, {
@@ -341,8 +341,8 @@ describe("BatchJobManager", () => {
       // Create a batch
       const batchId = await batchManager.enqueueBatch(
         [
-          { type: "embedding", entityId: "entity-1" },
-          { type: "embedding", entityId: "entity-2" },
+          { type: "embedding", data: { entityId: "entity-1" } },
+          { type: "embedding", data: { entityId: "entity-2" } },
         ],
         {
           source: "test:batch-manager",

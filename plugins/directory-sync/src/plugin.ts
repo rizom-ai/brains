@@ -308,8 +308,7 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           // Create batch operations - one job per entity type
           const operations = typesToExport.map((entityType) => ({
             type: "directory-export",
-            entityType,
-            options: {
+            data: {
               entityTypes: [entityType],
               batchSize: params.batchSize ?? 100,
             },
@@ -392,8 +391,8 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
           // Create batch operations - one job per batch of files
           const operations = batches.map((batchPaths, index) => ({
             type: "directory-import",
-            batchIndex: index,
-            options: {
+            data: {
+              batchIndex: index,
               paths: batchPaths,
               batchSize: batchPaths.length,
             },

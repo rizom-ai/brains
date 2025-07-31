@@ -269,9 +269,7 @@ export class ContentManager {
 
     const operations = previewIds.map((id) => ({
       type: "content-derivation",
-      entityId: id,
-      entityType: "site-content-preview" as const,
-      options: {
+      data: {
         entityId: id,
         sourceEntityType: "site-content-preview",
         targetEntityType: "site-content-production",
@@ -317,9 +315,7 @@ export class ContentManager {
 
     const operations = productionIds.map((id) => ({
       type: "content-derivation",
-      entityId: id,
-      entityType: "site-content-production" as const,
-      options: {
+      data: {
         entityId: id,
         sourceEntityType: "site-content-production",
         targetEntityType: "site-content-preview",

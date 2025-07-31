@@ -165,10 +165,11 @@ export class JobQueueService implements IJobQueueService {
 
       // Metadata will be automatically serialized by Drizzle's JSON mode
 
+      const serializedData = JSON.stringify(data);
       const values = {
         id: jobId,
         type: scopedType,
-        data: JSON.stringify(data),
+        data: serializedData,
         priority: options.priority ?? 0,
         maxRetries: options.maxRetries ?? 3,
         scheduledFor: Date.now() + (options.delayMs ?? 0),
@@ -180,7 +181,7 @@ export class JobQueueService implements IJobQueueService {
       this.logger.debug("Inserting job with values", {
         id: values.id,
         type: values.type,
-        dataLength: values.data.length,
+        dataLength: serializedData.length,
         priority: values.priority,
         maxRetries: values.maxRetries,
         scheduledFor: values.scheduledFor,

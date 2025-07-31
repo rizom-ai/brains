@@ -75,13 +75,13 @@ export class BatchJobManager {
           ...options,
           metadata: {
             ...options.metadata,
-            operationTarget: operation.entityId ?? operation.type,
+            operationTarget: operation.type,
           },
         };
 
         const jobId = await this.jobQueue.enqueue(
           operation.type,
-          operation.options ?? {},
+          operation.data,
           jobOptions,
           pluginId,
         );
@@ -185,7 +185,7 @@ export class BatchJobManager {
         if (job && job.status !== "completed" && job.status !== "failed") {
           const operation = batch.operations[i];
           if (operation) {
-            currentOperation = `Processing ${operation.type} ${operation.entityId ? `for ${operation.entityId}` : ""}`;
+            currentOperation = `Processing ${operation.type}`;
           }
           break;
         }

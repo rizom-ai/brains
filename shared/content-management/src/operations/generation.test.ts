@@ -147,9 +147,7 @@ test("generate should queue content generation jobs", async () => {
     expect.arrayContaining([
       expect.objectContaining({
         type: "content-generation",
-        entityId: "landing:hero",
-        entityType: "site-content-preview",
-        options: expect.objectContaining({
+        data: expect.objectContaining({
           templateName: "hero-template",
           entityId: "landing:hero",
           entityType: "site-content-preview",
@@ -275,9 +273,7 @@ test("generate should queue multiple jobs for multiple sections", async () => {
     expect.arrayContaining([
       expect.objectContaining({
         type: "content-generation",
-        entityId: "landing:hero",
-        entityType: "site-content-preview",
-        options: expect.objectContaining({
+        data: expect.objectContaining({
           templateName: "template-name",
           entityId: "landing:hero",
           entityType: "site-content-preview",

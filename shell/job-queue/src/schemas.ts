@@ -65,9 +65,7 @@ export const JobResultSchema = z.object({
  */
 export const BatchOperationSchema = z.object({
   type: z.string(),
-  entityId: z.string().optional(),
-  entityType: z.string().optional(),
-  options: z.record(z.unknown()).optional(),
+  data: z.record(z.unknown()).default({}),
 });
 
 /**

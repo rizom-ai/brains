@@ -410,9 +410,7 @@ test("promote should queue batch promotion operations", async () => {
     [
       {
         type: "content-derivation",
-        entityId: "site-content-preview:landing:hero",
-        entityType: "site-content-preview",
-        options: {
+        data: {
           entityId: "site-content-preview:landing:hero",
           sourceEntityType: "site-content-preview",
           targetEntityType: "site-content-production",
@@ -420,9 +418,7 @@ test("promote should queue batch promotion operations", async () => {
       },
       {
         type: "content-derivation",
-        entityId: "site-content-preview:landing:features",
-        entityType: "site-content-preview",
-        options: {
+        data: {
           entityId: "site-content-preview:landing:features",
           sourceEntityType: "site-content-preview",
           targetEntityType: "site-content-production",
@@ -430,9 +426,7 @@ test("promote should queue batch promotion operations", async () => {
       },
       {
         type: "content-derivation",
-        entityId: "site-content-preview:about:content",
-        entityType: "site-content-preview",
-        options: {
+        data: {
           entityId: "site-content-preview:about:content",
           sourceEntityType: "site-content-preview",
           targetEntityType: "site-content-production",
@@ -488,9 +482,7 @@ test("rollback should queue batch rollback operations", async () => {
     [
       {
         type: "content-derivation",
-        entityId: "site-content-production:landing:hero",
-        entityType: "site-content-production",
-        options: {
+        data: {
           entityId: "site-content-production:landing:hero",
           sourceEntityType: "site-content-production",
           targetEntityType: "site-content-preview",
@@ -498,9 +490,7 @@ test("rollback should queue batch rollback operations", async () => {
       },
       {
         type: "content-derivation",
-        entityId: "site-content-production:about:content",
-        entityType: "site-content-production",
-        options: {
+        data: {
           entityId: "site-content-production:about:content",
           sourceEntityType: "site-content-production",
           targetEntityType: "site-content-preview",

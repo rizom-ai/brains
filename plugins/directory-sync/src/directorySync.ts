@@ -479,8 +479,7 @@ export class DirectorySync {
     const exportOperations: BatchOperation[] = entityTypes.map(
       (entityType): BatchOperation => ({
         type: "directory-export",
-        entityType,
-        options: {
+        data: {
           entityTypes: [entityType],
           batchSize: 100,
         },
@@ -497,7 +496,7 @@ export class DirectorySync {
     const importOperations: BatchOperation[] = importBatches.map(
       (batchPaths, index): BatchOperation => ({
         type: "directory-import",
-        options: {
+        data: {
           batchIndex: index,
           paths: batchPaths,
           batchSize: batchPaths.length,

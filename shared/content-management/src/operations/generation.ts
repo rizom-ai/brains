@@ -54,9 +54,7 @@ export class GenerationOperations {
     const jobs: ContentGenerationJob[] = [];
     const operations: Array<{
       type: string;
-      entityId?: string;
-      entityType?: string;
-      options?: ContentGenerationJobData;
+      data: ContentGenerationJobData;
     }> = [];
     let totalSections = 0;
     let queuedSections = 0;
@@ -141,9 +139,7 @@ export class GenerationOperations {
 
         operations.push({
           type: "content-generation",
-          entityId,
-          entityType: targetEntityType,
-          options: jobData,
+          data: jobData,
         });
       }
     }
