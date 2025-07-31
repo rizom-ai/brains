@@ -1,6 +1,6 @@
 import type { ProgressCallback, Logger } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
-import type { PluginContext } from "@brains/plugin-utils";
+import type { ServicePluginContext } from "@brains/service-plugin";
 import type {
   SiteBuilder as ISiteBuilder,
   SiteBuilderOptions,
@@ -23,7 +23,7 @@ export class SiteBuilder implements ISiteBuilder {
   private static defaultStaticSiteBuilderFactory: StaticSiteBuilderFactory =
     createPreactBuilder;
   private logger: Logger;
-  private context: PluginContext;
+  private context: ServicePluginContext;
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
 
   /**
@@ -37,7 +37,7 @@ export class SiteBuilder implements ISiteBuilder {
 
   public static getInstance(
     logger: Logger,
-    context: PluginContext,
+    context: ServicePluginContext,
   ): SiteBuilder {
     SiteBuilder.instance ??= new SiteBuilder(
       logger,
@@ -53,7 +53,7 @@ export class SiteBuilder implements ISiteBuilder {
 
   public static createFresh(
     logger: Logger,
-    context: PluginContext,
+    context: ServicePluginContext,
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
   ): SiteBuilder {
     return new SiteBuilder(
@@ -66,7 +66,7 @@ export class SiteBuilder implements ISiteBuilder {
   private constructor(
     logger: Logger,
     staticSiteBuilderFactory: StaticSiteBuilderFactory,
-    context: PluginContext,
+    context: ServicePluginContext,
   ) {
     this.logger = logger;
     this.context = context;

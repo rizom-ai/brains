@@ -1,9 +1,8 @@
 import { test, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentManager } from "./manager";
 import { createSilentLogger } from "@brains/utils";
-import { PluginTestHarness } from "@brains/test-utils";
-import type { EntityService } from "@brains/entity-service";
-import type { PluginContext } from "@brains/plugin-utils";
+import type { IEntityService } from "@brains/entity-service";
+import type { ServicePluginContext } from "@brains/service-plugin";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { JobOptions } from "@brains/db";
 
@@ -26,10 +25,9 @@ const mockEnqueueContentGeneration = mock();
 const mockEnqueueBatch = mock();
 const mockGetJobStatus = mock();
 
-// Test harness instances
-let harness: PluginTestHarness;
-let mockPluginContext: PluginContext;
-let mockEntityService: EntityService;
+// Mock instances
+let mockPluginContext: ServicePluginContext;
+let mockEntityService: IEntityService;
 
 // Removed - using test harness instead
 
@@ -44,21 +42,27 @@ const mockGenerateId = (
 let contentManager: ContentManager;
 
 beforeEach(async (): Promise<void> => {
-  // Create test harness
-  harness = new PluginTestHarness();
-  mockPluginContext = harness.getPluginContext();
-  mockEntityService = mockPluginContext.entityService;
+  // Create mock entity service
+  mockEntityService = {
+    getEntity: mockGetEntity,
+    createEntity: mockCreateEntity,
+    updateEntity: mockUpdateEntity,
+    listEntities: mockListEntities,
+    deleteEntity: mock(),
+    searchEntities: mock(),
+    getRelated: mock(),
+    createRelation: mock(),
+    deleteRelation: mock(),
+  } as unknown as IEntityService;
 
-  // Setup mocks on the harness services
-  mockEntityService.getEntity = mockGetEntity;
-  mockEntityService.createEntity = mockCreateEntity;
-  mockEntityService.updateEntity = mockUpdateEntity;
-  mockEntityService.listEntities = mockListEntities;
-
-  // Setup job queue mocks
-  mockPluginContext.getJobStatus = mockGetJobStatus;
-  mockPluginContext.enqueueJob = mockEnqueueContentGeneration;
-  mockPluginContext.enqueueBatch = mockEnqueueBatch;
+  // Create mock plugin context with required ServicePluginContext methods
+  mockPluginContext = {
+    entityService: mockEntityService,
+    getJobStatus: mockGetJobStatus,
+    enqueueJob: mockEnqueueContentGeneration,
+    enqueueBatch: mockEnqueueBatch,
+    // Add other required methods as needed
+  } as unknown as ServicePluginContext;
 
   // Reset all mocks
   mockGetEntity.mockClear();
@@ -78,7 +82,7 @@ beforeEach(async (): Promise<void> => {
 });
 
 afterEach(async (): Promise<void> => {
-  await harness.cleanup();
+  // Reset mocks
 });
 
 // ========================================

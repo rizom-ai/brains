@@ -1,9 +1,6 @@
-import { BasePlugin } from "@brains/plugin-utils";
-import type {
-  PluginContext,
-  PluginTool,
-  PluginResource,
-} from "@brains/plugin-utils";
+import type { ServicePluginContext } from "@brains/service-plugin";
+import { ServicePlugin } from "@brains/service-plugin";
+import type { Plugin, PluginTool, PluginResource } from "@brains/plugin-base";
 import type { Command, CommandResponse } from "@brains/command-registry";
 import type { JobContext } from "@brains/db";
 import type { Template } from "@brains/types";
@@ -73,13 +70,11 @@ const SITE_BUILDER_CONFIG_DEFAULTS = {
  * Site Builder Plugin
  * Provides static site generation capabilities
  */
-export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
-  // After validation with defaults, config is complete
-  declare protected config: SiteBuilderConfig;
+export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteBuilder?: SiteBuilder;
   private siteOperations?: SiteOperations;
   private contentManager?: ContentManager;
-  public readonly type = "service" as const;
+  private pluginContext?: ServicePluginContext;
 
   constructor(config: SiteBuilderConfigInput = {}) {
     super(
@@ -94,8 +89,10 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
   /**
    * Initialize the plugin
    */
-  protected override async onRegister(context: PluginContext): Promise<void> {
-    await super.onRegister(context);
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    this.pluginContext = context;
 
     // Register site content entity types
     context.registerEntityType(
@@ -220,7 +217,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .describe("Optional: preview changes without executing"),
         },
         async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.contentManager || !this.context) {
+          if (!this.contentManager || !this.pluginContext) {
             throw new SiteBuilderInitializationError(
               "Content manager not initialized",
               undefined,
@@ -240,7 +237,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           }
 
           // Get all registered routes
-          const routes = this.context.listRoutes();
+          const routes = this.pluginContext.listRoutes();
 
           // Use the shared content manager with async generation
           const templateResolver = (section: SectionDefinition): string => {
@@ -258,7 +255,9 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             if (options.routeId && route.id !== options.routeId) continue;
 
             const sections = options.sectionId
-              ? route.sections.filter((s) => s.id === options.sectionId)
+              ? route.sections.filter(
+                  (s: SectionDefinition) => s.id === options.sectionId,
+                )
               : route.sections;
 
             sectionsToGenerate += sections.length;
@@ -325,7 +324,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             .describe("Build environment: preview (default) or production"),
         },
         async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.context) {
+          if (!this.pluginContext) {
             throw new Error("Plugin context not initialized");
           }
 
@@ -368,11 +367,15 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
           };
 
           // Queue the job for async processing
-          const jobId = await this.context.enqueueJob("site-build", jobData, {
-            priority: 5,
-            source: this.id,
-            metadata,
-          });
+          const jobId = await this.pluginContext.enqueueJob(
+            "site-build",
+            jobData,
+            {
+              priority: 5,
+              source: this.id,
+              metadata,
+            },
+          );
 
           return {
             status: "queued",
@@ -866,7 +869,7 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             args[0] === "production" ? "production" : "preview"
           ) as "preview" | "production";
 
-          if (!this.context) {
+          if (!this.pluginContext) {
             return {
               type: "message",
               message:
@@ -905,11 +908,15 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
             };
 
             // Queue the job for async processing
-            const jobId = await this.context.enqueueJob("site-build", jobData, {
-              priority: 5,
-              source: "command:build-site",
-              metadata,
-            });
+            const jobId = await this.pluginContext.enqueueJob(
+              "site-build",
+              jobData,
+              {
+                priority: 5,
+                source: "command:build-site",
+                metadata,
+              },
+            );
 
             return {
               type: "job-operation",
@@ -946,8 +953,6 @@ export class SiteBuilderPlugin extends BasePlugin<SiteBuilderConfigInput> {
 /**
  * Factory function to create the plugin
  */
-export function siteBuilderPlugin(
-  config?: SiteBuilderConfigInput,
-): SiteBuilderPlugin {
+export function siteBuilderPlugin(config?: SiteBuilderConfigInput): Plugin {
   return new SiteBuilderPlugin(config);
 }

@@ -1,4 +1,4 @@
-import type { PluginContext } from "@brains/plugin-utils";
+import type { ServicePluginContext } from "@brains/service-plugin";
 
 /**
  * Simple result type for content generation
@@ -16,7 +16,7 @@ export interface ContentGenerationResult {
  */
 export async function getContentJobStatuses(
   jobIds: string[],
-  context: PluginContext,
+  context: ServicePluginContext,
 ): Promise<Map<string, { status: string; error?: string }>> {
   const statuses = new Map<string, { status: string; error?: string }>();
 

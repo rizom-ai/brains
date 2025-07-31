@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { PluginContext } from "@brains/plugin-utils";
+import type { ServicePluginContext } from "@brains/service-plugin";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import { join } from "path";
 import { fileURLToPath } from "url";
@@ -12,13 +12,13 @@ import { promises as fs } from "fs";
 export class HydrationManager {
   private logger: Logger;
   private getViewTemplate: (name: string) => ViewTemplate | undefined;
-  private pluginContext: PluginContext;
+  private pluginContext: ServicePluginContext;
   private outputDir: string;
 
   constructor(
     logger: Logger,
     getViewTemplate: (name: string) => ViewTemplate | undefined,
-    pluginContext: PluginContext,
+    pluginContext: ServicePluginContext,
     outputDir: string,
   ) {
     this.logger = logger;

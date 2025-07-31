@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPreactBuilder } from "../../src/preact-builder";
 import type { BuildContext } from "../../src/static-site-builder";
-import type { PluginContext } from "@brains/plugin-utils";
+import type { ServicePluginContext } from "@brains/service-plugin";
 import type {
   ViewTemplate,
   RouteDefinition,
@@ -83,7 +83,7 @@ describe("PreactBuilder", () => {
         id,
         metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
       }),
-    } as unknown as PluginContext;
+    } as unknown as ServicePluginContext;
 
     const buildContext: BuildContext = {
       routes: [
@@ -165,7 +165,7 @@ describe("PreactBuilder", () => {
         id,
         metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
       }),
-    } as unknown as PluginContext;
+    } as unknown as ServicePluginContext;
 
     const buildContext: BuildContext = {
       routes: [
@@ -228,7 +228,7 @@ describe("PreactBuilder", () => {
         id,
         metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
       }),
-    } as unknown as PluginContext;
+    } as unknown as ServicePluginContext;
 
     const buildContext: BuildContext = {
       routes: [
@@ -303,7 +303,7 @@ describe("PreactBuilder", () => {
         id,
         metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
       }),
-    } as unknown as PluginContext;
+    } as unknown as ServicePluginContext;
 
     const buildContext: BuildContext = {
       routes: [

@@ -1,8 +1,8 @@
 import type { Logger } from "@brains/utils";
-import type { EntityService } from "@brains/entity-service";
+import type { IEntityService } from "@brains/entity-service";
 import type { SiteContentEntityType } from "@brains/view-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
-import type { PluginContext } from "@brains/plugin-utils";
+import type { ServicePluginContext } from "@brains/service-plugin";
 import type { GenerateOptions, ContentGenerationJob } from "../types";
 import type { JobOptions } from "@brains/db";
 import type { ContentGenerationJobData } from "@brains/content-generator";
@@ -22,9 +22,9 @@ function generateContentId(routeId: string, sectionId: string): string {
 export class GenerationOperations {
   // Create a new instance
   constructor(
-    private readonly entityService: EntityService,
+    private readonly entityService: IEntityService,
     private readonly logger: Logger,
-    private readonly pluginContext: PluginContext,
+    private readonly pluginContext: ServicePluginContext,
   ) {}
 
   /**

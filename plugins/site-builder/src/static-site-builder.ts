@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { PluginContext } from "@brains/plugin-utils";
+import type { ServicePluginContext } from "@brains/service-plugin";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { CSSProcessor } from "./css/css-processor";
 
@@ -8,7 +8,7 @@ import type { CSSProcessor } from "./css/css-processor";
  */
 export interface BuildContext {
   routes: RouteDefinition[];
-  pluginContext: PluginContext;
+  pluginContext: ServicePluginContext;
   siteConfig: {
     title: string;
     description: string;

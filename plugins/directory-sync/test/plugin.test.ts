@@ -43,8 +43,16 @@ describe("DirectorySyncPlugin", () => {
     // Get the shell and register entity types
     const shell = harness.getShell();
     const entityRegistry = shell.getEntityRegistry();
-    entityRegistry.registerEntityType("base", baseEntitySchema, new MockEntityAdapter());
-    entityRegistry.registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
+    entityRegistry.registerEntityType(
+      "base",
+      baseEntitySchema,
+      new MockEntityAdapter(),
+    );
+    entityRegistry.registerEntityType(
+      "note",
+      baseEntitySchema,
+      new MockEntityAdapter(),
+    );
 
     // Create plugin
     plugin = new DirectorySyncPlugin({
@@ -74,7 +82,7 @@ describe("DirectorySyncPlugin", () => {
     });
 
     it("should provide expected tools", () => {
-      const toolNames = capabilities.tools?.map(t => t.name) || [];
+      const toolNames = capabilities.tools?.map((t) => t.name) || [];
       expect(toolNames).toContain("directory-sync:sync");
       expect(toolNames).toContain("directory-sync:export");
       expect(toolNames).toContain("directory-sync:import");
@@ -86,8 +94,8 @@ describe("DirectorySyncPlugin", () => {
     it("should provide commands", () => {
       expect(capabilities.commands).toBeDefined();
       expect(capabilities.commands?.length).toBeGreaterThan(0);
-      
-      const commandNames = capabilities.commands?.map(c => c.name) || [];
+
+      const commandNames = capabilities.commands?.map((c) => c.name) || [];
       expect(commandNames).toContain("sync");
       expect(commandNames).toContain("sync-status");
     });
@@ -105,9 +113,11 @@ describe("DirectorySyncPlugin", () => {
       expect(existsSync(syncPath)).toBe(true);
 
       // Use the ensure-structure tool (should work even if already exists)
-      const ensureTool = capabilities.tools?.find(t => t.name === "directory-sync:ensure-structure");
+      const ensureTool = capabilities.tools?.find(
+        (t) => t.name === "directory-sync:ensure-structure",
+      );
       expect(ensureTool).toBeDefined();
-      
+
       const result = await ensureTool!.handler({}, {});
       expect(result).toEqual({ message: "Directory structure created" });
       expect(existsSync(syncPath)).toBe(true);
@@ -115,14 +125,18 @@ describe("DirectorySyncPlugin", () => {
 
     it("should get status", async () => {
       // Ensure directory exists
-      const ensureTool = capabilities.tools?.find(t => t.name === "directory-sync:ensure-structure");
+      const ensureTool = capabilities.tools?.find(
+        (t) => t.name === "directory-sync:ensure-structure",
+      );
       await ensureTool!.handler({}, {});
 
       // Get status
-      const statusTool = capabilities.tools?.find(t => t.name === "directory-sync:status");
+      const statusTool = capabilities.tools?.find(
+        (t) => t.name === "directory-sync:status",
+      );
       expect(statusTool).toBeDefined();
-      
-      const status = await statusTool!.handler({}, {}) as any;
+
+      const status = (await statusTool!.handler({}, {})) as any;
       expect(status.syncPath).toBe(syncPath);
       expect(status.exists).toBe(true);
       expect(status.watching).toBe(false);
@@ -130,13 +144,15 @@ describe("DirectorySyncPlugin", () => {
 
     it("should export entities", async () => {
       // Ensure directory exists
-      const ensureTool = capabilities.tools?.find(t => t.name === "directory-sync:ensure-structure");
+      const ensureTool = capabilities.tools?.find(
+        (t) => t.name === "directory-sync:ensure-structure",
+      );
       await ensureTool!.handler({}, {});
 
       // Create some test entities
       const shell = harness.getShell();
       const entityService = shell.getEntityService();
-      
+
       await entityService.createEntity({
         id: "test-export-1",
         content: "Test Export 1\nThis is test content",
@@ -147,13 +163,18 @@ describe("DirectorySyncPlugin", () => {
       });
 
       // Export using the tool (which queues a batch job)
-      const exportTool = capabilities.tools?.find(t => t.name === "directory-sync:export");
+      const exportTool = capabilities.tools?.find(
+        (t) => t.name === "directory-sync:export",
+      );
       expect(exportTool).toBeDefined();
-      
-      const exportResult = await exportTool!.handler({ entityTypes: ["base"] }, {}) as any;
+
+      const exportResult = (await exportTool!.handler(
+        { entityTypes: ["base"] },
+        {},
+      )) as any;
       expect(exportResult.status).toBe("queued");
       expect(exportResult.batchId).toBeDefined();
-      
+
       // In a real test, we'd wait for the batch job to complete
       // For now, we'll just verify the job was queued
       expect(exportResult.entityTypes).toContain("base");
@@ -161,15 +182,19 @@ describe("DirectorySyncPlugin", () => {
 
     it("should handle sync operation", async () => {
       // Ensure directory exists
-      const ensureTool = capabilities.tools?.find(t => t.name === "directory-sync:ensure-structure");
+      const ensureTool = capabilities.tools?.find(
+        (t) => t.name === "directory-sync:ensure-structure",
+      );
       await ensureTool!.handler({}, {});
 
       // Sync using the tool
-      const syncTool = capabilities.tools?.find(t => t.name === "directory-sync:sync");
+      const syncTool = capabilities.tools?.find(
+        (t) => t.name === "directory-sync:sync",
+      );
       expect(syncTool).toBeDefined();
-      
-      const syncResult = await syncTool!.handler({}, {}) as any;
-      
+
+      const syncResult = (await syncTool!.handler({}, {})) as any;
+
       // Should either complete immediately if no operations needed
       // or queue a batch job
       expect(syncResult).toBeDefined();
@@ -181,27 +206,28 @@ describe("DirectorySyncPlugin", () => {
     });
 
     it("should control watching", async () => {
-      const watchTool = capabilities.tools?.find(t => t.name === "directory-sync:watch");
+      const watchTool = capabilities.tools?.find(
+        (t) => t.name === "directory-sync:watch",
+      );
       expect(watchTool).toBeDefined();
-      
+
       // Start watching
-      let result = await watchTool!.handler({ action: "start" }, {}) as any;
+      let result = (await watchTool!.handler({ action: "start" }, {})) as any;
       expect(result.watching).toBe(true);
-      
+
       // Stop watching
-      result = await watchTool!.handler({ action: "stop" }, {}) as any;
+      result = (await watchTool!.handler({ action: "stop" }, {})) as any;
       expect(result.watching).toBe(false);
     });
   });
 
   describe("Message Handling", () => {
     it("should respond to sync status requests", async () => {
-      const response = await harness.sendMessage<{}, { syncPath: string; isInitialized: boolean; watchEnabled: boolean }>(
-        "sync:status:request",
+      const response = await harness.sendMessage<
         {},
-        "test"
-      );
-      
+        { syncPath: string; isInitialized: boolean; watchEnabled: boolean }
+      >("sync:status:request", {}, "test");
+
       expect(response).toBeDefined();
       expect(response?.syncPath).toBe(syncPath);
       expect(response?.isInitialized).toBe(true);
@@ -209,12 +235,11 @@ describe("DirectorySyncPlugin", () => {
     });
 
     it("should respond to export requests", async () => {
-      const response = await harness.sendMessage<{ entityTypes?: string[] }, { exported: number; failed: number }>(
-        "entity:export:request",
-        { entityTypes: ["base"] },
-        "test"
-      );
-      
+      const response = await harness.sendMessage<
+        { entityTypes?: string[] },
+        { exported: number; failed: number }
+      >("entity:export:request", { entityTypes: ["base"] }, "test");
+
       expect(response).toBeDefined();
       expect(response?.exported).toBeDefined();
       expect(response?.failed).toBeDefined();
@@ -222,17 +247,16 @@ describe("DirectorySyncPlugin", () => {
 
     it("should respond to configuration requests", async () => {
       const newPath = join(tmpdir(), `test-directory-sync-new-${Date.now()}`);
-      
-      const response = await harness.sendMessage<{ syncPath: string }, { syncPath: string; configured: boolean }>(
-        "sync:configure:request",
-        { syncPath: newPath },
-        "test"
-      );
-      
+
+      const response = await harness.sendMessage<
+        { syncPath: string },
+        { syncPath: string; configured: boolean }
+      >("sync:configure:request", { syncPath: newPath }, "test");
+
       expect(response).toBeDefined();
       expect(response?.syncPath).toBe(newPath);
       expect(response?.configured).toBe(true);
-      
+
       // Clean up new path
       if (existsSync(newPath)) {
         rmSync(newPath, { recursive: true, force: true });

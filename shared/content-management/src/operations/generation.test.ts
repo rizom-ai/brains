@@ -1,8 +1,8 @@
 import { test, expect, beforeEach, mock } from "bun:test";
 import { GenerationOperations } from "./generation";
 import { createSilentLogger } from "@brains/utils";
-import type { EntityService } from "@brains/entity-service";
-import type { PluginContext } from "@brains/plugin-utils";
+import type { IEntityService } from "@brains/entity-service";
+import type { ServicePluginContext } from "@brains/service-plugin";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { JobOptions } from "@brains/db";
 
@@ -29,12 +29,11 @@ const mockEntityService = {
   updateEntity: mockUpdateEntity,
   listEntities: mockListEntities,
   deleteEntity: mock(),
-  getAsyncJobStatus: mock(),
-  search: mock(),
-  deriveEntity: mock(),
-  getEntityTypes: mock(),
-  hasEntityType: mock(),
-} as unknown as EntityService;
+  searchEntities: mock(),
+  getRelated: mock(),
+  createRelation: mock(),
+  deleteRelation: mock(),
+} as unknown as IEntityService;
 
 const mockLogger = createSilentLogger("generation-test");
 
@@ -43,9 +42,9 @@ const mockEnqueueBatch = mock();
 const mockPluginContext = {
   pluginId: "test-plugin",
   logger: mockLogger,
-  enqueueContentGeneration: mockEnqueueContentGeneration,
-  enqueueJob: mockEnqueueContentGeneration, // Add the generic enqueueJob
-  enqueueBatch: mockEnqueueBatch, // Add the batch enqueue method
+  entityService: mockEntityService,
+  enqueueJob: mockEnqueueContentGeneration,
+  enqueueBatch: mockEnqueueBatch,
   sendMessage: mock(),
   subscribe: mock(),
   unsubscribe: mock(),
@@ -88,7 +87,7 @@ const mockPluginContext = {
   deleteContentIndex: mock(),
   getContentIndex: mock(),
   updateContentIndex: mock(),
-} as unknown as PluginContext;
+} as unknown as ServicePluginContext;
 
 let operations: GenerationOperations;
 

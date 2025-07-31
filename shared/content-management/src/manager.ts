@@ -1,6 +1,6 @@
 import type { Logger } from "@brains/utils";
-import type { EntityService } from "@brains/entity-service";
-import type { PluginContext } from "@brains/plugin-utils";
+import type { IEntityService } from "@brains/entity-service";
+import type { ServicePluginContext } from "@brains/service-plugin";
 import type {
   RouteDefinition,
   SectionDefinition,
@@ -29,15 +29,15 @@ import { convertSiteContentId } from "./utils/id-generator";
 export class ContentManager {
   private readonly generationOps: GenerationOperations;
   private readonly entityQuery: EntityQueryService;
-  private readonly pluginContext: PluginContext;
+  private readonly pluginContext: ServicePluginContext;
   private readonly logger: Logger;
-  private readonly entityService: EntityService;
+  private readonly entityService: IEntityService;
 
   // Create a new instance
   constructor(
-    entityService: EntityService,
+    entityService: IEntityService,
     logger: Logger,
-    pluginContext: PluginContext,
+    pluginContext: ServicePluginContext,
   ) {
     this.entityService = entityService;
     this.pluginContext = pluginContext;

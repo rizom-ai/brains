@@ -1,7 +1,7 @@
 import type { SiteContentEntity } from "../types";
 import type { SiteContentEntityType } from "@brains/view-registry";
 import type { Logger } from "@brains/utils";
-import type { EntityService } from "@brains/entity-service";
+import type { IEntityService } from "@brains/entity-service";
 
 /**
  * Service for querying and retrieving content entities
@@ -10,7 +10,7 @@ import type { EntityService } from "@brains/entity-service";
 export class EntityQueryService {
   // Create a new instance
   constructor(
-    private readonly entityService: EntityService,
+    private readonly entityService: IEntityService,
     private readonly logger: Logger,
   ) {}
 

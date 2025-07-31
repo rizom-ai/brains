@@ -1,7 +1,7 @@
 import type { Logger } from "@brains/utils";
 import { ContentManager } from "@brains/content-management";
-import type { EntityService } from "@brains/entity-service";
-import type { PluginContext } from "@brains/plugin-utils";
+import type { IEntityService } from "@brains/entity-service";
+import type { ServicePluginContext } from "@brains/service-plugin";
 import type { JobContext } from "@brains/db";
 import type { PromoteOptions, RollbackOptions } from "./types";
 import type { SiteContentEntity } from "@brains/content-management";
@@ -16,9 +16,9 @@ export class SiteOperations {
   private contentManager: ContentManager;
 
   constructor(
-    entityService: EntityService,
+    entityService: IEntityService,
     private readonly logger: Logger,
-    pluginContext: PluginContext,
+    pluginContext: ServicePluginContext,
   ) {
     this.contentManager = new ContentManager(
       entityService,
