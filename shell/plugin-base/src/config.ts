@@ -10,23 +10,6 @@ export const basePluginConfigSchema = z.object({
 });
 
 /**
- * Helper to create a plugin configuration with defaults
- */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types
-export function createPluginConfig<T extends z.ZodRawShape>(
-  schema: T,
-  description?: string,
-) {
-  const fullSchema = basePluginConfigSchema.extend(schema);
-
-  if (description) {
-    return fullSchema.describe(description);
-  }
-
-  return fullSchema;
-}
-
-/**
  * Validate plugin configuration with helpful error messages
  */
 export function validatePluginConfig<TOutput, TInput = TOutput>(

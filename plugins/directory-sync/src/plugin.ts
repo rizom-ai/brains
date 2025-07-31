@@ -1,10 +1,5 @@
 import type { Plugin, PluginContext, PluginTool } from "@brains/plugin-utils";
-import {
-  BasePlugin,
-  pluginConfig,
-  toolInput,
-  PluginInitializationError,
-} from "@brains/plugin-utils";
+import { BasePlugin, PluginInitializationError } from "@brains/plugin-utils";
 import type { Command, CommandResponse } from "@brains/command-registry";
 import { DirectorySyncInitializationError } from "./errors";
 import { z } from "zod";
@@ -281,23 +276,17 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
       this.createTool(
         "export",
         "Export entities to directory (async batch operation)",
-        toolInput()
-          .custom(
-            "entityTypes",
-            z
-              .array(z.string())
-              .optional()
-              .describe("Specific entity types to export (optional)"),
-          )
-          .custom(
-            "batchSize",
-            z
-              .number()
-              .min(1)
-              .default(100)
-              .describe("Number of entities to process per batch"),
-          )
-          .build(),
+        {
+          entityTypes: z
+            .array(z.string())
+            .optional()
+            .describe("Specific entity types to export (optional)"),
+          batchSize: z
+            .number()
+            .min(1)
+            .default(100)
+            .describe("Number of entities to process per batch"),
+        },
         async (input: unknown, context): Promise<unknown> => {
           if (!this.directorySync || !this.pluginContext) {
             throw new DirectorySyncInitializationError(
@@ -360,23 +349,17 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
       this.createTool(
         "import",
         "Import entities from directory (async batch operation)",
-        toolInput()
-          .custom(
-            "paths",
-            z
-              .array(z.string())
-              .optional()
-              .describe("Specific file paths to import (optional)"),
-          )
-          .custom(
-            "batchSize",
-            z
-              .number()
-              .min(1)
-              .default(50)
-              .describe("Number of files to process per batch"),
-          )
-          .build(),
+        {
+          paths: z
+            .array(z.string())
+            .optional()
+            .describe("Specific file paths to import (optional)"),
+          batchSize: z
+            .number()
+            .min(1)
+            .default(50)
+            .describe("Number of files to process per batch"),
+        },
         async (input: unknown, context): Promise<unknown> => {
           if (!this.directorySync || !this.pluginContext) {
             throw new DirectorySyncInitializationError(
@@ -443,9 +426,9 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
       this.createTool(
         "watch",
         "Start or stop directory watching",
-        toolInput()
-          .enum("action", ["start", "stop"] as const)
-          .build(),
+        {
+          action: z.enum(["start", "stop"]),
+        },
         async (input: unknown): Promise<{ watching: boolean }> => {
           if (!this.directorySync) {
             throw new DirectorySyncInitializationError(
@@ -704,24 +687,6 @@ export class DirectorySyncPlugin extends BasePlugin<DirectorySyncConfigInput> {
     this.info("Registered async job handlers");
   }
 }
-
-/**
- * Configuration builder for directory-sync plugin
- */
-export const directorySyncPluginConfig = (): ReturnType<typeof pluginConfig> =>
-  pluginConfig()
-    .requiredString("syncPath", "Directory path for synchronization")
-    .boolean("watchEnabled", false, "Enable file watching")
-    .numberWithDefault("watchInterval", 5000, {
-      description: "Watch polling interval in milliseconds",
-      min: 1000, // 1 second minimum
-    })
-    .boolean("includeMetadata", true, "Include frontmatter metadata")
-    .array("entityTypes", z.string(), {
-      description: "Specific entity types to sync",
-      default: [],
-    })
-    .describe("Configuration for the directory-sync plugin");
 
 /**
  * Factory function for creating directory sync plugin

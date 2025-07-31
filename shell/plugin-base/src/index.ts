@@ -25,10 +25,8 @@ export {
 } from "./interfaces";
 
 // Config utilities
-export { toolInput, ToolInputBuilder } from "./config-builder";
 export {
   basePluginConfigSchema,
-  createPluginConfig,
   validatePluginConfig,
   mergePluginConfig,
   type PluginConfigInput,

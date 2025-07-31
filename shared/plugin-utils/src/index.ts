@@ -21,8 +21,7 @@ export { BasePlugin } from "./base-plugin";
 export { InterfacePlugin } from "./interface-plugin";
 
 // Plugin utilities
-export { validatePluginConfig, createPluginConfig } from "./config";
-export { PluginConfigBuilder, pluginConfig, toolInput } from "./config-builder";
+export { validatePluginConfig, basePluginConfigSchema } from "./config";
 
 // Plugin errors
 export { PluginInitializationError } from "./errors";

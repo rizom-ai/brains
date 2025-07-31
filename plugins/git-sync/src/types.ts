@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { createPluginConfig } from "@brains/plugin-utils";
+import { basePluginConfigSchema } from "@brains/plugin-utils";
 
-export const gitSyncConfigSchema = createPluginConfig(
-  {
+export const gitSyncConfigSchema = basePluginConfigSchema
+  .extend({
     gitUrl: z.string().describe("Git repository URL (https or ssh)"),
     branch: z.string().describe("Git branch to sync"),
     autoSync: z.boolean().describe("Enable automatic syncing"),
@@ -17,9 +17,8 @@ export const gitSyncConfigSchema = createPluginConfig(
       .string()
       .optional()
       .describe("Authentication token for private repositories"),
-  },
-  "Configuration for the git-sync plugin",
-);
+  })
+  .describe("Configuration for the git-sync plugin");
 
 export type GitSyncConfig = z.infer<typeof gitSyncConfigSchema>;
 export type GitSyncConfigInput = z.input<typeof gitSyncConfigSchema>;

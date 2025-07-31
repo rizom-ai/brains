@@ -17,11 +17,7 @@ export type {
 } from "@brains/plugin-base";
 
 // Re-export commonly used utilities from plugin-base
-export {
-  toolInput,
-  PluginInitializationError,
-  PluginContextError,
-} from "@brains/plugin-base";
+export { PluginInitializationError, PluginContextError } from "@brains/plugin-base";
 
 // Test harness
 export { CorePluginTestHarness } from "./test/harness";

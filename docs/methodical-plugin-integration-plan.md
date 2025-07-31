@@ -35,6 +35,8 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 - Move core plugin system from plugin-utils to shell/plugin-base
 - Update Plugin interface to include `register(shell: IShell)` method
 - Update BasePlugin to implement new pattern
+- Standardize on direct Zod schemas for all plugin configurations
+- Remove config builder utilities (PluginConfigBuilder, ToolInputBuilder)
 - **Validation**: Plugin base tests pass
 
 #### Step 1.2: Update Shell for new pattern only
@@ -128,6 +130,53 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 3. **Validate After Each Phase**: Run tests after each major change
 4. **Type Safety**: Use proper schema parsing, no type assertions
 5. **Clean Break**: No backward compatibility, clean migration
+6. **Config Standardization**: All plugins use direct Zod schemas for configuration and tool inputs
+
+## Config Standardization Pattern
+
+### Plugin Configuration
+All plugins should define their configuration using direct Zod schemas:
+
+```typescript
+// Good - Direct Zod schema
+export const myPluginConfigSchema = basePluginConfigSchema.extend({
+  apiUrl: z.string().url().describe("API endpoint URL"),
+  timeout: z.number().min(1000).describe("Request timeout in ms"),
+}).describe("Configuration for my-plugin");
+
+// Bad - Using config builders
+export const myPluginConfig = pluginConfig()
+  .requiredString("apiUrl", "API endpoint URL")
+  .numberWithDefault("timeout", 5000)
+  .build();
+```
+
+### Tool Input Schemas
+Tool inputs should be defined as plain Zod objects:
+
+```typescript
+// Good - Direct Zod schema
+this.createTool(
+  "fetch-data",
+  "Fetch data from API",
+  {
+    endpoint: z.string().describe("API endpoint path"),
+    params: z.record(z.string()).optional().describe("Query parameters"),
+  },
+  async (input, context) => { ... }
+);
+
+// Bad - Using toolInput builder
+this.createTool(
+  "fetch-data",
+  "Fetch data from API",
+  toolInput()
+    .string("endpoint")
+    .custom("params", z.record(z.string()).optional())
+    .build(),
+  async (input, context) => { ... }
+);
+```
 
 ## Success Metrics
 
@@ -136,6 +185,7 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 - Plugins work correctly with typed contexts
 - Clean separation between plugin types
 - Job queue uses consistent data format
+- All plugins use direct Zod schemas
 
 ## Risk Mitigation
 
@@ -148,6 +198,8 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 
 1. Revert and prepare
 2. Integrate plugin-base and update Shell
+   - Standardize on direct Zod schemas
+   - Remove config builders
 3. Migrate core plugins
 4. Fix job queue data format
 5. Migrate service plugins
