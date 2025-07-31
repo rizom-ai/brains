@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { CommandRegistry, type Command } from "../src";
 import { MessageBus } from "@brains/messaging-service";
-import { Logger, LogLevel } from "@brains/utils";
+import { createSilentLogger } from "@brains/utils";
 
 describe("CommandRegistry", () => {
   let registry: CommandRegistry;
@@ -9,7 +9,7 @@ describe("CommandRegistry", () => {
   let logger: Logger;
 
   beforeEach(() => {
-    logger = Logger.createFresh({ level: LogLevel.INFO });
+    logger = createSilentLogger("command-registry-test");
     messageBus = MessageBus.createFresh(logger);
     registry = CommandRegistry.createFresh(logger, messageBus);
   });

@@ -155,7 +155,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   /**
    * Initialize the plugin
    */
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     this.pluginContext = context;
     const { logger, entityService } = context;
 
@@ -657,12 +659,14 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   /**
    * Register job handlers for async operations
    */
-  protected override async registerJobHandlers(context: ServicePluginContext): Promise<void> {
+  protected override async registerJobHandlers(
+    context: ServicePluginContext,
+  ): Promise<void> {
     if (!this.directorySync) {
       throw new DirectorySyncInitializationError(
         "DirectorySync not initialized",
         "Cannot register job handlers without DirectorySync instance",
-        { method: "registerJobHandlers" }
+        { method: "registerJobHandlers" },
       );
     }
 

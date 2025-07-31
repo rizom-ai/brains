@@ -4,6 +4,7 @@ import { Shell } from "@brains/core";
 import { EntityRegistry } from "@brains/entity-service";
 import { createTestDatabase } from "./helpers/test-db.js";
 import { createMockAIService } from "./helpers/mock-ai-service.js";
+import { createSilentLogger } from "@brains/utils";
 
 describe("App Integration", () => {
   let dbPath: string;
@@ -26,7 +27,7 @@ describe("App Integration", () => {
 
   describe("basic app lifecycle", () => {
     it("should create and initialize app", async () => {
-      // Create shell with mock AI service
+      // Create shell with mock AI service and silent logger
       const shell = Shell.createFresh(
         {
           database: { url: `file:${dbPath}` },
@@ -36,6 +37,7 @@ describe("App Integration", () => {
         },
         {
           aiService: createMockAIService(),
+          logger: createSilentLogger("integration-test"),
         },
       );
 
@@ -58,7 +60,7 @@ describe("App Integration", () => {
 
   describe("full lifecycle", () => {
     it("should handle complete app lifecycle", async () => {
-      // Create shell with mock AI service
+      // Create shell with mock AI service and silent logger
       const shell = Shell.createFresh(
         {
           database: { url: `file:${dbPath}` },
@@ -68,6 +70,7 @@ describe("App Integration", () => {
         },
         {
           aiService: createMockAIService(),
+          logger: createSilentLogger("integration-test"),
         },
       );
 
