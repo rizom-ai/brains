@@ -39,7 +39,15 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 - Remove config builder utilities (PluginConfigBuilder, ToolInputBuilder)
 - **Validation**: Plugin base tests pass
 
-#### Step 1.2: Update Shell for new pattern only
+#### Step 1.2: Fix Job Queue Format
+
+- Update BatchOperation schema to use `data` field only
+- Remove `options`, `entityId`, `entityType` fields
+- Update BatchJobManager to pass `data` to job handlers
+- Update all job handlers to expect data directly
+- **Validation**: All job queue tests pass
+
+#### Step 1.3: Update Shell for new pattern
 
 - Remove PluginManager completely
 - Shell directly calls `plugin.register(this)`
@@ -55,19 +63,9 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 - Remove old plugin-context usage
 - **Validation**: All core plugins work with new pattern
 
-### Phase 3: Fix Job Queue Format (Day 6)
+### Phase 3: Service Plugin Integration (Days 6-7)
 
-#### Step 3.1: Standardize job queue data format
-
-- Update BatchOperation schema to use `data` field only
-- Remove `options`, `entityId`, `entityType` fields
-- Update BatchJobManager to pass `data` to job handlers
-- Update all job handlers to expect data directly
-- **Validation**: All job queue tests pass
-
-### Phase 4: Service Plugin Integration (Days 7-8)
-
-#### Step 4.1: Migrate ALL service plugins at once
+#### Step 3.1: Migrate ALL service plugins at once
 
 - Update directory-sync to extend ServicePlugin
 - Update site-builder to extend ServicePlugin
@@ -75,9 +73,9 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 - Remove old context usage
 - **Validation**: All service plugins work correctly
 
-### Phase 5: Interface Plugin Integration (Days 9-10)
+### Phase 4: Interface Plugin Integration (Days 8-9)
 
-#### Step 5.1: Migrate ALL interface plugins at once
+#### Step 4.1: Migrate ALL interface plugins at once
 
 - Update cli to extend InterfacePlugin
 - Update matrix to extend InterfacePlugin
@@ -85,24 +83,24 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 - Update webserver to extend InterfacePlugin
 - **Validation**: All interfaces work correctly
 
-### Phase 6: Message Interface Plugin Integration (Day 11)
+### Phase 5: Message Interface Plugin Integration (Day 10)
 
-#### Step 6.1: Update message-interface plugins
+#### Step 5.1: Update message-interface plugins
 
 - Update base MessageInterfacePlugin to extend InterfacePlugin
 - Migrate all message-based interfaces
 - **Validation**: Message interfaces work correctly
 
-### Phase 7: Cleanup (Day 12)
+### Phase 6: Cleanup (Day 11)
 
-#### Step 7.1: Remove old packages
+#### Step 6.1: Remove old packages
 
 - Delete plugin-utils package completely
 - Delete plugin-context package completely
 - Remove all old imports
 - **Validation**: No references to old packages
 
-#### Step 7.2: Update documentation
+#### Step 6.2: Update documentation
 
 - Update plugin development guide
 - Update architecture documentation
@@ -135,14 +133,17 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 ## Config Standardization Pattern
 
 ### Plugin Configuration
+
 All plugins should define their configuration using direct Zod schemas:
 
 ```typescript
 // Good - Direct Zod schema
-export const myPluginConfigSchema = basePluginConfigSchema.extend({
-  apiUrl: z.string().url().describe("API endpoint URL"),
-  timeout: z.number().min(1000).describe("Request timeout in ms"),
-}).describe("Configuration for my-plugin");
+export const myPluginConfigSchema = basePluginConfigSchema
+  .extend({
+    apiUrl: z.string().url().describe("API endpoint URL"),
+    timeout: z.number().min(1000).describe("Request timeout in ms"),
+  })
+  .describe("Configuration for my-plugin");
 
 // Bad - Using config builders
 export const myPluginConfig = pluginConfig()
@@ -152,6 +153,7 @@ export const myPluginConfig = pluginConfig()
 ```
 
 ### Tool Input Schemas
+
 Tool inputs should be defined as plain Zod objects:
 
 ```typescript
@@ -197,15 +199,16 @@ this.createTool(
 ## Implementation Order
 
 1. Revert and prepare
-2. Integrate plugin-base and update Shell
+2. Integrate plugin-base
    - Standardize on direct Zod schemas
    - Remove config builders
-3. Migrate core plugins
-4. Fix job queue data format
-5. Migrate service plugins
-6. Migrate interface plugins
-7. Migrate message interface plugins
-8. Clean up old packages
+3. Fix job queue data format
+4. Update Shell (remove PluginManager)
+5. Migrate core plugins
+6. Migrate service plugins
+7. Migrate interface plugins
+8. Migrate message interface plugins
+9. Clean up old packages
 
 ## Next Steps
 
