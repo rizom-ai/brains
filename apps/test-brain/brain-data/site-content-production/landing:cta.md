@@ -7,11 +7,11 @@ sectionId: cta
 
 ## Headline
 
-Unleash the Power of Your Knowledge
+Unleash the Power of Your Second Brain
 
 ## Description
 
-Join the personal knowledge revolution and unlock your full potential. Transform the way you capture, connect, and leverage your expertise.
+Unlock Your Knowledge Potential with Rizom
 
 ## Primary Button
 

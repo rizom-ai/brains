@@ -1,12 +1,11 @@
 import {
   MessageInterfacePlugin,
-  type MessageContext,
-} from "@brains/message-interface";
+  type MessageInterfacePluginContext,
+} from "@brains/message-interface-plugin";
+import type { MessageContext } from "@brains/types";
 import type { Command } from "@brains/command-registry";
-import { PluginInitializationError } from "@brains/plugin-utils";
-import type { PluginContext } from "@brains/plugin-utils";
+import { PluginInitializationError, type Daemon, type DaemonHealth } from "@brains/plugin-base";
 import type { UserPermissionLevel } from "@brains/utils";
-import type { DefaultQueryResponse } from "@brains/types";
 import type { Instance } from "ink";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";
@@ -49,7 +48,9 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   /**
    * Register handlers and other initialization when plugin is registered
    */
-  protected override async onRegister(context: PluginContext): Promise<void> {
+  protected override async onRegister(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
     await super.onRegister(context);
     // Test handlers and MessageBus subscriptions are now handled in the base MessageInterfacePlugin class
     // Progress events will be routed to our handleJobProgressEvent and handleBatchProgressEvent methods
@@ -215,46 +216,10 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   }
 
   /**
-   * Override processQuery to grant interface permissions for CLI users
+   * The CLI doesn't need to override processQuery anymore since the base class
+   * in MessageInterfacePlugin handles it correctly. The InterfacePluginContext
+   * automatically grants trusted permissions for interface plugins.
    */
-  public override async processQuery(
-    query: string,
-    context: MessageContext,
-  ): Promise<string> {
-    if (!this.context) {
-      throw new Error("Plugin context not initialized");
-    }
-
-    const result = await this.queue.add(async () => {
-      // Use Shell's knowledge-query template to process the query and get response
-      if (!this.context) {
-        throw new Error("Plugin context not initialized");
-      }
-      const queryResponse =
-        await this.context.generateContent<DefaultQueryResponse>({
-          prompt: query,
-          templateName: "shell:knowledge-query",
-          userId: context.userId,
-          interfacePermissionGrant: this.getInterfacePermissionGrant(),
-          data: {
-            userId: context.userId,
-            conversationId: context.channelId,
-            messageId: context.messageId,
-            threadId: context.threadId,
-            timestamp: context.timestamp.toISOString(),
-          },
-        });
-
-      // Return the already-formatted response from the template system
-      return queryResponse.message;
-    });
-
-    if (!result) {
-      throw new Error("No response from query processor");
-    }
-
-    return result;
-  }
 
   /**
    * Send a message using CLI callback system
@@ -287,59 +252,97 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     }
   }
 
-  public async start(): Promise<void> {
-    if (!this.context) {
-      throw new PluginInitializationError(
-        this.id,
-        "Plugin context not initialized",
-        { method: "start" },
-      );
-    }
-    this.logger.info("Starting CLI interface");
+  /**
+   * Create daemon for managing CLI lifecycle
+   */
+  protected override createDaemon(): Daemon | undefined {
+    return {
+      start: async (): Promise<void> => {
+        if (!this.context) {
+          throw new PluginInitializationError(
+            this.id,
+            new Error("Plugin context not initialized"),
+            { method: "start" },
+          );
+        }
+        this.logger.info("Starting CLI interface");
 
-    try {
-      // Use dynamic imports to ensure React isolation
-      const [inkModule, reactModule, appModule] = await Promise.all([
-        import("ink"),
-        import("react"),
-        import("./components/EnhancedApp"),
-      ]);
+        try {
+          // Use dynamic imports to ensure React isolation
+          const [inkModule, reactModule, appModule] = await Promise.all([
+            import("ink"),
+            import("react"),
+            import("./components/EnhancedApp"),
+          ]);
 
-      const { render } = inkModule;
-      const React = reactModule.default;
-      const App = appModule.default;
+          const { render } = inkModule;
+          const React = reactModule.default;
+          const App = appModule.default;
 
-      // Ensure we're using React's createElement, not any bundled version
-      const element = React.createElement(App, {
-        interface: this,
-        registerProgressCallback: (callback) =>
-          this.registerProgressCallback(callback),
-        unregisterProgressCallback: () => this.unregisterProgressCallback(),
-        registerResponseCallback: (callback) =>
-          this.registerResponseCallback(callback),
-        unregisterMessageCallbacks: () => this.unregisterMessageCallbacks(),
-      });
-      this.inkApp = render(element);
+          // Ensure we're using React's createElement, not any bundled version
+          const element = React.createElement(App, {
+            interface: this,
+            registerProgressCallback: (callback) =>
+              this.registerProgressCallback(callback),
+            unregisterProgressCallback: () => this.unregisterProgressCallback(),
+            registerResponseCallback: (callback) =>
+              this.registerResponseCallback(callback),
+            unregisterMessageCallbacks: () => this.unregisterMessageCallbacks(),
+          });
+          this.inkApp = render(element);
 
-      // Handle process termination gracefully
-      process.on("SIGINT", () => void this.stop());
-      process.on("SIGTERM", () => void this.stop());
-    } catch (error) {
-      this.logger.error("Failed to start CLI interface", { error });
-      throw error;
-    }
-  }
+          // Handle process termination gracefully
+          process.on("SIGINT", async (): Promise<void> => {
+            this.logger.info("Received SIGINT, stopping CLI interface");
+            // Clean up callbacks
+            this.unregisterProgressCallback();
+            this.unregisterMessageCallbacks();
+            if (this.inkApp) {
+              this.inkApp.unmount();
+            }
+          });
+          process.on("SIGTERM", async (): Promise<void> => {
+            this.logger.info("Received SIGTERM, stopping CLI interface");
+            // Clean up callbacks
+            this.unregisterProgressCallback();
+            this.unregisterMessageCallbacks();
+            if (this.inkApp) {
+              this.inkApp.unmount();
+            }
+          });
+        } catch (error) {
+          this.logger.error("Failed to start CLI interface", { error });
+          throw error;
+        }
+      },
+      stop: async (): Promise<void> => {
+        this.logger.info("Stopping CLI interface");
 
-  public async stop(): Promise<void> {
-    this.logger.info("Stopping CLI interface");
+        // Clean up all callbacks
+        this.unregisterProgressCallback();
+        this.unregisterMessageCallbacks();
 
-    // Clean up all callbacks
-    this.unregisterProgressCallback();
-    this.unregisterMessageCallbacks();
-
-    if (this.inkApp) {
-      this.inkApp.unmount();
-      this.inkApp = null;
-    }
+        if (this.inkApp) {
+          this.inkApp.unmount();
+          this.inkApp = null;
+        }
+      },
+      healthCheck: async (): Promise<DaemonHealth> => {
+        const isRunning = this.inkApp !== null;
+        return {
+          status: isRunning ? "healthy" : "error",
+          message: isRunning
+            ? "CLI interface is running"
+            : "CLI interface not running",
+          lastCheck: new Date(),
+          details: {
+            hasInkApp: this.inkApp !== null,
+            hasCallbacks:
+              this.progressCallback !== undefined ||
+              this.responseCallback !== undefined,
+          },
+        };
+      },
+    };
   }
 }

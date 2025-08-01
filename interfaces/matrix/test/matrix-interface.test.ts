@@ -114,15 +114,15 @@ describe("MatrixInterface", () => {
     it("should handle multiple registrations gracefully", async () => {
       const matrixInterface = new MatrixInterface(config);
       mockMatrixClient.on.mockClear();
-      
+
       await harness.installPlugin(matrixInterface);
       const firstCallCount = mockMatrixClient.on.mock.calls.length;
-      
+
       // Reset and install again
       harness.reset();
       mockMatrixClient.on.mockClear();
       await harness.installPlugin(matrixInterface);
-      
+
       // Should register event handlers again
       expect(mockMatrixClient.on.mock.calls.length).toBe(firstCallCount);
     });
