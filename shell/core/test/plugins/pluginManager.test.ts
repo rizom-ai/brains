@@ -2,9 +2,9 @@ import { describe, expect, test, beforeEach, mock } from "bun:test";
 import type { BaseEntity } from "@brains/types";
 import type {
   Plugin,
-  PluginContext,
   PluginCapabilities,
-} from "@brains/plugin-utils";
+} from "@brains/plugin-base";
+import type { IShell } from "@brains/types";
 import type { IJobQueueService } from "@brains/job-queue";
 import {
   PluginEvent,
@@ -22,6 +22,7 @@ import { match, P } from "ts-pattern";
 // Create a simple test plugin
 class TestPlugin implements Plugin {
   public id: string;
+  public type: "core" | "service" | "interface" = "core";
   public version: string;
   public packageName: string;
   public name: string;
@@ -45,16 +46,12 @@ class TestPlugin implements Plugin {
     this.registerError = opts.registerError ?? false;
   }
 
-  async register(context: PluginContext): Promise<PluginCapabilities> {
+  async register(_shell: IShell): Promise<PluginCapabilities> {
     if (this.registerError) {
       throw new Error(`Plugin ${this.id} registration failed`);
     }
 
     this.registerCalled = true;
-    const { logger } = context;
-
-    // Test plugin registration - registry access is no longer available
-    logger.info(`Registered plugin ${this.id}`);
 
     // Return empty capabilities
     return {
@@ -425,7 +422,8 @@ describe("PluginManager", (): void => {
       version: "1.0.0",
       packageName: "@test/async-plugin",
       name: "Async Test Plugin",
-      async register(_context: PluginContext): Promise<PluginCapabilities> {
+      type: "core" as const,
+      async register(_shell: IShell): Promise<PluginCapabilities> {
         // Simulate async work (e.g., initializing a database)
         await new Promise((resolve) => setTimeout(resolve, 10));
         asyncWorkCompleted = true;

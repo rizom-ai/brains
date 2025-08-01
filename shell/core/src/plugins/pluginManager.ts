@@ -2,8 +2,7 @@ import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
 import type { IShell } from "@brains/types";
 import { EventEmitter } from "events";
-import type { Plugin as OldPlugin } from "@brains/plugin-utils";
-import type { Plugin as NewPlugin } from "@brains/plugin-base";
+import type { Plugin } from "@brains/plugin-base";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type {
   PluginManager as IPluginManager,
@@ -11,14 +10,8 @@ import type {
   PluginManagerEventMap,
 } from "../types/plugin-manager";
 import { PluginStatus, PluginEvent } from "../types/plugin-manager";
-import { PluginContextFactory } from "./pluginContextFactory";
 import { PluginRegistrationHandler } from "./pluginRegistrationHandler";
-import { registerPluginWithAdapter } from "./pluginAdapter";
 import { PluginRegistrationError, PluginDependencyError } from "@brains/utils";
-
-// During migration, support both old and new plugin interfaces
-// TODO: Remove OldPlugin type once all plugins are migrated to new interface
-type MigrationPlugin = OldPlugin | NewPlugin;
 
 // Re-export enums for convenience
 export { PluginEvent, PluginStatus } from "../types/plugin-manager";
@@ -33,7 +26,6 @@ export class PluginManager implements IPluginManager {
   private plugins: Map<string, PluginInfo> = new Map();
   private logger: Logger;
   private events: EventEmitter;
-  private contextFactory: PluginContextFactory;
   private registrationHandler: PluginRegistrationHandler;
   private daemonRegistry: DaemonRegistry;
   private serviceRegistry: ServiceRegistry;
@@ -73,11 +65,6 @@ export class PluginManager implements IPluginManager {
     this.serviceRegistry = serviceRegistry;
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
-    this.contextFactory = PluginContextFactory.getInstance(
-      serviceRegistry,
-      logger,
-      this.plugins,
-    );
     this.registrationHandler = PluginRegistrationHandler.getInstance(
       logger,
       this.events,
@@ -90,7 +77,7 @@ export class PluginManager implements IPluginManager {
    * Register a plugin with the system
    * This only registers the plugin but doesn't initialize it
    */
-  public registerPlugin(plugin: MigrationPlugin): void {
+  public registerPlugin(plugin: Plugin): void {
     if (!plugin.id) {
       throw new PluginRegistrationError(
         "unknown",
@@ -253,13 +240,13 @@ export class PluginManager implements IPluginManager {
       // Get Shell from ServiceRegistry
       const shell = this.serviceRegistry.resolve<IShell>("shell");
 
-      // Use the adapter to register the plugin with the appropriate interface
-      await registerPluginWithAdapter(
-        plugin,
-        shell,
-        this.contextFactory,
-        this.registrationHandler,
-        this.logger,
+      // Register the plugin directly with the new interface
+      const capabilities = await plugin.register(shell);
+
+      // Register capabilities through the handler
+      await this.registrationHandler.registerPluginCapabilities(
+        pluginId,
+        capabilities,
       );
 
       // Update plugin status
@@ -333,7 +320,7 @@ export class PluginManager implements IPluginManager {
   /**
    * Get a registered plugin by ID
    */
-  public getPlugin(id: string): MigrationPlugin | undefined {
+  public getPlugin(id: string): Plugin | undefined {
     const pluginInfo = this.plugins.get(id);
     return pluginInfo?.plugin;
   }
