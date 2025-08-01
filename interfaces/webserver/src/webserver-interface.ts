@@ -1,4 +1,8 @@
-import { InterfacePlugin, type InterfacePluginContext } from "@brains/interface-plugin";
+import {
+  InterfacePlugin,
+  type InterfacePluginContext,
+} from "@brains/interface-plugin";
+import type { Daemon } from "@brains/plugin-base";
 import { ServerManager } from "./server-manager";
 import { existsSync } from "fs";
 import { join } from "path";
@@ -37,7 +41,9 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   /**
    * Initialize server manager after config validation
    */
-  protected override async onRegister(context: InterfacePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: InterfacePluginContext,
+  ): Promise<void> {
     // Initialize server manager with validated config
     this.serverManager = new ServerManager({
       logger: context.logger,
@@ -49,15 +55,49 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   }
 
   /**
+   * Create daemon for managing webserver lifecycle
+   */
+  protected override createDaemon(): Daemon | undefined {
+    return {
+      start: async () => {
+        // Ensure dist directory exists
+        await this.ensureDistDirectory();
+
+        // Auto-start both preview and production servers
+        await this.serverManager.startPreviewServer();
+        await this.serverManager.startProductionServer();
+      },
+      stop: async () => {
+        await this.serverManager.stopAll();
+      },
+      healthCheck: async () => {
+        const status = this.serverManager.getStatus();
+        const isRunning = status.preview || status.production;
+        
+        return {
+          status: isRunning ? "healthy" : "error",
+          message: isRunning 
+            ? `Servers running - Preview: ${status.preview ? 'up' : 'down'}, Production: ${status.production ? 'up' : 'down'}`
+            : "No servers are running",
+          lastCheck: new Date(),
+          details: {
+            preview: status.preview,
+            production: status.production,
+            previewPort: this.config.previewPort,
+            productionPort: this.config.productionPort,
+          },
+        };
+      },
+    };
+  }
+
+  /**
    * Start the interface
    */
   async start(): Promise<void> {
-    // Ensure dist directory exists
-    await this.ensureDistDirectory();
-
-    // Auto-start both preview and production servers
-    await this.serverManager.startPreviewServer();
-    await this.serverManager.startProductionServer();
+    if (this.daemon) {
+      await this.daemon.start();
+    }
   }
 
   /**

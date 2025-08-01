@@ -19,6 +19,7 @@ import {
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "./plugins/pluginManager";
 import { CommandRegistry } from "@brains/command-registry";
+import { DaemonRegistry } from "@brains/daemon-registry";
 import {
   EmbeddingService,
   type IEmbeddingService,
@@ -63,6 +64,7 @@ export interface ShellDependencies {
   entityRegistry?: EntityRegistry;
   messageBus?: MessageBus;
   viewRegistry?: ViewRegistry;
+  daemonRegistry?: DaemonRegistry;
   pluginManager?: PluginManager;
   commandRegistry?: CommandRegistry;
   contentGenerator?: ContentGenerator;
@@ -91,6 +93,7 @@ export class Shell implements IShell {
   private readonly pluginManager: PluginManager;
   private readonly commandRegistry: CommandRegistry;
   private readonly viewRegistry: ViewRegistry;
+  private readonly daemonRegistry: DaemonRegistry;
   private readonly embeddingService: IEmbeddingService;
   private readonly entityService: EntityService;
   private readonly aiService: AIService;
@@ -230,6 +233,8 @@ export class Shell implements IShell {
       dependencies?.messageBus ?? MessageBus.getInstance(this.logger);
     this.viewRegistry =
       dependencies?.viewRegistry ?? ViewRegistry.getInstance();
+    this.daemonRegistry =
+      dependencies?.daemonRegistry ?? DaemonRegistry.getInstance(this.logger);
     this.pluginManager =
       dependencies?.pluginManager ??
       PluginManager.getInstance(this.serviceRegistry, this.logger);
@@ -299,6 +304,7 @@ export class Shell implements IShell {
       () => this.contentGenerator,
     );
     this.serviceRegistry.register("viewRegistry", () => this.viewRegistry);
+    this.serviceRegistry.register("daemonRegistry", () => this.daemonRegistry);
     this.serviceRegistry.register(
       "jobQueueService",
       () => this.jobQueueService,
