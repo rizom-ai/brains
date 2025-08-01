@@ -59,6 +59,13 @@ export class MatrixClientWrapper {
   }
 
   /**
+   * Check if the client is running
+   */
+  isRunning(): boolean {
+    return this.connected;
+  }
+
+  /**
    * Start the client and sync
    */
   async start(): Promise<void> {

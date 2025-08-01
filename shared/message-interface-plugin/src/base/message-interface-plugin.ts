@@ -1,5 +1,5 @@
 import { InterfacePlugin } from "@brains/interface-plugin";
-import type { InterfacePluginContext } from "@brains/interface-plugin";
+import type { MessageInterfacePluginContext } from "../context";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";
 import type { MessageContext } from "@brains/types";
@@ -71,7 +71,7 @@ export abstract class MessageInterfacePlugin<TConfig = unknown>
    * Register handlers and subscriptions
    */
   protected override async onRegister(
-    context: InterfacePluginContext,
+    context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
 

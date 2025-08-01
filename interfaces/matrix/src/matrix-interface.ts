@@ -1,13 +1,9 @@
 import {
   MessageInterfacePlugin,
-  type MessageContext,
-} from "@brains/message-interface";
-import {
-  type PluginTool,
-  type PluginResource,
-  type PluginContext,
-} from "@brains/plugin-utils";
-import type { Command } from "@brains/command-registry";
+  type MessageInterfacePluginContext,
+} from "@brains/message-interface-plugin";
+import type { MessageContext } from "@brains/types";
+import { type Daemon, type DaemonHealth } from "@brains/plugin-base";
 import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";
@@ -21,7 +17,7 @@ import packageJson from "../package.json";
  * Matrix interface for Personal Brain
  * Provides chat-based interaction through Matrix protocol
  */
-export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
+export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
   // After validation with defaults, config is complete
   declare protected config: MatrixConfig;
   private client?: MatrixClientWrapper;
@@ -39,36 +35,12 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
   }
 
   /**
-   * Override register to NOT include interface commands in plugin capabilities
-   * Interface commands should be handled separately from business logic plugin commands
+   * Initialize Matrix interface on registration
    */
-  public override async register(context: PluginContext): Promise<{
-    tools: PluginTool[];
-    resources: PluginResource[];
-    commands: Command[];
-  }> {
-    // Call parent register to set up everything
-    const capabilities = await super.register(context);
-
-    // Return capabilities but with NO commands
-    // Commands are handled through MessageInterfacePlugin.getAllAvailableCommands()
-    return {
-      ...capabilities,
-      commands: [], // No commands registered through plugin system
-    };
-  }
-
-  /**
-   * Matrix interface does not grant interface permissions - uses actual user permissions
-   */
-
-  /**
-   * Start the interface
-   */
-  async start(): Promise<void> {
-    if (!this.context) {
-      throw new Error("Matrix interface must be registered before starting");
-    }
+  protected override async onRegister(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
+    await super.onRegister(context);
 
     // Create permission handler
     this.permissionHandler = new PermissionHandler(
@@ -82,26 +54,52 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfigInput> {
     // Set up event handlers
     this.setupEventHandlers();
 
-    this.logger.info("Starting Matrix interface...");
-    await this.client.start();
-    this.logger.info("Matrix interface started", {
+    this.logger.info("Matrix interface registered", {
+      homeserver: this.config.homeserver,
       userId: this.config.userId,
-      anchorUserId: this.config.anchorUserId,
-      trustedUsers: this.config.trustedUsers?.length ?? 0,
     });
   }
 
   /**
-   * Stop the interface
+   * Create daemon for managing Matrix client lifecycle
    */
-  async stop(): Promise<void> {
-    if (!this.client) {
-      return;
-    }
-
-    this.logger.info("Stopping Matrix interface...");
-    await this.client.stop();
-    this.logger.info("Matrix interface stopped");
+  protected override createDaemon(): Daemon | undefined {
+    return {
+      start: async (): Promise<void> => {
+        if (!this.client) {
+          throw new Error("Matrix client not initialized");
+        }
+        this.logger.info("Starting Matrix interface...");
+        await this.client.start();
+        this.logger.info("Matrix interface started", {
+          userId: this.config.userId,
+          anchorUserId: this.config.anchorUserId,
+          trustedUsers: this.config.trustedUsers?.length ?? 0,
+        });
+      },
+      stop: async (): Promise<void> => {
+        if (this.client) {
+          this.logger.info("Stopping Matrix interface...");
+          await this.client.stop();
+          this.logger.info("Matrix interface stopped");
+        }
+      },
+      healthCheck: async (): Promise<DaemonHealth> => {
+        const isRunning = this.client?.isRunning() ?? false;
+        return {
+          status: isRunning ? "healthy" : "error",
+          message: isRunning
+            ? `Matrix client connected to ${this.config.homeserver}`
+            : "Matrix client not running",
+          lastCheck: new Date(),
+          details: {
+            homeserver: this.config.homeserver,
+            userId: this.config.userId,
+            running: isRunning,
+          },
+        };
+      },
+    };
   }
 
   /**

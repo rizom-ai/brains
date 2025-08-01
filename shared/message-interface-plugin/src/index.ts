@@ -1,6 +1,9 @@
 // Base classes
 export { MessageInterfacePlugin } from "./base/message-interface-plugin";
 
+// Context
+export type { MessageInterfacePluginContext } from "./context";
+
 // Types
 export type {
   CommandResponse,

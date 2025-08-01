@@ -2,7 +2,7 @@ import "./mocks/setup";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { MatrixInterface } from "../src/matrix-interface";
 import type { MatrixConfigInput } from "../src/schemas";
-import { PluginTestHarness } from "@brains/test-utils";
+import { MessageInterfacePluginTestHarness } from "@brains/message-interface-plugin";
 
 // Access the global mocks
 const mockMatrixClient = globalThis.mockMatrixClient;
@@ -10,7 +10,7 @@ const mockAutoJoinMixin = globalThis.mockAutoJoinMixin;
 
 describe("MatrixInterface", () => {
   let config: MatrixConfigInput;
-  let harness: PluginTestHarness;
+  let harness: MessageInterfacePluginTestHarness;
 
   beforeEach(() => {
     // Reset mocks
@@ -40,7 +40,7 @@ describe("MatrixInterface", () => {
     };
 
     // Create plugin harness
-    harness = new PluginTestHarness();
+    harness = new MessageInterfacePluginTestHarness();
   });
 
   describe("Initialization", () => {
@@ -58,14 +58,13 @@ describe("MatrixInterface", () => {
   });
 
   describe("Lifecycle methods", () => {
-    it("should start the interface", async () => {
+    it("should register the interface and set up event handlers", async () => {
       const matrixInterface = new MatrixInterface(config);
+      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
 
-      await matrixInterface.start();
-
-      expect(mockMatrixClient.start).toHaveBeenCalled();
+      // Event handlers are registered during plugin registration
       expect(mockMatrixClient.on).toHaveBeenCalledWith(
         "room.message",
         expect.any(Function),
@@ -82,8 +81,7 @@ describe("MatrixInterface", () => {
 
       await harness.installPlugin(matrixInterface);
 
-      await matrixInterface.start();
-
+      // Auto-join is set up during client construction in registration
       expect(mockAutoJoinMixin.setupOnClient).toHaveBeenCalled();
     });
 
@@ -97,31 +95,36 @@ describe("MatrixInterface", () => {
 
       await harness.installPlugin(matrixInterface);
 
-      await matrixInterface.start();
-
+      // Event handlers are registered during plugin registration
       expect(mockMatrixClient.on).toHaveBeenCalledWith(
         "room.invite",
         expect.any(Function),
       );
     });
 
-    it("should stop the interface", async () => {
+    it("should provide daemon capability", async () => {
       const matrixInterface = new MatrixInterface(config);
 
       await harness.installPlugin(matrixInterface);
 
-      await matrixInterface.start();
-      await matrixInterface.stop();
-
-      expect(mockMatrixClient.stop).toHaveBeenCalled();
+      // Interface plugins provide daemon capability
+      expect(matrixInterface.type).toBe("interface");
     });
 
-    it("should handle stop when not started", async () => {
+    it("should handle multiple registrations gracefully", async () => {
       const matrixInterface = new MatrixInterface(config);
-      // Just verify it doesn't throw
-      await matrixInterface.stop();
-      // No client should have been created
-      expect(mockMatrixClient.stop).not.toHaveBeenCalled();
+      mockMatrixClient.on.mockClear();
+      
+      await harness.installPlugin(matrixInterface);
+      const firstCallCount = mockMatrixClient.on.mock.calls.length;
+      
+      // Reset and install again
+      harness.reset();
+      mockMatrixClient.on.mockClear();
+      await harness.installPlugin(matrixInterface);
+      
+      // Should register event handlers again
+      expect(mockMatrixClient.on.mock.calls.length).toBe(firstCallCount);
     });
   });
 
@@ -131,10 +134,9 @@ describe("MatrixInterface", () => {
 
     beforeEach(async () => {
       matrixInterface = new MatrixInterface(config);
+      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
-
-      await matrixInterface.start();
 
       // Get the message handler that was registered
       const calls = mockMatrixClient.on.mock.calls;
@@ -245,8 +247,8 @@ describe("MatrixInterface", () => {
         userPermissionLevel: "public",
       });
 
-      // The result should be the default mock response, proving the base method was called
-      expect(result).toBe("Mock response from content generation");
+      // The result should be from the mock shell's generateContent method
+      expect(result).toBe("Generated content for shell:knowledge-query");
     });
 
     it("should send typing indicator when enabled", async () => {
@@ -258,7 +260,6 @@ describe("MatrixInterface", () => {
       matrixInterface = new MatrixInterface(typingConfig);
 
       await harness.installPlugin(matrixInterface);
-      await matrixInterface.start();
 
       const calls = mockMatrixClient.on.mock.calls;
       const messageCall = calls.find(
@@ -307,7 +308,6 @@ describe("MatrixInterface", () => {
       matrixInterface = new MatrixInterface(configWithTrusted);
 
       await harness.installPlugin(matrixInterface);
-      await matrixInterface.start();
 
       const calls = mockMatrixClient.on.mock.calls;
       const messageCall = calls.find(
@@ -375,7 +375,6 @@ describe("MatrixInterface", () => {
       matrixInterface = new MatrixInterface(noAutoJoinConfig);
 
       await harness.installPlugin(matrixInterface);
-      await matrixInterface.start();
 
       const calls = mockMatrixClient.on.mock.calls;
       const inviteCall = calls.find(
