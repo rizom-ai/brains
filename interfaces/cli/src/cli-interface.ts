@@ -4,7 +4,11 @@ import {
 } from "@brains/message-interface-plugin";
 import type { MessageContext } from "@brains/types";
 import type { Command } from "@brains/command-registry";
-import { PluginInitializationError, type Daemon, type DaemonHealth } from "@brains/plugin-base";
+import {
+  PluginInitializationError,
+  type Daemon,
+  type DaemonHealth,
+} from "@brains/plugin-base";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { Instance } from "ink";
 import type { JobProgressEvent } from "@brains/job-queue";

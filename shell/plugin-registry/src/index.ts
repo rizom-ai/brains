@@ -1,0 +1,1 @@
+export { PluginRegistry, type PluginInfo } from "./pluginRegistry";
