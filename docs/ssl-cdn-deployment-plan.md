@@ -5,16 +5,19 @@
 This document outlines two primary approaches for adding SSL certificates and CDN capabilities to the test-brain application currently deployed on Hetzner Cloud at `91.99.153.102:3333`.
 
 ### Current State
+
 - **Infrastructure**: Hetzner Cloud VM running Docker
 - **Application**: Personal Brain app exposed on port 3333
 - **Security**: HTTP only, no SSL/TLS encryption
 - **Access**: Direct IP access, no domain configured
 
 ### Recommended Approaches
+
 1. **Caddy (Self-Hosted)**: Maximum privacy and control
 2. **Cloudflare**: Ease of use with global CDN
 
 ### Decision Criteria
+
 - **Privacy requirements**: How important is data sovereignty?
 - **Technical expertise**: Comfort with self-hosting vs managed services
 - **Performance needs**: Local vs global content distribution
@@ -23,6 +26,7 @@ This document outlines two primary approaches for adding SSL certificates and CD
 ## Option 1: Caddy (Self-Hosted)
 
 ### Architecture Overview
+
 ```
 [User] -> [Domain] -> [Caddy:443] -> [Personal-Brain:3333]
                            |
@@ -30,12 +34,14 @@ This document outlines two primary approaches for adding SSL certificates and CD
 ```
 
 ### Advantages
+
 - **Privacy**: Complete control, no third-party traffic inspection
 - **Simplicity**: Automatic HTTPS with zero configuration
 - **Cost**: Free (only server costs)
 - **Flexibility**: Easy to customize and extend
 
 ### Disadvantages
+
 - **No CDN**: Content served from single location
 - **Maintenance**: You manage updates and security
 - **DDoS Protection**: Limited to basic rate limiting
@@ -43,8 +49,9 @@ This document outlines two primary approaches for adding SSL certificates and CD
 ### Implementation Steps
 
 #### Step 1: Update Docker Compose
+
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   personal-brain:
@@ -111,45 +118,46 @@ networks:
 ```
 
 #### Step 2: Create Caddyfile
+
 ```caddyfile
 {$DOMAIN} {
     # Enable compression
     encode gzip
-    
+
     # Reverse proxy to application
     reverse_proxy personal-brain:3333 {
         # Health check
         health_uri /health
         health_interval 30s
         health_timeout 5s
-        
+
         # Headers
         header_up X-Real-IP {remote_host}
         header_up X-Forwarded-For {remote_host}
         header_up X-Forwarded-Proto {scheme}
     }
-    
+
     # Security headers
     header {
         # HSTS
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        
+
         # Prevent clickjacking
         X-Frame-Options "DENY"
-        
+
         # Prevent MIME sniffing
         X-Content-Type-Options "nosniff"
-        
+
         # XSS protection
         X-XSS-Protection "1; mode=block"
-        
+
         # Referrer policy
         Referrer-Policy "strict-origin-when-cross-origin"
-        
+
         # Remove server header
         -Server
     }
-    
+
     # Logging
     log {
         output file /data/access.log {
@@ -161,12 +169,14 @@ networks:
 ```
 
 #### Step 3: Configure Environment
+
 ```bash
 # Create .env file
 echo "DOMAIN=brain.yourdomain.com" >> deploy/docker/.env
 ```
 
 #### Step 4: Update Firewall Rules
+
 ```hcl
 # In terraform/main.tf, add HTTPS rules
 resource "hcloud_firewall" "main" {
@@ -196,6 +206,7 @@ resource "hcloud_firewall" "main" {
 ```
 
 #### Step 5: Deploy
+
 ```bash
 # SSH to server
 ssh root@91.99.153.102
@@ -215,6 +226,7 @@ docker-compose logs -f caddy
 ```
 
 ### Maintenance Tasks
+
 - Monitor Caddy logs for SSL renewal
 - Update Caddy image periodically
 - Review security headers quarterly
@@ -225,6 +237,7 @@ docker-compose logs -f caddy
 ### Architecture Overview
 
 #### 2A: Cloudflare Tunnels (Recommended)
+
 ```
 [User] -> [Cloudflare Edge] -> [Cloudflare Tunnel] -> [Personal-Brain:3333]
               |                         |
@@ -232,6 +245,7 @@ docker-compose logs -f caddy
 ```
 
 #### 2B: Traditional CDN
+
 ```
 [User] -> [Cloudflare CDN] -> [Your Server:443] -> [Personal-Brain:3333]
               |                      |
@@ -239,6 +253,7 @@ docker-compose logs -f caddy
 ```
 
 ### Advantages
+
 - **Global CDN**: Content cached at edge locations worldwide
 - **DDoS Protection**: Enterprise-grade protection included
 - **Zero-Config SSL**: Automatic certificate management
@@ -246,6 +261,7 @@ docker-compose logs -f caddy
 - **No Port Exposure**: (Tunnels only) Enhanced security
 
 ### Disadvantages
+
 - **Privacy**: Traffic passes through Cloudflare
 - **Dependency**: Reliance on third-party service
 - **Cost**: Free tier limitations, paid features
@@ -253,11 +269,13 @@ docker-compose logs -f caddy
 ### Implementation: Cloudflare Tunnels
 
 #### Step 1: Create Cloudflare Account and Add Domain
+
 1. Sign up at https://cloudflare.com
 2. Add your domain
 3. Update nameservers at your registrar
 
 #### Step 2: Create Tunnel
+
 ```bash
 # On Cloudflare Dashboard
 # 1. Go to Zero Trust > Access > Tunnels
@@ -266,8 +284,9 @@ docker-compose logs -f caddy
 ```
 
 #### Step 3: Update Docker Compose
+
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   personal-brain:
@@ -323,6 +342,7 @@ networks:
 ```
 
 #### Step 4: Configure Tunnel Routing
+
 ```yaml
 # In Cloudflare Dashboard, configure public hostname:
 # - Subdomain: brain
@@ -331,6 +351,7 @@ networks:
 ```
 
 #### Step 5: Deploy
+
 ```bash
 # Add tunnel token to .env
 echo "CLOUDFLARE_TUNNEL_TOKEN=your-tunnel-token-here" >> deploy/docker/.env
@@ -346,6 +367,7 @@ docker logs cloudflared
 ### Cloudflare Configuration Options
 
 #### Caching Rules
+
 ```
 # Page Rules (Free tier: 3 rules)
 1. brain.yourdomain.com/api/* - Cache Level: Bypass
@@ -354,6 +376,7 @@ docker logs cloudflared
 ```
 
 #### Security Settings
+
 - **SSL/TLS**: Full (strict)
 - **Always Use HTTPS**: On
 - **Automatic HTTPS Rewrites**: On
@@ -363,40 +386,41 @@ docker logs cloudflared
 
 ### Feature Comparison
 
-| Feature | Caddy | Cloudflare Tunnels | Cloudflare CDN |
-|---------|-------|-------------------|----------------|
-| **SSL Certificate** | Let's Encrypt | Cloudflare | Cloudflare |
-| **Certificate Renewal** | Automatic | Automatic | Automatic |
-| **Global CDN** | ❌ | ✅ | ✅ |
-| **DDoS Protection** | Basic | Advanced | Advanced |
-| **WebSocket Support** | ✅ | ✅ | ✅ |
-| **Traffic Analytics** | Basic logs | Detailed | Detailed |
-| **Port Exposure** | 80/443 | None | 80/443 |
-| **Configuration** | Simple | Simple | Moderate |
-| **Privacy** | Full control | CF processes | CF processes |
+| Feature                 | Caddy         | Cloudflare Tunnels | Cloudflare CDN |
+| ----------------------- | ------------- | ------------------ | -------------- |
+| **SSL Certificate**     | Let's Encrypt | Cloudflare         | Cloudflare     |
+| **Certificate Renewal** | Automatic     | Automatic          | Automatic      |
+| **Global CDN**          | ❌            | ✅                 | ✅             |
+| **DDoS Protection**     | Basic         | Advanced           | Advanced       |
+| **WebSocket Support**   | ✅            | ✅                 | ✅             |
+| **Traffic Analytics**   | Basic logs    | Detailed           | Detailed       |
+| **Port Exposure**       | 80/443        | None               | 80/443         |
+| **Configuration**       | Simple        | Simple             | Moderate       |
+| **Privacy**             | Full control  | CF processes       | CF processes   |
 
 ### Cost Analysis
 
-| Component | Caddy | Cloudflare Free | Cloudflare Pro |
-|-----------|-------|-----------------|----------------|
-| **SSL** | Free | Free | Free |
-| **CDN** | N/A | Limited | Unlimited |
-| **DDoS** | N/A | Basic | Advanced |
-| **Analytics** | N/A | Basic | Advanced |
-| **Monthly Cost** | $0 | $0 | $25 |
+| Component        | Caddy | Cloudflare Free | Cloudflare Pro |
+| ---------------- | ----- | --------------- | -------------- |
+| **SSL**          | Free  | Free            | Free           |
+| **CDN**          | N/A   | Limited         | Unlimited      |
+| **DDoS**         | N/A   | Basic           | Advanced       |
+| **Analytics**    | N/A   | Basic           | Advanced       |
+| **Monthly Cost** | $0    | $0              | $25            |
 
 ### Performance Comparison
 
-| Metric | Caddy | Cloudflare |
-|--------|-------|------------|
-| **TTFB (Same Region)** | 10-50ms | 20-100ms |
-| **TTFB (Global)** | 100-500ms | 20-100ms |
-| **Static Asset Delivery** | Good | Excellent |
-| **Dynamic Content** | Direct | +10-30ms overhead |
+| Metric                    | Caddy     | Cloudflare        |
+| ------------------------- | --------- | ----------------- |
+| **TTFB (Same Region)**    | 10-50ms   | 20-100ms          |
+| **TTFB (Global)**         | 100-500ms | 20-100ms          |
+| **Static Asset Delivery** | Good      | Excellent         |
+| **Dynamic Content**       | Direct    | +10-30ms overhead |
 
 ## Decision Framework
 
 ### Choose Caddy When:
+
 - Privacy is paramount
 - You want full control
 - Traffic is regional
@@ -404,6 +428,7 @@ docker logs cloudflared
 - You want to avoid third-party dependencies
 
 ### Choose Cloudflare When:
+
 - You need global performance
 - DDoS protection is important
 - You want detailed analytics
@@ -411,7 +436,9 @@ docker logs cloudflared
 - You're okay with traffic inspection
 
 ### Hybrid Approach
+
 Consider using Caddy for SSL termination with Cloudflare in DNS-only mode:
+
 - Get Cloudflare's DDoS protection
 - Maintain SSL control with Caddy
 - No traffic inspection by Cloudflare
@@ -419,18 +446,21 @@ Consider using Caddy for SSL termination with Cloudflare in DNS-only mode:
 ## Implementation Timeline
 
 ### Phase 1: Basic SSL (Day 1)
+
 - [ ] Choose approach (Caddy or Cloudflare)
 - [ ] Configure DNS records
 - [ ] Deploy chosen solution
 - [ ] Verify SSL works
 
 ### Phase 2: Optimization (Day 2-3)
+
 - [ ] Configure caching rules
 - [ ] Set up monitoring
 - [ ] Test performance
 - [ ] Document configuration
 
 ### Phase 3: Production (Day 4-5)
+
 - [ ] Update application URLs
 - [ ] Configure redirects
 - [ ] Monitor for issues
@@ -439,6 +469,7 @@ Consider using Caddy for SSL termination with Cloudflare in DNS-only mode:
 ## Testing and Validation
 
 ### SSL Certificate Testing
+
 ```bash
 # Check certificate
 openssl s_client -connect brain.yourdomain.com:443 -servername brain.yourdomain.com
@@ -448,6 +479,7 @@ openssl s_client -connect brain.yourdomain.com:443 -servername brain.yourdomain.
 ```
 
 ### Performance Testing
+
 ```bash
 # Test TTFB
 curl -w "@curl-format.txt" -o /dev/null -s https://brain.yourdomain.com
@@ -457,6 +489,7 @@ ab -n 1000 -c 10 https://brain.yourdomain.com/
 ```
 
 ### Security Headers
+
 ```bash
 # Check headers
 curl -I https://brain.yourdomain.com
@@ -468,6 +501,7 @@ curl -I https://brain.yourdomain.com
 ## Rollback Procedures
 
 ### Caddy Rollback
+
 ```bash
 # Revert to direct access
 docker-compose stop caddy
@@ -478,6 +512,7 @@ docker-compose up -d personal-brain
 ```
 
 ### Cloudflare Rollback
+
 ```bash
 # Disable tunnel in Cloudflare dashboard
 # Or remove cloudflared container
@@ -490,11 +525,13 @@ docker-compose rm cloudflared
 ## Monitoring and Maintenance
 
 ### Caddy Monitoring
+
 - Check certificate expiry: `docker exec caddy caddy list-certificates`
 - Monitor logs: `docker logs caddy --tail 100 -f`
 - Disk usage: `df -h /var/lib/docker/volumes/`
 
 ### Cloudflare Monitoring
+
 - Dashboard: Analytics, Security Events
 - Tunnel health: Zero Trust dashboard
 - API monitoring: Use Cloudflare API for automation
