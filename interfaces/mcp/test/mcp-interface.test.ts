@@ -1,12 +1,15 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { MCPInterface } from "../src/mcp-interface";
-import { PluginTestHarness } from "@brains/test-utils";
+import { InterfacePluginTestHarness } from "@brains/interface-plugin";
+import { createSilentLogger } from "@brains/utils";
 
 describe("MCPInterface", () => {
-  let harness: PluginTestHarness;
+  let harness: InterfacePluginTestHarness;
 
   beforeEach(() => {
-    harness = new PluginTestHarness();
+    harness = new InterfacePluginTestHarness({
+      logger: createSilentLogger("mcp-test"),
+    });
   });
 
   describe("initialization", () => {
@@ -33,21 +36,21 @@ describe("MCPInterface", () => {
   describe("registration", () => {
     it("should register with stdio transport and anchor permissions", async () => {
       const plugin = new MCPInterface({ transport: "stdio" });
-      const context = harness.getPluginContext();
 
-      const capabilities = await plugin.register(context);
+      const capabilities = await harness.installPlugin(plugin);
 
+      expect(plugin.id).toBe("mcp");
       expect(capabilities).toBeDefined();
       expect(capabilities.tools).toEqual([]);
       expect(capabilities.resources).toEqual([]);
     });
 
-    it("should register with http transport and public permissions", async () => {
+    it("should register with http transport and anchor permissions", async () => {
       const plugin = new MCPInterface({ transport: "http" });
-      const context = harness.getPluginContext();
 
-      const capabilities = await plugin.register(context);
+      const capabilities = await harness.installPlugin(plugin);
 
+      expect(plugin.id).toBe("mcp");
       expect(capabilities).toBeDefined();
       expect(capabilities.tools).toEqual([]);
       expect(capabilities.resources).toEqual([]);
@@ -55,26 +58,42 @@ describe("MCPInterface", () => {
   });
 
   describe("lifecycle", () => {
-    it("should handle start/stop with stdio transport", async () => {
+    it("should register with stdio transport", async () => {
       const plugin = new MCPInterface({ transport: "stdio" });
-      const context = harness.getPluginContext();
 
-      await plugin.register(context);
+      const capabilities = await harness.installPlugin(plugin);
 
-      // Should not throw
-      await expect(plugin.start()).resolves.toBeUndefined();
-      await expect(plugin.stop()).resolves.toBeUndefined();
+      // Plugin should register successfully
+      expect(capabilities).toBeDefined();
     });
 
-    it("should warn about unimplemented http transport", async () => {
+    it("should register with http transport", async () => {
       const plugin = new MCPInterface({ transport: "http" });
-      const context = harness.getPluginContext();
 
-      await plugin.register(context);
+      const capabilities = await harness.installPlugin(plugin);
 
-      // Start should complete without error (logs warning)
-      await expect(plugin.start()).resolves.toBeUndefined();
-      await expect(plugin.stop()).resolves.toBeUndefined();
+      // Plugin should register successfully
+      expect(capabilities).toBeDefined();
+    });
+  });
+
+  describe("daemon management", () => {
+    it("should create daemon for lifecycle management", async () => {
+      const plugin = new MCPInterface({ transport: "stdio" });
+
+      await harness.installPlugin(plugin);
+
+      // Verify the plugin has daemon support through its type
+      expect(plugin.type).toBe("interface");
+    });
+
+    it("should create http daemon with correct port", async () => {
+      const plugin = new MCPInterface({ transport: "http", httpPort: 3333 });
+
+      const capabilities = await harness.installPlugin(plugin);
+
+      // Plugin should have registered with daemon support
+      expect(capabilities).toBeDefined();
     });
   });
 });

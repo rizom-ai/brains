@@ -1,14 +1,11 @@
 import { z } from "zod";
 
 export const mcpConfigSchema = z.object({
-  transport: z.enum(["stdio", "http"]).default("stdio"),
+  transport: z.enum(["stdio", "http"]),
   httpPort: z
     .number()
-    .default(3000)
     .describe("Port for HTTP transport (only used when transport is 'http')"),
 });
 
-export const MCP_CONFIG_DEFAULTS = {
-  transport: "stdio" as const,
-  httpPort: 3000,
-};
+export type MCPConfig = z.infer<typeof mcpConfigSchema>;
+export type MCPConfigInput = Partial<MCPConfig>;

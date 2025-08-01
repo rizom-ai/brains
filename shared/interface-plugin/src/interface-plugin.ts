@@ -24,16 +24,6 @@ export abstract class InterfacePlugin<TConfig = unknown>
   protected daemon?: Daemon;
 
   /**
-   * Start the interface
-   */
-  abstract start(): Promise<void>;
-
-  /**
-   * Stop the interface
-   */
-  abstract stop(): Promise<void>;
-
-  /**
    * Register the plugin with shell - creates InterfacePluginContext internally
    */
   override async register(shell: IShell): Promise<PluginCapabilities> {

@@ -129,19 +129,17 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
 };
 
 /**
- * Interface plugin type - extends Plugin with start/stop lifecycle methods
+ * Interface plugin type - extends Plugin
  * Used as base for all interface implementations (CLI, Matrix, etc.)
+ *
+ * TODO: Remove this interface - it's no longer needed as interface plugins
+ * manage lifecycle through daemons. Currently kept for backward compatibility
+ * during migration. Will be removed in Phase 6.
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface IInterfacePlugin extends Plugin {
-  /**
-   * Start the interface
-   */
-  start(): Promise<void>;
-
-  /**
-   * Stop the interface
-   */
-  stop(): Promise<void>;
+  // Interface plugins manage lifecycle through daemons
+  // The daemon pattern provides start/stop/healthCheck capabilities
 }
 
 /**

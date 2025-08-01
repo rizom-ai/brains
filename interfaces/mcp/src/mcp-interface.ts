@@ -1,17 +1,22 @@
 import {
   InterfacePlugin,
-  PluginInitializationError,
-  type PluginContext,
-  type PluginCapabilities,
+  type InterfacePluginContext,
+} from "@brains/interface-plugin";
+import {
   type PluginTool,
   type PluginResource,
-} from "@brains/plugin-utils";
+  type Daemon,
+  type DaemonHealth,
+} from "@brains/plugin-base";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { JobProgressEvent } from "@brains/job-queue";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
-import { mcpConfigSchema, MCP_CONFIG_DEFAULTS } from "./schemas";
-import type { MCPConfigInput, MCPConfig } from "./types";
+import {
+  mcpConfigSchema,
+  type MCPConfig,
+  type MCPConfigInput,
+} from "./schemas";
 import packageJson from "../package.json";
 import { z } from "zod";
 
@@ -21,10 +26,10 @@ import { z } from "zod";
  *
  * Usage:
  * - For STDIO: new MCPInterface({ transport: "stdio" })
- * - For HTTP: new MCPInterface({ transport: "http", httpPort: 3000 })
+ * - For HTTP: new MCPInterface({ transport: "http", httpPort: 3333 })
  * - For both: Add two instances with different configs
  */
-export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
+export class MCPInterface extends InterfacePlugin<MCPConfig> {
   // After validation with defaults, config is complete
   declare protected config: MCPConfig;
 
@@ -33,7 +38,12 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
   private httpServer: StreamableHTTPServer | undefined;
 
   constructor(config: MCPConfigInput = {}) {
-    super("mcp", packageJson, config, mcpConfigSchema, MCP_CONFIG_DEFAULTS);
+    const defaults: MCPConfig = {
+      transport: "stdio",
+      httpPort: 3333,
+    };
+
+    super("mcp", packageJson, config, mcpConfigSchema, defaults);
   }
 
   /**
@@ -64,7 +74,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
   /**
    * Set up listener for job progress events (for logging only)
    */
-  private setupJobProgressListener(context: PluginContext): void {
+  private setupJobProgressListener(context: InterfacePluginContext): void {
     // Subscribe to job-progress events for debugging
     context.subscribe("job-progress", async (message) => {
       try {
@@ -92,7 +102,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
   /**
    * Set up listeners for system events
    */
-  private setupSystemEventListeners(context: PluginContext): void {
+  private setupSystemEventListeners(context: InterfacePluginContext): void {
     // Subscribe to tool registration events
     context.subscribe("system:tool:register", (message) => {
       const { pluginId, tool } = message.payload as {
@@ -296,7 +306,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
   /**
    * Register Shell's core tools with the MCP server
    */
-  private registerShellTools(context: PluginContext): void {
+  private registerShellTools(context: InterfacePluginContext): void {
     if (!this.mcpServer) return;
 
     // Register core shell query tool
@@ -311,9 +321,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
       },
       async (params) => {
         try {
-          const result = await context.generateContent({
-            templateName: "shell:knowledge-query",
-            prompt: params["query"] as string,
+          const result = await context.query(params["query"] as string, {
+            userId: params["userId"] as string | undefined,
           });
 
           return {
@@ -566,18 +575,12 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
     );
   }
 
-  public override async register(
-    context: PluginContext,
-  ): Promise<PluginCapabilities> {
-    const capabilities = await super.register(context);
-
-    if (!this.context) {
-      throw new PluginInitializationError(
-        this.id,
-        "Plugin context not initialized",
-      );
-    }
-
+  /**
+   * Override onRegister to set up MCP server during plugin registration
+   */
+  protected override async onRegister(
+    context: InterfacePluginContext,
+  ): Promise<void> {
     const permissionLevel = this.getPermissionLevel();
     this.logger.info(
       `MCP interface initialized with ${this.config.transport} transport and ${permissionLevel} permissions`,
@@ -597,11 +600,56 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
 
     // Subscribe to job progress events for MCP progress reporting
     this.setupJobProgressListener(context);
-
-    return capabilities;
   }
 
-  public async start(): Promise<void> {
+  /**
+   * Create daemon for managing MCP server lifecycle
+   */
+  protected override createDaemon(): Daemon | undefined {
+    return {
+      start: async (): Promise<void> => {
+        await this.startServer();
+      },
+      stop: async (): Promise<void> => {
+        await this.stopServer();
+      },
+      healthCheck: async (): Promise<DaemonHealth> => {
+        const isRunning = this.isServerRunning();
+
+        return {
+          status: isRunning ? "healthy" : "error",
+          message: isRunning
+            ? `MCP ${this.config.transport} server running${this.config.transport === "http" ? ` on port ${this.config.httpPort}` : ""}`
+            : "MCP server not running",
+          lastCheck: new Date(),
+          details: {
+            transport: this.config.transport,
+            port:
+              this.config.transport === "http"
+                ? this.config.httpPort
+                : undefined,
+            running: isRunning,
+          },
+        };
+      },
+    };
+  }
+
+  /**
+   * Check if the server is running
+   */
+  private isServerRunning(): boolean {
+    if (this.config.transport === "stdio") {
+      return this.stdioServer !== undefined && this.mcpServer !== undefined;
+    } else {
+      return this.httpServer !== undefined && this.mcpServer !== undefined;
+    }
+  }
+
+  /**
+   * Start the MCP server
+   */
+  private async startServer(): Promise<void> {
     if (!this.mcpServer) {
       throw new Error("MCP server not initialized");
     }
@@ -638,7 +686,10 @@ export class MCPInterface extends InterfacePlugin<MCPConfigInput> {
     }
   }
 
-  public async stop(): Promise<void> {
+  /**
+   * Stop the MCP server
+   */
+  private async stopServer(): Promise<void> {
     this.logger.info(`Stopping MCP ${this.config.transport} transport`);
 
     if (this.stdioServer) {

@@ -73,11 +73,11 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
       healthCheck: async () => {
         const status = this.serverManager.getStatus();
         const isRunning = status.preview || status.production;
-        
+
         return {
           status: isRunning ? "healthy" : "error",
-          message: isRunning 
-            ? `Servers running - Preview: ${status.preview ? 'up' : 'down'}, Production: ${status.production ? 'up' : 'down'}`
+          message: isRunning
+            ? `Servers running - Preview: ${status.preview ? "up" : "down"}, Production: ${status.production ? "up" : "down"}`
             : "No servers are running",
           lastCheck: new Date(),
           details: {
