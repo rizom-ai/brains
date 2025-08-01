@@ -1,5 +1,5 @@
 import type { IMessageBus } from "@brains/messaging-service";
-import type { IContentGenerator } from "@brains/content-generator";
+import type { IContentGenerator, Template } from "@brains/content-generator";
 import type { Logger } from "@brains/utils";
 import type { IEntityService, EntityRegistry } from "@brains/entity-service";
 import type { JobQueueService } from "@brains/job-queue";
@@ -7,7 +7,6 @@ import type { CommandRegistry } from "@brains/command-registry";
 import type { ViewRegistry, RouteDefinition } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { ContentGenerationConfig } from "@brains/plugins";
-import type { Template } from "./templates";
 
 /**
  * Shell interface that plugins use to access core services

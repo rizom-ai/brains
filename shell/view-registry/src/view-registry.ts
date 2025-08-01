@@ -5,7 +5,7 @@ import type {
   WebRenderer,
   ViewRegistry as IViewRegistry,
 } from "./types";
-import type { Template } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 import { RouteRegistry } from "./route-registry";
 import { ViewTemplateRegistry } from "./view-template-registry";
 

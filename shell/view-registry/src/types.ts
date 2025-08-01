@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ComponentType } from "@brains/types";
+import type { ComponentType } from "@brains/content-generator";
 import type { ProgressCallback } from "@brains/utils";
 
 /**

@@ -6,7 +6,7 @@ import { productsSectionSchema, type ProductsSection } from "./schema";
 import { ProductsLayout } from "./layout";
 import { ProductsSectionFormatter } from "./formatter";
 import productsPrompt from "./prompt.txt";
-import type { Template } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 
 export const productsTemplate: Template<ProductsSection> = {
   name: "products",

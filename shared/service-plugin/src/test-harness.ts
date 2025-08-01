@@ -1,7 +1,7 @@
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
 import { MockShell } from "@brains/core/test";
-import type { Template } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 import type { IEntityService } from "@brains/entity-service";
 import type { JobQueueService } from "@brains/job-queue";
 import type { ViewRegistry } from "@brains/view-registry";

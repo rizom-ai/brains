@@ -1,6 +1,6 @@
 import type { Logger } from "@brains/utils";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
-import type { Template } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 import type { IShell } from "@brains/types";
 import type { ICoreEntityService } from "@brains/entity-service";
 

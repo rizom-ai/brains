@@ -7,7 +7,11 @@ import type {
 } from "@brains/messaging-service";
 import type { ContentGenerator } from "@brains/content-generator";
 import type { Logger } from "@brains/utils";
-import type { EntityService, EntityRegistry, BaseEntity } from "@brains/entity-service";
+import type {
+  EntityService,
+  EntityRegistry,
+  BaseEntity,
+} from "@brains/entity-service";
 import type { JobQueueService, BatchOperation } from "@brains/job-queue";
 import type {
   CommandRegistry,
@@ -18,7 +22,7 @@ import type {
 import type { ViewRegistry } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { RouteDefinition } from "@brains/view-registry";
-import type { Template } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 
 import { createSilentLogger } from "@brains/utils";
 

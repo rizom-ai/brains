@@ -8,7 +8,7 @@ import type {
   SectionDefinition,
   RouteDefinition,
 } from "@brains/view-registry";
-import type { Template } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 import { builtInTemplates } from "./view-template-schemas";
 import type {
   StaticSiteBuilderFactory,

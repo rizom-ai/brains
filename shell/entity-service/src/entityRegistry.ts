@@ -1,9 +1,9 @@
 import type { z } from "zod";
 import type { Logger } from "@brains/utils";
-import type { 
-  BaseEntity, 
+import type {
+  BaseEntity,
   EntityAdapter,
-  EntityRegistry as IEntityRegistry 
+  EntityRegistry as IEntityRegistry,
 } from "./types";
 import { EntityTypeRegistrationError } from "./errors";
 

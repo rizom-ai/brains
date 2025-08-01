@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Template } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 
 /**
  * Schema for public query responses

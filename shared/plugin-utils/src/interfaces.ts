@@ -5,7 +5,8 @@ import type {
   UserPermissionLevel,
 } from "@brains/utils";
 import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
-import type { Template, MessageContext } from "@brains/types";
+import type { MessageContext } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 import type { MessageSender } from "@brains/messaging-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";

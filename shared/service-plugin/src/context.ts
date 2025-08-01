@@ -1,5 +1,9 @@
 import type { CorePluginContext } from "@brains/core-plugin";
-import type { IEntityService, BaseEntity, EntityAdapter } from "@brains/entity-service";
+import type {
+  IEntityService,
+  BaseEntity,
+  EntityAdapter,
+} from "@brains/entity-service";
 import type {
   JobHandler,
   BatchJobManager,

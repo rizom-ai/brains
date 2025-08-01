@@ -37,7 +37,7 @@ import {
 import { AIService } from "@brains/ai-service";
 import { Logger, LogLevel, PermissionHandler } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
-import type { Template } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";

@@ -1,10 +1,7 @@
 import { DashboardWidget } from "./layout";
 import { DashboardDataSchema, type DashboardData } from "./schema";
 import { DashboardFormatter } from "./formatter";
-import type {
-  Template,
-  TemplateDataContext,
-} from "@brains/types";
+import type { Template, TemplateDataContext } from "@brains/content-generator";
 import type { SearchResult } from "@brains/entity-service";
 
 /**

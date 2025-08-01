@@ -179,4 +179,3 @@ export interface EntityRegistry {
 
   getAllEntityTypes(): string[];
 }
-

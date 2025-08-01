@@ -6,7 +6,7 @@ import { landingHeroDataSchema, type LandingHeroData } from "./schema";
 import { HeroLayout } from "./layout";
 import { HeroSectionFormatter } from "./formatter";
 import heroPrompt from "./prompt.txt";
-import type { Template } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 
 export const heroTemplate: Template<LandingHeroData> = {
   name: "hero",

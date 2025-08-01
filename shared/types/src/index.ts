@@ -7,14 +7,7 @@
 
 // Entity types have been moved to @brains/entity-service
 
-// Template types (used by both content and plugins)
-export type {
-  ComponentType,
-  GenerationContext,
-  Template,
-  TemplateDataContext,
-} from "./templates";
-export { TemplateSchema } from "./templates";
+// Template types have been moved to @brains/content-generator
 
 // Content types have been moved to @brains/content-management
 

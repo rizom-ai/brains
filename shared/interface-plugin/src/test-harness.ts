@@ -1,7 +1,7 @@
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
 import { MockShell } from "@brains/core/test";
-import type { Template } from "@brains/types";
+import type { Template } from "@brains/content-generator";
 import type { MessageHandler } from "@brains/messaging-service";
 
 /**

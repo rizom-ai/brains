@@ -3,7 +3,7 @@ import type {
   StaticSiteBuilderOptions,
   BuildContext,
 } from "./static-site-builder";
-import type { ComponentType } from "@brains/types";
+import type { ComponentType } from "@brains/content-generator";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { Logger } from "@brains/utils";
 import { render } from "preact-render-to-string";

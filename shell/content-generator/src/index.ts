@@ -10,7 +10,14 @@ export type {
   ContentGeneratorDependencies,
   ProgressInfo,
 } from "./content-generator";
-export type { ContentGenerator as IContentGenerator } from "./types";
+export type {
+  ContentGenerator as IContentGenerator,
+  ComponentType,
+  GenerationContext,
+  TemplateDataContext,
+  Template,
+} from "./types";
+export { TemplateSchema } from "./types";
 export {
   ContentGenerationJobHandler,
   contentGenerationJobDataSchema,
