@@ -6,7 +6,7 @@ import type { JobQueueService } from "@brains/job-queue";
 import type { CommandRegistry } from "@brains/command-registry";
 import type { ViewRegistry, RouteDefinition } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
-import type { ContentGenerationConfig } from "@brains/plugin-base";
+import type { ContentGenerationConfig } from "@brains/plugins";
 import type { Template } from "./templates";
 
 /**

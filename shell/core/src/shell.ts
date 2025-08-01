@@ -1,6 +1,6 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
-import type { ContentGenerationConfig } from "@brains/plugin-base";
+import type { ContentGenerationConfig } from "@brains/plugins";
 import type { IShell } from "@brains/types";
 import { createDatabase } from "@brains/db";
 import { ServiceRegistry } from "@brains/service-registry";
@@ -36,7 +36,7 @@ import {
 } from "@brains/content-generator";
 import { AIService } from "@brains/ai-service";
 import { Logger, LogLevel, PermissionHandler } from "@brains/utils";
-import type { Plugin } from "@brains/plugin-base";
+import type { Plugin } from "@brains/plugins";
 import type { Template } from "@brains/types";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { ShellConfig } from "./config";

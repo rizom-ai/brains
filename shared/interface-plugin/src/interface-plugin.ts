@@ -1,21 +1,17 @@
-import { BasePlugin } from "@brains/plugin-base";
+import { BasePlugin } from "@brains/plugins";
 import type { InterfacePluginContext } from "./context";
 import { createInterfacePluginContext } from "./context";
-import type {
-  IInterfacePlugin,
-  Daemon,
-  PluginCapabilities,
-} from "@brains/plugin-base";
+import type { Daemon, PluginCapabilities } from "@brains/plugins";
 import type { IShell } from "@brains/types";
 
 /**
  * Base class for interface plugins
  * Interface plugins provide user interaction capabilities and manage daemons
  */
-export abstract class InterfacePlugin<TConfig = unknown>
-  extends BasePlugin<TConfig, InterfacePluginContext>
-  implements IInterfacePlugin
-{
+export abstract class InterfacePlugin<TConfig = unknown> extends BasePlugin<
+  TConfig,
+  InterfacePluginContext
+> {
   public readonly type = "interface" as const;
 
   /**

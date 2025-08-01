@@ -1,5 +1,5 @@
 {
-  "name": "@brains/plugin-base",
+  "name": "@brains/plugins",
   "version": "1.0.0",
   "private": true,
   "description": "Core plugin system implementation for the Personal Brain application",

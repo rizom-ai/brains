@@ -13,7 +13,7 @@
     "lint:fix": "eslint src test --fix"
   },
   "dependencies": {
-    "@brains/plugin-base": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/messaging-service": "workspace:*",

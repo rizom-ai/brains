@@ -5,9 +5,8 @@ import type { JobContext } from "@brains/db";
 import type { MessageContext } from "@brains/types";
 import type { z } from "zod";
 import PQueue from "p-queue";
-import { PluginInitializationError } from "@brains/plugin-base";
+import { PluginInitializationError } from "@brains/plugins";
 
-import type { IMessageInterfacePlugin } from "./types";
 import { commandResponseSchema } from "./types";
 import { setupProgressHandler } from "../utils/progress-handler";
 
@@ -15,10 +14,9 @@ import { setupProgressHandler } from "../utils/progress-handler";
  * Base implementation of MessageInterfacePlugin
  * Provides message processing functionality for interface plugins
  */
-export abstract class MessageInterfacePlugin<TConfig = unknown>
-  extends InterfacePlugin<TConfig>
-  implements IMessageInterfacePlugin
-{
+export abstract class MessageInterfacePlugin<
+  TConfig = unknown,
+> extends InterfacePlugin<TConfig> {
   protected queue: PQueue;
   public readonly sessionId: string;
   // Track job/batch messages for editing (jobId/batchId -> messageId)

@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import { PermissionHandler } from "../src/permission-handler";
 import type { UserPermissionLevel } from "../src/permission-handler";
-import type { PluginTool } from "@brains/plugin-base";
+import type { PluginTool } from "@brains/plugins";
 
 describe("PermissionHandler", () => {
   let permissionHandler: PermissionHandler;

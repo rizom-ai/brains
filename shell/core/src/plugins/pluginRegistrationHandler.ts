@@ -5,7 +5,7 @@ import type {
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
 } from "../types/plugin-manager";
-import type { PluginTool, PluginResource } from "@brains/plugin-base";
+import type { PluginTool, PluginResource } from "@brains/plugins";
 import type { Command } from "@brains/command-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { Shell } from "../shell";

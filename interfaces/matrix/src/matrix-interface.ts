@@ -3,7 +3,7 @@ import {
   type MessageInterfacePluginContext,
 } from "@brains/message-interface-plugin";
 import type { MessageContext } from "@brains/types";
-import { type Daemon, type DaemonHealth } from "@brains/plugin-base";
+import { type Daemon, type DaemonHealth } from "@brains/plugins";
 import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
 import type { MatrixConfigInput, MatrixConfig } from "./schemas";

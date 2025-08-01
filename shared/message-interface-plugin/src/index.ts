@@ -10,7 +10,6 @@ export type {
   BatchOperationResponse,
   JobResponse,
   MessageResponse,
-  IMessageInterfacePlugin,
 } from "./base/types";
 
 // Schemas

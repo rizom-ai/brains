@@ -2,7 +2,7 @@ import {
   InterfacePlugin,
   type InterfacePluginContext,
 } from "@brains/interface-plugin";
-import type { Daemon } from "@brains/plugin-base";
+import type { Daemon } from "@brains/plugins";
 import { ServerManager } from "./server-manager";
 import { existsSync } from "fs";
 import { join } from "path";

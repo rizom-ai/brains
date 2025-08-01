@@ -1,9 +1,9 @@
-import { BasePlugin } from "@brains/plugin-base";
-import type { PluginCapabilities } from "@brains/plugin-base";
+import { BasePlugin } from "@brains/plugins";
+import type { PluginCapabilities } from "@brains/plugins";
 import type { IShell } from "@brains/types";
 import type { ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
-import type { ContentGenerationConfig } from "@brains/plugin-base";
+import type { ContentGenerationConfig } from "@brains/plugins";
 import type { IEntityService } from "@brains/entity-service";
 import type { BaseEntity, EntityAdapter } from "@brains/types";
 import type { z } from "zod";

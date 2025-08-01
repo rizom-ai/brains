@@ -7,7 +7,7 @@ import {
   type PluginResource,
   type Daemon,
   type DaemonHealth,
-} from "@brains/plugin-base";
+} from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { JobProgressEvent } from "@brains/job-queue";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

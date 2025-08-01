@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from "bun:test";
 import { InterfacePluginTestHarness } from "../src/test-harness";
 import { webserverInterfacePlugin } from "../examples/webserver-interface-plugin";
 import type { WebserverInterfacePlugin } from "../examples/webserver-interface-plugin";
-import type { PluginCapabilities } from "@brains/plugin-base";
+import type { PluginCapabilities } from "@brains/plugins";
 import { DefaultContentFormatter } from "@brains/utils";
 import type { DaemonRegistry } from "@brains/daemon-registry";
 import { z } from "zod";

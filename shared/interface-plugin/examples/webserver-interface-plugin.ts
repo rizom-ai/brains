@@ -1,5 +1,5 @@
 import { InterfacePlugin, type InterfacePluginContext } from "../src";
-import type { Daemon } from "@brains/plugin-base";
+import type { Daemon } from "@brains/plugins";
 import { z } from "zod";
 
 // Define the plugin configuration schema

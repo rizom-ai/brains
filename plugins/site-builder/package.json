@@ -18,7 +18,7 @@
   "dependencies": {
     "@brains/content-management": "workspace:*",
     "@brains/entity-service": "workspace:*",
-    "@brains/plugin-base": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/service-plugin": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",

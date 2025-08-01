@@ -1,5 +1,5 @@
-import { BasePlugin } from "@brains/plugin-base";
-import type { PluginCapabilities } from "@brains/plugin-base";
+import { BasePlugin } from "@brains/plugins";
+import type { PluginCapabilities } from "@brains/plugins";
 import type { IShell } from "@brains/types";
 import type { CorePluginContext } from "./context";
 import { createCorePluginContext } from "./context";

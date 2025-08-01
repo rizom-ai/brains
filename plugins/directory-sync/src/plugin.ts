@@ -1,6 +1,6 @@
 import type { ServicePluginContext } from "@brains/service-plugin";
 import { ServicePlugin } from "@brains/service-plugin";
-import type { Plugin, PluginTool } from "@brains/plugin-base";
+import type { Plugin, PluginTool } from "@brains/plugins";
 import type { Command, CommandResponse } from "@brains/command-registry";
 import { DirectorySyncInitializationError } from "./errors";
 import { z } from "zod";

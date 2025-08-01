@@ -1,21 +1,4 @@
 import { z } from "zod";
-import type { IInterfacePlugin } from "@brains/plugin-base";
-import type { MessageContext } from "@brains/types";
-
-/**
- * Message-based interface plugin type - extends IInterfacePlugin
- * Used for interfaces that process messages (CLI, Matrix, etc.)
- */
-export interface IMessageInterfacePlugin extends IInterfacePlugin {
-  /**
-   * The unique session ID for this interface instance
-   */
-  readonly sessionId: string;
-  /**
-   * Process user input with context
-   */
-  processInput(input: string, context?: Partial<MessageContext>): Promise<void>;
-}
 
 /**
  * Command response schemas

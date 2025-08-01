@@ -4,7 +4,7 @@ import type {
   MessageSender,
   MessageResponse,
 } from "@brains/messaging-service";
-import type { PluginTool, ContentGenerationConfig } from "@brains/plugin-base";
+import type { PluginTool, ContentGenerationConfig } from "@brains/plugins";
 import type { Plugin, PluginContext } from "@brains/plugin-utils"; // TODO: Update when migrated
 import type { EntityService } from "@brains/entity-service";
 import type { EntityAdapter } from "@brains/types";

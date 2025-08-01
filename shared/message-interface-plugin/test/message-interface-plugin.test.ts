@@ -4,10 +4,7 @@ import {
   echoMessageInterfacePlugin,
   EchoMessageInterface,
 } from "../examples/echo-message-interface";
-import {
-  PluginCapabilities,
-  PluginInitializationError,
-} from "@brains/plugin-base";
+import { PluginCapabilities, PluginInitializationError } from "@brains/plugins";
 import type { MessageContext } from "@brains/types";
 
 describe("MessageInterfacePlugin", () => {

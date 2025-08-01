@@ -128,7 +128,6 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
   shutdown?(): Promise<void>;
 };
 
-
 /**
  * Content generation configuration - unified config object
  */
@@ -146,4 +145,3 @@ export interface ContentGenerationConfig {
 export type GenerateContentFunction = <T = unknown>(
   config: ContentGenerationConfig,
 ) => Promise<T>;
-

@@ -8,7 +8,7 @@ import {
   PluginInitializationError,
   type Daemon,
   type DaemonHealth,
-} from "@brains/plugin-base";
+} from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { Instance } from "ink";
 import type { JobProgressEvent } from "@brains/job-queue";

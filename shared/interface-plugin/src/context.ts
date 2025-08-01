@@ -4,7 +4,7 @@ import type {
   CommandResponse,
   CommandContext,
 } from "@brains/command-registry";
-import type { Daemon } from "@brains/plugin-base";
+import type { Daemon } from "@brains/plugins";
 import type { IShell, DefaultQueryResponse } from "@brains/types";
 import type { JobQueue } from "@brains/db";
 import type { Batch, BatchJobStatus } from "@brains/job-queue";

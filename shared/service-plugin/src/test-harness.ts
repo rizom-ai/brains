@@ -1,5 +1,5 @@
 import { createSilentLogger, type Logger } from "@brains/utils";
-import type { Plugin, PluginCapabilities } from "@brains/plugin-base";
+import type { Plugin, PluginCapabilities } from "@brains/plugins";
 import { MockShell } from "@brains/core/test";
 import type { Template } from "@brains/types";
 import type { IEntityService } from "@brains/entity-service";

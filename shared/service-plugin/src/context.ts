@@ -8,7 +8,7 @@ import type {
   Batch,
 } from "@brains/job-queue";
 import type { JobOptions, JobQueue } from "@brains/db";
-import type { ContentGenerationConfig } from "@brains/plugin-base";
+import type { ContentGenerationConfig } from "@brains/plugins";
 import type { BaseEntity, EntityAdapter, IShell } from "@brains/types";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { z } from "zod";

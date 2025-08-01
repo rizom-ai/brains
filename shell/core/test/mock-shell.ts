@@ -1,5 +1,5 @@
 import type { IShell, BaseEntity } from "@brains/types";
-import type { Plugin, ContentGenerationConfig } from "@brains/plugin-base";
+import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
   MessageBus,
   MessageHandler,

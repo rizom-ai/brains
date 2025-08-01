@@ -1,4 +1,4 @@
-import type { PluginTool } from "@brains/plugin-base";
+import type { PluginTool } from "@brains/plugins";
 import { z, type ZodRawShape } from "zod";
 
 /**

@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@brains/interface-plugin": "workspace:*",
-    "@brains/plugin-base": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/command-registry": "workspace:*",
     "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",

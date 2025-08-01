@@ -1,5 +1,5 @@
 import { InterfacePluginTestHarness } from "@brains/interface-plugin";
-import type { Plugin } from "@brains/plugin-base";
+import type { Plugin } from "@brains/plugins";
 
 /**
  * Test harness for message interface plugins
