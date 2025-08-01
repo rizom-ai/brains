@@ -5,7 +5,7 @@ import type { JobProgressEvent } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";
 import type { z } from "zod";
 import PQueue from "p-queue";
-import { PluginInitializationError } from "@brains/utils";
+import { PluginInitializationError } from "@brains/plugins";
 
 import type { MessageContext, IMessageInterfacePlugin } from "./types";
 import { commandResponseSchema } from "./types";

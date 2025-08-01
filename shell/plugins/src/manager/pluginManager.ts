@@ -11,7 +11,7 @@ import type {
 } from "./types";
 import { PluginStatus, PluginEvent } from "./types";
 import { PluginRegistrationHandler } from "./pluginRegistrationHandler";
-import { PluginRegistrationError, PluginDependencyError } from "@brains/utils";
+import { PluginRegistrationError, PluginDependencyError } from "../errors";
 
 // Re-export enums for convenience
 export { PluginEvent, PluginStatus } from "./types";

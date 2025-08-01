@@ -32,7 +32,13 @@ export {
 } from "./config";
 
 // Errors
-export { PluginInitializationError, PluginContextError } from "./errors";
+export {
+  PluginError,
+  PluginRegistrationError,
+  PluginDependencyError,
+  PluginInitializationError,
+  PluginContextError,
+} from "./errors";
 
 // Plugin Manager
 export {
