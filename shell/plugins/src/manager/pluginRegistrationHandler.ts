@@ -1,14 +1,14 @@
 import type { Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
-import { PluginEvent } from "../types/plugin-manager";
+import { PluginEvent } from "./types";
 import type {
   PluginToolRegisterEvent,
   PluginResourceRegisterEvent,
-} from "../types/plugin-manager";
-import type { PluginTool, PluginResource } from "@brains/plugins";
+} from "./types";
+import type { PluginTool, PluginResource } from "../interfaces";
 import type { Command } from "@brains/command-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
-import type { Shell } from "../shell";
+import type { IShell } from "@brains/types";
 
 /**
  * Handler for plugin capability registration (tools, resources)
@@ -80,7 +80,7 @@ export class PluginRegistrationHandler {
     );
 
     // Get the message bus from shell
-    const shell = this.serviceRegistry.resolve<Shell>("shell");
+    const shell = this.serviceRegistry.resolve<IShell>("shell");
     const messageBus = shell.getMessageBus();
 
     for (const tool of tools) {
@@ -119,7 +119,7 @@ export class PluginRegistrationHandler {
     );
 
     // Get the message bus from shell
-    const shell = this.serviceRegistry.resolve<Shell>("shell");
+    const shell = this.serviceRegistry.resolve<IShell>("shell");
     const messageBus = shell.getMessageBus();
 
     for (const resource of resources) {
@@ -161,7 +161,7 @@ export class PluginRegistrationHandler {
     );
 
     // Get the message bus from shell
-    const shell = this.serviceRegistry.resolve<Shell>("shell");
+    const shell = this.serviceRegistry.resolve<IShell>("shell");
     const messageBus = shell.getMessageBus();
 
     for (const command of commands) {

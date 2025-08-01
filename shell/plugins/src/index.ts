@@ -33,3 +33,16 @@ export {
 
 // Errors
 export { PluginInitializationError, PluginContextError } from "./errors";
+
+// Plugin Manager
+export {
+  PluginManager,
+  PluginRegistrationHandler,
+  PluginStatus,
+  PluginEvent,
+  type IPluginManager,
+  type PluginInfo,
+  type PluginManagerEventMap,
+  type PluginToolRegisterEvent,
+  type PluginResourceRegisterEvent,
+} from "./manager";

@@ -17,7 +17,7 @@ import {
   type BatchJobStatus,
 } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
-import { PluginManager } from "./plugins/pluginManager";
+import { PluginManager } from "@brains/plugins";
 import { CommandRegistry } from "@brains/command-registry";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import {

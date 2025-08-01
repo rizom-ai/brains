@@ -2,19 +2,19 @@ import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
 import type { IShell } from "@brains/types";
 import { EventEmitter } from "events";
-import type { Plugin } from "@brains/plugins";
+import type { Plugin } from "../interfaces";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import type {
   PluginManager as IPluginManager,
   PluginInfo,
   PluginManagerEventMap,
-} from "../types/plugin-manager";
-import { PluginStatus, PluginEvent } from "../types/plugin-manager";
+} from "./types";
+import { PluginStatus, PluginEvent } from "./types";
 import { PluginRegistrationHandler } from "./pluginRegistrationHandler";
 import { PluginRegistrationError, PluginDependencyError } from "@brains/utils";
 
 // Re-export enums for convenience
-export { PluginEvent, PluginStatus } from "../types/plugin-manager";
+export { PluginEvent, PluginStatus } from "./types";
 
 /**
  * Plugin manager that handles plugin registration, initialization, and lifecycle

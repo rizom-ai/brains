@@ -7,9 +7,8 @@ import {
   PluginEvent,
   PluginManager,
   PluginStatus,
-} from "@/plugins/pluginManager";
+} from "../../src/manager/pluginManager";
 import { ServiceRegistry } from "@brains/service-registry";
-import type { Shell } from "@/shell";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 import { MessageBus } from "@brains/messaging-service";
@@ -179,7 +178,7 @@ describe("PluginManager", (): void => {
         getRegisteredTypes: mock(() => []),
       }),
     };
-    serviceRegistry.register("shell", () => mockShell as unknown as Shell);
+    serviceRegistry.register("shell", () => mockShell as unknown as IShell);
 
     pluginManager = PluginManager.createFresh(serviceRegistry, logger);
   });

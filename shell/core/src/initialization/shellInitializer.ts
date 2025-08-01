@@ -4,7 +4,7 @@ import type { Logger } from "@brains/utils";
 import type { ShellConfig } from "../config";
 import type { EntityRegistry } from "@brains/entity-service";
 import type { ContentGenerator } from "@brains/content-generator";
-import type { PluginManager } from "../plugins/pluginManager";
+import type { PluginManager } from "@brains/plugins";
 import { BaseEntityAdapter } from "../entities/base-entity-adapter";
 import { knowledgeQueryTemplate } from "../templates";
 import { BaseEntityFormatter, baseEntitySchema } from "@brains/types";
