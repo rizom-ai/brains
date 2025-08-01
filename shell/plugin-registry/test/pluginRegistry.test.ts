@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { PluginRegistry, type PluginInfo } from "../src/pluginRegistry";
-import { Logger, PluginRegistrationError, PluginDependencyError, PluginInitializationError } from "@brains/utils";
+import {
+  Logger,
+  PluginRegistrationError,
+  PluginDependencyError,
+  PluginInitializationError,
+} from "@brains/utils";
 import type { Plugin } from "@brains/plugin-base";
 import type { IShell } from "@brains/types";
 
@@ -11,14 +16,14 @@ const mockShell: IShell = {
   registerResource: () => {},
   registerDaemon: () => {},
   registerRoute: () => {},
-  getEntityService: () => ({} as any),
-  getServiceRegistry: () => ({} as any),
-  getCommandRegistry: () => ({} as any),
-  getMessageBus: () => ({} as any),
-  getDaemonRegistry: () => ({} as any),
-  getViewRegistry: () => ({} as any),
-  getJobQueueService: () => ({} as any),
-  getBatchJobManager: () => ({} as any),
+  getEntityService: () => ({}) as any,
+  getServiceRegistry: () => ({}) as any,
+  getCommandRegistry: () => ({}) as any,
+  getMessageBus: () => ({}) as any,
+  getDaemonRegistry: () => ({}) as any,
+  getViewRegistry: () => ({}) as any,
+  getJobQueueService: () => ({}) as any,
+  getBatchJobManager: () => ({}) as any,
   getLogger: () => Logger.createFresh({ level: "error", context: "test" }),
   query: async () => ({ message: "test" }),
   listCommands: async () => [],
@@ -91,9 +96,9 @@ describe("PluginRegistry", () => {
   describe("plugin registration", () => {
     it("should register a plugin successfully", () => {
       const plugin = createMockPlugin("test-plugin");
-      
+
       registry.register(plugin);
-      
+
       expect(registry.has("test-plugin")).toBe(true);
       const info = registry.get("test-plugin");
       expect(info?.plugin).toBe(plugin);
@@ -103,25 +108,25 @@ describe("PluginRegistry", () => {
 
     it("should register plugin with dependencies", () => {
       const plugin = createMockPlugin("test-plugin", "1.0.0", ["dep1", "dep2"]);
-      
+
       registry.register(plugin);
-      
+
       const info = registry.get("test-plugin");
       expect(info?.dependencies).toEqual(["dep1", "dep2"]);
     });
 
     it("should throw error for plugin without id", () => {
       const plugin = { version: "1.0.0", register: async () => ({}) } as any;
-      
+
       expect(() => registry.register(plugin)).toThrow(PluginRegistrationError);
     });
 
     it("should throw error for duplicate plugin registration", () => {
       const plugin1 = createMockPlugin("test-plugin", "1.0.0");
       const plugin2 = createMockPlugin("test-plugin", "2.0.0");
-      
+
       registry.register(plugin1);
-      
+
       expect(() => registry.register(plugin2)).toThrow(PluginRegistrationError);
     });
   });
@@ -130,9 +135,9 @@ describe("PluginRegistry", () => {
     it("should initialize plugin without dependencies", async () => {
       const plugin = createMockPlugin("test-plugin");
       registry.register(plugin);
-      
+
       await registry.initializeAll(mockShell);
-      
+
       const info = registry.get("test-plugin");
       expect(info?.status).toBe("initialized");
       expect(info?.initializedAt).toBeInstanceOf(Date);
@@ -142,14 +147,14 @@ describe("PluginRegistry", () => {
       const pluginA = createMockPlugin("plugin-a");
       const pluginB = createMockPlugin("plugin-b", "1.0.0", ["plugin-a"]);
       const pluginC = createMockPlugin("plugin-c", "1.0.0", ["plugin-b"]);
-      
+
       // Register in reverse order to test dependency resolution
       registry.register(pluginC);
       registry.register(pluginB);
       registry.register(pluginA);
-      
+
       await registry.initializeAll(mockShell);
-      
+
       expect(registry.get("plugin-a")?.status).toBe("initialized");
       expect(registry.get("plugin-b")?.status).toBe("initialized");
       expect(registry.get("plugin-c")?.status).toBe("initialized");
@@ -158,23 +163,27 @@ describe("PluginRegistry", () => {
     it("should handle plugin initialization failure", async () => {
       const goodPlugin = createMockPlugin("good-plugin");
       const badPlugin = createMockPlugin("bad-plugin", "1.0.0", [], true);
-      
+
       registry.register(goodPlugin);
       registry.register(badPlugin);
-      
+
       await registry.initializeAll(mockShell);
-      
+
       expect(registry.get("good-plugin")?.status).toBe("initialized");
       expect(registry.get("bad-plugin")?.status).toBe("error");
       expect(registry.get("bad-plugin")?.error).toBeInstanceOf(Error);
     });
 
     it("should throw error for unmet dependencies", async () => {
-      const plugin = createMockPlugin("plugin-with-deps", "1.0.0", ["missing-dep"]);
+      const plugin = createMockPlugin("plugin-with-deps", "1.0.0", [
+        "missing-dep",
+      ]);
       registry.register(plugin);
-      
-      await expect(registry.initializeAll(mockShell)).rejects.toThrow(PluginDependencyError);
-      
+
+      await expect(registry.initializeAll(mockShell)).rejects.toThrow(
+        PluginDependencyError,
+      );
+
       const info = registry.get("plugin-with-deps");
       expect(info?.status).toBe("error");
       expect(info?.error).toBeInstanceOf(PluginDependencyError);
@@ -183,11 +192,13 @@ describe("PluginRegistry", () => {
     it("should handle circular dependencies gracefully", async () => {
       const pluginA = createMockPlugin("plugin-a", "1.0.0", ["plugin-b"]);
       const pluginB = createMockPlugin("plugin-b", "1.0.0", ["plugin-a"]);
-      
+
       registry.register(pluginA);
       registry.register(pluginB);
-      
-      await expect(registry.initializeAll(mockShell)).rejects.toThrow(PluginDependencyError);
+
+      await expect(registry.initializeAll(mockShell)).rejects.toThrow(
+        PluginDependencyError,
+      );
     });
   });
 
@@ -218,8 +229,8 @@ describe("PluginRegistry", () => {
     it("should get all plugins", () => {
       const all = registry.getAll();
       expect(all).toHaveLength(2);
-      expect(all.some(info => info.plugin.id === "plugin-1")).toBe(true);
-      expect(all.some(info => info.plugin.id === "plugin-2")).toBe(true);
+      expect(all.some((info) => info.plugin.id === "plugin-1")).toBe(true);
+      expect(all.some((info) => info.plugin.id === "plugin-2")).toBe(true);
     });
 
     it("should get plugin package name", () => {
@@ -238,9 +249,9 @@ describe("PluginRegistry", () => {
       // This tests the private initializePlugin method indirectly
       const plugin = createMockPlugin("test-plugin", "1.0.0", [], true);
       registry.register(plugin);
-      
+
       await registry.initializeAll(mockShell);
-      
+
       const info = registry.get("test-plugin");
       expect(info?.status).toBe("error");
       expect(info?.error).toBeInstanceOf(Error);

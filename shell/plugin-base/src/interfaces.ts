@@ -1,7 +1,7 @@
 import { z, type ZodRawShape } from "zod";
 import type { ProgressNotification, UserPermissionLevel } from "@brains/utils";
 import type { Command } from "@brains/command-registry";
-import type { MessageContext, IShell } from "@brains/types";
+import type { IShell } from "@brains/types";
 
 /**
  * Plugin type enumeration
@@ -128,19 +128,6 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
   shutdown?(): Promise<void>;
 };
 
-/**
- * Interface plugin type - extends Plugin
- * Used as base for all interface implementations (CLI, Matrix, etc.)
- *
- * TODO: Remove this interface - it's no longer needed as interface plugins
- * manage lifecycle through daemons. Currently kept for backward compatibility
- * during migration. Will be removed in Phase 6.
- */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface IInterfacePlugin extends Plugin {
-  // Interface plugins manage lifecycle through daemons
-  // The daemon pattern provides start/stop/healthCheck capabilities
-}
 
 /**
  * Content generation configuration - unified config object
@@ -160,18 +147,3 @@ export type GenerateContentFunction = <T = unknown>(
   config: ContentGenerationConfig,
 ) => Promise<T>;
 
-/**
- * Message-based interface plugin type - extends IInterfacePlugin
- * Used for interfaces that process messages (CLI, Matrix, etc.)
- */
-export interface IMessageInterfacePlugin extends IInterfacePlugin {
-  /**
-   * The unique session ID for this interface instance
-   */
-  readonly sessionId: string;
-
-  /**
-   * Process user input with context
-   */
-  processInput(input: string, context?: Partial<MessageContext>): Promise<void>;
-}

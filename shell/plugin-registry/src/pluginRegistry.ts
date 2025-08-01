@@ -1,8 +1,8 @@
-import { 
-  Logger, 
-  PluginRegistrationError, 
-  PluginDependencyError, 
-  PluginInitializationError 
+import {
+  Logger,
+  PluginRegistrationError,
+  PluginDependencyError,
+  PluginInitializationError,
 } from "@brains/utils";
 import type { Plugin } from "@brains/plugin-base";
 import type { IShell } from "@brains/types";
@@ -126,9 +126,13 @@ export class PluginRegistry {
             initialized.add(pluginId);
             progress = true;
           } catch (error) {
-            this.logger.error(`Failed to initialize plugin ${pluginId}:`, error);
+            this.logger.error(
+              `Failed to initialize plugin ${pluginId}:`,
+              error,
+            );
             pluginInfo.status = "error";
-            pluginInfo.error = error instanceof Error ? error : new Error(String(error));
+            pluginInfo.error =
+              error instanceof Error ? error : new Error(String(error));
             initialized.add(pluginId); // Don't block others
             progress = true;
           }
@@ -137,18 +141,28 @@ export class PluginRegistry {
     }
 
     // Check for dependency issues
-    const uninitialized = allPluginIds.filter(id => !initialized.has(id));
+    const uninitialized = allPluginIds.filter((id) => !initialized.has(id));
     if (uninitialized.length > 0) {
       for (const pluginId of uninitialized) {
         const pluginInfo = this.plugins.get(pluginId);
         if (pluginInfo) {
-          const unmetDeps = pluginInfo.dependencies.filter(dep => !initialized.has(dep));
+          const unmetDeps = pluginInfo.dependencies.filter(
+            (dep) => !initialized.has(dep),
+          );
           pluginInfo.status = "error";
-          pluginInfo.error = new PluginDependencyError(pluginId, unmetDeps, "Unmet dependencies");
+          pluginInfo.error = new PluginDependencyError(
+            pluginId,
+            unmetDeps,
+            "Unmet dependencies",
+          );
         }
       }
-      
-      throw new PluginDependencyError("multiple", uninitialized, "Multiple plugins failed to initialize due to dependency issues");
+
+      throw new PluginDependencyError(
+        "multiple",
+        uninitialized,
+        "Multiple plugins failed to initialize due to dependency issues",
+      );
     }
 
     this.logger.info(`Successfully initialized ${initialized.size} plugins`);
@@ -157,7 +171,10 @@ export class PluginRegistry {
   /**
    * Initialize a specific plugin
    */
-  private async initializePlugin(pluginId: string, shell: IShell): Promise<void> {
+  private async initializePlugin(
+    pluginId: string,
+    shell: IShell,
+  ): Promise<void> {
     const pluginInfo = this.plugins.get(pluginId);
     if (!pluginInfo) {
       throw new PluginInitializationError(
@@ -177,8 +194,9 @@ export class PluginRegistry {
       this.logger.info(`Initialized plugin: ${pluginId}`);
     } catch (error) {
       pluginInfo.status = "error";
-      pluginInfo.error = error instanceof Error ? error : new Error(String(error));
-      
+      pluginInfo.error =
+        error instanceof Error ? error : new Error(String(error));
+
       throw new PluginInitializationError(
         pluginId,
         error instanceof Error ? error : new Error(String(error)),

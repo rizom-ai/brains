@@ -12,10 +12,8 @@ export type {
   PluginResource,
   PluginCapabilities,
   Plugin,
-  IInterfacePlugin,
   ContentGenerationConfig,
   GenerateContentFunction,
-  IMessageInterfacePlugin,
 } from "./interfaces";
 
 export {

@@ -45,7 +45,6 @@ import { ViewRegistry } from "@brains/view-registry";
 import { ShellInitializer } from "./initialization/shellInitializer";
 import { InitializationError } from "@brains/utils";
 
-
 /**
  * Optional dependencies that can be injected for testing
  */
