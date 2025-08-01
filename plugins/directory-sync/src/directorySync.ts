@@ -1,6 +1,5 @@
-import type { BaseEntity } from "@brains/types";
 import type { Logger } from "@brains/utils";
-import type { IEntityService } from "@brains/entity-service";
+import type { IEntityService, BaseEntity } from "@brains/entity-service";
 import type { BatchOperation } from "@brains/job-queue";
 import {
   FileSystemError,

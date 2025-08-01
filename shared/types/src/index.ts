@@ -5,15 +5,7 @@
  * across the Brain ecosystem, including the shell and all plugins.
  */
 
-// Entity types
-export type {
-  BaseEntity,
-  EntityInput,
-  SearchResult,
-  EntityAdapter,
-} from "./entities";
-export { baseEntitySchema } from "./entities";
-export { BaseEntityFormatter } from "./base-entity-formatter";
+// Entity types have been moved to @brains/entity-service
 
 // Template types (used by both content and plugins)
 export type {

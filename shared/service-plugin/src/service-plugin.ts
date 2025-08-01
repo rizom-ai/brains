@@ -4,8 +4,7 @@ import type { IShell } from "@brains/types";
 import type { ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
 import type { ContentGenerationConfig } from "@brains/plugins";
-import type { IEntityService } from "@brains/entity-service";
-import type { BaseEntity, EntityAdapter } from "@brains/types";
+import type { IEntityService, BaseEntity, EntityAdapter } from "@brains/entity-service";
 import type { z } from "zod";
 
 /**

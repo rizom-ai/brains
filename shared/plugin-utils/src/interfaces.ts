@@ -4,11 +4,10 @@ import type {
   ProgressNotification,
   UserPermissionLevel,
 } from "@brains/utils";
-import type { BaseEntity, Template } from "@brains/types";
+import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
+import type { Template, MessageContext } from "@brains/types";
 import type { MessageSender } from "@brains/messaging-service";
 import type { IMessageBus } from "@brains/messaging-service";
-import type { EntityAdapter } from "@brains/types";
-import type { MessageContext } from "@brains/message-interface";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { EntityService } from "@brains/entity-service";
 import type {

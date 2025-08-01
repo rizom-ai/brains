@@ -1,8 +1,10 @@
 import type { z } from "zod";
 import type { Logger } from "@brains/utils";
-import type { BaseEntity } from "@brains/types";
-import type { EntityAdapter } from "@brains/types";
-import type { EntityRegistry as IEntityRegistry } from "./types";
+import type { 
+  BaseEntity, 
+  EntityAdapter,
+  EntityRegistry as IEntityRegistry 
+} from "./types";
 import { EntityTypeRegistrationError } from "./errors";
 
 /**

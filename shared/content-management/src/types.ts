@@ -1,4 +1,4 @@
-import type { BaseEntity } from "@brains/types";
+import type { BaseEntity } from "@brains/entity-service";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 
 // Re-export types from schemas

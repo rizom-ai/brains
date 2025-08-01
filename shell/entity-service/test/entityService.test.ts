@@ -2,12 +2,12 @@ import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { z } from "zod";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
-import type { EntityAdapter } from "@brains/types";
+import type { EntityAdapter, BaseEntity } from "../src/types";
+import { baseEntitySchema } from "../src/types";
 import type { DrizzleDB } from "@brains/db";
 import type { JobQueueService } from "@brains/job-queue";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
-import { baseEntitySchema, type BaseEntity } from "@brains/types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import { createId } from "@brains/db/schema";
 

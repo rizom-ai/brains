@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { BaseEntity } from "@brains/types";
+import type { BaseEntity } from "@brains/entity-service";
 
 /**
  * Complete entity type - all entities must satisfy this

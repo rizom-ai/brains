@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { BaseEntity, EntityAdapter } from "@brains/types";
-import { parseMarkdownWithFrontmatter } from "@brains/utils";
+import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
+import { parseMarkdownWithFrontmatter } from "@brains/entity-service";
 
 /**
  * Adapter for base entity type - handles serialization/deserialization

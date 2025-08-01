@@ -1,5 +1,5 @@
-import type { Template, GenerationContext, SearchResult } from "@brains/types";
-import type { EntityService } from "@brains/entity-service";
+import type { Template, GenerationContext } from "@brains/types";
+import type { EntityService, SearchResult } from "@brains/entity-service";
 import type { AIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";

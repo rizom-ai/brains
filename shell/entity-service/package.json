@@ -16,6 +16,7 @@
     "@brains/embedding-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/utils": "workspace:*",
+    "gray-matter": "^4.0.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {

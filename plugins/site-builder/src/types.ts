@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { baseEntitySchema } from "@brains/types";
+import { baseEntitySchema } from "@brains/entity-service";
 
 /**
  * Base site content schema - shared between preview and production

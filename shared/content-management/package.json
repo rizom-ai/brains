@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "zod": "^3.22.4",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "@brains/entity-service": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

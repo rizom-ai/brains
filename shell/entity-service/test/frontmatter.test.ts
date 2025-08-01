@@ -8,7 +8,7 @@ import {
   shouldIncludeInFrontmatter,
   type FrontmatterConfig,
 } from "../src/frontmatter";
-import type { BaseEntity } from "@brains/types";
+import type { BaseEntity } from "../src/types";
 
 // Test entity type extending BaseEntity
 interface TestNote extends BaseEntity {

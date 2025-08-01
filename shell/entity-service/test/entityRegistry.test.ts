@@ -1,10 +1,9 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import { z } from "zod";
 import { EntityRegistry } from "../src/entityRegistry";
-import type { EntityAdapter } from "@brains/types";
-
+import type { EntityAdapter } from "../src/types";
+import { baseEntitySchema } from "../src/types";
 import { createSilentLogger, type Logger } from "@brains/utils";
-import { baseEntitySchema } from "@brains/types";
 import { createId } from "@brains/db/schema";
 import matter from "gray-matter";
 

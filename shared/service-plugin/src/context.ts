@@ -1,5 +1,5 @@
 import type { CorePluginContext } from "@brains/core-plugin";
-import type { IEntityService } from "@brains/entity-service";
+import type { IEntityService, BaseEntity, EntityAdapter } from "@brains/entity-service";
 import type {
   JobHandler,
   BatchJobManager,
@@ -9,7 +9,7 @@ import type {
 } from "@brains/job-queue";
 import type { JobOptions, JobQueue } from "@brains/db";
 import type { ContentGenerationConfig } from "@brains/plugins";
-import type { BaseEntity, EntityAdapter, IShell } from "@brains/types";
+import type { IShell } from "@brains/types";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { z } from "zod";
 import { createCorePluginContext } from "@brains/core-plugin";

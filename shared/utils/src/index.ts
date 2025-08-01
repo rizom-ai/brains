@@ -21,16 +21,6 @@ export {
   stripMarkdown,
 } from "./markdown";
 
-// Frontmatter utilities
-export {
-  extractMetadata,
-  generateMarkdownWithFrontmatter,
-  parseMarkdownWithFrontmatter,
-  generateFrontmatter,
-  shouldIncludeInFrontmatter,
-  deserializeMetadata,
-  type FrontmatterConfig,
-} from "./frontmatter";
 
 // Progress utilities
 export { ProgressReporter } from "./progress";

@@ -1,4 +1,4 @@
-import type { IShell, BaseEntity } from "@brains/types";
+import type { IShell } from "@brains/types";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
   MessageBus,
@@ -7,7 +7,7 @@ import type {
 } from "@brains/messaging-service";
 import type { ContentGenerator } from "@brains/content-generator";
 import type { Logger } from "@brains/utils";
-import type { EntityService, EntityRegistry } from "@brains/entity-service";
+import type { EntityService, EntityRegistry, BaseEntity } from "@brains/entity-service";
 import type { JobQueueService, BatchOperation } from "@brains/job-queue";
 import type {
   CommandRegistry,

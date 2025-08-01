@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { BaseEntityAdapter } from "../base-entity-adapter";
-import type { BaseEntity } from "@brains/types";
+import type { BaseEntity } from "@brains/entity-service";
 import { z } from "zod";
 
 describe("BaseEntityAdapter", () => {

@@ -1,4 +1,4 @@
-import type { EntityAdapter } from "@brains/types";
+import type { EntityAdapter } from "@brains/entity-service";
 import type { SiteContentPreview, SiteContentProduction } from "../types";
 import {
   siteContentPreviewSchema,
@@ -8,7 +8,7 @@ import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   generateFrontmatter,
-} from "@brains/utils";
+} from "@brains/entity-service";
 import { z } from "zod";
 
 // Schema for parsing frontmatter

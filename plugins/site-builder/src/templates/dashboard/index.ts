@@ -4,8 +4,8 @@ import { DashboardFormatter } from "./formatter";
 import type {
   Template,
   TemplateDataContext,
-  SearchResult,
 } from "@brains/types";
+import type { SearchResult } from "@brains/entity-service";
 
 /**
  * Dashboard template definition

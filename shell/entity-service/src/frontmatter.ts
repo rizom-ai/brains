@@ -1,6 +1,6 @@
 import matter from "gray-matter";
 import type { z } from "zod";
-import type { BaseEntity } from "@brains/types";
+import type { BaseEntity } from "./types";
 
 /**
  * Configuration for frontmatter handling

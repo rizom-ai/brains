@@ -4,8 +4,7 @@ import type {
   CommandResponse,
 } from "@brains/command-registry";
 import type { Shell } from "../shell";
-import type { EntityService } from "@brains/entity-service";
-import type { BaseEntity } from "@brains/types";
+import type { EntityService, BaseEntity } from "@brains/entity-service";
 
 export function createGetCommand(shell: Shell): Command {
   return {
