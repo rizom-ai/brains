@@ -101,17 +101,17 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 
 ### Phase 6: Final Cleanup (Day 11)
 
-#### Step 6.1: Remove adapter layer and old packages
+#### Step 6.1: Extract PluginManager to its own package
 
-**Prerequisites**: ALL plugins must be migrated to new interfaces before this phase.
+**Decision Rationale**: PluginManager is working perfectly and has all the features we need (lifecycle events, daemon integration, enable/disable, proper initialization timing). Rather than replacing it with an incomplete PluginRegistry, we'll extract it to its own package following the pattern of other registries.
 
-- Remove PluginAdapter class
-- Remove PluginManager completely
-- Remove PluginContextFactory and related files
-- Delete plugin-utils package completely
-- Delete plugin-context package completely (already removed)
-- Remove all old imports
-- **Validation**: No references to old packages, Shell directly calls plugin.register(this)
+- Create `@brains/plugin-manager` package
+- Move PluginManager from shell/core to the new package
+- Move related types and interfaces (PluginInfo, PluginManagerEventMap, etc.)
+- Remove PluginRegistry package completely (incomplete implementation)
+- Clean up any remaining old plugin context dependencies
+- Update Shell to use `@brains/plugin-manager` package
+- **Validation**: All interfaces (CLI, MCP, Matrix) still work, PluginManager handles initialization properly
 
 #### Step 6.2: Update documentation
 
@@ -129,10 +129,15 @@ We will revert to a stable commit and methodically integrate the new plugin pack
 4. **shared/interface-plugin**: InterfacePlugin class + InterfacePluginContext + test harness
 5. **shared/message-interface-plugin**: MessageInterfacePlugin class + test harness
 
+### Packages to Extract:
+
+1. **shell/plugin-manager**: Extract PluginManager from shell/core to its own package
+
 ### Packages to Remove:
 
 1. **shared/plugin-utils**: Replaced by plugin-base
 2. **shell/plugin-context**: Distributed to individual plugin packages
+3. **shell/plugin-registry**: Incomplete implementation, replaced by extracted PluginManager
 
 ## Adapter Pattern Implementation
 
@@ -272,8 +277,9 @@ this.createTool(
    - MCP, Webserver to use new InterfacePlugin base
 8. Migrate message interface plugins
    - CLI, Matrix to use new MessageInterfacePlugin base
-9. Remove adapter layer and old packages
-   - Delete PluginManager, PluginContextFactory
+9. Extract PluginManager and remove old packages
+   - Create @brains/plugin-manager package and move PluginManager
+   - Delete PluginRegistry (incomplete)
    - Remove plugin-utils package
 
 ## Next Steps
@@ -281,6 +287,7 @@ this.createTool(
 1. ~~Execute git revert to stable commit~~ ✓
 2. ~~Preserve new plugin packages~~ ✓
 3. ~~Complete Phase 1.1 and 1.2~~ ✓
-4. **Implement Plugin Adapter Layer (Phase 1.3 revised)**
-5. Begin plugin migrations (Phase 2-5)
-6. Track progress with TodoWrite tool
+4. ~~Implement Plugin Adapter Layer (Phase 1.3 revised)~~ ✓
+5. ~~Begin plugin migrations (Phase 2-5)~~ ✓
+6. **Extract PluginManager to its own package (Phase 6 revised)**
+7. Track progress with TodoWrite tool
