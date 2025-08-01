@@ -26,8 +26,7 @@
 // Shell interface
 export type { IShell } from "./shell";
 
-// Message context
-export type { MessageContext } from "./interfaces";
+// Message context has been moved to @brains/messaging-service
 
 // Response schemas
 export {

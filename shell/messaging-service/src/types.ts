@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { UserPermissionLevel } from "@brains/utils";
 import type {
   MessageResponse,
   MessageHandler,
@@ -57,6 +58,20 @@ export interface SubscriptionFilter {
   target?: string | RegExp;
   metadata?: Record<string, unknown>;
   predicate?: (message: MessageWithPayload) => boolean;
+}
+
+/**
+ * Message context for interface operations
+ * Used by message-based interfaces to provide context about the message
+ */
+export interface MessageContext {
+  userId: string;
+  channelId: string;
+  messageId: string;
+  timestamp: Date;
+  interfaceType: string;
+  userPermissionLevel: UserPermissionLevel;
+  threadId?: string;
 }
 
 /**

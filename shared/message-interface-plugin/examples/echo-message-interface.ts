@@ -1,5 +1,5 @@
 import { MessageInterfacePlugin } from "../src";
-import type { MessageContext } from "@brains/types";
+import type { MessageContext } from "@brains/messaging-service";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";
 import { z } from "zod";

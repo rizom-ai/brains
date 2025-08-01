@@ -2,7 +2,7 @@ import {
   MessageInterfacePlugin,
   type MessageInterfacePluginContext,
 } from "@brains/message-interface-plugin";
-import type { MessageContext } from "@brains/types";
+import type { MessageContext } from "@brains/messaging-service";
 import type { Command } from "@brains/command-registry";
 import {
   PluginInitializationError,

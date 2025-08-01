@@ -2,7 +2,7 @@ import { InterfacePlugin } from "@brains/interface-plugin";
 import type { MessageInterfacePluginContext } from "../context";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";
-import type { MessageContext } from "@brains/types";
+import type { MessageContext } from "@brains/messaging-service";
 import type { z } from "zod";
 import PQueue from "p-queue";
 import { PluginInitializationError } from "@brains/plugins";

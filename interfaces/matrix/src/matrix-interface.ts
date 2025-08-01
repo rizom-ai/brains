@@ -2,7 +2,7 @@ import {
   MessageInterfacePlugin,
   type MessageInterfacePluginContext,
 } from "@brains/message-interface-plugin";
-import type { MessageContext } from "@brains/types";
+import type { MessageContext } from "@brains/messaging-service";
 import { type Daemon, type DaemonHealth } from "@brains/plugins";
 import { PermissionHandler, markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
