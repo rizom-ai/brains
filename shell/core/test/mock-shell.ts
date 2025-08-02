@@ -1,4 +1,4 @@
-import type { IShell } from "@brains/types";
+import type { IShell } from "@brains/plugins";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
   MessageBus,

@@ -2,7 +2,7 @@ import { ResponseFormatter } from "./base";
 import {
   createEntityResponseSchema,
   type CreateEntityResponse,
-} from "@brains/types";
+} from "@brains/plugins";
 
 export class CreateEntityResponseFormatter extends ResponseFormatter<CreateEntityResponse> {
   format(data: CreateEntityResponse): string {

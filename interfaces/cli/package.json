@@ -18,7 +18,6 @@
   "dependencies": {
     "@brains/message-interface": "workspace:*",
     "@brains/plugin-utils": "workspace:*",
-    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "chalk": "^5.4.1",
     "ink": "^6.0.1",

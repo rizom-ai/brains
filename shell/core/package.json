@@ -29,7 +29,6 @@
     "@brains/messaging-service": "workspace:*",
     "@brains/mcp-server": "workspace:*",
     "@brains/service-registry": "workspace:*",
-    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/view-registry": "workspace:*",
     "@libsql/client": "^0.15.7",

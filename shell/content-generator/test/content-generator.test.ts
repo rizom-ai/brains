@@ -5,13 +5,10 @@ import type {
   ContentGeneratorDependencies,
   ProgressInfo,
 } from "../src/content-generator";
-import type {
-  ContentTemplate,
-  RouteDefinition,
-  SectionDefinition,
-  EntityService,
-  AIService,
-} from "@brains/types";
+import type { Template } from "../src/types";
+import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import type { EntityService } from "@brains/entity-service";
+import type { AIService } from "@brains/ai-service";
 import { createSilentLogger } from "@brains/utils";
 
 describe("ContentGenerator", () => {
@@ -47,7 +44,7 @@ describe("ContentGenerator", () => {
   });
 
   describe("generateContent", () => {
-    const mockTemplate: ContentTemplate = {
+    const mockTemplate: Template = {
       name: "test-template",
       description: "Test template for content generation",
       basePrompt: "Generate test content",
@@ -156,7 +153,7 @@ describe("ContentGenerator", () => {
   });
 
   describe("generateWithRoute", () => {
-    const mockTemplate: ContentTemplate = {
+    const mockTemplate: Template = {
       name: "site-builder:dashboard",
       description: "Dashboard template for site builder",
       basePrompt: "Generate route content",
@@ -249,7 +246,7 @@ describe("ContentGenerator", () => {
   });
 
   describe("parseContent", () => {
-    const mockTemplate: ContentTemplate = {
+    const mockTemplate: Template = {
       name: "test-template",
       description: "Test template with formatter",
       basePrompt: "Generate test content",

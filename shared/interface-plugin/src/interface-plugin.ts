@@ -2,7 +2,7 @@ import { BasePlugin } from "@brains/plugins";
 import type { InterfacePluginContext } from "./context";
 import { createInterfacePluginContext } from "./context";
 import type { Daemon, PluginCapabilities } from "@brains/plugins";
-import type { IShell } from "@brains/types";
+import type { IShell } from "@brains/plugins";
 
 /**
  * Base class for interface plugins

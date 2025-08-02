@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@brains/utils": "workspace:*",
-    "@brains/types": "workspace:*",
     "@brains/command-registry": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "zod": "^3.24.1"

@@ -5,11 +5,19 @@
     "rootDir": "./",
     "baseUrl": "./",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     },
     "jsx": "react-jsx",
     "jsxImportSource": "preact"
   },
-  "include": ["src", "test"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src",
+    "test"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

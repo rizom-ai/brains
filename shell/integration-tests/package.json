@@ -15,7 +15,6 @@
     "@brains/app": "workspace:*",
     "@brains/mcp-server": "workspace:*",
     "@brains/core": "workspace:*",
-    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.15.7",
     "drizzle-orm": "^0.29.4"

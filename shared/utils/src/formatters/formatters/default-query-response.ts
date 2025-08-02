@@ -1,5 +1,5 @@
 import type { ContentFormatter } from "../types";
-import type { DefaultQueryResponse } from "@brains/types";
+import type { DefaultQueryResponse } from "@brains/plugins";
 
 /**
  * Default query response formatter

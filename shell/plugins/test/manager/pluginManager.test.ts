@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
-import type { IShell } from "@brains/types";
+import type { IShell } from "@brains/plugins";
 import type { IJobQueueService } from "@brains/job-queue";
 import {
   PluginEvent,

@@ -2,7 +2,7 @@ import { ResponseFormatter } from "./base";
 import {
   defaultQueryResponseSchema,
   type DefaultQueryResponse,
-} from "@brains/types";
+} from "@brains/plugins";
 
 export class DefaultQueryResponseFormatter extends ResponseFormatter<DefaultQueryResponse> {
   format(data: DefaultQueryResponse): string {

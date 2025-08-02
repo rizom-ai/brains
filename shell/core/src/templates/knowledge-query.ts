@@ -2,7 +2,7 @@ import type { Template } from "@brains/content-generator";
 import {
   defaultQueryResponseSchema,
   type DefaultQueryResponse,
-} from "@brains/types";
+} from "@brains/plugins";
 import { DefaultQueryResponseFormatter } from "@brains/utils";
 
 /**

@@ -16,7 +16,6 @@
     "@brains/plugins": "workspace:*",
     "@brains/core-plugin": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@brains/types": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/command-registry": "workspace:*",
     "@brains/service-registry": "workspace:*",

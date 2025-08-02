@@ -3,6 +3,10 @@
   "compilerOptions": {
     "rootDir": "./src"
   },
-  "include": ["src/**/*"],
-  "exclude": ["test"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "test"
+  ]
 }

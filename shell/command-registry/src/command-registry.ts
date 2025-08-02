@@ -1,7 +1,7 @@
 import type { Logger } from "@brains/utils";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { ICommandRegistry, Command, CommandInfo } from "./types";
-import { systemCommandRegisterSchema } from "@brains/types";
+import { systemCommandRegisterSchema } from "@brains/plugins";
 
 /**
  * Central registry for commands from all plugins

@@ -3,7 +3,7 @@ import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJob
 import type { Logger } from "@brains/utils";
 import type { PluginContext } from "@brains/core";
 import type { DirectorySync } from "../../src/directorySync";
-import type { BaseEntity } from "@brains/types";
+import type { BaseEntity } from "@brains/entity-service";
 import type { RawEntity } from "../../src/types";
 import { createSilentLogger } from "@brains/utils";
 import type { ProgressReporter } from "@brains/utils";

@@ -11,16 +11,15 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix", 
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "test": "bun test",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
-    "@brains/eslint-config": "workspace:*", 
+    "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "eslint": "^8.56.0",

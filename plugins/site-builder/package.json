@@ -20,7 +20,6 @@
     "@brains/entity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/service-plugin": "workspace:*",
-    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/view-registry": "workspace:*",
     "preact": "^10.19.3",

@@ -25,7 +25,6 @@
     "@brains/messaging-service": "workspace:*",
     "@brains/plugin-utils": "workspace:*",
     "@brains/service-plugin": "workspace:*",
-    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "chokidar": "^3.5.3",
     "gray-matter": "^4.0.3",
@@ -36,7 +35,5 @@
     "@types/node": "^20.0.0",
     "typescript": "^5.2.2"
   },
-  "peerDependencies": {
-    "@brains/types": "workspace:*"
-  }
+  "peerDependencies": {}
 }

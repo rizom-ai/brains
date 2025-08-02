@@ -16,7 +16,6 @@
     "@brains/interface-plugin": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/command-registry": "workspace:*",
-    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/db": "workspace:*",
     "@brains/job-queue": "workspace:*",

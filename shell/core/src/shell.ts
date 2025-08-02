@@ -1,7 +1,7 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
 import type { ContentGenerationConfig } from "@brains/plugins";
-import type { IShell } from "@brains/types";
+import type { IShell } from "@brains/plugins";
 import { createDatabase } from "@brains/db";
 import { ServiceRegistry } from "@brains/service-registry";
 import {

@@ -8,7 +8,7 @@ import type {
 } from "./interfaces";
 import type { Command } from "@brains/command-registry";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
-import type { IShell } from "@brains/types";
+import type { IShell } from "@brains/plugins";
 import { ToolContextRoutingSchema } from "./interfaces";
 import { PluginContextError } from "./errors";
 import {

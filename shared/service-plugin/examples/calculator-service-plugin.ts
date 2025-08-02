@@ -2,7 +2,7 @@ import { ServicePlugin, type ServicePluginContext } from "../src";
 import type { PluginTool, PluginResource } from "@brains/plugins";
 import type { Command } from "@brains/command-registry";
 import type { MessageWithPayload } from "@brains/messaging-service";
-import type { DefaultQueryResponse } from "@brains/types";
+import type { DefaultQueryResponse } from "@brains/plugins";
 import { z } from "zod";
 
 // Define the plugin configuration schema

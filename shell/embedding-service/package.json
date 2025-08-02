@@ -12,7 +12,6 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "fastembed": "^1.14.4",
     "zod": "^3.24.1"

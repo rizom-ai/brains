@@ -13,7 +13,7 @@ import type {
 } from "@brains/job-queue";
 import type { JobOptions, JobQueue } from "@brains/db";
 import type { ContentGenerationConfig } from "@brains/plugins";
-import type { IShell } from "@brains/types";
+import type { IShell } from "@brains/plugins";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { z } from "zod";
 import { createCorePluginContext } from "@brains/core-plugin";

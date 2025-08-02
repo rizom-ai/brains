@@ -3,6 +3,14 @@ export { BasePlugin, type CoreContext } from "./base-plugin";
 
 // Plugin types and interfaces
 export type {
+  IShell,
+  SystemCommandRegisterEvent,
+  SystemToolRegisterEvent,
+  SystemResourceRegisterEvent,
+  DefaultQueryResponse,
+  SimpleTextResponse,
+  CreateEntityResponse,
+  UpdateEntityResponse,
   PluginType,
   DaemonHealth,
   Daemon,
@@ -17,6 +25,13 @@ export type {
 } from "./interfaces";
 
 export {
+  systemCommandRegisterSchema,
+  systemToolRegisterSchema,
+  systemResourceRegisterSchema,
+  defaultQueryResponseSchema,
+  simpleTextResponseSchema,
+  createEntityResponseSchema,
+  updateEntityResponseSchema,
   pluginMetadataSchema,
   DaemonHealthSchema,
   ToolContextRoutingSchema,

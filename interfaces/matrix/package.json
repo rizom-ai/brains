@@ -15,7 +15,6 @@
   "dependencies": {
     "@brains/message-interface": "workspace:*",
     "@brains/plugin-utils": "workspace:*",
-    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "matrix-bot-sdk": "^0.7.1",
     "p-queue": "^8.0.1",

@@ -15,9 +15,7 @@
     "test": "bun test",
     "clean": "rm -rf dist"
   },
-  "dependencies": {
-    "@brains/types": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",

@@ -1,7 +1,141 @@
 import { z, type ZodRawShape } from "zod";
 import type { ProgressNotification, UserPermissionLevel } from "@brains/utils";
 import type { Command } from "@brains/command-registry";
-import type { IShell } from "@brains/types";
+import type { IMessageBus } from "@brains/messaging-service";
+import type { IContentGenerator, Template } from "@brains/content-generator";
+import type { Logger } from "@brains/utils";
+import type { IEntityService, EntityRegistry } from "@brains/entity-service";
+import type { JobQueueService } from "@brains/job-queue";
+import type { CommandRegistry } from "@brains/command-registry";
+import type { ViewRegistry, RouteDefinition } from "@brains/view-registry";
+import type { ServiceRegistry } from "@brains/service-registry";
+
+/**
+ * Shell interface that plugins use to access core services
+ * This avoids circular dependencies between core and plugin-context
+ */
+export interface IShell {
+  // Core service accessors
+  getMessageBus(): IMessageBus;
+  getContentGenerator(): IContentGenerator;
+  getLogger(): Logger;
+  getEntityService(): IEntityService;
+  getEntityRegistry(): EntityRegistry;
+  getJobQueueService(): JobQueueService;
+  getCommandRegistry(): CommandRegistry;
+  getViewRegistry(): ViewRegistry;
+  getServiceRegistry(): ServiceRegistry;
+
+  // High-level operations
+  generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
+  registerRoutes(
+    routes: RouteDefinition[],
+    options?: { pluginId?: string; environment?: string },
+  ): void;
+  registerTemplates(
+    templates: Record<string, Template>,
+    pluginId?: string,
+  ): void;
+
+  // Plugin information
+  getPluginPackageName(pluginId: string): string | undefined;
+}
+
+/**
+ * System event schemas for plugin capability registration
+ */
+export const systemCommandRegisterSchema = z.object({
+  pluginId: z.string(),
+  command: z.object({
+    name: z.string(),
+    description: z.string(),
+    usage: z.string().optional(),
+    handler: z.function(),
+  }),
+  timestamp: z.number(),
+});
+
+export const systemToolRegisterSchema = z.object({
+  pluginId: z.string(),
+  tool: z.object({
+    name: z.string(),
+    description: z.string(),
+    inputSchema: z.record(z.unknown()), // ZodRawShape
+    handler: z.function(),
+    visibility: z.enum(["public", "trusted", "anchor"]).optional(),
+  }),
+  timestamp: z.number(),
+});
+
+export const systemResourceRegisterSchema = z.object({
+  pluginId: z.string(),
+  resource: z.object({
+    uri: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    mimeType: z.string().optional(),
+    handler: z.function(),
+  }),
+  timestamp: z.number(),
+});
+
+export type SystemCommandRegisterEvent = z.infer<typeof systemCommandRegisterSchema>;
+export type SystemToolRegisterEvent = z.infer<typeof systemToolRegisterSchema>;
+export type SystemResourceRegisterEvent = z.infer<typeof systemResourceRegisterSchema>;
+
+/**
+ * Query response schemas used by plugins
+ */
+export const defaultQueryResponseSchema = z
+  .object({
+    message: z.string().describe("Natural language response to the query"),
+    summary: z.string().optional().describe("Brief summary if applicable"),
+    topics: z.array(z.string()).optional().describe("Related topics mentioned"),
+    sources: z
+      .array(
+        z.object({
+          id: z.string(),
+          type: z.string(),
+          excerpt: z.string().optional(),
+          relevance: z.number().min(0).max(1).optional(),
+        }),
+      )
+      .optional()
+      .describe("Source entities used to answer the query"),
+    metadata: z.record(z.unknown()).optional(),
+  })
+  .describe("defaultQueryResponse");
+
+export type DefaultQueryResponse = z.infer<typeof defaultQueryResponseSchema>;
+
+export const simpleTextResponseSchema = z
+  .object({
+    message: z.string(),
+  })
+  .describe("simpleTextResponse");
+
+export type SimpleTextResponse = z.infer<typeof simpleTextResponseSchema>;
+
+export const createEntityResponseSchema = z
+  .object({
+    success: z.boolean(),
+    entityId: z.string().optional(),
+    message: z.string(),
+  })
+  .describe("createEntityResponse");
+
+export type CreateEntityResponse = z.infer<typeof createEntityResponseSchema>;
+
+export const updateEntityResponseSchema = z
+  .object({
+    success: z.boolean(),
+    entityId: z.string(),
+    changes: z.array(z.string()).optional(),
+    message: z.string(),
+  })
+  .describe("updateEntityResponse");
+
+export type UpdateEntityResponse = z.infer<typeof updateEntityResponseSchema>;
 
 /**
  * Plugin type enumeration

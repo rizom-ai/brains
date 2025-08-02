@@ -14,7 +14,6 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@brains/types": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/message-interface": "workspace:*",
     "zod": "^3.22.4"
