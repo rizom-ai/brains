@@ -114,6 +114,7 @@ export type {
   JobProgressEvent,
   IJobQueueService,
 } from "@brains/job-queue";
+export { JobProgressEventSchema } from "@brains/job-queue";
 
 // From @brains/command-registry
 export type {
@@ -136,6 +137,7 @@ export type {
 
 // From @brains/db
 export type { JobOptions, JobQueue, JobContext } from "@brains/db";
+export { JobContextSchema } from "@brains/db";
 
 // From @brains/utils
 export type {
@@ -143,7 +145,7 @@ export type {
   ProgressNotification,
   UserPermissionLevel,
 } from "@brains/utils";
-export { createSilentLogger } from "@brains/utils";
+export { createSilentLogger, DefaultContentFormatter } from "@brains/utils";
 
 // Test utilities from @brains/core
 export { MockShell } from "@brains/core/test";

@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from "bun:test";
 import { CorePluginTestHarness } from "../src/test/harness";
 import { calculatorPlugin } from "../examples/calculator-plugin";
 import type { PluginCapabilities } from "@brains/plugins";
-import { DefaultContentFormatter } from "@brains/utils";
+import { DefaultContentFormatter } from "@brains/plugins";
 import { z } from "zod";
 
 describe("CorePlugin", () => {

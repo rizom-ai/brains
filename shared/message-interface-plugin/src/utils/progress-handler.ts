@@ -1,9 +1,10 @@
 import type { InterfacePluginContext } from "@brains/interface-plugin";
 import {
   JobProgressEventSchema,
+  JobContextSchema,
   type JobProgressEvent,
-} from "@brains/job-queue";
-import { JobContextSchema, type JobContext } from "@brains/db";
+  type JobContext,
+} from "@brains/plugins";
 
 /**
  * Handlers for progress event processing

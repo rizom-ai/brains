@@ -313,7 +313,10 @@ export class Shell implements IShell {
       this.jobQueueService,
       this.logger,
     );
-    this.serviceRegistry.register("batchJobManager", () => this.batchJobManager);
+    this.serviceRegistry.register(
+      "batchJobManager",
+      () => this.batchJobManager,
+    );
 
     this.jobProgressMonitor =
       dependencies?.jobProgressMonitor ??

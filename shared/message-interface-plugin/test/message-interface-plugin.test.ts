@@ -4,8 +4,8 @@ import {
   echoMessageInterfacePlugin,
   EchoMessageInterface,
 } from "../examples/echo-message-interface";
+import type { MessageContext } from "@brains/plugins";
 import { PluginCapabilities, PluginInitializationError } from "@brains/plugins";
-import type { MessageContext } from "@brains/messaging-service";
 
 describe("MessageInterfacePlugin", () => {
   let harness: MessageInterfacePluginTestHarness<EchoMessageInterface>;

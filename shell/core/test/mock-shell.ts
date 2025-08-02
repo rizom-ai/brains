@@ -12,7 +12,12 @@ import type {
   EntityRegistry,
   BaseEntity,
 } from "@brains/entity-service";
-import type { JobQueueService, BatchOperation, Batch, BatchJobStatus } from "@brains/job-queue";
+import type {
+  JobQueueService,
+  BatchOperation,
+  Batch,
+  BatchJobStatus,
+} from "@brains/job-queue";
 import type { JobOptions } from "@brains/db";
 import type {
   CommandRegistry,
@@ -386,9 +391,15 @@ export class MockShell implements IShell {
   }
 
   // Batch job operations - simple mock implementations
-  async enqueueBatch(operations: BatchOperation[], _options: JobOptions, pluginId: string): Promise<string> {
+  async enqueueBatch(
+    operations: BatchOperation[],
+    _options: JobOptions,
+    pluginId: string,
+  ): Promise<string> {
     // Return a mock batch ID for testing
-    this.logger.debug(`Mock: Enqueued batch with ${operations.length} operations for plugin ${pluginId}`);
+    this.logger.debug(
+      `Mock: Enqueued batch with ${operations.length} operations for plugin ${pluginId}`,
+    );
     return `batch-${Date.now()}`;
   }
 

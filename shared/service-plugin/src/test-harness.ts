@@ -3,11 +3,8 @@ import type {
   Plugin,
   PluginCapabilities,
   Template,
-  IEntityService,
-  IJobQueueService,
   MessageHandler,
 } from "@brains/plugins";
-import type { ViewRegistry } from "@brains/view-registry";
 import { createSilentLogger, MockShell } from "@brains/plugins";
 
 /**
@@ -22,22 +19,10 @@ export class ServicePluginTestHarness<TPlugin extends Plugin = Plugin> {
   constructor(
     options: {
       logger?: Logger;
-      entityService?: IEntityService;
-      jobQueueService?: IJobQueueService;
-      viewRegistry?: ViewRegistry;
     } = {},
   ) {
     const logger = options.logger ?? createSilentLogger("service-plugin-test");
-
-    // Use object spread to handle optional properties cleanly
-    this.mockShell = new MockShell({
-      logger,
-      ...(options.entityService && { entityService: options.entityService }),
-      ...(options.jobQueueService && {
-        jobQueueService: options.jobQueueService,
-      }),
-      ...(options.viewRegistry && { viewRegistry: options.viewRegistry }),
-    });
+    this.mockShell = new MockShell({ logger });
   }
 
   /**

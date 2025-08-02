@@ -2,131 +2,107 @@
 routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label
-
 Our Ecosystem
 
 ## Headline
-
 The Tools and Solutions Powering Transformation
 
 ## Description
-
-Rizom brings together a curated suite of digital tools, services, and solutions to help organizations thrive in the new economy. Our ecosystem empowers teams to drive sustainable innovation, optimize operations, and build resilient systems for the future.
+Rizom brings together a curated portfolio of innovative products and services designed to help organizations and communities navigate the complex challenges of digital transformation and ecosystem development. From strategic advisory to practical tools and solutions, our offerings empower leaders to drive sustainable change and build resilient, future-ready ecosystems.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
-rizom-studio
+rizom-advisory
 
 #### Name
-
-Rizom Studio
+Rizom Advisory
 
 #### Tagline
-
-Design-led innovation platform
+Strategic guidance for ecosystem innovation
 
 #### Description
-
-A collaborative workspace for multidisciplinary teams to ideate, prototype, and bring transformative solutions to life.
+Our team of seasoned experts provide tailored advisory services to help organizations define their transformation roadmap, design effective ecosystem strategies, and build the capabilities required to thrive in the digital age.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
+#### Icon
 Brain
 
 ### Product 2
 
 #### ID
-
-rizom-insights
-
-#### Name
-
-Rizom Insights
-
-#### Tagline
-
-Data-driven decision support
-
-#### Description
-
-Advanced analytics and visualization tools to uncover hidden patterns, forecast trends, and make informed strategic choices.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Database
-
-### Product 3
-
-#### ID
-
-rizom-orchestrate
+rizom-blueprint
 
 #### Name
-
-Rizom Orchestrate
+Rizom Blueprint
 
 #### Tagline
-
-Ecosystem management system
+Collaborative ecosystem design platform
 
 #### Description
-
-A centralized platform to map stakeholders, coordinate workflows, and optimize the performance of complex business ecosystems.
+Rizom Blueprint is a powerful digital platform that enables cross-functional teams to visualize, model, and plan their ecosystem architecture. It supports iterative design, stakeholder alignment, and ongoing evolution of complex systems.
 
 #### Status
-
 beta
 
 #### Link
 
-#### Icon
 
+#### Icon
 Network
+
+### Product 3
+
+#### ID
+rizom-labs
+
+#### Name
+Rizom Labs
+
+#### Tagline
+Rapid prototyping for new solutions
+
+#### Description
+Rizom Labs is our in-house innovation hub where we ideate, experiment, and rapidly develop new digital products and services to address emerging ecosystem challenges. Our multidisciplinary teams work closely with clients to co-create tailored solutions.
+
+#### Status
+alpha
+
+#### Link
+
+
+#### Icon
+Wrench
 
 ### Product 4
 
 #### ID
-
-rizom-advisory
+rizom-insights
 
 #### Name
-
-Rizom Advisory
+Rizom Insights
 
 #### Tagline
-
-Strategic transformation consulting
+Data-driven ecosystem intelligence
 
 #### Description
-
-Expert guidance to help organizations navigate change, build future-ready capabilities, and unlock sustainable growth.
+Rizom Insights leverages advanced analytics and visualization to provide organizations with deep, actionable intelligence about their ecosystem dynamics. Our platform surfaces key trends, interdependencies, and opportunities to inform strategic decision-making.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Wrench
+#### Icon
+Database

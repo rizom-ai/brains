@@ -3,7 +3,7 @@ import { InterfacePluginTestHarness } from "../src/test-harness";
 import { webserverInterfacePlugin } from "../examples/webserver-interface-plugin";
 import type { WebserverInterfacePlugin } from "../examples/webserver-interface-plugin";
 import type { PluginCapabilities } from "@brains/plugins";
-import { DefaultContentFormatter } from "@brains/utils";
+import { DefaultContentFormatter } from "@brains/plugins";
 import { z } from "zod";
 
 describe("InterfacePlugin", () => {
@@ -37,16 +37,15 @@ describe("InterfacePlugin", () => {
 
   test("provides daemon management", async () => {
     const plugin = harness.getPlugin();
-    
+
     // The plugin should have created and registered a daemon
     // We can verify this by checking if start/stop methods work
     await plugin.start();
     await plugin.stop();
-    
+
     // If the plugin has a daemon, these operations should succeed
     // without throwing errors
   });
-
 
   test("provides command execution", () => {
     const shell = harness.getShell();
@@ -134,12 +133,12 @@ describe("InterfacePlugin", () => {
 
   test("daemon health check works", async () => {
     const plugin = harness.getPlugin();
-    
+
     // The plugin should have a healthCheck method through its daemon
     // Test that the plugin can start and stop without errors
     await plugin.start();
     await plugin.stop();
-    
+
     // If we got here, the daemon is working
     expect(plugin).toBeDefined();
   });

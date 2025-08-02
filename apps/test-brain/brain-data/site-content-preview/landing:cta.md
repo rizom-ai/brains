@@ -2,33 +2,24 @@
 routeId: landing
 sectionId: cta
 ---
-
 # CTA Section
 
 ## Headline
-
-Unleash the Power of Your Second Brain
+Elevate Your Knowledge Potential
 
 ## Description
-
-Unlock Your Knowledge Potential with Rizom
+Transform how you capture, connect, and leverage your expertise with Rizom's personal knowledge management system.
 
 ## Primary Button
-
 ### Text
-
-Start Free Trial
+Get Started Now
 
 ### Link
-
 /signup
 
 ## Secondary Button
-
 ### Text
-
-View Demo
+Watch Demo
 
 ### Link
-
 /demo
