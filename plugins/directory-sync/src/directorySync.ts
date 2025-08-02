@@ -258,7 +258,11 @@ export class DirectorySync {
           // Skip if entity type is not registered or deserialization fails
           const serializationError = new EntitySerializationError(
             "Unable to deserialize entity from file",
-            { path: filePath, entityType: rawEntity.entityType, error: deserializeError },
+            {
+              path: filePath,
+              entityType: rawEntity.entityType,
+              error: deserializeError,
+            },
           );
           this.logger.debug("Skipping file - unable to deserialize", {
             path: filePath,

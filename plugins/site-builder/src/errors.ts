@@ -1,15 +1,13 @@
-import { BrainsError, normalizeError, type ErrorCause } from "@brains/utils";
-
 /**
  * Base error class for site-builder plugin operations
  */
-export class SiteBuilderError extends BrainsError {
+export class SiteBuilderError extends Error {
   constructor(
     message: string,
-    cause: ErrorCause,
-    context?: Record<string, unknown>,
+    public readonly context?: Record<string, unknown>,
   ) {
-    super(message, "SITE_BUILDER_ERROR", normalizeError(cause), context ?? {});
+    super(message);
+    this.name = "SiteBuilderError";
   }
 }
 
@@ -19,10 +17,9 @@ export class SiteBuilderError extends BrainsError {
 export class SiteBuildError extends SiteBuilderError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "SiteBuildError";
   }
 }
@@ -33,10 +30,9 @@ export class SiteBuildError extends SiteBuilderError {
 export class ContentGenerationError extends SiteBuilderError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "ContentGenerationError";
   }
 }
@@ -47,10 +43,9 @@ export class ContentGenerationError extends SiteBuilderError {
 export class ContentPromotionError extends SiteBuilderError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "ContentPromotionError";
   }
 }
@@ -61,10 +56,9 @@ export class ContentPromotionError extends SiteBuilderError {
 export class TemplateProcessingError extends SiteBuilderError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "TemplateProcessingError";
   }
 }
@@ -75,10 +69,9 @@ export class TemplateProcessingError extends SiteBuilderError {
 export class HydrationError extends SiteBuilderError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "HydrationError";
   }
 }
@@ -89,10 +82,9 @@ export class HydrationError extends SiteBuilderError {
 export class CssProcessingError extends SiteBuilderError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "CssProcessingError";
   }
 }
@@ -103,10 +95,9 @@ export class CssProcessingError extends SiteBuilderError {
 export class SiteBuilderInitializationError extends SiteBuilderError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "SiteBuilderInitializationError";
   }
 }

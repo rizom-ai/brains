@@ -15,10 +15,7 @@ export class DirectorySyncError extends Error {
  * Error thrown when file system operations fail
  */
 export class FileSystemError extends DirectorySyncError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "FileSystemError";
   }
@@ -28,10 +25,7 @@ export class FileSystemError extends DirectorySyncError {
  * Error thrown when entity serialization/deserialization fails
  */
 export class EntitySerializationError extends DirectorySyncError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "EntitySerializationError";
   }
@@ -41,10 +35,7 @@ export class EntitySerializationError extends DirectorySyncError {
  * Error thrown when path resolution fails
  */
 export class PathResolutionError extends DirectorySyncError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "PathResolutionError";
   }
@@ -54,10 +45,7 @@ export class PathResolutionError extends DirectorySyncError {
  * Error thrown when directory watching fails
  */
 export class DirectoryWatchError extends DirectorySyncError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "DirectoryWatchError";
   }
@@ -67,10 +55,7 @@ export class DirectoryWatchError extends DirectorySyncError {
  * Error thrown when directory-sync plugin initialization fails
  */
 export class DirectorySyncInitializationError extends DirectorySyncError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "DirectorySyncInitializationError";
   }

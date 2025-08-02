@@ -189,8 +189,7 @@ export class SiteBuilder implements ISiteBuilder {
     } catch (error) {
       const buildError = new SiteBuildError(
         "Site build process failed",
-        error,
-        { options },
+        { options, error },
       );
       this.logger.error("Site build failed", { error: buildError });
 

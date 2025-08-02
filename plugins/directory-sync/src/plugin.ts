@@ -243,20 +243,17 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
               ? `${context.interfaceId}:${context.channelId}`
               : "plugin:directory-sync";
 
-          const batchId = await ctx.enqueueBatch(
-            batchData.operations,
-            {
-              source,
-              metadata: {
-                interfaceId: context?.interfaceId ?? "",
-                userId: context?.userId ?? "",
-                channelId: context?.channelId ?? "",
-                progressToken: context?.progressToken ?? "",
-                operationType: "directory_sync",
-                pluginId: this.id,
-              },
+          const batchId = await ctx.enqueueBatch(batchData.operations, {
+            source,
+            metadata: {
+              interfaceId: context?.interfaceId ?? "",
+              userId: context?.userId ?? "",
+              channelId: context?.channelId ?? "",
+              progressToken: context?.progressToken ?? "",
+              operationType: "directory_sync",
+              pluginId: this.id,
             },
-          );
+          });
 
           return {
             status: "queued",
@@ -295,8 +292,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
           // Get entity types to export
           const typesToExport =
-            params.entityTypes ??
-            ctx.entityService.getEntityTypes();
+            params.entityTypes ?? ctx.entityService.getEntityTypes();
 
           // Create batch operations - one job per entity type
           const operations = typesToExport.map((entityType) => ({
@@ -355,7 +351,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         async (input: unknown, context): Promise<unknown> => {
           const ds = this.requireDirectorySync();
           const ctx = this.requirePluginContext();
-          
+
           const importSchema = z.object({
             paths: z.array(z.string()).optional(),
             batchSize: z.number().min(1).default(50),
@@ -363,8 +359,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
           const params = importSchema.parse(input);
 
           // Get files to import
-          const filesToImport =
-            params.paths ?? ds.getAllMarkdownFiles();
+          const filesToImport = params.paths ?? ds.getAllMarkdownFiles();
           const batchSize = params.batchSize ?? 50;
 
           // Split files into batches for parallel processing
@@ -423,7 +418,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         },
         async (input: unknown): Promise<{ watching: boolean }> => {
           const ds = this.requireDirectorySync();
-          
+
           const watchSchema = z.object({
             action: z.enum(["start", "stop"]),
           });
@@ -514,9 +509,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       async (message) => {
         try {
           const ds = this.requireDirectorySync();
-          const result = await ds.exportEntities(
-            message.payload.entityTypes,
-          );
+          const result = await ds.exportEntities(message.payload.entityTypes);
 
           return {
             success: true,
@@ -537,9 +530,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       async (message) => {
         try {
           const ds = this.requireDirectorySync();
-          const result = await ds.importEntities(
-            message.payload.paths,
-          );
+          const result = await ds.importEntities(message.payload.paths);
 
           return {
             success: true,

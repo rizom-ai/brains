@@ -220,7 +220,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
           if (!this.contentManager || !this.pluginContext) {
             throw new SiteBuilderInitializationError(
               "Content manager not initialized",
-              undefined,
               { tool: "generate" },
             );
           }
