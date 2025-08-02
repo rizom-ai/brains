@@ -13,7 +13,7 @@ import {
   TemplateRegistrationError,
   EntityRegistrationError,
   InitializationError,
-} from "@brains/utils";
+} from "../errors";
 
 /**
  * Handles Shell initialization logic
@@ -89,8 +89,9 @@ export class ShellInitializer {
       this.logger.debug("Database initialization complete");
     } catch (error) {
       this.logger.error("Failed to initialize database", error);
-      throw new DatabaseError("WAL mode initialization", error, {
+      throw new DatabaseError("WAL mode initialization failed", {
         url: this.config.database.url,
+        cause: error,
       });
     }
   }
@@ -112,9 +113,8 @@ export class ShellInitializer {
     } catch (error) {
       this.logger.error("Failed to register shell templates", error);
       throw new TemplateRegistrationError(
-        knowledgeQueryTemplate.name,
-        "shell",
-        error,
+        `Failed to register template: ${knowledgeQueryTemplate.name}`,
+        { pluginId: "shell", cause: error },
       );
     }
   }
@@ -152,7 +152,10 @@ export class ShellInitializer {
       this.logger.debug("Base entity support registered successfully");
     } catch (error) {
       this.logger.error("Failed to register base entity support", error);
-      throw new EntityRegistrationError("base", error);
+      throw new EntityRegistrationError("Failed to register base entity type", {
+        entityType: "base",
+        cause: error,
+      });
     }
   }
 
@@ -182,7 +185,10 @@ export class ShellInitializer {
       this.logger.info("Plugin initialization complete");
     } catch (error) {
       this.logger.error("Failed to initialize plugins", error);
-      throw new InitializationError("plugins", error);
+      throw new InitializationError("Failed to initialize plugins", {
+        component: "plugins",
+        cause: error,
+      });
     }
   }
 

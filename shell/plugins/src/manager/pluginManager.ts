@@ -79,11 +79,9 @@ export class PluginManager implements IPluginManager {
    */
   public registerPlugin(plugin: Plugin): void {
     if (!plugin.id) {
-      throw new PluginRegistrationError(
-        "unknown",
-        "Plugin must have an id",
-        { reason: "Missing plugin ID" },
-      );
+      throw new PluginRegistrationError("unknown", "Plugin must have an id", {
+        reason: "Missing plugin ID",
+      });
     }
 
     this.logger.debug(`Registering plugin: ${plugin.id} (${plugin.version})`);
@@ -96,7 +94,11 @@ export class PluginManager implements IPluginManager {
       throw new PluginRegistrationError(
         plugin.id,
         `Plugin is already registered with version ${existingVersion}`,
-        { reason: "Duplicate plugin registration", existingVersion, newVersion: plugin.version },
+        {
+          reason: "Duplicate plugin registration",
+          existingVersion,
+          newVersion: plugin.version,
+        },
       );
     }
 
@@ -220,11 +222,9 @@ export class PluginManager implements IPluginManager {
   private async initializePlugin(pluginId: string): Promise<void> {
     const pluginInfo = this.plugins.get(pluginId);
     if (!pluginInfo) {
-      throw new PluginRegistrationError(
-        pluginId,
-        "Plugin is not registered",
-        { reason: "Plugin not found in registry" },
-      );
+      throw new PluginRegistrationError(pluginId, "Plugin is not registered", {
+        reason: "Plugin not found in registry",
+      });
     }
 
     const plugin = pluginInfo.plugin;

@@ -1,95 +1,94 @@
 /**
- * AI Service specific error classes
- * Domain-specific errors for AI operations
+ * Shell-specific error classes
  */
 
 /**
- * Model not available error
+ * Shell initialization error
  */
-export class ModelNotAvailableError extends Error {
+export class ShellInitializationError extends Error {
   constructor(
     message: string,
     public readonly context?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = "ModelNotAvailableError";
+    this.name = "ShellInitializationError";
   }
 }
 
 /**
- * Generation timeout error
+ * Service registration error
  */
-export class GenerationTimeoutError extends Error {
+export class ServiceRegistrationError extends Error {
   constructor(
     message: string,
     public readonly context?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = "GenerationTimeoutError";
+    this.name = "ServiceRegistrationError";
   }
 }
 
 /**
- * Token limit exceeded error
+ * Plugin registration error
  */
-export class TokenLimitError extends Error {
+export class PluginRegistrationError extends Error {
   constructor(
     message: string,
     public readonly context?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = "TokenLimitError";
+    this.name = "PluginRegistrationError";
   }
 }
 
 /**
- * Model configuration error
+ * Database operation error
  */
-export class ModelConfigError extends Error {
+export class DatabaseError extends Error {
   constructor(
     message: string,
     public readonly context?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = "ModelConfigError";
+    this.name = "DatabaseError";
   }
 }
 
 /**
- * Generation failure error
+ * Template registration error
  */
-export class GenerationFailureError extends Error {
+export class TemplateRegistrationError extends Error {
   constructor(
     message: string,
     public readonly context?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = "GenerationFailureError";
+    this.name = "TemplateRegistrationError";
   }
 }
 
 /**
- * Rate limiting error
+ * Entity registration error
  */
-export class RateLimitError extends Error {
+export class EntityRegistrationError extends Error {
   constructor(
     message: string,
     public readonly context?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = "RateLimitError";
+    this.name = "EntityRegistrationError";
   }
 }
 
 /**
- * API key or authentication error
+ * General initialization error
  */
-export class AuthenticationError extends Error {
+export class InitializationError extends Error {
   constructor(
     message: string,
     public readonly context?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = "AuthenticationError";
+    this.name = "InitializationError";
   }
 }

@@ -2,41 +2,30 @@ import type { ContentFormatter } from "../types";
 import type { z } from "zod";
 import { remark } from "remark";
 import type { Root, Heading, Paragraph, Content } from "mdast";
-import { BrainsError, normalizeError, type ErrorCause } from "@brains/utils";
 
 /**
  * Error thrown when structured content formatting fails
  */
-export class StructuredContentFormattingError extends BrainsError {
+export class StructuredContentFormattingError extends Error {
   constructor(
     message: string,
-    cause: ErrorCause,
-    context?: Record<string, unknown>,
+    public readonly context?: Record<string, unknown>,
   ) {
-    super(
-      message,
-      "STRUCTURED_CONTENT_FORMATTING_ERROR",
-      normalizeError(cause),
-      context ?? {},
-    );
+    super(message);
+    this.name = "StructuredContentFormattingError";
   }
 }
 
 /**
  * Error thrown when structured content parsing fails
  */
-export class StructuredContentParsingError extends BrainsError {
+export class StructuredContentParsingError extends Error {
   constructor(
     message: string,
-    cause: ErrorCause,
-    context?: Record<string, unknown>,
+    public readonly context?: Record<string, unknown>,
   ) {
-    super(
-      message,
-      "STRUCTURED_CONTENT_PARSING_ERROR",
-      normalizeError(cause),
-      context ?? {},
-    );
+    super(message);
+    this.name = "StructuredContentParsingError";
   }
 }
 
@@ -95,8 +84,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     } catch (error) {
       throw new StructuredContentFormattingError(
         "Failed to format structured content",
-        error,
-        { title: this.config.title, data },
+        { title: this.config.title, data, cause: error },
       );
     }
   }
@@ -113,8 +101,11 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     } catch (error) {
       throw new StructuredContentParsingError(
         "Failed to parse structured content",
-        error,
-        { title: this.config.title, contentLength: content.length },
+        {
+          title: this.config.title,
+          contentLength: content.length,
+          cause: error,
+        },
       );
     }
   }

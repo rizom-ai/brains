@@ -109,10 +109,10 @@ export class AIService implements IAIService {
       };
     } catch (error) {
       this.logger.error("Failed to generate text", error);
-      throw new GenerationFailureError(
-        "AI text generation failed",
-        { operation: "text", error },
-      );
+      throw new GenerationFailureError("AI text generation failed", {
+        operation: "text",
+        error,
+      });
     }
   }
 
@@ -159,10 +159,10 @@ export class AIService implements IAIService {
       };
     } catch (error) {
       this.logger.error("Failed to generate object", error);
-      throw new GenerationFailureError(
-        "AI object generation failed",
-        { operation: "object", error },
-      );
+      throw new GenerationFailureError("AI object generation failed", {
+        operation: "object",
+        error,
+      });
     }
   }
 

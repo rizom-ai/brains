@@ -32,38 +32,6 @@ export type {
 // YAML utilities
 export { toYaml, fromYaml, isValidYaml } from "./yaml";
 
-// Error utilities
-export {
-  type ErrorCause,
-  BrainsError,
-  InitializationError,
-  DatabaseError,
-  ConfigurationError,
-  ServiceError,
-  ServiceRegistrationError,
-  ServiceResolutionError,
-  ContentGenerationError,
-  TemplateNotGeneratableError,
-  TemplateRegistrationError,
-  RouteRegistrationError,
-  McpError,
-  ToolRegistrationError,
-  ResourceRegistrationError,
-  EntityRegistrationError,
-  JobHandlerRegistrationError,
-  DaemonRegistrationError,
-  JobOperationError,
-  ErrorUtils,
-  normalizeError,
-} from "./errors";
-
-// Content validation utilities
-export {
-  ContentValidator,
-  ContentValidationError,
-  SchemaNotFoundError,
-} from "./content-validator";
-
 // Formatters
 export * from "./formatters";
 
