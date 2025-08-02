@@ -19,16 +19,6 @@ export type {
 // Export schemas
 export { baseEntitySchema } from "./types";
 
-// Export error classes
-export {
-  EntityNotFoundError,
-  EntityValidationError,
-  EntityStorageError,
-  EntityIndexError,
-  EntityTypeRegistrationError,
-  EntitySerializationError,
-} from "./errors";
-
 // Export frontmatter utilities
 export {
   generateMarkdownWithFrontmatter,

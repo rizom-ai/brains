@@ -46,7 +46,6 @@ import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
 import { ViewRegistry } from "@brains/view-registry";
 import { ShellInitializer } from "./initialization/shellInitializer";
-import { ShellInitializationError } from "./errors";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -525,10 +524,7 @@ export class Shell implements IShell {
     config: ContentGenerationConfig,
   ): Promise<T> {
     if (!this.initialized) {
-      throw new ShellInitializationError(
-        "Shell query attempted before initialization",
-        { operation: "query" },
-      );
+      throw new Error("Shell query attempted before initialization");
     }
 
     // Validate template exists
@@ -567,10 +563,7 @@ export class Shell implements IShell {
    */
   public registerPlugin(plugin: Plugin): void {
     if (!this.initialized) {
-      throw new ShellInitializationError(
-        "Plugin registration attempted before initialization",
-        { operation: "registerPlugin", pluginId: plugin.id },
-      );
+      throw new Error("Plugin registration attempted before initialization");
     }
 
     this.pluginManager.registerPlugin(plugin);

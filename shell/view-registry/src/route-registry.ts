@@ -1,6 +1,5 @@
 import type { RouteDefinition, RouteRegistry as IRouteRegistry } from "./types";
 import { RouteDefinitionSchema } from "./types";
-import { ViewRouteRegistrationError } from "./errors";
 
 export class RouteRegistry implements IRouteRegistry {
   private static instance: RouteRegistry | null = null;
@@ -29,14 +28,10 @@ export class RouteRegistry implements IRouteRegistry {
     if (this.routes.has(validated.path)) {
       const existing = this.routes.get(validated.path);
       if (!existing) {
-        throw new ViewRouteRegistrationError(
-          `Unexpected missing route at path: ${validated.path}`,
-          { routePath: validated.path },
-        );
+        throw new Error(`Unexpected missing route at path: ${validated.path}`);
       }
-      throw new ViewRouteRegistrationError(
+      throw new Error(
         `Route path "${validated.path}" already registered by plugin "${existing.pluginId}"`,
-        { routePath: validated.path, existingPluginId: existing.pluginId },
       );
     }
 

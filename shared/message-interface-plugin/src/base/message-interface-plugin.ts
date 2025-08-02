@@ -4,7 +4,7 @@ import type {
   JobContext,
   MessageContext,
 } from "@brains/plugins";
-import { PluginInitializationError } from "@brains/plugins";
+import { PluginError } from "@brains/plugins";
 import type { MessageInterfacePluginContext } from "../context";
 import type { z } from "zod";
 import PQueue from "p-queue";
@@ -72,10 +72,9 @@ export abstract class MessageInterfacePlugin<
    */
   protected override getContext(): MessageInterfacePluginContext {
     if (!this.context) {
-      throw new PluginInitializationError(
+      throw new PluginError(
         this.id,
-        "Plugin context not initialized",
-        { plugin: this.id },
+        "Initialization failed: Plugin context not initialized",
       );
     }
     return this.context;

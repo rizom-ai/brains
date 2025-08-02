@@ -9,11 +9,7 @@ export { CreateEntityResponseFormatter } from "./create-entity";
 export { UpdateEntityResponseFormatter } from "./update-entity";
 
 // Content formatters
-export {
-  StructuredContentFormatter,
-  StructuredContentFormattingError,
-  StructuredContentParsingError,
-} from "./structured-content";
+export { StructuredContentFormatter } from "./structured-content";
 export { DefaultYamlFormatter } from "./default-yaml";
 export { DefaultQueryResponseFormatter } from "./default-query-response";
 export {

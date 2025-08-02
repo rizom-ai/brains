@@ -4,11 +4,7 @@ import {
 } from "@brains/message-interface-plugin";
 import type { MessageContext } from "@brains/messaging-service";
 import type { Command } from "@brains/command-registry";
-import {
-  PluginInitializationError,
-  type Daemon,
-  type DaemonHealth,
-} from "@brains/plugins";
+import { PluginError, type Daemon, type DaemonHealth } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { Instance } from "ink";
 import type { JobProgressEvent } from "@brains/job-queue";
@@ -263,10 +259,9 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     return {
       start: async (): Promise<void> => {
         if (!this.context) {
-          throw new PluginInitializationError(
+          throw new PluginError(
             this.id,
-            "Plugin context not initialized",
-            { method: "start" },
+            "Initialization failed: Plugin context not initialized",
           );
         }
         this.logger.info("Starting CLI interface");

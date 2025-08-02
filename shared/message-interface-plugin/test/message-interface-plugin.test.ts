@@ -5,7 +5,7 @@ import {
   EchoMessageInterface,
 } from "../examples/echo-message-interface";
 import type { MessageContext } from "@brains/plugins";
-import { PluginCapabilities, PluginInitializationError } from "@brains/plugins";
+import { PluginCapabilities, PluginError } from "@brains/plugins";
 
 describe("MessageInterfacePlugin", () => {
   let harness: MessageInterfacePluginTestHarness<EchoMessageInterface>;
@@ -158,7 +158,7 @@ describe("MessageInterfacePlugin", () => {
       await isolatedPlugin.executeCommand("/help", defaultContext);
       expect(false).toBe(true); // Should not reach here
     } catch (error) {
-      expect(error).toBeInstanceOf(PluginInitializationError);
+      expect(error).toBeInstanceOf(PluginError);
     }
   });
 

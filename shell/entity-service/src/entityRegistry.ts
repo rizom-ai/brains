@@ -5,7 +5,6 @@ import type {
   EntityAdapter,
   EntityRegistry as IEntityRegistry,
 } from "./types";
-import { EntityTypeRegistrationError } from "./errors";
 
 /**
  * Registry for entity types
@@ -59,9 +58,8 @@ export class EntityRegistry implements IEntityRegistry {
 
     // Check for duplicate registration
     if (this.entitySchemas.has(type)) {
-      throw new EntityTypeRegistrationError(
+      throw new Error(
         `Entity type registration failed for ${type}: Entity type is already registered`,
-        { entityType: type, operation: "register" },
       );
     }
 
@@ -80,9 +78,8 @@ export class EntityRegistry implements IEntityRegistry {
   getSchema(type: string): z.ZodType<unknown> {
     const schema = this.entitySchemas.get(type);
     if (!schema) {
-      throw new EntityTypeRegistrationError(
+      throw new Error(
         `Entity type registration failed for ${type}: No schema registered for entity type`,
-        { entityType: type, operation: "getSchema" },
       );
     }
     return schema;
@@ -94,9 +91,8 @@ export class EntityRegistry implements IEntityRegistry {
   getAdapter<T extends BaseEntity>(type: string): EntityAdapter<T> {
     const adapter = this.entityAdapters.get(type);
     if (!adapter) {
-      throw new EntityTypeRegistrationError(
+      throw new Error(
         `Entity type registration failed for ${type}: No adapter registered for entity type`,
-        { entityType: type, operation: "getAdapter" },
       );
     }
     return adapter as EntityAdapter<T>;

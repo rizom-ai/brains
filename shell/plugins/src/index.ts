@@ -47,13 +47,7 @@ export {
 } from "./config";
 
 // Errors
-export {
-  PluginError,
-  PluginRegistrationError,
-  PluginDependencyError,
-  PluginInitializationError,
-  PluginContextError,
-} from "./errors";
+export { PluginError } from "./errors";
 
 // Plugin Manager
 export {

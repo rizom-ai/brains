@@ -2,7 +2,6 @@ import type { ServicePluginContext } from "@brains/service-plugin";
 import { ServicePlugin } from "@brains/service-plugin";
 import type { Plugin, PluginTool } from "@brains/plugins";
 import type { Command, CommandResponse } from "@brains/command-registry";
-import { DirectorySyncInitializationError } from "./errors";
 import { z } from "zod";
 import { DirectorySync } from "./directorySync";
 import {
@@ -46,20 +45,14 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
   private requireDirectorySync(): DirectorySync {
     if (!this.directorySync) {
-      throw new DirectorySyncInitializationError(
-        "DirectorySync service not initialized",
-        { plugin: "directory-sync" },
-      );
+      throw new Error("DirectorySync service not initialized");
     }
     return this.directorySync;
   }
 
   private requirePluginContext(): ServicePluginContext {
     if (!this.pluginContext) {
-      throw new DirectorySyncInitializationError(
-        "Plugin context not initialized",
-        { plugin: "directory-sync" },
-      );
+      throw new Error("Plugin context not initialized");
     }
     return this.pluginContext;
   }

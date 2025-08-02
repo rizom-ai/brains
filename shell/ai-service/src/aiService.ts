@@ -4,7 +4,6 @@ import type { LanguageModelV1 } from "@ai-sdk/provider";
 import type { Logger } from "@brains/utils";
 import type { z } from "zod";
 import type { AIModelConfig, AIService as IAIService } from "./types";
-import { GenerationFailureError } from "./errors";
 
 /**
  * Default model configuration
@@ -109,10 +108,7 @@ export class AIService implements IAIService {
       };
     } catch (error) {
       this.logger.error("Failed to generate text", error);
-      throw new GenerationFailureError("AI text generation failed", {
-        operation: "text",
-        error,
-      });
+      throw new Error("AI text generation failed");
     }
   }
 
@@ -159,10 +155,7 @@ export class AIService implements IAIService {
       };
     } catch (error) {
       this.logger.error("Failed to generate object", error);
-      throw new GenerationFailureError("AI object generation failed", {
-        operation: "object",
-        error,
-      });
+      throw new Error("AI object generation failed");
     }
   }
 

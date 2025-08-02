@@ -4,32 +4,6 @@ import { remark } from "remark";
 import type { Root, Heading, Paragraph, Content } from "mdast";
 
 /**
- * Error thrown when structured content formatting fails
- */
-export class StructuredContentFormattingError extends Error {
-  constructor(
-    message: string,
-    public readonly context?: Record<string, unknown>,
-  ) {
-    super(message);
-    this.name = "StructuredContentFormattingError";
-  }
-}
-
-/**
- * Error thrown when structured content parsing fails
- */
-export class StructuredContentParsingError extends Error {
-  constructor(
-    message: string,
-    public readonly context?: Record<string, unknown>,
-  ) {
-    super(message);
-    this.name = "StructuredContentParsingError";
-  }
-}
-
-/**
  * Field mapping configuration for structured content formatting
  */
 export interface FieldMapping {
@@ -81,11 +55,8 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       }
 
       return lines.join("\n");
-    } catch (error) {
-      throw new StructuredContentFormattingError(
-        "Failed to format structured content",
-        { title: this.config.title, data, cause: error },
-      );
+    } catch {
+      throw new Error("Failed to format structured content");
     }
   }
 
@@ -98,15 +69,8 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       const sections = this.extractSections(tree, 2);
       const data = this.buildDataFromSections(sections, this.config.mappings);
       return this.schema.parse(data);
-    } catch (error) {
-      throw new StructuredContentParsingError(
-        "Failed to parse structured content",
-        {
-          title: this.config.title,
-          contentLength: content.length,
-          cause: error,
-        },
-      );
+    } catch {
+      throw new Error("Failed to parse structured content");
     }
   }
 

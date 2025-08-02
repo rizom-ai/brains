@@ -17,7 +17,7 @@ export type {
 } from "@brains/plugins";
 
 // Re-export commonly used utilities from plugin-base
-export { PluginInitializationError, PluginContextError } from "@brains/plugins";
+export { PluginError } from "@brains/plugins";
 
 // Test harness
 export { CorePluginTestHarness } from "./test/harness";

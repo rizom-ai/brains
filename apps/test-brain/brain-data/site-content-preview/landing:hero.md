@@ -11,7 +11,7 @@ Elevate Your Knowledge Potential
 
 ## Subheadline
 
-Rizom's personal knowledge management system empowers you to capture, connect, and cultivate your insights for greater impact.
+Rizom's personal knowledge management system empowers you to capture, connect, and harness your expertise like never before.
 
 ## CTA Text
 

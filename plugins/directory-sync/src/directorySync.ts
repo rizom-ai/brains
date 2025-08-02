@@ -1,11 +1,6 @@
 import type { Logger } from "@brains/utils";
 import type { IEntityService, BaseEntity } from "@brains/entity-service";
 import type { BatchOperation } from "@brains/job-queue";
-import {
-  FileSystemError,
-  EntitySerializationError,
-  DirectoryWatchError,
-} from "./errors";
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
 import { join, basename, dirname, resolve, isAbsolute } from "path";
@@ -160,11 +155,8 @@ export class DirectorySync {
           await this.writeEntity(entity);
           result.exported++;
           this.logger.debug("Exported entity", { entityType, id: entity.id });
-        } catch (error) {
-          const exportError = new FileSystemError(
-            `Failed to export entity ${entity.id}`,
-            { entityId: entity.id, entityType, error },
-          );
+        } catch {
+          const exportError = new Error(`Failed to export entity ${entity.id}`);
           result.failed++;
           result.errors.push({
             entityId: entity.id,
@@ -254,15 +246,10 @@ export class DirectorySync {
           };
 
           await this.entityService.upsertEntity(entity);
-        } catch (deserializeError) {
+        } catch {
           // Skip if entity type is not registered or deserialization fails
-          const serializationError = new EntitySerializationError(
+          const serializationError = new Error(
             "Unable to deserialize entity from file",
-            {
-              path: filePath,
-              entityType: rawEntity.entityType,
-              error: deserializeError,
-            },
           );
           this.logger.debug("Skipping file - unable to deserialize", {
             path: filePath,
@@ -277,11 +264,8 @@ export class DirectorySync {
           path: filePath,
           entityType: rawEntity.entityType,
         });
-      } catch (error) {
-        const importError = new FileSystemError(
-          `Failed to import entity from file`,
-          { path: filePath, error },
-        );
+      } catch {
+        const importError = new Error(`Failed to import entity from file`);
         result.failed++;
         result.errors.push({
           path: filePath,
@@ -602,11 +586,8 @@ export class DirectorySync {
           this.logger.warn("File deleted, manual sync required", { path });
           break;
       }
-    } catch (error) {
-      const watchError = new DirectoryWatchError(
-        "Failed to handle file change event",
-        { event, path, error },
-      );
+    } catch {
+      const watchError = new Error("Failed to handle file change event");
       this.logger.error("Failed to handle file change", {
         event,
         path,

@@ -8,12 +8,6 @@ import type { PluginManager } from "@brains/plugins";
 import { BaseEntityAdapter } from "../entities/base-entity-adapter";
 import { knowledgeQueryTemplate } from "../templates";
 import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
-import {
-  DatabaseError,
-  TemplateRegistrationError,
-  EntityRegistrationError,
-  InitializationError,
-} from "../errors";
 
 /**
  * Handles Shell initialization logic
@@ -89,10 +83,7 @@ export class ShellInitializer {
       this.logger.debug("Database initialization complete");
     } catch (error) {
       this.logger.error("Failed to initialize database", error);
-      throw new DatabaseError("WAL mode initialization failed", {
-        url: this.config.database.url,
-        cause: error,
-      });
+      throw new Error("WAL mode initialization failed");
     }
   }
 
@@ -112,9 +103,8 @@ export class ShellInitializer {
       this.logger.debug("Shell system templates registered successfully");
     } catch (error) {
       this.logger.error("Failed to register shell templates", error);
-      throw new TemplateRegistrationError(
+      throw new Error(
         `Failed to register template: ${knowledgeQueryTemplate.name}`,
-        { pluginId: "shell", cause: error },
       );
     }
   }
@@ -152,10 +142,7 @@ export class ShellInitializer {
       this.logger.debug("Base entity support registered successfully");
     } catch (error) {
       this.logger.error("Failed to register base entity support", error);
-      throw new EntityRegistrationError("Failed to register base entity type", {
-        entityType: "base",
-        cause: error,
-      });
+      throw new Error("Failed to register base entity type");
     }
   }
 
@@ -185,10 +172,7 @@ export class ShellInitializer {
       this.logger.info("Plugin initialization complete");
     } catch (error) {
       this.logger.error("Failed to initialize plugins", error);
-      throw new InitializationError("Failed to initialize plugins", {
-        component: "plugins",
-        cause: error,
-      });
+      throw new Error("Failed to initialize plugins");
     }
   }
 

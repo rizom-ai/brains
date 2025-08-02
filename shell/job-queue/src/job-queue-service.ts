@@ -14,7 +14,6 @@ import {
   type JobQueue,
 } from "@brains/db";
 import { Logger } from "@brains/utils";
-import { JobOperationError } from "./errors";
 import type { IJobQueueService, JobHandler } from "./types";
 import { JOB_STATUS } from "./schemas";
 
@@ -144,19 +143,13 @@ export class JobQueueService implements IJobQueueService {
       }
 
       if (!handler) {
-        throw new JobOperationError(
-          `No handler registered for job type: ${scopedType}`,
-          { type, pluginId },
-        );
+        throw new Error(`No handler registered for job type: ${scopedType}`);
       }
 
       // Always validate and parse data
       const parsedData = handler.validateAndParse(data);
       if (parsedData === null) {
-        throw new JobOperationError(`Invalid job data for type: ${type}`, {
-          type,
-          pluginId,
-        });
+        throw new Error(`Invalid job data for type: ${type}`);
       }
 
       // Use the parsed data for the job

@@ -3,7 +3,6 @@ import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler } from "../src/types";
 import { createTestDatabase } from "../../integration-tests/test/helpers/test-db";
 import { createSilentLogger } from "@brains/utils";
-import { JobOperationError } from "../src/errors";
 import type { EntityWithoutEmbedding, DrizzleDB } from "@brains/db";
 import type { ProgressReporter } from "@brains/utils";
 import type { JobContext } from "@brains/db";
@@ -149,8 +148,8 @@ describe("JobQueueService", () => {
         });
         expect().fail("Should have thrown an error");
       } catch (error) {
-        expect(error).toBeInstanceOf(JobOperationError);
-        if (error instanceof JobOperationError) {
+        expect(error).toBeInstanceOf(Error);
+        if (error instanceof Error) {
           expect(error.message).toContain(
             "No handler registered for job type: shell:embedding",
           );
@@ -237,8 +236,8 @@ describe("JobQueueService", () => {
         });
         expect().fail("Should have thrown an error");
       } catch (error) {
-        expect(error).toBeInstanceOf(JobOperationError);
-        if (error instanceof JobOperationError) {
+        expect(error).toBeInstanceOf(Error);
+        if (error instanceof Error) {
           expect(error.message).toContain(
             "No handler registered for job type: shell:embedding",
           );
@@ -259,8 +258,8 @@ describe("JobQueueService", () => {
         });
         expect().fail("Should have thrown an error");
       } catch (error) {
-        expect(error).toBeInstanceOf(JobOperationError);
-        if (error instanceof JobOperationError) {
+        expect(error).toBeInstanceOf(Error);
+        if (error instanceof Error) {
           expect(error.message).toContain(
             "Invalid job data for type: embedding",
           );

@@ -15,7 +15,7 @@ The Tools and Solutions Powering Transformation
 
 ## Description
 
-Rizom brings together a curated portfolio of innovative products and services designed to help organizations and communities navigate the complex challenges of digital transformation and ecosystem development. From strategic advisory to practical tools and solutions, our offerings empower leaders to drive sustainable change and build resilient, future-ready ecosystems.
+Rizom brings together a curated portfolio of digital tools, services, and solutions to help organizations navigate the complex landscape of digital transformation. Our ecosystem empowers teams to accelerate innovation, optimize operations, and drive sustainable growth.
 
 ## Products
 
@@ -23,19 +23,19 @@ Rizom brings together a curated portfolio of innovative products and services de
 
 #### ID
 
-rizom-advisory
+rizom-studio
 
 #### Name
 
-Rizom Advisory
+Rizom Studio
 
 #### Tagline
 
-Strategic guidance for ecosystem innovation
+Collaborative design for complex systems
 
 #### Description
 
-Our team of seasoned experts provide tailored advisory services to help organizations define their transformation roadmap, design effective ecosystem strategies, and build the capabilities required to thrive in the digital age.
+A visual modeling and simulation platform that enables cross-functional teams to co-create, iterate, and validate ecosystem strategies.
 
 #### Status
 
@@ -51,19 +51,19 @@ Brain
 
 #### ID
 
-rizom-blueprint
+ecosystem-navigator
 
 #### Name
 
-Rizom Blueprint
+Ecosystem Navigator
 
 #### Tagline
 
-Collaborative ecosystem design platform
+Map, analyze, and optimize your business ecosystem
 
 #### Description
 
-Rizom Blueprint is a powerful digital platform that enables cross-functional teams to visualize, model, and plan their ecosystem architecture. It supports iterative design, stakeholder alignment, and ongoing evolution of complex systems.
+A comprehensive platform for mapping, monitoring, and optimizing business ecosystems, providing data-driven insights to drive strategic decisions.
 
 #### Status
 
@@ -79,23 +79,23 @@ Network
 
 #### ID
 
-rizom-labs
+transformation-playbook
 
 #### Name
 
-Rizom Labs
+Transformation Playbook
 
 #### Tagline
 
-Rapid prototyping for new solutions
+Proven frameworks for organizational change
 
 #### Description
 
-Rizom Labs is our in-house innovation hub where we ideate, experiment, and rapidly develop new digital products and services to address emerging ecosystem challenges. Our multidisciplinary teams work closely with clients to co-create tailored solutions.
+A curated collection of methodologies, tools, and best practices to guide organizations through successful digital transformation initiatives.
 
 #### Status
 
-alpha
+live
 
 #### Link
 
@@ -107,19 +107,19 @@ Wrench
 
 #### ID
 
-rizom-insights
+ecosystem-academy
 
 #### Name
 
-Rizom Insights
+Ecosystem Academy
 
 #### Tagline
 
-Data-driven ecosystem intelligence
+Learn the art of ecosystem design
 
 #### Description
 
-Rizom Insights leverages advanced analytics and visualization to provide organizations with deep, actionable intelligence about their ecosystem dynamics. Our platform surfaces key trends, interdependencies, and opportunities to inform strategic decision-making.
+Online and in-person training programs that empower professionals to develop the skills and mindsets needed to thrive in the age of ecosystems.
 
 #### Status
 
@@ -129,4 +129,4 @@ live
 
 #### Icon
 
-Database
+Globe

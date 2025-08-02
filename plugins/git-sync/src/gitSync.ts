@@ -1,6 +1,5 @@
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
-import { GitRepositoryError, GitNetworkError } from "./errors";
 import { existsSync, mkdirSync } from "fs";
 import { join, basename } from "path";
 import { z } from "zod";
@@ -304,10 +303,9 @@ export class GitSync {
     try {
       await this.git.push("origin", this.branch);
       this.logger.info("Pushed changes to remote");
-    } catch (error) {
-      const pushError = new GitNetworkError(
+    } catch {
+      const pushError = new Error(
         "Failed to push changes to remote repository",
-        { branch: this.branch, gitUrl: this.gitUrl, error },
       );
       this.logger.error("Failed to push changes", { error: pushError });
       throw pushError;
@@ -339,10 +337,9 @@ export class GitSync {
           result: importResponse.data,
         });
       }
-    } catch (error) {
-      const pullError = new GitNetworkError(
+    } catch {
+      const pullError = new Error(
         "Failed to pull changes from remote repository",
-        { branch: this.branch, gitUrl: this.gitUrl, error },
       );
       this.logger.error("Failed to pull changes", { error: pullError });
       throw pullError;
@@ -390,12 +387,8 @@ export class GitSync {
       }
 
       this.logger.info("Sync completed successfully");
-    } catch (error) {
-      const syncError = new GitRepositoryError("Git synchronization failed", {
-        branch: this.branch,
-        gitUrl: this.gitUrl,
-        error,
-      });
+    } catch {
+      const syncError = new Error("Git synchronization failed");
       this.logger.error("Sync failed", { error: syncError });
       throw syncError;
     }

@@ -4,7 +4,6 @@ import type {
   CorePluginContext,
 } from "@brains/core-plugin";
 import { CorePlugin } from "@brains/core-plugin";
-import { GitSyncInitializationError } from "./errors";
 import { z } from "zod";
 import { GitSync } from "./gitSync";
 import {
@@ -29,9 +28,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
   private getGitSync(): GitSync {
     if (!this.gitSync) {
-      throw new GitSyncInitializationError("Git sync service not initialized", {
-        plugin: "git-sync",
-      });
+      throw new Error("Git sync service not initialized");
     }
     return this.gitSync;
   }

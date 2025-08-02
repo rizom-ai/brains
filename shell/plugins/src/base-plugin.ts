@@ -10,7 +10,6 @@ import type { Command } from "@brains/command-registry";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "@brains/plugins";
 import { ToolContextRoutingSchema } from "./interfaces";
-import { PluginContextError } from "./errors";
 import {
   Logger,
   type UserPermissionLevel,
@@ -373,7 +372,7 @@ export abstract class BasePlugin<
    */
   protected getContext(): TContext {
     if (!this.context) {
-      throw new PluginContextError(this.id, "Plugin not registered yet");
+      throw new Error(`Plugin ${this.id}: Plugin not registered yet`);
     }
     return this.context;
   }

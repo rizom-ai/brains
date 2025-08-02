@@ -23,7 +23,6 @@ import {
 import { GenerateOptionsSchema } from "@brains/content-management";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
-import { SiteBuilderInitializationError } from "./errors";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import packageJson from "../package.json";
 
@@ -218,10 +217,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         },
         async (input, context): Promise<Record<string, unknown>> => {
           if (!this.contentManager || !this.pluginContext) {
-            throw new SiteBuilderInitializationError(
-              "Content manager not initialized",
-              { tool: "generate" },
-            );
+            throw new Error("Content manager not initialized");
           }
 
           // Parse and validate input using the schema

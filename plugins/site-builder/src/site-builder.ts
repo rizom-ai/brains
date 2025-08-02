@@ -15,7 +15,6 @@ import type {
   BuildContext,
 } from "./static-site-builder";
 import { createPreactBuilder } from "./preact-builder";
-import { SiteBuildError } from "./errors";
 import { join } from "path";
 
 export class SiteBuilder implements ISiteBuilder {
@@ -186,11 +185,8 @@ export class SiteBuilder implements ISiteBuilder {
       }
 
       return result;
-    } catch (error) {
-      const buildError = new SiteBuildError("Site build process failed", {
-        options,
-        error,
-      });
+    } catch {
+      const buildError = new Error("Site build process failed");
       this.logger.error("Site build failed", { error: buildError });
 
       errors.push(buildError.message);

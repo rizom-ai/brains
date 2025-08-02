@@ -17,7 +17,7 @@ Transform how you capture, connect, and leverage your expertise with Rizom's per
 
 ### Text
 
-Get Started Now
+Start Free Trial
 
 ### Link
 
@@ -27,7 +27,7 @@ Get Started Now
 
 ### Text
 
-Watch Demo
+View Demo
 
 ### Link
 
