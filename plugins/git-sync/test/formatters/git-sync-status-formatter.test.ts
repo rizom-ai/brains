@@ -94,6 +94,9 @@ describe("GitSyncStatusFormatter", () => {
         isRepo: true,
         hasChanges: false,
         branch: "main",
+        ahead: 0,
+        behind: 0,
+        files: [],
       };
 
       expect(formatter.canFormat(status)).toBe(true);

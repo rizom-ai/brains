@@ -1,11 +1,10 @@
-import type { Logger } from "@brains/utils";
-import type { MessageSender } from "@brains/messaging-service";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 import { GitRepositoryError, GitNetworkError } from "./errors";
 import { existsSync, mkdirSync } from "fs";
 import { join, basename } from "path";
 import { z } from "zod";
+import type { CorePluginContext } from "@brains/core-plugin";
 
 /**
  * GitSync options schema
@@ -21,10 +20,7 @@ export const gitSyncOptionsSchema = z.object({
   authToken: z.string().optional(),
 });
 
-export type GitSyncOptions = z.infer<typeof gitSyncOptionsSchema> & {
-  sendMessage: MessageSender;
-  logger: Logger;
-};
+export type GitSyncOptions = z.infer<typeof gitSyncOptionsSchema> & CorePluginContext;
 
 /**
  * Git sync status
@@ -48,8 +44,8 @@ export interface GitSyncStatus {
  */
 export class GitSync {
   private _git: SimpleGit | null = null;
-  private sendMessage: MessageSender;
-  private logger: Logger;
+  private sendMessage: CorePluginContext["sendMessage"];
+  private logger: CorePluginContext["logger"];
   private gitUrl: string;
   private branch: string;
   private autoSync: boolean;
@@ -62,12 +58,11 @@ export class GitSync {
   private repoPath: string = "";
 
   constructor(options: GitSyncOptions) {
-    // Validate options (excluding the complex types)
-    const { logger, sendMessage, ...validatableOptions } = options;
-    gitSyncOptionsSchema.parse(validatableOptions);
-
+    // Extract what we need from the context
+    const { logger, sendMessage } = options;
+    
     this.sendMessage = sendMessage;
-    this.logger = logger.child("GitSync");
+    this.logger = logger;
     this.gitUrl = options.gitUrl;
     this.branch = options.branch;
     this.autoSync = options.autoSync;
@@ -311,8 +306,7 @@ export class GitSync {
     } catch (error) {
       const pushError = new GitNetworkError(
         "Failed to push changes to remote repository",
-        error,
-        { branch: this.branch, gitUrl: this.gitUrl },
+        { branch: this.branch, gitUrl: this.gitUrl, error },
       );
       this.logger.error("Failed to push changes", { error: pushError });
       throw pushError;
@@ -347,8 +341,7 @@ export class GitSync {
     } catch (error) {
       const pullError = new GitNetworkError(
         "Failed to pull changes from remote repository",
-        error,
-        { branch: this.branch, gitUrl: this.gitUrl },
+        { branch: this.branch, gitUrl: this.gitUrl, error },
       );
       this.logger.error("Failed to pull changes", { error: pullError });
       throw pullError;
@@ -399,8 +392,7 @@ export class GitSync {
     } catch (error) {
       const syncError = new GitRepositoryError(
         "Git synchronization failed",
-        error,
-        { branch: this.branch, gitUrl: this.gitUrl },
+        { branch: this.branch, gitUrl: this.gitUrl, error },
       );
       this.logger.error("Sync failed", { error: syncError });
       throw syncError;

@@ -27,14 +27,22 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
     super("git-sync", packageJson, config, gitSyncConfigSchema, {});
   }
 
+  private getGitSync(): GitSync {
+    if (!this.gitSync) {
+      throw new GitSyncInitializationError(
+        "Git sync service not initialized",
+        { plugin: "git-sync" },
+      );
+    }
+    return this.gitSync;
+  }
+
   /**
    * Initialize the plugin
    */
   protected override async onRegister(
     context: CorePluginContext,
   ): Promise<void> {
-    const { logger } = context;
-
     // Register our template for git sync status
     context.registerTemplates({
       status: {
@@ -57,8 +65,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
       authorName: this.config.authorName,
       authorEmail: this.config.authorEmail,
       authToken: this.config.authToken,
-      sendMessage: context.sendMessage,
-      logger,
+      ...context,
     });
 
     // Initialize repository
@@ -76,14 +83,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
         inputSchema: {},
         visibility: "anchor", // Only anchor user can sync
         handler: async (): Promise<{ message: string }> => {
-          if (!this.gitSync) {
-            throw new GitSyncInitializationError(
-              "Git sync service not initialized",
-              "Plugin not properly configured",
-              { tool: "git-sync" },
-            );
-          }
-          await this.gitSync.sync();
+          await this.getGitSync().sync();
           return {
             message: "Git sync completed successfully",
           };
@@ -99,14 +99,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
         visibility: "anchor", // Only anchor user can commit
         handler: async (input: unknown): Promise<{ message: string }> => {
           const { commitMessage } = input as { commitMessage?: string };
-          if (!this.gitSync) {
-            throw new GitSyncInitializationError(
-              "Git sync service not initialized",
-              "Plugin not properly configured",
-              { tool: "git-sync" },
-            );
-          }
-          await this.gitSync.commit(commitMessage);
+          await this.getGitSync().commit(commitMessage);
           return {
             message: "Changes committed successfully",
           };
@@ -119,14 +112,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
         inputSchema: {},
         visibility: "anchor", // Only anchor user can push
         handler: async (): Promise<{ message: string }> => {
-          if (!this.gitSync) {
-            throw new GitSyncInitializationError(
-              "Git sync service not initialized",
-              "Plugin not properly configured",
-              { tool: "git-sync" },
-            );
-          }
-          await this.gitSync.push();
+          await this.getGitSync().push();
           return {
             message: "Pushed to remote successfully",
           };
@@ -139,14 +125,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
         inputSchema: {},
         visibility: "anchor", // Only anchor user can pull
         handler: async (): Promise<{ message: string }> => {
-          if (!this.gitSync) {
-            throw new GitSyncInitializationError(
-              "Git sync service not initialized",
-              "Plugin not properly configured",
-              { tool: "git-sync" },
-            );
-          }
-          await this.gitSync.pull();
+          await this.getGitSync().pull();
           return {
             message: "Pulled from remote successfully",
           };
@@ -159,14 +138,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
         inputSchema: {},
         visibility: "public", // Anyone can check status
         handler: async (): Promise<unknown> => {
-          if (!this.gitSync) {
-            throw new GitSyncInitializationError(
-              "Git sync service not initialized",
-              "Plugin not properly configured",
-              { tool: "git-sync" },
-            );
-          }
-          return this.gitSync.getStatus();
+          return this.getGitSync().getStatus();
         },
       },
 
@@ -179,19 +151,13 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
         visibility: "anchor", // Only anchor user can control auto-sync
         handler: async (input: unknown): Promise<{ message: string }> => {
           const { autoSync } = input as { autoSync: boolean };
-          if (!this.gitSync) {
-            throw new GitSyncInitializationError(
-              "Git sync service not initialized",
-              "Plugin not properly configured",
-              { tool: "git-sync" },
-            );
-          }
+          const gitSync = this.getGitSync();
 
           if (autoSync) {
-            this.gitSync.startAutoSync();
+            gitSync.startAutoSync();
             return { message: "Auto-sync started" };
           } else {
-            this.gitSync.stopAutoSync();
+            gitSync.stopAutoSync();
             return { message: "Auto-sync stopped" };
           }
         },

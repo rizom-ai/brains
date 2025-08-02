@@ -1,15 +1,13 @@
-import { BrainsError, normalizeError, type ErrorCause } from "@brains/utils";
-
 /**
  * Base error class for git-sync plugin operations
  */
-export class GitSyncError extends BrainsError {
+export class GitSyncError extends Error {
   constructor(
     message: string,
-    cause: ErrorCause,
-    context?: Record<string, unknown>,
+    public readonly context?: Record<string, unknown>,
   ) {
-    super(message, "GIT_SYNC_ERROR", normalizeError(cause), context ?? {});
+    super(message);
+    this.name = "GitSyncError";
   }
 }
 
@@ -19,10 +17,9 @@ export class GitSyncError extends BrainsError {
 export class GitRepositoryError extends GitSyncError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "GitRepositoryError";
   }
 }
@@ -33,10 +30,9 @@ export class GitRepositoryError extends GitSyncError {
 export class GitNetworkError extends GitSyncError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "GitNetworkError";
   }
 }
@@ -47,10 +43,9 @@ export class GitNetworkError extends GitSyncError {
 export class GitAuthenticationError extends GitSyncError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "GitAuthenticationError";
   }
 }
@@ -61,10 +56,9 @@ export class GitAuthenticationError extends GitSyncError {
 export class GitSyncInitializationError extends GitSyncError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "GitSyncInitializationError";
   }
 }
@@ -75,10 +69,9 @@ export class GitSyncInitializationError extends GitSyncError {
 export class GitCommitError extends GitSyncError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "GitCommitError";
   }
 }

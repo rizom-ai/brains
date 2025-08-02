@@ -1,10 +1,10 @@
-import { ResponseFormatter } from "@brains/utils";
 import type { GitSyncStatus } from "../schemas";
+import { gitSyncStatusSchema } from "../schemas";
 
 /**
  * Formatter for git sync status
  */
-export class GitSyncStatusFormatter extends ResponseFormatter<GitSyncStatus> {
+export class GitSyncStatusFormatter {
   format(data: GitSyncStatus): string {
     const status = data;
     const parts: string[] = [];
@@ -58,7 +58,12 @@ export class GitSyncStatusFormatter extends ResponseFormatter<GitSyncStatus> {
   }
 
   canFormat(data: unknown): boolean {
-    return this.hasFields(data, ["branch", "hasChanges", "isRepo"]);
+    return gitSyncStatusSchema.safeParse(data).success;
+  }
+
+  parse(_content: string): GitSyncStatus {
+    // Git sync status is read-only, parsing is not supported
+    throw new Error("Git sync status cannot be parsed from markdown");
   }
 
   private formatFileList(
