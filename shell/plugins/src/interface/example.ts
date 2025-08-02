@@ -148,7 +148,11 @@ export class WebserverInterfacePlugin extends InterfacePlugin<WebserverConfig> {
           timestamp: z.string(),
         }),
         formatter: {
-          format: (data: { data: unknown; status: string; timestamp: string }) => {
+          format: (data: {
+            data: unknown;
+            status: string;
+            timestamp: string;
+          }) => {
             return JSON.stringify(
               {
                 status: data.status,

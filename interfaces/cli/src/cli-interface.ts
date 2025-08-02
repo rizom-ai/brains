@@ -1,7 +1,7 @@
 import {
   MessageInterfacePlugin,
   type MessageInterfacePluginContext,
-} from "@brains/message-interface-plugin";
+} from "@brains/plugins";
 import type { MessageContext } from "@brains/messaging-service";
 import type { Command } from "@brains/command-registry";
 import { PluginError, type Daemon, type DaemonHealth } from "@brains/plugins";

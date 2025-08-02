@@ -8,7 +8,7 @@ import {
   afterAll,
 } from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
-import { MessageInterfacePluginTestHarness } from "@brains/message-interface-plugin";
+import { MessageInterfacePluginTestHarness } from "@brains/plugins";
 import type { CLIConfig } from "../src/types";
 
 // Mock console.clear

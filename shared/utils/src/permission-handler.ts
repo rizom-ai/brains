@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { PluginTool } from "@brains/plugins";
 
 /**
  * User permission level schema
@@ -11,6 +10,14 @@ export const UserPermissionLevelSchema = z.enum([
 ]);
 
 export type UserPermissionLevel = z.infer<typeof UserPermissionLevelSchema>;
+
+/**
+ * Generic interface for items with visibility
+ * Used to avoid circular dependency with plugins package
+ */
+export interface WithVisibility {
+  visibility?: UserPermissionLevel;
+}
 
 /**
  * Handles permission checking and tool filtering for all interfaces
@@ -75,10 +82,10 @@ export class PermissionHandler {
   /**
    * Filter tools based on user permission level
    */
-  filterToolsByPermission(
-    tools: PluginTool[],
+  filterToolsByPermission<T extends WithVisibility>(
+    tools: T[],
     userLevel: UserPermissionLevel,
-  ): PluginTool[] {
+  ): T[] {
     // Anchor gets all tools
     if (userLevel === "anchor") {
       return tools;
@@ -98,7 +105,7 @@ export class PermissionHandler {
   /**
    * Filter tools based on user ID (convenience method)
    */
-  filterToolsByUserId(tools: PluginTool[], userId: string): PluginTool[] {
+  filterToolsByUserId<T extends WithVisibility>(tools: T[], userId: string): T[] {
     const level = this.getUserPermissionLevel(userId);
     return this.filterToolsByPermission(tools, level);
   }

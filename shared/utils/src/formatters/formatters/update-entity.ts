@@ -2,7 +2,7 @@ import { ResponseFormatter } from "./base";
 import {
   updateEntityResponseSchema,
   type UpdateEntityResponse,
-} from "@brains/plugins";
+} from "../../response-types";
 
 export class UpdateEntityResponseFormatter extends ResponseFormatter<UpdateEntityResponse> {
   format(data: UpdateEntityResponse): string {

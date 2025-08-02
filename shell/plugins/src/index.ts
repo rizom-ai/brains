@@ -19,6 +19,15 @@ export type { InterfacePluginContext } from "./interface/context";
 export { createInterfacePluginContext } from "./interface/context";
 export { InterfacePluginTestHarness } from "./interface/test/harness";
 
+// Message Interface plugin
+export { MessageInterfacePlugin } from "./message-interface/message-interface-plugin";
+export type { MessageInterfacePluginContext } from "./message-interface/context";
+export { MessageInterfacePluginTestHarness } from "./message-interface/test/harness";
+export {
+  setupProgressHandler,
+  extractJobContext,
+} from "./message-interface/progress-handler";
+
 // Plugin types and interfaces
 export type {
   IShell,
@@ -157,7 +166,7 @@ export type {
   ProgressNotification,
   UserPermissionLevel,
 } from "@brains/utils";
-export { createSilentLogger, DefaultContentFormatter } from "@brains/utils";
+export { createSilentLogger } from "@brains/utils";
 
 // Test utilities from @brains/core
 export { MockShell } from "@brains/core/test";

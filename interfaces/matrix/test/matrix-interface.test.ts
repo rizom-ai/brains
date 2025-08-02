@@ -2,7 +2,7 @@ import "./mocks/setup";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { MatrixInterface } from "../src/matrix-interface";
 import type { MatrixConfigInput } from "../src/schemas";
-import { MessageInterfacePluginTestHarness } from "@brains/message-interface-plugin";
+import { MessageInterfacePluginTestHarness } from "@brains/plugins";
 
 // Access the global mocks
 const mockMatrixClient = globalThis.mockMatrixClient;
