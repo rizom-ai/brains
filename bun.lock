@@ -37,9 +37,8 @@
       "name": "@brains/cli",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/message-interface": "workspace:*",
+        "@brains/message-interface-plugin": "workspace:*",
         "@brains/plugin-utils": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "chalk": "^5.4.1",
         "ink": "^6.0.1",
@@ -59,9 +58,8 @@
       "name": "@brains/matrix",
       "version": "0.0.1",
       "dependencies": {
-        "@brains/message-interface": "workspace:*",
+        "@brains/message-interface-plugin": "workspace:*",
         "@brains/plugin-utils": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "matrix-bot-sdk": "^0.7.1",
         "p-queue": "^8.0.1",
@@ -70,7 +68,6 @@
       "devDependencies": {
         "@brains/core": "workspace:*",
         "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
       },
@@ -97,7 +94,6 @@
       "dependencies": {
         "@brains/mcp-server": "workspace:*",
         "@brains/plugin-utils": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.0.0",
       },
@@ -134,14 +130,12 @@
       "version": "0.0.1",
       "dependencies": {
         "@brains/interface-plugin": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "@hono/bun-compress": "^0.1.0",
         "hono": "^4.6.14",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.1.17",
         "@types/node": "^20.11.5",
@@ -160,7 +154,6 @@
         "@brains/messaging-service": "workspace:*",
         "@brains/plugin-utils": "workspace:*",
         "@brains/service-plugin": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "chokidar": "^3.5.3",
         "gray-matter": "^4.0.3",
@@ -171,9 +164,6 @@
         "@types/node": "^20.0.0",
         "typescript": "^5.2.2",
       },
-      "peerDependencies": {
-        "@brains/types": "workspace:*",
-      },
     },
     "plugins/git-sync": {
       "name": "@brains/git-sync",
@@ -181,14 +171,12 @@
       "dependencies": {
         "@brains/core-plugin": "workspace:*",
         "@brains/directory-sync": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "simple-git": "^3.21.0",
         "zod": "^3.24.1",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "@types/node": "^20.0.0",
@@ -203,7 +191,6 @@
         "@brains/entity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/service-plugin": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "@brains/view-registry": "workspace:*",
         "@tailwindcss/cli": "^4.0.0",
@@ -215,7 +202,6 @@
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.1.17",
         "@types/react": "^18.2.0",
@@ -227,6 +213,7 @@
       "name": "@brains/content-management",
       "version": "1.0.0",
       "dependencies": {
+        "@brains/entity-service": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.22.4",
       },
@@ -242,10 +229,7 @@
       "name": "@brains/core-plugin",
       "version": "1.0.0",
       "dependencies": {
-        "@brains/messaging-service": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
         "zod": "^3.24.1",
       },
       "devDependencies": {
@@ -260,7 +244,6 @@
       "name": "@brains/default-site-content",
       "version": "0.0.1",
       "dependencies": {
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "lucide-preact": "^0.460.0",
         "preact": "^10.19.3",
@@ -287,13 +270,8 @@
       "name": "@brains/interface-plugin",
       "version": "1.0.0",
       "dependencies": {
-        "@brains/command-registry": "workspace:*",
         "@brains/core-plugin": "workspace:*",
-        "@brains/messaging-service": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/service-registry": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
         "zod": "^3.24.1",
       },
       "devDependencies": {
@@ -304,44 +282,17 @@
         "typescript": "~5.7.2",
       },
     },
-    "shared/message-interface": {
-      "name": "@brains/message-interface",
-      "version": "0.0.1",
-      "dependencies": {
-        "@brains/db": "workspace:*",
-        "@brains/job-queue": "workspace:*",
-        "@brains/plugin-utils": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "p-queue": "^8.0.1",
-        "zod": "^3.24.1",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.1.17",
-        "eslint": "^8.48.0",
-        "typescript": "^5.7.3",
-      },
-    },
     "shared/message-interface-plugin": {
       "name": "@brains/message-interface-plugin",
       "version": "0.0.1",
       "dependencies": {
-        "@brains/command-registry": "workspace:*",
-        "@brains/db": "workspace:*",
         "@brains/interface-plugin": "workspace:*",
-        "@brains/job-queue": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
         "p-queue": "^8.0.1",
         "zod": "^3.24.1",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.1.17",
         "eslint": "^8.48.0",
@@ -353,7 +304,6 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/entity-service": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "@brains/view-registry": "workspace:*",
         "p-queue": "^8.0.1",
@@ -374,15 +324,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@brains/core-plugin": "workspace:*",
-        "@brains/db": "workspace:*",
-        "@brains/entity-service": "workspace:*",
-        "@brains/job-queue": "workspace:*",
-        "@brains/messaging-service": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/service-registry": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "@brains/view-registry": "workspace:*",
         "zod": "^3.24.1",
       },
       "devDependencies": {
@@ -391,40 +333,6 @@
         "@types/bun": "^1.1.14",
         "eslint": "^8.56.0",
         "typescript": "~5.7.2",
-      },
-    },
-    "shared/test-utils": {
-      "name": "@brains/test-utils",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/entity-service": "workspace:*",
-        "@brains/types": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "zod": "^3.22.4",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/node": "^20.11.24",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "shared/types": {
-      "name": "@brains/types",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/utils": "workspace:*",
-        "@modelcontextprotocol/sdk": "^1.12.0",
-        "preact": "^10.19.3",
-        "zod": "^3.24.1",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
       },
     },
     "shared/typescript-config": {
@@ -474,7 +382,6 @@
       "version": "0.1.0",
       "dependencies": {
         "@ai-sdk/anthropic": "^1.2.12",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "ai": "^4.3.16",
         "zod": "^3.24.1",
@@ -507,13 +414,10 @@
       "name": "@brains/command-registry",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/message-interface": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.22.4",
       },
       "devDependencies": {
-        "@brains/test-utils": "workspace:*",
         "bun-types": "latest",
       },
     },
@@ -523,7 +427,6 @@
       "dependencies": {
         "@brains/db": "workspace:*",
         "@brains/job-queue": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.23.8",
       },
@@ -549,7 +452,6 @@
         "@brains/mcp-server": "workspace:*",
         "@brains/messaging-service": "workspace:*",
         "@brains/service-registry": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "@brains/view-registry": "workspace:*",
         "@libsql/client": "^0.15.7",
@@ -580,7 +482,6 @@
       "name": "@brains/daemon-registry",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
@@ -613,7 +514,6 @@
       "name": "@brains/embedding-service",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "fastembed": "^1.14.4",
         "zod": "^3.24.1",
@@ -632,8 +532,8 @@
         "@brains/db": "workspace:*",
         "@brains/embedding-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
+        "gray-matter": "^4.0.3",
         "zod": "^3.22.4",
       },
       "devDependencies": {
@@ -650,7 +550,6 @@
         "@brains/app": "workspace:*",
         "@brains/core": "workspace:*",
         "@brains/mcp-server": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.15.7",
         "drizzle-orm": "^0.29.4",
@@ -668,7 +567,6 @@
       "version": "0.0.0",
       "dependencies": {
         "@brains/db": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "drizzle-orm": "^0.38.1",
         "zod": "^3.23.8",
@@ -686,7 +584,6 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/db": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.24.1",
       },
@@ -704,7 +601,6 @@
       "dependencies": {
         "@brains/command-registry": "workspace:*",
         "@brains/messaging-service": "workspace:*",
-        "@brains/types": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.24.1",
       },
@@ -733,9 +629,6 @@
     "shell/view-registry": {
       "name": "@brains/view-registry",
       "version": "0.1.0",
-      "dependencies": {
-        "@brains/types": "workspace:*",
-      },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -829,8 +722,6 @@
 
     "@brains/mcp-server": ["@brains/mcp-server@workspace:interfaces/mcp-server"],
 
-    "@brains/message-interface": ["@brains/message-interface@workspace:shared/message-interface"],
-
     "@brains/message-interface-plugin": ["@brains/message-interface-plugin@workspace:shared/message-interface-plugin"],
 
     "@brains/messaging-service": ["@brains/messaging-service@workspace:shell/messaging-service"],
@@ -846,10 +737,6 @@
     "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
 
     "@brains/test-brain": ["@brains/test-brain@workspace:apps/test-brain"],
-
-    "@brains/test-utils": ["@brains/test-utils@workspace:shared/test-utils"],
-
-    "@brains/types": ["@brains/types@workspace:shared/types"],
 
     "@brains/typescript-config": ["@brains/typescript-config@workspace:shared/typescript-config"],
 
@@ -1129,7 +1016,7 @@
 
     "@types/body-parser": ["@types/body-parser@1.19.6", "", { "dependencies": { "@types/connect": "*", "@types/node": "*" } }, "sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g=="],
 
-    "@types/bun": ["@types/bun@1.2.18", "", { "dependencies": { "bun-types": "1.2.18" } }, "sha512-Xf6RaWVheyemaThV0kUfaAUvCNokFr+bH8Jxp+tTZfx7dAPA8z9ePnP9S9+Vspzuxxx9JRAXhnyccRj3GyCMdQ=="],
+    "@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
 
     "@types/chai": ["@types/chai@5.2.2", "", { "dependencies": { "@types/deep-eql": "*" } }, "sha512-8kB30R7Hwqf40JPiKhVzodJs2Qc1ZJ5zuT3uzw5Hq/dhNCl3G3l83jfpdI1e20BP348+fV7VIL/+FxaXkqBmWg=="],
 
@@ -2303,33 +2190,9 @@
 
     "@anthropic-ai/sdk/@types/node": ["@types/node@18.19.113", "", { "dependencies": { "undici-types": "~5.26.4" } }, "sha512-TmSTE9vyebJ9vSEiU+P+0Sp4F5tMgjiEOZaQUW6wA3ODvi6uBgkHQ+EsIu0pbiKvf9QHEvyRCiaz03rV0b+IaA=="],
 
-    "@brains/app/@types/bun": ["@types/bun@1.2.17", "", { "dependencies": { "bun-types": "1.2.17" } }, "sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q=="],
-
-    "@brains/content-management/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/core-plugin/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
     "@brains/core-plugin/typescript": ["typescript@5.7.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw=="],
 
-    "@brains/db/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/default-site-content/@types/bun": ["@types/bun@1.2.17", "", { "dependencies": { "bun-types": "1.2.17" } }, "sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q=="],
-
-    "@brains/directory-sync/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/embedding-service/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/entity-service/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/git-sync/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/integration-tests/@types/bun": ["@types/bun@1.2.17", "", { "dependencies": { "bun-types": "1.2.17" } }, "sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q=="],
-
-    "@brains/interface-plugin/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
     "@brains/interface-plugin/typescript": ["typescript@5.7.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw=="],
-
-    "@brains/job-queue/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
 
     "@brains/job-queue/@types/node": ["@types/node@22.16.0", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-B2egV9wALML1JCpv3VQoQ+yesQKAmNMBIAY7OteVrikcOcAkWm+dGL6qpeCktPjAv6N1JLnhbNiqS35UpFyBsQ=="],
 
@@ -2339,39 +2202,15 @@
 
     "@brains/matrix-setup/@types/bun": ["@types/bun@1.2.17", "", { "dependencies": { "bun-types": "1.2.17" } }, "sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q=="],
 
-    "@brains/mcp/@types/bun": ["@types/bun@1.2.17", "", { "dependencies": { "bun-types": "1.2.17" } }, "sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q=="],
-
-    "@brains/mcp-server/bun-types": ["bun-types@1.2.18", "", { "dependencies": { "@types/node": "*" }, "peerDependencies": { "@types/react": "^19" } }, "sha512-04+Eha5NP7Z0A9YgDAzMk5PHR16ZuLVa83b26kH5+cp1qZW4F6FmAURngE7INf4tKOvCE69vYvDEwoNl1tGiWw=="],
-
-    "@brains/message-interface/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/message-interface-plugin/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/messaging-service/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/plugin-utils/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/plugins/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
     "@brains/plugins/typescript": ["typescript@5.7.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw=="],
 
-    "@brains/service-plugin/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
     "@brains/service-plugin/typescript": ["typescript@5.7.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw=="],
-
-    "@brains/service-registry/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/site-builder-plugin/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
 
     "@brains/site-builder-plugin/@types/react": ["@types/react@18.3.23", "", { "dependencies": { "@types/prop-types": "*", "csstype": "^3.0.2" } }, "sha512-/LDXMQh55EzZQ0uVAZmKKhfENivEvWz6E+EYzh+/MCjMhNsotd+ZHhBGIjFDTi6+fz0OhQQQLbTgdQIxxCsC0w=="],
 
     "@brains/test-brain/@types/bun": ["@types/bun@1.2.17", "", { "dependencies": { "bun-types": "1.2.17" } }, "sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q=="],
 
     "@brains/ui-library/@types/bun": ["@types/bun@1.2.17", "", { "dependencies": { "bun-types": "1.2.17" } }, "sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q=="],
-
-    "@brains/view-registry/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
-
-    "@brains/webserver/@types/bun": ["@types/bun@1.2.19", "", { "dependencies": { "bun-types": "1.2.19" } }, "sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg=="],
 
     "@esbuild-kit/core-utils/esbuild": ["esbuild@0.18.20", "", { "optionalDependencies": { "@esbuild/android-arm": "0.18.20", "@esbuild/android-arm64": "0.18.20", "@esbuild/android-x64": "0.18.20", "@esbuild/darwin-arm64": "0.18.20", "@esbuild/darwin-x64": "0.18.20", "@esbuild/freebsd-arm64": "0.18.20", "@esbuild/freebsd-x64": "0.18.20", "@esbuild/linux-arm": "0.18.20", "@esbuild/linux-arm64": "0.18.20", "@esbuild/linux-ia32": "0.18.20", "@esbuild/linux-loong64": "0.18.20", "@esbuild/linux-mips64el": "0.18.20", "@esbuild/linux-ppc64": "0.18.20", "@esbuild/linux-riscv64": "0.18.20", "@esbuild/linux-s390x": "0.18.20", "@esbuild/linux-x64": "0.18.20", "@esbuild/netbsd-x64": "0.18.20", "@esbuild/openbsd-x64": "0.18.20", "@esbuild/sunos-x64": "0.18.20", "@esbuild/win32-arm64": "0.18.20", "@esbuild/win32-ia32": "0.18.20", "@esbuild/win32-x64": "0.18.20" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-ceqxoedUrcayh7Y7ZX6NdbbDzGROiyVBgC4PriJThBKSVPWnnFHZAkfI1lJT8QFkOwH4qOS2SJkS4wvpGl8BpA=="],
 
@@ -2406,8 +2245,6 @@
     "@testing-library/dom/dom-accessibility-api": ["dom-accessibility-api@0.5.16", "", {}, "sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg=="],
 
     "@testing-library/jest-dom/chalk": ["chalk@3.0.0", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-4D3B6Wf41KOYRFdszmDqMCGq5VV/uMAB273JILmO+3jAlh8X4qDtdtgCR3fxtbLEMzSx22QdhnDcJvu2u1fVwg=="],
-
-    "@types/bun/bun-types": ["bun-types@1.2.18", "", { "dependencies": { "@types/node": "*" }, "peerDependencies": { "@types/react": "^19" } }, "sha512-04+Eha5NP7Z0A9YgDAzMk5PHR16ZuLVa83b26kH5+cp1qZW4F6FmAURngE7INf4tKOvCE69vYvDEwoNl1tGiWw=="],
 
     "@typescript-eslint/eslint-plugin/ignore": ["ignore@7.0.5", "", {}, "sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg=="],
 
@@ -2531,15 +2368,7 @@
 
     "@anthropic-ai/sdk/@types/node/undici-types": ["undici-types@5.26.5", "", {}, "sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA=="],
 
-    "@brains/app/@types/bun/bun-types": ["bun-types@1.2.17", "", { "dependencies": { "@types/node": "*" } }, "sha512-ElC7ItwT3SCQwYZDYoAH+q6KT4Fxjl8DtZ6qDulUFBmXA8YB4xo+l54J9ZJN+k2pphfn9vk7kfubeSd5QfTVJQ=="],
-
-    "@brains/default-site-content/@types/bun/bun-types": ["bun-types@1.2.17", "", { "dependencies": { "@types/node": "*" } }, "sha512-ElC7ItwT3SCQwYZDYoAH+q6KT4Fxjl8DtZ6qDulUFBmXA8YB4xo+l54J9ZJN+k2pphfn9vk7kfubeSd5QfTVJQ=="],
-
-    "@brains/integration-tests/@types/bun/bun-types": ["bun-types@1.2.17", "", { "dependencies": { "@types/node": "*" } }, "sha512-ElC7ItwT3SCQwYZDYoAH+q6KT4Fxjl8DtZ6qDulUFBmXA8YB4xo+l54J9ZJN+k2pphfn9vk7kfubeSd5QfTVJQ=="],
-
     "@brains/matrix-setup/@types/bun/bun-types": ["bun-types@1.2.17", "", { "dependencies": { "@types/node": "*" } }, "sha512-ElC7ItwT3SCQwYZDYoAH+q6KT4Fxjl8DtZ6qDulUFBmXA8YB4xo+l54J9ZJN+k2pphfn9vk7kfubeSd5QfTVJQ=="],
-
-    "@brains/mcp/@types/bun/bun-types": ["bun-types@1.2.17", "", { "dependencies": { "@types/node": "*" } }, "sha512-ElC7ItwT3SCQwYZDYoAH+q6KT4Fxjl8DtZ6qDulUFBmXA8YB4xo+l54J9ZJN+k2pphfn9vk7kfubeSd5QfTVJQ=="],
 
     "@brains/test-brain/@types/bun/bun-types": ["bun-types@1.2.17", "", { "dependencies": { "@types/node": "*" } }, "sha512-ElC7ItwT3SCQwYZDYoAH+q6KT4Fxjl8DtZ6qDulUFBmXA8YB4xo+l54J9ZJN+k2pphfn9vk7kfubeSd5QfTVJQ=="],
 

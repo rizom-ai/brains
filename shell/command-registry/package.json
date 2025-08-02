@@ -15,11 +15,9 @@
   },
   "dependencies": {
     "@brains/utils": "workspace:*",
-    "@brains/message-interface": "workspace:*",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@brains/test-utils": "workspace:*",
     "bun-types": "latest"
   }
 }
