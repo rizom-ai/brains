@@ -4,7 +4,6 @@ import type {
   BaseEntity,
   EntityAdapter,
   JobHandler,
-  BatchJobManager,
   BatchOperation,
   BatchJobStatus,
   Batch,
@@ -80,9 +79,6 @@ export function createServicePluginContext(
   const entityRegistry = shell.getEntityRegistry();
   const jobQueueService = shell.getJobQueueService();
   const viewRegistry = shell.getViewRegistry();
-  const serviceRegistry = shell.getServiceRegistry();
-  const batchJobManager =
-    serviceRegistry.resolve<BatchJobManager>("batchJobManager");
 
   return {
     ...coreContext,
@@ -123,16 +119,16 @@ export function createServicePluginContext(
         },
         ...options,
       };
-      return batchJobManager.enqueueBatch(operations, defaultOptions, pluginId);
+      return shell.enqueueBatch(operations, defaultOptions, pluginId);
     },
     getJobStatus: async (jobId) => {
       return jobQueueService.getStatus(jobId);
     },
     getBatchStatus: async (batchId) => {
-      return batchJobManager.getBatchStatus(batchId);
+      return shell.getBatchStatus(batchId);
     },
     getActiveBatches: async () => {
-      return batchJobManager.getActiveBatches();
+      return shell.getActiveBatches();
     },
     registerJobHandler: (type, handler) => {
       jobQueueService.registerHandler(type, handler, pluginId);

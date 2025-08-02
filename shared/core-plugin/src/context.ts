@@ -1,10 +1,10 @@
-import type { 
+import type {
   Logger,
-  MessageHandler, 
+  MessageHandler,
   MessageSender,
   Template,
   IShell,
-  ICoreEntityService
+  ICoreEntityService,
 } from "@brains/plugins";
 
 /**

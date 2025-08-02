@@ -1,6 +1,6 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
-import type { ContentGenerationConfig } from "@brains/plugins";
+import type { ContentGenerationConfig, Daemon } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
 import { createDatabase } from "@brains/db";
 import { ServiceRegistry } from "@brains/service-registry";
@@ -15,7 +15,10 @@ import {
   BatchJobManager,
   JobProgressMonitor,
   type BatchJobStatus,
+  type Batch,
+  type BatchOperation,
 } from "@brains/job-queue";
+import type { JobOptions } from "@brains/db";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "@brains/plugins";
 import { CommandRegistry } from "@brains/command-registry";
@@ -95,6 +98,7 @@ export class Shell implements IShell {
   private readonly contentGenerator: ContentGenerator;
   private readonly jobQueueService: JobQueueService;
   private readonly jobQueueWorker: JobQueueWorker;
+  private readonly batchJobManager: BatchJobManager;
   private readonly jobProgressMonitor: JobProgressMonitor;
   private initialized = false;
 
@@ -304,18 +308,18 @@ export class Shell implements IShell {
       "jobQueueService",
       () => this.jobQueueService,
     );
-    // Initialize JobProgressMonitor with MessageBus directly
-    const batchJobManager = BatchJobManager.getInstance(
+    // Initialize BatchJobManager
+    this.batchJobManager = BatchJobManager.getInstance(
       this.jobQueueService,
       this.logger,
     );
-    this.serviceRegistry.register("batchJobManager", () => batchJobManager);
+    this.serviceRegistry.register("batchJobManager", () => this.batchJobManager);
 
     this.jobProgressMonitor =
       dependencies?.jobProgressMonitor ??
       JobProgressMonitor.getInstance(
         this.jobQueueService,
-        batchJobManager,
+        this.batchJobManager,
         this.messageBus,
         this.logger,
       );
@@ -637,6 +641,38 @@ export class Shell implements IShell {
   }
 
   /**
+   * Enqueue a batch of operations
+   */
+  public async enqueueBatch(
+    operations: BatchOperation[],
+    options: JobOptions,
+    pluginId: string,
+  ): Promise<string> {
+    return this.batchJobManager.enqueueBatch(operations, options, pluginId);
+  }
+
+  /**
+   * Get active batches
+   */
+  public async getActiveBatches(): Promise<Batch[]> {
+    return this.batchJobManager.getActiveBatches();
+  }
+
+  /**
+   * Get batch status by ID
+   */
+  public async getBatchStatus(batchId: string): Promise<BatchJobStatus | null> {
+    return this.batchJobManager.getBatchStatus(batchId);
+  }
+
+  /**
+   * Register a daemon
+   */
+  public registerDaemon(name: string, daemon: Daemon, pluginId: string): void {
+    this.daemonRegistry.register(name, daemon, pluginId);
+  }
+
+  /**
    * Get a public context for shell tools
    * This provides access to shell services with public permissions
    */
@@ -655,11 +691,7 @@ export class Shell implements IShell {
       getBatchStatus: async (
         batchId: string,
       ): Promise<BatchJobStatus | null> => {
-        const batchManager = BatchJobManager.getInstance(
-          this.jobQueueService,
-          this.logger,
-        );
-        return batchManager.getBatchStatus(batchId);
+        return this.batchJobManager.getBatchStatus(batchId);
       },
     };
   }

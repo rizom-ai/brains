@@ -108,7 +108,6 @@ export type {
 // From @brains/job-queue
 export type {
   JobHandler,
-  BatchJobManager,
   BatchOperation,
   BatchJobStatus,
   Batch,
@@ -122,28 +121,21 @@ export type {
   CommandInfo,
   CommandResponse,
   CommandContext,
-  CommandRegistry,
 } from "@brains/command-registry";
+// Note: CommandRegistry is not exported as plugins access commands through context
 
 // From @brains/view-registry
 export type {
   RouteDefinition,
   ViewTemplate,
-  ViewRegistry,
   SectionDefinition,
 } from "@brains/view-registry";
+// Note: ViewRegistry is not exported as plugins access views through context
 
-// From @brains/daemon-registry
-export type {
-  DaemonRegistry,
-} from "@brains/daemon-registry";
+// Note: DaemonRegistry is not exported as plugins should use IShell.registerDaemon()
 
 // From @brains/db
-export type {
-  JobOptions,
-  JobQueue,
-  JobContext,
-} from "@brains/db";
+export type { JobOptions, JobQueue, JobContext } from "@brains/db";
 
 // From @brains/utils
 export type {

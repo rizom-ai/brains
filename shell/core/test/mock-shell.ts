@@ -1,4 +1,4 @@
-import type { IShell } from "@brains/plugins";
+import type { IShell, Daemon } from "@brains/plugins";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
   MessageBus,
@@ -12,7 +12,8 @@ import type {
   EntityRegistry,
   BaseEntity,
 } from "@brains/entity-service";
-import type { JobQueueService, BatchOperation } from "@brains/job-queue";
+import type { JobQueueService, BatchOperation, Batch, BatchJobStatus } from "@brains/job-queue";
+import type { JobOptions } from "@brains/db";
 import type {
   CommandRegistry,
   Command,
@@ -382,6 +383,37 @@ export class MockShell implements IShell {
 
   getTemplates(): Map<string, Template> {
     return new Map(this.templates);
+  }
+
+  // Batch job operations - simple mock implementations
+  async enqueueBatch(operations: BatchOperation[], _options: JobOptions, pluginId: string): Promise<string> {
+    // Return a mock batch ID for testing
+    this.logger.debug(`Mock: Enqueued batch with ${operations.length} operations for plugin ${pluginId}`);
+    return `batch-${Date.now()}`;
+  }
+
+  async getActiveBatches(): Promise<Batch[]> {
+    // Return empty array for testing
+    return [];
+  }
+
+  async getBatchStatus(batchId: string): Promise<BatchJobStatus | null> {
+    // Return a mock batch status for testing
+    return {
+      batchId,
+      totalOperations: 0,
+      completedOperations: 0,
+      failedOperations: 0,
+      errors: [],
+      status: "completed" as const,
+    };
+  }
+
+  // Daemon registration - simple mock that just logs
+  registerDaemon(name: string, daemon: Daemon, pluginId: string): void {
+    this.logger.debug(`Mock: Registered daemon ${name} for plugin ${pluginId}`);
+    // Store in services map for test verification if needed
+    this.services.set(`daemon:${name}`, daemon);
   }
 
   // Create a fresh instance

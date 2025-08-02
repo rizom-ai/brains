@@ -3,13 +3,13 @@ import type {
   CommandInfo,
   CommandResponse,
   CommandContext,
-} from "@brains/command-registry";
-import type { Daemon } from "@brains/plugins";
-import type { IShell, DefaultQueryResponse } from "@brains/plugins";
-import type { JobQueue } from "@brains/db";
-import type { Batch, BatchJobStatus } from "@brains/job-queue";
-import { BatchJobManager } from "@brains/job-queue";
-import { DaemonRegistry } from "@brains/daemon-registry";
+  Daemon,
+  IShell,
+  DefaultQueryResponse,
+  JobQueue,
+  Batch,
+  BatchJobStatus,
+} from "@brains/plugins";
 import { createCorePluginContext } from "@brains/core-plugin";
 
 /**
@@ -53,11 +53,6 @@ export function createInterfacePluginContext(
   // Get interface-specific components
   const commandRegistry = shell.getCommandRegistry();
   const jobQueueService = shell.getJobQueueService();
-  const serviceRegistry = shell.getServiceRegistry();
-  const batchJobManager = BatchJobManager.getInstance(
-    jobQueueService,
-    shell.getLogger(),
-  );
 
   return {
     ...coreContext,
@@ -127,13 +122,9 @@ export function createInterfacePluginContext(
 
     // Daemon support
     registerDaemon: (name: string, daemon: Daemon): void => {
-      // Get DaemonRegistry from service registry
-      const daemonRegistry =
-        serviceRegistry.resolve<DaemonRegistry>("daemonRegistry");
-
       // Ensure daemon name is unique by prefixing with plugin ID
       const daemonName = `${pluginId}:${name}`;
-      daemonRegistry.register(daemonName, daemon, pluginId);
+      shell.registerDaemon(daemonName, daemon, pluginId);
       coreContext.logger.debug(`Registered daemon: ${daemonName}`);
     },
 
@@ -143,11 +134,11 @@ export function createInterfacePluginContext(
     },
 
     getActiveBatches: (): Promise<Batch[]> => {
-      return batchJobManager.getActiveBatches();
+      return shell.getActiveBatches();
     },
 
     getBatchStatus: (batchId: string): Promise<BatchJobStatus | null> => {
-      return batchJobManager.getBatchStatus(batchId);
+      return shell.getBatchStatus(batchId);
     },
   };
 }

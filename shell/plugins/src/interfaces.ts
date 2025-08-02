@@ -5,7 +5,8 @@ import type { IMessageBus } from "@brains/messaging-service";
 import type { IContentGenerator, Template } from "@brains/content-generator";
 import type { Logger } from "@brains/utils";
 import type { IEntityService, EntityRegistry } from "@brains/entity-service";
-import type { JobQueueService } from "@brains/job-queue";
+import type { JobQueueService, Batch, BatchJobStatus, BatchOperation } from "@brains/job-queue";
+import type { JobOptions } from "@brains/db";
 import type { CommandRegistry } from "@brains/command-registry";
 import type { ViewRegistry, RouteDefinition } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
@@ -39,6 +40,14 @@ export interface IShell {
 
   // Plugin information
   getPluginPackageName(pluginId: string): string | undefined;
+
+  // Batch job operations
+  enqueueBatch(operations: BatchOperation[], options: JobOptions, pluginId: string): Promise<string>;
+  getActiveBatches(): Promise<Batch[]>;
+  getBatchStatus(batchId: string): Promise<BatchJobStatus | null>;
+
+  // Daemon registration
+  registerDaemon(name: string, daemon: Daemon, pluginId: string): void;
 }
 
 /**

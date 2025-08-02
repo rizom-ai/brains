@@ -1,10 +1,10 @@
 import { createSilentLogger } from "@brains/utils";
-import type { 
+import type {
   Logger,
-  Plugin, 
+  Plugin,
   PluginCapabilities,
   Template,
-  MessageHandler
+  MessageHandler,
 } from "@brains/plugins";
 import { MockShell } from "@brains/core/test";
 

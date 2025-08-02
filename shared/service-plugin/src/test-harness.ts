@@ -1,11 +1,14 @@
-import { createSilentLogger, type Logger } from "@brains/utils";
-import type { Plugin, PluginCapabilities } from "@brains/plugins";
-import { MockShell } from "@brains/core/test";
-import type { Template } from "@brains/content-generator";
-import type { IEntityService } from "@brains/entity-service";
-import type { JobQueueService } from "@brains/job-queue";
+import type {
+  Logger,
+  Plugin,
+  PluginCapabilities,
+  Template,
+  IEntityService,
+  IJobQueueService,
+  MessageHandler,
+} from "@brains/plugins";
 import type { ViewRegistry } from "@brains/view-registry";
-import type { MessageHandler } from "@brains/messaging-service";
+import { createSilentLogger, MockShell } from "@brains/plugins";
 
 /**
  * Test harness for service plugins - provides a simple way to test plugins
@@ -20,7 +23,7 @@ export class ServicePluginTestHarness<TPlugin extends Plugin = Plugin> {
     options: {
       logger?: Logger;
       entityService?: IEntityService;
-      jobQueueService?: JobQueueService;
+      jobQueueService?: IJobQueueService;
       viewRegistry?: ViewRegistry;
     } = {},
   ) {
