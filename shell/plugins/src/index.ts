@@ -7,6 +7,12 @@ export type { CorePluginContext } from "./core/context";
 export { createCorePluginContext } from "./core/context";
 export { CorePluginTestHarness } from "./core/test/harness";
 
+// Service plugin
+export { ServicePlugin } from "./service/service-plugin";
+export type { ServicePluginContext } from "./service/context";
+export { createServicePluginContext } from "./service/context";
+export { ServicePluginTestHarness } from "./service/test/harness";
+
 // Plugin types and interfaces
 export type {
   IShell,

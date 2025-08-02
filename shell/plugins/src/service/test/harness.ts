@@ -6,10 +6,10 @@ import type { MessageHandler } from "@brains/messaging-service";
 import { MockShell } from "@brains/core/test";
 
 /**
- * Test harness for core plugins - provides a simple way to test plugins
+ * Test harness for service plugins - provides a simple way to test plugins
  * Plugins create their own context when registered with the mock shell
  */
-export class CorePluginTestHarness<TPlugin extends Plugin = Plugin> {
+export class ServicePluginTestHarness<TPlugin extends Plugin = Plugin> {
   private mockShell: MockShell;
   private plugin: TPlugin | undefined;
   private capabilities: PluginCapabilities | undefined;
@@ -19,7 +19,7 @@ export class CorePluginTestHarness<TPlugin extends Plugin = Plugin> {
       logger?: Logger;
     } = {},
   ) {
-    const logger = options.logger ?? createSilentLogger("core-plugin-test");
+    const logger = options.logger ?? createSilentLogger("service-plugin-test");
     this.mockShell = new MockShell({ logger });
   }
 
@@ -32,6 +32,13 @@ export class CorePluginTestHarness<TPlugin extends Plugin = Plugin> {
     this.capabilities = await plugin.register(this.mockShell);
     this.mockShell.addPlugin(plugin);
     return this.capabilities;
+  }
+
+  /**
+   * Get the mock shell for direct access in tests
+   */
+  getShell(): MockShell {
+    return this.mockShell;
   }
 
   /**
@@ -52,13 +59,6 @@ export class CorePluginTestHarness<TPlugin extends Plugin = Plugin> {
       throw new Error("No plugin installed. Call installPlugin() first.");
     }
     return this.capabilities;
-  }
-
-  /**
-   * Get the mock shell for direct access in tests
-   */
-  getShell(): MockShell {
-    return this.mockShell;
   }
 
   /**

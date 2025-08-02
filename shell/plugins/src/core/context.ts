@@ -1,11 +1,8 @@
 import type { IShell } from "../interfaces";
-import type {
-  Logger,
-  MessageHandler,
-  MessageSender,
-  Template,
-  ICoreEntityService,
-} from "../index";
+import type { Logger } from "@brains/utils";
+import type { MessageHandler, MessageSender } from "@brains/messaging-service";
+import type { Template } from "@brains/content-generator";
+import type { ICoreEntityService } from "@brains/entity-service";
 
 /**
  * Core plugin context - provides basic services to core plugins

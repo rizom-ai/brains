@@ -1,6 +1,10 @@
-import type { ServicePluginContext } from "@brains/service-plugin";
-import { ServicePlugin } from "@brains/service-plugin";
-import type { Plugin, PluginTool, PluginResource } from "@brains/plugins";
+import type {
+  Plugin,
+  PluginTool,
+  PluginResource,
+  ServicePluginContext,
+} from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
 import type { Command, CommandResponse } from "@brains/command-registry";
 import type { JobContext } from "@brains/db";
 import type { Template } from "@brains/content-generator";
