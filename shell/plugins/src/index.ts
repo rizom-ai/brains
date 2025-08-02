@@ -13,6 +13,12 @@ export type { ServicePluginContext } from "./service/context";
 export { createServicePluginContext } from "./service/context";
 export { ServicePluginTestHarness } from "./service/test/harness";
 
+// Interface plugin
+export { InterfacePlugin } from "./interface/interface-plugin";
+export type { InterfacePluginContext } from "./interface/context";
+export { createInterfacePluginContext } from "./interface/context";
+export { InterfacePluginTestHarness } from "./interface/test/harness";
+
 // Plugin types and interfaces
 export type {
   IShell,

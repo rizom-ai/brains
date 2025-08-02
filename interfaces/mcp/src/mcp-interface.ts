@@ -1,8 +1,6 @@
 import {
   InterfacePlugin,
   type InterfacePluginContext,
-} from "@brains/interface-plugin";
-import {
   type PluginTool,
   type PluginResource,
   type Daemon,
