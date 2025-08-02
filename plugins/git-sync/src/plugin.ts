@@ -2,8 +2,8 @@ import type {
   Plugin,
   PluginTool,
   CorePluginContext,
-} from "@brains/core-plugin";
-import { CorePlugin } from "@brains/core-plugin";
+} from "@brains/plugins";
+import { CorePlugin } from "@brains/plugins";
 import { z } from "zod";
 import { GitSync } from "./gitSync";
 import {

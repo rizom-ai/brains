@@ -1,6 +1,12 @@
 // Plugin base class and core context
 export { BasePlugin, type CoreContext } from "./base-plugin";
 
+// Core plugin
+export { CorePlugin } from "./core/core-plugin";
+export type { CorePluginContext } from "./core/context";
+export { createCorePluginContext } from "./core/context";
+export { CorePluginTestHarness } from "./core/test/harness";
+
 // Plugin types and interfaces
 export type {
   IShell,

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
-import { CorePluginTestHarness } from "@brains/core-plugin";
+import { CorePluginTestHarness } from "@brains/plugins";
 import { join } from "path";
 import { tmpdir } from "os";
 import { rmSync, existsSync, mkdirSync } from "fs";
-import type { PluginCapabilities } from "@brains/core-plugin";
+import type { PluginCapabilities } from "@brains/plugins";
 
 describe("GitSyncPlugin with CorePluginTestHarness", () => {
   let harness: CorePluginTestHarness<GitSyncPlugin>;
