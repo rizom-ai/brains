@@ -1,8 +1,12 @@
-import { createSilentLogger, type Logger } from "@brains/utils";
-import type { Plugin, PluginCapabilities } from "@brains/plugins";
+import { createSilentLogger } from "@brains/utils";
+import type { 
+  Logger,
+  Plugin, 
+  PluginCapabilities,
+  Template,
+  MessageHandler
+} from "@brains/plugins";
 import { MockShell } from "@brains/core/test";
-import type { Template } from "@brains/content-generator";
-import type { MessageHandler } from "@brains/messaging-service";
 
 /**
  * Test harness for core plugins - provides a simple way to test plugins

@@ -67,3 +67,91 @@ export {
   type PluginToolRegisterEvent,
   type PluginResourceRegisterEvent,
 } from "./manager";
+
+// ============================================================================
+// Consolidated exports for plugin development
+// ============================================================================
+
+// From @brains/entity-service
+export type {
+  BaseEntity,
+  EntityAdapter,
+  EntityInput,
+  SearchResult,
+  IEntityService,
+  ICoreEntityService,
+  EntityRegistry,
+} from "@brains/entity-service";
+export { baseEntitySchema } from "@brains/entity-service";
+
+// From @brains/content-generator
+export type {
+  Template,
+  TemplateDataContext,
+  GenerationContext,
+  ComponentType,
+  IContentGenerator,
+} from "@brains/content-generator";
+export { TemplateSchema } from "@brains/content-generator";
+
+// From @brains/messaging-service
+export type {
+  MessageContext,
+  MessageHandler,
+  MessageSender,
+  IMessageBus,
+  MessageResponse,
+  BaseMessage,
+  MessageWithPayload,
+} from "@brains/messaging-service";
+
+// From @brains/job-queue
+export type {
+  JobHandler,
+  BatchJobManager,
+  BatchOperation,
+  BatchJobStatus,
+  Batch,
+  JobProgressEvent,
+  IJobQueueService,
+} from "@brains/job-queue";
+
+// From @brains/command-registry
+export type {
+  Command,
+  CommandInfo,
+  CommandResponse,
+  CommandContext,
+  CommandRegistry,
+} from "@brains/command-registry";
+
+// From @brains/view-registry
+export type {
+  RouteDefinition,
+  ViewTemplate,
+  ViewRegistry,
+  SectionDefinition,
+} from "@brains/view-registry";
+
+// From @brains/daemon-registry
+export type {
+  DaemonRegistry,
+} from "@brains/daemon-registry";
+
+// From @brains/db
+export type {
+  JobOptions,
+  JobQueue,
+  JobContext,
+} from "@brains/db";
+
+// From @brains/utils
+export type {
+  Logger,
+  ProgressNotification,
+  UserPermissionLevel,
+} from "@brains/utils";
+export { createSilentLogger } from "@brains/utils";
+
+// Test utilities from @brains/core
+export { MockShell } from "@brains/core/test";

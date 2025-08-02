@@ -79,9 +79,13 @@ export const systemResourceRegisterSchema = z.object({
   timestamp: z.number(),
 });
 
-export type SystemCommandRegisterEvent = z.infer<typeof systemCommandRegisterSchema>;
+export type SystemCommandRegisterEvent = z.infer<
+  typeof systemCommandRegisterSchema
+>;
 export type SystemToolRegisterEvent = z.infer<typeof systemToolRegisterSchema>;
-export type SystemResourceRegisterEvent = z.infer<typeof systemResourceRegisterSchema>;
+export type SystemResourceRegisterEvent = z.infer<
+  typeof systemResourceRegisterSchema
+>;
 
 /**
  * Query response schemas used by plugins
