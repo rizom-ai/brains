@@ -15,10 +15,7 @@ export class SiteBuilderError extends Error {
  * Error thrown when site building process fails
  */
 export class SiteBuildError extends SiteBuilderError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "SiteBuildError";
   }
@@ -28,10 +25,7 @@ export class SiteBuildError extends SiteBuilderError {
  * Error thrown when content generation fails
  */
 export class ContentGenerationError extends SiteBuilderError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "ContentGenerationError";
   }
@@ -41,10 +35,7 @@ export class ContentGenerationError extends SiteBuilderError {
  * Error thrown when content promotion fails
  */
 export class ContentPromotionError extends SiteBuilderError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "ContentPromotionError";
   }
@@ -54,10 +45,7 @@ export class ContentPromotionError extends SiteBuilderError {
  * Error thrown when template processing fails
  */
 export class TemplateProcessingError extends SiteBuilderError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "TemplateProcessingError";
   }
@@ -67,10 +55,7 @@ export class TemplateProcessingError extends SiteBuilderError {
  * Error thrown when hydration process fails
  */
 export class HydrationError extends SiteBuilderError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "HydrationError";
   }
@@ -80,10 +65,7 @@ export class HydrationError extends SiteBuilderError {
  * Error thrown when CSS processing fails
  */
 export class CssProcessingError extends SiteBuilderError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "CssProcessingError";
   }
@@ -93,10 +75,7 @@ export class CssProcessingError extends SiteBuilderError {
  * Error thrown when plugin initialization fails
  */
 export class SiteBuilderInitializationError extends SiteBuilderError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, context);
     this.name = "SiteBuilderInitializationError";
   }

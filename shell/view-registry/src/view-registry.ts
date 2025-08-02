@@ -8,6 +8,7 @@ import type {
 import type { Template } from "@brains/content-generator";
 import { RouteRegistry } from "./route-registry";
 import { ViewTemplateRegistry } from "./view-template-registry";
+import { ViewTemplateRegistrationError } from "./errors";
 
 /**
  * ViewRegistry - Combines route and template management
@@ -93,20 +94,25 @@ export class ViewRegistry implements IViewRegistry {
     // Extract plugin ID from namespaced name
     const parts = name.split(":");
     if (parts.length < 2) {
-      throw new Error(
+      throw new ViewTemplateRegistrationError(
         `Template name must be namespaced (plugin-id:template-name), got: ${name}`,
+        { templateName: name },
       );
     }
 
     const pluginId = parts[0]; // Safe because we already checked parts.length >= 2
     if (!pluginId) {
-      throw new Error(`Invalid template name format: ${name}`);
+      throw new ViewTemplateRegistrationError(
+        `Invalid template name format: ${name}`,
+        { templateName: name },
+      );
     }
 
     // Ensure template has layout and component
     if (!template.layout?.component) {
-      throw new Error(
+      throw new ViewTemplateRegistrationError(
         `Template ${name} must have a layout.component for view registration`,
+        { templateName: name },
       );
     }
 

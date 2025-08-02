@@ -3,6 +3,7 @@ import type {
   ViewTemplateRegistry as IViewTemplateRegistry,
 } from "./types";
 import { ViewTemplateSchema } from "./types";
+import { ViewTemplateRegistrationError } from "./errors";
 
 export class ViewTemplateRegistry implements IViewTemplateRegistry {
   private static instance: ViewTemplateRegistry | null = null;
@@ -29,7 +30,10 @@ export class ViewTemplateRegistry implements IViewTemplateRegistry {
 
     // Check for name conflicts
     if (this.templates.has(validated.name)) {
-      throw new Error(`Template "${validated.name}" is already registered`);
+      throw new ViewTemplateRegistrationError(
+        `Template "${validated.name}" is already registered`,
+        { templateName: validated.name },
+      );
     }
 
     // Ensure the template matches our interface (schema is required)

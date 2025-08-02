@@ -187,10 +187,10 @@ export class SiteBuilder implements ISiteBuilder {
 
       return result;
     } catch (error) {
-      const buildError = new SiteBuildError(
-        "Site build process failed",
-        { options, error },
-      );
+      const buildError = new SiteBuildError("Site build process failed", {
+        options,
+        error,
+      });
       this.logger.error("Site build failed", { error: buildError });
 
       errors.push(buildError.message);
