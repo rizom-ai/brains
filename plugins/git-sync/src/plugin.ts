@@ -29,10 +29,9 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
   private getGitSync(): GitSync {
     if (!this.gitSync) {
-      throw new GitSyncInitializationError(
-        "Git sync service not initialized",
-        { plugin: "git-sync" },
-      );
+      throw new GitSyncInitializationError("Git sync service not initialized", {
+        plugin: "git-sync",
+      });
     }
     return this.gitSync;
   }

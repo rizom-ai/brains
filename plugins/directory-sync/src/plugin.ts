@@ -44,6 +44,26 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     );
   }
 
+  private requireDirectorySync(): DirectorySync {
+    if (!this.directorySync) {
+      throw new DirectorySyncInitializationError(
+        "DirectorySync service not initialized",
+        { plugin: "directory-sync" },
+      );
+    }
+    return this.directorySync;
+  }
+
+  private requirePluginContext(): ServicePluginContext {
+    if (!this.pluginContext) {
+      throw new DirectorySyncInitializationError(
+        "Plugin context not initialized",
+        { plugin: "directory-sync" },
+      );
+    }
+    return this.pluginContext;
+  }
+
   /**
    * Get commands provided by this plugin
    */
@@ -54,17 +74,12 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         description: "Synchronize all entities with directory",
         usage: "/sync",
         handler: async (_args, context): Promise<CommandResponse> => {
-          if (!this.directorySync || !this.pluginContext) {
-            throw new DirectorySyncInitializationError(
-              "DirectorySync service not initialized",
-              "Plugin not properly configured",
-              { command: "sync" },
-            );
-          }
+          const directorySync = this.requireDirectorySync();
+          const pluginContext = this.requirePluginContext();
 
           try {
             // Use DirectorySync service to prepare batch operations
-            const batchData = this.directorySync.prepareBatchOperations();
+            const batchData = directorySync.prepareBatchOperations();
 
             if (batchData.operations.length === 0) {
               return {
@@ -79,7 +94,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
                 ? `${context.interfaceType}:${context.channelId}`
                 : "command:sync";
 
-            const batchId = await this.pluginContext.enqueueBatch(
+            const batchId = await pluginContext.enqueueBatch(
               batchData.operations,
               {
                 source,
@@ -114,15 +129,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         description: "Get directory sync status",
         usage: "/sync-status",
         handler: async (_args, _context): Promise<CommandResponse> => {
-          if (!this.directorySync) {
-            throw new DirectorySyncInitializationError(
-              "DirectorySync service not initialized",
-              "Plugin not properly configured",
-              { command: "sync-status" },
-            );
-          }
+          const directorySync = this.requireDirectorySync();
 
-          const status = await this.directorySync.getStatus();
+          const status = await directorySync.getStatus();
           const { syncPath, exists, watching, lastSync, stats } = status;
 
           let message = `📊 **Directory Sync Status**\n`;
@@ -206,13 +215,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
    * Get the tools provided by this plugin
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.directorySync) {
-      throw new DirectorySyncInitializationError(
-        "DirectorySync service not initialized",
-        "Plugin not properly configured",
-        { method: "getTools" },
-      );
-    }
+    this.requireDirectorySync(); // Verify it's initialized
 
     return [
       this.createTool(
@@ -220,16 +223,11 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         "Synchronize all entities with directory (async)",
         {},
         async (_input: unknown, context): Promise<unknown> => {
-          if (!this.directorySync || !this.pluginContext) {
-            throw new DirectorySyncInitializationError(
-              "DirectorySync service not initialized",
-              "Plugin not properly configured",
-              { tool: "directory-sync" },
-            );
-          }
+          const ds = this.requireDirectorySync();
+          const ctx = this.requirePluginContext();
 
           // Use DirectorySync service to prepare batch operations
-          const batchData = this.directorySync.prepareBatchOperations();
+          const batchData = ds.prepareBatchOperations();
 
           if (batchData.operations.length === 0) {
             return {
@@ -245,7 +243,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
               ? `${context.interfaceId}:${context.channelId}`
               : "plugin:directory-sync";
 
-          const batchId = await this.pluginContext.enqueueBatch(
+          const batchId = await ctx.enqueueBatch(
             batchData.operations,
             {
               source,
@@ -288,13 +286,8 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
             .describe("Number of entities to process per batch"),
         },
         async (input: unknown, context): Promise<unknown> => {
-          if (!this.directorySync || !this.pluginContext) {
-            throw new DirectorySyncInitializationError(
-              "DirectorySync service not initialized",
-              "Plugin not properly configured",
-              { tool: "directory-sync" },
-            );
-          }
+          this.requireDirectorySync(); // Verify it's initialized
+          const ctx = this.requirePluginContext();
           const params = input as {
             entityTypes?: string[];
             batchSize?: number;
@@ -303,7 +296,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
           // Get entity types to export
           const typesToExport =
             params.entityTypes ??
-            this.pluginContext.entityService.getEntityTypes();
+            ctx.entityService.getEntityTypes();
 
           // Create batch operations - one job per entity type
           const operations = typesToExport.map((entityType) => ({
@@ -322,7 +315,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
             };
           }
 
-          const batchId = await this.pluginContext.enqueueBatch(operations, {
+          const batchId = await ctx.enqueueBatch(operations, {
             source: "plugin:directory-sync",
             metadata: {
               interfaceId: context?.interfaceId ?? "plugin",
@@ -360,18 +353,18 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
             .describe("Number of files to process per batch"),
         },
         async (input: unknown, context): Promise<unknown> => {
-          if (!this.directorySync || !this.pluginContext) {
-            throw new DirectorySyncInitializationError(
-              "DirectorySync service not initialized",
-              "Plugin not properly configured",
-              { tool: "directory-sync" },
-            );
-          }
-          const params = input as { paths?: string[]; batchSize?: number };
+          const ds = this.requireDirectorySync();
+          const ctx = this.requirePluginContext();
+          
+          const importSchema = z.object({
+            paths: z.array(z.string()).optional(),
+            batchSize: z.number().min(1).default(50),
+          });
+          const params = importSchema.parse(input);
 
           // Get files to import
           const filesToImport =
-            params.paths ?? this.directorySync.getAllMarkdownFiles();
+            params.paths ?? ds.getAllMarkdownFiles();
           const batchSize = params.batchSize ?? 50;
 
           // Split files into batches for parallel processing
@@ -398,7 +391,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
             },
           }));
 
-          const batchId = await this.pluginContext.enqueueBatch(operations, {
+          const batchId = await ctx.enqueueBatch(operations, {
             source: "plugin:directory-sync",
             metadata: {
               interfaceId: context?.interfaceId ?? "plugin",
@@ -429,22 +422,20 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
           action: z.enum(["start", "stop"]),
         },
         async (input: unknown): Promise<{ watching: boolean }> => {
-          if (!this.directorySync) {
-            throw new DirectorySyncInitializationError(
-              "DirectorySync service not initialized",
-              "Plugin not properly configured",
-              { tool: "directory-sync" },
-            );
-          }
-          const params = input as { action: "start" | "stop" };
+          const ds = this.requireDirectorySync();
+          
+          const watchSchema = z.object({
+            action: z.enum(["start", "stop"]),
+          });
+          const params = watchSchema.parse(input);
 
           if (params.action === "start") {
-            this.directorySync.startWatching();
+            ds.startWatching();
           } else {
-            this.directorySync.stopWatching();
+            ds.stopWatching();
           }
 
-          const status = await this.directorySync.getStatus();
+          const status = await ds.getStatus();
           return { watching: status.watching };
         },
         "anchor", // Only anchor user can control watching
@@ -455,14 +446,8 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         "Get directory sync status",
         {},
         async (): Promise<unknown> => {
-          if (!this.directorySync) {
-            throw new DirectorySyncInitializationError(
-              "DirectorySync service not initialized",
-              "Plugin not properly configured",
-              { tool: "directory-sync" },
-            );
-          }
-          const status = await this.directorySync.getStatus();
+          const ds = this.requireDirectorySync();
+          const status = await ds.getStatus();
           // Parse through schema to ensure it has the right structure
           // and the schema description will hint at using directorySyncStatus formatter
           return directorySyncStatusSchema.parse(status);
@@ -475,14 +460,8 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         "Ensure directory structure exists for all entity types",
         {},
         async (): Promise<{ message: string }> => {
-          if (!this.directorySync) {
-            throw new DirectorySyncInitializationError(
-              "DirectorySync service not initialized",
-              "Plugin not properly configured",
-              { tool: "directory-sync" },
-            );
-          }
-          await this.directorySync.ensureDirectoryStructure();
+          const ds = this.requireDirectorySync();
+          await ds.ensureDirectoryStructure();
           return { message: "Directory structure created" };
         },
         "anchor", // Only anchor user can modify structure
@@ -508,13 +487,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
    * Configure the sync path (for other plugins to use)
    */
   public async configure(options: { syncPath: string }): Promise<void> {
-    if (!this.directorySync) {
-      throw new DirectorySyncInitializationError(
-        "DirectorySync service not initialized",
-        "Plugin not properly configured",
-        { method: "configure" },
-      );
-    }
+    this.requireDirectorySync(); // Verify it's initialized
 
     // Update the sync path
     const context = this.getContext();
@@ -539,15 +512,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     subscribe<{ entityTypes?: string[] }>(
       "entity:export:request",
       async (message) => {
-        if (!this.directorySync) {
-          return {
-            success: false,
-            error: "DirectorySync not initialized",
-          };
-        }
-
         try {
-          const result = await this.directorySync.exportEntities(
+          const ds = this.requireDirectorySync();
+          const result = await ds.exportEntities(
             message.payload.entityTypes,
           );
 
@@ -568,15 +535,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     subscribe<{ paths?: string[] }>(
       "entity:import:request",
       async (message) => {
-        if (!this.directorySync) {
-          return {
-            success: false,
-            error: "DirectorySync not initialized",
-          };
-        }
-
         try {
-          const result = await this.directorySync.importEntities(
+          const ds = this.requireDirectorySync();
+          const result = await ds.importEntities(
             message.payload.paths,
           );
 
@@ -595,15 +556,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
     // Handler for status requests
     subscribe("sync:status:request", async () => {
-      if (!this.directorySync) {
-        return {
-          success: false,
-          error: "DirectorySync not initialized",
-        };
-      }
-
       try {
-        const status = await this.directorySync.getStatus();
+        const ds = this.requireDirectorySync();
+        const status = await ds.getStatus();
 
         return {
           success: true,
@@ -662,19 +617,13 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   protected override async registerJobHandlers(
     context: ServicePluginContext,
   ): Promise<void> {
-    if (!this.directorySync) {
-      throw new DirectorySyncInitializationError(
-        "DirectorySync not initialized",
-        "Cannot register job handlers without DirectorySync instance",
-        { method: "registerJobHandlers" },
-      );
-    }
+    const directorySync = this.requireDirectorySync();
 
     // Register export job handler
     const exportHandler = new DirectoryExportJobHandler(
       this.logger.child("DirectoryExportJobHandler"),
       context,
-      this.directorySync,
+      directorySync,
     );
     context.registerJobHandler("directory-export", exportHandler);
 
@@ -682,7 +631,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     const importHandler = new DirectoryImportJobHandler(
       this.logger.child("DirectoryImportJobHandler"),
       context,
-      this.directorySync,
+      directorySync,
     );
     context.registerJobHandler("directory-import", importHandler);
 

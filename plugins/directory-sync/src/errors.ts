@@ -1,20 +1,13 @@
-import { BrainsError, normalizeError, type ErrorCause } from "@brains/utils";
-
 /**
  * Base error class for directory-sync plugin operations
  */
-export class DirectorySyncError extends BrainsError {
+export class DirectorySyncError extends Error {
   constructor(
     message: string,
-    cause: ErrorCause,
-    context?: Record<string, unknown>,
+    public readonly context?: Record<string, unknown>,
   ) {
-    super(
-      message,
-      "DIRECTORY_SYNC_ERROR",
-      normalizeError(cause),
-      context ?? {},
-    );
+    super(message);
+    this.name = "DirectorySyncError";
   }
 }
 
@@ -24,10 +17,9 @@ export class DirectorySyncError extends BrainsError {
 export class FileSystemError extends DirectorySyncError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "FileSystemError";
   }
 }
@@ -38,10 +30,9 @@ export class FileSystemError extends DirectorySyncError {
 export class EntitySerializationError extends DirectorySyncError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "EntitySerializationError";
   }
 }
@@ -52,10 +43,9 @@ export class EntitySerializationError extends DirectorySyncError {
 export class PathResolutionError extends DirectorySyncError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "PathResolutionError";
   }
 }
@@ -66,10 +56,9 @@ export class PathResolutionError extends DirectorySyncError {
 export class DirectoryWatchError extends DirectorySyncError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "DirectoryWatchError";
   }
 }
@@ -80,10 +69,9 @@ export class DirectoryWatchError extends DirectorySyncError {
 export class DirectorySyncInitializationError extends DirectorySyncError {
   constructor(
     message: string,
-    cause: ErrorCause,
     context?: Record<string, unknown>,
   ) {
-    super(message, cause, context);
+    super(message, context);
     this.name = "DirectorySyncInitializationError";
   }
 }

@@ -20,7 +20,8 @@ export const gitSyncOptionsSchema = z.object({
   authToken: z.string().optional(),
 });
 
-export type GitSyncOptions = z.infer<typeof gitSyncOptionsSchema> & CorePluginContext;
+export type GitSyncOptions = z.infer<typeof gitSyncOptionsSchema> &
+  CorePluginContext;
 
 /**
  * Git sync status
@@ -60,7 +61,7 @@ export class GitSync {
   constructor(options: GitSyncOptions) {
     // Extract what we need from the context
     const { logger, sendMessage } = options;
-    
+
     this.sendMessage = sendMessage;
     this.logger = logger;
     this.gitUrl = options.gitUrl;
@@ -390,10 +391,11 @@ export class GitSync {
 
       this.logger.info("Sync completed successfully");
     } catch (error) {
-      const syncError = new GitRepositoryError(
-        "Git synchronization failed",
-        { branch: this.branch, gitUrl: this.gitUrl, error },
-      );
+      const syncError = new GitRepositoryError("Git synchronization failed", {
+        branch: this.branch,
+        gitUrl: this.gitUrl,
+        error,
+      });
       this.logger.error("Sync failed", { error: syncError });
       throw syncError;
     }

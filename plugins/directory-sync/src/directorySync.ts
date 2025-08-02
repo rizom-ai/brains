@@ -163,8 +163,7 @@ export class DirectorySync {
         } catch (error) {
           const exportError = new FileSystemError(
             `Failed to export entity ${entity.id}`,
-            error,
-            { entityId: entity.id, entityType },
+            { entityId: entity.id, entityType, error },
           );
           result.failed++;
           result.errors.push({
@@ -259,8 +258,7 @@ export class DirectorySync {
           // Skip if entity type is not registered or deserialization fails
           const serializationError = new EntitySerializationError(
             "Unable to deserialize entity from file",
-            deserializeError,
-            { path: filePath, entityType: rawEntity.entityType },
+            { path: filePath, entityType: rawEntity.entityType, error: deserializeError },
           );
           this.logger.debug("Skipping file - unable to deserialize", {
             path: filePath,
@@ -278,8 +276,7 @@ export class DirectorySync {
       } catch (error) {
         const importError = new FileSystemError(
           `Failed to import entity from file`,
-          error,
-          { path: filePath },
+          { path: filePath, error },
         );
         result.failed++;
         result.errors.push({
@@ -604,8 +601,7 @@ export class DirectorySync {
     } catch (error) {
       const watchError = new DirectoryWatchError(
         "Failed to handle file change event",
-        error,
-        { event, path },
+        { event, path, error },
       );
       this.logger.error("Failed to handle file change", {
         event,
