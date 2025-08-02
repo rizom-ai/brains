@@ -3,147 +3,93 @@
  * Domain-specific errors for AI operations
  */
 
-import { BrainsError, type ErrorCause } from "@brains/utils";
-
 /**
  * Model not available error
  */
-export class ModelNotAvailableError extends BrainsError {
+export class ModelNotAvailableError extends Error {
   constructor(
-    modelName: string,
-    reason?: string,
-    cause?: ErrorCause,
-    context: Record<string, unknown> = {},
+    message: string,
+    public readonly context?: Record<string, unknown>,
   ) {
-    const message = reason
-      ? `AI model not available: ${modelName} (${reason})`
-      : `AI model not available: ${modelName}`;
-
-    super(message, "AI_MODEL_NOT_AVAILABLE", cause, {
-      modelName,
-      reason,
-      ...context,
-    });
+    super(message);
+    this.name = "ModelNotAvailableError";
   }
 }
 
 /**
  * Generation timeout error
  */
-export class GenerationTimeoutError extends BrainsError {
+export class GenerationTimeoutError extends Error {
   constructor(
-    timeoutMs: number,
-    operation?: string,
-    cause?: ErrorCause,
-    context: Record<string, unknown> = {},
+    message: string,
+    public readonly context?: Record<string, unknown>,
   ) {
-    const message = operation
-      ? `AI generation timeout (${timeoutMs}ms) for operation: ${operation}`
-      : `AI generation timeout (${timeoutMs}ms)`;
-
-    super(message, "AI_GENERATION_TIMEOUT", cause, {
-      timeoutMs,
-      operation,
-      ...context,
-    });
+    super(message);
+    this.name = "GenerationTimeoutError";
   }
 }
 
 /**
  * Token limit exceeded error
  */
-export class TokenLimitError extends BrainsError {
+export class TokenLimitError extends Error {
   constructor(
-    tokenCount: number,
-    maxTokens: number,
-    cause?: ErrorCause,
-    context: Record<string, unknown> = {},
+    message: string,
+    public readonly context?: Record<string, unknown>,
   ) {
-    super(
-      `Token limit exceeded: ${tokenCount} > ${maxTokens}`,
-      "AI_TOKEN_LIMIT_EXCEEDED",
-      cause,
-      { tokenCount, maxTokens, ...context },
-    );
+    super(message);
+    this.name = "TokenLimitError";
   }
 }
 
 /**
  * Model configuration error
  */
-export class ModelConfigError extends BrainsError {
+export class ModelConfigError extends Error {
   constructor(
-    configField: string,
-    value: unknown,
-    reason: string,
-    cause?: ErrorCause,
-    context: Record<string, unknown> = {},
+    message: string,
+    public readonly context?: Record<string, unknown>,
   ) {
-    super(
-      `Invalid AI model configuration for ${configField}: ${reason}`,
-      "AI_MODEL_CONFIG_ERROR",
-      cause,
-      { configField, value, reason, ...context },
-    );
+    super(message);
+    this.name = "ModelConfigError";
   }
 }
 
 /**
  * Generation failure error
  */
-export class GenerationFailureError extends BrainsError {
+export class GenerationFailureError extends Error {
   constructor(
-    operation: "text" | "object" | "structured",
-    reason?: string,
-    cause?: ErrorCause,
-    context: Record<string, unknown> = {},
+    message: string,
+    public readonly context?: Record<string, unknown>,
   ) {
-    const message = reason
-      ? `AI ${operation} generation failed: ${reason}`
-      : `AI ${operation} generation failed`;
-
-    super(message, "AI_GENERATION_FAILED", cause, {
-      operation,
-      reason,
-      ...context,
-    });
+    super(message);
+    this.name = "GenerationFailureError";
   }
 }
 
 /**
  * Rate limiting error
  */
-export class RateLimitError extends BrainsError {
+export class RateLimitError extends Error {
   constructor(
-    retryAfterSeconds?: number,
-    cause?: ErrorCause,
-    context: Record<string, unknown> = {},
+    message: string,
+    public readonly context?: Record<string, unknown>,
   ) {
-    const message = retryAfterSeconds
-      ? `AI service rate limited, retry after ${retryAfterSeconds} seconds`
-      : "AI service rate limited";
-
-    super(message, "AI_RATE_LIMITED", cause, {
-      retryAfterSeconds,
-      ...context,
-    });
+    super(message);
+    this.name = "RateLimitError";
   }
 }
 
 /**
  * API key or authentication error
  */
-export class AuthenticationError extends BrainsError {
+export class AuthenticationError extends Error {
   constructor(
-    provider: string,
-    cause?: ErrorCause,
-    context: Record<string, unknown> = {},
+    message: string,
+    public readonly context?: Record<string, unknown>,
   ) {
-    super(
-      `AI service authentication failed for provider: ${provider}`,
-      "AI_AUTHENTICATION_FAILED",
-      cause,
-      { provider, ...context },
-    );
+    super(message);
+    this.name = "AuthenticationError";
   }
 }

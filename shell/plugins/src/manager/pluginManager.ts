@@ -82,7 +82,7 @@ export class PluginManager implements IPluginManager {
       throw new PluginRegistrationError(
         "unknown",
         "Plugin must have an id",
-        "Missing plugin ID",
+        { reason: "Missing plugin ID" },
       );
     }
 
@@ -96,8 +96,7 @@ export class PluginManager implements IPluginManager {
       throw new PluginRegistrationError(
         plugin.id,
         `Plugin is already registered with version ${existingVersion}`,
-        "Duplicate plugin registration",
-        { existingVersion, newVersion: plugin.version },
+        { reason: "Duplicate plugin registration", existingVersion, newVersion: plugin.version },
       );
     }
 
@@ -200,8 +199,8 @@ export class PluginManager implements IPluginManager {
           pluginInfo.status = PluginStatus.ERROR;
           pluginInfo.error = new PluginDependencyError(
             pluginId,
-            unmetDependencies,
-            "Dependency resolution failed",
+            `Unmet dependencies: ${unmetDependencies.join(", ")}`,
+            { unmetDependencies },
           );
         }
 
@@ -224,7 +223,7 @@ export class PluginManager implements IPluginManager {
       throw new PluginRegistrationError(
         pluginId,
         "Plugin is not registered",
-        "Plugin not found in registry",
+        { reason: "Plugin not found in registry" },
       );
     }
 

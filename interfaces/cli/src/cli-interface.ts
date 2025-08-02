@@ -265,7 +265,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
         if (!this.context) {
           throw new PluginInitializationError(
             this.id,
-            new Error("Plugin context not initialized"),
+            "Plugin context not initialized",
             { method: "start" },
           );
         }

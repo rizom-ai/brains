@@ -68,6 +68,20 @@ export abstract class MessageInterfacePlugin<
   ): Promise<void>;
 
   /**
+   * Get the plugin context, throwing if not initialized
+   */
+  protected override getContext(): MessageInterfacePluginContext {
+    if (!this.context) {
+      throw new PluginInitializationError(
+        this.id,
+        "Plugin context not initialized",
+        { plugin: this.id },
+      );
+    }
+    return this.context;
+  }
+
+  /**
    * Register handlers and subscriptions
    */
   protected override async onRegister(
@@ -181,24 +195,10 @@ export abstract class MessageInterfacePlugin<
     query: string,
     context: MessageContext,
   ): Promise<string> {
-    if (!this.context) {
-      throw new PluginInitializationError(
-        this.id,
-        new Error("Plugin context not initialized"),
-        { operation: "processQuery" },
-      );
-    }
+    const pluginContext = this.getContext();
 
     const result = await this.queue.add(async () => {
-      if (!this.context) {
-        throw new PluginInitializationError(
-          this.id,
-          new Error("Plugin context not initialized"),
-          { operation: "processQuery" },
-        );
-      }
-
-      const queryResponse = await this.context.query(query, {
+      const queryResponse = await pluginContext.query(query, {
         userId: context.userId,
         conversationId: context.channelId,
         messageId: context.messageId,
@@ -223,13 +223,7 @@ export abstract class MessageInterfacePlugin<
     command: string,
     context: MessageContext,
   ): Promise<{ message: string; jobId?: string; batchId?: string }> {
-    if (!this.context) {
-      throw new PluginInitializationError(
-        this.id,
-        new Error("Plugin context not initialized - cannot execute commands"),
-        { operation: "executeCommand" },
-      );
-    }
+    const pluginContext = this.getContext();
 
     const [cmd, ...args] = command.slice(1).split(" ");
 
@@ -241,7 +235,7 @@ export abstract class MessageInterfacePlugin<
 
     // Special case for help command
     if (cmd === "help") {
-      const commands = await this.context.listCommands();
+      const commands = await pluginContext.listCommands();
       const helpText = [
         "Available commands:",
         "",
@@ -258,7 +252,7 @@ export abstract class MessageInterfacePlugin<
       };
     }
 
-    const commands = await this.context.listCommands();
+    const commands = await pluginContext.listCommands();
     const commandDef = commands.find((c) => c.name === cmd);
 
     if (commandDef) {
@@ -269,7 +263,7 @@ export abstract class MessageInterfacePlugin<
         interfaceType: context.interfaceType,
         userPermissionLevel: context.userPermissionLevel,
       };
-      const result = await this.context.executeCommand(
+      const result = await pluginContext.executeCommand(
         cmd,
         args,
         commandContext,

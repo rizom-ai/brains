@@ -60,10 +60,8 @@ export class EntityRegistry implements IEntityRegistry {
     // Check for duplicate registration
     if (this.entitySchemas.has(type)) {
       throw new EntityTypeRegistrationError(
-        type,
-        "Entity type is already registered",
-        undefined,
-        { operation: "register" },
+        `Entity type registration failed for ${type}: Entity type is already registered`,
+        { entityType: type, operation: "register" },
       );
     }
 
@@ -83,10 +81,8 @@ export class EntityRegistry implements IEntityRegistry {
     const schema = this.entitySchemas.get(type);
     if (!schema) {
       throw new EntityTypeRegistrationError(
-        type,
-        "No schema registered for entity type",
-        undefined,
-        { operation: "getSchema" },
+        `Entity type registration failed for ${type}: No schema registered for entity type`,
+        { entityType: type, operation: "getSchema" },
       );
     }
     return schema;
@@ -99,10 +95,8 @@ export class EntityRegistry implements IEntityRegistry {
     const adapter = this.entityAdapters.get(type);
     if (!adapter) {
       throw new EntityTypeRegistrationError(
-        type,
-        "No adapter registered for entity type",
-        undefined,
-        { operation: "getAdapter" },
+        `Entity type registration failed for ${type}: No adapter registered for entity type`,
+        { entityType: type, operation: "getAdapter" },
       );
     }
     return adapter as EntityAdapter<T>;
