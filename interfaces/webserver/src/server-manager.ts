@@ -4,7 +4,7 @@ import { compress } from "@hono/bun-compress";
 import { etag } from "hono/etag";
 import type { Server } from "bun";
 import type { Logger } from "@brains/utils";
-import { join } from "path";
+import { join, resolve } from "path";
 import { existsSync } from "fs";
 
 export interface ServerManagerOptions {
@@ -33,7 +33,12 @@ export class ServerManager {
 
   constructor(options: ServerManagerOptions) {
     this.logger = options.logger;
-    this.options = options;
+    // Resolve paths relative to process.cwd()
+    this.options = {
+      ...options,
+      previewDistDir: resolve(process.cwd(), options.previewDistDir),
+      productionDistDir: resolve(process.cwd(), options.productionDistDir),
+    };
   }
 
   /**
