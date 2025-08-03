@@ -216,3 +216,40 @@ brain-repo/
 .brain-repo/
 apps/test-brain/brain-repo/
 apps/test-brain/.brain-repo/
+
+# Test files in root directory
+/test-*.js
+/test-*.ts
+/test-*.json
+/test.js
+/test.ts
+
+# Build artifacts in root
+/dist/
+/website/
+
+# Old backup directories
+*.backup/
+*.backup.*/
+*.old/
+*-backup/
+*-old/
+
+# Temporary directories
+tmp/
+temp/
+.tmp/
+.temp/
+
+# Archive directories
+archive/
+archives/
+old/
+
+# Duplicate databases in root
+/data.db*
+/todo.db*
+
+# Documentation cleanup
+/examples/README.md
+/interfaces/mcp-server/README.md

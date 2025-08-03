@@ -62,12 +62,13 @@ The project follows a **tool-first architecture** where all functionality is exp
 
 ### Core Packages
 
-- **@brains/shell**: Core infrastructure (database, entities, search, plugins)
+- **@brains/core**: Shell orchestrator and core infrastructure
 - **@brains/app**: High-level app framework with CLI and Matrix interfaces
+- **@brains/plugins**: Consolidated plugin infrastructure (BasePlugin → CorePlugin → ServicePlugin/InterfacePlugin)
 - **@brains/mcp-server**: MCP protocol implementation
 - **@brains/git-sync**: Git synchronization plugin
-- **@brains/types**: Shared TypeScript types
-- **@brains/utils**: Common utilities
+- **@brains/db**: Database schemas and vector storage
+- **@brains/utils**: Common utilities and shared types
 
 ### Key Concepts
 
@@ -82,6 +83,8 @@ The project follows a **tool-first architecture** where all functionality is exp
 - [Plugin System](docs/plugin-system.md)
 - [Entity Model](docs/entity-model.md)
 - [Development Workflow](docs/development-workflow.md)
+- [Tech Stack](docs/tech-stack.md)
+- [Technical Debt](docs/technical-debt.md)
 
 ## Development
 
@@ -117,8 +120,8 @@ bun run lint      # Lint
 
 ## Examples
 
-- [Test Brain App](apps/test-brain): Example brain application
-- [Note Context Plugin](docs/examples/note-context): Example context plugin
+- [Test Brain App](apps/test-brain): Example brain application with CLI and Matrix interfaces
+- [MCP Server Examples](examples/): MCP server implementation and testing scripts
 
 ## Contributing
 

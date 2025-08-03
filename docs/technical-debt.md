@@ -2,6 +2,14 @@
 
 This document tracks known architectural improvements and optimizations for the shell package. These items are not critical for functionality but should be addressed before production use or as pain points arise.
 
+**Last Updated**: 2025-08-03
+
+## Recent Progress
+- ✅ Plugin lifecycle hooks implemented (dispose methods)
+- ✅ Plugin architecture refactored with clear interfaces 
+- ✅ Component Interface Standardization pattern adopted
+- ✅ Shared plugin packages consolidated into shell/plugins
+
 ## TODO Comments in Code
 
 ### Search Highlight Extraction
@@ -27,18 +35,20 @@ This document tracks known architectural improvements and optimizations for the 
 - **Solution**: Implement background queue for embedding generation
 - **When to fix**: When entity creation becomes noticeably slow
 
-### 2. Component Disposal/Cleanup
+### 2. Component Disposal/Cleanup ✅ PARTIALLY COMPLETE
 
-- **Issue**: Only Shell has shutdown method; other components can't clean up resources
+- **Issue**: ~~Only Shell has shutdown method; other components can't clean up resources~~
+- **Status**: Component Interface Standardization pattern implemented with `resetInstance()` for testing cleanup
+- **Remaining**: Add full `dispose()` method to all components for production cleanup
 - **Impact**: Potential memory leaks in long-running processes
-- **Solution**: Add `dispose()` method to all components following IDisposable pattern
 - **When to fix**: Before deploying as long-running service
 
-### 3. Service Interfaces
+### 3. Service Interfaces ✅ PARTIALLY COMPLETE
 
-- **Issue**: Core services (EntityService, etc.) are concrete classes
+- **Issue**: ~~Core services (EntityService, etc.) are concrete classes~~
+- **Status**: Plugin architecture refactored with clear base interfaces (BasePlugin, CorePlugin, ServicePlugin, InterfacePlugin)
+- **Remaining**: Extract interfaces for EntityService, QueryProcessor, and other core services
 - **Impact**: Harder to test and swap implementations
-- **Solution**: Extract interfaces for all core services
 - **When to fix**: When we need to mock services or provide alternative implementations
 
 ## Medium Priority (based on usage patterns)
@@ -87,12 +97,12 @@ This document tracks known architectural improvements and optimizations for the 
 - **Solution**: Implement connection pool
 - **When to fix**: When seeing connection bottlenecks
 
-### 10. Plugin Lifecycle Hooks
+### 10. Plugin Lifecycle Hooks ✅ COMPLETE
 
-- **Issue**: Plugins only have initialization, no cleanup
-- **Impact**: Plugins can't properly dispose resources
-- **Solution**: Add dispose/reload hooks to plugin interface
-- **When to fix**: When plugins need resource cleanup
+- **Issue**: ~~Plugins only have initialization, no cleanup~~
+- **Status**: Implemented in plugin refactor - all plugins now have `dispose()` method
+- **Completed**: BasePlugin includes lifecycle methods for initialization and cleanup
+- **Impact**: Resolved - plugins can now properly manage resources
 
 ### 11. Configuration Validation
 
@@ -101,9 +111,27 @@ This document tracks known architectural improvements and optimizations for the 
 - **Solution**: Add startup validation phase
 - **When to fix**: When config complexity increases
 
+## Recently Identified Issues
+
+### 12. Path Resolution in Bundled Applications
+
+- **Issue**: Relative paths don't resolve correctly when running from bundled Bun executables
+- **Impact**: Webserver fails to find preview/production directories
+- **Solution**: Use `resolve()` to convert all relative paths to absolute paths
+- **Status**: Fixed in webserver, may need review in other packages
+- **When to fix**: Already addressed, needs testing
+
+### 13. Port Conflict Handling
+
+- **Issue**: No graceful handling when default ports are already in use
+- **Impact**: Server fails to start with unclear error messages
+- **Solution**: Implement port scanning or better error messages
+- **When to fix**: When deploying multiple instances
+
 ## Notes
 
 - All improvements should be backward compatible
 - Consider feature flags for breaking changes
 - Profile before optimizing - validate assumptions with real usage
 - Some "issues" might not be problems for the actual use case
+- Regular cleanup of completed items to keep document focused
