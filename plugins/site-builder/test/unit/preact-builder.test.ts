@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPreactBuilder } from "../../src/preact-builder";
 import type { BuildContext } from "../../src/static-site-builder";
-import type { ServicePluginContext } from "@brains/service-plugin";
+import type { ServicePluginContext } from "@brains/plugins";
 import type {
   ViewTemplate,
   RouteDefinition,

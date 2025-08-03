@@ -1,6 +1,6 @@
 import type { ProgressCallback, Logger } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/service-plugin";
+import type { ServicePluginContext } from "@brains/plugins";
 import type {
   SiteBuilder as ISiteBuilder,
   SiteBuilderOptions,

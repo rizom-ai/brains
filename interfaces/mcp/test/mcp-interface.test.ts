@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { MCPInterface } from "../src/mcp-interface";
-import { InterfacePluginTestHarness } from "@brains/interface-plugin";
+import { InterfacePluginTestHarness } from "@brains/plugins";
 import { createSilentLogger } from "@brains/utils";
 
 describe("MCPInterface", () => {

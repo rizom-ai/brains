@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { JobHandler } from "@brains/job-queue";
 import type { Logger } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/service-plugin";
+import type { ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import type { DirectorySync } from "../directorySync";
 import type { ImportResult } from "../types";

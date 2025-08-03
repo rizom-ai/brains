@@ -37,8 +37,7 @@
       "name": "@brains/cli",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/message-interface-plugin": "workspace:*",
-        "@brains/plugin-utils": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "chalk": "^5.4.1",
         "ink": "^6.0.1",
@@ -58,8 +57,7 @@
       "name": "@brains/matrix",
       "version": "0.0.1",
       "dependencies": {
-        "@brains/message-interface-plugin": "workspace:*",
-        "@brains/plugin-utils": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "matrix-bot-sdk": "^0.7.1",
         "p-queue": "^8.0.1",
@@ -93,7 +91,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/mcp-server": "workspace:*",
-        "@brains/plugin-utils": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.0.0",
       },
@@ -129,7 +127,7 @@
       "name": "@brains/webserver",
       "version": "0.0.1",
       "dependencies": {
-        "@brains/interface-plugin": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "@hono/bun-compress": "^0.1.0",
         "hono": "^4.6.14",
@@ -152,8 +150,7 @@
         "@brains/entity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/messaging-service": "workspace:*",
-        "@brains/plugin-utils": "workspace:*",
-        "@brains/service-plugin": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "chokidar": "^3.5.3",
         "gray-matter": "^4.0.3",
@@ -169,9 +166,8 @@
       "name": "@brains/git-sync",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/core-plugin": "workspace:*",
         "@brains/directory-sync": "workspace:*",
-        "@brains/utils": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "simple-git": "^3.21.0",
         "zod": "^3.24.1",
       },
@@ -190,7 +186,6 @@
         "@brains/content-management": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/service-plugin": "workspace:*",
         "@brains/utils": "workspace:*",
         "@brains/view-registry": "workspace:*",
         "@tailwindcss/cli": "^4.0.0",
@@ -297,26 +292,6 @@
         "@types/bun": "^1.1.17",
         "eslint": "^8.48.0",
         "typescript": "^5.7.3",
-      },
-    },
-    "shared/plugin-utils": {
-      "name": "@brains/plugin-utils",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/entity-service": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "@brains/view-registry": "workspace:*",
-        "p-queue": "^8.0.1",
-        "zod": "^3.22.4",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "typescript": "^5.5.4",
-      },
-      "peerDependencies": {
-        "typescript": "^5.0.0",
       },
     },
     "shared/service-plugin": {
@@ -725,8 +700,6 @@
     "@brains/message-interface-plugin": ["@brains/message-interface-plugin@workspace:shared/message-interface-plugin"],
 
     "@brains/messaging-service": ["@brains/messaging-service@workspace:shell/messaging-service"],
-
-    "@brains/plugin-utils": ["@brains/plugin-utils@workspace:shared/plugin-utils"],
 
     "@brains/plugins": ["@brains/plugins@workspace:shell/plugins"],
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { InterfacePluginTestHarness } from "@brains/interface-plugin";
+import { InterfacePluginTestHarness } from "@brains/plugins";
 import { WebserverInterface } from "../src/webserver-interface";
 import { createSilentLogger } from "@brains/utils";
 

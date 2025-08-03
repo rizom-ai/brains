@@ -1,7 +1,7 @@
 import type { Logger } from "@brains/utils";
 import { ContentManager } from "@brains/content-management";
 import type { IEntityService } from "@brains/entity-service";
-import type { ServicePluginContext } from "@brains/service-plugin";
+import type { ServicePluginContext } from "@brains/plugins";
 import type { JobContext } from "@brains/db";
 import type { PromoteOptions, RollbackOptions } from "./types";
 import type { SiteContentEntity } from "@brains/content-management";

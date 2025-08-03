@@ -6,8 +6,6 @@
   "types": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint . --ext .ts,.tsx",
@@ -27,7 +25,7 @@
     "eslint": "^8.57.0"
   },
   "files": [
-    "dist"
+    "src"
   ],
   "keywords": [
     "brain",

@@ -2,7 +2,7 @@ import type { Logger } from "@brains/utils";
 import type { IEntityService } from "@brains/entity-service";
 import type { SiteContentEntityType } from "@brains/view-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
-import type { ServicePluginContext } from "@brains/service-plugin";
+import type { ServicePluginContext } from "@brains/plugins";
 import type { GenerateOptions, ContentGenerationJob } from "../types";
 import type { JobOptions } from "@brains/db";
 import type { ContentGenerationJobData } from "@brains/content-generator";

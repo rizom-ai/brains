@@ -105,7 +105,10 @@ export class PermissionHandler {
   /**
    * Filter tools based on user ID (convenience method)
    */
-  filterToolsByUserId<T extends WithVisibility>(tools: T[], userId: string): T[] {
+  filterToolsByUserId<T extends WithVisibility>(
+    tools: T[],
+    userId: string,
+  ): T[] {
     const level = this.getUserPermissionLevel(userId);
     return this.filterToolsByPermission(tools, level);
   }

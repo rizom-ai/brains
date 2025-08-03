@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { ServicePluginTestHarness } from "@brains/service-plugin";
+import { ServicePluginTestHarness } from "@brains/plugins";
 import type { PluginCapabilities } from "@brains/plugins";
 import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
 import { baseEntitySchema } from "@brains/entity-service";

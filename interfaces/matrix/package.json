@@ -13,8 +13,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@brains/message-interface-plugin": "workspace:*",
-    "@brains/plugin-utils": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "matrix-bot-sdk": "^0.7.1",
     "p-queue": "^8.0.1",

@@ -2,7 +2,7 @@ import { test, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentManager } from "./manager";
 import { createSilentLogger } from "@brains/utils";
 import type { IEntityService } from "@brains/entity-service";
-import type { ServicePluginContext } from "@brains/service-plugin";
+import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { JobOptions } from "@brains/db";
 

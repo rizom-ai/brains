@@ -15,7 +15,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@brains/plugin-utils": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/mcp-server": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.0.0"

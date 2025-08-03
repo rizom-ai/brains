@@ -1,6 +1,6 @@
 import type { JobHandler } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/service-plugin";
+import type { ServicePluginContext } from "@brains/plugins";
 import { SiteBuilder } from "../site-builder";
 import {
   siteBuildJobSchema,

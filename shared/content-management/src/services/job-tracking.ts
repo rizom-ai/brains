@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/service-plugin";
+import type { ServicePluginContext } from "@brains/plugins";
 
 /**
  * Simple result type for content generation
