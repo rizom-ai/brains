@@ -164,9 +164,15 @@ export { JobContextSchema } from "@brains/db";
 export type {
   Logger,
   ProgressNotification,
+  ProgressCallback,
   UserPermissionLevel,
+  ContentFormatter,
 } from "@brains/utils";
-export { createSilentLogger } from "@brains/utils";
+export {
+  createSilentLogger,
+  ProgressReporter,
+  ResponseFormatter,
+} from "@brains/utils";
 
 // Test utilities from @brains/core
 export { MockShell } from "@brains/core/test";
