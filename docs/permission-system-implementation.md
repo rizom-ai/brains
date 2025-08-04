@@ -220,7 +220,7 @@ public determineUserPermissionLevel(userId: string): UserPermissionLevel {
 - AccessContext creation based on user ID
 - Security boundary enforcement
 
-**MCP Tests** (`interfaces/mcp-server/test/security.test.ts`):
+**MCP Tests** (`shared/mcp-server/test/security.test.ts`):
 
 - AccessContext creation with "anchor" level
 - Tool access verification through SecurityGateway

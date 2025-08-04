@@ -40,6 +40,7 @@ The codebase follows a 4-directory monorepo structure:
 - **shared/content-management**: Content operations and management
 - **shared/daemon-registry**: Long-running process management
 - **shared/default-site-content**: Default templates and formatters
+- **shared/mcp-server**: MCP server implementations (stdio, HTTP)
 - **shared/test-utils**: Testing utilities and harnesses
 - **shared/ui-library**: Shared UI components (Ink-based)
 - **shared/eslint-config**: Shared ESLint configuration
@@ -51,7 +52,6 @@ The codebase follows a 4-directory monorepo structure:
 - **interfaces/matrix**: Matrix bot interface (MessageInterfacePlugin)
 - **interfaces/matrix-setup**: Matrix account setup utility
 - **interfaces/mcp**: MCP interface plugin (InterfacePlugin)
-- **interfaces/mcp-server**: MCP server implementations (stdio, HTTP)
 - **interfaces/webserver**: Static site server (InterfacePlugin)
 
 ### Plugin Packages (Feature Extensions)

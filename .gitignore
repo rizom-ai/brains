@@ -252,4 +252,4 @@ old/
 
 # Documentation cleanup
 /examples/README.md
-/interfaces/mcp-server/README.md
+/shared/mcp-server/README.md
