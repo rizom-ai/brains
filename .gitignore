@@ -253,3 +253,19 @@ old/
 # Documentation cleanup
 /examples/README.md
 /shared/mcp-server/README.md
+
+# Terraform files
+tfplan
+*.tfplan
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.auto.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc

@@ -1,11 +1,2 @@
-import { z } from "zod";
-
-export const cliConfigSchema = z.object({
-  theme: z.object({
-    primaryColor: z.string(),
-    accentColor: z.string(),
-  }),
-});
-
-export type CLIConfig = z.infer<typeof cliConfigSchema>;
-export type CLIConfigInput = Partial<CLIConfig>;
+// CLI-specific types that don't belong in config
+// Currently empty but kept for future CLI-specific types

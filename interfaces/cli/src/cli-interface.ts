@@ -1,16 +1,23 @@
 import {
   MessageInterfacePlugin,
   type MessageInterfacePluginContext,
+  PluginError,
+  type Daemon,
+  type DaemonHealth,
 } from "@brains/plugins";
 import type { MessageContext } from "@brains/messaging-service";
 import type { Command } from "@brains/command-registry";
-import { PluginError, type Daemon, type DaemonHealth } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/utils";
 import type { Instance } from "ink";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";
-import type { CLIConfig, CLIConfigInput } from "./types";
-import { cliConfigSchema } from "./types";
+import {
+  cliConfigSchema,
+  defaultCLIConfig,
+  type CLIConfig,
+  type CLIConfigInput,
+} from "./config";
+import { handleProgressEvent, MessageHandlers } from "./handlers";
 import packageJson from "../package.json";
 
 export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
@@ -18,17 +25,10 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
   private inkApp: Instance | null = null;
   private progressEvents = new Map<string, JobProgressEvent>();
   private progressCallback: ((events: JobProgressEvent[]) => void) | undefined;
-  private responseCallback: ((response: string) => void) | undefined;
+  private messageHandlers = new MessageHandlers();
 
   constructor(config: CLIConfigInput = {}) {
-    const defaults: Partial<CLIConfig> = {
-      theme: {
-        primaryColor: "#0066cc",
-        accentColor: "#ff6600",
-      },
-    };
-
-    super("cli", packageJson, config, cliConfigSchema, defaults);
+    super("cli", packageJson, config, cliConfigSchema, defaultCLIConfig);
   }
 
   public override determineUserPermissionLevel(
@@ -81,14 +81,14 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
    * Register callback to receive response events
    */
   public registerResponseCallback(callback: (response: string) => void): void {
-    this.responseCallback = callback;
+    this.messageHandlers.registerResponseCallback(callback);
   }
 
   /**
    * Unregister response callbacks
    */
   public unregisterMessageCallbacks(): void {
-    this.responseCallback = undefined;
+    this.messageHandlers.unregisterMessageCallbacks();
   }
 
   /**
@@ -98,93 +98,18 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     progressEvent: JobProgressEvent,
     context: JobContext,
   ): Promise<void> {
-    try {
-      // CLI only handles events from CLI interface
-      if (context.interfaceId !== "cli") {
-        return; // Event not from CLI interface
-      }
-
-      // Add/update all events (processing, completed, failed)
-      this.progressEvents = this.progressReducer(this.progressEvents, {
-        type: "UPDATE_PROGRESS",
-        payload: progressEvent,
-      });
-
-      // Always notify React component of the change
-      if (this.progressCallback) {
-        // Send all events to the status bar
-        const allEvents = Array.from(this.progressEvents.values());
-        this.progressCallback(allEvents);
-      }
-
-      // Also send progress update as message edit for inline progress bars
-      const existingMessageId = this.jobMessages.get(progressEvent.id);
-      if (existingMessageId) {
-        // Format progress message similar to Matrix style
-        const operationType = progressEvent.metadata.operationType.replace(
-          /_/g,
-          " ",
-        );
-        const operationTarget = progressEvent.metadata.operationTarget ?? "";
-
-        let message = "";
-        if (progressEvent.status === "completed") {
-          message = `✅ **${operationType}${operationTarget ? `: ${operationTarget}` : ""}** completed`;
-        } else if (progressEvent.status === "failed") {
-          message = `❌ **${operationType}${operationTarget ? `: ${operationTarget}` : ""}** failed`;
-        } else if (
-          progressEvent.status === "processing" &&
-          progressEvent.progress
-        ) {
-          message = `🔄 **${operationType}${operationTarget ? `: ${operationTarget}` : ""}** in progress`;
-          if (progressEvent.progress.total > 0) {
-            message += `\n📊 Progress: ${progressEvent.progress.current}/${progressEvent.progress.total} (${progressEvent.progress.percentage}%)`;
-          }
-          if (operationTarget) {
-            message += `\n📂 Target: \`${operationTarget}\``;
-          }
-        }
-
-        if (message) {
-          await this.editMessage(existingMessageId, message, {
-            userId: progressEvent.metadata.userId,
-            channelId: progressEvent.metadata.channelId ?? "cli",
-            messageId: existingMessageId,
-            timestamp: new Date(),
-            interfaceType: "cli",
-            userPermissionLevel: "anchor",
-          });
-        }
-      }
-    } catch (error) {
-      this.logger.error("Error handling progress event in CLI", { error });
-    }
-  }
-
-  /**
-   * Progress reducer for state management
-   */
-  private progressReducer(
-    state: Map<string, JobProgressEvent>,
-    action: {
-      type: "UPDATE_PROGRESS" | "CLEANUP_PROGRESS";
-      payload: JobProgressEvent;
-    },
-  ): Map<string, JobProgressEvent> {
-    const newState = new Map(state);
-
-    switch (action.type) {
-      case "UPDATE_PROGRESS":
-        newState.set(action.payload.id, action.payload);
-        break;
-      case "CLEANUP_PROGRESS":
-        newState.delete(action.payload.id);
-        break;
-      default:
-        return state;
-    }
-
-    return newState;
+    this.progressEvents = await handleProgressEvent(
+      progressEvent,
+      context,
+      this.progressEvents,
+      {
+        progressCallback: this.progressCallback,
+        editMessage: (messageId, content, ctx) =>
+          this.editMessage(messageId, content, ctx),
+      },
+      this.jobMessages,
+      this.logger,
+    );
   }
 
   /**
@@ -226,30 +151,21 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
    */
   protected async sendMessage(
     content: string,
-    _context: MessageContext,
-    _replyToId?: string,
+    context: MessageContext,
+    replyToId?: string,
   ): Promise<string> {
-    // Use callback to send response
-    if (this.responseCallback) {
-      this.responseCallback(content);
-    }
-    // Return a synthetic message ID for CLI
-    return `cli-msg-${Date.now()}`;
+    return this.messageHandlers.sendMessage(content, context, replyToId);
   }
 
   /**
    * Edit message - for CLI, just send new message (React component will handle replacement)
    */
   protected async editMessage(
-    _messageId: string,
+    messageId: string,
     content: string,
-    _context: MessageContext,
+    context: MessageContext,
   ): Promise<void> {
-    // For CLI, editing means sending a new message
-    // The React component will detect progress messages and handle replacement
-    if (this.responseCallback) {
-      this.responseCallback(content);
-    }
+    return this.messageHandlers.editMessage(messageId, content, context);
   }
 
   /**
@@ -293,21 +209,11 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
           // Handle process termination gracefully
           process.on("SIGINT", async (): Promise<void> => {
             this.logger.info("Received SIGINT, stopping CLI interface");
-            // Clean up callbacks
-            this.unregisterProgressCallback();
-            this.unregisterMessageCallbacks();
-            if (this.inkApp) {
-              this.inkApp.unmount();
-            }
+            await this.cleanup();
           });
           process.on("SIGTERM", async (): Promise<void> => {
             this.logger.info("Received SIGTERM, stopping CLI interface");
-            // Clean up callbacks
-            this.unregisterProgressCallback();
-            this.unregisterMessageCallbacks();
-            if (this.inkApp) {
-              this.inkApp.unmount();
-            }
+            await this.cleanup();
           });
         } catch (error) {
           this.logger.error("Failed to start CLI interface", { error });
@@ -316,15 +222,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
       },
       stop: async (): Promise<void> => {
         this.logger.info("Stopping CLI interface");
-
-        // Clean up all callbacks
-        this.unregisterProgressCallback();
-        this.unregisterMessageCallbacks();
-
-        if (this.inkApp) {
-          this.inkApp.unmount();
-          this.inkApp = null;
-        }
+        await this.cleanup();
       },
       healthCheck: async (): Promise<DaemonHealth> => {
         const isRunning = this.inkApp !== null;
@@ -336,12 +234,24 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
           lastCheck: new Date(),
           details: {
             hasInkApp: this.inkApp !== null,
-            hasCallbacks:
-              this.progressCallback !== undefined ||
-              this.responseCallback !== undefined,
+            hasCallbacks: this.progressCallback !== undefined,
           },
         };
       },
     };
+  }
+
+  /**
+   * Clean up resources
+   */
+  private async cleanup(): Promise<void> {
+    // Clean up callbacks
+    this.unregisterProgressCallback();
+    this.unregisterMessageCallbacks();
+
+    if (this.inkApp) {
+      this.inkApp.unmount();
+      this.inkApp = null;
+    }
   }
 }
