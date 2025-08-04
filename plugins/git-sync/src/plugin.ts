@@ -1,7 +1,6 @@
 import type { Plugin, PluginTool, CorePluginContext } from "@brains/plugins";
 import { CorePlugin } from "@brains/plugins";
-import { z } from "zod";
-import { GitSync } from "./gitSync";
+import { GitSync } from "./lib/git-sync";
 import {
   gitSyncConfigSchema,
   type GitSyncConfig,
@@ -9,6 +8,7 @@ import {
 } from "./types";
 import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
 import { gitSyncStatusSchema } from "./schemas";
+import { createGitSyncTools } from "./tools";
 import packageJson from "../package.json";
 
 /**
@@ -68,93 +68,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
    * Define the tools provided by this plugin
    */
   override async getTools(): Promise<PluginTool[]> {
-    return [
-      {
-        name: "git-sync:sync",
-        description: "Perform full git sync (export, commit, push, pull)",
-        inputSchema: {},
-        visibility: "anchor", // Only anchor user can sync
-        handler: async (): Promise<{ message: string }> => {
-          await this.getGitSync().sync();
-          return {
-            message: "Git sync completed successfully",
-          };
-        },
-      },
-
-      {
-        name: "git-sync:commit",
-        description: "Commit current changes",
-        inputSchema: {
-          commitMessage: z.string().optional(),
-        },
-        visibility: "anchor", // Only anchor user can commit
-        handler: async (input: unknown): Promise<{ message: string }> => {
-          const { commitMessage } = input as { commitMessage?: string };
-          await this.getGitSync().commit(commitMessage);
-          return {
-            message: "Changes committed successfully",
-          };
-        },
-      },
-
-      {
-        name: "git-sync:push",
-        description: "Push commits to remote repository",
-        inputSchema: {},
-        visibility: "anchor", // Only anchor user can push
-        handler: async (): Promise<{ message: string }> => {
-          await this.getGitSync().push();
-          return {
-            message: "Pushed to remote successfully",
-          };
-        },
-      },
-
-      {
-        name: "git-sync:pull",
-        description: "Pull changes from remote repository",
-        inputSchema: {},
-        visibility: "anchor", // Only anchor user can pull
-        handler: async (): Promise<{ message: string }> => {
-          await this.getGitSync().pull();
-          return {
-            message: "Pulled from remote successfully",
-          };
-        },
-      },
-
-      {
-        name: "git-sync:status",
-        description: "Get git repository status",
-        inputSchema: {},
-        visibility: "public", // Anyone can check status
-        handler: async (): Promise<unknown> => {
-          return this.getGitSync().getStatus();
-        },
-      },
-
-      {
-        name: "git-sync:auto-sync",
-        description: "Start or stop automatic synchronization",
-        inputSchema: {
-          autoSync: z.boolean(),
-        },
-        visibility: "anchor", // Only anchor user can control auto-sync
-        handler: async (input: unknown): Promise<{ message: string }> => {
-          const { autoSync } = input as { autoSync: boolean };
-          const gitSync = this.getGitSync();
-
-          if (autoSync) {
-            gitSync.startAutoSync();
-            return { message: "Auto-sync started" };
-          } else {
-            gitSync.stopAutoSync();
-            return { message: "Auto-sync stopped" };
-          }
-        },
-      },
-    ];
+    return createGitSyncTools(this.getGitSync());
   }
 
   /**

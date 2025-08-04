@@ -104,11 +104,14 @@ import {
 
 ### Implementation Order
 
-#### 4.1 git-sync (Simplest)
+#### 4.1 git-sync (Simplest) ✅
 
-- [ ] Reorganize directory structure
-- [ ] Update all imports to use only @brains/plugins
-- [ ] Run tests
+- [x] Reorganize directory structure
+  - Moved gitSync.ts to lib/git-sync.ts
+  - Extracted tools to tools/index.ts
+  - Formatters already in formatters/
+- [x] Update all imports to use only @brains/plugins (already clean)
+- [x] Run tests (all 11 tests pass)
 
 #### 4.2 directory-sync
 
