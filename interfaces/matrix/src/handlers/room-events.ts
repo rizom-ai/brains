@@ -58,15 +58,28 @@ export async function handleRoomMessage(
     return;
   }
 
-  // Check if bot is mentioned (only for non-anchor users)
-  if (senderId !== ctx.config.anchorUserId) {
-    if (!isAddressedToBot(messageEvent, ctx.config.userId, ctx.logger)) {
-      ctx.logger.debug("Message not addressed to bot, ignoring", {
-        roomId,
-        senderId,
-      });
-      return;
-    }
+  // Check if we should process this message
+  const isCommand = message.startsWith(ctx.config.commandPrefix);
+  const isAnchorCommand = message.startsWith(ctx.config.anchorPrefix);
+  const isMentioned = isAddressedToBot(messageEvent, ctx.config.userId, ctx.logger);
+  
+  // For anchor commands, check permission before processing
+  if (isAnchorCommand && senderId !== ctx.config.anchorUserId) {
+    ctx.logger.debug("Ignoring anchor command from non-anchor user", {
+      sender: senderId,
+      command: message.substring(0, 50),
+    });
+    return;
+  }
+  
+  // Only respond if we're explicitly addressed or it's a command
+  if (!isMentioned && !isCommand && !isAnchorCommand) {
+    ctx.logger.debug("Message not for bot (not mentioned and not a command), ignoring", {
+      roomId,
+      senderId,
+      message: message.substring(0, 50),
+    });
+    return;
   }
 
   // Strip bot mention from message if present
@@ -91,7 +104,6 @@ export async function handleRoomMessage(
       roomId,
       messageLength: message.length,
     });
-
 
     // Set typing indicator
     if (ctx.config.enableTypingNotifications) {
