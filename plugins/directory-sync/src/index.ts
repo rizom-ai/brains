@@ -5,7 +5,7 @@
 
 export { directorySync } from "./plugin";
 export { DirectorySyncPlugin } from "./plugin";
-export { DirectorySync } from "./directorySync";
+export { DirectorySync } from "./lib/directory-sync";
 export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 
 export type {

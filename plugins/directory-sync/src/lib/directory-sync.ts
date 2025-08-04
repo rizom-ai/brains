@@ -20,7 +20,7 @@ import type {
   ImportResult,
   SyncResult,
   RawEntity,
-} from "./types";
+} from "../types";
 
 /**
  * DirectorySync options schema
