@@ -11,8 +11,8 @@ import {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
+import { createMCPTools } from "./tools";
 import packageJson from "../package.json";
-import { z } from "zod";
 
 /**
  * MCP Interface Plugin
@@ -50,11 +50,10 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   }
 
   /**
-   * Override getTools to return empty array since MCP manages its own tools
+   * Get MCP's own tools
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    // MCP manages its own tools internally
-    return [];
+    return createMCPTools(this.id, () => this.context);
   }
 
   /**
@@ -298,253 +297,10 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   }
 
   /**
-   * Register Shell's core tools with the MCP server
+   * Register MCP-specific resources
    */
-  private registerShellTools(context: InterfacePluginContext): void {
+  private registerMCPResources(context: InterfacePluginContext): void {
     if (!this.mcpServer) return;
-
-    // Register core shell query tool
-    this.mcpServer.tool(
-      "shell:query",
-      "Query the knowledge base using AI-powered search",
-      {
-        query: z
-          .string()
-          .describe("Natural language query to search the knowledge base"),
-        userId: z.string().optional().describe("Optional user ID for context"),
-      },
-      async (params) => {
-        try {
-          const result = await context.query(params["query"] as string, {
-            userId: params["userId"] as string | undefined,
-          });
-
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: JSON.stringify(result, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          this.logger.error("Query tool error", error);
-          throw error;
-        }
-      },
-    );
-
-    // Register entity search tool
-    this.mcpServer.tool(
-      "shell:search",
-      "Search entities by type and query",
-      {
-        entityType: z
-          .string()
-          .describe("Type of entity to search (e.g., 'note', 'base')"),
-        query: z.string().describe("Search query"),
-        limit: z.number().optional().describe("Maximum number of results"),
-      },
-      async (params) => {
-        try {
-          const results = await context.entityService.search(
-            params["query"] as string,
-            {
-              types: [params["entityType"] as string],
-              limit: (params["limit"] as number) || 10,
-            },
-          );
-
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: JSON.stringify(results, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          this.logger.error("Search tool error", error);
-          throw error;
-        }
-      },
-    );
-
-    // Register entity get tool
-    this.mcpServer.tool(
-      "shell:get",
-      "Get a specific entity by type and ID",
-      {
-        entityType: z.string().describe("Type of entity"),
-        id: z.string().describe("Entity ID"),
-      },
-      async (params) => {
-        try {
-          const entity = await context.entityService.getEntity(
-            params["entityType"] as string,
-            params["id"] as string,
-          );
-
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: entity
-                  ? JSON.stringify(entity, null, 2)
-                  : "Entity not found",
-              },
-            ],
-          };
-        } catch (error) {
-          this.logger.error("Get entity tool error", error);
-          throw error;
-        }
-      },
-    );
-
-    // Register job status checking tool
-    this.mcpServer.tool(
-      "shell:check-job-status",
-      "Check the status of background operations",
-      {
-        batchId: z
-          .string()
-          .optional()
-          .describe(
-            "Specific batch ID to check (leave empty for all active operations)",
-          ),
-        jobTypes: z
-          .array(z.string())
-          .optional()
-          .describe(
-            "Filter by specific job types (only when batchId is not provided)",
-          ),
-      },
-      async (params) => {
-        try {
-          const batchId = params["batchId"] as string | undefined;
-
-          if (batchId) {
-            // Check specific batch
-            const status = await context.getBatchStatus(batchId);
-
-            if (!status) {
-              return {
-                content: [
-                  {
-                    type: "text" as const,
-                    text: JSON.stringify(
-                      {
-                        error: "Batch not found",
-                        message: `No batch found with ID: ${batchId}`,
-                      },
-                      null,
-                      2,
-                    ),
-                  },
-                ],
-              };
-            }
-
-            const percentComplete =
-              status.totalOperations > 0
-                ? Math.round(
-                    (status.completedOperations / status.totalOperations) * 100,
-                  )
-                : 0;
-
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: JSON.stringify(
-                    {
-                      batchId,
-                      status: status.status,
-                      progress: {
-                        total: status.totalOperations,
-                        completed: status.completedOperations,
-                        failed: status.failedOperations,
-                        percentComplete,
-                      },
-                      currentOperation: status.currentOperation,
-                      errors: status.errors,
-                      message:
-                        status.status === "processing"
-                          ? `Processing: ${status.completedOperations}/${status.totalOperations} operations (${percentComplete}%)`
-                          : status.status === "completed"
-                            ? `Completed: ${status.completedOperations} operations`
-                            : status.status === "failed"
-                              ? `Failed: ${status.failedOperations} operations failed`
-                              : "Unknown status",
-                    },
-                    null,
-                    2,
-                  ),
-                },
-              ],
-            };
-          } else {
-            // Show all active operations
-            const jobTypes = params["jobTypes"] as string[] | undefined;
-            const activeJobs = await context.getActiveJobs(jobTypes);
-            const activeBatches = await context.getActiveBatches();
-
-            // Format individual jobs
-            const formattedJobs = activeJobs.map((job) => ({
-              id: job.id,
-              type: job.type,
-              status: job.status,
-              priority: job.priority,
-              retryCount: job.retryCount,
-              createdAt: new Date(job.createdAt).toISOString(),
-              startedAt: job.startedAt
-                ? new Date(job.startedAt).toISOString()
-                : null,
-            }));
-
-            // Format batch operations
-            const formattedBatches = activeBatches.map((batch) => ({
-              batchId: batch.batchId,
-              status: batch.status.status,
-              totalOperations: batch.status.totalOperations,
-              completedOperations: batch.status.completedOperations,
-              failedOperations: batch.status.failedOperations,
-              currentOperation: batch.status.currentOperation,
-              userId: batch.metadata.metadata.userId,
-              errors: batch.status.errors,
-            }));
-
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: JSON.stringify(
-                    {
-                      summary: {
-                        activeJobs: formattedJobs.length,
-                        activeBatches: formattedBatches.length,
-                      },
-                      jobs: formattedJobs,
-                      batches: formattedBatches,
-                      tip:
-                        formattedBatches.length > 0
-                          ? "Use shell:check-job-status --batchId <id> to check specific batch progress"
-                          : undefined,
-                    },
-                    null,
-                    2,
-                  ),
-                },
-              ],
-            };
-          }
-        } catch (error) {
-          this.logger.error("Check job status tool error", error);
-          throw error;
-        }
-      },
-    );
 
     // Register entity types resource
     this.mcpServer.resource(
@@ -564,9 +320,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       },
     );
 
-    this.logger.info(
-      `Registered ${4} tools and ${1} resources with MCP server`,
-    );
+    this.logger.info("Registered MCP resources");
   }
 
   /**
@@ -586,8 +340,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       version: "1.0.0",
     });
 
-    // Register basic Shell tools
-    this.registerShellTools(context);
+    // Register entity types resource directly
+    // (Tools will be registered automatically through plugin system)
+    this.registerMCPResources(context);
 
     // Subscribe to system events for plugin tools
     this.setupSystemEventListeners(context);
