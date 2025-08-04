@@ -48,13 +48,10 @@ describe("WebserverInterface", () => {
     defaultHarness.reset();
   });
 
-  it("should provide start and stop methods", () => {
-    expect(typeof plugin.start).toBe("function");
-    expect(typeof plugin.stop).toBe("function");
-  });
-
-  it("should implement isRunning method", () => {
-    expect(typeof plugin.isRunning).toBe("function");
-    expect(plugin.isRunning()).toBe(false); // Should be false before starting
+  it("should be properly configured", () => {
+    // Plugin should be registered and configured
+    expect(plugin.id).toBe("webserver");
+    expect(plugin.type).toBe("interface");
+    expect(plugin.version).toBeDefined();
   });
 });

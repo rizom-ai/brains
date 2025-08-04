@@ -6,12 +6,15 @@ import {
   type Daemon,
   type DaemonHealth,
   type UserPermissionLevel,
-  type JobProgressEvent,
 } from "@brains/plugins";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
 import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
 import { createMCPTools } from "./tools";
+import {
+  setupSystemEventListeners,
+  setupJobProgressListener,
+} from "./handlers";
 import packageJson from "../package.json";
 
 /**
@@ -65,238 +68,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   }
 
   /**
-   * Set up listener for job progress events (for logging only)
-   */
-  private setupJobProgressListener(context: InterfacePluginContext): void {
-    // Subscribe to job-progress events for debugging
-    context.subscribe("job-progress", async (message) => {
-      try {
-        const event = message.payload as JobProgressEvent;
-
-        // Debug logging only - MCP cannot send async notifications after tool returns
-        this.logger.debug("Job progress event", {
-          id: event.id,
-          type: event.type,
-          status: event.status,
-          progress: event.progress,
-          progressToken: event.metadata.progressToken,
-        });
-
-        return { noop: true };
-      } catch (error) {
-        this.logger.error("Error handling job progress event", error);
-        return { noop: true };
-      }
-    });
-
-    this.logger.info("Subscribed to job progress events for debugging");
-  }
-
-  /**
-   * Set up listeners for system events
-   */
-  private setupSystemEventListeners(context: InterfacePluginContext): void {
-    // Subscribe to tool registration events
-    context.subscribe("system:tool:register", (message) => {
-      const { pluginId, tool } = message.payload as {
-        pluginId: string;
-        tool: PluginTool;
-        timestamp: number;
-      };
-      this.handleToolRegistration(pluginId, tool);
-      return { success: true };
-    });
-
-    // Subscribe to resource registration events
-    context.subscribe("system:resource:register", (message) => {
-      const { pluginId, resource } = message.payload as {
-        pluginId: string;
-        resource: PluginResource;
-        timestamp: number;
-      };
-      this.handleResourceRegistration(pluginId, resource);
-      return { success: true };
-    });
-
-    this.logger.info("Subscribed to system tool/resource registration events");
-  }
-
-  /**
-   * Handle tool registration from plugins
-   */
-  private handleToolRegistration(pluginId: string, tool: PluginTool): void {
-    if (!this.mcpServer) return;
-
-    const toolVisibility = tool.visibility ?? "anchor";
-    const permissionLevel = this.getPermissionLevel();
-
-    if (!this.shouldRegisterTool(permissionLevel, toolVisibility)) {
-      this.logger.debug(
-        `Skipping tool ${tool.name} from ${pluginId} - insufficient permissions`,
-      );
-      return;
-    }
-
-    // Register the tool with namespacing
-    this.mcpServer.tool(
-      `${pluginId}:${tool.name}`,
-      tool.description,
-      tool.inputSchema,
-      async (params, extra) => {
-        // Extract context from MCP client metadata
-        const interfaceId = extra._meta?.["interfaceId"];
-        const userId = extra._meta?.["userId"];
-        const channelId = extra._meta?.["channelId"];
-        const progressToken = extra._meta?.progressToken;
-
-        // Log metadata for debugging
-        this.logger.debug("MCP client metadata", {
-          tool: `${pluginId}:${tool.name}`,
-          interfaceId,
-          userId,
-          channelId,
-          progressToken,
-        });
-
-        try {
-          // Execute tool through message bus using plugin-specific message type
-          if (!this.context) {
-            throw new Error("Plugin context not initialized");
-          }
-
-          const response = await this.context.sendMessage(
-            `plugin:${pluginId}:tool:execute`,
-            {
-              toolName: tool.name,
-              args: params,
-              progressToken,
-              hasProgress: progressToken !== undefined,
-              // Pass through context from MCP client
-              interfaceId,
-              userId,
-              channelId,
-            },
-          );
-
-          if ("success" in response && !response.success) {
-            throw new Error(response.error ?? "Tool execution failed");
-          }
-
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: JSON.stringify(
-                  "data" in response ? response.data : response,
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
-        } catch (error) {
-          this.logger.error(`Tool execution error for ${tool.name}`, error);
-          throw error;
-        }
-      },
-    );
-
-    this.logger.info(`Registered tool ${pluginId}:${tool.name}`);
-  }
-
-  /**
-   * Handle resource registration from plugins
-   */
-  private handleResourceRegistration(
-    pluginId: string,
-    resource: PluginResource,
-  ): void {
-    if (!this.mcpServer) return;
-
-    // Resources don't have visibility, so we'll default to anchor permission
-    // In the future, we might want to add visibility to resources
-    const resourceVisibility: UserPermissionLevel = "anchor";
-    const permissionLevel = this.getPermissionLevel();
-
-    if (!this.shouldRegisterResource(permissionLevel, resourceVisibility)) {
-      this.logger.debug(
-        `Skipping resource ${resource.uri} from ${pluginId} - insufficient permissions`,
-      );
-      return;
-    }
-
-    // Register the resource with namespacing
-    this.mcpServer.resource(
-      `${pluginId}:${resource.uri}`,
-      resource.description ?? `Resource from ${pluginId}`,
-      async () => {
-        try {
-          // Get resource through message bus using plugin-specific message type
-          if (!this.context) {
-            throw new Error("Plugin context not initialized");
-          }
-          const response = await this.context.sendMessage(
-            `plugin:${pluginId}:resource:get`,
-            {
-              resourceUri: resource.uri,
-            },
-          );
-
-          if ("success" in response && !response.success) {
-            throw new Error(response.error ?? "Resource fetch failed");
-          }
-
-          return {
-            contents: [
-              {
-                uri: `${pluginId}:${resource.uri}`,
-                mimeType: resource.mimeType ?? "text/plain",
-                text: JSON.stringify(
-                  "data" in response ? response.data : response,
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
-        } catch (error) {
-          this.logger.error(`Resource fetch error for ${resource.uri}`, error);
-          throw error;
-        }
-      },
-    );
-
-    this.logger.info(`Registered resource ${pluginId}:${resource.uri}`);
-  }
-
-  /**
-   * Check if a tool should be registered based on permissions
-   */
-  private shouldRegisterTool(
-    serverPermission: UserPermissionLevel,
-    toolVisibility: UserPermissionLevel,
-  ): boolean {
-    const hierarchy: Record<UserPermissionLevel, number> = {
-      anchor: 3,
-      trusted: 2,
-      public: 1,
-    };
-
-    return hierarchy[serverPermission] >= hierarchy[toolVisibility];
-  }
-
-  /**
-   * Check if a resource should be registered based on permissions
-   */
-  private shouldRegisterResource(
-    serverPermission: UserPermissionLevel,
-    resourceVisibility: UserPermissionLevel,
-  ): boolean {
-    // Use same logic as tools
-    return this.shouldRegisterTool(serverPermission, resourceVisibility);
-  }
-
-  /**
    * Register MCP-specific resources
    */
   private registerMCPResources(context: InterfacePluginContext): void {
@@ -306,18 +77,15 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     this.mcpServer.resource(
       "entity://types",
       "List of supported entity types",
-      async () => {
-        const types = context.entityService.getEntityTypes();
-        return {
-          contents: [
-            {
-              uri: "entity://types",
-              mimeType: "text/plain",
-              text: types.join("\n"),
-            },
-          ],
-        };
-      },
+      async () => ({
+        contents: [
+          {
+            uri: "entity://types",
+            mimeType: "text/plain",
+            text: context.entityService.getEntityTypes().join("\n"),
+          },
+        ],
+      }),
     );
 
     this.logger.info("Registered MCP resources");
@@ -345,10 +113,15 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     this.registerMCPResources(context);
 
     // Subscribe to system events for plugin tools
-    this.setupSystemEventListeners(context);
+    setupSystemEventListeners(
+      context,
+      this.mcpServer,
+      () => this.getPermissionLevel(),
+      this.logger,
+    );
 
     // Subscribe to job progress events for MCP progress reporting
-    this.setupJobProgressListener(context);
+    setupJobProgressListener(context, this.logger);
   }
 
   /**

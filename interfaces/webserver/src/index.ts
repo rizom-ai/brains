@@ -7,10 +7,12 @@
  */
 
 export { WebserverInterface } from "./webserver-interface";
-export type {
-  WebserverConfig,
-  WebserverConfigInput,
-} from "./webserver-interface";
+export {
+  webserverConfigSchema,
+  defaultWebserverConfig,
+  type WebserverConfig,
+  type WebserverConfigInput,
+} from "./config";
 
 export { ServerManager } from "./server-manager";
 export type { ServerManagerOptions } from "./server-manager";
