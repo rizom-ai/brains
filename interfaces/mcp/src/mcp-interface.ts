@@ -5,16 +5,12 @@ import {
   type PluginResource,
   type Daemon,
   type DaemonHealth,
+  type UserPermissionLevel,
+  type JobProgressEvent,
 } from "@brains/plugins";
-import type { UserPermissionLevel } from "@brains/utils";
-import type { JobProgressEvent } from "@brains/job-queue";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
-import {
-  mcpConfigSchema,
-  type MCPConfig,
-  type MCPConfigInput,
-} from "./schemas";
+import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
 import packageJson from "../package.json";
 import { z } from "zod";
 

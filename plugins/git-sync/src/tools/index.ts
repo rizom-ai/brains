@@ -2,7 +2,10 @@ import type { PluginTool } from "@brains/plugins";
 import type { GitSync } from "../lib/git-sync";
 import { z } from "zod";
 
-export function createGitSyncTools(gitSync: GitSync, pluginId: string): PluginTool[] {
+export function createGitSyncTools(
+  gitSync: GitSync,
+  pluginId: string,
+): PluginTool[] {
   return [
     {
       name: `${pluginId}:sync`,
