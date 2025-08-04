@@ -1,125 +1,116 @@
 import { describe, it, expect } from "bun:test";
-import { matrixConfig } from "../src/config";
+import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "../src";
 
 describe("MatrixConfig", () => {
-  describe("Configuration", () => {
-    it("should create valid config", () => {
-      const config = matrixConfig()
-        .homeserver("https://matrix.example.org")
-        .accessToken("test-token")
-        .userId("@bot:example.org")
-        .anchorUserId("@admin:example.org")
-        .build();
+  describe("Schema Validation", () => {
+    it("should accept valid config with defaults", () => {
+      const config = {
+        ...MATRIX_CONFIG_DEFAULTS,
+        homeserver: "https://matrix.example.org",
+        accessToken: "test-token",
+        userId: "@bot:example.org",
+        anchorUserId: "@admin:example.org",
+      };
 
-      expect(config).toBeDefined();
-      expect(config.homeserver).toBe("https://matrix.example.org");
-      expect(config.accessToken).toBe("test-token");
-      expect(config.userId).toBe("@bot:example.org");
-      expect(config.anchorUserId).toBe("@admin:example.org");
+      const result = matrixConfigSchema.safeParse(config);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.homeserver).toBe("https://matrix.example.org");
+        expect(result.data.accessToken).toBe("test-token");
+        expect(result.data.userId).toBe("@bot:example.org");
+        expect(result.data.anchorUserId).toBe("@admin:example.org");
+      }
     });
 
-    it("should fail with invalid config", () => {
-      expect(() => {
-        matrixConfig()
-          .homeserver("not-a-url")
-          .accessToken("test-token")
-          .userId("@bot:example.org")
-          .anchorUserId("@admin:example.org")
-          .build();
-      }).toThrow();
+    it("should reject invalid URL", () => {
+      const config = {
+        ...MATRIX_CONFIG_DEFAULTS,
+        homeserver: "not-a-url",
+        accessToken: "test-token",
+        userId: "@bot:example.org",
+        anchorUserId: "@admin:example.org",
+      };
+
+      const result = matrixConfigSchema.safeParse(config);
+      expect(result.success).toBe(false);
     });
 
-    it("should fail with invalid user ID format", () => {
-      expect(() => {
-        matrixConfig()
-          .homeserver("https://matrix.example.org")
-          .accessToken("test-token")
-          .userId("invalid-user-id")
-          .anchorUserId("@admin:example.org")
-          .build();
-      }).toThrow();
-    });
-  });
+    it("should reject invalid user ID format", () => {
+      const config = {
+        ...MATRIX_CONFIG_DEFAULTS,
+        homeserver: "https://matrix.example.org",
+        accessToken: "test-token",
+        userId: "invalid-user-id",
+        anchorUserId: "@admin:example.org",
+      };
 
-  describe("ConfigBuilder", () => {
-    it("should build config with all options", () => {
-      const config = matrixConfig()
-        .homeserver("https://matrix.example.org")
-        .accessToken("test-token")
-        .userId("@bot:example.org")
-        .anchorUserId("@admin:example.org")
-        .deviceId("DEVICE123")
-        .deviceDisplayName("Test Bot")
-        .storageDir("./test-storage")
-        .cryptoStorageDir("./test-crypto")
-        .trustedUsers(["@trusted1:example.org", "@trusted2:example.org"])
-        .publicOnly(false)
-        .autoJoin(true)
-        .encryption(true)
-        .reactions(true)
-        .threading(true)
-        .typingNotifications(true)
-        .commandPrefix("!")
-        .anchorPrefix("!!")
-        .maxContext(20)
-        .typingTimeout(30000)
-        .reactionTimeout(60000)
-        .perRoomRateLimit(10, 60000)
-        .rateLimit(120)
-        .retries(5, 2000)
-        .build();
-
-      expect(config.homeserver).toBe("https://matrix.example.org");
-      expect(config.accessToken).toBe("test-token");
-      expect(config.userId).toBe("@bot:example.org");
-      expect(config.anchorUserId).toBe("@admin:example.org");
-      expect(config.deviceId).toBe("DEVICE123");
-      expect(config.deviceDisplayName).toBe("Test Bot");
-      expect(config.storageDir).toBe("./test-storage");
-      expect(config.cryptoStorageDir).toBe("./test-crypto");
-      expect(config.trustedUsers).toEqual([
-        "@trusted1:example.org",
-        "@trusted2:example.org",
-      ]);
-      expect(config.publicToolsOnly).toBe(false);
-      expect(config.autoJoinRooms).toBe(true);
-      expect(config.enableEncryption).toBe(true);
-      expect(config.enableReactions).toBe(true);
-      expect(config.enableThreading).toBe(true);
-      expect(config.enableTypingNotifications).toBe(true);
-      expect(config.commandPrefix).toBe("!");
-      expect(config.anchorPrefix).toBe("!!");
-      expect(config.maxContextMessages).toBe(20);
-      expect(config.typingTimeout).toBe(30000);
-      expect(config.reactionTimeout).toBe(60000);
-      expect(config.perRoomRateLimit).toEqual({ messages: 10, window: 60000 });
-      expect(config.rateLimitPerMinute).toBe(120);
-      expect(config.maxRetries).toBe(5);
-      expect(config.retryDelay).toBe(2000);
+      const result = matrixConfigSchema.safeParse(config);
+      expect(result.success).toBe(false);
     });
 
-    it("should use defaults for optional fields", () => {
-      const config = matrixConfig()
-        .homeserver("https://matrix.example.org")
-        .accessToken("test-token")
-        .userId("@bot:example.org")
-        .anchorUserId("@admin:example.org")
-        .build();
+    it("should validate partial config for merging with defaults", () => {
+      // Partial config as it would come from user
+      const partialConfig = {
+        homeserver: "https://matrix.example.org",
+        accessToken: "test-token",
+        userId: "@bot:example.org",
+        anchorUserId: "@admin:example.org",
+      };
 
-      expect(config.publicToolsOnly).toBe(false);
-      expect(config.autoJoinRooms).toBe(true);
-      expect(config.enableEncryption).toBe(true);
-      expect(config.enableReactions).toBe(true);
-      expect(config.enableThreading).toBe(true);
-      expect(config.enableTypingNotifications).toBe(true);
-      expect(config.commandPrefix).toBe("!");
-      expect(config.anchorPrefix).toBe("!!");
-      expect(config.maxContextMessages).toBe(10);
-      expect(config.typingTimeout).toBe(30000);
-      expect(config.reactionTimeout).toBe(60000);
-      expect(config.rateLimitPerMinute).toBe(60);
-      expect(config.maxRetries).toBe(3);
-      expect(config.retryDelay).toBe(1000);
+      // This is how the plugin actually uses it
+      const merged = { ...MATRIX_CONFIG_DEFAULTS, ...partialConfig };
+      const result = matrixConfigSchema.parse(merged);
+      
+      // Check defaults are applied
+      expect(result.publicToolsOnly).toBe(false);
+      expect(result.autoJoinRooms).toBe(true);
+      expect(result.enableEncryption).toBe(true);
+      expect(result.enableReactions).toBe(true);
+      expect(result.enableThreading).toBe(true);
+      expect(result.enableTypingNotifications).toBe(true);
+      expect(result.commandPrefix).toBe("!");
+      expect(result.anchorPrefix).toBe("!!");
+      expect(result.maxContextMessages).toBe(10);
+    });
+
+    it("should accept config with all options", () => {
+      const config = {
+        homeserver: "https://matrix.example.org",
+        accessToken: "test-token",
+        userId: "@bot:example.org",
+        anchorUserId: "@admin:example.org",
+        deviceId: "DEVICE123",
+        deviceDisplayName: "Test Bot",
+        storageDir: "./test-storage",
+        cryptoStorageDir: "./test-crypto",
+        trustedUsers: ["@trusted1:example.org", "@trusted2:example.org"],
+        publicToolsOnly: false,
+        autoJoinRooms: true,
+        enableEncryption: true,
+        enableReactions: true,
+        enableThreading: true,
+        enableTypingNotifications: true,
+        commandPrefix: "!",
+        anchorPrefix: "!!",
+        maxContextMessages: 20,
+        typingTimeout: 30000,
+        reactionTimeout: 60000,
+        perRoomRateLimit: { messages: 10, window: 60000 },
+        rateLimitPerMinute: 120,
+        maxRetries: 5,
+        retryDelay: 2000,
+      };
+
+      const result = matrixConfigSchema.safeParse(config);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.deviceId).toBe("DEVICE123");
+        expect(result.data.trustedUsers).toEqual([
+          "@trusted1:example.org",
+          "@trusted2:example.org",
+        ]);
+        expect(result.data.maxContextMessages).toBe(20);
+      }
     });
   });
 });

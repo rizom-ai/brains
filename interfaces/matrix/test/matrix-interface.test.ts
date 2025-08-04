@@ -1,6 +1,6 @@
 import "./mocks/setup";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { MatrixInterface } from "../src/matrix-interface";
+import { MatrixInterface } from "../src";
 import type { MatrixConfigInput } from "../src/schemas";
 import { MessageInterfacePluginTestHarness } from "@brains/plugins";
 

@@ -5,24 +5,22 @@ import {
 import type { MessageContext } from "@brains/messaging-service";
 import { type Daemon, type DaemonHealth } from "@brains/plugins";
 import { PermissionHandler } from "@brains/utils";
-import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
-import type { MatrixConfigInput, MatrixConfig } from "./schemas";
-import { MatrixClientWrapper } from "./client/matrix-client";
+import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "../schemas";
+import type { MatrixConfigInput, MatrixConfig } from "../schemas";
+import { MatrixClientWrapper } from "../client/matrix-client";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { JobContext } from "@brains/db";
 import {
   handleRoomMessage as handleRoomMessageHandler,
   handleRoomInvite as handleRoomInviteHandler,
   type MatrixEventHandlerContext,
-} from "./handlers/room-events";
+} from "../handlers/room-events";
 import {
   sendMessage as sendMessageHandler,
   editMessage as editMessageHandler,
-} from "./handlers/message";
-import {
-  handleProgressEvent as handleProgressEventHandler,
-} from "./handlers/progress";
-import packageJson from "../package.json";
+} from "../handlers/message";
+import { handleProgressEvent as handleProgressEventHandler } from "../handlers/progress";
+import packageJson from "../../package.json";
 
 /**
  * Matrix interface for Personal Brain
@@ -173,7 +171,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       logger: this.logger,
       permissionHandler: this.permissionHandler,
       handleInput: this.handleInput.bind(this),
-      determineUserPermissionLevel: this.determineUserPermissionLevel.bind(this),
+      determineUserPermissionLevel:
+        this.determineUserPermissionLevel.bind(this),
     };
 
     // Handle room messages
@@ -201,7 +200,13 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     context: MessageContext,
     replyToId?: string,
   ): Promise<string> {
-    return sendMessageHandler(content, context, this.client, this.config, replyToId);
+    return sendMessageHandler(
+      content,
+      context,
+      this.client,
+      this.config,
+      replyToId,
+    );
   }
 
   /**

@@ -1,4 +1,3 @@
-export { MatrixInterface } from "./matrix-interface";
-export { matrixConfig } from "./config";
-export { matrixConfigSchema } from "./schemas";
-export type { MatrixConfig } from "./types";
+export { MatrixInterface } from "./plugin";
+export { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
+export type { MatrixConfig, MatrixConfigInput } from "./schemas";

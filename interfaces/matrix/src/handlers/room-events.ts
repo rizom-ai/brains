@@ -61,8 +61,12 @@ export async function handleRoomMessage(
   // Check if we should process this message
   const isCommand = message.startsWith(ctx.config.commandPrefix);
   const isAnchorCommand = message.startsWith(ctx.config.anchorPrefix);
-  const isMentioned = isAddressedToBot(messageEvent, ctx.config.userId, ctx.logger);
-  
+  const isMentioned = isAddressedToBot(
+    messageEvent,
+    ctx.config.userId,
+    ctx.logger,
+  );
+
   // For anchor commands, check permission before processing
   if (isAnchorCommand && senderId !== ctx.config.anchorUserId) {
     ctx.logger.debug("Ignoring anchor command from non-anchor user", {
@@ -71,14 +75,17 @@ export async function handleRoomMessage(
     });
     return;
   }
-  
+
   // Only respond if we're explicitly addressed or it's a command
   if (!isMentioned && !isCommand && !isAnchorCommand) {
-    ctx.logger.debug("Message not for bot (not mentioned and not a command), ignoring", {
-      roomId,
-      senderId,
-      message: message.substring(0, 50),
-    });
+    ctx.logger.debug(
+      "Message not for bot (not mentioned and not a command), ignoring",
+      {
+        roomId,
+        senderId,
+        message: message.substring(0, 50),
+      },
+    );
     return;
   }
 
