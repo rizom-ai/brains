@@ -6,7 +6,10 @@ import type {
   Logger,
 } from "@brains/plugins";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { shouldRegisterTool, shouldRegisterResource } from "../utils/permissions";
+import {
+  shouldRegisterTool,
+  shouldRegisterResource,
+} from "../utils/permissions";
 
 /**
  * Set up listeners for system events (tool and resource registration)
@@ -24,7 +27,14 @@ export function setupSystemEventListeners(
       tool: PluginTool;
       timestamp: number;
     };
-    handleToolRegistration(pluginId, tool, mcpServer, context, getPermissionLevel(), logger);
+    handleToolRegistration(
+      pluginId,
+      tool,
+      mcpServer,
+      context,
+      getPermissionLevel(),
+      logger,
+    );
     return { success: true };
   });
 
@@ -35,7 +45,14 @@ export function setupSystemEventListeners(
       resource: PluginResource;
       timestamp: number;
     };
-    handleResourceRegistration(pluginId, resource, mcpServer, context, getPermissionLevel(), logger);
+    handleResourceRegistration(
+      pluginId,
+      resource,
+      mcpServer,
+      context,
+      getPermissionLevel(),
+      logger,
+    );
     return { success: true };
   });
 
@@ -195,4 +212,3 @@ export function handleResourceRegistration(
 
   logger.info(`Registered resource ${resource.uri} from ${pluginId}`);
 }
-

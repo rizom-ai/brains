@@ -22,7 +22,7 @@ export function setupJobProgressListener(
     // Log different types of progress events
     const eventType = event.type; // "job" or "batch"
     const status = event.status;
-    
+
     logger.debug(`${eventType} ${batchId} - ${status}:`, {
       id: event.id,
       message: event.message,
