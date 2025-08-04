@@ -32,17 +32,18 @@ This document outlines the plan to clean up the plugin system architecture, focu
 - [x] Update import paths in mcp interface plugin (no changes needed - already using package name)
 - [x] Run tests (all 442 tests pass)
 
-## Phase 3: Clean Up Content Management
+## Phase 3: Clean Up Content Management ✅
 
-**Status**: Pending
+**Status**: Completed
 
 ### Tasks:
 
-- [ ] Remove duplicate utilities from `/plugins/site-builder/src/content-management/utils/`
+- [x] Remove duplicate utilities from `/plugins/site-builder/src/content-management/utils/`
   - comparator.ts (duplicate of shared version)
   - id-generator.ts (duplicate of shared version)
-- [ ] Update site-builder to use shared content-management utilities
-- [ ] Run tests
+- [x] Remove duplicate test files for these utilities
+- [x] Verified site-builder already uses shared content-management utilities
+- [x] Run tests (all 440 tests pass)
 
 ## Phase 4: Clean Up Plugins (Simple to Complex)
 
