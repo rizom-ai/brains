@@ -6,10 +6,11 @@ import { z } from "zod";
 export function createDirectorySyncTools(
   directorySync: DirectorySync,
   pluginContext: ServicePluginContext,
+  pluginId: string,
 ): PluginTool[] {
   return [
     {
-      name: "directory-sync:sync",
+      name: `${pluginId}:sync`,
       description: "Synchronize all entities with directory (async)",
       inputSchema: {},
       visibility: "anchor",
@@ -30,7 +31,7 @@ export function createDirectorySyncTools(
         const source =
           context?.interfaceId && context?.channelId
             ? `${context.interfaceId}:${context.channelId}`
-            : "plugin:directory-sync";
+            : `plugin:${pluginId}`;
 
         const batchId = await pluginContext.enqueueBatch(batchData.operations, {
           source,
@@ -40,7 +41,7 @@ export function createDirectorySyncTools(
             channelId: context?.channelId ?? "",
             progressToken: context?.progressToken ?? "",
             operationType: "directory_sync",
-            pluginId: "directory-sync",
+            pluginId,
           },
         });
 
@@ -56,7 +57,7 @@ export function createDirectorySyncTools(
       },
     },
     {
-      name: "directory-sync:export",
+      name: `${pluginId}:export`,
       description: "Export entities to directory (async batch operation)",
       inputSchema: {
         entityTypes: z
@@ -99,14 +100,14 @@ export function createDirectorySyncTools(
         }
 
         const batchId = await pluginContext.enqueueBatch(operations, {
-          source: "plugin:directory-sync",
+          source: `plugin:${pluginId}`,
           metadata: {
             interfaceId: context?.interfaceId ?? "plugin",
             userId: context?.userId ?? "system",
             channelId: context?.channelId,
             progressToken: context?.progressToken,
             operationType: "directory_export",
-            pluginId: "directory-sync",
+            pluginId,
           },
         });
 
@@ -120,7 +121,7 @@ export function createDirectorySyncTools(
       },
     },
     {
-      name: "directory-sync:import",
+      name: `${pluginId}:import`,
       description: "Import entities from directory (async batch operation)",
       inputSchema: {
         paths: z
@@ -171,14 +172,14 @@ export function createDirectorySyncTools(
         }));
 
         const batchId = await pluginContext.enqueueBatch(operations, {
-          source: "plugin:directory-sync",
+          source: `plugin:${pluginId}`,
           metadata: {
             interfaceId: context?.interfaceId ?? "plugin",
             userId: context?.userId ?? "system",
             channelId: context?.channelId,
             progressToken: context?.progressToken,
             operationType: "directory_import",
-            pluginId: "directory-sync",
+            pluginId,
           },
         });
 
@@ -193,7 +194,7 @@ export function createDirectorySyncTools(
       },
     },
     {
-      name: "directory-sync:watch",
+      name: `${pluginId}:watch`,
       description: "Start or stop directory watching",
       inputSchema: {
         action: z.enum(["start", "stop"]),
@@ -216,7 +217,7 @@ export function createDirectorySyncTools(
       },
     },
     {
-      name: "directory-sync:status",
+      name: `${pluginId}:status`,
       description: "Get directory sync status",
       inputSchema: {},
       visibility: "public",
@@ -226,7 +227,7 @@ export function createDirectorySyncTools(
       },
     },
     {
-      name: "directory-sync:ensure-structure",
+      name: `${pluginId}:ensure-structure`,
       description: "Ensure directory structure exists for all entity types",
       inputSchema: {},
       visibility: "anchor",

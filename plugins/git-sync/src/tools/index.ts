@@ -2,10 +2,10 @@ import type { PluginTool } from "@brains/plugins";
 import type { GitSync } from "../lib/git-sync";
 import { z } from "zod";
 
-export function createGitSyncTools(gitSync: GitSync): PluginTool[] {
+export function createGitSyncTools(gitSync: GitSync, pluginId: string): PluginTool[] {
   return [
     {
-      name: "git-sync:sync",
+      name: `${pluginId}:sync`,
       description: "Perform full git sync (export, commit, push, pull)",
       inputSchema: {},
       visibility: "anchor",
@@ -17,7 +17,7 @@ export function createGitSyncTools(gitSync: GitSync): PluginTool[] {
       },
     },
     {
-      name: "git-sync:status",
+      name: `${pluginId}:status`,
       description: "Get git repository status",
       inputSchema: {},
       visibility: "public",
@@ -26,7 +26,7 @@ export function createGitSyncTools(gitSync: GitSync): PluginTool[] {
       },
     },
     {
-      name: "git-sync:commit",
+      name: `${pluginId}:commit`,
       description: "Commit current changes",
       inputSchema: {
         commitMessage: z.string().optional(),
@@ -41,7 +41,7 @@ export function createGitSyncTools(gitSync: GitSync): PluginTool[] {
       },
     },
     {
-      name: "git-sync:push",
+      name: `${pluginId}:push`,
       description: "Push commits to remote repository",
       inputSchema: {},
       visibility: "anchor",
@@ -53,7 +53,7 @@ export function createGitSyncTools(gitSync: GitSync): PluginTool[] {
       },
     },
     {
-      name: "git-sync:pull",
+      name: `${pluginId}:pull`,
       description: "Pull changes from remote repository",
       inputSchema: {},
       visibility: "anchor",
@@ -65,7 +65,7 @@ export function createGitSyncTools(gitSync: GitSync): PluginTool[] {
       },
     },
     {
-      name: "git-sync:auto-sync",
+      name: `${pluginId}:auto-sync`,
       description: "Start or stop automatic synchronization",
       inputSchema: {
         autoSync: z.boolean(),

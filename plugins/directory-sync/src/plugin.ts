@@ -121,7 +121,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   protected override async getTools() {
     const directorySync = this.requireDirectorySync();
     const pluginContext = this.requirePluginContext();
-    return createDirectorySyncTools(directorySync, pluginContext);
+    return createDirectorySyncTools(directorySync, pluginContext, this.id);
   }
 
   /**

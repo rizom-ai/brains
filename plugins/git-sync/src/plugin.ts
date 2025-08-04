@@ -68,7 +68,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
    * Define the tools provided by this plugin
    */
   override async getTools(): Promise<PluginTool[]> {
-    return createGitSyncTools(this.getGitSync());
+    return createGitSyncTools(this.getGitSync(), this.id);
   }
 
   /**
