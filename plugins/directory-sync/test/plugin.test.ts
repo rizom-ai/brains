@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { ServicePluginTestHarness } from "@brains/plugins";
+import { createServicePluginHarness } from "@brains/plugins";
 import type { PluginCapabilities } from "@brains/plugins";
 import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
 import { baseEntitySchema } from "@brains/entity-service";
@@ -28,7 +28,9 @@ class MockEntityAdapter implements EntityAdapter<BaseEntity> {
 }
 
 describe("DirectorySyncPlugin", () => {
-  let harness: ServicePluginTestHarness<DirectorySyncPlugin>;
+  let harness: ReturnType<
+    typeof createServicePluginHarness<DirectorySyncPlugin>
+  >;
   let plugin: DirectorySyncPlugin;
   let capabilities: PluginCapabilities;
   let syncPath: string;
@@ -38,7 +40,7 @@ describe("DirectorySyncPlugin", () => {
     syncPath = join(tmpdir(), `test-directory-sync-${Date.now()}`);
 
     // Create test harness
-    harness = new ServicePluginTestHarness<DirectorySyncPlugin>();
+    harness = createServicePluginHarness<DirectorySyncPlugin>();
 
     // Get the shell and register entity types
     const shell = harness.getShell();

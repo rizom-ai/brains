@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { InterfacePluginTestHarness } from "../src/interface/test/harness";
+import { createInterfacePluginHarness } from "../src/test/harness";
 import { webserverInterfacePlugin } from "../src/interface/example";
 import type { WebserverInterfacePlugin } from "../src/interface/example";
 import type { PluginCapabilities } from "../src/interfaces";
@@ -7,11 +7,13 @@ import { DefaultContentFormatter } from "@brains/utils";
 import { z } from "zod";
 
 describe("InterfacePlugin", () => {
-  let harness: InterfacePluginTestHarness<WebserverInterfacePlugin>;
+  let harness: ReturnType<
+    typeof createInterfacePluginHarness<WebserverInterfacePlugin>
+  >;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = new InterfacePluginTestHarness();
+    harness = createInterfacePluginHarness<WebserverInterfacePlugin>();
 
     // Register test templates
     harness.registerTemplate("test-template", {

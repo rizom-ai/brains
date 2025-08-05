@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { MessageInterfacePluginTestHarness } from "../src/message-interface/test/harness";
+import { createInterfacePluginHarness } from "../src/test/harness";
 import {
   echoMessageInterfacePlugin,
   EchoMessageInterface,
@@ -8,12 +8,14 @@ import type { MessageContext } from "@brains/messaging-service";
 import { PluginCapabilities, PluginError } from "../src";
 
 describe("MessageInterfacePlugin", () => {
-  let harness: MessageInterfacePluginTestHarness<EchoMessageInterface>;
+  let harness: ReturnType<
+    typeof createInterfacePluginHarness<EchoMessageInterface>
+  >;
   let capabilities: PluginCapabilities;
   let defaultContext: MessageContext;
 
   beforeEach(async () => {
-    harness = new MessageInterfacePluginTestHarness();
+    harness = createInterfacePluginHarness<EchoMessageInterface>();
 
     // MockShell already provides a suitable generateContent implementation
 

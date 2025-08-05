@@ -43,6 +43,7 @@ export interface CorePluginContext {
   getActiveJobs: (types?: string[]) => Promise<JobQueue[]>;
   getActiveBatches: () => Promise<Batch[]>;
   getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
+  getJobStatus: (jobId: string) => Promise<JobQueue | null>;
 }
 
 /**
@@ -108,6 +109,9 @@ export function createCorePluginContext(
     },
     getBatchStatus: (batchId: string) => {
       return shell.getBatchStatus(batchId);
+    },
+    getJobStatus: (jobId: string) => {
+      return shell.getJobStatus(jobId);
     },
   };
 }

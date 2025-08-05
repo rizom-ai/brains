@@ -363,6 +363,11 @@ export class MockShell implements IShell {
     return [];
   }
 
+  async getJobStatus(_jobId: string): Promise<JobQueue | null> {
+    // Mock implementation - return null
+    return null;
+  }
+
   registerRoutes(
     routes: RouteDefinition[],
     options?: { pluginId?: string },

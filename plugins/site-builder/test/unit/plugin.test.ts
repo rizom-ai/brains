@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
-import { ServicePluginTestHarness } from "@brains/plugins";
+import { createServicePluginHarness } from "@brains/plugins";
 import type { PluginCapabilities } from "@brains/plugins";
 import type { Template } from "@brains/content-generator";
 import { z } from "zod";
 import { h } from "preact";
 
 describe("SiteBuilderPlugin", () => {
-  let harness: ServicePluginTestHarness<SiteBuilderPlugin>;
+  let harness: ReturnType<typeof createServicePluginHarness<SiteBuilderPlugin>>;
   let plugin: SiteBuilderPlugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = new ServicePluginTestHarness<SiteBuilderPlugin>();
+    harness = createServicePluginHarness<SiteBuilderPlugin>();
   });
 
   afterEach(() => {

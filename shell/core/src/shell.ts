@@ -666,6 +666,13 @@ export class Shell implements IShell {
   }
 
   /**
+   * Get job status by ID
+   */
+  public async getJobStatus(jobId: string): Promise<JobQueue | null> {
+    return this.jobQueueService.getStatus(jobId);
+  }
+
+  /**
    * Register a daemon
    */
   public registerDaemon(name: string, daemon: Daemon, pluginId: string): void {

@@ -1,16 +1,16 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { CorePluginTestHarness } from "../src/core/test/harness";
+import { createCorePluginHarness } from "../src/test/harness";
 import { calculatorPlugin } from "../src/core/example";
 import type { PluginCapabilities } from "../src/interfaces";
 import { DefaultContentFormatter } from "@brains/utils";
 import { z } from "zod";
 
 describe("CorePlugin", () => {
-  let harness: CorePluginTestHarness;
+  let harness: ReturnType<typeof createCorePluginHarness>;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = new CorePluginTestHarness();
+    harness = createCorePluginHarness();
 
     // Register a test template that the calculator plugin expects
     harness.registerTemplate("test-template", {

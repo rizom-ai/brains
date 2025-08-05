@@ -1,28 +1,33 @@
 // Plugin base class and core context
 export { BasePlugin, type CoreContext } from "./base-plugin";
 
+// Unified test harness for all plugin types
+export {
+  PluginTestHarness,
+  createCorePluginHarness,
+  createServicePluginHarness,
+  createInterfacePluginHarness,
+  type HarnessOptions,
+} from "./test/harness";
+
 // Core plugin
 export { CorePlugin } from "./core/core-plugin";
 export type { CorePluginContext } from "./core/context";
 export { createCorePluginContext } from "./core/context";
-export { CorePluginTestHarness } from "./core/test/harness";
 
 // Service plugin
 export { ServicePlugin } from "./service/service-plugin";
 export type { ServicePluginContext } from "./service/context";
 export { createServicePluginContext } from "./service/context";
-export { ServicePluginTestHarness } from "./service/test/harness";
 
 // Interface plugin
 export { InterfacePlugin } from "./interface/interface-plugin";
 export type { InterfacePluginContext } from "./interface/context";
 export { createInterfacePluginContext } from "./interface/context";
-export { InterfacePluginTestHarness } from "./interface/test/harness";
 
 // Message Interface plugin
 export { MessageInterfacePlugin } from "./message-interface/message-interface-plugin";
 export type { MessageInterfacePluginContext } from "./message-interface/context";
-export { MessageInterfacePluginTestHarness } from "./message-interface/test/harness";
 export {
   setupProgressHandler,
   extractJobContext,

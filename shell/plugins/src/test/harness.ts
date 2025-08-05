@@ -1,25 +1,32 @@
-import type { Plugin, PluginCapabilities } from "../../interfaces";
+import type { Plugin, PluginCapabilities, PluginType } from "../interfaces";
+import type { CorePlugin } from "../core/core-plugin";
+import type { ServicePlugin } from "../service/service-plugin";
+import type { InterfacePlugin } from "../interface/interface-plugin";
 import type { Logger } from "@brains/utils";
 import { createSilentLogger } from "@brains/utils";
 import type { Template } from "@brains/content-generator";
 import type { MessageHandler } from "@brains/messaging-service";
 import { MockShell } from "@brains/core/test";
 
+export interface HarnessOptions {
+  logger?: Logger;
+  logContext?: string;
+}
+
 /**
- * Test harness for core plugins - provides a simple way to test plugins
- * Plugins create their own context when registered with the mock shell
+ * Unified test harness for all plugin types
+ * Provides a simple way to test plugins with automatic type detection
  */
-export class CorePluginTestHarness<TPlugin extends Plugin = Plugin> {
+export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   private mockShell: MockShell;
   private plugin: TPlugin | undefined;
   private capabilities: PluginCapabilities | undefined;
+  private readonly options: HarnessOptions;
 
-  constructor(
-    options: {
-      logger?: Logger;
-    } = {},
-  ) {
-    const logger = options.logger ?? createSilentLogger("core-plugin-test");
+  constructor(options: HarnessOptions = {}) {
+    this.options = options;
+    const logger =
+      options.logger ?? createSilentLogger(options.logContext ?? "plugin-test");
     this.mockShell = new MockShell({ logger });
   }
 
@@ -29,6 +36,17 @@ export class CorePluginTestHarness<TPlugin extends Plugin = Plugin> {
    */
   async installPlugin(plugin: TPlugin): Promise<PluginCapabilities> {
     this.plugin = plugin;
+
+    // Update logger context based on plugin type if not explicitly set
+    // If no custom logger was provided in options, create one with the plugin type context
+    if (!this.options.logger && !this.options.logContext) {
+      const pluginType = this.getPluginType(plugin);
+      const context = `${pluginType}-plugin-test`;
+      this.mockShell = new MockShell({
+        logger: createSilentLogger(context),
+      });
+    }
+
     this.capabilities = await plugin.register(this.mockShell);
     this.mockShell.addPlugin(plugin);
     return this.capabilities;
@@ -103,6 +121,17 @@ export class CorePluginTestHarness<TPlugin extends Plugin = Plugin> {
   }
 
   /**
+   * Get the plugin's session ID (for MessageInterfacePlugin)
+   */
+  getSessionId(): string {
+    const plugin = this.getPlugin();
+    if ("sessionId" in plugin && typeof plugin.sessionId === "string") {
+      return plugin.sessionId;
+    }
+    throw new Error("Plugin does not have a sessionId property");
+  }
+
+  /**
    * Reset the harness
    */
   reset(): void {
@@ -113,4 +142,47 @@ export class CorePluginTestHarness<TPlugin extends Plugin = Plugin> {
       logger: this.mockShell.getLogger(),
     });
   }
+
+  /**
+   * Detect plugin type from plugin instance
+   */
+  private getPluginType(plugin: Plugin): PluginType {
+    return plugin.type;
+  }
+}
+
+/**
+ * Create a test harness for core plugins
+ */
+export function createCorePluginHarness<T extends CorePlugin = CorePlugin>(
+  options?: HarnessOptions,
+): PluginTestHarness<T> {
+  return new PluginTestHarness<T>({
+    logContext: "core-plugin-test",
+    ...options,
+  });
+}
+
+/**
+ * Create a test harness for service plugins
+ */
+export function createServicePluginHarness<
+  T extends ServicePlugin = ServicePlugin,
+>(options?: HarnessOptions): PluginTestHarness<T> {
+  return new PluginTestHarness<T>({
+    logContext: "service-plugin-test",
+    ...options,
+  });
+}
+
+/**
+ * Create a test harness for interface plugins
+ */
+export function createInterfacePluginHarness<
+  T extends InterfacePlugin = InterfacePlugin,
+>(options?: HarnessOptions): PluginTestHarness<T> {
+  return new PluginTestHarness<T>({
+    logContext: "interface-plugin-test",
+    ...options,
+  });
 }

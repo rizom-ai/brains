@@ -69,6 +69,7 @@ export interface IShell {
   getActiveBatches(): Promise<Batch[]>;
   getBatchStatus(batchId: string): Promise<BatchJobStatus | null>;
   getActiveJobs(types?: string[]): Promise<JobQueue[]>;
+  getJobStatus(jobId: string): Promise<JobQueue | null>;
 
   // Daemon registration
   registerDaemon(name: string, daemon: Daemon, pluginId: string): void;

@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
-import { CorePluginTestHarness } from "@brains/plugins";
+import { createCorePluginHarness } from "@brains/plugins";
 import { join } from "path";
 import { tmpdir } from "os";
 import { rmSync, existsSync, mkdirSync } from "fs";
 import type { PluginCapabilities } from "@brains/plugins";
 
 describe("GitSyncPlugin with CorePluginTestHarness", () => {
-  let harness: CorePluginTestHarness<GitSyncPlugin>;
+  let harness: ReturnType<typeof createCorePluginHarness<GitSyncPlugin>>;
   let testRepoPath: string;
   let plugin: GitSyncPlugin;
   let capabilities: PluginCapabilities;
@@ -21,7 +21,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
     process.env.GIT_SYNC_TEST_PATH = testRepoPath;
 
     // Create test harness
-    harness = new CorePluginTestHarness<GitSyncPlugin>();
+    harness = createCorePluginHarness<GitSyncPlugin>();
 
     // Set up message subscriptions for mocking dependencies
     harness.subscribe("sync:status:request", async () => {
