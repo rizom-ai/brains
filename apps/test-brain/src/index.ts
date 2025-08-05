@@ -5,6 +5,7 @@ import { templates, routes } from "@brains/default-site-content";
 import { MatrixInterface } from "@brains/matrix";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
+import { SystemPlugin } from "@brains/system";
 
 // Run the app - command line args are parsed automatically by App
 // Usage:
@@ -29,6 +30,11 @@ async function main(): Promise<void> {
     },
     interfaces: [],
     plugins: [
+      // System plugin - provides core commands and tools (search, get, query, etc.)
+      new SystemPlugin({
+        searchLimit: 10,
+        debug: false,
+      }),
       // MCP interface plugin - provides Model Context Protocol server
       new MCPInterface({
         transport: process.env["MCP_TRANSPORT"] === "stdio" ? "stdio" : "http",

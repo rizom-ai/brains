@@ -1,0 +1,160 @@
+import { InterfacePlugin } from "@brains/plugins";
+import type {
+  Command,
+  PluginTool,
+  BaseEntity,
+  DefaultQueryResponse,
+  SearchResult,
+} from "@brains/plugins";
+import type { BatchJobStatus, Batch } from "@brains/job-queue";
+import type { JobQueue } from "@brains/db";
+import {
+  systemConfigSchema,
+  defaultSystemConfig,
+  type SystemConfig,
+  type SearchOptions,
+} from "./schemas";
+import { createSystemCommands } from "./commands";
+import { createSystemTools } from "./tools";
+import packageJson from "../package.json";
+
+/**
+ * System Plugin - Provides core system operations
+ *
+ * This plugin provides the fundamental operations for the brain system:
+ * - Search: Direct entity search
+ * - Query: AI-powered knowledge base query
+ * - Get: Retrieve specific entities by ID
+ * - Job Status: Monitor background operations
+ */
+export class SystemPlugin extends InterfacePlugin<SystemConfig> {
+  // After validation with defaults, config is complete
+  declare protected config: SystemConfig;
+
+  constructor(config: Partial<SystemConfig> = {}) {
+    super(
+      "system",
+      packageJson,
+      config,
+      systemConfigSchema,
+      defaultSystemConfig,
+    );
+  }
+
+  /**
+   * Get plugin commands
+   */
+  protected override async getCommands(): Promise<Command[]> {
+    return createSystemCommands(this, this.id);
+  }
+
+  /**
+   * Get plugin tools
+   */
+  protected override async getTools(): Promise<PluginTool[]> {
+    return createSystemTools(this, this.id);
+  }
+
+  /**
+   * Search entities using entity service
+   */
+  public async searchEntities(
+    query: string,
+    options?: SearchOptions,
+  ): Promise<SearchResult[]> {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+
+    try {
+      const searchOptions: Parameters<
+        typeof this.context.entityService.search
+      >[1] = {
+        limit: options?.limit ?? this.config.searchLimit,
+      };
+
+      if (options?.types) {
+        searchOptions.types = options.types;
+      }
+      if (options?.sortBy) {
+        searchOptions.sortBy = options.sortBy;
+      }
+
+      const results = await this.context.entityService.search(
+        query,
+        searchOptions,
+      );
+
+      return results;
+    } catch (error) {
+      this.error(`Failed to search entities: ${query}`, { error });
+      return [];
+    }
+  }
+
+  /**
+   * Query using AI-powered search
+   */
+  public async query(
+    prompt: string,
+    context?: Record<string, unknown>,
+  ): Promise<DefaultQueryResponse> {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+
+    return this.context.query(prompt, context);
+  }
+
+  /**
+   * Get a specific entity by type and ID
+   */
+  public async getEntity(
+    entityType: string,
+    id: string,
+  ): Promise<BaseEntity | null> {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+
+    try {
+      const entity = await this.context.entityService.getEntity(entityType, id);
+      return entity;
+    } catch (error) {
+      this.error(`Failed to get entity ${entityType}:${id}`, { error });
+      return null;
+    }
+  }
+
+  /**
+   * Get job status information
+   */
+  public async getJobStatus(
+    batchId?: string,
+    jobTypes?: string[],
+  ): Promise<{
+    batch?: BatchJobStatus | null;
+    activeJobs?: JobQueue[];
+    activeBatches?: Batch[];
+  }> {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+
+    try {
+      if (batchId) {
+        // Get specific batch status
+        const batch = await this.context.getBatchStatus(batchId);
+        return { batch };
+      } else {
+        // Get all active operations
+        const activeJobs = await this.context.getActiveJobs(jobTypes);
+        const activeBatches = await this.context.getActiveBatches();
+        return { activeJobs, activeBatches };
+      }
+    } catch (error) {
+      this.error("Failed to get job status", { error, batchId, jobTypes });
+      throw error;
+    }
+  }
+}

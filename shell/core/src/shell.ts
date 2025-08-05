@@ -27,11 +27,7 @@ import {
   EmbeddingService,
   type IEmbeddingService,
 } from "@brains/embedding-service";
-import {
-  createSearchCommand,
-  createGetCommand,
-  createGetJobStatusCommand,
-} from "./commands";
+// Commands now provided by system plugin
 import {
   ContentGenerator,
   ContentGenerationJobHandler,
@@ -378,9 +374,7 @@ export class Shell implements IShell {
       this.jobProgressMonitor.start();
       this.logger.info("Job progress monitor started");
 
-      // Register shell commands
-      this.registerShellCommands();
-      this.logger.info("Shell commands registered");
+      // Shell commands now provided by system plugin
 
       this.initialized = true;
       this.logger.info("Shell initialized successfully");
@@ -388,27 +382,6 @@ export class Shell implements IShell {
       this.logger.error("Failed to initialize Shell", error);
       throw error;
     }
-  }
-
-  /**
-   * Register shell commands with the command registry
-   */
-  private registerShellCommands(): void {
-    this.logger.debug("Registering shell commands");
-
-    // Register each shell command
-    const commands = [
-      createSearchCommand(this),
-      createGetCommand(this),
-      createGetJobStatusCommand(this),
-    ];
-
-    commands.forEach((command) => {
-      this.commandRegistry.registerCommand("shell", command);
-      this.logger.debug(`Registered shell command: ${command.name}`);
-    });
-
-    this.logger.info(`Registered ${commands.length} shell commands`);
   }
 
   /**

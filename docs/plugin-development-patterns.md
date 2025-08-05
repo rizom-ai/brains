@@ -558,7 +558,7 @@ export function createMyPluginCommands(
             message: "Please provide a parameter",
           };
         }
-        
+
         const result = await myPlugin.performAction(args[0]);
         return {
           type: "message",

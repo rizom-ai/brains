@@ -41,11 +41,8 @@ describe("MCPInterface", () => {
 
       expect(plugin.id).toBe("mcp");
       expect(capabilities).toBeDefined();
-      expect(capabilities.tools).toHaveLength(4);
-      expect(capabilities.tools?.[0]?.name).toBe("mcp:query");
-      expect(capabilities.tools?.[1]?.name).toBe("mcp:search");
-      expect(capabilities.tools?.[2]?.name).toBe("mcp:get");
-      expect(capabilities.tools?.[3]?.name).toBe("mcp:check-job-status");
+      // MCP interface no longer provides tools - they are provided by system plugin
+      expect(capabilities.tools).toHaveLength(0);
       expect(capabilities.resources).toEqual([]);
     });
 
@@ -56,11 +53,8 @@ describe("MCPInterface", () => {
 
       expect(plugin.id).toBe("mcp");
       expect(capabilities).toBeDefined();
-      expect(capabilities.tools).toHaveLength(4);
-      expect(capabilities.tools?.[0]?.name).toBe("mcp:query");
-      expect(capabilities.tools?.[1]?.name).toBe("mcp:search");
-      expect(capabilities.tools?.[2]?.name).toBe("mcp:get");
-      expect(capabilities.tools?.[3]?.name).toBe("mcp:check-job-status");
+      // MCP interface no longer provides tools - they are provided by system plugin
+      expect(capabilities.tools).toHaveLength(0);
       expect(capabilities.resources).toEqual([]);
     });
   });

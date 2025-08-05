@@ -185,6 +185,22 @@
         "typescript": "^5.7.3",
       },
     },
+    "plugins/system": {
+      "name": "@brains/system",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/job-queue": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "zod": "^3.24.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shared/content-management": {
       "name": "@brains/content-management",
       "version": "1.0.0",
@@ -635,6 +651,8 @@
     "@brains/service-registry": ["@brains/service-registry@workspace:shell/service-registry"],
 
     "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
+
+    "@brains/system": ["@brains/system@workspace:plugins/system"],
 
     "@brains/test-brain": ["@brains/test-brain@workspace:apps/test-brain"],
 
