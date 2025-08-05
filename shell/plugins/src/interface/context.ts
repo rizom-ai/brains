@@ -1,25 +1,17 @@
 import type { CorePluginContext } from "../core/context";
 import { createCorePluginContext } from "../core/context";
-import type { Daemon, IShell, DefaultQueryResponse } from "../interfaces";
+import type { Daemon, IShell } from "../interfaces";
 import type {
   CommandInfo,
   CommandResponse,
   CommandContext,
 } from "@brains/command-registry";
-import type { Batch, BatchJobStatus } from "@brains/job-queue";
-import type { JobQueue } from "@brains/db";
 
 /**
  * Context interface for interface plugins
- * Extends CorePluginContext with query processing, command management, and daemon support
+ * Extends CorePluginContext with command management and daemon support
  */
 export interface InterfacePluginContext extends CorePluginContext {
-  // Query processing
-  query: (
-    prompt: string,
-    context?: Record<string, unknown>,
-  ) => Promise<DefaultQueryResponse>;
-
   // Command management
   listCommands: () => Promise<CommandInfo[]>;
   executeCommand: (
@@ -30,11 +22,6 @@ export interface InterfacePluginContext extends CorePluginContext {
 
   // Daemon management
   registerDaemon: (name: string, daemon: Daemon) => void;
-
-  // Job monitoring
-  getActiveJobs: (types?: string[]) => Promise<JobQueue[]>;
-  getActiveBatches: () => Promise<Batch[]>;
-  getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
 }
 
 /**
@@ -49,30 +36,9 @@ export function createInterfacePluginContext(
 
   // Get interface-specific components
   const commandRegistry = shell.getCommandRegistry();
-  const jobQueueService = shell.getJobQueueService();
 
   return {
     ...coreContext,
-
-    // Query processing
-    query: async (
-      prompt: string,
-      context?: Record<string, unknown>,
-    ): Promise<DefaultQueryResponse> => {
-      // Use the knowledge-query template with appropriate context
-      const queryContext = {
-        ...context,
-        pluginId,
-        timestamp: new Date().toISOString(),
-      };
-
-      return shell.generateContent<DefaultQueryResponse>({
-        prompt,
-        templateName: "shell:knowledge-query",
-        data: queryContext,
-        interfacePermissionGrant: "trusted", // Interface plugins have trusted permissions
-      });
-    },
 
     // Command discovery - returns metadata only
     listCommands: async (): Promise<CommandInfo[]> => {
@@ -123,19 +89,6 @@ export function createInterfacePluginContext(
       const daemonName = `${pluginId}:${name}`;
       shell.registerDaemon(daemonName, daemon, pluginId);
       coreContext.logger.debug(`Registered daemon: ${daemonName}`);
-    },
-
-    // Job monitoring (read-only)
-    getActiveJobs: (types?: string[]): Promise<JobQueue[]> => {
-      return jobQueueService.getActiveJobs(types);
-    },
-
-    getActiveBatches: (): Promise<Batch[]> => {
-      return shell.getActiveBatches();
-    },
-
-    getBatchStatus: (batchId: string): Promise<BatchJobStatus | null> => {
-      return shell.getBatchStatus(batchId);
     },
   };
 }

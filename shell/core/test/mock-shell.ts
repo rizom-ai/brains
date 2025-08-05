@@ -1,4 +1,4 @@
-import type { IShell, Daemon } from "@brains/plugins";
+import type { IShell, Daemon, DefaultQueryResponse } from "@brains/plugins";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
   MessageBus,
@@ -18,7 +18,7 @@ import type {
   Batch,
   BatchJobStatus,
 } from "@brains/job-queue";
-import type { JobOptions } from "@brains/db";
+import type { JobOptions, JobQueue } from "@brains/db";
 import type {
   CommandRegistry,
   Command,
@@ -343,6 +343,24 @@ export class MockShell implements IShell {
       prompt: config.prompt,
       data: config.data,
     });
+  }
+
+  async query(
+    prompt: string,
+    context?: Record<string, unknown>,
+  ): Promise<DefaultQueryResponse> {
+    // Mock query implementation - uses generateContent under the hood
+    return this.generateContent<DefaultQueryResponse>({
+      prompt,
+      templateName: "shell:knowledge-query",
+      ...(context && { data: context }),
+      interfacePermissionGrant: "public",
+    });
+  }
+
+  async getActiveJobs(_types?: string[]): Promise<JobQueue[]> {
+    // Mock implementation - return empty array
+    return [];
   }
 
   registerRoutes(

@@ -21,7 +21,7 @@ import type {
   BatchJobStatus,
   BatchOperation,
 } from "@brains/job-queue";
-import type { JobOptions } from "@brains/db";
+import type { JobOptions, JobQueue } from "@brains/db";
 import type { CommandRegistry } from "@brains/command-registry";
 import type { ViewRegistry, RouteDefinition } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
@@ -44,6 +44,10 @@ export interface IShell {
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
+  query(
+    prompt: string,
+    context?: Record<string, unknown>,
+  ): Promise<DefaultQueryResponse>;
   registerRoutes(
     routes: RouteDefinition[],
     options?: { pluginId?: string; environment?: string },
@@ -64,6 +68,7 @@ export interface IShell {
   ): Promise<string>;
   getActiveBatches(): Promise<Batch[]>;
   getBatchStatus(batchId: string): Promise<BatchJobStatus | null>;
+  getActiveJobs(types?: string[]): Promise<JobQueue[]>;
 
   // Daemon registration
   registerDaemon(name: string, daemon: Daemon, pluginId: string): void;

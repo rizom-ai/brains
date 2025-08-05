@@ -1,8 +1,10 @@
-import type { IShell } from "../interfaces";
+import type { IShell, DefaultQueryResponse } from "../interfaces";
 import type { Logger } from "@brains/utils";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { Template } from "@brains/content-generator";
 import type { ICoreEntityService } from "@brains/entity-service";
+import type { Batch, BatchJobStatus } from "@brains/job-queue";
+import type { JobQueue } from "@brains/db";
 
 /**
  * Core plugin context - provides basic services to core plugins
@@ -30,6 +32,17 @@ export interface CorePluginContext {
   ) => string;
   parseContent: <T = unknown>(templateName: string, content: string) => T;
   registerTemplates: (templates: Record<string, Template>) => void;
+
+  // Query functionality (core shell operation)
+  query: (
+    prompt: string,
+    context?: Record<string, unknown>,
+  ) => Promise<DefaultQueryResponse>;
+
+  // Job monitoring (read-only)
+  getActiveJobs: (types?: string[]) => Promise<JobQueue[]>;
+  getActiveBatches: () => Promise<Batch[]>;
+  getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
 }
 
 /**
@@ -79,6 +92,22 @@ export function createCorePluginContext(
 
     registerTemplates: (templates: Record<string, Template>): void => {
       shell.registerTemplates(templates, pluginId);
+    },
+
+    // Query functionality
+    query: (prompt: string, context?: Record<string, unknown>) => {
+      return shell.query(prompt, context);
+    },
+
+    // Job monitoring
+    getActiveJobs: (types?: string[]) => {
+      return shell.getActiveJobs(types);
+    },
+    getActiveBatches: () => {
+      return shell.getActiveBatches();
+    },
+    getBatchStatus: (batchId: string) => {
+      return shell.getBatchStatus(batchId);
     },
   };
 }

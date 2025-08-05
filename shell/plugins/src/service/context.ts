@@ -5,13 +5,8 @@ import type {
   BaseEntity,
   EntityAdapter,
 } from "@brains/entity-service";
-import type {
-  JobHandler,
-  BatchOperation,
-  BatchJobStatus,
-  Batch,
-} from "@brains/job-queue";
-import type { JobOptions, JobQueue } from "@brains/db";
+import type { JobHandler, BatchOperation } from "@brains/job-queue";
+import type { JobOptions } from "@brains/db";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { z } from "zod";
 import { createCorePluginContext } from "../core/context";
@@ -32,7 +27,7 @@ export interface ServicePluginContext extends CorePluginContext {
   // AI content generation
   generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
 
-  // Job queue functionality
+  // Job queue functionality (write operations)
   enqueueJob: (
     type: string,
     data: unknown,
@@ -42,9 +37,6 @@ export interface ServicePluginContext extends CorePluginContext {
     operations: BatchOperation[],
     options?: JobOptions,
   ) => Promise<string>;
-  getJobStatus: (jobId: string) => Promise<JobQueue | null>;
-  getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
-  getActiveBatches: () => Promise<Batch[]>;
   registerJobHandler: <T = unknown, R = unknown>(
     type: string,
     handler: JobHandler<string, T, R>,
@@ -119,15 +111,6 @@ export function createServicePluginContext(
         ...options,
       };
       return shell.enqueueBatch(operations, defaultOptions, pluginId);
-    },
-    getJobStatus: async (jobId) => {
-      return jobQueueService.getStatus(jobId);
-    },
-    getBatchStatus: async (batchId) => {
-      return shell.getBatchStatus(batchId);
-    },
-    getActiveBatches: async () => {
-      return shell.getActiveBatches();
     },
     registerJobHandler: (type, handler) => {
       jobQueueService.registerHandler(type, handler, pluginId);

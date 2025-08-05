@@ -1,6 +1,10 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
-import type { ContentGenerationConfig, Daemon } from "@brains/plugins";
+import type {
+  ContentGenerationConfig,
+  Daemon,
+  DefaultQueryResponse,
+} from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
 import { createDatabase } from "@brains/db";
 import { ServiceRegistry } from "@brains/service-registry";
@@ -18,7 +22,7 @@ import {
   type Batch,
   type BatchOperation,
 } from "@brains/job-queue";
-import type { JobOptions } from "@brains/db";
+import type { JobOptions, JobQueue } from "@brains/db";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "@brains/plugins";
 import { CommandRegistry } from "@brains/command-registry";
@@ -532,6 +536,33 @@ export class Shell implements IShell {
   }
 
   /**
+   * Query the knowledge base with AI-powered search
+   * This is a core shell operation that uses the knowledge-query template
+   */
+  public async query(
+    prompt: string,
+    context?: Record<string, unknown>,
+  ): Promise<DefaultQueryResponse> {
+    if (!this.initialized) {
+      throw new Error("Shell query attempted before initialization");
+    }
+
+    // Build query context with sensible defaults
+    const queryContext = {
+      ...context,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Use the knowledge-query template for AI-powered responses
+    return this.generateContent<DefaultQueryResponse>({
+      prompt,
+      templateName: "shell:knowledge-query",
+      data: queryContext,
+      interfacePermissionGrant: "public", // Default to public, callers can override via context
+    });
+  }
+
+  /**
    * Register a plugin
    */
   public registerPlugin(plugin: Plugin): void {
@@ -625,6 +656,13 @@ export class Shell implements IShell {
    */
   public async getBatchStatus(batchId: string): Promise<BatchJobStatus | null> {
     return this.batchJobManager.getBatchStatus(batchId);
+  }
+
+  /**
+   * Get active jobs
+   */
+  public async getActiveJobs(types?: string[]): Promise<JobQueue[]> {
+    return this.jobQueueService.getActiveJobs(types);
   }
 
   /**
