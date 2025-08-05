@@ -18,6 +18,7 @@ import {
   type CLIConfigInput,
 } from "./config";
 import { handleProgressEvent, MessageHandlers } from "./handlers";
+import { createCLICommands } from "./commands";
 import packageJson from "../package.json";
 
 export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
@@ -116,28 +117,13 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
    * Override getCommands to add CLI-specific commands
    */
   protected override async getCommands(): Promise<Command[]> {
-    // Add CLI-specific commands
-    const cliCommands: Command[] = [
-      {
-        name: "progress",
-        description: "Toggle detailed progress display",
-        handler: async (_args, _context) => ({
-          type: "message" as const,
-          message:
-            "Progress display toggled. You can also use Ctrl+P for quick toggle.",
-        }),
-      },
-      {
-        name: "clear",
-        description: "Clear the screen",
-        handler: async (_args, _context) => ({
-          type: "message" as const,
-          message: "\x1B[2J\x1B[H", // ANSI escape codes to clear screen and move cursor to top
-        }),
-      },
-    ];
-
-    return cliCommands;
+    // Create CLI-specific commands with state management
+    // Note: showProgress state is managed elsewhere in the CLI
+    const commandState = {
+      showProgress: false, // This is a placeholder - actual state should be managed by the CLI instance
+    };
+    
+    return createCLICommands(commandState);
   }
 
   /**

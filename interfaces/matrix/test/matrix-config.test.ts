@@ -60,7 +60,7 @@ describe("MatrixConfig", () => {
       // This is how the plugin actually uses it
       const merged = { ...MATRIX_CONFIG_DEFAULTS, ...partialConfig };
       const result = matrixConfigSchema.parse(merged);
-      
+
       // Check defaults are applied
       expect(result.publicToolsOnly).toBe(false);
       expect(result.autoJoinRooms).toBe(true);
