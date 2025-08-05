@@ -122,7 +122,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     const commandState = {
       showProgress: false, // This is a placeholder - actual state should be managed by the CLI instance
     };
-    
+
     return createCLICommands(commandState);
   }
 

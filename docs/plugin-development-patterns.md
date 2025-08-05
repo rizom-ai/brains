@@ -10,6 +10,8 @@ This document outlines the standardized patterns for developing plugins in the P
 4. [Direct Service Access](#direct-service-access)
 5. [Testing Patterns](#testing-patterns)
 6. [Common Plugin Patterns](#common-plugin-patterns)
+   - [Commands and Tools Organization](#commands-and-tools-organization)
+   - [Feature Plugin Pattern](#feature-plugin-pattern)
 7. [Migration Guide](#migration-guide)
 
 ## Base Plugin Classes
@@ -496,6 +498,99 @@ it("should report progress", async () => {
 ```
 
 ## Common Plugin Patterns
+
+### Commands and Tools Organization
+
+Plugins should follow consistent patterns for organizing commands and tools:
+
+#### Tools Pattern (Recommended)
+
+All plugins should define their tools in a single `tools/index.ts` file using a factory function:
+
+```typescript
+// plugins/my-plugin/src/tools/index.ts
+import type { PluginTool } from "@brains/plugins";
+import { z } from "zod";
+
+export function createMyPluginTools(
+  myPlugin: MyPlugin,
+  pluginId: string,
+): PluginTool[] {
+  return [
+    {
+      name: `${pluginId}:action`,
+      description: "Perform an action",
+      inputSchema: {
+        param: z.string().describe("Action parameter"),
+      },
+      visibility: "public",
+      handler: async (input) => {
+        const { param } = input as { param: string };
+        return myPlugin.performAction(param);
+      },
+    },
+    // Additional tools...
+  ];
+}
+```
+
+#### Commands Pattern
+
+Commands should also be defined in a single `commands/index.ts` file:
+
+```typescript
+// plugins/my-plugin/src/commands/index.ts
+import type { Command } from "@brains/plugins";
+
+export function createMyPluginCommands(
+  myPlugin: MyPlugin,
+  pluginId: string,
+): Command[] {
+  return [
+    {
+      name: "action",
+      description: "Perform an action",
+      usage: "/action <param>",
+      handler: async (args, context) => {
+        if (args.length === 0) {
+          return {
+            type: "message",
+            message: "Please provide a parameter",
+          };
+        }
+        
+        const result = await myPlugin.performAction(args[0]);
+        return {
+          type: "message",
+          message: `Action completed: ${result}`,
+        };
+      },
+    },
+    // Additional commands...
+  ];
+}
+```
+
+#### Interface-Specific Commands
+
+Interface plugins (CLI, Matrix) may have interface-specific commands that should be defined inline in the interface class:
+
+```typescript
+// interfaces/cli/src/cli-interface.ts
+protected override async getCommands(): Promise<Command[]> {
+  return createCLICommands({
+    showProgress: false, // Interface-specific state
+  });
+}
+```
+
+#### Key Principles
+
+1. **Single File Pattern**: All tools/commands in one `index.ts` file, not spread across multiple files
+2. **Factory Functions**: Use factory functions that return arrays of tools/commands
+3. **Consistent Naming**: Use `create[PluginName]Tools()` and `create[PluginName]Commands()`
+4. **Plugin ID Prefix**: Tools should be prefixed with plugin ID (e.g., `git-sync:status`)
+5. **No Backward Compatibility Exports**: New code should use the factory functions directly
 
 ### Feature Plugin Pattern
 
