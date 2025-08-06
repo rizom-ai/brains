@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createPreactBuilder } from "../../src/preact-builder";
-import type { BuildContext } from "../../src/static-site-builder";
-import type { ServicePluginContext } from "@brains/plugins";
+import { createPreactBuilder } from "../../src/lib/preact-builder";
+import type { BuildContext } from "../../src/lib/static-site-builder";
 import type {
+  ServicePluginContext,
   ViewTemplate,
   RouteDefinition,
   OutputFormat,
-} from "@brains/view-registry";
+} from "@brains/plugins";
 import { Logger } from "@brains/utils";
 import { z } from "zod";
 import { promises as fs } from "fs";

@@ -3,7 +3,7 @@ import type {
   StaticSiteBuilderFactory,
   StaticSiteBuilderOptions,
   BuildContext,
-} from "../../src/static-site-builder";
+} from "../../src/lib/static-site-builder";
 
 export class MockStaticSiteBuilder implements StaticSiteBuilder {
   private hasBuildFlag = false;

@@ -1,4 +1,4 @@
-import type { Template } from "@brains/content-generator";
+import type { Template } from "@brains/plugins";
 
 // Site-builder doesn't provide any built-in templates
 // All templates should be registered by plugins

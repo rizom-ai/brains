@@ -3,71 +3,33 @@ import type {
   PluginTool,
   PluginResource,
   ServicePluginContext,
+  Command,
+  CommandResponse,
+  JobContext,
+  Template,
+  SectionDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import type { Command, CommandResponse } from "@brains/command-registry";
-import type { JobContext } from "@brains/db";
-import type { Template } from "@brains/content-generator";
-import type { SectionDefinition } from "@brains/view-registry";
-import { RouteDefinitionSchema } from "@brains/view-registry";
-import { TemplateSchema } from "@brains/content-generator";
 import { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
-import { SiteBuilder } from "./site-builder";
-import { z } from "zod";
+import { SiteBuilder } from "./lib/site-builder";
+import { SiteContentService } from "./lib/site-content-service";
 import {
   siteContentPreviewAdapter,
   siteContentProductionAdapter,
 } from "./entities/site-content-adapter";
 import { ContentManager } from "@brains/content-management";
-import {
-  SiteOperations,
-  PromoteOptionsSchema,
-  RollbackOptionsSchema,
-} from "./content-management";
-import { GenerateOptionsSchema } from "@brains/content-management";
 import { dashboardTemplate } from "./templates/dashboard";
-import { DashboardFormatter } from "./templates/dashboard/formatter";
+import { DashboardFormatter } from "./formatters/dashboard-formatter";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
+import { createSiteBuilderTools } from "./tools";
+import type {
+  SiteBuilderConfig,
+  SiteBuilderConfigInput} from "./config";
+import {
+  siteBuilderConfigSchema,
+  SITE_BUILDER_CONFIG_DEFAULTS,
+} from "./config";
 import packageJson from "../package.json";
-
-/**
- * Configuration schema for the site builder plugin
- */
-const siteBuilderConfigSchema = z.object({
-  previewOutputDir: z.string().describe("Output directory for preview builds"),
-  productionOutputDir: z
-    .string()
-    .describe("Output directory for production builds"),
-  workingDir: z.string().optional().describe("Working directory for builds"),
-  siteConfig: z
-    .object({
-      title: z.string(),
-      description: z.string(),
-      url: z.string().optional(),
-    })
-    .default({
-      title: "Personal Brain",
-      description: "A knowledge management system",
-    })
-    .optional(),
-  templates: z
-    .record(TemplateSchema)
-    .optional()
-    .describe("Template definitions to register"),
-  routes: z
-    .array(RouteDefinitionSchema)
-    .optional()
-    .describe("Routes to register"),
-  environment: z.enum(["preview", "production"]).default("preview").optional(),
-});
-
-type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema>;
-type SiteBuilderConfigInput = Partial<z.input<typeof siteBuilderConfigSchema>>;
-
-const SITE_BUILDER_CONFIG_DEFAULTS = {
-  previewOutputDir: "./site-preview",
-  productionOutputDir: "./site-production",
-} as const;
 
 /**
  * Site Builder Plugin
@@ -75,7 +37,7 @@ const SITE_BUILDER_CONFIG_DEFAULTS = {
  */
 export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteBuilder?: SiteBuilder;
-  private siteOperations?: SiteOperations;
+  private siteContentService?: SiteContentService;
   private contentManager?: ContentManager;
   private pluginContext?: ServicePluginContext;
 
@@ -163,11 +125,12 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context,
     );
 
-    // Initialize the site operations with dependency injection
-    this.siteOperations = new SiteOperations(
-      context.entityService,
-      this.logger.child("SiteOperations"),
+    // Initialize the site content service
+    this.siteContentService = new SiteContentService(
+      this.logger.child("SiteContentService"),
       context,
+      this.id,
+      this.config.siteConfig,
     );
 
     // Initialize the shared content manager
@@ -192,362 +155,16 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
    * Get the tools provided by this plugin
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    const tools: PluginTool[] = [];
+    if (!this.pluginContext) {
+      throw new Error("Plugin context not initialized");
+    }
 
-    // Generate tool - generates content for routes
-    tools.push(
-      this.createTool(
-        "generate",
-        "Generate content for all routes, a specific route, or a specific section",
-        {
-          routeId: z
-            .string()
-            .optional()
-            .describe(
-              "Optional: specific route ID (generates all sections for this route)",
-            ),
-          sectionId: z
-            .string()
-            .optional()
-            .describe("Optional: specific section ID (requires routeId)"),
-          force: z
-            .boolean()
-            .default(false)
-            .describe("Optional: regenerate existing content"),
-          dryRun: z
-            .boolean()
-            .default(false)
-            .describe("Optional: preview changes without executing"),
-        },
-        async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.contentManager || !this.pluginContext) {
-            throw new Error("Content manager not initialized");
-          }
-
-          // Parse and validate input using the schema
-          const options = GenerateOptionsSchema.parse(input);
-
-          // Validate that sectionId is only used with routeId
-          if (options.sectionId && !options.routeId) {
-            return {
-              status: "error",
-              message: "sectionId requires routeId to be specified",
-            };
-          }
-
-          // Get all registered routes
-          const routes = this.pluginContext.listRoutes();
-
-          // Use the shared content manager with async generation
-          const templateResolver = (section: SectionDefinition): string => {
-            if (!section.template) {
-              throw new Error(
-                `No template specified for section ${section.id}`,
-              );
-            }
-            return section.template;
-          };
-
-          // Count the sections that will be generated first
-          let sectionsToGenerate = 0;
-          for (const route of routes) {
-            if (options.routeId && route.id !== options.routeId) continue;
-
-            const sections = options.sectionId
-              ? route.sections.filter(
-                  (s: SectionDefinition) => s.id === options.sectionId,
-                )
-              : route.sections;
-
-            sectionsToGenerate += sections.length;
-          }
-
-          // If no sections to generate, return early
-          if (sectionsToGenerate === 0) {
-            return {
-              status: "completed",
-              message: "No sections to generate",
-              sectionsGenerated: 0,
-            };
-          }
-
-          // Generate content using the unified generate method
-          const metadata: JobContext = {
-            interfaceId: context?.interfaceId ?? "mcp",
-            userId: context?.userId ?? "mcp-user",
-            channelId: context?.channelId,
-            progressToken: context?.progressToken,
-            pluginId: this.id,
-            operationType: "content_generation",
-          };
-
-          // Use the regular generate method and return job information
-          const result = await this.contentManager.generate(
-            { ...options, force: options.force },
-            routes,
-            templateResolver,
-            "site-content-preview",
-            { source: "plugin:site-builder", metadata },
-            this.config.siteConfig,
-          );
-
-          return {
-            status: "queued",
-            message: `Generated ${result.queuedSections} of ${result.totalSections} section${result.totalSections !== 1 ? "s" : ""}`,
-            batchId: result.batchId,
-            jobsQueued: result.queuedSections,
-            totalSections: result.totalSections,
-            jobs: result.jobs.map((job) => ({
-              jobId: job.jobId,
-              routeId: job.routeId,
-              sectionId: job.sectionId,
-            })),
-            tip:
-              result.queuedSections > 0
-                ? "Use the status tool to check progress of this batch operation."
-                : "No new content to generate.",
-          };
-        },
-      ),
+    return createSiteBuilderTools(
+      () => this.siteBuilder,
+      () => this.siteContentService,
+      this.pluginContext,
+      this.id,
     );
-
-    // Build tool - now uses job queue for async processing
-    tools.push(
-      this.createTool(
-        "build-site",
-        "Build a static site from registered routes",
-        {
-          environment: z
-            .enum(["preview", "production"])
-            .default("preview")
-            .describe("Build environment: preview (default) or production"),
-        },
-        async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.pluginContext) {
-            throw new Error("Plugin context not initialized");
-          }
-
-          // Parse and validate input using Zod
-          const parsedInput = z
-            .object({
-              environment: z.enum(["preview", "production"]).default("preview"),
-            })
-            .parse(input);
-
-          const { environment } = parsedInput;
-
-          // Use the plugin's configuration
-          const config = this.config;
-
-          // Choose output directory based on environment
-          const outputDir =
-            environment === "production"
-              ? config.productionOutputDir
-              : config.previewOutputDir;
-
-          const jobData = {
-            environment,
-            outputDir,
-            workingDir: config.workingDir,
-            enableContentGeneration: false,
-            siteConfig: config.siteConfig ?? {
-              title: "Personal Brain",
-              description: "A knowledge management system",
-            },
-          };
-
-          const metadata: JobContext = {
-            interfaceId: context?.interfaceId ?? "mcp",
-            userId: context?.userId ?? "mcp-user",
-            channelId: context?.channelId,
-            progressToken: context?.progressToken,
-            pluginId: this.id,
-            operationType: "site_building",
-          };
-
-          // Queue the job for async processing
-          const jobId = await this.pluginContext.enqueueJob(
-            "site-build",
-            jobData,
-            {
-              priority: 5,
-              source: this.id,
-              metadata,
-            },
-          );
-
-          return {
-            status: "queued",
-            message: `Site build for ${environment} environment queued`,
-            jobId,
-            outputDir,
-            tip: "Use the status tool to check progress of this operation.",
-          };
-        },
-        "anchor", // Internal tool - modifies filesystem
-      ),
-    );
-
-    // List routes tool
-    tools.push(
-      this.createTool(
-        "list_routes",
-        "List all registered routes",
-        {},
-        async (): Promise<Record<string, unknown>> => {
-          if (!this.context) {
-            throw new Error("Plugin context not initialized");
-          }
-          const routes = this.context.listRoutes();
-
-          return {
-            success: true,
-            routes: routes.map((r) => ({
-              path: r.path,
-              title: r.title,
-              description: r.description,
-              pluginId: r.pluginId,
-              sections: r.sections.length,
-            })),
-          };
-        },
-        "public",
-      ),
-    );
-
-    // List layouts tool
-    tools.push(
-      this.createTool(
-        "list_templates",
-        "List all registered view templates",
-        {},
-        async (): Promise<Record<string, unknown>> => {
-          if (!this.context) {
-            throw new Error("Plugin context not initialized");
-          }
-          const templates = this.context.listViewTemplates();
-
-          return {
-            success: true,
-            templates: templates.map((t) => ({
-              name: t.name,
-              description: t.description,
-              renderers: t.renderers,
-            })),
-          };
-        },
-        "public",
-      ),
-    );
-
-    // Content management tools
-    tools.push(
-      this.createTool(
-        "promote-content",
-        "Promote preview content to production",
-        {
-          routeId: z
-            .string()
-            .optional()
-            .describe("Optional: specific route filter"),
-          section: z
-            .string()
-            .optional()
-            .describe("Optional: specific section filter"),
-          sections: z
-            .array(z.string())
-            .optional()
-            .describe("Optional: batch promote multiple sections"),
-          dryRun: z
-            .boolean()
-            .default(false)
-            .describe("Optional: preview changes without executing"),
-        },
-        async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.siteOperations) {
-            throw new Error("Site operations not initialized");
-          }
-
-          // Parse and validate input
-          const options = PromoteOptionsSchema.parse(input);
-
-          // Create metadata from context
-          const metadata: JobContext = {
-            interfaceId: context?.interfaceId ?? "mcp",
-            userId: context?.userId ?? "system",
-            channelId: context?.channelId,
-            progressToken: context?.progressToken,
-            pluginId: this.id,
-            operationType: "site_building",
-          };
-
-          const batchId = await this.siteOperations.promote(options, metadata);
-
-          return {
-            status: "queued",
-            message: "Promotion operation queued.",
-            batchId,
-            tip: "Use the status tool to check progress of this operation.",
-          };
-        },
-        "anchor", // Internal tool - modifies entities
-      ),
-    );
-
-    tools.push(
-      this.createTool(
-        "rollback-content",
-        "Remove production content (rollback to preview-only)",
-        {
-          routeId: z
-            .string()
-            .optional()
-            .describe("Optional: specific route filter"),
-          section: z
-            .string()
-            .optional()
-            .describe("Optional: specific section filter"),
-          sections: z
-            .array(z.string())
-            .optional()
-            .describe("Optional: batch rollback multiple sections"),
-          dryRun: z
-            .boolean()
-            .default(false)
-            .describe("Optional: preview changes without executing"),
-        },
-        async (input, context): Promise<Record<string, unknown>> => {
-          if (!this.siteOperations) {
-            throw new Error("Site operations not initialized");
-          }
-
-          // Parse and validate input
-          const options = RollbackOptionsSchema.parse(input);
-
-          // Create metadata from context
-          const metadata: JobContext = {
-            interfaceId: context?.interfaceId ?? "mcp",
-            userId: context?.userId ?? "system",
-            channelId: context?.channelId,
-            progressToken: context?.progressToken,
-            pluginId: this.id,
-            operationType: "site_building",
-          };
-
-          const batchId = await this.siteOperations.rollback(options, metadata);
-
-          return {
-            status: "queued",
-            message: "Rollback operation queued.",
-            batchId,
-            tip: "Use the status tool to check progress of this operation.",
-          };
-        },
-        "anchor", // Internal tool - modifies entities
-      ),
-    );
-
-    return tools;
   }
 
   /**
@@ -946,6 +563,13 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
    */
   public getSiteBuilder(): SiteBuilder | undefined {
     return this.siteBuilder;
+  }
+
+  /**
+   * Get the site content service instance
+   */
+  public getSiteContentService(): SiteContentService | undefined {
+    return this.siteContentService;
   }
 }
 

@@ -1,15 +1,17 @@
 import type { ProgressCallback, Logger } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
 import type {
-  SiteBuilder as ISiteBuilder,
-  SiteBuilderOptions,
-  BuildResult,
+  ServicePluginContext,
+  Template,
   SectionDefinition,
   RouteDefinition,
-} from "@brains/view-registry";
-import type { Template } from "@brains/content-generator";
-import { builtInTemplates } from "./view-template-schemas";
+} from "@brains/plugins";
+import type {
+  ISiteBuilder,
+  SiteBuilderOptions,
+  BuildResult,
+} from "../types/site-builder-types";
+import { builtInTemplates } from "../view-template-schemas";
 import type {
   StaticSiteBuilderFactory,
   BuildContext,
@@ -128,10 +130,7 @@ export class SiteBuilder implements ISiteBuilder {
       });
 
       // Create build context
-      const siteConfig = options.siteConfig ?? {
-        title: "Personal Brain",
-        description: "A knowledge management system",
-      };
+      const siteConfig = options.siteConfig;
 
       const buildContext: BuildContext = {
         routes,
@@ -171,8 +170,13 @@ export class SiteBuilder implements ISiteBuilder {
         total: 100,
       });
 
+      // Count files generated (at minimum, one HTML file per route)
+      const filesGenerated = routes.length + 1; // routes + CSS file
+
       const result: BuildResult = {
         success: errors.length === 0,
+        outputDir: options.outputDir,
+        filesGenerated,
         routesBuilt: routes.length,
       };
 
@@ -192,6 +196,8 @@ export class SiteBuilder implements ISiteBuilder {
       errors.push(buildError.message);
       return {
         success: false,
+        outputDir: options.outputDir,
+        filesGenerated: 0,
         routesBuilt: 0,
         errors,
       };

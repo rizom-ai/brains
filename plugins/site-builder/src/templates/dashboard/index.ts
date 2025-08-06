@@ -1,8 +1,11 @@
 import { DashboardWidget } from "./layout";
 import { DashboardDataSchema, type DashboardData } from "./schema";
-import { DashboardFormatter } from "./formatter";
-import type { Template, TemplateDataContext } from "@brains/content-generator";
-import type { SearchResult } from "@brains/entity-service";
+import { DashboardFormatter } from "../../formatters/dashboard-formatter";
+import type {
+  Template,
+  TemplateDataContext,
+  SearchResult,
+} from "@brains/plugins";
 
 /**
  * Dashboard template definition
@@ -67,4 +70,4 @@ export const dashboardTemplate: Template<DashboardData> = {
 // Export all dashboard components
 export { DashboardWidget } from "./layout";
 export { DashboardDataSchema, type DashboardData } from "./schema";
-export { DashboardFormatter } from "./formatter";
+export { DashboardFormatter } from "../../formatters/dashboard-formatter";

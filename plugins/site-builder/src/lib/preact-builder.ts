@@ -3,16 +3,15 @@ import type {
   StaticSiteBuilderOptions,
   BuildContext,
 } from "./static-site-builder";
-import type { ComponentType } from "@brains/content-generator";
-import type { RouteDefinition } from "@brains/view-registry";
+import type { ComponentType, RouteDefinition } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { render } from "preact-render-to-string";
 import { h } from "preact";
 import { join } from "path";
 import { promises as fs } from "fs";
-import { HydrationManager } from "./hydration/hydration-manager";
-import type { CSSProcessor } from "./css/css-processor";
-import { TailwindCSSProcessor } from "./css/css-processor";
+import { HydrationManager } from "../hydration/hydration-manager";
+import type { CSSProcessor } from "../css/css-processor";
+import { TailwindCSSProcessor } from "../css/css-processor";
 
 /**
  * Preact-based static site builder

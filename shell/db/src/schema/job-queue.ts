@@ -15,6 +15,8 @@ export const OperationTypeEnum = z.enum([
   "directory_export",
   "directory_sync",
   "content_generation",
+  "content_promotion",
+  "content_rollback",
   "batch_processing",
   "file_processing",
   "entity_processing",

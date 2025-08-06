@@ -1,7 +1,10 @@
 import type { Logger } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
-import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
-import type { CSSProcessor } from "./css/css-processor";
+import type {
+  ServicePluginContext,
+  RouteDefinition,
+  ViewTemplate,
+} from "@brains/plugins";
+import type { CSSProcessor } from "../css/css-processor";
 
 /**
  * Build context passed to static site builders

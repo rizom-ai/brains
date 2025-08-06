@@ -47,7 +47,7 @@ This document outlines the plan to clean up the plugin system architecture, focu
 
 ## Phase 4: Clean Up Plugins (Simple to Complex)
 
-**Status**: Pending
+**Status**: In Progress
 
 ### Standard Directory Structure
 
@@ -113,37 +113,44 @@ import {
 - [x] Update all imports to use only @brains/plugins (already clean)
 - [x] Run tests (all 11 tests pass)
 
-#### 4.2 directory-sync
+#### 4.2 directory-sync ✅
 
-- [ ] Reorganize directory structure
-- [ ] Update all imports to use only @brains/plugins
-- [ ] Run tests
+- [x] Reorganize directory structure
+- [x] Update all imports to use only @brains/plugins
+- [x] Run tests
 
-#### 4.3 mcp interface
+#### 4.3 system plugin ✅
 
-- [ ] Reorganize directory structure
-- [ ] Update all imports to use only @brains/plugins
-- [ ] Run tests
+- [x] Created as new CorePlugin consolidating shell commands/tools
+- [x] Follows standard directory structure
+- [x] All imports from @brains/plugins
+- [x] Run tests
 
-#### 4.4 webserver interface
+#### 4.4 mcp interface ✅
 
-- [ ] Reorganize directory structure
-- [ ] Update all imports to use only @brains/plugins
-- [ ] Run tests
+- [x] Reorganize directory structure
+- [x] Update all imports to use only @brains/plugins
+- [x] Run tests
 
-#### 4.5 cli interface
+#### 4.5 webserver interface ✅
 
-- [ ] Reorganize directory structure
-- [ ] Update all imports to use only @brains/plugins
-- [ ] Run tests
+- [x] Reorganize directory structure
+- [x] Update all imports to use only @brains/plugins
+- [x] Run tests
 
-#### 4.6 matrix interface
+#### 4.6 cli interface ✅
 
-- [ ] Reorganize directory structure
-- [ ] Update all imports to use only @brains/plugins
-- [ ] Run tests
+- [x] Reorganize directory structure
+- [x] Update all imports to use only @brains/plugins
+- [x] Run tests
 
-#### 4.7 site-builder (Most Complex)
+#### 4.7 matrix interface ✅
+
+- [x] Reorganize directory structure
+- [x] Update all imports to use only @brains/plugins
+- [x] Run tests
+
+#### 4.8 site-builder (Most Complex)
 
 - [ ] Reorganize directory structure
 - [ ] Update all imports to use only @brains/plugins

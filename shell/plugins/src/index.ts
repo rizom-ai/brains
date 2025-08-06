@@ -108,7 +108,12 @@ export type {
   ICoreEntityService,
   EntityRegistry,
 } from "@brains/entity-service";
-export { baseEntitySchema } from "@brains/entity-service";
+export {
+  baseEntitySchema,
+  generateMarkdownWithFrontmatter,
+  parseMarkdownWithFrontmatter,
+  generateFrontmatter,
+} from "@brains/entity-service";
 
 // From @brains/content-generator
 export type {
@@ -156,7 +161,9 @@ export type {
   RouteDefinition,
   ViewTemplate,
   SectionDefinition,
+  OutputFormat,
 } from "@brains/view-registry";
+export { RouteDefinitionSchema } from "@brains/view-registry";
 // Note: ViewRegistry is not exported as plugins access views through context
 
 // Note: DaemonRegistry is not exported as plugins should use IShell.registerDaemon()

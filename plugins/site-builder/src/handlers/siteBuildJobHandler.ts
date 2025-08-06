@@ -1,7 +1,6 @@
-import type { JobHandler } from "@brains/job-queue";
+import type { JobHandler, ServicePluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
-import { SiteBuilder } from "../site-builder";
+import { SiteBuilder } from "../lib/site-builder";
 import {
   siteBuildJobSchema,
   type SiteBuildJobData,
@@ -56,6 +55,7 @@ export class SiteBuildJobHandler
           workingDir: data.workingDir,
           enableContentGeneration: data.enableContentGeneration,
           environment: data.environment,
+          cleanBeforeBuild: true,
           siteConfig: data.siteConfig ?? {
             title: "Personal Brain",
             description: "A knowledge management system",
