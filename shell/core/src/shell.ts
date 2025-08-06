@@ -21,8 +21,9 @@ import {
   type BatchJobStatus,
   type Batch,
   type BatchOperation,
+  type JobQueueDbConfig,
 } from "@brains/job-queue";
-import type { JobOptions, JobQueue } from "@brains/db";
+import type { JobOptions, JobQueue } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "@brains/plugins";
 import { CommandRegistry } from "@brains/command-registry";
@@ -241,9 +242,16 @@ export class Shell implements IShell {
       CommandRegistry.getInstance(this.logger, this.messageBus);
 
     // Initialize generic job queue service and worker
+    const jobQueueDbConfig: JobQueueDbConfig = {
+      url: config.jobQueueDatabase.url,
+      ...(config.jobQueueDatabase.authToken && {
+        authToken: config.jobQueueDatabase.authToken,
+      }),
+    };
+
     this.jobQueueService =
       dependencies?.jobQueueService ??
-      JobQueueService.createFresh(this.db, this.logger);
+      JobQueueService.createFresh(jobQueueDbConfig, this.logger);
 
     // Register embedding job handler
     const embeddingJobHandler = EmbeddingJobHandler.createFresh(

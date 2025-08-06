@@ -1,84 +1,9 @@
 {
-  "version": "5",
+  "version": "6",
   "dialect": "sqlite",
-  "id": "d3bc5338-0f72-4af2-95f0-0f81e97df067",
-  "prevId": "837720ef-658e-44b5-a224-6bdf44435d24",
+  "id": "1724418b-bc86-48e2-beab-8aa84cac5b12",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "entities": {
-      "name": "entities",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "entityType": {
-          "name": "entityType",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "content": {
-          "name": "content",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'{}'"
-        },
-        "contentWeight": {
-          "name": "contentWeight",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 1
-        },
-        "embedding": {
-          "name": "embedding",
-          "type": "F32_BLOB(384)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created": {
-          "name": "created",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated": {
-          "name": "updated",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "entities_id_entityType_pk": {
-          "columns": [
-            "entityType",
-            "id"
-          ],
-          "name": "entities_id_entityType_pk"
-        }
-      },
-      "uniqueConstraints": {}
-    },
     "job_queue": {
       "name": "job_queue",
       "columns": {
@@ -121,7 +46,7 @@
           "name": "metadata",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "status": {
@@ -220,13 +145,18 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     }
   },
+  "views": {},
   "enums": {},
   "_meta": {
     "schemas": {},
     "tables": {},
     "columns": {}
+  },
+  "internal": {
+    "indexes": {}
   }
 }

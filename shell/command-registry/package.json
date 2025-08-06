@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@brains/utils": "workspace:*",
-    "zod": "^3.22.4"
+    "zod": "^3.25.1"
   },
   "devDependencies": {
     "bun-types": "latest"

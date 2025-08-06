@@ -1,21 +1,16 @@
-import type { DrizzleDB } from "@brains/db";
-import {
-  jobQueue,
-  eq,
-  and,
-  or,
-  inArray,
-  sql,
-  desc,
-  asc,
-  lte,
-  createId,
-  type JobOptions,
-  type JobQueue,
-} from "@brains/db";
+import { eq, and, or, inArray, sql, desc, asc, lte } from "drizzle-orm";
+import { jobQueue, type JobOptions, type JobQueue } from "./schema/job-queue";
+import { createId } from "./schema/utils";
 import { Logger } from "@brains/utils";
 import type { IJobQueueService, JobHandler } from "./types";
 import { JOB_STATUS } from "./schemas";
+import {
+  createJobQueueDatabase,
+  enableWALMode,
+  type JobQueueDbConfig,
+} from "./db";
+import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import type { Client } from "@libsql/client";
 
 /**
  * Service for managing the generic job queue
@@ -23,18 +18,24 @@ import { JOB_STATUS } from "./schemas";
  */
 export class JobQueueService implements IJobQueueService {
   private static instance: JobQueueService | null = null;
-  private db: DrizzleDB;
+  private db: LibSQLDatabase<Record<string, unknown>>;
+  private client: Client;
   private logger: Logger;
   private handlers: Map<string, JobHandler> = new Map();
 
   /**
    * Get the singleton instance
    */
-  public static getInstance(db: DrizzleDB, logger?: Logger): JobQueueService {
-    JobQueueService.instance ??= new JobQueueService(
-      db,
-      logger ?? Logger.getInstance(),
-    );
+  public static getInstance(
+    config?: JobQueueDbConfig,
+    logger?: Logger,
+  ): JobQueueService {
+    if (!JobQueueService.instance) {
+      JobQueueService.instance = new JobQueueService(
+        config,
+        logger ?? Logger.getInstance(),
+      );
+    }
     return JobQueueService.instance;
   }
 
@@ -42,22 +43,35 @@ export class JobQueueService implements IJobQueueService {
    * Reset the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
-    JobQueueService.instance = null;
+    if (JobQueueService.instance) {
+      JobQueueService.instance.client.close();
+      JobQueueService.instance = null;
+    }
   }
 
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(db: DrizzleDB, logger?: Logger): JobQueueService {
-    return new JobQueueService(db, logger ?? Logger.getInstance());
+  public static createFresh(
+    config?: JobQueueDbConfig,
+    logger?: Logger,
+  ): JobQueueService {
+    return new JobQueueService(config, logger ?? Logger.getInstance());
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(db: DrizzleDB, logger: Logger) {
+  private constructor(config?: JobQueueDbConfig, logger?: Logger) {
+    const { db, client, url } = createJobQueueDatabase(config);
     this.db = db;
-    this.logger = logger.child("JobQueueService");
+    this.client = client;
+    this.logger = (logger ?? Logger.getInstance()).child("JobQueueService");
+
+    // Enable WAL mode asynchronously (non-blocking)
+    enableWALMode(client, url).catch((error) => {
+      this.logger.warn("Failed to enable WAL mode (non-fatal)", error);
+    });
   }
 
   /**

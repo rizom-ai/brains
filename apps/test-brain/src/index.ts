@@ -15,10 +15,15 @@ import { SystemPlugin } from "@brains/system";
 // Matrix interface is enabled automatically when environment variables are set:
 // MATRIX_HOMESERVER, MATRIX_ACCESS_TOKEN, MATRIX_USER_ID, MATRIX_ANCHOR_USER_ID
 async function main(): Promise<void> {
+  // Set job queue database URL if not already set
+  if (!process.env["JOB_QUEUE_DATABASE_URL"]) {
+    process.env["JOB_QUEUE_DATABASE_URL"] = "file:./test-brain-jobs.db";
+  }
+
   await App.run({
     name: "test-brain",
     version: "1.0.0",
-    database: process.env["DATABASE_URL"] ?? "file:./data/test-brain.db",
+    database: process.env["DATABASE_URL"] ?? "file:./test-brain.db",
     aiApiKey: process.env["ANTHROPIC_API_KEY"] ?? "test-key",
     logLevel: "debug",
     // CLI config used when --cli flag is present

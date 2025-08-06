@@ -2,10 +2,6 @@ import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { createId } from "./utils";
-import type {
-  ContentGenerationJobData,
-  ContentDerivationJobData,
-} from "@brains/content-generator";
 
 /**
  * Operation type enum for structured progress tracking and aggregation
@@ -107,37 +103,16 @@ export const jobQueue = sqliteTable(
 /**
  * Zod schemas for job queue validation
  */
-export const insertJobQueueSchema = createInsertSchema(jobQueue, {
-  type: z.string().min(1),
-  data: z.string(),
-  result: z.unknown().optional(),
-  source: z.string().optional(),
-  metadata: JobContextSchema,
-  status: z
-    .enum(["pending", "processing", "completed", "failed"])
-    .default("pending"),
-  priority: z.number().int().default(0),
-  retryCount: z.number().int().min(0).default(0),
-  maxRetries: z.number().int().min(0).default(3),
-});
+export const insertJobQueueSchema = createInsertSchema(jobQueue);
 
-export const selectJobQueueSchema = createSelectSchema(jobQueue, {
-  type: z.string(),
-  data: z.string(),
-  result: z.unknown().optional(),
-  source: z.string().optional(),
-  metadata: JobContextSchema,
-  status: z.enum(["pending", "processing", "completed", "failed"]),
-  priority: z.number().int(),
-  retryCount: z.number().int().min(0),
-  maxRetries: z.number().int().min(0),
-});
+export const selectJobQueueSchema = createSelectSchema(jobQueue);
 
 /**
  * Type exports
+ * Using drizzle's built-in type inference instead of z.infer due to compatibility issues
  */
-export type InsertJobQueue = z.infer<typeof insertJobQueueSchema>;
-export type JobQueue = z.infer<typeof selectJobQueueSchema>;
+export type InsertJobQueue = typeof jobQueue.$inferInsert;
+export type JobQueue = typeof jobQueue.$inferSelect;
 export type JobStatus = JobQueue["status"];
 
 /**
@@ -164,19 +139,14 @@ export interface JobStats {
 
 /**
  * Core job type definitions
+ * Note: Specific job types are defined by the packages that handle them
+ * to avoid circular dependencies
  */
 export interface CoreJobDefinitions {
-  embedding: {
-    input: EntityWithoutEmbedding;
-    output: void;
-  };
-  "content-generation": {
-    input: ContentGenerationJobData;
-    output: string;
-  };
-  "content-derivation": {
-    input: ContentDerivationJobData;
-    output: { entityId: string; success: boolean };
+  // Core job types will be augmented by other packages
+  [key: string]: {
+    input: unknown;
+    output: unknown;
   };
 }
 
@@ -207,28 +177,3 @@ export type JobDataFor<T extends JobType> = AllJobDefinitions[T]["input"];
  * Type-safe job result for a specific job type
  */
 export type JobResultFor<T extends JobType> = AllJobDefinitions[T]["output"];
-
-/**
- * Entity data without embedding - used for embedding jobs
- */
-export interface EntityWithoutEmbedding {
-  id: string;
-  entityType: string;
-  content: string;
-  metadata: Record<string, unknown>;
-  created: number;
-  updated: number;
-  contentWeight: number;
-}
-
-/**
- * Content generation request - used for content generation jobs
- */
-export interface ContentGenerationRequest {
-  templateName: string;
-  context: {
-    prompt?: string | undefined;
-    data?: Record<string, unknown> | undefined;
-  };
-  userId?: string | undefined;
-}

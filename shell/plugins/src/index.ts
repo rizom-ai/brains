@@ -169,8 +169,8 @@ export { RouteDefinitionSchema } from "@brains/view-registry";
 // Note: DaemonRegistry is not exported as plugins should use IShell.registerDaemon()
 
 // From @brains/db
-export type { JobOptions, JobQueue, JobContext } from "@brains/db";
-export { JobContextSchema } from "@brains/db";
+export type { JobOptions, JobQueue, JobContext } from "@brains/job-queue";
+export { JobContextSchema } from "@brains/job-queue";
 
 // From @brains/utils
 export type {
@@ -184,6 +184,8 @@ export {
   createSilentLogger,
   ProgressReporter,
   ResponseFormatter,
+  PermissionHandler,
+  markdownToHtml,
 } from "@brains/utils";
 
 // Test utilities from @brains/core

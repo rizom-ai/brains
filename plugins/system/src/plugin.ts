@@ -6,8 +6,7 @@ import type {
   DefaultQueryResponse,
   SearchResult,
 } from "@brains/plugins";
-import type { BatchJobStatus, Batch } from "@brains/job-queue";
-import type { JobQueue } from "@brains/db";
+import type { BatchJobStatus, Batch, JobQueue } from "@brains/job-queue";
 import {
   systemConfigSchema,
   defaultSystemConfig,

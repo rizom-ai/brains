@@ -2,14 +2,17 @@ import {
   MessageInterfacePlugin,
   type MessageInterfacePluginContext,
 } from "@brains/plugins";
-import type { MessageContext } from "@brains/messaging-service";
-import { type Daemon, type DaemonHealth } from "@brains/plugins";
-import { PermissionHandler } from "@brains/utils";
+import {
+  type Daemon,
+  type DaemonHealth,
+  type MessageContext,
+  type JobProgressEvent,
+  type JobContext,
+  PermissionHandler,
+} from "@brains/plugins";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "../schemas";
 import type { MatrixConfigInput, MatrixConfig } from "../schemas";
 import { MatrixClientWrapper } from "../client/matrix-client";
-import type { JobProgressEvent } from "@brains/job-queue";
-import type { JobContext } from "@brains/db";
 import {
   handleRoomMessage as handleRoomMessageHandler,
   handleRoomInvite as handleRoomInviteHandler,

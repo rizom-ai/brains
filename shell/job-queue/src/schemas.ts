@@ -1,6 +1,6 @@
 import { z } from "zod";
-// Import JobContextSchema from db to avoid circular dependency
-import { JobContextSchema } from "@brains/db";
+// Import JobContextSchema from local schema
+import { JobContextSchema } from "./schema/job-queue";
 
 /**
  * Job status enum - reusable across all job-related types

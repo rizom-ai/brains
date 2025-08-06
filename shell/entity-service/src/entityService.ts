@@ -2,13 +2,12 @@ import type { DrizzleDB } from "@brains/db";
 import { entities, createId } from "@brains/db/schema";
 import { EntityRegistry } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
-import type { BaseEntity, SearchResult } from "./types";
+import type { BaseEntity, SearchResult, EntityWithoutEmbedding } from "./types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import type { SearchOptions, EntityService as IEntityService } from "./types";
 import { eq, and, inArray, desc, asc, sql } from "@brains/db";
 import { z } from "zod";
 import type { JobQueueService } from "@brains/job-queue";
-import type { EntityWithoutEmbedding } from "@brains/db";
 
 /**
  * Schema for list entities options

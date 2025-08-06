@@ -3,11 +3,11 @@ import { BatchJobManager } from "../src/batch-job-manager";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler } from "../src/types";
 import type { BatchOperation } from "../src/schemas";
-import type { JobContext } from "@brains/db";
+import type { JobContext } from "../src/schema/job-queue";
 import { JOB_STATUS } from "../src/schemas";
-import { createTestDatabase } from "../../integration-tests/test/helpers/test-db";
+import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger } from "@brains/utils";
-import type { DrizzleDB } from "@brains/db";
+import type { JobQueueDbConfig } from "../src/db";
 
 // Default test metadata
 const defaultTestMetadata: JobContext = {
@@ -43,19 +43,19 @@ class MockEmbeddingHandler {
 describe("BatchJobManager", () => {
   let batchManager: BatchJobManager;
   let jobQueueService: JobQueueService;
-  let db: DrizzleDB;
+  let config: JobQueueDbConfig;
   let cleanup: () => Promise<void>;
   let embeddingHandler: MockEmbeddingHandler;
 
   beforeEach(async () => {
     // Create test database
-    const dbResult = await createTestDatabase();
-    db = dbResult.db;
+    const dbResult = await createTestJobQueueDatabase();
+    config = dbResult.config;
     cleanup = dbResult.cleanup;
 
     // Create services
     const logger = createSilentLogger();
-    jobQueueService = JobQueueService.createFresh(db, logger);
+    jobQueueService = JobQueueService.createFresh(config, logger);
     batchManager = BatchJobManager.createFresh(jobQueueService, logger);
 
     // Register embedding handler for individual operations

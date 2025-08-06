@@ -1,7 +1,6 @@
 import { MessageInterfacePlugin } from "./message-interface-plugin";
 import type { MessageContext } from "@brains/messaging-service";
-import type { JobProgressEvent } from "@brains/job-queue";
-import type { JobContext } from "@brains/db";
+import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import { z } from "zod";
 
 // Define the plugin configuration schema

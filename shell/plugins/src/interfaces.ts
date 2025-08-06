@@ -21,7 +21,7 @@ import type {
   BatchJobStatus,
   BatchOperation,
 } from "@brains/job-queue";
-import type { JobOptions, JobQueue } from "@brains/db";
+import type { JobOptions, JobQueue } from "@brains/job-queue";
 import type { CommandRegistry } from "@brains/command-registry";
 import type { ViewRegistry, RouteDefinition } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";

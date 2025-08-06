@@ -1,7 +1,7 @@
 import type { IJobQueueService } from "./types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./schemas";
 import { JOB_STATUS } from "./schemas";
-import type { JobContext, JobOptions } from "@brains/db";
+import type { JobContext, JobOptions } from "./schema/job-queue";
 import type { Logger } from "@brains/utils";
 import { createBatchId } from "@brains/utils";
 

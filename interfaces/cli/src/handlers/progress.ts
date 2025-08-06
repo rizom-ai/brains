@@ -1,7 +1,9 @@
-import type { JobProgressEvent } from "@brains/job-queue";
-import type { JobContext } from "@brains/db";
-import type { Logger } from "@brains/plugins";
-import type { MessageContext } from "@brains/messaging-service";
+import type {
+  JobProgressEvent,
+  JobContext,
+  Logger,
+  MessageContext,
+} from "@brains/plugins";
 
 export interface ProgressAction {
   type: "UPDATE_PROGRESS" | "CLEANUP_PROGRESS";

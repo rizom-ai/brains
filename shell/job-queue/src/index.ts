@@ -2,6 +2,8 @@ export { JobQueueService } from "./job-queue-service";
 export { JobQueueWorker } from "./job-queue-worker";
 export { BatchJobManager } from "./batch-job-manager";
 export { JobProgressMonitor } from "./job-progress-monitor";
+export type { JobQueueDbConfig } from "./db";
+export { migrateJobQueue } from "./migrate";
 export type {
   JobQueueWorkerConfig,
   JobQueueWorkerStats,
@@ -29,8 +31,9 @@ export {
   type JobProgressEvent,
 } from "./schemas";
 
-// Re-export OperationType from db package to maintain compatibility
-export { OperationTypeEnum, type OperationType } from "@brains/db";
+// Export job queue schema and types
+export * from "./schema/job-queue";
+export { createId } from "./schema/utils";
 
 // Progress utilities (public API for interfaces)
 export { type ProgressCalculation } from "./utils/progress-calculations";

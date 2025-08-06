@@ -34,12 +34,12 @@
     "@libsql/client": "^0.15.7",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "ai": "^4.3.16",
-    "drizzle-orm": "^0.29.4",
-    "drizzle-zod": "^0.5.1",
+    "drizzle-orm": "^0.44.4",
+    "drizzle-zod": "^0.8.3",
     "gray-matter": "^4.0.3",
     "nanoid": "^5.1.5",
     "ts-pattern": "^5.0.6",
-    "zod": "^3.24.1",
+    "zod": "^3.25.1",
     "zod-to-json-schema": "^3.24.5"
   },
   "devDependencies": {

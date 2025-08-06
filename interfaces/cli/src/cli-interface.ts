@@ -5,12 +5,14 @@ import {
   type Daemon,
   type DaemonHealth,
 } from "@brains/plugins";
-import type { MessageContext } from "@brains/messaging-service";
-import type { Command } from "@brains/command-registry";
-import type { UserPermissionLevel } from "@brains/utils";
+import type {
+  MessageContext,
+  Command,
+  UserPermissionLevel,
+  JobProgressEvent,
+  JobContext,
+} from "@brains/plugins";
 import type { Instance } from "ink";
-import type { JobProgressEvent } from "@brains/job-queue";
-import type { JobContext } from "@brains/db";
 import {
   cliConfigSchema,
   defaultCLIConfig,

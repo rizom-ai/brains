@@ -11,7 +11,7 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "zod": "^3.22.4",
+    "zod": "^3.25.1",
     "@brains/utils": "workspace:*",
     "@brains/entity-service": "workspace:*"
   },

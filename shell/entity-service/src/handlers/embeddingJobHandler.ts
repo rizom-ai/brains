@@ -1,6 +1,7 @@
 import { z } from "zod";
-import type { EntityWithoutEmbedding, DrizzleDB } from "@brains/db";
+import type { DrizzleDB } from "@brains/db";
 import { entities } from "@brains/db";
+import type { EntityWithoutEmbedding } from "../types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import { Logger } from "@brains/utils";
 import type { JobHandler } from "@brains/job-queue";

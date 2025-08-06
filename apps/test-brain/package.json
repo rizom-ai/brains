@@ -29,6 +29,7 @@
     "@brains/db": "workspace:*",
     "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
+    "@brains/job-queue": "workspace:*",
     "@brains/matrix-setup": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/webserver": "workspace:*",

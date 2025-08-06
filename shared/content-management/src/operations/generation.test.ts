@@ -4,7 +4,7 @@ import { createSilentLogger } from "@brains/utils";
 import type { IEntityService } from "@brains/entity-service";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteDefinition } from "@brains/view-registry";
-import type { JobOptions } from "@brains/db";
+import type { JobOptions } from "@brains/job-queue";
 
 // Test JobOptions
 const testJobOptions: JobOptions = {

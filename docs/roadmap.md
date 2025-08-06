@@ -31,6 +31,7 @@ The roadmap prioritizes:
 **Status**: COMPLETED
 
 **What was done**:
+
 - ✅ All plugin base classes standardized and documented
 - ✅ Plugin test harnesses consolidated into a single PluginTestHarness with factory functions
 - ✅ All plugins reorganized to follow consistent directory structure

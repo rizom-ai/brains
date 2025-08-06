@@ -6,7 +6,7 @@ import type {
   EntityAdapter,
 } from "@brains/entity-service";
 import type { JobHandler, BatchOperation } from "@brains/job-queue";
-import type { JobOptions } from "@brains/db";
+import type { JobOptions } from "@brains/job-queue";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type { z } from "zod";
 import { createCorePluginContext } from "../core/context";

@@ -1,11 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler } from "../src/types";
-import { createTestDatabase } from "../../integration-tests/test/helpers/test-db";
+import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger } from "@brains/utils";
-import type { EntityWithoutEmbedding, DrizzleDB } from "@brains/db";
 import type { ProgressReporter } from "@brains/utils";
-import type { JobContext } from "@brains/db";
+import type { JobContext } from "../src/schema/job-queue";
+import type { JobQueueDbConfig } from "../src/db";
+
+// Test type for entity-like data
+interface EntityWithoutEmbedding {
+  id: string;
+  entityType: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+  contentWeight?: number;
+  created: number;
+  updated: number;
+}
 
 // Default test metadata
 const defaultTestMetadata: JobContext = {
@@ -53,7 +64,7 @@ class TestJobHandler implements JobHandler<"shell:embedding"> {
 
 describe("JobQueueService", () => {
   let service: JobQueueService;
-  let db: DrizzleDB;
+  let config: JobQueueDbConfig;
   let cleanup: () => Promise<void>;
   let testHandler: TestJobHandler;
 
@@ -70,13 +81,13 @@ describe("JobQueueService", () => {
 
   beforeEach(async () => {
     // Create test database with isolated instance
-    const testDb = await createTestDatabase();
-    db = testDb.db;
+    const testDb = await createTestJobQueueDatabase();
+    config = testDb.config;
     cleanup = testDb.cleanup;
 
     // Create service instance with silent logger
     const logger = createSilentLogger();
-    service = JobQueueService.createFresh(db, logger);
+    service = JobQueueService.createFresh(config, logger);
 
     // Create test handler
     testHandler = new TestJobHandler();
@@ -224,7 +235,7 @@ describe("JobQueueService", () => {
     });
 
     it("should throw error when enqueueing job with no registered handler", async () => {
-      service = JobQueueService.createFresh(db, createSilentLogger());
+      service = JobQueueService.createFresh(config, createSilentLogger());
 
       try {
         await service.enqueue("embedding", testEntity, {

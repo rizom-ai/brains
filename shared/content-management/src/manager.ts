@@ -6,7 +6,7 @@ import type {
   SectionDefinition,
   SiteContentEntityType,
 } from "@brains/view-registry";
-import type { JobContext, JobOptions } from "@brains/db";
+import type { JobContext, JobOptions } from "@brains/job-queue";
 import { GenerationOperations } from "./operations/generation";
 import { EntityQueryService } from "./services/entity-query";
 import { getContentJobStatuses } from "./services/job-tracking";

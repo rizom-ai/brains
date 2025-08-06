@@ -4,7 +4,7 @@ import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { Template } from "@brains/content-generator";
 import type { ICoreEntityService } from "@brains/entity-service";
 import type { Batch, BatchJobStatus } from "@brains/job-queue";
-import type { JobQueue } from "@brains/db";
+import type { JobQueue } from "@brains/job-queue";
 
 /**
  * Core plugin context - provides basic services to core plugins

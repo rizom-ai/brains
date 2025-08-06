@@ -1,7 +1,5 @@
-import type { JobProgressEvent } from "@brains/job-queue";
-import type { JobContext } from "@brains/db";
-import type { Logger } from "@brains/plugins";
-import { markdownToHtml } from "@brains/utils";
+import type { JobProgressEvent, JobContext, Logger } from "@brains/plugins";
+import { markdownToHtml } from "@brains/plugins";
 import type { MatrixClientWrapper } from "../client/matrix-client";
 
 /**

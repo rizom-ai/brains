@@ -1,6 +1,6 @@
 import type { Logger, IJobProgressMonitor } from "@brains/utils";
 import type { JobQueueService } from "./job-queue-service";
-import type { JobQueue } from "@brains/db";
+import type { JobQueue } from "./schema/job-queue";
 import type { JobResult } from "./schemas";
 import { JOB_STATUS } from "./schemas";
 

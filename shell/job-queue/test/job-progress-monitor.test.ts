@@ -4,7 +4,7 @@ import type { IJobQueueService } from "../src/types";
 import type { BatchJobManager } from "../src/batch-job-manager";
 import type { MessageBus } from "@brains/messaging-service";
 import { createSilentLogger, type Logger } from "@brains/utils";
-import type { JobQueue, JobContext } from "@brains/db";
+import type { JobQueue, JobContext } from "../src/schema/job-queue";
 import type { BatchJobStatus } from "../src/schemas";
 import type { Mock } from "bun:test";
 
@@ -203,6 +203,7 @@ describe("JobProgressMonitor", () => {
         id: "job-789",
         type: "test-job",
         data: "{}",
+        result: null,
         status: "processing",
         priority: 5,
         retryCount: 0,

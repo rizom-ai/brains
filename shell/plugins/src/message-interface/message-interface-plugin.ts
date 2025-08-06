@@ -1,7 +1,6 @@
 import { InterfacePlugin } from "../interface/interface-plugin";
 import { PluginError } from "../errors";
-import type { JobProgressEvent } from "@brains/job-queue";
-import type { JobContext } from "@brains/db";
+import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import type { MessageContext } from "@brains/messaging-service";
 import type { MessageInterfacePluginContext } from "./context";
 import type { z } from "zod";

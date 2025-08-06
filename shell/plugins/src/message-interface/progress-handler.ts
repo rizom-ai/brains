@@ -3,7 +3,7 @@ import {
   JobProgressEventSchema,
   type JobProgressEvent,
 } from "@brains/job-queue";
-import { JobContextSchema, type JobContext } from "@brains/db";
+import { JobContextSchema, type JobContext } from "@brains/job-queue";
 
 /**
  * Handlers for progress event processing

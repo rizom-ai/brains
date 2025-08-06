@@ -16,7 +16,7 @@
     "@brains/job-queue": "workspace:*",
     "@brains/utils": "workspace:*",
     "gray-matter": "^4.0.3",
-    "zod": "^3.22.4"
+    "zod": "^3.25.1"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

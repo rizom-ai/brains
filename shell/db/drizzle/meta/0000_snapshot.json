@@ -1,7 +1,7 @@
 {
-  "version": "5",
+  "version": "6",
   "dialect": "sqlite",
-  "id": "837720ef-658e-44b5-a224-6bdf44435d24",
+  "id": "d2438eef-e5e4-4de7-b8c8-032ac577ab6b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "entities": {
@@ -71,141 +71,24 @@
       "compositePrimaryKeys": {
         "entities_id_entityType_pk": {
           "columns": [
-            "entityType",
-            "id"
+            "id",
+            "entityType"
           ],
           "name": "entities_id_entityType_pk"
         }
       },
-      "uniqueConstraints": {}
-    },
-    "job_queue": {
-      "name": "job_queue",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "data": {
-          "name": "data",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "result": {
-          "name": "result",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'pending'"
-        },
-        "priority": {
-          "name": "priority",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "retryCount": {
-          "name": "retryCount",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "maxRetries": {
-          "name": "maxRetries",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 3
-        },
-        "lastError": {
-          "name": "lastError",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "scheduledFor": {
-          "name": "scheduledFor",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "startedAt": {
-          "name": "startedAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "completedAt": {
-          "name": "completedAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "idx_job_queue_ready": {
-          "name": "idx_job_queue_ready",
-          "columns": [
-            "status",
-            "priority",
-            "scheduledFor"
-          ],
-          "isUnique": false
-        },
-        "idx_job_queue_type": {
-          "name": "idx_job_queue_type",
-          "columns": [
-            "type",
-            "status"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     }
   },
+  "views": {},
   "enums": {},
   "_meta": {
     "schemas": {},
     "tables": {},
     "columns": {}
+  },
+  "internal": {
+    "indexes": {}
   }
 }

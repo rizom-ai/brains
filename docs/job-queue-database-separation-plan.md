@@ -53,6 +53,7 @@ The benefits significantly outweigh the challenges. The circular dependency can 
 ### Phase 2: Add Database Management to Job Queue Package
 
 1. Add database dependencies to job-queue package:
+
    ```json
    {
      "dependencies": {
@@ -67,18 +68,22 @@ The benefits significantly outweigh the challenges. The circular dependency can 
    ```
 
 2. Create database utilities:
+
    ```typescript
    // shell/job-queue/src/db/index.ts
    import { createClient } from "@libsql/client";
    import { drizzle } from "drizzle-orm/libsql";
-   
+
    export interface JobQueueDbConfig {
      url?: string;
      authToken?: string;
    }
-   
+
    export function createJobQueueDatabase(config: JobQueueDbConfig) {
-     const url = config.url ?? process.env.JOB_QUEUE_DATABASE_URL ?? "file:./brain-jobs.db";
+     const url =
+       config.url ??
+       process.env.JOB_QUEUE_DATABASE_URL ??
+       "file:./brain-jobs.db";
      const client = createClient({ url, authToken: config.authToken });
      const db = drizzle(client);
      return { db, client };
@@ -94,24 +99,25 @@ The benefits significantly outweigh the challenges. The circular dependency can 
      dialect: "sqlite",
      driver: "libsql",
      dbCredentials: {
-       url: process.env.JOB_QUEUE_DATABASE_URL || "file:./brain-jobs.db"
-     }
-   }
+       url: process.env.JOB_QUEUE_DATABASE_URL || "file:./brain-jobs.db",
+     },
+   };
    ```
 
 ### Phase 3: Update JobQueueService
 
 1. Modify constructor to accept configuration:
+
    ```typescript
    export interface JobQueueServiceConfig {
      databaseUrl?: string;
      authToken?: string;
    }
-   
+
    export class JobQueueService implements IJobQueueService {
      private db: DrizzleDB;
      private client: Client;
-     
+
      private constructor(config: JobQueueServiceConfig, logger: Logger) {
        const { db, client } = createJobQueueDatabase(config);
        this.db = db;
@@ -122,17 +128,18 @@ The benefits significantly outweigh the challenges. The circular dependency can 
    ```
 
 2. Add lifecycle methods:
+
    ```typescript
    public async initialize(): Promise<void> {
      // Enable WAL mode
      await this.client.execute("PRAGMA journal_mode = WAL");
-     
+
      // Run migrations
      await runMigrations(this.db);
-     
+
      this.logger.info("Job queue database initialized");
    }
-   
+
    public async shutdown(): Promise<void> {
      // Close database connection
      this.client.close();
@@ -142,21 +149,21 @@ The benefits significantly outweigh the challenges. The circular dependency can 
 ### Phase 4: Update Shell Integration
 
 1. Simplify Shell config:
+
    ```typescript
    // shell/core/src/config/shellConfig.ts
    jobQueue: z.object({
      databaseUrl: z.string().optional(),
      authToken: z.string().optional(),
-   }).optional().default({})
+   })
+     .optional()
+     .default({});
    ```
 
 2. Update Shell initialization:
    ```typescript
    // Pass config instead of database instance
-   const jobQueueService = JobQueueService.getInstance(
-     config.jobQueue,
-     logger
-   );
+   const jobQueueService = JobQueueService.getInstance(config.jobQueue, logger);
    await jobQueueService.initialize();
    ```
 

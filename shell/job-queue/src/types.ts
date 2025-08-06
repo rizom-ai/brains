@@ -1,4 +1,9 @@
-import type { JobQueue, JobOptions, JobType, JobDataFor } from "@brains/db";
+import type {
+  JobQueue,
+  JobOptions,
+  JobType,
+  JobDataFor,
+} from "./schema/job-queue";
 import type { ProgressReporter } from "@brains/utils";
 
 /**

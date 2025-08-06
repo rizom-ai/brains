@@ -7,7 +7,6 @@ import {
   primaryKey,
 } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
 import { vector } from "./vector";
 
 /**
@@ -58,20 +57,13 @@ export const entities = sqliteTable(
 /**
  * Zod schemas for validation
  */
-export const insertEntitySchema = createInsertSchema(entities, {
-  contentWeight: z.number().min(0).max(1).default(1.0),
-  embedding: z.instanceof(Float32Array),
-  metadata: z.record(z.unknown()),
-});
+export const insertEntitySchema = createInsertSchema(entities);
 
-export const selectEntitySchema = createSelectSchema(entities, {
-  contentWeight: z.number().min(0).max(1),
-  embedding: z.instanceof(Float32Array),
-  metadata: z.record(z.unknown()),
-});
+export const selectEntitySchema = createSelectSchema(entities);
 
 /**
  * Type exports
+ * Using drizzle's built-in type inference instead of z.infer due to compatibility issues
  */
-export type InsertEntity = z.infer<typeof insertEntitySchema>;
-export type Entity = z.infer<typeof selectEntitySchema>;
+export type InsertEntity = typeof entities.$inferInsert;
+export type Entity = typeof entities.$inferSelect;

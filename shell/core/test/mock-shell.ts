@@ -18,7 +18,7 @@ import type {
   Batch,
   BatchJobStatus,
 } from "@brains/job-queue";
-import type { JobOptions, JobQueue } from "@brains/db";
+import type { JobOptions, JobQueue } from "@brains/job-queue";
 import type {
   CommandRegistry,
   Command,

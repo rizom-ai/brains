@@ -1,4 +1,10 @@
 import { z } from "zod";
+import type { Entity } from "@brains/db";
+
+/**
+ * Entity type without embedding field (used for job queue data)
+ */
+export type EntityWithoutEmbedding = Omit<Entity, "embedding">;
 
 /**
  * Base entity schema that all entities must extend

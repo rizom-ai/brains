@@ -14,6 +14,14 @@ export const shellConfigSchema = z.object({
     })
     .default({}),
 
+  // Job Queue Database configuration
+  jobQueueDatabase: z
+    .object({
+      url: z.string().default("file:./brain-jobs.db"),
+      authToken: z.string().optional(),
+    })
+    .default({}),
+
   // AI Service configuration
   ai: z.object({
     provider: z.enum(["anthropic"]).default("anthropic"),
@@ -66,6 +74,14 @@ export function createShellConfig(
       url: process.env["DATABASE_URL"] ?? overrides.database?.url,
       authToken:
         process.env["DATABASE_AUTH_TOKEN"] ?? overrides.database?.authToken,
+    },
+    jobQueueDatabase: {
+      url:
+        process.env["JOB_QUEUE_DATABASE_URL"] ??
+        overrides.jobQueueDatabase?.url,
+      authToken:
+        process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"] ??
+        overrides.jobQueueDatabase?.authToken,
     },
     ai: {
       provider: "anthropic" as const,
