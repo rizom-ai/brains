@@ -19,7 +19,7 @@ import {
 } from "./entities/site-content-adapter";
 import { ContentManager } from "@brains/plugins";
 import { dashboardTemplate } from "./templates/dashboard";
-import { DashboardFormatter } from "./formatters/dashboard-formatter";
+import { DashboardFormatter } from "./templates/dashboard/formatter";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { createSiteBuilderTools } from "./tools";
 import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";

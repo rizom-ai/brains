@@ -1,5 +1,5 @@
 import type { ContentFormatter } from "@brains/plugins";
-import type { DashboardData } from "../templates/dashboard/schema";
+import type { DashboardData } from "./schema";
 
 /**
  * Dashboard formatter - for static data generation

@@ -1,6 +1,6 @@
 import { DashboardWidget } from "./layout";
 import { DashboardDataSchema, type DashboardData } from "./schema";
-import { DashboardFormatter } from "../../formatters/dashboard-formatter";
+import { DashboardFormatter } from "./formatter";
 import type {
   Template,
   TemplateDataContext,
@@ -70,4 +70,4 @@ export const dashboardTemplate: Template<DashboardData> = {
 // Export all dashboard components
 export { DashboardWidget } from "./layout";
 export { DashboardDataSchema, type DashboardData } from "./schema";
-export { DashboardFormatter } from "../../formatters/dashboard-formatter";
+export { DashboardFormatter } from "./formatter";

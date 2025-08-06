@@ -5,10 +5,7 @@ import type {
   Logger,
   GenerateOptions,
 } from "@brains/plugins";
-import {
-  ContentManager,
-  GenerateOptionsSchema,
-} from "@brains/plugins";
+import { ContentManager, GenerateOptionsSchema } from "@brains/plugins";
 import { z } from "zod";
 
 /**
