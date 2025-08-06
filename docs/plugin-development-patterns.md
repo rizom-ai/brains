@@ -28,148 +28,157 @@ The `BasePlugin` class is the foundation for all plugins. It provides:
 - Lifecycle management
 
 ```typescript
-import type { Plugin, PluginContext, PluginTool } from "@brains/types";
-import { BasePlugin, validatePluginConfig } from "@brains/utils";
+import type { 
+  Plugin, 
+  PluginTool,
+  ServicePluginContext,
+  CorePluginContext,
+  InterfacePluginContext 
+} from "@brains/plugins";
+import { ServicePlugin, CorePlugin, InterfacePlugin } from "@brains/plugins";
 import { myPluginConfigSchema, type MyPluginConfig } from "./config";
+import packageJson from "../package.json";
 
-export class MyPlugin extends BasePlugin<MyPluginConfig> {
+export class MyPlugin extends ServicePlugin<MyPluginConfig> {
   private myService?: MyService;
 
   constructor(config: unknown) {
-    // Validate config first
-    const validatedConfig = validatePluginConfig(
-      myPluginConfigSchema,
-      config,
-      "my-plugin",
-    );
-
     super(
-      "my-plugin", // plugin ID
-      "My Plugin", // display name
-      "Plugin description", // description
-      validatedConfig, // validated config
+      "my-plugin",
+      packageJson,
+      config,
+      myPluginConfigSchema,
+      {} // default config values
     );
   }
 
   // Lifecycle: Initialize plugin
-  protected override async onRegister(context: PluginContext): Promise<void> {
-    const { logger, entityService } = context;
-
+  protected override async onRegister(context: ServicePluginContext): Promise<void> {
     // Initialize services
     this.myService = new MyService({
       apiKey: this.config.apiKey,
-      logger: logger.child("MyPlugin"),
+      logger: this.logger.child("MyService"),
     });
 
-    this.info("Plugin initialized successfully");
+    // Register entity types if needed
+    context.registerEntityType("my-entity", myEntitySchema, myEntityAdapter);
+
+    this.logger.info("Plugin initialized successfully");
   }
 
   // Define plugin tools
   protected override async getTools(): Promise<PluginTool[]> {
     return [
-      this.createTool(
-        "fetch_data",
-        "Fetch data from service",
-        {}, // Empty object for no parameters
-        async (): Promise<{ data: string }> => {
+      {
+        name: `${this.id}:fetch_data`,
+        description: "Fetch data from service",
+        inputSchema: {}, // Empty object for no parameters
+        visibility: "public",
+        handler: async (): Promise<{ data: string }> => {
           if (!this.myService) {
             throw new Error("Service not initialized");
           }
           const data = await this.myService.fetchData();
           return { data };
         },
-      ),
+      },
     ];
   }
 
-  // Lifecycle: Cleanup
+  // Lifecycle: Cleanup (optional)
   protected override async onShutdown(): Promise<void> {
     this.myService?.disconnect();
-    this.info("Plugin shutdown complete");
+    this.logger.info("Plugin shutdown complete");
   }
 }
 ```
 
-### ContentGeneratingPlugin
+### Plugin Types
 
-The `ContentGeneratingPlugin` extends `BasePlugin` with content generation capabilities:
+The plugin system provides three main plugin types:
+
+1. **CorePlugin**: For system-level functionality (query processing, job monitoring)
+2. **ServicePlugin**: For feature plugins that provide services (most common)
+3. **InterfacePlugin**: For user interfaces (CLI, Matrix, MCP, WebServer)
+
+### ServicePlugin Example
+
+The `ServicePlugin` is the most common base class for feature plugins:
 
 - Content type registration
 - Generated content management
 - Automatic tool creation for content generation
 
 ```typescript
-import type { PluginContext, PluginTool } from "@brains/types";
-import { ContentGeneratingPlugin, validatePluginConfig } from "@brains/utils";
+import type { ServicePluginContext, PluginTool, Template } from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
 import { blogConfigSchema, type BlogConfig } from "./config";
-import { BlogPostFormatter } from "./formatters";
-import { blogPostSchema } from "./schemas";
+import { BlogFormatter } from "./formatters/blog-formatter";
+import { blogTemplate } from "./templates/blog";
+import packageJson from "../package.json";
 
-export class BlogPlugin extends ContentGeneratingPlugin<BlogConfig> {
+export class BlogPlugin extends ServicePlugin<BlogConfig> {
   constructor(config: unknown) {
-    // Validate config first
-    const validatedConfig = validatePluginConfig(
-      blogConfigSchema,
-      config,
-      "blog",
-    );
-
     super(
       "blog",
-      "Blog Plugin",
-      "Generate and manage blog posts",
-      validatedConfig,
+      packageJson,
+      config,
+      blogConfigSchema,
+      { /* default config */ }
     );
   }
 
-  protected override async onRegister(context: PluginContext): Promise<void> {
-    const { formatters } = context;
-
-    // Register content types with schemas and formatters
-    this.registerContentType("post", {
-      contentType: "post",
-      schema: blogPostSchema,
-      formatter: new BlogPostFormatter(),
+  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+    // Register templates for rendering
+    context.registerTemplates({
+      blog: blogTemplate,
+      "blog-list": blogListTemplate,
     });
 
-    this.registerContentType("outline", {
-      contentType: "outline",
-      schema: blogOutlineSchema,
-      // Formatter is optional
-    });
+    // Register routes if needed
+    context.registerRoutes([
+      {
+        id: "blog",
+        path: "/blog",
+        title: "Blog",
+        description: "Blog posts",
+        sections: [
+          {
+            id: "main",
+            template: "blog-list",
+          },
+        ],
+      },
+    ]);
 
-    this.info("Blog plugin initialized with content types");
+    this.logger.info("Blog plugin initialized");
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
-    // Get content generation tools from parent class
-    const contentTools = await super.getTools();
+    return createBlogTools(this, this.id);
+  }
 
-    // Add custom tools specific to this plugin
-    const customTools = [
-      this.createTool(
-        "import_markdown",
-        "Import existing markdown files as blog posts",
-        toolInput().string("filePath").boolean("publish", false).build(),
-        async (input): Promise<{ imported: number }> => {
-          // Implementation
-          return { imported: 1 };
-        },
-      ),
-    ];
-
-    return [...contentTools, ...customTools];
+  protected override async getCommands(): Promise<Command[]> {
+    return createBlogCommands(this, this.id);
   }
 }
 ```
 
-The parent class automatically provides tools for generating content based on registered types:
+### InterfacePlugin Example
 
-- `blog:generate_post` - Generate content of type "post"
-- `blog:generate_outline` - Generate content of type "outline"
-- `blog:list_generated` - List all generated content
-- `blog:get_generated` - Get specific generated content
-- `blog:save_generated` - Save generated content as an entity
+Interface plugins handle user interactions:
+
+```typescript
+import { InterfacePlugin } from "@brains/plugins";
+import type { InterfacePluginContext } from "@brains/plugins";
+
+export class CLIInterfacePlugin extends InterfacePlugin<CLIConfig> {
+  protected override async onRegister(context: InterfacePluginContext): Promise<void> {
+    // Access query method from context
+    const response = await context.query("What is the weather?");
+    console.log(response);
+  }
+}
 
 ## Plugin Configuration
 
@@ -180,74 +189,56 @@ All plugins must define their configuration using Zod schemas and validate it in
 ```typescript
 // config.ts
 import { z } from "zod";
-import { pluginConfig } from "@brains/utils";
 
-// Define schema using the configuration builder
-export const myPluginConfigSchema = pluginConfig()
-  .requiredString("apiKey", "API key for the service")
-  .optionalString("endpoint", "API endpoint URL")
-  .numberWithDefault("timeout", 5000, {
-    min: 0,
-    max: 30000,
-    description: "Request timeout in milliseconds",
-  })
-  .enum("environment", ["dev", "staging", "prod"] as const, {
-    default: "prod",
-    description: "Target environment",
-  })
-  .array("allowedDomains", z.string(), {
-    default: [],
-    description: "List of allowed domains",
-  })
-  .boolean("debug", false, "Enable debug logging")
-  .describe("Configuration for My Plugin")
-  .build();
+// Define schema using Zod directly
+export const myPluginConfigSchema = z.object({
+  apiKey: z.string().describe("API key for the service"),
+  endpoint: z.string().optional().describe("API endpoint URL"),
+  timeout: z.number().min(0).max(30000).default(5000)
+    .describe("Request timeout in milliseconds"),
+  environment: z.enum(["dev", "staging", "prod"]).default("prod")
+    .describe("Target environment"),
+  allowedDomains: z.array(z.string()).default([])
+    .describe("List of allowed domains"),
+  debug: z.boolean().default(false).describe("Enable debug logging"),
+});
 
 // Export types
 export type MyPluginConfig = z.infer<typeof myPluginConfigSchema>;
 export type MyPluginConfigInput = z.input<typeof myPluginConfigSchema>;
 
-// Export config builder function for users
-export const myPluginConfig = (): ReturnType<typeof pluginConfig> =>
-  pluginConfig()
-    .requiredString("apiKey", "API key for the service")
-    .optionalString("endpoint", "API endpoint URL")
-    .numberWithDefault("timeout", 5000, {
-      min: 0,
-      max: 30000,
-      description: "Request timeout in milliseconds",
-    })
-    .describe("Configuration for My Plugin");
+// Export default config values
+export const MY_PLUGIN_CONFIG_DEFAULTS: Partial<MyPluginConfig> = {
+  timeout: 5000,
+  environment: "prod",
+  allowedDomains: [],
+  debug: false,
+};
 ```
 
 ### Tool Input Schemas
 
-Use the `toolInput` builder for tool parameters:
+Define tool parameters using Zod schemas directly:
 
 ```typescript
-import { toolInput } from "@brains/utils";
+import { z } from "zod";
 
 // Simple tool with basic inputs
-const searchToolInput = toolInput()
-  .string("query")
-  .optionalNumber("limit")
-  .boolean("includeMetadata", false)
-  .build();
+const searchToolInput = {
+  query: z.string().describe("Search query"),
+  limit: z.number().optional().describe("Maximum results"),
+  includeMetadata: z.boolean().default(false).describe("Include metadata"),
+};
 
 // Complex tool with enum and custom validation
-const exportToolInput = toolInput()
-  .enum("format", ["json", "csv", "xml"] as const)
-  .optionalString("filename")
-  .custom(
-    "options",
-    z
-      .object({
-        headers: z.boolean().default(true),
-        compress: z.boolean().default(false),
-      })
-      .optional(),
-  )
-  .build();
+const exportToolInput = {
+  format: z.enum(["json", "csv", "xml"]).describe("Export format"),
+  filename: z.string().optional().describe("Output filename"),
+  options: z.object({
+    headers: z.boolean().default(true),
+    compress: z.boolean().default(false),
+  }).optional().describe("Export options"),
+};
 ```
 
 ## Plugin Lifecycle
@@ -258,11 +249,14 @@ Plugins follow a well-defined lifecycle managed by the base classes:
 
 ```typescript
 constructor(config: unknown) {
-  // Validate configuration
-  const validatedConfig = validatePluginConfig(schema, config, "plugin-id");
-
-  // Call parent constructor
-  super("plugin-id", "Plugin Name", "Description", validatedConfig);
+  // Call parent constructor with all required parameters
+  super(
+    "plugin-id",
+    packageJson,          // Pass package.json for version info
+    config,               // Raw config to be validated
+    myPluginConfigSchema, // Zod schema for validation
+    CONFIG_DEFAULTS       // Default values
+  );
 
   // Do NOT initialize services here - wait for onRegister
 }
@@ -271,18 +265,22 @@ constructor(config: unknown) {
 ### 2. Registration Phase
 
 ```typescript
-protected override async onRegister(context: PluginContext): Promise<void> {
-  // Access services from context
-  const { logger, entityService, formatters } = context;
-
+protected override async onRegister(context: ServicePluginContext): Promise<void> {
   // Initialize plugin services
-  this.myService = new MyService({ logger });
+  this.myService = new MyService({ 
+    logger: this.logger.child("MyService") 
+  });
 
-  // Register formatters, content types, etc.
-  formatters.register("myFormat", new MyFormatter());
+  // Register entity types
+  context.registerEntityType("my-entity", myEntitySchema, myEntityAdapter);
 
-  // Subscribe to events if needed
-  this.unsubscribe = messageBus.subscribe("event", this.handleEvent);
+  // Register templates
+  context.registerTemplates({
+    "my-template": myTemplate,
+  });
+
+  // Register job handlers
+  context.registerJobHandler("my-job", new MyJobHandler());
 }
 ```
 
@@ -291,8 +289,9 @@ protected override async onRegister(context: PluginContext): Promise<void> {
 During this phase, the plugin's tools are available and can be called:
 
 - Tools are accessed via `plugin-id:tool-name`
-- Logging helpers are available: `this.debug()`, `this.info()`, `this.warn()`, `this.error()`
+- Logging is available via `this.logger` (Logger instance)
 - Access to configuration via `this.config`
+- Access to context services via stored references
 
 ### 4. Shutdown Phase
 
@@ -307,7 +306,7 @@ protected override async onShutdown(): Promise<void> {
   // Clean up resources
   await this.cleanup();
 
-  this.info("Plugin shutdown complete");
+  this.logger.info("Plugin shutdown complete");
 }
 ```
 
@@ -315,164 +314,179 @@ protected override async onShutdown(): Promise<void> {
 
 ### Accessing Services Through Context
 
-Services are provided through the `PluginContext` during the registration phase:
+Services are provided through context types specific to each plugin type:
 
 ```typescript
-protected override async onRegister(context: PluginContext): Promise<void> {
-  // Destructure the services you need
-  const {
-    logger,
-    entityService,
-    formatters,
-    messageBus,
-    registerEntityType,  // For registering new entity types
-  } = context;
+// ServicePlugin context
+protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  // Available methods and services:
+  context.registerEntityType(type, schema, adapter);
+  context.registerTemplates(templates);
+  context.registerRoutes(routes);
+  context.registerJobHandler(type, handler);
+  context.listRoutes();
+  context.listViewTemplates();
+  context.getViewTemplate(name);
+  context.enqueueJob(type, data, options);
+  
+  // Access to services
+  context.entityService;
+  context.logger; // Also available as this.logger
+}
 
-  // Store references if needed throughout plugin lifecycle
-  this.entityService = entityService;
+// InterfacePlugin context includes query method
+protected override async onRegister(context: InterfacePluginContext): Promise<void> {
+  // All ServicePlugin context methods plus:
+  const response = await context.query(prompt, additionalContext);
+}
 
-  // Use services directly
-  const entities = await entityService.search({
-    entityType: "note",
-    query: "example",
-  });
-
-  // Register formatters
-  formatters.register("myFormat", new MyFormatter());
-
-  // For content plugins, additional context is available
-  if (this instanceof ContentGeneratingPlugin) {
-    const { contentTypeRegistry } = context;
-    // contentTypeRegistry is used internally by registerContentType
-  }
+// CorePlugin context is minimal
+protected override async onRegister(context: CorePluginContext): Promise<void> {
+  // Basic context only
+  context.logger;
 }
 ```
 
-### Available Services
+### Available Services by Plugin Type
 
-The following services are available through `PluginContext`:
+**CorePlugin Context**:
+- `logger`: Logger instance
 
-- `logger`: Logger instance with plugin-specific context
-- `entityService`: CRUD operations on entities
-- `formatters`: Formatter registry for content formatting
-- `messageBus`: Event publish/subscribe system
-- `registerEntityType`: Function to register new entity types
+**ServicePlugin Context**:
+- `logger`: Logger instance (also available as `this.logger`)
+- `entityService`: Entity CRUD operations
+- `registerEntityType()`: Register new entity types
+- `registerTemplates()`: Register view templates
+- `registerRoutes()`: Register routes
+- `registerJobHandler()`: Register job handlers
+- `enqueueJob()`: Queue jobs for processing
+- `listRoutes()`: List all registered routes
+- `listViewTemplates()`: List all templates
+- `getViewTemplate()`: Get a specific template
+- `parseContent()`: Parse content using template schema
+
+**InterfacePlugin Context**:
+- All ServicePlugin context methods
+- `query()`: Execute queries (core shell operation)
+- `getJobStatus()`: Get job status
+- `getActiveJobs()`: List active jobs
 
 ### Service Usage Examples
 
-````typescript
-// EntityService usage
-const notes = await entityService.search({
+```typescript
+// EntityService usage (via context)
+const notes = await context.entityService.search({
   entityType: "note",
   query: "meeting",
   limit: 10,
 });
 
-const note = await entityService.getEntity("note-123");
+const note = await context.entityService.getEntity("note", "note-123");
 
-await entityService.createEntity({
+await context.entityService.createEntity({
   entityType: "note",
   content: "New note content",
   metadata: { tags: ["important"] },
 });
 
-// MessageBus usage
-messageBus.publish({
-  type: "plugin:event",
-  payload: { data: "something happened" },
+// Template registration
+context.registerTemplates({
+  "my-template": {
+    name: "my-template",
+    schema: myContentSchema,
+    description: "My custom template",
+    pluginId: this.id,
+    renderers: {
+      web: MyComponent,
+    },
+    interactive: false,
+  },
 });
 
-const unsubscribe = messageBus.subscribe(
-  "entity:created",
-  async (message) => {
-    this.info("New entity created", message.payload);
-  },
+// Job enqueueing
+const jobId = await context.enqueueJob(
+  "process-data",
+  { entityId: "123" },
+  { priority: 5 }
 );
-
-// Formatter usage
-const formatter = formatters.get("markdown");
-const formatted = await formatter.format(content);
+```
 
 ## Testing Patterns
 
 ### Using Plugin Test Utilities
 
-The `@brains/utils` package includes comprehensive testing utilities:
+The `@brains/plugins` package includes the unified `PluginTestHarness`:
 
 ```typescript
-import {
-  PluginTester,
-  ConfigTester,
-  createMockPlugin,
-  PluginTestHarness,
-} from "@brains/utils";
+import { PluginTestHarness } from "@brains/plugins";
+import { MyPlugin } from "./plugin";
 
 describe("MyPlugin", () => {
+  let harness: PluginTestHarness<MyPlugin>;
+  
+  beforeEach(() => {
+    harness = new PluginTestHarness();
+  });
+
+  afterEach(() => {
+    harness.cleanup();
+  });
+
   // Test plugin lifecycle
   it("should register successfully", async () => {
     const plugin = new MyPlugin({ apiKey: "test" });
-    const tester = new PluginTester(plugin);
-
-    await tester.testRegistration();
-    await tester.testToolsStructure();
+    
+    await harness.installPlugin(plugin);
+    
+    expect(harness.getPlugin()).toBe(plugin);
+    expect(harness.getCapabilities()).toBeDefined();
   });
 
-  // Test configuration
+  // Test configuration validation
   it("should validate configuration", () => {
-    const tester = new ConfigTester(configSchema, "my-plugin");
-
-    tester.testConfig({
-      name: "valid config",
-      config: { apiKey: "test-key" },
-      shouldPass: true,
-    });
-
-    tester.testConfig({
-      name: "missing required field",
-      config: {},
-      shouldPass: false,
-      expectedError: "Required",
-    });
+    expect(() => new MyPlugin({})).toThrow(); // Missing required field
+    expect(() => new MyPlugin({ apiKey: "test" })).not.toThrow();
   });
 
   // Test with mock services
   it("should interact with entity service", async () => {
-    const harness = new PluginTestHarness();
     const plugin = new MyPlugin({ apiKey: "test" });
-
     await harness.installPlugin(plugin);
 
-    // Create test data
-    await harness.createEntity({
+    // Create test data using mock shell
+    const mockShell = harness.getMockShell();
+    await mockShell.entityService.createEntity({
       entityType: "note",
       content: "Test note",
     });
 
     // Test plugin functionality
-    const tool = harness.getTool("my-tool");
-    const result = await tool.handler({});
+    const tools = await plugin.getTools();
+    const tool = tools.find(t => t.name === `${plugin.id}:my-tool`);
+    const result = await tool?.handler({});
 
     expect(result).toBeDefined();
   });
 });
-````
+```
 
 ### Testing Tool Validation
 
 ```typescript
 it("should validate tool input", async () => {
-  const tester = new PluginTester(plugin);
-
-  // Test with valid input
-  const result = await tester.testToolExecution("my-tool", {
-    validParam: "value",
-  });
-  expect(result).toHaveProperty("success", true);
-
-  // Test with invalid input
-  await tester.testToolValidation("my-tool", {
-    invalidParam: 123,
-  });
+  const plugin = new MyPlugin({ apiKey: "test" });
+  await harness.installPlugin(plugin);
+  
+  const tools = await plugin.getTools();
+  const tool = tools.find(t => t.name === `${plugin.id}:my-tool`);
+  
+  // Test with valid input - should not throw
+  await expect(tool?.handler({ validParam: "value" }))
+    .resolves.toHaveProperty("success", true);
+  
+  // Test with invalid input - Zod will throw validation error
+  await expect(tool?.handler({ invalidParam: 123 }))
+    .rejects.toThrow();
 });
 ```
 
@@ -480,18 +494,21 @@ it("should validate tool input", async () => {
 
 ```typescript
 it("should report progress", async () => {
-  const plugin = createProgressPlugin();
-  const tester = new PluginTester(plugin);
-
-  await tester.testRegistration();
+  const plugin = new MyPlugin({ apiKey: "test" });
+  await harness.installPlugin(plugin);
 
   let progressCount = 0;
   const sendProgress = async (): Promise<void> => {
     progressCount++;
   };
 
-  const tool = tester.findTool("progress_tool");
-  await tool.handler({ steps: 3 }, { sendProgress });
+  const tools = await plugin.getTools();
+  const tool = tools.find(t => t.name.endsWith(":progress_tool"));
+  
+  await tool?.handler(
+    { steps: 3 }, 
+    { sendProgress }
+  );
 
   expect(progressCount).toBe(3);
 });
@@ -513,7 +530,8 @@ import type { PluginTool } from "@brains/plugins";
 import { z } from "zod";
 
 export function createMyPluginTools(
-  myPlugin: MyPlugin,
+  getService: () => MyService | undefined,
+  context: ServicePluginContext,
   pluginId: string,
 ): PluginTool[] {
   return [
@@ -524,9 +542,13 @@ export function createMyPluginTools(
         param: z.string().describe("Action parameter"),
       },
       visibility: "public",
-      handler: async (input) => {
+      handler: async (input: unknown): Promise<unknown> => {
+        const service = getService();
+        if (!service) {
+          throw new Error("Service not initialized");
+        }
         const { param } = input as { param: string };
-        return myPlugin.performAction(param);
+        return service.performAction(param);
       },
     },
     // Additional tools...
@@ -590,39 +612,43 @@ protected override async getCommands(): Promise<Command[]> {
 2. **Factory Functions**: Use factory functions that return arrays of tools/commands
 3. **Consistent Naming**: Use `create[PluginName]Tools()` and `create[PluginName]Commands()`
 4. **Plugin ID Prefix**: Tools should be prefixed with plugin ID (e.g., `git-sync:status`)
-5. **No Backward Compatibility Exports**: New code should use the factory functions directly
+5. **Service Access**: Pass service getters to avoid initialization order issues
+6. **Type Safety**: Properly type input and return values with `unknown`
+7. **Standard Directory Structure**: Follow the established pattern:
+   - `src/plugin.ts` - Main plugin class
+   - `src/config.ts` - Configuration schema
+   - `src/tools/index.ts` - All tools in one file
+   - `src/lib/` - Business logic and services
+   - `src/formatters/` - Response formatters (if needed)
+   - `src/handlers/` - Job handlers (if needed)
 
 ### Feature Plugin Pattern
 
-Feature plugins add functionality to the system. See `git-sync` for a complete example:
+Feature plugins add functionality to the system. See `git-sync` or `directory-sync` for complete examples:
 
 ```typescript
-import { BasePlugin, validatePluginConfig, toolInput } from "@brains/utils";
+import { ServicePlugin } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
+import { backupConfigSchema, type BackupConfig } from "./config";
+import packageJson from "../package.json";
 
-export class BackupPlugin extends BasePlugin<BackupConfig> {
+export class BackupPlugin extends ServicePlugin<BackupConfig> {
   private backupService?: BackupService;
 
   constructor(config: unknown) {
-    const validatedConfig = validatePluginConfig(
-      backupConfigSchema,
-      config,
-      "backup",
-    );
-
     super(
       "backup",
-      "Backup Plugin",
-      "Automated backup system",
-      validatedConfig,
+      packageJson,
+      config,
+      backupConfigSchema,
+      {} // defaults
     );
   }
 
-  protected override async onRegister(context: PluginContext): Promise<void> {
-    const { entityService, logger } = context;
-
+  protected override async onRegister(context: ServicePluginContext): Promise<void> {
     this.backupService = new BackupService({
-      entityService,
-      logger: logger.child("backup"),
+      entityService: context.entityService,
+      logger: this.logger.child("BackupService"),
       destination: this.config.destination,
     });
 
@@ -632,17 +658,11 @@ export class BackupPlugin extends BasePlugin<BackupConfig> {
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
-    return [
-      this.createTool(
-        "backup",
-        "Create a backup of all entities",
-        toolInput().boolean("compress", true).build(),
-        async (input) => {
-          const result = await this.backupService!.createBackup(input);
-          return { success: true, path: result.path };
-        },
-      ),
-    ];
+    return createBackupTools(
+      () => this.backupService,
+      this.context!,
+      this.id
+    );
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -651,65 +671,84 @@ export class BackupPlugin extends BasePlugin<BackupConfig> {
 }
 ```
 
-### Content Generation Plugin Pattern
+### Site Builder Plugin Pattern
 
-Content plugins generate and manage content. See `webserver-plugin` for a complete example:
+The site-builder plugin shows how to handle content generation and site building:
 
 ```typescript
-import { ContentGeneratingPlugin } from "@brains/utils";
+import { ServicePlugin } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
+import { SiteBuilder } from "./lib/site-builder";
+import { SiteContentService } from "./lib/site-content-service";
 
-export class DocumentPlugin extends ContentGeneratingPlugin<DocumentConfig> {
-  protected override async onRegister(context: PluginContext): Promise<void> {
-    // Register content types
-    this.registerContentType("report", {
-      contentType: "report",
-      schema: reportSchema,
-      formatter: new ReportFormatter(),
-    });
+export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
+  private siteBuilder?: SiteBuilder;
+  private siteContentService?: SiteContentService;
 
-    this.registerContentType("summary", {
-      contentType: "summary",
-      schema: summarySchema,
-    });
+  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+    // Register entity types for content
+    context.registerEntityType(
+      "site-content-preview",
+      siteContentPreviewSchema,
+      siteContentPreviewAdapter
+    );
+    
+    // Register templates and routes
+    context.registerTemplates({ dashboard: dashboardTemplate });
+    context.registerRoutes([...]);
+    
+    // Initialize services
+    this.siteBuilder = SiteBuilder.getInstance(
+      this.logger.child("SiteBuilder"),
+      context
+    );
+    
+    this.siteContentService = new SiteContentService(
+      this.logger.child("SiteContentService"),
+      context,
+      this.id,
+      this.config.siteConfig
+    );
   }
-
-  // Parent class automatically provides:
-  // - document:generate_report
-  // - document:generate_summary
-  // - document:list_generated
-  // - document:get_generated
-  // - document:save_generated
 }
 ```
 
 ### Entity Processing Plugin Pattern
 
-Plugins that process entities using the new base class:
+Plugins that process entities:
 
 ```typescript
-import { BasePlugin, toolInput } from "@brains/utils";
+import { ServicePlugin } from "@brains/plugins";
+import type { ServicePluginContext, IEntityService } from "@brains/plugins";
 
-export class AnalyzerPlugin extends BasePlugin<AnalyzerConfig> {
-  private entityService?: EntityService;
+export class AnalyzerPlugin extends ServicePlugin<AnalyzerConfig> {
+  private entityService?: IEntityService;
 
-  protected override async onRegister(context: PluginContext): Promise<void> {
+  protected override async onRegister(context: ServicePluginContext): Promise<void> {
     this.entityService = context.entityService;
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
     return [
-      this.createTool(
-        "analyze_entities",
-        "Analyze entities and generate insights",
-        toolInput()
-          .string("entityType")
-          .optionalString("filter")
-          .boolean("detailed", false)
-          .build(),
-        async (input) => {
+      {
+        name: `${this.id}:analyze_entities`,
+        description: "Analyze entities and generate insights",
+        inputSchema: {
+          entityType: z.string().describe("Entity type to analyze"),
+          filter: z.string().optional().describe("Filter query"),
+          detailed: z.boolean().default(false).describe("Include details"),
+        },
+        visibility: "public",
+        handler: async (input: unknown): Promise<unknown> => {
+          const { entityType, filter, detailed } = input as {
+            entityType: string;
+            filter?: string;
+            detailed: boolean;
+          };
+          
           const entities = await this.entityService!.search({
-            entityType: input.entityType,
-            query: input.filter,
+            entityType,
+            query: filter,
           });
 
           const analysis = {
@@ -719,7 +758,7 @@ export class AnalyzerPlugin extends BasePlugin<AnalyzerConfig> {
           };
 
           for (const entity of entities) {
-            this.debug(`Analyzing entity ${entity.id}`);
+            this.logger.debug(`Analyzing entity ${entity.id}`);
 
             // Perform analysis
             analysis.byType[entity.entityType] =
@@ -728,7 +767,7 @@ export class AnalyzerPlugin extends BasePlugin<AnalyzerConfig> {
 
           return analysis;
         },
-      ),
+      },
     ];
   }
 }
@@ -736,35 +775,22 @@ export class AnalyzerPlugin extends BasePlugin<AnalyzerConfig> {
 
 ### Event-Driven Plugin Pattern
 
-Plugins that respond to system events:
+For plugins that need to respond to events, you'll need to get access to the message bus through the shell:
 
 ```typescript
-import { BasePlugin } from "@brains/utils";
+import { ServicePlugin } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 
-export class MonitorPlugin extends BasePlugin<MonitorConfig> {
+export class MonitorPlugin extends ServicePlugin<MonitorConfig> {
   private unsubscribers: Array<() => void> = [];
 
-  protected override async onRegister(context: PluginContext): Promise<void> {
-    const { messageBus } = context;
+  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+    // Note: Message bus access would need to be added to context
+    // or accessed through a different mechanism
 
-    // Subscribe to multiple events
-    this.unsubscribers.push(
-      messageBus.subscribe("entity:created", async (message) => {
-        this.info("Entity created", { id: message.payload.id });
-        await this.handleEntityCreated(message.payload);
-      }),
-
-      messageBus.subscribe("entity:updated", async (message) => {
-        this.debug("Entity updated", { id: message.payload.id });
-        await this.handleEntityUpdated(message.payload);
-      }),
-    );
-
-    // Publish custom events
-    messageBus.publish({
-      type: "monitor:started",
-      payload: { pluginId: this.id },
-    });
+    // Event handling would be implemented through other mechanisms
+    // such as job handlers or polling
+    this.logger.info("Monitor plugin started");
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -785,97 +811,116 @@ export class MonitorPlugin extends BasePlugin<MonitorConfig> {
 }
 ```
 
-## Tool Execution and Progress
+## Tool Execution and Context
 
-### Plugin-Specific Message Types
+### Tool Handler Context
 
-Since the MCP refactoring, plugins now use plugin-specific message types for tool execution. This prevents conflicts when multiple plugins register tools.
+Tools receive an optional context parameter that provides additional capabilities:
 
 ```typescript
-// BasePlugin automatically subscribes to plugin-specific messages
-// The subscription happens in setupMessageHandlers() during registration
-
-// Message types follow this pattern:
-// - Tool execution: `plugin:${pluginId}:tool:execute`
-// - Progress updates: `plugin:${pluginId}:progress`
-// - Resource fetching: `plugin:${pluginId}:resource:get`
+export interface ToolContext {
+  interfaceId?: string;        // Which interface is calling
+  userId?: string;             // User making the request
+  channelId?: string;          // Channel/room context
+  progressToken?: string | number;  // For progress tracking
+  sendProgress?: (notification: ProgressNotification) => Promise<void>;
+}
 ```
 
-### Progress Callback Support
+### Progress Reporting in Tools
 
-Tools can now report progress for long-running operations:
+Tools can report progress for long-running operations:
 
 ```typescript
-export interface PluginTool {
-  name: string;
-  description: string;
-  inputSchema: ZodRawShape;
-  handler: (
-    input: unknown,
-    context?: {
-      progressToken?: string | number;
-      sendProgress?: (notification: ProgressNotification) => Promise<void>;
-    },
-  ) => Promise<unknown>;
-  visibility?: ToolVisibility;
-}
-
 // Example tool with progress reporting
-protected async getTools(): Promise<PluginTool[]> {
-  return [
-    {
-      name: "generate-site",
-      description: "Generate static site",
-      inputSchema: {
-        environment: z.enum(["preview", "production"]),
-      },
-      handler: async (input, context) => {
-        const { environment } = input as { environment: string };
+{
+  name: `${pluginId}:generate-site`,
+  description: "Generate static site",
+  inputSchema: {
+    environment: z.enum(["preview", "production"]).describe("Target environment"),
+  },
+  visibility: "anchor",
+  handler: async (input: unknown, context?: ToolContext): Promise<unknown> => {
+    const { environment } = input as { environment: string };
 
-        // Report progress if supported
-        if (context?.sendProgress) {
-          await context.sendProgress({
-            progress: 0,
-            total: 100,
-            message: "Starting site generation...",
-          });
-        }
+    // Report progress if supported
+    if (context?.sendProgress) {
+      await context.sendProgress({
+        progress: 0,
+        total: 100,
+        message: "Starting site generation...",
+      });
+    }
 
-        // Do work...
+    // Do work...
+    await buildPages();
 
-        if (context?.sendProgress) {
-          await context.sendProgress({
-            progress: 50,
-            total: 100,
-            message: "Building pages...",
-          });
-        }
+    if (context?.sendProgress) {
+      await context.sendProgress({
+        progress: 50,
+        total: 100,
+        message: "Building pages...",
+      });
+    }
 
-        // More work...
+    // More work...
+    await generateAssets();
 
-        return { success: true, pagesBuilt: 10 };
-      },
-    },
-  ];
+    if (context?.sendProgress) {
+      await context.sendProgress({
+        progress: 100,
+        total: 100,
+        message: "Site generation complete!",
+      });
+    }
+
+    return { success: true, pagesBuilt: 10 };
+  },
 }
 ```
 
-### Message Flow
+### Job-Based Operations
 
-1. **MCP Interface** receives tool execution request
-2. **MCP Interface** sends `plugin:${pluginId}:tool:execute` message
-3. **BasePlugin** handles the message and executes the tool
-4. If progress is supported, **Plugin** sends `plugin:${pluginId}:progress` messages
-5. **MCP Interface** forwards progress to the MCP client
+For long-running operations, consider using the job queue:
+
+```typescript
+// In your tool handler
+const jobId = await context.enqueueJob(
+  "site-build",
+  {
+    environment: "production",
+    clean: true,
+  },
+  {
+    priority: 5,
+    source: `plugin:${pluginId}`,
+    metadata: {
+      interfaceId: context?.interfaceId ?? "plugin",
+      userId: context?.userId ?? "system",
+      operationType: "site_building",
+      pluginId,
+    },
+  }
+);
+
+return {
+  status: "queued",
+  jobId,
+  message: "Site build job queued",
+};
+```
 
 ## Best Practices
 
-1. **Configuration**: Always validate configuration with Zod schemas
+1. **Configuration**: Always validate configuration with Zod schemas in the constructor
 2. **Error Handling**: Provide meaningful error messages for users
-3. **Testing**: Use the plugin test utilities for comprehensive testing
-4. **Logging**: Use the provided logger with appropriate log levels
-5. **Cleanup**: Implement shutdown() to clean up resources
+3. **Testing**: Use the unified PluginTestHarness for comprehensive testing
+4. **Logging**: Use `this.logger` with appropriate log levels
+5. **Cleanup**: Implement onShutdown() to clean up resources
 6. **Type Safety**: Leverage TypeScript's type system fully
 7. **Documentation**: Document your plugin's configuration and tools
 8. **Progress Reporting**: Use progress callbacks for long-running operations
-9. **Message Isolation**: Trust that BasePlugin handles message routing
+9. **Directory Structure**: Follow the standard plugin directory layout
+10. **Service Access**: Use getter functions to avoid initialization order issues
+11. **Tool Organization**: Keep all tools in a single `tools/index.ts` file
+12. **Import Consolidation**: Import everything from `@brains/plugins`

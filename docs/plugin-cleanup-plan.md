@@ -45,9 +45,9 @@ This document outlines the plan to clean up the plugin system architecture, focu
 - [x] Verified site-builder already uses shared content-management utilities
 - [x] Run tests (all 440 tests pass)
 
-## Phase 4: Clean Up Plugins (Simple to Complex)
+## Phase 4: Clean Up Plugins (Simple to Complex) ✅
 
-**Status**: In Progress
+**Status**: Completed
 
 ### Standard Directory Structure
 
@@ -150,12 +150,12 @@ import {
 - [x] Update all imports to use only @brains/plugins
 - [x] Run tests
 
-#### 4.8 site-builder (Most Complex)
+#### 4.8 site-builder (Most Complex) ✅
 
-- [ ] Reorganize directory structure
-- [ ] Update all imports to use only @brains/plugins
-- [ ] Handle content-management dependency properly
-- [ ] Run tests
+- [x] Reorganize directory structure
+- [x] Update all imports to use only @brains/plugins
+- [x] Handle content-management dependency properly
+- [x] Run tests
 
 ## Phase 5: Final Verification
 

@@ -22,9 +22,7 @@ import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./formatters/dashboard-formatter";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { createSiteBuilderTools } from "./tools";
-import type {
-  SiteBuilderConfig,
-  SiteBuilderConfigInput} from "./config";
+import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";
 import {
   siteBuilderConfigSchema,
   SITE_BUILDER_CONFIG_DEFAULTS,
