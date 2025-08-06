@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-08-04
+Last Updated: 2025-08-06
 
 ## Vision
 
@@ -16,37 +16,28 @@ The roadmap prioritizes:
 
 ## Phase 1: Core Architecture Cleanup (Immediate)
 
-### 1.1 Service Abstraction Completion
+### 1.1 Service Abstraction Completion ✅
 
 **Goal**: Extract QueryProcessor interface to complete service abstraction pattern
 
-**Tasks**:
+**Status**: COMPLETED - QueryProcessor service has been removed as query functionality was moved to core Shell operations
 
-- [ ] Create IQueryProcessor interface in shell/core
-- [ ] Move implementation to concrete class
-- [ ] Update all imports to use interface with dependency injection
-- [ ] Ensure consistent with other service patterns (EntityService, AIService, etc.)
-- [ ] Update tests to use interface and enable mocking
+**Why**: Query is now a core shell concern available to all plugins through the context, simplifying the architecture.
 
-**Why**: QueryProcessor is the only remaining service without an interface. Completing this ensures API stability and enables alternative implementations.
-
-### 1.2 Plugin System Documentation and Cleanup
+### 1.2 Plugin System Documentation and Cleanup ✅
 
 **Goal**: Ensure plugin system is consistent, clean, and well-documented
 
-**Tasks**:
+**Status**: COMPLETED
 
-- [ ] Audit existing plugin base classes (BasePlugin, InterfacePlugin, MessageInterfacePlugin, ServicePlugin, CorePlugin)
-- [ ] Document all plugin lifecycle methods clearly in plugins package README
-- [ ] Standardize plugin registration patterns
-- [ ] Create plugin type definition reference
-- [ ] Ensure error handling is consistent across all plugin types
-- [ ] Review and improve plugin test harnesses
-- [ ] Document plugin dependencies and inter-plugin communication
-- [ ] Update existing plugins to follow best practices:
-  - [ ] directory-sync - Add better configuration options and error handling
-  - [ ] git-sync - Improve conflict resolution and branch management
-  - [ ] site-builder - Better template system and build performance
+**What was done**:
+- ✅ All plugin base classes standardized and documented
+- ✅ Plugin test harnesses consolidated into a single PluginTestHarness with factory functions
+- ✅ All plugins reorganized to follow consistent directory structure
+- ✅ All plugin imports consolidated to use @brains/plugins package
+- ✅ Error handling standardized across all plugin types
+- ✅ MCP interface cleanup completed with proper separation of concerns
+- ✅ Site-builder plugin refactored with proper formatter organization
 
 **Why**: A clean, well-documented plugin system is prerequisite for external developers to build plugins effectively.
 
@@ -164,12 +155,11 @@ The roadmap prioritizes:
 
 ## Immediate Next Steps (Priority Order)
 
-1. **QueryProcessor interface extraction**
-   - Complete the service abstraction pattern
-2. **Plugin system cleanup and documentation**
-   - Ensure consistency before enabling external development
-   - Update existing plugins to best practices
-3. **Job queue database separation**
+1. ~~**QueryProcessor interface extraction**~~ ✅ COMPLETED
+   - Query functionality moved to core Shell operations
+2. ~~**Plugin system cleanup and documentation**~~ ✅ COMPLETED
+   - All plugins follow consistent patterns and use @brains/plugins
+3. **Job queue database separation** ← CURRENT PRIORITY
    - Core architectural change enabling better data management
 4. **Plugin scaffolding CLI**
    - Enable rapid plugin development
@@ -180,9 +170,9 @@ The roadmap prioritizes:
 
 ### Phase 1 Success
 
-- [ ] All core services have interfaces with dependency injection
-- [ ] Plugin system documentation is complete in plugins package README
-- [ ] All existing plugins follow consistent patterns
+- [x] All core services have interfaces with dependency injection
+- [x] Plugin system documentation is complete in plugins package README
+- [x] All existing plugins follow consistent patterns
 - [ ] Job queue runs on separate database
 
 ### Phase 2 Success
