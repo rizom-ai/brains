@@ -2,7 +2,8 @@ import "./mocks/setup";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { MatrixInterface } from "../src";
 import type { MatrixConfigInput } from "../src/schemas";
-import { MessageInterfacePluginTestHarness } from "@brains/plugins";
+import { createInterfacePluginHarness } from "@brains/plugins";
+import type { PluginTestHarness } from "@brains/plugins";
 
 // Access the global mocks
 const mockMatrixClient = globalThis.mockMatrixClient;
@@ -10,7 +11,7 @@ const mockAutoJoinMixin = globalThis.mockAutoJoinMixin;
 
 describe("MatrixInterface", () => {
   let config: MatrixConfigInput;
-  let harness: MessageInterfacePluginTestHarness;
+  let harness: PluginTestHarness<MatrixInterface>;
 
   beforeEach(() => {
     // Reset mocks
@@ -40,7 +41,7 @@ describe("MatrixInterface", () => {
     };
 
     // Create plugin harness
-    harness = new MessageInterfacePluginTestHarness();
+    harness = createInterfacePluginHarness<MatrixInterface>();
   });
 
   describe("Initialization", () => {
