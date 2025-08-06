@@ -7,7 +7,7 @@ import type {
   RouteDefinition,
   OutputFormat,
 } from "@brains/plugins";
-import { Logger } from "@brains/utils";
+import { createSilentLogger } from "@brains/plugins";
 import { z } from "zod";
 import { promises as fs } from "fs";
 import { join } from "path";
@@ -19,14 +19,14 @@ describe("PreactBuilder", () => {
   let testDir: string;
   let outputDir: string;
   let workingDir: string;
-  let logger: Logger;
+  let logger: ReturnType<typeof createSilentLogger>;
 
   beforeEach(async () => {
     // Create temporary directories for testing
     testDir = join(tmpdir(), `preact-builder-test-${Date.now()}`);
     outputDir = join(testDir, "output");
     workingDir = join(testDir, "working");
-    logger = Logger.getInstance().child("test");
+    logger = createSilentLogger();
   });
 
   afterEach(async () => {

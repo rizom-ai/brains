@@ -11,7 +11,7 @@ import {
   RollbackOptionsSchema,
 } from "../lib/site-content-service";
 import { z } from "zod";
-import { GenerateOptionsSchema } from "@brains/content-management";
+import { GenerateOptionsSchema } from "@brains/plugins";
 
 export function createSiteBuilderTools(
   getSiteBuilder: () => SiteBuilder | undefined,

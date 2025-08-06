@@ -1,14 +1,14 @@
-import type { Logger } from "@brains/utils";
 import type {
   ServicePluginContext,
   JobContext,
   SectionDefinition,
+  Logger,
+  GenerateOptions,
 } from "@brains/plugins";
 import {
   ContentManager,
   GenerateOptionsSchema,
-} from "@brains/content-management";
-import type { GenerateOptions } from "@brains/content-management";
+} from "@brains/plugins";
 import { z } from "zod";
 
 /**

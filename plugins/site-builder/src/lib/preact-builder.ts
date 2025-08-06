@@ -4,7 +4,7 @@ import type {
   BuildContext,
 } from "./static-site-builder";
 import type { ComponentType, RouteDefinition } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/plugins";
 import { render } from "preact-render-to-string";
 import { h } from "preact";
 import { join } from "path";

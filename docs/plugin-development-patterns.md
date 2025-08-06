@@ -28,12 +28,12 @@ The `BasePlugin` class is the foundation for all plugins. It provides:
 - Lifecycle management
 
 ```typescript
-import type { 
-  Plugin, 
+import type {
+  Plugin,
   PluginTool,
   ServicePluginContext,
   CorePluginContext,
-  InterfacePluginContext 
+  InterfacePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin, CorePlugin, InterfacePlugin } from "@brains/plugins";
 import { myPluginConfigSchema, type MyPluginConfig } from "./config";
@@ -48,12 +48,14 @@ export class MyPlugin extends ServicePlugin<MyPluginConfig> {
       packageJson,
       config,
       myPluginConfigSchema,
-      {} // default config values
+      {}, // default config values
     );
   }
 
   // Lifecycle: Initialize plugin
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     // Initialize services
     this.myService = new MyService({
       apiKey: this.config.apiKey,
@@ -110,7 +112,11 @@ The `ServicePlugin` is the most common base class for feature plugins:
 - Automatic tool creation for content generation
 
 ```typescript
-import type { ServicePluginContext, PluginTool, Template } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  PluginTool,
+  Template,
+} from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { blogConfigSchema, type BlogConfig } from "./config";
 import { BlogFormatter } from "./formatters/blog-formatter";
@@ -119,16 +125,14 @@ import packageJson from "../package.json";
 
 export class BlogPlugin extends ServicePlugin<BlogConfig> {
   constructor(config: unknown) {
-    super(
-      "blog",
-      packageJson,
-      config,
-      blogConfigSchema,
-      { /* default config */ }
-    );
+    super("blog", packageJson, config, blogConfigSchema, {
+      /* default config */
+    });
   }
 
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     // Register templates for rendering
     context.registerTemplates({
       blog: blogTemplate,
@@ -168,7 +172,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
 
 Interface plugins handle user interactions:
 
-```typescript
+````typescript
 import { InterfacePlugin } from "@brains/plugins";
 import type { InterfacePluginContext } from "@brains/plugins";
 
@@ -214,7 +218,7 @@ export const MY_PLUGIN_CONFIG_DEFAULTS: Partial<MyPluginConfig> = {
   allowedDomains: [],
   debug: false,
 };
-```
+````
 
 ### Tool Input Schemas
 
@@ -234,10 +238,13 @@ const searchToolInput = {
 const exportToolInput = {
   format: z.enum(["json", "csv", "xml"]).describe("Export format"),
   filename: z.string().optional().describe("Output filename"),
-  options: z.object({
-    headers: z.boolean().default(true),
-    compress: z.boolean().default(false),
-  }).optional().describe("Export options"),
+  options: z
+    .object({
+      headers: z.boolean().default(true),
+      compress: z.boolean().default(false),
+    })
+    .optional()
+    .describe("Export options"),
 };
 ```
 
@@ -267,8 +274,8 @@ constructor(config: unknown) {
 ```typescript
 protected override async onRegister(context: ServicePluginContext): Promise<void> {
   // Initialize plugin services
-  this.myService = new MyService({ 
-    logger: this.logger.child("MyService") 
+  this.myService = new MyService({
+    logger: this.logger.child("MyService")
   });
 
   // Register entity types
@@ -328,7 +335,7 @@ protected override async onRegister(context: ServicePluginContext): Promise<void
   context.listViewTemplates();
   context.getViewTemplate(name);
   context.enqueueJob(type, data, options);
-  
+
   // Access to services
   context.entityService;
   context.logger; // Also available as this.logger
@@ -350,9 +357,11 @@ protected override async onRegister(context: CorePluginContext): Promise<void> {
 ### Available Services by Plugin Type
 
 **CorePlugin Context**:
+
 - `logger`: Logger instance
 
 **ServicePlugin Context**:
+
 - `logger`: Logger instance (also available as `this.logger`)
 - `entityService`: Entity CRUD operations
 - `registerEntityType()`: Register new entity types
@@ -366,6 +375,7 @@ protected override async onRegister(context: CorePluginContext): Promise<void> {
 - `parseContent()`: Parse content using template schema
 
 **InterfacePlugin Context**:
+
 - All ServicePlugin context methods
 - `query()`: Execute queries (core shell operation)
 - `getJobStatus()`: Get job status
@@ -407,7 +417,7 @@ context.registerTemplates({
 const jobId = await context.enqueueJob(
   "process-data",
   { entityId: "123" },
-  { priority: 5 }
+  { priority: 5 },
 );
 ```
 
@@ -423,7 +433,7 @@ import { MyPlugin } from "./plugin";
 
 describe("MyPlugin", () => {
   let harness: PluginTestHarness<MyPlugin>;
-  
+
   beforeEach(() => {
     harness = new PluginTestHarness();
   });
@@ -435,9 +445,9 @@ describe("MyPlugin", () => {
   // Test plugin lifecycle
   it("should register successfully", async () => {
     const plugin = new MyPlugin({ apiKey: "test" });
-    
+
     await harness.installPlugin(plugin);
-    
+
     expect(harness.getPlugin()).toBe(plugin);
     expect(harness.getCapabilities()).toBeDefined();
   });
@@ -462,7 +472,7 @@ describe("MyPlugin", () => {
 
     // Test plugin functionality
     const tools = await plugin.getTools();
-    const tool = tools.find(t => t.name === `${plugin.id}:my-tool`);
+    const tool = tools.find((t) => t.name === `${plugin.id}:my-tool`);
     const result = await tool?.handler({});
 
     expect(result).toBeDefined();
@@ -476,17 +486,18 @@ describe("MyPlugin", () => {
 it("should validate tool input", async () => {
   const plugin = new MyPlugin({ apiKey: "test" });
   await harness.installPlugin(plugin);
-  
+
   const tools = await plugin.getTools();
-  const tool = tools.find(t => t.name === `${plugin.id}:my-tool`);
-  
+  const tool = tools.find((t) => t.name === `${plugin.id}:my-tool`);
+
   // Test with valid input - should not throw
-  await expect(tool?.handler({ validParam: "value" }))
-    .resolves.toHaveProperty("success", true);
-  
+  await expect(tool?.handler({ validParam: "value" })).resolves.toHaveProperty(
+    "success",
+    true,
+  );
+
   // Test with invalid input - Zod will throw validation error
-  await expect(tool?.handler({ invalidParam: 123 }))
-    .rejects.toThrow();
+  await expect(tool?.handler({ invalidParam: 123 })).rejects.toThrow();
 });
 ```
 
@@ -503,12 +514,9 @@ it("should report progress", async () => {
   };
 
   const tools = await plugin.getTools();
-  const tool = tools.find(t => t.name.endsWith(":progress_tool"));
-  
-  await tool?.handler(
-    { steps: 3 }, 
-    { sendProgress }
-  );
+  const tool = tools.find((t) => t.name.endsWith(":progress_tool"));
+
+  await tool?.handler({ steps: 3 }, { sendProgress });
 
   expect(progressCount).toBe(3);
 });
@@ -641,11 +649,13 @@ export class BackupPlugin extends ServicePlugin<BackupConfig> {
       packageJson,
       config,
       backupConfigSchema,
-      {} // defaults
+      {}, // defaults
     );
   }
 
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     this.backupService = new BackupService({
       entityService: context.entityService,
       logger: this.logger.child("BackupService"),
@@ -658,11 +668,7 @@ export class BackupPlugin extends ServicePlugin<BackupConfig> {
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
-    return createBackupTools(
-      () => this.backupService,
-      this.context!,
-      this.id
-    );
+    return createBackupTools(() => this.backupService, this.context!, this.id);
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -692,17 +698,17 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       siteContentPreviewSchema,
       siteContentPreviewAdapter
     );
-    
+
     // Register templates and routes
     context.registerTemplates({ dashboard: dashboardTemplate });
     context.registerRoutes([...]);
-    
+
     // Initialize services
     this.siteBuilder = SiteBuilder.getInstance(
       this.logger.child("SiteBuilder"),
       context
     );
-    
+
     this.siteContentService = new SiteContentService(
       this.logger.child("SiteContentService"),
       context,
@@ -724,7 +730,9 @@ import type { ServicePluginContext, IEntityService } from "@brains/plugins";
 export class AnalyzerPlugin extends ServicePlugin<AnalyzerConfig> {
   private entityService?: IEntityService;
 
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     this.entityService = context.entityService;
   }
 
@@ -745,7 +753,7 @@ export class AnalyzerPlugin extends ServicePlugin<AnalyzerConfig> {
             filter?: string;
             detailed: boolean;
           };
-          
+
           const entities = await this.entityService!.search({
             entityType,
             query: filter,
@@ -784,7 +792,9 @@ import type { ServicePluginContext } from "@brains/plugins";
 export class MonitorPlugin extends ServicePlugin<MonitorConfig> {
   private unsubscribers: Array<() => void> = [];
 
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     // Note: Message bus access would need to be added to context
     // or accessed through a different mechanism
 
@@ -819,10 +829,10 @@ Tools receive an optional context parameter that provides additional capabilitie
 
 ```typescript
 export interface ToolContext {
-  interfaceId?: string;        // Which interface is calling
-  userId?: string;             // User making the request
-  channelId?: string;          // Channel/room context
-  progressToken?: string | number;  // For progress tracking
+  interfaceId?: string; // Which interface is calling
+  userId?: string; // User making the request
+  channelId?: string; // Channel/room context
+  progressToken?: string | number; // For progress tracking
   sendProgress?: (notification: ProgressNotification) => Promise<void>;
 }
 ```
@@ -900,7 +910,7 @@ const jobId = await context.enqueueJob(
       operationType: "site_building",
       pluginId,
     },
-  }
+  },
 );
 
 return {

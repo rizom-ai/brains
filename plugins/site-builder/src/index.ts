@@ -15,4 +15,4 @@ export type { SiteContentPreview, SiteContentProduction } from "./types";
 export { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
 
 // Export content management types
-export type { SiteContentEntity } from "@brains/content-management";
+export type { SiteContentEntity } from "@brains/plugins";

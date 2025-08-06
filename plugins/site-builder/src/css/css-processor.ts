@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { Logger } from "@brains/plugins";
 import { join, relative } from "path";
 import { promises as fs } from "fs";
 

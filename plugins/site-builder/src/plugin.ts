@@ -17,7 +17,7 @@ import {
   siteContentPreviewAdapter,
   siteContentProductionAdapter,
 } from "./entities/site-content-adapter";
-import { ContentManager } from "@brains/content-management";
+import { ContentManager } from "@brains/plugins";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./formatters/dashboard-formatter";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";

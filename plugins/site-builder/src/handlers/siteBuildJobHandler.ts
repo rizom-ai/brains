@@ -1,5 +1,5 @@
 import type { JobHandler, ServicePluginContext } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
+import type { Logger, ProgressReporter } from "@brains/plugins";
 import { SiteBuilder } from "../lib/site-builder";
 import {
   siteBuildJobSchema,

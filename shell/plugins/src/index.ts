@@ -188,3 +188,13 @@ export {
 
 // Test utilities from @brains/core
 export { MockShell } from "@brains/core/test";
+
+// From @brains/content-management (shared utility for content operations)
+export {
+  ContentManager,
+  GenerateOptionsSchema,
+  GenerateResultSchema,
+  type GenerateOptions,
+  type GenerateResult,
+  type SiteContentEntity,
+} from "@brains/content-management";

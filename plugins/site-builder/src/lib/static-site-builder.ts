@@ -1,5 +1,5 @@
-import type { Logger } from "@brains/utils";
 import type {
+  Logger,
   ServicePluginContext,
   RouteDefinition,
   ViewTemplate,

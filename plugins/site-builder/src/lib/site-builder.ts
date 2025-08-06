@@ -1,5 +1,5 @@
-import type { ProgressCallback, Logger } from "@brains/utils";
-import { ProgressReporter } from "@brains/utils";
+import type { ProgressCallback, Logger } from "@brains/plugins";
+import { ProgressReporter } from "@brains/plugins";
 import type {
   ServicePluginContext,
   Template,
