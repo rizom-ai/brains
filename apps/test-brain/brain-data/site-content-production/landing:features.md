@@ -2,61 +2,48 @@
 routeId: landing
 sectionId: features
 ---
-
 # Features Section
 
 ## Label
-
 Features
 
 ## Headline
-
-Amplify Your Knowledge, Expand Your Reach
+Amplify Your Knowledge, Empower Your Potential
 
 ## Description
-
-Rizom is a personal knowledge management system that empowers you to capture, organize, and leverage your expertise. With intuitive tools for research, collaboration, and intelligence, Rizom helps you unlock new insights and share your knowledge with the world.
+Rizom is a personal knowledge management system that helps you capture, connect, and leverage your expertise to achieve your goals. With powerful organizational, search, security, and intelligence features, Rizom empowers you to work smarter and unlock your full potential.
 
 ## Feature Cards
 
 ### Feature Card 1
 
 #### Title
-
-Capture Your Expertise
+Intuitive Organization
 
 #### Icon
-
 Brain
 
 #### Description
-
-Effortlessly document your ideas, research, and insights in a centralized knowledge base. Rizom's intuitive interface makes it easy to build your personal digital brain.
+Effortlessly structure your knowledge with flexible tagging, nested notebooks, and visual mapping tools. Rizom adapts to your unique workflow.
 
 ### Feature Card 2
 
 #### Title
-
-Powerful Search
+Intelligent Search
 
 #### Icon
-
 Search
 
 #### Description
-
-Quickly find the information you need with Rizom's advanced search capabilities. Seamlessly navigate your knowledge base and uncover hidden connections.
+Find what you need instantly with powerful full-text search and smart filters. Rizom's AI-powered search surfaces the most relevant information.
 
 ### Feature Card 3
 
 #### Title
-
-Secure Your Data
+Secure Privacy
 
 #### Icon
-
-Shield
+Lock
 
 #### Description
-
-Rest easy knowing your valuable knowledge is protected. Rizom's robust security features ensure your data remains private and accessible only to you.
+Keep your sensitive information safe with end-to-end encryption, granular access controls, and secure backup and sync across devices.

@@ -2,131 +2,107 @@
 routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label
-
 Our Ecosystem
 
 ## Headline
-
 The Tools and Solutions Powering Transformation
 
 ## Description
-
-Rizom brings together a curated portfolio of digital tools, services, and solutions to help organizations navigate the complex landscape of digital transformation. Our ecosystem empowers teams to accelerate innovation, optimize operations, and drive sustainable growth.
+Rizom brings together a curated ecosystem of digital transformation tools, solutions, and services to help organizations adapt and thrive in a rapidly changing world. Our portfolio empowers teams to unlock new possibilities, enhance collaboration, and drive sustainable innovation.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
 rizom-studio
 
 #### Name
-
 Rizom Studio
 
 #### Tagline
-
 Collaborative design for complex systems
 
 #### Description
-
-A visual modeling and simulation platform that enables cross-functional teams to co-create, iterate, and validate ecosystem strategies.
+A visual workspace for mapping ecosystems, designing organizational structures, and planning strategic initiatives.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Brain
+#### Icon
+Network
 
 ### Product 2
 
 #### ID
-
-ecosystem-navigator
+rizom-insights
 
 #### Name
-
-Ecosystem Navigator
+Rizom Insights
 
 #### Tagline
-
-Map, analyze, and optimize your business ecosystem
+Data-driven decision support
 
 #### Description
-
-A comprehensive platform for mapping, monitoring, and optimizing business ecosystems, providing data-driven insights to drive strategic decisions.
+Advanced analytics and visualization tools to uncover patterns, surface trends, and generate foresight from organizational data.
 
 #### Status
-
 beta
 
 #### Link
 
-#### Icon
 
-Network
+#### Icon
+Database
 
 ### Product 3
 
 #### ID
-
-transformation-playbook
+rizom-catalyst
 
 #### Name
-
-Transformation Playbook
+Rizom Catalyst
 
 #### Tagline
-
-Proven frameworks for organizational change
+Accelerating innovation through collaboration
 
 #### Description
-
-A curated collection of methodologies, tools, and best practices to guide organizations through successful digital transformation initiatives.
+A platform for launching and scaling innovation programs, connecting diverse teams, and fostering a culture of experimentation.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Wrench
+#### Icon
+Zap
 
 ### Product 4
 
 #### ID
-
-ecosystem-academy
+rizom-academy
 
 #### Name
-
-Ecosystem Academy
+Rizom Academy
 
 #### Tagline
-
-Learn the art of ecosystem design
+Upskilling for the future of work
 
 #### Description
-
-Online and in-person training programs that empower professionals to develop the skills and mindsets needed to thrive in the age of ecosystems.
+On-demand courses, workshops, and coaching to help leaders and teams develop the mindsets, skills, and capabilities needed to thrive in a complex world.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Globe
+#### Icon
+Brain

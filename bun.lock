@@ -23,6 +23,7 @@
         "@brains/db": "workspace:*",
         "@brains/default-site-content": "workspace:*",
         "@brains/directory-sync": "workspace:*",
+        "@brains/job-queue": "workspace:*",
         "@brains/matrix-setup": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/webserver": "workspace:*",
@@ -455,18 +456,22 @@
       "name": "@brains/entity-service",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/db": "workspace:*",
         "@brains/embedding-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/utils": "workspace:*",
+        "@libsql/client": "^0.15.7",
+        "drizzle-orm": "^0.44.4",
+        "drizzle-zod": "^0.8.3",
         "gray-matter": "^4.0.3",
+        "nanoid": "^5.1.5",
         "zod": "^3.25.1",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "typescript": "^5.0.0",
+        "@types/bun": "^1.1.14",
+        "drizzle-kit": "^0.31.4",
+        "typescript": "~5.7.2",
       },
     },
     "shell/integration-tests": {
@@ -492,10 +497,11 @@
       "name": "@brains/job-queue",
       "version": "0.0.0",
       "dependencies": {
-        "@brains/db": "workspace:*",
         "@brains/utils": "workspace:*",
+        "@libsql/client": "^0.15.7",
         "drizzle-orm": "^0.44.4",
         "drizzle-zod": "^0.8.3",
+        "nanoid": "^5.1.5",
         "zod": "^3.25.1",
       },
       "devDependencies": {
@@ -503,6 +509,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.1.14",
         "@types/node": "^22.10.2",
+        "drizzle-kit": "^0.31.4",
         "typescript": "~5.7.2",
       },
     },
@@ -2043,17 +2050,15 @@
 
     "@anthropic-ai/sdk/@types/node": ["@types/node@18.19.113", "", { "dependencies": { "undici-types": "~5.26.4" } }, "sha512-TmSTE9vyebJ9vSEiU+P+0Sp4F5tMgjiEOZaQUW6wA3ODvi6uBgkHQ+EsIu0pbiKvf9QHEvyRCiaz03rV0b+IaA=="],
 
+    "@brains/entity-service/typescript": ["typescript@5.7.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw=="],
+
     "@brains/job-queue/@types/node": ["@types/node@22.16.0", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-B2egV9wALML1JCpv3VQoQ+yesQKAmNMBIAY7OteVrikcOcAkWm+dGL6qpeCktPjAv6N1JLnhbNiqS35UpFyBsQ=="],
 
     "@brains/job-queue/typescript": ["typescript@5.7.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw=="],
 
-    "@brains/matrix-setup/@types/bun": ["@types/bun@1.2.17", "", { "dependencies": { "bun-types": "1.2.17" } }, "sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q=="],
-
     "@brains/plugins/typescript": ["typescript@5.7.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw=="],
 
     "@brains/site-builder-plugin/@types/react": ["@types/react@18.3.23", "", { "dependencies": { "@types/prop-types": "*", "csstype": "^3.0.2" } }, "sha512-/LDXMQh55EzZQ0uVAZmKKhfENivEvWz6E+EYzh+/MCjMhNsotd+ZHhBGIjFDTi6+fz0OhQQQLbTgdQIxxCsC0w=="],
-
-    "@brains/test-brain/@types/bun": ["@types/bun@1.2.17", "", { "dependencies": { "bun-types": "1.2.17" } }, "sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q=="],
 
     "@brains/ui-library/@types/bun": ["@types/bun@1.2.17", "", { "dependencies": { "bun-types": "1.2.17" } }, "sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q=="],
 
@@ -2202,10 +2207,6 @@
     "wrap-ansi/strip-ansi": ["strip-ansi@7.1.0", "", { "dependencies": { "ansi-regex": "^6.0.1" } }, "sha512-iq6eVVI64nQQTRYq2KtEg2d2uU7LElhTJwsH4YzIHZshxlgZms/wIc4VoDQTlG/IvVIrBKG06CrZnp0qv7hkcQ=="],
 
     "@anthropic-ai/sdk/@types/node/undici-types": ["undici-types@5.26.5", "", {}, "sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA=="],
-
-    "@brains/matrix-setup/@types/bun/bun-types": ["bun-types@1.2.17", "", { "dependencies": { "@types/node": "*" } }, "sha512-ElC7ItwT3SCQwYZDYoAH+q6KT4Fxjl8DtZ6qDulUFBmXA8YB4xo+l54J9ZJN+k2pphfn9vk7kfubeSd5QfTVJQ=="],
-
-    "@brains/test-brain/@types/bun/bun-types": ["bun-types@1.2.17", "", { "dependencies": { "@types/node": "*" } }, "sha512-ElC7ItwT3SCQwYZDYoAH+q6KT4Fxjl8DtZ6qDulUFBmXA8YB4xo+l54J9ZJN+k2pphfn9vk7kfubeSd5QfTVJQ=="],
 
     "@brains/ui-library/@types/bun/bun-types": ["bun-types@1.2.17", "", { "dependencies": { "@types/node": "*" } }, "sha512-ElC7ItwT3SCQwYZDYoAH+q6KT4Fxjl8DtZ6qDulUFBmXA8YB4xo+l54J9ZJN+k2pphfn9vk7kfubeSd5QfTVJQ=="],
 

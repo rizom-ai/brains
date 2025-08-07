@@ -24,6 +24,7 @@ Shell (shell.ts)
 ### Current Code Flow
 
 1. **Shell creates entities database:**
+
 ```typescript
 // In Shell constructor
 const { db, client } = createDatabase({
@@ -35,6 +36,7 @@ this.dbClient = client;
 ```
 
 2. **Shell initializes database (for entities!):**
+
 ```typescript
 // In ShellInitializer
 await enableWALMode(this.dbClient, this.config.database.url, this.logger);
@@ -42,15 +44,17 @@ await ensureCriticalIndexes(this.dbClient, this.logger); // Vector indexes for e
 ```
 
 3. **Shell creates EmbeddingJobHandler:**
+
 ```typescript
 const embeddingJobHandler = EmbeddingJobHandler.createFresh(
-  this.db,  // Entities database
+  this.db, // Entities database
   this.embeddingService,
 );
 this.jobQueueService.registerHandler("embedding", embeddingJobHandler);
 ```
 
 4. **EntityService receives the database:**
+
 ```typescript
 EntityService.getInstance({
   db: this.db, // The database Shell created
@@ -109,17 +113,20 @@ export function createEntityDatabase(config: EntityDbConfig = {}): {
 } {
   const url = config.url ?? process.env["DATABASE_URL"] ?? "file:./brain.db";
   const authToken = config.authToken ?? process.env["DATABASE_AUTH_TOKEN"];
-  
-  const client = authToken 
+
+  const client = authToken
     ? createClient({ url, authToken })
     : createClient({ url });
-  
+
   const db = drizzle(client, { schema: entities });
-  
+
   return { db, client, url };
 }
 
-export async function enableWALModeForEntities(client: Client, url: string): Promise<void> {
+export async function enableWALModeForEntities(
+  client: Client,
+  url: string,
+): Promise<void> {
   if (url.startsWith("file:")) {
     await client.execute("PRAGMA journal_mode = WAL");
   }
@@ -151,15 +158,15 @@ private constructor(options: EntityServiceOptions) {
   const { db, client, url } = createEntityDatabase(options.dbConfig);
   this.db = db;
   this.dbClient = client;
-  
+
   this.embeddingService = options.embeddingService;
   this.entityRegistry = options.entityRegistry ?? EntityRegistry.getInstance(Logger.getInstance());
   this.logger = (options.logger ?? Logger.getInstance()).child("EntityService");
   this.jobQueueService = options.jobQueueService;
-  
+
   // Initialize database asynchronously
   this.initializeDatabase(client, url);
-  
+
   // Create and register EmbeddingJobHandler
   this.embeddingJobHandler = EmbeddingJobHandler.createFresh(this.db, this.embeddingService);
   this.jobQueueService.registerHandler("embedding", this.embeddingJobHandler);
@@ -276,25 +283,30 @@ import { enableWALMode, ensureCriticalIndexes } from "@brains/db";
 ## Considerations
 
 ### Database Migrations
+
 - EntityService needs its own migration setup
 - Consider copying migration patterns from JobQueueService
 - Ensure database migrations run before EntityService starts
 
 ### Testing
+
 - EntityService tests need to mock database creation
 - Add test utilities for creating test databases
 - Consider flag to disable database initialization for unit tests
 
 ### Initialization Order
+
 - EntityService database initialization is async
 - Consider startup coordination if other services depend on entities
 
 ### Cleanup
+
 - EntityService must close database connection on shutdown
 - Unregister EmbeddingJobHandler from JobQueueService
 - Handle initialization failures gracefully
 
 ### Migration Compatibility
+
 - Existing databases need to work with new architecture
 - Consider data migration path if schema location changes
 
@@ -325,7 +337,7 @@ After optimization, the architecture will be beautifully symmetric:
 ```
 Shell (Orchestration Layer)
 ├── Configuration management
-├── Service coordination  
+├── Service coordination
 ├── Template registration
 └── Plugin management
 
@@ -334,7 +346,7 @@ Services (Domain Layer)
 │   ├── Owns job_queue database
 │   ├── Manages job handlers
 │   └── Handles job lifecycle
-└── EntityService  
+└── EntityService
     ├── Owns entities database
     ├── Manages EmbeddingJobHandler
     └── Handles entity lifecycle

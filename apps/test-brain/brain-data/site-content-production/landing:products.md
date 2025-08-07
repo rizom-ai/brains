@@ -2,131 +2,107 @@
 routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label
-
 Our Ecosystem
 
 ## Headline
-
 The Tools and Solutions Powering Transformation
 
 ## Description
-
-Rizom brings together a curated suite of digital tools, services, and solutions to help organizations thrive in the new economy. Our ecosystem empowers teams to drive sustainable innovation, optimize operations, and build resilient systems for the future.
+Rizom brings together a curated ecosystem of digital transformation tools, solutions, and services to help organizations adapt and thrive in a rapidly changing world. Our portfolio empowers teams to unlock new possibilities, enhance collaboration, and drive sustainable innovation.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
 rizom-studio
 
 #### Name
-
 Rizom Studio
 
 #### Tagline
-
-Design-led innovation platform
+Collaborative design for complex systems
 
 #### Description
-
-A collaborative workspace for multidisciplinary teams to ideate, prototype, and bring transformative solutions to life.
+A visual workspace for mapping ecosystems, designing organizational structures, and planning strategic initiatives.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Brain
+#### Icon
+Network
 
 ### Product 2
 
 #### ID
-
 rizom-insights
 
 #### Name
-
 Rizom Insights
 
 #### Tagline
-
 Data-driven decision support
 
 #### Description
-
-Advanced analytics and visualization tools to uncover hidden patterns, forecast trends, and make informed strategic choices.
+Advanced analytics and visualization tools to uncover patterns, surface trends, and generate foresight from organizational data.
 
 #### Status
-
-live
+beta
 
 #### Link
 
-#### Icon
 
+#### Icon
 Database
 
 ### Product 3
 
 #### ID
-
-rizom-orchestrate
-
-#### Name
-
-Rizom Orchestrate
-
-#### Tagline
-
-Ecosystem management system
-
-#### Description
-
-A centralized platform to map stakeholders, coordinate workflows, and optimize the performance of complex business ecosystems.
-
-#### Status
-
-beta
-
-#### Link
-
-#### Icon
-
-Network
-
-### Product 4
-
-#### ID
-
-rizom-advisory
+rizom-catalyst
 
 #### Name
-
-Rizom Advisory
+Rizom Catalyst
 
 #### Tagline
-
-Strategic transformation consulting
+Accelerating innovation through collaboration
 
 #### Description
-
-Expert guidance to help organizations navigate change, build future-ready capabilities, and unlock sustainable growth.
+A platform for launching and scaling innovation programs, connecting diverse teams, and fostering a culture of experimentation.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Wrench
+#### Icon
+Zap
+
+### Product 4
+
+#### ID
+rizom-academy
+
+#### Name
+Rizom Academy
+
+#### Tagline
+Upskilling for the future of work
+
+#### Description
+On-demand courses, workshops, and coaching to help leaders and teams develop the mindsets, skills, and capabilities needed to thrive in a complex world.
+
+#### Status
+live
+
+#### Link
+
+
+#### Icon
+Brain
