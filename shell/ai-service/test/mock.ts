@@ -33,7 +33,11 @@ export function createMockAIService(): IAIService {
       schema: z.ZodType<T>,
     ): Promise<{
       object: T;
-      usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
     }> => {
       // Return a mock object based on the query
       let mockObject: unknown;
@@ -91,11 +95,11 @@ export function createMockAIService(): IAIService {
         },
       };
     },
-    
+
     updateConfig: (_config: Partial<AIModelConfig>) => {
       // Mock implementation - does nothing
     },
-    
+
     getConfig: (): AIModelConfig => {
       return {
         model: "mock-model",
