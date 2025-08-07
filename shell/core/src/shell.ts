@@ -1,18 +1,11 @@
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import type { Client } from "@libsql/client";
 import type {
   ContentGenerationConfig,
   Daemon,
   DefaultQueryResponse,
 } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
-import { createDatabase } from "@brains/db";
 import { ServiceRegistry } from "@brains/service-registry";
-import {
-  EntityRegistry,
-  EntityService,
-  EmbeddingJobHandler,
-} from "@brains/entity-service";
+import { EntityRegistry, EntityService } from "@brains/entity-service";
 import {
   JobQueueService,
   JobQueueWorker,
@@ -52,8 +45,6 @@ import { ShellInitializer } from "./initialization/shellInitializer";
  * Optional dependencies that can be injected for testing
  */
 export interface ShellDependencies {
-  db?: LibSQLDatabase<Record<string, never>>;
-  dbClient?: Client;
   logger?: Logger;
   embeddingService?: IEmbeddingService;
   aiService?: AIService;
@@ -82,8 +73,6 @@ export class Shell implements IShell {
   private static instance: Shell | null = null;
 
   private readonly config: ShellConfig;
-  private readonly db: LibSQLDatabase<Record<string, never>>;
-  private readonly dbClient: Client;
   private readonly logger: Logger;
   private readonly serviceRegistry: ServiceRegistry;
   private readonly entityRegistry: EntityRegistry;
@@ -183,14 +172,6 @@ export class Shell implements IShell {
         context: config.logging.context,
       });
 
-      // Create database connection
-      const { db, client } = createDatabase({
-        url: config.database.url,
-        authToken: config.database.authToken,
-      });
-      this.db = db;
-      this.dbClient = client;
-
       // Create services
       this.embeddingService = EmbeddingService.getInstance(this.logger);
       this.aiService = AIService.getInstance(config.ai, this.logger);
@@ -202,18 +183,6 @@ export class Shell implements IShell {
           level: LogLevel.INFO,
           context: config.logging.context,
         });
-
-      if (dependencies.db && dependencies.dbClient) {
-        this.db = dependencies.db;
-        this.dbClient = dependencies.dbClient;
-      } else {
-        const { db, client } = createDatabase({
-          url: config.database.url,
-          authToken: config.database.authToken,
-        });
-        this.db = db;
-        this.dbClient = client;
-      }
 
       this.embeddingService =
         dependencies.embeddingService ??
@@ -253,22 +222,20 @@ export class Shell implements IShell {
       dependencies?.jobQueueService ??
       JobQueueService.createFresh(jobQueueDbConfig, this.logger);
 
-    // Register embedding job handler
-    const embeddingJobHandler = EmbeddingJobHandler.createFresh(
-      this.db,
-      this.embeddingService,
-    );
-    this.jobQueueService.registerHandler("embedding", embeddingJobHandler);
+    // Note: Embedding job handler is now registered inside EntityService
 
-    // Initialize EntityService with the configured JobQueueService
+    // Initialize EntityService with its own database
     this.entityService =
       dependencies?.entityService ??
       EntityService.getInstance({
-        db: this.db,
         embeddingService: this.embeddingService,
         entityRegistry: this.entityRegistry,
         logger: this.logger,
         jobQueueService: this.jobQueueService,
+        dbConfig: {
+          url: config.database.url,
+          ...(config.database.authToken && { authToken: config.database.authToken }),
+        },
       });
 
     this.contentGenerator =
@@ -369,7 +336,6 @@ export class Shell implements IShell {
       const shellInitializer = ShellInitializer.getInstance(
         this.logger,
         this.config,
-        this.dbClient,
       );
 
       await shellInitializer.initializeAll(
@@ -494,9 +460,6 @@ export class Shell implements IShell {
 
     // Clear registries
     this.serviceRegistry.clear();
-
-    // Close database connection
-    this.dbClient.close();
 
     this.initialized = false;
     this.logger.info("Shell shutdown complete");

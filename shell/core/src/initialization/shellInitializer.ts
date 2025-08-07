@@ -1,5 +1,3 @@
-import type { Client } from "@libsql/client";
-import { enableWALMode, ensureCriticalIndexes } from "@brains/db";
 import type { Logger } from "@brains/utils";
 import type { ShellConfig } from "../config";
 import type { EntityRegistry } from "@brains/entity-service";
@@ -18,7 +16,6 @@ export class ShellInitializer {
 
   private logger: Logger;
   private config: ShellConfig;
-  private dbClient: Client;
 
   /**
    * Get the singleton instance of ShellInitializer
@@ -26,13 +23,8 @@ export class ShellInitializer {
   public static getInstance(
     logger: Logger,
     config: ShellConfig,
-    dbClient: Client,
   ): ShellInitializer {
-    ShellInitializer.instance ??= new ShellInitializer(
-      logger,
-      config,
-      dbClient,
-    );
+    ShellInitializer.instance ??= new ShellInitializer(logger, config);
     return ShellInitializer.instance;
   }
 
@@ -49,43 +41,18 @@ export class ShellInitializer {
   public static createFresh(
     logger: Logger,
     config: ShellConfig,
-    dbClient: Client,
   ): ShellInitializer {
-    return new ShellInitializer(logger, config, dbClient);
+    return new ShellInitializer(logger, config);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(logger: Logger, config: ShellConfig, dbClient: Client) {
+  private constructor(logger: Logger, config: ShellConfig) {
     this.logger = logger.child("ShellInitializer");
     this.config = config;
-    this.dbClient = dbClient;
   }
 
-  /**
-   * Initialize database settings
-   */
-  public async initializeDatabase(): Promise<void> {
-    this.logger.debug("Initializing database settings");
-
-    try {
-      // Enable WAL mode for better concurrent database access
-      await enableWALMode(
-        this.dbClient,
-        this.config.database.url || "file:./brain.db",
-        this.logger,
-      );
-
-      // Ensure critical indexes exist (like vector indexes)
-      await ensureCriticalIndexes(this.dbClient, this.logger);
-
-      this.logger.debug("Database initialization complete");
-    } catch (error) {
-      this.logger.error("Failed to initialize database", error);
-      throw new Error("WAL mode initialization failed");
-    }
-  }
 
   /**
    * Register shell's own system templates
@@ -188,16 +155,13 @@ export class ShellInitializer {
     this.logger.info("Starting Shell initialization");
 
     try {
-      // Step 1: Initialize database
-      await this.initializeDatabase();
-
-      // Step 2: Register shell templates
+      // Step 1: Register shell templates
       this.registerShellTemplates(contentGenerator);
 
-      // Step 3: Register base entity support
+      // Step 2: Register base entity support
       this.registerBaseEntitySupport(entityRegistry, contentGenerator);
 
-      // Step 4: Initialize plugins
+      // Step 3: Initialize plugins
       await this.initializePlugins(pluginManager);
 
       this.logger.info("Shell initialization completed successfully");

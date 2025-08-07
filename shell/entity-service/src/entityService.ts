@@ -1,13 +1,16 @@
-import type { DrizzleDB } from "@brains/db";
-import { entities, createId } from "@brains/db/schema";
+import type { Client } from "@libsql/client";
+import { createEntityDatabase, enableWALModeForEntities, ensureEntityIndexes, type EntityDB, type EntityDbConfig } from "./db";
+import { entities } from "./schema/entities";
+import { createId } from "./schema/utils";
 import { EntityRegistry } from "./entityRegistry";
 import { Logger, extractIndexedFields } from "@brains/utils";
 import type { BaseEntity, SearchResult, EntityWithoutEmbedding } from "./types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import type { SearchOptions, EntityService as IEntityService } from "./types";
-import { eq, and, inArray, desc, asc, sql } from "@brains/db";
+import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { JobQueueService } from "@brains/job-queue";
+import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 
 /**
  * Schema for list entities options
@@ -40,11 +43,11 @@ const searchOptionsSchema = z.object({
  * Options for creating an EntityService instance
  */
 export interface EntityServiceOptions {
-  db: DrizzleDB;
   embeddingService: IEmbeddingService;
   entityRegistry?: EntityRegistry;
   logger?: Logger;
   jobQueueService?: JobQueueService;
+  dbConfig?: EntityDbConfig;
 }
 
 /**
@@ -54,7 +57,9 @@ export interface EntityServiceOptions {
 export class EntityService implements IEntityService {
   private static instance: EntityService | null = null;
 
-  private db: DrizzleDB;
+  private db: EntityDB;
+  private dbClient: Client;
+  private dbUrl: string;
   private entityRegistry: EntityRegistry;
   private logger: Logger;
   private embeddingService: IEmbeddingService;
@@ -86,7 +91,12 @@ export class EntityService implements IEntityService {
    * Private constructor to enforce singleton pattern
    */
   private constructor(options: EntityServiceOptions) {
-    this.db = options.db;
+    // Create own database connection
+    const { db, client, url } = createEntityDatabase(options.dbConfig);
+    this.db = db;
+    this.dbClient = client;
+    this.dbUrl = url;
+    
     this.embeddingService = options.embeddingService;
     this.entityRegistry =
       options.entityRegistry ??
@@ -100,6 +110,26 @@ export class EntityService implements IEntityService {
       );
     }
     this.jobQueueService = options.jobQueueService;
+    
+    // Register embedding job handler with job queue service
+    const embeddingJobHandler = EmbeddingJobHandler.createFresh(
+      this.db,
+      this.embeddingService,
+    );
+    this.jobQueueService.registerHandler("embedding", embeddingJobHandler);
+    
+    // Enable WAL mode and indexes asynchronously (non-blocking)
+    this.initializeDatabase().catch((error) => {
+      this.logger.warn("Failed to initialize database settings (non-fatal)", error);
+    });
+  }
+
+  /**
+   * Initialize the database (WAL mode and indexes)
+   */
+  private async initializeDatabase(): Promise<void> {
+    await enableWALModeForEntities(this.dbClient, this.dbUrl);
+    await ensureEntityIndexes(this.dbClient);
   }
 
   /**

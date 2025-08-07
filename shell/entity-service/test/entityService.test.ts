@@ -4,7 +4,6 @@ import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
 import type { EntityAdapter, BaseEntity } from "../src/types";
 import { baseEntitySchema } from "../src/types";
-import type { DrizzleDB } from "@brains/db";
 import type { JobQueueService } from "@brains/job-queue";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
@@ -61,7 +60,6 @@ function createNote(input: Partial<Note>): Note {
 // ============================================================================
 
 describe("EntityService", (): void => {
-  let mockDb: DrizzleDB;
   let logger: Logger;
   let entityRegistry: EntityRegistry;
   let entityService: EntityService;
@@ -73,7 +71,6 @@ describe("EntityService", (): void => {
     EntityRegistry.resetInstance();
 
     // Create minimal mock database (we're not testing DB operations)
-    mockDb = {} as DrizzleDB;
 
     // Create mock job queue service
     mockJobQueueService = {
@@ -108,11 +105,11 @@ describe("EntityService", (): void => {
     logger = createSilentLogger();
     entityRegistry = EntityRegistry.createFresh(logger);
     entityService = EntityService.createFresh({
-      db: mockDb,
       embeddingService: mockEmbeddingService,
       entityRegistry,
       logger,
       jobQueueService: mockJobQueueService as unknown as JobQueueService,
+      dbConfig: {}, // Will use default in-memory database for tests
     });
   });
 

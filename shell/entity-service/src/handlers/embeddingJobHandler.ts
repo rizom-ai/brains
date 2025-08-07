@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { DrizzleDB } from "@brains/db";
-import { entities } from "@brains/db";
+import type { EntityDB } from "../db";
+import { entities } from "../schema/entities";
 import type { EntityWithoutEmbedding } from "../types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import { Logger } from "@brains/utils";
@@ -32,13 +32,13 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   private static instance: EmbeddingJobHandler | null = null;
   private logger: Logger;
   private embeddingService: IEmbeddingService;
-  private db: DrizzleDB;
+  private db: EntityDB;
 
   /**
    * Get the singleton instance
    */
   public static getInstance(
-    db: DrizzleDB,
+    db: EntityDB,
     embeddingService: IEmbeddingService,
   ): EmbeddingJobHandler {
     EmbeddingJobHandler.instance ??= new EmbeddingJobHandler(
@@ -59,7 +59,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
    * Create a fresh instance without affecting the singleton
    */
   public static createFresh(
-    db: DrizzleDB,
+    db: EntityDB,
     embeddingService: IEmbeddingService,
   ): EmbeddingJobHandler {
     return new EmbeddingJobHandler(db, embeddingService);
@@ -68,7 +68,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(db: DrizzleDB, embeddingService: IEmbeddingService) {
+  private constructor(db: EntityDB, embeddingService: IEmbeddingService) {
     this.logger = Logger.getInstance().child("EmbeddingJobHandler");
     this.embeddingService = embeddingService;
     this.db = db;
