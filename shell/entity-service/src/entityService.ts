@@ -1,5 +1,11 @@
 import type { Client } from "@libsql/client";
-import { createEntityDatabase, enableWALModeForEntities, ensureEntityIndexes, type EntityDB, type EntityDbConfig } from "./db";
+import {
+  createEntityDatabase,
+  enableWALModeForEntities,
+  ensureEntityIndexes,
+  type EntityDB,
+  type EntityDbConfig,
+} from "./db";
 import { entities } from "./schema/entities";
 import { createId } from "./schema/utils";
 import { EntityRegistry } from "./entityRegistry";
@@ -96,7 +102,7 @@ export class EntityService implements IEntityService {
     this.db = db;
     this.dbClient = client;
     this.dbUrl = url;
-    
+
     this.embeddingService = options.embeddingService;
     this.entityRegistry =
       options.entityRegistry ??
@@ -110,17 +116,20 @@ export class EntityService implements IEntityService {
       );
     }
     this.jobQueueService = options.jobQueueService;
-    
+
     // Register embedding job handler with job queue service
     const embeddingJobHandler = EmbeddingJobHandler.createFresh(
       this.db,
       this.embeddingService,
     );
     this.jobQueueService.registerHandler("embedding", embeddingJobHandler);
-    
+
     // Enable WAL mode and indexes asynchronously (non-blocking)
     this.initializeDatabase().catch((error) => {
-      this.logger.warn("Failed to initialize database settings (non-fatal)", error);
+      this.logger.warn(
+        "Failed to initialize database settings (non-fatal)",
+        error,
+      );
     });
   }
 

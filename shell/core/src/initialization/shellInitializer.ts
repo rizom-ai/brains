@@ -53,7 +53,6 @@ export class ShellInitializer {
     this.config = config;
   }
 
-
   /**
    * Register shell's own system templates
    */

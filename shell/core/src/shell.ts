@@ -234,7 +234,9 @@ export class Shell implements IShell {
         jobQueueService: this.jobQueueService,
         dbConfig: {
           url: config.database.url,
-          ...(config.database.authToken && { authToken: config.database.authToken }),
+          ...(config.database.authToken && {
+            authToken: config.database.authToken,
+          }),
         },
       });
 
