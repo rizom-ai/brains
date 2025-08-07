@@ -1,11 +1,11 @@
-import type { AIService } from "@brains/ai-service";
+import type { IAIService, AIModelConfig } from "../src";
 import type { z } from "zod";
 
 /**
- * Mock AI Service for integration tests
+ * Mock AI Service for testing
  * Prevents real API calls during testing
  */
-export function createMockAIService(): AIService {
+export function createMockAIService(): IAIService {
   const mockService = {
     generateText: async (
       _systemPrompt: string,
@@ -33,7 +33,7 @@ export function createMockAIService(): AIService {
       schema: z.ZodType<T>,
     ): Promise<{
       object: T;
-      usage: { inputTokens: number; outputTokens: number };
+      usage: { promptTokens: number; completionTokens: number; totalTokens: number };
     }> => {
       // Return a mock object based on the query
       let mockObject: unknown;
@@ -85,12 +85,26 @@ export function createMockAIService(): AIService {
       return {
         object: parsed,
         usage: {
-          inputTokens: 100,
-          outputTokens: 50,
+          promptTokens: 100,
+          completionTokens: 50,
+          totalTokens: 150,
         },
+      };
+    },
+    
+    updateConfig: (_config: Partial<AIModelConfig>) => {
+      // Mock implementation - does nothing
+    },
+    
+    getConfig: (): AIModelConfig => {
+      return {
+        model: "mock-model",
+        apiKey: "mock-key",
+        temperature: 0.7,
+        maxTokens: 1000,
       };
     },
   };
 
-  return mockService as unknown as AIService;
+  return mockService;
 }

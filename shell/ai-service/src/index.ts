@@ -8,4 +8,4 @@
 export { AIService } from "./aiService";
 
 // Export types
-export type { AIModelConfig } from "./types";
+export type { AIModelConfig, AIService as IAIService } from "./types";

@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ContentFormatter } from "@brains/utils";
 import type { VNode } from "preact";
 import type { EntityService } from "@brains/entity-service";
-import type { AIService } from "@brains/ai-service";
+import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { ProgressInfo } from "./content-generator";
@@ -49,7 +49,7 @@ export interface TemplateDataContext {
   dependencies: {
     entityService: EntityService;
     logger: Logger;
-    aiService: AIService;
+    aiService: IAIService;
   };
 }
 

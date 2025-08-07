@@ -31,7 +31,7 @@ import {
   ContentGenerationJobHandler,
   ContentDerivationJobHandler,
 } from "@brains/content-generator";
-import { AIService } from "@brains/ai-service";
+import { AIService, type IAIService } from "@brains/ai-service";
 import { Logger, LogLevel, PermissionHandler } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
 import type { Template } from "@brains/content-generator";
@@ -47,7 +47,7 @@ import { ShellInitializer } from "./initialization/shellInitializer";
 export interface ShellDependencies {
   logger?: Logger;
   embeddingService?: IEmbeddingService;
-  aiService?: AIService;
+  aiService?: IAIService;
   entityService?: EntityService;
   serviceRegistry?: ServiceRegistry;
   entityRegistry?: EntityRegistry;
@@ -83,7 +83,7 @@ export class Shell implements IShell {
   private readonly daemonRegistry: DaemonRegistry;
   private readonly embeddingService: IEmbeddingService;
   private readonly entityService: EntityService;
-  private readonly aiService: AIService;
+  private readonly aiService: IAIService;
   private readonly contentGenerator: ContentGenerator;
   private readonly jobQueueService: JobQueueService;
   private readonly jobQueueWorker: JobQueueWorker;
@@ -563,7 +563,7 @@ export class Shell implements IShell {
     return this.entityRegistry;
   }
 
-  public getAIService(): AIService {
+  public getAIService(): IAIService {
     return this.aiService;
   }
 

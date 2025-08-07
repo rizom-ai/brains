@@ -22,7 +22,6 @@
     "@brains/ai-service": "workspace:*",
     "@brains/command-registry": "workspace:*",
     "@brains/daemon-registry": "workspace:*",
-    "@brains/db": "workspace:*",
     "@brains/embedding-service": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",

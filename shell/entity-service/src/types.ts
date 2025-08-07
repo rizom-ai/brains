@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Entity } from "@brains/db";
+import type { Entity } from "./schema/entities";
 
 /**
  * Entity type without embedding field (used for job queue data)

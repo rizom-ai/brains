@@ -27,6 +27,7 @@ After moving database ownership to EntityService and JobQueueService, we need to
 ### Remaining @brains/db Dependencies (VERIFIED)
 
 #### Direct Code Imports
+
 - `apps/test-brain/scripts/migrate.ts` - Uses @brains/db for migrations
 - `shell/integration-tests/test/helpers/test-db.ts` - Uses @brains/db functions (enableWALMode, ensureCriticalIndexes)
 - `shell/core/test/helpers/test-db.ts` - Imports runMigrations from @brains/db
@@ -34,6 +35,7 @@ After moving database ownership to EntityService and JobQueueService, we need to
 - `shell/entity-service/test/entityRegistry.test.ts` - Imports createId from @brains/db/schema
 
 #### Package.json Dependencies
+
 - `shell/core/package.json` - Has @brains/db dependency
 - `apps/test-brain/package.json` - Has @brains/db dependency
 - `plugins/directory-sync/package.json` - Has @brains/db dependency (unused)

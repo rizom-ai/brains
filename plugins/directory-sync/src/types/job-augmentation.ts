@@ -5,7 +5,7 @@ import type { ExportResult, ImportResult } from "../types";
 /**
  * Augment the PluginJobDefinitions interface to add directory sync job types
  */
-declare module "@brains/db" {
+declare module "@brains/job-queue" {
   interface PluginJobDefinitions {
     "directory-export": {
       input: DirectoryExportJobData;

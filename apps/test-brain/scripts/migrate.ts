@@ -3,8 +3,7 @@
  * Run database migrations for test-brain
  * This script runs migrations for both the main database and job queue database
  */
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue";
 import { Logger } from "@brains/utils";
 
@@ -18,17 +17,17 @@ if (!process.env.JOB_QUEUE_DATABASE_URL) {
   process.env.JOB_QUEUE_DATABASE_URL = "file:./test-brain-jobs.db";
 }
 
-// Set the migration folder to the @brains/db drizzle folder
-// This resolves the actual location of the @brains/db package
-const dbPackagePath = dirname(fileURLToPath(import.meta.resolve("@brains/db")));
-process.env.DRIZZLE_MIGRATION_FOLDER = join(dbPackagePath, "..", "drizzle");
-
 // Create logger
 const logger = Logger.getInstance();
 
-// Import and run the main database migrations
-logger.info("Running main database migrations...");
-await import("@brains/db/migrate");
+// Run entity migrations
+logger.info("Running entity database migrations...");
+await migrateEntities(
+  {
+    url: process.env.DATABASE_URL,
+  },
+  logger,
+);
 
 // Run job queue migrations
 logger.info("Running job queue database migrations...");

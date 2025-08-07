@@ -26,7 +26,8 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./test": "./test/mock.ts"
   },
   "files": [
     "src"

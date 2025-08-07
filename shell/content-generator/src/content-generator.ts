@@ -1,6 +1,6 @@
 import type { Template, GenerationContext } from "./types";
 import type { EntityService, SearchResult } from "@brains/entity-service";
-import type { AIService } from "@brains/ai-service";
+import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { ContentGenerator as IContentGenerator } from "./types";
@@ -20,7 +20,7 @@ export interface ProgressInfo {
 export interface ContentGeneratorDependencies {
   logger: Logger;
   entityService: EntityService;
-  aiService: AIService;
+  aiService: IAIService;
 }
 
 /**

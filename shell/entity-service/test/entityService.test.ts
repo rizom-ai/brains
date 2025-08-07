@@ -8,7 +8,7 @@ import type { JobQueueService } from "@brains/job-queue";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
 import type { IEmbeddingService } from "@brains/embedding-service";
-import { createId } from "@brains/db/schema";
+import { createId } from "../src/schema/utils";
 
 // Create a mock embedding service
 const mockEmbeddingService: IEmbeddingService = {

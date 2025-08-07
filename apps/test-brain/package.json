@@ -26,9 +26,9 @@
   "dependencies": {
     "@brains/app": "workspace:*",
     "@brains/cli": "workspace:*",
-    "@brains/db": "workspace:*",
     "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/matrix-setup": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
