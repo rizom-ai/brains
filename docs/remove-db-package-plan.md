@@ -1,7 +1,9 @@
 # Plan: Remove @brains/db Package and Reorganize Tests
 
 ## Context
+
 After moving database ownership to EntityService and JobQueueService, we need to:
+
 1. Remove the now-obsolete @brains/db package
 2. Reorganize integration tests for better structure
 3. Clean up remaining dependencies
@@ -9,72 +11,114 @@ After moving database ownership to EntityService and JobQueueService, we need to
 ## Current State
 
 ### Database Ownership (✅ COMPLETED)
+
 - EntityService owns its database (brain.db)
-- JobQueueService owns its database (brain-jobs.db)  
+- JobQueueService owns its database (brain-jobs.db)
 - Shell no longer directly manages databases
 
 ### Package Structure
+
 - `@brains/db` - OLD package, still exists but should be removed
 - `@brains/entity-service` - Has its own database management
 - `@brains/job-queue` - Has its own database management
 - `@brains/integration-tests` - Separate package for integration tests (to be moved)
 - `@brains/app` - High-level factory for creating Brain applications
 
-### Remaining @brains/db Dependencies
+### Remaining @brains/db Dependencies (VERIFIED)
+
+#### Direct Code Imports
 - `apps/test-brain/scripts/migrate.ts` - Uses @brains/db for migrations
-- `shell/integration-tests/test/helpers/test-db.ts` - Uses @brains/db functions
-- Several packages have it in package.json but don't actually import it
+- `shell/integration-tests/test/helpers/test-db.ts` - Uses @brains/db functions (enableWALMode, ensureCriticalIndexes)
+- `shell/core/test/helpers/test-db.ts` - Imports runMigrations from @brains/db
+- `shell/entity-service/test/entityService.test.ts` - Imports createId from @brains/db/schema
+- `shell/entity-service/test/entityRegistry.test.ts` - Imports createId from @brains/db/schema
+
+#### Package.json Dependencies
+- `shell/core/package.json` - Has @brains/db dependency
+- `apps/test-brain/package.json` - Has @brains/db dependency
+- `plugins/directory-sync/package.json` - Has @brains/db dependency (unused)
+- `shell/messaging-service/package.json` - Has @brains/db dependency (unused)
+- `shell/content-generator/package.json` - Has @brains/db dependency (unused)
 
 ## Implementation Plan
 
+### Phase 0: Fix createId Dependencies (NEW)
+
+1. **Move createId utility to entity-service**:
+   - Copy `createId` function from `shell/db/src/schema/utils.ts` to `shell/entity-service/src/utils.ts`
+   - Update imports in entity-service tests:
+     - `shell/entity-service/test/entityService.test.ts`
+     - `shell/entity-service/test/entityRegistry.test.ts`
+
 ### Phase 1: Move Integration Tests to Core
+
 1. **Move integration tests** from `shell/integration-tests/` to `shell/core/test/integration/`:
    - Move `app.integration.test.ts` → `shell/core/test/integration/app.integration.test.ts`
    - Move `mock-ai-service.ts` → `shell/core/test/helpers/mock-ai-service.ts`
-   - Delete the old `test-db.ts` helper (uses @brains/db)
 
-2. **Update the integration test**:
+2. **Update the integration test** to use temporary directories without @brains/db:
+
    ```typescript
-   // Instead of creating a test database directly
-   // Let each service create its own in a temp directory
+   // Remove dependency on test-db.ts helper
+   import { mkdtemp } from "fs/promises";
+   import { tmpdir } from "os";
+   import { join } from "path";
+
    const tempDir = await mkdtemp(join(tmpdir(), "brain-integration-test-"));
-   
+
+   // Let each service create its own database
    const shell = Shell.createFresh({
-     database: { 
-       url: `file:${join(tempDir, "brain.db")}` 
+     database: {
+       url: `file:${join(tempDir, "brain.db")}`,
      },
      jobQueueDatabase: {
-       url: `file:${join(tempDir, "brain-jobs.db")}`
+       url: `file:${join(tempDir, "brain-jobs.db")}`,
      },
      // ...
    });
    ```
 
-3. **Delete the integration-tests package**:
+3. **Update core/test/helpers/test-db.ts**:
+   - Remove dependency on @brains/db
+   - Simply create temp directories for tests
+
+4. **Delete the integration-tests package**:
    - Remove entire `shell/integration-tests/` directory
    - Update workspace configuration
 
 ### Phase 2: Update test-brain Migration Script
 
 Update `apps/test-brain/scripts/migrate.ts`:
+
 ```typescript
 // OLD
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 const dbPackagePath = dirname(fileURLToPath(import.meta.resolve("@brains/db")));
+process.env.DRIZZLE_MIGRATION_FOLDER = join(dbPackagePath, "..", "drizzle");
 await import("@brains/db/migrate");
 
 // NEW
-const entityServicePath = dirname(fileURLToPath(import.meta.resolve("@brains/entity-service")));
-await import("@brains/entity-service/migrate");
+import { migrateEntities } from "@brains/entity-service/migrate";
+
+// Run entity migrations
+await migrateEntities(
+  {
+    url: process.env.DATABASE_URL,
+  },
+  logger,
+);
 ```
 
 ### Phase 3: Clean Up Package Dependencies
 
 Remove `@brains/db` from package.json files:
+
+- `shell/core/package.json`
+- `apps/test-brain/package.json`
 - `plugins/directory-sync/package.json`
 - `shell/messaging-service/package.json`
 - `shell/content-generator/package.json`
-- `shell/core/package.json`
-- `apps/test-brain/package.json`
 
 ### Phase 4: Remove @brains/db Package
 
