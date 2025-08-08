@@ -1,5 +1,5 @@
 import type { PluginTool } from "@brains/plugins";
-import type { 
+import type {
   IConversationMemoryService,
   SearchResult,
   ConversationContext,
@@ -25,7 +25,11 @@ export function createConversationTools(
           .default(20)
           .describe("Number of messages to retrieve"),
       },
-      handler: async (input: unknown): Promise<{ messages: Array<{ role: string; content: string; timestamp: string }> }> => {
+      handler: async (
+        input: unknown,
+      ): Promise<{
+        messages: Array<{ role: string; content: string; timestamp: string }>;
+      }> => {
         const schema = z.object({
           conversationId: z.string(),
           limit: z.number().optional().default(20),

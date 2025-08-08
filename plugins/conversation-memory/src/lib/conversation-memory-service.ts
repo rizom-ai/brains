@@ -19,8 +19,8 @@ import {
   summaryTracking,
 } from "../schema/conversations";
 import type { ServicePluginContext } from "@brains/plugins";
+import { createId } from "@brains/plugins";
 import { eq, desc, sql } from "drizzle-orm";
-import { nanoid } from "nanoid";
 
 /**
  * Service implementation for conversation memory
@@ -40,7 +40,7 @@ export class ConversationMemoryService implements IConversationMemoryService {
     interfaceType: string,
   ): Promise<string> {
     const now = new Date().toISOString();
-    const conversationId = nanoid(12);
+    const conversationId = createId(12);
 
     const newConversation: NewConversation = {
       id: conversationId,
@@ -82,7 +82,7 @@ export class ConversationMemoryService implements IConversationMemoryService {
     metadata?: Record<string, unknown>,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const messageId = nanoid(12);
+    const messageId = createId(12);
 
     const newMessage: NewMessage = {
       id: messageId,
@@ -221,13 +221,17 @@ export class ConversationMemoryService implements IConversationMemoryService {
     // Filter by session and format results
     return results
       .filter((result) => {
-        const parsed = conversationSummaryMetadataSchema.safeParse(result.entity.metadata);
+        const parsed = conversationSummaryMetadataSchema.safeParse(
+          result.entity.metadata,
+        );
         return parsed.success && parsed.data.sessionId === sessionId;
       })
       .map((result) => {
-        const parsed = conversationSummaryMetadataSchema.safeParse(result.entity.metadata);
+        const parsed = conversationSummaryMetadataSchema.safeParse(
+          result.entity.metadata,
+        );
         return {
-          conversationId: parsed.success ? parsed.data.conversationId : '',
+          conversationId: parsed.success ? parsed.data.conversationId : "",
           excerpt: result.excerpt,
           timestamp: result.entity.updated,
           relevance: result.score,

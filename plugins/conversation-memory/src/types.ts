@@ -79,7 +79,9 @@ export const conversationSummaryMetadataSchema = z.object({
   messageCount: z.number(),
 });
 
-export type ConversationSummaryMetadata = z.infer<typeof conversationSummaryMetadataSchema>;
+export type ConversationSummaryMetadata = z.infer<
+  typeof conversationSummaryMetadataSchema
+>;
 
 /**
  * Conversation context schema (for MCP tool responses)

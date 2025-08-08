@@ -1,7 +1,6 @@
 import { eq, and, or, inArray, sql, desc, asc, lte } from "drizzle-orm";
 import { jobQueue, type JobOptions, type JobQueue } from "./schema/job-queue";
-import { createId } from "./schema/utils";
-import { Logger } from "@brains/utils";
+import { Logger, createId } from "@brains/utils";
 import type { IJobQueueService, JobHandler } from "./types";
 import { JOB_STATUS } from "./schemas";
 import {

@@ -3,8 +3,7 @@ import { z } from "zod";
 import { EntityRegistry } from "../src/entityRegistry";
 import type { EntityAdapter } from "../src/types";
 import { baseEntitySchema } from "../src/types";
-import { createSilentLogger, type Logger } from "@brains/utils";
-import { createId } from "../src/schema/utils";
+import { createSilentLogger, type Logger, createId } from "@brains/utils";
 import matter from "gray-matter";
 
 // ============================================================================

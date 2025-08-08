@@ -23,7 +23,6 @@
     "@libsql/client": "^0.15.7",
     "drizzle-orm": "^0.44.4",
     "drizzle-zod": "^0.8.3",
-    "nanoid": "^5.1.5",
     "zod": "^3.25.1"
   },
   "devDependencies": {

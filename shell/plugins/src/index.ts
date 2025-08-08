@@ -200,3 +200,6 @@ export {
   type GenerateResult,
   type SiteContentEntity,
 } from "@brains/content-management";
+
+// Utility functions
+export { createId } from "./utils/id";

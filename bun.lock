@@ -130,7 +130,6 @@
         "@brains/plugins": "workspace:*",
         "@libsql/client": "^0.15.7",
         "drizzle-orm": "^0.44.4",
-        "nanoid": "^5.0.9",
         "zod": "^3.25.1",
       },
       "devDependencies": {
@@ -461,7 +460,6 @@
         "drizzle-orm": "^0.44.4",
         "drizzle-zod": "^0.8.3",
         "gray-matter": "^4.0.3",
-        "nanoid": "^5.1.5",
         "zod": "^3.25.1",
       },
       "devDependencies": {
@@ -480,7 +478,6 @@
         "@libsql/client": "^0.15.7",
         "drizzle-orm": "^0.44.4",
         "drizzle-zod": "^0.8.3",
-        "nanoid": "^5.1.5",
         "zod": "^3.25.1",
       },
       "devDependencies": {

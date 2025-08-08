@@ -1,7 +1,7 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { createId } from "./utils";
+import { createId } from "@brains/utils";
 
 /**
  * Operation type enum for structured progress tracking and aggregation

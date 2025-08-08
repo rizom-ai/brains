@@ -44,6 +44,7 @@ export class MockShell implements IShell {
   private commands = new Map<string, Command>();
   private services = new Map<string, unknown>();
   private entities = new Map<string, BaseEntity>();
+  private entityTypes = new Set<string>();
   private messageHandlers = new Map<
     string,
     Set<MessageHandler<unknown, unknown>>
@@ -196,8 +197,8 @@ export class MockShell implements IShell {
         );
       },
       search: async () => [],
-      getEntityTypes: () => [],
-      hasEntityType: () => false,
+      getEntityTypes: () => Array.from(this.entityTypes),
+      hasEntityType: (type: string) => this.entityTypes.has(type),
       serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
       deserializeEntity: (markdown: string) =>
         ({ content: markdown }) as BaseEntity,
@@ -214,16 +215,22 @@ export class MockShell implements IShell {
 
   getEntityRegistry(): EntityRegistry {
     return {
-      registerEntityType: () => {},
+      registerEntityType: (
+        type: string,
+        _schema: unknown,
+        _adapter: unknown,
+      ) => {
+        this.entityTypes.add(type);
+      },
       getSchema: () => {
         throw new Error("Not implemented");
       },
       getAdapter: () => {
         throw new Error("Not implemented");
       },
-      hasEntityType: () => false,
+      hasEntityType: (type: string) => this.entityTypes.has(type),
       validateEntity: (_type: string, entity: BaseEntity) => entity,
-      getAllEntityTypes: () => [],
+      getAllEntityTypes: () => Array.from(this.entityTypes),
     } as unknown as EntityRegistry;
   }
 

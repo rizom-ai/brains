@@ -7,9 +7,8 @@ import {
   type EntityDbConfig,
 } from "./db";
 import { entities } from "./schema/entities";
-import { createId } from "./schema/utils";
 import { EntityRegistry } from "./entityRegistry";
-import { Logger, extractIndexedFields } from "@brains/utils";
+import { Logger, extractIndexedFields, createId } from "@brains/utils";
 import type { BaseEntity, SearchResult, EntityWithoutEmbedding } from "./types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import type { SearchOptions, EntityService as IEntityService } from "./types";

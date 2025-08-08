@@ -33,7 +33,6 @@ export {
 
 // Export job queue schema and types
 export * from "./schema/job-queue";
-export { createId } from "./schema/utils";
 
 // Progress utilities (public API for interfaces)
 export { type ProgressCalculation } from "./utils/progress-calculations";
