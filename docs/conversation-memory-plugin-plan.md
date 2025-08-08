@@ -1,11 +1,13 @@
 # Conversation Memory Plugin Implementation Plan
 
 ## Overview
+
 Create a Service Plugin that provides conversation memory capabilities with smart summarization to entities.
 
 ## Key Design Decisions
 
 ### Architecture Decisions
+
 - ✅ **Service Plugin** - Not a core Shell service, following plugin-first philosophy
 - ✅ **Own SQLite database** - Separate from entities and jobs for data isolation
 - ✅ **Opt-in per interface** - Interfaces explicitly choose to use it for privacy
@@ -23,6 +25,7 @@ Create a Service Plugin that provides conversation memory capabilities with smar
 ### 1. Create Package: `plugins/conversation-memory/`
 
 **Files to create:**
+
 - `src/plugin.ts` - Main ConversationMemoryPlugin class (extends ServicePlugin)
 - `src/service.ts` - ConversationMemoryService implementation
 - `src/db/index.ts` - Database setup with Drizzle
@@ -35,29 +38,29 @@ Create a Service Plugin that provides conversation memory capabilities with smar
 
 ```typescript
 // schema/conversations.ts
-export const conversations = sqliteTable('conversations', {
-  id: text('id').primaryKey(),
-  sessionId: text('session_id').notNull(), // CLI session, Matrix room, etc.
-  interfaceType: text('interface_type').notNull(),
-  started: text('started').notNull(),
-  lastActive: text('last_active').notNull(),
-  metadata: text('metadata'), // JSON
+export const conversations = sqliteTable("conversations", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id").notNull(), // CLI session, Matrix room, etc.
+  interfaceType: text("interface_type").notNull(),
+  started: text("started").notNull(),
+  lastActive: text("last_active").notNull(),
+  metadata: text("metadata"), // JSON
 });
 
-export const messages = sqliteTable('messages', {
-  id: text('id').primaryKey(),
-  conversationId: text('conversation_id').notNull(),
-  role: text('role').notNull(), // 'user' | 'assistant' | 'system'
-  content: text('content').notNull(),
-  timestamp: text('timestamp').notNull(),
-  metadata: text('metadata'), // JSON
+export const messages = sqliteTable("messages", {
+  id: text("id").primaryKey(),
+  conversationId: text("conversation_id").notNull(),
+  role: text("role").notNull(), // 'user' | 'assistant' | 'system'
+  content: text("content").notNull(),
+  timestamp: text("timestamp").notNull(),
+  metadata: text("metadata"), // JSON
 });
 
-export const summaryTracking = sqliteTable('summary_tracking', {
-  conversationId: text('conversation_id').primaryKey(),
-  lastSummarizedAt: text('last_summarized_at'),
-  lastMessageId: text('last_message_id'),
-  messagesSinceSummary: integer('messages_since_summary').default(0),
+export const summaryTracking = sqliteTable("summary_tracking", {
+  conversationId: text("conversation_id").primaryKey(),
+  lastSummarizedAt: text("last_summarized_at"),
+  lastMessageId: text("last_message_id"),
+  messagesSinceSummary: integer("messages_since_summary").default(0),
 });
 ```
 
@@ -67,15 +70,22 @@ export const summaryTracking = sqliteTable('summary_tracking', {
 interface ConversationMemoryService {
   // Core operations
   startConversation(sessionId: string, interfaceType: string): Promise<string>;
-  addMessage(conversationId: string, role: string, content: string): Promise<void>;
+  addMessage(
+    conversationId: string,
+    role: string,
+    content: string,
+  ): Promise<void>;
   getRecentMessages(conversationId: string, limit?: number): Promise<Message[]>;
-  
+
   // Summarization
   checkSummarizationNeeded(conversationId: string): Promise<boolean>;
   createSummary(conversationId: string): Promise<void>;
-  
+
   // Search
-  searchConversations(sessionId: string, query: string): Promise<SearchResult[]>;
+  searchConversations(
+    sessionId: string,
+    query: string,
+  ): Promise<SearchResult[]>;
 }
 ```
 
@@ -94,7 +104,7 @@ class ConversationSummarizer {
     // 5. High complexity (many entities referenced)
     return any of these conditions are met;
   }
-  
+
   async createSummaryEntity(messages: Message[]): Promise<void> {
     // 1. Generate summary using AI service
     // 2. Create entity with type "conversation-summary"
@@ -110,33 +120,33 @@ class ConversationSummarizer {
 export class ConversationMemoryPlugin extends ServicePlugin {
   private service: ConversationMemoryService;
   private db: ConversationDB;
-  
+
   constructor(config: ConversationMemoryConfig = {}) {
-    super('conversation-memory', packageJson, config);
+    super("conversation-memory", packageJson, config);
   }
-  
+
   protected async onRegister(context: ServicePluginContext): Promise<void> {
     // Initialize database
     this.db = createConversationDatabase(this.config.databaseUrl);
-    
+
     // Create service
     this.service = new ConversationMemoryService(
-      this.db, 
+      this.db,
       context.entityService,
       context.aiService,
-      this.logger
+      this.logger,
     );
-    
+
     // Register as a service for other plugins to discover
-    context.registerService('conversation-memory', this.service);
-    
+    context.registerService("conversation-memory", this.service);
+
     // Register entity type for summaries
     context.entityRegistry.registerType({
-      type: 'conversation-summary',
-      adapter: new BaseEntityAdapter('conversation-summary')
+      type: "conversation-summary",
+      adapter: new BaseEntityAdapter("conversation-summary"),
     });
   }
-  
+
   protected async getTools(): Promise<PluginTool[]> {
     return createConversationTools(this.service);
   }
@@ -152,7 +162,7 @@ Interfaces can opt-in to use conversation memory through runtime discovery:
 protected async onRegister(context: InterfacePluginContext): Promise<void> {
   // Runtime discovery - check if conversation memory is available
   const memoryService = context.getService('conversation-memory');
-  
+
   if (memoryService && this.config.enableMemory) {
     // Service exists and interface wants to use it
     this.conversationId = await memoryService.startConversation(
@@ -165,28 +175,28 @@ protected async onRegister(context: InterfacePluginContext): Promise<void> {
 // When processing messages:
 async processQuery(query: string): Promise<string> {
   const memoryService = this.context.getService('conversation-memory');
-  
+
   if (this.conversationId && memoryService) {
     // Store user message
     await memoryService.addMessage(this.conversationId, 'user', query);
-    
+
     // Get context from recent messages
     const recentMessages = await memoryService.getRecentMessages(this.conversationId, 10);
-    
+
     // ... process query with context ...
-    
+
     // Store assistant response
     await memoryService.addMessage(this.conversationId, 'assistant', response);
-    
+
     // Check if summarization needed
     if (await memoryService.checkSummarizationNeeded(this.conversationId)) {
       // Trigger async summarization
-      memoryService.createSummary(this.conversationId).catch(err => 
+      memoryService.createSummary(this.conversationId).catch(err =>
         this.logger.error('Failed to create summary', err)
       );
     }
   }
-  
+
   return response;
 }
 ```
@@ -196,49 +206,49 @@ async processQuery(query: string): Promise<string> {
 ```typescript
 const tools = [
   {
-    name: 'get_conversation_history',
-    description: 'Get recent messages from current conversation',
-    inputSchema: z.object({ 
+    name: "get_conversation_history",
+    description: "Get recent messages from current conversation",
+    inputSchema: z.object({
       limit: z.number().optional().default(20),
-      conversationId: z.string().optional() 
+      conversationId: z.string().optional(),
     }),
     handler: async (input) => {
       const messages = await service.getRecentMessages(
         input.conversationId || currentConversationId,
-        input.limit
+        input.limit,
       );
       return { messages };
-    }
+    },
   },
   {
-    name: 'search_conversations', 
-    description: 'Search across conversation summaries',
-    inputSchema: z.object({ 
+    name: "search_conversations",
+    description: "Search across conversation summaries",
+    inputSchema: z.object({
       query: z.string(),
-      sessionId: z.string().optional() 
+      sessionId: z.string().optional(),
     }),
     handler: async (input) => {
       // This searches the summary entities via EntityService
       const results = await service.searchConversations(
         input.sessionId || currentSessionId,
-        input.query
+        input.query,
       );
       return { results };
-    }
+    },
   },
   {
-    name: 'get_conversation_context',
-    description: 'Get context about current conversation',
+    name: "get_conversation_context",
+    description: "Get context about current conversation",
     inputSchema: z.object({
-      conversationId: z.string().optional()
+      conversationId: z.string().optional(),
     }),
     handler: async (input) => {
       const context = await service.getConversationContext(
-        input.conversationId || currentConversationId
+        input.conversationId || currentConversationId,
       );
       return context;
-    }
-  }
+    },
+  },
 ];
 ```
 
@@ -247,14 +257,14 @@ const tools = [
 ```typescript
 interface ConversationMemoryConfig {
   databaseUrl?: string; // Default: './data/conversation-memory.db'
-  
+
   summarization?: {
     minMessages?: number; // Default: 20
     minTimeMinutes?: number; // Default: 60
     idleTimeMinutes?: number; // Default: 30
     enableAutomatic?: boolean; // Default: true
   };
-  
+
   retention?: {
     enabled?: boolean; // Default: false (unlimited)
     daysToKeep?: number; // Default: 30 (if enabled)
@@ -265,18 +275,21 @@ interface ConversationMemoryConfig {
 ### 9. Testing Strategy
 
 **Unit Tests:**
+
 - Summarization algorithm logic
 - Message storage and retrieval
 - Session management
 - Database operations
 
 **Integration Tests:**
+
 - Plugin registration and service discovery
 - Interface integration with mock CLI
 - Summary entity creation
 - MCP tool functionality
 
 **Test Scenarios:**
+
 - Multiple concurrent sessions
 - Long conversations with summarization
 - Service unavailable handling
@@ -285,6 +298,7 @@ interface ConversationMemoryConfig {
 ### 10. Migration Path
 
 For existing deployments:
+
 1. Plugin can be added without breaking changes
 2. Interfaces continue to work without it
 3. Can be enabled per-interface gradually
@@ -293,30 +307,35 @@ For existing deployments:
 ## Implementation Order
 
 ### Phase 1: Core Structure (Week 1)
+
 - [ ] Create package structure
 - [ ] Set up database schema and migrations
 - [ ] Implement basic plugin class
 - [ ] Create service interface
 
 ### Phase 2: Basic Operations (Week 1)
+
 - [ ] Implement conversation tracking
 - [ ] Add message storage
 - [ ] Create retrieval methods
 - [ ] Add session management
 
 ### Phase 3: Summarization (Week 2)
+
 - [ ] Implement smart summarization algorithm
 - [ ] Create summary entity integration
 - [ ] Add summary tracking
 - [ ] Test with AI service
 
 ### Phase 4: Integration (Week 2)
+
 - [ ] Update CLI interface to use service
 - [ ] Add runtime discovery pattern
 - [ ] Implement MCP tools
 - [ ] Add configuration options
 
 ### Phase 5: Testing & Documentation (Week 3)
+
 - [ ] Write comprehensive tests
 - [ ] Update test-brain app configuration
 - [ ] Create usage documentation
