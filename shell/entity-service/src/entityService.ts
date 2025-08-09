@@ -639,18 +639,15 @@ export class EntityService implements IEntityService {
         const parsedContent = adapter.fromMarkdown(row.content);
 
         const metadata = row.metadata as Record<string, unknown>;
-        const entity = this.entityRegistry.validateEntity<T>(
-          row.entityType,
-          {
-            id: row.id,
-            entityType: row.entityType,
-            content: row.content,
-            created: new Date(row.created).toISOString(),
-            updated: new Date(row.updated).toISOString(),
-            ...metadata,
-            ...parsedContent,
-          },
-        );
+        const entity = this.entityRegistry.validateEntity<T>(row.entityType, {
+          id: row.id,
+          entityType: row.entityType,
+          content: row.content,
+          created: new Date(row.created).toISOString(),
+          updated: new Date(row.updated).toISOString(),
+          ...metadata,
+          ...parsedContent,
+        });
 
         // Convert distance to similarity score (1 - distance/2 to normalize to 0-1 range)
         const score = 1 - row.distance / 2;

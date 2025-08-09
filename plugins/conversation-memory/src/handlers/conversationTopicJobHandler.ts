@@ -9,7 +9,10 @@ import {
   conversations,
 } from "../schema/conversations";
 import { eq, sql, and, gt } from "drizzle-orm";
-import { conversationMetadataSchema, type ConversationMemoryConfig } from "../types";
+import {
+  conversationMetadataSchema,
+  type ConversationMemoryConfig,
+} from "../types";
 import {
   type ConversationTopic,
   type ConversationTopicOutput,
@@ -214,7 +217,7 @@ export class ConversationTopicJobHandler
     // Parse conversation metadata if it exists
     const defaultMetadata = conversationMetadataSchema.parse({});
     let metadata = defaultMetadata;
-    
+
     if (conversation.metadata) {
       try {
         const parsed = JSON.parse(conversation.metadata);
@@ -299,13 +302,14 @@ export class ConversationTopicJobHandler
 
     // Search for similar topics using semantic search
     // The entity service will use embeddings to find similar content
-    const searchResults = await this.context.entityService.search<ConversationTopic>(
-      topic.content,
-      {
-        types: ["conversation-topic"],
-        limit: 10,
-      },
-    );
+    const searchResults =
+      await this.context.entityService.search<ConversationTopic>(
+        topic.content,
+        {
+          types: ["conversation-topic"],
+          limit: 10,
+        },
+      );
 
     // Check if any results are above similarity threshold
     let merged = false;

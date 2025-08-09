@@ -2,131 +2,107 @@
 routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label
-
-Our Ecosystem
+Our Solutions
 
 ## Headline
-
-The Tools and Solutions Powering Transformation
+Discover Rizom's Ecosystem of Transformative Tools
 
 ## Description
-
-Rizom brings together a curated ecosystem of digital transformation tools, solutions, and services to help organizations adapt and thrive in a rapidly changing world. Our portfolio empowers teams to unlock new possibilities, enhance collaboration, and drive sustainable innovation.
+Rizom offers a curated suite of digital tools and services to empower organizations on their transformation journeys. Our solutions span strategic planning, organizational development, and ecosystem design - all with the goal of unlocking new sources of value creation.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
-rizom-studio
+practice-innovation
 
 #### Name
-
-Rizom Studio
+Practice Innovation
 
 #### Tagline
-
-Collaborative design for complex systems
+Accelerate organizational agility
 
 #### Description
-
-A visual workspace for mapping ecosystems, designing organizational structures, and planning strategic initiatives.
+Leverage our battle-tested frameworks to rapidly prototype, test, and scale new ways of working that drive innovation and resilience.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Network
+#### Icon
+Cpu
 
 ### Product 2
 
 #### ID
-
-rizom-insights
+ecosystem-architecture
 
 #### Name
-
-Rizom Insights
+Ecosystem Architecture
 
 #### Tagline
-
-Data-driven decision support
+Design dynamic value networks
 
 #### Description
-
-Advanced analytics and visualization tools to uncover patterns, surface trends, and generate foresight from organizational data.
+Architect collaborative ecosystems that unlock new growth opportunities by aligning diverse stakeholders around shared goals.
 
 #### Status
-
-beta
+live
 
 #### Link
 
-#### Icon
 
-Database
+#### Icon
+Network
 
 ### Product 3
 
 #### ID
-
-rizom-catalyst
+economy-of-garbage
 
 #### Name
-
-Rizom Catalyst
+Economy of Garbage
 
 #### Tagline
-
-Accelerating innovation through collaboration
+Unleash the power of waste
 
 #### Description
-
-A platform for launching and scaling innovation programs, connecting diverse teams, and fostering a culture of experimentation.
+Discover how to transform byproducts, excess capacity, and unused resources into new revenue streams and sustainability initiatives.
 
 #### Status
-
-live
+beta
 
 #### Link
 
-#### Icon
 
-Zap
+#### Icon
+Wrench
 
 ### Product 4
 
 #### ID
-
-rizom-academy
+community-engagement
 
 #### Name
-
-Rizom Academy
+Community Engagement
 
 #### Tagline
-
-Upskilling for the future of work
+Activate your stakeholder ecosystem
 
 #### Description
-
-On-demand courses, workshops, and coaching to help leaders and teams develop the mindsets, skills, and capabilities needed to thrive in a complex world.
+Cultivate deep, authentic connections with your customers, partners, and local communities to drive lasting impact.
 
 #### Status
-
-live
+alpha
 
 #### Link
 
-#### Icon
 
-Brain
+#### Icon
+Globe

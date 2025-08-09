@@ -114,8 +114,8 @@ export interface ICoreEntityService {
   ): Promise<T[]>;
 
   search<T extends BaseEntity = BaseEntity>(
-    query: string, 
-    options?: SearchOptions
+    query: string,
+    options?: SearchOptions,
   ): Promise<SearchResult<T>[]>;
 
   // Entity type information
@@ -152,8 +152,8 @@ export interface EntityService extends ICoreEntityService {
     options?: ListOptions,
   ): Promise<T[]>;
   search<T extends BaseEntity = BaseEntity>(
-    query: string, 
-    options?: SearchOptions
+    query: string,
+    options?: SearchOptions,
   ): Promise<SearchResult<T>[]>;
 
   // Entity type information

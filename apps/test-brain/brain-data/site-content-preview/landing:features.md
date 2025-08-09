@@ -2,61 +2,48 @@
 routeId: landing
 sectionId: features
 ---
-
 # Features Section
 
 ## Label
-
 Features
 
 ## Headline
-
 Amplify Your Knowledge, Empower Your Potential
 
 ## Description
-
-Rizom is a personal knowledge management system that helps you capture, connect, and leverage your expertise to achieve your goals. With powerful organizational, search, security, and intelligence features, Rizom empowers you to work smarter and unlock your full potential.
+Rizom is a personal knowledge management system that helps you organize, search, secure, and leverage your expertise. With powerful features designed for knowledge workers, Rizom empowers you to unlock your full potential.
 
 ## Feature Cards
 
 ### Feature Card 1
 
 #### Title
-
-Intuitive Organization
+Intelligent Search
 
 #### Icon
-
-Brain
+Search
 
 #### Description
-
-Effortlessly structure your knowledge with flexible tagging, nested notebooks, and visual mapping tools. Rizom adapts to your unique workflow.
+Quickly find the information you need with advanced search capabilities that surface relevant insights from your personal knowledge base.
 
 ### Feature Card 2
 
 #### Title
-
-Intelligent Search
+Secure Knowledge
 
 #### Icon
-
-Search
+Lock
 
 #### Description
-
-Find what you need instantly with powerful full-text search and smart filters. Rizom's AI-powered search surfaces the most relevant information.
+Protect your sensitive data with robust security features, ensuring your knowledge stays private and under your control.
 
 ### Feature Card 3
 
 #### Title
-
-Secure Privacy
+Actionable Analytics
 
 #### Icon
-
-Lock
+BarChart3
 
 #### Description
-
-Keep your sensitive information safe with end-to-end encryption, granular access controls, and secure backup and sync across devices.
+Gain deep insights into your knowledge patterns and productivity with intuitive analytics, helping you make informed decisions.

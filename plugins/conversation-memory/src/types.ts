@@ -36,11 +36,13 @@ export type ConversationMemoryConfig = z.input<
 /**
  * Schema for conversation metadata stored in the database
  */
-export const conversationMetadataSchema = z.object({
-  user: z.string().optional(),
-  channel: z.string().optional(),
-  interface: z.string().optional(),
-}).passthrough();
+export const conversationMetadataSchema = z
+  .object({
+    user: z.string().optional(),
+    channel: z.string().optional(),
+    interface: z.string().optional(),
+  })
+  .passthrough();
 
 export type ConversationMetadata = z.infer<typeof conversationMetadataSchema>;
 
