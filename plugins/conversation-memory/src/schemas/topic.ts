@@ -25,3 +25,18 @@ export const conversationTopicSchema = z.object({
 });
 
 export type ConversationTopic = z.infer<typeof conversationTopicSchema>;
+
+/**
+ * Schema for conversation topic generation output
+ * This is what the AI returns when generating a topic summary
+ */
+export const conversationTopicOutputSchema = z.object({
+  title: z.string(),
+  keyTakeaways: z.array(z.string()),
+  context: z.string(),
+  summary: z.string(),
+});
+
+export type ConversationTopicOutput = z.infer<
+  typeof conversationTopicOutputSchema
+>;

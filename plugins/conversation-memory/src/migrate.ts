@@ -1,7 +1,7 @@
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { createConversationDatabase } from "./db";
 
-async function runMigration() {
+async function runMigration(): Promise<void> {
   const dbUrl = process.env["CONVERSATION_DATABASE_URL"];
   const { db } = createConversationDatabase(dbUrl ? { url: dbUrl } : undefined);
 

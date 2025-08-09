@@ -38,8 +38,8 @@ export type EntityInput<T extends BaseEntity> = Omit<
 /**
  * Search result type
  */
-export interface SearchResult {
-  entity: BaseEntity;
+export interface SearchResult<T extends BaseEntity = BaseEntity> {
+  entity: T;
   score: number;
   excerpt: string;
 }
@@ -113,7 +113,10 @@ export interface ICoreEntityService {
     options?: ListOptions,
   ): Promise<T[]>;
 
-  search(query: string, options?: SearchOptions): Promise<SearchResult[]>;
+  search<T extends BaseEntity = BaseEntity>(
+    query: string, 
+    options?: SearchOptions
+  ): Promise<SearchResult<T>[]>;
 
   // Entity type information
   getEntityTypes(): string[];
@@ -148,7 +151,10 @@ export interface EntityService extends ICoreEntityService {
     type: string,
     options?: ListOptions,
   ): Promise<T[]>;
-  search(query: string, options?: SearchOptions): Promise<SearchResult[]>;
+  search<T extends BaseEntity = BaseEntity>(
+    query: string, 
+    options?: SearchOptions
+  ): Promise<SearchResult<T>[]>;
 
   // Entity type information
   getEntityTypes(): string[];

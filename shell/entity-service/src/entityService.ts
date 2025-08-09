@@ -572,10 +572,10 @@ export class EntityService implements IEntityService {
   /**
    * Search entities by query using vector similarity
    */
-  public async search(
+  public async search<T extends BaseEntity = BaseEntity>(
     query: string,
     options?: SearchOptions,
-  ): Promise<SearchResult[]> {
+  ): Promise<SearchResult<T>[]> {
     const validatedOptions = searchOptionsSchema.parse(options ?? {});
     const { limit, offset, types, excludeTypes } = validatedOptions;
 
@@ -631,7 +631,7 @@ export class EntityService implements IEntityService {
       .offset(offset);
 
     // Transform results into SearchResult format
-    const searchResults: SearchResult[] = [];
+    const searchResults: SearchResult<T>[] = [];
 
     for (const row of results) {
       try {
@@ -639,7 +639,7 @@ export class EntityService implements IEntityService {
         const parsedContent = adapter.fromMarkdown(row.content);
 
         const metadata = row.metadata as Record<string, unknown>;
-        const entity = this.entityRegistry.validateEntity<BaseEntity>(
+        const entity = this.entityRegistry.validateEntity<T>(
           row.entityType,
           {
             id: row.id,

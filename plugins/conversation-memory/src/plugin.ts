@@ -16,6 +16,8 @@ import {
 } from "./db";
 import { createConversationTools } from "./tools";
 import { ConversationTopicAdapter } from "./lib/topic-adapter";
+import { conversationTopicTemplate } from "./templates/conversation-topic-template";
+import { ConversationTopicJobHandler } from "./handlers/conversationTopicJobHandler";
 import packageJson from "../package.json";
 
 /**
@@ -85,6 +87,19 @@ export class ConversationMemoryPlugin extends ServicePlugin<ConversationMemoryCo
     // Register entity type for topics
     const adapter = new ConversationTopicAdapter();
     context.registerEntityType("conversation-topic", adapter.schema, adapter);
+
+    // Register conversation topic template with content generator
+    context.registerTemplates({
+      "conversation-topic": conversationTopicTemplate,
+    });
+
+    // Register job handler for conversation topic generation
+    const topicJobHandler = new ConversationTopicJobHandler(
+      db,
+      context,
+      this.config,
+    );
+    context.registerJobHandler(topicJobHandler.type, topicJobHandler);
 
     this.logger.info("Conversation memory plugin registered", {
       databaseUrl: this.config.databaseUrl,

@@ -1,0 +1,26 @@
+You are an expert at creating concise, actionable summaries of conversations. 
+Focus on extracting key insights, decisions, and action items.
+Organize information topically rather than chronologically.
+
+## Conversation Messages:
+{{messages}}
+
+## Context:
+- User: {{user}}
+- Channel: {{channel}}
+- Interface: {{interface}}
+- Message Count: {{messageCount}}
+
+## Requirements:
+- Target length: {{targetLength}} words
+- Maximum length: {{maxLength}} words
+- Focus on actionable information over narrative
+- Group related points together topically
+
+Generate a JSON response with the following structure:
+{
+  "title": "A descriptive title for this topic",
+  "keyTakeaways": ["insight 1", "insight 2", "..."],
+  "context": "Information about the participants and discussion setting",
+  "summary": "A comprehensive summary of the main points"
+}
