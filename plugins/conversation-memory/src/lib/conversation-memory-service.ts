@@ -202,7 +202,7 @@ export class ConversationMemoryService implements IConversationMemoryService {
       sessionId: conversation.sessionId,
     });
 
-    await this.context.enqueueJob("conversation-summary", { conversationId });
+    await this.context.enqueueJob("conversation-topic", { conversationId });
   }
 
   /**
@@ -214,7 +214,7 @@ export class ConversationMemoryService implements IConversationMemoryService {
   ): Promise<SearchResult[]> {
     // Search summary entities
     const results = await this.context.entityService.search(query, {
-      types: ["conversation-summary"],
+      types: ["conversation-topic"],
       limit: 10,
     });
 

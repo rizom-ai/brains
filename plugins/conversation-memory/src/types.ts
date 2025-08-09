@@ -13,6 +13,11 @@ export const conversationMemoryConfigSchema = z.object({
       minTimeMinutes: z.number().default(60),
       idleTimeMinutes: z.number().default(30),
       enableAutomatic: z.boolean().default(true),
+      batchSize: z.number().default(20),
+      overlapPercentage: z.number().default(0.25),
+      similarityThreshold: z.number().default(0.7),
+      targetLength: z.number().default(400),
+      maxLength: z.number().default(1000),
     })
     .optional(),
 

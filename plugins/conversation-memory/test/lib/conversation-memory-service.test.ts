@@ -374,7 +374,7 @@ describe("ConversationMemoryService", () => {
         }),
       );
       expect(mockContext.enqueueJob).toHaveBeenCalledWith(
-        "conversation-summary",
+        "conversation-topic",
         { conversationId },
       );
     });
@@ -404,7 +404,7 @@ describe("ConversationMemoryService", () => {
         {
           entity: {
             id: "entity-1",
-            type: "conversation-summary",
+            type: "conversation-topic",
             content: "summary 1",
             metadata: {
               sessionId: "session-123",
@@ -421,7 +421,7 @@ describe("ConversationMemoryService", () => {
         {
           entity: {
             id: "entity-2",
-            type: "conversation-summary",
+            type: "conversation-topic",
             content: "summary 2",
             metadata: {
               sessionId: "other-session",
@@ -459,7 +459,7 @@ describe("ConversationMemoryService", () => {
         {
           entity: {
             id: "entity-1",
-            type: "conversation-summary",
+            type: "conversation-topic",
             content: "summary",
             metadata: { invalid: "data" },
             created: "2024-01-01",

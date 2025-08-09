@@ -90,6 +90,7 @@ interface ConversationTopic extends BaseEntity {
    - Update metadata (contributors, entities, timestamps)
 
 3. **Title Generation**
+
    ```typescript
    generateTopicTitle(content: string): Promise<string>
    ```
@@ -152,14 +153,14 @@ interface ConversationTopic extends BaseEntity {
 ```typescript
 interface TopicSummarizationConfig {
   summarization: {
-    minMessages: number;          // Default: 20
-    minTimeMinutes: number;       // Default: 60
-    enableAutomatic: boolean;     // Default: true
-    batchSize: number;           // Default: 20
-    overlapPercentage: number;   // Default: 0.25 (25%)
+    minMessages: number; // Default: 20
+    minTimeMinutes: number; // Default: 60
+    enableAutomatic: boolean; // Default: true
+    batchSize: number; // Default: 20
+    overlapPercentage: number; // Default: 0.25 (25%)
     similarityThreshold: number; // Default: 0.7
-    targetLength: number;        // Default: 400 words
-    maxLength: number;          // Default: 1000 words
+    targetLength: number; // Default: 400 words
+    maxLength: number; // Default: 1000 words
   };
 }
 ```

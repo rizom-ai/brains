@@ -55,11 +55,11 @@ describe("ConversationMemoryPlugin", () => {
       expect(subscriptions).toContain("conversation:checkSummarization");
     });
 
-    it("should register conversation-summary entity type", () => {
+    it("should register conversation-topic entity type", () => {
       const mockShell = harness.getShell();
       const entityTypes = mockShell.getEntityService().getEntityTypes();
 
-      expect(entityTypes).toContain("conversation-summary");
+      expect(entityTypes).toContain("conversation-topic");
     });
   });
 

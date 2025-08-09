@@ -15,7 +15,7 @@ import {
   enableWALModeForConversations,
 } from "./db";
 import { createConversationTools } from "./tools";
-import { ConversationSummaryAdapter } from "./lib/summary-adapter";
+import { ConversationTopicAdapter } from "./lib/topic-adapter";
 import packageJson from "../package.json";
 
 /**
@@ -38,6 +38,11 @@ export class ConversationMemoryPlugin extends ServicePlugin<ConversationMemoryCo
         minTimeMinutes: 60,
         idleTimeMinutes: 30,
         enableAutomatic: true,
+        batchSize: 20,
+        overlapPercentage: 0.25,
+        similarityThreshold: 0.7,
+        targetLength: 400,
+        maxLength: 1000,
       },
       retention: {
         unlimited: true,
@@ -77,9 +82,9 @@ export class ConversationMemoryPlugin extends ServicePlugin<ConversationMemoryCo
     // Register message handlers for service operations
     this.registerMessageHandlers(context);
 
-    // Register entity type for summaries
-    const adapter = new ConversationSummaryAdapter();
-    context.registerEntityType("conversation-summary", adapter.schema, adapter);
+    // Register entity type for topics
+    const adapter = new ConversationTopicAdapter();
+    context.registerEntityType("conversation-topic", adapter.schema, adapter);
 
     this.logger.info("Conversation memory plugin registered", {
       databaseUrl: this.config.databaseUrl,
