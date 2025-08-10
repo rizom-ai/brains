@@ -192,4 +192,190 @@ describe("MessageInterfacePlugin", () => {
 
     expect(plugin).toBeDefined();
   });
+
+  describe("conversation memory integration", () => {
+    test("starts conversation on first message", async () => {
+      const plugin = harness.getPlugin();
+      const shell = harness.getShell();
+
+      let conversationStarted = false;
+      let startPayload: any = null;
+
+      // Mock the conversation:start message
+      shell.getMessageBus().subscribe("conversation:start", async (message) => {
+        conversationStarted = true;
+        startPayload = message.payload;
+        return { success: true, data: { conversationId: "test-conversation" } };
+      });
+
+      // Process first input
+      await plugin.processInput("Hello", defaultContext);
+
+      expect(conversationStarted).toBe(true);
+      expect(startPayload).toEqual({
+        sessionId: `${defaultContext.interfaceType}-${defaultContext.channelId}`,
+        interfaceType: defaultContext.interfaceType,
+        metadata: {
+          user: defaultContext.userId,
+          channel: defaultContext.channelId,
+          interface: defaultContext.interfaceType,
+        },
+      });
+    });
+
+    test("stores user messages", async () => {
+      const plugin = harness.getPlugin();
+      const shell = harness.getShell();
+
+      const addedMessages: any[] = [];
+
+      // Mock the conversation messages
+      shell.getMessageBus().subscribe("conversation:start", async () => ({
+        success: true,
+        data: { conversationId: "test-conversation" },
+      }));
+
+      shell
+        .getMessageBus()
+        .subscribe("conversation:addMessage", async (message) => {
+          addedMessages.push(message.payload);
+          return { success: true };
+        });
+
+      // Process input
+      await plugin.processInput("Test message", defaultContext);
+
+      // Find the user message (should be first)
+      const userMessage = addedMessages.find((m) => m.role === "user");
+
+      expect(userMessage).toBeDefined();
+      expect(userMessage).toMatchObject({
+        conversationId: `${defaultContext.interfaceType}-${defaultContext.channelId}`,
+        role: "user",
+        content: "Test message",
+        metadata: expect.objectContaining({
+          messageId: defaultContext.messageId,
+          userId: defaultContext.userId,
+          directed: true, // Echo interface always responds
+        }),
+      });
+    });
+
+    test("stores assistant responses", async () => {
+      const plugin = harness.getPlugin();
+      const shell = harness.getShell();
+
+      const addedMessages: any[] = [];
+
+      // Mock the conversation messages
+      shell.getMessageBus().subscribe("conversation:start", async () => ({
+        success: true,
+        data: { conversationId: "test-conversation" },
+      }));
+
+      shell
+        .getMessageBus()
+        .subscribe("conversation:addMessage", async (message) => {
+          addedMessages.push(message.payload);
+          return { success: true };
+        });
+
+      // Process input
+      await plugin.processInput("Test query", defaultContext);
+
+      // Should have both user and assistant messages
+      expect(addedMessages).toHaveLength(2);
+      expect(addedMessages[0].role).toBe("user");
+      expect(addedMessages[1].role).toBe("assistant");
+      expect(addedMessages[1].content).toBe(
+        "Generated content for shell:knowledge-query",
+      );
+    });
+
+    test("only starts conversation once per channel", async () => {
+      const plugin = harness.getPlugin();
+      const shell = harness.getShell();
+
+      let startCount = 0;
+
+      // Mock the conversation:start message
+      shell.getMessageBus().subscribe("conversation:start", async () => {
+        startCount++;
+        return { success: true, data: { conversationId: "test-conversation" } };
+      });
+
+      shell.getMessageBus().subscribe("conversation:addMessage", async () => ({
+        success: true,
+      }));
+
+      // Process multiple inputs
+      await plugin.processInput("First message", defaultContext);
+      await plugin.processInput("Second message", defaultContext);
+      await plugin.processInput("Third message", defaultContext);
+
+      // Should only start conversation once
+      expect(startCount).toBe(1);
+    });
+
+    test("handles conversation memory unavailability gracefully", async () => {
+      const plugin = harness.getPlugin();
+      const shell = harness.getShell();
+
+      // Mock conversation:start to fail
+      shell.getMessageBus().subscribe("conversation:start", async () => {
+        throw new Error("Conversation memory unavailable");
+      });
+
+      // Should not throw error - continues without conversation memory
+      await expect(
+        plugin.processInput("Test message", defaultContext),
+      ).resolves.toBeUndefined();
+    });
+
+    test("respects shouldRespond for storing messages", async () => {
+      // Create a custom test interface that only responds to certain messages
+      class SelectiveInterface extends EchoMessageInterface {
+        protected override shouldRespond(
+          message: string,
+          _context: MessageContext,
+        ): boolean {
+          return message.startsWith("!");
+        }
+      }
+
+      const selectiveHarness =
+        createInterfacePluginHarness<SelectiveInterface>();
+      const selectivePlugin = new SelectiveInterface({ debug: false });
+      await selectiveHarness.installPlugin(selectivePlugin);
+
+      const shell = selectiveHarness.getShell();
+      const userMessages: any[] = [];
+
+      shell.getMessageBus().subscribe("conversation:start", async () => ({
+        success: true,
+        data: { conversationId: "test-conversation" },
+      }));
+
+      shell
+        .getMessageBus()
+        .subscribe("conversation:addMessage", async (message) => {
+          const payload = message.payload as any;
+          if (payload.role === "user") {
+            userMessages.push(payload);
+          }
+          return { success: true };
+        });
+
+      // Process messages
+      await selectivePlugin.processInput("Regular message", defaultContext);
+      await selectivePlugin.processInput("!Important message", defaultContext);
+
+      // Both user messages should be stored
+      expect(userMessages).toHaveLength(2);
+
+      // Check the 'directed' flag
+      expect(userMessages[0].metadata.directed).toBe(false); // Not for bot
+      expect(userMessages[1].metadata.directed).toBe(true); // For bot
+    });
+  });
 });

@@ -20,6 +20,8 @@ export abstract class MessageInterfacePlugin<
   public readonly sessionId: string;
   // Track job/batch messages for editing (jobId/batchId -> messageId)
   protected jobMessages = new Map<string, string>();
+  // Track started conversations per channel
+  protected startedConversations = new Set<string>();
 
   constructor(
     id: string,
@@ -63,6 +65,26 @@ export abstract class MessageInterfacePlugin<
     content: string,
     context: MessageContext,
   ): Promise<void>;
+
+  /**
+   * Determine if the bot should respond to a message
+   */
+  protected abstract shouldRespond(
+    message: string,
+    context: MessageContext,
+  ): boolean;
+
+  /**
+   * Show thinking indicators (typing, reactions, etc.)
+   */
+  protected abstract showThinkingIndicators(
+    context: MessageContext,
+  ): Promise<void>;
+
+  /**
+   * Show done indicators (stop typing, final reaction, etc.)
+   */
+  protected abstract showDoneIndicators(context: MessageContext): Promise<void>;
 
   /**
    * Get the plugin context, throwing if not initialized
@@ -152,6 +174,52 @@ export abstract class MessageInterfacePlugin<
     context: MessageContext,
     replyToId?: string,
   ): Promise<void> {
+    const conversationId = `${context.interfaceType}-${context.channelId}`;
+
+    // 1. Start conversation if new channel (once per channel)
+    if (!this.startedConversations.has(conversationId)) {
+      try {
+        await this.getContext().sendMessage("conversation:start", {
+          sessionId: conversationId,
+          interfaceType: context.interfaceType,
+          metadata: {
+            user: context.userId,
+            channel: context.channelId,
+            interface: context.interfaceType,
+          },
+        });
+        this.startedConversations.add(conversationId);
+      } catch (error) {
+        // Non-critical - continue even if conversation memory unavailable
+        this.logger.debug("Could not start conversation", { error });
+      }
+    }
+
+    // 2. Always store user message (even if bot won't respond)
+    try {
+      await this.getContext().sendMessage("conversation:addMessage", {
+        conversationId,
+        role: "user",
+        content: input,
+        metadata: {
+          messageId: context.messageId,
+          userId: context.userId,
+          timestamp: context.timestamp.toISOString(),
+          directed: this.shouldRespond(input, context), // Track if for bot
+        },
+      });
+    } catch (error) {
+      this.logger.debug("Could not store user message", { error });
+    }
+
+    // 3. Check if bot should respond
+    if (!this.shouldRespond(input, context)) {
+      return; // Message stored, no response needed
+    }
+
+    // 4. Process and respond
+    await this.showThinkingIndicators(context);
+
     // Route to command or query
     const response = input.startsWith("/")
       ? await this.executeCommand(input, context)
@@ -182,6 +250,20 @@ export abstract class MessageInterfacePlugin<
       this.jobMessages.set(batchId, messageId);
       this.logger.info("Stored batch message mapping", { batchId, messageId });
     }
+
+    // 5. Store assistant response
+    try {
+      await this.getContext().sendMessage("conversation:addMessage", {
+        conversationId,
+        role: "assistant",
+        content: messageText,
+        metadata: { messageId, timestamp: new Date().toISOString() },
+      });
+    } catch (error) {
+      this.logger.debug("Could not store assistant message", { error });
+    }
+
+    await this.showDoneIndicators(context);
   }
 
   /**

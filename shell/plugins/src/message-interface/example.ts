@@ -123,6 +123,33 @@ export class EchoMessageInterface extends MessageInterfacePlugin<EchoConfig> {
   }
 
   /**
+   * Echo interface always responds to everything
+   */
+  protected shouldRespond(_message: string, _context: MessageContext): boolean {
+    return true; // Always respond for testing
+  }
+
+  /**
+   * Show thinking indicators - just log for testing
+   */
+  protected async showThinkingIndicators(
+    context: MessageContext,
+  ): Promise<void> {
+    if (this.config.debug) {
+      this.logger.debug("Showing thinking indicators", { context });
+    }
+  }
+
+  /**
+   * Show done indicators - just log for testing
+   */
+  protected async showDoneIndicators(context: MessageContext): Promise<void> {
+    if (this.config.debug) {
+      this.logger.debug("Showing done indicators", { context });
+    }
+  }
+
+  /**
    * Start the interface
    */
   public async start(): Promise<void> {

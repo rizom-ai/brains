@@ -40,28 +40,28 @@ export class ConversationMemoryService implements IConversationMemoryService {
     interfaceType: string,
   ): Promise<string> {
     const now = new Date().toISOString();
-    
+
     // Check if conversation already exists for this sessionId
     const existing = await this.getConversation(sessionId);
-    
+
     if (existing) {
       // Update last active time and return existing sessionId
       await this.db
         .update(conversations)
         .set({ lastActive: now, updated: now })
         .where(eq(conversations.id, sessionId));
-      
+
       this.context.logger.debug("Resumed existing conversation", {
         conversationId: sessionId,
         interfaceType,
       });
-      
+
       return sessionId;
     }
 
     // Create new conversation using sessionId as the ID
     const newConversation: NewConversation = {
-      id: sessionId,  // Use sessionId as the conversation ID
+      id: sessionId, // Use sessionId as the conversation ID
       sessionId,
       interfaceType,
       started: now,
