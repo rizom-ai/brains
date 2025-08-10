@@ -154,7 +154,7 @@ describe("ConversationMemoryService", () => {
           where: mock(() => Promise.resolve()),
         })),
       }));
-      
+
       const serviceWithAutoDisabled = new ConversationMemoryService(
         mockDb,
         mockContext,

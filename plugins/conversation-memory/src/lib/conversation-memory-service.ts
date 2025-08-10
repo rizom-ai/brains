@@ -119,9 +119,8 @@ export class ConversationMemoryService implements IConversationMemoryService {
 
     // Auto-check for summarization if enabled
     if (this.config.summarization?.enableAutomatic !== false) {
-      const needsSummarization = await this.checkSummarizationNeeded(
-        conversationId,
-      );
+      const needsSummarization =
+        await this.checkSummarizationNeeded(conversationId);
       if (needsSummarization) {
         this.context.logger.info(
           "Auto-triggering topical summarization for conversation",
