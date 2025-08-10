@@ -113,6 +113,71 @@ describe("ConversationMemoryService", () => {
       expect(mockDb.insert).toHaveBeenCalledTimes(1);
       expect(mockDb.update).toHaveBeenCalledTimes(2);
     });
+
+    it("should auto-check summarization when enabled", async () => {
+      const conversationId = "conv-123";
+      const role = "user";
+      const content = "Test message";
+
+      // Mock the tracking data to trigger summarization
+      mockDb.select = mock(() => ({
+        from: mock(() => ({
+          where: mock(() => ({
+            limit: mock(() =>
+              Promise.resolve([
+                {
+                  messagesSinceSummary: 25,
+                  lastSummarizedAt: null,
+                },
+              ]),
+            ),
+          })),
+        })),
+      }));
+
+      await service.addMessage(conversationId, role, content);
+
+      // Verify that createSummary was called
+      expect(mockContext.enqueueJob).toHaveBeenCalledWith(
+        "conversation-topic",
+        { conversationId },
+      );
+    });
+
+    it("should not auto-check summarization when disabled", async () => {
+      // Reset mocks
+      mockDb.insert = mock(() => ({
+        values: mock(() => Promise.resolve()),
+      }));
+      mockDb.update = mock(() => ({
+        set: mock(() => ({
+          where: mock(() => Promise.resolve()),
+        })),
+      }));
+      
+      const serviceWithAutoDisabled = new ConversationMemoryService(
+        mockDb,
+        mockContext,
+        {
+          summarization: {
+            enableAutomatic: false,
+          },
+        },
+      );
+
+      const conversationId = "conv-123";
+      await serviceWithAutoDisabled.addMessage(
+        conversationId,
+        "user",
+        "Test message",
+      );
+
+      // Verify that createSummary was NOT called
+      expect(mockContext.enqueueJob).not.toHaveBeenCalledWith(
+        "conversation-topic",
+        expect.any(Object),
+      );
+    });
   });
 
   describe("getRecentMessages", () => {

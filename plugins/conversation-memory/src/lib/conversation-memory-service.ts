@@ -116,6 +116,28 @@ export class ConversationMemoryService implements IConversationMemoryService {
       role,
       messageId,
     });
+
+    // Auto-check for summarization if enabled
+    if (this.config.summarization?.enableAutomatic !== false) {
+      const needsSummarization = await this.checkSummarizationNeeded(
+        conversationId,
+      );
+      if (needsSummarization) {
+        this.context.logger.info(
+          "Auto-triggering topical summarization for conversation",
+          {
+            conversationId,
+          },
+        );
+        // Queue async summarization - non-blocking
+        await this.createSummary(conversationId).catch((error) => {
+          this.context.logger.error(
+            "Failed to create automatic summary",
+            error,
+          );
+        });
+      }
+    }
   }
 
   /**
