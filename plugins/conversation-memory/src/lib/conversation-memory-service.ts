@@ -33,17 +33,35 @@ export class ConversationMemoryService implements IConversationMemoryService {
   ) {}
 
   /**
-   * Start a new conversation session
+   * Start a new conversation session (idempotent - returns existing or creates new)
    */
   async startConversation(
     sessionId: string,
     interfaceType: string,
   ): Promise<string> {
     const now = new Date().toISOString();
-    const conversationId = createId(12);
+    
+    // Check if conversation already exists for this sessionId
+    const existing = await this.getConversation(sessionId);
+    
+    if (existing) {
+      // Update last active time and return existing sessionId
+      await this.db
+        .update(conversations)
+        .set({ lastActive: now, updated: now })
+        .where(eq(conversations.id, sessionId));
+      
+      this.context.logger.debug("Resumed existing conversation", {
+        conversationId: sessionId,
+        interfaceType,
+      });
+      
+      return sessionId;
+    }
 
+    // Create new conversation using sessionId as the ID
     const newConversation: NewConversation = {
-      id: conversationId,
+      id: sessionId,  // Use sessionId as the conversation ID
       sessionId,
       interfaceType,
       started: now,
@@ -57,19 +75,19 @@ export class ConversationMemoryService implements IConversationMemoryService {
 
     // Initialize summary tracking
     const tracking: NewSummaryTracking = {
-      conversationId,
+      conversationId: sessionId,
       messagesSinceSummary: 0,
       updated: now,
     };
     await this.db.insert(summaryTracking).values(tracking);
 
     this.context.logger.debug("Started new conversation", {
-      conversationId,
+      conversationId: sessionId,
       sessionId,
       interfaceType,
     });
 
-    return conversationId;
+    return sessionId;
   }
 
   /**

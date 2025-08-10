@@ -60,23 +60,81 @@ describe("ConversationMemoryService", () => {
   });
 
   describe("startConversation", () => {
-    it("should create a new conversation and initialize tracking", async () => {
-      const sessionId = "test-session";
+    it("should create a new conversation using sessionId as conversationId", async () => {
+      const sessionId = "test-session-123";
       const interfaceType = "cli";
+
+      // Mock getConversation to return null (no existing conversation)
+      mockDb.select = mock(() => ({
+        from: mock(() => ({
+          where: mock(() => ({
+            limit: mock(() => Promise.resolve([])),
+          })),
+        })),
+      }));
 
       const conversationId = await service.startConversation(
         sessionId,
         interfaceType,
       );
 
-      expect(typeof conversationId).toBe("string");
-      expect(conversationId.length).toBeGreaterThan(0);
-      expect(mockDb.insert).toHaveBeenCalledTimes(2);
+      expect(conversationId).toBe(sessionId); // Should use sessionId as conversationId
+      expect(mockDb.insert).toHaveBeenCalledTimes(2); // conversations and summaryTracking
       expect(mockContext.logger.debug).toHaveBeenCalledWith(
         "Started new conversation",
         expect.objectContaining({
-          conversationId,
+          conversationId: sessionId,
           sessionId,
+          interfaceType,
+        }),
+      );
+    });
+
+    it("should return existing conversation if already exists (idempotent)", async () => {
+      const sessionId = "existing-session-456";
+      const interfaceType = "matrix";
+
+      // Mock getConversation to return existing conversation
+      mockDb.select = mock(() => ({
+        from: mock(() => ({
+          where: mock(() => ({
+            limit: mock(() =>
+              Promise.resolve([
+                {
+                  id: sessionId,
+                  sessionId,
+                  interfaceType,
+                  started: "2024-01-01",
+                  lastActive: "2024-01-01",
+                },
+              ]),
+            ),
+          })),
+        })),
+      }));
+
+      // Reset mock counts
+      mockDb.insert = mock(() => ({
+        values: mock(() => Promise.resolve()),
+      }));
+      mockDb.update = mock(() => ({
+        set: mock(() => ({
+          where: mock(() => Promise.resolve()),
+        })),
+      }));
+
+      const conversationId = await service.startConversation(
+        sessionId,
+        interfaceType,
+      );
+
+      expect(conversationId).toBe(sessionId);
+      expect(mockDb.insert).not.toHaveBeenCalled(); // Should NOT create new
+      expect(mockDb.update).toHaveBeenCalledTimes(1); // Should update lastActive
+      expect(mockContext.logger.debug).toHaveBeenCalledWith(
+        "Resumed existing conversation",
+        expect.objectContaining({
+          conversationId: sessionId,
           interfaceType,
         }),
       );

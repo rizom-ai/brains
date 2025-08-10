@@ -249,7 +249,7 @@ async startConversation(
     .from(conversations)
     .where(eq(conversations.id, sessionId))
     .limit(1);
-    
+
   if (existing.length > 0) {
     // Update last active and return existing ID
     await this.db
@@ -258,7 +258,7 @@ async startConversation(
       .where(eq(conversations.id, sessionId));
     return sessionId;
   }
-  
+
   // Create new conversation using sessionId as ID
   const now = new Date().toISOString();
   const newConversation: NewConversation = {
@@ -271,16 +271,16 @@ async startConversation(
     updated: now,
     metadata: JSON.stringify({}),
   };
-  
+
   await this.db.insert(conversations).values(newConversation);
-  
+
   // Initialize summary tracking
   await this.db.insert(summaryTracking).values({
     conversationId: sessionId,
     messagesSinceSummary: 0,
     updated: now,
   });
-  
+
   return sessionId;
 }
 
@@ -345,6 +345,7 @@ CONVERSATION_SIMILARITY_THRESHOLD=0.7
 ## Implementation Order
 
 ### Phase 1: Update ConversationMemoryPlugin (Do First!)
+
 1. **Modify startConversation** to use sessionId as conversationId
    - Make it idempotent (check if exists, return existing or create new)
    - Use sessionId directly as the conversation ID
@@ -352,6 +353,7 @@ CONVERSATION_SIMILARITY_THRESHOLD=0.7
 3. **Test the changes** independently
 
 ### Phase 2: Update MessageInterfacePlugin
+
 1. Add `startedConversations` Set to track started conversations
 2. Add abstract methods: `shouldRespond()`, `showThinkingIndicators()`, `showDoneIndicators()`
 3. Update `handleInput()` to:
@@ -360,12 +362,14 @@ CONVERSATION_SIMILARITY_THRESHOLD=0.7
    - Use abstract methods for response decision and indicators
 
 ### Phase 3: Update Interfaces
+
 1. **CLIInterface**: Implement the three abstract methods
-2. **MatrixInterface**: 
+2. **MatrixInterface**:
    - Implement the three abstract methods
    - Simplify room-events.ts to call handleInput for all messages
 
 ### Phase 4: Testing
+
 1. Test with conversation memory enabled
 2. Test with conversation memory disabled (should still work)
 3. Verify all messages are stored
@@ -373,7 +377,8 @@ CONVERSATION_SIMILARITY_THRESHOLD=0.7
 
 ## Implementation Checklist
 
-### 1. Update ConversationMemoryPlugin 
+### 1. Update ConversationMemoryPlugin
+
 - [ ] Modify `startConversation` to use sessionId as conversationId
 - [ ] Make startConversation idempotent
 - [ ] Update tests for new behavior
