@@ -10,6 +10,7 @@ After implementing the initial conversation memory plugin and analyzing the syst
 ## The Problem
 
 The current ConversationMemoryPlugin conflates two distinct concerns:
+
 1. **Infrastructure**: Storing/retrieving conversation history for context
 2. **Feature**: AI-powered topic extraction and summarization
 
@@ -18,17 +19,21 @@ The ContentGenerator needs conversation context to generate relevant responses, 
 ## Analysis: Why a Shell Service?
 
 ### Shell Service Criteria
+
 - **Universal Need**: Required by core system components
 - **Infrastructure**: Provides foundational capabilities
 - **Direct Dependencies**: Other services depend on it directly
 
 ### ConversationService Meets These Criteria
+
 1. **ContentGenerator needs it** to provide contextual AI responses
 2. **All message interfaces need it** for conversation continuity
 3. **Direct access required** for performance (no message bus indirection)
 
 ### Why Not Keep as Plugin?
+
 We considered keeping everything as plugins but encountered problems:
+
 - Complex workarounds to provide context to ContentGenerator
 - Message bus blocking issues for synchronous context retrieval
 - "Working memory entities" and other convoluted patterns
@@ -43,6 +48,7 @@ We considered keeping everything as plugins but encountered problems:
 **Purpose**: Core infrastructure for conversation storage and retrieval
 
 **Responsibilities**:
+
 - Store conversations and messages in SQLite
 - Provide direct API for retrieving conversation history
 - Maintain "working memory" of recent messages
@@ -50,23 +56,33 @@ We considered keeping everything as plugins but encountered problems:
 - Provide conversation context to ContentGenerator
 
 **API Interface**:
+
 ```typescript
 interface IConversationService {
   // Core operations
   startConversation(sessionId: string, interfaceType: string): Promise<string>;
-  addMessage(conversationId: string, role: string, content: string, metadata?: any): Promise<void>;
+  addMessage(
+    conversationId: string,
+    role: string,
+    content: string,
+    metadata?: any,
+  ): Promise<void>;
   getRecentMessages(conversationId: string, limit?: number): Promise<Message[]>;
   getConversation(conversationId: string): Promise<Conversation | null>;
-  
+
   // Search operations
-  searchConversations(query: string, sessionId?: string): Promise<SearchResult[]>;
-  
+  searchConversations(
+    query: string,
+    sessionId?: string,
+  ): Promise<SearchResult[]>;
+
   // Working memory
   getWorkingMemory(conversationId: string): Promise<string>;
 }
 ```
 
 **Events Published**:
+
 - `conversation:started` - New conversation begins
 - `conversation:messageAdded` - Message stored
 - `conversation:updated` - Metadata changes
@@ -78,6 +94,7 @@ interface IConversationService {
 **Purpose**: Optional AI-powered topic extraction and summarization
 
 **Responsibilities**:
+
 - Subscribe to conversation events from ConversationService
 - Generate topical summaries using AI
 - Create searchable topic entities
@@ -85,6 +102,7 @@ interface IConversationService {
 - Manage summarization thresholds
 
 **Configuration**:
+
 ```typescript
 {
   enableAutomatic: boolean;
@@ -106,7 +124,7 @@ graph TB
         CLI[CLI Interface]
         Matrix[Matrix Interface]
     end
-    
+
     subgraph "Shell Core"
         Shell[Shell]
         CS[ConversationService]
@@ -114,14 +132,14 @@ graph TB
         ES[EntityService]
         AI[AIService]
     end
-    
+
     subgraph "Plugins"
         Topics[ConversationTopicsPlugin]
     end
-    
+
     CLI -->|addMessage| CS
     Matrix -->|addMessage| CS
-    
+
     CLI -->|query| Shell
     Shell -->|getContext| CS
     Shell -->|search| ES
@@ -129,7 +147,7 @@ graph TB
     CG -->|needs context| CS
     CG -->|needs entities| ES
     CG -->|needs AI| AI
-    
+
     CS -->|events| Topics
     Topics -->|create entities| ES
 ```
@@ -141,41 +159,48 @@ class ContentGenerator {
   constructor(dependencies: {
     aiService: IAIService;
     entityService: IEntityService;
-    conversationService: IConversationService;  // NEW
+    conversationService: IConversationService; // NEW
   }) {
     // ...
   }
 
-  async generateContent<T>(templateName: string, context: GenerationContext): Promise<T> {
+  async generateContent<T>(
+    templateName: string,
+    context: GenerationContext,
+  ): Promise<T> {
     // Search relevant entities (including topics)
-    const relevantEntities = await this.dependencies.entityService.search(searchTerms, { 
-      limit: 5 
-    });
-    
+    const relevantEntities = await this.dependencies.entityService.search(
+      searchTerms,
+      {
+        limit: 5,
+      },
+    );
+
     // Get conversation context if available
-    let conversationContext = '';
+    let conversationContext = "";
     if (context.conversationId) {
       // Direct access to conversation service
-      const recentMessages = await this.dependencies.conversationService.getRecentMessages(
-        context.conversationId, 
-        10
-      );
+      const recentMessages =
+        await this.dependencies.conversationService.getRecentMessages(
+          context.conversationId,
+          10,
+        );
       conversationContext = this.formatMessages(recentMessages);
     }
-    
+
     // Build enhanced prompt with both entity and conversation context
     const enhancedPrompt = this.buildPrompt(
-      template, 
-      context, 
+      template,
+      context,
       relevantEntities,
-      conversationContext
+      conversationContext,
     );
-    
+
     // Generate with full context
     return this.dependencies.aiService.generateObject(
       template.basePrompt,
       enhancedPrompt,
-      template.schema
+      template.schema,
     );
   }
 }
@@ -186,18 +211,21 @@ class ContentGenerator {
 The ConversationService maintains two types of memory:
 
 ### 1. Working Memory (Last 10-20 messages)
+
 - Immediately available for context
 - Stored in conversation service
 - Directly accessed by ContentGenerator
 - Provides short-term continuity
 
 ### 2. Topic Memory (Summarized knowledge)
+
 - Created by ConversationTopicsPlugin
 - Stored as searchable entities
 - Found via entity search
 - Provides long-term context
 
 This dual approach ensures:
+
 - **Immediate context** even before summarization
 - **No context blindness** window
 - **Both short and long-term memory**
@@ -254,26 +282,31 @@ This dual approach ensures:
 ## Benefits of This Architecture
 
 ### 1. Clean Dependencies
+
 - ContentGenerator explicitly depends on ConversationService
 - No message bus indirection for critical path
 - Direct, synchronous access when needed
 
 ### 2. Separation of Concerns
+
 - **Infrastructure** (storage) is a shell service
 - **Feature** (AI summarization) is a plugin
 - Each component has single responsibility
 
 ### 3. Performance
+
 - Direct service calls for context retrieval
 - No event overhead in query path
 - Async summarization doesn't block responses
 
 ### 4. Flexibility
+
 - Can use conversations without AI costs
 - Topics plugin is optional
 - Can add alternative analysis plugins
 
 ### 5. Persistence
+
 - Conversations survive restarts
 - Can continue across interfaces
 - Searchable history
@@ -287,9 +320,9 @@ const shell = new Shell({
     databaseUrl: "./conversations.db",
     workingMemorySize: 20,
     retention: {
-      unlimited: true
-    }
-  }
+      unlimited: true,
+    },
+  },
 });
 
 // Plugin configuration
@@ -297,24 +330,25 @@ new ConversationTopicsPlugin({
   enableAutomatic: true,
   minMessages: 20,
   minTimeMinutes: 60,
-  similarityThreshold: 0.7
+  similarityThreshold: 0.7,
 });
 ```
 
 ## Comparison with Previous Approaches
 
-| Aspect | Plugin-Only | Working Memory Entities | Shell Service |
-|--------|------------|------------------------|---------------|
-| **ContentGenerator Access** | Complex events | Entity search | Direct API |
-| **Performance** | Message bus overhead | Entity search overhead | Direct calls |
-| **Complexity** | High (workarounds) | High (fake entities) | Low (explicit) |
-| **Testing** | Complex mocks | Complex setup | Simple mocks |
-| **Persistence** | Yes | Yes | Yes |
-| **Topics Support** | Coupled | Complex | Clean events |
+| Aspect                      | Plugin-Only          | Working Memory Entities | Shell Service  |
+| --------------------------- | -------------------- | ----------------------- | -------------- |
+| **ContentGenerator Access** | Complex events       | Entity search           | Direct API     |
+| **Performance**             | Message bus overhead | Entity search overhead  | Direct calls   |
+| **Complexity**              | High (workarounds)   | High (fake entities)    | Low (explicit) |
+| **Testing**                 | Complex mocks        | Complex setup           | Simple mocks   |
+| **Persistence**             | Yes                  | Yes                     | Yes            |
+| **Topics Support**          | Coupled              | Complex                 | Clean events   |
 
 ## Decision
 
 Split conversation memory into:
+
 1. **ConversationService** (Shell Service) - Infrastructure for storage/retrieval
 2. **ConversationTopicsPlugin** (Plugin) - Optional AI summarization
 
