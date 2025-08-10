@@ -46,52 +46,166 @@ graph LR
 
 ## Integration Pattern
 
-### Key Design Decision: Plugin Self-Managed Summarization
+### Key Design Decisions
 
-The plugin automatically checks for summarization needs after each message. Interfaces don't need to manage this logic.
+1. **Plugin Self-Managed Summarization**: The plugin automatically checks for summarization needs after each message
+2. **All Messages Stored**: Interfaces store ALL messages, not just ones that get responses
+3. **Interface-Specific Response Logic**: Each interface decides what messages to respond to via `shouldRespond()`
+4. **Unified Conversation ID**: Use `${interfaceType}-${channelId}` to avoid collisions
 
-### For Interfaces (CLI, Matrix, MCP)
+### MessageInterfacePlugin Base Class Integration
+
+The integration happens in the base `MessageInterfacePlugin` class that both CLI and Matrix extend:
 
 ```typescript
-// 1. On startup/session start
-const response = await messageBus.publish("conversation:start", {
-  sessionId: this.sessionId, // CLI session ID, Matrix room ID, etc.
-  interfaceType: "cli", // or "matrix", "mcp"
-  metadata: {
-    // Optional metadata
-    user: userId,
-    channel: channelName,
-  },
-});
-this.conversationId = response.data.conversationId;
-
-// 2. When processing messages
-// Before processing user query
-await messageBus.publish("conversation:addMessage", {
-  conversationId: this.conversationId,
-  role: "user",
-  content: userQuery,
-  metadata: {
-    command: extractedCommand, // Optional
-    timestamp: new Date().toISOString(),
-  },
-});
-
-// Process the query...
-const response = await this.processQuery(userQuery);
-
-// After getting response
-await messageBus.publish("conversation:addMessage", {
-  conversationId: this.conversationId,
-  role: "assistant",
-  content: response,
-  metadata: {
-    processingTime: elapsedMs,
-  },
-});
-
-// 3. That's it! Plugin handles summarization automatically
+// In MessageInterfacePlugin
+abstract class MessageInterfacePlugin {
+  private startedConversations = new Set<string>();
+  
+  // Interfaces must implement these
+  protected abstract shouldRespond(message: string, context: MessageContext): boolean;
+  protected abstract showThinkingIndicators(context: MessageContext): Promise<void>;
+  protected abstract showDoneIndicators(context: MessageContext): Promise<void>;
+  
+  protected async handleInput(
+    input: string,
+    context: MessageContext,
+    replyToId?: string
+  ): Promise<void> {
+    const conversationId = `${context.interfaceType}-${context.channelId}`;
+    
+    // 1. Start conversation if new channel (once per channel)
+    if (!this.startedConversations.has(conversationId)) {
+      try {
+        await this.getContext().publish("conversation:start", {
+          sessionId: conversationId,
+          interfaceType: context.interfaceType,
+          metadata: {
+            user: context.userId,
+            channel: context.channelId,
+            interface: context.interfaceType,
+          }
+        });
+        this.startedConversations.add(conversationId);
+      } catch (error) {
+        // Non-critical - continue even if conversation memory unavailable
+        this.logger.debug("Could not start conversation", { error });
+      }
+    }
+    
+    // 2. Always store user message (even if bot won't respond)
+    try {
+      await this.getContext().publish("conversation:addMessage", {
+        conversationId,
+        role: "user",
+        content: input,
+        metadata: {
+          messageId: context.messageId,
+          userId: context.userId,
+          timestamp: context.timestamp.toISOString(),
+          directed: this.shouldRespond(input, context), // Track if for bot
+        }
+      });
+    } catch (error) {
+      this.logger.debug("Could not store user message", { error });
+    }
+    
+    // 3. Check if bot should respond
+    if (!this.shouldRespond(input, context)) {
+      return; // Message stored, no response needed
+    }
+    
+    // 4. Process and respond
+    await this.showThinkingIndicators(context);
+    const response = await this.processMessage(input, context);
+    const messageId = await this.sendMessage(response, context, replyToId);
+    
+    // 5. Store assistant response
+    try {
+      await this.getContext().publish("conversation:addMessage", {
+        conversationId,
+        role: "assistant",
+        content: response,
+        metadata: { messageId, timestamp: new Date().toISOString() }
+      });
+    } catch (error) {
+      this.logger.debug("Could not store assistant message", { error });
+    }
+    
+    await this.showDoneIndicators(context);
+  }
+}
 ```
+
+### Interface-Specific Implementations
+
+#### CLI Interface
+```typescript
+class CLIInterface extends MessageInterfacePlugin {
+  protected shouldRespond(message: string, context: MessageContext): boolean {
+    return true; // CLI always responds to everything
+  }
+  
+  protected async showThinkingIndicators(context: MessageContext): Promise<void> {
+    // Could show spinner, or do nothing
+  }
+  
+  protected async showDoneIndicators(context: MessageContext): Promise<void> {
+    // Could clear spinner, or do nothing
+  }
+}
+```
+
+#### Matrix Interface
+```typescript
+class MatrixInterface extends MessageInterfacePlugin {
+  protected shouldRespond(message: string, context: MessageContext): boolean {
+    const isCommand = message.startsWith(this.config.commandPrefix);
+    const isAnchorCommand = message.startsWith(this.config.anchorPrefix);
+    const isMentioned = this.checkIfMentioned(message, context);
+    
+    // Check anchor command permissions
+    if (isAnchorCommand && context.userId !== this.config.anchorUserId) {
+      return false;
+    }
+    
+    return isMentioned || isCommand || isAnchorCommand;
+  }
+  
+  protected async showThinkingIndicators(context: MessageContext): Promise<void> {
+    if (this.config.enableTypingNotifications) {
+      await this.client.setTyping(context.channelId, true);
+    }
+    if (this.config.enableReactions) {
+      await this.client.sendReaction(context.channelId, context.messageId, "🤔");
+    }
+  }
+  
+  protected async showDoneIndicators(context: MessageContext): Promise<void> {
+    if (this.config.enableTypingNotifications) {
+      await this.client.setTyping(context.channelId, false);
+    }
+    if (this.config.enableReactions) {
+      await this.client.sendReaction(context.channelId, context.messageId, "✅");
+    }
+  }
+}
+
+// In room-events.ts - simplified handler
+async function handleRoomMessage(event: any, roomId: string, ctx: MatrixInterface) {
+  if (event.sender === ctx.config.userId) return; // Skip our own
+  if (event.content?.msgtype !== "m.text") return; // Only text
+  
+  const cleanMessage = stripBotMentions(event.content.body);
+  const context = buildMessageContext(roomId, event.sender, event.event_id);
+  
+  // Let handleInput manage everything (storage, response decision, indicators)
+  await ctx.handleInput(cleanMessage, context, event.event_id);
+}
+```
+
+### MCP Interface (No Conversation Memory)
+MCP extends `InterfacePlugin` directly, not `MessageInterfacePlugin`, so it doesn't participate in conversation memory.
 
 ### For the Plugin (Internal Logic)
 
