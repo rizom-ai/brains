@@ -1,4 +1,9 @@
-import type { ServicePluginContext, Logger, JobOptions } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  Logger,
+  JobOptions,
+  PluginTool,
+} from "@brains/plugins";
 import { z } from "zod";
 import { TopicService } from "../lib/topic-service";
 import type { TopicsPluginConfig } from "../schemas/config";
@@ -40,17 +45,6 @@ const mergeParamsSchema = z.object({
   target: z.string().optional(),
 });
 
-// Tool interface for internal use
-interface Tool {
-  name: string;
-  description: string;
-  execute: (params: Record<string, unknown>) => Promise<{
-    success: boolean;
-    data?: unknown;
-    error?: string;
-  }>;
-}
-
 /**
  * Extract topics from recent conversations
  */
@@ -58,17 +52,15 @@ export function createExtractTool(
   context: ServicePluginContext,
   config: TopicsPluginConfig,
   _logger: Logger,
-): Tool {
+): PluginTool {
   return {
     name: "topics:extract",
     description: "Extract topics from recent conversations",
-    execute: async (params) => {
+    inputSchema: extractParamsSchema.shape,
+    handler: async (params) => {
       const parsed = extractParamsSchema.safeParse(params);
       if (!parsed.success) {
-        return {
-          success: false,
-          error: "Invalid parameters",
-        };
+        throw new Error(`Invalid parameters: ${parsed.error.message}`);
       }
 
       const hours = parsed.data.hours ?? config.extractionWindowHours;
@@ -78,8 +70,8 @@ export function createExtractTool(
       const jobId = await context.enqueueJob(
         "topics:extraction",
         {
-          hours,
-          minScore,
+          timeWindowHours: hours,
+          minRelevanceScore: minScore,
         },
         EXTRACTION_JOB_OPTIONS,
       );
@@ -87,12 +79,8 @@ export function createExtractTool(
       return {
         success: true,
         data: {
-          message: `Topic extraction job queued`,
           jobId,
-          parameters: {
-            hours,
-            minScore,
-          },
+          message: `Topic extraction job queued. Time window: ${hours} hours, min relevance: ${minScore}`,
         },
       };
     },
@@ -106,17 +94,15 @@ export function createListTool(
   context: ServicePluginContext,
   _config: TopicsPluginConfig,
   logger: Logger,
-): Tool {
+): PluginTool {
   return {
     name: "topics:list",
     description: "List all topics",
-    execute: async (params) => {
+    inputSchema: listParamsSchema.shape,
+    handler: async (params) => {
       const parsed = listParamsSchema.safeParse(params);
       if (!parsed.success) {
-        return {
-          success: false,
-          error: "Invalid parameters",
-        };
+        throw new Error(`Invalid parameters: ${parsed.error.message}`);
       }
 
       const topicService = new TopicService(context.entityService, logger);
@@ -160,27 +146,22 @@ export function createGetTool(
   context: ServicePluginContext,
   _config: TopicsPluginConfig,
   logger: Logger,
-): Tool {
+): PluginTool {
   return {
     name: "topics:get",
     description: "Get details of a specific topic",
-    execute: async (params) => {
+    inputSchema: getParamsSchema.shape,
+    handler: async (params) => {
       const parsed = getParamsSchema.safeParse(params);
       if (!parsed.success) {
-        return {
-          success: false,
-          error: "Invalid parameters: id is required",
-        };
+        throw new Error(`Invalid parameters: ${parsed.error.message}`);
       }
 
       const topicService = new TopicService(context.entityService, logger);
       const topic = await topicService.getTopic(parsed.data.id);
 
       if (!topic) {
-        return {
-          success: false,
-          error: `Topic not found: ${parsed.data.id}`,
-        };
+        throw new Error(`Topic not found: ${parsed.data.id}`);
       }
 
       return {
@@ -189,6 +170,8 @@ export function createGetTool(
           id: topic.id,
           content: topic.content,
           metadata: topic.metadata,
+          created: topic.created,
+          updated: topic.updated,
         },
       };
     },
@@ -202,36 +185,33 @@ export function createSearchTool(
   context: ServicePluginContext,
   _config: TopicsPluginConfig,
   logger: Logger,
-): Tool {
+): PluginTool {
   return {
     name: "topics:search",
     description: "Search topics by query",
-    execute: async (params) => {
+    inputSchema: searchParamsSchema.shape,
+    handler: async (params) => {
       const parsed = searchParamsSchema.safeParse(params);
       if (!parsed.success) {
-        return {
-          success: false,
-          error: "Invalid parameters: query is required",
-        };
+        throw new Error(`Invalid parameters: ${parsed.error.message}`);
       }
 
       const topicService = new TopicService(context.entityService, logger);
-      const topics = await topicService.searchTopics(
+      const results = await topicService.searchTopics(
         parsed.data.query,
-        parsed.data.limit,
+        parsed.data.limit ?? 10,
       );
 
       return {
         success: true,
         data: {
-          topics: topics.map((t) => ({
+          results: results.map((t) => ({
             id: t.id,
             keywords: t.metadata.keywords,
             relevanceScore: t.metadata.relevanceScore,
-            mentionCount: t.metadata.mentionCount,
-            lastSeen: t.metadata.lastSeen,
+            summary: t.content.substring(0, 200),
           })),
-          count: topics.length,
+          count: results.length,
         },
       };
     },
@@ -245,48 +225,41 @@ export function createMergeTool(
   context: ServicePluginContext,
   _config: TopicsPluginConfig,
   logger: Logger,
-): Tool {
+): PluginTool {
   return {
     name: "topics:merge",
     description: "Merge multiple topics into one",
-    execute: async (params) => {
+    inputSchema: mergeParamsSchema.shape,
+    handler: async (params) => {
       const parsed = mergeParamsSchema.safeParse(params);
       if (!parsed.success) {
-        return {
-          success: false,
-          error: "Invalid parameters: ids is required",
-        };
+        throw new Error(`Invalid parameters: ${parsed.error.message}`);
       }
 
       const topicService = new TopicService(context.entityService, logger);
-      const ids = parsed.data.ids.split(",").map((id: string) => id.trim());
 
-      if (ids.length < 2) {
-        return {
-          success: false,
-          error: "At least 2 topic IDs required for merging",
-        };
-      }
+      // Parse comma-separated IDs
+      const topicIds = parsed.data.ids.split(",").map((id) => id.trim());
 
-      const merged = await topicService.mergeTopics(ids, parsed.data.target);
+      const merged = await topicService.mergeTopics(
+        topicIds,
+        parsed.data.target,
+      );
 
       if (!merged) {
-        return {
-          success: false,
-          error: "Failed to merge topics",
-        };
+        throw new Error("Failed to merge topics");
       }
 
       return {
         success: true,
         data: {
-          message: `Merged ${ids.length} topics into ${merged.id}`,
           mergedTopic: {
             id: merged.id,
             keywords: merged.metadata.keywords,
             relevanceScore: merged.metadata.relevanceScore,
             mentionCount: merged.metadata.mentionCount,
           },
+          mergedIds: topicIds,
         },
       };
     },

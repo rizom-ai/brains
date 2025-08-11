@@ -11,15 +11,18 @@ import type { TopicsPluginConfig } from "../schemas/config";
 
 // Schema for extraction job data
 const extractionJobDataSchema = z.object({
-  hours: z.number().optional(),
-  minScore: z.number().min(0).max(1).optional(),
+  timeWindowHours: z.number().min(1).optional(),
+  minRelevanceScore: z.number().min(0).max(1).optional(),
 });
 
 type ExtractionJobData = z.infer<typeof extractionJobDataSchema>;
 
 interface ExtractionJobResult {
+  success: boolean;
   extractedCount: number;
-  message: string;
+  mergedCount: number;
+  message?: string;
+  error?: string;
 }
 
 /**
@@ -57,8 +60,8 @@ export class TopicExtractionHandler
       // Extract topics from recent conversations
       const extractedTopics =
         await this.topicExtractor.extractFromConversations(
-          data.hours ?? this.config.extractionWindowHours ?? 24,
-          data.minScore ?? this.config.minRelevanceScore ?? 0.5,
+          data.timeWindowHours ?? this.config.extractionWindowHours ?? 24,
+          data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
         );
 
       this.logger.info(`Extracted ${extractedTopics.length} topics`);
@@ -69,6 +72,7 @@ export class TopicExtractionHandler
 
       // Process each extracted topic
       let processed = 0;
+      let mergedCount = 0;
       for (const extractedTopic of extractedTopics) {
         processed++;
         const progress = 30 + (processed / extractedTopics.length) * 60;
@@ -119,6 +123,7 @@ export class TopicExtractionHandler
                 topicId: existingTopic.id,
               });
               shouldCreateNew = false;
+              mergedCount++;
               break;
             }
           }
@@ -147,7 +152,9 @@ export class TopicExtractionHandler
       });
 
       return {
+        success: true,
         extractedCount: extractedTopics.length,
+        mergedCount: mergedCount,
         message: `Successfully extracted ${extractedTopics.length} topics`,
       };
     } catch (error) {
@@ -164,6 +171,16 @@ export class TopicExtractionHandler
 
   validateAndParse(data: unknown): ExtractionJobData | null {
     const result = extractionJobDataSchema.safeParse(data);
-    return result.success ? result.data : null;
+    if (!result.success) {
+      return null;
+    }
+
+    // Apply defaults
+    return {
+      timeWindowHours:
+        result.data.timeWindowHours ?? this.config.extractionWindowHours ?? 24,
+      minRelevanceScore:
+        result.data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
+    };
   }
 }

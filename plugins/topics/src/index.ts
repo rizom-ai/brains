@@ -4,8 +4,6 @@ import {
   type PluginTool,
   type PluginResource,
   type Command,
-  type CommandContext,
-  type CommandResponse,
   type JobOptions,
 } from "@brains/plugins";
 import {
@@ -25,6 +23,7 @@ import {
   createSearchTool,
   createMergeTool,
 } from "./tools";
+import { createTopicsCommands } from "./commands";
 
 /**
  * Topics Plugin - Extracts and manages topics from conversations and other sources
@@ -65,8 +64,8 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     );
     context.registerJobHandler("topics:extraction", extractionHandler);
 
-    // Register tools and commands
-    const tools = [
+    // Store tools for MCP
+    this.tools = [
       createExtractTool(context, this.config, this.logger),
       createListTool(context, this.config, this.logger),
       createGetTool(context, this.config, this.logger),
@@ -74,70 +73,8 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       createMergeTool(context, this.config, this.logger),
     ];
 
-    tools.forEach((tool) => {
-      const command: Command = {
-        name: tool.name,
-        description: tool.description,
-        handler: async (
-          args: string[],
-          _context: CommandContext,
-        ): Promise<CommandResponse> => {
-          // Parse arguments into parameters
-          const params: Record<string, unknown> = {};
-
-          // Parse named parameters (--param=value or --param value)
-          for (let i = 0; i < args.length; i++) {
-            const arg = args[i];
-            if (!arg) continue;
-
-            if (arg.startsWith("--")) {
-              const equalIndex = arg.indexOf("=");
-              if (equalIndex > 2) {
-                // --param=value format
-                const key = arg.slice(2, equalIndex);
-                const value = arg.slice(equalIndex + 1);
-                const numValue = Number(value);
-                params[key] = isNaN(numValue) ? value : numValue;
-              } else {
-                // --param format (might have value as next arg)
-                const key = arg.slice(2);
-                const nextArg = args[i + 1];
-                if (
-                  i + 1 < args.length &&
-                  nextArg &&
-                  !nextArg.startsWith("--")
-                ) {
-                  const numValue = Number(nextArg);
-                  params[key] = isNaN(numValue) ? nextArg : numValue;
-                  i++; // Skip next argument
-                } else {
-                  params[key] = true; // Flag without value
-                }
-              }
-            }
-          }
-
-          const result = await tool.execute(params);
-
-          if (result.success) {
-            // Return as message with formatted data
-            const dataStr = JSON.stringify(result.data, null, 2);
-            return {
-              type: "message",
-              message: dataStr,
-            };
-          } else {
-            return {
-              type: "message",
-              message: `Error: ${result.error ?? "Command failed"}`,
-            };
-          }
-        },
-      };
-
-      // Commands are returned as part of capabilities
-      this.commands.push(command);
-    });
+    // Store commands for CLI
+    this.commands = createTopicsCommands(context, this.config, this.logger);
 
     // Set up automatic extraction if enabled
     if (this.config.autoExtract) {
@@ -146,15 +83,15 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     }
   }
 
-  override async getCommands(): Promise<Command[]> {
+  protected override async getCommands(): Promise<Command[]> {
     return this.commands;
   }
 
-  override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<PluginTool[]> {
     return this.tools;
   }
 
-  override async getResources(): Promise<PluginResource[]> {
+  protected override async getResources(): Promise<PluginResource[]> {
     return [];
   }
 
