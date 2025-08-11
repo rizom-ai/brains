@@ -95,8 +95,8 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     return [];
   }
 
-  override async shutdown(): Promise<void> {
-    this.logger.info("Unregistering Topics plugin");
+  protected override async onShutdown(): Promise<void> {
+    this.logger.info("Shutting down Topics plugin");
   }
 
   private scheduleExtraction(context: ServicePluginContext): void {
