@@ -25,6 +25,7 @@ import type { JobOptions, JobQueue } from "@brains/job-queue";
 import type { CommandRegistry } from "@brains/command-registry";
 import type { ViewRegistry, RouteDefinition } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
+import type { IConversationService } from "@brains/conversation-service";
 
 /**
  * Shell interface that plugins use to access core services
@@ -41,6 +42,7 @@ export interface IShell {
   getCommandRegistry(): CommandRegistry;
   getViewRegistry(): ViewRegistry;
   getServiceRegistry(): ServiceRegistry;
+  getConversationService(): IConversationService;
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;

@@ -1,20 +1,12 @@
-import type { Logger } from "@brains/utils";
+import type { Logger, ServicePluginContext, Message } from "@brains/plugins";
 import type { TopicSource } from "../schemas/topic";
-import {
-  topicExtractionResponseSchema,
-  type ExtractedTopicData,
-} from "../schemas/extraction";
-import type { ConversationService, Message } from "@brains/conversation-service";
-import type { AIService } from "@brains/ai-service";
-import type { EmbeddingService } from "@brains/embedding-service";
-import { z } from "zod";
+import type { ExtractedTopicData } from "../schemas/extraction";
 
 /**
- * Extracted topic with sources and embedding
+ * Extracted topic with sources
  */
 export interface ExtractedTopic extends ExtractedTopicData {
   sources: TopicSource[];
-  embedding: number[]; // Always generated for semantic search
 }
 
 /**
@@ -22,9 +14,7 @@ export interface ExtractedTopic extends ExtractedTopicData {
  */
 export class TopicExtractor {
   constructor(
-    private readonly conversationService: ConversationService,
-    private readonly aiService: AIService,
-    private readonly embeddingService: EmbeddingService,
+    private readonly context: ServicePluginContext,
     private readonly logger: Logger,
   ) {}
 
@@ -47,7 +37,7 @@ export class TopicExtractor {
     });
 
     // Get all conversations (empty query returns all)
-    const conversations = await this.conversationService.searchConversations("");
+    const conversations = await this.context.searchConversations("");
 
     // Filter conversations within the time window
     const recentConversations = conversations.filter((conv) => {
@@ -64,7 +54,7 @@ export class TopicExtractor {
 
     // Process each conversation
     for (const conversation of recentConversations) {
-      const messages = await this.conversationService.getRecentMessages(
+      const messages = await this.context.getRecentMessages(
         conversation.id,
         100, // Get up to 100 messages for analysis
       );
@@ -108,10 +98,10 @@ export class TopicExtractor {
       .join("\n\n");
 
     try {
-      // Use AI service with schema - wrap in object since schema expects array
-      const result = await this.aiService.generateObject(
-        "You are an expert at analyzing conversations and extracting key topics.",
-        `Analyze the following conversation and extract the main topics discussed.
+      // Use AI service with schema through context
+      const prompt = `You are an expert at analyzing conversations and extracting key topics.
+      
+Analyze the following conversation and extract the main topics discussed.
 
 For each topic, provide:
 1. A clear, concise title (max 100 chars)
@@ -123,33 +113,34 @@ For each topic, provide:
 Conversation:
 ${conversationText}
 
-Return an array of topics in the required JSON format.`,
-        z.object({ topics: topicExtractionResponseSchema }),
-      );
+Return an array of topics in the required JSON format.`;
 
-      const extractedData = result.object.topics;
+      const result = await this.context.generateContent<{
+        topics: ExtractedTopicData[];
+      }>({
+        prompt,
+        templateName: "topics:extraction",
+      });
 
-      // Create ExtractedTopic objects with sources and embeddings
+      const extractedData = result.topics;
+
+      // Create ExtractedTopic objects with sources
       const topics: ExtractedTopic[] = [];
 
       for (const data of extractedData) {
-        // Generate embedding for the topic
-        const embedding = await this.embeddingService.generateEmbedding(
-          `${data.title} ${data.summary} ${data.keywords.join(" ")}`,
-        );
-
         // Create topic source reference
         const source: TopicSource = {
           type: "conversation",
           id: conversationId,
-          timestamp: messages[0]?.timestamp ? new Date(messages[0].timestamp) : startTime,
+          timestamp: messages[0]?.timestamp
+            ? new Date(messages[0].timestamp)
+            : startTime,
           context: data.summary.substring(0, 200),
         };
 
         topics.push({
           ...data,
           sources: [source],
-          embedding: Array.from(embedding), // Convert Float32Array to number[]
         });
       }
 

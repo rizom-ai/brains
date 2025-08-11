@@ -8,6 +8,7 @@ import type {
 import type { JobHandler, BatchOperation } from "@brains/job-queue";
 import type { JobOptions } from "@brains/job-queue";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
+import type { Conversation, Message } from "@brains/conversation-service";
 import type { z } from "zod";
 import { createCorePluginContext } from "../core/context";
 
@@ -26,6 +27,13 @@ export interface ServicePluginContext extends CorePluginContext {
 
   // AI content generation
   generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
+
+  // Conversation service helpers
+  searchConversations: (query: string) => Promise<Conversation[]>;
+  getRecentMessages: (
+    conversationId: string,
+    limit?: number,
+  ) => Promise<Message[]>;
 
   // Job queue functionality (write operations)
   enqueueJob: (
@@ -83,6 +91,16 @@ export function createServicePluginContext(
     // AI content generation
     generateContent: async (config) => {
       return shell.generateContent(config);
+    },
+
+    // Conversation service helpers
+    searchConversations: async (query: string) => {
+      const conversationService = shell.getConversationService();
+      return conversationService.searchConversations(query);
+    },
+    getRecentMessages: async (conversationId: string, limit?: number) => {
+      const conversationService = shell.getConversationService();
+      return conversationService.getRecentMessages(conversationId, limit);
     },
 
     // Job queue functionality

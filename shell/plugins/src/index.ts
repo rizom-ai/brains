@@ -115,6 +115,9 @@ export {
   generateFrontmatter,
 } from "@brains/entity-service";
 
+// From @brains/conversation-service
+export type { Conversation, Message } from "@brains/conversation-service";
+
 // From @brains/content-generator
 export type {
   Template,
@@ -186,6 +189,7 @@ export {
   ResponseFormatter,
   PermissionHandler,
   markdownToHtml,
+  StructuredContentFormatter,
 } from "@brains/utils";
 
 // Test utilities from @brains/core

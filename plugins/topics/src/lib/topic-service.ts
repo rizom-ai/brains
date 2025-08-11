@@ -1,5 +1,4 @@
-import type { Logger } from "@brains/utils";
-import type { EntityService } from "@brains/entity-service";
+import type { Logger, IEntityService } from "@brains/plugins";
 import type { TopicEntity } from "../types";
 import type { TopicMetadata, TopicSource } from "../schemas/topic";
 import { TopicAdapter } from "./topic-adapter";
@@ -11,7 +10,7 @@ export class TopicService {
   private adapter: TopicAdapter;
 
   constructor(
-    private readonly entityService: EntityService,
+    private readonly entityService: IEntityService,
     private readonly logger: Logger,
   ) {
     this.adapter = new TopicAdapter();
@@ -147,10 +146,15 @@ export class TopicService {
     startDate?: Date;
     endDate?: Date;
   }): Promise<TopicEntity[]> {
-    const topics = await this.entityService.listEntities<TopicEntity>("topic", {
-      limit: params?.limit,
-      offset: params?.offset,
-    });
+    const listOptions = {
+      ...(params?.limit !== undefined && { limit: params.limit }),
+      ...(params?.offset !== undefined && { offset: params.offset }),
+    };
+
+    const topics = await this.entityService.listEntities<TopicEntity>(
+      "topic",
+      listOptions,
+    );
 
     // Filter by date range if provided
     if (params?.startDate || params?.endDate) {

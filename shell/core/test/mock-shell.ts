@@ -29,6 +29,7 @@ import type { ViewRegistry } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { Template } from "@brains/content-generator";
+import type { IConversationService } from "@brains/conversation-service";
 
 import { createSilentLogger } from "@brains/utils";
 
@@ -232,6 +233,29 @@ export class MockShell implements IShell {
       validateEntity: (_type: string, entity: BaseEntity) => entity,
       getAllEntityTypes: () => Array.from(this.entityTypes),
     } as unknown as EntityRegistry;
+  }
+
+  getConversationService(): IConversationService {
+    return {
+      startConversation: async () => ({
+        id: `conv-${Date.now()}`,
+        sessionId: `session-${Date.now()}`,
+        interfaceType: "test",
+        lastActive: new Date().toISOString(),
+      }),
+      addMessage: async () => ({
+        id: `msg-${Date.now()}`,
+        conversationId: `conv-${Date.now()}`,
+        role: "user",
+        content: "test message",
+        timestamp: new Date().toISOString(),
+      }),
+      getConversation: async () => null,
+      searchConversations: async () => [],
+      getRecentMessages: async () => [],
+      summarizeConversation: async () => "Test summary",
+      getNextSummaryRequiredConversation: async () => null,
+    } as unknown as IConversationService;
   }
 
   getJobQueueService(): JobQueueService {

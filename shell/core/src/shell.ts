@@ -583,6 +583,10 @@ export class Shell implements IShell {
     return this.entityService;
   }
 
+  public getConversationService(): IConversationService {
+    return this.conversationService;
+  }
+
   public getEntityRegistry(): EntityRegistry {
     return this.entityRegistry;
   }

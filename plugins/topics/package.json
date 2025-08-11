@@ -1,6 +1,7 @@
 {
   "name": "@brains/topics",
   "version": "0.1.0",
+  "description": "Extract and manage topics from conversations",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

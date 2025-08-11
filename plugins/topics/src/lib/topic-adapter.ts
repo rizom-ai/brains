@@ -1,7 +1,9 @@
-import type { EntityAdapter } from "@brains/entity-service";
-import { baseEntitySchema } from "@brains/entity-service";
-import { parseMarkdownWithFrontmatter } from "@brains/entity-service";
-import { StructuredContentFormatter } from "@brains/utils";
+import type { EntityAdapter } from "@brains/plugins";
+import {
+  baseEntitySchema,
+  parseMarkdownWithFrontmatter,
+} from "@brains/plugins";
+import { StructuredContentFormatter } from "@brains/plugins";
 import { topicMetadataSchema, type TopicSource } from "../schemas/topic";
 import { z } from "zod";
 
