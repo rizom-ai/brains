@@ -43,6 +43,9 @@ describe("App Integration", () => {
           jobQueueDatabase: {
             url: `file:${join(tempDir, "brain-jobs.db")}`,
           },
+          conversationDatabase: {
+            url: `file:${join(tempDir, "conversation.db")}`,
+          },
           features: {
             enablePlugins: false,
           },
@@ -81,6 +84,9 @@ describe("App Integration", () => {
           },
           jobQueueDatabase: {
             url: `file:${join(tempDir, "brain-jobs.db")}`,
+          },
+          conversationDatabase: {
+            url: `file:${join(tempDir, "conversation.db")}`,
           },
           features: {
             enablePlugins: false,
@@ -128,6 +134,9 @@ describe("App Integration", () => {
           },
           jobQueueDatabase: {
             url: `file:${join(tempDir, "brain-jobs.db")}`,
+          },
+          conversationDatabase: {
+            url: `file:${join(tempDir, "conversation.db")}`,
           },
           features: {
             enablePlugins: false,

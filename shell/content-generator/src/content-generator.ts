@@ -4,6 +4,7 @@ import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { ContentGenerator as IContentGenerator } from "./types";
+import type { IConversationService } from "@brains/conversation-service";
 
 /**
  * Progress information for content generation operations
@@ -21,6 +22,7 @@ export interface ContentGeneratorDependencies {
   logger: Logger;
   entityService: EntityService;
   aiService: IAIService;
+  conversationService: IConversationService;
 }
 
 /**
@@ -126,8 +128,8 @@ export class ContentGenerator implements IContentGenerator {
       ? await this.dependencies.entityService.search(searchTerms, { limit: 5 })
       : [];
 
-    // Build enhanced prompt with template, user context, and entity context
-    const enhancedPrompt = this.buildPrompt(
+    // Build enhanced prompt with template, user context, entity context, and conversation context
+    const enhancedPrompt = await this.buildPrompt(
       typedTemplate,
       context,
       relevantEntities,
@@ -250,18 +252,36 @@ export class ContentGenerator implements IContentGenerator {
   }
 
   /**
-   * Build enhanced prompt with context from template, user context, and entities
+   * Build enhanced prompt with context from template, user context, entities, and conversation
    */
-  private buildPrompt<T>(
+  private async buildPrompt<T>(
     template: Template<T>,
     context: GenerationContext,
     relevantEntities: SearchResult[] = [],
-  ): string {
+  ): Promise<string> {
     // basePrompt is required for AI generation, verified by caller
     if (!template.basePrompt) {
       throw new Error("Template basePrompt is required for AI generation");
     }
     let prompt = template.basePrompt;
+
+    // Add conversation context if conversationId is provided
+    if (context.conversationId) {
+      try {
+        const workingMemory =
+          await this.dependencies.conversationService.getWorkingMemory(
+            context.conversationId,
+          );
+        if (workingMemory) {
+          prompt += `\n\nRecent conversation context:\n${workingMemory}`;
+        }
+      } catch (error) {
+        // Log error but don't fail generation if conversation context unavailable
+        this.dependencies.logger.debug("Failed to get conversation context", {
+          error,
+        });
+      }
+    }
 
     // Add entity context to inform the generation
     if (relevantEntities.length > 0) {

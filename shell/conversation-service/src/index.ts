@@ -13,3 +13,4 @@ export {
   type SummaryTracking,
   type NewSummaryTracking,
 } from "./schema";
+export { migrateConversations } from "./migrate";

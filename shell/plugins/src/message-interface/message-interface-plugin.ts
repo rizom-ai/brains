@@ -22,6 +22,8 @@ export abstract class MessageInterfacePlugin<
   protected jobMessages = new Map<string, string>();
   // Track started conversations per channel
   protected startedConversations = new Set<string>();
+  // Track which channels are direct messages (1-on-1 conversations)
+  protected directMessageChannels = new Set<string>();
 
   constructor(
     id: string,
@@ -67,24 +69,62 @@ export abstract class MessageInterfacePlugin<
   ): Promise<void>;
 
   /**
-   * Determine if the bot should respond to a message
+   * Check if a channel is a direct message (1-on-1 conversation)
+   * Interfaces should override this to provide their own logic
    */
-  protected abstract shouldRespond(
-    message: string,
-    context: MessageContext,
-  ): boolean;
+  protected isDirectMessage(channelId: string): boolean {
+    return this.directMessageChannels.has(channelId);
+  }
+
+  /**
+   * Mark a channel as a direct message
+   */
+  protected markAsDirectMessage(channelId: string): void {
+    this.directMessageChannels.add(channelId);
+  }
+
+  /**
+   * Determine if the bot should respond to a message
+   * Default implementation: respond in DMs and when mentioned
+   * Interfaces can override to add their own logic
+   */
+  protected shouldRespond(message: string, context: MessageContext): boolean {
+    // Always respond in direct messages
+    if (this.isDirectMessage(context.channelId)) {
+      return true;
+    }
+
+    // Check for bot mentions (basic implementation)
+    // Interfaces should override for platform-specific mention detection
+    const lowerMessage = message.toLowerCase();
+    if (
+      lowerMessage.includes("@bot") ||
+      lowerMessage.includes("brain") ||
+      lowerMessage.includes(this.id)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
 
   /**
    * Show thinking indicators (typing, reactions, etc.)
+   * Default: no-op. Override to show platform-specific indicators
    */
-  protected abstract showThinkingIndicators(
-    context: MessageContext,
-  ): Promise<void>;
+  protected async showThinkingIndicators(
+    _context: MessageContext,
+  ): Promise<void> {
+    // Default no-op - interfaces can override if they have indicators
+  }
 
   /**
    * Show done indicators (stop typing, final reaction, etc.)
+   * Default: no-op. Override to show platform-specific indicators
    */
-  protected abstract showDoneIndicators(context: MessageContext): Promise<void>;
+  protected async showDoneIndicators(_context: MessageContext): Promise<void> {
+    // Default no-op - interfaces can override if they have indicators
+  }
 
   /**
    * Get the plugin context, throwing if not initialized

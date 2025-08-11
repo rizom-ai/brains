@@ -55,6 +55,9 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+
+    // Mark the CLI channel as a direct message
+    this.markAsDirectMessage("cli");
     // Test handlers and MessageBus subscriptions are now handled in the base MessageInterfacePlugin class
     // Progress events will be routed to our handleJobProgressEvent and handleBatchProgressEvent methods
   }
@@ -227,6 +230,23 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
         };
       },
     };
+  }
+
+  /**
+   * Process user input - public API for UI components, testing, and programmatic use
+   * Creates appropriate context and delegates to handleInput
+   */
+  public override async processInput(input: string): Promise<void> {
+    const context: MessageContext = {
+      userId: "cli-user",
+      channelId: "cli",
+      messageId: `cli-${Date.now()}`,
+      timestamp: new Date(),
+      interfaceType: "cli",
+      userPermissionLevel: "anchor", // CLI users have anchor permissions
+    };
+
+    await this.handleInput(input, context);
   }
 
   /**

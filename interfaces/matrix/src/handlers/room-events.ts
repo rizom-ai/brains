@@ -58,46 +58,23 @@ export async function handleRoomMessage(
     return;
   }
 
-  // Check if we should process this message
-  const isCommand = message.startsWith(ctx.config.commandPrefix);
-  const isAnchorCommand = message.startsWith(ctx.config.anchorPrefix);
+  // Check if bot is mentioned - we'll pass this info to shouldRespond
   const isMentioned = isAddressedToBot(
     messageEvent,
     ctx.config.userId,
     ctx.logger,
   );
 
-  // For anchor commands, check permission before processing
-  if (isAnchorCommand && senderId !== ctx.config.anchorUserId) {
-    ctx.logger.debug("Ignoring anchor command from non-anchor user", {
-      sender: senderId,
-      command: message.substring(0, 50),
-    });
-    return;
-  }
-
-  // Only respond if we're explicitly addressed or it's a command
-  if (!isMentioned && !isCommand && !isAnchorCommand) {
-    ctx.logger.debug(
-      "Message not for bot (not mentioned and not a command), ignoring",
-      {
-        roomId,
-        senderId,
-        message: message.substring(0, 50),
-      },
-    );
-    return;
-  }
-
   // Strip bot mention from message if present
   const mentionPattern = new RegExp(`^${ctx.config.userId}[,:;]?\\s*`);
   const cleanMessage = message.replace(mentionPattern, "").trim();
+  const messageToProcess = cleanMessage || message; // Use original if cleaning resulted in empty
 
   ctx.logger.info("Processing message", {
     roomId,
     senderId,
     eventId,
-    message: cleanMessage.substring(0, 100), // Log first 100 chars
+    message: messageToProcess.substring(0, 100), // Log first 100 chars
   });
 
   try {
@@ -112,17 +89,7 @@ export async function handleRoomMessage(
       messageLength: message.length,
     });
 
-    // Set typing indicator
-    if (ctx.config.enableTypingNotifications) {
-      await ctx.client.setTyping(roomId, true);
-    }
-
-    // Add thinking reaction
-    if (ctx.config.enableReactions) {
-      await ctx.client.sendReaction(roomId, eventId, "🤔");
-    }
-
-    // Create message context - let shell handle permission checking
+    // Create message context - pass mention info via threadId (hack for now)
     const messageContext: MessageContext = {
       userId: senderId,
       channelId: roomId,
@@ -130,31 +97,21 @@ export async function handleRoomMessage(
       timestamp: new Date(),
       interfaceType: "matrix",
       userPermissionLevel: ctx.determineUserPermissionLevel(senderId),
+      ...(isMentioned && { threadId: "mentioned" }), // Pass mention info only if mentioned
     };
 
-    // Check if message is an anchor-only command
-    if (message.startsWith(ctx.config.anchorPrefix)) {
-      // Only process if sender is the anchor user
-      if (senderId !== ctx.config.anchorUserId) {
-        throw new Error("This command is restricted to the anchor user");
-      }
-    }
-
-    // Process the message using the base class method with mapping
-    await ctx.handleInput(message, messageContext, eventId);
-
-    // Add done reaction
-    if (ctx.config.enableReactions) {
-      await ctx.client.sendReaction(roomId, eventId, "✅");
-    }
+    // Process the message using the base class method
+    // The handleInput method will:
+    // 1. Call shouldRespond to check if we should respond
+    // 2. Call showThinkingIndicators if we should respond
+    // 3. Process the message
+    // 4. Call showDoneIndicators when complete
+    await ctx.handleInput(messageToProcess, messageContext, eventId);
   } catch (error) {
     ctx.logger.error("Error handling message", { error, roomId, eventId });
     await sendErrorMessage(roomId, eventId, error, ctx.client, ctx.config);
   } finally {
-    // Stop typing indicator
-    if (ctx.config.enableTypingNotifications) {
-      await ctx.client.setTyping(roomId, false);
-    }
+    // Cleanup is handled by showDoneIndicators in MatrixInterface
   }
 }
 

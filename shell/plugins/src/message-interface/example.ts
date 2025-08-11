@@ -125,14 +125,17 @@ export class EchoMessageInterface extends MessageInterfacePlugin<EchoConfig> {
   /**
    * Echo interface always responds to everything
    */
-  protected shouldRespond(_message: string, _context: MessageContext): boolean {
+  protected override shouldRespond(
+    _message: string,
+    _context: MessageContext,
+  ): boolean {
     return true; // Always respond for testing
   }
 
   /**
    * Show thinking indicators - just log for testing
    */
-  protected async showThinkingIndicators(
+  protected override async showThinkingIndicators(
     context: MessageContext,
   ): Promise<void> {
     if (this.config.debug) {
@@ -143,7 +146,9 @@ export class EchoMessageInterface extends MessageInterfacePlugin<EchoConfig> {
   /**
    * Show done indicators - just log for testing
    */
-  protected async showDoneIndicators(context: MessageContext): Promise<void> {
+  protected override async showDoneIndicators(
+    context: MessageContext,
+  ): Promise<void> {
     if (this.config.debug) {
       this.logger.debug("Showing done indicators", { context });
     }

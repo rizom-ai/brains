@@ -243,7 +243,6 @@ describe("ConversationService", () => {
 
   describe("searchConversations", () => {
     it("should search conversations by content", async () => {
-
       // Create conversation with searchable content
       await service.startConversation("conv-1", "cli");
       await service.addMessage("conv-1", "user", "This is a test message");

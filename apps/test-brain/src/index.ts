@@ -6,7 +6,6 @@ import { MatrixInterface } from "@brains/matrix";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 import { SystemPlugin } from "@brains/system";
-import { ConversationMemoryPlugin } from "@brains/conversation-memory";
 
 // Run the app - command line args are parsed automatically by App
 // Usage:
@@ -27,6 +26,14 @@ async function main(): Promise<void> {
     database: process.env["DATABASE_URL"] ?? "file:./test-brain.db",
     aiApiKey: process.env["ANTHROPIC_API_KEY"] ?? "test-key",
     logLevel: "debug",
+    // Pass shell config to set conversation database
+    shellConfig: {
+      conversationDatabase: {
+        url:
+          process.env["CONVERSATION_DATABASE_URL"] ??
+          "file:./conversation-memory.db",
+      },
+    },
     // CLI config used when --cli flag is present
     cliConfig: {
       theme: {
@@ -40,25 +47,6 @@ async function main(): Promise<void> {
       new SystemPlugin({
         searchLimit: 10,
         debug: false,
-      }),
-      // Conversation memory plugin - provides conversation tracking and topical summarization
-      new ConversationMemoryPlugin({
-        databaseUrl:
-          process.env["CONVERSATION_DB_URL"] ?? "file:./conversations.db",
-        summarization: {
-          enableAutomatic: true,
-          minMessages: Number(process.env["CONVERSATION_MIN_MESSAGES"] ?? 20),
-          minTimeMinutes: Number(
-            process.env["CONVERSATION_MIN_TIME_MINUTES"] ?? 60,
-          ),
-          batchSize: Number(process.env["CONVERSATION_BATCH_SIZE"] ?? 20),
-          overlapPercentage: Number(
-            process.env["CONVERSATION_OVERLAP_PERCENTAGE"] ?? 0.25,
-          ),
-          similarityThreshold: Number(
-            process.env["CONVERSATION_SIMILARITY_THRESHOLD"] ?? 0.7,
-          ),
-        },
       }),
       // MCP interface plugin - provides Model Context Protocol server
       new MCPInterface({

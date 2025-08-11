@@ -9,6 +9,7 @@ import type { Template } from "../src/types";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityService } from "@brains/entity-service";
 import type { AIService } from "@brains/ai-service";
+import type { IConversationService } from "@brains/conversation-service";
 import { createSilentLogger } from "@brains/utils";
 
 describe("ContentGenerator", () => {
@@ -17,6 +18,7 @@ describe("ContentGenerator", () => {
   let mockEntitySearch: ReturnType<typeof mock>;
   let mockEntityGetTypes: ReturnType<typeof mock>;
   let mockAIGenerateObject: ReturnType<typeof mock>;
+  let mockGetWorkingMemory: ReturnType<typeof mock>;
 
   beforeEach(() => {
     const mockLogger = createSilentLogger();
@@ -24,6 +26,7 @@ describe("ContentGenerator", () => {
     mockEntitySearch = mock();
     mockEntityGetTypes = mock(() => ["note", "link", "project"]);
     mockAIGenerateObject = mock();
+    mockGetWorkingMemory = mock(() => Promise.resolve(""));
 
     const mockEntityService = {
       search: mockEntitySearch,
@@ -34,10 +37,20 @@ describe("ContentGenerator", () => {
       generateObject: mockAIGenerateObject,
     };
 
+    const mockConversationService = {
+      getWorkingMemory: mockGetWorkingMemory,
+      startConversation: mock(),
+      addMessage: mock(),
+      getRecentMessages: mock(),
+      getConversation: mock(),
+      searchConversations: mock(),
+    };
+
     mockDependencies = {
       logger: mockLogger,
       entityService: mockEntityService as EntityService,
       aiService: mockAIService as AIService,
+      conversationService: mockConversationService as IConversationService,
     };
 
     contentGenerator = new ContentGenerator(mockDependencies);
@@ -67,6 +80,48 @@ describe("ContentGenerator", () => {
       expect(mockAIGenerateObject).toHaveBeenCalledWith(
         "Generate test content",
         "Generate test content",
+        mockTemplate.schema,
+      );
+      expect(result).toBe("raw content");
+    });
+
+    it("should include conversation context when conversationId is provided", async () => {
+      mockGetWorkingMemory.mockResolvedValue(
+        "User: Hello\n\nAssistant: Hi there!",
+      );
+
+      await contentGenerator.generateContent("test-template", {
+        conversationId: "test-conversation-123",
+      });
+
+      expect(mockGetWorkingMemory).toHaveBeenCalledWith(
+        "test-conversation-123",
+      );
+      expect(mockAIGenerateObject).toHaveBeenCalledWith(
+        "Generate test content",
+        expect.stringContaining(
+          "Recent conversation context:\nUser: Hello\n\nAssistant: Hi there!",
+        ),
+        mockTemplate.schema,
+      );
+    });
+
+    it("should handle missing conversation context gracefully", async () => {
+      mockGetWorkingMemory.mockRejectedValue(
+        new Error("Conversation not found"),
+      );
+
+      const result = await contentGenerator.generateContent("test-template", {
+        conversationId: "non-existent-conversation",
+      });
+
+      // Should still generate content without conversation context
+      expect(mockGetWorkingMemory).toHaveBeenCalledWith(
+        "non-existent-conversation",
+      );
+      expect(mockAIGenerateObject).toHaveBeenCalledWith(
+        "Generate test content",
+        "Generate test content", // No conversation context added
         mockTemplate.schema,
       );
       expect(result).toBe("raw content");
@@ -104,7 +159,7 @@ describe("ContentGenerator", () => {
     });
 
     it("should handle templates without formatters", async () => {
-      const templateWithoutFormatter: ContentTemplate = {
+      const templateWithoutFormatter: Template = {
         name: "test-template-no-formatter",
         description: "Test template without formatter",
         basePrompt: "Generate test content",
@@ -124,7 +179,7 @@ describe("ContentGenerator", () => {
     });
 
     it("should handle object content from AI service", async () => {
-      const templateWithSchema: ContentTemplate = {
+      const templateWithSchema: Template = {
         name: "test-template-object",
         description: "Test template for object content",
         basePrompt: "Generate test content",
@@ -290,7 +345,7 @@ describe("ContentGenerator", () => {
     });
 
     it("should throw error when template has no formatter", () => {
-      const templateWithoutFormatter: ContentTemplate = {
+      const templateWithoutFormatter: Template = {
         name: "no-formatter-template",
         description: "Template without formatter",
         basePrompt: "Generate content",

@@ -21,6 +21,7 @@
     "@anthropic-ai/sdk": "^0.13.0",
     "@brains/ai-service": "workspace:*",
     "@brains/command-registry": "workspace:*",
+    "@brains/conversation-service": "workspace:*",
     "@brains/daemon-registry": "workspace:*",
     "@brains/embedding-service": "workspace:*",
     "@brains/entity-service": "workspace:*",

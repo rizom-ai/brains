@@ -127,32 +127,10 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       if (context.userId !== this.config.anchorUserId) {
         throw new Error("This command is restricted to the anchor user");
       }
-      // Process as command but remove extra prefix
-      const command = input.slice(this.config.anchorPrefix.length - 1);
-      const response = await this.executeCommand(command, context);
-
-      // Send the message and get the message ID
-      const messageId = await this.sendMessage(
-        response.message,
-        context,
-        replyToId,
-      );
-
-      // Store job/batch message mapping if we have IDs
-      if (response.jobId) {
-        this.jobMessages.set(response.jobId, messageId);
-        this.logger.info("Stored job message mapping", {
-          jobId: response.jobId,
-          messageId,
-        });
-      }
-      if (response.batchId) {
-        this.jobMessages.set(response.batchId, messageId);
-        this.logger.info("Stored batch message mapping", {
-          batchId: response.batchId,
-          messageId,
-        });
-      }
+      // Process as command but remove extra prefix to make it a normal command
+      const normalizedInput = input.slice(this.config.anchorPrefix.length - 1);
+      // Pass the normalized command to the base class
+      await super.handleInput(normalizedInput, context, replyToId);
       return;
     }
 
@@ -237,5 +215,97 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       this.jobMessages,
       this.logger,
     );
+  }
+
+  /**
+   * Override shouldRespond to add Matrix-specific logic
+   */
+  protected override shouldRespond(
+    message: string,
+    context: MessageContext,
+  ): boolean {
+    // Check for anchor commands first (highest priority for anchor user)
+    if (message.startsWith(this.config.anchorPrefix)) {
+      // Only anchor user can use anchor commands
+      return context.userId === this.config.anchorUserId;
+    }
+
+    // Check for regular commands
+    if (message.startsWith(this.config.commandPrefix)) {
+      return true;
+    }
+
+    // Check if bot is mentioned
+    // We store whether the bot was mentioned in context metadata
+    if (context.threadId === "mentioned") {
+      return true;
+    }
+
+    // Check if it's a DM
+    if (this.isDirectMessage(context.channelId)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Show thinking indicators (typing notification and reaction)
+   */
+  protected override async showThinkingIndicators(
+    context: MessageContext,
+  ): Promise<void> {
+    const roomId = context.channelId;
+    const eventId = context.messageId;
+
+    if (!this.client) return;
+
+    // Set typing indicator
+    if (this.config.enableTypingNotifications) {
+      try {
+        await this.client.setTyping(roomId, true, 30000); // 30 second timeout
+      } catch (error) {
+        this.logger.debug("Failed to send typing indicator", { error });
+      }
+    }
+
+    // Add thinking reaction
+    if (this.config.enableReactions) {
+      try {
+        await this.client.sendReaction(roomId, eventId, "🤔");
+      } catch (error) {
+        this.logger.debug("Failed to send thinking reaction", { error });
+      }
+    }
+  }
+
+  /**
+   * Show done indicators (stop typing and done reaction)
+   */
+  protected override async showDoneIndicators(
+    context: MessageContext,
+  ): Promise<void> {
+    const roomId = context.channelId;
+    const eventId = context.messageId;
+
+    if (!this.client) return;
+
+    // Stop typing indicator
+    if (this.config.enableTypingNotifications) {
+      try {
+        await this.client.setTyping(roomId, false);
+      } catch (error) {
+        this.logger.debug("Failed to stop typing indicator", { error });
+      }
+    }
+
+    // Add done reaction
+    if (this.config.enableReactions) {
+      try {
+        await this.client.sendReaction(roomId, eventId, "✅");
+      } catch (error) {
+        this.logger.debug("Failed to send done reaction", { error });
+      }
+    }
   }
 }

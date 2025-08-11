@@ -5,21 +5,31 @@ import * as schema from "./schema";
 
 export interface ConversationDbConfig {
   url?: string;
+  authToken?: string;
 }
 
 export type ConversationDB = LibSQLDatabase<typeof schema>;
 
 /**
  * Create a conversation database connection
+ * Defaults to a local file database if no URL is provided
  */
 export function createConversationDatabase(config: ConversationDbConfig = {}): {
   db: ConversationDB;
   client: Client;
   url: string;
 } {
-  const url = config.url ?? "file:./data/conversation-memory.db";
+  const url =
+    config.url ??
+    process.env["CONVERSATION_DATABASE_URL"] ??
+    "file:./conversation-memory.db";
 
-  const client = createClient({ url });
+  const authToken =
+    config.authToken ?? process.env["CONVERSATION_DATABASE_AUTH_TOKEN"];
+
+  const client = authToken
+    ? createClient({ url, authToken })
+    : createClient({ url });
 
   const db = drizzle(client, { schema });
 

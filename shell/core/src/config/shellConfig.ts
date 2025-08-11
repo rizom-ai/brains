@@ -22,6 +22,14 @@ export const shellConfigSchema = z.object({
     })
     .default({}),
 
+  // Conversation Database configuration
+  conversationDatabase: z
+    .object({
+      url: z.string().default("file:./conversation-memory.db"),
+      authToken: z.string().optional(),
+    })
+    .default({}),
+
   // AI Service configuration
   ai: z.object({
     provider: z.enum(["anthropic"]).default("anthropic"),
@@ -82,6 +90,14 @@ export function createShellConfig(
       authToken:
         process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"] ??
         overrides.jobQueueDatabase?.authToken,
+    },
+    conversationDatabase: {
+      url:
+        process.env["CONVERSATION_DATABASE_URL"] ??
+        overrides.conversationDatabase?.url,
+      authToken:
+        process.env["CONVERSATION_DATABASE_AUTH_TOKEN"] ??
+        overrides.conversationDatabase?.authToken,
     },
     ai: {
       provider: "anthropic" as const,

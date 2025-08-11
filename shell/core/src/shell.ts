@@ -25,6 +25,10 @@ import {
   EmbeddingService,
   type IEmbeddingService,
 } from "@brains/embedding-service";
+import {
+  ConversationService,
+  type IConversationService,
+} from "@brains/conversation-service";
 // Commands now provided by system plugin
 import {
   ContentGenerator,
@@ -49,6 +53,7 @@ export interface ShellDependencies {
   embeddingService?: IEmbeddingService;
   aiService?: IAIService;
   entityService?: EntityService;
+  conversationService?: IConversationService;
   serviceRegistry?: ServiceRegistry;
   entityRegistry?: EntityRegistry;
   messageBus?: MessageBus;
@@ -84,6 +89,7 @@ export class Shell implements IShell {
   private readonly embeddingService: IEmbeddingService;
   private readonly entityService: EntityService;
   private readonly aiService: IAIService;
+  private readonly conversationService: IConversationService;
   private readonly contentGenerator: ContentGenerator;
   private readonly jobQueueService: JobQueueService;
   private readonly jobQueueWorker: JobQueueWorker;
@@ -240,12 +246,26 @@ export class Shell implements IShell {
         },
       });
 
+    this.conversationService =
+      dependencies?.conversationService ??
+      ConversationService.getInstance(
+        this.logger,
+        { workingMemorySize: 20 },
+        {
+          url: config.conversationDatabase.url,
+          ...(config.conversationDatabase.authToken && {
+            authToken: config.conversationDatabase.authToken,
+          }),
+        },
+      );
+
     this.contentGenerator =
       dependencies?.contentGenerator ??
       new ContentGenerator({
         logger: this.logger,
         entityService: this.entityService,
         aiService: this.aiService,
+        conversationService: this.conversationService,
       });
 
     // Register content generation job handler
@@ -274,6 +294,10 @@ export class Shell implements IShell {
     this.serviceRegistry.register("pluginManager", () => this.pluginManager);
     this.serviceRegistry.register("entityService", () => this.entityService);
     this.serviceRegistry.register("aiService", () => this.aiService);
+    this.serviceRegistry.register(
+      "conversationService",
+      () => this.conversationService,
+    );
     this.serviceRegistry.register(
       "contentGenerator",
       () => this.contentGenerator,

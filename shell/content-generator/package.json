@@ -16,6 +16,7 @@
   "dependencies": {
     "@brains/utils": "workspace:*",
     "@brains/job-queue": "workspace:*",
+    "@brains/conversation-service": "workspace:*",
     "zod": "^3.25.1"
   },
   "devDependencies": {

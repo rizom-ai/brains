@@ -1,4 +1,5 @@
-import type { ConversationDB } from "./database";
+import { createConversationDatabase } from "./database";
+import type { ConversationDB, ConversationDbConfig } from "./database";
 import type { IConversationService, ConversationServiceConfig } from "./types";
 import type {
   Conversation,
@@ -32,11 +33,13 @@ export class ConversationService implements IConversationService {
    * Get singleton instance
    */
   public static getInstance(
-    db: ConversationDB,
     logger: Logger,
     config?: ConversationServiceConfig,
+    dbConfig?: ConversationDbConfig,
   ): ConversationService {
     if (!ConversationService.instance) {
+      // Create database internally
+      const { db } = createConversationDatabase(dbConfig);
       ConversationService.instance = new ConversationService(
         db,
         logger,

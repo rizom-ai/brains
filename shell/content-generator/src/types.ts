@@ -19,6 +19,7 @@ export type ComponentType<P = unknown> = (props: P) => VNode;
 export interface GenerationContext {
   prompt?: string | undefined;
   data?: Record<string, unknown> | undefined;
+  conversationId?: string | undefined; // Conversation context for generation
 }
 
 /**
