@@ -20,7 +20,7 @@ if (!process.env.JOB_QUEUE_DATABASE_URL) {
 
 // Set the CONVERSATION_DATABASE_URL if not already set
 if (!process.env.CONVERSATION_DATABASE_URL) {
-  process.env.CONVERSATION_DATABASE_URL = "file:./conversation-memory.db";
+  process.env.CONVERSATION_DATABASE_URL = "file:./conversations.db";
 }
 
 // Create logger

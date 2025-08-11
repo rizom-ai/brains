@@ -31,7 +31,7 @@ async function main(): Promise<void> {
       conversationDatabase: {
         url:
           process.env["CONVERSATION_DATABASE_URL"] ??
-          "file:./conversation-memory.db",
+          "file:./conversations.db",
       },
     },
     // CLI config used when --cli flag is present

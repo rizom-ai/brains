@@ -6,7 +6,7 @@ export default {
   dialect: "sqlite",
   dbCredentials: {
     url:
-      process.env.CONVERSATION_DATABASE_URL ?? "file:./conversation-memory.db",
+      process.env.CONVERSATION_DATABASE_URL ?? "file:./conversations.db",
     authToken: process.env.CONVERSATION_DATABASE_AUTH_TOKEN,
   },
 } satisfies Config;

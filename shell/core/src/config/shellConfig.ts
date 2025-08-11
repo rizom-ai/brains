@@ -25,7 +25,7 @@ export const shellConfigSchema = z.object({
   // Conversation Database configuration
   conversationDatabase: z
     .object({
-      url: z.string().default("file:./conversation-memory.db"),
+      url: z.string().default("file:./conversations.db"),
       authToken: z.string().optional(),
     })
     .default({}),
