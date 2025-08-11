@@ -27,17 +27,17 @@ describe("TopicsPlugin", () => {
       expect(defaultPlugin.id).toBe("topics");
       // Plugin.name is not exposed, check config instead
       expect(defaultPlugin.config).toBeDefined();
-      expect(defaultPlugin.config.extractionWindowHours).toBe(24);
+      expect(defaultPlugin.config.windowSize).toBe(20);
     });
 
     it("should create plugin with custom config", () => {
       const customPlugin = new TopicsPlugin({
-        extractionWindowHours: 48,
+        windowSize: 50,
         minRelevanceScore: 0.7,
       });
 
       expect(customPlugin.id).toBe("topics");
-      expect(customPlugin.config.extractionWindowHours).toBe(48);
+      expect(customPlugin.config.windowSize).toBe(50);
       expect(customPlugin.config.minRelevanceScore).toBe(0.7);
     });
   });

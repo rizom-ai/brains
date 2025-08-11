@@ -69,18 +69,18 @@ export function createTopicsCommands(
     },
     {
       name: "topics:extract",
-      description: "Extract topics from recent conversations",
-      usage: "/topics:extract [--hours <number>] [--min-relevance <number>]",
+      description: "Extract topics from recent messages",
+      usage: "/topics:extract [--window <number>] [--min-relevance <number>]",
       handler: async (args, _context): Promise<CommandResponse> => {
         try {
           // Parse arguments
-          let hours = config.extractionWindowHours ?? 24;
+          let windowSize = config.windowSize ?? 20;
           let minRelevance = config.minRelevanceScore ?? 0.5;
 
           for (let i = 0; i < args.length; i++) {
-            if (args[i] === "--hours" && args[i + 1]) {
-              hours = parseInt(args[i + 1] as string, 10);
-              if (isNaN(hours)) hours = 24;
+            if (args[i] === "--window" && args[i + 1]) {
+              windowSize = parseInt(args[i + 1] as string, 10);
+              if (isNaN(windowSize)) windowSize = 20;
             } else if (args[i] === "--min-relevance" && args[i + 1]) {
               minRelevance = parseFloat(args[i + 1] as string);
               if (isNaN(minRelevance)) minRelevance = 0.5;
@@ -88,15 +88,15 @@ export function createTopicsCommands(
           }
 
           // Start extraction
-          const extractedTopics = await topicExtractor.extractFromConversations(
-            hours,
+          const extractedTopics = await topicExtractor.extractFromRecentMessages(
+            windowSize,
             minRelevance,
           );
 
           if (extractedTopics.length === 0) {
             return {
               type: "message",
-              message: `No topics found in the last ${hours} hours with relevance >= ${minRelevance}`,
+              message: `No topics found in recent ${windowSize} messages with relevance >= ${minRelevance}`,
             };
           }
 

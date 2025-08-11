@@ -40,14 +40,14 @@ describe("TopicExtractionHandler", () => {
   describe("validateAndParse", () => {
     it("should validate valid extraction config", () => {
       const validConfig = {
-        timeWindowHours: 24,
+        windowSize: 30,
         minRelevanceScore: 0.5,
       };
 
       const result = handler.validateAndParse(validConfig);
 
       expect(result).not.toBeNull();
-      expect(result?.timeWindowHours).toBe(24);
+      expect(result?.windowSize).toBe(30);
       expect(result?.minRelevanceScore).toBe(0.5);
     });
 
@@ -55,13 +55,13 @@ describe("TopicExtractionHandler", () => {
       const result = handler.validateAndParse({});
 
       expect(result).not.toBeNull();
-      expect(result?.timeWindowHours).toBe(24);
+      expect(result?.windowSize).toBe(20);
       expect(result?.minRelevanceScore).toBe(0.5);
     });
 
-    it("should return null for invalid time window", () => {
+    it("should return null for invalid window size", () => {
       const invalidConfig = {
-        timeWindowHours: 0, // Must be at least 1
+        windowSize: 5, // Must be at least 10
       };
 
       const result = handler.validateAndParse(invalidConfig);

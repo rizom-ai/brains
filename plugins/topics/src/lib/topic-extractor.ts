@@ -19,55 +19,64 @@ export class TopicExtractor {
   ) {}
 
   /**
-   * Extract topics from conversations within a time window
+   * Extract topics from recent messages using a sliding window approach
    */
-  public async extractFromConversations(
-    timeWindowHours: number,
+  public async extractFromRecentMessages(
+    windowSize: number,
     minRelevanceScore: number,
   ): Promise<ExtractedTopic[]> {
-    const endTime = new Date();
-    const startTime = new Date(
-      endTime.getTime() - timeWindowHours * 60 * 60 * 1000,
-    );
-
-    this.logger.info("Extracting topics from conversations", {
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
+    this.logger.info("Extracting topics from recent messages", {
+      windowSize,
       minRelevanceScore,
     });
 
-    // Get all conversations (empty query returns all)
+    // Get all active conversations
     const conversations = await this.context.searchConversations("");
+    
+    if (conversations.length === 0) {
+      this.logger.info("No conversations found");
+      return [];
+    }
 
-    // Filter conversations within the time window
-    const recentConversations = conversations.filter((conv) => {
-      const lastActive = new Date(conv.lastActive);
-      return lastActive >= startTime && lastActive <= endTime;
-    });
+    // Collect the most recent messages across all conversations
+    const allRecentMessages: Array<{
+      conversationId: string;
+      messages: Message[];
+    }> = [];
 
-    if (recentConversations.length === 0) {
-      this.logger.info("No conversations found in time window");
+    for (const conversation of conversations) {
+      const messages = await this.context.getRecentMessages(
+        conversation.id,
+        windowSize, // Get exactly windowSize messages
+      );
+
+      if (messages.length > 0) {
+        allRecentMessages.push({
+          conversationId: conversation.id,
+          messages,
+        });
+      }
+    }
+
+    if (allRecentMessages.length === 0) {
+      this.logger.info("No recent messages found");
       return [];
     }
 
     const topics: ExtractedTopic[] = [];
 
-    // Process each conversation
-    for (const conversation of recentConversations) {
-      const messages = await this.context.getRecentMessages(
-        conversation.id,
-        100, // Get up to 100 messages for analysis
-      );
-
-      if (messages.length === 0) {
+    // Process each conversation's window
+    for (const { conversationId, messages } of allRecentMessages) {
+      // Only process if we have enough messages for meaningful extraction
+      if (messages.length < windowSize / 2) {
         continue;
       }
 
       // Extract topics using AI
       const extractedTopics = await this.extractTopicsWithAI(
-        conversation.id,
+        conversationId,
         messages,
-        startTime,
+        new Date(),
       );
 
       // Filter by relevance score and add to results
@@ -79,7 +88,7 @@ export class TopicExtractor {
     }
 
     this.logger.info(
-      `Extracted ${topics.length} topics from ${recentConversations.length} conversations`,
+      `Extracted ${topics.length} topics from ${allRecentMessages.length} conversation windows`,
     );
     return topics;
   }

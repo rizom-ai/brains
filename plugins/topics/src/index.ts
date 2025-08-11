@@ -4,7 +4,6 @@ import {
   type PluginTool,
   type PluginResource,
   type Command,
-  type JobOptions,
 } from "@brains/plugins";
 import {
   topicsPluginConfigSchema,
@@ -75,12 +74,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
     // Store commands for CLI
     this.commands = createTopicsCommands(context, this.config, this.logger);
-
-    // Set up automatic extraction if enabled
-    if (this.config.autoExtract) {
-      // Schedule periodic extraction
-      this.scheduleExtraction(context);
-    }
   }
 
   protected override async getCommands(): Promise<Command[]> {
@@ -98,47 +91,11 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   protected override async onShutdown(): Promise<void> {
     this.logger.info("Shutting down Topics plugin");
   }
-
-  private scheduleExtraction(context: ServicePluginContext): void {
-    const jobOptions: JobOptions = {
-      priority: 5,
-      source: this.id,
-      metadata: {
-        interfaceId: "system",
-        userId: "system",
-        operationType: "batch_processing",
-        pluginId: this.id,
-      },
-    };
-
-    // Queue initial extraction job after a delay
-    setTimeout(async () => {
-      await context.enqueueJob(
-        "topics:extraction",
-        {
-          hours: this.config.extractionWindowHours,
-          minScore: this.config.minRelevanceScore,
-        },
-        jobOptions,
-      );
-    }, 60000); // 1 minute delay
-
-    // Schedule periodic extraction (every extractionWindowHours)
-    setInterval(
-      async () => {
-        await context.enqueueJob(
-          "topics:extraction",
-          {
-            hours: this.config.extractionWindowHours,
-            minScore: this.config.minRelevanceScore,
-          },
-          jobOptions,
-        );
-      },
-      (this.config.extractionWindowHours ?? 24) * 60 * 60 * 1000,
-    );
-  }
 }
 
 // Export for use as a plugin
 export default TopicsPlugin;
+
+// Export public API for external consumers
+export type { TopicsPluginConfig, TopicsPluginConfigInput } from "./schemas/config";
+export type { TopicEntity } from "./types";

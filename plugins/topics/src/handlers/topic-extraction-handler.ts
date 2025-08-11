@@ -11,7 +11,7 @@ import type { TopicsPluginConfig } from "../schemas/config";
 
 // Schema for extraction job data
 const extractionJobDataSchema = z.object({
-  timeWindowHours: z.number().min(1).optional(),
+  windowSize: z.number().min(10).max(100).optional(),
   minRelevanceScore: z.number().min(0).max(1).optional(),
 });
 
@@ -54,13 +54,13 @@ export class TopicExtractionHandler
     try {
       await progressReporter.report({
         progress: 10,
-        message: "Extracting topics from conversations",
+        message: "Extracting topics from recent messages",
       });
 
-      // Extract topics from recent conversations
+      // Extract topics from recent messages
       const extractedTopics =
-        await this.topicExtractor.extractFromConversations(
-          data.timeWindowHours ?? this.config.extractionWindowHours ?? 24,
+        await this.topicExtractor.extractFromRecentMessages(
+          data.windowSize ?? this.config.windowSize ?? 20,
           data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
         );
 
@@ -177,8 +177,8 @@ export class TopicExtractionHandler
 
     // Apply defaults
     return {
-      timeWindowHours:
-        result.data.timeWindowHours ?? this.config.extractionWindowHours ?? 24,
+      windowSize:
+        result.data.windowSize ?? this.config.windowSize ?? 20,
       minRelevanceScore:
         result.data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
     };

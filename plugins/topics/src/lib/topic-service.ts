@@ -17,7 +17,7 @@ export class TopicService {
   }
 
   /**
-   * Create a new topic
+   * Create a new topic (with deduplication)
    */
   public async createTopic(params: {
     title: string;
@@ -27,6 +27,29 @@ export class TopicService {
     keywords: string[];
     relevanceScore: number;
   }): Promise<TopicEntity | null> {
+    // Check if topic already exists
+    const existing = await this.getTopic(params.title);
+    if (existing) {
+      this.logger.info("Topic already exists, updating instead", { 
+        id: params.title 
+      });
+      
+      // Merge new information with existing topic
+      return this.updateTopic(params.title, {
+        sources: params.sources,
+        keywords: [
+          ...new Set([
+            ...existing.metadata.keywords,
+            ...params.keywords,
+          ]),
+        ],
+        relevanceScore: Math.max(
+          existing.metadata.relevanceScore,
+          params.relevanceScore,
+        ),
+      });
+    }
+
     const now = new Date();
 
     const metadata: TopicMetadata = {
@@ -44,24 +67,35 @@ export class TopicService {
       references: params.sources,
     });
 
-    const { entityId } = await this.entityService.createEntity({
-      id: params.title, // Use title as the ID for topics
-      entityType: "topic",
-      content: body,
-      metadata,
-    });
+    try {
+      const { entityId } = await this.entityService.createEntity({
+        id: params.title, // Use title as the ID for topics
+        entityType: "topic",
+        content: body,
+        metadata,
+      });
 
-    // Retrieve the created entity
-    const topic = await this.entityService.getEntity<TopicEntity>(
-      "topic",
-      entityId,
-    );
+      // Retrieve the created entity
+      const topic = await this.entityService.getEntity<TopicEntity>(
+        "topic",
+        entityId,
+      );
 
-    if (topic) {
-      this.logger.info("Created topic", { id: topic.id });
+      if (topic) {
+        this.logger.info("Created topic", { id: topic.id });
+      }
+
+      return topic;
+    } catch (error) {
+      // Handle case where another process created the topic concurrently
+      if (error instanceof Error && error.message.includes("already exists")) {
+        this.logger.info("Topic was created concurrently, fetching existing", { 
+          id: params.title 
+        });
+        return this.getTopic(params.title);
+      }
+      throw error;
     }
-
-    return topic;
   }
 
   /**

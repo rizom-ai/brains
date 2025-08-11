@@ -5,9 +5,9 @@ import { z } from "zod";
  */
 export const topicsPluginConfigSchema = z.object({
   /**
-   * Time window in hours for sliding window extraction
+   * Number of messages to process in each window
    */
-  extractionWindowHours: z.number().min(1).optional(),
+  windowSize: z.number().min(10).max(100).optional(),
 
   /**
    * Minimum relevance score for topic extraction
@@ -18,11 +18,6 @@ export const topicsPluginConfigSchema = z.object({
    * Similarity threshold for automatic merging
    */
   mergeSimilarityThreshold: z.number().min(0).max(1).optional(),
-
-  /**
-   * Enable automatic extraction on new conversations
-   */
-  autoExtract: z.boolean().optional(),
 
   /**
    * Enable automatic merging of similar topics
@@ -39,9 +34,8 @@ export type TopicsPluginConfigInput = Partial<
  * Default configuration
  */
 export const defaultTopicsPluginConfig: Partial<TopicsPluginConfig> = {
-  extractionWindowHours: 24,
+  windowSize: 20,
   minRelevanceScore: 0.5,
   mergeSimilarityThreshold: 0.8,
-  autoExtract: true,
   autoMerge: true,
 };

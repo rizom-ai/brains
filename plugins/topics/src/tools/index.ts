@@ -22,7 +22,7 @@ const EXTRACTION_JOB_OPTIONS: JobOptions = {
 
 // Schema for tool parameters
 const extractParamsSchema = z.object({
-  hours: z.number().optional(),
+  windowSize: z.number().min(10).max(100).optional(),
   minScore: z.number().min(0).max(1).optional(),
 });
 
@@ -55,7 +55,7 @@ export function createExtractTool(
 ): PluginTool {
   return {
     name: "topics:extract",
-    description: "Extract topics from recent conversations",
+    description: "Extract topics from recent messages",
     inputSchema: extractParamsSchema.shape,
     handler: async (params) => {
       const parsed = extractParamsSchema.safeParse(params);
@@ -63,14 +63,14 @@ export function createExtractTool(
         throw new Error(`Invalid parameters: ${parsed.error.message}`);
       }
 
-      const hours = parsed.data.hours ?? config.extractionWindowHours;
+      const windowSize = parsed.data.windowSize ?? config.windowSize;
       const minScore = parsed.data.minScore ?? config.minRelevanceScore;
 
       // Queue extraction job
       const jobId = await context.enqueueJob(
         "topics:extraction",
         {
-          timeWindowHours: hours,
+          windowSize: windowSize,
           minRelevanceScore: minScore,
         },
         EXTRACTION_JOB_OPTIONS,
@@ -80,7 +80,7 @@ export function createExtractTool(
         success: true,
         data: {
           jobId,
-          message: `Topic extraction job queued. Time window: ${hours} hours, min relevance: ${minScore}`,
+          message: `Topic extraction job queued. Window size: ${windowSize} messages, min relevance: ${minScore}`,
         },
       };
     },
