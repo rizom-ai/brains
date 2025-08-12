@@ -337,7 +337,7 @@ export abstract class MessageInterfacePlugin<
     const result = await this.queue.add(async () => {
       const queryResponse = await pluginContext.query(query, {
         userId: context.userId,
-        conversationId: context.channelId,
+        conversationId: `${context.interfaceType}-${context.channelId}`,
         messageId: context.messageId,
         threadId: context.threadId,
         timestamp: context.timestamp.toISOString(),

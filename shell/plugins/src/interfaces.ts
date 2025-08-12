@@ -28,6 +28,18 @@ import type { ServiceRegistry } from "@brains/service-registry";
 import type { IConversationService } from "@brains/conversation-service";
 
 /**
+ * Query context for shell queries
+ */
+export interface QueryContext {
+  userId?: string;
+  conversationId?: string;
+  messageId?: string;
+  threadId?: string;
+  timestamp?: string;
+  [key: string]: unknown; // Allow additional properties
+}
+
+/**
  * Shell interface that plugins use to access core services
  * This avoids circular dependencies between core and plugin-context
  */
@@ -48,7 +60,7 @@ export interface IShell {
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
   query(
     prompt: string,
-    context?: Record<string, unknown>,
+    context?: QueryContext,
   ): Promise<DefaultQueryResponse>;
   registerRoutes(
     routes: RouteDefinition[],

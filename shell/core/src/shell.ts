@@ -2,6 +2,7 @@ import type {
   ContentGenerationConfig,
   Daemon,
   DefaultQueryResponse,
+  QueryContext,
 } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
 import { ServiceRegistry } from "@brains/service-registry";
@@ -538,7 +539,7 @@ export class Shell implements IShell {
    */
   public async query(
     prompt: string,
-    context?: Record<string, unknown>,
+    context?: QueryContext,
   ): Promise<DefaultQueryResponse> {
     if (!this.initialized) {
       throw new Error("Shell query attempted before initialization");

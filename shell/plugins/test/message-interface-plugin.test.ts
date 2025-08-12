@@ -5,7 +5,7 @@ import {
   EchoMessageInterface,
 } from "../src/message-interface/example";
 import type { MessageContext } from "@brains/messaging-service";
-import type { PluginCapabilities } from "../src";
+import type { PluginCapabilities, QueryContext } from "../src";
 import { PluginError } from "../src";
 
 describe("MessageInterfacePlugin", () => {
@@ -195,6 +195,78 @@ describe("MessageInterfacePlugin", () => {
   });
 
   describe("conversation memory integration", () => {
+    test("uses consistent conversationId format for storage and queries", async () => {
+      // Create a fresh harness for this test
+      const testHarness = createInterfacePluginHarness<EchoMessageInterface>();
+      const shell = testHarness.getShell();
+      
+      let storedConversationId: string | undefined;
+      let queryConversationId: string | undefined;
+      
+      // Mock getConversationService to return consistent mock
+      const mockConversationService = {
+        startConversation: async (sessionId: string) => {
+          storedConversationId = sessionId;
+          return sessionId;
+        },
+        addMessage: async () => {},
+        getConversation: async () => null,
+        searchConversations: async () => [],
+        getRecentMessages: async () => [],
+        getWorkingMemory: async () => "Test working memory",
+      };
+      
+      shell.getConversationService = () => mockConversationService;
+      
+      // Mock the shell's query method to capture the query conversationId
+      const originalQuery = shell.query.bind(shell);
+      shell.query = async (prompt: string, context?: QueryContext) => {
+        queryConversationId = context?.conversationId;
+        return originalQuery(prompt, context);
+      };
+      
+      // Now install and get the plugin
+      const plugin = echoMessageInterfacePlugin({ debug: false });
+      await testHarness.installPlugin(plugin);
+      
+      // Process a query to trigger both storage and query
+      await plugin.processInput("Hello world", defaultContext);
+      
+      // Verify both use the same format
+      const expectedId = `${defaultContext.interfaceType}-${defaultContext.channelId}`;
+      expect(storedConversationId).toBe(expectedId);
+      expect(queryConversationId).toBe(expectedId);
+      
+      // Restore original
+      shell.query = originalQuery;
+    });
+
+    test("passes correct conversationId to query for context retrieval", async () => {
+      const plugin = harness.getPlugin();
+      const shell = harness.getShell();
+      
+      let capturedContext: QueryContext | undefined;
+      
+      // Mock the shell's query method to capture the context
+      const originalQuery = shell.query.bind(shell);
+      shell.query = async (prompt: string, context?: QueryContext) => {
+        capturedContext = context;
+        return originalQuery(prompt, context);
+      };
+      
+      // Process a query (not a command)
+      await plugin.processInput("Hello world", defaultContext);
+      
+      // Verify the conversationId format matches what's used for storage
+      expect(capturedContext).toBeDefined();
+      expect(capturedContext?.conversationId).toBe(
+        `${defaultContext.interfaceType}-${defaultContext.channelId}`
+      );
+      
+      // Restore original
+      shell.query = originalQuery;
+    });
+
     test("processes input without errors when conversation service is available", async () => {
       const plugin = harness.getPlugin();
 

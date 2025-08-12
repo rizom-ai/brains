@@ -36,6 +36,7 @@ export {
 // Plugin types and interfaces
 export type {
   IShell,
+  QueryContext,
   SystemCommandRegisterEvent,
   SystemToolRegisterEvent,
   SystemResourceRegisterEvent,
