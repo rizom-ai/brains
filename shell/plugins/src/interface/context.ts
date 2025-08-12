@@ -1,6 +1,6 @@
 import type { CorePluginContext } from "../core/context";
 import { createCorePluginContext } from "../core/context";
-import type { Daemon, IShell } from "../interfaces";
+import type { Daemon, IShell, IMCPTransport } from "../interfaces";
 import type {
   CommandInfo,
   CommandResponse,
@@ -22,6 +22,9 @@ export interface InterfacePluginContext extends CorePluginContext {
 
   // Daemon management
   registerDaemon: (name: string, daemon: Daemon) => void;
+
+  // MCP transport for interface plugins
+  readonly mcpTransport: IMCPTransport;
 }
 
 /**
@@ -36,9 +39,13 @@ export function createInterfacePluginContext(
 
   // Get interface-specific components
   const commandRegistry = shell.getCommandRegistry();
+  const mcpTransport = shell.getMcpTransport();
 
   return {
     ...coreContext,
+
+    // MCP transport
+    mcpTransport,
 
     // Command discovery - returns metadata only
     listCommands: async (): Promise<CommandInfo[]> => {

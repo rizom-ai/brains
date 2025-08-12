@@ -96,7 +96,7 @@
         "@brains/mcp-server": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
-        "@modelcontextprotocol/sdk": "^1.0.0",
+        "@modelcontextprotocol/sdk": "^1.12.0",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -497,6 +497,23 @@
         "typescript": "~5.7.2",
       },
     },
+    "shell/mcp-service": {
+      "name": "@brains/mcp-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/messaging-service": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.12.0",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shell/messaging-service": {
       "name": "@brains/messaging-service",
       "version": "0.1.0",
@@ -630,6 +647,8 @@
     "@brains/mcp": ["@brains/mcp@workspace:interfaces/mcp"],
 
     "@brains/mcp-server": ["@brains/mcp-server@workspace:shared/mcp-server"],
+
+    "@brains/mcp-service": ["@brains/mcp-service@workspace:shell/mcp-service"],
 
     "@brains/messaging-service": ["@brains/messaging-service@workspace:shell/messaging-service"],
 

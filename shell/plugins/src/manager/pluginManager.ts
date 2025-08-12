@@ -2,15 +2,16 @@ import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
 import type { IShell } from "@brains/plugins";
 import { EventEmitter } from "events";
-import type { Plugin } from "../interfaces";
+import type { Plugin, PluginCapabilities } from "../interfaces";
 import { DaemonRegistry } from "@brains/daemon-registry";
+import type { CommandRegistry } from "@brains/command-registry";
+import type { IMCPService } from "@brains/mcp-service";
 import type {
   PluginManager as IPluginManager,
   PluginInfo,
   PluginManagerEventMap,
 } from "./types";
 import { PluginStatus, PluginEvent } from "./types";
-import { PluginRegistrationHandler } from "./pluginRegistrationHandler";
 import { PluginError } from "../errors";
 
 // Re-export enums for convenience
@@ -26,7 +27,6 @@ export class PluginManager implements IPluginManager {
   private plugins: Map<string, PluginInfo> = new Map();
   private logger: Logger;
   private events: EventEmitter;
-  private registrationHandler: PluginRegistrationHandler;
   private daemonRegistry: DaemonRegistry;
   private serviceRegistry: ServiceRegistry;
 
@@ -65,11 +65,6 @@ export class PluginManager implements IPluginManager {
     this.serviceRegistry = serviceRegistry;
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
-    this.registrationHandler = PluginRegistrationHandler.getInstance(
-      logger,
-      this.events,
-      serviceRegistry,
-    );
     this.daemonRegistry = DaemonRegistry.getInstance(logger);
   }
 
@@ -238,11 +233,8 @@ export class PluginManager implements IPluginManager {
       // Register the plugin directly with the new interface
       const capabilities = await plugin.register(shell);
 
-      // Register capabilities through the handler
-      await this.registrationHandler.registerPluginCapabilities(
-        pluginId,
-        capabilities,
-      );
+      // Direct registration of capabilities
+      await this.registerCapabilities(pluginId, capabilities);
 
       // Update plugin status
       pluginInfo.status = PluginStatus.INITIALIZED;
@@ -481,5 +473,82 @@ export class PluginManager implements IPluginManager {
    */
   public getEventEmitter(): EventEmitter {
     return this.events;
+  }
+
+  /**
+   * Register plugin capabilities directly with the appropriate registries
+   */
+  private async registerCapabilities(
+    pluginId: string,
+    capabilities: PluginCapabilities,
+  ): Promise<void> {
+    // Get CommandRegistry and MCPService from service registry
+    // PluginManager is a core component that needs direct access to these services
+    const commandRegistry =
+      this.serviceRegistry.resolve<CommandRegistry>("commandRegistry");
+    const mcpService = this.serviceRegistry.resolve<IMCPService>("mcpService");
+
+    // Register commands
+    if (capabilities.commands && capabilities.commands.length > 0) {
+      let registeredCount = 0;
+      for (const command of capabilities.commands) {
+        try {
+          commandRegistry.registerCommand(pluginId, command);
+          registeredCount++;
+        } catch (error) {
+          this.logger.error(
+            `Failed to register command ${command.name} from ${pluginId}:`,
+            error,
+          );
+        }
+      }
+      if (registeredCount > 0) {
+        this.logger.debug(
+          `Registered ${registeredCount} commands from ${pluginId}`,
+        );
+      }
+    }
+
+    // Register tools
+    if (capabilities.tools && capabilities.tools.length > 0) {
+      let registeredCount = 0;
+      for (const tool of capabilities.tools) {
+        try {
+          mcpService.registerTool(pluginId, tool);
+          registeredCount++;
+        } catch (error) {
+          this.logger.error(
+            `Failed to register tool ${tool.name} from ${pluginId}:`,
+            error,
+          );
+        }
+      }
+      if (registeredCount > 0) {
+        this.logger.debug(
+          `Registered ${registeredCount} tools from ${pluginId}`,
+        );
+      }
+    }
+
+    // Register resources
+    if (capabilities.resources && capabilities.resources.length > 0) {
+      let registeredCount = 0;
+      for (const resource of capabilities.resources) {
+        try {
+          mcpService.registerResource(pluginId, resource);
+          registeredCount++;
+        } catch (error) {
+          this.logger.error(
+            `Failed to register resource ${resource.name} from ${pluginId}:`,
+            error,
+          );
+        }
+      }
+      if (registeredCount > 0) {
+        this.logger.debug(
+          `Registered ${registeredCount} resources from ${pluginId}`,
+        );
+      }
+    }
   }
 }

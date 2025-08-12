@@ -3,6 +3,7 @@ import type {
   Daemon,
   DefaultQueryResponse,
   QueryContext,
+  IMCPTransport,
 } from "@brains/plugins";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
@@ -356,6 +357,18 @@ export class MockShell implements IShell {
       list: () => Array.from(this.services.keys()),
       clear: () => this.services.clear(),
     } as unknown as ServiceRegistry;
+  }
+
+  getMcpTransport(): IMCPTransport {
+    // Return a mock MCP transport for testing
+    return {
+      getMcpServer: () => {
+        throw new Error("Mock MCP server not implemented");
+      },
+      setPermissionLevel: () => {
+        // No-op for testing
+      },
+    };
   }
 
   async generateContent<T = unknown>(

@@ -43,7 +43,9 @@ describe("MCPInterface", () => {
       expect(capabilities).toBeDefined();
       // MCP interface no longer provides tools - they are provided by system plugin
       expect(capabilities.tools).toHaveLength(0);
-      expect(capabilities.resources).toEqual([]);
+      // MCP interface provides entity types resource
+      expect(capabilities.resources).toHaveLength(1);
+      expect(capabilities.resources?.[0]?.uri).toBe("entity://types");
     });
 
     it("should register with http transport and anchor permissions", async () => {
@@ -55,7 +57,9 @@ describe("MCPInterface", () => {
       expect(capabilities).toBeDefined();
       // MCP interface no longer provides tools - they are provided by system plugin
       expect(capabilities.tools).toHaveLength(0);
-      expect(capabilities.resources).toEqual([]);
+      // MCP interface provides entity types resource
+      expect(capabilities.resources).toHaveLength(1);
+      expect(capabilities.resources?.[0]?.uri).toBe("entity://types");
     });
   });
 

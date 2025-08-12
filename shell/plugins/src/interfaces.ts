@@ -26,6 +26,7 @@ import type { CommandRegistry } from "@brains/command-registry";
 import type { ViewRegistry, RouteDefinition } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { IConversationService } from "@brains/conversation-service";
+import type { IMCPTransport } from "@brains/mcp-service";
 
 /**
  * Query context for shell queries
@@ -55,6 +56,7 @@ export interface IShell {
   getViewRegistry(): ViewRegistry;
   getServiceRegistry(): ServiceRegistry;
   getConversationService(): IConversationService;
+  getMcpTransport(): IMCPTransport;
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
@@ -143,6 +145,11 @@ export {
   type CreateEntityResponse,
   type UpdateEntityResponse,
 };
+
+// Re-export MCP transport interface
+export type { IMCPTransport } from "@brains/mcp-service";
+// Re-export Command type for plugin implementations
+export type { Command } from "@brains/command-registry";
 
 /**
  * Plugin type enumeration

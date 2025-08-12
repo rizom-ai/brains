@@ -21,6 +21,11 @@ import type { JobOptions, JobQueue } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "@brains/plugins";
 import { CommandRegistry } from "@brains/command-registry";
+import {
+  MCPService,
+  type IMCPService,
+  type IMCPTransport,
+} from "@brains/mcp-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import {
   EmbeddingService,
@@ -62,6 +67,7 @@ export interface ShellDependencies {
   daemonRegistry?: DaemonRegistry;
   pluginManager?: PluginManager;
   commandRegistry?: CommandRegistry;
+  mcpService?: IMCPService;
   contentGenerator?: ContentGenerator;
   jobQueueService?: JobQueueService;
   jobQueueWorker?: JobQueueWorker;
@@ -85,6 +91,7 @@ export class Shell implements IShell {
   private readonly messageBus: MessageBus;
   private readonly pluginManager: PluginManager;
   private readonly commandRegistry: CommandRegistry;
+  private readonly mcpService: IMCPService;
   private readonly viewRegistry: ViewRegistry;
   private readonly daemonRegistry: DaemonRegistry;
   private readonly embeddingService: IEmbeddingService;
@@ -142,7 +149,8 @@ export class Shell implements IShell {
     const entityRegistry = EntityRegistry.createFresh(logger);
     const messageBus = MessageBus.createFresh(logger);
     const pluginManager = PluginManager.createFresh(serviceRegistry, logger);
-    const commandRegistry = CommandRegistry.createFresh(logger, messageBus);
+    const commandRegistry = CommandRegistry.createFresh(logger);
+    const mcpService = MCPService.createFresh(messageBus, logger);
 
     // Merge fresh instances with any provided dependencies (without contentGenerator yet)
     const freshDependencies: ShellDependencies = {
@@ -153,6 +161,7 @@ export class Shell implements IShell {
       messageBus,
       pluginManager,
       commandRegistry,
+      mcpService,
     };
 
     return new Shell(fullConfig, freshDependencies);
@@ -214,8 +223,10 @@ export class Shell implements IShell {
       dependencies?.pluginManager ??
       PluginManager.getInstance(this.serviceRegistry, this.logger);
     this.commandRegistry =
-      dependencies?.commandRegistry ??
-      CommandRegistry.getInstance(this.logger, this.messageBus);
+      dependencies?.commandRegistry ?? CommandRegistry.getInstance(this.logger);
+    this.mcpService =
+      dependencies?.mcpService ??
+      MCPService.getInstance(this.messageBus, this.logger);
 
     // Initialize generic job queue service and worker
     const jobQueueDbConfig: JobQueueDbConfig = {
@@ -300,11 +311,21 @@ export class Shell implements IShell {
       () => this.conversationService,
     );
     this.serviceRegistry.register(
+      "commandRegistry",
+      () => this.commandRegistry,
+    );
+    this.serviceRegistry.register("mcpService", () => this.mcpService);
+    this.serviceRegistry.register(
       "contentGenerator",
       () => this.contentGenerator,
     );
     this.serviceRegistry.register("viewRegistry", () => this.viewRegistry);
     this.serviceRegistry.register("daemonRegistry", () => this.daemonRegistry);
+    this.serviceRegistry.register(
+      "commandRegistry",
+      () => this.commandRegistry,
+    );
+    this.serviceRegistry.register("mcpService", () => this.mcpService);
     this.serviceRegistry.register(
       "jobQueueService",
       () => this.jobQueueService,
@@ -629,6 +650,10 @@ export class Shell implements IShell {
 
   public getServiceRegistry(): ServiceRegistry {
     return this.serviceRegistry;
+  }
+
+  public getMcpTransport(): IMCPTransport {
+    return this.mcpService;
   }
 
   /**

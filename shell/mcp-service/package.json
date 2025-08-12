@@ -1,21 +1,18 @@
 {
-  "name": "@brains/mcp",
+  "name": "@brains/mcp-service",
   "version": "0.1.0",
+  "description": "MCP (Model Context Protocol) service for tool and resource registration",
   "type": "module",
   "main": "./src/index.ts",
-  "module": "./src/index.ts",
   "types": "./src/index.ts",
-  "files": [
-    "src"
-  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint --max-warnings 0 src",
-    "lint:fix": "eslint --fix src",
-    "test": "bun test"
+    "test": "bun test",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
-    "@brains/mcp-server": "workspace:*",
+    "@brains/messaging-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.0"
@@ -23,7 +20,8 @@
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "^1.1.14",
-    "typescript": "^5.7.2"
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.3"
   }
 }

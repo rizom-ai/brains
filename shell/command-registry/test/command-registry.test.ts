@@ -1,73 +1,66 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { CommandRegistry, type Command } from "../src";
-import { MessageBus } from "@brains/messaging-service";
+import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { CommandRegistry } from "../src/command-registry";
 import { createSilentLogger } from "@brains/utils";
+import { MessageBus } from "@brains/messaging-service";
+import type { Command } from "../src/types";
 
 describe("CommandRegistry", () => {
   let registry: CommandRegistry;
   let messageBus: MessageBus;
-  let logger: Logger;
 
   beforeEach(() => {
-    logger = createSilentLogger("command-registry-test");
-    messageBus = MessageBus.createFresh(logger);
-    registry = CommandRegistry.createFresh(logger, messageBus);
+    CommandRegistry.resetInstance();
+    const logger = createSilentLogger();
+    messageBus = MessageBus.getInstance(logger);
+    registry = CommandRegistry.getInstance(logger);
   });
 
   describe("registerCommand", () => {
     it("should register a command", () => {
       const command: Command = {
-        name: "test-command",
+        name: "test-cmd",
         description: "Test command",
-        handler: async () => "Test",
+        handler: async () => "test result",
       };
 
       registry.registerCommand("test-plugin", command);
 
       const commands = registry.listCommands();
       expect(commands).toHaveLength(1);
-      expect(commands[0]?.name).toBe("test-command");
+      expect(commands[0]?.name).toBe("test-cmd");
     });
 
     it("should handle multiple commands from same plugin", () => {
-      const command1: Command = {
-        name: "command1",
-        description: "First command",
-        handler: async () => "First",
-      };
+      registry.registerCommand("plugin-a", {
+        name: "cmd1",
+        description: "Command 1",
+        handler: async () => "1",
+      });
 
-      const command2: Command = {
-        name: "command2",
-        description: "Second command",
-        handler: async () => "Second",
-      };
+      registry.registerCommand("plugin-a", {
+        name: "cmd2",
+        description: "Command 2",
+        handler: async () => "2",
+      });
 
-      registry.registerCommand("test-plugin", command1);
-      registry.registerCommand("test-plugin", command2);
-
-      const commands = registry.listCommands();
-      expect(commands).toHaveLength(2);
-
-      const commandNames = commands.map((cmd) => cmd.name);
-      expect(commandNames).toContain("command1");
-      expect(commandNames).toContain("command2");
+      const pluginCommands = registry.getCommandsFromPlugin("plugin-a");
+      expect(pluginCommands).toHaveLength(2);
+      expect(pluginCommands.map((c) => c.name)).toContain("cmd1");
+      expect(pluginCommands.map((c) => c.name)).toContain("cmd2");
     });
 
     it("should handle commands from different plugins", () => {
-      const pluginACommand: Command = {
-        name: "plugin-a-cmd",
-        description: "Plugin A command",
-        handler: async () => "Plugin A",
-      };
+      registry.registerCommand("plugin-a", {
+        name: "cmd-a",
+        description: "Command from A",
+        handler: async () => "A",
+      });
 
-      const pluginBCommand: Command = {
-        name: "plugin-b-cmd",
-        description: "Plugin B command",
-        handler: async () => "Plugin B",
-      };
-
-      registry.registerCommand("plugin-a", pluginACommand);
-      registry.registerCommand("plugin-b", pluginBCommand);
+      registry.registerCommand("plugin-b", {
+        name: "cmd-b",
+        description: "Command from B",
+        handler: async () => "B",
+      });
 
       const commands = registry.listCommands();
       expect(commands).toHaveLength(2);
@@ -75,72 +68,58 @@ describe("CommandRegistry", () => {
 
     it("should prevent duplicate commands from same plugin", () => {
       const command: Command = {
-        name: "duplicate",
+        name: "dup-cmd",
         description: "Duplicate command",
-        handler: async () => "Duplicate",
+        handler: async () => "dup",
       };
 
       registry.registerCommand("test-plugin", command);
-      // Register same command again
       registry.registerCommand("test-plugin", command);
 
       const commands = registry.listCommands();
-      // Should still have only one command
       expect(commands).toHaveLength(1);
     });
 
     it("should allow same command name from different plugins", () => {
-      const commandA: Command = {
-        name: "shared-name",
-        description: "Plugin A version",
-        handler: async () => "From A",
+      const command: Command = {
+        name: "shared-cmd",
+        description: "Shared command",
+        handler: async () => "shared",
       };
 
-      const commandB: Command = {
-        name: "shared-name",
-        description: "Plugin B version",
-        handler: async () => "From B",
-      };
-
-      registry.registerCommand("plugin-a", commandA);
-      registry.registerCommand("plugin-b", commandB);
+      registry.registerCommand("plugin-a", command);
+      registry.registerCommand("plugin-b", command);
 
       const commands = registry.listCommands();
-      // Should have both commands
       expect(commands).toHaveLength(2);
-
-      // Both should have the same name
-      const commandNames = commands.map((cmd) => cmd.name);
-      expect(
-        commandNames.filter((name) => name === "shared-name"),
-      ).toHaveLength(2);
     });
   });
 
   describe("getCommandsFromPlugin", () => {
     it("should return commands for a specific plugin", () => {
-      const commandA: Command = {
-        name: "plugin-a-cmd",
-        description: "Plugin A command",
-        handler: async () => "A",
-      };
+      registry.registerCommand("target-plugin", {
+        name: "target-cmd1",
+        description: "Target command 1",
+        handler: async () => "1",
+      });
 
-      const commandB: Command = {
-        name: "plugin-b-cmd",
-        description: "Plugin B command",
-        handler: async () => "B",
-      };
+      registry.registerCommand("target-plugin", {
+        name: "target-cmd2",
+        description: "Target command 2",
+        handler: async () => "2",
+      });
 
-      registry.registerCommand("plugin-a", commandA);
-      registry.registerCommand("plugin-b", commandB);
+      registry.registerCommand("other-plugin", {
+        name: "other-cmd",
+        description: "Other command",
+        handler: async () => "other",
+      });
 
-      const pluginACommands = registry.getCommandsFromPlugin("plugin-a");
-      expect(pluginACommands).toHaveLength(1);
-      expect(pluginACommands[0]?.name).toBe("plugin-a-cmd");
-
-      const pluginBCommands = registry.getCommandsFromPlugin("plugin-b");
-      expect(pluginBCommands).toHaveLength(1);
-      expect(pluginBCommands[0]?.name).toBe("plugin-b-cmd");
+      const targetCommands = registry.getCommandsFromPlugin("target-plugin");
+      expect(targetCommands).toHaveLength(2);
+      expect(targetCommands.every((c) => c.name.startsWith("target"))).toBe(
+        true,
+      );
     });
 
     it("should return empty array for unknown plugin", () => {
@@ -151,45 +130,38 @@ describe("CommandRegistry", () => {
 
   describe("findCommand", () => {
     it("should find command by name", () => {
-      const command: Command = {
+      registry.registerCommand("test-plugin", {
         name: "find-me",
-        description: "Test command",
-        handler: async () => "Found",
-      };
+        description: "Find this command",
+        handler: async () => "found",
+      });
 
-      registry.registerCommand("test-plugin", command);
-
-      const found = registry.findCommand("find-me");
-      expect(found).toBeDefined();
-      expect(found?.name).toBe("find-me");
-      expect(found?.description).toBe("Test command");
+      const command = registry.findCommand("find-me");
+      expect(command).toBeDefined();
+      expect(command?.description).toBe("Find this command");
     });
 
     it("should return undefined for unknown command", () => {
-      const found = registry.findCommand("unknown-command");
-      expect(found).toBeUndefined();
+      const command = registry.findCommand("nonexistent");
+      expect(command).toBeUndefined();
     });
 
     it("should return first match when multiple plugins have same command name", () => {
-      const commandA: Command = {
-        name: "shared",
-        description: "From plugin A",
+      registry.registerCommand("plugin-a", {
+        name: "duplicate",
+        description: "From A",
         handler: async () => "A",
-      };
+      });
 
-      const commandB: Command = {
-        name: "shared",
-        description: "From plugin B",
+      registry.registerCommand("plugin-b", {
+        name: "duplicate",
+        description: "From B",
         handler: async () => "B",
-      };
+      });
 
-      registry.registerCommand("plugin-a", commandA);
-      registry.registerCommand("plugin-b", commandB);
-
-      const found = registry.findCommand("shared");
-      expect(found).toBeDefined();
-      // Should return one of them (first match)
-      expect(["From plugin A", "From plugin B"]).toContain(found?.description);
+      const command = registry.findCommand("duplicate");
+      expect(command).toBeDefined();
+      expect(command?.description).toBe("From A");
     });
   });
 
@@ -220,90 +192,6 @@ describe("CommandRegistry", () => {
     });
   });
 
-  describe("message bus integration", () => {
-    it("should handle system:command:register message", async () => {
-      const command: Command = {
-        name: "event-cmd",
-        description: "Event command",
-        handler: async () => "Event",
-      };
-
-      await messageBus.send(
-        "system:command:register",
-        {
-          pluginId: "event-plugin",
-          command: command,
-          timestamp: Date.now(),
-        },
-        "test",
-      );
-
-      // Give the async handler time to process
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      const commands = registry.listCommands();
-      expect(commands).toHaveLength(1);
-      expect(commands[0]?.name).toBe("event-cmd");
-    });
-
-    it("should handle multiple command registration messages", async () => {
-      const command1: Command = {
-        name: "cmd1",
-        description: "Command 1",
-        handler: async () => "1",
-      };
-
-      const command2: Command = {
-        name: "cmd2",
-        description: "Command 2",
-        handler: async () => "2",
-      };
-
-      await messageBus.send(
-        "system:command:register",
-        {
-          pluginId: "event-plugin",
-          command: command1,
-          timestamp: Date.now(),
-        },
-        "test",
-      );
-
-      await messageBus.send(
-        "system:command:register",
-        {
-          pluginId: "event-plugin",
-          command: command2,
-          timestamp: Date.now(),
-        },
-        "test",
-      );
-
-      // Give the async handlers time to process
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      const commands = registry.listCommands();
-      expect(commands).toHaveLength(2);
-      expect(commands.map((c) => c.name)).toContain("cmd1");
-      expect(commands.map((c) => c.name)).toContain("cmd2");
-    });
-
-    it("should handle invalid command registration messages", async () => {
-      // Send invalid message (missing required fields)
-      await messageBus.send(
-        "system:command:register",
-        {
-          pluginId: "event-plugin",
-          // missing command field
-        },
-        "test",
-      );
-
-      // Give the async handler time to process
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      const commands = registry.listCommands();
-      expect(commands).toHaveLength(0);
-    });
-  });
+  // Message bus integration tests removed after refactoring to direct registration
+  // CommandRegistry no longer uses MessageBus - plugins register directly via PluginManager
 });

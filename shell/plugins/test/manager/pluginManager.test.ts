@@ -180,6 +180,27 @@ describe("PluginManager", (): void => {
     };
     serviceRegistry.register("shell", () => mockShell as unknown as IShell);
 
+    // Register required services for direct registration
+    const mockCommandRegistry = {
+      registerCommand: mock(() => {}),
+      executeCommand: mock(() => Promise.resolve()),
+      getCommand: mock(() => undefined),
+      getAllCommands: mock(() => []),
+      listCommands: mock(() => []),
+      findCommand: mock(() => undefined),
+    };
+    serviceRegistry.register("commandRegistry", () => mockCommandRegistry);
+
+    const mockMCPService = {
+      registerTool: mock(() => {}),
+      registerResource: mock(() => {}),
+      listTools: mock(() => []),
+      listResources: mock(() => []),
+      getMcpServer: mock(() => ({})),
+      setPermissionLevel: mock(() => {}),
+    };
+    serviceRegistry.register("mcpService", () => mockMCPService);
+
     pluginManager = PluginManager.createFresh(serviceRegistry, logger);
   });
 

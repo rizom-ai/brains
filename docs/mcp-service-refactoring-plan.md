@@ -6,6 +6,7 @@
 **After**: PluginManager → Direct method calls → CommandRegistry/MCPService (no timing issues)
 
 This eliminates the MessageBus for capability registration since:
+
 - Only one consumer per event type (no other plugins listen)
 - Consumers will be shell services (guaranteed to exist)
 - Direct registration is simpler and more maintainable
@@ -39,7 +40,7 @@ The MCP SDK's `McpServer` already acts as a registry for tools and resources, bu
    - PluginManager directly calls registry methods
    - No events, no timing issues, simpler flow
 
-2. **Create MCPService as Shell Service**: 
+2. **Create MCPService as Shell Service**:
    - Handles tool/resource registration and MCP protocol
    - Initialized before any plugins (like CommandRegistry)
 
@@ -64,7 +65,7 @@ The MCP SDK's `McpServer` already acts as a registry for tools and resources, bu
 **Reused Components** (move from `interfaces/mcp`):
 
 - `handlers/plugin-events.ts` → `mcp-service/src/handlers.ts`
-  - Extract core logic from `handleToolRegistration()` 
+  - Extract core logic from `handleToolRegistration()`
   - Extract core logic from `handleResourceRegistration()`
   - Remove event subscription code (not needed with direct registration)
 - `utils/permissions.ts` → `mcp-service/src/permissions.ts`
@@ -107,7 +108,7 @@ export class MCPService implements IMCPService {
   }
 
   public registerResource(pluginId: string, resource: PluginResource): void {
-    // Reuse logic from handleResourceRegistration  
+    // Reuse logic from handleResourceRegistration
     // Register with mcpServer.resource(...)
   }
 }
@@ -126,16 +127,16 @@ export class MCPService implements IMCPService {
 ```typescript
 private async initializePlugin(pluginId: string): Promise<void> {
   const capabilities = await plugin.register(shell);
-  
+
   // Direct registration - no events
   for (const command of capabilities.commands) {
     this.commandRegistry.registerCommand(pluginId, command);
   }
-  
+
   for (const tool of capabilities.tools) {
     this.mcpService.registerTool(pluginId, tool);
   }
-  
+
   for (const resource of capabilities.resources) {
     this.mcpService.registerResource(pluginId, resource);
   }
@@ -196,7 +197,7 @@ async onRegister(context: InterfacePluginContext) {
    - No longer needed - all registration is direct
 
 3. **Clean up MessageBus events**:
-   - Remove `system:command:register` 
+   - Remove `system:command:register`
    - Remove `system:tool:register`
    - Remove `system:resource:register`
 

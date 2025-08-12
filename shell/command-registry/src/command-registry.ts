@@ -1,7 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { IMessageBus } from "@brains/messaging-service";
 import type { ICommandRegistry, Command, CommandInfo } from "./types";
-import { systemCommandRegisterSchema } from "@brains/plugins";
 
 /**
  * Central registry for commands from all plugins
@@ -13,17 +11,12 @@ export class CommandRegistry implements ICommandRegistry {
   private commands: Map<string, { command: Command; pluginId: string }> =
     new Map();
   private logger: Logger;
-  private messageBus: IMessageBus;
-  private unsubscribe?: () => void;
 
   /**
    * Get the singleton instance of CommandRegistry
    */
-  public static getInstance(
-    logger: Logger,
-    messageBus: IMessageBus,
-  ): CommandRegistry {
-    CommandRegistry.instance ??= new CommandRegistry(logger, messageBus);
+  public static getInstance(logger: Logger): CommandRegistry {
+    CommandRegistry.instance ??= new CommandRegistry(logger);
     return CommandRegistry.instance;
   }
 
@@ -31,51 +24,22 @@ export class CommandRegistry implements ICommandRegistry {
    * Reset the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
-    if (CommandRegistry.instance?.unsubscribe) {
-      CommandRegistry.instance.unsubscribe();
-    }
     CommandRegistry.instance = null;
   }
 
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(
-    logger: Logger,
-    messageBus: IMessageBus,
-  ): CommandRegistry {
-    return new CommandRegistry(logger, messageBus);
+  public static createFresh(logger: Logger): CommandRegistry {
+    return new CommandRegistry(logger);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(logger: Logger, messageBus: IMessageBus) {
+  private constructor(logger: Logger) {
     this.logger = logger.child("CommandRegistry");
-    this.messageBus = messageBus;
-
-    // Subscribe to command registration messages
-    this.unsubscribe = this.messageBus.subscribe(
-      "system:command:register",
-      async (message) => {
-        try {
-          const { pluginId, command } = systemCommandRegisterSchema.parse(
-            message.payload,
-          );
-          this.registerCommand(pluginId, command as Command);
-        } catch (error) {
-          this.logger.error("Invalid command registration message", {
-            error,
-            payload: message.payload,
-          });
-        }
-        return { noop: true };
-      },
-    );
-
-    this.logger.debug(
-      "CommandRegistry initialized with MessageBus subscription",
-    );
+    this.logger.debug("CommandRegistry initialized with direct registration");
   }
 
   /**

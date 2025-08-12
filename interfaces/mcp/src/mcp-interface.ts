@@ -7,14 +7,11 @@ import {
   type DaemonHealth,
   type UserPermissionLevel,
 } from "@brains/plugins";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
+import type { IMCPTransport } from "@brains/mcp-service";
 import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
 import { createMCPTools } from "./tools";
-import {
-  setupSystemEventListeners,
-  setupJobProgressListener,
-} from "./handlers";
+import { setupJobProgressListener } from "./handlers";
 import packageJson from "../package.json";
 
 /**
@@ -30,7 +27,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   // After validation with defaults, config is complete
   declare protected config: MCPConfig;
 
-  private mcpServer: McpServer | undefined;
+  private mcpTransport: IMCPTransport | undefined;
   private stdioServer: StdioMCPServer | undefined;
   private httpServer: StreamableHTTPServer | undefined;
 
@@ -60,35 +57,32 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   }
 
   /**
-   * Override getResources to return empty array since MCP manages its own resources
+   * Override getResources to provide MCP-specific resources
    */
   protected override async getResources(): Promise<PluginResource[]> {
-    // MCP manages its own resources internally
-    return [];
-  }
-
-  /**
-   * Register MCP-specific resources
-   */
-  private registerMCPResources(context: InterfacePluginContext): void {
-    if (!this.mcpServer) return;
-
-    // Register entity types resource
-    this.mcpServer.resource(
-      "entity://types",
-      "List of supported entity types",
-      async () => ({
-        contents: [
-          {
-            uri: "entity://types",
-            mimeType: "text/plain",
-            text: context.entityService.getEntityTypes().join("\n"),
-          },
-        ],
-      }),
-    );
-
-    this.logger.info("Registered MCP resources");
+    return [
+      {
+        uri: "entity://types",
+        name: "Entity Types",
+        description: "List of supported entity types",
+        mimeType: "text/plain",
+        handler: async (): Promise<{
+          contents: Array<{ text: string; uri: string; mimeType?: string }>;
+        }> => {
+          const entityTypes =
+            this.context?.entityService.getEntityTypes() ?? [];
+          return {
+            contents: [
+              {
+                uri: "entity://types",
+                mimeType: "text/plain",
+                text: entityTypes.join("\n"),
+              },
+            ],
+          };
+        },
+      },
+    ];
   }
 
   /**
@@ -100,24 +94,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     const permissionLevel = this.getPermissionLevel();
     this.logger.info(
       `MCP interface initialized with ${this.config.transport} transport and ${permissionLevel} permissions`,
-    );
-
-    // Create MCP server instance
-    this.mcpServer = new McpServer({
-      name: "brain-mcp",
-      version: "1.0.0",
-    });
-
-    // Register entity types resource directly
-    // (Tools will be registered automatically through plugin system)
-    this.registerMCPResources(context);
-
-    // Subscribe to system events for plugin tools
-    setupSystemEventListeners(
-      context,
-      this.mcpServer,
-      () => this.getPermissionLevel(),
-      this.logger,
     );
 
     // Subscribe to job progress events for MCP progress reporting
@@ -162,9 +138,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
    */
   private isServerRunning(): boolean {
     if (this.config.transport === "stdio") {
-      return this.stdioServer !== undefined && this.mcpServer !== undefined;
+      return this.stdioServer !== undefined && this.mcpTransport !== undefined;
     } else {
-      return this.httpServer !== undefined && this.mcpServer !== undefined;
+      return this.httpServer !== undefined && this.mcpTransport !== undefined;
     }
   }
 
@@ -172,9 +148,17 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
    * Start the MCP server
    */
   private async startServer(): Promise<void> {
-    if (!this.mcpServer) {
-      throw new Error("MCP server not initialized");
+    // Get MCP transport from context when starting
+    // Context is guaranteed to be set by the time daemon starts
+    if (!this.context) {
+      throw new Error("Context not initialized");
     }
+
+    this.mcpTransport = this.context.mcpTransport;
+
+    // Set permission level based on transport type
+    const permissionLevel = this.getPermissionLevel();
+    this.mcpTransport.setPermissionLevel(permissionLevel);
 
     this.logger.info(`Starting MCP ${this.config.transport} transport`);
 
@@ -184,8 +168,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
         logger: this.logger,
       });
 
-      // Connect MCP server to STDIO transport
-      this.stdioServer.connectMCPServer(this.mcpServer);
+      // Connect MCP server from service to STDIO transport
+      const mcpServer = this.mcpTransport.getMcpServer();
+      this.stdioServer.connectMCPServer(mcpServer);
 
       // Start STDIO server
       await this.stdioServer.start();
@@ -197,8 +182,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
         logger: this.logger,
       });
 
-      // Connect MCP server to HTTP transport
-      this.httpServer.connectMCPServer(this.mcpServer);
+      // Connect MCP server from service to HTTP transport
+      const mcpServer = this.mcpTransport.getMcpServer();
+      this.httpServer.connectMCPServer(mcpServer);
 
       // Start HTTP server
       await this.httpServer.start();
@@ -224,9 +210,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       this.httpServer = undefined;
     }
 
-    if (this.mcpServer) {
-      await this.mcpServer.close();
-      this.mcpServer = undefined;
-    }
+    // MCPService manages the lifecycle of mcpServer
+    // We just clear our reference
+    this.mcpTransport = undefined;
   }
 }
