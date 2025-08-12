@@ -1,5 +1,15 @@
 # MCP Service Refactoring Plan
 
+## Key Change: Direct Registration Instead of Events
+
+**Before**: PluginManager → Events → CommandRegistry/MCP (timing issues)  
+**After**: PluginManager → Direct method calls → CommandRegistry/MCPService (no timing issues)
+
+This eliminates the MessageBus for capability registration since:
+- Only one consumer per event type (no other plugins listen)
+- Consumers will be shell services (guaranteed to exist)
+- Direct registration is simpler and more maintainable
+
 ## Problem Statement
 
 System plugin tools aren't showing up in MCP due to a timing issue:
@@ -21,21 +31,29 @@ System plugin tools aren't showing up in MCP due to a timing issue:
 
 The MCP SDK's `McpServer` already acts as a registry for tools and resources, but it's created inside an interface plugin that may initialize after other plugins have already emitted their capabilities.
 
-## Solution: Split MCP into Service + Plugin
+## Solution: Direct Registration with Shell Services
 
 ### Architecture Design
 
-Split MCP functionality into two parts:
+1. **Move to Direct Registration**: Eliminate MessageBus for capability registration
+   - PluginManager directly calls registry methods
+   - No events, no timing issues, simpler flow
 
-1. **MCPService (Shell Service)**: Handles tool/resource registration and MCP protocol
-2. **MCPInterface (Plugin)**: Handles transport management only (stdio/http)
+2. **Create MCPService as Shell Service**: 
+   - Handles tool/resource registration and MCP protocol
+   - Initialized before any plugins (like CommandRegistry)
+
+3. **Simplify MCPInterface Plugin**:
+   - Only handles transport management (stdio/http)
+   - Gets McpServer instance from MCPService
 
 ### Benefits
 
-- **Guaranteed initialization order**: MCPService starts with Shell, before any plugins
-- **Maximum code reuse**: ~80% of existing code stays unchanged
-- **Clean separation of concerns**: Registration vs Transport
-- **Consistency**: Aligns with CommandRegistry pattern (persistent storage)
+- **Simpler architecture**: No unnecessary event indirection
+- **Guaranteed initialization order**: Services start before plugins
+- **Maximum code reuse**: ~70% of existing MCP code stays unchanged
+- **Consistency**: All registries work the same way (direct registration)
+- **Easier to understand**: Direct method calls instead of events
 
 ## Implementation Plan
 
@@ -46,9 +64,9 @@ Split MCP functionality into two parts:
 **Reused Components** (move from `interfaces/mcp`):
 
 - `handlers/plugin-events.ts` → `mcp-service/src/handlers.ts`
-  - `handleToolRegistration()` function
-  - `handleResourceRegistration()` function
-  - `setupSystemEventListeners()` adapted for shell context
+  - Extract core logic from `handleToolRegistration()` 
+  - Extract core logic from `handleResourceRegistration()`
+  - Remove event subscription code (not needed with direct registration)
 - `utils/permissions.ts` → `mcp-service/src/permissions.ts`
   - Permission checking utilities
 
@@ -60,7 +78,7 @@ export interface IMCPService {
   // Get the underlying MCP server for transport layers
   getMcpServer(): McpServer;
 
-  // Registration methods (called internally via events)
+  // Direct registration methods (called by PluginManager)
   registerTool(pluginId: string, tool: PluginTool): void;
   registerResource(pluginId: string, resource: PluginResource): void;
 
@@ -73,37 +91,58 @@ export interface IMCPService {
 export class MCPService implements IMCPService {
   private static instance: MCPService | null = null;
   private mcpServer: McpServer;
-  private messageBus: IMessageBus;
   private logger: Logger;
+  private messageBus: IMessageBus; // Still needed for tool execution
 
   constructor(messageBus: IMessageBus, logger: Logger) {
     this.mcpServer = new McpServer({ name: "brain-mcp", version: "1.0.0" });
     this.messageBus = messageBus;
     this.logger = logger.child("MCPService");
-    this.setupEventListeners();
+    // No event listeners needed - direct registration instead
   }
 
-  private setupEventListeners(): void {
-    // Subscribe to tool registration events
-    this.messageBus.subscribe("system:tool:register", (message) => {
-      const { pluginId, tool } = message.payload;
-      this.registerTool(pluginId, tool);
-      return { success: true };
-    });
-
-    // Subscribe to resource registration events
-    this.messageBus.subscribe("system:resource:register", (message) => {
-      const { pluginId, resource } = message.payload;
-      this.registerResource(pluginId, resource);
-      return { success: true };
-    });
+  public registerTool(pluginId: string, tool: PluginTool): void {
+    // Reuse logic from handleToolRegistration
+    // Register with mcpServer.tool(...)
   }
 
-  // ... rest of implementation using reused code
+  public registerResource(pluginId: string, resource: PluginResource): void {
+    // Reuse logic from handleResourceRegistration  
+    // Register with mcpServer.resource(...)
+  }
 }
 ```
 
-### Phase 2: Update Shell
+### Phase 2: Update PluginManager for Direct Registration
+
+**File**: `shell/plugins/src/manager/pluginManager.ts`
+
+**Changes**:
+
+1. Add MCPService and CommandRegistry as constructor dependencies
+2. Remove PluginRegistrationHandler completely
+3. Update `initializePlugin()` to use direct registration:
+
+```typescript
+private async initializePlugin(pluginId: string): Promise<void> {
+  const capabilities = await plugin.register(shell);
+  
+  // Direct registration - no events
+  for (const command of capabilities.commands) {
+    this.commandRegistry.registerCommand(pluginId, command);
+  }
+  
+  for (const tool of capabilities.tools) {
+    this.mcpService.registerTool(pluginId, tool);
+  }
+  
+  for (const resource of capabilities.resources) {
+    this.mcpService.registerResource(pluginId, resource);
+  }
+}
+```
+
+### Phase 3: Update Shell
 
 **File**: `shell/core/src/shell.ts`
 
@@ -111,11 +150,12 @@ export class MCPService implements IMCPService {
 
 1. Import MCPService
 2. Add to ShellDependencies interface
-3. Initialize in constructor (before plugin manager)
-4. Add `getMCPService()` method
-5. Register in service registry
+3. Initialize MCPService in constructor (before plugin manager)
+4. Pass MCPService to PluginManager constructor
+5. Add `getMCPService()` method
+6. Register in service registry
 
-### Phase 3: Simplify MCPInterface Plugin
+### Phase 4: Simplify MCPInterface Plugin
 
 **File**: `interfaces/mcp/src/mcp-interface.ts`
 
@@ -144,12 +184,29 @@ async onRegister(context: InterfacePluginContext) {
 }
 ```
 
-### Phase 4: Testing
+### Phase 5: Remove Event-Based Registration
+
+**Files to Update**:
+
+1. **Remove from CommandRegistry** (`shell/command-registry/src/command-registry.ts`):
+   - Remove MessageBus subscription in constructor
+   - Keep `registerCommand()` method (now called directly)
+
+2. **Delete PluginRegistrationHandler** (`shell/plugins/src/manager/pluginRegistrationHandler.ts`):
+   - No longer needed - all registration is direct
+
+3. **Clean up MessageBus events**:
+   - Remove `system:command:register` 
+   - Remove `system:tool:register`
+   - Remove `system:resource:register`
+
+### Phase 6: Testing
 
 1. Verify SystemPlugin tools appear in MCP
 2. Test both stdio and http transports
 3. Test with different plugin initialization orders
 4. Verify existing commands still work
+5. Confirm no MessageBus events for registration
 
 ## File Structure After Refactoring
 
@@ -176,13 +233,16 @@ interfaces/
 ## Migration Checklist
 
 - [ ] Create shell/mcp-service package structure
-- [ ] Move handler functions to mcp-service
+- [ ] Move core logic from MCP handlers to mcp-service
 - [ ] Move permission utilities to mcp-service
-- [ ] Implement MCPService class
+- [ ] Implement MCPService class with direct registration methods
+- [ ] Update PluginManager to use direct registration
+- [ ] Remove PluginRegistrationHandler
+- [ ] Update CommandRegistry to remove MessageBus subscription
 - [ ] Update Shell to include MCPService
 - [ ] Update IShell interface
-- [ ] Simplify MCPInterface plugin
-- [ ] Update tests
+- [ ] Simplify MCPInterface plugin (transport only)
+- [ ] Update tests to use direct registration
 - [ ] Test with SystemPlugin
 - [ ] Update documentation
 
