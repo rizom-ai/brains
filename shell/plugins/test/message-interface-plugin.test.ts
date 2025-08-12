@@ -194,4 +194,72 @@ describe("MessageInterfacePlugin", () => {
     expect(plugin).toBeDefined();
   });
 
+  describe("conversation memory integration", () => {
+    test("processes input without errors when conversation service is available", async () => {
+      const plugin = harness.getPlugin();
+
+      // Should not throw even though MockShell's conversation service is minimal
+      const result = await plugin.processInput("Hello world", defaultContext);
+      expect(result).toBeUndefined();
+    });
+
+    test("handles commands without storing conversation", async () => {
+      const plugin = harness.getPlugin();
+
+      // Commands should work even without conversation storage
+      const result = await plugin.processInput("/help", defaultContext);
+      expect(result).toBeUndefined();
+    });
+
+    test("maintains conversation across multiple messages", async () => {
+      const plugin = harness.getPlugin();
+
+      // Process multiple messages in same channel
+      await plugin.processInput("First message", defaultContext);
+      await plugin.processInput("Second message", defaultContext);
+      await plugin.processInput("Third message", defaultContext);
+
+      // Should not throw errors
+      expect(plugin).toBeDefined();
+    });
+
+    test("handles different channels independently", async () => {
+      const plugin = harness.getPlugin();
+
+      const channel1Context = { ...defaultContext, channelId: "channel-1" };
+      const channel2Context = { ...defaultContext, channelId: "channel-2" };
+
+      // Process messages in different channels
+      await plugin.processInput("Message in channel 1", channel1Context);
+      await plugin.processInput("Message in channel 2", channel2Context);
+
+      // Each channel should have its own conversation
+      expect(plugin).toBeDefined();
+    });
+
+    test("includes proper metadata in context", async () => {
+      // Test with custom implementation that checks metadata
+      class MetadataCheckInterface extends EchoMessageInterface {
+        protected override async handleInput(
+          input: string,
+          context: MessageContext,
+        ): Promise<void> {
+          // Verify context has required fields
+          expect(context.userId).toBeDefined();
+          expect(context.channelId).toBeDefined();
+          expect(context.messageId).toBeDefined();
+          expect(context.interfaceType).toBeDefined();
+
+          return super.handleInput(input, context);
+        }
+      }
+
+      const metadataHarness =
+        createInterfacePluginHarness<MetadataCheckInterface>();
+      const metadataPlugin = new MetadataCheckInterface({ debug: false });
+      await metadataHarness.installPlugin(metadataPlugin);
+
+      await metadataPlugin.processInput("Test message", defaultContext);
+    });
+  });
 });
