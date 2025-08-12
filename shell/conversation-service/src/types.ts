@@ -17,7 +17,11 @@ export interface ConversationServiceConfig {
  */
 export interface IConversationService {
   // Core operations
-  startConversation(sessionId: string, interfaceType: string): Promise<string>;
+  startConversation(
+    sessionId: string,
+    interfaceType: string,
+    channelId: string,
+  ): Promise<string>;
   addMessage(
     conversationId: string,
     role: MessageRole,

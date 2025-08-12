@@ -89,7 +89,7 @@ export class ContentGenerator implements IContentGenerator {
    */
   async generateContent<T = unknown>(
     templateName: string,
-    context: GenerationContext = {},
+    context: GenerationContext = { conversationId: "default" },
     pluginId?: string,
   ): Promise<T> {
     // Apply template scoping if pluginId is provided
@@ -194,6 +194,7 @@ export class ContentGenerator implements IContentGenerator {
     const templateName = section.template;
 
     const context: GenerationContext = {
+      conversationId: "system",
       data: {
         routeId: route.id,
         routeTitle: route.title,
@@ -265,8 +266,12 @@ export class ContentGenerator implements IContentGenerator {
     }
     let prompt = template.basePrompt;
 
-    // Add conversation context if conversationId is provided
-    if (context.conversationId) {
+    // Add conversation context if not a system conversation
+    if (
+      context.conversationId &&
+      context.conversationId !== "system" &&
+      context.conversationId !== "default"
+    ) {
       try {
         const workingMemory =
           await this.dependencies.conversationService.getWorkingMemory(
@@ -279,6 +284,7 @@ export class ContentGenerator implements IContentGenerator {
         // Log error but don't fail generation if conversation context unavailable
         this.dependencies.logger.debug("Failed to get conversation context", {
           error,
+          conversationId: context.conversationId,
         });
       }
     }

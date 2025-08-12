@@ -524,6 +524,7 @@ export class Shell implements IShell {
     // Generate content
     const context = {
       prompt: config.prompt,
+      conversationId: config.conversationId,
       ...(config.data && { data: config.data }),
     };
 
@@ -555,6 +556,8 @@ export class Shell implements IShell {
     return this.generateContent<DefaultQueryResponse>({
       prompt,
       templateName: "shell:knowledge-query",
+      userId: context?.userId || "anonymous",
+      conversationId: context?.conversationId || "default",
       data: queryContext,
       interfacePermissionGrant: "public", // Default to public, callers can override via context
     });

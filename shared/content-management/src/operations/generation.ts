@@ -124,6 +124,7 @@ export class GenerationOperations {
           entityId: job.entityId,
           entityType: job.entityType,
           context: {
+            conversationId: "system",
             data: {
               jobId: job.jobId,
               entityId: job.entityId,

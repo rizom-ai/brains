@@ -12,6 +12,7 @@ export interface MessageInterfacePluginContext extends InterfacePluginContext {
   startConversation: (
     sessionId: string,
     interfaceType: string,
+    channelId: string,
   ) => Promise<string>;
 
   addMessage: (
@@ -39,11 +40,13 @@ export function createMessageInterfacePluginContext(
     startConversation: async (
       sessionId: string,
       interfaceType: string,
+      channelId: string,
     ): Promise<string> => {
       const conversationService = shell.getConversationService();
       const conversationId = await conversationService.startConversation(
         sessionId,
         interfaceType,
+        channelId,
       );
       interfaceContext.logger.debug(`Started conversation ${conversationId}`, {
         sessionId,

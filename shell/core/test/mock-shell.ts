@@ -1,4 +1,9 @@
-import type { IShell, Daemon, DefaultQueryResponse } from "@brains/plugins";
+import type {
+  IShell,
+  Daemon,
+  DefaultQueryResponse,
+  QueryContext,
+} from "@brains/plugins";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
   MessageBus,
@@ -360,18 +365,21 @@ export class MockShell implements IShell {
     const contentGen = this.getContentGenerator();
     return contentGen.generateContent<T>(scopedName, {
       prompt: config.prompt,
+      conversationId: config.conversationId,
       data: config.data,
     });
   }
 
   async query(
     prompt: string,
-    context?: Record<string, unknown>,
+    context?: QueryContext,
   ): Promise<DefaultQueryResponse> {
     // Mock query implementation - uses generateContent under the hood
     return this.generateContent<DefaultQueryResponse>({
       prompt,
       templateName: "shell:knowledge-query",
+      userId: context?.userId || "anonymous",
+      conversationId: context?.conversationId || "default",
       ...(context && { data: context }),
       interfacePermissionGrant: "public",
     });

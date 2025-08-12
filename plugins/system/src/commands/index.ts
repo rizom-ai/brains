@@ -225,5 +225,206 @@ export function createSystemCommands(
         }
       },
     },
+    {
+      name: "getconversation",
+      description: "Get conversation details and recent messages",
+      usage: "/getconversation <conversation-id> [message-limit]",
+      handler: async (args, _context): Promise<CommandResponse> => {
+        if (args.length === 0) {
+          return {
+            type: "message",
+            message:
+              "Please provide a conversation ID. Usage: /getconversation <conversation-id> [message-limit]",
+          };
+        }
+
+        const conversationId = args[0] as string;
+        const messageLimit = args[1] ? parseInt(args[1] as string, 10) : 10;
+
+        try {
+          // Get conversation details
+          const conversation = await plugin.getConversation(conversationId);
+
+          if (!conversation) {
+            return {
+              type: "message",
+              message: `Conversation not found: ${conversationId}`,
+            };
+          }
+
+          // Get recent messages
+          const messages = await plugin.getMessages(
+            conversationId,
+            messageLimit,
+          );
+
+          // Format the response
+          const sections = [
+            `**Conversation: ${conversation.id}**`,
+            `Interface: ${conversation.interfaceType}`,
+            `Channel: ${conversation.channelId}`,
+            `Created: ${new Date(conversation.created).toLocaleString()}`,
+            `Last Active: ${new Date(conversation.lastActive).toLocaleString()}`,
+            ``,
+            `**Recent Messages (${messages.length}/${messageLimit} requested):**`,
+          ];
+
+          if (messages.length === 0) {
+            sections.push("No messages found");
+          } else {
+            messages.forEach((msg, index) => {
+              const preview =
+                msg.content.substring(0, 200) +
+                (msg.content.length > 200 ? "..." : "");
+              sections.push(
+                `${index + 1}. [${msg.role}] ${new Date(msg.timestamp).toLocaleTimeString()}: ${preview}`,
+              );
+            });
+          }
+
+          // Add formatted working memory preview
+          if (messages.length > 0) {
+            sections.push(
+              "",
+              "**Working Memory Format (what AI sees):**",
+              messages
+                .slice(0, 3)
+                .map(
+                  (m) =>
+                    `${m.role.charAt(0).toUpperCase() + m.role.slice(1)}: ${m.content.substring(0, 100)}...`,
+                )
+                .join("\n"),
+            );
+          }
+
+          return {
+            type: "message",
+            message: sections.join("\n"),
+          };
+        } catch (error) {
+          return {
+            type: "message",
+            message: `Error getting conversation: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+      },
+    },
+    {
+      name: "listconversations",
+      description: "List all conversations or search by query",
+      usage: "/listconversations [search-query]",
+      handler: async (args, _context): Promise<CommandResponse> => {
+        const searchQuery = args.join(" ");
+
+        try {
+          const conversations = await plugin.searchConversations(searchQuery);
+
+          if (conversations.length === 0) {
+            return {
+              type: "message",
+              message: searchQuery
+                ? `No conversations found matching: ${searchQuery}`
+                : "No conversations found",
+            };
+          }
+
+          // Group by interface type
+          const grouped = conversations.reduce(
+            (acc, conv) => {
+              const interfaceType = conv.interfaceType;
+              if (!acc[interfaceType]) acc[interfaceType] = [];
+              acc[interfaceType].push(conv);
+              return acc;
+            },
+            {} as Record<string, typeof conversations>,
+          );
+
+          const sections = [
+            `Found ${conversations.length} conversation${conversations.length === 1 ? "" : "s"}:`,
+            "",
+          ];
+
+          Object.entries(grouped).forEach(([interfaceType, convs]) => {
+            sections.push(`**${interfaceType} (${convs.length}):**`);
+            convs.slice(0, 5).forEach((conv) => {
+              const lastActive = new Date(conv.lastActive).toLocaleString();
+              sections.push(
+                `  • ${conv.id} [${conv.channelId}] - Last: ${lastActive}`,
+              );
+            });
+            if (convs.length > 5) {
+              sections.push(`  ... and ${convs.length - 5} more`);
+            }
+            sections.push("");
+          });
+
+          sections.push(
+            "Tip: Use /getconversation <id> to see details and messages",
+          );
+
+          return {
+            type: "message",
+            message: sections.join("\n"),
+          };
+        } catch (error) {
+          return {
+            type: "message",
+            message: `Error listing conversations: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+      },
+    },
+    {
+      name: "getmessages",
+      description: "Get messages from a conversation",
+      usage: "/getmessages <conversation-id> [limit]",
+      handler: async (args, _context): Promise<CommandResponse> => {
+        if (args.length === 0) {
+          return {
+            type: "message",
+            message:
+              "Please provide a conversation ID. Usage: /getmessages <conversation-id> [limit]",
+          };
+        }
+
+        const conversationId = args[0] as string;
+        const limit = args[1] ? parseInt(args[1] as string, 10) : 20;
+
+        try {
+          const messages = await plugin.getMessages(conversationId, limit);
+
+          if (messages.length === 0) {
+            return {
+              type: "message",
+              message: `No messages found in conversation: ${conversationId}`,
+            };
+          }
+
+          // Format messages
+          const sections = [
+            `**Messages from ${conversationId} (${messages.length}/${limit} requested):**`,
+            "",
+          ];
+
+          messages.forEach((msg, index) => {
+            sections.push(
+              `${index + 1}. [${msg.role.toUpperCase()}] ${new Date(msg.timestamp).toLocaleString()}`,
+              msg.content,
+              "---",
+            );
+          });
+
+          return {
+            type: "message",
+            message: sections.join("\n"),
+          };
+        } catch (error) {
+          return {
+            type: "message",
+            message: `Error getting messages: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+      },
+    },
   ];
 }

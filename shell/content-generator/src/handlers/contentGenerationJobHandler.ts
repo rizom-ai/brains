@@ -14,6 +14,7 @@ export const contentGenerationJobDataSchema = z.object({
   context: z.object({
     prompt: z.string().optional(),
     data: z.record(z.unknown()).optional(),
+    conversationId: z.string().default("system"),
   }),
   userId: z.string().optional(),
   // Entity information for saving generated content
@@ -109,7 +110,11 @@ export class ContentGenerationJobHandler
       // Generate content using the ContentGenerator service
       const content = await this.contentGenerator.generateContent<unknown>(
         data.templateName,
-        data.context,
+        {
+          prompt: data.context.prompt,
+          data: data.context.data,
+          conversationId: data.context.conversationId || "system",
+        },
       );
 
       // Report progress after content generation

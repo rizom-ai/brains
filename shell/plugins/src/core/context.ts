@@ -5,6 +5,11 @@ import type { Template } from "@brains/content-generator";
 import type { ICoreEntityService } from "@brains/entity-service";
 import type { Batch, BatchJobStatus } from "@brains/job-queue";
 import type { JobQueue } from "@brains/job-queue";
+import type {
+  Conversation,
+  Message,
+  MessageRole,
+} from "@brains/conversation-service";
 
 /**
  * Core plugin context - provides basic services to core plugins
@@ -44,6 +49,22 @@ export interface CorePluginContext {
   getActiveBatches: () => Promise<Batch[]>;
   getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
   getJobStatus: (jobId: string) => Promise<JobQueue | null>;
+
+  // Conversation service (read-only)
+  getConversation: (conversationId: string) => Promise<Conversation | null>;
+  searchConversations: (query: string) => Promise<Conversation[]>;
+  getMessages: (conversationId: string, limit?: number) => Promise<Message[]>;
+  startConversation: (
+    conversationId: string,
+    interfaceType: string,
+    channelId: string,
+  ) => Promise<string>;
+  addMessage: (
+    conversationId: string,
+    role: MessageRole,
+    content: string,
+    metadata?: Record<string, unknown>,
+  ) => Promise<void>;
 }
 
 /**
@@ -112,6 +133,46 @@ export function createCorePluginContext(
     },
     getJobStatus: (jobId: string) => {
       return shell.getJobStatus(jobId);
+    },
+
+    // Conversation service
+    getConversation: async (conversationId: string) => {
+      const conversationService = shell.getConversationService();
+      return conversationService.getConversation(conversationId);
+    },
+    searchConversations: async (query: string) => {
+      const conversationService = shell.getConversationService();
+      return conversationService.searchConversations(query);
+    },
+    getMessages: async (conversationId: string, limit?: number) => {
+      const conversationService = shell.getConversationService();
+      return conversationService.getRecentMessages(conversationId, limit);
+    },
+    startConversation: async (
+      conversationId: string,
+      interfaceType: string,
+      channelId: string,
+    ) => {
+      const conversationService = shell.getConversationService();
+      return conversationService.startConversation(
+        conversationId,
+        interfaceType,
+        channelId,
+      );
+    },
+    addMessage: async (
+      conversationId: string,
+      role: MessageRole,
+      content: string,
+      metadata?: Record<string, unknown>,
+    ) => {
+      const conversationService = shell.getConversationService();
+      await conversationService.addMessage(
+        conversationId,
+        role,
+        content,
+        metadata,
+      );
     },
   };
 }

@@ -2,12 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ConversationService } from "../src/conversation-service";
 import { createSilentLogger } from "@brains/utils";
 import type { Logger } from "@brains/utils";
-import { createConversationDatabase } from "../src/database";
 import type { ConversationDB } from "../src/database";
 import type { ConversationServiceConfig } from "../src/types";
-import { mkdtemp, rm } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
+import { createTestConversationDatabase } from "./helpers/test-conversation-db";
 import type { Client } from "@libsql/client";
 
 describe("ConversationService", () => {
@@ -16,52 +13,14 @@ describe("ConversationService", () => {
   let client: Client;
   let logger: Logger;
   let config: ConversationServiceConfig;
-  let tempDir: string;
+  let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    // Create a unique temporary directory for each test
-    tempDir = await mkdtemp(join(tmpdir(), "conversation-test-"));
-    const dbPath = join(tempDir, "test.db");
-
-    // Create real database for testing
-    const dbSetup = createConversationDatabase({ url: `file:${dbPath}` });
-    db = dbSetup.db;
-    client = dbSetup.client;
-
-    // Run migrations to create tables
-    await client.execute(`
-      CREATE TABLE IF NOT EXISTS conversations (
-        id TEXT PRIMARY KEY,
-        session_id TEXT NOT NULL,
-        interface_type TEXT NOT NULL,
-        started TEXT NOT NULL,
-        last_active TEXT NOT NULL,
-        metadata TEXT,
-        created TEXT NOT NULL,
-        updated TEXT NOT NULL
-      )
-    `);
-
-    await client.execute(`
-      CREATE TABLE IF NOT EXISTS messages (
-        id TEXT PRIMARY KEY,
-        conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-        role TEXT NOT NULL,
-        content TEXT NOT NULL,
-        timestamp TEXT NOT NULL,
-        metadata TEXT
-      )
-    `);
-
-    await client.execute(`
-      CREATE TABLE IF NOT EXISTS summary_tracking (
-        conversation_id TEXT PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
-        last_summarized_at TEXT,
-        last_message_id TEXT,
-        messages_since_summary INTEGER DEFAULT 0,
-        updated TEXT NOT NULL
-      )
-    `);
+    // Create test database with migrations
+    const testDb = await createTestConversationDatabase();
+    db = testDb.db;
+    client = testDb.client;
+    cleanup = testDb.cleanup;
 
     // Create silent logger for tests
     logger = createSilentLogger();
@@ -77,18 +36,19 @@ describe("ConversationService", () => {
 
   afterEach(async () => {
     // Clean up
-    client.close();
-    await rm(tempDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   describe("startConversation", () => {
     it("should create a new conversation using sessionId as conversationId", async () => {
       const sessionId = "test-session-123";
       const interfaceType = "cli";
+      const channelId = "test-channel";
 
       const conversationId = await service.startConversation(
         sessionId,
         interfaceType,
+        channelId,
       );
 
       expect(conversationId).toBe(sessionId);
@@ -106,14 +66,16 @@ describe("ConversationService", () => {
     it("should return existing conversation if already exists (idempotent)", async () => {
       const sessionId = "existing-session-456";
       const interfaceType = "matrix";
+      const channelId = "test-channel";
 
       // Start conversation first time
-      await service.startConversation(sessionId, interfaceType);
+      await service.startConversation(sessionId, interfaceType, channelId);
 
       // Start conversation second time
       const conversationId = await service.startConversation(
         sessionId,
         interfaceType,
+        channelId,
       );
 
       expect(conversationId).toBe(sessionId);
@@ -135,7 +97,7 @@ describe("ConversationService", () => {
       const metadata = { key: "value" };
 
       // First create a conversation
-      await service.startConversation(conversationId, "cli");
+      await service.startConversation(conversationId, "cli", "test-channel");
 
       // Add message
       await service.addMessage(conversationId, role, content, metadata);
@@ -156,7 +118,7 @@ describe("ConversationService", () => {
       const conversationId = "conv-123";
 
       // Create conversation
-      await service.startConversation(conversationId, "cli");
+      await service.startConversation(conversationId, "cli", "test-channel");
 
       // Add messages
       await service.addMessage(conversationId, "user", "First message");
@@ -176,7 +138,7 @@ describe("ConversationService", () => {
       const limit = 2;
 
       // Create conversation
-      await service.startConversation(conversationId, "cli");
+      await service.startConversation(conversationId, "cli", "test-channel");
 
       // Add more messages than limit
       await service.addMessage(conversationId, "user", "Message 1");
@@ -197,7 +159,11 @@ describe("ConversationService", () => {
       const conversationId = "conv-123";
       const interfaceType = "cli";
 
-      await service.startConversation(conversationId, interfaceType);
+      await service.startConversation(
+        conversationId,
+        interfaceType,
+        "test-channel",
+      );
 
       const result = await service.getConversation(conversationId);
 
@@ -219,7 +185,7 @@ describe("ConversationService", () => {
       const conversationId = "conv-123";
 
       // Create conversation and add messages
-      await service.startConversation(conversationId, "cli");
+      await service.startConversation(conversationId, "cli", "test-channel");
       await service.addMessage(conversationId, "user", "Hello");
       await service.addMessage(conversationId, "assistant", "Hi there!");
       await service.addMessage(conversationId, "user", "How are you?");
@@ -233,7 +199,7 @@ describe("ConversationService", () => {
 
     it("should return empty string for conversation with no messages", async () => {
       const conversationId = "conv-empty";
-      await service.startConversation(conversationId, "cli");
+      await service.startConversation(conversationId, "cli", "test-channel");
 
       const result = await service.getWorkingMemory(conversationId);
 
@@ -244,11 +210,11 @@ describe("ConversationService", () => {
   describe("searchConversations", () => {
     it("should search conversations by content", async () => {
       // Create conversation with searchable content
-      await service.startConversation("conv-1", "cli");
+      await service.startConversation("conv-1", "cli", "channel-1");
       await service.addMessage("conv-1", "user", "This is a test message");
 
       // Create another conversation without the search term
-      await service.startConversation("conv-2", "cli");
+      await service.startConversation("conv-2", "cli", "channel-2");
       await service.addMessage("conv-2", "user", "Different content");
 
       const result = await service.searchConversations("test");

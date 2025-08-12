@@ -251,6 +251,7 @@ export abstract class MessageInterfacePlugin<
         await this.getContext().startConversation(
           conversationId,
           context.interfaceType,
+          context.channelId,
         );
         this.startedConversations.add(conversationId);
       } catch (error) {

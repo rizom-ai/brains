@@ -114,15 +114,18 @@ describe("SystemPlugin", () => {
   });
 
   describe("commands", () => {
-    it("should provide search, get, and getjobstatus commands", async () => {
+    it("should provide search, get, getjobstatus, and conversation commands", async () => {
       const commands = await (plugin as any).getCommands();
 
-      expect(commands).toHaveLength(3);
+      expect(commands).toHaveLength(6);
 
       const commandNames = commands.map((cmd: any) => cmd.name);
       expect(commandNames).toContain("search");
       expect(commandNames).toContain("get");
       expect(commandNames).toContain("getjobstatus");
+      expect(commandNames).toContain("getconversation");
+      expect(commandNames).toContain("listconversations");
+      expect(commandNames).toContain("getmessages");
     });
   });
 

@@ -129,6 +129,8 @@ Return an array of topics in the required JSON format.`;
       }>({
         prompt,
         templateName: "topics:extraction",
+        userId: "system", // Topic extraction is a system operation
+        conversationId: conversationId, // Use the actual conversation being analyzed
       });
 
       const extractedData = result.topics;

@@ -58,10 +58,7 @@ export interface IShell {
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
-  query(
-    prompt: string,
-    context?: QueryContext,
-  ): Promise<DefaultQueryResponse>;
+  query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;
   registerRoutes(
     routes: RouteDefinition[],
     options?: { pluginId?: string; environment?: string },
@@ -278,7 +275,8 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
 export interface ContentGenerationConfig {
   prompt: string;
   templateName: string;
-  userId?: string;
+  userId: string;
+  conversationId: string;
   data?: Record<string, unknown>;
   interfacePermissionGrant?: UserPermissionLevel;
 }

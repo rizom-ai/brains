@@ -77,6 +77,7 @@ export class ConversationService implements IConversationService {
   async startConversation(
     sessionId: string,
     interfaceType: string,
+    channelId: string,
   ): Promise<string> {
     const now = new Date().toISOString();
 
@@ -103,6 +104,7 @@ export class ConversationService implements IConversationService {
       id: sessionId, // Use sessionId as the conversation ID
       sessionId,
       interfaceType,
+      channelId,
       started: now,
       lastActive: now,
       created: now,

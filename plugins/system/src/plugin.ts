@@ -156,4 +156,34 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
       throw error;
     }
   }
+
+  /**
+   * Get conversation details by ID
+   */
+  public async getConversation(conversationId: string) {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.getConversation(conversationId);
+  }
+
+  /**
+   * Get messages from a conversation
+   */
+  public async getMessages(conversationId: string, limit?: number) {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.getMessages(conversationId, limit);
+  }
+
+  /**
+   * Search conversations
+   */
+  public async searchConversations(query: string) {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.searchConversations(query);
+  }
 }

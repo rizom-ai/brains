@@ -9,17 +9,23 @@ export const conversations = sqliteTable(
     id: text("id").primaryKey(),
     sessionId: text("session_id").notNull(), // CLI session ID, Matrix room ID, etc.
     interfaceType: text("interface_type").notNull(), // 'cli' | 'matrix' | 'mcp'
+    channelId: text("channel_id").notNull(), // Channel or room identifier
     started: text("started").notNull(),
     lastActive: text("last_active").notNull(),
-    metadata: text("metadata"), // JSON string for additional data
+    metadata: text("metadata"), // JSON string for additional optional data
     created: text("created").notNull(),
     updated: text("updated").notNull(),
   },
   (table) => ({
     sessionIdx: index("idx_conversations_session").on(table.sessionId),
+    channelIdx: index("idx_conversations_channel").on(table.channelId),
     interfaceSessionIdx: index("idx_conversations_interface_session").on(
       table.interfaceType,
       table.sessionId,
+    ),
+    interfaceChannelIdx: index("idx_conversations_interface_channel").on(
+      table.interfaceType,
+      table.channelId,
     ),
   }),
 );
