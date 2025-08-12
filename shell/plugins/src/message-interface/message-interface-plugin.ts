@@ -3,6 +3,8 @@ import { PluginError } from "../errors";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import type { MessageContext } from "@brains/messaging-service";
 import type { MessageInterfacePluginContext } from "./context";
+import { createMessageInterfacePluginContext } from "./context";
+import type { IShell, PluginCapabilities } from "../interfaces";
 import type { z } from "zod";
 import PQueue from "p-queue";
 
@@ -16,6 +18,8 @@ import { setupProgressHandler } from "./progress-handler";
 export abstract class MessageInterfacePlugin<
   TConfig = unknown,
 > extends InterfacePlugin<TConfig> {
+  // Override context type with declare modifier
+  declare protected context?: MessageInterfacePluginContext;
   protected queue: PQueue;
   public readonly sessionId: string;
   // Track job/batch messages for editing (jobId/batchId -> messageId)
@@ -136,7 +140,31 @@ export abstract class MessageInterfacePlugin<
         "Initialization failed: Plugin context not initialized",
       );
     }
-    return this.context;
+    return this.context as MessageInterfacePluginContext;
+  }
+
+  /**
+   * Override register to create MessageInterfacePluginContext
+   */
+  override async register(shell: IShell): Promise<PluginCapabilities> {
+    // Create typed context with conversation management
+    const context = createMessageInterfacePluginContext(shell, this.id);
+    this.context = context;
+
+    // Initialize daemon before registration
+    this.initializeDaemon();
+
+    // Call plugin-specific registration
+    await this.onRegister(context);
+
+    // Register daemon if provided
+    await this.registerDaemon(context);
+
+    return {
+      resources: await this.getResources(),
+      commands: await this.getCommands(),
+      tools: await this.getTools(),
+    };
   }
 
   /**
@@ -219,15 +247,11 @@ export abstract class MessageInterfacePlugin<
     // 1. Start conversation if new channel (once per channel)
     if (!this.startedConversations.has(conversationId)) {
       try {
-        await this.getContext().sendMessage("conversation:start", {
-          sessionId: conversationId,
-          interfaceType: context.interfaceType,
-          metadata: {
-            user: context.userId,
-            channel: context.channelId,
-            interface: context.interfaceType,
-          },
-        });
+        // Start conversation returns the conversation ID (same as sessionId in this case)
+        await this.getContext().startConversation(
+          conversationId,
+          context.interfaceType,
+        );
         this.startedConversations.add(conversationId);
       } catch (error) {
         // Non-critical - continue even if conversation memory unavailable
@@ -237,16 +261,11 @@ export abstract class MessageInterfacePlugin<
 
     // 2. Always store user message (even if bot won't respond)
     try {
-      await this.getContext().sendMessage("conversation:addMessage", {
-        conversationId,
-        role: "user",
-        content: input,
-        metadata: {
-          messageId: context.messageId,
-          userId: context.userId,
-          timestamp: context.timestamp.toISOString(),
-          directed: this.shouldRespond(input, context), // Track if for bot
-        },
+      await this.getContext().addMessage(conversationId, "user", input, {
+        messageId: context.messageId,
+        userId: context.userId,
+        timestamp: context.timestamp.toISOString(),
+        directed: this.shouldRespond(input, context), // Track if for bot
       });
     } catch (error) {
       this.logger.debug("Could not store user message", { error });
@@ -293,12 +312,12 @@ export abstract class MessageInterfacePlugin<
 
     // 5. Store assistant response
     try {
-      await this.getContext().sendMessage("conversation:addMessage", {
+      await this.getContext().addMessage(
         conversationId,
-        role: "assistant",
-        content: messageText,
-        metadata: { messageId, timestamp: new Date().toISOString() },
-      });
+        "assistant",
+        messageText,
+        { messageId, timestamp: new Date().toISOString() },
+      );
     } catch (error) {
       this.logger.debug("Could not store assistant message", { error });
     }

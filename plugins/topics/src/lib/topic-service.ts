@@ -30,18 +30,15 @@ export class TopicService {
     // Check if topic already exists
     const existing = await this.getTopic(params.title);
     if (existing) {
-      this.logger.info("Topic already exists, updating instead", { 
-        id: params.title 
+      this.logger.info("Topic already exists, updating instead", {
+        id: params.title,
       });
-      
+
       // Merge new information with existing topic
       return this.updateTopic(params.title, {
         sources: params.sources,
         keywords: [
-          ...new Set([
-            ...existing.metadata.keywords,
-            ...params.keywords,
-          ]),
+          ...new Set([...existing.metadata.keywords, ...params.keywords]),
         ],
         relevanceScore: Math.max(
           existing.metadata.relevanceScore,
@@ -89,8 +86,8 @@ export class TopicService {
     } catch (error) {
       // Handle case where another process created the topic concurrently
       if (error instanceof Error && error.message.includes("already exists")) {
-        this.logger.info("Topic was created concurrently, fetching existing", { 
-          id: params.title 
+        this.logger.info("Topic was created concurrently, fetching existing", {
+          id: params.title,
         });
         return this.getTopic(params.title);
       }

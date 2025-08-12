@@ -237,25 +237,13 @@ export class MockShell implements IShell {
 
   getConversationService(): IConversationService {
     return {
-      startConversation: async () => ({
-        id: `conv-${Date.now()}`,
-        sessionId: `session-${Date.now()}`,
-        interfaceType: "test",
-        lastActive: new Date().toISOString(),
-      }),
-      addMessage: async () => ({
-        id: `msg-${Date.now()}`,
-        conversationId: `conv-${Date.now()}`,
-        role: "user",
-        content: "test message",
-        timestamp: new Date().toISOString(),
-      }),
+      startConversation: async () => `conv-${Date.now()}`,
+      addMessage: async () => {},
       getConversation: async () => null,
       searchConversations: async () => [],
       getRecentMessages: async () => [],
-      summarizeConversation: async () => "Test summary",
-      getNextSummaryRequiredConversation: async () => null,
-    } as unknown as IConversationService;
+      getWorkingMemory: async () => "Test working memory",
+    };
   }
 
   getJobQueueService(): JobQueueService {

@@ -32,7 +32,7 @@ export class TopicExtractor {
 
     // Get all active conversations
     const conversations = await this.context.searchConversations("");
-    
+
     if (conversations.length === 0) {
       this.logger.info("No conversations found");
       return [];

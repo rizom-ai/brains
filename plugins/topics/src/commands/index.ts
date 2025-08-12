@@ -88,10 +88,11 @@ export function createTopicsCommands(
           }
 
           // Start extraction
-          const extractedTopics = await topicExtractor.extractFromRecentMessages(
-            windowSize,
-            minRelevance,
-          );
+          const extractedTopics =
+            await topicExtractor.extractFromRecentMessages(
+              windowSize,
+              minRelevance,
+            );
 
           if (extractedTopics.length === 0) {
             return {

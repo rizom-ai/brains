@@ -1,5 +1,4 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { createId } from "@brains/utils";
 
@@ -99,13 +98,6 @@ export const jobQueue = sqliteTable(
     jobSourceIdx: index("idx_job_queue_source").on(table.source),
   }),
 );
-
-/**
- * Zod schemas for job queue validation
- */
-export const insertJobQueueSchema = createInsertSchema(jobQueue);
-
-export const selectJobQueueSchema = createSelectSchema(jobQueue);
 
 /**
  * Type exports

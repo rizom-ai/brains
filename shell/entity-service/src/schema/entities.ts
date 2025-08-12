@@ -6,7 +6,6 @@ import {
   real,
   primaryKey,
 } from "drizzle-orm/sqlite-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { vector } from "./vector";
 
 /**
@@ -53,13 +52,6 @@ export const entities = sqliteTable(
     };
   },
 );
-
-/**
- * Zod schemas for validation
- */
-export const insertEntitySchema = createInsertSchema(entities);
-
-export const selectEntitySchema = createSelectSchema(entities);
 
 /**
  * Type exports

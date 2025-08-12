@@ -1,5 +1,9 @@
 export { ConversationService } from "./conversation-service";
-export type { IConversationService, ConversationServiceConfig } from "./types";
+export type {
+  IConversationService,
+  ConversationServiceConfig,
+  MessageRole,
+} from "./types";
 export { createConversationDatabase } from "./database";
 export type { ConversationDB } from "./database";
 export {

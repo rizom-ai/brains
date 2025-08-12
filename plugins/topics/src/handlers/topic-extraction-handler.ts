@@ -177,8 +177,7 @@ export class TopicExtractionHandler
 
     // Apply defaults
     return {
-      windowSize:
-        result.data.windowSize ?? this.config.windowSize ?? 20,
+      windowSize: result.data.windowSize ?? this.config.windowSize ?? 20,
       minRelevanceScore:
         result.data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
     };

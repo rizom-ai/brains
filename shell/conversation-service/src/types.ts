@@ -1,6 +1,11 @@
 import type { Message, Conversation } from "./schema";
 
 /**
+ * Valid message roles in a conversation
+ */
+export type MessageRole = "user" | "assistant" | "system";
+
+/**
  * Configuration for ConversationService
  */
 export interface ConversationServiceConfig {
@@ -15,7 +20,7 @@ export interface IConversationService {
   startConversation(sessionId: string, interfaceType: string): Promise<string>;
   addMessage(
     conversationId: string,
-    role: "user" | "assistant" | "system",
+    role: MessageRole,
     content: string,
     metadata?: Record<string, unknown>,
   ): Promise<void>;

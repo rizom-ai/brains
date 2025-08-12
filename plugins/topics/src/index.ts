@@ -97,5 +97,8 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 export default TopicsPlugin;
 
 // Export public API for external consumers
-export type { TopicsPluginConfig, TopicsPluginConfigInput } from "./schemas/config";
+export type {
+  TopicsPluginConfig,
+  TopicsPluginConfigInput,
+} from "./schemas/config";
 export type { TopicEntity } from "./types";

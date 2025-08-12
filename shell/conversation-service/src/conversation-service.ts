@@ -1,6 +1,10 @@
 import { createConversationDatabase } from "./database";
 import type { ConversationDB, ConversationDbConfig } from "./database";
-import type { IConversationService, ConversationServiceConfig } from "./types";
+import type {
+  IConversationService,
+  ConversationServiceConfig,
+  MessageRole,
+} from "./types";
 import type {
   Conversation,
   Message,
@@ -145,7 +149,7 @@ export class ConversationService implements IConversationService {
    */
   async addMessage(
     conversationId: string,
-    role: "user" | "assistant" | "system",
+    role: MessageRole,
     content: string,
     metadata?: Record<string, unknown>,
   ): Promise<void> {
