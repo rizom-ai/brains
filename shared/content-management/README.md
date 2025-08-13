@@ -82,11 +82,11 @@ This is the content.
 import { renderMarkdown } from "@brains/content-management";
 
 const html = renderMarkdown(markdown, {
-  gfm: true,          // GitHub Flavored Markdown
-  breaks: true,       // Convert \n to <br>
-  linkify: true,      // Auto-link URLs
-  highlight: true,    // Syntax highlighting
-  sanitize: true,     // Sanitize HTML
+  gfm: true, // GitHub Flavored Markdown
+  breaks: true, // Convert \n to <br>
+  linkify: true, // Auto-link URLs
+  highlight: true, // Syntax highlighting
+  sanitize: true, // Sanitize HTML
 });
 ```
 
@@ -170,7 +170,7 @@ const cleaned = cleanText(dirtyText, {
 ### Word Processing
 
 ```typescript
-import { 
+import {
   countWords,
   countCharacters,
   readingTime,
@@ -220,7 +220,7 @@ const plain = toPlainText(content, {
 ### Frontmatter
 
 ```typescript
-import { 
+import {
   parseFrontmatter,
   stringifyFrontmatter,
   updateFrontmatter,
@@ -238,7 +238,7 @@ const updated = updateFrontmatter(markdown, {
 // Create with frontmatter
 const withFrontmatter = stringifyFrontmatter(
   { title: "Title", tags: ["tag1"] },
-  "Content here"
+  "Content here",
 );
 ```
 
@@ -288,7 +288,7 @@ const results = await checkLinks(markdown, {
 });
 
 // Returns status for each link
-results.forEach(link => {
+results.forEach((link) => {
   if (!link.valid) {
     console.warn(`Broken link: ${link.url}`);
   }
@@ -342,7 +342,7 @@ registerTransformer("custom", async (content, options) => {
 ## Testing Utilities
 
 ```typescript
-import { 
+import {
   createMockContent,
   generateSampleMarkdown,
 } from "@brains/content-management/test";

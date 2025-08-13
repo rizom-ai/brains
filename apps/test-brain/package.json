@@ -34,7 +34,7 @@
     "@brains/directory-sync": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
-    "@brains/matrix-setup": "workspace:*",
+    "@brains/matrix": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/webserver": "workspace:*",
     "preact": "^10.26.9"

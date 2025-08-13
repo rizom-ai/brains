@@ -48,12 +48,12 @@ console.log("Server running at http://localhost:3000");
 
 ```typescript
 interface WebServerConfig {
-  port?: number;              // Server port (default: 3000)
-  host?: string;              // Host binding (default: "localhost")
-  staticDir?: string;         // Static files directory
-  apiPrefix?: string;         // API route prefix (default: "/api")
-  cors?: CorsOptions;         // CORS configuration
-  auth?: AuthConfig;          // Authentication settings
+  port?: number; // Server port (default: 3000)
+  host?: string; // Host binding (default: "localhost")
+  staticDir?: string; // Static files directory
+  apiPrefix?: string; // API route prefix (default: "/api")
+  cors?: CorsOptions; // CORS configuration
+  auth?: AuthConfig; // Authentication settings
   rateLimit?: RateLimitConfig; // Rate limiting
 }
 ```
@@ -104,7 +104,7 @@ const ws = new WebSocket("ws://localhost:3000/ws");
 
 ws.on("message", (data) => {
   const event = JSON.parse(data);
-  
+
   switch (event.type) {
     case "entity:created":
     case "entity:updated":
@@ -118,11 +118,13 @@ ws.on("message", (data) => {
 });
 
 // Send commands
-ws.send(JSON.stringify({
-  type: "command",
-  name: "search",
-  params: { query: "typescript" },
-}));
+ws.send(
+  JSON.stringify({
+    type: "command",
+    name: "search",
+    params: { query: "typescript" },
+  }),
+);
 ```
 
 ## Authentication
@@ -165,7 +167,7 @@ const webserver = new WebServerInterface({
 const webserver = new WebServerInterface({
   cors: {
     origin: [
-      "http://localhost:5173",  // Dev server
+      "http://localhost:5173", // Dev server
       "https://yourdomain.com", // Production
     ],
     credentials: true,
@@ -183,7 +185,7 @@ Protect against abuse:
 const webserver = new WebServerInterface({
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,                  // 100 requests per window
+    max: 100, // 100 requests per window
     message: "Too many requests",
   },
 });

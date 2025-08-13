@@ -242,6 +242,7 @@ Add to your `package.json`:
 ### WebStorm
 
 Settings → Languages & Frameworks → JavaScript → Code Quality Tools → ESLint:
+
 - Enable "Automatic ESLint configuration"
 
 ## Overriding Rules

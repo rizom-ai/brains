@@ -48,15 +48,15 @@ const related = await plugin.findRelated(entityId);
 
 ```typescript
 interface TopicsConfig {
-  autoExtract?: boolean;      // Auto-extract on entity creation
-  minConfidence?: number;     // Minimum topic confidence (0-1)
-  maxTopics?: number;         // Max topics per entity
-  language?: string;          // Content language
-  stopWords?: string[];       // Custom stop words
+  autoExtract?: boolean; // Auto-extract on entity creation
+  minConfidence?: number; // Minimum topic confidence (0-1)
+  maxTopics?: number; // Max topics per entity
+  language?: string; // Content language
+  stopWords?: string[]; // Custom stop words
   algorithms?: {
-    tfidf?: boolean;          // TF-IDF analysis
-    lda?: boolean;            // Latent Dirichlet Allocation
-    nmf?: boolean;            // Non-negative Matrix Factorization
+    tfidf?: boolean; // TF-IDF analysis
+    lda?: boolean; // Latent Dirichlet Allocation
+    nmf?: boolean; // Non-negative Matrix Factorization
   };
 }
 ```
@@ -81,7 +81,7 @@ messageBus.on("entity:created", async (event) => {
 // Extract topics from text
 const topics = await plugin.extractFromText(
   "Machine learning is transforming software development...",
-  { maxTopics: 5 }
+  { maxTopics: 5 },
 );
 // Returns: ["machine-learning", "software", "development", "ai", "technology"]
 
@@ -198,7 +198,7 @@ const similar = await plugin.findSimilar(entityId, {
 // Find by topics
 const entities = await plugin.findByTopics(
   ["javascript", "react"],
-  { operator: "AND" } // or "OR"
+  { operator: "AND" }, // or "OR"
 );
 
 // Topic-based recommendations

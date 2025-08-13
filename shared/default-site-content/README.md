@@ -25,7 +25,7 @@ bun add @brains/default-site-content
 ## Usage
 
 ```typescript
-import { 
+import {
   getTheme,
   getTemplate,
   getDefaultContent,
@@ -72,9 +72,9 @@ interface Theme {
   description: string;
   version: string;
   styles: {
-    main: string;      // Main CSS
+    main: string; // Main CSS
     responsive: string; // Media queries
-    print: string;     // Print styles
+    print: string; // Print styles
   };
   templates: {
     layouts: Record<string, string>;
@@ -132,7 +132,7 @@ const templates = listTemplates();
 ### Partial Templates
 
 ```handlebars
-{{!-- partials/header.hbs --}}
+{{! partials/header.hbs }}
 <header class="site-header">
   <nav class="nav">
     <a href="/" class="logo">{{site.name}}</a>
@@ -177,15 +177,15 @@ const templates = listTemplates();
   --secondary: #6c757d;
   --success: #28a745;
   --danger: #dc3545;
-  
+
   /* Typography */
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-size-base: 16px;
   --line-height: 1.5;
-  
+
   /* Spacing */
   --spacing-unit: 8px;
-  
+
   /* Breakpoints */
   --breakpoint-sm: 576px;
   --breakpoint-md: 768px;
@@ -292,14 +292,14 @@ const defaultConfig = getDefaultConfig();
 ### SEO Templates
 
 ```handlebars
-{{!-- partials/meta.hbs --}}
-<meta name="description" content="{{description}}">
-<meta property="og:title" content="{{title}}">
-<meta property="og:description" content="{{description}}">
-<meta property="og:image" content="{{image}}">
-<meta property="og:url" content="{{url}}">
-<meta name="twitter:card" content="summary_large_image">
-<link rel="canonical" href="{{canonical}}">
+{{! partials/meta.hbs }}
+<meta name="description" content="{{description}}" />
+<meta property="og:title" content="{{title}}" />
+<meta property="og:description" content="{{description}}" />
+<meta property="og:image" content="{{image}}" />
+<meta property="og:url" content="{{url}}" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="canonical" href="{{canonical}}" />
 ```
 
 ## Customization
@@ -330,11 +330,14 @@ const customTheme = extendTheme("minimal", {
 ```typescript
 import { overrideTemplate } from "@brains/default-site-content";
 
-overrideTemplate("header", `
+overrideTemplate(
+  "header",
+  `
   <header class="custom-header">
     <!-- Custom header -->
   </header>
-`);
+`,
+);
 ```
 
 ## Responsive Design
@@ -343,10 +346,18 @@ overrideTemplate("header", `
 
 ```css
 /* Mobile First */
-@media (min-width: 576px) { /* Small */ }
-@media (min-width: 768px) { /* Medium */ }
-@media (min-width: 992px) { /* Large */ }
-@media (min-width: 1200px) { /* Extra Large */ }
+@media (min-width: 576px) {
+  /* Small */
+}
+@media (min-width: 768px) {
+  /* Medium */
+}
+@media (min-width: 992px) {
+  /* Large */
+}
+@media (min-width: 1200px) {
+  /* Extra Large */
+}
 ```
 
 ### Grid System

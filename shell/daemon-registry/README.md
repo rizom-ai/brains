@@ -53,24 +53,24 @@ await registry.stop("sync-daemon");
 
 ```typescript
 interface DaemonDefinition {
-  name: string;                  // Unique daemon name
-  description?: string;          // Description
-  handler: DaemonHandler;        // Main function
-  interval?: number;             // Run interval (ms)
-  schedule?: string;             // Cron expression
-  healthCheck?: HealthCheck;     // Health check function
+  name: string; // Unique daemon name
+  description?: string; // Description
+  handler: DaemonHandler; // Main function
+  interval?: number; // Run interval (ms)
+  schedule?: string; // Cron expression
+  healthCheck?: HealthCheck; // Health check function
   restartPolicy?: RestartPolicy; // Restart behavior
-  resources?: ResourceLimits;    // Resource constraints
-  dependencies?: string[];       // Required daemons
+  resources?: ResourceLimits; // Resource constraints
+  dependencies?: string[]; // Required daemons
 }
 
 type DaemonHandler = (context: DaemonContext) => Promise<void>;
 
 interface DaemonContext {
-  signal: AbortSignal;  // For graceful shutdown
-  metrics: Metrics;     // Performance metrics
-  logger: Logger;       // Daemon-specific logger
-  state: DaemonState;   // Shared state
+  signal: AbortSignal; // For graceful shutdown
+  metrics: Metrics; // Performance metrics
+  logger: Logger; // Daemon-specific logger
+  state: DaemonState; // Shared state
 }
 ```
 
@@ -138,8 +138,8 @@ await registry.startAll();
 
 // Start with options
 await registry.start("sync-daemon", {
-  immediate: true,  // Run immediately, don't wait for interval
-  restart: true,    // Restart if already running
+  immediate: true, // Run immediately, don't wait for interval
+  restart: true, // Restart if already running
 });
 ```
 
@@ -213,8 +213,8 @@ registry.register({
   name: "heavy-processor",
   resources: {
     maxMemory: 512 * 1024 * 1024, // 512MB
-    maxCpu: 0.5,                   // 50% CPU
-    priority: "low",                // low | normal | high
+    maxCpu: 0.5, // 50% CPU
+    priority: "low", // low | normal | high
   },
   handler: async (ctx) => {
     // Resource-constrained daemon

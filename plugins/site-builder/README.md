@@ -50,21 +50,21 @@ await shell.execute("site:build");
 
 ```typescript
 interface SiteBuilderConfig {
-  outputDir: string;          // Output directory
-  baseUrl: string;            // Site base URL
-  theme?: string;             // Theme name
-  title?: string;             // Site title
-  description?: string;       // Site description
-  entities?: EntityFilter;    // Entities to include
-  templates?: string;         // Custom templates dir
-  assets?: string;            // Assets directory
+  outputDir: string; // Output directory
+  baseUrl: string; // Site base URL
+  theme?: string; // Theme name
+  title?: string; // Site title
+  description?: string; // Site description
+  entities?: EntityFilter; // Entities to include
+  templates?: string; // Custom templates dir
+  assets?: string; // Assets directory
   buildOptions?: BuildOptions;
 }
 
 interface EntityFilter {
-  types?: string[];           // Entity types to include
-  tags?: string[];            // Required tags
-  published?: boolean;        // Only published entities
+  types?: string[]; // Entity types to include
+  tags?: string[]; // Required tags
+  published?: boolean; // Only published entities
   dateRange?: {
     from?: Date;
     to?: Date;
@@ -142,18 +142,28 @@ themes/my-theme/
 Available in templates:
 
 ```handlebars
-{{site.title}}           {{!-- Site title --}}
-{{site.description}}     {{!-- Site description --}}
-{{site.baseUrl}}         {{!-- Base URL --}}
+{{site.title}}
+{{! Site title }}
+{{site.description}}
+{{! Site description }}
+{{site.baseUrl}}
+{{! Base URL }}
 
-{{entity.id}}            {{!-- Entity ID --}}
-{{entity.title}}         {{!-- Entity title --}}
-{{entity.content}}       {{!-- Rendered content --}}
-{{entity.tags}}          {{!-- Entity tags --}}
-{{entity.created}}       {{!-- Creation date --}}
-{{entity.updated}}       {{!-- Update date --}}
+{{entity.id}}
+{{! Entity ID }}
+{{entity.title}}
+{{! Entity title }}
+{{entity.content}}
+{{! Rendered content }}
+{{entity.tags}}
+{{! Entity tags }}
+{{entity.created}}
+{{! Creation date }}
+{{entity.updated}}
+{{! Update date }}
 
-{{#each entities}}       {{!-- Entity list --}}
+{{#each entities}}
+  {{! Entity list }}
   {{this.title}}
 {{/each}}
 ```
@@ -181,11 +191,11 @@ await shell.execute("site:preview", { port: 8080 });
 ```typescript
 const plugin = new SiteBuilderPlugin({
   buildOptions: {
-    minify: true,           // Minify HTML/CSS/JS
-    optimizeImages: true,   // Optimize images
-    generateSitemap: true,  // Create sitemap.xml
-    generateRSS: true,      // Create RSS feed
-    generateSearch: true,   // Create search index
+    minify: true, // Minify HTML/CSS/JS
+    optimizeImages: true, // Optimize images
+    generateSitemap: true, // Create sitemap.xml
+    generateRSS: true, // Create RSS feed
+    generateSearch: true, // Create search index
   },
 });
 ```
@@ -197,10 +207,10 @@ const plugin = new SiteBuilderPlugin({
 ```typescript
 const plugin = new SiteBuilderPlugin({
   markdown: {
-    gfm: true,              // GitHub Flavored Markdown
-    breaks: true,           // Convert \n to <br>
-    highlight: true,        // Syntax highlighting
-    linkify: true,          // Auto-link URLs
+    gfm: true, // GitHub Flavored Markdown
+    breaks: true, // Convert \n to <br>
+    highlight: true, // Syntax highlighting
+    linkify: true, // Auto-link URLs
   },
 });
 ```
@@ -260,7 +270,7 @@ const plugin = new SiteBuilderPlugin({
   css: {
     postcss: true,
     tailwind: true,
-    purge: true,  // Remove unused CSS
+    purge: true, // Remove unused CSS
   },
 });
 ```

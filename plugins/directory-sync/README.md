@@ -53,18 +53,18 @@ await shell.registerPlugin(plugin);
 ```typescript
 interface DirectorySyncConfig {
   directories: DirectoryConfig[];
-  watch?: boolean;           // Enable file watching
-  syncInterval?: number;      // Sync check interval (ms)
-  ignorePatterns?: string[];  // Glob patterns to ignore
+  watch?: boolean; // Enable file watching
+  syncInterval?: number; // Sync check interval (ms)
+  ignorePatterns?: string[]; // Glob patterns to ignore
   preserveFrontmatter?: boolean;
-  autoImport?: boolean;       // Auto-import new files
+  autoImport?: boolean; // Auto-import new files
 }
 
 interface DirectoryConfig {
-  path: string;              // Directory path
-  pattern?: string;          // File pattern (glob)
-  entityType?: string;       // Default entity type
-  recursive?: boolean;       // Scan subdirectories
+  path: string; // Directory path
+  pattern?: string; // File pattern (glob)
+  entityType?: string; // Default entity type
+  recursive?: boolean; // Scan subdirectories
 }
 ```
 
@@ -100,10 +100,7 @@ await plugin.importDirectory("/path/to/directory", {
 });
 
 // Batch import
-await plugin.batchImport([
-  "/path/to/file1.md",
-  "/path/to/file2.md",
-]);
+await plugin.batchImport(["/path/to/file1.md", "/path/to/file2.md"]);
 ```
 
 ### Export Entities
@@ -157,7 +154,7 @@ plugin.on("conflict", async (conflict) => {
   // conflict.type: "file-newer" | "entity-newer" | "both-modified"
   // conflict.file: File information
   // conflict.entity: Entity information
-  
+
   // Resolve strategy
   return "use-file"; // or "use-entity" or "merge"
 });

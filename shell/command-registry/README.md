@@ -57,24 +57,21 @@ const result = await registry.execute("search", {
 
 ```typescript
 interface CommandDefinition {
-  name: string;                // Command name
-  description: string;         // Help text
-  aliases?: string[];          // Alternative names
-  category?: string;           // Command category
-  parameters?: z.ZodSchema;    // Parameter schema
-  handler: CommandHandler;     // Execution function
-  middleware?: Middleware[];   // Pre-execution hooks
-  permissions?: string[];      // Required permissions
+  name: string; // Command name
+  description: string; // Help text
+  aliases?: string[]; // Alternative names
+  category?: string; // Command category
+  parameters?: z.ZodSchema; // Parameter schema
+  handler: CommandHandler; // Execution function
+  middleware?: Middleware[]; // Pre-execution hooks
+  permissions?: string[]; // Required permissions
 }
 
-type CommandHandler = (
-  params: any,
-  context: CommandContext
-) => Promise<any>;
+type CommandHandler = (params: any, context: CommandContext) => Promise<any>;
 
 interface CommandContext {
   user?: User;
-  source: string;  // "cli" | "api" | "plugin"
+  source: string; // "cli" | "api" | "plugin"
   timestamp: Date;
   metadata?: Record<string, any>;
 }
@@ -142,7 +139,7 @@ const result = await registry.execute("create-note", {
 const result = await registry.execute(
   "delete",
   { id: "123" },
-  { user: currentUser, source: "api" }
+  { user: currentUser, source: "api" },
 );
 ```
 
@@ -150,7 +147,8 @@ const result = await registry.execute(
 
 ```typescript
 // Chain multiple commands
-const pipeline = registry.chain()
+const pipeline = registry
+  .chain()
   .execute("search", { query: "typescript" })
   .execute("filter", { published: true })
   .execute("sort", { by: "created", order: "desc" });
@@ -194,7 +192,7 @@ registry.addValidator("permission", async (command, context) => {
   if (command.permissions) {
     const hasPermission = await checkPermissions(
       context.user,
-      command.permissions
+      command.permissions,
     );
     if (!hasPermission) {
       throw new Error("Permission denied");
@@ -271,11 +269,7 @@ registry.use(async (command, params, context, next) => {
 ```typescript
 registry.register({
   name: "admin-action",
-  middleware: [
-    requireAuth,
-    requireRole("admin"),
-    auditLog,
-  ],
+  middleware: [requireAuth, requireRole("admin"), auditLog],
   handler: async (params) => {
     // Protected handler
   },

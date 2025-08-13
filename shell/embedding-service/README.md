@@ -35,7 +35,7 @@ const embeddingService = EmbeddingService.getInstance({
 
 // Generate embedding for text
 const embedding = await embeddingService.embed(
-  "Understanding vector embeddings in machine learning"
+  "Understanding vector embeddings in machine learning",
 );
 
 // Generate batch embeddings
@@ -49,7 +49,7 @@ const embeddings = await embeddingService.embedBatch([
 const similar = await embeddingService.findSimilar(
   "query text",
   candidateTexts,
-  { topK: 5 }
+  { topK: 5 },
 );
 ```
 
@@ -57,13 +57,13 @@ const similar = await embeddingService.findSimilar(
 
 ```typescript
 interface EmbeddingConfig {
-  model?: string;           // Model name (default: Xenova/all-MiniLM-L6-v2)
-  dimensions?: number;      // Embedding dimensions (384)
-  device?: "cpu" | "gpu";   // Computation device
-  cacheDir?: string;        // Model cache directory
-  maxLength?: number;       // Max input length
-  batchSize?: number;       // Batch processing size
-  normalize?: boolean;      // Normalize vectors
+  model?: string; // Model name (default: Xenova/all-MiniLM-L6-v2)
+  dimensions?: number; // Embedding dimensions (384)
+  device?: "cpu" | "gpu"; // Computation device
+  cacheDir?: string; // Model cache directory
+  maxLength?: number; // Max input length
+  batchSize?: number; // Batch processing size
+  normalize?: boolean; // Normalize vectors
 }
 ```
 
@@ -160,7 +160,7 @@ const similarity = embeddingService.cosineSimilarity(vec1, vec2);
 const neighbors = embeddingService.nearestNeighbors(
   queryVector,
   vectorDatabase,
-  { k: 10, metric: "cosine" } // or "euclidean", "dot"
+  { k: 10, metric: "cosine" }, // or "euclidean", "dot"
 );
 ```
 
@@ -173,8 +173,8 @@ const neighbors = embeddingService.nearestNeighbors(
 const service = EmbeddingService.getInstance({
   cache: {
     enabled: true,
-    maxSize: 10000,    // Max cached embeddings
-    ttl: 86400000,     // 24 hours
+    maxSize: 10000, // Max cached embeddings
+    ttl: 86400000, // 24 hours
   },
 });
 
@@ -219,7 +219,7 @@ const results = await entityService.vectorSearch(queryEmbedding, {
 ```typescript
 const service = EmbeddingService.getInstance({
   device: "gpu",
-  quantized: true,  // Use quantized models for speed
+  quantized: true, // Use quantized models for speed
 });
 ```
 
@@ -229,7 +229,7 @@ const service = EmbeddingService.getInstance({
 // Process large datasets efficiently
 const processLargeDataset = async (texts: string[]) => {
   const batches = chunk(texts, 100);
-  
+
   for (const batch of batches) {
     const embeddings = await embeddingService.embedBatch(batch);
     await saveToDatabase(embeddings);
@@ -241,13 +241,10 @@ const processLargeDataset = async (texts: string[]) => {
 
 ```typescript
 // Reduce embedding dimensions for efficiency
-const reduced = await embeddingService.reduceDimensions(
-  embeddings,
-  {
-    targetDims: 128,
-    method: "pca", // or "umap", "tsne"
-  }
-);
+const reduced = await embeddingService.reduceDimensions(embeddings, {
+  targetDims: 128,
+  method: "pca", // or "umap", "tsne"
+});
 ```
 
 ## Model Management

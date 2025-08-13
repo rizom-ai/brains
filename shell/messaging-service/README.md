@@ -60,24 +60,24 @@ Common event patterns used in Brain applications:
 
 ```typescript
 // Entity events
-"entity:created"
-"entity:updated"
-"entity:deleted"
-"entity:searched"
+"entity:created";
+"entity:updated";
+"entity:deleted";
+"entity:searched";
 
 // Job events
-"job:started"
-"job:progress"
-"job:completed"
-"job:failed"
+"job:started";
+"job:progress";
+"job:completed";
+"job:failed";
 
 // Plugin events
-"plugin:registered"
-"plugin:error"
+"plugin:registered";
+"plugin:error";
 
 // System events
-"system:ready"
-"system:shutdown"
+"system:ready";
+"system:shutdown";
 ```
 
 ### Custom Events
@@ -166,19 +166,19 @@ import { MessageBus } from "@brains/messaging-service";
 
 describe("MyComponent", () => {
   let messageBus: MessageBus;
-  
+
   beforeEach(() => {
     messageBus = MessageBus.createFresh();
   });
-  
+
   test("handles events", async () => {
     const handler = jest.fn();
     messageBus.on("test:event", handler);
-    
+
     await messageBus.emit("test:event", { data: "test" });
-    
+
     expect(handler).toHaveBeenCalledWith(
-      expect.objectContaining({ data: "test" })
+      expect.objectContaining({ data: "test" }),
     );
   });
 });

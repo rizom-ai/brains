@@ -51,12 +51,12 @@ console.log(output);
 
 ```typescript
 interface ViewDefinition {
-  name: string;                  // View name
-  format: ViewFormat;            // Output format
-  template: ViewTemplate;        // Render function
-  layout?: string;               // Parent layout
-  styles?: ViewStyles;           // Styling options
-  validators?: ViewValidators;   // Data validators
+  name: string; // View name
+  format: ViewFormat; // Output format
+  template: ViewTemplate; // Render function
+  layout?: string; // Parent layout
+  styles?: ViewStyles; // Styling options
+  validators?: ViewValidators; // Data validators
   metadata?: Record<string, any>;
 }
 
@@ -64,14 +64,14 @@ type ViewFormat = "terminal" | "html" | "markdown" | "json" | "xml";
 
 type ViewTemplate = (
   data: any,
-  context: ViewContext
+  context: ViewContext,
 ) => string | Promise<string>;
 
 interface ViewContext {
   format: ViewFormat;
   theme: Theme;
-  width?: number;     // Terminal width
-  height?: number;    // Terminal height
+  width?: number; // Terminal width
+  height?: number; // Terminal height
   locale: string;
   user?: User;
 }
@@ -124,7 +124,7 @@ registry.register("menu", {
   format: "terminal",
   template: (data) => {
     return list(data.items, {
-      style: "bullet",    // "bullet" | "number" | "checkbox"
+      style: "bullet", // "bullet" | "number" | "checkbox"
       indent: 2,
       marker: "•",
     });
@@ -163,13 +163,11 @@ registry.register("entity-card", {
           <span class="type">${data.type}</span>
           <time>${data.created}</time>
         </div>
-        <div class="content">
-          ${data.content}
-        </div>
+        <div class="content">${data.content}</div>
         <div class="tags">
-          ${data.tags.map(tag => html`
-            <span class="tag">${tag}</span>
-          `).join("")}
+          ${data.tags
+            .map((tag) => html` <span class="tag">${tag}</span> `)
+            .join("")}
         </div>
       </div>
     `;
@@ -297,14 +295,8 @@ registry.register("dashboard", {
     const stats = await registry.render("stats", data.stats, context);
     const recent = await registry.render("recent-items", data.recent, context);
     const activity = await registry.render("activity", data.activity, context);
-    
-    return column([
-      stats,
-      divider(),
-      recent,
-      divider(),
-      activity,
-    ]);
+
+    return column([stats, divider(), recent, divider(), activity]);
   },
 });
 ```
@@ -316,10 +308,10 @@ registry.register("responsive-list", {
   format: "terminal",
   template: (data, context) => {
     const { width = 80 } = context;
-    
+
     if (width < 40) {
       // Compact view
-      return list(data.items.map(i => i.title));
+      return list(data.items.map((i) => i.title));
     } else if (width < 80) {
       // Medium view
       return table(data.items, {
@@ -343,12 +335,12 @@ registry.register("stream", {
   stream: true,
   template: async function* (data, context) {
     yield "Starting process...\n";
-    
+
     for (const item of data.items) {
       await processItem(item);
       yield `✓ Processed ${item.name}\n`;
     }
-    
+
     yield "Complete!\n";
   },
 });
@@ -392,7 +384,7 @@ registry.register("test-view", {
 const output = await registry.render(
   "test-view",
   { name: "World" },
-  createMockContext()
+  createMockContext(),
 );
 
 expect(output).toBe("Hello World");

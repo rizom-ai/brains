@@ -46,8 +46,7 @@ The codebase follows a 4-directory monorepo structure managed by Turborepo:
 ### Interface Packages (User Interfaces)
 
 - **interfaces/cli**: Command-line interface using Ink
-- **interfaces/matrix**: Matrix bot interface
-- **interfaces/matrix-setup**: Matrix account setup utility
+- **interfaces/matrix**: Matrix bot interface (includes setup utility)
 - **interfaces/mcp**: MCP transport layer (stdio and HTTP)
 - **interfaces/webserver**: Static site server
 

@@ -113,11 +113,7 @@ Transform existing content:
 const article = await generator.deriveContent({
   sourceEntityId: "note_456",
   targetType: "article",
-  transformations: [
-    "expand",
-    "add-examples",
-    "format-markdown",
-  ],
+  transformations: ["expand", "add-examples", "format-markdown"],
 });
 ```
 

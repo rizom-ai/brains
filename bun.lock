@@ -24,7 +24,7 @@
         "@brains/directory-sync": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
-        "@brains/matrix-setup": "workspace:*",
+        "@brains/matrix": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/webserver": "workspace:*",
         "preact": "^10.26.9",
@@ -58,9 +58,13 @@
     "interfaces/matrix": {
       "name": "@brains/matrix",
       "version": "0.0.1",
+      "bin": {
+        "brain-matrix-setup": "./src/setup/cli.ts",
+      },
       "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
+        "@clack/prompts": "^0.8.2",
         "marked": "^12.0.0",
         "matrix-bot-sdk": "^0.7.1",
         "p-queue": "^8.0.1",
@@ -68,22 +72,6 @@
       },
       "devDependencies": {
         "@brains/core": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-      },
-    },
-    "interfaces/matrix-setup": {
-      "name": "@brains/matrix-setup",
-      "version": "0.1.0",
-      "bin": {
-        "brain-matrix-setup": "./src/cli.ts",
-      },
-      "dependencies": {
-        "@brains/utils": "workspace:*",
-        "@clack/prompts": "^0.8.2",
-      },
-      "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
@@ -624,8 +612,6 @@
     "@brains/job-queue": ["@brains/job-queue@workspace:shell/job-queue"],
 
     "@brains/matrix": ["@brains/matrix@workspace:interfaces/matrix"],
-
-    "@brains/matrix-setup": ["@brains/matrix-setup@workspace:interfaces/matrix-setup"],
 
     "@brains/mcp": ["@brains/mcp@workspace:interfaces/mcp"],
 

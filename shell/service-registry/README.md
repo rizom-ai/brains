@@ -51,18 +51,18 @@ registry.register<IUserService>("userService", {
 
 ```typescript
 interface ServiceDefinition<T = any> {
-  factory: ServiceFactory<T>;    // Service creation function
-  singleton?: boolean;            // Single instance (default: true)
-  dependencies?: string[];        // Required services
-  interface?: Interface<T>;       // Service interface/contract
-  lazy?: boolean;                 // Lazy initialization
-  lifecycle?: ServiceLifecycle;   // Lifecycle hooks
+  factory: ServiceFactory<T>; // Service creation function
+  singleton?: boolean; // Single instance (default: true)
+  dependencies?: string[]; // Required services
+  interface?: Interface<T>; // Service interface/contract
+  lazy?: boolean; // Lazy initialization
+  lifecycle?: ServiceLifecycle; // Lifecycle hooks
   metadata?: Record<string, any>; // Service metadata
 }
 
 type ServiceFactory<T> = (
   dependencies: Record<string, any>,
-  context: ServiceContext
+  context: ServiceContext,
 ) => T | Promise<T>;
 
 interface ServiceLifecycle {
@@ -96,8 +96,11 @@ registry.register("userRepo", {
 @Service("emailService")
 @Dependencies(["config", "logger"])
 class EmailService {
-  constructor(private config: Config, private logger: Logger) {}
-  
+  constructor(
+    private config: Config,
+    private logger: Logger,
+  ) {}
+
   async send(email: Email) {
     // Implementation
   }
@@ -112,7 +115,7 @@ registry.registerClass(EmailService);
 registry.register("cache", {
   factory: async (deps) => {
     const config = deps.config;
-    
+
     if (config.cache.type === "redis") {
       return new RedisCache(config.redis);
     } else {
@@ -129,11 +132,7 @@ registry.register("cache", {
 
 ```typescript
 registry.register("app", {
-  factory: (deps) => new Application(
-    deps.database,
-    deps.logger,
-    deps.cache
-  ),
+  factory: (deps) => new Application(deps.database, deps.logger, deps.cache),
   dependencies: ["database", "logger", "cache"],
 });
 
@@ -162,10 +161,11 @@ registry.register("serviceB", {
 
 ```typescript
 registry.register("service", {
-  factory: (deps) => new Service({
-    logger: deps.logger,
-    cache: deps.cache || new DefaultCache(),
-  }),
+  factory: (deps) =>
+    new Service({
+      logger: deps.logger,
+      cache: deps.cache || new DefaultCache(),
+    }),
   dependencies: ["logger"],
   optionalDependencies: ["cache"],
 });
@@ -180,10 +180,7 @@ registry.register("service", {
 const db = await registry.get("database");
 
 // Get multiple services
-const { database, logger } = await registry.getMany([
-  "database",
-  "logger",
-]);
+const { database, logger } = await registry.getMany(["database", "logger"]);
 
 // Get by interface
 const services = registry.getByInterface(IPlugin);
@@ -276,7 +273,7 @@ registry.register("contextAware", {
   factory: (deps, context) => {
     console.log(`Creating service in ${context.scope}`);
     console.log(`Requested by ${context.caller}`);
-    
+
     return new ContextAwareService({
       environment: context.environment,
       config: context.config,
@@ -337,14 +334,14 @@ import { ServiceRegistry } from "@brains/service-registry";
 
 describe("MyService", () => {
   let registry: ServiceRegistry;
-  
+
   beforeEach(() => {
     registry = ServiceRegistry.createFresh();
     registry.register("myService", {
       factory: () => new MyService(),
     });
   });
-  
+
   test("should work", async () => {
     const service = await registry.get("myService");
     expect(service).toBeDefined();
@@ -365,7 +362,7 @@ describe("MyService", () => {
 class UserService {
   constructor(
     private db: Database,
-    private logger: Logger
+    private logger: Logger,
   ) {}
 }
 
@@ -393,10 +390,10 @@ registry.on("service:error", (event) => {
 
 ```typescript
 const registry = ServiceRegistry.getInstance({
-  lazy: true,              // Lazy load all services
-  strictMode: true,        // Throw on missing dependencies
+  lazy: true, // Lazy load all services
+  strictMode: true, // Throw on missing dependencies
   healthCheckInterval: 60000, // Global health check interval
-  timeout: 5000,           // Service initialization timeout
+  timeout: 5000, // Service initialization timeout
 });
 ```
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { Logger, LogLevel } from "@brains/utils";
-import { registerMatrixAccount } from "./index";
+import { registerMatrixAccount } from "./register";
 
 const logger = Logger.createFresh({
   level: LogLevel.INFO,
@@ -62,4 +62,5 @@ async function main(): Promise<void> {
   }
 }
 
+// Run main function
 void main();

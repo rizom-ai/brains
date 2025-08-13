@@ -52,6 +52,7 @@ General-purpose TypeScript configuration:
 ```
 
 Features:
+
 - ES2022 target
 - Module resolution for Node
 - Strict type checking
@@ -68,6 +69,7 @@ For packages that will be published:
 ```
 
 Additional features:
+
 - Declaration maps
 - Source maps
 - Composite projects support
@@ -84,6 +86,7 @@ For applications and services:
 ```
 
 Features:
+
 - No declaration files
 - Inline source maps
 - Faster compilation
@@ -100,6 +103,7 @@ For React/UI packages:
 ```
 
 Features:
+
 - JSX support
 - React JSX transform
 - DOM library types
@@ -116,6 +120,7 @@ For test files:
 ```
 
 Features:
+
 - Includes test globals
 - Relaxed type checking
 - Jest types included
@@ -193,6 +198,7 @@ Configure import aliases:
 ```
 
 Usage:
+
 ```typescript
 import { Button } from "@components/Button";
 import { formatDate } from "@utils/date";
@@ -209,10 +215,7 @@ For monorepo packages:
     "composite": true,
     "declarationMap": true
   },
-  "references": [
-    { "path": "../core" },
-    { "path": "../utils" }
-  ]
+  "references": [{ "path": "../core" }, { "path": "../utils" }]
 }
 ```
 
@@ -282,6 +285,7 @@ Add to your `package.json`:
 ### WebStorm
 
 Automatically detects tsconfig.json. For custom configs:
+
 - Settings → Languages & Frameworks → TypeScript
 - Set "TypeScript" to project's node_modules version
 
@@ -305,6 +309,7 @@ Automatically detects tsconfig.json. For custom configs:
 For different environments:
 
 `tsconfig.json`:
+
 ```json
 {
   "extends": "@brains/typescript-config/base.json",
@@ -313,6 +318,7 @@ For different environments:
 ```
 
 `tsconfig.build.json`:
+
 ```json
 {
   "extends": "./tsconfig.json",
@@ -321,6 +327,7 @@ For different environments:
 ```
 
 `tsconfig.test.json`:
+
 ```json
 {
   "extends": "@brains/typescript-config/test.json",

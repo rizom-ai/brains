@@ -26,12 +26,7 @@ bun add @brains/ui-library
 ## Usage
 
 ```tsx
-import { 
-  Button,
-  Card,
-  Input,
-  ThemeProvider,
-} from "@brains/ui-library";
+import { Button, Card, Input, ThemeProvider } from "@brains/ui-library";
 
 function App() {
   return (
@@ -55,37 +50,31 @@ function App() {
 ### Layout Components
 
 ```tsx
-import { 
-  Container,
-  Grid,
-  Stack,
-  Flex,
-  Spacer,
-} from "@brains/ui-library";
+import { Container, Grid, Stack, Flex, Spacer } from "@brains/ui-library";
 
 <Container maxWidth="lg">
   <Grid cols={3} gap={4}>
     <Grid.Item>Item 1</Grid.Item>
     <Grid.Item span={2}>Item 2</Grid.Item>
   </Grid>
-  
+
   <Stack spacing={2}>
     <div>Stacked item 1</div>
     <div>Stacked item 2</div>
   </Stack>
-  
+
   <Flex justify="between" align="center">
     <div>Left</div>
     <Spacer />
     <div>Right</div>
   </Flex>
-</Container>
+</Container>;
 ```
 
 ### Form Components
 
 ```tsx
-import { 
+import {
   Form,
   Input,
   Select,
@@ -99,30 +88,28 @@ import {
   <FormField name="email" label="Email" required>
     <Input type="email" />
   </FormField>
-  
+
   <FormField name="role" label="Role">
     <Select>
       <Select.Option value="admin">Admin</Select.Option>
       <Select.Option value="user">User</Select.Option>
     </Select>
   </FormField>
-  
+
   <FormField name="bio" label="Bio">
     <TextArea rows={4} />
   </FormField>
-  
-  <Checkbox name="terms">
-    I agree to the terms
-  </Checkbox>
-  
+
+  <Checkbox name="terms">I agree to the terms</Checkbox>
+
   <Button type="submit">Submit</Button>
-</Form>
+</Form>;
 ```
 
 ### Data Display
 
 ```tsx
-import { 
+import {
   Table,
   List,
   Card,
@@ -162,7 +149,7 @@ import {
 ### Navigation
 
 ```tsx
-import { 
+import {
   Navbar,
   Sidebar,
   Breadcrumb,
@@ -191,7 +178,7 @@ import {
 ### Feedback Components
 
 ```tsx
-import { 
+import {
   Alert,
   Toast,
   Modal,
@@ -261,7 +248,7 @@ const customTheme = createTheme({
 
 <ThemeProvider theme={customTheme}>
   <App />
-</ThemeProvider>
+</ThemeProvider>;
 ```
 
 ### Dark Mode
@@ -271,11 +258,9 @@ import { useDarkMode } from "@brains/ui-library";
 
 function App() {
   const { isDark, toggle } = useDarkMode();
-  
+
   return (
-    <Button onClick={toggle}>
-      {isDark ? "Light Mode" : "Dark Mode"}
-    </Button>
+    <Button onClick={toggle}>{isDark ? "Light Mode" : "Dark Mode"}</Button>
   );
 }
 ```
@@ -324,10 +309,8 @@ tokens.shadows.sm; // "0 1px 2px rgba(0,0,0,0.05)"
 import { FocusTrap, useFocusReturn } from "@brains/ui-library";
 
 <FocusTrap active={isModalOpen}>
-  <Modal>
-    {/* Focus is trapped within modal */}
-  </Modal>
-</FocusTrap>
+  <Modal>{/* Focus is trapped within modal */}</Modal>
+</FocusTrap>;
 ```
 
 ## Hooks
@@ -368,12 +351,12 @@ const debouncedSearch = useDebounce(searchTerm, 300);
 import { css, styled } from "@brains/ui-library/styles";
 
 const StyledDiv = styled.div`
-  padding: ${props => props.theme.spacing[4]};
-  color: ${props => props.theme.colors.primary};
+  padding: ${(props) => props.theme.spacing[4]};
+  color: ${(props) => props.theme.colors.primary};
 `;
 
 const dynamicStyles = css`
-  background: ${props => props.active ? "blue" : "gray"};
+  background: ${(props) => (props.active ? "blue" : "gray")};
 `;
 ```
 
@@ -382,18 +365,20 @@ const dynamicStyles = css`
 ```tsx
 import { cn } from "@brains/ui-library/utils";
 
-<div className={cn(
-  "base-class",
-  isActive && "active",
-  isDisabled && "disabled",
-  className
-)} />
+<div
+  className={cn(
+    "base-class",
+    isActive && "active",
+    isDisabled && "disabled",
+    className,
+  )}
+/>;
 ```
 
 ## Animation
 
 ```tsx
-import { 
+import {
   Transition,
   AnimatePresence,
   animations,

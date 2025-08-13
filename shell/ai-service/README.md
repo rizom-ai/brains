@@ -71,6 +71,7 @@ interface AIServiceConfig {
 ## Models
 
 Supported Claude models:
+
 - `claude-3-haiku-20240307` - Fast, efficient
 - `claude-3-sonnet-20240229` - Balanced
 - `claude-3-opus-20240229` - Most capable
