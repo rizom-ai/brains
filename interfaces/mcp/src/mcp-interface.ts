@@ -7,7 +7,8 @@ import {
   type DaemonHealth,
   type UserPermissionLevel,
 } from "@brains/plugins";
-import { StdioMCPServer, StreamableHTTPServer } from "@brains/mcp-server";
+import { StdioMCPServer } from "./transports/stdio-server";
+import { StreamableHTTPServer } from "./transports/http-server";
 import type { IMCPTransport } from "@brains/mcp-service";
 import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
 import { createMCPTools } from "./tools";

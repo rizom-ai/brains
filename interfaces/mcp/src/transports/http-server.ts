@@ -5,12 +5,14 @@ import asyncHandler from "express-async-handler";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Logger } from "../types";
+import type { TransportLogger } from "./types";
+import { createConsoleLogger, adaptLogger } from "./types";
+import type { Logger } from "@brains/plugins";
 
 export interface StreamableHTTPServerConfig {
   port?: number | string;
   host?: string;
-  logger?: Logger;
+  logger?: Logger | TransportLogger;
 }
 
 /**
@@ -25,17 +27,14 @@ export class StreamableHTTPServer {
   private mcpServer: McpServer | null = null;
   private server: ReturnType<Express["listen"]> | null = null;
   private readonly config: StreamableHTTPServerConfig;
-  private readonly logger: Logger;
+  private readonly logger: TransportLogger;
 
   constructor(config: StreamableHTTPServerConfig = {}) {
     this.config = config;
-    this.logger = this.config.logger ?? {
-      info: (msg: string): void => console.log(`[StreamableHTTP] ${msg}`),
-      debug: (msg: string): void => console.debug(`[StreamableHTTP] ${msg}`),
-      error: (msg: string, err?: unknown): void =>
-        console.error(`[StreamableHTTP] ${msg}`, err),
-      warn: (msg: string): void => console.warn(`[StreamableHTTP] ${msg}`),
-    };
+    // Use the provided logger or default to console logger for HTTP
+    this.logger = this.config.logger
+      ? adaptLogger(this.config.logger)
+      : createConsoleLogger();
 
     this.app = express();
     this.setupMiddleware();

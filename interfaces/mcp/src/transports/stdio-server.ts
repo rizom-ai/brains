@@ -1,19 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { Logger } from "../types";
+import type { TransportLogger } from "./types";
+import { createStderrLogger, adaptLogger } from "./types";
+import type { Logger } from "@brains/plugins";
 
 export interface StdioMCPServerConfig {
-  logger?: Logger;
+  logger?: Logger | TransportLogger;
 }
-
-// Default console logger that always uses stderr for MCP servers
-const defaultLogger: Logger = {
-  info: (msg: string): void => console.error(`[STDIO MCP] ${msg}`),
-  debug: (msg: string): void => console.error(`[STDIO MCP] ${msg}`),
-  error: (msg: string, err?: unknown): void =>
-    console.error(`[STDIO MCP] ${msg}`, err),
-  warn: (msg: string): void => console.error(`[STDIO MCP] ${msg}`),
-};
 
 /**
  * Stdio transport for MCP servers
@@ -26,7 +19,7 @@ export class StdioMCPServer {
   private mcpServer: McpServer | null = null;
   private transport: StdioServerTransport | null = null;
   private readonly config: StdioMCPServerConfig;
-  private readonly logger: Logger;
+  private readonly logger: TransportLogger;
 
   /**
    * Get the singleton instance of StdioMCPServer
@@ -55,7 +48,10 @@ export class StdioMCPServer {
 
   constructor(config: StdioMCPServerConfig = {}) {
     this.config = config;
-    this.logger = this.config.logger ?? defaultLogger;
+    // Use the provided logger or default to stderr logger for STDIO
+    this.logger = this.config.logger
+      ? adaptLogger(this.config.logger)
+      : createStderrLogger();
   }
 
   /**

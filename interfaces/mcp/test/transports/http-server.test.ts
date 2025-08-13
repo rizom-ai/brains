@@ -1,15 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
-import { StreamableHTTPServer } from "../../src/server/streamableHttpServer";
+import { StreamableHTTPServer } from "../../src/transports/http-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Logger } from "../../src/types";
-
-// Mock logger for tests
-const createMockLogger = (): Logger => ({
-  info: mock(() => {}),
-  debug: mock(() => {}),
-  error: mock(() => {}),
-  warn: mock(() => {}),
-});
+import type { TransportLogger } from "../../src/transports/types";
 
 // Helper to make HTTP requests
 async function makeRequest(
@@ -85,16 +77,22 @@ async function makeRequest(
 
 describe("StreamableHTTPServer", () => {
   let server: StreamableHTTPServer;
-  let mockLogger: Logger;
+  let mockLogger: TransportLogger;
   let testPort = 13337; // Use a different port for each test to avoid conflicts
 
   beforeEach(() => {
-    mockLogger = createMockLogger();
+    // Create a mock logger with jest-style mock functions
+    mockLogger = {
+      info: mock(() => {}),
+      debug: mock(() => {}),
+      error: mock(() => {}),
+      warn: mock(() => {}),
+    };
     testPort++; // Increment port for each test
   });
 
   afterEach(async () => {
-    if (server.isRunning()) {
+    if (server && server.isRunning()) {
       await server.stop();
     }
   });
