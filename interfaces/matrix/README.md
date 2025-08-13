@@ -38,6 +38,7 @@ MATRIX_ADMIN_TOKEN=syt_YWRtaW4_... bunx @brains/matrix brain-matrix-setup https:
 ```
 
 The setup utility will:
+
 1. Verify your admin token
 2. Create a new Matrix account for your bot
 3. Generate an access token
