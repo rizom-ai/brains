@@ -227,22 +227,21 @@ export function createSystemCommands(
     },
     {
       name: "getconversation",
-      description: "Get conversation details and recent messages",
-      usage: "/getconversation <conversation-id> [message-limit]",
+      description: "Get conversation details",
+      usage: "/getconversation <conversation-id>",
       handler: async (args, _context): Promise<CommandResponse> => {
         if (args.length === 0) {
           return {
             type: "message",
             message:
-              "Please provide a conversation ID. Usage: /getconversation <conversation-id> [message-limit]",
+              "Please provide a conversation ID. Usage: /getconversation <conversation-id>",
           };
         }
 
         const conversationId = args[0] as string;
-        const messageLimit = args[1] ? parseInt(args[1] as string, 10) : 10;
 
         try {
-          // Get conversation details
+          // Get conversation details only
           const conversation = await plugin.getConversation(conversationId);
 
           if (!conversation) {
@@ -252,13 +251,7 @@ export function createSystemCommands(
             };
           }
 
-          // Get recent messages
-          const messages = await plugin.getMessages(
-            conversationId,
-            messageLimit,
-          );
-
-          // Format the response
+          // Format the response with metadata only
           const sections = [
             `**Conversation: ${conversation.id}**`,
             `Interface: ${conversation.interfaceType}`,
@@ -266,36 +259,8 @@ export function createSystemCommands(
             `Created: ${new Date(conversation.created).toLocaleString()}`,
             `Last Active: ${new Date(conversation.lastActive).toLocaleString()}`,
             ``,
-            `**Recent Messages (${messages.length}/${messageLimit} requested):**`,
+            `Tip: Use /getmessages ${conversationId} to see messages`,
           ];
-
-          if (messages.length === 0) {
-            sections.push("No messages found");
-          } else {
-            messages.forEach((msg, index) => {
-              const preview =
-                msg.content.substring(0, 200) +
-                (msg.content.length > 200 ? "..." : "");
-              sections.push(
-                `${index + 1}. [${msg.role}] ${new Date(msg.timestamp).toLocaleTimeString()}: ${preview}`,
-              );
-            });
-          }
-
-          // Add formatted working memory preview
-          if (messages.length > 0) {
-            sections.push(
-              "",
-              "**Working Memory Format (what AI sees):**",
-              messages
-                .slice(0, 3)
-                .map(
-                  (m) =>
-                    `${m.role.charAt(0).toUpperCase() + m.role.slice(1)}: ${m.content.substring(0, 100)}...`,
-                )
-                .join("\n"),
-            );
-          }
 
           return {
             type: "message",

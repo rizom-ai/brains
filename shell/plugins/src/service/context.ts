@@ -30,10 +30,7 @@ export interface ServicePluginContext extends CorePluginContext {
 
   // Conversation service helpers
   searchConversations: (query: string) => Promise<Conversation[]>;
-  getMessages: (
-    conversationId: string,
-    limit?: number,
-  ) => Promise<Message[]>;
+  getMessages: (conversationId: string, limit?: number) => Promise<Message[]>;
 
   // Job queue functionality (write operations)
   enqueueJob: (

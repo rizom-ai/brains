@@ -212,10 +212,7 @@ export class ConversationService implements IConversationService {
   /**
    * Get messages from a conversation
    */
-  async getMessages(
-    conversationId: string,
-    limit = 20,
-  ): Promise<Message[]> {
+  async getMessages(conversationId: string, limit = 20): Promise<Message[]> {
     const result = await this.db
       .select()
       .from(messages)
