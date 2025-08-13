@@ -146,7 +146,7 @@ export function createCorePluginContext(
     },
     getMessages: async (conversationId: string, limit?: number) => {
       const conversationService = shell.getConversationService();
-      return conversationService.getRecentMessages(conversationId, limit);
+      return conversationService.getMessages(conversationId, limit);
     },
     startConversation: async (
       conversationId: string,

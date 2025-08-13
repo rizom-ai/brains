@@ -212,7 +212,7 @@ describe("MessageInterfacePlugin", () => {
         addMessage: async () => {},
         getConversation: async () => null,
         searchConversations: async () => [],
-        getRecentMessages: async () => [],
+        getMessages: async () => [],
         getWorkingMemory: async () => "Test working memory",
       };
 

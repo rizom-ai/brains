@@ -210,9 +210,9 @@ export class ConversationService implements IConversationService {
   }
 
   /**
-   * Get recent messages from a conversation
+   * Get messages from a conversation
    */
-  async getRecentMessages(
+  async getMessages(
     conversationId: string,
     limit = 20,
   ): Promise<Message[]> {
@@ -268,7 +268,7 @@ export class ConversationService implements IConversationService {
    * Get working memory (recent messages formatted as context)
    */
   async getWorkingMemory(conversationId: string): Promise<string> {
-    const messages = await this.getRecentMessages(
+    const messages = await this.getMessages(
       conversationId,
       this.config.workingMemorySize ?? 20,
     );

@@ -28,7 +28,7 @@ export interface IConversationService {
     content: string,
     metadata?: Record<string, unknown>,
   ): Promise<void>;
-  getRecentMessages(conversationId: string, limit?: number): Promise<Message[]>;
+  getMessages(conversationId: string, limit?: number): Promise<Message[]>;
   getConversation(conversationId: string): Promise<Conversation | null>;
 
   // Search operations

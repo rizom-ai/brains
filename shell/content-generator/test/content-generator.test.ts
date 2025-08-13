@@ -41,7 +41,7 @@ describe("ContentGenerator", () => {
       getWorkingMemory: mockGetWorkingMemory,
       startConversation: mock(),
       addMessage: mock(),
-      getRecentMessages: mock(),
+      getMessages: mock(),
       getConversation: mock(),
       searchConversations: mock(),
     };

@@ -174,7 +174,7 @@ describe("SystemPlugin", () => {
   describe("conversation methods", () => {
     it("should get conversation details", async () => {
       const conversation = await plugin.getConversation("conv-1");
-      
+
       expect(conversation).toBeDefined();
       expect(conversation?.id).toBe("conv-1");
       expect(conversation?.interfaceType).toBe("test");
@@ -182,7 +182,7 @@ describe("SystemPlugin", () => {
 
     it("should get messages from conversation", async () => {
       const messages = await plugin.getMessages("conv-1", 10);
-      
+
       expect(messages).toBeDefined();
       expect(messages.length).toBe(1);
       expect(messages[0]?.content).toBe("Test message");
@@ -190,7 +190,7 @@ describe("SystemPlugin", () => {
 
     it("should search conversations", async () => {
       const conversations = await plugin.searchConversations("test");
-      
+
       expect(conversations).toBeDefined();
       expect(conversations.length).toBe(1);
       expect(conversations[0]?.id).toBe("conv-1");

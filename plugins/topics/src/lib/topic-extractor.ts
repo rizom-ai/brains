@@ -45,7 +45,7 @@ export class TopicExtractor {
     }> = [];
 
     for (const conversation of conversations) {
-      const messages = await this.context.getRecentMessages(
+      const messages = await this.context.getMessages(
         conversation.id,
         windowSize, // Get exactly windowSize messages
       );

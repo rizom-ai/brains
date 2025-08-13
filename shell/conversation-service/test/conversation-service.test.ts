@@ -113,7 +113,7 @@ describe("ConversationService", () => {
     });
   });
 
-  describe("getRecentMessages", () => {
+  describe("getMessages", () => {
     it("should retrieve messages in chronological order", async () => {
       const conversationId = "conv-123";
 
@@ -125,7 +125,7 @@ describe("ConversationService", () => {
       await service.addMessage(conversationId, "assistant", "Second message");
       await service.addMessage(conversationId, "user", "Third message");
 
-      const result = await service.getRecentMessages(conversationId);
+      const result = await service.getMessages(conversationId);
 
       expect(result).toHaveLength(3);
       expect(result[0]?.content).toBe("First message");
@@ -145,7 +145,7 @@ describe("ConversationService", () => {
       await service.addMessage(conversationId, "assistant", "Message 2");
       await service.addMessage(conversationId, "user", "Message 3");
 
-      const result = await service.getRecentMessages(conversationId, limit);
+      const result = await service.getMessages(conversationId, limit);
 
       expect(result).toHaveLength(limit);
       // Should get the most recent messages

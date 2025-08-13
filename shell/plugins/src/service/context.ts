@@ -30,7 +30,7 @@ export interface ServicePluginContext extends CorePluginContext {
 
   // Conversation service helpers
   searchConversations: (query: string) => Promise<Conversation[]>;
-  getRecentMessages: (
+  getMessages: (
     conversationId: string,
     limit?: number,
   ) => Promise<Message[]>;
@@ -98,9 +98,9 @@ export function createServicePluginContext(
       const conversationService = shell.getConversationService();
       return conversationService.searchConversations(query);
     },
-    getRecentMessages: async (conversationId: string, limit?: number) => {
+    getMessages: async (conversationId: string, limit?: number) => {
       const conversationService = shell.getConversationService();
-      return conversationService.getRecentMessages(conversationId, limit);
+      return conversationService.getMessages(conversationId, limit);
     },
 
     // Job queue functionality
