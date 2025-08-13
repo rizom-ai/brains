@@ -1,225 +1,137 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-08-06
+Last Updated: 2025-01-13
 
 ## Vision
 
 Build a robust, extensible knowledge management platform that serves as the foundation for individual, team, and collective products.
 
-## Strategic Focus
+## Current Status
 
-The roadmap prioritizes:
+### Completed ✅
 
-1. **Clean Architecture** - Complete and consistent core abstractions
-2. **Developer Experience** - Make plugin development straightforward
-3. **Deployment Excellence** - Simple installation and configuration
+- **Core Architecture**: Shell-based plugin system with direct registration
+- **MCP Integration**: Full MCP server with stdio and HTTP transports
+- **Plugin System**: Three plugin types (Core, Interface, MessageInterface)
+- **Entity Framework**: Functional entity model with Zod schemas
+- **Conversation Memory**: Conversation tracking and message storage
+- **Job Queue**: Background processing with progress tracking
+- **Content Generation**: Template-based content generation
+- **Test Infrastructure**: Standardized test harnesses for all plugin types
 
-## Phase 1: Core Architecture Cleanup (Immediate)
+### In Progress 🚧
 
-### 1.1 Service Abstraction Completion ✅
+- **Database Separation**: Separating job queue database for better portability
+- **Performance Optimization**: Entity service batch operations
+- **Documentation**: Updating docs to reflect current architecture
 
-**Goal**: Extract QueryProcessor interface to complete service abstraction pattern
+## Phase 1: Production Readiness (Q1 2025)
 
-**Status**: COMPLETED - QueryProcessor service has been removed as query functionality was moved to core Shell operations
+### 1.1 Database Architecture
+- [ ] Separate job queue database from entity database
+- [ ] Implement database migration system
+- [ ] Add database backup/restore capabilities
 
-**Why**: Query is now a core shell concern available to all plugins through the context, simplifying the architecture.
+### 1.2 Performance & Scalability
+- [ ] Batch operations for entity service
+- [ ] Async embedding generation queue
+- [ ] Optimize vector search performance
 
-### 1.2 Plugin System Documentation and Cleanup ✅
+### 1.3 Error Handling & Monitoring
+- [ ] Standardized error types across all packages
+- [ ] Structured logging with log levels
+- [ ] Health check endpoints for all services
 
-**Goal**: Ensure plugin system is consistent, clean, and well-documented
+## Phase 2: First Plugins (Q1-Q2 2025)
 
-**Status**: COMPLETED
+### 2.1 Link Plugin (Priority 1)
+- [ ] Web content capture via MCP tool
+- [ ] AI-powered summarization
+- [ ] Automatic tagging and categorization
+- [ ] Integration with read-later services
 
-**What was done**:
+### 2.2 Article Plugin (Priority 2)
+- [ ] Long-form content creation
+- [ ] Draft/publish workflow
+- [ ] Version history
+- [ ] Export to various formats
 
-- ✅ All plugin base classes standardized and documented
-- ✅ Plugin test harnesses consolidated into a single PluginTestHarness with factory functions
-- ✅ All plugins reorganized to follow consistent directory structure
-- ✅ All plugin imports consolidated to use @brains/plugins package
-- ✅ Error handling standardized across all plugin types
-- ✅ MCP interface cleanup completed with proper separation of concerns
-- ✅ Site-builder plugin refactored with proper formatter organization
+### 2.3 Task Plugin
+- [ ] Task creation and management
+- [ ] Project organization
+- [ ] Due dates and reminders
+- [ ] Integration with calendar systems
 
-**Why**: A clean, well-documented plugin system is prerequisite for external developers to build plugins effectively.
+## Phase 3: Enhanced Interfaces (Q2 2025)
 
-### 1.3 Database Architecture
+### 3.1 Web UI
+- [ ] React-based web interface
+- [ ] Real-time updates via WebSocket
+- [ ] Visual entity browser
+- [ ] Search and filter capabilities
 
-**Goal**: Separate job queue database for better data portability and performance
+### 3.2 Mobile Support
+- [ ] Progressive Web App (PWA)
+- [ ] Offline capability
+- [ ] Mobile-optimized UI
 
-**Tasks**:
+### 3.3 API Expansion
+- [ ] GraphQL API
+- [ ] REST API v2
+- [ ] Webhook support
 
-- [ ] Create separate SQLite database file for job queue
-- [ ] Update JobQueueService to use dedicated connection
-- [ ] Update configuration to support multiple database paths
-- [ ] Migrate existing job data if needed
-- [ ] Update tests to work with separate databases
-- [ ] Ensure clean separation between entity and job data
+## Phase 4: Team Features (Q3 2025)
 
-**Why**: Data portability is crucial for deployment flexibility. Separating transient job data from persistent entity data enables better backup strategies and scaling options.
+### 4.1 Multi-user Support
+- [ ] User authentication and authorization
+- [ ] Role-based access control
+- [ ] Personal and shared workspaces
 
-## Phase 2: Developer Experience
+### 4.2 Collaboration
+- [ ] Real-time collaboration
+- [ ] Comments and annotations
+- [ ] Activity feeds
 
-### 2.1 Plugin Scaffolding CLI
+### 4.3 Team Brain
+- [ ] Shared knowledge base
+- [ ] Team-specific plugins
+- [ ] Integration with team tools (Slack, Teams)
 
-**Goal**: Enable developers to quickly create new plugins with proper structure
+## Phase 5: AI Enhancement (Q3-Q4 2025)
 
-**Command**: `bunx create-brains-plugin`
+### 5.1 Advanced AI Features
+- [ ] Custom AI model fine-tuning
+- [ ] Multi-modal support (images, audio)
+- [ ] AI-powered insights and recommendations
 
-**Features**:
+### 5.2 Automation
+- [ ] Workflow automation
+- [ ] Smart notifications
+- [ ] Predictive task creation
 
-- [ ] Interactive prompt for plugin type selection
-- [ ] Generate appropriate base class extension
-- [ ] Include TypeScript configuration
-- [ ] Set up test harness with examples
-- [ ] Generate package.json with correct dependencies
-- [ ] Create README template with usage instructions
-- [ ] Include example MCP tool registrations for relevant plugin types
+## Technical Debt & Maintenance
 
-**Plugin Types to Support**:
-
-- Entity plugins (for new content types)
-- Service plugins (for new capabilities)
-- Interface plugins (for new interaction methods)
-- Message Interface plugins (for chat-like interfaces)
-- Core plugins (for system-level functionality)
-
-### 2.2 Reference Entity Plugins
-
-**Goal**: Provide high-quality examples of entity plugin development
-
-**Implementation**: Build 2-3 entity plugins that best demonstrate system capabilities
-
-**Requirements for Each**:
-
-- Clean schema definition using Zod
-- Proper entity adapter implementation
-- MCP tool registration with clear tool descriptions
-- Comprehensive tests
-- Usage documentation
-- Example queries and workflows
-
-### 2.3 Documentation
-
-**Goal**: Comprehensive guides for plugin developers
-
-**Documents to Create**:
-
-- [ ] Plugin Development Guide - Step-by-step tutorial
-- [ ] Plugin API Reference - Complete API documentation
-- [ ] Plugin Patterns - Common patterns and best practices
-- [ ] Testing Guide - How to test plugins effectively
-
-## Phase 3: Deployment & Distribution
-
-### 3.1 Installation Simplification
-
-**Goal**: Single-command setup with configuration wizard
-
-**Command**: `bunx create-brains-app`
-
-**Features**:
-
-- [ ] Generate new project from scratch
-- [ ] Interactive configuration wizard
-- [ ] Plugin selection during setup
-- [ ] Environment variable configuration
-- [ ] Database initialization
-- [ ] Generate appropriate app.ts with selected plugins
-- [ ] Create deployment configuration files
-
-### 3.2 Binary Distribution
-
-**Goal**: Standalone executables using Bun's compilation
-
-**Tasks**:
-
-- [ ] Create build scripts for each platform (Linux, macOS, Windows)
-- [ ] Handle native dependencies (SQLite, embeddings)
-- [ ] Include selected plugins in binary
-- [ ] Create installation packages (.deb, .pkg, .msi)
-- [ ] Set up CI/CD for automated builds
-- [ ] Document external update process
-
-### 3.3 Deployment Improvements
-
-**Goal**: Production-ready deployment options
-
-**Tasks**:
-
-- [ ] Improve Docker setup (single Dockerfile, better layer caching)
-- [ ] Create docker-compose templates for common scenarios
-- [ ] Improve systemd service templates
-- [ ] Create cloud deployment guides for VMs (AWS EC2, GCP Compute, Azure VMs, Hetzner)
-- [ ] Add health check endpoints
-- [ ] Implement backup and restore tools
-- [ ] Add monitoring and observability hooks
-
-## Immediate Next Steps (Priority Order)
-
-1. ~~**QueryProcessor interface extraction**~~ ✅ COMPLETED
-   - Query functionality moved to core Shell operations
-2. ~~**Plugin system cleanup and documentation**~~ ✅ COMPLETED
-   - All plugins follow consistent patterns and use @brains/plugins
-3. **Job queue database separation** ← CURRENT PRIORITY
-   - Core architectural change enabling better data management
-4. **Plugin scaffolding CLI**
-   - Enable rapid plugin development
-5. **Build reference entity plugins**
-   - Demonstrate system capabilities and patterns
+### Ongoing
+- [ ] Security audits
+- [ ] Performance monitoring
+- [ ] Dependency updates
+- [ ] Documentation improvements
+- [ ] Test coverage expansion
 
 ## Success Metrics
 
-### Phase 1 Success
+1. **Reliability**: 99.9% uptime for production deployments
+2. **Performance**: <100ms response time for queries
+3. **Adoption**: Active community of plugin developers
+4. **Quality**: >80% test coverage across all packages
 
-- [x] All core services have interfaces with dependency injection
-- [x] Plugin system documentation is complete in plugins package README
-- [x] All existing plugins follow consistent patterns
-- [ ] Job queue runs on separate database
+## Future Considerations
 
-### Phase 2 Success
+- **Collective Brain**: Community-driven knowledge bases
+- **Federation**: Decentralized brain networks
+- **AI Agents**: Autonomous knowledge workers
+- **Enterprise Features**: SSO, audit logs, compliance
 
-- [ ] Plugin scaffolding CLI generates working plugins
-- [ ] 2-3 high-quality reference plugins implemented
-- [ ] Developer can create basic plugin in < 30 minutes
-- [ ] Plugin development guide published
+## Contributing
 
-### Phase 3 Success
-
-- [ ] New user can install and run Brains in < 5 minutes
-- [ ] Binary distributions available for major platforms
-- [ ] Production deployment guide with best practices
-- [ ] Automated build and release pipeline
-
-## Implementation Notes
-
-### Technology Choices
-
-- **Runtime**: Bun (for performance and built-in tooling)
-- **Database**: SQLite with libSQL for vectors
-- **Monorepo**: Turborepo for build orchestration
-- **Testing**: Bun test with custom harnesses
-- **CI/CD**: GitHub Actions
-
-### Architecture Principles
-
-- **Plugin-first**: Everything possible should be a plugin
-- **Interface-driven**: All services behind interfaces
-- **Type-safe**: Zod schemas for all data validation
-- **Testable**: Comprehensive test coverage with good harnesses
-- **Observable**: Structured logging and metrics hooks
-
-### Development Workflow
-
-1. Implement feature in isolation
-2. Add comprehensive tests
-3. Update relevant documentation
-4. Ensure backwards compatibility
-5. Update CHANGELOG if needed
-
-## Related Documents
-
-- `/docs/link-plugin-plan.md` - Detailed plan for Link plugin
-- `/docs/article-plugin-plan.md` - Detailed plan for Article plugin
-- `/docs/OPEN_TASKS.md` - Complete list of all open tasks
-- `/docs/plugin-system.md` - Current plugin system documentation
-- `/docs/architecture-overview.md` - System architecture overview
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for how to contribute to the project.
