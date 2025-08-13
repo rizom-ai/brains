@@ -3,33 +3,6 @@ import { pluginMetadataSchema } from "@brains/plugins";
 import type { Plugin } from "@brains/plugins";
 import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/cli";
-import { matrixConfigSchema } from "@brains/matrix";
-import { mcpConfigSchema } from "@brains/mcp";
-
-export const interfaceConfigSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("cli"),
-    enabled: z.boolean().default(true),
-    config: z.any().optional(), // CLI-specific config
-  }),
-  z.object({
-    type: z.literal("matrix"),
-    enabled: z.boolean().default(true),
-    config: matrixConfigSchema,
-  }),
-  z.object({
-    type: z.literal("webserver"),
-    enabled: z.boolean().default(true),
-    config: z.any().optional(), // Webserver-specific config
-  }),
-  z.object({
-    type: z.literal("mcp"),
-    enabled: z.boolean().default(true),
-    config: mcpConfigSchema,
-  }),
-]);
-
-export type InterfaceConfig = z.infer<typeof interfaceConfigSchema>;
 
 // App config focuses on app-level concerns, plugins come from Shell
 export const appConfigSchema = z.object({
@@ -39,8 +12,6 @@ export const appConfigSchema = z.object({
   database: z.string().optional(), // Maps to database.url in Shell
   aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
   logLevel: z.enum(["debug", "info", "warn", "error"]).optional(), // Maps to logging.level
-  // Interface configurations (multiple interfaces can be enabled)
-  interfaces: z.array(interfaceConfigSchema).default([]),
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),
 });

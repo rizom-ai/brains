@@ -40,7 +40,6 @@ async function main(): Promise<void> {
         accentColor: "#ffff00",
       },
     },
-    interfaces: [],
     plugins: [
       // System plugin - provides core commands and tools (search, get, query, etc.)
       new SystemPlugin({

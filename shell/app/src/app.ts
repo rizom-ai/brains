@@ -7,27 +7,14 @@ export class App {
   private config: AppConfig;
   private shutdownHandlers: Array<() => void> = [];
   private isShuttingDown = false;
+  private hasCLI = false;
 
   public static create(config?: Partial<AppConfig>, shell?: Shell): App {
     const validatedConfig = appConfigSchema.parse(config ?? {});
 
-    // Parse command line arguments for interface selection
-    const args = process.argv.slice(2);
-    const interfaces = [...validatedConfig.interfaces];
-
-    // Add CLI interface if --cli flag is present
-    if (args.includes("--cli") && !interfaces.some((i) => i.type === "cli")) {
-      interfaces.push({
-        type: "cli",
-        enabled: true,
-        config: config?.cliConfig,
-      });
-    }
-
     // Follow Shell's pattern: validate schema then add full Plugin objects
     const appConfig: AppConfig = {
       ...validatedConfig,
-      interfaces,
       plugins: config?.plugins ?? [],
     };
     return new App(appConfig, shell);
@@ -35,6 +22,8 @@ export class App {
 
   private constructor(config: AppConfig, shell?: Shell) {
     this.config = config;
+    // Check if --cli flag is present
+    this.hasCLI = process.argv.slice(2).includes("--cli");
 
     if (shell) {
       this.shell = shell;
@@ -75,23 +64,15 @@ export class App {
 
   public async initialize(): Promise<void> {
     // Register CLI interface if --cli flag is present
-    await this.registerCLIIfRequested();
+    if (this.hasCLI) {
+      const pluginManager = this.shell.getPluginManager();
+      const { CLIInterface } = await import("@brains/cli");
+      const plugin = new CLIInterface(this.config.cliConfig);
+      pluginManager.registerPlugin(plugin);
+    }
 
     // Initialize shell (which will initialize all plugins including interfaces)
     await this.shell.initialize();
-  }
-
-  private async registerCLIIfRequested(): Promise<void> {
-    // Check if CLI interface was added via --cli flag
-    const cliInterface = this.config.interfaces.find(
-      (i) => i.type === "cli" && i.enabled,
-    );
-    if (!cliInterface) return;
-
-    const pluginManager = this.shell.getPluginManager();
-    const { CLIInterface } = await import("@brains/cli");
-    const plugin = new CLIInterface(cliInterface.config);
-    pluginManager.registerPlugin(plugin);
   }
 
   public async start(): Promise<void> {
@@ -127,19 +108,14 @@ export class App {
     const logLevel =
       logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
 
-    // Check if CLI interface is enabled
-    const hasCLI = this.config.interfaces.some(
-      (i) => i.type === "cli" && i.enabled,
-    );
-
     const logger = Logger.createFresh({
       level: logLevel,
       context: this.config.name,
-      useStderr: hasCLI, // Use stderr when CLI is active to avoid interfering with Ink UI
+      useStderr: this.hasCLI, // Use stderr when CLI is active to avoid interfering with Ink UI
     });
 
     // Configure global logger instance to also use stderr if CLI is active
-    if (hasCLI) {
+    if (this.hasCLI) {
       Logger.getInstance().setUseStderr(true);
     }
 
@@ -150,8 +126,6 @@ export class App {
       logger.info("✅ App initialized successfully");
 
       await this.start();
-
-      // Interfaces are now logged as plugins during shell initialization
 
       // Keep process alive
       process.stdin.resume();
@@ -175,11 +149,7 @@ export class App {
   private setupSignalHandlers(): void {
     const gracefulShutdown = async (signal: string): Promise<void> => {
       // Use stderr if CLI is active to avoid interfering with Ink UI
-      const hasCLI = this.config.interfaces.some(
-        (i) => i.type === "cli" && i.enabled,
-      );
-
-      if (hasCLI) {
+      if (this.hasCLI) {
         console.error(`\nReceived ${signal}, shutting down gracefully...`);
       } else {
         console.log(`\nReceived ${signal}, shutting down gracefully...`);
