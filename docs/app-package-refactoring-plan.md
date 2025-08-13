@@ -129,51 +129,86 @@ Create `apps/test-brain/brain.config.example.yaml` with full structure showing b
 #### 3.1 Simplify index.ts
 
 Before: 125 lines with complex env var checking
-After: ~50 lines with clean plugin registration
+After: ~80 lines with clean plugin registration and type-safe config handling
 
 ```typescript
-import { App } from "@brains/app";
-import { loadConfig } from "@brains/app";
-// ... plugin imports
+import { App, loadConfig, getDatabaseUrls } from "@brains/app";
+import { SystemPlugin } from "@brains/system";
+import { MCPInterface, type MCPConfigInput } from "@brains/mcp";
+import { MatrixInterface, type MatrixConfigInput } from "@brains/matrix";
+import { directorySync } from "@brains/directory-sync";
+import { WebserverInterface } from "@brains/webserver";
+import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import { templates, routes } from "@brains/default-site-content";
+import type { Plugin } from "@brains/plugins";
 
 const { config, secrets, paths } = loadConfig();
+const dbUrls = getDatabaseUrls(paths);
 
-// Create plugins with their configurations
-const plugins = [
+const plugins: Plugin[] = [
   // System plugin (always included)
-  new SystemPlugin(),
-
-  // MCP interface with its config section
-  new MCPInterface(config.mcp || { port: 3333 }),
-
-  // Matrix interface if configured
-  ...(config.matrix && secrets.matrixAccessToken
-    ? [
-        new MatrixInterface({
-          ...config.matrix,
-          accessToken: secrets.matrixAccessToken,
-        }),
-      ]
-    : []),
-
-  // Directory sync if configured
-  ...(config.directorySync ? [new DirectorySync(config.directorySync)] : []),
-
-  // Webserver if configured
-  ...(config.webserver ? [new WebserverInterface(config.webserver)] : []),
-
-  // Site builder if configured
-  ...(config.siteBuilder ? [new SiteBuilderPlugin(config.siteBuilder)] : []),
+  new SystemPlugin({ searchLimit: 10, debug: false }),
 ];
+
+// MCP Interface - pass config section, plugin validates internally
+if (config["mcp"]) {
+  plugins.push(new MCPInterface(config["mcp"] as MCPConfigInput));
+}
+
+// Matrix Interface - only if configured AND has access token
+if (config["matrix"] && secrets.matrixAccessToken) {
+  const matrixConfig = config["matrix"] as MatrixConfigInput;
+  plugins.push(
+    new MatrixInterface({
+      ...matrixConfig,
+      accessToken: secrets.matrixAccessToken,
+    }),
+  );
+}
+
+// Directory Sync - plugin handles its own config validation
+if (config["directorySync"]) {
+  plugins.push(directorySync({
+    ...config["directorySync"],
+    includeMetadata: true,
+  }));
+}
+
+// Webserver Interface
+if (config["webserver"]) {
+  plugins.push(
+    new WebserverInterface({
+      ...config["webserver"],
+      previewDistDir: paths.distDir + "/preview",
+      productionDistDir: paths.distDir + "/production",
+    }),
+  );
+}
+
+// Site Builder
+if (config["siteBuilder"]) {
+  plugins.push(
+    siteBuilderPlugin({
+      previewOutputDir: paths.distDir + "/preview",
+      productionOutputDir: paths.distDir + "/production",
+      workingDir: paths.cacheDir + "/site-builder",
+      templates,
+      routes,
+    }),
+  );
+}
 
 await App.run({
   name: "test-brain",
   version: "1.0.0",
-  plugins,
+  database: dbUrls.main,
   aiApiKey: secrets.anthropicApiKey,
-  aiModel: config.aiModel,
-  logLevel: config.logLevel,
-  paths, // Database and cache paths
+  logLevel: config["logLevel"] as "debug" | "info" | "warn" | "error",
+  shellConfig: {
+    jobQueueDatabase: { url: dbUrls.jobQueue },
+    conversationDatabase: { url: dbUrls.conversation },
+  },
+  plugins,
 });
 ```
 
@@ -277,9 +312,10 @@ For existing users:
 Each plugin that needs configuration should:
 
 1. **Export a config schema** for validation
-2. **Accept config in constructor** (optional)
-3. **Merge file config with overrides** (like secrets from env)
-4. **Provide sensible defaults** for all settings
+2. **Export a config input type** (usually `Partial<ConfigType>`)
+3. **Accept unknown/partial config in constructor**
+4. **Validate internally using the schema**
+5. **Merge with defaults and handle errors gracefully**
 
 Example plugin pattern:
 
@@ -292,14 +328,44 @@ export const matrixConfigSchema = z.object({
   trustedUsers: z.array(z.string()).optional(),
 });
 
+export type MatrixConfig = z.infer<typeof matrixConfigSchema>;
+export type MatrixConfigInput = Partial<MatrixConfig>;
+
 export class MatrixInterface {
-  constructor(config?: Partial<MatrixConfig>) {
-    // Validate and merge with defaults
-    this.config = matrixConfigSchema.parse({
+  constructor(config?: MatrixConfigInput) {
+    // Plugin validates its own config internally
+    const validated = matrixConfigSchema.safeParse({
       ...DEFAULT_CONFIG,
       ...config,
     });
+    
+    if (!validated.success) {
+      throw new Error(`Invalid Matrix config: ${validated.error.message}`);
+    }
+    
+    this.config = validated.data;
   }
+}
+```
+
+### Type-Safe Config Usage in Apps
+
+Apps using plugins should:
+
+1. Load generic config from YAML (`Record<string, unknown>`)
+2. Pass config sections to plugins using their input types
+3. Let plugins handle validation internally
+4. Never use `any` - use plugin's exported input types
+
+```typescript
+// In app
+import { MatrixInterface, type MatrixConfigInput } from "@brains/matrix";
+
+const { config } = loadConfig();
+if (config["matrix"]) {
+  // Type assertion to plugin's input type - safe because plugin validates
+  const matrixConfig = config["matrix"] as MatrixConfigInput;
+  plugins.push(new MatrixInterface(matrixConfig));
 }
 ```
 
@@ -317,10 +383,12 @@ export class MatrixInterface {
 ## Success Criteria
 
 - [ ] Only 6 environment variables remain (secrets only)
-- [ ] Test-brain index.ts under 50 lines
+- [ ] Test-brain index.ts under 100 lines (clean and type-safe)
 - [ ] All tests pass without env var mocking
 - [ ] Config file documents all options
 - [ ] Interfaces treated as regular plugins
+- [ ] No `any` types - proper type assertions using plugin input types
+- [ ] Plugins validate their own configuration
 
 ## Notes
 
