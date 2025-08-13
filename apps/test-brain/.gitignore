@@ -14,4 +14,10 @@ node_modules/
 
 # Environment variables
 .env
-.env.localwebsite/
+.env.local
+
+# Configuration (contains deployment-specific settings)
+brain.config.yaml
+
+# Website output
+website/

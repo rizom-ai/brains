@@ -1,0 +1,55 @@
+# Brain Application Configuration
+# Copy this file to brain.config.yaml and customize for your deployment
+
+# Core configuration (used by Shell services)
+aiModel: claude-3-haiku-20240307  # AI model to use
+logLevel: info                     # Log level: debug, info, warn, error
+
+# MCP Interface configuration
+# The MCP server is how all clients (CLI, IDE, etc.) connect to your brain
+mcp:
+  port: 3333                       # Port for MCP server
+  transport: http                  # Transport type: http or stdio
+
+# Matrix Interface configuration (optional)
+# Enable this section if you want to use Matrix chat bot interface
+# Requires MATRIX_ACCESS_TOKEN environment variable
+matrix:
+  homeserver: https://matrix.org   # Your Matrix homeserver URL
+  userId: "@brain-bot:matrix.org"  # Bot user ID
+  anchorUserId: "@you:matrix.org"  # Admin user ID (has full permissions)
+  trustedUsers:                    # Additional users with access
+    - "@user1:matrix.org"
+    - "@user2:matrix.org"
+
+# Directory Sync plugin configuration (optional)
+# Syncs markdown files between your brain and local filesystem
+directorySync:
+  path: ./brain-data               # Directory to sync with
+  watchEnabled: false              # Enable file watching
+  watchInterval: 5000              # Watch interval in milliseconds
+
+# Webserver Interface configuration (optional)
+# Serves your brain as a static website
+webserver:
+  previewPort: 4321                # Port for preview server
+  productionPort: 8080             # Port for production server
+
+# Site Builder plugin configuration (optional)
+# Generates static website from your brain content
+siteBuilder:
+  templates: default               # Template set to use
+  routes: default                  # Route configuration
+
+# Topics plugin configuration (optional)
+# Extracts topics from your content
+topics:
+  extractionModel: claude-3-haiku-20240307  # Model for topic extraction
+  minConfidence: 0.7               # Minimum confidence for topics
+
+# Git Sync plugin configuration (optional)
+# Version control for your brain
+gitSync:
+  enabled: false                   # Enable git sync
+  remote: origin                   # Git remote name
+  branch: main                     # Branch to sync

@@ -58,7 +58,7 @@ mcp:
   port: 3333
   transport: http
 
-# Matrix Interface configuration  
+# Matrix Interface configuration
 matrix:
   homeserver: https://matrix.org
   userId: "@bot:matrix.org"
@@ -83,6 +83,7 @@ siteBuilder:
 ```
 
 This approach is cleaner because:
+
 - All servers are provided by plugins (MCP, Webserver), not core
 - Each plugin clearly owns its configuration section
 - No confusing core/plugin distinction
@@ -156,19 +157,13 @@ const plugins = [
     : []),
 
   // Directory sync if configured
-  ...(config.directorySync
-    ? [new DirectorySync(config.directorySync)]
-    : []),
+  ...(config.directorySync ? [new DirectorySync(config.directorySync)] : []),
 
   // Webserver if configured
-  ...(config.webserver
-    ? [new WebserverInterface(config.webserver)]
-    : []),
+  ...(config.webserver ? [new WebserverInterface(config.webserver)] : []),
 
   // Site builder if configured
-  ...(config.siteBuilder
-    ? [new SiteBuilderPlugin(config.siteBuilder)]
-    : []),
+  ...(config.siteBuilder ? [new SiteBuilderPlugin(config.siteBuilder)] : []),
 ];
 
 await App.run({
@@ -198,10 +193,12 @@ await App.run({
 **Move to Config File:**
 
 Core config:
+
 - AI_MODEL → aiModel
 - LOG_LEVEL → logLevel
 
 Plugin configs (flat structure with nested objects):
+
 - BRAIN_SERVER_PORT → mcp.port
 - MCP_TRANSPORT → mcp.transport
 - MATRIX_HOMESERVER → matrix.homeserver
