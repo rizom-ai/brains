@@ -11,6 +11,7 @@ The plugin system follows a **tool-first architecture** where plugins expose the
 ### CorePlugin
 
 Base class for plugins that provide core functionality:
+
 - Tools and resources for MCP
 - Commands for message interfaces (auto-generated from tools)
 - Message handlers for async operations
@@ -21,6 +22,7 @@ Base class for plugins that provide core functionality:
 ### InterfacePlugin
 
 Base class for plugins that provide user interfaces:
+
 - Daemon support for long-running processes
 - Interface-specific configuration
 - Connection management
@@ -30,6 +32,7 @@ Base class for plugins that provide user interfaces:
 ### MessageInterfacePlugin
 
 Specialized interface plugin for message-based interfaces:
+
 - Message handling and formatting
 - Conversation context management
 - Command execution through message bus
@@ -55,6 +58,7 @@ This eliminates timing issues that would occur with event-based registration.
 Plugins receive a typed context object based on their plugin type:
 
 ### CorePluginContext
+
 ```typescript
 interface CorePluginContext {
   shell: Shell;
@@ -71,6 +75,7 @@ interface CorePluginContext {
 ```
 
 ### InterfacePluginContext
+
 ```typescript
 interface InterfacePluginContext extends CorePluginContext {
   daemonRegistry: DaemonRegistry;
@@ -81,7 +86,9 @@ interface InterfacePluginContext extends CorePluginContext {
 ## Plugin Capabilities
 
 ### Tools
+
 MCP tools that can be invoked by any MCP client:
+
 ```typescript
 interface PluginTool {
   name: string;
@@ -92,7 +99,9 @@ interface PluginTool {
 ```
 
 ### Resources
+
 MCP resources that provide data:
+
 ```typescript
 interface PluginResource {
   uri: string;
@@ -104,10 +113,13 @@ interface PluginResource {
 ```
 
 ### Commands
+
 Commands are automatically generated from tools for message interfaces. Additional message-only commands can be registered if needed.
 
 ### Handlers
+
 Event handlers for async operations:
+
 ```typescript
 interface PluginHandler {
   event: string;
@@ -137,7 +149,7 @@ All plugin types have standardized test harnesses:
 // Test any CorePlugin
 const harness = createCorePluginTestHarness(plugin);
 await harness.initialize();
-const result = await harness.executeTool('tool-name', { input: 'data' });
+const result = await harness.executeTool("tool-name", { input: "data" });
 
 // Test InterfacePlugin
 const harness = createInterfacePluginTestHarness(plugin);

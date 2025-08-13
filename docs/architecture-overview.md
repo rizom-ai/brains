@@ -70,6 +70,7 @@ The codebase follows a 4-directory monorepo structure managed by Turborepo:
 The shell provides the core infrastructure and extension points for plugins:
 
 **Core Services:**
+
 - Plugin Manager with dependency resolution
 - Entity Framework with base types and adapters
 - Database initialization and configuration
@@ -81,12 +82,14 @@ The shell provides the core infrastructure and extension points for plugins:
 The MCP architecture is split between core service and transport layer:
 
 **MCP Service (shell/mcp-service):**
+
 - Creates and manages the MCP server instance
 - Handles tool and resource registration from plugins
 - Manages permission levels for different transports
 - Provides IMCPTransport interface for transport layers
 
 **MCP Interface (interfaces/mcp):**
+
 - Implements transport protocols (stdio and HTTP)
 - Manages client connections
 - Routes requests to MCP service
@@ -97,11 +100,13 @@ The MCP architecture is split between core service and transport layer:
 The plugin system uses direct registration with shell services:
 
 **Plugin Types:**
+
 - **CorePlugin**: Provides tools, resources, commands, and handlers
 - **InterfacePlugin**: Provides user interfaces and daemons
 - **MessageInterfacePlugin**: Specialized for message-based interfaces
 
 **Registration Flow:**
+
 1. PluginManager initializes plugins in dependency order
 2. Plugins receive context with all shell services
 3. Plugins register capabilities directly with registries
@@ -139,10 +144,12 @@ The conversation service provides memory capabilities:
 The brain application supports multiple deployment strategies:
 
 **Development:**
+
 - Run directly with Bun for hot reloading
 - All interfaces available simultaneously
 
 **Production:**
+
 - Compile to single executable with Bun
 - Environment-based configuration
 - Support for Docker deployment
