@@ -35,44 +35,58 @@ This document outlines the comprehensive refactoring of the app package and conf
 
 ## Plugin Configuration Strategy
 
-### Configuration Coordination
+### Flat Configuration with Nested Plugin Sections
 
-Plugins and core app configuration are handled separately but stored in the same file for convenience:
+After reconsidering, we've adopted a simpler approach: flat configuration with nested objects for each plugin. No artificial separation between "core" and "plugin" configs.
 
-1. **Core Configuration**: Managed by app package (servers, ai, paths)
-2. **Plugin Configuration**: Each plugin manages its own config section
+1. **Flat Structure**: Top-level keys are either for Shell/core services or plugin names
+2. **Plugin Sections**: Each plugin gets its own nested object
 3. **Secrets**: Always from environment variables
-4. **Coordination**: App loads config file once, passes relevant sections to plugins
+4. **Coordination**: App loads config once, passes each plugin its section
 
 ### Config File Structure
 
 ```yaml
-# Core app configuration
-servers:
-  mcpPort: 3333
-  websitePreviewPort: 4321
-  websiteProductionPort: 8080
+# brain.config.yaml - flat structure with nested plugin configs
 
-ai:
-  model: claude-3-haiku-20240307
+# Core configuration (used by Shell services)
+aiModel: claude-3-haiku-20240307
+logLevel: info
 
-# Plugin configurations (each plugin validates its own section)
-plugins:
-  matrix:
-    homeserver: https://matrix.org
-    userId: "@bot:matrix.org"
-    anchorUserId: "@admin:matrix.org"
-    trustedUsers: ["@user1:matrix.org"]
-  
-  directorySync:
-    path: ./brain-data
-    watchEnabled: false
-    watchInterval: 5000
-  
-  siteBuilder:
-    templates: default
-    routes: default
+# MCP Interface configuration
+mcp:
+  port: 3333
+  transport: http
+
+# Matrix Interface configuration  
+matrix:
+  homeserver: https://matrix.org
+  userId: "@bot:matrix.org"
+  anchorUserId: "@admin:matrix.org"
+  trustedUsers: ["@user1:matrix.org"]
+
+# Directory Sync plugin configuration
+directorySync:
+  path: ./brain-data
+  watchEnabled: false
+  watchInterval: 5000
+
+# Webserver Interface configuration
+webserver:
+  previewPort: 4321
+  productionPort: 8080
+
+# Site Builder plugin configuration
+siteBuilder:
+  templates: default
+  routes: default
 ```
+
+This approach is cleaner because:
+- All servers are provided by plugins (MCP, Webserver), not core
+- Each plugin clearly owns its configuration section
+- No confusing core/plugin distinction
+- Easy to understand what each config section controls
 
 ## Implementation Plan
 
@@ -82,11 +96,12 @@ plugins:
 
 Create `shell/app/src/config-loader.ts`:
 
-- Load and parse brain.config.yaml
-- Return core config AND raw plugin configs
-- Only validate core config schema
-- Let plugins validate their own sections
+- Load and parse brain.config.yaml as flat structure
+- Return entire config object (no core/plugin split)
+- Minimal validation (just ensure YAML is valid)
+- Each plugin validates its own section when instantiated
 - Handle secrets from environment variables
+- Provide helper functions for database URLs and paths
 
 #### 1.2 Create Example Config
 
@@ -120,29 +135,39 @@ import { App } from "@brains/app";
 import { loadConfig } from "@brains/app";
 // ... plugin imports
 
-const { config, pluginConfigs, secrets, paths } = loadConfig();
+const { config, secrets, paths } = loadConfig();
 
 // Create plugins with their configurations
 const plugins = [
   // System plugin (always included)
   new SystemPlugin(),
-  
-  // MCP interface with port from core config
-  new MCPInterface({
-    httpPort: config.servers?.mcpPort ?? 3333,
-  }),
-  
+
+  // MCP interface with its config section
+  new MCPInterface(config.mcp || { port: 3333 }),
+
   // Matrix interface if configured
-  ...(pluginConfigs?.matrix && secrets.matrixAccessToken
-    ? [new MatrixInterface({
-        ...pluginConfigs.matrix,
-        accessToken: secrets.matrixAccessToken,
-      })]
+  ...(config.matrix && secrets.matrixAccessToken
+    ? [
+        new MatrixInterface({
+          ...config.matrix,
+          accessToken: secrets.matrixAccessToken,
+        }),
+      ]
     : []),
-  
+
   // Directory sync if configured
-  ...(pluginConfigs?.directorySync
-    ? [new DirectorySync(pluginConfigs.directorySync)]
+  ...(config.directorySync
+    ? [new DirectorySync(config.directorySync)]
+    : []),
+
+  // Webserver if configured
+  ...(config.webserver
+    ? [new WebserverInterface(config.webserver)]
+    : []),
+
+  // Site builder if configured
+  ...(config.siteBuilder
+    ? [new SiteBuilderPlugin(config.siteBuilder)]
     : []),
 ];
 
@@ -151,6 +176,8 @@ await App.run({
   version: "1.0.0",
   plugins,
   aiApiKey: secrets.anthropicApiKey,
+  aiModel: config.aiModel,
+  logLevel: config.logLevel,
   paths, // Database and cache paths
 });
 ```
@@ -171,17 +198,19 @@ await App.run({
 **Move to Config File:**
 
 Core config:
-- BRAIN_SERVER_PORT → servers.mcpPort
-- WEBSITE_PREVIEW_PORT → servers.websitePreviewPort
-- WEBSITE_PRODUCTION_PORT → servers.websiteProductionPort
-- AI_MODEL → ai.model
+- AI_MODEL → aiModel
+- LOG_LEVEL → logLevel
 
-Plugin configs (in plugins section):
-- MATRIX_HOMESERVER → plugins.matrix.homeserver
-- MATRIX_USER_ID → plugins.matrix.userId
-- MATRIX_ANCHOR_USER_ID → plugins.matrix.anchorUserId
-- MATRIX_TRUSTED_USERS → plugins.matrix.trustedUsers
-- SYNC_PATH → plugins.directorySync.path
+Plugin configs (flat structure with nested objects):
+- BRAIN_SERVER_PORT → mcp.port
+- MCP_TRANSPORT → mcp.transport
+- MATRIX_HOMESERVER → matrix.homeserver
+- MATRIX_USER_ID → matrix.userId
+- MATRIX_ANCHOR_USER_ID → matrix.anchorUserId
+- MATRIX_TRUSTED_USERS → matrix.trustedUsers
+- SYNC_PATH → directorySync.path
+- WEBSITE_PREVIEW_PORT → webserver.previewPort
+- WEBSITE_PRODUCTION_PORT → webserver.productionPort
 
 **Remove/Hardcode (15+ vars):**
 
@@ -256,6 +285,7 @@ Each plugin that needs configuration should:
 4. **Provide sensible defaults** for all settings
 
 Example plugin pattern:
+
 ```typescript
 // In plugin package
 export const matrixConfigSchema = z.object({
@@ -279,7 +309,7 @@ export class MatrixInterface {
 ### Implementation Order
 
 1. Create config infrastructure (config-loader.ts)
-2. Create example config file  
+2. Create example config file
 3. Update app.ts and types.ts
 4. Update test-brain/index.ts
 5. Clean env vars from all packages
