@@ -192,5 +192,138 @@ export function createSystemTools(
         }
       },
     },
+    {
+      name: `${pluginId}:get-conversation`,
+      description: "Get conversation details and recent messages",
+      inputSchema: {
+        conversationId: z.string().describe("Conversation ID"),
+        messageLimit: z.number().optional().describe("Number of recent messages to include (default: 10)"),
+      },
+      visibility: "public",
+      handler: async (input): Promise<unknown> => {
+        const parsed = z
+          .object({
+            conversationId: z.string(),
+            messageLimit: z.number().optional(),
+          })
+          .parse(input);
+
+        try {
+          const conversation = await plugin.getConversation(parsed.conversationId);
+          if (!conversation) {
+            return { error: "Conversation not found", conversationId: parsed.conversationId };
+          }
+
+          const messages = await plugin.getMessages(
+            parsed.conversationId,
+            parsed.messageLimit ?? 10,
+          );
+
+          return {
+            conversation: {
+              id: conversation.id,
+              interfaceType: conversation.interfaceType,
+              channelId: conversation.channelId,
+              created: conversation.created,
+              lastActive: conversation.lastActive,
+            },
+            messages: messages.map((msg) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp,
+            })),
+            messageCount: messages.length,
+            requestedLimit: parsed.messageLimit ?? 10,
+          };
+        } catch (error) {
+          return {
+            error: "Failed to get conversation",
+            message: error instanceof Error ? error.message : String(error),
+          };
+        }
+      },
+    },
+    {
+      name: `${pluginId}:list-conversations`,
+      description: "List conversations, optionally filtered by search query",
+      inputSchema: {
+        searchQuery: z.string().optional().describe("Optional search query to filter conversations"),
+        limit: z.number().optional().describe("Maximum number of conversations to return (default: 20)"),
+      },
+      visibility: "public",
+      handler: async (input): Promise<unknown> => {
+        const parsed = z
+          .object({
+            searchQuery: z.string().optional(),
+            limit: z.number().optional(),
+          })
+          .parse(input);
+
+        try {
+          const conversations = await plugin.searchConversations(parsed.searchQuery ?? "");
+          const limitedConversations = conversations.slice(0, parsed.limit ?? 20);
+
+          return {
+            conversations: limitedConversations.map((conv) => ({
+              id: conv.id,
+              interfaceType: conv.interfaceType,
+              channelId: conv.channelId,
+              created: conv.created,
+              lastActive: conv.lastActive,
+            })),
+            totalFound: conversations.length,
+            returned: limitedConversations.length,
+            searchQuery: parsed.searchQuery,
+          };
+        } catch (error) {
+          return {
+            error: "Failed to list conversations",
+            message: error instanceof Error ? error.message : String(error),
+          };
+        }
+      },
+    },
+    {
+      name: `${pluginId}:get-messages`,
+      description: "Get messages from a specific conversation",
+      inputSchema: {
+        conversationId: z.string().describe("Conversation ID"),
+        limit: z.number().optional().describe("Maximum number of messages to return (default: 20)"),
+      },
+      visibility: "public",
+      handler: async (input): Promise<unknown> => {
+        const parsed = z
+          .object({
+            conversationId: z.string(),
+            limit: z.number().optional(),
+          })
+          .parse(input);
+
+        try {
+          const messages = await plugin.getMessages(
+            parsed.conversationId,
+            parsed.limit ?? 20,
+          );
+
+          return {
+            conversationId: parsed.conversationId,
+            messages: messages.map((msg) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp,
+            })),
+            messageCount: messages.length,
+            requestedLimit: parsed.limit ?? 20,
+          };
+        } catch (error) {
+          return {
+            error: "Failed to get messages",
+            message: error instanceof Error ? error.message : String(error),
+          };
+        }
+      },
+    },
   ];
 }

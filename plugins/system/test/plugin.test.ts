@@ -52,6 +52,31 @@ describe("SystemPlugin", () => {
       getActiveJobs: async () => [],
       getActiveBatches: async () => [],
       getBatchStatus: async (batchId: string) => null,
+      getConversation: async (conversationId: string) => ({
+        id: conversationId,
+        interfaceType: "test",
+        channelId: "test-channel",
+        created: new Date().toISOString(),
+        lastActive: new Date().toISOString(),
+      }),
+      getMessages: async (conversationId: string, limit?: number) => [
+        {
+          id: "msg-1",
+          conversationId,
+          role: "user",
+          content: "Test message",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+      searchConversations: async (query: string) => [
+        {
+          id: "conv-1",
+          interfaceType: "test",
+          channelId: "test-channel",
+          created: new Date().toISOString(),
+          lastActive: new Date().toISOString(),
+        },
+      ],
     } as InterfacePluginContext;
 
     plugin = new SystemPlugin({ searchLimit: 5, debug: false });
@@ -130,16 +155,45 @@ describe("SystemPlugin", () => {
   });
 
   describe("tools", () => {
-    it("should provide system tools", async () => {
+    it("should provide system tools including conversation tools", async () => {
       const tools = await (plugin as any).getTools();
 
-      expect(tools.length).toBeGreaterThan(0);
+      expect(tools.length).toBe(7); // Updated to include 3 new conversation tools
 
       const toolNames = tools.map((tool: any) => tool.name);
       expect(toolNames).toContain("system:query");
       expect(toolNames).toContain("system:search");
       expect(toolNames).toContain("system:get");
       expect(toolNames).toContain("system:check-job-status");
+      expect(toolNames).toContain("system:get-conversation");
+      expect(toolNames).toContain("system:list-conversations");
+      expect(toolNames).toContain("system:get-messages");
+    });
+  });
+
+  describe("conversation methods", () => {
+    it("should get conversation details", async () => {
+      const conversation = await plugin.getConversation("conv-1");
+      
+      expect(conversation).toBeDefined();
+      expect(conversation?.id).toBe("conv-1");
+      expect(conversation?.interfaceType).toBe("test");
+    });
+
+    it("should get messages from conversation", async () => {
+      const messages = await plugin.getMessages("conv-1", 10);
+      
+      expect(messages).toBeDefined();
+      expect(messages.length).toBe(1);
+      expect(messages[0]?.content).toBe("Test message");
+    });
+
+    it("should search conversations", async () => {
+      const conversations = await plugin.searchConversations("test");
+      
+      expect(conversations).toBeDefined();
+      expect(conversations.length).toBe(1);
+      expect(conversations[0]?.id).toBe("conv-1");
     });
   });
 });
