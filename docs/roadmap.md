@@ -45,6 +45,19 @@ Build a robust, extensible knowledge management platform that serves as the foun
 - [ ] Structured logging with log levels
 - [ ] Health check endpoints for all services
 
+### 1.4 App Package Refactoring
+
+- [ ] Refactor shell/app package for cleaner initialization
+- [ ] Separate concerns between app orchestration and shell core
+- [ ] Improve plugin initialization flow
+- [ ] Add proper lifecycle management
+
+### 1.5 Interface Consolidation
+
+- [ ] Merge matrix-setup functionality into main matrix interface package
+- [ ] Consolidate setup utilities with main interface code
+- [ ] Provide setup as a built-in command/utility within the interface
+
 ## Phase 2: First Plugins (Q1-Q2 2025)
 
 ### 2.1 Link Plugin (Priority 1)

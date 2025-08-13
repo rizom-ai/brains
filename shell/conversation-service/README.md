@@ -24,10 +24,7 @@ const service = ConversationService.getInstance({
 });
 
 // Get or create conversation
-const conversation = await service.getOrCreateConversation(
-  "cli",
-  "main"
-);
+const conversation = await service.getOrCreateConversation("cli", "main");
 
 // Add message
 await service.addMessage(conversation.id, {
@@ -37,8 +34,8 @@ await service.addMessage(conversation.id, {
 
 // Get recent messages
 const messages = await service.getMessages(
-  conversation.id, 
-  20 // limit
+  conversation.id,
+  20, // limit
 );
 
 // Get conversation metadata
@@ -48,6 +45,7 @@ const conv = await service.getConversation(conversationId);
 ## Schema
 
 ### Conversations Table
+
 - `id` - Unique identifier
 - `interfaceType` - Interface type (cli, matrix, mcp)
 - `channelId` - Channel identifier
@@ -55,6 +53,7 @@ const conv = await service.getConversation(conversationId);
 - `lastActive` - Last activity timestamp
 
 ### Messages Table
+
 - `id` - Message ID
 - `conversationId` - Parent conversation
 - `role` - Message role (user, assistant, system)

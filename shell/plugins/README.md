@@ -19,7 +19,7 @@ export class MyPlugin extends CorePlugin {
   constructor() {
     super("my-plugin", packageJson);
   }
-  
+
   async getTools() {
     return [
       {
@@ -28,8 +28,8 @@ export class MyPlugin extends CorePlugin {
         inputSchema: mySchema,
         handler: async (input) => {
           // Tool implementation
-        }
-      }
+        },
+      },
     ];
   }
 }
@@ -50,7 +50,7 @@ export class MyInterface extends InterfacePlugin {
       },
       stop: async () => {
         // Cleanup
-      }
+      },
     };
   }
 }
@@ -169,10 +169,10 @@ const harness = createCorePluginTestHarness(myPlugin);
 await harness.initialize();
 
 // Test tool execution
-const result = await harness.executeTool('my-tool', { input: 'data' });
+const result = await harness.executeTool("my-tool", { input: "data" });
 
 // Test command execution
-const response = await harness.executeCommand('/my-command', ['arg1']);
+const response = await harness.executeCommand("/my-command", ["arg1"]);
 ```
 
 ## Configuration

@@ -52,7 +52,7 @@ class Shell {
   static getInstance(): Shell;
   static initialize(config: ShellConfig): Promise<Shell>;
   static resetInstance(): void;
-  
+
   // Core services
   pluginManager: PluginManager;
   config: ShellConfig;
@@ -76,7 +76,7 @@ Provides markdown serialization for all entity types:
 class BaseEntityAdapter {
   // Convert entity to markdown with frontmatter
   toMarkdown(entity: BaseEntity): string;
-  
+
   // Parse markdown to entity
   fromMarkdown(markdown: string, type: string): BaseEntity;
 }

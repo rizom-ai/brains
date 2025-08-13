@@ -179,14 +179,14 @@ messageBus.emit("job:progress", {
 
 ```typescript
 interface CLIConfig {
-  prompt?: string;           // Command prompt (default: "> ")
-  historyFile?: string;      // History file path
-  maxHistory?: number;       // Max history entries (default: 1000)
+  prompt?: string; // Command prompt (default: "> ")
+  historyFile?: string; // History file path
+  maxHistory?: number; // Max history entries (default: 1000)
   theme?: {
-    primary?: string;        // Primary color
-    success?: string;        // Success messages
-    error?: string;          // Error messages
-    info?: string;           // Info messages
+    primary?: string; // Primary color
+    success?: string; // Success messages
+    error?: string; // Error messages
+    info?: string; // Info messages
   };
 }
 ```

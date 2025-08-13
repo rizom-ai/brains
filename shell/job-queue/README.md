@@ -36,7 +36,7 @@ const jobId = await jobQueue.queueJob({
 // Queue batch job
 const batchId = await jobQueue.queueBatchJob({
   type: "import:directory",
-  operations: files.map(f => ({
+  operations: files.map((f) => ({
     name: `Import ${f}`,
     payload: { file: f },
   })),
@@ -55,13 +55,13 @@ Register handlers for job types:
 ```typescript
 jobQueue.registerHandler("entity:embed", async (job) => {
   const { entityId } = job.payload;
-  
+
   // Report progress
   await job.updateProgress(50, "Generating embedding");
-  
+
   // Do work
   const result = await generateEmbedding(entityId);
-  
+
   // Complete
   await job.updateProgress(100, "Complete");
   return result;

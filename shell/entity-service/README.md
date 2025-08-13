@@ -68,13 +68,13 @@ All entities extend the base entity schema:
 
 ```typescript
 interface BaseEntity {
-  id: string;          // Unique identifier
-  type: string;        // Entity type
-  content: string;     // Main content
-  created: Date;       // Creation timestamp
-  updated: Date;       // Last update timestamp
-  tags: string[];      // Associated tags
-  metadata?: unknown;  // Type-specific metadata
+  id: string; // Unique identifier
+  type: string; // Entity type
+  content: string; // Main content
+  created: Date; // Creation timestamp
+  updated: Date; // Last update timestamp
+  tags: string[]; // Associated tags
+  metadata?: unknown; // Type-specific metadata
 }
 ```
 
@@ -90,8 +90,8 @@ const registry = EntityRegistry.getInstance();
 // Register a new entity type
 registry.registerType(
   "task",
-  taskSchema,    // Zod schema
-  taskAdapter,    // Markdown adapter
+  taskSchema, // Zod schema
+  taskAdapter, // Markdown adapter
 );
 
 // Get registered types
@@ -127,10 +127,7 @@ const similar = await entityService.search({
 });
 
 // Find related entities
-const related = await entityService.findRelated(
-  entityId,
-  { limit: 10 }
-);
+const related = await entityService.findRelated(entityId, { limit: 10 });
 ```
 
 ## Database Schema
@@ -172,10 +169,7 @@ CREATE TABLE entity_tags (
 Parse and serialize YAML frontmatter:
 
 ```typescript
-import { 
-  parseFrontmatter, 
-  serializeFrontmatter 
-} from "@brains/entity-service";
+import { parseFrontmatter, serializeFrontmatter } from "@brains/entity-service";
 
 // Parse markdown with frontmatter
 const { attributes, body } = parseFrontmatter(markdown);

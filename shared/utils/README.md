@@ -49,11 +49,11 @@ const silent = createSilentLogger();
 Parse and manipulate markdown content:
 
 ```typescript
-import { 
+import {
   extractTitle,
   parseMarkdownLinks,
   stripMarkdown,
-  truncateMarkdown
+  truncateMarkdown,
 } from "@brains/utils";
 
 // Extract title from markdown
@@ -93,11 +93,11 @@ class MyFormatter extends BaseFormatter {
 ### Built-in Formatters
 
 ```typescript
-import { 
+import {
   SimpleTextFormatter,
   StructuredContentFormatter,
   YamlFormatter,
-  DefaultQueryFormatter
+  DefaultQueryFormatter,
 } from "@brains/utils";
 
 // Simple text output
@@ -108,8 +108,8 @@ const structured = new StructuredContentFormatter().format({
   title: "Report",
   sections: [
     { heading: "Summary", content: "..." },
-    { heading: "Details", list: ["item1", "item2"] }
-  ]
+    { heading: "Details", list: ["item1", "item2"] },
+  ],
 });
 
 // YAML output
@@ -121,10 +121,10 @@ const yaml = new YamlFormatter().format(data);
 Handle user permission levels:
 
 ```typescript
-import { 
+import {
   getPermissionHandler,
   checkPermission,
-  UserPermissionLevel 
+  UserPermissionLevel,
 } from "@brains/utils";
 
 // Get handler for permission level
@@ -143,10 +143,10 @@ const allowed = checkPermission("public", "read");
 Calculate and format progress:
 
 ```typescript
-import { 
+import {
   createProgressCalculator,
   formatProgress,
-  calculateBatchProgress 
+  calculateBatchProgress,
 } from "@brains/utils";
 
 // Simple progress
@@ -186,7 +186,7 @@ const data = parseYaml(`
 const yaml = stringifyYaml({
   name: "Test",
   value: 123,
-  tags: ["one", "two"]
+  tags: ["one", "two"],
 });
 ```
 
@@ -212,11 +212,7 @@ const noteId = generateId("note"); // "note_123e4567..."
 Helpers for testing:
 
 ```typescript
-import { 
-  createMockLogger,
-  waitFor,
-  mockAsync
-} from "@brains/utils/test";
+import { createMockLogger, waitFor, mockAsync } from "@brains/utils/test";
 
 // Mock logger with jest spies
 const logger = createMockLogger();
@@ -225,7 +221,7 @@ expect(logger.info).toHaveBeenCalledWith("message");
 // Wait for condition
 await waitFor(() => condition === true, {
   timeout: 5000,
-  interval: 100
+  interval: 100,
 });
 
 // Mock async function
@@ -237,36 +233,38 @@ const mock = mockAsync(async (arg) => `result: ${arg}`);
 Standard response structures:
 
 ```typescript
-import { 
+import {
   SuccessResponse,
   ErrorResponse,
   QueryResponse,
   createSuccessResponse,
-  createErrorResponse
+  createErrorResponse,
 } from "@brains/utils";
 
 // Success response
 const success = createSuccessResponse({
   message: "Entity created",
-  data: { id: "123" }
+  data: { id: "123" },
 });
 
 // Error response
 const error = createErrorResponse({
   error: "Not found",
-  code: 404
+  code: 404,
 });
 ```
 
 ## Exports
 
 ### Main Utilities
+
 - Logging: `createLogger`, `Logger`, `LogLevel`
 - Markdown: `extractTitle`, `parseMarkdownLinks`, `stripMarkdown`
 - ID: `generateId`, `generateShortId`
 - YAML: `parseYaml`, `stringifyYaml`
 
 ### Formatters
+
 - `BaseFormatter` - Base class
 - `SimpleTextFormatter` - Plain text
 - `StructuredContentFormatter` - Sections
@@ -274,16 +272,19 @@ const error = createErrorResponse({
 - `DefaultQueryFormatter` - Query responses
 
 ### Permissions
+
 - `getPermissionHandler` - Get handler
 - `checkPermission` - Check permission
 - `UserPermissionLevel` - Type
 
 ### Progress
+
 - `createProgressCalculator` - Calculator
 - `formatProgress` - Format display
 - `calculateBatchProgress` - Batch calc
 
 ### Testing
+
 - `createMockLogger` - Mock logger
 - `waitFor` - Wait utility
 - Test helpers

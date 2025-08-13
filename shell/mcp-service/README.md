@@ -39,7 +39,7 @@ mcpService.registerTool({
   inputSchema: mySchema,
   handler: async (input) => {
     // Tool implementation
-  }
+  },
 });
 
 // Register a resource
@@ -49,7 +49,7 @@ mcpService.registerResource({
   description: "List of supported entity types",
   handler: async (uri) => {
     // Resource implementation
-  }
+  },
 });
 
 // Set permission level for transport
@@ -70,9 +70,7 @@ Control access based on transport type:
 type UserPermissionLevel = "public" | "anchor";
 
 // Set based on transport
-mcpService.setPermissionLevel(
-  transport === "stdio" ? "anchor" : "public"
-);
+mcpService.setPermissionLevel(transport === "stdio" ? "anchor" : "public");
 ```
 
 ## Direct Registration
