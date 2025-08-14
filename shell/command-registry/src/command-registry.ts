@@ -1,4 +1,5 @@
-import type { Logger } from "@brains/utils";
+import type { Logger, UserPermissionLevel } from "@brains/utils";
+import { PermissionHandler } from "@brains/utils";
 import type { ICommandRegistry, Command, CommandInfo } from "./types";
 
 /**
@@ -59,28 +60,38 @@ export class CommandRegistry implements ICommandRegistry {
   }
 
   /**
-   * List all registered commands (metadata only)
+   * List all registered commands (metadata only), filtered by user permissions
    */
-  public listCommands(): CommandInfo[] {
-    return Array.from(this.commands.values()).map((entry) => {
-      const info: CommandInfo = {
-        name: entry.command.name,
-        description: entry.command.description,
-      };
-      if (entry.command.usage !== undefined) {
-        info.usage = entry.command.usage;
-      }
-      return info;
-    });
+  public listCommands(userPermissionLevel?: UserPermissionLevel): CommandInfo[] {
+    return Array.from(this.commands.values())
+      .filter((entry) => {
+        if (!userPermissionLevel) return true; // No filtering if no permission level provided
+        return this.hasCommandPermission(userPermissionLevel, entry.command);
+      })
+      .map((entry) => {
+        const info: CommandInfo = {
+          name: entry.command.name,
+          description: entry.command.description,
+        };
+        if (entry.command.usage !== undefined) {
+          info.usage = entry.command.usage;
+        }
+        if (entry.command.visibility !== undefined) {
+          info.visibility = entry.command.visibility;
+        }
+        return info;
+      });
   }
 
   /**
-   * Find a command by name (returns first match)
+   * Find a command by name (returns first match), filtered by user permissions
    */
-  public findCommand(commandName: string): Command | undefined {
+  public findCommand(commandName: string, userPermissionLevel?: UserPermissionLevel): Command | undefined {
     for (const entry of this.commands.values()) {
       if (entry.command.name === commandName) {
-        return entry.command;
+        if (!userPermissionLevel || this.hasCommandPermission(userPermissionLevel, entry.command)) {
+          return entry.command;
+        }
       }
     }
     return undefined;
@@ -93,6 +104,14 @@ export class CommandRegistry implements ICommandRegistry {
     return Array.from(this.commands.values())
       .filter((entry) => entry.pluginId === pluginId)
       .map((entry) => entry.command);
+  }
+
+  /**
+   * Check if user has permission to access a command
+   */
+  private hasCommandPermission(userLevel: UserPermissionLevel, command: Command): boolean {
+    const requiredLevel = command.visibility ?? "anchor"; // Default to "anchor" for safety
+    return PermissionHandler.hasPermission(userLevel, requiredLevel);
   }
 
   /**

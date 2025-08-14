@@ -96,7 +96,7 @@ export async function handleRoomMessage(
       messageId: eventId,
       timestamp: new Date(),
       interfaceType: "matrix",
-      userPermissionLevel: ctx.determineUserPermissionLevel(senderId),
+      userPermissionLevel: permissionLevel,
       ...(isMentioned && { threadId: "mentioned" }), // Pass mention info only if mentioned
     };
 

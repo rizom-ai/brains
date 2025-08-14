@@ -44,6 +44,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       MATRIX_CONFIG_DEFAULTS,
       sessionId,
     );
+    // Set command prefix to match Matrix config
+    this.commandPrefix = this.config.commandPrefix;
   }
 
   /**
@@ -114,29 +116,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     };
   }
 
-  /**
-   * Handle user input with Matrix-specific routing logic
-   */
-  protected override async handleInput(
-    input: string,
-    context: MessageContext,
-    replyToId?: string,
-  ): Promise<void> {
-    // Check for anchor-only commands (!!command)
-    if (input.startsWith(this.config.anchorPrefix)) {
-      if (context.userId !== this.config.anchorUserId) {
-        throw new Error("This command is restricted to the anchor user");
-      }
-      // Process as command but remove extra prefix to make it a normal command
-      const normalizedInput = input.slice(this.config.anchorPrefix.length - 1);
-      // Pass the normalized command to the base class
-      await super.handleInput(normalizedInput, context, replyToId);
-      return;
-    }
-
-    // Use default routing (commands start with /, everything else is query)
-    await super.handleInput(input, context, replyToId);
-  }
+  // No need to override handleInput - use the base class implementation
 
   /**
    * Set up Matrix event handlers
@@ -224,12 +204,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     message: string,
     context: MessageContext,
   ): boolean {
-    // Check for anchor commands first (highest priority for anchor user)
-    if (message.startsWith(this.config.anchorPrefix)) {
-      // Only anchor user can use anchor commands
-      return context.userId === this.config.anchorUserId;
-    }
-
     // Check for regular commands
     if (message.startsWith(this.config.commandPrefix)) {
       return true;

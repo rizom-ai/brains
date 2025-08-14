@@ -66,7 +66,7 @@ export class DirectoryExportJobHandler
         data.entityTypes ?? this.context.entityService.getEntityTypes();
 
       // Log start
-      this.logger.info("Starting export", {
+      this.logger.debug("Starting export", {
         jobId,
         entityTypes: typesToExport,
       });
@@ -91,14 +91,14 @@ export class DirectoryExportJobHandler
       }
 
       // Log completion
-      this.logger.info("Export completed", {
+      this.logger.debug("Export completed", {
         jobId,
         exported: result.exported,
         failed: result.failed,
         duration: Date.now() - startTime,
       });
 
-      this.logger.info("Directory export job completed", {
+      this.logger.debug("Directory export job completed", {
         jobId,
         exported: result.exported,
         failed: result.failed,

@@ -12,15 +12,15 @@ const config = defineConfig({
   name: "test-brain",
   version: "1.0.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
-  
+
   plugins: [
     new SystemPlugin({}),
     new MCPInterface({}),
     new MatrixInterface({
-      homeserver: "https://matrix.rizom.ai",
+      homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
-      userId: "@testbrain-dev:rizom.ai",
-      anchorUserId: "@yeehaa:rizom.ai",
+      userId: process.env["MATRIX_USER_ID"] || "@testbrain-dev:rizom.ai",
+      anchorUserId: process.env["MATRIX_ANCHOR_USER_ID"] || "@yeehaa:rizom.ai",
     }),
     directorySync({}),
     new WebserverInterface({}),

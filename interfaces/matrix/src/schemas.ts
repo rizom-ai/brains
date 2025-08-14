@@ -12,7 +12,6 @@ export const MATRIX_CONFIG_DEFAULTS = {
   enableThreading: true,
   enableTypingNotifications: true,
   commandPrefix: "!",
-  anchorPrefix: "!!",
   maxContextMessages: 10,
   typingTimeout: 30000,
   reactionTimeout: 60000,
@@ -72,7 +71,6 @@ export const matrixConfigSchema = z.object({
 
   // Behavior
   commandPrefix: z.string().describe("Command prefix for bot commands"),
-  anchorPrefix: z.string().describe("Prefix for anchor-only commands"),
   maxContextMessages: z
     .number()
     .int()

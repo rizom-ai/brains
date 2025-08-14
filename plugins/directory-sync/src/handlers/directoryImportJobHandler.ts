@@ -67,7 +67,7 @@ export class DirectoryImportJobHandler
         data.paths ?? this.directorySync.getAllMarkdownFiles();
 
       // Log start
-      this.logger.info("Starting import", {
+      this.logger.debug("Starting import", {
         jobId,
         totalFiles: filesToImport.length,
       });
@@ -95,7 +95,7 @@ export class DirectoryImportJobHandler
       }
 
       // Log completion
-      this.logger.info("Import completed", {
+      this.logger.debug("Import completed", {
         jobId,
         imported: result.imported,
         skipped: result.skipped,
@@ -103,7 +103,7 @@ export class DirectoryImportJobHandler
         duration: Date.now() - startTime,
       });
 
-      this.logger.info("Directory import job completed", {
+      this.logger.debug("Directory import job completed", {
         jobId,
         imported: result.imported,
         skipped: result.skipped,

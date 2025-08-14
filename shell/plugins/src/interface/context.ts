@@ -1,6 +1,7 @@
 import type { CorePluginContext } from "../core/context";
 import { createCorePluginContext } from "../core/context";
 import type { Daemon, IShell, IMCPTransport } from "../interfaces";
+import type { UserPermissionLevel } from "@brains/utils";
 import type {
   CommandInfo,
   CommandResponse,
@@ -13,7 +14,7 @@ import type {
  */
 export interface InterfacePluginContext extends CorePluginContext {
   // Command management
-  listCommands: () => Promise<CommandInfo[]>;
+  listCommands: (userPermissionLevel?: UserPermissionLevel) => Promise<CommandInfo[]>;
   executeCommand: (
     commandName: string,
     args: string[],
@@ -48,8 +49,8 @@ export function createInterfacePluginContext(
     mcpTransport,
 
     // Command discovery - returns metadata only
-    listCommands: async (): Promise<CommandInfo[]> => {
-      const commands = commandRegistry.listCommands();
+    listCommands: async (userPermissionLevel?: UserPermissionLevel): Promise<CommandInfo[]> => {
+      const commands = commandRegistry.listCommands(userPermissionLevel);
       coreContext.logger.debug(`Retrieved ${commands.length} commands`);
       return commands;
     },
@@ -60,7 +61,7 @@ export function createInterfacePluginContext(
       args: string[],
       context: CommandContext,
     ): Promise<CommandResponse> => {
-      const command = commandRegistry.findCommand(commandName);
+      const command = commandRegistry.findCommand(commandName, context.userPermissionLevel);
       if (!command) {
         throw new Error(`Command "${commandName}" not found`);
       }

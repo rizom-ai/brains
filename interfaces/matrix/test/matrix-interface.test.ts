@@ -207,33 +207,6 @@ describe("MatrixInterface", () => {
       expect(mockMatrixClient.setTyping).toHaveBeenCalled();
     });
 
-    it("should handle anchor prefix for anchor user", async () => {
-      const event = {
-        sender: "@admin:example.org",
-        content: { msgtype: "m.text", body: "!!admin-command" },
-        event_id: "event_123",
-      };
-
-      messageHandler("!room:example.org", event);
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      // Anchor commands are processed, so typing should be called
-      expect(mockMatrixClient.setTyping).toHaveBeenCalled();
-    });
-
-    it("should ignore anchor commands from non-anchor users", async () => {
-      const event = {
-        sender: "@user:example.org",
-        content: { msgtype: "m.text", body: "!!admin-command" },
-        event_id: "event_123",
-      };
-
-      messageHandler("!room:example.org", event);
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      // Anchor commands from non-anchor users should be ignored
-      expect(mockMatrixClient.setTyping).not.toHaveBeenCalled();
-    });
 
     it("should use default processQuery without interface permission grants", async () => {
       // Create a fresh Matrix interface for this test
@@ -415,4 +388,5 @@ describe("MatrixInterface", () => {
       expect(mockMatrixClient.joinRoom).not.toHaveBeenCalled();
     });
   });
+
 });

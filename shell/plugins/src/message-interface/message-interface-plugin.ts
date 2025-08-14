@@ -26,6 +26,8 @@ export abstract class MessageInterfacePlugin<
   protected jobMessages = new Map<string, string>();
   // Track started conversations per channel
   protected startedConversations = new Set<string>();
+  // Configurable command prefix (default "/", can be overridden by child classes)
+  protected commandPrefix: string = "/";
   // Track which channels are direct messages (1-on-1 conversations)
   protected directMessageChannels = new Set<string>();
 
@@ -281,7 +283,7 @@ export abstract class MessageInterfacePlugin<
     await this.showThinkingIndicators(context);
 
     // Route to command or query
-    const response = input.startsWith("/")
+    const response = input.startsWith(this.commandPrefix)
       ? await this.executeCommand(input, context)
       : await this.processQuery(input, context);
 
@@ -363,25 +365,25 @@ export abstract class MessageInterfacePlugin<
   ): Promise<{ message: string; jobId?: string; batchId?: string }> {
     const pluginContext = this.getContext();
 
-    const [cmd, ...args] = command.slice(1).split(" ");
+    const [cmd, ...args] = command.slice(this.commandPrefix.length).split(" ");
 
     if (!cmd) {
       return {
-        message: "Invalid command format. Type /help for available commands.",
+        message: `Invalid command format. Type ${this.commandPrefix}help for available commands.`,
       };
     }
 
     // Special case for help command
     if (cmd === "help") {
-      const commands = await pluginContext.listCommands();
+      const commands = await pluginContext.listCommands(context.userPermissionLevel);
       const helpText = [
         "Available commands:",
         "",
         ...commands.map((c) => {
           if (c.usage) {
-            return `  /${c.name} - ${c.description}\n    Usage: ${c.usage}`;
+            return `  ${this.commandPrefix}${c.name} - ${c.description}\n    Usage: ${c.usage}`;
           }
-          return `  /${c.name} - ${c.description}`;
+          return `  ${this.commandPrefix}${c.name} - ${c.description}`;
         }),
       ].join("\n");
 
@@ -390,7 +392,7 @@ export abstract class MessageInterfacePlugin<
       };
     }
 
-    const commands = await pluginContext.listCommands();
+    const commands = await pluginContext.listCommands(context.userPermissionLevel);
     const commandDef = commands.find((c) => c.name === cmd);
 
     if (commandDef) {

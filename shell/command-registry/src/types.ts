@@ -18,6 +18,7 @@ export interface CommandInfo {
   name: string;
   description: string;
   usage?: string;
+  visibility?: UserPermissionLevel; // Default: "anchor" for safety - only explicitly marked commands are public
 }
 
 /**
@@ -72,5 +73,5 @@ export interface Command extends CommandInfo {
  */
 export interface ICommandRegistry {
   registerCommand(pluginId: string, command: Command): void;
-  listCommands(): CommandInfo[];
+  listCommands(userPermissionLevel?: UserPermissionLevel): CommandInfo[];
 }

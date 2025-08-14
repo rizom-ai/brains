@@ -69,7 +69,6 @@ describe("MatrixConfig", () => {
       expect(result.enableThreading).toBe(true);
       expect(result.enableTypingNotifications).toBe(true);
       expect(result.commandPrefix).toBe("!");
-      expect(result.anchorPrefix).toBe("!!");
       expect(result.maxContextMessages).toBe(10);
     });
 
@@ -91,7 +90,6 @@ describe("MatrixConfig", () => {
         enableThreading: true,
         enableTypingNotifications: true,
         commandPrefix: "!",
-        anchorPrefix: "!!",
         maxContextMessages: 20,
         typingTimeout: 30000,
         reactionTimeout: 60000,

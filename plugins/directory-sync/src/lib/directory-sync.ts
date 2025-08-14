@@ -106,7 +106,7 @@ export class DirectorySync {
    */
   async sync(): Promise<SyncResult> {
     const startTime = Date.now();
-    this.logger.info("Starting full sync");
+    this.logger.debug("Starting full sync");
 
     // Import from directory first
     const importResult = await this.importEntities();
@@ -117,7 +117,7 @@ export class DirectorySync {
     const duration = Date.now() - startTime;
     this.lastSync = new Date();
 
-    this.logger.info("Full sync completed", {
+    this.logger.debug("Full sync completed", {
       duration,
       imported: importResult.imported,
       exported: exportResult.exported,
@@ -172,7 +172,7 @@ export class DirectorySync {
       }
     }
 
-    this.logger.info("Export completed", result);
+    this.logger.debug("Export completed", result);
     return result;
   }
 
@@ -278,9 +278,9 @@ export class DirectorySync {
       }
     }
 
-    // Only log at info level if we imported multiple files
+    // Only log at debug level for all imports to reduce noise
     if (filesToProcess.length > 1) {
-      this.logger.info("Import completed", {
+      this.logger.debug("Import completed", {
         filesProcessed: filesToProcess.length,
         imported: result.imported,
         skipped: result.skipped,

@@ -192,6 +192,142 @@ describe("CommandRegistry", () => {
     });
   });
 
+  describe("Permission-based command filtering", () => {
+    beforeEach(() => {
+      // Register commands with different visibility levels
+      registry.registerCommand("plugin-test", {
+        name: "public-cmd",
+        description: "Public command",
+        visibility: "public",
+        handler: async () => "public result",
+      });
+
+      registry.registerCommand("plugin-test", {
+        name: "trusted-cmd", 
+        description: "Trusted command",
+        visibility: "trusted",
+        handler: async () => "trusted result",
+      });
+
+      registry.registerCommand("plugin-test", {
+        name: "anchor-cmd",
+        description: "Anchor command", 
+        visibility: "anchor",
+        handler: async () => "anchor result",
+      });
+
+      registry.registerCommand("plugin-test", {
+        name: "default-cmd",
+        description: "Command with default visibility (anchor)",
+        // No visibility specified - should default to "anchor"
+        handler: async () => "default result",
+      });
+    });
+
+    describe("listCommands with permission filtering", () => {
+      it("should return all commands when no permission level specified", () => {
+        const commands = registry.listCommands();
+        expect(commands).toHaveLength(4);
+        const names = commands.map(c => c.name);
+        expect(names).toContain("public-cmd");
+        expect(names).toContain("trusted-cmd");
+        expect(names).toContain("anchor-cmd");
+        expect(names).toContain("default-cmd");
+      });
+
+      it("should return only public commands for public user", () => {
+        const commands = registry.listCommands("public");
+        expect(commands).toHaveLength(1);
+        expect(commands[0]?.name).toBe("public-cmd");
+      });
+
+      it("should return public and trusted commands for trusted user", () => {
+        const commands = registry.listCommands("trusted");
+        expect(commands).toHaveLength(2);
+        const names = commands.map(c => c.name);
+        expect(names).toContain("public-cmd");
+        expect(names).toContain("trusted-cmd");
+        expect(names).not.toContain("anchor-cmd");
+        expect(names).not.toContain("default-cmd");
+      });
+
+      it("should return all commands for anchor user", () => {
+        const commands = registry.listCommands("anchor");
+        expect(commands).toHaveLength(4);
+        const names = commands.map(c => c.name);
+        expect(names).toContain("public-cmd");
+        expect(names).toContain("trusted-cmd");
+        expect(names).toContain("anchor-cmd");
+        expect(names).toContain("default-cmd");
+      });
+    });
+
+    describe("findCommand with permission filtering", () => {
+      it("should find public command for any user level", () => {
+        expect(registry.findCommand("public-cmd", "public")).toBeDefined();
+        expect(registry.findCommand("public-cmd", "trusted")).toBeDefined();
+        expect(registry.findCommand("public-cmd", "anchor")).toBeDefined();
+      });
+
+      it("should not find trusted command for public user", () => {
+        expect(registry.findCommand("trusted-cmd", "public")).toBeUndefined();
+      });
+
+      it("should find trusted command for trusted and anchor users", () => {
+        expect(registry.findCommand("trusted-cmd", "trusted")).toBeDefined();
+        expect(registry.findCommand("trusted-cmd", "anchor")).toBeDefined();
+      });
+
+      it("should not find anchor command for public or trusted users", () => {
+        expect(registry.findCommand("anchor-cmd", "public")).toBeUndefined();
+        expect(registry.findCommand("anchor-cmd", "trusted")).toBeUndefined();
+      });
+
+      it("should find anchor command for anchor user", () => {
+        expect(registry.findCommand("anchor-cmd", "anchor")).toBeDefined();
+      });
+
+      it("should treat commands with no visibility as anchor-only (secure default)", () => {
+        expect(registry.findCommand("default-cmd", "public")).toBeUndefined();
+        expect(registry.findCommand("default-cmd", "trusted")).toBeUndefined();
+        expect(registry.findCommand("default-cmd", "anchor")).toBeDefined();
+      });
+
+      it("should find command when no permission level specified (no filtering)", () => {
+        expect(registry.findCommand("anchor-cmd")).toBeDefined();
+        expect(registry.findCommand("trusted-cmd")).toBeDefined();
+        expect(registry.findCommand("public-cmd")).toBeDefined();
+      });
+    });
+
+    describe("Permission hierarchy validation", () => {
+      it("should respect permission hierarchy: anchor > trusted > public", () => {
+        const anchorCommands = registry.listCommands("anchor");
+        const trustedCommands = registry.listCommands("trusted");
+        const publicCommands = registry.listCommands("public");
+
+        // Anchor should see most commands
+        expect(anchorCommands.length).toBeGreaterThanOrEqual(trustedCommands.length);
+        expect(trustedCommands.length).toBeGreaterThanOrEqual(publicCommands.length);
+
+        // Public commands should be accessible to all levels
+        const publicNames = publicCommands.map(c => c.name);
+        const trustedNames = trustedCommands.map(c => c.name);
+        const anchorNames = anchorCommands.map(c => c.name);
+
+        publicNames.forEach(name => {
+          expect(trustedNames).toContain(name);
+          expect(anchorNames).toContain(name);
+        });
+
+        // Trusted commands should be accessible to trusted and anchor
+        trustedNames.forEach(name => {
+          expect(anchorNames).toContain(name);
+        });
+      });
+    });
+  });
+
   // Message bus integration tests removed after refactoring to direct registration
   // CommandRegistry no longer uses MessageBus - plugins register directly via PluginManager
 });

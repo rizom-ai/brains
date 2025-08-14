@@ -115,7 +115,7 @@ export async function handleJobProgress(
 
   const existingMessageId = jobMessages.get(progressEvent.id);
 
-  logger.info("Checking for existing job message", {
+  logger.debug("Checking for existing job message", {
     jobId: progressEvent.id,
     existingMessageId,
     allMappings: Array.from(jobMessages.entries()),
@@ -130,7 +130,7 @@ export async function handleJobProgress(
         message,
         markdownToHtml(message),
       );
-      logger.info("Edited existing message with job progress", {
+      logger.debug("Edited existing message with job progress", {
         jobId: progressEvent.id,
         messageId: existingMessageId,
       });
@@ -144,7 +144,7 @@ export async function handleJobProgress(
       );
       // Store for future edits
       jobMessages.set(progressEvent.id, messageId);
-      logger.info("Sent new job progress message", {
+      logger.debug("Sent new job progress message", {
         jobId: progressEvent.id,
         messageId,
       });
@@ -217,7 +217,7 @@ export async function handleBatchProgress(
         message,
         markdownToHtml(message),
       );
-      logger.info("Edited existing message with batch progress", {
+      logger.debug("Edited existing message with batch progress", {
         batchId: progressEvent.id,
         messageId: existingMessageId,
       });
@@ -229,7 +229,7 @@ export async function handleBatchProgress(
         false,
       );
       jobMessages.set(progressEvent.id, messageId);
-      logger.info("Sent new batch progress message", {
+      logger.debug("Sent new batch progress message", {
         batchId: progressEvent.id,
         messageId,
       });

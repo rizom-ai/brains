@@ -471,21 +471,21 @@ describe("PermissionHandler", () => {
 
   describe("Static canUseTemplate", () => {
     test("should allow everyone to use public templates", () => {
-      expect(PermissionHandler.canUseTemplate("anchor", "public")).toBe(true);
-      expect(PermissionHandler.canUseTemplate("trusted", "public")).toBe(true);
-      expect(PermissionHandler.canUseTemplate("public", "public")).toBe(true);
+      expect(PermissionHandler.hasPermission("anchor", "public")).toBe(true);
+      expect(PermissionHandler.hasPermission("trusted", "public")).toBe(true);
+      expect(PermissionHandler.hasPermission("public", "public")).toBe(true);
     });
 
     test("should allow trusted and anchor to use trusted templates", () => {
-      expect(PermissionHandler.canUseTemplate("anchor", "trusted")).toBe(true);
-      expect(PermissionHandler.canUseTemplate("trusted", "trusted")).toBe(true);
-      expect(PermissionHandler.canUseTemplate("public", "trusted")).toBe(false);
+      expect(PermissionHandler.hasPermission("anchor", "trusted")).toBe(true);
+      expect(PermissionHandler.hasPermission("trusted", "trusted")).toBe(true);
+      expect(PermissionHandler.hasPermission("public", "trusted")).toBe(false);
     });
 
     test("should allow only anchor to use anchor templates", () => {
-      expect(PermissionHandler.canUseTemplate("anchor", "anchor")).toBe(true);
-      expect(PermissionHandler.canUseTemplate("trusted", "anchor")).toBe(false);
-      expect(PermissionHandler.canUseTemplate("public", "anchor")).toBe(false);
+      expect(PermissionHandler.hasPermission("anchor", "anchor")).toBe(true);
+      expect(PermissionHandler.hasPermission("trusted", "anchor")).toBe(false);
+      expect(PermissionHandler.hasPermission("public", "anchor")).toBe(false);
     });
   });
 });

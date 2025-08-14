@@ -51,16 +51,7 @@ export class PermissionHandler {
     userLevel: UserPermissionLevel,
     requiredPermission: UserPermissionLevel,
   ): boolean {
-    if (requiredPermission === "public") {
-      return true; // Everyone has public access
-    }
-
-    if (requiredPermission === "trusted") {
-      return userLevel === "trusted" || userLevel === "anchor";
-    }
-
-    // At this point, requiredPermission must be "anchor"
-    return userLevel === "anchor";
+    return PermissionHandler.hasPermission(userLevel, requiredPermission);
   }
 
   /**
@@ -191,10 +182,10 @@ export class PermissionHandler {
   }
 
   /**
-   * Static method to check if a permission level can use a template
-   * Used by Shell for interface-based permission checking
+   * Static method to check if a permission level meets the required level
+   * Used by Shell for interface-based permission checking (commands, templates, etc.)
    */
-  static canUseTemplate(
+  static hasPermission(
     grantedLevel: UserPermissionLevel,
     requiredLevel: UserPermissionLevel,
   ): boolean {
