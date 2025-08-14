@@ -18,10 +18,7 @@ export function createJobQueueDatabase(config: JobQueueDbConfig = {}): {
   client: Client;
   url: string;
 } {
-  const url =
-    config.url ??
-    process.env["JOB_QUEUE_DATABASE_URL"] ??
-    "file:./brain-jobs.db";
+  const url = config.url ?? "file:./data/brain-jobs.db";
 
   const authToken =
     config.authToken ?? process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"];

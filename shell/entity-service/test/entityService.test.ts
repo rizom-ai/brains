@@ -108,7 +108,7 @@ describe("EntityService", (): void => {
       entityRegistry,
       logger,
       jobQueueService: mockJobQueueService as unknown as JobQueueService,
-      dbConfig: {}, // Will use default in-memory database for tests
+      dbConfig: { url: "file::memory:" }, // Use in-memory database for tests
     });
   });
 

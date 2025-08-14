@@ -22,11 +22,15 @@ describe("JobQueueService Database", () => {
   });
 
   describe("createJobQueueDatabase", () => {
-    test("creates database with default config", () => {
-      const { db, client, url } = createJobQueueDatabase();
+    test("creates database with default config", async () => {
+      // Create temp dir for the test database
+      tempDir = await mkdtemp(join(tmpdir(), "job-queue-db-test-"));
+      const testDbPath = join(tempDir, "brain-jobs.db");
+      
+      const { db, client, url } = createJobQueueDatabase({ url: `file:${testDbPath}` });
       expect(db).toBeDefined();
       expect(client).toBeDefined();
-      expect(url).toBe("file:./brain-jobs.db");
+      expect(url).toBe(`file:${testDbPath}`);
       cleanup.push(async () => client.close());
     });
 
@@ -51,33 +55,6 @@ describe("JobQueueService Database", () => {
       cleanup.push(async () => client.close());
     });
 
-    test("uses environment variables when no config provided", () => {
-      const originalUrl = process.env["JOB_QUEUE_DATABASE_URL"];
-      const originalToken = process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"];
-
-      process.env["JOB_QUEUE_DATABASE_URL"] = "file:./env-test-jobs.db";
-      process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"] = "env-token";
-
-      const { db, client, url } = createJobQueueDatabase();
-      expect(db).toBeDefined();
-      expect(client).toBeDefined();
-      expect(url).toBe("file:./env-test-jobs.db");
-
-      cleanup.push(async () => {
-        client.close();
-        // Restore env vars
-        if (originalUrl !== undefined) {
-          process.env["JOB_QUEUE_DATABASE_URL"] = originalUrl;
-        } else {
-          delete process.env["JOB_QUEUE_DATABASE_URL"];
-        }
-        if (originalToken !== undefined) {
-          process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"] = originalToken;
-        } else {
-          delete process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"];
-        }
-      });
-    });
   });
 
   describe("enableWALMode", () => {

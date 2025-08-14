@@ -19,7 +19,7 @@ export function createEntityDatabase(config: EntityDbConfig = {}): {
   client: Client;
   url: string;
 } {
-  const url = config.url ?? process.env["DATABASE_URL"] ?? "file:./brain.db";
+  const url = config.url ?? "file:./data/brain.db";
   const authToken = config.authToken ?? process.env["DATABASE_AUTH_TOKEN"];
 
   const client = authToken

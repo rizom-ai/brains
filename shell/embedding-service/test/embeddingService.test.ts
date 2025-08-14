@@ -80,7 +80,7 @@ describe("EmbeddingService", () => {
         .mock.calls[0]?.[0];
       expect(initCall.model).toBe("fast-all-MiniLM-L6-v2");
       expect(initCall.maxLength).toBe(512);
-      expect(initCall.cacheDir).toBe("/tmp/.fastembed-cache");
+      expect(initCall.cacheDir).toBe("./cache/embeddings");
       expect(initCall.showDownloadProgress).toBe(false);
     });
 
@@ -94,20 +94,6 @@ describe("EmbeddingService", () => {
       expect(fastembed.FlagEmbedding.init).toHaveBeenCalledTimes(1);
     });
 
-    it("should use custom cache directory from env", async () => {
-      process.env["FASTEMBED_CACHE_DIR"] = "/custom/cache";
-      const service = EmbeddingService.createFresh(logger);
-
-      await service.generateEmbedding("test");
-
-      expect(fastembed.FlagEmbedding.init).toHaveBeenCalledWith(
-        expect.objectContaining({
-          cacheDir: "/custom/cache",
-        }),
-      );
-
-      delete process.env["FASTEMBED_CACHE_DIR"];
-    });
 
     it("should handle initialization errors", async () => {
       const service = EmbeddingService.createFresh(logger);

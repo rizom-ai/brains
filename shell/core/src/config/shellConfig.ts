@@ -9,7 +9,7 @@ export const shellConfigSchema = z.object({
   // Database configuration
   database: z
     .object({
-      url: z.string().default("file:./brain.db"),
+      url: z.string().default("file:./data/brain.db"),
       authToken: z.string().optional(),
     })
     .default({}),
@@ -17,7 +17,7 @@ export const shellConfigSchema = z.object({
   // Job Queue Database configuration
   jobQueueDatabase: z
     .object({
-      url: z.string().default("file:./brain-jobs.db"),
+      url: z.string().default("file:./data/brain-jobs.db"),
       authToken: z.string().optional(),
     })
     .default({}),
@@ -25,7 +25,7 @@ export const shellConfigSchema = z.object({
   // Conversation Database configuration
   conversationDatabase: z
     .object({
-      url: z.string().default("file:./conversations.db"),
+      url: z.string().default("file:./data/conversations.db"),
       authToken: z.string().optional(),
     })
     .default({}),
@@ -79,22 +79,18 @@ export function createShellConfig(
   // Build config from environment with overrides
   const config = {
     database: {
-      url: process.env["DATABASE_URL"] ?? overrides.database?.url,
+      url: overrides.database?.url,
       authToken:
         process.env["DATABASE_AUTH_TOKEN"] ?? overrides.database?.authToken,
     },
     jobQueueDatabase: {
-      url:
-        process.env["JOB_QUEUE_DATABASE_URL"] ??
-        overrides.jobQueueDatabase?.url,
+      url: overrides.jobQueueDatabase?.url,
       authToken:
         process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"] ??
         overrides.jobQueueDatabase?.authToken,
     },
     conversationDatabase: {
-      url:
-        process.env["CONVERSATION_DATABASE_URL"] ??
-        overrides.conversationDatabase?.url,
+      url: overrides.conversationDatabase?.url,
       authToken:
         process.env["CONVERSATION_DATABASE_AUTH_TOKEN"] ??
         overrides.conversationDatabase?.authToken,
@@ -102,17 +98,16 @@ export function createShellConfig(
     ai: {
       provider: "anthropic" as const,
       apiKey: process.env["ANTHROPIC_API_KEY"] ?? overrides.ai?.apiKey ?? "",
-      model: process.env["AI_MODEL"] ?? overrides.ai?.model,
+      model: overrides.ai?.model,
       temperature: overrides.ai?.temperature,
       maxTokens: overrides.ai?.maxTokens,
     },
     embedding: {
       model: "fast-all-MiniLM-L6-v2" as const,
-      cacheDir:
-        process.env["FASTEMBED_CACHE_DIR"] ?? overrides.embedding?.cacheDir,
+      cacheDir: overrides.embedding?.cacheDir,
     },
     logging: {
-      level: process.env["LOG_LEVEL"] ?? overrides.logging?.level,
+      level: overrides.logging?.level,
       context: overrides.logging?.context,
     },
     features: {

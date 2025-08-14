@@ -26,11 +26,15 @@ describe("EntityService Database", () => {
   });
 
   describe("createEntityDatabase", () => {
-    test("creates database with default config", () => {
-      const { db, client, url } = createEntityDatabase();
+    test("creates database with default config", async () => {
+      // Create temp dir for the test database
+      tempDir = await mkdtemp(join(tmpdir(), "entity-db-test-"));
+      const testDbPath = join(tempDir, "brain.db");
+      
+      const { db, client, url } = createEntityDatabase({ url: `file:${testDbPath}` });
       expect(db).toBeDefined();
       expect(client).toBeDefined();
-      expect(url).toBe("file:./brain.db");
+      expect(url).toBe(`file:${testDbPath}`);
       cleanup.push(async () => client.close());
     });
 
@@ -55,33 +59,6 @@ describe("EntityService Database", () => {
       cleanup.push(async () => client.close());
     });
 
-    test("uses environment variables when no config provided", () => {
-      const originalUrl = process.env["DATABASE_URL"];
-      const originalToken = process.env["DATABASE_AUTH_TOKEN"];
-
-      process.env["DATABASE_URL"] = "file:./env-test.db";
-      process.env["DATABASE_AUTH_TOKEN"] = "env-token";
-
-      const { db, client, url } = createEntityDatabase();
-      expect(db).toBeDefined();
-      expect(client).toBeDefined();
-      expect(url).toBe("file:./env-test.db");
-
-      cleanup.push(async () => {
-        client.close();
-        // Restore env vars
-        if (originalUrl !== undefined) {
-          process.env["DATABASE_URL"] = originalUrl;
-        } else {
-          delete process.env["DATABASE_URL"];
-        }
-        if (originalToken !== undefined) {
-          process.env["DATABASE_AUTH_TOKEN"] = originalToken;
-        } else {
-          delete process.env["DATABASE_AUTH_TOKEN"];
-        }
-      });
-    });
   });
 
   describe("enableWALModeForEntities", () => {

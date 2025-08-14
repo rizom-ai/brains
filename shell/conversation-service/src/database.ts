@@ -19,10 +19,7 @@ export function createConversationDatabase(config: ConversationDbConfig = {}): {
   client: Client;
   url: string;
 } {
-  const url =
-    config.url ??
-    process.env["CONVERSATION_DATABASE_URL"] ??
-    "file:./conversations.db";
+  const url = config.url ?? "file:./data/conversations.db";
 
   const authToken =
     config.authToken ?? process.env["CONVERSATION_DATABASE_AUTH_TOKEN"];

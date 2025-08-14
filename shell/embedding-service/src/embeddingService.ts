@@ -76,9 +76,7 @@ export class EmbeddingService implements IEmbeddingService {
 
       // Create the embedding model
       // Use system temp directory for cache to ensure it's always writable
-      const cacheDir =
-        process.env["FASTEMBED_CACHE_DIR"] ??
-        (await import("node:os")).tmpdir() + "/.fastembed-cache";
+      const cacheDir = "./cache/embeddings";
 
       this.model = await FlagEmbedding.init({
         model: EmbeddingService.MODEL_NAME,
