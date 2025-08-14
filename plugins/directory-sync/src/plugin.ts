@@ -1,11 +1,7 @@
 import type { Plugin, ServicePluginContext, Command } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
-import {
-  directorySyncConfigSchema,
-  type DirectorySyncConfig,
-  type DirectorySyncConfigInput,
-} from "./types";
+import { directorySyncConfigSchema, type DirectorySyncConfig } from "./types";
 import { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 import { directorySyncStatusSchema } from "./schemas";
 import {
@@ -32,7 +28,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   private directorySync?: DirectorySync;
   private pluginContext?: ServicePluginContext;
 
-  constructor(config: DirectorySyncConfigInput = {}) {
+  constructor(config: Partial<DirectorySyncConfig> = {}) {
     super(
       "directory-sync",
       packageJson,
@@ -293,6 +289,8 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 /**
  * Factory function for creating directory sync plugin
  */
-export function directorySync(config: DirectorySyncConfigInput): Plugin {
+export function directorySync(
+  config: Partial<DirectorySyncConfig> = {},
+): Plugin {
   return new DirectorySyncPlugin(config);
 }

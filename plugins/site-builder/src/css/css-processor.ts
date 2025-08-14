@@ -36,7 +36,7 @@ export class TailwindCSSProcessor implements CSSProcessor {
 
     // Build the command - v4 has automatic content detection
     // Run from the output directory so Tailwind can find the HTML files
-    const relativeInputPath = join("..", relative(outputDir, inputPath));
+    const relativeInputPath = relative(outputDir, inputPath);
     const relativeOutputPath = "styles/main.css";
     const command = `bunx @tailwindcss/cli -i "${relativeInputPath}" -o "${relativeOutputPath}"`;
 

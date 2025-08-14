@@ -108,5 +108,4 @@ export const matrixConfigSchema = z.object({
  * Type exports
  */
 export type MatrixConfig = z.infer<typeof matrixConfigSchema>;
-export type MatrixConfigInput = Partial<MatrixConfig>;
 export type PerRoomRateLimit = z.infer<typeof perRoomRateLimitSchema>;

@@ -11,7 +11,7 @@ import {
   PermissionHandler,
 } from "@brains/plugins";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "../schemas";
-import type { MatrixConfigInput, MatrixConfig } from "../schemas";
+import type { MatrixConfig } from "../schemas";
 import { MatrixClientWrapper } from "../client/matrix-client";
 import {
   handleRoomMessage as handleRoomMessageHandler,
@@ -35,7 +35,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
   private client?: MatrixClientWrapper;
   private permissionHandler?: PermissionHandler;
 
-  constructor(config: MatrixConfigInput, sessionId?: string) {
+  constructor(config: Partial<MatrixConfig>, sessionId?: string) {
     super(
       "matrix",
       packageJson,

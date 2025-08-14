@@ -6,9 +6,13 @@ import { RouteDefinitionSchema } from "@brains/plugins";
  * Configuration schema for the site builder plugin
  */
 export const siteBuilderConfigSchema = z.object({
-  previewOutputDir: z.string().describe("Output directory for preview builds"),
+  previewOutputDir: z
+    .string()
+    .optional()
+    .describe("Output directory for preview builds"),
   productionOutputDir: z
     .string()
+    .optional()
     .describe("Output directory for production builds"),
   workingDir: z.string().optional().describe("Working directory for builds"),
   siteConfig: z
@@ -34,11 +38,9 @@ export const siteBuilderConfigSchema = z.object({
 });
 
 export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema>;
-export type SiteBuilderConfigInput = Partial<
-  z.input<typeof siteBuilderConfigSchema>
->;
 
 export const SITE_BUILDER_CONFIG_DEFAULTS = {
-  previewOutputDir: "./site-preview",
-  productionOutputDir: "./site-production",
+  previewOutputDir: "./dist/site-preview",
+  productionOutputDir: "./dist/site-production",
+  workingDir: "./.preact-work",
 } as const;

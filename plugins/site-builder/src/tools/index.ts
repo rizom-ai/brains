@@ -6,6 +6,7 @@ import type {
 } from "@brains/plugins";
 import type { SiteBuilder } from "../lib/site-builder";
 import type { SiteContentService } from "../lib/site-content-service";
+import type { SiteBuilderConfig } from "../config";
 import {
   PromoteOptionsSchema,
   RollbackOptionsSchema,
@@ -18,6 +19,7 @@ export function createSiteBuilderTools(
   getSiteContentService: () => SiteContentService | undefined,
   pluginContext: ServicePluginContext,
   pluginId: string,
+  config: SiteBuilderConfig,
 ): PluginTool[] {
   return [
     {
@@ -128,13 +130,21 @@ export function createSiteBuilderTools(
           throw new Error("Site builder not initialized");
         }
 
+        // Determine output directory based on environment
+        const outputDir =
+          params.environment === "production"
+            ? config.productionOutputDir || "./dist/site-production"
+            : config.previewOutputDir || "./dist/site-preview";
+
         // Enqueue the build job
         const jobId = await pluginContext.enqueueJob(
           "site-build",
           {
             environment: params.environment,
-            clean: params.clean,
-            includeAssets: params.includeAssets,
+            outputDir,
+            workingDir: config.workingDir,
+            enableContentGeneration: false,
+            siteConfig: config.siteConfig,
           },
           {
             source: `plugin:${pluginId}`,

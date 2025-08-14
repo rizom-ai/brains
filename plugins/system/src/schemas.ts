@@ -13,7 +13,6 @@ export const systemConfigSchema = z.object({
 });
 
 export type SystemConfig = z.infer<typeof systemConfigSchema>;
-export type SystemConfigInput = Partial<z.input<typeof systemConfigSchema>>;
 
 export const defaultSystemConfig: SystemConfig = {
   searchLimit: 10,

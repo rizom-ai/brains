@@ -179,13 +179,14 @@ export { JobContextSchema } from "@brains/job-queue";
 
 // From @brains/utils
 export type {
-  Logger,
   ProgressNotification,
   ProgressCallback,
   UserPermissionLevel,
   ContentFormatter,
 } from "@brains/utils";
 export {
+  Logger,
+  LogLevel,
   createSilentLogger,
   ProgressReporter,
   ResponseFormatter,

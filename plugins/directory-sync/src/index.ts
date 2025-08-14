@@ -10,7 +10,6 @@ export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFo
 
 export type {
   DirectorySyncConfig,
-  DirectorySyncConfigInput,
   DirectorySyncStatus,
   ExportResult,
   ImportResult,

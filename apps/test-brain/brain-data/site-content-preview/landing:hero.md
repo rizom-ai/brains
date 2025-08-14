@@ -7,15 +7,15 @@ sectionId: hero
 
 ## Headline
 
-Elevate Your Knowledge Potential
+Elevate Your Knowledge Workflows
 
 ## Subheadline
 
-Rizom's personal knowledge management system empowers you to capture, connect, and leverage your expertise like never before.
+Harness the power of personal knowledge management to boost productivity and amplify your expertise.
 
 ## CTA Text
 
-Get Started
+Start Your Free Trial
 
 ## CTA Link
 

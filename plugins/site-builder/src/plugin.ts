@@ -22,7 +22,7 @@ import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { createSiteBuilderTools } from "./tools";
-import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";
+import type { SiteBuilderConfig } from "./config";
 import {
   siteBuilderConfigSchema,
   SITE_BUILDER_CONFIG_DEFAULTS,
@@ -39,7 +39,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private contentManager?: ContentManager;
   private pluginContext?: ServicePluginContext;
 
-  constructor(config: SiteBuilderConfigInput = {}) {
+  constructor(config: Partial<SiteBuilderConfig> = {}) {
     super(
       "site-builder",
       packageJson,
@@ -123,19 +123,19 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context,
     );
 
-    // Initialize the site content service
-    this.siteContentService = new SiteContentService(
-      this.logger.child("SiteContentService"),
-      context,
-      this.id,
-      this.config.siteConfig,
-    );
-
-    // Initialize the shared content manager
+    // Initialize the shared content manager first
     this.contentManager = new ContentManager(
       context.entityService,
       this.logger.child("ContentManager"),
       context,
+    );
+
+    // Initialize the site content service with the shared content manager
+    this.siteContentService = new SiteContentService(
+      context,
+      this.id,
+      this.contentManager,
+      this.config.siteConfig,
     );
 
     // Register job handler for site builds
@@ -162,6 +162,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       () => this.siteContentService,
       this.pluginContext,
       this.id,
+      this.config,
     );
   }
 
@@ -574,6 +575,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 /**
  * Factory function to create the plugin
  */
-export function siteBuilderPlugin(config?: SiteBuilderConfigInput): Plugin {
+export function siteBuilderPlugin(config?: Partial<SiteBuilderConfig>): Plugin {
   return new SiteBuilderPlugin(config);
 }

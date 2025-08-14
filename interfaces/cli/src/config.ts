@@ -13,7 +13,6 @@ export const cliConfigSchema = z.object({
 });
 
 export type CLIConfig = z.infer<typeof cliConfigSchema>;
-export type CLIConfigInput = Partial<CLIConfig>;
 
 export const defaultCLIConfig: CLIConfig = {
   theme: {

@@ -21,4 +21,3 @@ export const gitSyncConfigSchema = basePluginConfigSchema
   .describe("Configuration for the git-sync plugin");
 
 export type GitSyncConfig = z.infer<typeof gitSyncConfigSchema>;
-export type GitSyncConfigInput = z.input<typeof gitSyncConfigSchema>;

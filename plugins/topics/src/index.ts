@@ -8,7 +8,6 @@ import {
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
-  type TopicsPluginConfigInput,
   defaultTopicsPluginConfig,
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
@@ -33,7 +32,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   private tools: PluginTool[] = [];
   private commands: Command[] = [];
 
-  constructor(config: TopicsPluginConfigInput = {}) {
+  constructor(config: Partial<TopicsPluginConfig> = {}) {
     super(
       "topics",
       packageJson,
@@ -97,8 +96,5 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 export default TopicsPlugin;
 
 // Export public API for external consumers
-export type {
-  TopicsPluginConfig,
-  TopicsPluginConfigInput,
-} from "./schemas/config";
+export type { TopicsPluginConfig } from "./schemas/config";
 export type { TopicEntity } from "./types";

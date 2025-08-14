@@ -7,11 +7,11 @@ sectionId: cta
 
 ## Headline
 
-Elevate Your Knowledge Potential
+Elevate Your Productivity - Start Your Free Trial Now
 
 ## Description
 
-Transform how you capture, connect, and leverage your expertise with Rizom's personal knowledge management system. Join thousands who are already building their second brain.
+Transform your knowledge into a powerful second brain. Join thousands who are already boosting their productivity and creativity with Rizom.
 
 ## Primary Button
 

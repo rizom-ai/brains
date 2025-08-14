@@ -11,7 +11,6 @@ export {
   webserverConfigSchema,
   defaultWebserverConfig,
   type WebserverConfig,
-  type WebserverConfigInput,
 } from "./config";
 
 export { ServerManager } from "./server-manager";

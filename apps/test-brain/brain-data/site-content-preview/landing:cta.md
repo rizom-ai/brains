@@ -7,11 +7,11 @@ sectionId: cta
 
 ## Headline
 
-Elevate Your Knowledge, Elevate Your Life
+Elevate Your Productivity - Start Your Free Trial Now
 
 ## Description
 
-Unlock the full potential of your knowledge with Rizom - the personal knowledge management system that transforms how you work and learn.
+Transform your knowledge into a powerful second brain. Join thousands who are already boosting their productivity and creativity with Rizom.
 
 ## Primary Button
 

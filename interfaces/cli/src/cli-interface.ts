@@ -13,24 +13,19 @@ import type {
   JobContext,
 } from "@brains/plugins";
 import type { Instance } from "ink";
-import {
-  cliConfigSchema,
-  defaultCLIConfig,
-  type CLIConfig,
-  type CLIConfigInput,
-} from "./config";
+import { cliConfigSchema, defaultCLIConfig, type CLIConfig } from "./config";
 import { handleProgressEvent, MessageHandlers } from "./handlers";
 import { createCLICommands } from "./commands";
 import packageJson from "../package.json";
 
-export class CLIInterface extends MessageInterfacePlugin<CLIConfigInput> {
+export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
   private progressEvents = new Map<string, JobProgressEvent>();
   private progressCallback: ((events: JobProgressEvent[]) => void) | undefined;
   private messageHandlers = new MessageHandlers();
 
-  constructor(config: CLIConfigInput = {}) {
+  constructor(config: Partial<CLIConfig> = {}) {
     super("cli", packageJson, config, cliConfigSchema, defaultCLIConfig);
   }
 

@@ -168,10 +168,12 @@ if (config["matrix"] && secrets.matrixAccessToken) {
 
 // Directory Sync - plugin handles its own config validation
 if (config["directorySync"]) {
-  plugins.push(directorySync({
-    ...config["directorySync"],
-    includeMetadata: true,
-  }));
+  plugins.push(
+    directorySync({
+      ...config["directorySync"],
+      includeMetadata: true,
+    }),
+  );
 }
 
 // Webserver Interface
@@ -338,11 +340,11 @@ export class MatrixInterface {
       ...DEFAULT_CONFIG,
       ...config,
     });
-    
+
     if (!validated.success) {
       throw new Error(`Invalid Matrix config: ${validated.error.message}`);
     }
-    
+
     this.config = validated.data;
   }
 }

@@ -1,7 +1,6 @@
 import "./mocks/setup";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { MatrixInterface } from "../src";
-import type { MatrixConfigInput } from "../src/schemas";
 import { createInterfacePluginHarness } from "@brains/plugins";
 import type { PluginTestHarness } from "@brains/plugins";
 
@@ -10,7 +9,13 @@ const mockMatrixClient = globalThis.mockMatrixClient;
 const mockAutoJoinMixin = globalThis.mockAutoJoinMixin;
 
 describe("MatrixInterface", () => {
-  let config: MatrixConfigInput;
+  let config: {
+    homeserver: string;
+    accessToken: string;
+    userId: string;
+    anchorUserId: string;
+    [key: string]: unknown;
+  };
   let harness: PluginTestHarness<MatrixInterface>;
 
   beforeEach(() => {

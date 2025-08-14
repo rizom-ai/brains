@@ -10,7 +10,7 @@ import {
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
 import type { IMCPTransport } from "@brains/mcp-service";
-import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
+import { mcpConfigSchema, type MCPConfig } from "./config";
 import { createMCPTools } from "./tools";
 import { setupJobProgressListener } from "./handlers";
 import packageJson from "../package.json";
@@ -32,9 +32,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   private stdioServer: StdioMCPServer | undefined;
   private httpServer: StreamableHTTPServer | undefined;
 
-  constructor(config: MCPConfigInput = {}) {
+  constructor(config: Partial<MCPConfig> = {}) {
     const defaults: MCPConfig = {
-      transport: "stdio",
+      transport: "http",
       httpPort: 3333,
     };
 
@@ -165,9 +165,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
 
     if (this.config.transport === "stdio") {
       // Start STDIO transport
-      this.stdioServer = StdioMCPServer.createFresh({
-        logger: this.logger,
-      });
+      // Don't pass the regular logger for stdio - it will use stderr logger
+      this.stdioServer = StdioMCPServer.createFresh();
 
       // Connect MCP server from service to STDIO transport
       const mcpServer = this.mcpTransport.getMcpServer();

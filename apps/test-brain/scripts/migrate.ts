@@ -8,20 +8,10 @@ import { migrateJobQueue } from "@brains/job-queue";
 import { migrateConversations } from "@brains/conversation-service";
 import { Logger } from "@brains/utils";
 
-// Set the DATABASE_URL if not already set
-if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "file:./test-brain.db";
-}
-
-// Set the JOB_QUEUE_DATABASE_URL if not already set
-if (!process.env.JOB_QUEUE_DATABASE_URL) {
-  process.env.JOB_QUEUE_DATABASE_URL = "file:./test-brain-jobs.db";
-}
-
-// Set the CONVERSATION_DATABASE_URL if not already set
-if (!process.env.CONVERSATION_DATABASE_URL) {
-  process.env.CONVERSATION_DATABASE_URL = "file:./conversations.db";
-}
+// Define database URLs matching the shell defaults
+const DATABASE_URL = "file:./brain.db";
+const JOB_QUEUE_DATABASE_URL = "file:./brain-jobs.db";
+const CONVERSATION_DATABASE_URL = "file:./conversations.db";
 
 // Create logger
 const logger = Logger.getInstance();
@@ -30,7 +20,7 @@ const logger = Logger.getInstance();
 logger.info("Running entity database migrations...");
 await migrateEntities(
   {
-    url: process.env.DATABASE_URL,
+    url: DATABASE_URL,
   },
   logger,
 );
@@ -39,7 +29,7 @@ await migrateEntities(
 logger.info("Running job queue database migrations...");
 await migrateJobQueue(
   {
-    url: process.env.JOB_QUEUE_DATABASE_URL,
+    url: JOB_QUEUE_DATABASE_URL,
   },
   logger,
 );
@@ -48,7 +38,7 @@ await migrateJobQueue(
 logger.info("Running conversation database migrations...");
 await migrateConversations(
   {
-    url: process.env.CONVERSATION_DATABASE_URL,
+    url: CONVERSATION_DATABASE_URL,
   },
   logger,
 );

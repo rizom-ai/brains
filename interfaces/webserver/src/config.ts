@@ -11,11 +11,10 @@ export const webserverConfigSchema = z.object({
 });
 
 export type WebserverConfig = z.infer<typeof webserverConfigSchema>;
-export type WebserverConfigInput = Partial<WebserverConfig>;
 
 export const defaultWebserverConfig: WebserverConfig = {
-  previewDistDir: "./website",
-  productionDistDir: "./website-production",
+  previewDistDir: "./dist/site-preview",
+  productionDistDir: "./dist/site-production",
   previewPort: 4321,
   productionPort: 8080,
 };

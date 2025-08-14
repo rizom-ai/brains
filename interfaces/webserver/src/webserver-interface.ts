@@ -11,7 +11,6 @@ import {
   webserverConfigSchema,
   defaultWebserverConfig,
   type WebserverConfig,
-  type WebserverConfigInput,
 } from "./config";
 import { placeholderHtml } from "./templates/placeholder";
 import packageJson from "../package.json";
@@ -23,7 +22,7 @@ import packageJson from "../package.json";
 export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   private serverManager!: ServerManager;
 
-  constructor(config: WebserverConfigInput = {}) {
+  constructor(config: Partial<WebserverConfig> = {}) {
     super(
       "webserver",
       packageJson,

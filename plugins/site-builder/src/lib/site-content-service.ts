@@ -2,7 +2,6 @@ import type {
   ServicePluginContext,
   JobContext,
   SectionDefinition,
-  Logger,
   GenerateOptions,
 } from "@brains/plugins";
 import { ContentManager, GenerateOptionsSchema } from "@brains/plugins";
@@ -54,20 +53,12 @@ export type RollbackOptions = z.infer<typeof RollbackOptionsSchema>;
  * Service for managing site content operations
  */
 export class SiteContentService {
-  private contentManager: ContentManager;
-
   constructor(
-    logger: Logger,
     private readonly pluginContext: ServicePluginContext,
     private readonly pluginId: string,
+    private readonly contentManager: ContentManager,
     private readonly siteConfig?: Record<string, unknown>,
-  ) {
-    this.contentManager = new ContentManager(
-      pluginContext.entityService,
-      logger.child("ContentManager"),
-      pluginContext,
-    );
-  }
+  ) {}
 
   /**
    * Generate content for routes
@@ -142,7 +133,7 @@ export class SiteContentService {
       entityIds = previewEntities
         .filter((e) => e.sectionId === options.sectionId)
         .map((e) => e.id);
-    } else if (options.sections) {
+    } else if (options.sections && options.sections.length > 0) {
       entityIds = previewEntities
         .filter((e) => options.sections?.includes(e.sectionId))
         .map((e) => e.id);
@@ -187,7 +178,7 @@ export class SiteContentService {
       entityIds = productionEntities
         .filter((e) => e.sectionId === options.sectionId)
         .map((e) => e.id);
-    } else if (options.sections) {
+    } else if (options.sections && options.sections.length > 0) {
       entityIds = productionEntities
         .filter((e) => options.sections?.includes(e.sectionId))
         .map((e) => e.id);

@@ -26,9 +26,6 @@ export const topicsPluginConfigSchema = z.object({
 });
 
 export type TopicsPluginConfig = z.infer<typeof topicsPluginConfigSchema>;
-export type TopicsPluginConfigInput = Partial<
-  z.input<typeof topicsPluginConfigSchema>
->;
 
 /**
  * Default configuration

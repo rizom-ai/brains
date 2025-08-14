@@ -39,7 +39,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
       };
     });
 
-    // Create plugin
+    // Create plugin with direct config
     plugin = new GitSyncPlugin({
       enabled: true,
       debug: false,

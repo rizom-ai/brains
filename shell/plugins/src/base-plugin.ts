@@ -84,7 +84,7 @@ export abstract class BasePlugin<
     this.version = packageJson.version;
     this.description = packageJson.description ?? `${packageJson.name} plugin`;
 
-    // Apply defaults and validate config
+    // Merge with defaults first, then validate
     const configWithDefaults = { ...defaults, ...partialConfig };
     this.config = configSchema.parse(configWithDefaults);
   }

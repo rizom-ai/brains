@@ -8,4 +8,3 @@ export const mcpConfigSchema = z.object({
 });
 
 export type MCPConfig = z.infer<typeof mcpConfigSchema>;
-export type MCPConfigInput = Partial<MCPConfig>;

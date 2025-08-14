@@ -1,11 +1,7 @@
 import type { Plugin, PluginTool, CorePluginContext } from "@brains/plugins";
 import { CorePlugin } from "@brains/plugins";
 import { GitSync } from "./lib/git-sync";
-import {
-  gitSyncConfigSchema,
-  type GitSyncConfig,
-  type GitSyncConfigInput,
-} from "./types";
+import { gitSyncConfigSchema, type GitSyncConfig } from "./types";
 import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
 import { gitSyncStatusSchema } from "./schemas";
 import { createGitSyncTools } from "./tools";
@@ -15,11 +11,26 @@ import packageJson from "../package.json";
  * Git Sync plugin that extends CorePlugin
  * Adds git version control to directory-sync
  */
+// Default configuration for git-sync plugin
+const GIT_SYNC_DEFAULTS: Partial<GitSyncConfig> = {
+  enabled: true,
+  debug: false,
+  branch: "main",
+  autoSync: false,
+  syncInterval: 5,
+};
+
 export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
 
   constructor(config: Partial<GitSyncConfig>) {
-    super("git-sync", packageJson, config, gitSyncConfigSchema, {});
+    super(
+      "git-sync",
+      packageJson,
+      config,
+      gitSyncConfigSchema,
+      GIT_SYNC_DEFAULTS,
+    );
   }
 
   private getGitSync(): GitSync {
@@ -84,6 +95,6 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 /**
  * Factory function to create a git sync plugin
  */
-export function gitSync(config: GitSyncConfigInput): Plugin {
+export function gitSync(config: Partial<GitSyncConfig>): Plugin {
   return new GitSyncPlugin(config);
 }
