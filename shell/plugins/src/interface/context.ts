@@ -1,7 +1,7 @@
 import type { CorePluginContext } from "../core/context";
 import { createCorePluginContext } from "../core/context";
 import type { Daemon, IShell, IMCPTransport } from "../interfaces";
-import type { UserPermissionLevel } from "@brains/utils";
+import type { UserPermissionLevel } from "@brains/permission-service";
 import type {
   CommandInfo,
   CommandResponse,
@@ -14,12 +14,21 @@ import type {
  */
 export interface InterfacePluginContext extends CorePluginContext {
   // Command management
-  listCommands: (userPermissionLevel?: UserPermissionLevel) => Promise<CommandInfo[]>;
+  listCommands: (
+    interfaceType: string,
+    userId: string,
+  ) => Promise<CommandInfo[]>;
   executeCommand: (
     commandName: string,
     args: string[],
     context: CommandContext,
   ) => Promise<CommandResponse>;
+
+  // Permission checking
+  determineUserPermissionLevel: (
+    interfaceType: string,
+    userId: string,
+  ) => UserPermissionLevel;
 
   // Daemon management
   registerDaemon: (name: string, daemon: Daemon) => void;
@@ -41,6 +50,7 @@ export function createInterfacePluginContext(
   // Get interface-specific components
   const commandRegistry = shell.getCommandRegistry();
   const mcpTransport = shell.getMcpTransport();
+  const permissionService = shell.getPermissionService();
 
   return {
     ...coreContext,
@@ -48,9 +58,20 @@ export function createInterfacePluginContext(
     // MCP transport
     mcpTransport,
 
+    // Permission checking
+    determineUserPermissionLevel: (
+      interfaceType: string,
+      userId: string,
+    ): UserPermissionLevel => {
+      return permissionService.determineUserLevel(interfaceType, userId);
+    },
+
     // Command discovery - returns metadata only
-    listCommands: async (userPermissionLevel?: UserPermissionLevel): Promise<CommandInfo[]> => {
-      const commands = commandRegistry.listCommands(userPermissionLevel);
+    listCommands: async (
+      interfaceType: string,
+      userId: string,
+    ): Promise<CommandInfo[]> => {
+      const commands = commandRegistry.listCommands(interfaceType, userId);
       coreContext.logger.debug(`Retrieved ${commands.length} commands`);
       return commands;
     },
@@ -61,7 +82,11 @@ export function createInterfacePluginContext(
       args: string[],
       context: CommandContext,
     ): Promise<CommandResponse> => {
-      const command = commandRegistry.findCommand(commandName, context.userPermissionLevel);
+      const command = commandRegistry.findCommand(
+        commandName,
+        context.interfaceType,
+        context.userId,
+      );
       if (!command) {
         throw new Error(`Command "${commandName}" not found`);
       }

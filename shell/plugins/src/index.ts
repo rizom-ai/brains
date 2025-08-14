@@ -181,16 +181,19 @@ export { JobContextSchema } from "@brains/job-queue";
 export type {
   ProgressNotification,
   ProgressCallback,
-  UserPermissionLevel,
   ContentFormatter,
 } from "@brains/utils";
+
+// From @brains/permission-service
+export type {
+  UserPermissionLevel,
+} from "@brains/permission-service";
 export {
   Logger,
   LogLevel,
   createSilentLogger,
   ProgressReporter,
   ResponseFormatter,
-  PermissionHandler,
   markdownToHtml,
   StructuredContentFormatter,
 } from "@brains/utils";

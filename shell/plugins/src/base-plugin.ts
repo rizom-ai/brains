@@ -12,10 +12,10 @@ import type { IShell } from "@brains/plugins";
 import { ToolContextRoutingSchema } from "./interfaces";
 import {
   Logger,
-  type UserPermissionLevel,
   type ProgressNotification,
   ProgressReporter,
 } from "@brains/utils";
+import type { UserPermissionLevel } from "@brains/permission-service";
 import { z } from "zod";
 
 // Message schemas for validation

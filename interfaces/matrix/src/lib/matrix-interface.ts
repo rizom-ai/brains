@@ -8,7 +8,6 @@ import {
   type MessageContext,
   type JobProgressEvent,
   type JobContext,
-  PermissionHandler,
 } from "@brains/plugins";
 import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "../schemas";
 import type { MatrixConfig } from "../schemas";
@@ -33,7 +32,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
   // After validation with defaults, config is complete
   declare protected config: MatrixConfig;
   private client?: MatrixClientWrapper;
-  private permissionHandler?: PermissionHandler;
 
   constructor(config: Partial<MatrixConfig>, sessionId?: string) {
     super(
@@ -55,12 +53,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-
-    // Create permission handler
-    this.permissionHandler = new PermissionHandler(
-      this.config.anchorUserId,
-      this.config.trustedUsers,
-    );
 
     // Create Matrix client
     this.client = new MatrixClientWrapper(this.config, this.logger);
@@ -87,8 +79,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
         await this.client.start();
         this.logger.info("Matrix interface started", {
           userId: this.config.userId,
-          anchorUserId: this.config.anchorUserId,
-          trustedUsers: this.config.trustedUsers?.length ?? 0,
         });
       },
       stop: async (): Promise<void> => {
@@ -122,7 +112,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
    * Set up Matrix event handlers
    */
   private setupEventHandlers(): void {
-    if (!this.client || !this.permissionHandler) {
+    if (!this.client) {
       return;
     }
 
@@ -130,10 +120,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       client: this.client,
       config: this.config,
       logger: this.logger,
-      permissionHandler: this.permissionHandler,
       handleInput: this.handleInput.bind(this),
-      determineUserPermissionLevel:
-        this.determineUserPermissionLevel.bind(this),
+      determineUserPermissionLevel: this.getContext().determineUserPermissionLevel,
     };
 
     // Handle room messages

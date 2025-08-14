@@ -1,23 +1,23 @@
 import type { MessageContext } from "@brains/messaging-service";
 import type { Logger } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/permission-service";
 import type { MatrixClientWrapper } from "../client/matrix-client";
 import type { MatrixConfig } from "../schemas";
-import type { PermissionHandler } from "@brains/utils";
 import { isAddressedToBot, sendErrorMessage } from "./message";
 
 export interface MatrixEventHandlerContext {
   client: MatrixClientWrapper;
   config: MatrixConfig;
   logger: Logger;
-  permissionHandler: PermissionHandler;
   handleInput: (
     input: string,
     context: MessageContext,
     replyToId?: string,
   ) => Promise<void>;
-  determineUserPermissionLevel: (
+  determineUserPermissionLevel?: (
+    interfaceType: string,
     userId: string,
-  ) => "anchor" | "trusted" | "public";
+  ) => UserPermissionLevel;
 }
 
 /**
@@ -78,25 +78,14 @@ export async function handleRoomMessage(
   });
 
   try {
-    // Get permission level
-    const permissionLevel =
-      ctx.permissionHandler.getUserPermissionLevel(senderId);
-
-    ctx.logger.info("Determined permission level", {
-      senderId,
-      permissionLevel,
-      roomId,
-      messageLength: message.length,
-    });
-
-    // Create message context - pass mention info via threadId (hack for now)
+    // Create message context - permission level will be determined by handleInput
     const messageContext: MessageContext = {
       userId: senderId,
       channelId: roomId,
       messageId: eventId,
       timestamp: new Date(),
       interfaceType: "matrix",
-      userPermissionLevel: permissionLevel,
+      userPermissionLevel: "public", // Default, will be overridden by handleInput
       ...(isMentioned && { threadId: "mentioned" }), // Pass mention info only if mentioned
     };
 
@@ -134,19 +123,33 @@ export async function handleRoomInvite(
     inviter,
   });
 
-  // Only accept invites from anchor or trusted users
-  const permissionLevel = ctx.permissionHandler.getUserPermissionLevel(inviter);
-  if (permissionLevel === "public") {
-    ctx.logger.warn("Rejecting invite from public user", {
+  // Check permissions using centralized permission service
+  if (ctx.determineUserPermissionLevel) {
+    const userPermissionLevel = ctx.determineUserPermissionLevel(
+      "matrix",
+      inviter,
+    );
+    
+    // Only accept invites from anchor users
+    if (userPermissionLevel !== "anchor") {
+      ctx.logger.info("Ignoring room invite from non-anchor user", {
+        roomId,
+        inviter,
+        permissionLevel: userPermissionLevel,
+      });
+      return;
+    }
+  } else {
+    // If no permission service is available, log warning but accept invite
+    ctx.logger.warn("No permission service available, accepting invite", {
       roomId,
       inviter,
     });
-    return;
   }
 
   try {
     await ctx.client.joinRoom(roomId);
-    ctx.logger.info("Joined room after invite", {
+    ctx.logger.info("Joined room after invite from anchor user", {
       roomId,
       inviter,
     });

@@ -1,5 +1,6 @@
 import { z, type ZodRawShape } from "zod";
-import type { ProgressNotification, UserPermissionLevel } from "@brains/utils";
+import type { ProgressNotification } from "@brains/utils";
+import type { UserPermissionLevel } from "@brains/permission-service";
 import {
   defaultQueryResponseSchema,
   simpleTextResponseSchema,
@@ -27,6 +28,7 @@ import type { ViewRegistry, RouteDefinition } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
+import type { PermissionService } from "@brains/permission-service";
 
 /**
  * Query context for shell queries
@@ -57,6 +59,7 @@ export interface IShell {
   getServiceRegistry(): ServiceRegistry;
   getConversationService(): IConversationService;
   getMcpTransport(): IMCPTransport;
+  getPermissionService(): PermissionService;
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;

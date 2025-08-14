@@ -3,6 +3,7 @@ import { pluginMetadataSchema } from "@brains/plugins";
 import type { Plugin } from "@brains/plugins";
 import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/cli";
+import type { PermissionConfig } from "@brains/permission-service";
 
 // App config focuses on app-level concerns, plugins come from Shell
 export const appConfigSchema = z.object({
@@ -22,4 +23,6 @@ export type AppConfig = Omit<z.infer<typeof appConfigSchema>, "plugins"> & {
   shellConfig?: Parameters<typeof Shell.createFresh>[0];
   // CLI-specific configuration (used when --cli flag is present)
   cliConfig?: CLIConfig;
+  // Permissions - centralized permission configuration
+  permissions?: PermissionConfig;
 };

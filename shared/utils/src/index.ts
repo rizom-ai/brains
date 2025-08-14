@@ -35,13 +35,6 @@ export { toYaml, fromYaml, isValidYaml } from "./yaml";
 // Formatters
 export * from "./formatters";
 
-// Permission handling
-export {
-  PermissionHandler,
-  UserPermissionLevelSchema,
-  type UserPermissionLevel,
-} from "./permission-handler";
-
 // ID generation utilities
 export { createId, createPrefixedId, createBatchId } from "./id";
 

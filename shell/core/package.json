@@ -26,6 +26,7 @@
     "@brains/entity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/messaging-service": "workspace:*",
+    "@brains/permission-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/service-registry": "workspace:*",
     "@brains/utils": "workspace:*",

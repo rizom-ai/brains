@@ -1,4 +1,4 @@
-import type { UserPermissionLevel } from "@brains/utils";
+import type { UserPermissionLevel } from "@brains/permission-service";
 import { z } from "zod";
 
 /**
@@ -73,5 +73,5 @@ export interface Command extends CommandInfo {
  */
 export interface ICommandRegistry {
   registerCommand(pluginId: string, command: Command): void;
-  listCommands(userPermissionLevel?: UserPermissionLevel): CommandInfo[];
+  listCommands(interfaceType: string, userId: string): CommandInfo[];
 }

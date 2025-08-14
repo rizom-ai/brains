@@ -222,16 +222,13 @@ export abstract class MessageInterfacePlugin<
     _input: string,
     context?: Partial<MessageContext>,
   ): MessageContext {
-    const userId = context?.userId ?? "default-user";
-    const userPermissionLevel = this.determineUserPermissionLevel(userId);
-
     return {
-      userId,
+      userId: context?.userId ?? "default-user",
       channelId: context?.channelId ?? this.sessionId,
       messageId: context?.messageId ?? `msg-${Date.now()}`,
       timestamp: context?.timestamp ?? new Date(),
       interfaceType: this.id,
-      userPermissionLevel,
+      userPermissionLevel: context?.userPermissionLevel ?? "public",
       ...context,
     };
   }
@@ -375,7 +372,10 @@ export abstract class MessageInterfacePlugin<
 
     // Special case for help command
     if (cmd === "help") {
-      const commands = await pluginContext.listCommands(context.userPermissionLevel);
+      const commands = await pluginContext.listCommands(
+        context.interfaceType,
+        context.userId,
+      );
       const helpText = [
         "Available commands:",
         "",
@@ -392,7 +392,10 @@ export abstract class MessageInterfacePlugin<
       };
     }
 
-    const commands = await pluginContext.listCommands(context.userPermissionLevel);
+    const commands = await pluginContext.listCommands(
+      context.interfaceType,
+      context.userId,
+    );
     const commandDef = commands.find((c) => c.name === cmd);
 
     if (commandDef) {

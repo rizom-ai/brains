@@ -16,6 +16,7 @@
     "@brains/utils": "workspace:*",
     "@brains/command-registry": "workspace:*",
     "@brains/messaging-service": "workspace:*",
+    "@brains/permission-service": "workspace:*",
     "zod": "^3.25.1"
   },
   "devDependencies": {

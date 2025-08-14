@@ -36,6 +36,7 @@ import type { ServiceRegistry } from "@brains/service-registry";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { Template } from "@brains/content-generator";
 import type { IConversationService } from "@brains/conversation-service";
+import { PermissionService } from "@brains/permission-service";
 
 import { createSilentLogger } from "@brains/utils";
 
@@ -369,6 +370,11 @@ export class MockShell implements IShell {
         // No-op for testing
       },
     };
+  }
+
+  getPermissionService(): PermissionService {
+    // Return a mock PermissionService for testing
+    return new PermissionService({});
   }
 
   async generateContent<T = unknown>(

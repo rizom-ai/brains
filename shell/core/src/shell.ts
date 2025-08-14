@@ -42,7 +42,8 @@ import {
   ContentDerivationJobHandler,
 } from "@brains/content-generator";
 import { AIService, type IAIService } from "@brains/ai-service";
-import { Logger, LogLevel, PermissionHandler } from "@brains/utils";
+import { PermissionService } from "@brains/permission-service";
+import { Logger, LogLevel } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
 import type { Template } from "@brains/content-generator";
 import type { RouteDefinition } from "@brains/view-registry";
@@ -103,6 +104,7 @@ export class Shell implements IShell {
   private readonly jobQueueWorker: JobQueueWorker;
   private readonly batchJobManager: BatchJobManager;
   private readonly jobProgressMonitor: JobProgressMonitor;
+  private readonly permissionService: PermissionService;
   private initialized = false;
 
   /**
@@ -149,7 +151,8 @@ export class Shell implements IShell {
     const entityRegistry = EntityRegistry.createFresh(logger);
     const messageBus = MessageBus.createFresh(logger);
     const pluginManager = PluginManager.createFresh(serviceRegistry, logger);
-    const commandRegistry = CommandRegistry.createFresh(logger);
+    const permissionService = new PermissionService(fullConfig.permissions);
+    const commandRegistry = CommandRegistry.createFresh(logger, permissionService);
     const mcpService = MCPService.createFresh(messageBus, logger);
 
     // Merge fresh instances with any provided dependencies (without contentGenerator yet)
@@ -225,8 +228,13 @@ export class Shell implements IShell {
     this.pluginManager =
       dependencies?.pluginManager ??
       PluginManager.getInstance(this.serviceRegistry, this.logger);
+    
+    // Initialize permission service first since CommandRegistry needs it
+    this.permissionService = new PermissionService(config.permissions);
+    
     this.commandRegistry =
-      dependencies?.commandRegistry ?? CommandRegistry.getInstance(this.logger);
+      dependencies?.commandRegistry ?? 
+      CommandRegistry.getInstance(this.logger, this.permissionService);
     this.mcpService =
       dependencies?.mcpService ??
       MCPService.getInstance(this.messageBus, this.logger);
@@ -312,6 +320,10 @@ export class Shell implements IShell {
     this.serviceRegistry.register(
       "conversationService",
       () => this.conversationService,
+    );
+    this.serviceRegistry.register(
+      "permissionService",
+      () => this.permissionService,
     );
     this.serviceRegistry.register(
       "commandRegistry",
@@ -535,7 +547,7 @@ export class Shell implements IShell {
     // Check if interface-granted permission meets template requirements
     const grantedPermission = config.interfacePermissionGrant ?? "public";
     if (
-      !PermissionHandler.canUseTemplate(
+      !PermissionService.hasPermission(
         grantedPermission,
         template.requiredPermission,
       )
@@ -657,6 +669,10 @@ export class Shell implements IShell {
 
   public getMcpTransport(): IMCPTransport {
     return this.mcpService;
+  }
+
+  public getPermissionService(): PermissionService {
+    return this.permissionService;
   }
 
   /**

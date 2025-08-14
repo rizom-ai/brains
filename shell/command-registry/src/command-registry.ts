@@ -1,5 +1,5 @@
-import type { Logger, UserPermissionLevel } from "@brains/utils";
-import { PermissionHandler } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import type { PermissionService, UserPermissionLevel } from "@brains/permission-service";
 import type { ICommandRegistry, Command, CommandInfo } from "./types";
 
 /**
@@ -12,12 +12,16 @@ export class CommandRegistry implements ICommandRegistry {
   private commands: Map<string, { command: Command; pluginId: string }> =
     new Map();
   private logger: Logger;
+  private permissionService: PermissionService;
 
   /**
    * Get the singleton instance of CommandRegistry
    */
-  public static getInstance(logger: Logger): CommandRegistry {
-    CommandRegistry.instance ??= new CommandRegistry(logger);
+  public static getInstance(
+    logger: Logger,
+    permissionService: PermissionService,
+  ): CommandRegistry {
+    CommandRegistry.instance ??= new CommandRegistry(logger, permissionService);
     return CommandRegistry.instance;
   }
 
@@ -31,15 +35,19 @@ export class CommandRegistry implements ICommandRegistry {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(logger: Logger): CommandRegistry {
-    return new CommandRegistry(logger);
+  public static createFresh(
+    logger: Logger,
+    permissionService: PermissionService,
+  ): CommandRegistry {
+    return new CommandRegistry(logger, permissionService);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(logger: Logger) {
+  private constructor(logger: Logger, permissionService: PermissionService) {
     this.logger = logger.child("CommandRegistry");
+    this.permissionService = permissionService;
     this.logger.debug("CommandRegistry initialized with direct registration");
   }
 
@@ -62,10 +70,15 @@ export class CommandRegistry implements ICommandRegistry {
   /**
    * List all registered commands (metadata only), filtered by user permissions
    */
-  public listCommands(userPermissionLevel?: UserPermissionLevel): CommandInfo[] {
+  public listCommands(interfaceType: string, userId: string): CommandInfo[] {
+    // Determine permission level using centralized service
+    const userPermissionLevel = this.permissionService.determineUserLevel(
+      interfaceType,
+      userId,
+    );
+
     return Array.from(this.commands.values())
       .filter((entry) => {
-        if (!userPermissionLevel) return true; // No filtering if no permission level provided
         return this.hasCommandPermission(userPermissionLevel, entry.command);
       })
       .map((entry) => {
@@ -86,10 +99,20 @@ export class CommandRegistry implements ICommandRegistry {
   /**
    * Find a command by name (returns first match), filtered by user permissions
    */
-  public findCommand(commandName: string, userPermissionLevel?: UserPermissionLevel): Command | undefined {
+  public findCommand(
+    commandName: string,
+    interfaceType: string,
+    userId: string,
+  ): Command | undefined {
+    // Determine permission level using centralized service
+    const userPermissionLevel = this.permissionService.determineUserLevel(
+      interfaceType,
+      userId,
+    );
+
     for (const entry of this.commands.values()) {
       if (entry.command.name === commandName) {
-        if (!userPermissionLevel || this.hasCommandPermission(userPermissionLevel, entry.command)) {
+        if (this.hasCommandPermission(userPermissionLevel, entry.command)) {
           return entry.command;
         }
       }
@@ -109,9 +132,12 @@ export class CommandRegistry implements ICommandRegistry {
   /**
    * Check if user has permission to access a command
    */
-  private hasCommandPermission(userLevel: UserPermissionLevel, command: Command): boolean {
+  private hasCommandPermission(
+    userLevel: UserPermissionLevel,
+    command: Command,
+  ): boolean {
     const requiredLevel = command.visibility ?? "anchor"; // Default to "anchor" for safety
-    return PermissionHandler.hasPermission(userLevel, requiredLevel);
+    return this.permissionService.hasPermission(userLevel, requiredLevel);
   }
 
   /**

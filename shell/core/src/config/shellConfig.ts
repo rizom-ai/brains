@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Plugin } from "@brains/plugins";
 import { pluginMetadataSchema } from "@brains/plugins";
+import type { PermissionConfig } from "@brains/permission-service";
 import { mkdir } from "fs/promises";
 
 /**
@@ -103,6 +104,7 @@ export const shellConfigSchema = z.object({
 
 export type ShellConfig = z.infer<typeof shellConfigSchema> & {
   plugins: Plugin[];
+  permissions: PermissionConfig;
 };
 
 /**
@@ -136,6 +138,7 @@ export function createShellConfig(
     },
     features: {},
     plugins: overrides.plugins ?? [],
+    permissions: overrides.permissions ?? {}, // Default to empty permissions
   };
 
   // Validate schema and return with plugins
@@ -143,5 +146,6 @@ export function createShellConfig(
   return {
     ...validated,
     plugins: config.plugins,
+    permissions: config.permissions,
   };
 }

@@ -39,10 +39,6 @@ export const matrixConfigSchema = z.object({
     .string()
     .regex(/^@.+:.+$/)
     .describe("Matrix user ID"),
-  anchorUserId: z
-    .string()
-    .regex(/^@.+:.+$/)
-    .describe("Primary user with full access"),
 
   // Optional fields
   deviceId: z.string().optional().describe("Device ID for E2E encryption"),
@@ -54,10 +50,6 @@ export const matrixConfigSchema = z.object({
     .describe("Directory for crypto storage"),
 
   // Permission System
-  trustedUsers: z
-    .array(z.string().regex(/^@.+:.+$/))
-    .optional()
-    .describe("Additional trusted users"),
   publicToolsOnly: z.boolean().describe("Force public-only mode"),
 
   // Features

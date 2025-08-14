@@ -29,7 +29,10 @@ const permissionService = new PermissionService({
 });
 
 // Check user permission
-const level = permissionService.determineUserLevel("matrix", "@user:example.org");
+const level = permissionService.determineUserLevel(
+  "matrix",
+  "@user:example.org",
+);
 console.log(level); // "public", "trusted", or "anchor"
 ```
 
@@ -40,13 +43,14 @@ console.log(level); // "public", "trusted", or "anchor"
 User IDs are prefixed with the interface type: `{interface}:{userId}`
 
 Examples:
+
 - `matrix:@admin:example.org`
 - `cli:admin-user`
 - `discord:user#1234`
 
 ### Permission Rules
 
-Rules support wildcard (*) matching and are evaluated in order:
+Rules support wildcard (\*) matching and are evaluated in order:
 
 ```typescript
 {
@@ -58,7 +62,7 @@ Rules support wildcard (*) matching and are evaluated in order:
 ## Permission Levels
 
 1. **anchor**: Full system access
-2. **trusted**: Limited administrative access  
+2. **trusted**: Limited administrative access
 3. **public**: Basic user access (default)
 
 ## API Reference
@@ -66,9 +70,11 @@ Rules support wildcard (*) matching and are evaluated in order:
 ### PermissionService
 
 #### Constructor
+
 - `new PermissionService(config: PermissionConfig)`
 
 #### Methods
+
 - `determineUserLevel(interfaceType: string, userId: string): UserPermissionLevel`
 - `addAnchor(interfaceType: string, userId: string): void`
 - `addTrusted(interfaceType: string, userId: string): void`

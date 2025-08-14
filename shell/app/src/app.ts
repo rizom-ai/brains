@@ -56,6 +56,10 @@ export class App {
         shellConfig.logging = { level: config.logLevel, context: config.name };
       }
 
+      if (config.permissions) {
+        shellConfig.permissions = config.permissions;
+      }
+
       this.shell = Shell.createFresh(shellConfig);
     }
   }

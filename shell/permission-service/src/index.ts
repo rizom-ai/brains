@@ -1,2 +1,10 @@
-export { PermissionService } from "./permission-service";
-export type { PermissionConfig, PermissionRule } from "./permission-service";
+export { 
+  PermissionService,
+  UserPermissionLevelSchema,
+} from "./permission-service";
+export type { 
+  PermissionConfig, 
+  PermissionRule,
+  UserPermissionLevel,
+  WithVisibility,
+} from "./permission-service";

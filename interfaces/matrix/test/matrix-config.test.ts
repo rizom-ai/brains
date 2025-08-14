@@ -9,7 +9,6 @@ describe("MatrixConfig", () => {
         homeserver: "https://matrix.example.org",
         accessToken: "test-token",
         userId: "@bot:example.org",
-        anchorUserId: "@admin:example.org",
       };
 
       const result = matrixConfigSchema.safeParse(config);
@@ -18,7 +17,6 @@ describe("MatrixConfig", () => {
         expect(result.data.homeserver).toBe("https://matrix.example.org");
         expect(result.data.accessToken).toBe("test-token");
         expect(result.data.userId).toBe("@bot:example.org");
-        expect(result.data.anchorUserId).toBe("@admin:example.org");
       }
     });
 
@@ -28,7 +26,6 @@ describe("MatrixConfig", () => {
         homeserver: "not-a-url",
         accessToken: "test-token",
         userId: "@bot:example.org",
-        anchorUserId: "@admin:example.org",
       };
 
       const result = matrixConfigSchema.safeParse(config);
@@ -41,7 +38,6 @@ describe("MatrixConfig", () => {
         homeserver: "https://matrix.example.org",
         accessToken: "test-token",
         userId: "invalid-user-id",
-        anchorUserId: "@admin:example.org",
       };
 
       const result = matrixConfigSchema.safeParse(config);
@@ -54,7 +50,6 @@ describe("MatrixConfig", () => {
         homeserver: "https://matrix.example.org",
         accessToken: "test-token",
         userId: "@bot:example.org",
-        anchorUserId: "@admin:example.org",
       };
 
       // This is how the plugin actually uses it
@@ -77,12 +72,10 @@ describe("MatrixConfig", () => {
         homeserver: "https://matrix.example.org",
         accessToken: "test-token",
         userId: "@bot:example.org",
-        anchorUserId: "@admin:example.org",
         deviceId: "DEVICE123",
         deviceDisplayName: "Test Bot",
         storageDir: "./test-storage",
         cryptoStorageDir: "./test-crypto",
-        trustedUsers: ["@trusted1:example.org", "@trusted2:example.org"],
         publicToolsOnly: false,
         autoJoinRooms: true,
         enableEncryption: true,
@@ -103,10 +96,6 @@ describe("MatrixConfig", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.deviceId).toBe("DEVICE123");
-        expect(result.data.trustedUsers).toEqual([
-          "@trusted1:example.org",
-          "@trusted2:example.org",
-        ]);
         expect(result.data.maxContextMessages).toBe(20);
       }
     });

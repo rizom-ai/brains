@@ -319,6 +319,7 @@
         "@brains/core": "workspace:*",
         "@brains/matrix": "workspace:*",
         "@brains/mcp": "workspace:*",
+        "@brains/permission-service": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.25.1",
       },
@@ -333,6 +334,7 @@
       "name": "@brains/command-registry",
       "version": "0.1.0",
       "dependencies": {
+        "@brains/permission-service": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.25.1",
       },
@@ -386,6 +388,7 @@
         "@brains/entity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/messaging-service": "workspace:*",
+        "@brains/permission-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/service-registry": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -500,12 +503,27 @@
         "typescript": "^5.3.3",
       },
     },
+    "shell/permission-service": {
+      "name": "@brains/permission-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shell/plugins": {
       "name": "@brains/plugins",
       "version": "1.0.0",
       "dependencies": {
         "@brains/command-registry": "workspace:*",
         "@brains/messaging-service": "workspace:*",
+        "@brains/permission-service": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.25.1",
       },
@@ -618,6 +636,8 @@
     "@brains/mcp-service": ["@brains/mcp-service@workspace:shell/mcp-service"],
 
     "@brains/messaging-service": ["@brains/messaging-service@workspace:shell/messaging-service"],
+
+    "@brains/permission-service": ["@brains/permission-service@workspace:shell/permission-service"],
 
     "@brains/plugins": ["@brains/plugins@workspace:shell/plugins"],
 

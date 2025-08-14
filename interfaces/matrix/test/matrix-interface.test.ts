@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { MatrixInterface } from "../src";
 import { createInterfacePluginHarness } from "@brains/plugins";
 import type { PluginTestHarness } from "@brains/plugins";
+import { PermissionService } from "@brains/permission-service";
 
 // Access the global mocks
 const mockMatrixClient = globalThis.mockMatrixClient;
@@ -13,7 +14,6 @@ describe("MatrixInterface", () => {
     homeserver: string;
     accessToken: string;
     userId: string;
-    anchorUserId: string;
     [key: string]: unknown;
   };
   let harness: PluginTestHarness<MatrixInterface>;
@@ -42,11 +42,19 @@ describe("MatrixInterface", () => {
       homeserver: "https://matrix.example.org",
       accessToken: "test-token",
       userId: "@bot:example.org",
-      anchorUserId: "@admin:example.org",
     };
 
-    // Create plugin harness
+    // Create plugin harness with permission configuration
     harness = createInterfacePluginHarness<MatrixInterface>();
+    
+    // Configure mock shell with permissions
+    const mockShell = harness.getShell();
+    mockShell.getPermissionService = () => {
+      return new PermissionService({
+        anchors: ["matrix:@admin:example.org"],
+        trusted: ["matrix:@trusted:example.org"],
+      });
+    };
   });
 
   describe("Initialization", () => {
@@ -207,7 +215,6 @@ describe("MatrixInterface", () => {
       expect(mockMatrixClient.setTyping).toHaveBeenCalled();
     });
 
-
     it("should use default processQuery without interface permission grants", async () => {
       // Create a fresh Matrix interface for this test
       const testInterface = new MatrixInterface(config);
@@ -274,17 +281,12 @@ describe("MatrixInterface", () => {
     });
   });
 
-  describe("Permission handling", () => {
+  describe("User ID passing", () => {
     let matrixInterface: MatrixInterface;
     let messageHandler: (roomId: string, event: unknown) => void;
 
     beforeEach(async () => {
-      const configWithTrusted = {
-        ...config,
-        trustedUsers: ["@trusted:example.org"],
-      };
-
-      matrixInterface = new MatrixInterface(configWithTrusted);
+      matrixInterface = new MatrixInterface(config);
 
       await harness.installPlugin(matrixInterface);
 
@@ -300,12 +302,12 @@ describe("MatrixInterface", () => {
       ) => void;
     });
 
-    it("should identify anchor user correctly", async () => {
+    it("should pass userId and interfaceType to shell for permission determination", async () => {
       const event = {
-        sender: "@admin:example.org",
+        sender: "@user:example.org",
         content: {
           msgtype: "m.text",
-          body: "test",
+          body: "!help",
           "m.mentions": {
             user_ids: ["@bot:example.org"],
           },
@@ -316,27 +318,8 @@ describe("MatrixInterface", () => {
       messageHandler("!room:example.org", event);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // Anchor user messages are processed, so typing should be called
-      expect(mockMatrixClient.setTyping).toHaveBeenCalled();
-    });
-
-    it("should identify trusted user correctly", async () => {
-      const event = {
-        sender: "@trusted:example.org",
-        content: {
-          msgtype: "m.text",
-          body: "test",
-          "m.mentions": {
-            user_ids: ["@bot:example.org"],
-          },
-        },
-        event_id: "event_123",
-      };
-
-      messageHandler("!room:example.org", event);
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      // Trusted user messages are processed, so typing should be called
+      // The interface should process the message regardless of who sent it
+      // Permission checks happen at the Shell level
       expect(mockMatrixClient.setTyping).toHaveBeenCalled();
     });
   });
@@ -364,7 +347,7 @@ describe("MatrixInterface", () => {
       inviteHandler = inviteCall[1] as (roomId: string, event: unknown) => void;
     });
 
-    it("should accept invites from anchor user", async () => {
+    it("should accept invites from anchor user (via centralized permissions)", async () => {
       const event = {
         sender: "@admin:example.org",
       };
@@ -372,12 +355,13 @@ describe("MatrixInterface", () => {
       inviteHandler("!room:example.org", event);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
+      // The mock PermissionService is configured with @admin:example.org as anchor
       expect(mockMatrixClient.joinRoom).toHaveBeenCalledWith(
         "!room:example.org",
       );
     });
 
-    it("should ignore invites from non-anchor users", async () => {
+    it("should ignore invites from non-anchor users (via centralized permissions)", async () => {
       const event = {
         sender: "@random:example.org",
       };
@@ -385,8 +369,8 @@ describe("MatrixInterface", () => {
       inviteHandler("!room:example.org", event);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
+      // The mock PermissionService doesn't have @random:example.org as anchor
       expect(mockMatrixClient.joinRoom).not.toHaveBeenCalled();
     });
   });
-
 });
