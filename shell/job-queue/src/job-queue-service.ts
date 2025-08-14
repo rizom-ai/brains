@@ -26,7 +26,7 @@ export class JobQueueService implements IJobQueueService {
    * Get the singleton instance
    */
   public static getInstance(
-    config?: JobQueueDbConfig,
+    config: JobQueueDbConfig,
     logger?: Logger,
   ): JobQueueService {
     if (!JobQueueService.instance) {
@@ -52,7 +52,7 @@ export class JobQueueService implements IJobQueueService {
    * Create a fresh instance without affecting the singleton
    */
   public static createFresh(
-    config?: JobQueueDbConfig,
+    config: JobQueueDbConfig,
     logger?: Logger,
   ): JobQueueService {
     return new JobQueueService(config, logger ?? Logger.getInstance());
@@ -61,7 +61,7 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(config?: JobQueueDbConfig, logger?: Logger) {
+  private constructor(config: JobQueueDbConfig, logger?: Logger) {
     const { db, client, url } = createJobQueueDatabase(config);
     this.db = db;
     this.client = client;

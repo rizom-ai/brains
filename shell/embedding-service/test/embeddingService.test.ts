@@ -45,33 +45,53 @@ describe("EmbeddingService", () => {
 
   describe("Component Interface Standardization", () => {
     it("should implement singleton pattern", () => {
-      const instance1 = EmbeddingService.getInstance(logger);
-      const instance2 = EmbeddingService.getInstance(logger);
+      const instance1 = EmbeddingService.getInstance(
+        logger,
+        "./cache/embeddings",
+      );
+      const instance2 = EmbeddingService.getInstance(
+        logger,
+        "./cache/embeddings",
+      );
 
       expect(instance1).toBe(instance2);
     });
 
     it("should reset instance", () => {
-      const instance1 = EmbeddingService.getInstance(logger);
+      const instance1 = EmbeddingService.getInstance(
+        logger,
+        "./cache/embeddings",
+      );
 
       EmbeddingService.resetInstance();
 
-      const instance2 = EmbeddingService.getInstance(logger);
+      const instance2 = EmbeddingService.getInstance(
+        logger,
+        "./cache/embeddings",
+      );
       expect(instance1).not.toBe(instance2);
     });
 
     it("should create fresh instance without affecting singleton", () => {
-      const singleton = EmbeddingService.getInstance(logger);
-      const fresh = EmbeddingService.createFresh(logger);
+      const singleton = EmbeddingService.getInstance(
+        logger,
+        "./cache/embeddings",
+      );
+      const fresh = EmbeddingService.createFresh(logger, "./cache/embeddings");
 
       expect(fresh).not.toBe(singleton);
-      expect(EmbeddingService.getInstance(logger)).toBe(singleton);
+      expect(EmbeddingService.getInstance(logger, "./cache/embeddings")).toBe(
+        singleton,
+      );
     });
   });
 
   describe("Initialization", () => {
     it("should initialize model on first use", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       await service.generateEmbedding("test");
 
@@ -85,7 +105,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should only initialize once", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       await service.generateEmbedding("test1");
       await service.generateEmbedding("test2");
@@ -94,9 +117,11 @@ describe("EmbeddingService", () => {
       expect(fastembed.FlagEmbedding.init).toHaveBeenCalledTimes(1);
     });
 
-
     it("should handle initialization errors", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
       const error = new Error("Model loading failed");
 
       (
@@ -109,7 +134,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle concurrent initialization requests", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       // Delay the initialization to test concurrent calls
       (
@@ -137,7 +165,10 @@ describe("EmbeddingService", () => {
 
   describe("Single Embedding Generation", () => {
     it("should generate embedding for text", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       const embedding = await service.generateEmbedding("Hello, world!");
 
@@ -149,7 +180,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle empty text", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       const embedding = await service.generateEmbedding("");
 
@@ -158,7 +192,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle very long text", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
       const longText = "x".repeat(1000);
 
       const embedding = await service.generateEmbedding(longText);
@@ -168,7 +205,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle special characters", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
       const specialText = "Hello 👋 World 🌍 with émojis and spëcial çhars!";
 
       const embedding = await service.generateEmbedding(specialText);
@@ -178,7 +218,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should throw if no embedding is generated", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       // Mock embed to return empty batch
       (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
@@ -199,7 +242,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should validate embedding dimensions", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       // Mock embed to return wrong dimensions
       (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
@@ -220,7 +266,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle generation errors", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
         (): AsyncGenerator<number[][], void, unknown> => {
@@ -236,7 +285,10 @@ describe("EmbeddingService", () => {
 
   describe("Batch Embedding Generation", () => {
     it("should generate embeddings for multiple texts", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
       const texts = ["Hello", "World", "Test"];
 
       const embeddings = await service.generateEmbeddings(texts);
@@ -251,7 +303,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle empty array", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       const embeddings = await service.generateEmbeddings([]);
 
@@ -259,7 +314,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle single text in batch", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       const embeddings = await service.generateEmbeddings(["single"]);
 
@@ -268,7 +326,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle large batches", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
       const texts = Array(100).fill("text");
 
       // Mock to return embeddings in multiple batches
@@ -294,7 +355,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle batch generation errors", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
         (): AsyncGenerator<number[][], void, unknown> => {
@@ -312,7 +376,10 @@ describe("EmbeddingService", () => {
 
   describe("Edge Cases", () => {
     it("should throw if model is not initialized", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
 
       // Mock init to return null model
       (
@@ -325,7 +392,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle Unicode text correctly", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
       const unicodeText = "Hello 世界 مرحبا мир";
 
       const embedding = await service.generateEmbedding(unicodeText);
@@ -335,7 +405,10 @@ describe("EmbeddingService", () => {
     });
 
     it("should handle newlines and whitespace", async () => {
-      const service = EmbeddingService.createFresh(logger);
+      const service = EmbeddingService.createFresh(
+        logger,
+        "./cache/embeddings",
+      );
       const textWithWhitespace = "Line 1\n\nLine 2\t\tTabbed";
 
       const embedding = await service.generateEmbedding(textWithWhitespace);

@@ -46,9 +46,7 @@ describe("App Integration", () => {
           conversationDatabase: {
             url: `file:${join(tempDir, "conversation.db")}`,
           },
-          features: {
-            enablePlugins: false,
-          },
+          features: {},
         },
         {
           aiService: createMockAIService(),
@@ -88,9 +86,7 @@ describe("App Integration", () => {
           conversationDatabase: {
             url: `file:${join(tempDir, "conversation.db")}`,
           },
-          features: {
-            enablePlugins: false,
-          },
+          features: {},
         },
         {
           aiService: createMockAIService(),
@@ -138,9 +134,7 @@ describe("App Integration", () => {
           conversationDatabase: {
             url: `file:${join(tempDir, "conversation.db")}`,
           },
-          features: {
-            enablePlugins: false,
-          },
+          features: {},
         },
         {
           aiService: createMockAIService(),

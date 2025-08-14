@@ -18,7 +18,16 @@
 // Re-export only the main Shell class as it's the primary entry point
 export { Shell } from "./shell";
 
-// Re-export essential types that don't trigger side effects
+// Re-export configuration functions and types
+export {
+  getStandardConfig,
+  getStandardConfigWithDirectories,
+  STANDARD_PATHS,
+  createShellConfig,
+  shellConfigSchema,
+} from "./config";
 export type { ShellConfig } from "./config";
+
+// Re-export essential types that don't trigger side effects
 export type { IEmbeddingService } from "@brains/embedding-service";
 export type { SerializableEntity, SerializableQueryResult } from "./types";

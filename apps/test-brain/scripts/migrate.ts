@@ -7,38 +7,22 @@ import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue";
 import { migrateConversations } from "@brains/conversation-service";
 import { Logger } from "@brains/utils";
+import { getStandardConfigWithDirectories } from "@brains/core";
 
-// Define database URLs matching the shell defaults
-const DATABASE_URL = "file:./brain.db";
-const JOB_QUEUE_DATABASE_URL = "file:./brain-jobs.db";
-const CONVERSATION_DATABASE_URL = "file:./conversations.db";
+// Get standard configuration
+const config = await getStandardConfigWithDirectories();
 
 // Create logger
 const logger = Logger.getInstance();
 
 // Run entity migrations
 logger.info("Running entity database migrations...");
-await migrateEntities(
-  {
-    url: DATABASE_URL,
-  },
-  logger,
-);
+await migrateEntities(config.database, logger);
 
 // Run job queue migrations
 logger.info("Running job queue database migrations...");
-await migrateJobQueue(
-  {
-    url: JOB_QUEUE_DATABASE_URL,
-  },
-  logger,
-);
+await migrateJobQueue(config.jobQueueDatabase, logger);
 
 // Run conversation migrations
 logger.info("Running conversation database migrations...");
-await migrateConversations(
-  {
-    url: CONVERSATION_DATABASE_URL,
-  },
-  logger,
-);
+await migrateConversations(config.conversationDatabase, logger);

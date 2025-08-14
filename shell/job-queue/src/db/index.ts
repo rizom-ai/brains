@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "../schema/job-queue";
 
 export interface JobQueueDbConfig {
-  url?: string;
+  url: string; // Now required - no default
   authToken?: string;
 }
 
@@ -11,14 +11,14 @@ export type JobQueueDB = ReturnType<typeof drizzle>;
 
 /**
  * Create a job queue database connection
- * Defaults to a local file database if no URL is provided
+ * Config is now required - use createShellServiceConfig() for standard paths
  */
-export function createJobQueueDatabase(config: JobQueueDbConfig = {}): {
+export function createJobQueueDatabase(config: JobQueueDbConfig): {
   db: JobQueueDB;
   client: Client;
   url: string;
 } {
-  const url = config.url ?? "file:./data/brain-jobs.db";
+  const url = config.url;
 
   const authToken =
     config.authToken ?? process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"];

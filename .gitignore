@@ -192,6 +192,7 @@ brain.db
 
 # Data directories
 data/
+cache/
 
 # direnv
 .envrc

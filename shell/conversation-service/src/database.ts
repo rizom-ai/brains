@@ -4,7 +4,7 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "./schema";
 
 export interface ConversationDbConfig {
-  url?: string;
+  url: string; // Now required - no default
   authToken?: string;
 }
 
@@ -12,14 +12,14 @@ export type ConversationDB = LibSQLDatabase<typeof schema>;
 
 /**
  * Create a conversation database connection
- * Defaults to a local file database if no URL is provided
+ * Config is now required - use createShellServiceConfig() for standard paths
  */
-export function createConversationDatabase(config: ConversationDbConfig = {}): {
+export function createConversationDatabase(config: ConversationDbConfig): {
   db: ConversationDB;
   client: Client;
   url: string;
 } {
-  const url = config.url ?? "file:./data/conversations.db";
+  const url = config.url;
 
   const authToken =
     config.authToken ?? process.env["CONVERSATION_DATABASE_AUTH_TOKEN"];

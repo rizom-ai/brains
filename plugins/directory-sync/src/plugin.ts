@@ -15,7 +15,7 @@ import packageJson from "../package.json";
 
 const DIRECTORY_SYNC_CONFIG_DEFAULTS = {
   syncPath: "./brain-data",
-  watchEnabled: false,
+  watchEnabled: true,
   watchInterval: 1000,
   includeMetadata: true,
 } as const;

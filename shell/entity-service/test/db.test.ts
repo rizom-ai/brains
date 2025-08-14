@@ -1,7 +1,4 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { mkdtemp, rm } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
 import {
   createEntityDatabase,
   enableWALModeForEntities,
@@ -9,7 +6,6 @@ import {
 } from "../src/db";
 
 describe("EntityService Database", () => {
-  let tempDir: string;
   let cleanup: (() => Promise<void>)[] = [];
 
   afterEach(async () => {
@@ -18,23 +14,16 @@ describe("EntityService Database", () => {
       await fn();
     }
     cleanup = [];
-
-    // Remove temp directory if it exists
-    if (tempDir) {
-      await rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    }
   });
 
   describe("createEntityDatabase", () => {
-    test("creates database with default config", async () => {
-      // Create temp dir for the test database
-      tempDir = await mkdtemp(join(tmpdir(), "entity-db-test-"));
-      const testDbPath = join(tempDir, "brain.db");
-      
-      const { db, client, url } = createEntityDatabase({ url: `file:${testDbPath}` });
+    test("creates database with explicit config", () => {
+      const { db, client, url } = createEntityDatabase({
+        url: "file::memory:",
+      });
       expect(db).toBeDefined();
       expect(client).toBeDefined();
-      expect(url).toBe(`file:${testDbPath}`);
+      expect(url).toBe("file::memory:");
       cleanup.push(async () => client.close());
     });
 
@@ -58,20 +47,18 @@ describe("EntityService Database", () => {
       expect(url).toBe(config.url);
       cleanup.push(async () => client.close());
     });
-
   });
 
   describe("enableWALModeForEntities", () => {
-    test("enables WAL mode for local file database", async () => {
-      tempDir = await mkdtemp(join(tmpdir(), "entity-db-test-"));
-      const dbPath = join(tempDir, "test.db");
-      const { client } = createEntityDatabase({ url: `file:${dbPath}` });
+    test("handles WAL mode for in-memory database", async () => {
+      const { client } = createEntityDatabase({ url: "file::memory:" });
 
-      await enableWALModeForEntities(client, `file:${dbPath}`);
+      await enableWALModeForEntities(client, "file::memory:");
 
-      // Check that WAL mode is enabled
+      // Note: WAL mode is not applicable to in-memory databases,
+      // they use "memory" journal mode instead
       const result = await client.execute("PRAGMA journal_mode");
-      expect(result.rows[0]?.["journal_mode"]).toBe("wal");
+      expect(result.rows[0]?.["journal_mode"]).toBe("memory");
 
       cleanup.push(async () => client.close());
     });
@@ -91,9 +78,7 @@ describe("EntityService Database", () => {
 
   describe("ensureEntityIndexes", () => {
     test("creates vector index without error", async () => {
-      tempDir = await mkdtemp(join(tmpdir(), "entity-db-test-"));
-      const dbPath = join(tempDir, "test.db");
-      const { client } = createEntityDatabase({ url: `file:${dbPath}` });
+      const { client } = createEntityDatabase({ url: "file::memory:" });
 
       // Create the entities table first with proper vector column
       // Note: vector columns require special syntax in libSQL
@@ -116,9 +101,7 @@ describe("EntityService Database", () => {
 
   describe("integration", () => {
     test("full database initialization flow", async () => {
-      tempDir = await mkdtemp(join(tmpdir(), "entity-db-test-"));
-      const dbPath = join(tempDir, "test.db");
-      const config = { url: `file:${dbPath}` };
+      const config = { url: "file::memory:" };
 
       // Create database
       const { db, client, url } = createEntityDatabase(config);

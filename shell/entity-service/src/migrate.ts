@@ -9,7 +9,7 @@ import type { EntityDbConfig } from "./db";
 import { Logger } from "@brains/utils";
 
 export async function migrateEntities(
-  config?: EntityDbConfig,
+  config: EntityDbConfig,
   logger?: Logger,
 ): Promise<void> {
   const log =
@@ -40,15 +40,12 @@ export async function migrateEntities(
   }
 }
 
-// Main function for running migrations directly
-async function main(): Promise<void> {
-  await migrateEntities();
-}
-
-// Run migrations if called directly
+// Migration scripts should only be called from app contexts,
+// not run directly. Use your app's migration script instead.
 if (import.meta.main) {
-  main().catch((error) => {
-    console.error("Migration failed:", error);
-    process.exit(1);
-  });
+  console.error("Migration scripts should not be run directly.");
+  console.error(
+    "Please use your app's migration script instead (e.g., bun run scripts/migrate.ts)",
+  );
+  process.exit(1);
 }

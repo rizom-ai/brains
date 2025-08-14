@@ -113,17 +113,10 @@ export class ShellInitializer {
   }
 
   /**
-   * Initialize plugins if enabled in configuration
+   * Initialize plugins
    */
   public async initializePlugins(pluginManager: PluginManager): Promise<void> {
-    if (!this.config.features.enablePlugins) {
-      this.logger.debug("Plugins disabled in configuration");
-      return;
-    }
-
-    this.logger.info(
-      `Plugins enabled, found ${this.config.plugins.length} plugins to register`,
-    );
+    this.logger.info(`Found ${this.config.plugins.length} plugins to register`);
 
     try {
       // Register plugins from config

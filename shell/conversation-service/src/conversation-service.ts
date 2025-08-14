@@ -38,8 +38,8 @@ export class ConversationService implements IConversationService {
    */
   public static getInstance(
     logger: Logger,
+    dbConfig: ConversationDbConfig,
     config?: ConversationServiceConfig,
-    dbConfig?: ConversationDbConfig,
   ): ConversationService {
     if (!ConversationService.instance) {
       // Create database internally

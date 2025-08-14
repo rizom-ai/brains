@@ -7,7 +7,7 @@ import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { templates, routes } from "@brains/default-site-content";
 
-// Direct configuration
+// Simple configuration - shell/core handles the standard paths
 async function main(): Promise<void> {
   await App.run({
     name: "test-brain",

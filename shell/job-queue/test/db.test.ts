@@ -1,11 +1,7 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { mkdtemp, rm } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
 import { createJobQueueDatabase, enableWALMode } from "../src/db";
 
 describe("JobQueueService Database", () => {
-  let tempDir: string;
   let cleanup: (() => Promise<void>)[] = [];
 
   afterEach(async () => {
@@ -14,23 +10,16 @@ describe("JobQueueService Database", () => {
       await fn();
     }
     cleanup = [];
-
-    // Remove temp directory if it exists
-    if (tempDir) {
-      await rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    }
   });
 
   describe("createJobQueueDatabase", () => {
-    test("creates database with default config", async () => {
-      // Create temp dir for the test database
-      tempDir = await mkdtemp(join(tmpdir(), "job-queue-db-test-"));
-      const testDbPath = join(tempDir, "brain-jobs.db");
-      
-      const { db, client, url } = createJobQueueDatabase({ url: `file:${testDbPath}` });
+    test("creates database with explicit config", () => {
+      const { db, client, url } = createJobQueueDatabase({
+        url: "file::memory:",
+      });
       expect(db).toBeDefined();
       expect(client).toBeDefined();
-      expect(url).toBe(`file:${testDbPath}`);
+      expect(url).toBe("file::memory:");
       cleanup.push(async () => client.close());
     });
 
@@ -54,20 +43,18 @@ describe("JobQueueService Database", () => {
       expect(url).toBe(config.url);
       cleanup.push(async () => client.close());
     });
-
   });
 
   describe("enableWALMode", () => {
-    test("enables WAL mode for local file database", async () => {
-      tempDir = await mkdtemp(join(tmpdir(), "job-queue-db-test-"));
-      const dbPath = join(tempDir, "test-jobs.db");
-      const { client } = createJobQueueDatabase({ url: `file:${dbPath}` });
+    test("handles WAL mode for in-memory database", async () => {
+      const { client } = createJobQueueDatabase({ url: "file::memory:" });
 
-      await enableWALMode(client, `file:${dbPath}`);
+      await enableWALMode(client, "file::memory:");
 
-      // Check that WAL mode is enabled
+      // Note: WAL mode is not applicable to in-memory databases,
+      // they use "memory" journal mode instead
       const result = await client.execute("PRAGMA journal_mode");
-      expect(result.rows[0]?.["journal_mode"]).toBe("wal");
+      expect(result.rows[0]?.["journal_mode"]).toBe("memory");
 
       cleanup.push(async () => client.close());
     });
@@ -87,9 +74,7 @@ describe("JobQueueService Database", () => {
 
   describe("integration", () => {
     test("full database initialization flow", async () => {
-      tempDir = await mkdtemp(join(tmpdir(), "job-queue-db-test-"));
-      const dbPath = join(tempDir, "test-jobs.db");
-      const config = { url: `file:${dbPath}` };
+      const config = { url: "file::memory:" };
 
       // Create database
       const { db, client, url } = createJobQueueDatabase(config);

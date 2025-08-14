@@ -52,7 +52,7 @@ export interface EntityServiceOptions {
   entityRegistry?: EntityRegistry;
   logger?: Logger;
   jobQueueService?: JobQueueService;
-  dbConfig?: EntityDbConfig;
+  dbConfig: EntityDbConfig;
 }
 
 /**

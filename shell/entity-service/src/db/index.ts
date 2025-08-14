@@ -4,7 +4,7 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "../schema/entities";
 
 export interface EntityDbConfig {
-  url?: string;
+  url: string; // Now required - no default
   authToken?: string;
 }
 
@@ -12,14 +12,14 @@ export type EntityDB = LibSQLDatabase<typeof schema>;
 
 /**
  * Create an entity database connection
- * Defaults to a local file database if no URL is provided
+ * Config is now required - use createShellServiceConfig() for standard paths
  */
-export function createEntityDatabase(config: EntityDbConfig = {}): {
+export function createEntityDatabase(config: EntityDbConfig): {
   db: EntityDB;
   client: Client;
   url: string;
 } {
-  const url = config.url ?? "file:./data/brain.db";
+  const url = config.url;
   const authToken = config.authToken ?? process.env["DATABASE_AUTH_TOKEN"];
 
   const client = authToken

@@ -39,10 +39,8 @@ export class App {
         shellConfig.database = { url: config.database };
       }
 
-      // Set feature flags
-      shellConfig.features = {
-        enablePlugins: true,
-      };
+      // Set feature flags (none currently)
+      shellConfig.features = {};
 
       if (config.aiApiKey) {
         shellConfig.ai = {

@@ -1,34 +1,75 @@
 import { z } from "zod";
 import type { Plugin } from "@brains/plugins";
 import { pluginMetadataSchema } from "@brains/plugins";
+import { mkdir } from "fs/promises";
+
+/**
+ * Standard directory structure - centralized in one place
+ */
+export const STANDARD_PATHS = {
+  dataDir: "./data",
+  cacheDir: "./cache",
+  distDir: "./dist",
+} as const;
+
+/**
+ * Get standard configuration with required paths
+ * This is the single source of truth for all path configuration
+ */
+export function getStandardConfig() {
+  return {
+    database: {
+      url: `file:${STANDARD_PATHS.dataDir}/brain.db`,
+      authToken: process.env["DATABASE_AUTH_TOKEN"],
+    },
+    jobQueueDatabase: {
+      url: `file:${STANDARD_PATHS.dataDir}/brain-jobs.db`,
+      authToken: process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"],
+    },
+    conversationDatabase: {
+      url: `file:${STANDARD_PATHS.dataDir}/conversations.db`,
+      authToken: process.env["CONVERSATION_DATABASE_AUTH_TOKEN"],
+    },
+    embedding: {
+      cacheDir: `${STANDARD_PATHS.cacheDir}/embeddings`,
+    },
+  };
+}
+
+/**
+ * Get standard configuration and ensure directories exist
+ * Use this for migration scripts and setup operations
+ */
+export async function getStandardConfigWithDirectories() {
+  // Ensure all directories exist
+  await mkdir(STANDARD_PATHS.dataDir, { recursive: true });
+  await mkdir(STANDARD_PATHS.cacheDir, { recursive: true });
+  await mkdir(STANDARD_PATHS.distDir, { recursive: true });
+
+  return getStandardConfig();
+}
 
 /**
  * Shell configuration schema
  */
 export const shellConfigSchema = z.object({
-  // Database configuration
-  database: z
-    .object({
-      url: z.string().default("file:./data/brain.db"),
-      authToken: z.string().optional(),
-    })
-    .default({}),
+  // Database configuration (required - no defaults)
+  database: z.object({
+    url: z.string(),
+    authToken: z.string().optional(),
+  }),
 
-  // Job Queue Database configuration
-  jobQueueDatabase: z
-    .object({
-      url: z.string().default("file:./data/brain-jobs.db"),
-      authToken: z.string().optional(),
-    })
-    .default({}),
+  // Job Queue Database configuration (required - no defaults)
+  jobQueueDatabase: z.object({
+    url: z.string(),
+    authToken: z.string().optional(),
+  }),
 
-  // Conversation Database configuration
-  conversationDatabase: z
-    .object({
-      url: z.string().default("file:./data/conversations.db"),
-      authToken: z.string().optional(),
-    })
-    .default({}),
+  // Conversation Database configuration (required - no defaults)
+  conversationDatabase: z.object({
+    url: z.string(),
+    authToken: z.string().optional(),
+  }),
 
   // AI Service configuration
   ai: z.object({
@@ -39,13 +80,11 @@ export const shellConfigSchema = z.object({
     maxTokens: z.number().positive().default(1000),
   }),
 
-  // Embedding configuration
-  embedding: z
-    .object({
-      model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
-      cacheDir: z.string().optional(),
-    })
-    .default({}),
+  // Embedding configuration (required - no defaults)
+  embedding: z.object({
+    model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
+    cacheDir: z.string(),
+  }),
 
   // Logging configuration
   logging: z
@@ -55,12 +94,8 @@ export const shellConfigSchema = z.object({
     })
     .default({}),
 
-  // Feature flags
-  features: z
-    .object({
-      enablePlugins: z.boolean().default(true),
-    })
-    .default({}),
+  // Feature flags (removed enablePlugins - it doesn't make sense)
+  features: z.object({}).default({}),
 
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),
@@ -71,48 +106,35 @@ export type ShellConfig = z.infer<typeof shellConfigSchema> & {
 };
 
 /**
- * Create a shell configuration from environment variables and overrides
+ * Create a shell configuration using standard paths
+ * Simple and direct - no excessive indirection
  */
 export function createShellConfig(
   overrides: Partial<ShellConfig> = {},
 ): ShellConfig {
-  // Build config from environment with overrides
+  // Get standard config if not provided
+  const standardConfig = getStandardConfig();
+
+  // Build config with standard values or overrides
   const config = {
-    database: {
-      url: overrides.database?.url,
-      authToken:
-        process.env["DATABASE_AUTH_TOKEN"] ?? overrides.database?.authToken,
-    },
-    jobQueueDatabase: {
-      url: overrides.jobQueueDatabase?.url,
-      authToken:
-        process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"] ??
-        overrides.jobQueueDatabase?.authToken,
-    },
-    conversationDatabase: {
-      url: overrides.conversationDatabase?.url,
-      authToken:
-        process.env["CONVERSATION_DATABASE_AUTH_TOKEN"] ??
-        overrides.conversationDatabase?.authToken,
-    },
+    database: overrides.database ?? standardConfig.database,
+    jobQueueDatabase:
+      overrides.jobQueueDatabase ?? standardConfig.jobQueueDatabase,
+    conversationDatabase:
+      overrides.conversationDatabase ?? standardConfig.conversationDatabase,
     ai: {
       provider: "anthropic" as const,
       apiKey: process.env["ANTHROPIC_API_KEY"] ?? overrides.ai?.apiKey ?? "",
-      model: overrides.ai?.model,
-      temperature: overrides.ai?.temperature,
-      maxTokens: overrides.ai?.maxTokens,
+      model: overrides.ai?.model ?? "claude-3-haiku-20240307",
+      temperature: overrides.ai?.temperature ?? 0.7,
+      maxTokens: overrides.ai?.maxTokens ?? 1000,
     },
-    embedding: {
-      model: "fast-all-MiniLM-L6-v2" as const,
-      cacheDir: overrides.embedding?.cacheDir,
-    },
+    embedding: overrides.embedding ?? standardConfig.embedding,
     logging: {
-      level: overrides.logging?.level,
-      context: overrides.logging?.context,
+      level: overrides.logging?.level ?? "info",
+      context: overrides.logging?.context ?? "shell",
     },
-    features: {
-      enablePlugins: overrides.features?.enablePlugins,
-    },
+    features: {},
     plugins: overrides.plugins ?? [],
   };
 
@@ -120,6 +142,6 @@ export function createShellConfig(
   const validated = shellConfigSchema.parse(config);
   return {
     ...validated,
-    plugins: config.plugins, // Use the plugins from config, not overrides again
+    plugins: config.plugins,
   };
 }

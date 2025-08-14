@@ -189,7 +189,10 @@ export class Shell implements IShell {
       });
 
       // Create services
-      this.embeddingService = EmbeddingService.getInstance(this.logger);
+      this.embeddingService = EmbeddingService.getInstance(
+        this.logger,
+        config.embedding.cacheDir,
+      );
       this.aiService = AIService.getInstance(config.ai, this.logger);
     } else {
       // Use injected dependencies (for testing)
@@ -202,7 +205,7 @@ export class Shell implements IShell {
 
       this.embeddingService =
         dependencies.embeddingService ??
-        EmbeddingService.getInstance(this.logger);
+        EmbeddingService.getInstance(this.logger, config.embedding.cacheDir);
       this.aiService =
         dependencies.aiService ?? AIService.getInstance(config.ai, this.logger);
     }
@@ -262,13 +265,13 @@ export class Shell implements IShell {
       dependencies?.conversationService ??
       ConversationService.getInstance(
         this.logger,
-        { workingMemorySize: 20 },
         {
           url: config.conversationDatabase.url,
           ...(config.conversationDatabase.authToken && {
             authToken: config.conversationDatabase.authToken,
           }),
         },
+        { workingMemorySize: 20 },
       );
 
     this.contentGenerator =

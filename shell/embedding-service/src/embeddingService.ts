@@ -11,6 +11,7 @@ export class EmbeddingService implements IEmbeddingService {
   private model: FlagEmbedding | null = null;
   private initPromise: Promise<void> | null = null;
   private logger: Logger;
+  private cacheDir: string;
 
   // Model configuration - using all-MiniLM-L6-v2 for compatibility
   private static readonly MODEL_NAME = EmbeddingModel.AllMiniLML6V2;
@@ -18,9 +19,14 @@ export class EmbeddingService implements IEmbeddingService {
 
   /**
    * Get the singleton instance
+   * @param logger The logger instance
+   * @param cacheDir The cache directory for embeddings (required)
    */
-  public static getInstance(logger: Logger): EmbeddingService {
-    EmbeddingService.instance ??= new EmbeddingService(logger);
+  public static getInstance(
+    logger: Logger,
+    cacheDir: string,
+  ): EmbeddingService {
+    EmbeddingService.instance ??= new EmbeddingService(logger, cacheDir);
     return EmbeddingService.instance;
   }
 
@@ -37,16 +43,24 @@ export class EmbeddingService implements IEmbeddingService {
 
   /**
    * Create a fresh instance without affecting the singleton
+   * @param logger The logger instance
+   * @param cacheDir The cache directory for embeddings (required)
    */
-  public static createFresh(logger: Logger): EmbeddingService {
-    return new EmbeddingService(logger);
+  public static createFresh(
+    logger: Logger,
+    cacheDir: string,
+  ): EmbeddingService {
+    return new EmbeddingService(logger, cacheDir);
   }
 
   /**
    * Private constructor to enforce singleton pattern
+   * @param logger The logger instance
+   * @param cacheDir The cache directory for embeddings (required)
    */
-  private constructor(logger: Logger) {
+  private constructor(logger: Logger, cacheDir: string) {
     this.logger = logger;
+    this.cacheDir = cacheDir;
   }
 
   /**
@@ -74,14 +88,12 @@ export class EmbeddingService implements IEmbeddingService {
         `Loading embedding model: ${EmbeddingService.MODEL_NAME}`,
       );
 
-      // Create the embedding model
-      // Use system temp directory for cache to ensure it's always writable
-      const cacheDir = "./cache/embeddings";
+      // Create the embedding model using configured cache directory
 
       this.model = await FlagEmbedding.init({
         model: EmbeddingService.MODEL_NAME,
         maxLength: 512,
-        cacheDir,
+        cacheDir: this.cacheDir,
         showDownloadProgress: false,
       });
 
