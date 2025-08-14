@@ -189,4 +189,65 @@ export class App {
   public getShell(): Shell {
     return this.shell;
   }
+
+  /**
+   * Run database migrations for all shell services
+   * This centralizes migration logic that was previously duplicated in app scripts
+   */
+  public static async migrate(): Promise<void> {
+    const { getStandardConfigWithDirectories } = await import("@brains/core");
+    const { migrateEntities } = await import("@brains/entity-service/migrate");
+    const { migrateJobQueue } = await import("@brains/job-queue");
+    const { migrateConversations } = await import(
+      "@brains/conversation-service"
+    );
+    const { Logger } = await import("@brains/utils");
+
+    // Get standard configuration and ensure directories exist
+    const config = await getStandardConfigWithDirectories();
+    const logger = Logger.getInstance();
+
+    logger.info("Running database migrations...");
+
+    try {
+      // Run all migrations in sequence
+      logger.info("Running entity database migrations...");
+      await migrateEntities(
+        {
+          url: config.database.url,
+          ...(config.database.authToken && {
+            authToken: config.database.authToken,
+          }),
+        },
+        logger,
+      );
+
+      logger.info("Running job queue database migrations...");
+      await migrateJobQueue(
+        {
+          url: config.jobQueueDatabase.url,
+          ...(config.jobQueueDatabase.authToken && {
+            authToken: config.jobQueueDatabase.authToken,
+          }),
+        },
+        logger,
+      );
+
+      logger.info("Running conversation database migrations...");
+      await migrateConversations(
+        {
+          url: config.conversationDatabase.url,
+          ...(config.conversationDatabase.authToken && {
+            authToken: config.conversationDatabase.authToken,
+          }),
+        },
+        logger,
+      );
+
+      logger.info("✅ All database migrations completed successfully");
+    } catch (error) {
+      logger.error("❌ Migration failed:", error);
+      throw error;
+    }
+  }
 }
