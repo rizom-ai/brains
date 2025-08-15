@@ -4,7 +4,7 @@ Centralized permission service for determining user permission levels across all
 
 ## Overview
 
-The Permission Service provides a single source of truth for user permissions, supporting both explicit user lists and pattern-based permission rules. This eliminates the need for individual interface plugins to implement their own permission logic.
+The Permission Service provides a single source of truth for user permissions, supporting both explicit user lists and pattern-based permission rules. All interfaces (Matrix, CLI, MCP, etc.) use this centralized service rather than implementing their own permission logic.
 
 ## Features
 
@@ -16,15 +16,37 @@ The Permission Service provides a single source of truth for user permissions, s
 
 ## Usage
 
+### In App Configuration
+
+```typescript
+import { defineConfig } from "@brains/app";
+
+const config = defineConfig({
+  name: "my-brain",
+  permissions: {
+    anchors: ["matrix:@admin:example.org"],
+    trusted: ["matrix:@helper:example.org"],
+    rules: [
+      { pattern: "cli:*", level: "anchor" }, // All CLI users are anchors
+      { pattern: "mcp:stdio", level: "anchor" }, // Local MCP access
+      { pattern: "mcp:http", level: "public" }, // Remote MCP access
+      { pattern: "matrix:@*:admin.org", level: "trusted" }, // Domain-based trust
+    ],
+  },
+});
+```
+
+### Direct Usage
+
 ```typescript
 import { PermissionService } from "@brains/permission-service";
 
 const permissionService = new PermissionService({
-  anchors: ["matrix:@admin:example.org", "cli:admin"],
+  anchors: ["matrix:@admin:example.org"],
   trusted: ["matrix:@helper:example.org"],
   rules: [
-    { pattern: "cli:*", level: "anchor" }, // All CLI users are anchors
-    { pattern: "matrix:@*:admin.org", level: "trusted" }, // Domain-based trust
+    { pattern: "cli:*", level: "anchor" },
+    { pattern: "matrix:@*:admin.org", level: "trusted" },
   ],
 });
 
@@ -35,6 +57,35 @@ const level = permissionService.determineUserLevel(
 );
 console.log(level); // "public", "trusted", or "anchor"
 ```
+
+### Static Helper Methods
+
+```typescript
+// Check if a user level has permission for required visibility
+const canAccess = PermissionService.hasPermission("trusted", "anchor");
+console.log(canAccess); // false (trusted users cannot access anchor-only items)
+
+// Filter items by permission
+const items = [
+  { name: "public-tool", visibility: "public" },
+  { name: "admin-tool", visibility: "anchor" },
+];
+const filtered = PermissionService.filterByPermission(items, "trusted");
+// Returns only public-tool
+```
+
+### Transport-Based Permissions (MCP)
+
+For MCP interfaces, permissions are based on the transport type rather than individual users:
+
+```typescript
+rules: [
+  { pattern: "mcp:stdio", level: "anchor" },  // Local MCP access via stdio
+  { pattern: "mcp:http", level: "public" },   // Remote MCP access via HTTP
+]
+```
+
+The MCP interface automatically determines the transport type and uses it as the user ID.
 
 ## Configuration Format
 
@@ -73,15 +124,15 @@ Rules support wildcard (\*) matching and are evaluated in order:
 
 - `new PermissionService(config: PermissionConfig)`
 
-#### Methods
+#### Instance Methods
 
-- `determineUserLevel(interfaceType: string, userId: string): UserPermissionLevel`
-- `addAnchor(interfaceType: string, userId: string): void`
-- `addTrusted(interfaceType: string, userId: string): void`
-- `removeUser(interfaceType: string, userId: string): void`
-- `getAnchors(): string[]`
-- `getTrusted(): string[]`
-- `getRules(): PermissionRule[]`
+- `determineUserLevel(interfaceType: string, userId: string): UserPermissionLevel` - Determine permission level for a user
+- `hasPermission(userLevel: UserPermissionLevel, requiredLevel: UserPermissionLevel): boolean` - Check if user meets permission requirement
+- `filterByPermission<T>(items: T[], userLevel: UserPermissionLevel): T[]` - Filter items by user permission
+
+#### Static Methods
+
+- `hasPermission(grantedLevel: UserPermissionLevel, requiredLevel: UserPermissionLevel): boolean` - Check if a permission level meets requirements
 
 ### Types
 

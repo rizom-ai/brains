@@ -12,7 +12,7 @@ This package provides transport protocols (stdio and HTTP) for the Model Context
 - **HTTP Transport**: For web-based clients with SSE support
 - **Transport-specific logging**: stderr for STDIO, console for HTTP
 - **Session management**: For HTTP connections
-- **Permission-based access**: Different levels for different transports
+- **Transport-based permissions**: Automatic permission level based on transport type
 
 ## Installation
 
@@ -127,6 +127,28 @@ POST /mcp
 Headers: {
   "mcp-session-id": "uuid-here"
 }
+```
+
+## Permissions
+
+MCP uses transport-based permissions rather than user-based authentication:
+
+- **STDIO Transport**: Automatically granted `anchor` level (local access)
+- **HTTP Transport**: Defaults to `public` level (remote access)
+
+Configure in your app's permission settings:
+
+```typescript
+import { defineConfig } from "@brains/app";
+
+const config = defineConfig({
+  permissions: {
+    rules: [
+      { pattern: "mcp:stdio", level: "anchor" }, // Local MCP
+      { pattern: "mcp:http", level: "public" },  // Remote MCP
+    ],
+  },
+});
 ```
 
 ## Configuration
