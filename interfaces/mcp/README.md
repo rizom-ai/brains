@@ -145,7 +145,7 @@ const config = defineConfig({
   permissions: {
     rules: [
       { pattern: "mcp:stdio", level: "anchor" }, // Local MCP
-      { pattern: "mcp:http", level: "public" },  // Remote MCP
+      { pattern: "mcp:http", level: "public" }, // Remote MCP
     ],
   },
 });

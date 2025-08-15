@@ -50,12 +50,12 @@ Build a robust, extensible knowledge management platform that serves as the foun
 - [x] Async embedding generation queue ✅
 - [ ] Optimize vector search performance
 
-### 1.3 Error Handling & Monitoring
+### 1.3 Monitoring & Observability
 
-- [ ] Standardized error types across all packages
 - [x] Structured logging with log levels ✅
 - [x] Health check endpoints for MCP service ✅
 - [ ] Health check endpoints for all services
+- [ ] Metrics collection and reporting
 
 ### 1.4 App Package Refactoring
 

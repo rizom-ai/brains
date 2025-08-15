@@ -115,7 +115,6 @@ const structured = new StructuredContentFormatter().format({
 const yaml = new YamlFormatter().format(data);
 ```
 
-
 ## Progress Tracking
 
 Calculate and format progress:
@@ -248,7 +247,6 @@ const error = createErrorResponse({
 - `StructuredContentFormatter` - Sections
 - `YamlFormatter` - YAML output
 - `DefaultQueryFormatter` - Query responses
-
 
 ### Progress
 

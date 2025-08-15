@@ -80,9 +80,9 @@ For MCP interfaces, permissions are based on the transport type rather than indi
 
 ```typescript
 rules: [
-  { pattern: "mcp:stdio", level: "anchor" },  // Local MCP access via stdio
-  { pattern: "mcp:http", level: "public" },   // Remote MCP access via HTTP
-]
+  { pattern: "mcp:stdio", level: "anchor" }, // Local MCP access via stdio
+  { pattern: "mcp:http", level: "public" }, // Remote MCP access via HTTP
+];
 ```
 
 The MCP interface automatically determines the transport type and uses it as the user ID.
