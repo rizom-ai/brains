@@ -249,7 +249,6 @@ export class MockShell implements IShell {
       getConversation: async () => null,
       searchConversations: async () => [],
       getMessages: async () => [],
-      getWorkingMemory: async () => "Test working memory",
     };
   }
 

@@ -4,6 +4,7 @@ import type {
   IConversationService,
   ConversationServiceConfig,
   MessageRole,
+  GetMessagesOptions,
 } from "./types";
 import type {
   Conversation,
@@ -16,7 +17,7 @@ import { conversations, messages, summaryTracking } from "./schema";
 import type { Logger } from "@brains/utils";
 import { createId } from "@brains/utils";
 import { MessageBus } from "@brains/messaging-service";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, asc, sql } from "drizzle-orm";
 
 /**
  * Conversation Service - Core infrastructure for storing and retrieving conversations
@@ -28,7 +29,7 @@ export class ConversationService implements IConversationService {
   constructor(
     private readonly db: ConversationDB,
     private readonly logger: Logger,
-    private readonly config: ConversationServiceConfig = {},
+    _config: ConversationServiceConfig = {},
   ) {
     this.messageBus = MessageBus.getInstance(logger);
   }
@@ -212,16 +213,38 @@ export class ConversationService implements IConversationService {
   /**
    * Get messages from a conversation
    */
-  async getMessages(conversationId: string, limit = 20): Promise<Message[]> {
-    const result = await this.db
-      .select()
-      .from(messages)
-      .where(eq(messages.conversationId, conversationId))
-      .orderBy(desc(messages.timestamp))
-      .limit(limit);
+  async getMessages(
+    conversationId: string,
+    options: GetMessagesOptions = {},
+  ): Promise<Message[]> {
+    const { limit = 20, range } = options;
 
-    // Return in chronological order
-    return result.reverse();
+    if (range) {
+      // Get specific range (1-based indexing)
+      const offset = range.start - 1; // Convert to 0-based
+      const messageLimit = range.end - range.start + 1;
+
+      const result = await this.db
+        .select()
+        .from(messages)
+        .where(eq(messages.conversationId, conversationId))
+        .orderBy(asc(messages.timestamp))
+        .limit(messageLimit)
+        .offset(offset);
+
+      return result;
+    } else {
+      // Get most recent N messages (default behavior)
+      const result = await this.db
+        .select()
+        .from(messages)
+        .where(eq(messages.conversationId, conversationId))
+        .orderBy(desc(messages.timestamp))
+        .limit(limit);
+
+      // Return in chronological order
+      return result.reverse();
+    }
   }
 
   /**
@@ -259,27 +282,5 @@ export class ConversationService implements IConversationService {
       .orderBy(desc(conversations.lastActive));
 
     return results.map((r) => r.conversation);
-  }
-
-  /**
-   * Get working memory (recent messages formatted as context)
-   */
-  async getWorkingMemory(conversationId: string): Promise<string> {
-    const messages = await this.getMessages(
-      conversationId,
-      this.config.workingMemorySize ?? 20,
-    );
-
-    if (messages.length === 0) {
-      return "";
-    }
-
-    // Format messages as a conversation transcript
-    return messages
-      .map((m) => {
-        const role = m.role.charAt(0).toUpperCase() + m.role.slice(1);
-        return `${role}: ${m.content}`;
-      })
-      .join("\n\n");
   }
 }

@@ -18,7 +18,6 @@ describe("ContentGenerator", () => {
   let mockEntitySearch: ReturnType<typeof mock>;
   let mockEntityGetTypes: ReturnType<typeof mock>;
   let mockAIGenerateObject: ReturnType<typeof mock>;
-  let mockGetWorkingMemory: ReturnType<typeof mock>;
 
   beforeEach(() => {
     const mockLogger = createSilentLogger();
@@ -26,7 +25,6 @@ describe("ContentGenerator", () => {
     mockEntitySearch = mock();
     mockEntityGetTypes = mock(() => ["note", "link", "project"]);
     mockAIGenerateObject = mock();
-    mockGetWorkingMemory = mock(() => Promise.resolve(""));
 
     const mockEntityService = {
       search: mockEntitySearch,
@@ -37,11 +35,16 @@ describe("ContentGenerator", () => {
       generateObject: mockAIGenerateObject,
     };
 
+    const mockGetMessages = mock();
+    mockGetMessages.mockResolvedValue([
+      { role: "user", content: "Test message 1" },
+      { role: "assistant", content: "Test response 1" },
+    ]);
+
     const mockConversationService = {
-      getWorkingMemory: mockGetWorkingMemory,
       startConversation: mock(),
       addMessage: mock(),
-      getMessages: mock(),
+      getMessages: mockGetMessages,
       getConversation: mock(),
       searchConversations: mock(),
     };
@@ -86,17 +89,20 @@ describe("ContentGenerator", () => {
     });
 
     it("should include conversation context when conversationId is provided", async () => {
-      mockGetWorkingMemory.mockResolvedValue(
-        "User: Hello\n\nAssistant: Hi there!",
+      mockDependencies.conversationService.getMessages = mock(() =>
+        Promise.resolve([
+          { role: "user", content: "Hello" },
+          { role: "assistant", content: "Hi there!" },
+        ]),
       );
 
       await contentGenerator.generateContent("test-template", {
         conversationId: "test-conversation-123",
       });
 
-      expect(mockGetWorkingMemory).toHaveBeenCalledWith(
-        "test-conversation-123",
-      );
+      expect(
+        mockDependencies.conversationService.getMessages,
+      ).toHaveBeenCalledWith("test-conversation-123", { limit: 20 });
       expect(mockAIGenerateObject).toHaveBeenCalledWith(
         "Generate test content",
         expect.stringContaining(
@@ -107,8 +113,8 @@ describe("ContentGenerator", () => {
     });
 
     it("should handle missing conversation context gracefully", async () => {
-      mockGetWorkingMemory.mockRejectedValue(
-        new Error("Conversation not found"),
+      mockDependencies.conversationService.getMessages = mock(() =>
+        Promise.reject(new Error("Conversation not found")),
       );
 
       const result = await contentGenerator.generateContent("test-template", {
@@ -116,9 +122,9 @@ describe("ContentGenerator", () => {
       });
 
       // Should still generate content without conversation context
-      expect(mockGetWorkingMemory).toHaveBeenCalledWith(
-        "non-existent-conversation",
-      );
+      expect(
+        mockDependencies.conversationService.getMessages,
+      ).toHaveBeenCalledWith("non-existent-conversation", { limit: 20 });
       expect(mockAIGenerateObject).toHaveBeenCalledWith(
         "Generate test content",
         "Generate test content", // No conversation context added

@@ -4,7 +4,10 @@ import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { ContentGenerator as IContentGenerator } from "./types";
-import type { IConversationService } from "@brains/conversation-service";
+import type {
+  IConversationService,
+  Message,
+} from "@brains/conversation-service";
 
 /**
  * Progress information for content generation operations
@@ -253,6 +256,23 @@ export class ContentGenerator implements IContentGenerator {
   }
 
   /**
+   * Format messages as conversation context for AI prompts
+   */
+  private formatMessagesAsContext(messages: Message[]): string {
+    if (messages.length === 0) {
+      return "";
+    }
+
+    // Format messages as a conversation transcript
+    return messages
+      .map((m) => {
+        const role = m.role.charAt(0).toUpperCase() + m.role.slice(1);
+        return `${role}: ${m.content}`;
+      })
+      .join("\n\n");
+  }
+
+  /**
    * Build enhanced prompt with context from template, user context, entities, and conversation
    */
   private async buildPrompt<T>(
@@ -273,10 +293,13 @@ export class ContentGenerator implements IContentGenerator {
       context.conversationId !== "default"
     ) {
       try {
-        const workingMemory =
-          await this.dependencies.conversationService.getWorkingMemory(
+        const messages =
+          await this.dependencies.conversationService.getMessages(
             context.conversationId,
+            { limit: 20 }, // Get last 20 messages for context
           );
+
+        const workingMemory = this.formatMessagesAsContext(messages);
         if (workingMemory) {
           prompt += `\n\nRecent conversation context:\n${workingMemory}`;
         }

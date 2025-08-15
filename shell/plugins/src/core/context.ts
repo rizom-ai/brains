@@ -9,6 +9,7 @@ import type {
   Conversation,
   Message,
   MessageRole,
+  GetMessagesOptions,
 } from "@brains/conversation-service";
 
 /**
@@ -53,7 +54,10 @@ export interface CorePluginContext {
   // Conversation service (read-only)
   getConversation: (conversationId: string) => Promise<Conversation | null>;
   searchConversations: (query: string) => Promise<Conversation[]>;
-  getMessages: (conversationId: string, limit?: number) => Promise<Message[]>;
+  getMessages: (
+    conversationId: string,
+    options?: GetMessagesOptions,
+  ) => Promise<Message[]>;
   startConversation: (
     conversationId: string,
     interfaceType: string,
@@ -144,9 +148,12 @@ export function createCorePluginContext(
       const conversationService = shell.getConversationService();
       return conversationService.searchConversations(query);
     },
-    getMessages: async (conversationId: string, limit?: number) => {
+    getMessages: async (
+      conversationId: string,
+      options?: GetMessagesOptions,
+    ) => {
       const conversationService = shell.getConversationService();
-      return conversationService.getMessages(conversationId, limit);
+      return conversationService.getMessages(conversationId, options);
     },
     startConversation: async (
       conversationId: string,

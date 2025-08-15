@@ -26,9 +26,7 @@ describe("ConversationService", () => {
     logger = createSilentLogger();
 
     // Create config
-    config = {
-      workingMemorySize: 20,
-    };
+    config = {};
 
     // Create service with real database
     service = ConversationService.createFresh(db, logger, config);
@@ -145,7 +143,7 @@ describe("ConversationService", () => {
       await service.addMessage(conversationId, "assistant", "Message 2");
       await service.addMessage(conversationId, "user", "Message 3");
 
-      const result = await service.getMessages(conversationId, limit);
+      const result = await service.getMessages(conversationId, { limit });
 
       expect(result).toHaveLength(limit);
       // Should get the most recent messages
@@ -180,30 +178,80 @@ describe("ConversationService", () => {
     });
   });
 
-  describe("getWorkingMemory", () => {
-    it("should format recent messages as conversation transcript", async () => {
-      const conversationId = "conv-123";
+  describe("getMessages with range", () => {
+    it("should retrieve messages in specified range", async () => {
+      const conversationId = "conv-range";
 
       // Create conversation and add messages
       await service.startConversation(conversationId, "cli", "test-channel");
-      await service.addMessage(conversationId, "user", "Hello");
-      await service.addMessage(conversationId, "assistant", "Hi there!");
-      await service.addMessage(conversationId, "user", "How are you?");
+      await service.addMessage(conversationId, "user", "Message 1");
+      await service.addMessage(conversationId, "assistant", "Message 2");
+      await service.addMessage(conversationId, "user", "Message 3");
+      await service.addMessage(conversationId, "assistant", "Message 4");
+      await service.addMessage(conversationId, "user", "Message 5");
 
-      const result = await service.getWorkingMemory(conversationId);
+      // Get messages 2-4 (1-based indexing)
+      const result = await service.getMessages(conversationId, {
+        range: { start: 2, end: 4 },
+      });
 
-      expect(result).toBe(
-        "User: Hello\n\nAssistant: Hi there!\n\nUser: How are you?",
-      );
+      expect(result).toHaveLength(3);
+      expect(result[0]?.content).toBe("Message 2");
+      expect(result[1]?.content).toBe("Message 3");
+      expect(result[2]?.content).toBe("Message 4");
     });
 
-    it("should return empty string for conversation with no messages", async () => {
-      const conversationId = "conv-empty";
+    it("should handle range at beginning of conversation", async () => {
+      const conversationId = "conv-range-start";
+
       await service.startConversation(conversationId, "cli", "test-channel");
+      await service.addMessage(conversationId, "user", "Message 1");
+      await service.addMessage(conversationId, "assistant", "Message 2");
+      await service.addMessage(conversationId, "user", "Message 3");
 
-      const result = await service.getWorkingMemory(conversationId);
+      // Get messages 1-2
+      const result = await service.getMessages(conversationId, {
+        range: { start: 1, end: 2 },
+      });
 
-      expect(result).toBe("");
+      expect(result).toHaveLength(2);
+      expect(result[0]?.content).toBe("Message 1");
+      expect(result[1]?.content).toBe("Message 2");
+    });
+
+    it("should handle range at end of conversation", async () => {
+      const conversationId = "conv-range-end";
+
+      await service.startConversation(conversationId, "cli", "test-channel");
+      await service.addMessage(conversationId, "user", "Message 1");
+      await service.addMessage(conversationId, "assistant", "Message 2");
+      await service.addMessage(conversationId, "user", "Message 3");
+
+      // Get messages 2-3
+      const result = await service.getMessages(conversationId, {
+        range: { start: 2, end: 3 },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result[0]?.content).toBe("Message 2");
+      expect(result[1]?.content).toBe("Message 3");
+    });
+
+    it("should handle single message range", async () => {
+      const conversationId = "conv-single";
+
+      await service.startConversation(conversationId, "cli", "test-channel");
+      await service.addMessage(conversationId, "user", "Message 1");
+      await service.addMessage(conversationId, "assistant", "Message 2");
+      await service.addMessage(conversationId, "user", "Message 3");
+
+      // Get only message 2
+      const result = await service.getMessages(conversationId, {
+        range: { start: 2, end: 2 },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]?.content).toBe("Message 2");
     });
   });
 

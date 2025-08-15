@@ -3,6 +3,7 @@ export type {
   IConversationService,
   ConversationServiceConfig,
   MessageRole,
+  GetMessagesOptions,
 } from "./types";
 export { createConversationDatabase } from "./database";
 export type { ConversationDB } from "./database";

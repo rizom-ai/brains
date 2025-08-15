@@ -11,7 +11,9 @@ import type { TopicsPluginConfig } from "../schemas/config";
 
 // Schema for extraction job data
 const extractionJobDataSchema = z.object({
-  windowSize: z.number().min(10).max(100).optional(),
+  conversationId: z.string(),
+  startIdx: z.number().min(1),
+  endIdx: z.number().min(1),
   minRelevanceScore: z.number().min(0).max(1).optional(),
 });
 
@@ -49,18 +51,24 @@ export class TopicExtractionHandler
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<ExtractionJobResult> {
-    this.logger.info("Starting topic extraction job", { jobId });
+    this.logger.info("Starting topic extraction job", {
+      jobId,
+      conversationId: data.conversationId,
+      range: `${data.startIdx}-${data.endIdx}`,
+    });
 
     try {
       await progressReporter.report({
         progress: 10,
-        message: "Extracting topics from recent messages",
+        message: `Extracting topics from messages ${data.startIdx}-${data.endIdx}`,
       });
 
-      // Extract topics from recent messages
+      // Extract topics from conversation window
       const extractedTopics =
-        await this.topicExtractor.extractFromRecentMessages(
-          data.windowSize ?? this.config.windowSize ?? 20,
+        await this.topicExtractor.extractFromConversationWindow(
+          data.conversationId,
+          data.startIdx,
+          data.endIdx,
           data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
         );
 
@@ -92,7 +100,7 @@ export class TopicExtractionHandler
           for (const existingTopic of searchResults) {
             // Simple similarity check based on keywords overlap
             const existingKeywords = new Set(existingTopic.metadata.keywords);
-            const commonKeywords = extractedTopic.keywords.filter((k) =>
+            const commonKeywords = extractedTopic.keywords.filter((k: string) =>
               existingKeywords.has(k),
             );
 
@@ -172,14 +180,12 @@ export class TopicExtractionHandler
   validateAndParse(data: unknown): ExtractionJobData | null {
     const result = extractionJobDataSchema.safeParse(data);
     if (!result.success) {
+      this.logger.error("Invalid extraction job data", {
+        error: result.error.format(),
+      });
       return null;
     }
 
-    // Apply defaults
-    return {
-      windowSize: result.data.windowSize ?? this.config.windowSize ?? 20,
-      minRelevanceScore:
-        result.data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
-    };
+    return result.data;
   }
 }

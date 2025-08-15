@@ -40,28 +40,40 @@ describe("TopicExtractionHandler", () => {
   describe("validateAndParse", () => {
     it("should validate valid extraction config", () => {
       const validConfig = {
-        windowSize: 30,
+        conversationId: "conv-123",
+        startIdx: 1,
+        endIdx: 30,
         minRelevanceScore: 0.5,
       };
 
       const result = handler.validateAndParse(validConfig);
 
       expect(result).not.toBeNull();
-      expect(result?.windowSize).toBe(30);
+      expect(result?.conversationId).toBe("conv-123");
+      expect(result?.startIdx).toBe(1);
+      expect(result?.endIdx).toBe(30);
       expect(result?.minRelevanceScore).toBe(0.5);
     });
 
     it("should use defaults for missing fields", () => {
-      const result = handler.validateAndParse({});
+      const result = handler.validateAndParse({
+        conversationId: "conv-123",
+        startIdx: 1,
+        endIdx: 30,
+      });
 
       expect(result).not.toBeNull();
-      expect(result?.windowSize).toBe(20);
-      expect(result?.minRelevanceScore).toBe(0.5);
+      expect(result?.conversationId).toBe("conv-123");
+      expect(result?.startIdx).toBe(1);
+      expect(result?.endIdx).toBe(30);
+      expect(result?.minRelevanceScore).toBeUndefined();
     });
 
-    it("should return null for invalid window size", () => {
+    it("should return null for invalid startIdx", () => {
       const invalidConfig = {
-        windowSize: 5, // Must be at least 10
+        conversationId: "conv-123",
+        startIdx: 0, // Must be at least 1
+        endIdx: 30,
       };
 
       const result = handler.validateAndParse(invalidConfig);
@@ -70,6 +82,9 @@ describe("TopicExtractionHandler", () => {
 
     it("should return null for invalid relevance score", () => {
       const invalidConfig = {
+        conversationId: "conv-123",
+        startIdx: 1,
+        endIdx: 30,
         minRelevanceScore: 1.5, // Must be between 0 and 1
       };
 
@@ -90,7 +105,9 @@ describe("TopicExtractionHandler", () => {
       // Mock conversation search to return empty array
       const result = await handler.process(
         {
-          timeWindowHours: 1,
+          conversationId: "conv-123",
+          startIdx: 1,
+          endIdx: 30,
           minRelevanceScore: 0.7,
         },
         "test-job-id",
@@ -106,7 +123,7 @@ describe("TopicExtractionHandler", () => {
       // Create a handler with a context that will throw
       const errorContext = {
         ...context,
-        searchConversations: async () => {
+        getMessages: async () => {
           throw new Error("Database error");
         },
       } as ServicePluginContext;
@@ -128,7 +145,9 @@ describe("TopicExtractionHandler", () => {
       await expect(
         errorHandler.process(
           {
-            timeWindowHours: 24,
+            conversationId: "conv-123",
+            startIdx: 1,
+            endIdx: 30,
             minRelevanceScore: 0.5,
           },
           "test-job-id",

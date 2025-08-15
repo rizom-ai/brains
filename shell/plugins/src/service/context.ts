@@ -8,7 +8,11 @@ import type {
 import type { JobHandler, BatchOperation } from "@brains/job-queue";
 import type { JobOptions } from "@brains/job-queue";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
-import type { Conversation, Message } from "@brains/conversation-service";
+import type {
+  Conversation,
+  Message,
+  GetMessagesOptions,
+} from "@brains/conversation-service";
 import type { z } from "zod";
 import { createCorePluginContext } from "../core/context";
 
@@ -30,7 +34,10 @@ export interface ServicePluginContext extends CorePluginContext {
 
   // Conversation service helpers
   searchConversations: (query: string) => Promise<Conversation[]>;
-  getMessages: (conversationId: string, limit?: number) => Promise<Message[]>;
+  getMessages: (
+    conversationId: string,
+    options?: GetMessagesOptions,
+  ) => Promise<Message[]>;
 
   // Job queue functionality (write operations)
   enqueueJob: (
@@ -95,9 +102,12 @@ export function createServicePluginContext(
       const conversationService = shell.getConversationService();
       return conversationService.searchConversations(query);
     },
-    getMessages: async (conversationId: string, limit?: number) => {
+    getMessages: async (
+      conversationId: string,
+      options?: GetMessagesOptions,
+    ) => {
       const conversationService = shell.getConversationService();
-      return conversationService.getMessages(conversationId, limit);
+      return conversationService.getMessages(conversationId, options);
     },
 
     // Job queue functionality

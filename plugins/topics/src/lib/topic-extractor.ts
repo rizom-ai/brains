@@ -19,6 +19,50 @@ export class TopicExtractor {
   ) {}
 
   /**
+   * Extract topics from a specific conversation window
+   */
+  public async extractFromConversationWindow(
+    conversationId: string,
+    startIdx: number,
+    endIdx: number,
+    minRelevanceScore: number,
+  ): Promise<ExtractedTopic[]> {
+    this.logger.info("Extracting topics from conversation window", {
+      conversationId,
+      startIdx,
+      endIdx,
+      minRelevanceScore,
+    });
+
+    // Get messages for the specified window using range
+    const messages = await this.context.getMessages(conversationId, {
+      range: { start: startIdx, end: endIdx },
+    });
+
+    if (messages.length === 0) {
+      this.logger.info("No messages found in window");
+      return [];
+    }
+
+    // Extract topics
+    const extractedTopics = await this.extractTopics(
+      conversationId,
+      messages,
+      new Date(),
+    );
+
+    // Filter by relevance score
+    const relevantTopics = extractedTopics.filter(
+      (topic) => topic.relevanceScore >= minRelevanceScore,
+    );
+
+    this.logger.info(
+      `Extracted ${relevantTopics.length} relevant topics from window`,
+    );
+    return relevantTopics;
+  }
+
+  /**
    * Extract topics from recent messages using a sliding window approach
    */
   public async extractFromRecentMessages(
@@ -47,7 +91,7 @@ export class TopicExtractor {
     for (const conversation of conversations) {
       const messages = await this.context.getMessages(
         conversation.id,
-        windowSize, // Get exactly windowSize messages
+        { limit: windowSize }, // Get exactly windowSize messages
       );
 
       if (messages.length > 0) {
@@ -73,7 +117,7 @@ export class TopicExtractor {
       }
 
       // Extract topics using AI
-      const extractedTopics = await this.extractTopicsWithAI(
+      const extractedTopics = await this.extractTopics(
         conversationId,
         messages,
         new Date(),
@@ -94,9 +138,9 @@ export class TopicExtractor {
   }
 
   /**
-   * Extract topics from a conversation using AI
+   * Extract topics from a conversation
    */
-  private async extractTopicsWithAI(
+  private async extractTopics(
     conversationId: string,
     messages: Message[],
     startTime: Date,

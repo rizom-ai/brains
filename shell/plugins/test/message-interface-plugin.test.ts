@@ -213,7 +213,6 @@ describe("MessageInterfacePlugin", () => {
         getConversation: async () => null,
         searchConversations: async () => [],
         getMessages: async () => [],
-        getWorkingMemory: async () => "Test working memory",
       };
 
       shell.getConversationService = () => mockConversationService;
