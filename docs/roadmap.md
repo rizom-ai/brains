@@ -12,18 +12,26 @@ Build a robust, extensible knowledge management platform that serves as the foun
 
 - **Core Architecture**: Shell-based plugin system with direct registration
 - **MCP Integration**: Full MCP server with stdio and HTTP transports
-- **Plugin System**: Three plugin types (Core, Interface, MessageInterface)
-- **Entity Framework**: Functional entity model with Zod schemas
+- **Plugin System**: Four plugin types (Core, Service, Interface, MessageInterface)
+- **Entity Framework**: Functional entity model with Zod schemas and adapters
 - **Conversation Memory**: Conversation tracking and message storage
-- **Job Queue**: Background processing with progress tracking
-- **Content Generation**: Template-based content generation
+- **Job Queue**: Background processing with progress tracking and batch operations
+- **Content Generation**: Template-based content generation with AI integration
 - **Test Infrastructure**: Standardized test harnesses for all plugin types
 - **Centralized Permission System**: Single source of truth for user permissions across all interfaces
 - **Transport-based MCP Permissions**: Automatic permission levels based on MCP transport type
+- **Database Migration System**: Drizzle-based migrations for all databases
+- **Separate Databases**: Entity, Job Queue, and Conversation databases separated
+- **Structured Logging**: Logger with multiple levels and context support
+- **App Package**: Astro-style configuration with defineConfig and handleCLI
+- **Directory Sync Plugin**: Import/export entities to/from file system
+- **Git Sync Plugin**: Sync entities with Git repositories
+- **Site Builder Plugin**: Static site generation with Preact components
+- **Topics Plugin**: AI-powered topic extraction from entities
+- **System Plugin**: System information and health checks
 
 ### In Progress 🚧
 
-- **Database Separation**: Separating job queue database for better portability
 - **Performance Optimization**: Entity service batch operations
 - **Documentation**: Updating docs to reflect current architecture
 
@@ -31,28 +39,30 @@ Build a robust, extensible knowledge management platform that serves as the foun
 
 ### 1.1 Database Architecture
 
-- [ ] Separate job queue database from entity database
-- [ ] Implement database migration system
+- [x] Separate job queue database from entity database ✅
+- [x] Implement database migration system ✅
 - [ ] Add database backup/restore capabilities
 
 ### 1.2 Performance & Scalability
 
+- [x] Batch operations for job queue ✅
 - [ ] Batch operations for entity service
-- [ ] Async embedding generation queue
+- [x] Async embedding generation queue ✅
 - [ ] Optimize vector search performance
 
 ### 1.3 Error Handling & Monitoring
 
 - [ ] Standardized error types across all packages
-- [ ] Structured logging with log levels
+- [x] Structured logging with log levels ✅
+- [x] Health check endpoints for MCP service ✅
 - [ ] Health check endpoints for all services
 
 ### 1.4 App Package Refactoring
 
-- [ ] Refactor shell/app package for cleaner initialization
-- [ ] Separate concerns between app orchestration and shell core
-- [ ] Improve plugin initialization flow
-- [ ] Add proper lifecycle management
+- [x] Refactor shell/app package for cleaner initialization ✅
+- [x] Separate concerns between app orchestration and shell core ✅
+- [x] Improve plugin initialization flow ✅
+- [x] Add proper lifecycle management ✅
 
 ### 1.5 Interface Consolidation
 
