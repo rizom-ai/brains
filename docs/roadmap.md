@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-01-13
+Last Updated: 2025-01-15
 
 ## Vision
 
@@ -18,6 +18,8 @@ Build a robust, extensible knowledge management platform that serves as the foun
 - **Job Queue**: Background processing with progress tracking
 - **Content Generation**: Template-based content generation
 - **Test Infrastructure**: Standardized test harnesses for all plugin types
+- **Centralized Permission System**: Single source of truth for user permissions across all interfaces
+- **Transport-based MCP Permissions**: Automatic permission levels based on MCP transport type
 
 ### In Progress 🚧
 
@@ -106,6 +108,7 @@ Build a robust, extensible knowledge management platform that serves as the foun
 
 ### 4.1 Multi-user Support
 
+- [x] Centralized permission system ✅
 - [ ] User authentication and authorization
 - [ ] Role-based access control
 - [ ] Personal and shared workspaces
