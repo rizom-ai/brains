@@ -1,9 +1,9 @@
-export { 
+export {
   PermissionService,
   UserPermissionLevelSchema,
 } from "./permission-service";
-export type { 
-  PermissionConfig, 
+export type {
+  PermissionConfig,
   PermissionRule,
   UserPermissionLevel,
   WithVisibility,

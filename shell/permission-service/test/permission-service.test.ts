@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { PermissionService } from "../src/permission-service";
-import type { PermissionConfig, WithVisibility } from "../src/permission-service";
+import type {
+  PermissionConfig,
+  WithVisibility,
+} from "../src/permission-service";
 import type { UserPermissionLevel } from "@brains/utils";
 
 describe("PermissionService", () => {
@@ -266,14 +269,20 @@ describe("PermissionService", () => {
       });
 
       it("should allow trusted and anchor access to trusted content", () => {
-        expect(permissionService.hasPermission("public", "trusted")).toBe(false);
-        expect(permissionService.hasPermission("trusted", "trusted")).toBe(true);
+        expect(permissionService.hasPermission("public", "trusted")).toBe(
+          false,
+        );
+        expect(permissionService.hasPermission("trusted", "trusted")).toBe(
+          true,
+        );
         expect(permissionService.hasPermission("anchor", "trusted")).toBe(true);
       });
 
       it("should allow only anchor access to anchor content", () => {
         expect(permissionService.hasPermission("public", "anchor")).toBe(false);
-        expect(permissionService.hasPermission("trusted", "anchor")).toBe(false);
+        expect(permissionService.hasPermission("trusted", "anchor")).toBe(
+          false,
+        );
         expect(permissionService.hasPermission("anchor", "anchor")).toBe(true);
       });
     });
@@ -281,11 +290,12 @@ describe("PermissionService", () => {
     describe("static hasPermission method", () => {
       it("should work identically to instance method", () => {
         const levels: UserPermissionLevel[] = ["public", "trusted", "anchor"];
-        
+
         for (const userLevel of levels) {
           for (const requiredLevel of levels) {
-            expect(PermissionService.hasPermission(userLevel, requiredLevel))
-              .toBe(permissionService.hasPermission(userLevel, requiredLevel));
+            expect(
+              PermissionService.hasPermission(userLevel, requiredLevel),
+            ).toBe(permissionService.hasPermission(userLevel, requiredLevel));
           }
         }
       });
@@ -316,14 +326,21 @@ describe("PermissionService", () => {
         const items = createMockItems();
         const filtered = permissionService.filterByPermission(items, "trusted");
         expect(filtered).toHaveLength(3);
-        expect(filtered.map(item => item.visibility)).toEqual(["public", "trusted", undefined]);
+        expect(filtered.map((item) => item.visibility)).toEqual([
+          "public",
+          "trusted",
+          undefined,
+        ]);
       });
 
       it("should return only public items for public users", () => {
         const items = createMockItems();
         const filtered = permissionService.filterByPermission(items, "public");
         expect(filtered).toHaveLength(2);
-        expect(filtered.map(item => item.visibility)).toEqual(["public", undefined]);
+        expect(filtered.map((item) => item.visibility)).toEqual([
+          "public",
+          undefined,
+        ]);
       });
 
       it("should handle empty arrays", () => {
@@ -344,14 +361,35 @@ describe("PermissionService", () => {
           { name: "basic" }, // No visibility = public
         ];
 
-        const publicFiltered = permissionService.filterByPermission(commands, "public");
-        expect(publicFiltered.map(cmd => cmd.name)).toEqual(["help", "basic"]);
+        const publicFiltered = permissionService.filterByPermission(
+          commands,
+          "public",
+        );
+        expect(publicFiltered.map((cmd) => cmd.name)).toEqual([
+          "help",
+          "basic",
+        ]);
 
-        const trustedFiltered = permissionService.filterByPermission(commands, "trusted");
-        expect(trustedFiltered.map(cmd => cmd.name)).toEqual(["help", "status", "basic"]);
+        const trustedFiltered = permissionService.filterByPermission(
+          commands,
+          "trusted",
+        );
+        expect(trustedFiltered.map((cmd) => cmd.name)).toEqual([
+          "help",
+          "status",
+          "basic",
+        ]);
 
-        const anchorFiltered = permissionService.filterByPermission(commands, "anchor");
-        expect(anchorFiltered.map(cmd => cmd.name)).toEqual(["help", "status", "admin", "basic"]);
+        const anchorFiltered = permissionService.filterByPermission(
+          commands,
+          "anchor",
+        );
+        expect(anchorFiltered.map((cmd) => cmd.name)).toEqual([
+          "help",
+          "status",
+          "admin",
+          "basic",
+        ]);
       });
     });
   });

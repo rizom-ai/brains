@@ -129,7 +129,7 @@ export async function handleRoomInvite(
       "matrix",
       inviter,
     );
-    
+
     // Only accept invites from anchor users
     if (userPermissionLevel !== "anchor") {
       ctx.logger.info("Ignoring room invite from non-anchor user", {

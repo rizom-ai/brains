@@ -18,6 +18,11 @@ export function defineConfig(config: AppConfig): AppConfig {
     plugins: config.plugins ?? [],
   };
 
+  // Only add optional properties if they're defined
+  if (config.permissions) finalConfig.permissions = config.permissions;
+  if (config.cliConfig) finalConfig.cliConfig = config.cliConfig;
+  if (config.shellConfig) finalConfig.shellConfig = config.shellConfig;
+
   return finalConfig;
 }
 

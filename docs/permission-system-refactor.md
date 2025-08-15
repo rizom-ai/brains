@@ -370,7 +370,7 @@ All permission determination happens at the Shell level using the centralized Pe
 ### Permission Flow
 
 1. **Interfaces** (Matrix, CLI, etc.) pass minimal context:
-   - `userId`: The user identifier  
+   - `userId`: The user identifier
    - `interfaceType`: The interface type (matrix, cli, discord, etc.)
    - NO permission determination at interface level
 
@@ -383,6 +383,7 @@ All permission determination happens at the Shell level using the centralized Pe
 ### Updated Component Responsibilities
 
 #### InterfacePluginContext
+
 ```typescript
 // Commands no longer receive userPermissionLevel directly
 export interface CommandContext {
@@ -397,16 +398,20 @@ listCommands: async (userPermissionLevel?: UserPermissionLevel) => {
   // If not provided, determine from current context
   const level = userPermissionLevel ?? determineFromContext();
   return commandRegistry.listCommands(level);
-}
+};
 
 executeCommand: async (commandName, args, context) => {
   // Permission level in context is determined by InterfacePluginContext
-  const command = commandRegistry.findCommand(commandName, context.userPermissionLevel);
+  const command = commandRegistry.findCommand(
+    commandName,
+    context.userPermissionLevel,
+  );
   // ...
-}
+};
 ```
 
 #### MessageInterfacePlugin
+
 ```typescript
 export abstract class MessageInterfacePlugin {
   // Centralized permission determination
@@ -415,20 +420,25 @@ export abstract class MessageInterfacePlugin {
     return permissionService.determineUserLevel(this.id, userId);
   }
 
-  protected buildContext(input: string, context?: Partial<MessageContext>): MessageContext {
+  protected buildContext(
+    input: string,
+    context?: Partial<MessageContext>,
+  ): MessageContext {
     const userId = context?.userId ?? "default-user";
-    const userPermissionLevel = 
+    const userPermissionLevel =
       context?.userPermissionLevel ?? this.determineUserPermissionLevel(userId);
     // ...
   }
 
   // When executing commands, determine permission level
   public async executeCommand(command: string, context: MessageContext) {
-    const userPermissionLevel = this.determineUserPermissionLevel(context.userId);
+    const userPermissionLevel = this.determineUserPermissionLevel(
+      context.userId,
+    );
     // Pass to command with determined permission level
     const commandContext = {
       ...context,
-      userPermissionLevel
+      userPermissionLevel,
     };
     // ...
   }
@@ -436,6 +446,7 @@ export abstract class MessageInterfacePlugin {
 ```
 
 #### Matrix Interface (Example)
+
 ```typescript
 // No permission logic at all
 const messageContext: MessageContext = {
@@ -478,7 +489,7 @@ Tools and resources already have proper permission filtering:
 ### Migration Status
 
 1. ✅ Create PermissionService in Shell
-2. ✅ Add permission configuration to App/Shell config  
+2. ✅ Add permission configuration to App/Shell config
 3. ✅ Move filterByPermission logic to PermissionService
 4. ✅ Update Matrix interface to remove local permission logic
 5. ⏳ Fix Matrix interface tests with mocked PermissionService

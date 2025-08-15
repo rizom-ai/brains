@@ -78,7 +78,6 @@ interface MatrixConfig {
   homeserver: string; // Matrix homeserver URL
   userId: string; // Bot user ID (@bot:matrix.org)
   accessToken: string; // Bot access token
-  anchorUserId?: string; // Admin user ID
   autojoin?: boolean; // Auto-join invited rooms
   encryption?: boolean; // Enable E2E encryption
   rooms?: string[]; // Rooms to join on startup
@@ -91,7 +90,6 @@ interface MatrixConfig {
 MATRIX_HOMESERVER=https://matrix.org
 MATRIX_USER_ID=@brain-bot:matrix.org
 MATRIX_ACCESS_TOKEN=syt_YOUR_TOKEN_HERE
-MATRIX_ANCHOR_USER_ID=@you:matrix.org
 ```
 
 ## Usage
@@ -105,7 +103,6 @@ const matrix = new MatrixInterface({
   homeserver: process.env.MATRIX_HOMESERVER,
   userId: process.env.MATRIX_USER_ID,
   accessToken: process.env.MATRIX_ACCESS_TOKEN,
-  anchorUserId: process.env.MATRIX_ANCHOR_USER_ID,
 });
 
 // Register with shell
@@ -213,15 +210,9 @@ The interface handles various Matrix events:
 
 ### Access Control
 
-Only the anchor user has full permissions:
-
-```typescript
-if (event.sender === this.config.anchorUserId) {
-  // Full access
-} else {
-  // Limited access
-}
-```
+Permissions are handled centrally by the PermissionService at the Shell level.
+The Matrix interface no longer manages permissions directly. Configure user permissions
+in your app's permission configuration.
 
 ### Command Validation
 

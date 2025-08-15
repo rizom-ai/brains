@@ -1,5 +1,8 @@
 import type { Logger } from "@brains/utils";
-import type { PermissionService, UserPermissionLevel } from "@brains/permission-service";
+import type {
+  PermissionService,
+  UserPermissionLevel,
+} from "@brains/permission-service";
 import type { ICommandRegistry, Command, CommandInfo } from "./types";
 
 /**

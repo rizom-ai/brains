@@ -14,13 +14,13 @@ describe("CommandRegistry", () => {
     CommandRegistry.resetInstance();
     const logger = createSilentLogger();
     messageBus = MessageBus.getInstance(logger);
-    
+
     // Create a PermissionService with test configuration
     permissionService = new PermissionService({
       anchors: ["matrix:@anchor:test.org"],
       trusted: ["matrix:@trusted:test.org"],
     });
-    
+
     registry = CommandRegistry.getInstance(logger, permissionService);
   });
 
@@ -150,13 +150,21 @@ describe("CommandRegistry", () => {
         handler: async () => "found",
       });
 
-      const command = registry.findCommand("find-me", "matrix", "@anchor:test.org");
+      const command = registry.findCommand(
+        "find-me",
+        "matrix",
+        "@anchor:test.org",
+      );
       expect(command).toBeDefined();
       expect(command?.description).toBe("Find this command");
     });
 
     it("should return undefined for unknown command", () => {
-      const command = registry.findCommand("nonexistent", "matrix", "@anchor:test.org");
+      const command = registry.findCommand(
+        "nonexistent",
+        "matrix",
+        "@anchor:test.org",
+      );
       expect(command).toBeUndefined();
     });
 
@@ -174,7 +182,11 @@ describe("CommandRegistry", () => {
         handler: async () => "B",
       });
 
-      const command = registry.findCommand("duplicate", "matrix", "@user:test.org");
+      const command = registry.findCommand(
+        "duplicate",
+        "matrix",
+        "@user:test.org",
+      );
       expect(command).toBeDefined();
       // Should find one of the duplicate commands (order not guaranteed)
       expect(["From A", "From B"]).toContain(command?.description);
@@ -283,47 +295,86 @@ describe("CommandRegistry", () => {
 
     describe("findCommand with permission filtering", () => {
       it("should find public command for any user level", () => {
-        expect(registry.findCommand("public-cmd", "matrix", "@public:test.org")).toBeDefined();
-        expect(registry.findCommand("public-cmd", "matrix", "@trusted:test.org")).toBeDefined();
-        expect(registry.findCommand("public-cmd", "matrix", "@anchor:test.org")).toBeDefined();
+        expect(
+          registry.findCommand("public-cmd", "matrix", "@public:test.org"),
+        ).toBeDefined();
+        expect(
+          registry.findCommand("public-cmd", "matrix", "@trusted:test.org"),
+        ).toBeDefined();
+        expect(
+          registry.findCommand("public-cmd", "matrix", "@anchor:test.org"),
+        ).toBeDefined();
       });
 
       it("should not find trusted command for public user", () => {
-        expect(registry.findCommand("trusted-cmd", "matrix", "@public:test.org")).toBeUndefined();
+        expect(
+          registry.findCommand("trusted-cmd", "matrix", "@public:test.org"),
+        ).toBeUndefined();
       });
 
       it("should find trusted command for trusted and anchor users", () => {
-        expect(registry.findCommand("trusted-cmd", "matrix", "@trusted:test.org")).toBeDefined();
-        expect(registry.findCommand("trusted-cmd", "matrix", "@anchor:test.org")).toBeDefined();
+        expect(
+          registry.findCommand("trusted-cmd", "matrix", "@trusted:test.org"),
+        ).toBeDefined();
+        expect(
+          registry.findCommand("trusted-cmd", "matrix", "@anchor:test.org"),
+        ).toBeDefined();
       });
 
       it("should not find anchor command for public or trusted users", () => {
-        expect(registry.findCommand("anchor-cmd", "matrix", "@public:test.org")).toBeUndefined();
-        expect(registry.findCommand("anchor-cmd", "matrix", "@trusted:test.org")).toBeUndefined();
+        expect(
+          registry.findCommand("anchor-cmd", "matrix", "@public:test.org"),
+        ).toBeUndefined();
+        expect(
+          registry.findCommand("anchor-cmd", "matrix", "@trusted:test.org"),
+        ).toBeUndefined();
       });
 
       it("should find anchor command for anchor user", () => {
-        expect(registry.findCommand("anchor-cmd", "matrix", "@anchor:test.org")).toBeDefined();
+        expect(
+          registry.findCommand("anchor-cmd", "matrix", "@anchor:test.org"),
+        ).toBeDefined();
       });
 
       it("should treat commands with no visibility as anchor-only (secure default)", () => {
-        expect(registry.findCommand("default-cmd", "matrix", "@public:test.org")).toBeUndefined();
-        expect(registry.findCommand("default-cmd", "matrix", "@trusted:test.org")).toBeUndefined();
-        expect(registry.findCommand("default-cmd", "matrix", "@anchor:test.org")).toBeDefined();
+        expect(
+          registry.findCommand("default-cmd", "matrix", "@public:test.org"),
+        ).toBeUndefined();
+        expect(
+          registry.findCommand("default-cmd", "matrix", "@trusted:test.org"),
+        ).toBeUndefined();
+        expect(
+          registry.findCommand("default-cmd", "matrix", "@anchor:test.org"),
+        ).toBeDefined();
       });
 
       it("should find all commands for anchor user", () => {
-        expect(registry.findCommand("anchor-cmd", "matrix", "@anchor:test.org")).toBeDefined();
-        expect(registry.findCommand("trusted-cmd", "matrix", "@anchor:test.org")).toBeDefined();
-        expect(registry.findCommand("public-cmd", "matrix", "@anchor:test.org")).toBeDefined();
+        expect(
+          registry.findCommand("anchor-cmd", "matrix", "@anchor:test.org"),
+        ).toBeDefined();
+        expect(
+          registry.findCommand("trusted-cmd", "matrix", "@anchor:test.org"),
+        ).toBeDefined();
+        expect(
+          registry.findCommand("public-cmd", "matrix", "@anchor:test.org"),
+        ).toBeDefined();
       });
     });
 
     describe("Permission hierarchy validation", () => {
       it("should respect permission hierarchy: anchor > trusted > public", () => {
-        const anchorCommands = registry.listCommands("matrix", "@anchor:test.org");
-        const trustedCommands = registry.listCommands("matrix", "@trusted:test.org");
-        const publicCommands = registry.listCommands("matrix", "@public:test.org");
+        const anchorCommands = registry.listCommands(
+          "matrix",
+          "@anchor:test.org",
+        );
+        const trustedCommands = registry.listCommands(
+          "matrix",
+          "@trusted:test.org",
+        );
+        const publicCommands = registry.listCommands(
+          "matrix",
+          "@public:test.org",
+        );
 
         // Anchor should see most commands
         expect(anchorCommands.length).toBeGreaterThanOrEqual(

@@ -2,14 +2,9 @@ import type {
   InterfacePluginContext,
   PluginTool,
   PluginResource,
-  UserPermissionLevel,
   Logger,
 } from "@brains/plugins";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-  shouldRegisterTool,
-  shouldRegisterResource,
-} from "../utils/permissions";
 
 /**
  * Set up listeners for system events (tool and resource registration)
@@ -17,7 +12,6 @@ import {
 export function setupSystemEventListeners(
   context: InterfacePluginContext,
   mcpServer: McpServer | undefined,
-  getPermissionLevel: () => UserPermissionLevel,
   logger: Logger,
 ): void {
   // Subscribe to tool registration events
@@ -27,14 +21,7 @@ export function setupSystemEventListeners(
       tool: PluginTool;
       timestamp: number;
     };
-    handleToolRegistration(
-      pluginId,
-      tool,
-      mcpServer,
-      context,
-      getPermissionLevel(),
-      logger,
-    );
+    handleToolRegistration(pluginId, tool, mcpServer, context, logger);
     return { success: true };
   });
 
@@ -45,14 +32,7 @@ export function setupSystemEventListeners(
       resource: PluginResource;
       timestamp: number;
     };
-    handleResourceRegistration(
-      pluginId,
-      resource,
-      mcpServer,
-      context,
-      getPermissionLevel(),
-      logger,
-    );
+    handleResourceRegistration(pluginId, resource, mcpServer, context, logger);
     return { success: true };
   });
 
@@ -68,21 +48,12 @@ export function handleToolRegistration(
   tool: PluginTool,
   mcpServer: McpServer | undefined,
   context: InterfacePluginContext,
-  permissionLevel: UserPermissionLevel,
   logger: Logger,
 ): void {
   if (!mcpServer) return;
 
-  const toolVisibility = tool.visibility ?? "anchor";
-
-  if (!shouldRegisterTool(permissionLevel, toolVisibility)) {
-    logger.debug(
-      `Skipping tool ${tool.name} from ${pluginId} - insufficient permissions`,
-    );
-    return;
-  }
-
   // Register the tool - it already has its namespace from the plugin
+  // Permission checking is handled by MCPService when it registers tools
   mcpServer.tool(
     tool.name,
     tool.description,
@@ -156,23 +127,12 @@ export function handleResourceRegistration(
   resource: PluginResource,
   mcpServer: McpServer | undefined,
   context: InterfacePluginContext,
-  permissionLevel: UserPermissionLevel,
   logger: Logger,
 ): void {
   if (!mcpServer) return;
 
-  // Resources don't have visibility, so we'll default to anchor permission
-  // In the future, we might want to add visibility to resources
-  const resourceVisibility: UserPermissionLevel = "anchor";
-
-  if (!shouldRegisterResource(permissionLevel, resourceVisibility)) {
-    logger.debug(
-      `Skipping resource ${resource.uri} from ${pluginId} - insufficient permissions`,
-    );
-    return;
-  }
-
   // Register the resource - it already has its namespace if needed
+  // Permission checking is handled by MCPService when it registers resources
   mcpServer.resource(
     resource.uri,
     resource.description ?? `Resource from ${pluginId}`,

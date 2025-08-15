@@ -13,6 +13,22 @@ const config = defineConfig({
   version: "1.0.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
 
+  // Configure centralized permissions
+  permissions: {
+    anchors: [
+      // Matrix anchor user
+      `matrix:${process.env["MATRIX_ANCHOR_USER_ID"] || "@yeehaa:rizom.ai"}`,
+    ],
+    rules: [
+      // All CLI users are anchors (local access)
+      { pattern: "cli:*", level: "anchor" },
+      // MCP stdio transport gets anchor permissions (local access)
+      { pattern: "mcp:stdio", level: "anchor" },
+      // MCP http transport gets public permissions (remote access)
+      { pattern: "mcp:http", level: "public" },
+    ],
+  },
+
   plugins: [
     new SystemPlugin({}),
     new MCPInterface({}),
@@ -20,7 +36,6 @@ const config = defineConfig({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
       userId: process.env["MATRIX_USER_ID"] || "@testbrain-dev:rizom.ai",
-      anchorUserId: process.env["MATRIX_ANCHOR_USER_ID"] || "@yeehaa:rizom.ai",
     }),
     directorySync({}),
     new WebserverInterface({}),

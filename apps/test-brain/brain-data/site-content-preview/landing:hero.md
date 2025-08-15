@@ -11,11 +11,11 @@ Elevate Your Knowledge Workflows
 
 ## Subheadline
 
-Harness the power of personal knowledge management to boost productivity and amplify your expertise.
+Harness the power of personal knowledge management to boost productivity and amplify your impact
 
 ## CTA Text
 
-Start Your Free Trial
+Get Started
 
 ## CTA Link
 

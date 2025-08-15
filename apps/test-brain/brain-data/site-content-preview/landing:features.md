@@ -15,7 +15,7 @@ Unlock the Power of Your Knowledge
 
 ## Description
 
-Our personal knowledge management system helps you organize, search, secure, and gain insights from your information, so you can focus on what matters.
+Our personal knowledge management system helps you organize your ideas, find information quickly, secure your data, and gain valuable insights.
 
 ## Feature Cards
 
@@ -23,21 +23,21 @@ Our personal knowledge management system helps you organize, search, secure, and
 
 #### Title
 
-Structured Capture
+Intuitive Organization
 
 #### Icon
 
-FileText
+Brain
 
 #### Description
 
-Easily log and organize your notes, documents, and ideas in a centralized knowledge base.
+Effortlessly capture and structure your knowledge with a flexible, visual interface.
 
 ### Feature Card 2
 
 #### Title
 
-Intelligent Search
+Powerful Search
 
 #### Icon
 
@@ -45,7 +45,7 @@ Search
 
 #### Description
 
-Quickly find what you need with advanced search capabilities and smart suggestions.
+Quickly find the information you need with advanced search and filtering capabilities.
 
 ### Feature Card 3
 
@@ -59,4 +59,4 @@ Shield
 
 #### Description
 
-Keep your personal information safe with robust encryption and access controls.
+Keep your data safe and private with end-to-end encryption and access controls.

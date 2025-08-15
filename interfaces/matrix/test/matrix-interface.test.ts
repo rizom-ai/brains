@@ -46,7 +46,7 @@ describe("MatrixInterface", () => {
 
     // Create plugin harness with permission configuration
     harness = createInterfacePluginHarness<MatrixInterface>();
-    
+
     // Configure mock shell with permissions
     const mockShell = harness.getShell();
     mockShell.getPermissionService = () => {

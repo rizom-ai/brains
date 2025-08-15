@@ -1,10 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
-import type { UserPermissionLevel } from "@brains/permission-service";
+import {
+  PermissionService,
+  type UserPermissionLevel,
+} from "@brains/permission-service";
 import type { PluginTool, PluginResource } from "@brains/plugins";
 import type { IMCPService } from "./types";
-import { shouldRegisterTool, shouldRegisterResource } from "./permissions";
 
 /**
  * MCP Service for managing tool and resource registration
@@ -95,7 +97,9 @@ export class MCPService implements IMCPService {
     const toolVisibility = tool.visibility ?? "anchor";
 
     // Check permissions
-    if (!shouldRegisterTool(this.permissionLevel, toolVisibility)) {
+    if (
+      !PermissionService.hasPermission(this.permissionLevel, toolVisibility)
+    ) {
       this.logger.debug(
         `Skipping tool ${tool.name} from ${pluginId} - insufficient permissions`,
       );
@@ -179,7 +183,9 @@ export class MCPService implements IMCPService {
     // Resources don't have visibility, default to anchor permission
     const resourceVisibility: UserPermissionLevel = "anchor";
 
-    if (!shouldRegisterResource(this.permissionLevel, resourceVisibility)) {
+    if (
+      !PermissionService.hasPermission(this.permissionLevel, resourceVisibility)
+    ) {
       this.logger.debug(
         `Skipping resource ${resource.uri} from ${pluginId} - insufficient permissions`,
       );

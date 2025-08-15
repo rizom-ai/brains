@@ -11,11 +11,11 @@ Our Ecosystem
 
 ## Headline
 
-The Tools We Build to Power Your Success
+Transformative Tools for a Sustainable Future
 
 ## Description
 
-Our product suite empowers teams to collaborate, innovate, and thrive in the digital economy. From ecosystem design to organizational transformation, we provide the tools and expertise to help you build a resilient, future-ready business.
+Rizom offers a curated suite of innovative products and services designed to empower organizations and communities to navigate the complexities of digital transformation, organizational development, and ecosystem design. Our solutions are grounded in deep expertise, cutting-edge research, and a steadfast commitment to sustainability and social impact.
 
 ## Products
 
@@ -23,19 +23,19 @@ Our product suite empowers teams to collaborate, innovate, and thrive in the dig
 
 #### ID
 
-rizom-canvas
+practice-innovation
 
 #### Name
 
-Rizom Canvas
+Practice Innovation
 
 #### Tagline
 
-Visualize and design your ecosystem
+Accelerate organizational transformation
 
 #### Description
 
-Rizom Canvas is an intuitive platform for mapping, modeling, and optimizing complex business ecosystems. Gain a holistic view of your value network to identify opportunities and mitigate risks.
+A collaborative framework and toolkit to help teams rapidly prototype, test, and scale innovative practices for agile, resilient organizations.
 
 #### Status
 
@@ -45,53 +45,25 @@ live
 
 #### Icon
 
-Brain
+Zap
 
 ### Product 2
 
 #### ID
 
-rizom-labs
+ecosystem-design
 
 #### Name
 
-Rizom Labs
+Ecosystem Design
 
 #### Tagline
 
-Prototype and experiment with new ideas
+Build thriving multi-stakeholder ecosystems
 
 #### Description
 
-Rizom Labs is a collaborative workspace where teams can rapidly ideate, test, and validate new products, services, and business models. Accelerate innovation through structured experimentation.
-
-#### Status
-
-beta
-
-#### Link
-
-#### Icon
-
-Zap
-
-### Product 3
-
-#### ID
-
-rizom-orchestrator
-
-#### Name
-
-Rizom Orchestrator
-
-#### Tagline
-
-Coordinate and align your ecosystem
-
-#### Description
-
-Rizom Orchestrator is a workflow automation platform that helps you manage complex, multi-stakeholder initiatives. Streamline processes, improve transparency, and drive collective impact.
+A comprehensive methodology for designing, launching, and governing dynamic ecosystems that drive systemic change and sustainable value creation.
 
 #### Status
 
@@ -103,23 +75,23 @@ live
 
 Network
 
-### Product 4
+### Product 3
 
 #### ID
 
-rizom-insights
+economy-of-garbage
 
 #### Name
 
-Rizom Insights
+Economy of Garbage
 
 #### Tagline
 
-Uncover hidden patterns and trends
+Unlock value from waste streams
 
 #### Description
 
-Rizom Insights is a data analytics suite that provides deep visibility into your ecosystem's performance. Leverage predictive models and AI-powered recommendations to make informed, data-driven decisions.
+An innovative approach to transforming waste into valuable resources, fostering circular economies and regenerative business models.
 
 #### Status
 
@@ -129,4 +101,4 @@ beta
 
 #### Icon
 
-Database
+Cpu

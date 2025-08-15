@@ -152,7 +152,10 @@ export class Shell implements IShell {
     const messageBus = MessageBus.createFresh(logger);
     const pluginManager = PluginManager.createFresh(serviceRegistry, logger);
     const permissionService = new PermissionService(fullConfig.permissions);
-    const commandRegistry = CommandRegistry.createFresh(logger, permissionService);
+    const commandRegistry = CommandRegistry.createFresh(
+      logger,
+      permissionService,
+    );
     const mcpService = MCPService.createFresh(messageBus, logger);
 
     // Merge fresh instances with any provided dependencies (without contentGenerator yet)
@@ -228,12 +231,12 @@ export class Shell implements IShell {
     this.pluginManager =
       dependencies?.pluginManager ??
       PluginManager.getInstance(this.serviceRegistry, this.logger);
-    
+
     // Initialize permission service first since CommandRegistry needs it
     this.permissionService = new PermissionService(config.permissions);
-    
+
     this.commandRegistry =
-      dependencies?.commandRegistry ?? 
+      dependencies?.commandRegistry ??
       CommandRegistry.getInstance(this.logger, this.permissionService);
     this.mcpService =
       dependencies?.mcpService ??

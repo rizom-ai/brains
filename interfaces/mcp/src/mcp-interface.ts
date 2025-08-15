@@ -5,7 +5,6 @@ import {
   type PluginResource,
   type Daemon,
   type DaemonHealth,
-  type UserPermissionLevel,
 } from "@brains/plugins";
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
@@ -39,15 +38,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     };
 
     super("mcp", packageJson, config, mcpConfigSchema, defaults);
-  }
-
-  /**
-   * Get permission level based on transport type
-   */
-  private getPermissionLevel(): UserPermissionLevel {
-    // STDIO = trusted local process = anchor permissions
-    // HTTP = remote access = public permissions (for now)
-    return this.config.transport === "stdio" ? "anchor" : "anchor";
   }
 
   /**
@@ -92,9 +82,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   protected override async onRegister(
     context: InterfacePluginContext,
   ): Promise<void> {
-    const permissionLevel = this.getPermissionLevel();
     this.logger.info(
-      `MCP interface initialized with ${this.config.transport} transport and ${permissionLevel} permissions`,
+      `MCP interface initialized with ${this.config.transport} transport`,
     );
 
     // Subscribe to job progress events for MCP progress reporting
@@ -157,11 +146,21 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
 
     this.mcpTransport = this.context.mcpTransport;
 
-    // Set permission level based on transport type
-    const permissionLevel = this.getPermissionLevel();
-    this.mcpTransport.setPermissionLevel(permissionLevel);
+    // Determine the user ID based on transport for permission rules
+    // This will be used by the centralized PermissionService to determine actual permissions
+    const transportUserId =
+      this.config.transport === "stdio" ? "stdio" : "http";
+    const userLevel = this.context.getUserPermissionLevel(
+      "mcp",
+      transportUserId,
+    );
 
-    this.logger.info(`Starting MCP ${this.config.transport} transport`);
+    // Pass the determined permission level to the MCP transport
+    this.mcpTransport.setPermissionLevel(userLevel);
+
+    this.logger.info(
+      `Starting MCP ${this.config.transport} transport with ${userLevel} permissions`,
+    );
 
     if (this.config.transport === "stdio") {
       // Start STDIO transport

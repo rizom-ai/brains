@@ -185,9 +185,7 @@ export type {
 } from "@brains/utils";
 
 // From @brains/permission-service
-export type {
-  UserPermissionLevel,
-} from "@brains/permission-service";
+export type { UserPermissionLevel } from "@brains/permission-service";
 export {
   Logger,
   LogLevel,

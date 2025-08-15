@@ -7,11 +7,11 @@ sectionId: cta
 
 ## Headline
 
-Elevate Your Productivity - Start Your Free Trial Now
+Discover the Power of a Second Brain
 
 ## Description
 
-Transform your knowledge into a powerful second brain. Join thousands who are already boosting their productivity and creativity with Rizom.
+Elevate your knowledge with Rizom - the personal knowledge management system that empowers you to unlock your full potential.
 
 ## Primary Button
 
@@ -27,8 +27,8 @@ Start Free Trial
 
 ### Text
 
-View Demo
+Learn More
 
 ### Link
 
-/demo
+/about

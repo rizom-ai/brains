@@ -25,7 +25,7 @@ export interface InterfacePluginContext extends CorePluginContext {
   ) => Promise<CommandResponse>;
 
   // Permission checking
-  determineUserPermissionLevel: (
+  getUserPermissionLevel: (
     interfaceType: string,
     userId: string,
   ) => UserPermissionLevel;
@@ -59,7 +59,7 @@ export function createInterfacePluginContext(
     mcpTransport,
 
     // Permission checking
-    determineUserPermissionLevel: (
+    getUserPermissionLevel: (
       interfaceType: string,
       userId: string,
     ): UserPermissionLevel => {

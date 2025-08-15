@@ -17,6 +17,11 @@ export class App {
       ...validatedConfig,
       plugins: config?.plugins ?? [],
     };
+
+    // Only add optional properties if they're defined
+    if (config?.permissions) appConfig.permissions = config.permissions;
+    if (config?.cliConfig) appConfig.cliConfig = config.cliConfig;
+    if (config?.shellConfig) appConfig.shellConfig = config.shellConfig;
     return new App(appConfig, shell);
   }
 
