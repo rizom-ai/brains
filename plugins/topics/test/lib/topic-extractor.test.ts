@@ -36,7 +36,8 @@ describe("TopicExtractor", () => {
         id: "msg-2",
         conversationId: "conv-123",
         role: "assistant",
-        content: "Machine learning is a subset of artificial intelligence that enables systems to learn from data.",
+        content:
+          "Machine learning is a subset of artificial intelligence that enables systems to learn from data.",
         timestamp: new Date("2024-01-01T10:01:00Z"),
       },
     ];
@@ -57,7 +58,8 @@ describe("TopicExtractor", () => {
           {
             title: "Machine Learning Fundamentals",
             summary: "An introduction to machine learning concepts",
-            content: "Machine learning is a subset of AI that enables systems to learn from data.",
+            content:
+              "Machine learning is a subset of AI that enables systems to learn from data.",
             keywords: ["machine learning", "AI", "data"],
             relevanceScore: 0.9,
           },
@@ -68,7 +70,7 @@ describe("TopicExtractor", () => {
         "conv-123",
         1,
         2,
-        0.5
+        0.5,
       );
 
       expect(context.getMessages).toHaveBeenCalledWith("conv-123", {
@@ -77,8 +79,7 @@ describe("TopicExtractor", () => {
       expect(context.generateContent).toHaveBeenCalled();
       expect(result).toHaveLength(1);
       expect(result[0].title).toBe("Machine Learning Fundamentals");
-      expect(result[0].sources).toHaveLength(1);
-      expect(result[0].sources[0].type).toBe("conversation");
+      expect(result[0].sources).toEqual(["conv-123"]);
     });
 
     it("should filter topics by relevance score", async () => {
@@ -106,7 +107,7 @@ describe("TopicExtractor", () => {
         "conv-123",
         1,
         2,
-        0.8
+        0.8,
       );
 
       expect(result).toHaveLength(1);
@@ -117,12 +118,12 @@ describe("TopicExtractor", () => {
       context.getMessages = mock(async () => []);
       const generateContentMock = mock(async () => ({ topics: [] }));
       context.generateContent = generateContentMock;
-      
+
       const result = await extractor.extractFromConversationWindow(
         "conv-123",
         1,
         10,
-        0.5
+        0.5,
       );
 
       expect(result).toEqual([]);
@@ -136,7 +137,7 @@ describe("TopicExtractor", () => {
       });
 
       await expect(
-        extractor.extractFromConversationWindow("conv-123", 1, 2, 0.5)
+        extractor.extractFromConversationWindow("conv-123", 1, 2, 0.5),
       ).rejects.toThrow("AI service error");
     });
 
@@ -165,7 +166,7 @@ describe("TopicExtractor", () => {
         "conv-123",
         1,
         2,
-        0.5
+        0.5,
       );
 
       // Should keep the one with higher relevance score
@@ -177,7 +178,13 @@ describe("TopicExtractor", () => {
   describe("extractFromRecentMessages", () => {
     it("should extract topics from recent messages across conversations", async () => {
       const mockConversations = [
-        { id: "conv-1", sessionId: "session-1", interfaceType: "cli", channelId: "channel-1", startTime: new Date() },
+        {
+          id: "conv-1",
+          sessionId: "session-1",
+          interfaceType: "cli",
+          channelId: "channel-1",
+          startTime: new Date(),
+        },
       ];
 
       const mockMessages: Message[] = [
@@ -220,7 +227,7 @@ describe("TopicExtractor", () => {
 
       // Mock searchConversations
       context.searchConversations = mock(async () => mockConversations);
-      
+
       // Mock getMessages
       context.getMessages = mock(async (convId: string) => {
         if (convId === "conv-1") return mockMessages;

@@ -43,33 +43,33 @@ describe("TopicAdapter", () => {
 
   describe("createTopicBody", () => {
     it("should create structured content body", () => {
-      const sources: TopicSource[] = [
-        {
-          type: "conversation",
-          id: "conv-123",
-          timestamp: new Date("2024-01-01"),
-          context: "Test context",
-        },
-      ];
+      const sources: TopicSource[] = ["conv-123", "note-456"];
 
       const body = adapter.createTopicBody({
+        title: "Test Topic",
         summary: "This is a test summary",
         content: "This is the main content",
-        references: sources,
+        keywords: ["test", "example"],
+        sources,
       });
 
-      expect(body).toContain("# Topic Content");
+      expect(body).toContain("# Test Topic");
       expect(body).toContain("## Summary");
       expect(body).toContain("This is a test summary");
       expect(body).toContain("## Content");
       expect(body).toContain("This is the main content");
-      expect(body).toContain("## References");
+      expect(body).toContain("## Keywords");
+      expect(body).toContain("test");
+      expect(body).toContain("example");
+      expect(body).toContain("## Sources");
+      expect(body).toContain("conv-123");
+      expect(body).toContain("note-456");
     });
   });
 
   describe("parseTopicBody", () => {
     it("should parse structured content back to components", () => {
-      const body = `# Topic Content
+      const body = `# Test Topic
 
 ## Summary
 This is a test summary
@@ -77,29 +77,21 @@ This is a test summary
 ## Content
 This is the main content
 
-## References
+## Keywords
+- test
+- example
 
-### Reference 1
-
-#### Type
-conversation
-
-#### ID
-conv-123
-
-#### Timestamp
-2024-01-01T00:00:00.000Z
-
-#### Context
-Test context`;
+## Sources
+- conv-123
+- note-456`;
 
       const parsed = adapter.parseTopicBody(body);
 
+      expect(parsed.title).toBe("Test Topic");
       expect(parsed.summary).toBe("This is a test summary");
       expect(parsed.content).toBe("This is the main content");
-      expect(parsed.sources).toHaveLength(1);
-      expect(parsed.sources[0]?.type).toBe("conversation");
-      expect(parsed.sources[0]?.id).toBe("conv-123");
+      expect(parsed.keywords).toEqual(["test", "example"]);
+      expect(parsed.sources).toEqual(["conv-123", "note-456"]);
     });
   });
 

@@ -60,7 +60,7 @@ describe("string-utils", () => {
     it("should generate ID from text", () => {
       expect(generateIdFromText("Hello World")).toBe("hello-world");
       expect(generateIdFromText("Machine Learning Basics")).toBe(
-        "machine-learning-basics"
+        "machine-learning-basics",
       );
     });
 
@@ -79,9 +79,11 @@ describe("string-utils", () => {
 
     it("should handle special characters in text", () => {
       expect(generateIdFromText("AI & Machine Learning")).toBe(
-        "ai-machine-learning"
+        "ai-machine-learning",
       );
-      expect(generateIdFromText("Q&A: Best Practices")).toBe("qa-best-practices");
+      expect(generateIdFromText("Q&A: Best Practices")).toBe(
+        "qa-best-practices",
+      );
       expect(generateIdFromText("C++ vs. Java")).toBe("c-vs-java");
     });
 

@@ -2,29 +2,16 @@ import { z } from "zod";
 
 /**
  * Topic metadata schema
+ * Topics store all information in the content body, no metadata needed
  */
-export const topicMetadataSchema = z.object({
-  keywords: z.array(z.string()),
-  relevanceScore: z.number().min(0).max(1),
-  firstSeen: z.date(),
-  lastSeen: z.date(),
-  mentionCount: z.number().int().min(0),
-  embedding: z.array(z.number()).optional(),
-});
+export const topicMetadataSchema = z.object({});
 
 export type TopicMetadata = z.infer<typeof topicMetadataSchema>;
 
 /**
- * Topic source reference schema
+ * Topic sources are just IDs of entities this topic was extracted from
  */
-export const topicSourceSchema = z.object({
-  type: z.enum(["conversation", "note", "document", "link"]),
-  id: z.string(),
-  timestamp: z.date(),
-  context: z.string().optional(),
-});
-
-export type TopicSource = z.infer<typeof topicSourceSchema>;
+export type TopicSource = string;
 
 /**
  * Topic extraction job data schema

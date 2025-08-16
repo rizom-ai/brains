@@ -6,6 +6,7 @@ import type {
 } from "@brains/plugins";
 import { z } from "zod";
 import { TopicService } from "../lib/topic-service";
+import { TopicAdapter } from "../lib/topic-adapter";
 import type { TopicsPluginConfig } from "../schemas/config";
 
 // Default job options for topic extraction
@@ -28,7 +29,6 @@ const extractParamsSchema = z.object({
 
 const listParamsSchema = z.object({
   limit: z.number().optional(),
-  days: z.number().optional(),
 });
 
 const getParamsSchema = z.object({
@@ -113,25 +113,21 @@ export function createListTool(
         listParams.limit = parsed.data.limit;
       }
 
-      if (parsed.data.days) {
-        const now = new Date();
-        listParams.startDate = new Date(
-          now.getTime() - parsed.data.days * 24 * 60 * 60 * 1000,
-        );
-      }
-
       const topics = await topicService.listTopics(listParams);
 
+      const adapter = new TopicAdapter();
       return {
         success: true,
         data: {
-          topics: topics.map((t) => ({
-            id: t.id,
-            keywords: t.metadata.keywords,
-            relevanceScore: t.metadata.relevanceScore,
-            mentionCount: t.metadata.mentionCount,
-            lastSeen: t.metadata.lastSeen,
-          })),
+          topics: topics.map((t) => {
+            const parsed = adapter.parseTopicBody(t.content);
+            return {
+              id: t.id,
+              title: parsed.title,
+              keywords: parsed.keywords,
+              updated: t.updated,
+            };
+          }),
           count: topics.length,
         },
       };
@@ -202,15 +198,20 @@ export function createSearchTool(
         parsed.data.limit ?? 10,
       );
 
+      const adapter = new TopicAdapter();
       return {
         success: true,
         data: {
-          results: results.map((t) => ({
-            id: t.id,
-            keywords: t.metadata.keywords,
-            relevanceScore: t.metadata.relevanceScore,
-            summary: t.content.substring(0, 200),
-          })),
+          results: results.map((result) => {
+            const parsed = adapter.parseTopicBody(result.entity.content);
+            return {
+              id: result.entity.id,
+              title: parsed.title,
+              keywords: parsed.keywords,
+              score: result.score,
+              excerpt: result.excerpt,
+            };
+          }),
           count: results.length,
         },
       };
@@ -250,14 +251,15 @@ export function createMergeTool(
         throw new Error("Failed to merge topics");
       }
 
+      const topicAdapter = new TopicAdapter();
+      const topicParsed = topicAdapter.parseTopicBody(merged.content);
       return {
         success: true,
         data: {
           mergedTopic: {
             id: merged.id,
-            keywords: merged.metadata.keywords,
-            relevanceScore: merged.metadata.relevanceScore,
-            mentionCount: merged.metadata.mentionCount,
+            title: topicParsed.title,
+            keywords: topicParsed.keywords,
           },
           mergedIds: topicIds,
         },

@@ -48,12 +48,11 @@ export class TopicExtractor {
     const extractedTopics = await this.extractTopics(
       conversationId,
       messages,
-      new Date(),
     );
 
     // Filter by relevance score and deduplicate by title
     const topicMap = new Map<string, ExtractedTopic>();
-    
+
     for (const topic of extractedTopics) {
       if (topic.relevanceScore >= minRelevanceScore) {
         const existing = topicMap.get(topic.title);
@@ -129,7 +128,6 @@ export class TopicExtractor {
       const extractedTopics = await this.extractTopics(
         conversationId,
         messages,
-        new Date(),
       );
 
       // Filter by relevance score and add to results
@@ -152,7 +150,6 @@ export class TopicExtractor {
   private async extractTopics(
     conversationId: string,
     messages: Message[],
-    startTime: Date,
   ): Promise<ExtractedTopic[]> {
     // Prepare conversation text for AI analysis
     const conversationText = messages
@@ -192,19 +189,10 @@ Return an array of topics in the required JSON format.`;
       const topics: ExtractedTopic[] = [];
 
       for (const data of extractedData) {
-        // Create topic source reference
-        const source: TopicSource = {
-          type: "conversation",
-          id: conversationId,
-          timestamp: messages[0]?.timestamp
-            ? new Date(messages[0].timestamp)
-            : startTime,
-          context: data.summary.substring(0, 200),
-        };
-
+        // Create topic source reference - just the conversation ID
         topics.push({
           ...data,
-          sources: [source],
+          sources: [conversationId],
         });
       }
 

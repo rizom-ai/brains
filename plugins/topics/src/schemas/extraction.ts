@@ -7,7 +7,7 @@ export const extractedTopicSchema = z.object({
   title: z.string().max(100),
   summary: z.string(),
   content: z.string(),
-  keywords: z.array(z.string()).max(10),
+  keywords: z.array(z.string()),
   relevanceScore: z.number().min(0).max(1),
 });
 

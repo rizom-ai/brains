@@ -15,18 +15,12 @@ export const topicEntitySchema = baseEntitySchema.extend({
 
 export type TopicEntity = z.infer<typeof topicEntitySchema>;
 
-// Schema for topic body structure
+// Schema for topic body structure (without title, which is dynamic)
 const topicBodySchema = z.object({
   summary: z.string(),
   content: z.string(),
-  references: z.array(
-    z.object({
-      type: z.string(),
-      id: z.string(),
-      timestamp: z.string(),
-      context: z.string().optional(),
-    }),
-  ),
+  keywords: z.array(z.string()),
+  sources: z.array(z.string()), // Just source IDs
 });
 
 type TopicBody = z.infer<typeof topicBodySchema>;
@@ -37,12 +31,17 @@ type TopicBody = z.infer<typeof topicBodySchema>;
 export class TopicAdapter implements EntityAdapter<TopicEntity> {
   public readonly entityType = "topic";
   public readonly schema = topicEntitySchema;
-  private formatter: StructuredContentFormatter<TopicBody>;
 
-  constructor() {
-    // Configure structured content formatter for topic body
-    this.formatter = new StructuredContentFormatter(topicBodySchema, {
-      title: "Topic Content",
+  constructor() {}
+
+  /**
+   * Create a formatter with the given title
+   */
+  private createFormatter(
+    title: string,
+  ): StructuredContentFormatter<TopicBody> {
+    return new StructuredContentFormatter(topicBodySchema, {
+      title,
       mappings: [
         {
           key: "summary",
@@ -55,32 +54,16 @@ export class TopicAdapter implements EntityAdapter<TopicEntity> {
           type: "string",
         },
         {
-          key: "references",
-          label: "References",
+          key: "keywords",
+          label: "Keywords",
           type: "array",
-          itemType: "object",
-          itemMappings: [
-            {
-              key: "type",
-              label: "Type",
-              type: "string",
-            },
-            {
-              key: "id",
-              label: "ID",
-              type: "string",
-            },
-            {
-              key: "timestamp",
-              label: "Timestamp",
-              type: "string",
-            },
-            {
-              key: "context",
-              label: "Context",
-              type: "string",
-            },
-          ],
+          itemType: "string",
+        },
+        {
+          key: "sources",
+          label: "Sources",
+          type: "array",
+          itemType: "string",
         },
       ],
     });
@@ -109,12 +92,9 @@ export class TopicAdapter implements EntityAdapter<TopicEntity> {
   /**
    * Extract metadata for search/filtering
    */
-  public extractMetadata(entity: TopicEntity): Record<string, unknown> {
-    return {
-      keywords: entity.metadata.keywords,
-      relevanceScore: entity.metadata.relevanceScore,
-      mentionCount: entity.metadata.mentionCount,
-    };
+  public extractMetadata(_entity: TopicEntity): Record<string, unknown> {
+    // Metadata is now empty - all data stored in content body
+    return {};
   }
 
   /**
@@ -141,31 +121,30 @@ export class TopicAdapter implements EntityAdapter<TopicEntity> {
    */
   public parseTopicBody(
     body: string,
-  ): TopicBody & { sources: TopicSource[]; formatted: string } {
+  ): TopicBody & { formatted: string; title: string } {
     try {
-      const parsed = this.formatter.parse(body);
+      // Extract title from H1
+      const titleMatch = body.match(/^#\s+(.+)$/m);
+      const title = titleMatch?.[1]?.trim() ?? "Unknown Topic";
 
-      // Convert references back to TopicSource format
-      const sources: TopicSource[] = parsed.references.map((ref) => ({
-        type: ref.type as TopicSource["type"],
-        id: ref.id,
-        timestamp: new Date(ref.timestamp),
-        context: ref.context,
-      }));
+      // Create formatter with extracted title
+      const formatter = this.createFormatter(title);
+      const parsed = formatter.parse(body);
 
       return {
         ...parsed,
-        sources,
         formatted: body,
+        title,
       };
     } catch {
       // If parsing fails, return empty structure
       return {
         summary: "",
         content: body,
-        references: [],
+        keywords: [],
         sources: [],
         formatted: body,
+        title: "Unknown Topic",
       };
     }
   }
@@ -174,21 +153,21 @@ export class TopicAdapter implements EntityAdapter<TopicEntity> {
    * Create topic body from components
    */
   public createTopicBody(params: {
+    title: string;
     summary: string;
     content: string;
-    references: TopicSource[];
+    keywords: string[];
+    sources: TopicSource[];
   }): string {
     const bodyData: TopicBody = {
       summary: params.summary,
       content: params.content,
-      references: params.references.map((ref) => ({
-        type: ref.type,
-        id: ref.id,
-        timestamp: ref.timestamp.toISOString(),
-        context: ref.context,
-      })),
+      keywords: params.keywords,
+      sources: params.sources,
     };
 
-    return this.formatter.format(bodyData);
+    // Create formatter with the actual topic title
+    const formatter = this.createFormatter(params.title);
+    return formatter.format(bodyData);
   }
 }

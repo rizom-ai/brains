@@ -1,7 +1,8 @@
-import type { Logger, IEntityService } from "@brains/plugins";
+import type { Logger, IEntityService, SearchResult } from "@brains/plugins";
 import type { TopicEntity } from "../types";
 import type { TopicMetadata, TopicSource } from "../schemas/topic";
 import { TopicAdapter } from "./topic-adapter";
+import { generateIdFromText } from "@brains/utils";
 
 /**
  * Service for managing topics
@@ -25,48 +26,40 @@ export class TopicService {
     content: string;
     sources: TopicSource[];
     keywords: string[];
-    relevanceScore: number;
   }): Promise<TopicEntity | null> {
+    // Generate a proper slug ID from the title
+    const topicId = generateIdFromText(params.title);
+
     // Check if topic already exists
-    const existing = await this.getTopic(params.title);
+    const existing = await this.getTopic(topicId);
     if (existing) {
       this.logger.info("Topic already exists, updating instead", {
-        id: params.title,
+        id: topicId,
+        title: params.title,
       });
 
       // Merge new information with existing topic
-      return this.updateTopic(params.title, {
+      const parsed = this.adapter.parseTopicBody(existing.content);
+      return this.updateTopic(topicId, {
         sources: params.sources,
-        keywords: [
-          ...new Set([...existing.metadata.keywords, ...params.keywords]),
-        ],
-        relevanceScore: Math.max(
-          existing.metadata.relevanceScore,
-          params.relevanceScore,
-        ),
+        keywords: [...new Set([...parsed.keywords, ...params.keywords])],
       });
     }
 
-    const now = new Date();
+    const metadata: TopicMetadata = {};
 
-    const metadata: TopicMetadata = {
-      keywords: params.keywords,
-      relevanceScore: params.relevanceScore,
-      firstSeen: now,
-      lastSeen: now,
-      mentionCount: params.sources.length,
-    };
-
-    // Create the structured content body
+    // Create the structured content body with the actual title
     const body = this.adapter.createTopicBody({
+      title: params.title,
       summary: params.summary,
       content: params.content,
-      references: params.sources,
+      keywords: params.keywords,
+      sources: params.sources,
     });
 
     try {
       const { entityId } = await this.entityService.createEntity({
-        id: params.title, // Use title as the ID for topics
+        id: topicId,
         entityType: "topic",
         content: body,
         metadata,
@@ -79,7 +72,10 @@ export class TopicService {
       );
 
       if (topic) {
-        this.logger.info("Created topic", { id: topic.id });
+        this.logger.info("Created topic", {
+          id: topic.id,
+          title: params.title,
+        });
       }
 
       return topic;
@@ -87,9 +83,10 @@ export class TopicService {
       // Handle case where another process created the topic concurrently
       if (error instanceof Error && error.message.includes("already exists")) {
         this.logger.info("Topic was created concurrently, fetching existing", {
-          id: params.title,
+          id: topicId,
+          title: params.title,
         });
-        return this.getTopic(params.title);
+        return this.getTopic(topicId);
       }
       throw error;
     }
@@ -105,7 +102,6 @@ export class TopicService {
       content?: string;
       sources?: TopicSource[];
       keywords?: string[];
-      relevanceScore?: number;
     },
   ): Promise<TopicEntity | null> {
     const existing = await this.getTopic(id);
@@ -116,29 +112,24 @@ export class TopicService {
     const parsed = this.adapter.parseTopicBody(existing.content);
 
     // Update body sections if provided
+    const title = parsed.title; // Keep the original title
     const summary = updates.summary ?? parsed.summary;
     const content = updates.content ?? parsed.content;
-    const sources = updates.sources ?? parsed.sources;
+    const keywords = updates.keywords ?? parsed.keywords;
+    const sources = updates.sources
+      ? [...parsed.sources, ...updates.sources] // Append new sources
+      : parsed.sources;
 
-    // Update metadata
-    const metadata: TopicMetadata = {
-      ...existing.metadata,
-      keywords: updates.keywords ?? existing.metadata.keywords,
-      relevanceScore:
-        updates.relevanceScore ?? existing.metadata.relevanceScore,
-      lastSeen: new Date(),
-    };
-
-    if (updates.sources) {
-      metadata.mentionCount =
-        existing.metadata.mentionCount + updates.sources.length;
-    }
+    // Metadata stays empty
+    const metadata: TopicMetadata = {};
 
     // Re-create the topic body using the adapter
     const newBody = this.adapter.createTopicBody({
+      title,
       summary,
       content,
-      references: sources,
+      keywords,
+      sources,
     });
 
     // Update the entity
@@ -169,50 +160,31 @@ export class TopicService {
   }
 
   /**
-   * List topics with optional filtering
+   * List topics with pagination
    */
   public async listTopics(params?: {
     limit?: number;
     offset?: number;
-    startDate?: Date;
-    endDate?: Date;
   }): Promise<TopicEntity[]> {
     const listOptions = {
       ...(params?.limit !== undefined && { limit: params.limit }),
       ...(params?.offset !== undefined && { offset: params.offset }),
     };
 
-    const topics = await this.entityService.listEntities<TopicEntity>(
-      "topic",
-      listOptions,
-    );
-
-    // Filter by date range if provided
-    if (params?.startDate || params?.endDate) {
-      return topics.filter((topic) => {
-        if (params.startDate && topic.metadata.lastSeen < params.startDate) {
-          return false;
-        }
-        if (params.endDate && topic.metadata.lastSeen > params.endDate) {
-          return false;
-        }
-        return true;
-      });
-    }
-
-    return topics;
+    return this.entityService.listEntities<TopicEntity>("topic", listOptions);
   }
 
   /**
    * Search topics by query
    */
-  public async searchTopics(query: string, limit = 10): Promise<TopicEntity[]> {
-    const results = await this.entityService.search<TopicEntity>(query, {
+  public async searchTopics(
+    query: string,
+    limit = 10,
+  ): Promise<SearchResult<TopicEntity>[]> {
+    return this.entityService.search<TopicEntity>(query, {
       types: ["topic"],
       limit,
     });
-
-    return results.map((r) => r.entity);
   }
 
   /**
@@ -255,10 +227,6 @@ export class TopicService {
     const allSources: TopicSource[] = [];
     const allContent: string[] = [];
     const allKeywords = new Set<string>();
-    let totalMentions = 0;
-    let maxRelevance = 0;
-    let earliestSeen = target.metadata.firstSeen;
-    let latestSeen = target.metadata.lastSeen;
 
     for (const topic of validTopics) {
       const parsed = this.adapter.parseTopicBody(topic.content);
@@ -270,16 +238,8 @@ export class TopicService {
         allContent.push(parsed.content);
       }
 
-      topic.metadata.keywords.forEach((k) => allKeywords.add(k));
-      maxRelevance = Math.max(maxRelevance, topic.metadata.relevanceScore);
-      totalMentions += topic.metadata.mentionCount;
-
-      if (topic.metadata.firstSeen < earliestSeen) {
-        earliestSeen = topic.metadata.firstSeen;
-      }
-      if (topic.metadata.lastSeen > latestSeen) {
-        latestSeen = topic.metadata.lastSeen;
-      }
+      // Collect keywords from parsed body
+      parsed.keywords.forEach((k) => allKeywords.add(k));
     }
 
     // Update target topic with merged data
@@ -288,24 +248,16 @@ export class TopicService {
       "\n\n---\n\n",
     );
 
-    // Deduplicate sources by id
-    const uniqueSources = Array.from(
-      new Map(allSources.map((s) => [s.id, s])).values(),
-    );
+    // Deduplicate sources (they're just strings/IDs)
+    const uniqueSources = Array.from(new Set(allSources));
 
     const merged = await this.updateTopic(target.id, {
       content: mergedContent,
       sources: uniqueSources,
       keywords: Array.from(allKeywords),
-      relevanceScore: maxRelevance,
     });
 
     if (merged) {
-      // Update metadata with correct dates and counts
-      merged.metadata.firstSeen = earliestSeen;
-      merged.metadata.lastSeen = latestSeen;
-      merged.metadata.mentionCount = totalMentions;
-
       // Delete other topics
       for (const topic of validTopics) {
         if (topic.id !== target.id) {

@@ -96,44 +96,24 @@ export class TopicExtractionHandler
         let shouldCreateNew = true;
 
         if (this.config.autoMerge && searchResults.length > 0) {
-          // Check similarity with existing topics
-          for (const existingTopic of searchResults) {
-            // Simple similarity check based on keywords overlap
-            const existingKeywords = new Set(existingTopic.metadata.keywords);
-            const commonKeywords = extractedTopic.keywords.filter((k: string) =>
-              existingKeywords.has(k),
-            );
+          // Use the top search result (highest similarity score)
+          const topResult = searchResults[0];
+          if (
+            topResult &&
+            topResult.score >= (this.config.mergeSimilarityThreshold ?? 0.8)
+          ) {
+            // Update existing topic instead of creating new
+            await this.topicService.updateTopic(topResult.entity.id, {
+              sources: extractedTopic.sources,
+              keywords: extractedTopic.keywords,
+            });
 
-            const similarity =
-              commonKeywords.length /
-              Math.max(
-                extractedTopic.keywords.length,
-                existingTopic.metadata.keywords.length,
-              );
-
-            if (similarity >= (this.config.mergeSimilarityThreshold ?? 0.8)) {
-              // Update existing topic instead of creating new
-              await this.topicService.updateTopic(existingTopic.id, {
-                sources: extractedTopic.sources,
-                keywords: [
-                  ...new Set([
-                    ...existingTopic.metadata.keywords,
-                    ...extractedTopic.keywords,
-                  ]),
-                ],
-                relevanceScore: Math.max(
-                  existingTopic.metadata.relevanceScore,
-                  extractedTopic.relevanceScore,
-                ),
-              });
-
-              this.logger.info("Updated existing topic", {
-                topicId: existingTopic.id,
-              });
-              shouldCreateNew = false;
-              mergedCount++;
-              break;
-            }
+            this.logger.info("Updated existing topic", {
+              topicId: topResult.entity.id,
+              similarityScore: topResult.score,
+            });
+            shouldCreateNew = false;
+            mergedCount++;
           }
         }
 
@@ -145,7 +125,6 @@ export class TopicExtractionHandler
             content: extractedTopic.content,
             sources: extractedTopic.sources,
             keywords: extractedTopic.keywords,
-            relevanceScore: extractedTopic.relevanceScore,
           });
 
           this.logger.info("Created new topic", {

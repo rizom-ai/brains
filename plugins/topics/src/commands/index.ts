@@ -6,6 +6,7 @@ import type {
 import type { TopicsPluginConfig } from "../schemas/config";
 import { TopicService } from "../lib/topic-service";
 import { TopicExtractor } from "../lib/topic-extractor";
+import { TopicAdapter } from "../lib/topic-adapter";
 import { Logger } from "@brains/utils";
 
 export function createTopicsCommands(
@@ -44,13 +45,15 @@ export function createTopicsCommands(
           // Format topics for CLI display
           const formatted = topics
             .map((topic) => {
-              const meta = topic.metadata;
+              // Parse topic body to get keywords
+              const adapter = new TopicAdapter();
+              const parsed = adapter.parseTopicBody(topic.content);
               return [
-                `**${topic.id}**`,
-                `Relevance: ${meta.relevanceScore.toFixed(2)} | Keywords: ${meta.keywords.join(", ")}`,
-                `Last seen: ${new Date(meta.lastSeen).toLocaleDateString()}`,
+                `**${parsed.title}** (${topic.id})`,
+                `Keywords: ${parsed.keywords.join(", ")}`,
+                `Last updated: ${new Date(topic.updated).toLocaleDateString()}`,
                 ``,
-                topic.content.substring(0, 200) + "...",
+                parsed.summary || topic.content.substring(0, 200) + "...",
               ].join("\n");
             })
             .join("\n\n---\n\n");
@@ -111,16 +114,7 @@ export function createTopicsCommands(
               // Update existing topic
               await topicService.updateTopic(existing.id, {
                 sources: extracted.sources,
-                keywords: [
-                  ...new Set([
-                    ...existing.metadata.keywords,
-                    ...extracted.keywords,
-                  ]),
-                ],
-                relevanceScore: Math.max(
-                  existing.metadata.relevanceScore,
-                  extracted.relevanceScore,
-                ),
+                keywords: extracted.keywords,
               });
               merged++;
             } else {
@@ -131,7 +125,6 @@ export function createTopicsCommands(
                 content: extracted.content,
                 sources: extracted.sources,
                 keywords: extracted.keywords,
-                relevanceScore: extracted.relevanceScore,
               });
               created++;
             }
@@ -174,18 +167,21 @@ export function createTopicsCommands(
           }
 
           // Format topic for display
-          const meta = topic.metadata;
+          const adapter = new TopicAdapter();
+          const parsed = adapter.parseTopicBody(topic.content);
           const formatted = [
-            `# ${topic.id}`,
+            `# ${parsed.title}`,
             ``,
-            `**Relevance Score:** ${meta.relevanceScore.toFixed(2)}`,
-            `**Keywords:** ${meta.keywords.join(", ")}`,
-            `**First Seen:** ${new Date(meta.firstSeen).toLocaleString()}`,
-            `**Last Seen:** ${new Date(meta.lastSeen).toLocaleString()}`,
-            `**Mention Count:** ${meta.mentionCount}`,
+            `**ID:** ${topic.id}`,
+            `**Keywords:** ${parsed.keywords.join(", ")}`,
+            `**Created:** ${new Date(topic.created).toLocaleString()}`,
+            `**Updated:** ${new Date(topic.updated).toLocaleString()}`,
+            ``,
+            `## Summary`,
+            parsed.summary,
             ``,
             `## Content`,
-            topic.content,
+            parsed.content,
           ].join("\n");
 
           return {
@@ -226,14 +222,15 @@ export function createTopicsCommands(
           }
 
           // Format search results
+          const adapter = new TopicAdapter();
           const formatted = results
-            .map((topic) => {
-              const meta = topic.metadata;
+            .map((result) => {
+              const parsed = adapter.parseTopicBody(result.entity.content);
               return [
-                `**${topic.id}**`,
-                `Relevance: ${meta.relevanceScore.toFixed(2)} | Keywords: ${meta.keywords.slice(0, 5).join(", ")}`,
+                `**${parsed.title}** (${result.entity.id})`,
+                `Score: ${result.score.toFixed(2)} | Keywords: ${parsed.keywords.slice(0, 5).join(", ")}`,
                 ``,
-                topic.content.substring(0, 150) + "...",
+                result.excerpt,
               ].join("\n");
             })
             .join("\n\n---\n\n");
