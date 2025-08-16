@@ -5,7 +5,6 @@ import type {
 } from "@brains/plugins";
 import type { TopicsPluginConfig } from "../schemas/config";
 import { TopicService } from "../lib/topic-service";
-import { TopicExtractor } from "../lib/topic-extractor";
 import { TopicAdapter } from "../lib/topic-adapter";
 import { Logger } from "@brains/utils";
 
@@ -15,7 +14,6 @@ export function createTopicsCommands(
   logger: Logger,
 ): Command[] {
   const topicService = new TopicService(context.entityService, logger);
-  const topicExtractor = new TopicExtractor(context, logger);
 
   return [
     {
@@ -77,67 +75,47 @@ export function createTopicsCommands(
       handler: async (args, _context): Promise<CommandResponse> => {
         try {
           // Parse arguments
-          let windowSize = config.windowSize ?? 20;
-          let minRelevance = config.minRelevanceScore ?? 0.5;
+          let windowSize = config.windowSize ?? 30;
+          let minRelevance = config.minRelevanceScore ?? 0.7;
 
           for (let i = 0; i < args.length; i++) {
             if (args[i] === "--window" && args[i + 1]) {
               windowSize = parseInt(args[i + 1] as string, 10);
-              if (isNaN(windowSize)) windowSize = 20;
+              if (isNaN(windowSize)) windowSize = config.windowSize ?? 30;
             } else if (args[i] === "--min-relevance" && args[i + 1]) {
               minRelevance = parseFloat(args[i + 1] as string);
-              if (isNaN(minRelevance)) minRelevance = 0.5;
+              if (isNaN(minRelevance))
+                minRelevance = config.minRelevanceScore ?? 0.7;
             }
           }
 
-          // Start extraction
-          const extractedTopics =
-            await topicExtractor.extractFromRecentMessages(
+          // Queue extraction job for background processing
+          const jobId = await context.enqueueJob(
+            "topics:extraction",
+            {
               windowSize,
-              minRelevance,
-            );
-
-          if (extractedTopics.length === 0) {
-            return {
-              type: "message",
-              message: `No topics found in recent ${windowSize} messages with relevance >= ${minRelevance}`,
-            };
-          }
-
-          // Create topics
-          let created = 0;
-          let merged = 0;
-
-          for (const extracted of extractedTopics) {
-            const existing = await topicService.getTopic(extracted.title);
-            if (existing) {
-              // Update existing topic
-              await topicService.updateTopic(existing.id, {
-                sources: extracted.sources,
-                keywords: extracted.keywords,
-              });
-              merged++;
-            } else {
-              // Create new topic
-              await topicService.createTopic({
-                title: extracted.title,
-                summary: extracted.summary,
-                content: extracted.content,
-                sources: extracted.sources,
-                keywords: extracted.keywords,
-              });
-              created++;
-            }
-          }
+              minRelevanceScore: minRelevance,
+            },
+            {
+              priority: 5,
+              source: "topics",
+              metadata: {
+                interfaceId: "cli",
+                userId: "user",
+                operationType: "batch_processing",
+                pluginId: "topics",
+              },
+            },
+          );
 
           return {
             type: "message",
-            message: `Topic extraction complete:\n- Extracted: ${extractedTopics.length} topics\n- Created: ${created} new topics\n- Updated: ${merged} existing topics`,
+            message: `Topic extraction job queued (ID: ${jobId})\nWindow size: ${windowSize} messages, min relevance: ${minRelevance}`,
           };
         } catch (error) {
           return {
             type: "message",
-            message: `Error extracting topics: ${error instanceof Error ? error.message : String(error)}`,
+            message: `Error: Failed to queue extraction - ${error instanceof Error ? error.message : String(error)}`,
           };
         }
       },
@@ -150,11 +128,11 @@ export function createTopicsCommands(
         if (args.length === 0) {
           return {
             type: "message",
-            message: "Please provide a topic ID. Usage: /topics:get <topic-id>",
+            message: "Error: Topic ID is required",
           };
         }
 
-        const topicId = args.join(" "); // Topic ID might have spaces
+        const topicId = args[0] as string; // Use first argument as topic ID
 
         try {
           const topic = await topicService.getTopic(topicId);
@@ -162,7 +140,7 @@ export function createTopicsCommands(
           if (!topic) {
             return {
               type: "message",
-              message: `Topic not found: ${topicId}`,
+              message: `Error: Topic not found: ${topicId}`,
             };
           }
 
@@ -204,8 +182,7 @@ export function createTopicsCommands(
         if (args.length === 0) {
           return {
             type: "message",
-            message:
-              "Please provide a search query. Usage: /topics:search <query>",
+            message: "Error: Search query is required",
           };
         }
 

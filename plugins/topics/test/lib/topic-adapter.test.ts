@@ -115,9 +115,9 @@ This is the main content
   describe("fromMarkdown", () => {
     it("should create partial entity from markdown", () => {
       const markdown = "# Test Topic\n\n## Content\nSome content";
-      
+
       const result = adapter.fromMarkdown(markdown);
-      
+
       expect(result.content).toBe(markdown);
       expect(result.entityType).toBe("topic");
     });
@@ -146,10 +146,10 @@ metadata: {}
 ---
 
 # Content`;
-      
+
       const schema = adapter.schema.pick({ metadata: true });
       const result = adapter.parseFrontMatter(markdown, schema);
-      
+
       expect(result.metadata).toEqual({});
     });
   });
@@ -179,7 +179,7 @@ Test summary
 Test content`;
 
       const parsed = adapter.parseTopicBody(body);
-      
+
       expect(parsed.title).toBe("Unknown Topic");
       expect(parsed.summary).toBe("");
       expect(parsed.content).toBe(body);
@@ -189,7 +189,7 @@ Test content`;
       const body = "Some random text without structure";
 
       const parsed = adapter.parseTopicBody(body);
-      
+
       expect(parsed.title).toBe("Unknown Topic");
       expect(parsed.summary).toBe("");
       expect(parsed.content).toBe(body);

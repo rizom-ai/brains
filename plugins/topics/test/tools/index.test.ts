@@ -43,7 +43,7 @@ describe("Topics Tools", () => {
 
     it("should queue extraction job", async () => {
       const tool = createExtractTool(context, config, logger);
-      
+
       const result = await tool.handler({
         windowSize: 20,
         minScore: 0.5,
@@ -57,7 +57,7 @@ describe("Topics Tools", () => {
 
     it("should use default values when not provided", async () => {
       const tool = createExtractTool(context, config, logger);
-      
+
       const result = await tool.handler({});
 
       expect(result.success).toBe(true);
@@ -82,7 +82,8 @@ describe("Topics Tools", () => {
       const topic1: TopicEntity = {
         id: "topic-1",
         entityType: "topic",
-        content: "# Topic 1\n\n## Summary\nSummary 1\n\n## Content\nContent 1\n\n## Keywords\n- keyword1\n\n## Sources\n- source1",
+        content:
+          "# Topic 1\n\n## Summary\nSummary 1\n\n## Content\nContent 1\n\n## Keywords\n- keyword1\n\n## Sources\n- source1",
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -91,7 +92,8 @@ describe("Topics Tools", () => {
       const topic2: TopicEntity = {
         id: "topic-2",
         entityType: "topic",
-        content: "# Topic 2\n\n## Summary\nSummary 2\n\n## Content\nContent 2\n\n## Keywords\n- keyword2\n\n## Sources\n- source2",
+        content:
+          "# Topic 2\n\n## Summary\nSummary 2\n\n## Content\nContent 2\n\n## Keywords\n- keyword2\n\n## Sources\n- source2",
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -136,7 +138,8 @@ describe("Topics Tools", () => {
       const topic: TopicEntity = {
         id: "test-topic",
         entityType: "topic",
-        content: "# Test Topic\n\n## Summary\nTest summary\n\n## Content\nTest content\n\n## Keywords\n- test\n\n## Sources\n- source1",
+        content:
+          "# Test Topic\n\n## Summary\nTest summary\n\n## Content\nTest content\n\n## Keywords\n- test\n\n## Sources\n- source1",
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -154,7 +157,9 @@ describe("Topics Tools", () => {
     it("should throw error for non-existent topic", async () => {
       const tool = createGetTool(context, config, logger);
 
-      await expect(tool.handler({ id: "non-existent" })).rejects.toThrow("Topic not found");
+      await expect(tool.handler({ id: "non-existent" })).rejects.toThrow(
+        "Topic not found",
+      );
     });
   });
 
@@ -196,7 +201,8 @@ describe("Topics Tools", () => {
       const topic1: TopicEntity = {
         id: "topic-a",
         entityType: "topic",
-        content: "# Topic A\n\n## Summary\nSummary A\n\n## Content\nContent A\n\n## Keywords\n- keywordA\n\n## Sources\n- sourceA",
+        content:
+          "# Topic A\n\n## Summary\nSummary A\n\n## Content\nContent A\n\n## Keywords\n- keywordA\n\n## Sources\n- sourceA",
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -205,7 +211,8 @@ describe("Topics Tools", () => {
       const topic2: TopicEntity = {
         id: "topic-b",
         entityType: "topic",
-        content: "# Topic B\n\n## Summary\nSummary B\n\n## Content\nContent B\n\n## Keywords\n- keywordB\n\n## Sources\n- sourceB",
+        content:
+          "# Topic B\n\n## Summary\nSummary B\n\n## Content\nContent B\n\n## Keywords\n- keywordB\n\n## Sources\n- sourceB",
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -219,16 +226,20 @@ describe("Topics Tools", () => {
       expect(result.success).toBe(true);
       expect(result.data.mergedTopic).toBeDefined();
       expect(result.data.mergedTopic.id).toBe("topic-a");
-      
+
       // Check that topic-b was deleted
-      const deletedTopic = await mockShell.getEntityService().getEntity("topic", "topic-b");
+      const deletedTopic = await mockShell
+        .getEntityService()
+        .getEntity("topic", "topic-b");
       expect(deletedTopic).toBeNull();
     });
 
     it("should throw error when not enough topics to merge", async () => {
       const tool = createMergeTool(context, config, logger);
 
-      await expect(tool.handler({ ids: "non-existent" })).rejects.toThrow("Failed to merge topics");
+      await expect(tool.handler({ ids: "non-existent" })).rejects.toThrow(
+        "Failed to merge topics",
+      );
     });
   });
 });
