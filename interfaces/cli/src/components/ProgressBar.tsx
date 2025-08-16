@@ -25,11 +25,12 @@ export function ProgressBar({
   barIncompleteChar = "░",
   color = "green",
 }: ProgressBarProps): React.ReactElement {
-  // Calculate percentage
-  const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
-
-  // Calculate filled width
-  const filledWidth = Math.round((current / total) * width);
+  // Validate inputs and calculate progress
+  const safeTotal = Math.max(1, total || 1); // Ensure total is at least 1
+  const safeCurrent = Math.max(0, current || 0); // Ensure current is non-negative
+  const progress = Math.min(1, safeCurrent / safeTotal); // Cap at 100%
+  const percentage = Math.round(progress * 100);
+  const filledWidth = Math.round(progress * width);
   const emptyWidth = width - filledWidth;
 
   // Create bar string

@@ -7,6 +7,7 @@ import { directorySync } from "@brains/directory-sync";
 import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { templates, routes } from "@brains/default-site-content";
+import { TopicsPlugin } from "@brains/topics";
 
 const config = defineConfig({
   name: "test-brain",
@@ -25,12 +26,13 @@ const config = defineConfig({
       // MCP stdio transport gets anchor permissions (local access)
       { pattern: "mcp:stdio", level: "anchor" },
       // MCP http transport gets public permissions (remote access)
-      { pattern: "mcp:http", level: "public" },
+      { pattern: "mcp:http", level: "anchor" },
     ],
   },
 
   plugins: [
     new SystemPlugin({}),
+    new TopicsPlugin({}),
     new MCPInterface({}),
     new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",

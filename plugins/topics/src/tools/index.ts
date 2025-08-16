@@ -23,6 +23,7 @@ const EXTRACTION_JOB_OPTIONS: JobOptions = {
 
 // Schema for tool parameters
 const extractParamsSchema = z.object({
+  conversationId: z.string(),
   windowSize: z.number().min(10).max(100).optional(),
   minScore: z.number().min(0).max(1).optional(),
 });
@@ -55,7 +56,7 @@ export function createExtractTool(
 ): PluginTool {
   return {
     name: "topics-extract",
-    description: "Extract topics from recent messages",
+    description: "Extract topics from a specific conversation",
     inputSchema: extractParamsSchema.shape,
     handler: async (params) => {
       const parsed = extractParamsSchema.safeParse(params);
@@ -70,6 +71,7 @@ export function createExtractTool(
       const jobId = await context.enqueueJob(
         "topics:extraction",
         {
+          conversationId: parsed.data.conversationId,
           windowSize: windowSize,
           minRelevanceScore: minScore,
         },
@@ -80,7 +82,7 @@ export function createExtractTool(
         success: true,
         data: {
           jobId,
-          message: `Topic extraction job queued. Window size: ${windowSize} messages, min relevance: ${minScore}`,
+          message: `Topic extraction job queued for conversation ${parsed.data.conversationId}. Window size: ${windowSize} messages, min relevance: ${minScore}`,
         },
       };
     },

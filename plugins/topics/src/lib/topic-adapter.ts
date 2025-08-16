@@ -10,7 +10,7 @@ import { z } from "zod";
 // Extend base entity schema for topics
 export const topicEntitySchema = baseEntitySchema.extend({
   entityType: z.literal("topic"),
-  metadata: topicMetadataSchema,
+  metadata: topicMetadataSchema.optional(),
 });
 
 export type TopicEntity = z.infer<typeof topicEntitySchema>;

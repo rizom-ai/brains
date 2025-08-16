@@ -174,7 +174,10 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.getMessages(conversationId, limit ? { limit } : undefined);
+    return this.context.getMessages(
+      conversationId,
+      limit ? { limit } : undefined,
+    );
   }
 
   /**

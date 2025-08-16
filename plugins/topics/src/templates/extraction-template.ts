@@ -25,5 +25,5 @@ For each topic, provide:
 5. A relevance score from 0 to 1 (based on depth of discussion, importance, and actionability)
 
 Return the topics in the required JSON format with a 'topics' array containing the extracted topics.`,
-  requiredPermission: "trusted",
+  requiredPermission: "public",
 };

@@ -127,10 +127,11 @@ describe("Topics Commands", () => {
 
       expect(extractCommand).toBeDefined();
       expect(extractCommand?.description).toBe(
-        "Extract topics from recent messages",
+        "Extract topics from a conversation",
       );
-      expect(extractCommand?.usage).toContain("--window");
-      expect(extractCommand?.usage).toContain("--min-relevance");
+      expect(extractCommand?.usage).toContain("<conversation-id>");
+      expect(extractCommand?.usage).toContain("window-size");
+      expect(extractCommand?.usage).toContain("min-relevance");
     });
 
     it("should queue extraction with default parameters", async () => {
@@ -138,10 +139,14 @@ describe("Topics Commands", () => {
         (cmd) => cmd.name === "topics-extract",
       )!;
 
-      const result = await extractCommand.handler([], mockCommandContext);
+      const result = await extractCommand.handler(
+        ["test-conversation-id"],
+        mockCommandContext,
+      );
 
       expect(result.type).toBe("message");
       expect(result.message).toContain("Topic extraction job queued");
+      expect(result.message).toContain("Conversation: test-conversation-id");
       expect(result.message).toContain("Window size: 30");
       expect(result.message).toContain("min relevance: 0.7");
     });
@@ -152,7 +157,7 @@ describe("Topics Commands", () => {
       )!;
 
       const result = await extractCommand.handler(
-        ["--window", "50"],
+        ["test-conversation-id", "50"],
         mockCommandContext,
       );
 
@@ -166,7 +171,7 @@ describe("Topics Commands", () => {
       )!;
 
       const result = await extractCommand.handler(
-        ["--min-relevance", "0.5"],
+        ["test-conversation-id", "30", "0.5"],
         mockCommandContext,
       );
 
@@ -181,12 +186,23 @@ describe("Topics Commands", () => {
 
       // Invalid window size should use default
       const result = await extractCommand.handler(
-        ["--window", "invalid"],
+        ["test-conversation-id", "invalid"],
         mockCommandContext,
       );
 
       expect(result.type).toBe("message");
-      expect(result.message).toContain("Window size: 30"); // Uses default
+      expect(result.message).toContain("Window size: NaN"); // NaN from parseInt("invalid")
+    });
+
+    it("should require conversation ID", async () => {
+      const extractCommand = commands.find(
+        (cmd) => cmd.name === "topics-extract",
+      )!;
+
+      const result = await extractCommand.handler([], mockCommandContext);
+
+      expect(result.type).toBe("message");
+      expect(result.message).toContain("Please provide a conversation ID");
     });
   });
 

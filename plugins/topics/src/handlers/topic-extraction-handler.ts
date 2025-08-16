@@ -3,6 +3,7 @@ import type {
   ServicePluginContext,
   ProgressReporter,
   Logger,
+  Message,
 } from "@brains/plugins";
 import { z } from "zod";
 import { TopicExtractor } from "../lib/topic-extractor";
@@ -11,9 +12,10 @@ import type { TopicsPluginConfig } from "../schemas/config";
 
 // Schema for extraction job data
 const extractionJobDataSchema = z.object({
-  conversationId: z.string(),
-  startIdx: z.number().min(1),
-  endIdx: z.number().min(1),
+  conversationId: z.string(), // Required - always process one conversation
+  startIdx: z.number().min(1).optional(),
+  endIdx: z.number().min(1).optional(),
+  windowSize: z.number().min(10).max(100).optional(),
   minRelevanceScore: z.number().min(0).max(1).optional(),
 });
 
@@ -37,7 +39,7 @@ export class TopicExtractionHandler
   private topicService: TopicService;
 
   constructor(
-    context: ServicePluginContext,
+    private readonly context: ServicePluginContext,
     private readonly config: TopicsPluginConfig,
     private readonly logger: Logger,
   ) {
@@ -51,26 +53,64 @@ export class TopicExtractionHandler
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<ExtractionJobResult> {
+    // Determine the range to process
+    const startIdx = data.startIdx;
+    const endIdx = data.endIdx;
+    const windowSize = data.windowSize ?? this.config.windowSize ?? 30;
+
+    // If no specific range provided, we'll handle it differently
+    let messages: Message[];
+
+    if (!startIdx || !endIdx) {
+      // Get the most recent messages using limit
+      messages = await this.context.getMessages(data.conversationId, {
+        limit: windowSize,
+      });
+
+      if (messages.length === 0) {
+        return {
+          success: true,
+          extractedCount: 0,
+          mergedCount: 0,
+          message: "No messages in conversation",
+        };
+      }
+
+      // We'll pass these messages directly to the extractor
+      // No need to calculate indices
+    } else {
+      // Get specific range of messages
+      messages = await this.context.getMessages(data.conversationId, {
+        range: { start: startIdx, end: endIdx },
+      });
+    }
+
     this.logger.info("Starting topic extraction job", {
       jobId,
       conversationId: data.conversationId,
-      range: `${data.startIdx}-${data.endIdx}`,
+      messageCount: messages.length,
     });
 
     try {
       await progressReporter.report({
         progress: 10,
-        message: `Extracting topics from messages ${data.startIdx}-${data.endIdx}`,
+        message: `Extracting topics from ${messages.length} messages`,
       });
 
-      // Extract topics from conversation window
+      // Extract topics from messages
       const extractedTopics =
-        await this.topicExtractor.extractFromConversationWindow(
-          data.conversationId,
-          data.startIdx,
-          data.endIdx,
-          data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
-        );
+        startIdx && endIdx
+          ? await this.topicExtractor.extractFromConversationWindow(
+              data.conversationId,
+              startIdx,
+              endIdx,
+              data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
+            )
+          : await this.topicExtractor.extractFromMessages(
+              data.conversationId,
+              messages,
+              data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
+            );
 
       this.logger.info(`Extracted ${extractedTopics.length} topics`);
       await progressReporter.report({

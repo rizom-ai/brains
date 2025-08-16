@@ -6,7 +6,7 @@ import type {
 import type { TopicsPluginConfig } from "../schemas/config";
 import { TopicService } from "../lib/topic-service";
 import { TopicAdapter } from "../lib/topic-adapter";
-import { Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils";
 
 export function createTopicsCommands(
   context: ServicePluginContext,
@@ -70,29 +70,33 @@ export function createTopicsCommands(
     },
     {
       name: "topics-extract",
-      description: "Extract topics from recent messages",
-      usage: "/topics-extract [--window <number>] [--min-relevance <number>]",
+      description: "Extract topics from a conversation",
+      usage: "/topics-extract <conversation-id> [window-size] [min-relevance]",
       handler: async (args, _context): Promise<CommandResponse> => {
         try {
-          // Parse arguments
-          let windowSize = config.windowSize ?? 30;
-          let minRelevance = config.minRelevanceScore ?? 0.7;
-
-          for (let i = 0; i < args.length; i++) {
-            if (args[i] === "--window" && args[i + 1]) {
-              windowSize = parseInt(args[i + 1] as string, 10);
-              if (isNaN(windowSize)) windowSize = config.windowSize ?? 30;
-            } else if (args[i] === "--min-relevance" && args[i + 1]) {
-              minRelevance = parseFloat(args[i + 1] as string);
-              if (isNaN(minRelevance))
-                minRelevance = config.minRelevanceScore ?? 0.7;
-            }
+          if (args.length === 0) {
+            return {
+              type: "message",
+              message:
+                "Please provide a conversation ID. Usage: /topics-extract <conversation-id> [window-size] [min-relevance]",
+            };
           }
+
+          const conversationId = args[0] as string;
+
+          // Parse optional arguments
+          const windowSize = args[1]
+            ? parseInt(args[1] as string, 10)
+            : (config.windowSize ?? 30);
+          const minRelevance = args[2]
+            ? parseFloat(args[2] as string)
+            : (config.minRelevanceScore ?? 0.7);
 
           // Queue extraction job for background processing
           const jobId = await context.enqueueJob(
             "topics:extraction",
             {
+              conversationId,
               windowSize,
               minRelevanceScore: minRelevance,
             },
@@ -110,7 +114,7 @@ export function createTopicsCommands(
 
           return {
             type: "message",
-            message: `Topic extraction job queued (ID: ${jobId})\nWindow size: ${windowSize} messages, min relevance: ${minRelevance}`,
+            message: `Topic extraction job queued (ID: ${jobId})\nConversation: ${conversationId}\nWindow size: ${windowSize} messages, min relevance: ${minRelevance}`,
           };
         } catch (error) {
           return {

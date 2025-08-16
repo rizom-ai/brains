@@ -37,7 +37,9 @@ describe("Topics Tools", () => {
       const tool = createExtractTool(context, config, logger);
 
       expect(tool.name).toBe("topics-extract");
-      expect(tool.description).toBe("Extract topics from recent messages");
+      expect(tool.description).toBe(
+        "Extract topics from a specific conversation",
+      );
       expect(tool.inputSchema).toBeDefined();
     });
 
@@ -45,12 +47,14 @@ describe("Topics Tools", () => {
       const tool = createExtractTool(context, config, logger);
 
       const result = await tool.handler({
+        conversationId: "test-conversation-id",
         windowSize: 20,
         minScore: 0.5,
       });
 
       expect(result.success).toBe(true);
       expect(result.data.jobId).toBeDefined();
+      expect(result.data.message).toContain("test-conversation-id");
       expect(result.data.message).toContain("Window size: 20");
       expect(result.data.message).toContain("min relevance: 0.5");
     });
@@ -58,9 +62,12 @@ describe("Topics Tools", () => {
     it("should use default values when not provided", async () => {
       const tool = createExtractTool(context, config, logger);
 
-      const result = await tool.handler({});
+      const result = await tool.handler({
+        conversationId: "test-conversation-id",
+      });
 
       expect(result.success).toBe(true);
+      expect(result.data.message).toContain("test-conversation-id");
       expect(result.data.message).toContain("Window size: 30");
       expect(result.data.message).toContain("min relevance: 0.7");
     });
