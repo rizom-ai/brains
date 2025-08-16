@@ -36,7 +36,7 @@ describe("Topics Tools", () => {
     it("should create extract tool with correct metadata", () => {
       const tool = createExtractTool(context, config, logger);
 
-      expect(tool.name).toBe("topics:extract");
+      expect(tool.name).toBe("topics-extract");
       expect(tool.description).toBe("Extract topics from recent messages");
       expect(tool.inputSchema).toBeDefined();
     });
@@ -70,7 +70,7 @@ describe("Topics Tools", () => {
     it("should create list tool with correct metadata", () => {
       const tool = createListTool(context, config, logger);
 
-      expect(tool.name).toBe("topics:list");
+      expect(tool.name).toBe("topics-list");
       expect(tool.description).toBe("List all topics");
       expect(tool.inputSchema).toBeDefined();
     });
@@ -126,7 +126,7 @@ describe("Topics Tools", () => {
     it("should create get tool with correct metadata", () => {
       const tool = createGetTool(context, config, logger);
 
-      expect(tool.name).toBe("topics:get");
+      expect(tool.name).toBe("topics-get");
       expect(tool.description).toBe("Get details of a specific topic");
       expect(tool.inputSchema).toBeDefined();
       expect(tool.inputSchema.id).toBeDefined();
@@ -167,7 +167,7 @@ describe("Topics Tools", () => {
     it("should create search tool with correct metadata", () => {
       const tool = createSearchTool(context, config, logger);
 
-      expect(tool.name).toBe("topics:search");
+      expect(tool.name).toBe("topics-search");
       expect(tool.description).toBe("Search topics by query");
       expect(tool.inputSchema).toBeDefined();
       expect(tool.inputSchema.query).toBeDefined();
@@ -188,7 +188,7 @@ describe("Topics Tools", () => {
     it("should create merge tool with correct metadata", () => {
       const tool = createMergeTool(context, config, logger);
 
-      expect(tool.name).toBe("topics:merge");
+      expect(tool.name).toBe("topics-merge");
       expect(tool.description).toBe("Merge multiple topics into one");
       expect(tool.inputSchema).toBeDefined();
       expect(tool.inputSchema.ids).toBeDefined();

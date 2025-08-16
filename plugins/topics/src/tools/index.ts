@@ -54,7 +54,7 @@ export function createExtractTool(
   _logger: Logger,
 ): PluginTool {
   return {
-    name: "topics:extract",
+    name: "topics-extract",
     description: "Extract topics from recent messages",
     inputSchema: extractParamsSchema.shape,
     handler: async (params) => {
@@ -96,7 +96,7 @@ export function createListTool(
   logger: Logger,
 ): PluginTool {
   return {
-    name: "topics:list",
+    name: "topics-list",
     description: "List all topics",
     inputSchema: listParamsSchema.shape,
     handler: async (params) => {
@@ -144,7 +144,7 @@ export function createGetTool(
   logger: Logger,
 ): PluginTool {
   return {
-    name: "topics:get",
+    name: "topics-get",
     description: "Get details of a specific topic",
     inputSchema: getParamsSchema.shape,
     handler: async (params) => {
@@ -183,7 +183,7 @@ export function createSearchTool(
   logger: Logger,
 ): PluginTool {
   return {
-    name: "topics:search",
+    name: "topics-search",
     description: "Search topics by query",
     inputSchema: searchParamsSchema.shape,
     handler: async (params) => {
@@ -228,7 +228,7 @@ export function createMergeTool(
   logger: Logger,
 ): PluginTool {
   return {
-    name: "topics:merge",
+    name: "topics-merge",
     description: "Merge multiple topics into one",
     inputSchema: mergeParamsSchema.shape,
     handler: async (params) => {

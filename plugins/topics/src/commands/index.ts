@@ -17,9 +17,9 @@ export function createTopicsCommands(
 
   return [
     {
-      name: "topics:list",
+      name: "topics-list",
       description: "List all topics",
-      usage: "/topics:list [--limit <number>]",
+      usage: "/topics-list [--limit <number>]",
       handler: async (args, _context): Promise<CommandResponse> => {
         try {
           // Parse arguments
@@ -69,9 +69,9 @@ export function createTopicsCommands(
       },
     },
     {
-      name: "topics:extract",
+      name: "topics-extract",
       description: "Extract topics from recent messages",
-      usage: "/topics:extract [--window <number>] [--min-relevance <number>]",
+      usage: "/topics-extract [--window <number>] [--min-relevance <number>]",
       handler: async (args, _context): Promise<CommandResponse> => {
         try {
           // Parse arguments
@@ -121,9 +121,9 @@ export function createTopicsCommands(
       },
     },
     {
-      name: "topics:get",
+      name: "topics-get",
       description: "Get a specific topic by ID",
-      usage: "/topics:get <topic-id>",
+      usage: "/topics-get <topic-id>",
       handler: async (args, _context): Promise<CommandResponse> => {
         if (args.length === 0) {
           return {
@@ -175,9 +175,9 @@ export function createTopicsCommands(
       },
     },
     {
-      name: "topics:search",
+      name: "topics-search",
       description: "Search topics by query",
-      usage: "/topics:search <query>",
+      usage: "/topics-search <query>",
       handler: async (args, _context): Promise<CommandResponse> => {
         if (args.length === 0) {
           return {

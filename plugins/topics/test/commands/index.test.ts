@@ -37,9 +37,9 @@ describe("Topics Commands", () => {
     };
   });
 
-  describe("topics:list command", () => {
+  describe("topics-list command", () => {
     it("should have correct metadata", () => {
-      const listCommand = commands.find((cmd) => cmd.name === "topics:list");
+      const listCommand = commands.find((cmd) => cmd.name === "topics-list");
 
       expect(listCommand).toBeDefined();
       expect(listCommand?.description).toBe("List all topics");
@@ -47,7 +47,7 @@ describe("Topics Commands", () => {
     });
 
     it("should list topics with default limit", async () => {
-      const listCommand = commands.find((cmd) => cmd.name === "topics:list")!;
+      const listCommand = commands.find((cmd) => cmd.name === "topics-list")!;
 
       // Create test topics
       const topic1: TopicEntity = {
@@ -83,7 +83,7 @@ describe("Topics Commands", () => {
     });
 
     it("should respect limit argument", async () => {
-      const listCommand = commands.find((cmd) => cmd.name === "topics:list")!;
+      const listCommand = commands.find((cmd) => cmd.name === "topics-list")!;
 
       // Create 3 topics with unique names
       for (let i = 1; i <= 3; i++) {
@@ -110,7 +110,7 @@ describe("Topics Commands", () => {
     });
 
     it("should handle empty topic list", async () => {
-      const listCommand = commands.find((cmd) => cmd.name === "topics:list")!;
+      const listCommand = commands.find((cmd) => cmd.name === "topics-list")!;
 
       const result = await listCommand.handler([], mockCommandContext);
 
@@ -119,10 +119,10 @@ describe("Topics Commands", () => {
     });
   });
 
-  describe("topics:extract command", () => {
+  describe("topics-extract command", () => {
     it("should have correct metadata", () => {
       const extractCommand = commands.find(
-        (cmd) => cmd.name === "topics:extract",
+        (cmd) => cmd.name === "topics-extract",
       );
 
       expect(extractCommand).toBeDefined();
@@ -135,7 +135,7 @@ describe("Topics Commands", () => {
 
     it("should queue extraction with default parameters", async () => {
       const extractCommand = commands.find(
-        (cmd) => cmd.name === "topics:extract",
+        (cmd) => cmd.name === "topics-extract",
       )!;
 
       const result = await extractCommand.handler([], mockCommandContext);
@@ -148,7 +148,7 @@ describe("Topics Commands", () => {
 
     it("should accept custom window size", async () => {
       const extractCommand = commands.find(
-        (cmd) => cmd.name === "topics:extract",
+        (cmd) => cmd.name === "topics-extract",
       )!;
 
       const result = await extractCommand.handler(
@@ -162,7 +162,7 @@ describe("Topics Commands", () => {
 
     it("should accept custom min score", async () => {
       const extractCommand = commands.find(
-        (cmd) => cmd.name === "topics:extract",
+        (cmd) => cmd.name === "topics-extract",
       )!;
 
       const result = await extractCommand.handler(
@@ -176,7 +176,7 @@ describe("Topics Commands", () => {
 
     it("should handle invalid arguments gracefully", async () => {
       const extractCommand = commands.find(
-        (cmd) => cmd.name === "topics:extract",
+        (cmd) => cmd.name === "topics-extract",
       )!;
 
       // Invalid window size should use default
@@ -190,9 +190,9 @@ describe("Topics Commands", () => {
     });
   });
 
-  describe("topics:get command", () => {
+  describe("topics-get command", () => {
     it("should have correct metadata", () => {
-      const getCommand = commands.find((cmd) => cmd.name === "topics:get");
+      const getCommand = commands.find((cmd) => cmd.name === "topics-get");
 
       expect(getCommand).toBeDefined();
       expect(getCommand?.description).toBe("Get a specific topic by ID");
@@ -200,7 +200,7 @@ describe("Topics Commands", () => {
     });
 
     it("should get topic by ID", async () => {
-      const getCommand = commands.find((cmd) => cmd.name === "topics:get")!;
+      const getCommand = commands.find((cmd) => cmd.name === "topics-get")!;
 
       const topic: TopicEntity = {
         id: "test-topic",
@@ -227,7 +227,7 @@ describe("Topics Commands", () => {
     });
 
     it("should handle non-existent topic", async () => {
-      const getCommand = commands.find((cmd) => cmd.name === "topics:get")!;
+      const getCommand = commands.find((cmd) => cmd.name === "topics-get")!;
 
       const result = await getCommand.handler(
         ["non-existent"],
@@ -239,7 +239,7 @@ describe("Topics Commands", () => {
     });
 
     it("should handle missing ID argument", async () => {
-      const getCommand = commands.find((cmd) => cmd.name === "topics:get")!;
+      const getCommand = commands.find((cmd) => cmd.name === "topics-get")!;
 
       const result = await getCommand.handler([], mockCommandContext);
 
@@ -248,10 +248,10 @@ describe("Topics Commands", () => {
     });
   });
 
-  describe("topics:search command", () => {
+  describe("topics-search command", () => {
     it("should have correct metadata", () => {
       const searchCommand = commands.find(
-        (cmd) => cmd.name === "topics:search",
+        (cmd) => cmd.name === "topics-search",
       );
 
       expect(searchCommand).toBeDefined();
@@ -262,7 +262,7 @@ describe("Topics Commands", () => {
 
     it("should search topics", async () => {
       const searchCommand = commands.find(
-        (cmd) => cmd.name === "topics:search",
+        (cmd) => cmd.name === "topics-search",
       )!;
 
       // MockShell search always returns empty, but we can test the command works
@@ -279,7 +279,7 @@ describe("Topics Commands", () => {
 
     it("should handle missing query", async () => {
       const searchCommand = commands.find(
-        (cmd) => cmd.name === "topics:search",
+        (cmd) => cmd.name === "topics-search",
       )!;
 
       const result = await searchCommand.handler([], mockCommandContext);
@@ -290,7 +290,7 @@ describe("Topics Commands", () => {
 
     it("should handle multi-word queries", async () => {
       const searchCommand = commands.find(
-        (cmd) => cmd.name === "topics:search",
+        (cmd) => cmd.name === "topics-search",
       )!;
 
       // Test that multi-word queries are properly joined

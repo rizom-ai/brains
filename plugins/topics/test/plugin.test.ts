@@ -63,23 +63,23 @@ describe("TopicsPlugin", () => {
       expect(tools).toHaveLength(5); // We have 5 tools
 
       const toolNames = tools.map((t) => t.name);
-      expect(toolNames).toContain("topics:extract");
-      expect(toolNames).toContain("topics:list");
-      expect(toolNames).toContain("topics:get");
-      expect(toolNames).toContain("topics:search");
-      expect(toolNames).toContain("topics:merge");
+      expect(toolNames).toContain("topics-extract");
+      expect(toolNames).toContain("topics-list");
+      expect(toolNames).toContain("topics-get");
+      expect(toolNames).toContain("topics-search");
+      expect(toolNames).toContain("topics-merge");
     });
 
     it("should have proper tool schemas", async () => {
       const capabilities = await harness.installPlugin(plugin);
       const tools = capabilities.tools;
 
-      const extractTool = tools.find((t) => t.name === "topics:extract");
+      const extractTool = tools.find((t) => t.name === "topics-extract");
       expect(extractTool).toBeDefined();
       expect(extractTool?.description).toContain("Extract topics");
       expect(extractTool?.inputSchema).toBeDefined();
 
-      const listTool = tools.find((t) => t.name === "topics:list");
+      const listTool = tools.find((t) => t.name === "topics-list");
       expect(listTool).toBeDefined();
       expect(listTool?.description).toContain("List all topics");
       expect(listTool?.inputSchema).toBeDefined();
@@ -94,10 +94,10 @@ describe("TopicsPlugin", () => {
       expect(commands.length).toBeGreaterThan(0);
 
       const commandNames = commands.map((c) => c.name);
-      expect(commandNames).toContain("topics:list");
-      expect(commandNames).toContain("topics:extract");
-      expect(commandNames).toContain("topics:get");
-      expect(commandNames).toContain("topics:search");
+      expect(commandNames).toContain("topics-list");
+      expect(commandNames).toContain("topics-extract");
+      expect(commandNames).toContain("topics-get");
+      expect(commandNames).toContain("topics-search");
     });
   });
 
