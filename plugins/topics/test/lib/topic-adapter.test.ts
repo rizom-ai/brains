@@ -1,44 +1,13 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
-import type { EntityService } from "@brains/core";
-import { Logger } from "@brains/utils";
 import type { TopicSource } from "../../src/schemas/topic";
+import type { TopicEntity } from "../../src/types";
 
 describe("TopicAdapter", () => {
   let adapter: TopicAdapter;
-  let mockEntityService: EntityService;
-  let logger: Logger;
 
   beforeEach(() => {
-    logger = Logger.getInstance().child("test");
-
-    // Create a minimal mock EntityService
-    mockEntityService = {
-      create: async (entity) => ({
-        ...entity,
-        id: "test-id",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
-      update: async (_id, updates) => ({
-        id: "test-id",
-        type: "topic",
-        title: "Test Topic",
-        body: updates.body || "",
-        metadata: updates.metadata || {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
-      get: async () => null,
-      delete: async () => true,
-      list: async () => [],
-      search: async () => [],
-    } as unknown as EntityService;
-
-    adapter = new TopicAdapter({
-      entityService: mockEntityService,
-      logger,
-    });
+    adapter = new TopicAdapter();
   });
 
   describe("createTopicBody", () => {
@@ -100,16 +69,10 @@ This is the main content
       const schema = adapter.schema;
 
       const validTopic = {
-        id: "Test Topic",
+        id: "test-topic",
         entityType: "topic",
         content: "Test body",
-        metadata: {
-          keywords: ["test"],
-          relevanceScore: 0.5,
-          firstSeen: new Date(),
-          lastSeen: new Date(),
-          mentionCount: 1,
-        },
+        metadata: {}, // Empty metadata now
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
@@ -121,21 +84,117 @@ This is the main content
       const schema = adapter.schema;
 
       const invalidTopic = {
-        id: "Test Topic",
+        id: "test-topic",
         entityType: "note", // Wrong type
         content: "Test body",
-        metadata: {
-          keywords: ["test"],
-          relevanceScore: 0.5,
-          firstSeen: new Date(),
-          lastSeen: new Date(),
-          mentionCount: 1,
-        },
+        metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
       expect(() => schema.parse(invalidTopic)).toThrow();
+    });
+  });
+
+  describe("toMarkdown", () => {
+    it("should return content as-is", () => {
+      const entity: TopicEntity = {
+        id: "test-topic",
+        entityType: "topic",
+        content: "# Test Topic\n\n## Content\nSome content",
+        metadata: {},
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      const markdown = adapter.toMarkdown(entity);
+      expect(markdown).toBe(entity.content);
+    });
+  });
+
+  describe("fromMarkdown", () => {
+    it("should create partial entity from markdown", () => {
+      const markdown = "# Test Topic\n\n## Content\nSome content";
+      
+      const result = adapter.fromMarkdown(markdown);
+      
+      expect(result.content).toBe(markdown);
+      expect(result.entityType).toBe("topic");
+    });
+  });
+
+  describe("extractMetadata", () => {
+    it("should return empty metadata", () => {
+      const entity: TopicEntity = {
+        id: "test-topic",
+        entityType: "topic",
+        content: "# Test Topic\n\n## Content\nSome content",
+        metadata: {},
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      const metadata = adapter.extractMetadata(entity);
+      expect(metadata).toEqual({});
+    });
+  });
+
+  describe("parseFrontMatter", () => {
+    it("should parse frontmatter from markdown", () => {
+      const markdown = `---
+metadata: {}
+---
+
+# Content`;
+      
+      const schema = adapter.schema.pick({ metadata: true });
+      const result = adapter.parseFrontMatter(markdown, schema);
+      
+      expect(result.metadata).toEqual({});
+    });
+  });
+
+  describe("generateFrontMatter", () => {
+    it("should return content without frontmatter", () => {
+      const entity: TopicEntity = {
+        id: "test-topic",
+        entityType: "topic",
+        content: "# Test Topic\n\n## Content\nSome content",
+        metadata: {},
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      const result = adapter.generateFrontMatter(entity);
+      expect(result).toBe(entity.content);
+    });
+  });
+
+  describe("parseTopicBody edge cases", () => {
+    it("should handle body without H1 title", () => {
+      const body = `## Summary
+Test summary
+
+## Content
+Test content`;
+
+      const parsed = adapter.parseTopicBody(body);
+      
+      expect(parsed.title).toBe("Unknown Topic");
+      expect(parsed.summary).toBe("");
+      expect(parsed.content).toBe(body);
+    });
+
+    it("should handle malformed body", () => {
+      const body = "Some random text without structure";
+
+      const parsed = adapter.parseTopicBody(body);
+      
+      expect(parsed.title).toBe("Unknown Topic");
+      expect(parsed.summary).toBe("");
+      expect(parsed.content).toBe(body);
+      expect(parsed.keywords).toEqual([]);
+      expect(parsed.sources).toEqual([]);
     });
   });
 });

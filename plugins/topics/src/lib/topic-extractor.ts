@@ -45,10 +45,7 @@ export class TopicExtractor {
     }
 
     // Extract topics
-    const extractedTopics = await this.extractTopics(
-      conversationId,
-      messages,
-    );
+    const extractedTopics = await this.extractTopics(conversationId, messages);
 
     // Filter by relevance score and deduplicate by title
     const topicMap = new Map<string, ExtractedTopic>();
