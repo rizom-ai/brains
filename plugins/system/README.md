@@ -19,7 +19,7 @@ This plugin provides both commands and tools for:
 
 ### Job Monitoring
 
-- **Command**: `/getjobstatus [batch-id]` - Check background operation status
+- **Command**: `/get-job-status [batch-id]` - Check background operation status
 - **Tool**: `system:check-job-status` - Check job/batch status
 
 ## Architecture

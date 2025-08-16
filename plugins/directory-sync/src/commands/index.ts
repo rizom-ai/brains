@@ -9,9 +9,9 @@ export function createDirectorySyncCommands(
 ): Command[] {
   return [
     {
-      name: "sync",
+      name: "directory-sync",
       description: "Synchronize all entities with directory",
-      usage: "/sync",
+      usage: "/directory-sync",
       handler: async (_args, context): Promise<CommandResponse> => {
         try {
           const batchData = directorySync.prepareBatchOperations();

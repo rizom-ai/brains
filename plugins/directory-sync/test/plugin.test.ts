@@ -98,7 +98,7 @@ describe("DirectorySyncPlugin", () => {
       expect(capabilities.commands?.length).toBeGreaterThan(0);
 
       const commandNames = capabilities.commands?.map((c) => c.name) || [];
-      expect(commandNames).toContain("sync");
+      expect(commandNames).toContain("directory-sync");
       expect(commandNames).toContain("sync-status");
     });
 

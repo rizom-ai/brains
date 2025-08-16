@@ -115,7 +115,7 @@ export function createSystemCommands(
       },
     },
     {
-      name: "getjobstatus",
+      name: "get-job-status",
       description: "Check the status of background operations",
       usage: "/getjobstatus [batch-id]",
       handler: async (args, _context): Promise<CommandResponse> => {
@@ -228,7 +228,7 @@ export function createSystemCommands(
       },
     },
     {
-      name: "getconversation",
+      name: "get-conversation",
       description: "Get conversation details",
       usage: "/getconversation <conversation-id>",
       handler: async (args, _context): Promise<CommandResponse> => {
@@ -277,7 +277,7 @@ export function createSystemCommands(
       },
     },
     {
-      name: "listconversations",
+      name: "list-conversations",
       description: "List all conversations or search by query",
       usage: "/listconversations [search-query]",
       handler: async (args, _context): Promise<CommandResponse> => {
@@ -342,7 +342,7 @@ export function createSystemCommands(
       },
     },
     {
-      name: "getmessages",
+      name: "get-messages",
       description: "Get messages from a conversation",
       usage: "/getmessages <conversation-id> [limit]",
       handler: async (args, _context): Promise<CommandResponse> => {
