@@ -51,10 +51,19 @@ export class TopicExtractor {
       new Date(),
     );
 
-    // Filter by relevance score
-    const relevantTopics = extractedTopics.filter(
-      (topic) => topic.relevanceScore >= minRelevanceScore,
-    );
+    // Filter by relevance score and deduplicate by title
+    const topicMap = new Map<string, ExtractedTopic>();
+    
+    for (const topic of extractedTopics) {
+      if (topic.relevanceScore >= minRelevanceScore) {
+        const existing = topicMap.get(topic.title);
+        if (!existing || topic.relevanceScore > existing.relevanceScore) {
+          topicMap.set(topic.title, topic);
+        }
+      }
+    }
+
+    const relevantTopics = Array.from(topicMap.values());
 
     this.logger.info(
       `Extracted ${relevantTopics.length} relevant topics from window`,
@@ -205,7 +214,7 @@ Return an array of topics in the required JSON format.`;
         conversationId,
         error: error instanceof Error ? error.message : String(error),
       });
-      return [];
+      throw error;
     }
   }
 }

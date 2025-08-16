@@ -38,6 +38,9 @@ export * from "./formatters";
 // ID generation utilities
 export { createId, createPrefixedId, createBatchId } from "./id";
 
+// String utilities
+export { slugify, generateIdFromText } from "./string-utils";
+
 // Response types
 export {
   defaultQueryResponseSchema,
