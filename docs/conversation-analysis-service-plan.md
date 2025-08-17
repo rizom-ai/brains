@@ -1,93 +1,108 @@
-# Conversation Analysis Core Service Plan
+# Conversation Digest Integration Plan
 
 ## Architecture Overview
 
-Create a **Conversation Analysis Service** as a core shell service that coordinates auto-analysis across multiple plugins, providing centralized message tracking, intelligent scheduling, and unified configuration.
+Integrate conversation digest functionality directly into the **ConversationService** to automatically broadcast rich message windows for analysis plugins, eliminating the need for a separate coordination service.
 
 ## Background
 
-This plan addresses the need for auto-extraction functionality in the Topics plugin and future analysis plugins (chronological summarization, sentiment analysis, action items extraction, knowledge graph building, etc.). Rather than having each plugin individually subscribe to conversation events, a centralized service coordinates all conversation analysis activities.
+This plan addresses the need for auto-extraction functionality in the Topics plugin and future analysis plugins (chronological summarization, sentiment analysis, action items extraction, knowledge graph building, etc.). Instead of creating a separate coordination service, we integrate digest broadcasting directly into the ConversationService for simplicity and efficiency.
 
-## Core Service Structure
+## Implementation Approach
 
-### 1. Conversation Analysis Service (Core Service)
+### 1. ConversationService Enhancement
 
 ```typescript
-// New core service: shell/conversation-analysis-service/
-class ConversationAnalysisService {
-  - trackConversationActivity()
-  - registerAnalysisPlugin()
-  - scheduleAnalysis()
-  - coordinateExecution()
+// Enhanced ConversationService with digest broadcasting
+class ConversationService {
+  // Existing methods...
+  async addMessage(conversationId, role, content, metadata) {
+    // Add message to database
+    // Update conversation tracking
+    
+    // Broadcast individual message event (existing)
+    await this.messageBus.send("conversation:messageAdded", {...})
+    
+    // Check for digest trigger
+    if (messageCount % DIGEST_TRIGGER_INTERVAL === 0) {
+      await this.broadcastDigest(conversationId, messageCount);
+    }
+  }
+  
+  private async broadcastDigest(conversationId: string, messageCount: number) {
+    // Fetch overlapping window of messages
+    // Broadcast conversation:digest event with rich payload
+  }
 }
 ```
 
-**Location**: `shell/conversation-analysis-service/` (follows existing core service pattern)
+**Configuration:**
+- `DIGEST_TRIGGER_INTERVAL = 10` messages
+- `DIGEST_WINDOW_SIZE = 20` messages  
+- Overlap = 10 messages (50% overlap for continuity)
 
-### 2. Analysis Plugin Registration Interface
+### 2. Plugin Subscription Pattern
 
 ```typescript
-interface AnalysisPluginRegistration {
-  pluginId: string;
-  analysisType: string; // "topics", "summary", "sentiment", etc.
-  triggerConfig: {
-    messageThreshold: number;
-    priority: number;
-    // Note: cooldowns and dependencies removed for initial implementation
-  };
-  executeAnalysis: (conversationId: string, messages: Message[], config: any) => Promise<void>;
+// In topics plugin (or any analysis plugin)
+export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
+  override async onRegister(context: ServicePluginContext): Promise<void> {
+    // Existing registration code...
+    
+    // Subscribe to conversation digest events
+    context.getMessageBus().subscribe(
+      "conversation:digest",
+      this.handleConversationDigest.bind(this)
+    );
+  }
+  
+  private async handleConversationDigest(payload: ConversationDigestPayload) {
+    const { conversationId, messages, windowStart, windowEnd } = payload;
+    
+    // Extract topics from the message window
+    await this.extractTopicsFromWindow(conversationId, messages);
+  }
 }
 ```
-
-### 3. Service Integration with Shell Core
-
-- Register in ServiceRegistry during shell initialization
-- Start before plugins load (like ConversationService, EntityService)
-- Available to all plugins via context.getService()
 
 ## Implementation Plan
 
-### Phase 1: Core Service Foundation
+### Phase 1: ConversationService Enhancement
 
-**Files to Create:**
+**Files to Modify:**
 
-- `shell/conversation-analysis-service/src/conversation-analysis-service.ts`
-- `shell/conversation-analysis-service/src/types.ts`
-- `shell/conversation-analysis-service/src/schemas.ts`
-- `shell/conversation-analysis-service/src/activity-tracker.ts`
-- `shell/conversation-analysis-service/src/index.ts`
-- `shell/conversation-analysis-service/test/conversation-analysis-service.test.ts`
-
-**Shell Integration:**
-
-- Add to `shell/core/src/shell.ts` initialization
-- Register in ServiceRegistry
-- Add to dependency injection context
+- `shell/conversation-service/src/conversation-service.ts` - Add digest broadcasting
+- `shell/conversation-service/src/types.ts` - Add digest payload interface
+- `shell/conversation-service/test/conversation-service.test.ts` - Add digest tests
 
 **Key Features:**
 
-- Subscribe to `conversation:messageAdded` events from ConversationService
-- Track message counts and analysis history per conversation
-- Provide plugin registration API
-- Basic scheduling logic
+- Add digest broadcasting logic to `addMessage()` method
+- Track message counts for digest triggers
+- Fetch overlapping message windows efficiently
+- Broadcast `conversation:digest` events with rich payloads
 
-### Phase 2: Plugin Registration System
-
-**Core Service API:**
+**Digest Payload Interface:**
 
 ```typescript
-interface IConversationAnalysisService {
-  registerAnalysisPlugin(registration: AnalysisPluginRegistration): void;
-  unregisterAnalysisPlugin(pluginId: string, analysisType: string): void;
-  getAnalysisHistory(conversationId: string): AnalysisHistory[];
-  triggerAnalysis(conversationId: string, analysisType: string): Promise<void>;
+interface ConversationDigestPayload {
+  conversationId: string;
+  messageCount: number;
+  messages: Message[];
+  windowStart: number;
+  windowEnd: number;
+  windowSize: number;
+  timestamp: string;
 }
 ```
 
-**Plugin Context Integration:**
+### Phase 2: Topics Plugin Integration
 
-- Add to ServicePluginContext and CorePluginContext
-- Plugins access via `context.getConversationAnalysisService()`
+**Files to Modify:**
+
+- `plugins/topics/src/index.ts` - Add digest subscription
+- `plugins/topics/src/handlers/topic-extraction-handler.ts` - Add digest handler
+- `plugins/topics/test/plugin.test.ts` - Add digest tests
 
 ### Phase 3: Intelligent Coordination (Future)
 
@@ -139,13 +154,10 @@ analysisService.registerAnalysisPlugin({
 });
 
 // Plugin also subscribes to milestone events:
-context.getMessageBus().subscribe(
-  "conversation:milestone",
-  async (payload) => {
-    const { conversationId, messages } = payload;
-    await this.executeTopicExtraction(conversationId, messages, {});
-  }
-);
+context.getMessageBus().subscribe("conversation:milestone", async (payload) => {
+  const { conversationId, messages } = payload;
+  await this.executeTopicExtraction(conversationId, messages, {});
+});
 ```
 
 ## Architecture Benefits
@@ -200,34 +212,63 @@ shell/conversation-analysis-service/
 
 ### Message Flow
 
-1. ConversationService broadcasts `conversation:messageAdded`
-2. ConversationAnalysisService receives and tracks message counts per conversation
-3. When message thresholds are met:
-   - Service fetches the relevant message window from ConversationService
-   - Service broadcasts `conversation:milestone` event with rich payload:
+1. User/system adds message via `ConversationService.addMessage()`
+2. ConversationService stores message and broadcasts `conversation:messageAdded` (existing)
+3. ConversationService checks if message count is divisible by `DIGEST_TRIGGER_INTERVAL` (10)
+4. If digest trigger is met:
+   - Calculate overlapping window: `windowSize` (20) messages ending at current count
+   - Fetch message window from database
+   - Broadcast `conversation:digest` event with rich payload:
      ```typescript
      {
        conversationId: string,
        messageCount: number,
-       messages: Message[], // The message window for analysis
-       windowStart: number, // 1-based start position
-       windowEnd: number    // 1-based end position
+       messages: Message[], // 20-message window for analysis
+       windowStart: number, // 1-based start position  
+       windowEnd: number,   // 1-based end position (current messageCount)
+       windowSize: number,  // 20
+       timestamp: string
      }
      ```
-4. Registered plugins receive the event and execute analysis with provided messages
-5. Analysis results are processed by individual plugins (stored as entities, etc.)
+5. Analysis plugins (topics, etc.) receive digest events and process message windows
+6. Analysis results are stored as entities by individual plugins
+
+**Example digest sequence:**
+- Message 10: Digest with messages 1-20 (if available, else 1-10)
+- Message 20: Digest with messages 1-20  
+- Message 30: Digest with messages 11-30 (10 message overlap)
+- Message 40: Digest with messages 21-40 (10 message overlap)
 
 ## Migration Strategy
 
-1. **Phase 1**: Implement core service with basic message tracking
-2. **Phase 2**: Add topics plugin integration for auto-extraction
-3. **Phase 3**: Add coordination features as needed
-4. **Future**: New analysis plugins register with service
+1. **Phase 1**: Add digest broadcasting to ConversationService
+2. **Phase 2**: Update topics plugin to subscribe to digest events  
+3. **Phase 3**: Test and validate digest-based auto-extraction
+4. **Future**: Additional analysis plugins can easily subscribe to digest events
 
-This approach provides immediate value for topics auto-extraction while building foundation for a robust multi-plugin analysis ecosystem.
+This approach provides immediate value for topics auto-extraction with minimal architectural changes, while enabling future analysis plugins to easily tap into the digest stream.
+
+## Benefits
+
+### Simplified Architecture:
+- ✅ **No separate service**: Digest logic integrated into existing ConversationService
+- ✅ **Event-driven**: Plugins simply subscribe to digest events  
+- ✅ **Rich payloads**: Eliminates duplicate database fetches
+- ✅ **Overlapping windows**: Ensures topic continuity across boundaries
+
+### For Current Implementation:
+- ✅ Solves topic auto-extraction needs with minimal changes
+- ✅ Maintains existing `conversation:messageAdded` events
+- ✅ Configurable trigger and window sizes
+
+### For Future Plugins:
+- ✅ **Easy integration**: Just subscribe to `conversation:digest` events
+- ✅ **Rich context**: 20-message windows with conversation flow
+- ✅ **Efficient processing**: No need to manage own message tracking
+- ✅ **Scalable**: Multiple plugins can process same digest efficiently
 
 ## Status
 
-- **Current State**: Plan documented, ready for implementation
-- **Prerequisites**: Current topic extraction improvements completed
-- **Next Steps**: Implement Phase 1 when auto-extraction feature is needed
+- **Current State**: Plan updated to reflect ConversationService integration approach
+- **Prerequisites**: Current topic extraction improvements completed  
+- **Next Steps**: Implement digest broadcasting in ConversationService
