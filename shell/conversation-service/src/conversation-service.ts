@@ -5,6 +5,7 @@ import type {
   ConversationServiceConfig,
   MessageRole,
   GetMessagesOptions,
+  ConversationDigestPayload,
 } from "./types";
 import type {
   Conversation,
@@ -17,7 +18,7 @@ import { conversations, messages, summaryTracking } from "./schema";
 import type { Logger } from "@brains/utils";
 import { createId } from "@brains/utils";
 import { MessageBus } from "@brains/messaging-service";
-import { eq, desc, asc, sql } from "drizzle-orm";
+import { eq, desc, asc, sql, count } from "drizzle-orm";
 
 /**
  * Conversation Service - Core infrastructure for storing and retrieving conversations
@@ -25,13 +26,19 @@ import { eq, desc, asc, sql } from "drizzle-orm";
 export class ConversationService implements IConversationService {
   private static instance: ConversationService | null = null;
   private readonly messageBus: MessageBus;
+  private readonly config: ConversationServiceConfig;
 
   constructor(
     private readonly db: ConversationDB,
     private readonly logger: Logger,
-    _config: ConversationServiceConfig = {},
+    config: ConversationServiceConfig = {},
   ) {
     this.messageBus = MessageBus.getInstance(logger);
+    this.config = {
+      digestTriggerInterval: 10,
+      digestWindowSize: 20,
+      ...config,
+    };
   }
 
   /**
@@ -208,6 +215,9 @@ export class ConversationService implements IConversationService {
       undefined,
       true, // broadcast
     );
+
+    // Check if digest should be broadcast
+    await this.checkAndBroadcastDigest(conversationId, now);
   }
 
   /**
@@ -282,5 +292,73 @@ export class ConversationService implements IConversationService {
       .orderBy(desc(conversations.lastActive));
 
     return results.map((r) => r.conversation);
+  }
+
+  /**
+   * Check if digest should be broadcast and do so if needed
+   */
+  private async checkAndBroadcastDigest(
+    conversationId: string,
+    timestamp: string,
+  ): Promise<void> {
+    // Get current message count for this conversation
+    const [result] = await this.db
+      .select({ count: count() })
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId));
+
+    const messageCount = result?.count ?? 0;
+
+    // Check if we should trigger a digest
+    const triggerInterval = this.config.digestTriggerInterval ?? 10;
+    if (messageCount > 0 && messageCount % triggerInterval === 0) {
+      await this.broadcastDigest(conversationId, messageCount, timestamp);
+    }
+  }
+
+  /**
+   * Broadcast conversation digest with overlapping message window
+   */
+  private async broadcastDigest(
+    conversationId: string,
+    messageCount: number,
+    timestamp: string,
+  ): Promise<void> {
+    const windowSize = this.config.digestWindowSize ?? 20;
+    const windowStart = Math.max(1, messageCount - windowSize + 1);
+    const windowEnd = messageCount;
+
+    // Fetch the message window
+    const windowMessages = await this.getMessages(conversationId, {
+      range: { start: windowStart, end: windowEnd },
+    });
+
+    const digestPayload: ConversationDigestPayload = {
+      conversationId,
+      messageCount,
+      messages: windowMessages,
+      windowStart,
+      windowEnd,
+      windowSize: windowMessages.length,
+      timestamp,
+    };
+
+    // Broadcast digest event
+    await this.messageBus.send(
+      "conversation:digest",
+      digestPayload,
+      "conversation-service",
+      undefined,
+      undefined,
+      true, // broadcast
+    );
+
+    this.logger.debug("Broadcast conversation digest", {
+      conversationId,
+      messageCount,
+      windowStart,
+      windowEnd,
+      windowSize: windowMessages.length,
+    });
   }
 }

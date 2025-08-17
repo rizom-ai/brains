@@ -271,4 +271,86 @@ describe("ConversationService", () => {
       expect(result[0]?.id).toBe("conv-1");
     });
   });
+
+  describe("conversation digest configuration", () => {
+    it("should use default digest configuration values", () => {
+      const defaultService = ConversationService.createFresh(db, logger, {});
+
+      // Access private config to verify defaults
+      expect((defaultService as any).config.digestTriggerInterval).toBe(10);
+      expect((defaultService as any).config.digestWindowSize).toBe(20);
+    });
+
+    it("should use custom digest configuration values", () => {
+      const customConfig: ConversationServiceConfig = {
+        digestTriggerInterval: 5,
+        digestWindowSize: 15,
+      };
+      const customService = ConversationService.createFresh(
+        db,
+        logger,
+        customConfig,
+      );
+
+      expect((customService as any).config.digestTriggerInterval).toBe(5);
+      expect((customService as any).config.digestWindowSize).toBe(15);
+    });
+  });
+
+  describe("digest window calculations", () => {
+    it("should calculate correct window ranges for small conversations", async () => {
+      // Create a service that can access private methods for testing
+      const testService = ConversationService.createFresh(db, logger, {
+        digestTriggerInterval: 2,
+        digestWindowSize: 5,
+      });
+
+      const conversationId = "test-window";
+      await testService.startConversation(conversationId, "cli", "test");
+
+      // Add some messages
+      await testService.addMessage(conversationId, "user", "Message 1");
+      await testService.addMessage(conversationId, "assistant", "Message 2");
+      await testService.addMessage(conversationId, "user", "Message 3");
+
+      // Test getMessages with range (this is the same logic digest uses)
+      const window1to2 = await testService.getMessages(conversationId, {
+        range: { start: 1, end: 2 },
+      });
+      expect(window1to2).toHaveLength(2);
+      expect(window1to2[0]?.content).toBe("Message 1");
+      expect(window1to2[1]?.content).toBe("Message 2");
+
+      const window1to3 = await testService.getMessages(conversationId, {
+        range: { start: 1, end: 3 },
+      });
+      expect(window1to3).toHaveLength(3);
+      expect(window1to3[2]?.content).toBe("Message 3");
+    });
+
+    it("should handle window ranges larger than available messages", async () => {
+      const testService = ConversationService.createFresh(db, logger, {
+        digestTriggerInterval: 10,
+        digestWindowSize: 20,
+      });
+
+      const conversationId = "test-large-window";
+      await testService.startConversation(conversationId, "cli", "test");
+
+      // Add only 3 messages
+      await testService.addMessage(conversationId, "user", "Message 1");
+      await testService.addMessage(conversationId, "assistant", "Message 2");
+      await testService.addMessage(conversationId, "user", "Message 3");
+
+      // Request window larger than available messages
+      const largeWindow = await testService.getMessages(conversationId, {
+        range: { start: 1, end: 20 },
+      });
+
+      // Should return only available messages
+      expect(largeWindow).toHaveLength(3);
+      expect(largeWindow[0]?.content).toBe("Message 1");
+      expect(largeWindow[2]?.content).toBe("Message 3");
+    });
+  });
 });

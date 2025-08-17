@@ -8,9 +8,10 @@ export type MessageRole = "user" | "assistant" | "system";
 /**
  * Configuration for ConversationService
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ConversationServiceConfig {
-  // Currently no configuration needed
+  // Digest configuration
+  digestTriggerInterval?: number; // Trigger digest every N messages (default: 10)
+  digestWindowSize?: number; // Size of message window in digest (default: 20)
 }
 
 /**
@@ -52,4 +53,18 @@ export interface IConversationService {
     query: string,
     sessionId?: string,
   ): Promise<Conversation[]>;
+}
+
+/**
+ * Payload for conversation digest events
+ * Broadcast every N messages with overlapping message windows
+ */
+export interface ConversationDigestPayload {
+  conversationId: string;
+  messageCount: number;
+  messages: Message[];
+  windowStart: number;
+  windowEnd: number;
+  windowSize: number;
+  timestamp: string;
 }
