@@ -2,28 +2,42 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createServicePluginHarness } from "@brains/plugins";
 import type { PluginCapabilities } from "@brains/plugins";
-import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
-import { baseEntitySchema } from "@brains/entity-service";
+import type { BaseEntity, EntityAdapter } from "@brains/plugins";
+import { baseEntitySchema } from "@brains/plugins";
+import { z } from "zod";
 import { join } from "path";
 import { tmpdir } from "os";
-import { existsSync, rmSync, readFileSync } from "fs";
+import { existsSync, rmSync } from "fs";
 
 // Mock entity adapter
 class MockEntityAdapter implements EntityAdapter<BaseEntity> {
+  public readonly entityType = "base";
+  public readonly schema = baseEntitySchema;
+
   fromMarkdown(markdown: string): Partial<BaseEntity> {
-    const lines = markdown.split("\n");
     return {
-      content: lines.slice(2).join("\n"),
+      content: markdown,
     };
   }
 
   toMarkdown(entity: BaseEntity): string {
-    const firstLine = entity.content.split("\n")[0] || "Untitled";
-    return `# ${firstLine}\n\n${entity.content}`;
+    return entity.content;
   }
 
-  validate(entity: unknown): entity is BaseEntity {
-    return true;
+  extractMetadata(_entity: BaseEntity): Record<string, unknown> {
+    return {};
+  }
+
+  parseFrontMatter<TFrontmatter>(
+    _markdown: string,
+    schema: z.ZodSchema<TFrontmatter>,
+  ): TFrontmatter {
+    // Simple mock implementation
+    return schema.parse({});
+  }
+
+  generateFrontMatter(_entity: BaseEntity): string {
+    return "";
   }
 }
 
@@ -159,9 +173,8 @@ describe("DirectorySyncPlugin", () => {
         id: "test-export-1",
         content: "Test Export 1\nThis is test content",
         entityType: "base",
-        title: "Test Export 1",
-        created: new Date(),
-        updated: new Date(),
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
       });
 
       // Export using the tool (which queues a batch job)
