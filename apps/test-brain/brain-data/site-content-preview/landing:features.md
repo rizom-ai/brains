@@ -2,7 +2,6 @@
 routeId: landing
 sectionId: features
 ---
-
 # Features Section
 
 ## Label

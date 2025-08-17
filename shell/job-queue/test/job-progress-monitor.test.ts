@@ -157,7 +157,7 @@ describe("JobProgressMonitor", () => {
       metadata: {
         interfaceId: "test",
         userId: "test-user",
-        operationType: "entity_processing",
+        operationType: "data_processing",
       },
       source: "test-source",
       ...overrides,
@@ -182,7 +182,7 @@ describe("JobProgressMonitor", () => {
           metadata: {
             interfaceId: "test",
             userId: "test-user",
-            operationType: "entity_processing",
+            operationType: "data_processing",
           },
           jobDetails: {
             jobType: "test-job",
@@ -218,7 +218,7 @@ describe("JobProgressMonitor", () => {
           channelId: "room123",
           interfaceId: "test",
           userId: "user123",
-          operationType: "entity_processing",
+          operationType: "data_processing",
         }, // Job has metadata
       };
       getActiveJobsMock.mockResolvedValue([mockJob]);
@@ -237,7 +237,7 @@ describe("JobProgressMonitor", () => {
             channelId: "room123",
             interfaceId: "test",
             userId: "user123",
-            operationType: "entity_processing",
+            operationType: "data_processing",
           },
         }),
         "job-progress-monitor", // source
@@ -432,7 +432,7 @@ describe("JobProgressMonitor", () => {
         metadata: {
           interfaceId: "test",
           userId: "test-user",
-          operationType: "entity_processing" as const,
+          operationType: "data_processing" as const,
         },
       };
       getActiveJobsMock.mockResolvedValue([mockJob]);

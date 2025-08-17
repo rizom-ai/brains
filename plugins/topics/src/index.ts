@@ -4,7 +4,9 @@ import {
   type PluginTool,
   type PluginResource,
   type Command,
+  type ConversationDigestPayload,
 } from "@brains/plugins";
+import { conversationDigestPayloadSchema } from "@brains/conversation-service";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
@@ -73,6 +75,21 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
     // Store commands for CLI
     this.commands = createTopicsCommands(context, this.config, this.logger);
+
+    // Subscribe to conversation digest events for auto-extraction
+    if (this.config.enableAutoExtraction) {
+      context.subscribe(
+        "conversation:digest",
+        async (message) => {
+          const payload = conversationDigestPayloadSchema.parse(message.payload);
+          await this.handleConversationDigest(context, payload);
+          return { success: true };
+        },
+      );
+      this.logger.info(
+        "Subscribed to conversation digest events for auto-extraction",
+      );
+    }
   }
 
   protected override async getCommands(): Promise<Command[]> {
@@ -89,6 +106,51 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
   protected override async onShutdown(): Promise<void> {
     this.logger.info("Shutting down Topics plugin");
+  }
+
+  /**
+   * Handle conversation digest events for automatic topic extraction
+   */
+  private async handleConversationDigest(
+    context: ServicePluginContext,
+    payload: ConversationDigestPayload,
+  ): Promise<void> {
+    try {
+      this.logger.debug("Processing conversation digest for topic extraction", {
+        conversationId: payload.conversationId,
+        messageCount: payload.messageCount,
+        windowSize: payload.windowSize,
+      });
+
+      // Queue a topic extraction job using the digest messages
+      const jobData = {
+        conversationId: payload.conversationId,
+        messages: payload.messages,
+        windowStart: payload.windowStart,
+        windowEnd: payload.windowEnd,
+      };
+
+      await context.enqueueJob("topics:extraction", jobData, {
+        priority: 1, // Lower priority than manual extractions
+        source: "topics-plugin",
+        metadata: {
+          interfaceId: "digest",
+          userId: "system",
+          operationType: "data_processing" as const,
+          pluginId: "topics",
+        },
+      });
+
+      this.logger.debug("Queued automatic topic extraction job", {
+        conversationId: payload.conversationId,
+        messagesProcessed: payload.messages.length,
+      });
+    } catch (error) {
+      this.logger.error("Failed to process conversation digest", {
+        error: error instanceof Error ? error.message : String(error),
+        conversationId: payload.conversationId,
+      });
+    }
   }
 }
 

@@ -23,6 +23,11 @@ export const topicsPluginConfigSchema = z.object({
    * Enable automatic merging of similar topics
    */
   autoMerge: z.boolean().optional(),
+
+  /**
+   * Enable automatic topic extraction from conversation digests
+   */
+  enableAutoExtraction: z.boolean().optional(),
 });
 
 export type TopicsPluginConfig = z.infer<typeof topicsPluginConfigSchema>;
@@ -35,4 +40,5 @@ export const defaultTopicsPluginConfig: Partial<TopicsPluginConfig> = {
   minRelevanceScore: 0.5,
   mergeSimilarityThreshold: 0.6,
   autoMerge: true,
+  enableAutoExtraction: true,
 };

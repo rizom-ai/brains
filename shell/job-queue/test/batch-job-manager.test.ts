@@ -13,7 +13,7 @@ import type { JobQueueDbConfig } from "../src/db";
 const defaultTestMetadata: JobContext = {
   interfaceId: "test",
   userId: "test-user",
-  operationType: "entity_processing",
+  operationType: "data_processing",
 };
 
 // Mock embedding handler for individual operations
@@ -89,7 +89,7 @@ describe("BatchJobManager", () => {
         source: "test:batch-manager",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "entity_processing",
+          operationType: "data_processing",
         },
       });
 
@@ -114,7 +114,7 @@ describe("BatchJobManager", () => {
         metadata: {
           ...defaultTestMetadata,
           userId: "user-123",
-          operationType: "entity_processing",
+          operationType: "data_processing",
         },
         priority: 5,
         maxRetries: 1,
@@ -137,7 +137,7 @@ describe("BatchJobManager", () => {
           source: "test:batch-manager",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "entity_processing",
+            operationType: "data_processing",
           },
         });
       }).toThrow("Cannot enqueue empty batch");
@@ -159,7 +159,7 @@ describe("BatchJobManager", () => {
         source: "test:batch-manager",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "entity_processing",
+          operationType: "data_processing",
         },
       });
       const status = await batchManager.getBatchStatus(batchId);
@@ -184,7 +184,7 @@ describe("BatchJobManager", () => {
         source: "test:batch-manager",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "entity_processing",
+          operationType: "data_processing",
         },
       });
       const status = await batchManager.getBatchStatus(batchId);
@@ -206,7 +206,7 @@ describe("BatchJobManager", () => {
         source: "test:batch-manager",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "entity_processing",
+          operationType: "data_processing",
         },
       });
       const status = await batchManager.getBatchStatus(batchId);
@@ -226,7 +226,7 @@ describe("BatchJobManager", () => {
         source: "test:batch-manager",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "entity_processing",
+          operationType: "data_processing",
         },
       });
 
@@ -253,7 +253,7 @@ describe("BatchJobManager", () => {
           source: "test:batch-manager",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "entity_processing",
+            operationType: "data_processing",
           },
         },
       );
@@ -267,7 +267,7 @@ describe("BatchJobManager", () => {
           source: "test:batch-manager",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "entity_processing",
+            operationType: "data_processing",
           },
         },
       );
@@ -279,7 +279,7 @@ describe("BatchJobManager", () => {
           metadata: {
             ...defaultTestMetadata,
             userId: "user-123",
-            operationType: "entity_processing",
+            operationType: "data_processing",
           },
         },
       );
@@ -326,7 +326,7 @@ describe("BatchJobManager", () => {
         source: "test:batch-manager",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "entity_processing",
+          operationType: "data_processing",
         },
       });
 
@@ -354,7 +354,7 @@ describe("BatchJobManager", () => {
           source: "test:batch-manager",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "entity_processing",
+            operationType: "data_processing",
           },
         },
       );

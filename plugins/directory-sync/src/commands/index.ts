@@ -38,7 +38,7 @@ export function createDirectorySyncCommands(
                 userId: context.userId || "command-user",
                 channelId: context.channelId || "",
                 progressToken: "", // CommandContext doesn't have messageId
-                operationType: "directory_sync",
+                operationType: "file_operations",
                 pluginId,
               },
             },

@@ -19,16 +19,16 @@ class ConversationService {
   async addMessage(conversationId, role, content, metadata) {
     // Add message to database
     // Update conversation tracking
-    
+
     // Broadcast individual message event (existing)
     await this.messageBus.send("conversation:messageAdded", {...})
-    
+
     // Check for digest trigger
     if (messageCount % DIGEST_TRIGGER_INTERVAL === 0) {
       await this.broadcastDigest(conversationId, messageCount);
     }
   }
-  
+
   private async broadcastDigest(conversationId: string, messageCount: number) {
     // Fetch overlapping window of messages
     // Broadcast conversation:digest event with rich payload
@@ -37,8 +37,9 @@ class ConversationService {
 ```
 
 **Configuration:**
+
 - `DIGEST_TRIGGER_INTERVAL = 10` messages
-- `DIGEST_WINDOW_SIZE = 20` messages  
+- `DIGEST_WINDOW_SIZE = 20` messages
 - Overlap = 10 messages (50% overlap for continuity)
 
 ### 2. Plugin Subscription Pattern
@@ -48,17 +49,19 @@ class ConversationService {
 export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   override async onRegister(context: ServicePluginContext): Promise<void> {
     // Existing registration code...
-    
+
     // Subscribe to conversation digest events
-    context.getMessageBus().subscribe(
-      "conversation:digest",
-      this.handleConversationDigest.bind(this)
-    );
+    context
+      .getMessageBus()
+      .subscribe(
+        "conversation:digest",
+        this.handleConversationDigest.bind(this),
+      );
   }
-  
+
   private async handleConversationDigest(payload: ConversationDigestPayload) {
     const { conversationId, messages, windowStart, windowEnd } = payload;
-    
+
     // Extract topics from the message window
     await this.extractTopicsFromWindow(conversationId, messages);
   }
@@ -224,7 +227,7 @@ shell/conversation-analysis-service/
        conversationId: string,
        messageCount: number,
        messages: Message[], // 20-message window for analysis
-       windowStart: number, // 1-based start position  
+       windowStart: number, // 1-based start position
        windowEnd: number,   // 1-based end position (current messageCount)
        windowSize: number,  // 20
        timestamp: string
@@ -234,15 +237,16 @@ shell/conversation-analysis-service/
 6. Analysis results are stored as entities by individual plugins
 
 **Example digest sequence:**
+
 - Message 10: Digest with messages 1-20 (if available, else 1-10)
-- Message 20: Digest with messages 1-20  
+- Message 20: Digest with messages 1-20
 - Message 30: Digest with messages 11-30 (10 message overlap)
 - Message 40: Digest with messages 21-40 (10 message overlap)
 
 ## Migration Strategy
 
 1. **Phase 1**: Add digest broadcasting to ConversationService
-2. **Phase 2**: Update topics plugin to subscribe to digest events  
+2. **Phase 2**: Update topics plugin to subscribe to digest events
 3. **Phase 3**: Test and validate digest-based auto-extraction
 4. **Future**: Additional analysis plugins can easily subscribe to digest events
 
@@ -251,17 +255,20 @@ This approach provides immediate value for topics auto-extraction with minimal a
 ## Benefits
 
 ### Simplified Architecture:
+
 - ✅ **No separate service**: Digest logic integrated into existing ConversationService
-- ✅ **Event-driven**: Plugins simply subscribe to digest events  
+- ✅ **Event-driven**: Plugins simply subscribe to digest events
 - ✅ **Rich payloads**: Eliminates duplicate database fetches
 - ✅ **Overlapping windows**: Ensures topic continuity across boundaries
 
 ### For Current Implementation:
+
 - ✅ Solves topic auto-extraction needs with minimal changes
 - ✅ Maintains existing `conversation:messageAdded` events
 - ✅ Configurable trigger and window sizes
 
 ### For Future Plugins:
+
 - ✅ **Easy integration**: Just subscribe to `conversation:digest` events
 - ✅ **Rich context**: 20-message windows with conversation flow
 - ✅ **Efficient processing**: No need to manage own message tracking
@@ -270,5 +277,5 @@ This approach provides immediate value for topics auto-extraction with minimal a
 ## Status
 
 - **Current State**: Plan updated to reflect ConversationService integration approach
-- **Prerequisites**: Current topic extraction improvements completed  
+- **Prerequisites**: Current topic extraction improvements completed
 - **Next Steps**: Implement digest broadcasting in ConversationService

@@ -4,7 +4,9 @@ export type {
   ConversationServiceConfig,
   MessageRole,
   GetMessagesOptions,
+  ConversationDigestPayload,
 } from "./types";
+export { conversationDigestPayloadSchema } from "./types";
 export { createConversationDatabase } from "./database";
 export type { ConversationDB } from "./database";
 export {

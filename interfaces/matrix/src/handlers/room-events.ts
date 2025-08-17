@@ -14,7 +14,7 @@ export interface MatrixEventHandlerContext {
     context: MessageContext,
     replyToId?: string,
   ) => Promise<void>;
-  determineUserPermissionLevel?: (
+  getUserPermissionLevel: (
     interfaceType: string,
     userId: string,
   ) => UserPermissionLevel;
@@ -124,27 +124,19 @@ export async function handleRoomInvite(
   });
 
   // Check permissions using centralized permission service
-  if (ctx.determineUserPermissionLevel) {
-    const userPermissionLevel = ctx.determineUserPermissionLevel(
-      "matrix",
-      inviter,
-    );
+  const userPermissionLevel = ctx.getUserPermissionLevel(
+    "matrix",
+    inviter,
+  );
 
-    // Only accept invites from anchor users
-    if (userPermissionLevel !== "anchor") {
-      ctx.logger.info("Ignoring room invite from non-anchor user", {
-        roomId,
-        inviter,
-        permissionLevel: userPermissionLevel,
-      });
-      return;
-    }
-  } else {
-    // If no permission service is available, log warning but accept invite
-    ctx.logger.warn("No permission service available, accepting invite", {
+  // Only accept invites from anchor users
+  if (userPermissionLevel !== "anchor") {
+    ctx.logger.info("Ignoring room invite from non-anchor user", {
       roomId,
       inviter,
+      permissionLevel: userPermissionLevel,
     });
+    return;
   }
 
   try {

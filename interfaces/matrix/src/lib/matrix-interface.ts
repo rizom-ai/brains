@@ -121,8 +121,8 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       config: this.config,
       logger: this.logger,
       handleInput: this.handleInput.bind(this),
-      determineUserPermissionLevel:
-        this.getContext().determineUserPermissionLevel,
+      getUserPermissionLevel:
+        this.getContext().getUserPermissionLevel,
     };
 
     // Handle room messages

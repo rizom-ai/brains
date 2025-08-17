@@ -201,7 +201,7 @@ export class EntityService implements IEntityService {
     const defaultMetadata = {
       interfaceId: "system",
       userId: "system",
-      operationType: "embedding_generation" as const,
+      operationType: "data_processing" as const,
     };
 
     const jobId = await this.jobQueueService.enqueue(
@@ -336,7 +336,7 @@ export class EntityService implements IEntityService {
     const defaultMetadata = {
       interfaceId: "system",
       userId: "system",
-      operationType: "embedding_generation" as const,
+      operationType: "data_processing" as const,
     };
 
     const jobId = await this.jobQueueService.enqueue(

@@ -118,7 +118,11 @@ export {
 } from "@brains/entity-service";
 
 // From @brains/conversation-service
-export type { Conversation, Message } from "@brains/conversation-service";
+export type {
+  Conversation,
+  Message,
+  ConversationDigestPayload,
+} from "@brains/conversation-service";
 
 // From @brains/content-generator
 export type {

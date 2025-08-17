@@ -4,20 +4,13 @@ import { createId } from "@brains/utils";
 
 /**
  * Operation type enum for structured progress tracking and aggregation
+ * Using generic categories to accommodate various plugin operations
  */
 export const OperationTypeEnum = z.enum([
-  "directory_import",
-  "directory_export",
-  "directory_sync",
-  "content_generation",
-  "content_promotion",
-  "content_rollback",
-  "batch_processing",
-  "file_processing",
-  "entity_processing",
-  "embedding_generation",
-  "search_indexing",
-  "site_building",
+  "file_operations",     // directory sync, file processing, import/export
+  "content_operations",  // content generation, promotion, rollback, site building
+  "data_processing",     // entity processing, embedding generation, search indexing
+  "batch_processing",    // batch operations
 ]);
 
 export type OperationType = z.infer<typeof OperationTypeEnum>;

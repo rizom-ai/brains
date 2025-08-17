@@ -22,7 +22,7 @@ interface EntityWithoutEmbedding {
 const defaultTestMetadata: JobContext = {
   interfaceId: "test",
   userId: "test-user",
-  operationType: "entity_processing",
+  operationType: "data_processing",
 };
 
 // Test job handler implementation
@@ -154,7 +154,7 @@ describe("JobQueueService", () => {
           source: "test",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "embedding_generation",
+            operationType: "data_processing",
           },
         });
         expect().fail("Should have thrown an error");
@@ -179,7 +179,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
 
@@ -200,7 +200,7 @@ describe("JobQueueService", () => {
         userId: "user-123",
         interfaceId: "matrix",
         channelId: "room123",
-        operationType: "entity_processing",
+        operationType: "data_processing",
       };
 
       const jobId = await service.enqueue("embedding", testEntity, {
@@ -221,7 +221,7 @@ describe("JobQueueService", () => {
         source,
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
 
@@ -230,7 +230,7 @@ describe("JobQueueService", () => {
       expect(job?.source).toBe(source);
       expect(job?.metadata).toEqual({
         ...defaultTestMetadata,
-        operationType: "embedding_generation",
+        operationType: "data_processing",
       });
     });
 
@@ -242,7 +242,7 @@ describe("JobQueueService", () => {
           source: "test",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "embedding_generation",
+            operationType: "data_processing",
           },
         });
         expect().fail("Should have thrown an error");
@@ -264,7 +264,7 @@ describe("JobQueueService", () => {
           source: "test",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "embedding_generation",
+            operationType: "data_processing",
           },
         });
         expect().fail("Should have thrown an error");
@@ -307,7 +307,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation" as const,
+          operationType: "data_processing" as const,
         },
         priority: 5,
         maxRetries: 5,
@@ -327,7 +327,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
       const job = await service.getStatus(jobId);
@@ -364,7 +364,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
 
@@ -386,7 +386,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
         priority: 1,
       });
@@ -394,7 +394,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
         priority: 5,
       });
@@ -411,7 +411,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
         delayMs: 5000,
       });
@@ -419,7 +419,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
 
@@ -442,7 +442,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
 
@@ -458,7 +458,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
 
@@ -475,7 +475,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
         maxRetries: 0,
       });
@@ -492,7 +492,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
       const originalTime = Date.now();
@@ -515,14 +515,14 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       }); // pending
       await service.enqueue("embedding", testEntity, {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       }); // pending
 
@@ -530,7 +530,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
       await service.complete(job1Id, undefined); // completed
@@ -539,7 +539,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
         maxRetries: 1,
       });
@@ -575,7 +575,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
       await service.complete(jobId, undefined);
@@ -592,7 +592,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
       await service.complete(jobId, undefined);
@@ -618,7 +618,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
 
@@ -633,7 +633,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
 
@@ -658,7 +658,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
       await new Promise((resolve) => setTimeout(resolve, 1));
@@ -666,7 +666,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
 
@@ -686,7 +686,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
       const processingId = await service.enqueue(
@@ -699,7 +699,7 @@ describe("JobQueueService", () => {
           source: "test",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "embedding_generation",
+            operationType: "data_processing",
           },
         },
       );
@@ -713,7 +713,7 @@ describe("JobQueueService", () => {
           source: "test",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "embedding_generation",
+            operationType: "data_processing",
           },
         },
       );
@@ -745,7 +745,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
       const contentId = await service.enqueue(
@@ -759,7 +759,7 @@ describe("JobQueueService", () => {
           source: "test",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "content_generation",
+            operationType: "content_operations",
           },
         },
       );
@@ -790,7 +790,7 @@ describe("JobQueueService", () => {
         source: "test",
         metadata: {
           ...defaultTestMetadata,
-          operationType: "embedding_generation",
+          operationType: "data_processing",
         },
       });
       await service.complete(jobId, {});
@@ -811,7 +811,7 @@ describe("JobQueueService", () => {
           source: "test",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "embedding_generation",
+            operationType: "data_processing",
           },
         },
       );
@@ -827,7 +827,7 @@ describe("JobQueueService", () => {
           source: "test",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "embedding_generation",
+            operationType: "data_processing",
           },
         },
       );
@@ -843,7 +843,7 @@ describe("JobQueueService", () => {
           source: "test",
           metadata: {
             ...defaultTestMetadata,
-            operationType: "embedding_generation",
+            operationType: "data_processing",
           },
         },
       );

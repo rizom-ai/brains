@@ -40,7 +40,7 @@ export function createDirectorySyncTools(
             userId: context?.userId ?? "",
             channelId: context?.channelId ?? "",
             progressToken: context?.progressToken ?? "",
-            operationType: "directory_sync",
+            operationType: "file_operations",
             pluginId,
           },
         });
@@ -106,7 +106,7 @@ export function createDirectorySyncTools(
             userId: context?.userId ?? "system",
             channelId: context?.channelId,
             progressToken: context?.progressToken,
-            operationType: "directory_export",
+            operationType: "file_operations",
             pluginId,
           },
         });
@@ -178,7 +178,7 @@ export function createDirectorySyncTools(
             userId: context?.userId ?? "system",
             channelId: context?.channelId,
             progressToken: context?.progressToken,
-            operationType: "directory_import",
+            operationType: "file_operations",
             pluginId,
           },
         });

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { Message, Conversation } from "./schema";
 
 /**
@@ -56,15 +57,20 @@ export interface IConversationService {
 }
 
 /**
+ * Schema for conversation digest payload validation
+ */
+export const conversationDigestPayloadSchema = z.object({
+  conversationId: z.string(),
+  messageCount: z.number(),
+  messages: z.array(z.unknown()), // Messages schema would be complex, using unknown for now
+  windowStart: z.number(),
+  windowEnd: z.number(),
+  windowSize: z.number(),
+  timestamp: z.string(),
+});
+
+/**
  * Payload for conversation digest events
  * Broadcast every N messages with overlapping message windows
  */
-export interface ConversationDigestPayload {
-  conversationId: string;
-  messageCount: number;
-  messages: Message[];
-  windowStart: number;
-  windowEnd: number;
-  windowSize: number;
-  timestamp: string;
-}
+export type ConversationDigestPayload = z.infer<typeof conversationDigestPayloadSchema>;

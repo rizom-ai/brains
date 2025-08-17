@@ -20,7 +20,7 @@ const mockJobEvent: JobProgressEvent = {
   metadata: {
     userId: "user-1",
     interfaceId: "test",
-    operationType: "file_processing",
+    operationType: "file_operations",
   },
 };
 
@@ -58,7 +58,7 @@ describe("createProgressMessageData", () => {
     const startTime = new Date(Date.now() - 10000); // 10s ago
     const data = createProgressMessageData(mockJobEvent, startTime);
 
-    expect(data.operationType).toBe("file_processing");
+    expect(data.operationType).toBe("file_operations");
     expect(data.status).toBe("processing");
     expect(data.current).toBe(50);
     expect(data.total).toBe(100);
@@ -105,7 +105,7 @@ describe("createProgressMessageData", () => {
 describe("formatProgressMessage", () => {
   test("formats processing message with progress", () => {
     const data = {
-      operationType: "file_processing" as const,
+      operationType: "file_operations" as const,
       status: "processing" as const,
       current: 50,
       total: 100,
@@ -123,7 +123,7 @@ describe("formatProgressMessage", () => {
 
   test("formats processing message without progress", () => {
     const data = {
-      operationType: "entity_processing" as const,
+      operationType: "data_processing" as const,
       status: "processing" as const,
     };
 
@@ -133,7 +133,7 @@ describe("formatProgressMessage", () => {
 
   test("formats completed message with stats", () => {
     const data = {
-      operationType: "file_processing" as const,
+      operationType: "file_operations" as const,
       status: "completed" as const,
       current: 100,
       total: 100,
@@ -148,7 +148,7 @@ describe("formatProgressMessage", () => {
 
   test("formats failed message with error", () => {
     const data = {
-      operationType: "file_processing" as const,
+      operationType: "file_operations" as const,
       status: "failed" as const,
       current: 50,
       total: 100,
@@ -163,7 +163,7 @@ describe("formatProgressMessage", () => {
 
   test("formats unknown status", () => {
     const data = {
-      operationType: "entity_processing" as const,
+      operationType: "data_processing" as const,
       status: "processing" as const,
     };
 

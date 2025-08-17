@@ -282,7 +282,6 @@ export class Shell implements IShell {
             authToken: config.conversationDatabase.authToken,
           }),
         },
-        { workingMemorySize: 20 },
       );
 
     this.contentGenerator =

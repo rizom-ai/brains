@@ -117,7 +117,7 @@ export function createServicePluginContext(
         metadata: {
           interfaceId: "service",
           userId: "system",
-          operationType: "entity_processing" as const,
+          operationType: "data_processing" as const,
           pluginId,
         },
         ...options,

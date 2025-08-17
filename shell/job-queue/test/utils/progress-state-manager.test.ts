@@ -20,7 +20,7 @@ const mockJobEvent: JobProgressEvent = {
   metadata: {
     userId: "user-1",
     interfaceId: "test",
-    operationType: "entity_processing",
+    operationType: "data_processing",
   },
 };
 
@@ -36,7 +36,7 @@ const mockBatchEvent: JobProgressEvent = {
   metadata: {
     userId: "user-1",
     interfaceId: "test",
-    operationType: "entity_processing",
+    operationType: "data_processing",
   },
 };
 
