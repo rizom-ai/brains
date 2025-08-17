@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicExtractionHandler } from "../../src/handlers/topic-extraction-handler";
-import { MockShell } from "@brains/core/test";
+import { MockShell } from "@brains/plugins";
 import { createServicePluginContext } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import { Logger, ProgressReporter } from "@brains/utils";

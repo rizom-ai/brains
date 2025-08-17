@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicService } from "../../src/lib/topic-service";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
-import { MockShell } from "@brains/core/test";
+import { MockShell } from "@brains/plugins";
 import { Logger } from "@brains/utils";
 import type { TopicEntity } from "../../src/types";
 import type { TopicSource } from "../../src/schemas/topic";

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { TopicExtractor } from "../../src/lib/topic-extractor";
-import { MockShell } from "@brains/core/test";
+import { MockShell } from "@brains/plugins";
 import { createServicePluginContext } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Message } from "@brains/conversation-service";

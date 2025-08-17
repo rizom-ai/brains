@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createTopicsCommands } from "../../src/commands";
-import { MockShell } from "@brains/core/test";
+import { MockShell } from "@brains/plugins";
 import { createServicePluginContext } from "@brains/plugins";
 import type { ServicePluginContext, CommandContext } from "@brains/plugins";
 import type { TopicsPluginConfig } from "../../src/schemas/config";

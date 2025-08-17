@@ -6,7 +6,7 @@ import {
   createSearchTool,
   createMergeTool,
 } from "../../src/tools";
-import { MockShell } from "@brains/core/test";
+import { MockShell } from "@brains/plugins";
 import { createServicePluginContext } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { TopicsPluginConfig } from "../../src/schemas/config";
