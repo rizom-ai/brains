@@ -27,7 +27,7 @@ describe("TopicsPlugin", () => {
       expect(defaultPlugin.id).toBe("topics");
       // Plugin.name is not exposed, check config instead
       expect(defaultPlugin.config).toBeDefined();
-      expect(defaultPlugin.config.windowSize).toBe(20);
+      expect(defaultPlugin.config.windowSize).toBe(30);
     });
 
     it("should create plugin with custom config", () => {

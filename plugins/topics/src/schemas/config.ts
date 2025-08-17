@@ -31,8 +31,8 @@ export type TopicsPluginConfig = z.infer<typeof topicsPluginConfigSchema>;
  * Default configuration
  */
 export const defaultTopicsPluginConfig: Partial<TopicsPluginConfig> = {
-  windowSize: 20,
+  windowSize: 30,
   minRelevanceScore: 0.5,
-  mergeSimilarityThreshold: 0.8,
+  mergeSimilarityThreshold: 0.6,
   autoMerge: true,
 };

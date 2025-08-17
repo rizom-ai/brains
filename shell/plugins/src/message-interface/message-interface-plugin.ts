@@ -259,16 +259,25 @@ export abstract class MessageInterfacePlugin<
       }
     }
 
-    // 2. Always store user message (even if bot won't respond)
-    try {
-      await this.getContext().addMessage(conversationId, "user", input, {
-        messageId: context.messageId,
-        userId: context.userId,
-        timestamp: context.timestamp.toISOString(),
-        directed: this.shouldRespond(input, context), // Track if for bot
+    // 2. Store user message in conversation memory
+    // Only store conversational input, not command execution
+    const isCommand = input.startsWith(this.commandPrefix);
+    if (!isCommand) {
+      try {
+        await this.getContext().addMessage(conversationId, "user", input, {
+          messageId: context.messageId,
+          userId: context.userId,
+          timestamp: context.timestamp.toISOString(),
+          directed: this.shouldRespond(input, context), // Track if for bot
+        });
+      } catch (error) {
+        this.logger.debug("Could not store user message", { error });
+      }
+    } else {
+      this.logger.debug("Skipping conversation storage for user command", {
+        command: input,
+        conversationId,
       });
-    } catch (error) {
-      this.logger.debug("Could not store user message", { error });
     }
 
     // 3. Check if bot should respond
@@ -279,8 +288,8 @@ export abstract class MessageInterfacePlugin<
     // 4. Process and respond
     await this.showThinkingIndicators(context);
 
-    // Route to command or query
-    const response = input.startsWith(this.commandPrefix)
+    // Route to command or query (reuse isCommand from above)
+    const response = isCommand
       ? await this.executeCommand(input, context)
       : await this.processQuery(input, context);
 
@@ -310,16 +319,24 @@ export abstract class MessageInterfacePlugin<
       this.logger.info("Stored batch message mapping", { batchId, messageId });
     }
 
-    // 5. Store assistant response
-    try {
-      await this.getContext().addMessage(
+    // 5. Store assistant response in conversation memory
+    // Only store conversational responses, not command outputs
+    if (!isCommand) {
+      try {
+        await this.getContext().addMessage(
+          conversationId,
+          "assistant",
+          messageText,
+          { messageId, timestamp: new Date().toISOString() },
+        );
+      } catch (error) {
+        this.logger.debug("Could not store assistant message", { error });
+      }
+    } else {
+      this.logger.debug("Skipping conversation storage for command output", {
+        command: input,
         conversationId,
-        "assistant",
-        messageText,
-        { messageId, timestamp: new Date().toISOString() },
-      );
-    } catch (error) {
-      this.logger.debug("Could not store assistant message", { error });
+      });
     }
 
     await this.showDoneIndicators(context);
