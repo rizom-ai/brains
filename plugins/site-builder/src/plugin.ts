@@ -223,7 +223,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
               channelId: context.channelId,
               progressToken: "", // CommandContext doesn't have messageId
               pluginId: this.id,
-              operationType: "content_generation",
+              operationType: "content_operations",
             };
 
             // Use the content manager to generate content
@@ -343,7 +343,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
               channelId: context.channelId,
               progressToken: "", // CommandContext doesn't have messageId
               pluginId: this.id,
-              operationType: "site_building",
+              operationType: "content_operations",
             };
 
             const batchId = await this.contentManager.promote(entityIds, {
@@ -446,7 +446,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
               channelId: context.channelId,
               progressToken: "", // CommandContext doesn't have messageId
               pluginId: this.id,
-              operationType: "site_building",
+              operationType: "content_operations",
             };
 
             const batchId = await this.contentManager.rollback(entityIds, {
@@ -519,7 +519,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
               channelId: context.channelId,
               progressToken: "", // CommandContext doesn't have messageId
               pluginId: this.id,
-              operationType: "site_building",
+              operationType: "content_operations",
             };
 
             // Queue the job for async processing

@@ -118,7 +118,7 @@ describe("formatProgressMessage", () => {
     };
 
     const message = formatProgressMessage(data);
-    expect(message).toBe("🔄 file_processing - 50/100 (50%) • 2.5/s • ETA 20s");
+    expect(message).toBe("🔄 file_operations - 50/100 (50%) • 2.5/s • ETA 20s");
   });
 
   test("formats processing message without progress", () => {
@@ -128,7 +128,7 @@ describe("formatProgressMessage", () => {
     };
 
     const message = formatProgressMessage(data);
-    expect(message).toBe("🔄 entity_processing");
+    expect(message).toBe("🔄 data_processing");
   });
 
   test("formats completed message with stats", () => {
@@ -142,7 +142,7 @@ describe("formatProgressMessage", () => {
 
     const message = formatProgressMessage(data);
     expect(message).toBe(
-      "✅ file_processing completed - 100 items processed in 45s",
+      "✅ file_operations completed - 100 items processed in 45s",
     );
   });
 
@@ -157,7 +157,7 @@ describe("formatProgressMessage", () => {
 
     const message = formatProgressMessage(data);
     expect(message).toBe(
-      "❌ file_processing failed - 50/100 items processed - Permission denied",
+      "❌ file_operations failed - 50/100 items processed - Permission denied",
     );
   });
 
@@ -168,7 +168,7 @@ describe("formatProgressMessage", () => {
     };
 
     const message = formatProgressMessage(data);
-    expect(message).toBe("🔄 entity_processing");
+    expect(message).toBe("🔄 data_processing");
   });
 });
 
@@ -219,7 +219,7 @@ describe("formatBatchProgressMessage", () => {
 
   test("falls back to regular formatting for non-batch events", () => {
     const message = formatBatchProgressMessage(mockJobEvent);
-    expect(message).toContain("🔄 file_processing");
+    expect(message).toContain("🔄 file_operations");
   });
 
   test("handles batch without start time", () => {

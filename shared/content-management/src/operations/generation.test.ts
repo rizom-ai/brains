@@ -12,7 +12,7 @@ const testJobOptions: JobOptions = {
   metadata: {
     interfaceId: "test",
     userId: "test-user",
-    operationType: "content_generation",
+    operationType: "content_operations",
   },
 };
 

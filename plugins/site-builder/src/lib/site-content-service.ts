@@ -4,7 +4,8 @@ import type {
   SectionDefinition,
   GenerateOptions,
 } from "@brains/plugins";
-import { ContentManager, GenerateOptionsSchema } from "@brains/plugins";
+import type { ContentManager } from "@brains/plugins";
+import { GenerateOptionsSchema } from "@brains/plugins";
 import { z } from "zod";
 
 /**
@@ -98,7 +99,7 @@ export class SiteContentService {
           interfaceId: "plugin",
           userId: "system",
           pluginId: this.pluginId,
-          operationType: "content_generation",
+          operationType: "content_operations",
         },
       },
       this.siteConfig,
@@ -156,7 +157,7 @@ export class SiteContentService {
         interfaceId: "plugin",
         userId: "system",
         pluginId: this.pluginId,
-        operationType: "content_promotion",
+        operationType: "content_operations",
       },
     });
   }
@@ -201,7 +202,7 @@ export class SiteContentService {
         interfaceId: "plugin",
         userId: "system",
         pluginId: this.pluginId,
-        operationType: "content_rollback",
+        operationType: "content_operations",
       },
     });
   }

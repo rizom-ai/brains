@@ -74,7 +74,7 @@ export function createSiteBuilderTools(
           channelId: context?.channelId,
           progressToken: context?.progressToken,
           pluginId,
-          operationType: "content_generation",
+          operationType: "content_operations",
         };
 
         const result = await siteContentService.generateContent(
@@ -153,7 +153,7 @@ export function createSiteBuilderTools(
               userId: context?.userId ?? "system",
               channelId: context?.channelId,
               progressToken: context?.progressToken,
-              operationType: "site_building",
+              operationType: "content_operations",
               pluginId,
             },
           },
@@ -250,7 +250,7 @@ export function createSiteBuilderTools(
           channelId: context?.channelId,
           progressToken: context?.progressToken,
           pluginId,
-          operationType: "content_promotion",
+          operationType: "content_operations",
         };
 
         const batchId = await siteContentService.promoteContent(
@@ -306,7 +306,7 @@ export function createSiteBuilderTools(
           channelId: context?.channelId,
           progressToken: context?.progressToken,
           pluginId,
-          operationType: "content_rollback",
+          operationType: "content_operations",
         };
 
         const batchId = await siteContentService.rollbackContent(

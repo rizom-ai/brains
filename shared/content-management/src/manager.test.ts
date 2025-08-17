@@ -12,7 +12,7 @@ const testJobOptions: JobOptions = {
   metadata: {
     interfaceId: "test",
     userId: "test-user",
-    operationType: "content_generation",
+    operationType: "content_operations",
   },
 };
 
@@ -405,7 +405,7 @@ test("promote should queue batch promotion operations", async () => {
     metadata: {
       interfaceId: "test",
       userId: "admin-123",
-      operationType: "content_generation",
+      operationType: "content_operations",
     },
   });
 
@@ -442,7 +442,7 @@ test("promote should queue batch promotion operations", async () => {
       metadata: {
         interfaceId: "test",
         userId: "admin-123",
-        operationType: "content_generation",
+        operationType: "content_operations",
       },
       priority: 10,
     },
@@ -456,7 +456,7 @@ test("promote should throw for empty ids", async () => {
       metadata: {
         interfaceId: "test",
         userId: "system",
-        operationType: "content_generation",
+        operationType: "content_operations",
       },
     }),
   ).rejects.toThrow("No entities to promote");
@@ -477,7 +477,7 @@ test("rollback should queue batch rollback operations", async () => {
     metadata: {
       interfaceId: "test",
       userId: "system",
-      operationType: "content_generation",
+      operationType: "content_operations",
     },
   });
 
@@ -506,7 +506,7 @@ test("rollback should queue batch rollback operations", async () => {
       metadata: {
         interfaceId: "test",
         userId: "system",
-        operationType: "content_generation",
+        operationType: "content_operations",
       },
     },
   );
@@ -519,7 +519,7 @@ test("rollback should throw for empty ids", async () => {
       metadata: {
         interfaceId: "test",
         userId: "system",
-        operationType: "content_generation",
+        operationType: "content_operations",
       },
     }),
   ).rejects.toThrow("No entities to rollback");
