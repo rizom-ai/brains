@@ -1,6 +1,9 @@
-import type { Logger } from "@brains/utils";
-import type { IEntityService, BaseEntity } from "@brains/entity-service";
-import type { BatchOperation } from "@brains/job-queue";
+import type { Logger } from "@brains/plugins";
+import type {
+  IEntityService,
+  BaseEntity,
+  BatchOperation,
+} from "@brains/plugins";
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
 import { join, basename, dirname, resolve, isAbsolute } from "path";

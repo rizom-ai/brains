@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*",
     "chalk": "^5.4.1",
     "ink": "^6.0.1",
     "ink-spinner": "^5.0.0",

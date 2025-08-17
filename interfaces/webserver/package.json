@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*",
     "@hono/bun-compress": "^0.1.0",
     "hono": "^4.6.14"
   },

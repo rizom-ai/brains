@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*",
     "@clack/prompts": "^0.8.2",
     "marked": "^12.0.0",
     "matrix-bot-sdk": "^0.7.1",

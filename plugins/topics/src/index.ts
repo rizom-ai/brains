@@ -78,14 +78,11 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
     // Subscribe to conversation digest events for auto-extraction
     if (this.config.enableAutoExtraction) {
-      context.subscribe(
-        "conversation:digest",
-        async (message) => {
-          const payload = conversationDigestPayloadSchema.parse(message.payload);
-          await this.handleConversationDigest(context, payload);
-          return { success: true };
-        },
-      );
+      context.subscribe("conversation:digest", async (message) => {
+        const payload = conversationDigestPayloadSchema.parse(message.payload);
+        await this.handleConversationDigest(context, payload);
+        return { success: true };
+      });
       this.logger.info(
         "Subscribed to conversation digest events for auto-extraction",
       );

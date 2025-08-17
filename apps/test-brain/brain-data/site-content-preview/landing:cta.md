@@ -2,15 +2,16 @@
 routeId: landing
 sectionId: cta
 ---
+
 # CTA Section
 
 ## Headline
 
-Discover the Power of a Second Brain
+Amplify Your Knowledge, Elevate Your Life
 
 ## Description
 
-Elevate your knowledge with Rizom - the personal knowledge management system that empowers you to unlock your full potential.
+Unlock the power of your knowledge and take your personal growth to new heights with our cutting-edge personal knowledge management system.
 
 ## Primary Button
 
@@ -30,4 +31,4 @@ Learn More
 
 ### Link
 
-/about
+/demo

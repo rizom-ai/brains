@@ -2,6 +2,7 @@
 routeId: landing
 sectionId: products
 ---
+
 # Products Section
 
 ## Label
@@ -10,43 +11,15 @@ Our Ecosystem
 
 ## Headline
 
-Transformative Tools for a Sustainable Future
+The Tools and Solutions Powering Sustainable Change
 
 ## Description
 
-Rizom offers a curated suite of innovative products and services designed to empower organizations and communities to navigate the complexities of digital transformation, organizational development, and ecosystem design. Our solutions are grounded in deep expertise, cutting-edge research, and a steadfast commitment to sustainability and social impact.
+Rizom offers a curated suite of digital transformation tools and services to help organizations navigate complex challenges and build resilient, future-ready ecosystems. Our products empower leaders, communities, and changemakers to drive positive impact at scale.
 
 ## Products
 
 ### Product 1
-
-#### ID
-
-practice-innovation
-
-#### Name
-
-Practice Innovation
-
-#### Tagline
-
-Accelerate organizational transformation
-
-#### Description
-
-A collaborative framework and toolkit to help teams rapidly prototype, test, and scale innovative practices for agile, resilient organizations.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Zap
-
-### Product 2
 
 #### ID
 
@@ -58,11 +31,11 @@ Ecosystem Design
 
 #### Tagline
 
-Build thriving multi-stakeholder ecosystems
+Architect dynamic, adaptive systems
 
 #### Description
 
-A comprehensive methodology for designing, launching, and governing dynamic ecosystems that drive systemic change and sustainable value creation.
+Our ecosystem design practice helps organizations map their stakeholder networks, identify leverage points, and co-create collaborative models to address systemic challenges.
 
 #### Status
 
@@ -74,30 +47,86 @@ live
 
 Network
 
-### Product 3
+### Product 2
 
 #### ID
 
-economy-of-garbage
+organizational-transformation
 
 #### Name
 
-Economy of Garbage
+Organizational Transformation
 
 #### Tagline
 
-Unlock value from waste streams
+Cultivate agile, purpose-driven cultures
 
 #### Description
 
-An innovative approach to transforming waste into valuable resources, fostering circular economies and regenerative business models.
+We guide leaders through organizational change initiatives, embedding human-centric practices and iterative mindsets to unlock innovation and resilience.
 
 #### Status
 
-beta
+live
 
 #### Link
 
 #### Icon
 
 Cpu
+
+### Product 3
+
+#### ID
+
+digital-strategy
+
+#### Name
+
+Digital Strategy
+
+#### Tagline
+
+Navigate the future of work
+
+#### Description
+
+Our digital transformation services help enterprises leverage emerging technologies, optimize workflows, and future-proof their operations for the digital age.
+
+#### Status
+
+live
+
+#### Link
+
+#### Icon
+
+Globe
+
+### Product 4
+
+#### ID
+
+community-activation
+
+#### Name
+
+Community Activation
+
+#### Tagline
+
+Mobilize stakeholders for change
+
+#### Description
+
+We facilitate collaborative workshops, design sprints, and engagement programs to bring diverse stakeholders together and co-create impactful solutions.
+
+#### Status
+
+live
+
+#### Link
+
+#### Icon
+
+Users

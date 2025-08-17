@@ -274,15 +274,12 @@ export class Shell implements IShell {
 
     this.conversationService =
       dependencies?.conversationService ??
-      ConversationService.getInstance(
-        this.logger,
-        {
-          url: config.conversationDatabase.url,
-          ...(config.conversationDatabase.authToken && {
-            authToken: config.conversationDatabase.authToken,
-          }),
-        },
-      );
+      ConversationService.getInstance(this.logger, {
+        url: config.conversationDatabase.url,
+        ...(config.conversationDatabase.authToken && {
+          authToken: config.conversationDatabase.authToken,
+        }),
+      });
 
     this.contentGenerator =
       dependencies?.contentGenerator ??

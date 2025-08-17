@@ -12,6 +12,7 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
+    "@brains/ai-service": "workspace:*",
     "@brains/core": "workspace:*",
     "@brains/permission-service": "workspace:*",
     "@brains/utils": "workspace:*",

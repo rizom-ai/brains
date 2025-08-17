@@ -1,3 +1,4 @@
-export { App } from "./app.js";
-export { defineConfig, handleCLI } from "./config.js";
-export type { AppConfig } from "./types.js";
+export { App } from "./app";
+export { defineConfig } from "./config";
+export { handleCLI } from "./cli";
+export type { AppConfig } from "./types";

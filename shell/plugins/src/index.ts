@@ -201,7 +201,7 @@ export {
 } from "@brains/utils";
 
 // Test utilities from @brains/core
-export { MockShell } from "@brains/core/test";
+export { MockShell } from "@brains/core";
 
 // From @brains/content-management (shared utility for content operations)
 export {

@@ -2,12 +2,15 @@
 routeId: dashboard
 sectionId: main
 ---
+
 # Dashboard Data
 
 entityStats:
 
 - type: base
   count: 40
+- type: topic
+  count: 2
 - type: site-content-preview
   count: 5
 - type: site-content-production
@@ -37,5 +40,5 @@ recentEntities:
   created: 2025-08-04T05:39:25.429Z
 
 buildInfo:
-timestamp: 2025-08-14T17:40:13.737Z
+timestamp: 2025-08-17T17:18:02.108Z
 version: 1.0.0

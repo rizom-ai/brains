@@ -7,10 +7,10 @@ import { createId } from "@brains/utils";
  * Using generic categories to accommodate various plugin operations
  */
 export const OperationTypeEnum = z.enum([
-  "file_operations",     // directory sync, file processing, import/export
-  "content_operations",  // content generation, promotion, rollback, site building
-  "data_processing",     // entity processing, embedding generation, search indexing
-  "batch_processing",    // batch operations
+  "file_operations", // directory sync, file processing, import/export
+  "content_operations", // content generation, promotion, rollback, site building
+  "data_processing", // entity processing, embedding generation, search indexing
+  "batch_processing", // batch operations
 ]);
 
 export type OperationType = z.infer<typeof OperationTypeEnum>;

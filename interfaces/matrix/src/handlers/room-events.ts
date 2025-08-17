@@ -124,10 +124,7 @@ export async function handleRoomInvite(
   });
 
   // Check permissions using centralized permission service
-  const userPermissionLevel = ctx.getUserPermissionLevel(
-    "matrix",
-    inviter,
-  );
+  const userPermissionLevel = ctx.getUserPermissionLevel("matrix", inviter);
 
   // Only accept invites from anchor users
   if (userPermissionLevel !== "anchor") {

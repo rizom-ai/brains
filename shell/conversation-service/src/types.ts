@@ -73,4 +73,6 @@ export const conversationDigestPayloadSchema = z.object({
  * Payload for conversation digest events
  * Broadcast every N messages with overlapping message windows
  */
-export type ConversationDigestPayload = z.infer<typeof conversationDigestPayloadSchema>;
+export type ConversationDigestPayload = z.infer<
+  typeof conversationDigestPayloadSchema
+>;

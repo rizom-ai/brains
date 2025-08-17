@@ -31,3 +31,6 @@ export type { ShellConfig } from "./config";
 // Re-export essential types that don't trigger side effects
 export type { IEmbeddingService } from "@brains/embedding-service";
 export type { SerializableEntity, SerializableQueryResult } from "./types";
+
+// Re-export test utilities
+export { MockShell } from "../test/mock-shell";

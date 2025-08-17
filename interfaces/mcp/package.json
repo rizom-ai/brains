@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "cors": "^2.8.5",
     "express": "^4.18.0",

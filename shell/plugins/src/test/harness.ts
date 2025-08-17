@@ -6,7 +6,7 @@ import type { Logger } from "@brains/utils";
 import { createSilentLogger } from "@brains/utils";
 import type { Template } from "@brains/content-generator";
 import type { MessageHandler } from "@brains/messaging-service";
-import { MockShell } from "@brains/core/test";
+import { MockShell } from "@brains/core";
 
 export interface HarnessOptions {
   logger?: Logger;

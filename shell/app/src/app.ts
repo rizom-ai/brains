@@ -1,6 +1,6 @@
 import { Shell } from "@brains/core";
 import { Logger, LogLevel } from "@brains/utils";
-import { appConfigSchema, type AppConfig } from "./types.js";
+import { appConfigSchema, type AppConfig } from "./types";
 
 export class App {
   private shell: Shell;
