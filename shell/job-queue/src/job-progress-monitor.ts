@@ -6,7 +6,7 @@ import type {
 } from "@brains/utils";
 import type { MessageBus } from "@brains/messaging-service";
 import type { IJobQueueService } from "./types";
-// Removed BatchJobManager dependency for simplicity
+import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
 import type { z } from "zod";
 import type { JobProgressEventSchema } from "./schemas";
@@ -32,11 +32,13 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   public static getInstance(
     jobQueueService: IJobQueueService,
     messageBus: MessageBus,
+    batchJobManager: BatchJobManager,
     logger: Logger,
   ): JobProgressMonitor {
     JobProgressMonitor.instance ??= new JobProgressMonitor(
       jobQueueService,
       messageBus,
+      batchJobManager,
       logger,
     );
     return JobProgressMonitor.instance;
@@ -55,9 +57,15 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   public static createFresh(
     jobQueueService: IJobQueueService,
     messageBus: MessageBus,
+    batchJobManager: BatchJobManager,
     logger: Logger,
   ): JobProgressMonitor {
-    return new JobProgressMonitor(jobQueueService, messageBus, logger);
+    return new JobProgressMonitor(
+      jobQueueService,
+      messageBus,
+      batchJobManager,
+      logger,
+    );
   }
 
   /**
@@ -66,6 +74,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   private constructor(
     private jobQueueService: IJobQueueService,
     private messageBus: MessageBus,
+    private batchJobManager: BatchJobManager,
     private logger: Logger,
   ) {}
 
@@ -298,5 +307,48 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     return {
       isRunning: true, // Always running in event-driven mode
     };
+  }
+
+  /**
+   * Handle job status changes - emits individual job events and batch progress if applicable
+   * This is the main entry point for job completion/failure notifications
+   */
+  public async handleJobStatusChange(
+    jobId: string,
+    status: "completed" | "failed",
+    metadata?: JobContext,
+  ): Promise<void> {
+    try {
+      // Emit individual job status event
+      if (status === "completed") {
+        await this.emitJobCompletion(jobId);
+      } else if (status === "failed") {
+        await this.emitJobFailure(jobId);
+      }
+
+      // Check if this job is part of a batch and emit batch progress
+      const rootJobId = metadata?.rootJobId;
+      if (rootJobId && rootJobId !== jobId) {
+        try {
+          const batchStatus =
+            await this.batchJobManager.getBatchStatus(rootJobId);
+          if (batchStatus) {
+            await this.emitBatchProgress(rootJobId, batchStatus, metadata);
+          }
+        } catch (error) {
+          this.logger.warn("Failed to emit batch progress", {
+            jobId,
+            rootJobId,
+            error,
+          });
+        }
+      }
+    } catch (error) {
+      this.logger.error("Failed to handle job status change", {
+        jobId,
+        status,
+        error,
+      });
+    }
   }
 }

@@ -355,8 +355,12 @@ export class JobQueueWorker {
 
       await this.jobQueueService.complete(job.id, result);
 
-      // Emit completion event immediately
-      await this.progressMonitor.emitJobCompletion(job.id);
+      // Handle job completion - emits individual job events and batch progress if applicable
+      await this.progressMonitor.handleJobStatusChange(
+        job.id,
+        "completed",
+        job.metadata,
+      );
 
       return {
         jobId: job.id,
@@ -394,10 +398,14 @@ export class JobQueueWorker {
 
       await this.jobQueueService.fail(job.id, processError);
 
-      // Emit failure event immediately (unless it's being retried)
+      // Handle job failure - emits individual job events and batch progress if applicable
       const status = await this.jobQueueService.getStatus(job.id);
       if (status && status.status === JOB_STATUS.FAILED) {
-        await this.progressMonitor.emitJobFailure(job.id);
+        await this.progressMonitor.handleJobStatusChange(
+          job.id,
+          "failed",
+          job.metadata,
+        );
       }
 
       return {

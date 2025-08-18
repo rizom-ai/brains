@@ -136,4 +136,14 @@ export interface IJobProgressMonitor {
    * Emit job failure event
    */
   emitJobFailure(jobId: string): Promise<void>;
+
+  /**
+   * Handle job status changes - emits individual job events and batch progress if applicable
+   * This is the main entry point for job completion/failure notifications
+   */
+  handleJobStatusChange(
+    jobId: string,
+    status: "completed" | "failed",
+    metadata?: Record<string, unknown>,
+  ): Promise<void>;
 }

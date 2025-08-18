@@ -7,15 +7,15 @@ sectionId: products
 
 ## Label
 
-Our Ecosystem
+Our Solutions
 
 ## Headline
 
-Unlock New Possibilities with Rizom
+Innovative Products to Drive Transformation
 
 ## Description
 
-Rizom brings together a diverse portfolio of innovative digital solutions to help organizations navigate the complexities of transformation and thrive in the evolving business landscape.
+Rizom offers a curated portfolio of digital products and services to help organizations navigate complex challenges and unlock new possibilities. From ecosystem design to data-driven decision making, our solutions are tailored to empower teams, optimize operations, and accelerate sustainable growth.
 
 ## Products
 
@@ -23,47 +23,19 @@ Rizom brings together a diverse portfolio of innovative digital solutions to hel
 
 #### ID
 
-practice-innovation
+ecosystem-design
 
 #### Name
 
-Practice Innovation
+Ecosystem Design
 
 #### Tagline
 
-Accelerate organizational transformation
+Architecting collaborative value networks
 
 #### Description
 
-Leverage our expertise in agile methodologies, human-centered design, and organizational development to drive sustainable innovation within your enterprise.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Cpu
-
-### Product 2
-
-#### ID
-
-ecosystem-architecture
-
-#### Name
-
-Ecosystem Architecture
-
-#### Tagline
-
-Design resilient business ecosystems
-
-#### Description
-
-Unlock new value by orchestrating collaborative networks and aligning stakeholders around shared goals and outcomes.
+Our ecosystem design experts guide you through the process of mapping stakeholders, aligning incentives, and building resilient systems that foster innovation and shared prosperity.
 
 #### Status
 
@@ -75,23 +47,51 @@ live
 
 Network
 
+### Product 2
+
+#### ID
+
+transformation-strategy
+
+#### Name
+
+Transformation Strategy
+
+#### Tagline
+
+Roadmaps for digital-first organizations
+
+#### Description
+
+We help you develop a comprehensive transformation strategy that balances people, processes, and technology to future-proof your business and accelerate your digital maturity.
+
+#### Status
+
+live
+
+#### Link
+
+#### Icon
+
+Wrench
+
 ### Product 3
 
 #### ID
 
-economy-of-garbage
+data-insights
 
 #### Name
 
-Economy of Garbage
+Data Insights
 
 #### Tagline
 
-Unlock value from waste streams
+Unlock the power of your data
 
 #### Description
 
-Transform your waste into a valuable resource by applying circular economy principles and leveraging emerging technologies.
+Our data science and visualization tools empower you to make data-driven decisions, optimize operations, and uncover new opportunities for growth and innovation.
 
 #### Status
 
@@ -101,4 +101,32 @@ beta
 
 #### Icon
 
-Zap
+Database
+
+### Product 4
+
+#### ID
+
+sustainability-solutions
+
+#### Name
+
+Sustainability Solutions
+
+#### Tagline
+
+Driving circular and regenerative models
+
+#### Description
+
+We develop tailored solutions to help organizations transition towards more sustainable and resilient business practices, from waste management to carbon footprint reduction.
+
+#### Status
+
+beta
+
+#### Link
+
+#### Icon
+
+Globe

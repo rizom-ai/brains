@@ -100,10 +100,17 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     progressEvent: JobProgressEvent,
     context: JobContext,
   ): Promise<void> {
+    console.log(
+      `🔥 CLI: Received progress event for job ${progressEvent.id}, progress: ${progressEvent.progress?.current}/${progressEvent.progress?.total}, status: ${progressEvent.status}`,
+    );
+
     // Use inherited logic to check job ownership
     if (!this.ownsJob(progressEvent.id, context.rootJobId)) {
+      console.log(`🔥 CLI: Job ${progressEvent.id} not owned by CLI, ignoring`);
       return; // Not our job, ignore
     }
+
+    console.log(`🔥 CLI: Processing owned job ${progressEvent.id}`);
 
     // Get tracking info (direct or inherited)
     const trackingInfo = this.getJobTracking(
@@ -134,20 +141,14 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     const message = formatProgressMessage(progressEvent);
     if (message) {
       const randomId = Math.random().toString(36).substring(2, 8);
-      // TEMPORARY DEBUG: Show raw progress values in the message
-      const debugMessage = `${message}\n🔍 RAW: ${progressEvent.progress?.current}/${progressEvent.progress?.total} | Status: ${progressEvent.status}`;
-      await this.editMessage(
-        `${trackingInfo.messageId}-${randomId}`,
-        debugMessage,
-        {
-          userId: trackingInfo.userId,
-          channelId: trackingInfo.channelId,
-          messageId: `${trackingInfo.messageId}-${randomId}`,
-          timestamp: new Date(),
-          interfaceType: "cli",
-          userPermissionLevel: "anchor",
-        },
-      );
+      await this.editMessage(`${trackingInfo.messageId}-${randomId}`, message, {
+        userId: trackingInfo.userId,
+        channelId: trackingInfo.channelId,
+        messageId: `${trackingInfo.messageId}-${randomId}`,
+        timestamp: new Date(),
+        interfaceType: "cli",
+        userPermissionLevel: "anchor",
+      });
     }
   }
 

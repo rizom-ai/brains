@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { JobProgressMonitor } from "../src/job-progress-monitor";
 import type { IJobQueueService } from "../src/types";
-// Removed BatchJobManager dependency for simplicity
+import type { BatchJobManager } from "../src/batch-job-manager";
 import type { MessageBus } from "@brains/messaging-service";
 import { createSilentLogger, type Logger } from "@brains/utils";
 
@@ -14,7 +14,7 @@ import type { Mock } from "bun:test";
 describe("JobProgressMonitor", () => {
   let monitor: JobProgressMonitor;
   let mockJobQueueService: IJobQueueService;
-  // Removed BatchJobManager from JobProgressMonitor for simplicity
+  let mockBatchJobManager: BatchJobManager;
   let mockMessageBus: MessageBus;
   let mockLogger: Logger;
 
@@ -52,7 +52,14 @@ describe("JobProgressMonitor", () => {
       cleanup: mock(() => Promise.resolve(0)),
     };
 
-    // No longer needed - BatchJobManager removed from JobProgressMonitor
+    mockBatchJobManager = {
+      enqueueBatch: mock(() => Promise.resolve("batch-id")),
+      getBatchStatus: mock(() => Promise.resolve(null)),
+      getActiveBatches: mock(() => Promise.resolve([])),
+      getInstance: mock(() => mockBatchJobManager),
+      resetInstance: mock(() => {}),
+      createFresh: mock(() => mockBatchJobManager),
+    } as unknown as BatchJobManager;
 
     messageBusSendMock = mock(() => Promise.resolve());
 
@@ -74,6 +81,7 @@ describe("JobProgressMonitor", () => {
     monitor = JobProgressMonitor.createFresh(
       mockJobQueueService,
       mockMessageBus,
+      mockBatchJobManager,
       mockLogger,
     );
   });
@@ -415,12 +423,14 @@ describe("JobProgressMonitor", () => {
       const instance1 = JobProgressMonitor.getInstance(
         mockJobQueueService,
         mockMessageBus,
+        mockBatchJobManager,
         mockLogger,
       );
 
       const instance2 = JobProgressMonitor.getInstance(
         mockJobQueueService,
         mockMessageBus,
+        mockBatchJobManager,
         mockLogger,
       );
 
@@ -431,6 +441,7 @@ describe("JobProgressMonitor", () => {
       const instance1 = JobProgressMonitor.getInstance(
         mockJobQueueService,
         mockMessageBus,
+        mockBatchJobManager,
         mockLogger,
       );
 
@@ -439,6 +450,7 @@ describe("JobProgressMonitor", () => {
       const instance2 = JobProgressMonitor.getInstance(
         mockJobQueueService,
         mockMessageBus,
+        mockBatchJobManager,
         mockLogger,
       );
 
