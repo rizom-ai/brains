@@ -14,7 +14,8 @@ import type {
 } from "@brains/plugins";
 import type { Instance } from "ink";
 import { cliConfigSchema, defaultCLIConfig, type CLIConfig } from "./config";
-import { handleProgressEvent, MessageHandlers } from "./handlers";
+import { progressReducer, formatProgressMessage } from "./handlers/progress";
+import { MessageHandlers } from "./handlers";
 import { createCLICommands } from "./commands";
 import packageJson from "../package.json";
 
@@ -93,24 +94,61 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   }
 
   /**
-   * Handle progress events - unified handler using reducer pattern
+   * Handle progress events using inherited job tracking logic
    */
   protected async handleProgressEvent(
     progressEvent: JobProgressEvent,
     context: JobContext,
   ): Promise<void> {
-    this.progressEvents = await handleProgressEvent(
-      progressEvent,
-      context,
-      this.progressEvents,
-      {
-        progressCallback: this.progressCallback,
-        editMessage: (messageId, content, ctx) =>
-          this.editMessage(messageId, content, ctx),
-      },
-      this.jobMessages,
-      this.logger,
+    // Use inherited logic to check job ownership
+    if (!this.ownsJob(progressEvent.id, context.rootJobId)) {
+      return; // Not our job, ignore
+    }
+
+    // Get tracking info (direct or inherited)
+    const trackingInfo = this.getJobTracking(
+      progressEvent.id,
+      context.rootJobId,
     );
+    if (!trackingInfo) {
+      this.logger.warn("No tracking info found for owned job", {
+        jobId: progressEvent.id,
+        rootJobId: context.rootJobId,
+      });
+      return;
+    }
+
+    // Update local progress state for UI
+    this.progressEvents = progressReducer(this.progressEvents, {
+      type: "UPDATE_PROGRESS",
+      payload: progressEvent,
+    });
+
+    // Notify React component of progress changes
+    if (this.progressCallback) {
+      const allEvents = Array.from(this.progressEvents.values());
+      this.progressCallback(allEvents);
+    }
+
+    // Edit message for inline progress display with unique ID
+    const message = formatProgressMessage(progressEvent);
+    if (message) {
+      const randomId = Math.random().toString(36).substring(2, 8);
+      // TEMPORARY DEBUG: Show raw progress values in the message
+      const debugMessage = `${message}\n🔍 RAW: ${progressEvent.progress?.current}/${progressEvent.progress?.total} | Status: ${progressEvent.status}`;
+      await this.editMessage(
+        `${trackingInfo.messageId}-${randomId}`,
+        debugMessage,
+        {
+          userId: trackingInfo.userId,
+          channelId: trackingInfo.channelId,
+          messageId: `${trackingInfo.messageId}-${randomId}`,
+          timestamp: new Date(),
+          interfaceType: "cli",
+          userPermissionLevel: "anchor",
+        },
+      );
+    }
   }
 
   /**

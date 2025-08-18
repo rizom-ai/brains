@@ -10,16 +10,13 @@ Rizom is a decentralized professional ecosystem that allows talented individuals
 
 ## Keywords
 
-- decentralized
-- professional ecosystem
-- talent collaboration
-- knowledge sharing
+- decentralized platform
+- distributed talent
 - independent experts
-- distributed teams
-- autonomy
-- expertise
-- platform
+- knowledge sharing
+- professional ecosystem
 
 ## Sources
 
+- cli-cli
 - cli-cli

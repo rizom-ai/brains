@@ -1,7 +1,14 @@
 import { InterfacePlugin } from "./interface-plugin";
 import type { InterfacePluginContext } from "./context";
-import type { Daemon } from "../interfaces";
+import type { Daemon, BaseJobTrackingInfo } from "../interfaces";
+import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import { z } from "zod";
+
+// Define tracking info for webserver interface jobs
+export interface WebserverTrackingInfo extends BaseJobTrackingInfo {
+  sessionId: string; // Session context
+  requestId: string; // Request identification
+}
 
 // Define the plugin configuration schema
 const webserverConfigSchema = z.object({
@@ -21,8 +28,12 @@ type WebserverConfigInput = Partial<WebserverConfig>;
  * - Daemon management for persistent processes
  * - Route registration for web UI
  * - System integration
+ * - Generic job tracking and inheritance logic
  */
-export class WebserverInterfacePlugin extends InterfacePlugin<WebserverConfig> {
+export class WebserverInterfacePlugin extends InterfacePlugin<
+  WebserverConfig,
+  WebserverTrackingInfo
+> {
   declare protected config: WebserverConfig;
   private isRunning = false;
 
@@ -250,6 +261,44 @@ export class WebserverInterfacePlugin extends InterfacePlugin<WebserverConfig> {
       status: "success",
       timestamp: new Date().toISOString(),
     });
+  }
+
+  /**
+   * Handle progress events for webserver interface
+   * Uses generic job tracking and inheritance logic from InterfacePlugin
+   */
+  protected async handleProgressEvent(
+    event: JobProgressEvent,
+    context: JobContext,
+  ): Promise<void> {
+    // Use the generic inheritance logic to determine if we own this job
+    if (!this.ownsJob(event.id, context.rootJobId)) {
+      return; // Not our job, ignore
+    }
+
+    // Get tracking info (direct or inherited)
+    const trackingInfo = this.getJobTracking(event.id, context.rootJobId);
+    if (!trackingInfo) {
+      this.logger.warn("No tracking info found for owned job", {
+        jobId: event.id,
+        rootJobId: context.rootJobId,
+      });
+      return;
+    }
+
+    // Log progress for demonstration (real implementation would update UI)
+    this.logger.debug("Webserver progress event", {
+      jobId: event.id,
+      status: event.status,
+      message: event.message,
+      trackingInfo,
+    });
+
+    // In a real webserver interface, this might:
+    // - Update a progress bar in the UI
+    // - Send server-sent events to connected clients
+    // - Update a job status page
+    // - Store progress in session for polling endpoints
   }
 }
 

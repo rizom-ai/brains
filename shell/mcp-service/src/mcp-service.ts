@@ -113,15 +113,15 @@ export class MCPService implements IMCPService {
       tool.inputSchema,
       async (params, extra) => {
         // Extract context from MCP client metadata
-        const interfaceId = extra._meta?.["interfaceId"];
-        const userId = extra._meta?.["userId"];
+        const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
+        const userId = extra._meta?.["userId"] ?? "mcp-user";
         const channelId = extra._meta?.["channelId"];
         const progressToken = extra._meta?.progressToken;
 
         this.logger.debug("MCP client metadata", {
           tool: tool.name,
           pluginId,
-          interfaceId,
+          interfaceType,
           userId,
           channelId,
           progressToken,
@@ -136,8 +136,8 @@ export class MCPService implements IMCPService {
               args: params,
               progressToken,
               hasProgress: progressToken !== undefined,
-              // Pass through context from MCP client
-              interfaceId,
+              // Pass through context from MCP client with defaults
+              interfaceType,
               userId,
               channelId,
             },

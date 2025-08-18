@@ -4,7 +4,11 @@ import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import type { MessageContext } from "@brains/messaging-service";
 import type { MessageInterfacePluginContext } from "./context";
 import { createMessageInterfacePluginContext } from "./context";
-import type { IShell, PluginCapabilities } from "../interfaces";
+import type {
+  IShell,
+  PluginCapabilities,
+  BaseJobTrackingInfo,
+} from "../interfaces";
 import type { z } from "zod";
 import PQueue from "p-queue";
 
@@ -12,18 +16,27 @@ import { commandResponseSchema } from "@brains/command-registry";
 import { setupProgressHandler } from "./progress-handler";
 
 /**
+ * Job tracking information for message-based interfaces
+ * Stores routing context and message info for progress event handling
+ */
+export interface JobTrackingInfo extends BaseJobTrackingInfo {
+  messageId: string; // For message editing
+  userId: string; // For routing context
+  channelId: string; // For routing context
+}
+
+/**
  * Base implementation of MessageInterfacePlugin
  * Provides message processing functionality for interface plugins
+ * Specializes InterfacePlugin with JobTrackingInfo for message-based tracking
  */
 export abstract class MessageInterfacePlugin<
   TConfig = unknown,
-> extends InterfacePlugin<TConfig> {
+> extends InterfacePlugin<TConfig, JobTrackingInfo> {
   // Override context type with declare modifier
   declare protected context?: MessageInterfacePluginContext;
   protected queue: PQueue;
   public readonly sessionId: string;
-  // Track job/batch messages for editing (jobId/batchId -> messageId)
-  protected jobMessages = new Map<string, string>();
   // Track started conversations per channel
   protected startedConversations = new Set<string>();
   // Configurable command prefix (default "/", can be overridden by child classes)
@@ -69,7 +82,7 @@ export abstract class MessageInterfacePlugin<
   /**
    * Handle progress events - must be implemented by each interface
    */
-  protected abstract handleProgressEvent(
+  protected abstract override handleProgressEvent(
     event: JobProgressEvent,
     context: JobContext,
   ): Promise<void>;
@@ -309,14 +322,26 @@ export abstract class MessageInterfacePlugin<
     // Send the message and get the message ID
     const messageId = await this.sendMessage(messageText, context, replyToId);
 
-    // Store job/batch message mapping if we have IDs
+    // Store job/batch tracking info if we have IDs
     if (jobId) {
-      this.jobMessages.set(jobId, messageId);
-      this.logger.info("Stored job message mapping", { jobId, messageId });
+      const trackingInfo = {
+        messageId,
+        userId: context.userId,
+        channelId: context.channelId,
+        rootJobId: jobId, // For root jobs, self-reference
+      };
+      this.setJobTracking(jobId, trackingInfo);
+      this.logger.info("Stored job tracking info", { jobId, messageId });
     }
     if (batchId) {
-      this.jobMessages.set(batchId, messageId);
-      this.logger.info("Stored batch message mapping", { batchId, messageId });
+      const trackingInfo = {
+        messageId,
+        userId: context.userId,
+        channelId: context.channelId,
+        rootJobId: batchId, // For root batches, self-reference
+      };
+      this.setJobTracking(batchId, trackingInfo);
+      this.logger.info("Stored batch tracking info", { batchId, messageId });
     }
 
     // 5. Store assistant response in conversation memory

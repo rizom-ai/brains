@@ -7,11 +7,11 @@ sectionId: hero
 
 ## Headline
 
-Unlock the Power of Personal Knowledge Management
+Elevate Your Knowledge Workflows
 
 ## Subheadline
 
-Boost productivity, accelerate learning, and amplify your potential with our intuitive knowledge management platform.
+Harness the power of personal knowledge management to boost productivity and amplify your impact.
 
 ## CTA Text
 
@@ -19,4 +19,4 @@ Get Started
 
 ## CTA Link
 
-/get-started
+#features

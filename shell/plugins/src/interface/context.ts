@@ -7,10 +7,12 @@ import type {
   CommandResponse,
   CommandContext,
 } from "@brains/command-registry";
+import type { JobHandler, BatchOperation, JobOptions } from "@brains/job-queue";
+import { createId } from "@brains/utils";
 
 /**
  * Context interface for interface plugins
- * Extends CorePluginContext with command management and daemon support
+ * Extends CorePluginContext with command management, daemon support, and job creation
  */
 export interface InterfacePluginContext extends CorePluginContext {
   // Command management
@@ -32,6 +34,21 @@ export interface InterfacePluginContext extends CorePluginContext {
 
   // Daemon management
   registerDaemon: (name: string, daemon: Daemon) => void;
+
+  // Job queue functionality (for automatic job tracking)
+  enqueueJob: (
+    type: string,
+    data: unknown,
+    options?: JobOptions,
+  ) => Promise<string>;
+  enqueueBatch: (
+    operations: BatchOperation[],
+    options?: JobOptions,
+  ) => Promise<string>;
+  registerJobHandler: <T = unknown, R = unknown>(
+    type: string,
+    handler: JobHandler<string, T, R>,
+  ) => void;
 
   // MCP transport for interface plugins
   readonly mcpTransport: IMCPTransport;
@@ -114,6 +131,41 @@ export function createInterfacePluginContext(
           `Failed to execute command "${commandName}": ${error instanceof Error ? error.message : String(error)}`,
         );
       }
+    },
+
+    // Job queue functionality
+    enqueueJob: async (type, data, options) => {
+      const jobQueueService = shell.getJobQueueService();
+      const rootJobId = options?.metadata?.rootJobId || createId();
+      const defaultOptions: JobOptions = {
+        source: pluginId,
+        metadata: {
+          rootJobId,
+          operationType: "data_processing" as const,
+          pluginId,
+          ...options?.metadata,
+        },
+        ...options,
+      };
+      return jobQueueService.enqueue(type, data, defaultOptions, pluginId);
+    },
+    enqueueBatch: async (operations, options) => {
+      const rootJobId = options?.metadata?.rootJobId || createId();
+      const defaultOptions: JobOptions = {
+        source: pluginId,
+        metadata: {
+          rootJobId,
+          operationType: "batch_processing" as const,
+          pluginId,
+          ...options?.metadata,
+        },
+        ...options,
+      };
+      return shell.enqueueBatch(operations, defaultOptions, pluginId);
+    },
+    registerJobHandler: (type, handler) => {
+      const jobQueueService = shell.getJobQueueService();
+      jobQueueService.registerHandler(type, handler, pluginId);
     },
 
     // Daemon support

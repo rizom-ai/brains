@@ -60,8 +60,8 @@ export function handleToolRegistration(
     tool.inputSchema,
     async (params, extra) => {
       // Extract context from MCP client metadata
-      const interfaceId = extra._meta?.["interfaceId"];
-      const userId = extra._meta?.["userId"];
+      const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
+      const userId = extra._meta?.["userId"] ?? "mcp-user";
       const channelId = extra._meta?.["channelId"];
       const progressToken = extra._meta?.progressToken;
 
@@ -69,7 +69,7 @@ export function handleToolRegistration(
       logger.debug("MCP client metadata", {
         tool: tool.name,
         pluginId,
-        interfaceId,
+        interfaceType,
         userId,
         channelId,
         progressToken,
@@ -86,7 +86,7 @@ export function handleToolRegistration(
             progressToken,
             hasProgress: progressToken !== undefined,
             // Pass through context from MCP client
-            interfaceId,
+            interfaceType,
             userId,
             channelId,
           },

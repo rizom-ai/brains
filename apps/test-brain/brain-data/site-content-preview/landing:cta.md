@@ -7,11 +7,11 @@ sectionId: cta
 
 ## Headline
 
-Elevate Your Knowledge, Amplify Your Potential
+Unlock Your Full Potential
 
 ## Description
 
-Unlock the power of your knowledge and take your personal growth to new heights with our personal knowledge management system.
+Elevate your knowledge, empower your future with a personal knowledge management system that helps you capture, connect, and amplify your expertise.
 
 ## Primary Button
 

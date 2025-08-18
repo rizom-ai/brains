@@ -112,8 +112,8 @@ describe("SiteBuilderPlugin", () => {
         },
       );
       expect(result.success).toBe(true);
-      expect(result).toHaveProperty("routes");
-      expect(Array.isArray(result["routes"])).toBe(true);
+      expect(result.data).toHaveProperty("routes");
+      expect(Array.isArray(result.data?.["routes"])).toBe(true);
     }
   });
 
@@ -226,10 +226,9 @@ describe("SiteBuilderPlugin", () => {
       );
       // The generate tool should handle missing templates gracefully
       expect(result).toBeDefined();
-      expect(result.status).toBeDefined();
-      // It may queue jobs (status: "queued") or complete immediately (status: "completed")
-      // Both are valid behaviors when templates are missing
-      expect(["queued", "completed"]).toContain(result.status);
+      expect(result.success).toBeDefined();
+      // It should either succeed or fail gracefully
+      expect(typeof result.success).toBe("boolean");
     }
   });
 

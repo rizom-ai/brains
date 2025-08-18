@@ -11,11 +11,11 @@ Our Ecosystem
 
 ## Headline
 
-The Tools and Solutions Powering Sustainable Change
+Unlock New Possibilities with Rizom
 
 ## Description
 
-Rizom offers a curated suite of digital tools and solutions that empower organizations to drive sustainable innovation and transformation. Our products leverage emerging technologies, human-centered design, and ecosystem thinking to help our clients navigate complex challenges and unlock new possibilities.
+Rizom brings together a diverse portfolio of innovative digital solutions to help organizations navigate the complexities of transformation and thrive in the evolving business landscape.
 
 ## Products
 
@@ -23,19 +23,19 @@ Rizom offers a curated suite of digital tools and solutions that empower organiz
 
 #### ID
 
-rizom-studio
+practice-innovation
 
 #### Name
 
-Rizom Studio
+Practice Innovation
 
 #### Tagline
 
-Collaborative platform for ecosystem design
+Accelerate organizational transformation
 
 #### Description
 
-Rizom Studio is a powerful collaborative platform that enables teams to visualize, model, and orchestrate complex business ecosystems. It combines systems thinking, scenario planning, and design tools to support strategic decision-making.
+Leverage our expertise in agile methodologies, human-centered design, and organizational development to drive sustainable innovation within your enterprise.
 
 #### Status
 
@@ -45,25 +45,25 @@ live
 
 #### Icon
 
-Brain
+Cpu
 
 ### Product 2
 
 #### ID
 
-rizom-insights
+ecosystem-architecture
 
 #### Name
 
-Rizom Insights
+Ecosystem Architecture
 
 #### Tagline
 
-Data-driven intelligence for ecosystem transformation
+Design resilient business ecosystems
 
 #### Description
 
-Rizom Insights is a data analytics and visualization suite that provides deep, data-driven intelligence to support ecosystem innovation and transformation initiatives. It helps organizations uncover hidden patterns, forecast trends, and make informed decisions.
+Unlock new value by orchestrating collaborative networks and aligning stakeholders around shared goals and outcomes.
 
 #### Status
 
@@ -73,25 +73,25 @@ live
 
 #### Icon
 
-Database
+Network
 
 ### Product 3
 
 #### ID
 
-rizom-catalyst
+economy-of-garbage
 
 #### Name
 
-Rizom Catalyst
+Economy of Garbage
 
 #### Tagline
 
-Accelerating sustainable innovation through collaboration
+Unlock value from waste streams
 
 #### Description
 
-Rizom Catalyst is a program that brings together diverse stakeholders to ideate, prototype, and scale innovative solutions for social and environmental challenges. It leverages human-centered design, open innovation, and ecosystem-building methodologies.
+Transform your waste into a valuable resource by applying circular economy principles and leveraging emerging technologies.
 
 #### Status
 
@@ -101,32 +101,4 @@ beta
 
 #### Icon
 
-Wrench
-
-### Product 4
-
-#### ID
-
-rizom-academy
-
-#### Name
-
-Rizom Academy
-
-#### Tagline
-
-Equipping leaders with future-ready skills
-
-#### Description
-
-Rizom Academy offers a range of online and in-person courses, workshops, and coaching programs to help leaders and teams develop the mindsets, frameworks, and capabilities needed to navigate complex, fast-changing environments.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-FileText
+Zap

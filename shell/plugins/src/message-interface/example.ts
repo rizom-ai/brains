@@ -57,14 +57,14 @@ export class EchoMessageInterface extends MessageInterfacePlugin<EchoConfig> {
     const progressMessage = `${this.config.prefix} Progress Update: ${message} (${progressPercentage}%)`;
 
     // Look up the original message ID for this job/batch
-    const originalMessageId = this.jobMessages.get(id);
+    const trackingInfo = this.getJobTracking(id);
 
-    if (originalMessageId) {
+    if (trackingInfo) {
       // Edit the original message with progress
-      await this.editMessage(originalMessageId, progressMessage, {
+      await this.editMessage(trackingInfo.messageId, progressMessage, {
         userId: "system",
         channelId: "progress-updates",
-        messageId: originalMessageId,
+        messageId: trackingInfo.messageId,
         timestamp: new Date(),
         interfaceType: "echo",
         userPermissionLevel: "public",

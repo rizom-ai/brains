@@ -107,6 +107,13 @@ export class ContentGenerationJobHandler
         message: `Generating content with template: ${data.templateName}`,
       });
 
+      // TEMPORARY DEBUG: Add immediate progress report to test
+      await progressReporter.report({
+        progress: 0.5,
+        total: 3,
+        message: `DEBUG: About to start content generation...`,
+      });
+
       // Generate content using the ContentGenerator service
       const content = await this.contentGenerator.generateContent<unknown>(
         data.templateName,

@@ -127,18 +127,24 @@ export function createServicePluginContext(
       return jobQueueService.enqueue(type, data, defaultOptions, pluginId);
     },
     enqueueBatch: async (operations, options) => {
-      const rootJobId = options?.metadata?.rootJobId || createId();
-      const defaultOptions: JobOptions = {
-        source: pluginId,
-        metadata: {
-          rootJobId,
-          operationType: "batch_processing" as const,
-          pluginId,
-          ...options?.metadata,
+      // For batch operations, don't set rootJobId in metadata since batches ARE root operations
+      // The BatchJobManager will set rootJobId=batchId for individual jobs within the batch
+      const batchId = await shell.enqueueBatch(
+        operations,
+        {
+          source: pluginId,
+          metadata: {
+            operationType: "batch_processing" as const,
+            pluginId,
+            ...options?.metadata,
+            // rootJobId is intentionally omitted for batch operations
+          },
+          ...options,
         },
-        ...options,
-      };
-      return shell.enqueueBatch(operations, defaultOptions, pluginId);
+        pluginId,
+      );
+
+      return batchId;
     },
     registerJobHandler: (type, handler) => {
       jobQueueService.registerHandler(type, handler, pluginId);

@@ -52,49 +52,62 @@ export function createSiteBuilderTools(
         input: unknown,
         context: ToolContext,
       ): Promise<ToolResponse> => {
-        const siteContentService = getSiteContentService();
-        if (!siteContentService) {
-          throw new Error("Site content service not initialized");
-        }
+        try {
+          const siteContentService = getSiteContentService();
+          if (!siteContentService) {
+            return {
+              success: false,
+              message: "Site content service not initialized",
+            };
+          }
 
-        // Parse and validate input using the schema
-        const options = GenerateOptionsSchema.parse(input);
+          // Parse and validate input using the schema
+          let options;
+          try {
+            options = GenerateOptionsSchema.parse(input);
+          } catch (error) {
+            return {
+              success: false,
+              message: `Invalid input parameters: ${error instanceof Error ? error.message : String(error)}`,
+            };
+          }
 
-        // Validate that sectionId is only used with routeId
-        if (options.sectionId && !options.routeId) {
+          // Validate that sectionId is only used with routeId
+          if (options.sectionId && !options.routeId) {
+            return {
+              success: false,
+              message: "sectionId requires routeId to be specified",
+            };
+          }
+
+          // Create job metadata
+          const metadata: JobContext = {
+            progressToken: context.progressToken,
+            pluginId,
+            operationType: "content_operations",
+          };
+
+          const result = await siteContentService.generateContent(
+            options,
+            metadata,
+          );
+
           return {
-            status: "error",
-            message: "sectionId requires routeId to be specified",
+            success: true,
+            message: `Generated ${result.queuedSections} of ${result.totalSections} sections. ${result.queuedSections > 0 ? "Jobs are running in the background." : "No new content to generate."}`,
+            data: {
+              batchId: result.batchId,
+              jobsQueued: result.queuedSections,
+              totalSections: result.totalSections,
+              jobs: result.jobs,
+            },
+          };
+        } catch (error) {
+          return {
+            success: false,
+            message: `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`,
           };
         }
-
-        // Create job metadata
-        const metadata: JobContext = {
-          interfaceType: context.interfaceType,
-          userId: context.userId,
-          channelId: context.channelId,
-          progressToken: context.progressToken,
-          pluginId,
-          operationType: "content_operations",
-        };
-
-        const result = await siteContentService.generateContent(
-          options,
-          metadata,
-        );
-
-        return {
-          status: "queued",
-          message: `Generated ${result.queuedSections} of ${result.totalSections} sections`,
-          batchId: result.batchId,
-          jobsQueued: result.queuedSections,
-          totalSections: result.totalSections,
-          jobs: result.jobs,
-          tip:
-            result.queuedSections > 0
-              ? "Use the status tool to check progress of this batch operation."
-              : "No new content to generate.",
-        };
       },
     },
     {
@@ -150,9 +163,6 @@ export function createSiteBuilderTools(
           {
             source: `plugin:${pluginId}`,
             metadata: {
-              interfaceType: context.interfaceType,
-              userId: context?.userId ?? "system",
-              channelId: context?.channelId,
               progressToken: context?.progressToken,
               operationType: "content_operations",
               pluginId,
@@ -161,11 +171,12 @@ export function createSiteBuilderTools(
         );
 
         return {
-          status: "queued",
+          success: true,
           message: `Site build job queued for ${params.environment} environment`,
-          jobId,
-          environment: params.environment,
-          tip: "Use getJobStatus tool to check progress of this build operation",
+          data: {
+            jobId,
+            environment: params.environment,
+          },
         };
       },
     },
@@ -182,17 +193,20 @@ export function createSiteBuilderTools(
 
         return {
           success: true,
-          routes: routes.map((route) => ({
-            id: route.id,
-            path: route.path,
-            title: route.title,
-            description: route.description,
-            sections: route.sections.map((section) => ({
-              id: section.id,
-              template: section.template,
+          message: `Found ${routes.length} registered routes`,
+          data: {
+            routes: routes.map((route) => ({
+              id: route.id,
+              path: route.path,
+              title: route.title,
+              description: route.description,
+              sections: route.sections.map((section) => ({
+                id: section.id,
+                template: section.template,
+              })),
             })),
-          })),
-          count: routes.length,
+            count: routes.length,
+          },
         };
       },
     },
@@ -208,12 +222,16 @@ export function createSiteBuilderTools(
         const templates = pluginContext.listViewTemplates();
 
         return {
-          templates: templates.map((template) => ({
-            name: template.name,
-            description: template.description,
-            hasWebRenderer: !!template.renderers.web,
-          })),
-          count: templates.length,
+          success: true,
+          message: `Found ${templates.length} registered templates`,
+          data: {
+            templates: templates.map((template) => ({
+              name: template.name,
+              description: template.description,
+              hasWebRenderer: !!template.renderers.web,
+            })),
+            count: templates.length,
+          },
         };
       },
     },
@@ -252,9 +270,6 @@ export function createSiteBuilderTools(
 
         // Create job metadata
         const metadata: JobContext = {
-          interfaceType: context.interfaceType,
-          userId: context.userId,
-          channelId: context.channelId,
           progressToken: context.progressToken,
           pluginId,
           operationType: "content_operations",
@@ -266,10 +281,12 @@ export function createSiteBuilderTools(
         );
 
         return {
-          status: "queued",
-          message: "Promotion operation queued.",
-          batchId,
-          tip: "Use the status tool to check progress of this operation.",
+          success: true,
+          message:
+            "Promotion operation queued. Jobs are running in the background.",
+          data: {
+            batchId,
+          },
         };
       },
     },
@@ -308,9 +325,6 @@ export function createSiteBuilderTools(
 
         // Create job metadata
         const metadata: JobContext = {
-          interfaceType: context.interfaceType,
-          userId: context.userId,
-          channelId: context.channelId,
           progressToken: context.progressToken,
           pluginId,
           operationType: "content_operations",
@@ -322,10 +336,12 @@ export function createSiteBuilderTools(
         );
 
         return {
-          status: "queued",
-          message: "Rollback operation queued.",
-          batchId,
-          tip: "Use the status tool to check progress of this operation.",
+          success: true,
+          message:
+            "Rollback operation queued. Jobs are running in the background.",
+          data: {
+            batchId,
+          },
         };
       },
     },

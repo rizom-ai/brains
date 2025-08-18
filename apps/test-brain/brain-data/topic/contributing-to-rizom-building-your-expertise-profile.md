@@ -11,15 +11,12 @@ To contribute to Rizom, the first key step is to establish your expertise profil
 ## Keywords
 
 - expertise profile
-- skills
-- experience
-- work style
-- Rizom community
-- collaboration
+- community engagement
+- service offering
 - knowledge sharing
-- independent experts
-- opportunities
+- user feedback
 
 ## Sources
 
+- cli-cli
 - cli-cli

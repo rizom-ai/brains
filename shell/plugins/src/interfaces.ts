@@ -160,6 +160,14 @@ export type { Command } from "@brains/command-registry";
 export type PluginType = "core" | "service" | "interface";
 
 /**
+ * Base tracking info that all interface plugins must have
+ * Contains the essential rootJobId for job inheritance tracking
+ */
+export interface BaseJobTrackingInfo {
+  rootJobId: string; // For inheritance tracking (required)
+}
+
+/**
  * Plugin metadata schema - validates the data portion of a plugin
  */
 export const pluginMetadataSchema = z.object({
@@ -243,6 +251,7 @@ export const toolResponseSchema = z
     status: z.string().optional(),
     message: z.string().optional(),
     success: z.boolean().optional(),
+    data: z.record(z.unknown()).optional(), // Generic data object
   })
   .passthrough(); // Allow additional fields
 

@@ -5,6 +5,8 @@ import {
   type PluginResource,
   type Daemon,
   type DaemonHealth,
+  type JobProgressEvent,
+  type JobContext,
 } from "@brains/plugins";
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
@@ -212,5 +214,17 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     // MCPService manages the lifecycle of mcpServer
     // We just clear our reference
     this.mcpTransport = undefined;
+  }
+
+  /**
+   * Handle progress events - MCP interface doesn't need to handle these directly
+   * since progress is handled through the MCP transport layer
+   */
+  protected async handleProgressEvent(
+    _progressEvent: JobProgressEvent,
+    _context: JobContext,
+  ): Promise<void> {
+    // MCP doesn't directly handle progress events - they're routed through the transport layer
+    // The setupJobProgressListener in onRegister() handles MCP-specific progress reporting
   }
 }

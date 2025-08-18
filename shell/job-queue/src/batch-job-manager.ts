@@ -71,10 +71,12 @@ export class BatchJobManager {
       // Enqueue each operation as an individual job
       for (const operation of operations) {
         // Build job options for each individual job
+        // Set rootJobId to batchId so CLI progress tracking works through inheritance
         const jobOptions: Parameters<IJobQueueService["enqueue"]>[2] = {
           ...options,
           metadata: {
             ...options.metadata,
+            rootJobId: batchId, // Individual jobs inherit from batch
             operationTarget: operation.type,
           },
         };

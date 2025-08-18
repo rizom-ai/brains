@@ -234,16 +234,50 @@ const jobMetadata: JobContext = {
 };
 ```
 
-**Step 1.4**: Update CLI progress handler with inheritance logic
+**Step 1.4**: Update CLI progress handler with JobTrackingInfo and inheritance logic
+
+Problem: CLI progress handler tries to access `progressEvent.metadata.userId/channelId` which no longer exist in simplified JobContext. Interface-specific routing info should be tracked by the interface itself, not in job metadata.
 
 ```typescript
-// In interfaces/cli/src/handlers/progress.ts
-const isDirectJob = jobMessages.has(progressEvent.id);
-const isInheritedJob = context.rootJobId && jobMessages.has(context.rootJobId);
+// In interfaces/cli/src/types.ts
+export interface JobTrackingInfo {
+  messageId: string;     // For message editing
+  userId: string;        // For routing context
+  channelId: string;     // For routing context
+  rootJobId: string;     // For inheritance tracking
+}
 
-if (!isDirectJob && !isInheritedJob) {
+// In interfaces/cli/src/cli-interface.ts
+// UPDATE: Change jobMessages from Map<string, string> to Map<string, JobTrackingInfo>
+private jobMessages = new Map<string, JobTrackingInfo>();
+
+// Store complete tracking info when creating jobs
+this.jobMessages.set(jobId, {
+  messageId: responseMessageId,
+  userId: context.userId,
+  channelId: context.channelId,
+  rootJobId: jobId, // Self-reference for root jobs
+});
+
+// In interfaces/cli/src/handlers/progress.ts
+// Check both direct ownership and inheritance via rootJobId
+const directTracking = jobMessages.get(progressEvent.id);
+const inheritedTracking = context.rootJobId && jobMessages.get(context.rootJobId);
+const tracking = directTracking || inheritedTracking;
+
+if (!tracking) {
   return progressEvents; // Not owned by this interface instance
 }
+
+// Use stored tracking info for message editing (not job metadata)
+await callbacks.editMessage(tracking.messageId, message, {
+  userId: tracking.userId,
+  channelId: tracking.channelId,
+  messageId: tracking.messageId,
+  timestamp: new Date(),
+  interfaceType: "cli",
+  userPermissionLevel: "anchor",
+});
 ```
 
 ### Phase 2: Verify Matrix Interface (Validation)
@@ -318,10 +352,10 @@ export class NewInterface extends MessageInterfacePlugin<Config> {
 
 1. **Document architecture** (this document) ✅
 2. **Commit current exploration** with clear notes ✅
-3. **Simplify JobContextSchema**: Remove routing fields (interfaceType, userId, channelId), add rootJobId
-4. **Remove createSystemContext function** and update direct usages
-5. **Update job creation logic** to set rootJobId (self-reference for root jobs, inherit for children)
-6. **Update CLI progress handler** with rootJobId inheritance logic
+3. **Simplify JobContextSchema**: Remove routing fields (interfaceType, userId, channelId), add required rootJobId ✅
+4. **Remove createSystemContext function** and update direct usages ✅
+5. **Update job creation logic** to set rootJobId (self-reference for root jobs, inherit for children) ✅
+6. **Update CLI progress handler** with JobTrackingInfo and rootJobId inheritance logic 🔄 (In Progress)
 7. **Test CLI progress bars** with job chains and batch operations
 8. **Verify Matrix interface** compatibility
 9. **Create interface template** for future use

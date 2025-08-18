@@ -20,14 +20,13 @@ export type OperationType = z.infer<typeof OperationTypeEnum>;
  */
 export const JobContextSchema = z.object({
   pluginId: z.string().optional(),
-  rootJobId: z.string(), // For flattened job inheritance tracking (required)
+  rootJobId: z.string().optional(), // For flattened job inheritance tracking (optional for batch operations)
   progressToken: z.union([z.string(), z.number()]).optional(),
   operationType: OperationTypeEnum,
   operationTarget: z.string().optional(),
 });
 
 export type JobContext = z.infer<typeof JobContextSchema>;
-
 
 /**
  * Generic job queue table for async background processing

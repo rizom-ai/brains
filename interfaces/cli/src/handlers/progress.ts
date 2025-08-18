@@ -1,9 +1,4 @@
-import type {
-  JobProgressEvent,
-  JobContext,
-  Logger,
-  MessageContext,
-} from "@brains/plugins";
+import type { JobProgressEvent } from "@brains/plugins";
 
 export interface ProgressAction {
   type: "UPDATE_PROGRESS" | "CLEANUP_PROGRESS";
@@ -58,63 +53,5 @@ export function formatProgressMessage(progressEvent: JobProgressEvent): string {
   return message;
 }
 
-/**
- * Handle progress event for CLI interface
- */
-export async function handleProgressEvent(
-  progressEvent: JobProgressEvent,
-  _context: JobContext,
-  progressEvents: Map<string, JobProgressEvent>,
-  callbacks: {
-    progressCallback: ((events: JobProgressEvent[]) => void) | undefined;
-    editMessage: (
-      messageId: string,
-      content: string,
-      context: MessageContext,
-    ) => Promise<void>;
-  },
-  jobMessages: Map<string, string>,
-  logger: Logger,
-): Promise<Map<string, JobProgressEvent>> {
-  try {
-    // CLI only handles events for jobs it initiated
-    // Use jobMessages map to identify CLI-owned jobs instead of metadata
-    if (!jobMessages.has(progressEvent.id)) {
-      return progressEvents; // Event not from this CLI interface instance
-    }
-
-    // Add/update all events (processing, completed, failed)
-    const updatedEvents = progressReducer(progressEvents, {
-      type: "UPDATE_PROGRESS",
-      payload: progressEvent,
-    });
-
-    // Always notify React component of the change
-    if (callbacks.progressCallback) {
-      // Send all events to the status bar
-      const allEvents = Array.from(updatedEvents.values());
-      callbacks.progressCallback(allEvents);
-    }
-
-    // Also send progress update as message edit for inline progress bars
-    const existingMessageId = jobMessages.get(progressEvent.id);
-    if (existingMessageId) {
-      const message = formatProgressMessage(progressEvent);
-      if (message) {
-        await callbacks.editMessage(existingMessageId, message, {
-          userId: progressEvent.metadata.userId,
-          channelId: progressEvent.metadata.channelId ?? "cli",
-          messageId: existingMessageId,
-          timestamp: new Date(),
-          interfaceType: "cli",
-          userPermissionLevel: "anchor",
-        });
-      }
-    }
-
-    return updatedEvents;
-  } catch (error) {
-    logger.error("Error handling progress event in CLI", { error });
-    return progressEvents;
-  }
-}
+// The handleProgressEvent function has been moved to CLIInterface class
+// and now uses the inherited job tracking logic from MessageInterfacePlugin

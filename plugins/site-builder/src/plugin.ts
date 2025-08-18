@@ -218,9 +218,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
             // Create metadata for job context
             const metadata: JobContext = {
-              interfaceType: context.interfaceType,
-              userId: context.userId,
-              channelId: context.channelId,
               progressToken: context.messageId,
               pluginId: this.id,
               operationType: "content_operations",
@@ -338,9 +335,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             }
 
             const metadata: JobContext = {
-              interfaceType: context.interfaceType,
-              userId: context.userId,
-              channelId: context.channelId,
               progressToken: context.messageId,
               pluginId: this.id,
               operationType: "content_operations",
@@ -441,9 +435,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             }
 
             const metadata: JobContext = {
-              interfaceType: context.interfaceType,
-              userId: context.userId,
-              channelId: context.channelId,
               progressToken: context.messageId,
               pluginId: this.id,
               operationType: "content_operations",
@@ -514,9 +505,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             };
 
             const metadata: JobContext = {
-              interfaceType: context.interfaceType,
-              userId: context.userId,
-              channelId: context.channelId,
               progressToken: context.messageId,
               pluginId: this.id,
               operationType: "content_operations",
