@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler } from "../src/types";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger, createId } from "@brains/utils";
 import type { ProgressReporter } from "@brains/utils";
 import type { JobContext } from "../src/schema/job-queue";
 import type { JobQueueDbConfig } from "../src/db";
@@ -20,8 +20,7 @@ interface EntityWithoutEmbedding {
 
 // Default test metadata
 const defaultTestMetadata: JobContext = {
-  interfaceType: "test",
-  userId: "test-user",
+  rootJobId: createId(),
   operationType: "data_processing",
 };
 
@@ -197,9 +196,7 @@ describe("JobQueueService", () => {
     it("should store source and metadata when provided", async () => {
       const source = "matrix:room123";
       const metadata: JobContext = {
-        userId: "user-123",
-        interfaceType: "matrix",
-        channelId: "room123",
+        rootJobId: createId(),
         operationType: "data_processing",
       };
 

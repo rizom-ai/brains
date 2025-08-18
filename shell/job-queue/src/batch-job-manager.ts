@@ -110,7 +110,7 @@ export class BatchJobManager {
         batchId,
         operationCount: operations.length,
         jobIds,
-        userId: options.metadata.userId,
+        rootJobId: options.metadata.rootJobId,
       });
 
       return batchId;

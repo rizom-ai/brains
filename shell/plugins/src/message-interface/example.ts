@@ -62,7 +62,7 @@ export class EchoMessageInterface extends MessageInterfacePlugin<EchoConfig> {
     if (originalMessageId) {
       // Edit the original message with progress
       await this.editMessage(originalMessageId, progressMessage, {
-        userId: context.userId,
+        userId: "system",
         channelId: "progress-updates",
         messageId: originalMessageId,
         timestamp: new Date(),

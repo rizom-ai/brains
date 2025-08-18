@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { JobQueueWorker } from "../src/job-queue-worker";
 import type { JobQueue } from "../src/schema/job-queue";
 import type { JobQueueService } from "../src/job-queue-service";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger, createId } from "@brains/utils";
 import type { IJobProgressMonitor, ProgressReporter } from "@brains/utils";
 
 // Mock progress monitor for testing
@@ -52,8 +52,7 @@ describe("JobQueueWorker", () => {
     startedAt: Date.now(),
     completedAt: null,
     metadata: {
-      interfaceType: "test",
-      userId: "test-user",
+      rootJobId: createId(),
       operationType: "data_processing",
     },
     source: null,

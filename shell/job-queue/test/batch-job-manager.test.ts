@@ -6,13 +6,12 @@ import type { BatchOperation } from "../src/schemas";
 import type { JobContext } from "../src/schema/job-queue";
 import { JOB_STATUS } from "../src/schemas";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger, createId } from "@brains/utils";
 import type { JobQueueDbConfig } from "../src/db";
 
 // Default test metadata
 const defaultTestMetadata: JobContext = {
-  interfaceType: "test",
-  userId: "test-user",
+  rootJobId: createId(),
   operationType: "data_processing",
 };
 
@@ -113,7 +112,7 @@ describe("BatchJobManager", () => {
         source: "test:batch-manager",
         metadata: {
           ...defaultTestMetadata,
-          userId: "user-123",
+          rootJobId: createId(),
           operationType: "data_processing",
         },
         priority: 5,
@@ -278,7 +277,7 @@ describe("BatchJobManager", () => {
           source: "test:batch-manager",
           metadata: {
             ...defaultTestMetadata,
-            userId: "user-123",
+            rootJobId: createId(),
             operationType: "data_processing",
           },
         },
@@ -306,9 +305,9 @@ describe("BatchJobManager", () => {
         expect(batch.metadata.startedAt).toBeDefined();
       }
 
-      // Check that batch3 has userId in metadata
+      // Check that batch3 has rootJobId in metadata
       const batch3 = activeBatches.find((b) => b.batchId === batch3Id);
-      expect(batch3?.metadata.metadata.userId).toBe("user-123");
+      expect(batch3?.metadata.metadata.rootJobId).toBeDefined();
 
       // Check that all batches have source
       for (const batch of activeBatches) {

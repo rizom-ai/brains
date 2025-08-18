@@ -3,7 +3,7 @@ import { JobProgressMonitor } from "../src/job-progress-monitor";
 import type { IJobQueueService } from "../src/types";
 // Removed BatchJobManager dependency for simplicity
 import type { MessageBus } from "@brains/messaging-service";
-import { createSilentLogger, type Logger } from "@brains/utils";
+import { createSilentLogger, createId, type Logger } from "@brains/utils";
 import type { JobQueue, JobContext } from "../src/schema/job-queue";
 import type { BatchJobStatus } from "../src/schemas";
 import type { Mock } from "bun:test";
@@ -108,8 +108,7 @@ describe("JobProgressMonitor", () => {
       startedAt: null,
       scheduledFor: Date.now(),
       metadata: {
-        interfaceType: "test",
-        userId: "test-user",
+        rootJobId: createId(),
         operationType: "data_processing",
       },
       source: "test-source",
@@ -135,9 +134,8 @@ describe("JobProgressMonitor", () => {
           status: "processing",
           message: "Processing step 5",
           metadata: {
-            interfaceType: "test",
-            userId: "test-user",
-            operationType: "data_processing",
+            rootJobId: createId(),
+                operationType: "data_processing",
           },
           progress: {
             current: 5,
@@ -170,9 +168,8 @@ describe("JobProgressMonitor", () => {
           status: "processing",
           message: "Processing...",
           metadata: {
-            interfaceType: "test",
-            userId: "test-user",
-            operationType: "data_processing",
+            rootJobId: createId(),
+                operationType: "data_processing",
           },
         },
         "job-progress-monitor",
@@ -210,8 +207,7 @@ describe("JobProgressMonitor", () => {
       };
 
       const metadata: JobContext = {
-        interfaceType: "test",
-        userId: "test-user",
+        rootJobId: createId(),
         operationType: "batch_processing",
       };
 
@@ -255,8 +251,7 @@ describe("JobProgressMonitor", () => {
       };
 
       const metadata: JobContext = {
-        interfaceType: "test",
-        userId: "test-user",
+        rootJobId: createId(),
         operationType: "batch_processing",
       };
 
@@ -291,8 +286,7 @@ describe("JobProgressMonitor", () => {
       startedAt: null,
       scheduledFor: Date.now(),
       metadata: {
-        interfaceType: "test",
-        userId: "test-user",
+        rootJobId: createId(),
         operationType: "data_processing",
       },
       source: "test-source",
@@ -312,9 +306,8 @@ describe("JobProgressMonitor", () => {
           type: "job",
           status: "completed",
           metadata: {
-            interfaceType: "test",
-            userId: "test-user",
-            operationType: "data_processing",
+            rootJobId: createId(),
+                operationType: "data_processing",
           },
           jobDetails: {
             jobType: "test-job",
@@ -346,9 +339,8 @@ describe("JobProgressMonitor", () => {
           status: "failed",
           message: "Something went wrong",
           metadata: {
-            interfaceType: "test",
-            userId: "test-user",
-            operationType: "data_processing",
+            rootJobId: createId(),
+                operationType: "data_processing",
           },
           jobDetails: {
             jobType: "test-job",
@@ -393,9 +385,8 @@ describe("JobProgressMonitor", () => {
         scheduledFor: Date.now(),
         source: "test-source",
         metadata: {
-          interfaceType: "test",
-          userId: "test-user",
-          operationType: "data_processing" as const,
+          rootJobId: createId(),
+            operationType: "data_processing" as const,
         },
       };
       getStatusMock.mockResolvedValue(mockJob);

@@ -7,6 +7,7 @@ import type {
 } from "../interfaces";
 import type { Command } from "@brains/command-registry";
 import type { MessageWithPayload } from "@brains/messaging-service";
+import { createId } from "@brains/utils";
 import { z } from "zod";
 
 // Define the plugin configuration schema
@@ -420,8 +421,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
           const batchId = await this.enqueueBatch(operations, {
             source: "calculator-plugin",
             metadata: {
-              interfaceType: "cli",
-              userId: "plugin-test",
+              rootJobId: createId(),
               operationType: "batch_processing" as const,
             },
           });

@@ -7,6 +7,7 @@ import type {
 } from "@brains/entity-service";
 import type { JobHandler, BatchOperation } from "@brains/job-queue";
 import type { JobOptions } from "@brains/job-queue";
+import { createId } from "@brains/utils";
 import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
 import type {
   Conversation,
@@ -112,26 +113,28 @@ export function createServicePluginContext(
 
     // Job queue functionality
     enqueueJob: async (type, data, options) => {
+      const rootJobId = options?.metadata?.rootJobId || createId();
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
-          interfaceType: "service",
-          userId: "system",
+          rootJobId,
           operationType: "data_processing" as const,
           pluginId,
+          ...options?.metadata,
         },
         ...options,
       };
       return jobQueueService.enqueue(type, data, defaultOptions, pluginId);
     },
     enqueueBatch: async (operations, options) => {
+      const rootJobId = options?.metadata?.rootJobId || createId();
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
-          interfaceType: "service",
-          userId: "system",
+          rootJobId,
           operationType: "batch_processing" as const,
           pluginId,
+          ...options?.metadata,
         },
         ...options,
       };
