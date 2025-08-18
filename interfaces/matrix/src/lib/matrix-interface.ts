@@ -171,17 +171,32 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
 
   /**
    * Handle progress events - unified handler
+   * Job ownership filtering is handled by parent InterfacePlugin.ownsJob()
    */
   protected async handleProgressEvent(
     progressEvent: JobProgressEvent,
     context: JobContext,
   ): Promise<void> {
+    // Get tracking info (direct or inherited via rootJobId)
+    const trackingInfo = this.getJobTracking(
+      progressEvent.id,
+      context.rootJobId,
+    );
+
+    if (!trackingInfo) {
+      this.logger.debug("No tracking info found for Matrix progress event", {
+        jobId: progressEvent.id,
+        rootJobId: context.rootJobId,
+      });
+      return;
+    }
+
     await handleProgressEventHandler(
       progressEvent,
-      context,
       this.client,
-      this.jobMessages,
       this.logger,
+      trackingInfo.channelId, // Matrix room for message routing
+      trackingInfo.messageId, // Matrix message ID for editing
     );
   }
 

@@ -1,4 +1,4 @@
-import type { JobProgressEvent, JobContext, Logger } from "@brains/plugins";
+import type { JobProgressEvent, Logger } from "@brains/plugins";
 import { markdownToHtml } from "@brains/plugins";
 import type { MatrixClientWrapper } from "../client/matrix-client";
 
@@ -19,37 +19,28 @@ export function formatOperationDisplay(
 
 /**
  * Handle progress event for Matrix interface
+ * Note: Job ownership filtering is now handled by the parent MessageInterfacePlugin.ownsJob()
  */
 export async function handleProgressEvent(
   progressEvent: JobProgressEvent,
-  context: JobContext,
   client: MatrixClientWrapper | undefined,
-  jobMessages: Map<string, string>,
   logger: Logger,
+  roomId: string,    // Required - Matrix room for message routing
+  messageId: string, // Required - Matrix message ID for editing
 ): Promise<void> {
-  // Matrix only handles events from Matrix interface
-  if (context.interfaceType !== "matrix") {
-    return; // Event not from Matrix interface
-  }
-
-  // Use channelId from metadata instead of parsing target
-  const roomId = context.channelId;
-  if (!roomId) {
-    return; // No routing information
+  if (!client) {
+    logger.debug("Matrix client not available for progress event", {
+      jobId: progressEvent.id,
+    });
+    return;
   }
 
   // Handle job progress events
   if (progressEvent.type === "job") {
-    await handleJobProgress(progressEvent, roomId, client, jobMessages, logger);
+    await handleJobProgress(progressEvent, roomId, client, messageId, logger);
   } else {
     // Handle batch progress events
-    await handleBatchProgress(
-      progressEvent,
-      roomId,
-      client,
-      jobMessages,
-      logger,
-    );
+    await handleBatchProgress(progressEvent, roomId, client, messageId, logger);
   }
 }
 
@@ -59,11 +50,10 @@ export async function handleProgressEvent(
 export async function handleJobProgress(
   progressEvent: JobProgressEvent,
   roomId: string,
-  client: MatrixClientWrapper | undefined,
-  jobMessages: Map<string, string>,
+  client: MatrixClientWrapper,
+  messageId: string,
   logger: Logger,
 ): Promise<void> {
-  if (!client) return;
 
   // Create rich message with operation details
   let message: string;
@@ -104,42 +94,18 @@ export async function handleJobProgress(
     return;
   }
 
-  const existingMessageId = jobMessages.get(progressEvent.id);
-
-  logger.debug("Checking for existing job message", {
-    jobId: progressEvent.id,
-    existingMessageId,
-    allMappings: Array.from(jobMessages.entries()),
-  });
-
   try {
-    if (existingMessageId) {
-      // Edit the original command response message with progress
-      await client.editMessage(
-        roomId,
-        existingMessageId,
-        message,
-        markdownToHtml(message),
-      );
-      logger.debug("Edited existing message with job progress", {
-        jobId: progressEvent.id,
-        messageId: existingMessageId,
-      });
-    } else {
-      // Send new progress message if no existing message to edit
-      const messageId = await client.sendFormattedMessage(
-        roomId,
-        message,
-        markdownToHtml(message),
-        false,
-      );
-      // Store for future edits
-      jobMessages.set(progressEvent.id, messageId);
-      logger.debug("Sent new job progress message", {
-        jobId: progressEvent.id,
-        messageId,
-      });
-    }
+    // Edit the original command response message with progress
+    await client.editMessage(
+      roomId,
+      messageId,
+      message,
+      markdownToHtml(message),
+    );
+    logger.debug("Edited message with job progress", {
+      jobId: progressEvent.id,
+      messageId,
+    });
   } catch (error) {
     logger.error("Failed to send/edit job progress message", {
       error,
@@ -154,11 +120,10 @@ export async function handleJobProgress(
 export async function handleBatchProgress(
   progressEvent: JobProgressEvent,
   roomId: string,
-  client: MatrixClientWrapper | undefined,
-  jobMessages: Map<string, string>,
+  client: MatrixClientWrapper,
+  messageId: string,
   logger: Logger,
 ): Promise<void> {
-  if (!client) return;
 
   const { batchDetails } = progressEvent;
   if (!batchDetails) return;
@@ -194,33 +159,18 @@ export async function handleBatchProgress(
     return;
   }
 
-  const existingMessageId = jobMessages.get(progressEvent.id);
-
   try {
-    if (existingMessageId) {
-      await client.editMessage(
-        roomId,
-        existingMessageId,
-        message,
-        markdownToHtml(message),
-      );
-      logger.debug("Edited existing message with batch progress", {
-        batchId: progressEvent.id,
-        messageId: existingMessageId,
-      });
-    } else {
-      const messageId = await client.sendFormattedMessage(
-        roomId,
-        message,
-        markdownToHtml(message),
-        false,
-      );
-      jobMessages.set(progressEvent.id, messageId);
-      logger.debug("Sent new batch progress message", {
-        batchId: progressEvent.id,
-        messageId,
-      });
-    }
+    // Edit the original command response message with batch progress
+    await client.editMessage(
+      roomId,
+      messageId,
+      message,
+      markdownToHtml(message),
+    );
+    logger.debug("Edited message with batch progress", {
+      batchId: progressEvent.id,
+      messageId,
+    });
   } catch (error) {
     logger.error("Failed to send/edit batch progress message", {
       error,
