@@ -63,7 +63,7 @@ export function formatProgressMessage(progressEvent: JobProgressEvent): string {
  */
 export async function handleProgressEvent(
   progressEvent: JobProgressEvent,
-  context: JobContext,
+  _context: JobContext,
   progressEvents: Map<string, JobProgressEvent>,
   callbacks: {
     progressCallback: ((events: JobProgressEvent[]) => void) | undefined;
@@ -77,9 +77,10 @@ export async function handleProgressEvent(
   logger: Logger,
 ): Promise<Map<string, JobProgressEvent>> {
   try {
-    // CLI only handles events from CLI interface
-    if (context.interfaceType !== "cli") {
-      return progressEvents; // Event not from CLI interface
+    // CLI only handles events for jobs it initiated
+    // Use jobMessages map to identify CLI-owned jobs instead of metadata
+    if (!jobMessages.has(progressEvent.id)) {
+      return progressEvents; // Event not from this CLI interface instance
     }
 
     // Add/update all events (processing, completed, failed)
