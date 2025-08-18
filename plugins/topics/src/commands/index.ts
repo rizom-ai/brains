@@ -6,6 +6,7 @@ import type {
 import type { TopicsPluginConfig } from "../schemas/config";
 import { TopicService } from "../lib/topic-service";
 import { TopicAdapter } from "../lib/topic-adapter";
+import { TopicExtractor } from "../lib/topic-extractor";
 import type { Logger } from "@brains/utils";
 
 export function createTopicsCommands(
@@ -72,7 +73,7 @@ export function createTopicsCommands(
       name: "topics-extract",
       description: "Extract topics from a conversation",
       usage: "/topics-extract <conversation-id> [window-size] [min-relevance]",
-      handler: async (args, _context): Promise<CommandResponse> => {
+      handler: async (args, cmdContext): Promise<CommandResponse> => {
         try {
           if (args.length === 0) {
             return {
@@ -92,34 +93,69 @@ export function createTopicsCommands(
             ? parseFloat(args[2] as string)
             : (config.minRelevanceScore ?? 0.7);
 
-          // Queue extraction job for background processing
-          const jobId = await context.enqueueJob(
-            "topics:extraction",
-            {
-              conversationId,
-              windowSize,
-              minRelevanceScore: minRelevance,
-            },
-            {
-              priority: 5,
-              source: "topics",
-              metadata: {
-                interfaceId: "cli",
-                userId: "user",
-                operationType: "batch_processing",
-                pluginId: "topics",
-              },
-            },
+          // Extract topics directly
+          const topicExtractor = new TopicExtractor(context, logger);
+          const messages = await context.getMessages(conversationId, {
+            limit: windowSize,
+          });
+
+          if (messages.length === 0) {
+            return {
+              type: "message",
+              message: `No messages found in conversation ${conversationId}`,
+            };
+          }
+
+          const extractedTopics = await topicExtractor.extractFromMessages(
+            conversationId,
+            messages,
+            minRelevance,
           );
 
+          if (extractedTopics.length === 0) {
+            return {
+              type: "message",
+              message: `No topics found to extract from conversation ${conversationId}`,
+            };
+          }
+
+          // Create batch operations for processing each topic
+          const operations = extractedTopics.map((topic) => ({
+            type: "topics:process-single",
+            data: {
+              topic,
+              conversationId,
+              autoMerge: config.autoMerge,
+              mergeSimilarityThreshold: config.mergeSimilarityThreshold,
+            },
+            metadata: {
+              operationType: "topic_processing",
+              operationTarget: topic.title,
+            },
+          }));
+
+          // Queue batch with proper rootJobId for CLI tracking
+          const batchId = await context.enqueueBatch(operations, {
+            priority: 5,
+            source: "topics",
+            metadata: {
+              rootJobId: cmdContext.messageId, // Use messageId as rootJobId for progress tracking
+              operationType: "batch_processing",
+              operationTarget: `conversation ${conversationId}`,
+              pluginId: "topics",
+            },
+          });
+
           return {
-            type: "message",
-            message: `Topic extraction job queued (ID: ${jobId})\nConversation: ${conversationId}\nWindow size: ${windowSize} messages, min relevance: ${minRelevance}`,
+            type: "batch-operation",
+            batchId,
+            message: `Extracting ${extractedTopics.length} topics from conversation ${conversationId}`,
+            operationCount: extractedTopics.length,
           };
         } catch (error) {
           return {
             type: "message",
-            message: `Error: Failed to queue extraction - ${error instanceof Error ? error.message : String(error)}`,
+            message: `Error: Failed to extract topics - ${error instanceof Error ? error.message : String(error)}`,
           };
         }
       },

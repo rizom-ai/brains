@@ -101,7 +101,6 @@ export class ContentGenerationJobHandler
       });
 
       // Report initial progress
-      console.log(`🔥 HANDLER: Reporting progress 0/3 for job ${jobId}`);
       await progressReporter.report({
         progress: 0,
         total: 3,
@@ -119,7 +118,6 @@ export class ContentGenerationJobHandler
       );
 
       // Report progress after content generation
-      console.log(`🔥 HANDLER: Reporting progress 1/3 for job ${jobId}`);
       await progressReporter.report({
         progress: 1,
         total: 3,
@@ -170,7 +168,6 @@ export class ContentGenerationJobHandler
       }
 
       // Report completion
-      console.log(`🔥 HANDLER: Reporting progress 3/3 for job ${jobId}`);
       await progressReporter.report({
         progress: 3,
         total: 3,

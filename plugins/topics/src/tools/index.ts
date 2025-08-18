@@ -1,25 +1,25 @@
-import type {
-  ServicePluginContext,
-  Logger,
-  JobOptions,
-  PluginTool,
+import {
+  type ServicePluginContext,
+  type Logger,
+  type JobOptions,
+  type PluginTool,
+  createId,
 } from "@brains/plugins";
 import { z } from "zod";
 import { TopicService } from "../lib/topic-service";
 import { TopicAdapter } from "../lib/topic-adapter";
 import type { TopicsPluginConfig } from "../schemas/config";
 
-// Default job options for topic extraction
-const EXTRACTION_JOB_OPTIONS: JobOptions = {
+// Default job options for topic extraction (rootJobId will be generated)
+const getExtractionJobOptions = (): JobOptions => ({
   priority: 5,
   source: "topics",
   metadata: {
-    interfaceId: "cli", // Will be overridden based on context
-    userId: "user",
+    rootJobId: createId(), // Generate unique ID for each job
     operationType: "batch_processing",
     pluginId: "topics",
   },
-};
+});
 
 // Schema for tool parameters
 const extractParamsSchema = z.object({
@@ -75,7 +75,7 @@ export function createExtractTool(
           windowSize: windowSize,
           minRelevanceScore: minScore,
         },
-        EXTRACTION_JOB_OPTIONS,
+        getExtractionJobOptions(),
       );
 
       return {

@@ -25,7 +25,7 @@ export async function handleProgressEvent(
   progressEvent: JobProgressEvent,
   client: MatrixClientWrapper | undefined,
   logger: Logger,
-  roomId: string,    // Required - Matrix room for message routing
+  roomId: string, // Required - Matrix room for message routing
   messageId: string, // Required - Matrix message ID for editing
 ): Promise<void> {
   if (!client) {
@@ -54,7 +54,6 @@ export async function handleJobProgress(
   messageId: string,
   logger: Logger,
 ): Promise<void> {
-
   // Create rich message with operation details
   let message: string;
   const operationDisplay = formatOperationDisplay(progressEvent);
@@ -124,7 +123,6 @@ export async function handleBatchProgress(
   messageId: string,
   logger: Logger,
 ): Promise<void> {
-
   const { batchDetails } = progressEvent;
   if (!batchDetails) return;
 

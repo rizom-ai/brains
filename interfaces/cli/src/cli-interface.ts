@@ -100,17 +100,10 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     progressEvent: JobProgressEvent,
     context: JobContext,
   ): Promise<void> {
-    console.log(
-      `🔥 CLI: Received progress event for job ${progressEvent.id}, progress: ${progressEvent.progress?.current}/${progressEvent.progress?.total}, status: ${progressEvent.status}`,
-    );
-
     // Use inherited logic to check job ownership
     if (!this.ownsJob(progressEvent.id, context.rootJobId)) {
-      console.log(`🔥 CLI: Job ${progressEvent.id} not owned by CLI, ignoring`);
       return; // Not our job, ignore
     }
-
-    console.log(`🔥 CLI: Processing owned job ${progressEvent.id}`);
 
     // Get tracking info (direct or inherited)
     const trackingInfo = this.getJobTracking(

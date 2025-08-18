@@ -5,6 +5,7 @@ import {
   type PluginResource,
   type Command,
   type ConversationDigestPayload,
+  createId,
 } from "@brains/plugins";
 import { conversationDigestPayloadSchema } from "@brains/conversation-service";
 import {
@@ -14,6 +15,7 @@ import {
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
 import { TopicExtractionHandler } from "./handlers/topic-extraction-handler";
+import { TopicProcessingHandler } from "./handlers/topic-processing-handler";
 import { topicExtractionTemplate } from "./templates/extraction-template";
 import packageJson from "../package.json";
 import {
@@ -56,13 +58,16 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       extraction: topicExtractionTemplate,
     });
 
-    // Register job handler for extraction
+    // Register job handlers
     const extractionHandler = new TopicExtractionHandler(
       context,
       this.config,
       this.logger,
     );
     context.registerJobHandler("topics:extraction", extractionHandler);
+
+    const processingHandler = new TopicProcessingHandler(context, this.logger);
+    context.registerJobHandler("topics:process-single", processingHandler);
 
     // Store tools for MCP
     this.tools = [
@@ -127,18 +132,21 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         windowEnd: payload.windowEnd,
       };
 
-      await context.enqueueJob("topics:extraction", jobData, {
+      // Generate unique ID for system-initiated jobs
+      const rootJobId = createId();
+
+      const jobId = await context.enqueueJob("topics:extraction", jobData, {
         priority: 1, // Lower priority than manual extractions
         source: "topics-plugin",
         metadata: {
-          interfaceId: "digest",
-          userId: "system",
+          rootJobId, // Use generated ID for system jobs
           operationType: "data_processing" as const,
           pluginId: "topics",
         },
       });
 
       this.logger.debug("Queued automatic topic extraction job", {
+        jobId,
         conversationId: payload.conversationId,
         messagesProcessed: payload.messages.length,
       });

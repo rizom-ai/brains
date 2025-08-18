@@ -328,20 +328,32 @@ export abstract class MessageInterfacePlugin<
         messageId,
         userId: context.userId,
         channelId: context.channelId,
-        rootJobId: jobId, // For root jobs, self-reference
+        rootJobId: context.messageId, // Use command message ID as rootJobId
       };
+      // Track both the job itself AND the command message for inheritance
       this.setJobTracking(jobId, trackingInfo);
-      this.logger.info("Stored job tracking info", { jobId, messageId });
+      this.setJobTracking(context.messageId, trackingInfo); // Also track by messageId for rootJobId inheritance
+      this.logger.info("Stored job tracking info", {
+        jobId,
+        messageId,
+        rootJobId: context.messageId,
+      });
     }
     if (batchId) {
       const trackingInfo = {
         messageId,
         userId: context.userId,
         channelId: context.channelId,
-        rootJobId: batchId, // For root batches, self-reference
+        rootJobId: context.messageId, // Use command message ID as rootJobId
       };
+      // Track both the batch itself AND the command message for inheritance
       this.setJobTracking(batchId, trackingInfo);
-      this.logger.info("Stored batch tracking info", { batchId, messageId });
+      this.setJobTracking(context.messageId, trackingInfo); // Also track by messageId for rootJobId inheritance
+      this.logger.info("Stored batch tracking info", {
+        batchId,
+        messageId,
+        rootJobId: context.messageId,
+      });
     }
 
     // 5. Store assistant response in conversation memory

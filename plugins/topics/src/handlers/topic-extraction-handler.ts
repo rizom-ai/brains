@@ -36,7 +36,6 @@ export class TopicExtractionHandler
   implements JobHandler<string, ExtractionJobData, ExtractionJobResult>
 {
   private topicExtractor: TopicExtractor;
-  private topicService: TopicService;
 
   constructor(
     private readonly context: ServicePluginContext,
@@ -44,8 +43,6 @@ export class TopicExtractionHandler
     private readonly logger: Logger,
   ) {
     this.topicExtractor = new TopicExtractor(context, logger);
-
-    this.topicService = new TopicService(context.entityService, logger);
   }
 
   async process(
@@ -113,76 +110,76 @@ export class TopicExtractionHandler
             );
 
       this.logger.info(`Extracted ${extractedTopics.length} topics`);
+
+      if (extractedTopics.length === 0) {
+        await progressReporter.report({
+          progress: 100,
+          message: "No topics found to extract",
+        });
+        return {
+          success: true,
+          extractedCount: 0,
+          mergedCount: 0,
+          message: "No topics found to extract",
+        };
+      }
+
       await progressReporter.report({
         progress: 30,
         message: `Processing ${extractedTopics.length} topics`,
       });
 
-      // Process each extracted topic
+      // Process each topic individually (used by system digest events)
       let processed = 0;
       let mergedCount = 0;
-      for (const extractedTopic of extractedTopics) {
+
+      for (const topic of extractedTopics) {
         processed++;
-        const progress = 30 + (processed / extractedTopics.length) * 60;
         await progressReporter.report({
-          progress,
+          progress: 30 + (processed / extractedTopics.length) * 60,
           message: `Processing topic ${processed}/${extractedTopics.length}`,
         });
-        // Check if a similar topic already exists
-        const searchResults = await this.topicService.searchTopics(
-          extractedTopic.title,
+
+        // Process the topic directly
+        const topicService = new TopicService(
+          this.context.entityService,
+          this.logger,
         );
+        const searchResults = await topicService.searchTopics(topic.title);
 
-        let shouldCreateNew = true;
-
-        if (this.config.autoMerge && searchResults.length > 0) {
-          // Use the top search result (highest similarity score)
-          const topResult = searchResults[0];
-          if (
-            topResult &&
-            topResult.score >= (this.config.mergeSimilarityThreshold ?? 0.8)
-          ) {
-            // Update existing topic instead of creating new
-            await this.topicService.updateTopic(topResult.entity.id, {
-              sources: extractedTopic.sources,
-              keywords: extractedTopic.keywords,
-            });
-
-            this.logger.info("Updated existing topic", {
-              topicId: topResult.entity.id,
-              similarityScore: topResult.score,
-            });
-            shouldCreateNew = false;
-            mergedCount++;
-          }
-        }
-
-        if (shouldCreateNew) {
-          // Create new topic
-          await this.topicService.createTopic({
-            title: extractedTopic.title,
-            summary: extractedTopic.summary,
-            content: extractedTopic.content,
-            sources: extractedTopic.sources,
-            keywords: extractedTopic.keywords,
+        if (
+          this.config.autoMerge &&
+          searchResults.length > 0 &&
+          searchResults[0] &&
+          searchResults[0].score >=
+            (this.config.mergeSimilarityThreshold ?? 0.8)
+        ) {
+          await topicService.updateTopic(searchResults[0].entity.id, {
+            sources: topic.sources,
+            keywords: topic.keywords,
           });
-
-          this.logger.info("Created new topic", {
-            title: extractedTopic.title,
+          mergedCount++;
+        } else {
+          await topicService.createTopic({
+            title: topic.title,
+            summary: topic.summary,
+            content: topic.content,
+            sources: topic.sources,
+            keywords: topic.keywords,
           });
         }
       }
 
       await progressReporter.report({
         progress: 100,
-        message: "Topic extraction complete",
+        message: `Completed: ${extractedTopics.length - mergedCount} created, ${mergedCount} merged`,
       });
 
       return {
         success: true,
         extractedCount: extractedTopics.length,
-        mergedCount: mergedCount,
-        message: `Successfully extracted ${extractedTopics.length} topics`,
+        mergedCount: 0, // Will be determined by batch processing
+        message: `Successfully queued ${extractedTopics.length} topics for processing`,
       };
     } catch (error) {
       this.logger.error("Topic extraction failed", {

@@ -15,7 +15,7 @@ Innovations for a Sustainable Future
 
 ## Description
 
-Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We build innovative solutions to tackle complex challenges and create a more sustainable future.
+Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We help organizations navigate the complexities of the modern world and create innovative solutions that drive positive change.
 
 ## Products
 
@@ -23,19 +23,19 @@ Rizom is a dynamic collective of experts in digital transformation, organization
 
 #### ID
 
-ecosystem-design
+ecosystem-architecture
 
 #### Name
 
-Ecosystem Design
+Ecosystem Architecture
 
 #### Tagline
 
-Architecting collaborative networks
+Design resilient, adaptable systems
 
 #### Description
 
-Our ecosystem design services help organizations build resilient, interconnected systems that drive innovation and collective impact.
+Our ecosystem architecture practice helps organizations build interconnected, self-sustaining systems that can adapt to changing conditions.
 
 #### Status
 
@@ -59,11 +59,11 @@ Organizational Transformation
 
 #### Tagline
 
-Unleashing human potential
+Empower people, unlock potential
 
 #### Description
 
-We guide organizations through holistic transformation, empowering teams and leaders to adapt, innovate, and thrive in a rapidly changing world.
+We guide organizations through holistic transformations, aligning culture, processes, and technology to unlock new ways of working and thriving.
 
 #### Status
 
@@ -79,23 +79,23 @@ Cpu
 
 #### ID
 
-digital-strategy
+regenerative-design
 
 #### Name
 
-Digital Strategy
+Regenerative Design
 
 #### Tagline
 
-Accelerating digital maturity
+Create a positive human impact
 
 #### Description
 
-Our digital strategy expertise helps organizations leverage technology to drive operational excellence, enhance customer experiences, and unlock new opportunities.
+Our regenerative design approach helps organizations rethink their impact and create solutions that restore and renew the natural and social environments.
 
 #### Status
 
-live
+beta
 
 #### Link
 
@@ -115,11 +115,11 @@ Circular Economy
 
 #### Tagline
 
-Rethinking waste as a resource
+Eliminate waste, maximize value
 
 #### Description
 
-We support the transition to a circular economy, helping organizations design closed-loop systems that eliminate waste and maximize the use of resources.
+We enable organizations to transition to a circular economy model, where resources are kept in use for as long as possible, extracting the maximum value from them.
 
 #### Status
 
@@ -129,4 +129,4 @@ beta
 
 #### Icon
 
-Wrench
+Zap

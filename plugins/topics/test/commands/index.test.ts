@@ -31,6 +31,9 @@ describe("Topics Commands", () => {
 
     // Mock command context
     mockCommandContext = {
+      messageId: "test-message-id",
+      userId: "test-user",
+      channelId: "test-channel",
       sendMessage: mock(async () => {}),
       sendError: mock(async () => {}),
       sendProgress: mock(async () => {}),
@@ -120,6 +123,41 @@ describe("Topics Commands", () => {
   });
 
   describe("topics-extract command", () => {
+    beforeEach(() => {
+      // Mock getMessages to return test messages
+      context.getMessages = mock(async () => [
+        {
+          id: "msg-1",
+          conversationId: "test-conversation-id",
+          userId: "user-1",
+          role: "user",
+          content: "Tell me about AI",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "msg-2",
+          conversationId: "test-conversation-id",
+          userId: "assistant",
+          role: "assistant",
+          content: "AI is a fascinating field...",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+
+      // Mock generateContent to return extracted topics
+      context.generateContent = mock(async () => ({
+        topics: [
+          {
+            title: "Artificial Intelligence",
+            summary: "Discussion about AI",
+            content: "Detailed content about AI",
+            keywords: ["AI", "technology"],
+            relevanceScore: 0.8,
+          },
+        ],
+      }));
+    });
+
     it("should have correct metadata", () => {
       const extractCommand = commands.find(
         (cmd) => cmd.name === "topics-extract",
@@ -144,11 +182,13 @@ describe("Topics Commands", () => {
         mockCommandContext,
       );
 
-      expect(result.type).toBe("message");
-      expect(result.message).toContain("Topic extraction job queued");
-      expect(result.message).toContain("Conversation: test-conversation-id");
-      expect(result.message).toContain("Window size: 30");
-      expect(result.message).toContain("min relevance: 0.7");
+      expect(result.type).toBe("batch-operation");
+      expect(result.message).toContain("Extracting");
+      expect(result.message).toContain(
+        "topics from conversation test-conversation-id",
+      );
+      expect(result.batchId).toBeDefined();
+      expect(result.operationCount).toBeGreaterThanOrEqual(0);
     });
 
     it("should accept custom window size", async () => {
@@ -161,8 +201,9 @@ describe("Topics Commands", () => {
         mockCommandContext,
       );
 
-      expect(result.type).toBe("message");
-      expect(result.message).toContain("Window size: 50");
+      expect(result.type).toBe("batch-operation");
+      expect(result.message).toContain("Extracting");
+      expect(result.batchId).toBeDefined();
     });
 
     it("should accept custom min score", async () => {
@@ -175,8 +216,9 @@ describe("Topics Commands", () => {
         mockCommandContext,
       );
 
-      expect(result.type).toBe("message");
-      expect(result.message).toContain("min relevance: 0.5");
+      expect(result.type).toBe("batch-operation");
+      expect(result.message).toContain("Extracting");
+      expect(result.batchId).toBeDefined();
     });
 
     it("should handle invalid arguments gracefully", async () => {
@@ -190,8 +232,9 @@ describe("Topics Commands", () => {
         mockCommandContext,
       );
 
-      expect(result.type).toBe("message");
-      expect(result.message).toContain("Window size: NaN"); // NaN from parseInt("invalid")
+      expect(result.type).toBe("batch-operation");
+      expect(result.message).toContain("Extracting");
+      expect(result.batchId).toBeDefined();
     });
 
     it("should require conversation ID", async () => {
