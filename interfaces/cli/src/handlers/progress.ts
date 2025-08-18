@@ -78,7 +78,7 @@ export async function handleProgressEvent(
 ): Promise<Map<string, JobProgressEvent>> {
   try {
     // CLI only handles events from CLI interface
-    if (context.interfaceId !== "cli") {
+    if (context.interfaceType !== "cli") {
       return progressEvents; // Event not from CLI interface
     }
 

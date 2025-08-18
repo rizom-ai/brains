@@ -52,7 +52,7 @@ describe("JobQueueWorker", () => {
     startedAt: Date.now(),
     completedAt: null,
     metadata: {
-      interfaceId: "test",
+      interfaceType: "test",
       userId: "test-user",
       operationType: "data_processing",
     },

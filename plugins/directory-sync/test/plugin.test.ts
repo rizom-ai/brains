@@ -134,7 +134,10 @@ describe("DirectorySyncPlugin", () => {
       );
       expect(ensureTool).toBeDefined();
 
-      const result = await ensureTool!.handler({}, {});
+      const result = await ensureTool!.handler({}, {
+        interfaceType: "test",
+        userId: "test-user"
+      });
       expect(result).toEqual({ message: "Directory structure created" });
       expect(existsSync(syncPath)).toBe(true);
     });
@@ -144,7 +147,10 @@ describe("DirectorySyncPlugin", () => {
       const ensureTool = capabilities.tools?.find(
         (t) => t.name === "directory-sync:ensure-structure",
       );
-      await ensureTool!.handler({}, {});
+      await ensureTool!.handler({}, {
+        interfaceType: "test",
+        userId: "test-user"
+      });
 
       // Get status
       const statusTool = capabilities.tools?.find(
@@ -152,7 +158,10 @@ describe("DirectorySyncPlugin", () => {
       );
       expect(statusTool).toBeDefined();
 
-      const status = (await statusTool!.handler({}, {})) as any;
+      const status = (await statusTool!.handler({}, {
+        interfaceType: "test",
+        userId: "test-user"
+      })) as any;
       expect(status.syncPath).toBe(syncPath);
       expect(status.exists).toBe(true);
       expect(status.watching).toBe(false);
@@ -163,7 +172,10 @@ describe("DirectorySyncPlugin", () => {
       const ensureTool = capabilities.tools?.find(
         (t) => t.name === "directory-sync:ensure-structure",
       );
-      await ensureTool!.handler({}, {});
+      await ensureTool!.handler({}, {
+        interfaceType: "test",
+        userId: "test-user"
+      });
 
       // Create some test entities
       const shell = harness.getShell();
@@ -185,7 +197,10 @@ describe("DirectorySyncPlugin", () => {
 
       const exportResult = (await exportTool!.handler(
         { entityTypes: ["base"] },
-        {},
+        {
+          interfaceType: "test",
+          userId: "test-user"
+        },
       )) as any;
       expect(exportResult.status).toBe("queued");
       expect(exportResult.batchId).toBeDefined();
@@ -200,7 +215,10 @@ describe("DirectorySyncPlugin", () => {
       const ensureTool = capabilities.tools?.find(
         (t) => t.name === "directory-sync:ensure-structure",
       );
-      await ensureTool!.handler({}, {});
+      await ensureTool!.handler({}, {
+        interfaceType: "test",
+        userId: "test-user"
+      });
 
       // Sync using the tool
       const syncTool = capabilities.tools?.find(
@@ -208,7 +226,10 @@ describe("DirectorySyncPlugin", () => {
       );
       expect(syncTool).toBeDefined();
 
-      const syncResult = (await syncTool!.handler({}, {})) as any;
+      const syncResult = (await syncTool!.handler({}, {
+        interfaceType: "test",
+        userId: "test-user"
+      })) as any;
 
       // Should either complete immediately if no operations needed
       // or queue a batch job
@@ -227,11 +248,17 @@ describe("DirectorySyncPlugin", () => {
       expect(watchTool).toBeDefined();
 
       // Start watching
-      let result = (await watchTool!.handler({ action: "start" }, {})) as any;
+      let result = (await watchTool!.handler({ action: "start" }, {
+        interfaceType: "test",
+        userId: "test-user"
+      })) as any;
       expect(result.watching).toBe(true);
 
       // Stop watching
-      result = (await watchTool!.handler({ action: "stop" }, {})) as any;
+      result = (await watchTool!.handler({ action: "stop" }, {
+        interfaceType: "test",
+        userId: "test-user"
+      })) as any;
       expect(result.watching).toBe(false);
     });
   });

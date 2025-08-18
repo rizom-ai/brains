@@ -218,9 +218,9 @@ export interface ToolContext {
   progressToken?: string | number;
   sendProgress?: (notification: ProgressNotification) => Promise<void>;
 
-  // Routing metadata for job creation
-  interfaceId?: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
-  userId?: string; // User who invoked the tool
+  // Routing metadata for job creation (required for proper context propagation)
+  interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
+  userId: string; // User who invoked the tool
   channelId?: string; // Channel/room context (for Matrix, etc.)
 }
 
@@ -229,10 +229,22 @@ export interface ToolContext {
  * Used to validate routing information in tool execution requests
  */
 export const ToolContextRoutingSchema = z.object({
-  interfaceId: z.string().optional(),
-  userId: z.string().optional(),
+  interfaceType: z.string(),
+  userId: z.string(),
   channelId: z.string().optional(),
 });
+
+/**
+ * Base tool response schema
+ * TODO: This can be extended with discriminated unions for different response types
+ */
+export const toolResponseSchema = z.object({
+  status: z.string().optional(),
+  message: z.string().optional(),
+  success: z.boolean().optional(),
+}).passthrough(); // Allow additional fields
+
+export type ToolResponse = z.infer<typeof toolResponseSchema>;
 
 /**
  * Plugin tool definition
@@ -241,7 +253,7 @@ export interface PluginTool {
   name: string;
   description: string;
   inputSchema: ZodRawShape; // Same type as MCP expects
-  handler: (input: unknown, context?: ToolContext) => Promise<unknown>;
+  handler: (input: unknown, context: ToolContext) => Promise<ToolResponse>;
   visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
 }
 

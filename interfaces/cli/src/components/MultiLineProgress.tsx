@@ -2,11 +2,6 @@
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import type { JobProgressEvent } from "@brains/job-queue";
-import {
-  progressReducer,
-  createInitialProgressState,
-  groupProgressEvents,
-} from "@brains/job-queue";
 import { ProgressBar } from "./ProgressBar";
 
 interface MultiLineProgressProps {
@@ -18,29 +13,21 @@ export function MultiLineProgress({
   progressEvents,
   maxLines = 5,
 }: MultiLineProgressProps): React.ReactElement {
-  // Use the shared progress reducer to process events
-  const { processedEvents } = useMemo(() => {
-    const state = createInitialProgressState();
-
-    // Process all events through the reducer
-    const finalState = progressEvents.reduce((currentState, event) => {
-      return progressReducer(currentState, {
-        type: "UPDATE_PROGRESS",
-        event,
-      });
-    }, state);
-
-    return {
-      processedEvents: Array.from(finalState.events.values()),
-    };
-  }, [progressEvents]);
-
-  // Group events using shared utility
+  // Simplified event processing - just group by type and keep latest
   const { batchEvents, jobEvents } = useMemo(() => {
-    const eventsMap = new Map();
-    processedEvents.forEach((event) => eventsMap.set(event.id, event));
-    return groupProgressEvents(eventsMap);
-  }, [processedEvents]);
+    const eventMap = new Map<string, JobProgressEvent>();
+    
+    // Keep only the latest event for each ID
+    progressEvents.forEach((event) => {
+      eventMap.set(event.id, event);
+    });
+
+    const events = Array.from(eventMap.values());
+    const batchEvents = events.filter(e => e.type === "batch");
+    const jobEvents = events.filter(e => e.type === "job");
+
+    return { batchEvents, jobEvents };
+  }, [progressEvents]);
 
   // Determine what to show based on available space
   const totalEvents = batchEvents.length + jobEvents.length;
@@ -74,10 +61,6 @@ export function MultiLineProgress({
     <Box flexDirection="column">
       {itemsToShow.map((event) => {
         if (event.type === "batch") {
-          // Use pre-calculated ETA/rate from progress reducer
-          const eta = event.progress?.etaFormatted ?? "calculating...";
-          const rate = event.progress?.rateFormatted ?? "...";
-
           return (
             <Box
               key={`batch-${event.id}`}
@@ -98,29 +81,29 @@ export function MultiLineProgress({
                     {event.batchDetails?.completedOperations}/
                     {event.batchDetails?.totalOperations} ops
                   </Text>
-                  <Text color="gray"> • </Text>
-                  <Text color="yellow">{rate}</Text>
-                  <Text color="gray"> • </Text>
-                  <Text color="green">ETA {eta}</Text>
+                  {event.progress && (
+                    <>
+                      <Text color="gray"> • </Text>
+                      <Text color="green">{event.progress.percentage}%</Text>
+                    </>
+                  )}
                 </Box>
               </Box>
-              <Box marginLeft={2}>
-                <ProgressBar
-                  current={event.batchDetails?.completedOperations ?? 0}
-                  total={event.batchDetails?.totalOperations ?? 0}
-                  width={40}
-                  color="cyan"
-                  showPercentage={true}
-                  showCounts={false}
-                />
-              </Box>
+              {event.batchDetails && event.batchDetails.totalOperations > 0 && (
+                <Box marginLeft={2}>
+                  <ProgressBar
+                    current={event.batchDetails.completedOperations}
+                    total={event.batchDetails.totalOperations}
+                    width={40}
+                    color="cyan"
+                    showPercentage={true}
+                    showCounts={false}
+                  />
+                </Box>
+              )}
             </Box>
           );
         } else {
-          // Individual job progress with reducer-calculated ETA/rate
-          const eta = event.progress?.etaFormatted ?? "...";
-          const rate = event.progress?.rateFormatted ?? "...";
-
           return (
             <Box
               key={`job-${event.id}`}
@@ -137,21 +120,27 @@ export function MultiLineProgress({
                   </Text>
                 </Box>
                 <Box>
-                  <Text color="yellow">{rate}</Text>
-                  <Text color="gray"> • </Text>
-                  <Text color="green">ETA {eta}</Text>
+                  {event.progress && (
+                    <>
+                      <Text color="gray">{event.progress.current}/{event.progress.total}</Text>
+                      <Text color="gray"> • </Text>
+                      <Text color="green">{event.progress.percentage}%</Text>
+                    </>
+                  )}
                 </Box>
               </Box>
-              <Box marginLeft={2}>
-                <ProgressBar
-                  current={event.progress?.current ?? 0}
-                  total={event.progress?.total ?? 0}
-                  width={40}
-                  color="blue"
-                  showPercentage={true}
-                  showCounts={false}
-                />
-              </Box>
+              {event.progress && event.progress.total > 0 && (
+                <Box marginLeft={2}>
+                  <ProgressBar
+                    current={event.progress.current}
+                    total={event.progress.total}
+                    width={40}
+                    color="blue"
+                    showPercentage={true}
+                    showCounts={false}
+                  />
+                </Box>
+              )}
             </Box>
           );
         }

@@ -420,7 +420,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
           const batchId = await this.enqueueBatch(operations, {
             source: "calculator-plugin",
             metadata: {
-              interfaceId: "cli",
+              interfaceType: "cli",
               userId: "plugin-test",
               operationType: "batch_processing" as const,
             },

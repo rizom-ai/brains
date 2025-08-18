@@ -115,7 +115,7 @@ export function createServicePluginContext(
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
-          interfaceId: "service",
+          interfaceType: "service",
           userId: "system",
           operationType: "data_processing" as const,
           pluginId,
@@ -128,7 +128,7 @@ export function createServicePluginContext(
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
-          interfaceId: "service",
+          interfaceType: "service",
           userId: "system",
           operationType: "batch_processing" as const,
           pluginId,

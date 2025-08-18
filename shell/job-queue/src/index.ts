@@ -34,21 +34,4 @@ export {
 // Export job queue schema and types
 export * from "./schema/job-queue";
 
-// Progress utilities (public API for interfaces)
-export { type ProgressCalculation } from "./utils/progress-calculations";
-export {
-  progressReducer,
-  createInitialProgressState,
-  groupProgressEvents,
-  ProgressThrottleManager,
-  DEFAULT_THROTTLE_CONFIG,
-  type ProgressState,
-  type ProgressAction,
-  type ProgressEventGroups,
-  type ThrottleConfig,
-} from "./utils/progress-state-manager";
-export {
-  formatProgressMessage,
-  formatBatchProgressMessage,
-  type ProgressMessageData,
-} from "./utils/progress-formatting";
+// Removed complex progress utilities for simplicity

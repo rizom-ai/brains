@@ -11,7 +11,7 @@ import type { JobQueueDbConfig } from "../src/db";
 
 // Default test metadata
 const defaultTestMetadata: JobContext = {
-  interfaceId: "test",
+  interfaceType: "test",
   userId: "test-user",
   operationType: "data_processing",
 };

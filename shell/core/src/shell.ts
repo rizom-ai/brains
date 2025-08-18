@@ -358,7 +358,6 @@ export class Shell implements IShell {
       dependencies?.jobProgressMonitor ??
       JobProgressMonitor.getInstance(
         this.jobQueueService,
-        this.batchJobManager,
         this.messageBus,
         this.logger,
       );

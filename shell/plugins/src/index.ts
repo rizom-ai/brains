@@ -50,6 +50,7 @@ export type {
   Daemon,
   ToolVisibility,
   ToolContext,
+  ToolResponse,
   PluginTool,
   PluginResource,
   PluginCapabilities,
@@ -69,6 +70,7 @@ export {
   pluginMetadataSchema,
   DaemonHealthSchema,
   ToolContextRoutingSchema,
+  toolResponseSchema,
 } from "./interfaces";
 
 // Config utilities

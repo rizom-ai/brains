@@ -5,6 +5,7 @@ import type {
   PluginTool,
   PluginResource,
   ToolContext,
+  ToolResponse,
 } from "./interfaces";
 import type { Command } from "@brains/command-registry";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
@@ -108,7 +109,7 @@ export abstract class BasePlugin<
           args,
           progressToken,
           hasProgress,
-          interfaceId,
+          interfaceType,
           userId,
           channelId,
         } = toolExecuteRequestSchema.parse(message.payload);
@@ -123,10 +124,12 @@ export abstract class BasePlugin<
           };
         }
 
-        // Create context with progress callback and routing metadata
-        let toolContext: ToolContext | undefined;
-        if (hasProgress && progressToken !== undefined) {
-          toolContext = {
+        // Create context with routing metadata and optional progress callback
+        const toolContext: ToolContext = {
+          interfaceType,
+          userId,
+          ...(channelId && { channelId }),
+          ...(hasProgress && progressToken !== undefined && {
             progressToken,
             sendProgress: async (
               notification: ProgressNotification,
@@ -137,18 +140,8 @@ export abstract class BasePlugin<
                 notification,
               });
             },
-          };
-          // Add routing metadata only if present
-          if (interfaceId) toolContext.interfaceId = interfaceId;
-          if (userId) toolContext.userId = userId;
-          if (channelId) toolContext.channelId = channelId;
-        } else if (interfaceId || userId || channelId) {
-          // Even without progress, include routing metadata if provided
-          toolContext = {};
-          if (interfaceId) toolContext.interfaceId = interfaceId;
-          if (userId) toolContext.userId = userId;
-          if (channelId) toolContext.channelId = channelId;
-        }
+          }),
+        };
 
         // Execute the tool with optional context
         const result = await tool.handler(args, toolContext);
@@ -317,7 +310,7 @@ export abstract class BasePlugin<
       name: `${this.id}:${name}`,
       description,
       inputSchema,
-      handler: async (input, context): Promise<unknown> => {
+      handler: async (input, context): Promise<ToolResponse> => {
         this.debug(`Executing tool ${name}`, { input });
         try {
           const result = await handler(input, context);

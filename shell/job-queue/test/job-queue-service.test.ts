@@ -20,7 +20,7 @@ interface EntityWithoutEmbedding {
 
 // Default test metadata
 const defaultTestMetadata: JobContext = {
-  interfaceId: "test",
+  interfaceType: "test",
   userId: "test-user",
   operationType: "data_processing",
 };
@@ -198,7 +198,7 @@ describe("JobQueueService", () => {
       const source = "matrix:room123";
       const metadata: JobContext = {
         userId: "user-123",
-        interfaceId: "matrix",
+        interfaceType: "matrix",
         channelId: "room123",
         operationType: "data_processing",
       };

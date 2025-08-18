@@ -28,7 +28,7 @@ export async function handleProgressEvent(
   logger: Logger,
 ): Promise<void> {
   // Matrix only handles events from Matrix interface
-  if (context.interfaceId !== "matrix") {
+  if (context.interfaceType !== "matrix") {
     return; // Event not from Matrix interface
   }
 
@@ -88,21 +88,12 @@ export async function handleJobProgress(
     }
   } else if (progressEvent.status === "processing" && progressEvent.progress) {
     // Show processing status with details for long-running jobs
-    const { current, total, percentage, etaFormatted, rateFormatted } =
-      progressEvent.progress;
+    const { current, total, percentage } = progressEvent.progress;
 
     message = `🔄 **${operationDisplay}** in progress`;
 
     if (total && total > 1) {
       message += `\n📊 Progress: ${current}/${total} (${percentage}%)`;
-
-      if (etaFormatted) {
-        message += `\n⏱️ ETA: ${etaFormatted}`;
-      }
-
-      if (rateFormatted) {
-        message += `\n⚡ Rate: ${rateFormatted}`;
-      }
     }
 
     if (progressEvent.metadata.operationTarget) {
@@ -191,13 +182,9 @@ export async function handleBatchProgress(
       });
     }
   } else if (progressEvent.status === "processing" && progressEvent.progress) {
-    const { percentage, etaFormatted } = progressEvent.progress;
+    const { percentage } = progressEvent.progress;
     message = `🔄 **Batch ${operationDisplay}** in progress\n`;
     message += `📊 Progress: ${batchDetails.completedOperations}/${batchDetails.totalOperations} (${percentage}%)`;
-
-    if (etaFormatted) {
-      message += `\n⏱️ ETA: ${etaFormatted}`;
-    }
 
     if (batchDetails.currentOperation) {
       message += `\n📂 Current: ${batchDetails.currentOperation}`;

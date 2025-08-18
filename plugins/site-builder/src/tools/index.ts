@@ -1,6 +1,7 @@
 import type {
   PluginTool,
   ToolContext,
+  ToolResponse,
   ServicePluginContext,
   JobContext,
 } from "@brains/plugins";
@@ -49,8 +50,8 @@ export function createSiteBuilderTools(
       visibility: "anchor",
       handler: async (
         input: unknown,
-        context?: ToolContext,
-      ): Promise<unknown> => {
+        context: ToolContext,
+      ): Promise<ToolResponse> => {
         const siteContentService = getSiteContentService();
         if (!siteContentService) {
           throw new Error("Site content service not initialized");
@@ -69,10 +70,10 @@ export function createSiteBuilderTools(
 
         // Create job metadata
         const metadata: JobContext = {
-          interfaceId: context?.interfaceId ?? "mcp",
-          userId: context?.userId ?? "mcp-user",
-          channelId: context?.channelId,
-          progressToken: context?.progressToken,
+          interfaceType: context.interfaceType,
+          userId: context.userId,
+          channelId: context.channelId,
+          progressToken: context.progressToken,
           pluginId,
           operationType: "content_operations",
         };
@@ -116,8 +117,8 @@ export function createSiteBuilderTools(
       visibility: "anchor",
       handler: async (
         input: unknown,
-        context?: ToolContext,
-      ): Promise<unknown> => {
+        context: ToolContext,
+      ): Promise<ToolResponse> => {
         const buildSchema = z.object({
           environment: z.enum(["preview", "production"]).default("preview"),
           clean: z.boolean().default(true),
@@ -149,7 +150,7 @@ export function createSiteBuilderTools(
           {
             source: `plugin:${pluginId}`,
             metadata: {
-              interfaceId: context?.interfaceId ?? "plugin",
+              interfaceType: context.interfaceType,
               userId: context?.userId ?? "system",
               channelId: context?.channelId,
               progressToken: context?.progressToken,
@@ -173,7 +174,7 @@ export function createSiteBuilderTools(
       description: "List all registered routes",
       inputSchema: {},
       visibility: "public",
-      handler: async (): Promise<unknown> => {
+      handler: async (_input: unknown, _context: ToolContext): Promise<ToolResponse> => {
         const routes = pluginContext.listRoutes();
 
         return {
@@ -197,7 +198,7 @@ export function createSiteBuilderTools(
       description: "List all registered view templates",
       inputSchema: {},
       visibility: "public",
-      handler: async (): Promise<unknown> => {
+      handler: async (_input: unknown, _context: ToolContext): Promise<ToolResponse> => {
         const templates = pluginContext.listViewTemplates();
 
         return {
@@ -234,8 +235,8 @@ export function createSiteBuilderTools(
       visibility: "anchor",
       handler: async (
         input: unknown,
-        context?: ToolContext,
-      ): Promise<unknown> => {
+        context: ToolContext,
+      ): Promise<ToolResponse> => {
         const promoteOptions = PromoteOptionsSchema.parse(input);
 
         const siteContentService = getSiteContentService();
@@ -245,10 +246,10 @@ export function createSiteBuilderTools(
 
         // Create job metadata
         const metadata: JobContext = {
-          interfaceId: context?.interfaceId ?? "mcp",
-          userId: context?.userId ?? "system",
-          channelId: context?.channelId,
-          progressToken: context?.progressToken,
+          interfaceType: context.interfaceType,
+          userId: context.userId,
+          channelId: context.channelId,
+          progressToken: context.progressToken,
           pluginId,
           operationType: "content_operations",
         };
@@ -290,8 +291,8 @@ export function createSiteBuilderTools(
       visibility: "anchor",
       handler: async (
         input: unknown,
-        context?: ToolContext,
-      ): Promise<unknown> => {
+        context: ToolContext,
+      ): Promise<ToolResponse> => {
         const rollbackOptions = RollbackOptionsSchema.parse(input);
 
         const siteContentService = getSiteContentService();
@@ -301,10 +302,10 @@ export function createSiteBuilderTools(
 
         // Create job metadata
         const metadata: JobContext = {
-          interfaceId: context?.interfaceId ?? "mcp",
-          userId: context?.userId ?? "system",
-          channelId: context?.channelId,
-          progressToken: context?.progressToken,
+          interfaceType: context.interfaceType,
+          userId: context.userId,
+          channelId: context.channelId,
+          progressToken: context.progressToken,
           pluginId,
           operationType: "content_operations",
         };

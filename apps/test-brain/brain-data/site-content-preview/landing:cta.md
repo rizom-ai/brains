@@ -2,33 +2,24 @@
 routeId: landing
 sectionId: cta
 ---
-
 # CTA Section
 
 ## Headline
-
-Amplify Your Knowledge, Elevate Your Life
+Elevate Your Knowledge, Amplify Your Potential
 
 ## Description
-
-Unlock the power of your knowledge and take your personal growth to new heights with our cutting-edge personal knowledge management system.
+Unlock the power of your knowledge and take your personal growth to new heights with our personal knowledge management system.
 
 ## Primary Button
-
 ### Text
-
 Start Free Trial
 
 ### Link
-
 /signup
 
 ## Secondary Button
-
 ### Text
-
-Learn More
+View Demo
 
 ### Link
-
 /demo

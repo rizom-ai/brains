@@ -5,6 +5,7 @@ import { EntityRegistry } from "../src/entityRegistry";
 import type { EntityAdapter, BaseEntity } from "../src/types";
 import { baseEntitySchema } from "../src/types";
 import type { JobQueueService } from "@brains/job-queue";
+import { createSystemContext } from "@brains/job-queue";
 
 import { createSilentLogger, type Logger, createId } from "@brains/utils";
 import type { IEmbeddingService } from "@brains/embedding-service";
@@ -88,11 +89,7 @@ describe("EntityService", (): void => {
           scheduledFor: Date.now(),
           startedAt: Date.now(),
           completedAt: Date.now(),
-          metadata: {
-            interfaceId: "system",
-            userId: "system",
-            operationType: "data_processing" as const,
-          },
+          metadata: createSystemContext("data_processing"),
           source: null,
           result: null,
         }),

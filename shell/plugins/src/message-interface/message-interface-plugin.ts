@@ -420,6 +420,7 @@ export abstract class MessageInterfacePlugin<
       const commandContext = {
         userId: context.userId,
         channelId: context.channelId,
+        messageId: context.messageId,
         interfaceType: context.interfaceType,
         userPermissionLevel: context.userPermissionLevel,
       };

@@ -34,3 +34,6 @@ export type { SerializableEntity, SerializableQueryResult } from "./types";
 
 // Re-export test utilities
 export { MockShell } from "../test/mock-shell";
+
+// Re-export job context utilities
+export { createSystemContext } from "./job-context-utils";

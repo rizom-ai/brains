@@ -66,7 +66,7 @@ export class SiteContentService {
    */
   async generateContent(
     options: GenerateOptions,
-    context?: JobContext,
+    context: JobContext,
   ): Promise<{
     jobs: Array<{ jobId: string; routeId: string; sectionId: string }>;
     totalSections: number;
@@ -95,12 +95,7 @@ export class SiteContentService {
       "site-content-preview",
       {
         source: `plugin:${this.pluginId}`,
-        metadata: context ?? {
-          interfaceId: "plugin",
-          userId: "system",
-          pluginId: this.pluginId,
-          operationType: "content_operations",
-        },
+        metadata: context,
       },
       this.siteConfig,
     );
@@ -122,7 +117,7 @@ export class SiteContentService {
    */
   async promoteContent(
     options: PromoteOptions,
-    context?: JobContext,
+    context: JobContext,
   ): Promise<string> {
     // Get preview entities based on filters
     const previewEntities = await this.contentManager.getPreviewEntities({
@@ -153,12 +148,7 @@ export class SiteContentService {
     // Promote using derive operation
     return this.contentManager.promote(entityIds, {
       source: `plugin:${this.pluginId}`,
-      metadata: context ?? {
-        interfaceId: "plugin",
-        userId: "system",
-        pluginId: this.pluginId,
-        operationType: "content_operations",
-      },
+      metadata: context,
     });
   }
 
@@ -167,7 +157,7 @@ export class SiteContentService {
    */
   async rollbackContent(
     options: RollbackOptions,
-    context?: JobContext,
+    context: JobContext,
   ): Promise<string> {
     // Get production entities based on filters
     const productionEntities = await this.contentManager.getProductionEntities({
@@ -198,12 +188,7 @@ export class SiteContentService {
     // Rollback by deleting production entities
     return this.contentManager.rollback(entityIds, {
       source: `plugin:${this.pluginId}`,
-      metadata: context ?? {
-        interfaceId: "plugin",
-        userId: "system",
-        pluginId: this.pluginId,
-        operationType: "content_operations",
-      },
+      metadata: context,
     });
   }
 }

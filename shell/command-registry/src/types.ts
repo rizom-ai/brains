@@ -7,6 +7,7 @@ import { z } from "zod";
 export interface CommandContext {
   userId: string;
   channelId: string;
+  messageId: string;
   interfaceType: string;
   userPermissionLevel: UserPermissionLevel;
 }

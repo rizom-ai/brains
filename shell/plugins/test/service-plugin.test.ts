@@ -80,6 +80,7 @@ describe("ServicePlugin", () => {
     const result = await batchCommand.handler(["1+1", "2*3"], {
       userId: "test",
       channelId: "test-channel",
+      messageId: "test-message",
       interfaceType: "test",
       userPermissionLevel: "anchor",
     });
@@ -131,6 +132,7 @@ describe("ServicePlugin", () => {
     const mockContext = {
       userId: "test-user",
       channelId: "test-channel",
+      messageId: "test-message",
       interfaceType: "test",
       userPermissionLevel: "anchor" as const,
     };
@@ -154,6 +156,7 @@ describe("ServicePlugin", () => {
     const mockContext = {
       userId: "test-user",
       channelId: "test-channel",
+      messageId: "test-message",
       interfaceType: "test",
       userPermissionLevel: "anchor" as const,
     };
@@ -182,6 +185,7 @@ describe("ServicePlugin", () => {
     const mockContext = {
       userId: "test-user",
       channelId: "test-channel",
+      messageId: "test-message",
       interfaceType: "test",
       userPermissionLevel: "anchor" as const,
     };
@@ -204,6 +208,7 @@ describe("ServicePlugin", () => {
     const mockContext = {
       userId: "test-user",
       channelId: "test-channel",
+      messageId: "test-message",
       interfaceType: "test",
       userPermissionLevel: "anchor" as const,
     };

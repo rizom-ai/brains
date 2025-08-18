@@ -70,6 +70,7 @@ describe("CorePlugin", () => {
     const mockContext = {
       userId: "test-user",
       channelId: "test-channel",
+      messageId: "test-message",
       interfaceType: "test",
       userPermissionLevel: "anchor" as const,
     };
@@ -104,6 +105,7 @@ describe("CorePlugin", () => {
     const mockContext = {
       userId: "test-user",
       channelId: "test-channel",
+      messageId: "test-message",
       interfaceType: "test",
       userPermissionLevel: "anchor" as const,
     };
@@ -136,6 +138,7 @@ describe("CorePlugin", () => {
     const mockContext = {
       userId: "test-user",
       channelId: "test-channel",
+      messageId: "test-message",
       interfaceType: "test",
       userPermissionLevel: "anchor" as const,
     };
@@ -210,6 +213,7 @@ describe("CorePlugin", () => {
     const publicContext = {
       userId: "test-user",
       channelId: "test-channel",
+      messageId: "test-message",
       interfaceType: "test",
       userPermissionLevel: "public" as const,
     };
@@ -244,6 +248,7 @@ describe("CorePlugin", () => {
     const mockContext = {
       userId: "test-user",
       channelId: "test-channel",
+      messageId: "test-message",
       interfaceType: "test",
       userPermissionLevel: "trusted" as const,
     };

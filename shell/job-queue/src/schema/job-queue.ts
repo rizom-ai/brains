@@ -19,7 +19,7 @@ export type OperationType = z.infer<typeof OperationTypeEnum>;
  * Job context schema - metadata for job progress tracking and routing
  */
 export const JobContextSchema = z.object({
-  interfaceId: z.string(),
+  interfaceType: z.string(),
   userId: z.string(),
   pluginId: z.string().optional(),
   channelId: z.string().optional(),
@@ -29,6 +29,17 @@ export const JobContextSchema = z.object({
 });
 
 export type JobContext = z.infer<typeof JobContextSchema>;
+
+/**
+ * Create a system context for background operations
+ */
+export const createSystemContext = (
+  operationType: JobContext["operationType"] = "data_processing",
+): JobContext => ({
+  interfaceType: "system",
+  userId: "system",
+  operationType,
+});
 
 /**
  * Generic job queue table for async background processing

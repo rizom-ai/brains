@@ -2,21 +2,16 @@
 routeId: landing
 sectionId: hero
 ---
-
 # Hero Section
 
 ## Headline
-
-Elevate Your Knowledge Workflows
+Unlock the Power of Personal Knowledge Management
 
 ## Subheadline
-
-Harness the power of personal knowledge management to boost productivity and amplify your impact.
+Boost productivity, accelerate learning, and amplify your potential with our intuitive knowledge management platform.
 
 ## CTA Text
-
 Get Started
 
 ## CTA Link
-
 /get-started

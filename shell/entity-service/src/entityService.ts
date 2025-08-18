@@ -15,6 +15,7 @@ import type { SearchOptions, EntityService as IEntityService } from "./types";
 import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { JobQueueService } from "@brains/job-queue";
+import { createSystemContext } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 
 /**
@@ -196,14 +197,8 @@ export class EntityService implements IEntityService {
       contentWeight,
     };
 
-    // Enqueue for async embedding generation
-    // EntityService operations use system defaults for metadata
-    const defaultMetadata = {
-      interfaceId: "system",
-      userId: "system",
-      operationType: "data_processing" as const,
-    };
-
+    // Enqueue for async embedding generation using system context
+    const systemContext = createSystemContext("data_processing");
     const jobId = await this.jobQueueService.enqueue(
       "embedding",
       entityForQueue,
@@ -214,7 +209,7 @@ export class EntityService implements IEntityService {
         }),
         source: "entity-service",
         metadata: {
-          ...defaultMetadata,
+          ...systemContext,
           operationTarget: validatedEntity.id,
         },
       },
@@ -331,14 +326,8 @@ export class EntityService implements IEntityService {
 
     // Note: Entity will be updated with embedding by the background worker
 
-    // Queue embedding generation for the updated entity
-    // EntityService operations use system defaults for metadata
-    const defaultMetadata = {
-      interfaceId: "system",
-      userId: "system",
-      operationType: "data_processing" as const,
-    };
-
+    // Queue embedding generation for the updated entity using system context
+    const systemContext = createSystemContext("data_processing");
     const jobId = await this.jobQueueService.enqueue(
       "embedding",
       {
@@ -357,7 +346,7 @@ export class EntityService implements IEntityService {
         }),
         source: "entity-service",
         metadata: {
-          ...defaultMetadata,
+          ...systemContext,
           operationTarget: validatedEntity.id,
         },
       },

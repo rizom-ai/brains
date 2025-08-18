@@ -34,10 +34,10 @@ export function createDirectorySyncCommands(
             {
               source,
               metadata: {
-                interfaceId: context.interfaceType || "command",
-                userId: context.userId || "command-user",
-                channelId: context.channelId || "",
-                progressToken: "", // CommandContext doesn't have messageId
+                interfaceType: context.interfaceType,
+                userId: context.userId,
+                channelId: context.channelId,
+                progressToken: context.messageId,
                 operationType: "file_operations",
                 pluginId,
               },

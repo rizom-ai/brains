@@ -1,4 +1,4 @@
-import type { PluginTool, ToolContext } from "@brains/plugins";
+import type { PluginTool, ToolContext, ToolResponse } from "@brains/plugins";
 import type { DirectorySync } from "../lib/directory-sync";
 import type { ServicePluginContext } from "@brains/plugins";
 import { z } from "zod";
@@ -16,8 +16,8 @@ export function createDirectorySyncTools(
       visibility: "anchor",
       handler: async (
         _input: unknown,
-        context?: ToolContext,
-      ): Promise<unknown> => {
+        context: ToolContext,
+      ): Promise<ToolResponse> => {
         const batchData = directorySync.prepareBatchOperations();
 
         if (batchData.operations.length === 0) {
@@ -28,18 +28,17 @@ export function createDirectorySyncTools(
           };
         }
 
-        const source =
-          context?.interfaceId && context?.channelId
-            ? `${context.interfaceId}:${context.channelId}`
-            : `plugin:${pluginId}`;
+        const source = context.channelId
+          ? `${context.interfaceType}:${context.channelId}`
+          : `plugin:${pluginId}`;
 
         const batchId = await pluginContext.enqueueBatch(batchData.operations, {
           source,
           metadata: {
-            interfaceId: context?.interfaceId ?? "",
-            userId: context?.userId ?? "",
-            channelId: context?.channelId ?? "",
-            progressToken: context?.progressToken ?? "",
+            interfaceType: context.interfaceType,
+            userId: context.userId,
+            channelId: context.channelId,
+            progressToken: context.progressToken,
             operationType: "file_operations",
             pluginId,
           },
@@ -73,8 +72,8 @@ export function createDirectorySyncTools(
       visibility: "anchor",
       handler: async (
         input: unknown,
-        context?: ToolContext,
-      ): Promise<unknown> => {
+        context: ToolContext,
+      ): Promise<ToolResponse> => {
         const params = input as {
           entityTypes?: string[];
           batchSize?: number;
@@ -102,10 +101,10 @@ export function createDirectorySyncTools(
         const batchId = await pluginContext.enqueueBatch(operations, {
           source: `plugin:${pluginId}`,
           metadata: {
-            interfaceId: context?.interfaceId ?? "plugin",
-            userId: context?.userId ?? "system",
-            channelId: context?.channelId,
-            progressToken: context?.progressToken,
+            interfaceType: context.interfaceType,
+            userId: context.userId,
+            channelId: context.channelId,
+            progressToken: context.progressToken,
             operationType: "file_operations",
             pluginId,
           },
@@ -137,8 +136,8 @@ export function createDirectorySyncTools(
       visibility: "anchor",
       handler: async (
         input: unknown,
-        context?: ToolContext,
-      ): Promise<unknown> => {
+        context: ToolContext,
+      ): Promise<ToolResponse> => {
         const importSchema = z.object({
           paths: z.array(z.string()).optional(),
           batchSize: z.number().min(1).default(50),
@@ -174,10 +173,10 @@ export function createDirectorySyncTools(
         const batchId = await pluginContext.enqueueBatch(operations, {
           source: `plugin:${pluginId}`,
           metadata: {
-            interfaceId: context?.interfaceId ?? "plugin",
-            userId: context?.userId ?? "system",
-            channelId: context?.channelId,
-            progressToken: context?.progressToken,
+            interfaceType: context.interfaceType,
+            userId: context.userId,
+            channelId: context.channelId,
+            progressToken: context.progressToken,
             operationType: "file_operations",
             pluginId,
           },
@@ -221,9 +220,9 @@ export function createDirectorySyncTools(
       description: "Get directory sync status",
       inputSchema: {},
       visibility: "public",
-      handler: async (): Promise<unknown> => {
+      handler: async (_input: unknown, _context: ToolContext): Promise<ToolResponse> => {
         const status = await directorySync.getStatus();
-        return status;
+        return { ...status };
       },
     },
     {

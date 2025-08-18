@@ -218,10 +218,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
             // Create metadata for job context
             const metadata: JobContext = {
-              interfaceId: context.interfaceType || "command",
-              userId: context.userId || "command-user",
+              interfaceType: context.interfaceType,
+              userId: context.userId,
               channelId: context.channelId,
-              progressToken: "", // CommandContext doesn't have messageId
+              progressToken: context.messageId,
               pluginId: this.id,
               operationType: "content_operations",
             };
@@ -338,10 +338,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             }
 
             const metadata: JobContext = {
-              interfaceId: context.interfaceType || "command",
-              userId: context.userId || "command-user",
+              interfaceType: context.interfaceType,
+              userId: context.userId,
               channelId: context.channelId,
-              progressToken: "", // CommandContext doesn't have messageId
+              progressToken: context.messageId,
               pluginId: this.id,
               operationType: "content_operations",
             };
@@ -441,10 +441,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             }
 
             const metadata: JobContext = {
-              interfaceId: context.interfaceType || "command",
-              userId: context.userId || "command-user",
+              interfaceType: context.interfaceType,
+              userId: context.userId,
               channelId: context.channelId,
-              progressToken: "", // CommandContext doesn't have messageId
+              progressToken: context.messageId,
               pluginId: this.id,
               operationType: "content_operations",
             };
@@ -514,10 +514,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             };
 
             const metadata: JobContext = {
-              interfaceId: context.interfaceType || "command",
-              userId: context.userId || "command-user",
+              interfaceType: context.interfaceType,
+              userId: context.userId,
               channelId: context.channelId,
-              progressToken: "", // CommandContext doesn't have messageId
+              progressToken: context.messageId,
               pluginId: this.id,
               operationType: "content_operations",
             };
