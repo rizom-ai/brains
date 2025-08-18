@@ -220,7 +220,10 @@ export function createDirectorySyncTools(
       description: "Get directory sync status",
       inputSchema: {},
       visibility: "public",
-      handler: async (_input: unknown, _context: ToolContext): Promise<ToolResponse> => {
+      handler: async (
+        _input: unknown,
+        _context: ToolContext,
+      ): Promise<ToolResponse> => {
         const status = await directorySync.getStatus();
         return { ...status };
       },

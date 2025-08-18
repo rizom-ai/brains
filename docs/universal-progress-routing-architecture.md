@@ -1,0 +1,275 @@
+# Universal Progress Event Routing Architecture
+
+## Executive Summary
+
+This document outlines the architectural solution for progress event routing across all interfaces in the Personal Brain system. What started as a CLI progress bar fix revealed a broader need for a universal progress routing pattern that works across CLI, Matrix, and future interfaces without requiring complex context threading through service layers.
+
+## Problem Statement
+
+### Current Issue
+CLI progress bars stopped working after job progress simplification because:
+- CLI progress handler filters events by `interfaceType: "cli"`
+- Service plugins create jobs with `interfaceType: "service"`
+- Progress events are filtered out and never reach the CLI UI
+
+### Broader Architectural Gap
+This symptom reveals a larger design question: How should progress events be routed to the correct interface instances without:
+1. Threading interface context through all service plugin layers
+2. Creating tight coupling between service plugins and specific interfaces
+3. Duplicating routing logic across interface implementations
+
+## Current Architecture Analysis
+
+### Data Flow Trace: CLI Command → Job Progress Event
+
+1. **CLI Input Processing**
+   ```typescript
+   // CLI sets interfaceType: "cli", channelId: "cli", userId: "cli-user"
+   const context: MessageContext = {
+     interfaceType: "cli",
+     channelId: "cli", 
+     userId: "cli-user",
+     // ...
+   };
+   ```
+
+2. **Command Execution Chain**
+   ```typescript
+   // MessageInterfacePlugin passes CommandContext to command handlers
+   const commandContext = {
+     interfaceType: context.interfaceType, // "cli"
+     channelId: context.channelId,         // "cli"
+     userId: context.userId,               // "cli-user"
+     // ...
+   };
+   ```
+
+3. **Service Plugin Job Creation** ⚠️ **BREAK POINT**
+   ```typescript
+   // ServicePluginContext hardcodes job metadata
+   const defaultOptions: JobOptions = {
+     metadata: {
+       interfaceType: "service", // ← Lost original "cli"
+       userId: "system",         // ← Lost original "cli-user"
+       operationType: "data_processing",
+       pluginId,
+       // channelId not set
+     }
+   };
+   ```
+
+4. **Progress Event Generation**
+   ```typescript
+   const event: JobProgressEvent = {
+     id: jobId,
+     metadata: job.metadata, // Contains interfaceType: "service"
+     // ...
+   };
+   ```
+
+5. **Progress Event Filtering** ⚠️ **FILTER REJECTS**
+   ```typescript
+   // CLI progress handler rejects the event
+   if (context.interfaceType !== "cli") {
+     return progressEvents; // Event filtered out
+   }
+   ```
+
+### Key Components
+
+**MessageInterfacePlugin Base Class**
+- Provides `jobMessages` Map: `jobId → messageId`
+- Tracks which jobs were initiated by this interface instance
+- Handles progress event subscription and routing
+
+**ServicePluginContext** 
+- Creates jobs with hardcoded metadata defaults
+- Currently has no awareness of the originating interface
+- Service plugins use this to enqueue jobs
+
+**JobProgressMonitor**
+- Emits progress events with job metadata 
+- Events are broadcast to all interface subscribers
+- No built-in routing mechanism
+
+## Proposed Solution: JobMessages-Based Routing
+
+### Core Insight
+Each MessageInterfacePlugin already maintains a `jobMessages` Map that tracks jobs it initiated. This provides a natural, instance-specific routing mechanism without requiring metadata inheritance.
+
+### Universal Pattern
+
+```typescript
+// In any MessageInterfacePlugin.handleProgressEvent()
+protected async handleProgressEvent(
+  progressEvent: JobProgressEvent,
+  context: JobContext,
+): Promise<void> {
+  // Route based on job ownership, not metadata
+  const isMyJob = this.jobMessages.has(progressEvent.id);
+  if (!isMyJob) {
+    return; // Not initiated by this interface instance
+  }
+  
+  // Handle progress for this interface
+  await this.handleMyJobProgress(progressEvent, context);
+}
+```
+
+### Architecture Benefits
+
+**1. Instance-Specific Routing**
+- Each interface instance only processes jobs it initiated
+- Multiple CLI instances can run independently
+- No cross-interface event pollution
+
+**2. Interface-Agnostic Services**
+- Service plugins don't need interface awareness
+- No context threading through service layers
+- ServicePluginContext can remain simple
+
+**3. Automatic Future Compatibility**
+- New interfaces inherit jobMessages tracking from base class
+- Progress routing works automatically
+- No per-interface routing implementation needed
+
+**4. Clean Separation of Concerns**
+- Job creation: Service plugins handle business logic
+- Progress routing: Interface plugins handle UI updates
+- No tight coupling between layers
+
+## Implementation Strategy
+
+### Phase 1: Fix CLI Progress (Immediate)
+
+**File**: `interfaces/cli/src/handlers/progress.ts`
+```typescript
+// Replace interfaceType-based filtering
+- if (context.interfaceType !== "cli") {
++ if (!jobMessages.has(progressEvent.id)) {
+    return progressEvents;
+  }
+```
+
+**Benefits**: CLI progress bars work immediately
+
+### Phase 2: Verify Matrix Interface (Validation)
+
+**Matrix already uses this pattern**: The Matrix interface inherits from MessageInterfacePlugin and should automatically benefit from jobMessages-based routing.
+
+**Verification**: Test Matrix progress handling to confirm it works correctly.
+
+### Phase 3: Architectural Decision on ServicePluginContext
+
+Two options:
+
+**Option A: Keep ServicePluginContext Simple (Recommended)**
+- Remove interfaceType parameter exploration
+- Keep hardcoded "service" interfaceType
+- Rely entirely on jobMessages routing
+
+**Option B: Add Interface Context Threading**
+- Add interfaceType parameter to ServicePluginContext
+- Thread interface context through command execution
+- Maintain metadata-based routing as backup
+
+**Recommendation**: Option A - simpler, cleaner separation of concerns
+
+### Phase 4: Documentation and Templates
+
+**Interface Implementation Template**
+```typescript
+export class NewInterface extends MessageInterfacePlugin<Config> {
+  protected async handleProgressEvent(
+    progressEvent: JobProgressEvent,
+    context: JobContext,
+  ): Promise<void> {
+    // Universal pattern - works for all interfaces
+    if (!this.jobMessages.has(progressEvent.id)) {
+      return; // Not my job
+    }
+    
+    // Interface-specific progress handling
+    await this.handleInterfaceSpecificProgress(progressEvent, context);
+  }
+}
+```
+
+## Architectural Trade-offs
+
+### JobMessages-Based Routing
+
+**Advantages**:
+- ✅ Instance-specific routing
+- ✅ No context threading required
+- ✅ Interface-agnostic services
+- ✅ Automatic inheritance for new interfaces
+- ✅ Clean separation of concerns
+
+**Disadvantages**:
+- ⚠️ Progress only visible to initiating interface
+- ⚠️ Cross-interface job monitoring requires different approach
+- ⚠️ Depends on jobMessages Map maintenance
+
+### Metadata-Based Routing (Current Attempt)
+
+**Advantages**:
+- ✅ Global job visibility possible
+- ✅ Rich metadata available for routing decisions
+- ✅ Interface context preserved in job
+
+**Disadvantages**:
+- ❌ Requires threading context through all service layers
+- ❌ Tight coupling between services and interfaces
+- ❌ Complex implementation across multiple abstraction levels
+- ❌ Context inheritance chain fragility
+
+## Migration Path
+
+### Current State (Preserve Work)
+- ServicePluginContext interfaceType parameter exploration → Commit as investigation
+- Abstract handleProgressEvent method → Keep (good improvement)
+- CLI progress handler issues → Fix with jobMessages approach
+
+### Implementation Order
+1. **Document architecture** (this document)
+2. **Commit current exploration** with clear notes
+3. **Implement jobMessages routing** for CLI
+4. **Test Matrix interface** compatibility
+5. **Create interface template** for future use
+6. **Update documentation** with the pattern
+
+### Testing Strategy
+- **CLI Interface**: Test progress bars with directory sync, content generation
+- **Matrix Interface**: Verify existing progress handling still works
+- **Cross-Interface**: Ensure interfaces don't see each other's jobs
+- **Multiple Instances**: Test multiple CLI instances independently
+
+## Future Considerations
+
+### Cross-Interface Progress Monitoring
+If future requirements need cross-interface job visibility:
+- Add separate "monitoring" subscription pattern
+- Keep jobMessages routing for "ownership" 
+- Implement admin interface with global job view
+
+### Alternative Progress Contexts
+For cases where progress needs different routing:
+- System maintenance jobs → Admin interface only
+- Batch operations → All interfaces that initiated parts
+- Public announcements → All active interfaces
+
+### Performance Implications
+- JobMessages Map size scales with active jobs
+- Cleanup on job completion prevents memory leaks
+- Broadcast events to all interfaces (filtered by jobMessages)
+
+## Conclusion
+
+The jobMessages-based routing approach provides a clean, scalable solution for progress event routing that:
+1. Solves the immediate CLI progress bar issue
+2. Establishes a universal pattern for all interfaces
+3. Maintains clean separation between service and interface layers
+4. Automatically works for future interface implementations
+
+This architecture preserves the interface-agnostic nature of service plugins while providing reliable, instance-specific progress routing without complex context threading.

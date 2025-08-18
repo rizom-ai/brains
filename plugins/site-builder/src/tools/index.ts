@@ -174,7 +174,10 @@ export function createSiteBuilderTools(
       description: "List all registered routes",
       inputSchema: {},
       visibility: "public",
-      handler: async (_input: unknown, _context: ToolContext): Promise<ToolResponse> => {
+      handler: async (
+        _input: unknown,
+        _context: ToolContext,
+      ): Promise<ToolResponse> => {
         const routes = pluginContext.listRoutes();
 
         return {
@@ -198,7 +201,10 @@ export function createSiteBuilderTools(
       description: "List all registered view templates",
       inputSchema: {},
       visibility: "public",
-      handler: async (_input: unknown, _context: ToolContext): Promise<ToolResponse> => {
+      handler: async (
+        _input: unknown,
+        _context: ToolContext,
+      ): Promise<ToolResponse> => {
         const templates = pluginContext.listViewTemplates();
 
         return {

@@ -10,9 +10,7 @@ import type { IJobQueueService } from "./types";
 import type { BatchJobStatus } from "./schemas";
 import type { z } from "zod";
 import type { JobProgressEventSchema } from "./schemas";
-import {
-  type JobContext,
-} from "./schema/job-queue";
+import { type JobContext } from "./schema/job-queue";
 
 /**
  * Progress event emitted by the monitor
@@ -59,11 +57,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     messageBus: MessageBus,
     logger: Logger,
   ): JobProgressMonitor {
-    return new JobProgressMonitor(
-      jobQueueService,
-      messageBus,
-      logger,
-    );
+    return new JobProgressMonitor(jobQueueService, messageBus, logger);
   }
 
   /**

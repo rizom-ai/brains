@@ -104,13 +104,16 @@ describe("SiteBuilderPlugin", () => {
 
     // When we use the tool, it should show our configured route
     if (listRoutesTool) {
-      const result = await listRoutesTool.handler({}, {
-        interfaceType: "test",
-        userId: "test-user"
-      });
+      const result = await listRoutesTool.handler(
+        {},
+        {
+          interfaceType: "test",
+          userId: "test-user",
+        },
+      );
       expect(result.success).toBe(true);
-      expect(result).toHaveProperty('routes');
-      expect(Array.isArray(result['routes'])).toBe(true);
+      expect(result).toHaveProperty("routes");
+      expect(Array.isArray(result["routes"])).toBe(true);
     }
   });
 
@@ -214,10 +217,13 @@ describe("SiteBuilderPlugin", () => {
       (t) => t.name === "site-builder:generate",
     );
     if (generateTool) {
-      const result = await generateTool.handler({}, {
-        interfaceType: "test",
-        userId: "test-user"
-      });
+      const result = await generateTool.handler(
+        {},
+        {
+          interfaceType: "test",
+          userId: "test-user",
+        },
+      );
       // The generate tool should handle missing templates gracefully
       expect(result).toBeDefined();
       expect(result.status).toBeDefined();

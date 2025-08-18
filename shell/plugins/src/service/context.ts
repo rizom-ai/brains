@@ -73,6 +73,7 @@ export interface ServicePluginContext extends CorePluginContext {
 export function createServicePluginContext(
   shell: IShell,
   pluginId: string,
+  interfaceType: string,
 ): ServicePluginContext {
   // Start with core context
   const coreContext = createCorePluginContext(shell, pluginId);
@@ -115,7 +116,7 @@ export function createServicePluginContext(
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
-          interfaceType: "service",
+          interfaceType,
           userId: "system",
           operationType: "data_processing" as const,
           pluginId,
@@ -128,7 +129,7 @@ export function createServicePluginContext(
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
-          interfaceType: "service",
+          interfaceType,
           userId: "system",
           operationType: "batch_processing" as const,
           pluginId,

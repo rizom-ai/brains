@@ -129,18 +129,19 @@ export abstract class BasePlugin<
           interfaceType,
           userId,
           ...(channelId && { channelId }),
-          ...(hasProgress && progressToken !== undefined && {
-            progressToken,
-            sendProgress: async (
-              notification: ProgressNotification,
-            ): Promise<void> => {
-              // Send progress notification back through message bus
-              await context.sendMessage(`plugin:${this.id}:progress`, {
-                progressToken,
-                notification,
-              });
-            },
-          }),
+          ...(hasProgress &&
+            progressToken !== undefined && {
+              progressToken,
+              sendProgress: async (
+                notification: ProgressNotification,
+              ): Promise<void> => {
+                // Send progress notification back through message bus
+                await context.sendMessage(`plugin:${this.id}:progress`, {
+                  progressToken,
+                  notification,
+                });
+              },
+            }),
         };
 
         // Execute the tool with optional context

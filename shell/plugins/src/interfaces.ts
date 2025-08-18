@@ -238,11 +238,13 @@ export const ToolContextRoutingSchema = z.object({
  * Base tool response schema
  * TODO: This can be extended with discriminated unions for different response types
  */
-export const toolResponseSchema = z.object({
-  status: z.string().optional(),
-  message: z.string().optional(),
-  success: z.boolean().optional(),
-}).passthrough(); // Allow additional fields
+export const toolResponseSchema = z
+  .object({
+    status: z.string().optional(),
+    message: z.string().optional(),
+    success: z.boolean().optional(),
+  })
+  .passthrough(); // Allow additional fields
 
 export type ToolResponse = z.infer<typeof toolResponseSchema>;
 

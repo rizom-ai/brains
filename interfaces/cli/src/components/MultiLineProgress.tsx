@@ -16,15 +16,15 @@ export function MultiLineProgress({
   // Simplified event processing - just group by type and keep latest
   const { batchEvents, jobEvents } = useMemo(() => {
     const eventMap = new Map<string, JobProgressEvent>();
-    
+
     // Keep only the latest event for each ID
     progressEvents.forEach((event) => {
       eventMap.set(event.id, event);
     });
 
     const events = Array.from(eventMap.values());
-    const batchEvents = events.filter(e => e.type === "batch");
-    const jobEvents = events.filter(e => e.type === "job");
+    const batchEvents = events.filter((e) => e.type === "batch");
+    const jobEvents = events.filter((e) => e.type === "job");
 
     return { batchEvents, jobEvents };
   }, [progressEvents]);
@@ -122,7 +122,9 @@ export function MultiLineProgress({
                 <Box>
                   {event.progress && (
                     <>
-                      <Text color="gray">{event.progress.current}/{event.progress.total}</Text>
+                      <Text color="gray">
+                        {event.progress.current}/{event.progress.total}
+                      </Text>
                       <Text color="gray"> • </Text>
                       <Text color="green">{event.progress.percentage}%</Text>
                     </>

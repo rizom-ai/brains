@@ -49,14 +49,6 @@ export abstract class MessageInterfacePlugin<
   }
 
   /**
-   * Handle progress events - must be implemented by each interface
-   */
-  protected abstract handleProgressEvent(
-    progressEvent: JobProgressEvent,
-    context: JobContext,
-  ): Promise<void>;
-
-  /**
    * Send a message and return the message ID - must be implemented by each interface
    */
   protected abstract sendMessage(
@@ -72,6 +64,14 @@ export abstract class MessageInterfacePlugin<
     messageId: string,
     content: string,
     context: MessageContext,
+  ): Promise<void>;
+
+  /**
+   * Handle progress events - must be implemented by each interface
+   */
+  protected abstract handleProgressEvent(
+    event: JobProgressEvent,
+    context: JobContext,
   ): Promise<void>;
 
   /**
