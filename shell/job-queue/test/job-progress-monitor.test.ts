@@ -119,7 +119,7 @@ describe("JobProgressMonitor", () => {
       startedAt: null,
       scheduledFor: Date.now(),
       metadata: {
-        rootJobId: testRootJobId,
+        rootJobId: "job-123", // Use same ID as job ID for standalone job testing
         operationType: "data_processing",
       },
       source: "test-source",
@@ -145,7 +145,7 @@ describe("JobProgressMonitor", () => {
           status: "processing",
           message: "Processing step 5",
           metadata: {
-            rootJobId: testRootJobId,
+            rootJobId: "job-123",
             operationType: "data_processing",
           },
           progress: {
@@ -179,7 +179,7 @@ describe("JobProgressMonitor", () => {
           status: "processing",
           message: "Processing...",
           metadata: {
-            rootJobId: testRootJobId,
+            rootJobId: "job-123",
             operationType: "data_processing",
           },
         },
@@ -396,7 +396,7 @@ describe("JobProgressMonitor", () => {
         scheduledFor: Date.now(),
         source: "test-source",
         metadata: {
-          rootJobId: testRootJobId,
+          rootJobId: "job-123",
           operationType: "data_processing" as const,
         },
       };

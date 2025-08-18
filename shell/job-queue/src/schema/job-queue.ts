@@ -20,7 +20,7 @@ export type OperationType = z.infer<typeof OperationTypeEnum>;
  */
 export const JobContextSchema = z.object({
   pluginId: z.string().optional(),
-  rootJobId: z.string().optional(), // For flattened job inheritance tracking (optional for batch operations)
+  rootJobId: z.string(), // For flattened job inheritance tracking (required for all operations)
   progressToken: z.union([z.string(), z.number()]).optional(),
   operationType: OperationTypeEnum,
   operationTarget: z.string().optional(),

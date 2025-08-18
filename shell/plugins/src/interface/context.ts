@@ -150,18 +150,18 @@ export function createInterfacePluginContext(
       return jobQueueService.enqueue(type, data, defaultOptions, pluginId);
     },
     enqueueBatch: async (operations, options) => {
-      const rootJobId = options?.metadata?.rootJobId || createId();
+      const batchId = createId();
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
-          rootJobId,
+          rootJobId: batchId, // Use generated batch ID as rootJobId
           operationType: "batch_processing" as const,
           pluginId,
           ...options?.metadata,
         },
         ...options,
       };
-      return shell.enqueueBatch(operations, defaultOptions, pluginId);
+      return shell.enqueueBatch(operations, defaultOptions, batchId, pluginId);
     },
     registerJobHandler: (type, handler) => {
       const jobQueueService = shell.getJobQueueService();

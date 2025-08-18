@@ -181,6 +181,22 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         return;
       }
 
+      // Skip individual job progress for batch operations
+      // Only show individual job progress for standalone jobs (where rootJobId === jobId)
+      const rootJobId = job.metadata?.rootJobId;
+      if (rootJobId && rootJobId !== jobId) {
+        // This is part of a batch operation - skip individual job progress
+        // The batch progress will be emitted separately by handleJobStatusChange
+        this.logger.debug(
+          "Skipping individual job progress for batch operation",
+          {
+            jobId,
+            rootJobId,
+          },
+        );
+        return;
+      }
+
       const total = progress.total ?? 0;
       const event: JobProgressEvent = {
         id: jobId,

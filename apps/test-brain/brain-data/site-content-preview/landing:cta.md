@@ -7,11 +7,11 @@ sectionId: cta
 
 ## Headline
 
-Harness the Power of Your Mind
+Elevate Your Mind, Amplify Your Potential
 
 ## Description
 
-Elevate your knowledge and unlock your full potential with our personal knowledge management system.
+Transform your knowledge and boost your productivity with our powerful personal knowledge management system.
 
 ## Primary Button
 

@@ -687,9 +687,15 @@ export class Shell implements IShell {
   public async enqueueBatch(
     operations: BatchOperation[],
     options: JobOptions,
+    batchId: string,
     pluginId: string,
   ): Promise<string> {
-    return this.batchJobManager.enqueueBatch(operations, options, pluginId);
+    return this.batchJobManager.enqueueBatch(
+      operations,
+      options,
+      batchId,
+      pluginId,
+    );
   }
 
   /**

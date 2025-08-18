@@ -137,14 +137,13 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
       this.progressCallback(allEvents);
     }
 
-    // Edit message for inline progress display with unique ID
+    // Edit message for inline progress display
     const message = formatProgressMessage(progressEvent);
     if (message) {
-      const randomId = Math.random().toString(36).substring(2, 8);
-      await this.editMessage(`${trackingInfo.messageId}-${randomId}`, message, {
+      await this.editMessage(context.rootJobId, message, {
         userId: trackingInfo.userId,
         channelId: trackingInfo.channelId,
-        messageId: `${trackingInfo.messageId}-${randomId}`,
+        messageId: context.rootJobId,
         timestamp: new Date(),
         interfaceType: "cli",
         userPermissionLevel: "anchor",

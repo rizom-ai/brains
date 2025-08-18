@@ -3,7 +3,6 @@ import type { BatchOperation, BatchJobStatus, Batch } from "./schemas";
 import { JOB_STATUS } from "./schemas";
 import type { JobContext, JobOptions } from "./schema/job-queue";
 import type { Logger } from "@brains/utils";
-import { createBatchId } from "@brains/utils";
 
 /**
  * Batch job manager for tracking groups of related jobs
@@ -58,13 +57,13 @@ export class BatchJobManager {
   async enqueueBatch(
     operations: BatchOperation[],
     options: JobOptions,
+    batchId: string,
     pluginId?: string,
   ): Promise<string> {
     if (operations.length === 0) {
       throw new Error("Cannot enqueue empty batch");
     }
 
-    const batchId = createBatchId();
     const jobIds: string[] = [];
 
     try {

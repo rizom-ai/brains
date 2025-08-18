@@ -7,15 +7,15 @@ sectionId: products
 
 ## Label
 
-Our Solutions
+Our Offerings
 
 ## Headline
 
-Innovative Products to Drive Transformation
+Innovations for a Sustainable Future
 
 ## Description
 
-Rizom offers a curated portfolio of digital products and services to help organizations navigate complex challenges and unlock new possibilities. From ecosystem design to data-driven decision making, our solutions are tailored to empower teams, optimize operations, and accelerate sustainable growth.
+Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We build innovative solutions to tackle complex challenges and create a more sustainable future.
 
 ## Products
 
@@ -31,11 +31,11 @@ Ecosystem Design
 
 #### Tagline
 
-Architecting collaborative value networks
+Architecting collaborative networks
 
 #### Description
 
-Our ecosystem design experts guide you through the process of mapping stakeholders, aligning incentives, and building resilient systems that foster innovation and shared prosperity.
+Our ecosystem design services help organizations build resilient, interconnected systems that drive innovation and collective impact.
 
 #### Status
 
@@ -51,19 +51,19 @@ Network
 
 #### ID
 
-transformation-strategy
+organizational-transformation
 
 #### Name
 
-Transformation Strategy
+Organizational Transformation
 
 #### Tagline
 
-Roadmaps for digital-first organizations
+Unleashing human potential
 
 #### Description
 
-We help you develop a comprehensive transformation strategy that balances people, processes, and technology to future-proof your business and accelerate your digital maturity.
+We guide organizations through holistic transformation, empowering teams and leaders to adapt, innovate, and thrive in a rapidly changing world.
 
 #### Status
 
@@ -73,60 +73,60 @@ live
 
 #### Icon
 
-Wrench
+Cpu
 
 ### Product 3
 
 #### ID
 
-data-insights
+digital-strategy
 
 #### Name
 
-Data Insights
+Digital Strategy
 
 #### Tagline
 
-Unlock the power of your data
+Accelerating digital maturity
 
 #### Description
 
-Our data science and visualization tools empower you to make data-driven decisions, optimize operations, and uncover new opportunities for growth and innovation.
+Our digital strategy expertise helps organizations leverage technology to drive operational excellence, enhance customer experiences, and unlock new opportunities.
 
 #### Status
 
-beta
-
-#### Link
-
-#### Icon
-
-Database
-
-### Product 4
-
-#### ID
-
-sustainability-solutions
-
-#### Name
-
-Sustainability Solutions
-
-#### Tagline
-
-Driving circular and regenerative models
-
-#### Description
-
-We develop tailored solutions to help organizations transition towards more sustainable and resilient business practices, from waste management to carbon footprint reduction.
-
-#### Status
-
-beta
+live
 
 #### Link
 
 #### Icon
 
 Globe
+
+### Product 4
+
+#### ID
+
+circular-economy
+
+#### Name
+
+Circular Economy
+
+#### Tagline
+
+Rethinking waste as a resource
+
+#### Description
+
+We support the transition to a circular economy, helping organizations design closed-loop systems that eliminate waste and maximize the use of resources.
+
+#### Status
+
+beta
+
+#### Link
+
+#### Icon
+
+Wrench

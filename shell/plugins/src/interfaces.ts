@@ -80,6 +80,7 @@ export interface IShell {
   enqueueBatch(
     operations: BatchOperation[],
     options: JobOptions,
+    batchId: string,
     pluginId: string,
   ): Promise<string>;
   getActiveBatches(): Promise<Batch[]>;
