@@ -305,7 +305,12 @@ describe("JobProgressMonitor", () => {
     });
 
     it("should emit job completion event", async () => {
-      const mockJob = createMockJob();
+      const mockJob = createMockJob({
+        metadata: {
+          rootJobId: "job-123", // For standalone job, rootJobId equals jobId
+          operationType: "data_processing",
+        },
+      });
       getStatusMock.mockResolvedValue(mockJob);
 
       await monitor.emitJobCompletion("job-123");
@@ -317,7 +322,7 @@ describe("JobProgressMonitor", () => {
           type: "job",
           status: "completed",
           metadata: {
-            rootJobId: testRootJobId,
+            rootJobId: "job-123",
             operationType: "data_processing",
           },
           jobDetails: {
@@ -337,6 +342,10 @@ describe("JobProgressMonitor", () => {
       const mockJob = createMockJob({
         status: "failed",
         lastError: "Something went wrong",
+        metadata: {
+          rootJobId: "job-123", // For standalone job, rootJobId equals jobId
+          operationType: "data_processing",
+        },
       });
       getStatusMock.mockResolvedValue(mockJob);
 
@@ -350,7 +359,7 @@ describe("JobProgressMonitor", () => {
           status: "failed",
           message: "Something went wrong",
           metadata: {
-            rootJobId: testRootJobId,
+            rootJobId: "job-123",
             operationType: "data_processing",
           },
           jobDetails: {
@@ -371,6 +380,38 @@ describe("JobProgressMonitor", () => {
 
       await monitor.emitJobCompletion("missing-job");
       await monitor.emitJobFailure("missing-job");
+
+      expect(messageBusSendMock).not.toHaveBeenCalled();
+    });
+
+    it("should skip individual job completion for batch operations", async () => {
+      const mockJob = createMockJob({
+        id: "child-job-456",
+        metadata: {
+          rootJobId: "batch-789", // Different from jobId, so it's part of a batch
+          operationType: "data_processing",
+        },
+      });
+      getStatusMock.mockResolvedValue(mockJob);
+
+      await monitor.emitJobCompletion("child-job-456");
+
+      expect(messageBusSendMock).not.toHaveBeenCalled();
+    });
+
+    it("should skip individual job failure for batch operations", async () => {
+      const mockJob = createMockJob({
+        id: "child-job-456",
+        status: "failed",
+        lastError: "Something went wrong",
+        metadata: {
+          rootJobId: "batch-789", // Different from jobId, so it's part of a batch
+          operationType: "data_processing",
+        },
+      });
+      getStatusMock.mockResolvedValue(mockJob);
+
+      await monitor.emitJobFailure("child-job-456");
 
       expect(messageBusSendMock).not.toHaveBeenCalled();
     });
