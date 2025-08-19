@@ -6,17 +6,16 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import type { DirectorySync } from "../lib/directory-sync";
-import type { ImportResult } from "../types";
+import type { ImportResult, DirectoryImportJobData } from "../types";
 
 /**
  * Schema for directory import job data
  */
 const directoryImportJobSchema = z.object({
   paths: z.array(z.string()).optional(),
-  batchSize: z.number().min(1).default(100),
+  batchSize: z.number().min(1).optional().default(100),
+  batchIndex: z.number().optional(),
 });
-
-export type DirectoryImportJobData = z.infer<typeof directoryImportJobSchema>;
 
 /**
  * Job handler for async directory import operations
@@ -82,7 +81,7 @@ export class DirectoryImportJobHandler
       });
 
       // Process files in batches
-      const batchSize = data.batchSize;
+      const batchSize = data.batchSize ?? 100;
       for (let i = 0; i < filesToImport.length; i += batchSize) {
         const batch = filesToImport.slice(i, i + batchSize);
         await this.importBatch(batch, jobId, result, i, filesToImport.length);
@@ -238,7 +237,18 @@ export class DirectoryImportJobHandler
    */
   public validateAndParse(data: unknown): DirectoryImportJobData | null {
     try {
-      const result = directoryImportJobSchema.parse(data);
+      const parsed = directoryImportJobSchema.parse(data);
+      // Clean up undefined optional properties for exactOptionalPropertyTypes
+      const result: DirectoryImportJobData = {};
+      if (parsed.paths !== undefined) {
+        result.paths = parsed.paths;
+      }
+      if (parsed.batchSize !== undefined) {
+        result.batchSize = parsed.batchSize;
+      }
+      if (parsed.batchIndex !== undefined) {
+        result.batchIndex = parsed.batchIndex;
+      }
       this.logger.debug("Directory import job data validation successful", {
         data: result,
       });

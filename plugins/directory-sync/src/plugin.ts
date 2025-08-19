@@ -1,12 +1,17 @@
 import type { Plugin, ServicePluginContext, Command } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { ServicePlugin, createId } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
-import { directorySyncConfigSchema, type DirectorySyncConfig } from "./types";
+import {
+  directorySyncConfigSchema,
+  type DirectorySyncConfig,
+  type JobRequest,
+} from "./types";
 import { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 import { directorySyncStatusSchema } from "./schemas";
 import {
   DirectoryExportJobHandler,
   DirectoryImportJobHandler,
+  DirectorySyncJobHandler,
 } from "./handlers";
 import { createDirectorySyncTools } from "./tools";
 import { createDirectorySyncCommands } from "./commands";
@@ -18,6 +23,10 @@ const DIRECTORY_SYNC_CONFIG_DEFAULTS = {
   watchEnabled: true,
   watchInterval: 1000,
   includeMetadata: true,
+  initialSync: true,
+  initialSyncDelay: 1000,
+  syncBatchSize: 10,
+  syncPriority: 3,
 } as const;
 
 /**
@@ -93,19 +102,36 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       logger,
     });
 
-    // Initialize directory
+    // Initialize directory structure only (no sync)
     try {
-      await this.directorySync.initialize();
-      this.info("Directory sync initialized successfully", {
+      await this.directorySync.initializeDirectory();
+      this.info("Directory structure initialized", {
         path: this.config.syncPath,
       });
     } catch (error) {
-      this.error("Failed to initialize directory sync", error);
+      this.error("Failed to initialize directory", error);
       throw error; // Fail plugin registration if init fails
     }
 
     // Register job handlers for async operations
     await this.registerJobHandlers(context);
+
+    // Setup file watcher with job queue integration if enabled
+    if (this.config.watchEnabled) {
+      this.setupFileWatcher(context);
+      await this.directorySync.startWatching();
+    }
+
+    // Queue initial sync job if enabled
+    if (this.config.initialSync) {
+      setTimeout(async () => {
+        const jobId = await this.queueSyncJob(context, "initial");
+        this.info("Queued initial sync job", {
+          jobId,
+          delay: this.config.initialSyncDelay,
+        });
+      }, this.config.initialSyncDelay || 1000);
+    }
 
     // Register message handlers for plugin communication
     this.registerMessageHandlers(context);
@@ -259,12 +285,71 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   }
 
   /**
+   * Queue a sync job as a batch for progress visibility
+   */
+  private async queueSyncJob(
+    context: ServicePluginContext,
+    operation: "initial" | "scheduled" | "manual",
+  ): Promise<string> {
+    const directorySync = this.requireDirectorySync();
+    const result = await directorySync.queueSyncBatch(
+      context,
+      `directory-sync-${operation}`,
+      {
+        pluginId: this.id,
+      },
+    );
+
+    if (!result) {
+      this.info("No sync operations needed", { operation });
+      return `empty-sync-${Date.now()}`;
+    }
+
+    return result.batchId;
+  }
+
+  /**
+   * Setup file watcher with job queue integration
+   */
+  private setupFileWatcher(context: ServicePluginContext): void {
+    const directorySync = this.requireDirectorySync();
+    directorySync.setJobQueueCallback(async (job: JobRequest) => {
+      // Use enqueueBatch for all file watcher operations to ensure progress visibility
+      const operations = [
+        {
+          type: job.type,
+          data: job.data as Record<string, unknown>,
+        },
+      ];
+
+      return context.enqueueBatch(operations, {
+        priority: 5,
+        source: "directory-sync-watcher",
+        metadata: {
+          rootJobId: createId(),
+          operationType: "file_operations",
+          operationTarget: this.config.syncPath,
+          pluginId: "directory-sync",
+        },
+      });
+    });
+  }
+
+  /**
    * Register job handlers for async operations
    */
   protected override async registerJobHandlers(
     context: ServicePluginContext,
   ): Promise<void> {
     const directorySync = this.requireDirectorySync();
+
+    // Register sync job handler
+    const syncHandler = new DirectorySyncJobHandler(
+      this.logger.child("DirectorySyncJobHandler"),
+      context,
+      directorySync,
+    );
+    context.registerJobHandler("directory-sync", syncHandler);
 
     // Register export job handler
     const exportHandler = new DirectoryExportJobHandler(

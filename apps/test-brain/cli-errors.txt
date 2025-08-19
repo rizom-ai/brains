@@ -1,8 +1,0 @@
-[0m[2m[35m$[0m [2m[1mbun brain.config.ts --cli[0m
-[2025-08-18T12:59:07.504Z] [ServiceRegistry] Component already registered: commandRegistry, overwriting
-[2025-08-18T12:59:07.504Z] [ServiceRegistry] Component already registered: mcpService, overwriting
-[0m[31m[2025-08-18T12:59:07.504Z] [test-brain] 🚀 Starting test-brain v1.0.0[0m
-[2025-08-18T12:59:09.611Z] [test-brain] ✅ App initialized successfully
-[0m[31m
-Received SIGINT, shutting down gracefully...[0m
-[?25h

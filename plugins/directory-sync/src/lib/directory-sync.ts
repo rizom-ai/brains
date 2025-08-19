@@ -1,9 +1,11 @@
-import type { Logger } from "@brains/plugins";
+import type { Logger, ServicePluginContext } from "@brains/plugins";
 import type {
   IEntityService,
   BaseEntity,
   BatchOperation,
+  ProgressReporter,
 } from "@brains/plugins";
+import { createId } from "@brains/plugins";
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
 import { join, basename, dirname, resolve, isAbsolute } from "path";
@@ -23,6 +25,7 @@ import type {
   ImportResult,
   SyncResult,
   RawEntity,
+  JobRequest,
 } from "../types";
 
 /**
@@ -58,6 +61,9 @@ export class DirectorySync {
   private watcher: FSWatcher | undefined;
   private lastSync: Date | undefined;
   private watchCallback: ((event: string, path: string) => void) | undefined;
+  private jobQueueCallback?: (job: JobRequest) => Promise<string>;
+  private pendingChanges = new Map<string, string>(); // path -> event type
+  private batchTimeout: Timer | undefined;
 
   constructor(options: DirectorySyncOptions) {
     // Validate options (excluding the complex types)
@@ -100,8 +106,32 @@ export class DirectorySync {
 
     // Start watching if enabled
     if (this.watchEnabled) {
-      this.startWatching();
+      void this.startWatching();
     }
+  }
+
+  /**
+   * Initialize directory structure only (no sync or watching)
+   */
+  async initializeDirectory(): Promise<void> {
+    this.logger.debug("Initializing directory structure", {
+      path: this.syncPath,
+    });
+
+    // Ensure sync path exists
+    if (!existsSync(this.syncPath)) {
+      mkdirSync(this.syncPath, { recursive: true });
+      this.logger.info("Created sync directory", {
+        path: this.syncPath,
+      });
+    }
+  }
+
+  /**
+   * Set job queue callback for async operations
+   */
+  setJobQueueCallback(callback: (job: JobRequest) => Promise<string>): void {
+    this.jobQueueCallback = callback;
   }
 
   /**
@@ -172,6 +202,133 @@ export class DirectorySync {
             error: exportError,
           });
         }
+      }
+    }
+
+    this.logger.debug("Export completed", result);
+    return result;
+  }
+
+  /**
+   * Import entities from directory with progress reporting
+   */
+  async importEntitiesWithProgress(
+    paths: string[] | undefined,
+    reporter: ProgressReporter,
+    batchSize: number,
+  ): Promise<ImportResult> {
+    this.logger.debug("Importing entities with progress reporting");
+
+    const result: ImportResult = {
+      imported: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    // Get all files to process
+    const filesToProcess = paths ?? this.getAllMarkdownFiles();
+    const totalFiles = filesToProcess.length;
+
+    // Report initial progress
+    await reporter.report({
+      progress: 0,
+      message: `Starting import of ${totalFiles} files`,
+    });
+
+    // Process in batches for progress reporting
+    for (let i = 0; i < totalFiles; i += batchSize) {
+      const batch = filesToProcess.slice(i, i + batchSize);
+
+      // Process batch
+      const batchResult = await this.importEntities(batch);
+
+      // Accumulate results
+      result.imported += batchResult.imported;
+      result.skipped += batchResult.skipped;
+      result.failed += batchResult.failed;
+      result.errors.push(...batchResult.errors);
+
+      // Report progress
+      const processed = Math.min(i + batchSize, totalFiles);
+      const percentage = Math.round((processed / totalFiles) * 40); // Import is 0-40% of sync
+      await reporter.report({
+        progress: percentage,
+        message: `Imported ${processed}/${totalFiles} files`,
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Export entities to directory with progress reporting
+   */
+  async exportEntitiesWithProgress(
+    entityTypes: string[] | undefined,
+    reporter: ProgressReporter,
+    batchSize: number,
+  ): Promise<ExportResult> {
+    this.logger.debug("Exporting entities with progress reporting");
+
+    const typesToExport =
+      entityTypes ?? this.entityTypes ?? this.entityService.getEntityTypes();
+    const result: ExportResult = {
+      exported: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    const totalTypes = typesToExport.length;
+
+    // Report initial progress
+    await reporter.report({
+      progress: 50, // Export starts at 50%
+      message: `Starting export of ${totalTypes} entity types`,
+    });
+
+    // Process each entity type
+    for (let typeIndex = 0; typeIndex < totalTypes; typeIndex++) {
+      const entityType = typesToExport[typeIndex];
+      if (!entityType) continue; // Skip if undefined
+      const entities = await this.entityService.listEntities(entityType, {
+        limit: 1000,
+      });
+
+      // Process entities in batches
+      for (let i = 0; i < entities.length; i += batchSize) {
+        const batch = entities.slice(i, i + batchSize);
+
+        for (const entity of batch) {
+          try {
+            await this.writeEntity(entity);
+            result.exported++;
+            this.logger.debug("Exported entity", { entityType, id: entity.id });
+          } catch {
+            const exportError = new Error(
+              `Failed to export entity ${entity.id || "unknown"}`,
+            );
+            result.failed++;
+            result.errors.push({
+              entityId: entity.id || "unknown",
+              entityType,
+              error: exportError.message,
+            });
+            this.logger.error("Failed to export entity", {
+              entityType,
+              id: entity.id || "unknown",
+              error: exportError,
+            });
+          }
+        }
+
+        // Report progress for this batch
+        const typeProgress = (typeIndex + 1) / totalTypes;
+        const overallProgress = 50 + Math.round(typeProgress * 50); // Export is 50-100%
+        await reporter.report({
+          progress: overallProgress,
+          message: `Exported ${result.exported} entities`,
+        });
       }
     }
 
@@ -503,9 +660,55 @@ export class DirectorySync {
   }
 
   /**
+   * Queue a sync batch operation
+   * Encapsulates the common pattern of preparing and queuing batch operations
+   */
+  async queueSyncBatch(
+    pluginContext: ServicePluginContext,
+    source: string,
+    metadata?: {
+      progressToken?: string;
+      pluginId?: string;
+      rootJobId?: string;
+    },
+  ): Promise<{
+    batchId: string;
+    operationCount: number;
+    exportOperationsCount: number;
+    importOperationsCount: number;
+    totalFiles: number;
+  } | null> {
+    const batchData = this.prepareBatchOperations();
+
+    if (batchData.operations.length === 0) {
+      this.logger.debug("No sync operations needed", { source });
+      return null;
+    }
+
+    const batchId = await pluginContext.enqueueBatch(batchData.operations, {
+      source,
+      metadata: {
+        rootJobId: metadata?.rootJobId ?? createId(),
+        progressToken: metadata?.progressToken,
+        operationType: "file_operations",
+        operationTarget: this.syncPath,
+        pluginId: metadata?.pluginId ?? "directory-sync",
+      },
+    });
+
+    return {
+      batchId,
+      operationCount: batchData.operations.length,
+      exportOperationsCount: batchData.exportOperationsCount,
+      importOperationsCount: batchData.importOperationsCount,
+      totalFiles: batchData.totalFiles,
+    };
+  }
+
+  /**
    * Start watching directory for changes
    */
-  startWatching(): void {
+  async startWatching(): Promise<void> {
     if (this.watcher) {
       this.logger.debug("Already watching directory");
       return;
@@ -564,7 +767,7 @@ export class DirectorySync {
   }
 
   /**
-   * Handle file change events
+   * Handle file change events by batching them
    */
   private async handleFileChange(event: string, path: string): Promise<void> {
     // Only process markdown files
@@ -574,26 +777,87 @@ export class DirectorySync {
 
     this.logger.debug("File change detected", { event, path });
 
-    try {
-      switch (event) {
-        case "add":
-        case "change": {
-          // Import the changed file
-          const relativePath = path.replace(this.syncPath + "/", "");
-          await this.importEntities([relativePath]);
-          break;
-        }
+    // Add to pending changes
+    const relativePath = path.replace(this.syncPath + "/", "");
+    this.pendingChanges.set(relativePath, event);
 
-        case "delete":
-          // Entity deletion is not handled automatically to prevent data loss
-          this.logger.warn("File deleted, manual sync required", { path });
-          break;
+    // Clear existing timeout
+    if (this.batchTimeout) {
+      clearTimeout(this.batchTimeout);
+    }
+
+    // Set new timeout to process batch after 500ms of no activity
+    this.batchTimeout = setTimeout(() => {
+      void this.processPendingChanges();
+    }, 500);
+  }
+
+  /**
+   * Process pending file changes as a batch
+   */
+  private async processPendingChanges(): Promise<void> {
+    if (this.pendingChanges.size === 0) {
+      return;
+    }
+
+    const changes = new Map(this.pendingChanges);
+    this.pendingChanges.clear();
+    this.batchTimeout = undefined;
+
+    this.logger.debug("Processing batched file changes", {
+      changeCount: changes.size,
+    });
+
+    try {
+      // Separate changes by type
+      const importsNeeded: string[] = [];
+      const deletesNeeded: string[] = [];
+
+      for (const [path, event] of changes) {
+        switch (event) {
+          case "add":
+          case "change":
+            importsNeeded.push(path);
+            break;
+          case "delete":
+          case "unlink":
+            deletesNeeded.push(path);
+            break;
+        }
+      }
+
+      // Process imports
+      if (importsNeeded.length > 0) {
+        if (this.jobQueueCallback) {
+          // Queue import job for all changed files
+          const jobId = await this.jobQueueCallback({
+            type: "directory-import" as const,
+            data: {
+              paths: importsNeeded,
+            },
+          });
+          this.logger.debug("Queued batch import job for file changes", {
+            jobId,
+            fileCount: importsNeeded.length,
+          });
+        } else {
+          // Fallback to direct import
+          await this.importEntities(importsNeeded);
+        }
+      }
+
+      // Process deletes (just log for now)
+      if (deletesNeeded.length > 0) {
+        // Entity deletion is not handled automatically to prevent data loss
+        this.logger.warn("Files deleted, manual sync required", {
+          paths: deletesNeeded,
+          count: deletesNeeded.length,
+        });
       }
     } catch {
-      const watchError = new Error("Failed to handle file change event");
-      this.logger.error("Failed to handle file change", {
-        event,
-        path,
+      const watchError = new Error("Failed to process batched file changes");
+      this.logger.error("Failed to process batched file changes", {
+        changeCount: changes.size,
         error: watchError,
       });
     }

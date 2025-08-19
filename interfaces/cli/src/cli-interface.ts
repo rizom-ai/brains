@@ -102,12 +102,30 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   ): Promise<void> {
     // Show all progress events, not just owned jobs
     // This allows monitoring of system-initiated jobs, auto-extraction, etc.
-    
+
     // Update local progress state for UI
     this.progressEvents = progressReducer(this.progressEvents, {
       type: "UPDATE_PROGRESS",
       payload: progressEvent,
     });
+
+    // Clean up completed events after a delay to allow UI to show completion
+    if (
+      progressEvent.status === "completed" ||
+      progressEvent.status === "failed"
+    ) {
+      setTimeout(() => {
+        this.progressEvents = progressReducer(this.progressEvents, {
+          type: "CLEANUP_PROGRESS",
+          payload: progressEvent,
+        });
+        // Update UI after cleanup
+        if (this.progressCallback) {
+          const allEvents = Array.from(this.progressEvents.values());
+          this.progressCallback(allEvents);
+        }
+      }, 500); // Keep completed events visible for 500ms
+    }
 
     // Notify React component of progress changes
     if (this.progressCallback) {
@@ -120,7 +138,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
       progressEvent.id,
       context.rootJobId,
     );
-    
+
     if (trackingInfo) {
       // Edit message for inline progress display (for CLI-initiated jobs)
       const message = formatProgressMessage(progressEvent);

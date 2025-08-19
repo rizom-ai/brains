@@ -2,6 +2,7 @@ import type { PluginTool, ToolContext, ToolResponse } from "@brains/plugins";
 import type { DirectorySync } from "../lib/directory-sync";
 import type { ServicePluginContext } from "@brains/plugins";
 import { z } from "zod";
+import { createId } from "@brains/plugins";
 
 export function createDirectorySyncTools(
   directorySync: DirectorySync,
@@ -18,9 +19,29 @@ export function createDirectorySyncTools(
         _input: unknown,
         context: ToolContext,
       ): Promise<ToolResponse> => {
-        const batchData = directorySync.prepareBatchOperations();
+        const source = context.channelId
+          ? `${context.interfaceType}:${context.channelId}`
+          : `plugin:${pluginId}`;
 
-        if (batchData.operations.length === 0) {
+        const metadata: {
+          progressToken?: string;
+          pluginId?: string;
+        } = {
+          pluginId,
+        };
+        
+        const progressToken = context.progressToken?.toString();
+        if (progressToken !== undefined) {
+          metadata.progressToken = progressToken;
+        }
+        
+        const result = await directorySync.queueSyncBatch(
+          pluginContext,
+          source,
+          metadata,
+        );
+
+        if (!result) {
           return {
             status: "completed",
             message: "No operations needed - no entity types or files to sync",
@@ -28,29 +49,13 @@ export function createDirectorySyncTools(
           };
         }
 
-        const source = context.channelId
-          ? `${context.interfaceType}:${context.channelId}`
-          : `plugin:${pluginId}`;
-
-        const batchId = await pluginContext.enqueueBatch(batchData.operations, {
-          source,
-          metadata: {
-            interfaceType: context.interfaceType,
-            userId: context.userId,
-            channelId: context.channelId,
-            progressToken: context.progressToken,
-            operationType: "file_operations",
-            pluginId,
-          },
-        });
-
         return {
           status: "queued",
-          message: `Sync batch operation queued: ${batchData.exportOperationsCount} export jobs, ${batchData.importOperationsCount} import jobs for ${batchData.totalFiles} files`,
-          batchId,
-          exportOperations: batchData.exportOperationsCount,
-          importOperations: batchData.importOperationsCount,
-          totalFiles: batchData.totalFiles,
+          message: `Sync batch operation queued: ${result.exportOperationsCount} export jobs, ${result.importOperationsCount} import jobs for ${result.totalFiles} files`,
+          batchId: result.batchId,
+          exportOperations: result.exportOperationsCount,
+          importOperations: result.importOperationsCount,
+          totalFiles: result.totalFiles,
           tip: "Use the status tool to check progress of this batch operation",
         };
       },
@@ -101,9 +106,7 @@ export function createDirectorySyncTools(
         const batchId = await pluginContext.enqueueBatch(operations, {
           source: `plugin:${pluginId}`,
           metadata: {
-            interfaceType: context.interfaceType,
-            userId: context.userId,
-            channelId: context.channelId,
+            rootJobId: createId(),
             progressToken: context.progressToken,
             operationType: "file_operations",
             pluginId,
@@ -173,9 +176,7 @@ export function createDirectorySyncTools(
         const batchId = await pluginContext.enqueueBatch(operations, {
           source: `plugin:${pluginId}`,
           metadata: {
-            interfaceType: context.interfaceType,
-            userId: context.userId,
-            channelId: context.channelId,
+            rootJobId: createId(),
             progressToken: context.progressToken,
             operationType: "file_operations",
             pluginId,
@@ -206,7 +207,7 @@ export function createDirectorySyncTools(
         const params = watchSchema.parse(input);
 
         if (params.action === "start") {
-          directorySync.startWatching();
+          void directorySync.startWatching();
         } else {
           directorySync.stopWatching();
         }

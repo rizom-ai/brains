@@ -6,17 +6,15 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import type { DirectorySync } from "../lib/directory-sync";
-import type { ExportResult } from "../types";
+import type { ExportResult, DirectoryExportJobData } from "../types";
 
 /**
  * Schema for directory export job data
  */
 const directoryExportJobSchema = z.object({
   entityTypes: z.array(z.string()).optional(),
-  batchSize: z.number().min(1).default(100),
+  batchSize: z.number().min(1).optional().default(100),
 });
-
-export type DirectoryExportJobData = z.infer<typeof directoryExportJobSchema>;
 
 /**
  * Job handler for async directory export operations
@@ -82,7 +80,12 @@ export class DirectoryExportJobHandler
 
       // Process each entity type
       for (const [index, entityType] of typesToExport.entries()) {
-        await this.exportEntityType(entityType, data.batchSize, jobId, result);
+        await this.exportEntityType(
+          entityType,
+          data.batchSize ?? 100,
+          jobId,
+          result,
+        );
 
         // Report progress after each entity type
         await progressReporter.report({
@@ -198,7 +201,15 @@ export class DirectoryExportJobHandler
    */
   public validateAndParse(data: unknown): DirectoryExportJobData | null {
     try {
-      const result = directoryExportJobSchema.parse(data);
+      const parsed = directoryExportJobSchema.parse(data);
+      // Clean up undefined optional properties for exactOptionalPropertyTypes
+      const result: DirectoryExportJobData = {};
+      if (parsed.entityTypes !== undefined) {
+        result.entityTypes = parsed.entityTypes;
+      }
+      if (parsed.batchSize !== undefined) {
+        result.batchSize = parsed.batchSize;
+      }
       this.logger.debug("Directory export job data validation successful", {
         data: result,
       });

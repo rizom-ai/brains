@@ -12,6 +12,24 @@ export const directorySyncConfigSchema = z.object({
     .array(z.string())
     .optional()
     .describe("Specific entity types to sync"),
+  initialSync: z
+    .boolean()
+    .optional()
+    .describe("Queue initial sync job on startup"),
+  initialSyncDelay: z
+    .number()
+    .optional()
+    .describe("Delay before initial sync (ms)"),
+  syncBatchSize: z
+    .number()
+    .optional()
+    .describe("Batch size for sync operations"),
+  syncPriority: z
+    .number()
+    .min(1)
+    .max(10)
+    .optional()
+    .describe("Job priority (1-10)"),
 });
 
 export type DirectorySyncConfig = z.infer<typeof directorySyncConfigSchema>;
@@ -80,3 +98,38 @@ export interface RawEntity {
   created: Date;
   updated: Date;
 }
+
+/**
+ * Job data for directory sync operations
+ */
+export interface DirectorySyncJobData {
+  operation: "initial" | "scheduled" | "manual";
+  paths?: string[];
+  entityTypes?: string[];
+  syncDirection?: "import" | "export" | "both";
+}
+
+/**
+ * Job data for directory import operations
+ */
+export interface DirectoryImportJobData {
+  paths?: string[];
+  batchSize?: number;
+  batchIndex?: number;
+}
+
+/**
+ * Job data for directory export operations
+ */
+export interface DirectoryExportJobData {
+  entityTypes?: string[];
+  batchSize?: number;
+}
+
+/**
+ * Job request types for file watcher - discriminated union for type safety
+ */
+export type JobRequest =
+  | { type: "directory-sync"; data: DirectorySyncJobData }
+  | { type: "directory-import"; data: DirectoryImportJobData }
+  | { type: "directory-export"; data: DirectoryExportJobData };

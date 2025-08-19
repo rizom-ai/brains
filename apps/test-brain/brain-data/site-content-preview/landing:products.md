@@ -5,104 +5,99 @@ sectionId: products
 # Products Section
 
 ## Label
+
 Our Offerings
 
 ## Headline
+
 Innovations for a Sustainable Future
 
 ## Description
-Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We work with clients to create innovative solutions that drive positive change and build a more sustainable future.
+
+Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We create innovative solutions to help organizations and communities thrive in the face of complex challenges.
 
 ## Products
 
 ### Product 1
 
 #### ID
-ecosystem-design
+
+practice-innovation
 
 #### Name
-Ecosystem Design
+
+Practice Innovation
 
 #### Tagline
-Craft resilient business ecosystems
+
+Reimagine your organizational practices
 
 #### Description
-Our experts guide organizations through the process of designing and implementing thriving business ecosystems that foster collaboration, innovation, and shared value creation.
+
+Leverage our proven frameworks and methods to transform your organization's culture, processes, and ways of working.
 
 #### Status
+
 live
 
 #### Link
 
-
 #### Icon
-Network
+
+Wrench
 
 ### Product 2
 
 #### ID
-org-transformation
+
+ecosystem-design
 
 #### Name
-Organizational Transformation
+
+Ecosystem Design
 
 #### Tagline
-Unlock human-centric change
+
+Build collaborative ecosystems
 
 #### Description
-We help organizations undergo meaningful transformation by aligning their culture, processes, and technology with their strategic goals and values.
+
+Design and activate multi-stakeholder ecosystems to tackle systemic challenges and unlock new opportunities.
 
 #### Status
+
 live
 
 #### Link
 
-
 #### Icon
-Cpu
+
+Network
 
 ### Product 3
 
 #### ID
-digital-strategy
+
+economy-of-garbage
 
 #### Name
-Digital Strategy
+
+Economy of Garbage
 
 #### Tagline
-Navigate the digital landscape
+
+Rethink waste as a resource
 
 #### Description
-Our digital transformation experts work with clients to develop comprehensive strategies that leverage the power of technology to drive innovation and growth.
+
+Explore innovative models to transform waste streams into valuable materials and services, creating circular economies.
 
 #### Status
-live
 
-#### Link
-
-
-#### Icon
-Globe
-
-### Product 4
-
-#### ID
-sustainability-consulting
-
-#### Name
-Sustainability Consulting
-
-#### Tagline
-Build a greener future
-
-#### Description
-We help organizations integrate sustainability into their operations, supply chains, and business models to reduce their environmental impact and contribute to a more sustainable world.
-
-#### Status
 beta
 
 #### Link
 
-
 #### Icon
-Zap
+
+Cpu

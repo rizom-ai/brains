@@ -14,9 +14,21 @@ export function createDirectorySyncCommands(
       usage: "/directory-sync",
       handler: async (_args, context): Promise<CommandResponse> => {
         try {
-          const batchData = directorySync.prepareBatchOperations();
+          const source =
+            context.interfaceType && context.channelId
+              ? `${context.interfaceType}:${context.channelId}`
+              : "command:sync";
 
-          if (batchData.operations.length === 0) {
+          const result = await directorySync.queueSyncBatch(
+            pluginContext,
+            source,
+            {
+              progressToken: context.messageId,
+              pluginId,
+            },
+          );
+
+          if (!result) {
             return {
               type: "message",
               message:
@@ -24,31 +36,11 @@ export function createDirectorySyncCommands(
             };
           }
 
-          const source =
-            context.interfaceType && context.channelId
-              ? `${context.interfaceType}:${context.channelId}`
-              : "command:sync";
-
-          const batchId = await pluginContext.enqueueBatch(
-            batchData.operations,
-            {
-              source,
-              metadata: {
-                interfaceType: context.interfaceType,
-                userId: context.userId,
-                channelId: context.channelId,
-                progressToken: context.messageId,
-                operationType: "file_operations",
-                pluginId,
-              },
-            },
-          );
-
           return {
             type: "batch-operation",
-            message: `🔄 **Sync batch started** - ${batchData.exportOperationsCount} export jobs, ${batchData.importOperationsCount} import jobs for ${batchData.totalFiles} files (${batchData.operations.length} operations)`,
-            batchId,
-            operationCount: batchData.operations.length,
+            message: `🔄 **Sync batch started** - ${result.exportOperationsCount} export jobs, ${result.importOperationsCount} import jobs for ${result.totalFiles} files (${result.operationCount} operations)`,
+            batchId: result.batchId,
+            operationCount: result.operationCount,
           };
         } catch (error) {
           return {
