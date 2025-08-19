@@ -5,6 +5,7 @@ import {
   type PluginResource,
   type Command,
   type ConversationDigestPayload,
+  type Message,
   createId,
 } from "@brains/plugins";
 import { conversationDigestPayloadSchema } from "@brains/conversation-service";
@@ -14,6 +15,7 @@ import {
   defaultTopicsPluginConfig,
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
+import { TopicExtractor } from "./lib/topic-extractor";
 import { TopicExtractionHandler } from "./handlers/topic-extraction-handler";
 import { TopicProcessingHandler } from "./handlers/topic-processing-handler";
 import { topicExtractionTemplate } from "./templates/extraction-template";
@@ -124,30 +126,54 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         windowSize: payload.windowSize,
       });
 
-      // Queue a topic extraction job using the digest messages
-      const jobData = {
-        conversationId: payload.conversationId,
-        messages: payload.messages,
-        windowStart: payload.windowStart,
-        windowEnd: payload.windowEnd,
-      };
+      // Extract topics directly (like command does)
+      const topicExtractor = new TopicExtractor(context, this.logger);
+      const extractedTopics = await topicExtractor.extractFromMessages(
+        payload.conversationId,
+        payload.messages as Message[], // Cast since payload uses unknown[]
+        this.config.minRelevanceScore ?? 0.7,
+      );
 
-      // Generate unique ID for system-initiated jobs
+      if (extractedTopics.length === 0) {
+        this.logger.debug("No topics found in digest", {
+          conversationId: payload.conversationId,
+          messagesProcessed: payload.messages.length,
+        });
+        return;
+      }
+
+      // Create batch operations for processing each topic
+      const operations = extractedTopics.map((topic) => ({
+        type: "topics:process-single",
+        data: {
+          topic,
+          conversationId: payload.conversationId,
+          autoMerge: this.config.autoMerge,
+          mergeSimilarityThreshold: this.config.mergeSimilarityThreshold,
+        },
+        metadata: {
+          operationType: "topic_processing" as const,
+          operationTarget: topic.title,
+        },
+      }));
+
+      // Queue batch with system-generated rootJobId
       const rootJobId = createId();
-
-      const jobId = await context.enqueueJob("topics:extraction", jobData, {
+      const batchId = await context.enqueueBatch(operations, {
         priority: 1, // Lower priority than manual extractions
         source: "topics-plugin",
         metadata: {
-          rootJobId, // Use generated ID for system jobs
-          operationType: "data_processing" as const,
+          rootJobId,
+          operationType: "batch_processing" as const,
+          operationTarget: `auto-extract for ${payload.conversationId}`,
           pluginId: "topics",
         },
       });
 
-      this.logger.debug("Queued automatic topic extraction job", {
-        jobId,
+      this.logger.info("Queued automatic topic extraction batch", {
+        batchId,
         conversationId: payload.conversationId,
+        topicsExtracted: extractedTopics.length,
         messagesProcessed: payload.messages.length,
       });
     } catch (error) {
