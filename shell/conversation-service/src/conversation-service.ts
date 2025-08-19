@@ -31,9 +31,10 @@ export class ConversationService implements IConversationService {
   constructor(
     private readonly db: ConversationDB,
     private readonly logger: Logger,
+    messageBus: MessageBus,
     config: ConversationServiceConfig = {},
   ) {
-    this.messageBus = MessageBus.getInstance(logger);
+    this.messageBus = messageBus;
     this.config = {
       digestTriggerInterval: 10,
       digestWindowSize: 20,
@@ -46,6 +47,7 @@ export class ConversationService implements IConversationService {
    */
   public static getInstance(
     logger: Logger,
+    messageBus: MessageBus,
     dbConfig: ConversationDbConfig,
     config?: ConversationServiceConfig,
   ): ConversationService {
@@ -55,6 +57,7 @@ export class ConversationService implements IConversationService {
       ConversationService.instance = new ConversationService(
         db,
         logger,
+        messageBus,
         config,
       );
     }
@@ -74,9 +77,10 @@ export class ConversationService implements IConversationService {
   public static createFresh(
     db: ConversationDB,
     logger: Logger,
+    messageBus: MessageBus,
     config?: ConversationServiceConfig,
   ): ConversationService {
-    return new ConversationService(db, logger, config);
+    return new ConversationService(db, logger, messageBus, config);
   }
 
   /**
@@ -307,7 +311,7 @@ export class ConversationService implements IConversationService {
       .from(messages)
       .where(eq(messages.conversationId, conversationId));
 
-    const messageCount = result?.count ?? 0;
+    const messageCount = Number(result?.count ?? 0);
 
     // Check if we should trigger a digest
     const triggerInterval = this.config.digestTriggerInterval ?? 10;
@@ -353,7 +357,7 @@ export class ConversationService implements IConversationService {
       true, // broadcast
     );
 
-    this.logger.debug("Broadcast conversation digest", {
+    this.logger.info("Broadcast conversation digest", {
       conversationId,
       messageCount,
       windowStart,

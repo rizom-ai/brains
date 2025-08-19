@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { TopicExtractor } from "../../src/lib/topic-extractor";
-import { MockShell } from "@brains/plugins";
-import { createServicePluginContext } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import {
+  MockShell,
+  createServicePluginContext,
+  createSilentLogger,
+  type ServicePluginContext,
+  type Logger,
+} from "@brains/plugins";
 import type { Message } from "@brains/conversation-service";
 import type { ExtractedTopic } from "../../src/types";
-import { Logger } from "@brains/utils";
 
 describe("TopicExtractor", () => {
   let extractor: TopicExtractor;
@@ -14,7 +17,7 @@ describe("TopicExtractor", () => {
   let mockShell: MockShell;
 
   beforeEach(async () => {
-    logger = Logger.getInstance().child("test");
+    logger = createSilentLogger();
     mockShell = new MockShell({ logger });
 
     // Create service plugin context with mock shell

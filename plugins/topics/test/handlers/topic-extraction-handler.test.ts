@@ -1,9 +1,13 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicExtractionHandler } from "../../src/handlers/topic-extraction-handler";
-import { MockShell } from "@brains/plugins";
-import { createServicePluginContext } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
-import { Logger, ProgressReporter } from "@brains/utils";
+import {
+  MockShell,
+  createServicePluginContext,
+  createSilentLogger,
+  type ServicePluginContext,
+  type Logger,
+} from "@brains/plugins";
+import { ProgressReporter } from "@brains/utils";
 import {
   defaultTopicsPluginConfig,
   type TopicsPluginConfig,
@@ -17,7 +21,7 @@ describe("TopicExtractionHandler", () => {
   let config: TopicsPluginConfig;
 
   beforeEach(async () => {
-    logger = Logger.getInstance().child("test");
+    logger = createSilentLogger();
     mockShell = new MockShell({ logger });
 
     // Create service plugin context with mock shell

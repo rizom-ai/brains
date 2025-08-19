@@ -2,23 +2,17 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicsPlugin } from "../src";
 import { createServicePluginHarness } from "@brains/plugins";
 import type { PluginCapabilities } from "@brains/plugins";
-import { Logger } from "@brains/utils";
 
 describe("TopicsPlugin", () => {
   let plugin: TopicsPlugin;
   let harness: ReturnType<typeof createServicePluginHarness>;
-  let logger: Logger;
 
   beforeEach(async () => {
-    logger = Logger.getInstance().child("test");
-
     // Create plugin with default config
     plugin = new TopicsPlugin();
 
-    // Create test harness
-    harness = await createServicePluginHarness({
-      logger,
-    });
+    // Create test harness (uses silent logger by default)
+    harness = createServicePluginHarness();
   });
 
   describe("constructor", () => {

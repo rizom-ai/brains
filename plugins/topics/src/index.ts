@@ -49,6 +49,9 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   }
 
   override async onRegister(context: ServicePluginContext): Promise<void> {
+    // Call parent onRegister first to set up base functionality
+    await super.onRegister(context);
+    
     this.logger.info("Registering Topics plugin");
 
     // Register topic entity type
@@ -90,9 +93,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         await this.handleConversationDigest(context, payload);
         return { success: true };
       });
-      this.logger.info(
-        "Subscribed to conversation digest events for auto-extraction",
-      );
     }
   }
 
@@ -120,10 +120,11 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     payload: ConversationDigestPayload,
   ): Promise<void> {
     try {
-      this.logger.debug("Processing conversation digest for topic extraction", {
+      this.logger.info("Processing conversation digest for topic extraction", {
         conversationId: payload.conversationId,
         messageCount: payload.messageCount,
         windowSize: payload.windowSize,
+        messagesLength: payload.messages.length,
       });
 
       // Extract topics directly (like command does)
@@ -135,12 +136,18 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       );
 
       if (extractedTopics.length === 0) {
-        this.logger.debug("No topics found in digest", {
+        this.logger.info("No topics found in digest", {
           conversationId: payload.conversationId,
           messagesProcessed: payload.messages.length,
         });
         return;
       }
+      
+      this.logger.info("Topics extracted from digest", {
+        conversationId: payload.conversationId,
+        topicsCount: extractedTopics.length,
+        topics: extractedTopics.map(t => t.title),
+      });
 
       // Create batch operations for processing each topic
       const operations = extractedTopics.map((topic) => ({

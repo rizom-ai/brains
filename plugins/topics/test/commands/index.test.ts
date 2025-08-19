@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createTopicsCommands } from "../../src/commands";
-import { MockShell } from "@brains/plugins";
-import { createServicePluginContext } from "@brains/plugins";
-import type { ServicePluginContext, CommandContext } from "@brains/plugins";
+import {
+  MockShell,
+  createServicePluginContext,
+  createSilentLogger,
+  type ServicePluginContext,
+  type CommandContext,
+  type Logger,
+} from "@brains/plugins";
 import type { TopicsPluginConfig } from "../../src/schemas/config";
-import { Logger } from "@brains/utils";
 import type { TopicEntity } from "../../src/types";
 
 describe("Topics Commands", () => {
@@ -16,7 +20,7 @@ describe("Topics Commands", () => {
   let mockCommandContext: CommandContext;
 
   beforeEach(() => {
-    logger = Logger.getInstance().child("test");
+    logger = createSilentLogger();
     mockShell = new MockShell({ logger });
     context = createServicePluginContext(mockShell, "topics", logger);
     config = {

@@ -6,11 +6,14 @@ import {
   createSearchTool,
   createMergeTool,
 } from "../../src/tools";
-import { MockShell } from "@brains/plugins";
-import { createServicePluginContext } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import {
+  MockShell,
+  createServicePluginContext,
+  createSilentLogger,
+  type ServicePluginContext,
+  type Logger,
+} from "@brains/plugins";
 import type { TopicsPluginConfig } from "../../src/schemas/config";
-import { Logger } from "@brains/utils";
 import type { TopicEntity } from "../../src/types";
 
 describe("Topics Tools", () => {
@@ -20,7 +23,7 @@ describe("Topics Tools", () => {
   let mockShell: MockShell;
 
   beforeEach(() => {
-    logger = Logger.getInstance().child("test");
+    logger = createSilentLogger();
     mockShell = new MockShell({ logger });
     context = createServicePluginContext(mockShell, "topics", logger);
     config = {

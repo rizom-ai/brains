@@ -65,18 +65,21 @@ export class TopicService {
         metadata,
       });
 
-      // Retrieve the created entity
-      const topic = await this.entityService.getEntity<TopicEntity>(
-        "topic",
-        entityId,
-      );
+      // Entity is created asynchronously, so we construct the expected entity
+      // rather than trying to fetch it immediately (it won't be in DB yet)
+      const topic: TopicEntity = {
+        id: entityId,
+        entityType: "topic",
+        content: body,
+        metadata,
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
 
-      if (topic) {
-        this.logger.info("Created topic", {
-          id: topic.id,
-          title: params.title,
-        });
-      }
+      this.logger.info("Created topic", {
+        id: topic.id,
+        title: params.title,
+      });
 
       return topic;
     } catch (error) {
@@ -139,15 +142,17 @@ export class TopicService {
       metadata,
     });
 
-    // Retrieve the updated entity
-    const updatedTopic = await this.entityService.getEntity<TopicEntity>(
-      "topic",
-      entityId,
-    );
+    // Entity is updated asynchronously, so we construct the expected entity
+    // rather than trying to fetch it immediately (it won't be in DB yet)
+    const updatedTopic: TopicEntity = {
+      ...existing,
+      id: entityId,
+      content: newBody,
+      metadata,
+      updated: new Date().toISOString(),
+    };
 
-    if (updatedTopic) {
-      this.logger.info("Updated topic", { id });
-    }
+    this.logger.info("Updated topic", { id });
 
     return updatedTopic;
   }

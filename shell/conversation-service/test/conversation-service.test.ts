@@ -6,6 +6,7 @@ import type { ConversationDB } from "../src/database";
 import type { ConversationServiceConfig } from "../src/types";
 import { createTestConversationDatabase } from "./helpers/test-conversation-db";
 import type { Client } from "@libsql/client";
+import { MessageBus } from "@brains/messaging-service";
 
 describe("ConversationService", () => {
   let service: ConversationService;
@@ -13,6 +14,7 @@ describe("ConversationService", () => {
   let client: Client;
   let logger: Logger;
   let config: ConversationServiceConfig;
+  let messageBus: MessageBus;
   let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
@@ -25,11 +27,14 @@ describe("ConversationService", () => {
     // Create silent logger for tests
     logger = createSilentLogger();
 
+    // Create MessageBus for tests
+    messageBus = MessageBus.createFresh(logger);
+
     // Create config
     config = {};
 
     // Create service with real database
-    service = ConversationService.createFresh(db, logger, config);
+    service = ConversationService.createFresh(db, logger, messageBus, config);
   });
 
   afterEach(async () => {
@@ -274,7 +279,7 @@ describe("ConversationService", () => {
 
   describe("conversation digest configuration", () => {
     it("should use default digest configuration values", () => {
-      const defaultService = ConversationService.createFresh(db, logger, {});
+      const defaultService = ConversationService.createFresh(db, logger, messageBus, {});
 
       // Access private config to verify defaults
       expect((defaultService as any).config.digestTriggerInterval).toBe(10);
@@ -289,6 +294,7 @@ describe("ConversationService", () => {
       const customService = ConversationService.createFresh(
         db,
         logger,
+        messageBus,
         customConfig,
       );
 
@@ -300,7 +306,7 @@ describe("ConversationService", () => {
   describe("digest window calculations", () => {
     it("should calculate correct window ranges for small conversations", async () => {
       // Create a service that can access private methods for testing
-      const testService = ConversationService.createFresh(db, logger, {
+      const testService = ConversationService.createFresh(db, logger, messageBus, {
         digestTriggerInterval: 2,
         digestWindowSize: 5,
       });
@@ -329,7 +335,7 @@ describe("ConversationService", () => {
     });
 
     it("should handle window ranges larger than available messages", async () => {
-      const testService = ConversationService.createFresh(db, logger, {
+      const testService = ConversationService.createFresh(db, logger, messageBus, {
         digestTriggerInterval: 10,
         digestWindowSize: 20,
       });

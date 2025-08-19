@@ -29,12 +29,12 @@ export function createDirectorySyncTools(
         } = {
           pluginId,
         };
-        
+
         const progressToken = context.progressToken?.toString();
         if (progressToken !== undefined) {
           metadata.progressToken = progressToken;
         }
-        
+
         const result = await directorySync.queueSyncBatch(
           pluginContext,
           source,

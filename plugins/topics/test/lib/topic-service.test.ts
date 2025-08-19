@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicService } from "../../src/lib/topic-service";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
-import { MockShell } from "@brains/plugins";
-import { Logger } from "@brains/utils";
+import { MockShell, createSilentLogger, type Logger } from "@brains/plugins";
 import type { TopicEntity } from "../../src/types";
 import type { TopicSource } from "../../src/schemas/topic";
 
@@ -12,7 +11,7 @@ describe("TopicService", () => {
   let logger: Logger;
 
   beforeEach(() => {
-    logger = Logger.getInstance().child("test");
+    logger = createSilentLogger();
     mockShell = new MockShell({ logger });
 
     // Get the real EntityService from MockShell
