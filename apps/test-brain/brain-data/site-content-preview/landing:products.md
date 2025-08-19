@@ -2,131 +2,107 @@
 routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label
-
 Our Offerings
 
 ## Headline
-
 Innovations for a Sustainable Future
 
 ## Description
-
-Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We help organizations navigate the complexities of the modern world and create innovative solutions that drive positive change.
+Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We work with clients to create innovative solutions that drive positive change and build a more sustainable future.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
-ecosystem-architecture
+ecosystem-design
 
 #### Name
-
-Ecosystem Architecture
+Ecosystem Design
 
 #### Tagline
-
-Design resilient, adaptable systems
+Craft resilient business ecosystems
 
 #### Description
-
-Our ecosystem architecture practice helps organizations build interconnected, self-sustaining systems that can adapt to changing conditions.
+Our experts guide organizations through the process of designing and implementing thriving business ecosystems that foster collaboration, innovation, and shared value creation.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
+#### Icon
 Network
 
 ### Product 2
 
 #### ID
-
-organizational-transformation
+org-transformation
 
 #### Name
-
 Organizational Transformation
 
 #### Tagline
-
-Empower people, unlock potential
+Unlock human-centric change
 
 #### Description
-
-We guide organizations through holistic transformations, aligning culture, processes, and technology to unlock new ways of working and thriving.
+We help organizations undergo meaningful transformation by aligning their culture, processes, and technology with their strategic goals and values.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
+#### Icon
 Cpu
 
 ### Product 3
 
 #### ID
-
-regenerative-design
+digital-strategy
 
 #### Name
-
-Regenerative Design
+Digital Strategy
 
 #### Tagline
-
-Create a positive human impact
+Navigate the digital landscape
 
 #### Description
-
-Our regenerative design approach helps organizations rethink their impact and create solutions that restore and renew the natural and social environments.
+Our digital transformation experts work with clients to develop comprehensive strategies that leverage the power of technology to drive innovation and growth.
 
 #### Status
-
-beta
+live
 
 #### Link
 
-#### Icon
 
+#### Icon
 Globe
 
 ### Product 4
 
 #### ID
-
-circular-economy
+sustainability-consulting
 
 #### Name
-
-Circular Economy
+Sustainability Consulting
 
 #### Tagline
-
-Eliminate waste, maximize value
+Build a greener future
 
 #### Description
-
-We enable organizations to transition to a circular economy model, where resources are kept in use for as long as possible, extracting the maximum value from them.
+We help organizations integrate sustainability into their operations, supply chains, and business models to reduce their environmental impact and contribute to a more sustainable world.
 
 #### Status
-
 beta
 
 #### Link
 
-#### Icon
 
+#### Icon
 Zap

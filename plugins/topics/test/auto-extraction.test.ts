@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { TopicsPlugin } from "../src";
-import type { ConversationDigestPayload, ServicePluginContext } from "@brains/plugins";
+import type {
+  ConversationDigestPayload,
+  ServicePluginContext,
+} from "@brains/plugins";
 import { Logger } from "@brains/utils";
 
 describe("Auto-extraction with batch processing", () => {
@@ -74,14 +77,17 @@ describe("Auto-extraction with batch processing", () => {
 
     // Verify batch was created with correct structure
     expect(enqueueBatchMock).toHaveBeenCalled();
-    const [operations, options] = enqueueBatchMock.mock.calls[0] as [any[], any];
-    
+    const [operations, options] = enqueueBatchMock.mock.calls[0] as [
+      any[],
+      any,
+    ];
+
     expect(operations).toHaveLength(1);
     expect(operations[0].type).toBe("topics:process-single");
     expect(operations[0].data.topic.title).toBe("Test Topic");
     expect(operations[0].data.autoMerge).toBe(true);
     expect(operations[0].data.mergeSimilarityThreshold).toBe(0.8);
-    
+
     expect(options.priority).toBe(1);
     expect(options.source).toBe("topics-plugin");
     expect(options.metadata.operationType).toBe("batch_processing");

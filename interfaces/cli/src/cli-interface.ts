@@ -94,30 +94,15 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   }
 
   /**
-   * Handle progress events using inherited job tracking logic
+   * Handle progress events - show ALL job queue and batch updates
    */
   protected async handleProgressEvent(
     progressEvent: JobProgressEvent,
     context: JobContext,
   ): Promise<void> {
-    // Use inherited logic to check job ownership
-    if (!this.ownsJob(progressEvent.id, context.rootJobId)) {
-      return; // Not our job, ignore
-    }
-
-    // Get tracking info (direct or inherited)
-    const trackingInfo = this.getJobTracking(
-      progressEvent.id,
-      context.rootJobId,
-    );
-    if (!trackingInfo) {
-      this.logger.warn("No tracking info found for owned job", {
-        jobId: progressEvent.id,
-        rootJobId: context.rootJobId,
-      });
-      return;
-    }
-
+    // Show all progress events, not just owned jobs
+    // This allows monitoring of system-initiated jobs, auto-extraction, etc.
+    
     // Update local progress state for UI
     this.progressEvents = progressReducer(this.progressEvents, {
       type: "UPDATE_PROGRESS",
@@ -130,16 +115,34 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
       this.progressCallback(allEvents);
     }
 
-    // Edit message for inline progress display
-    const message = formatProgressMessage(progressEvent);
-    if (message) {
-      await this.editMessage(context.rootJobId, message, {
-        userId: trackingInfo.userId,
-        channelId: trackingInfo.channelId,
-        messageId: context.rootJobId,
-        timestamp: new Date(),
-        interfaceType: "cli",
-        userPermissionLevel: "anchor",
+    // For inline message editing, only update if we have tracking info
+    const trackingInfo = this.getJobTracking(
+      progressEvent.id,
+      context.rootJobId,
+    );
+    
+    if (trackingInfo) {
+      // Edit message for inline progress display (for CLI-initiated jobs)
+      const message = formatProgressMessage(progressEvent);
+      if (message) {
+        await this.editMessage(context.rootJobId, message, {
+          userId: trackingInfo.userId,
+          channelId: trackingInfo.channelId,
+          messageId: context.rootJobId,
+          timestamp: new Date(),
+          interfaceType: "cli",
+          userPermissionLevel: "anchor",
+        });
+      }
+    } else {
+      // For non-owned jobs, just log them (they'll show in status bar)
+      this.logger.debug("Progress event for system job", {
+        jobId: progressEvent.id,
+        rootJobId: context.rootJobId,
+        status: progressEvent.status,
+        progress: progressEvent.progress,
+        operationType: progressEvent.metadata.operationType,
+        operationTarget: progressEvent.metadata.operationTarget,
       });
     }
   }
