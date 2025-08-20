@@ -195,7 +195,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
 
         // Simulate complex calculation
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        
+
         // WARNING: In production code, NEVER use eval()!
         // Use a proper math expression parser like mathjs or expr-eval
         // Example: import { evaluate } from 'mathjs';
@@ -275,7 +275,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         handler: async (input) => {
           const parsed = z.object({ expression: z.string() }).parse(input);
           const { expression } = parsed;
-          
+
           // WARNING: In production code, NEVER use eval()!
           // Use a proper math expression parser like mathjs or expr-eval
           // This is for demonstration purposes only

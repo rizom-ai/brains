@@ -18,6 +18,7 @@ import {
   statSync,
   utimesSync,
 } from "fs";
+import { createHash } from "crypto";
 import { z } from "zod";
 import type {
   DirectorySyncStatus,
@@ -337,6 +338,117 @@ export class DirectorySync {
   }
 
   /**
+   * Calculate content hash for change detection
+   */
+  private calculateContentHash(content: string): string {
+    return createHash("sha256").update(content).digest("hex");
+  }
+
+  /**
+   * Determine if an entity should be updated based on content comparison
+   */
+  private shouldUpdateEntity(existing: BaseEntity, newEntity: RawEntity): boolean {
+    // Compare content hashes to detect actual changes
+    const existingHash = this.calculateContentHash(existing.content);
+    const newHash = this.calculateContentHash(newEntity.content);
+    
+    // Update only if content has actually changed
+    return existingHash !== newHash;
+  }
+
+  /**
+   * Import a single file
+   */
+  private async importFile(
+    filePath: string,
+    result: ImportResult,
+  ): Promise<void> {
+    try {
+      const rawEntity = await this.readEntity(filePath);
+
+      // Skip if entity type is not in our filter
+      if (
+        this.entityTypes &&
+        !this.entityTypes.includes(rawEntity.entityType)
+      ) {
+        result.skipped++;
+        return;
+      }
+
+      // Try to process the entity
+      await this.processEntityImport(rawEntity, filePath, result);
+    } catch {
+      const importError = new Error(`Failed to import entity from file`);
+      result.failed++;
+      result.errors.push({
+        path: filePath,
+        error: importError.message,
+      });
+      this.logger.error("Failed to import entity", {
+        path: filePath,
+        error: importError,
+      });
+    }
+  }
+
+  /**
+   * Process entity import with deserialization and update check
+   */
+  private async processEntityImport(
+    rawEntity: RawEntity,
+    filePath: string,
+    result: ImportResult,
+  ): Promise<void> {
+    try {
+      // Deserialize the markdown content to get parsed fields
+      const parsedEntity = this.entityService.deserializeEntity(
+        rawEntity.content,
+        rawEntity.entityType,
+      );
+
+      // Check if entity exists and compare content
+      const existing = await this.entityService.getEntity(
+        rawEntity.entityType,
+        rawEntity.id,
+      );
+
+      if (existing && !this.shouldUpdateEntity(existing, rawEntity)) {
+        // Skip if content hasn't changed
+        result.skipped++;
+        return;
+      }
+
+      // Build entity for upsert
+      const entity = {
+        id: rawEntity.id,
+        entityType: rawEntity.entityType,
+        content: rawEntity.content,
+        ...parsedEntity,
+        created: existing?.created ?? rawEntity.created.toISOString(),
+        updated: rawEntity.updated.toISOString(),
+      };
+
+      await this.entityService.upsertEntity(entity);
+      result.imported++;
+      this.logger.debug("Imported entity from directory", {
+        path: filePath,
+        entityType: rawEntity.entityType,
+      });
+    } catch {
+      // Skip if entity type is not registered or deserialization fails
+      const serializationError = new Error(
+        "Unable to deserialize entity from file",
+      );
+      this.logger.debug("Skipping file - unable to deserialize", {
+        path: filePath,
+        entityType: rawEntity.entityType,
+        error: serializationError,
+      });
+      result.skipped++;
+    }
+  }
+
+  /**
    * Import entities from directory
    */
   async importEntities(paths?: string[]): Promise<ImportResult> {
@@ -352,96 +464,23 @@ export class DirectorySync {
     // Get all files to process
     const filesToProcess = paths ?? this.getAllMarkdownFiles();
 
+    // Process each file
     for (const filePath of filesToProcess) {
-      try {
-        const rawEntity = await this.readEntity(filePath);
-
-        // Skip if entity type is not in our filter
-        if (
-          this.entityTypes &&
-          !this.entityTypes.includes(rawEntity.entityType)
-        ) {
-          result.skipped++;
-          continue;
-        }
-
-        try {
-          // Deserialize the markdown content to get parsed fields
-          const parsedEntity = this.entityService.deserializeEntity(
-            rawEntity.content,
-            rawEntity.entityType,
-          );
-
-          // TODO: Improve timestamp comparison logic:
-          // - Consider using content hashes for change detection
-          // - Handle timestamp precision differences between file systems and DB
-          // - Add force option to override timestamp checks
-          // - Use <= instead of < to handle equal timestamps
-
-          // Check if entity exists to determine if we should check timestamps
-          const existing = await this.entityService.getEntity(
-            rawEntity.entityType,
-            rawEntity.id,
-          );
-
-          if (existing) {
-            // Update if modified (compare timestamps)
-            const existingTime = new Date(existing.updated).getTime();
-            const newTime = rawEntity.updated.getTime();
-            if (existingTime >= newTime) {
-              // Skip if existing entity is newer or same time
-              result.skipped++;
-              continue;
-            }
-          }
-
-          // Build entity for upsert
-          const entity = {
-            id: rawEntity.id,
-            entityType: rawEntity.entityType,
-            content: rawEntity.content,
-            ...parsedEntity,
-            created: existing?.created ?? rawEntity.created.toISOString(),
-            updated: rawEntity.updated.toISOString(),
-          };
-
-          await this.entityService.upsertEntity(entity);
-        } catch {
-          // Skip if entity type is not registered or deserialization fails
-          const serializationError = new Error(
-            "Unable to deserialize entity from file",
-          );
-          this.logger.debug("Skipping file - unable to deserialize", {
-            path: filePath,
-            entityType: rawEntity.entityType,
-            error: serializationError,
-          });
-          result.skipped++;
-          continue;
-        }
-        result.imported++;
-        this.logger.debug("Imported entity from directory", {
-          path: filePath,
-          entityType: rawEntity.entityType,
-        });
-      } catch {
-        const importError = new Error(`Failed to import entity from file`);
-        result.failed++;
-        result.errors.push({
-          path: filePath,
-          error: importError.message,
-        });
-        this.logger.error("Failed to import entity", {
-          path: filePath,
-          error: importError,
-        });
-      }
+      await this.importFile(filePath, result);
     }
 
-    // Only log at debug level for all imports to reduce noise
-    if (filesToProcess.length > 1) {
+    // Log import summary
+    this.logImportSummary(filesToProcess.length, result);
+    return result;
+  }
+
+  /**
+   * Log import operation summary
+   */
+  private logImportSummary(fileCount: number, result: ImportResult): void {
+    if (fileCount > 1) {
       this.logger.debug("Import completed", {
-        filesProcessed: filesToProcess.length,
+        filesProcessed: fileCount,
         imported: result.imported,
         skipped: result.skipped,
         failed: result.failed,
@@ -450,7 +489,6 @@ export class DirectorySync {
       // For single file imports (like from file watcher), use debug level
       this.logger.debug("Import completed", result);
     }
-    return result;
   }
 
   /**
