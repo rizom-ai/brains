@@ -5,7 +5,6 @@
       "name": "rizom-brains",
       "devDependencies": {
         "eslint": "^8.48.0",
-        "gray-matter": "^4.0.3",
         "husky": "^9.0.11",
         "ink-testing-library": "^4.0.0",
         "lint-staged": "^15.2.0",
@@ -304,6 +303,7 @@
       "name": "@brains/app",
       "version": "0.1.0",
       "dependencies": {
+        "@brains/ai-service": "workspace:*",
         "@brains/core": "workspace:*",
         "@brains/matrix": "workspace:*",
         "@brains/mcp": "workspace:*",
@@ -520,6 +520,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.1.14",
         "eslint": "^8.56.0",
+        "ts-pattern": "^5.0.0",
         "typescript": "~5.7.2",
       },
     },
@@ -1896,6 +1897,8 @@
     "ts-api-utils": ["ts-api-utils@2.1.0", "", { "peerDependencies": { "typescript": ">=4.8.4" } }, "sha512-CUgTZL1irw8u29bzrOD/nH85jqyc74D6SshFgujOIA7osm2Rz7dYH77agkx7H4FBNxDq7Cjf+IjaX/8zwFW+ZQ=="],
 
     "ts-dedent": ["ts-dedent@2.2.0", "", {}, "sha512-q5W7tVM71e2xjHZTlgfTDoPF/SmqKG5hddq9SzR49CH2hayqRKJtQ4mtRlSxKaJlR/+9rEM+mnBHf7I2/BQcpQ=="],
+
+    "ts-pattern": ["ts-pattern@5.8.0", "", {}, "sha512-kIjN2qmWiHnhgr5DAkAafF9fwb0T5OhMVSWrm8XEdTFnX6+wfXwYOFjeF86UZ54vduqiR7BfqScFmXSzSaH8oA=="],
 
     "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 

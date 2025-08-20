@@ -63,6 +63,7 @@ The project follows a **tool-first architecture** where all functionality is exp
 ### Core Packages
 
 #### Shell Core
+
 - **@brains/core**: Shell orchestrator and core infrastructure
 - **@brains/app**: High-level application framework
 - **@brains/entity-service**: Entity management with database and embeddings
@@ -73,18 +74,21 @@ The project follows a **tool-first architecture** where all functionality is exp
 - **@brains/view-registry**: View and template registration system
 
 #### Interfaces
+
 - **@brains/cli**: Command-line interface
 - **@brains/matrix**: Matrix chat interface
 - **@brains/mcp**: MCP (Model Context Protocol) server
 - **@brains/webserver**: Web server interface
 
 #### Plugins
+
 - **@brains/git-sync**: Git synchronization plugin
 - **@brains/directory-sync**: File system synchronization
 - **@brains/topics**: Topic extraction and management
 - **@brains/site-builder-plugin**: Static site generation
 
 #### Shared
+
 - **@brains/utils**: Common utilities and shared types
 - **@brains/content-management**: Content generation and management utilities
 
