@@ -3,37 +3,73 @@ import { StreamableHTTPServer } from "../../src/transports/http-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { TransportLogger } from "../../src/transports/types";
 
+// Test helper types
+interface RequestOptions {
+  port?: number;
+  headers?: Record<string, string>;
+  body?: unknown;
+}
+
+interface RequestResponse {
+  status: number;
+  body: unknown;
+  headers: Record<string, string>;
+}
+
+// Helper to parse SSE response
+function parseSSEResponse(text: string): unknown {
+  const lines = text.split("\n");
+  for (const line of lines) {
+    if (line.startsWith("data: ")) {
+      try {
+        return JSON.parse(line.slice(6));
+      } catch {
+        // Continue to next line
+      }
+    }
+  }
+  return text; // Fallback to raw text
+}
+
+// Helper to extract headers into object
+function extractHeaders(headers: Headers): Record<string, string> {
+  const headerObj: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    headerObj[key] = value;
+  });
+  return headerObj;
+}
+
+// Helper to build default headers for MCP requests
+function buildMCPHeaders(method: string, path: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (path === "/mcp") {
+    if (method === "POST") {
+      headers["Accept"] = "application/json, text/event-stream";
+    } else if (method === "GET") {
+      headers["Accept"] = "text/event-stream";
+    }
+  }
+
+  return headers;
+}
+
 // Helper to make HTTP requests
 async function makeRequest(
   method: string,
   path: string,
-  options: {
-    port?: number;
-    headers?: Record<string, string>;
-    body?: unknown;
-  } = {},
-): Promise<{ status: number; body: unknown; headers: Record<string, string> }> {
+  options: RequestOptions = {},
+): Promise<RequestResponse> {
   const port = options.port ?? 3333;
   const url = `http://localhost:${port}${path}`;
-
-  // Default headers for MCP requests
-  const defaultHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-
-  // Add Accept header for MCP endpoints
-  if (path === "/mcp") {
-    if (method === "POST") {
-      defaultHeaders["Accept"] = "application/json, text/event-stream";
-    } else if (method === "GET") {
-      defaultHeaders["Accept"] = "text/event-stream";
-    }
-  }
 
   const response = await fetch(url, {
     method,
     headers: {
-      ...defaultHeaders,
+      ...buildMCPHeaders(method, path),
       ...options.headers,
     },
     body: options.body ? JSON.stringify(options.body) : null,
@@ -44,20 +80,7 @@ async function makeRequest(
   if (contentType?.includes("application/json")) {
     body = await response.json();
   } else if (contentType?.includes("text/event-stream")) {
-    // Parse SSE response
-    const text = await response.text();
-    const lines = text.split("\n");
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        try {
-          body = JSON.parse(line.slice(6));
-          break;
-        } catch {
-          // Continue to next line
-        }
-      }
-    }
-    body ??= text; // Fallback to raw text
+    body = parseSSEResponse(await response.text());
   } else {
     body = await response.text();
   }
@@ -65,13 +88,7 @@ async function makeRequest(
   return {
     status: response.status,
     body,
-    headers: ((): Record<string, string> => {
-      const headerObj: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        headerObj[key] = value;
-      });
-      return headerObj;
-    })(),
+    headers: extractHeaders(response.headers),
   };
 }
 

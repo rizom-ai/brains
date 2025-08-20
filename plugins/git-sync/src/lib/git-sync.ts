@@ -303,12 +303,11 @@ export class GitSync {
     try {
       await this.git.push("origin", this.branch);
       this.logger.info("Pushed changes to remote");
-    } catch {
-      const pushError = new Error(
-        "Failed to push changes to remote repository",
+    } catch (error) {
+      this.logger.error("Failed to push changes", { error });
+      throw new Error(
+        `Failed to push changes to remote repository: ${error instanceof Error ? error.message : String(error)}`,
       );
-      this.logger.error("Failed to push changes", { error: pushError });
-      throw pushError;
     }
   }
 
@@ -337,12 +336,11 @@ export class GitSync {
           result: importResponse.data,
         });
       }
-    } catch {
-      const pullError = new Error(
-        "Failed to pull changes from remote repository",
+    } catch (error) {
+      this.logger.error("Failed to pull changes", { error });
+      throw new Error(
+        `Failed to pull changes from remote repository: ${error instanceof Error ? error.message : String(error)}`,
       );
-      this.logger.error("Failed to pull changes", { error: pullError });
-      throw pullError;
     }
   }
 
@@ -387,10 +385,11 @@ export class GitSync {
       }
 
       this.logger.info("Sync completed successfully");
-    } catch {
-      const syncError = new Error("Git synchronization failed");
-      this.logger.error("Sync failed", { error: syncError });
-      throw syncError;
+    } catch (error) {
+      this.logger.error("Sync failed", { error });
+      throw new Error(
+        `Git synchronization failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 

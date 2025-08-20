@@ -195,7 +195,13 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
 
         // Simulate complex calculation
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        const result = eval(expression); // In real code, use a proper parser!
+        
+        // WARNING: In production code, NEVER use eval()!
+        // Use a proper math expression parser like mathjs or expr-eval
+        // Example: import { evaluate } from 'mathjs';
+        //          const result = evaluate(expression);
+        // For demo purposes only:
+        const result = eval(expression);
 
         // Store in entity service
         await context.entityService.createEntity({
@@ -269,7 +275,11 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         handler: async (input) => {
           const parsed = z.object({ expression: z.string() }).parse(input);
           const { expression } = parsed;
-          const result = eval(expression); // In real code, use a proper parser!
+          
+          // WARNING: In production code, NEVER use eval()!
+          // Use a proper math expression parser like mathjs or expr-eval
+          // This is for demonstration purposes only
+          const result = eval(expression);
 
           // Store calculation in entity service
           const calculation = await context.entityService.createEntity({

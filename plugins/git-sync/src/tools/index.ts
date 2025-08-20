@@ -1,4 +1,4 @@
-import type { PluginTool } from "@brains/plugins";
+import type { PluginTool, ToolResponse } from "@brains/plugins";
 import type { GitSync } from "../lib/git-sync";
 import { z } from "zod";
 
@@ -24,8 +24,23 @@ export function createGitSyncTools(
       description: "Get git repository status",
       inputSchema: {},
       visibility: "public",
-      handler: async (): Promise<unknown> => {
-        return gitSync.getStatus();
+      handler: async (): Promise<ToolResponse> => {
+        const status = await gitSync.getStatus();
+        // Return the status wrapped in a ToolResponse structure
+        return {
+          success: true,
+          status: "ok",
+          data: {
+            isRepo: status.isRepo,
+            hasChanges: status.hasChanges,
+            ahead: status.ahead,
+            behind: status.behind,
+            branch: status.branch,
+            lastCommit: status.lastCommit,
+            remote: status.remote,
+            files: status.files,
+          },
+        };
       },
     },
     {

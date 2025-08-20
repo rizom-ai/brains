@@ -1,5 +1,5 @@
 import type { ContentFormatter } from "../types";
-import type { z } from "zod";
+import { z } from "zod";
 import { remark } from "remark";
 import type { Root, Heading, Paragraph, Content } from "mdast";
 
@@ -227,12 +227,26 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     return subsections;
   }
 
+  // Zod schema for text node validation
+  private readonly textNodeSchema = z.object({
+    type: z.literal("text"),
+    value: z.string(),
+  });
+
+  /**
+   * Extract text value from a node safely using Zod
+   */
+  private extractTextValue(node: unknown): string {
+    const parsed = this.textNodeSchema.safeParse(node);
+    return parsed.success ? parsed.data.value : "";
+  }
+
   /**
    * Get text content from a heading node
    */
   private getHeadingText(heading: Heading): string {
     const textNodes = heading.children.filter((child) => child.type === "text");
-    return textNodes.map((node) => (node as { value: string }).value).join("");
+    return textNodes.map((node) => this.extractTextValue(node)).join("");
   }
 
   /**
@@ -337,7 +351,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
     for (const child of paragraph.children) {
       if (child.type === "text") {
-        parts.push((child as { value: string }).value);
+        parts.push(this.extractTextValue(child));
       }
     }
 
@@ -431,7 +445,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
     for (const child of listItem.children) {
       if (child.type === "paragraph") {
-        const text = this.extractTextFromParagraph(child);
+        const text = this.extractTextFromParagraph(child as Paragraph);
         if (text) {
           parts.push(text);
         }
