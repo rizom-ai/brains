@@ -298,6 +298,26 @@ export abstract class BasePlugin<
   }
 
   /**
+   * Common handler wrapper for logging and error handling
+   */
+  private wrapHandler<T>(
+    type: string,
+    name: string,
+    handler: () => Promise<T>,
+  ): Promise<T> {
+    this.debug(`${type} ${name} started`);
+    return handler()
+      .then((result) => {
+        this.debug(`${type} ${name} completed`, { result });
+        return result;
+      })
+      .catch((error) => {
+        this.error(`${type} ${name} failed`, error);
+        throw error;
+      });
+  }
+
+  /**
    * Helper to create a tool with consistent structure
    */
   protected createTool(
@@ -312,15 +332,7 @@ export abstract class BasePlugin<
       description,
       inputSchema,
       handler: async (input, context): Promise<ToolResponse> => {
-        this.debug(`Executing tool ${name}`, { input });
-        try {
-          const result = await handler(input, context);
-          this.debug(`Tool ${name} completed`, { result });
-          return result;
-        } catch (error) {
-          this.error(`Tool ${name} failed`, error);
-          throw error;
-        }
+        return this.wrapHandler("Tool", name, () => handler(input, context));
       },
       visibility,
     };
@@ -348,15 +360,7 @@ export abstract class BasePlugin<
           mimeType?: string;
         }>;
       }> => {
-        this.debug(`Fetching resource ${uri}`);
-        try {
-          const result = await handler();
-          this.debug(`Resource ${uri} fetched`);
-          return result;
-        } catch (error) {
-          this.error(`Resource ${uri} failed`, error);
-          throw error;
-        }
+        return this.wrapHandler("Resource", uri, handler);
       },
     };
   }

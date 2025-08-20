@@ -3,7 +3,15 @@ import type { CorePluginContext } from "./context";
 import type { Command } from "@brains/command-registry";
 import { z } from "zod";
 
-// Define the plugin configuration schema
+/**
+ * PLUGIN CONFIGURATION SCHEMA
+ * 
+ * Best Practice: Always define a Zod schema for your plugin configuration.
+ * This provides:
+ * - Type safety at runtime
+ * - Automatic validation
+ * - Clear documentation of expected configuration
+ */
 const calculatorConfigSchema = z.object({
   enabled: z.boolean().describe("Enable the calculator plugin"),
   debug: z.boolean().describe("Enable debug logging"),
@@ -13,12 +21,21 @@ type CalculatorConfig = z.infer<typeof calculatorConfigSchema>;
 type CalculatorConfigInput = Partial<CalculatorConfig>;
 
 /**
- * Example Calculator Plugin - Core Plugin
- * Demonstrates CorePluginContext capabilities:
- * - Command definition and execution
- * - Inter-plugin messaging
- * - Template registration and formatting
- * - Logging
+ * EXAMPLE CALCULATOR PLUGIN - CORE PLUGIN TYPE
+ * 
+ * This example demonstrates all CorePlugin capabilities:
+ * - Command registration and execution
+ * - Inter-plugin messaging via message bus
+ * - Template registration for consistent formatting
+ * - Structured logging with context
+ * 
+ * Core plugins are best for:
+ * - Business logic and data processing
+ * - Background tasks and automation
+ * - Integration with shell services
+ * 
+ * @see ServicePlugin for service-oriented features
+ * @see InterfacePlugin for user interface features
  */
 export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
   constructor(config: CalculatorConfigInput = {}) {
@@ -93,13 +110,24 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
     });
   }
 
+  /**
+   * PLUGIN LIFECYCLE: onRegister
+   * 
+   * Called when the plugin is registered with the shell.
+   * This is where you:
+   * 1. Register commands, templates, and handlers
+   * 2. Subscribe to message bus events
+   * 3. Initialize plugin resources
+   * 
+   * Best Practice: Keep initialization fast and non-blocking
+   */
   protected override async onRegister(
     context: CorePluginContext,
   ): Promise<void> {
-    // Register templates first
+    // Step 1: Register templates for consistent formatting
     await this.registerTemplates(context);
 
-    // Subscribe to calculation requests
+    // Step 2: Subscribe to inter-plugin messages
     context.subscribe(
       "calc:request",
       async (message: {
@@ -145,6 +173,17 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
     this.info("Calculator plugin registered successfully");
   }
 
+  /**
+   * COMMAND REGISTRATION
+   * 
+   * Commands are the primary way users interact with plugins.
+   * 
+   * Best Practices:
+   * - Use namespaced command names (e.g., "calc:add")
+   * - Provide clear descriptions and usage examples
+   * - Validate arguments thoroughly
+   * - Return structured responses using registered templates
+   */
   protected override async getCommands(): Promise<Command[]> {
     return [
       {

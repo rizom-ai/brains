@@ -111,17 +111,17 @@ describe("EntityService", (): void => {
     });
   });
 
-  test("getSupportedEntityTypes returns empty array when no types registered", (): void => {
-    const types = entityService.getSupportedEntityTypes();
+  test("getEntityTypes returns empty array when no types registered", (): void => {
+    const types = entityService.getEntityTypes();
     expect(types).toEqual([]);
   });
 
-  test("getSupportedEntityTypes returns registered types", (): void => {
+  test("getEntityTypes returns registered types", (): void => {
     // Mock the registry to return specific types
     const mockGetAllEntityTypes = mock(() => ["note", "profile"]);
     entityRegistry.getAllEntityTypes = mockGetAllEntityTypes;
 
-    const types = entityService.getSupportedEntityTypes();
+    const types = entityService.getEntityTypes();
     expect(types).toEqual(["note", "profile"]);
     expect(mockGetAllEntityTypes).toHaveBeenCalled();
   });
@@ -427,16 +427,4 @@ describe("EntityService", (): void => {
     );
   });
 
-  test("getAllEntityTypes returns same as getEntityTypes", () => {
-    // Mock the registry to return specific types
-    const mockGetAllEntityTypes = mock(() => ["note", "profile", "task"]);
-    entityRegistry.getAllEntityTypes = mockGetAllEntityTypes;
-
-    const types1 = entityService.getAllEntityTypes();
-    const types2 = entityService.getEntityTypes();
-
-    expect(types1).toEqual(["note", "profile", "task"]);
-    expect(types2).toEqual(types1);
-    expect(mockGetAllEntityTypes).toHaveBeenCalledTimes(2);
-  });
 });

@@ -121,7 +121,7 @@ export class EntityService implements IEntityService {
       this.db,
       this.embeddingService,
     );
-    this.jobQueueService.registerHandler("embedding", embeddingJobHandler);
+    this.jobQueueService.registerHandler("shell:embedding", embeddingJobHandler);
 
     // Enable WAL mode and indexes asynchronously (non-blocking)
     this.initializeDatabase().catch((error) => {
@@ -512,24 +512,10 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Get supported entity types from registry
-   */
-  public getSupportedEntityTypes(): string[] {
-    return this.entityRegistry.getAllEntityTypes();
-  }
-
-  /**
-   * Get all entity types (alias for getSupportedEntityTypes)
-   */
-  public getAllEntityTypes(): string[] {
-    return this.getSupportedEntityTypes();
-  }
-
-  /**
-   * Get entity types (alias for getSupportedEntityTypes)
+   * Get all registered entity types
    */
   public getEntityTypes(): string[] {
-    return this.getSupportedEntityTypes();
+    return this.entityRegistry.getAllEntityTypes();
   }
 
   /**

@@ -296,7 +296,7 @@ export class Shell implements IShell {
       this.entityService,
     );
     this.jobQueueService.registerHandler(
-      "content-generation",
+      "shell:content-generation",
       contentGenerationJobHandler,
     );
 
@@ -305,7 +305,7 @@ export class Shell implements IShell {
       this.entityService,
     );
     this.jobQueueService.registerHandler(
-      "content-derivation",
+      "shell:content-derivation",
       contentDerivationJobHandler,
     );
 
