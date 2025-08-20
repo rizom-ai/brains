@@ -347,11 +347,14 @@ export class DirectorySync {
   /**
    * Determine if an entity should be updated based on content comparison
    */
-  private shouldUpdateEntity(existing: BaseEntity, newEntity: RawEntity): boolean {
+  private shouldUpdateEntity(
+    existing: BaseEntity,
+    newEntity: RawEntity,
+  ): boolean {
     // Compare content hashes to detect actual changes
     const existingHash = this.calculateContentHash(existing.content);
     const newHash = this.calculateContentHash(newEntity.content);
-    
+
     // Update only if content has actually changed
     return existingHash !== newHash;
   }
