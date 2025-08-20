@@ -110,14 +110,14 @@ Refer to these documents for detailed architecture information:
 - **Plugin System**: `docs/plugin-system.md`
 - **Entity Model**: `docs/entity-model.md`
 - **Messaging System**: `docs/messaging-system.md`
-- **Query Processor**: `docs/query-processor-shell-integration.md`
+- **Query Processor**: (integrated into shell core)
 - **Development Workflow**: `docs/development-workflow.md`
 
 ## Implementation Priority
 
 1. Shell app core
 2. Entity model infrastructure
-3. Cleanup phase (see cleanup-inventory.md)
+3. Cleanup phase (see cleanup-plan-2025-01.md)
 4. Link plugin as first plugin (web content capture with AI)
 5. Article plugin (long-form content)
 6. Additional contexts as plugins (Task, Profile, Project)
@@ -158,8 +158,8 @@ As you implement features, continuously ask yourself:
 
 When implementing components, refer to the sample code for concrete examples:
 
-- **Shell Core**: `sample-code/shell/`
-- **Note Context**: `sample-code/note-context/`
+- **Plugin Examples**: `shell/plugins/src/*/example.ts`
+- **Note Context Example**: `docs/examples/note-context/`
 - **Deployment Configuration**: `.github/workflows/` and `scripts/`
 - **Environment Setup**: `example.env`
 

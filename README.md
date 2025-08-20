@@ -62,13 +62,31 @@ The project follows a **tool-first architecture** where all functionality is exp
 
 ### Core Packages
 
+#### Shell Core
 - **@brains/core**: Shell orchestrator and core infrastructure
-- **@brains/app**: High-level app framework with CLI and Matrix interfaces
-- **@brains/plugins**: Consolidated plugin infrastructure (BasePlugin → CorePlugin → ServicePlugin/InterfacePlugin)
-- **@brains/mcp-server**: MCP protocol implementation
+- **@brains/app**: High-level application framework
+- **@brains/entity-service**: Entity management with database and embeddings
+- **@brains/plugins**: Plugin infrastructure (BasePlugin → CorePlugin → ServicePlugin/InterfacePlugin)
+- **@brains/messaging-service**: Inter-component messaging bus
+- **@brains/job-queue**: Background job processing and batch operations
+- **@brains/permission-service**: Permission and access control
+- **@brains/view-registry**: View and template registration system
+
+#### Interfaces
+- **@brains/cli**: Command-line interface
+- **@brains/matrix**: Matrix chat interface
+- **@brains/mcp**: MCP (Model Context Protocol) server
+- **@brains/webserver**: Web server interface
+
+#### Plugins
 - **@brains/git-sync**: Git synchronization plugin
-- **@brains/db**: Database schemas and vector storage
+- **@brains/directory-sync**: File system synchronization
+- **@brains/topics**: Topic extraction and management
+- **@brains/site-builder-plugin**: Static site generation
+
+#### Shared
 - **@brains/utils**: Common utilities and shared types
+- **@brains/content-management**: Content generation and management utilities
 
 ### Key Concepts
 
@@ -84,7 +102,6 @@ The project follows a **tool-first architecture** where all functionality is exp
 - [Entity Model](docs/entity-model.md)
 - [Development Workflow](docs/development-workflow.md)
 - [Tech Stack](docs/tech-stack.md)
-- [Technical Debt](docs/technical-debt.md)
 
 ## Development
 
@@ -121,7 +138,7 @@ bun run lint      # Lint
 ## Examples
 
 - [Test Brain App](apps/test-brain): Example brain application with CLI and Matrix interfaces
-- [MCP Server Examples](examples/): MCP server implementation and testing scripts
+- [MCP Interface](interfaces/mcp/): MCP server implementation
 
 ## Contributing
 
