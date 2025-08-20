@@ -279,7 +279,12 @@ describe("ConversationService", () => {
 
   describe("conversation digest configuration", () => {
     it("should use default digest configuration values", () => {
-      const defaultService = ConversationService.createFresh(db, logger, messageBus, {});
+      const defaultService = ConversationService.createFresh(
+        db,
+        logger,
+        messageBus,
+        {},
+      );
 
       // Access private config to verify defaults
       expect((defaultService as any).config.digestTriggerInterval).toBe(10);
@@ -306,10 +311,15 @@ describe("ConversationService", () => {
   describe("digest window calculations", () => {
     it("should calculate correct window ranges for small conversations", async () => {
       // Create a service that can access private methods for testing
-      const testService = ConversationService.createFresh(db, logger, messageBus, {
-        digestTriggerInterval: 2,
-        digestWindowSize: 5,
-      });
+      const testService = ConversationService.createFresh(
+        db,
+        logger,
+        messageBus,
+        {
+          digestTriggerInterval: 2,
+          digestWindowSize: 5,
+        },
+      );
 
       const conversationId = "test-window";
       await testService.startConversation(conversationId, "cli", "test");
@@ -335,10 +345,15 @@ describe("ConversationService", () => {
     });
 
     it("should handle window ranges larger than available messages", async () => {
-      const testService = ConversationService.createFresh(db, logger, messageBus, {
-        digestTriggerInterval: 10,
-        digestWindowSize: 20,
-      });
+      const testService = ConversationService.createFresh(
+        db,
+        logger,
+        messageBus,
+        {
+          digestTriggerInterval: 10,
+          digestWindowSize: 20,
+        },
+      );
 
       const conversationId = "test-large-window";
       await testService.startConversation(conversationId, "cli", "test");

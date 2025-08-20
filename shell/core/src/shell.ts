@@ -274,16 +274,12 @@ export class Shell implements IShell {
 
     this.conversationService =
       dependencies?.conversationService ??
-      ConversationService.getInstance(
-        this.logger,
-        this.messageBus,
-        {
-          url: config.conversationDatabase.url,
-          ...(config.conversationDatabase.authToken && {
-            authToken: config.conversationDatabase.authToken,
-          }),
-        },
-      );
+      ConversationService.getInstance(this.logger, this.messageBus, {
+        url: config.conversationDatabase.url,
+        ...(config.conversationDatabase.authToken && {
+          authToken: config.conversationDatabase.authToken,
+        }),
+      });
 
     this.contentGenerator =
       dependencies?.contentGenerator ??
@@ -339,11 +335,6 @@ export class Shell implements IShell {
     );
     this.serviceRegistry.register("viewRegistry", () => this.viewRegistry);
     this.serviceRegistry.register("daemonRegistry", () => this.daemonRegistry);
-    this.serviceRegistry.register(
-      "commandRegistry",
-      () => this.commandRegistry,
-    );
-    this.serviceRegistry.register("mcpService", () => this.mcpService);
     this.serviceRegistry.register(
       "jobQueueService",
       () => this.jobQueueService,

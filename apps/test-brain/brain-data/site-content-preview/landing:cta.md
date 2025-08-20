@@ -2,11 +2,12 @@
 routeId: landing
 sectionId: cta
 ---
+
 # CTA Section
 
 ## Headline
 
-Elevate Your Mind, Amplify Your Potential
+Unlock Your Mind's Full Potential
 
 ## Description
 
@@ -26,7 +27,7 @@ Start Free Trial
 
 ### Text
 
-View Demo
+Learn More
 
 ### Link
 

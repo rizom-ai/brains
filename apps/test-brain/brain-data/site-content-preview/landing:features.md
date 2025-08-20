@@ -2,6 +2,7 @@
 routeId: landing
 sectionId: features
 ---
+
 # Features Section
 
 ## Label
@@ -14,7 +15,7 @@ Unlock the Power of Your Knowledge
 
 ## Description
 
-Our personal knowledge management system helps you organize, search, secure, and leverage your information and insights for greater impact.
+Our personal knowledge management system helps you organize, search, secure, and leverage your personal knowledge and insights for greater productivity and impact.
 
 ## Feature Cards
 
@@ -22,7 +23,7 @@ Our personal knowledge management system helps you organize, search, secure, and
 
 #### Title
 
-Structured Capture
+Intelligent Organization
 
 #### Icon
 
@@ -30,13 +31,13 @@ Brain
 
 #### Description
 
-Effortlessly capture your thoughts, ideas, and discoveries in a structured knowledge base.
+Effortlessly categorize and structure your notes, files, and ideas for seamless retrieval and synthesis.
 
 ### Feature Card 2
 
 #### Title
 
-Intuitive Search
+Powerful Search
 
 #### Icon
 
@@ -44,7 +45,7 @@ Search
 
 #### Description
 
-Quickly find what you need with powerful search capabilities across your entire knowledge library.
+Quickly find the information you need with advanced search capabilities across your entire knowledge base.
 
 ### Feature Card 3
 
@@ -58,4 +59,4 @@ Shield
 
 #### Description
 
-Keep your sensitive information safe with robust privacy and access controls.
+Keep your sensitive data protected with robust encryption and access controls for peace of mind.

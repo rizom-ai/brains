@@ -139,7 +139,7 @@ These were considered but excluded as they add complexity without sufficient ben
 ### Phase 1: Dead Code Removal (Immediate)
 
 1. Delete `docs/examples/skeleton/` directory
-2. Delete empty `shell/utils/src/` directory  
+2. Delete empty `shell/utils/src/` directory
 3. Fix duplicate service registrations in Shell.ts
 4. Address TODO comments
 

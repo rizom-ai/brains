@@ -2,6 +2,7 @@
 routeId: landing
 sectionId: products
 ---
+
 # Products Section
 
 ## Label
@@ -14,7 +15,7 @@ Innovations for a Sustainable Future
 
 ## Description
 
-Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We create innovative solutions to help organizations and communities thrive in the face of complex challenges.
+Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We partner with clients to build innovative solutions that create positive impact.
 
 ## Products
 
@@ -30,11 +31,11 @@ Practice Innovation
 
 #### Tagline
 
-Reimagine your organizational practices
+Unlock organizational agility
 
 #### Description
 
-Leverage our proven frameworks and methods to transform your organization's culture, processes, and ways of working.
+Empower your teams to rapidly experiment, learn, and scale impactful solutions.
 
 #### Status
 
@@ -44,25 +45,25 @@ live
 
 #### Icon
 
-Wrench
+Brain
 
 ### Product 2
 
 #### ID
 
-ecosystem-design
+ecosystem-architecture
 
 #### Name
 
-Ecosystem Design
+Ecosystem Architecture
 
 #### Tagline
 
-Build collaborative ecosystems
+Design resilient systems
 
 #### Description
 
-Design and activate multi-stakeholder ecosystems to tackle systemic challenges and unlock new opportunities.
+Craft interconnected solutions that adapt to complex challenges.
 
 #### Status
 
@@ -86,11 +87,11 @@ Economy of Garbage
 
 #### Tagline
 
-Rethink waste as a resource
+Transform waste into value
 
 #### Description
 
-Explore innovative models to transform waste streams into valuable materials and services, creating circular economies.
+Rethink resource flows to unlock new revenue streams and environmental benefits.
 
 #### Status
 
@@ -100,4 +101,4 @@ beta
 
 #### Icon
 
-Cpu
+Wrench

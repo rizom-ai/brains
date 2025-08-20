@@ -51,7 +51,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   override async onRegister(context: ServicePluginContext): Promise<void> {
     // Call parent onRegister first to set up base functionality
     await super.onRegister(context);
-    
+
     this.logger.info("Registering Topics plugin");
 
     // Register topic entity type
@@ -142,11 +142,11 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         });
         return;
       }
-      
+
       this.logger.info("Topics extracted from digest", {
         conversationId: payload.conversationId,
         topicsCount: extractedTopics.length,
-        topics: extractedTopics.map(t => t.title),
+        topics: extractedTopics.map((t) => t.title),
       });
 
       // Create batch operations for processing each topic
