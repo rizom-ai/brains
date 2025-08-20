@@ -5,7 +5,7 @@ import { z } from "zod";
 
 /**
  * PLUGIN CONFIGURATION SCHEMA
- * 
+ *
  * Best Practice: Always define a Zod schema for your plugin configuration.
  * This provides:
  * - Type safety at runtime
@@ -22,18 +22,18 @@ type CalculatorConfigInput = Partial<CalculatorConfig>;
 
 /**
  * EXAMPLE CALCULATOR PLUGIN - CORE PLUGIN TYPE
- * 
+ *
  * This example demonstrates all CorePlugin capabilities:
  * - Command registration and execution
  * - Inter-plugin messaging via message bus
  * - Template registration for consistent formatting
  * - Structured logging with context
- * 
+ *
  * Core plugins are best for:
  * - Business logic and data processing
  * - Background tasks and automation
  * - Integration with shell services
- * 
+ *
  * @see ServicePlugin for service-oriented features
  * @see InterfacePlugin for user interface features
  */
@@ -112,13 +112,13 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
 
   /**
    * PLUGIN LIFECYCLE: onRegister
-   * 
+   *
    * Called when the plugin is registered with the shell.
    * This is where you:
    * 1. Register commands, templates, and handlers
    * 2. Subscribe to message bus events
    * 3. Initialize plugin resources
-   * 
+   *
    * Best Practice: Keep initialization fast and non-blocking
    */
   protected override async onRegister(
@@ -175,9 +175,9 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
 
   /**
    * COMMAND REGISTRATION
-   * 
+   *
    * Commands are the primary way users interact with plugins.
-   * 
+   *
    * Best Practices:
    * - Use namespaced command names (e.g., "calc:add")
    * - Provide clear descriptions and usage examples

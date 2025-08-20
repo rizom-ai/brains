@@ -41,15 +41,6 @@ export { createId, createPrefixedId, createBatchId } from "./id";
 // String utilities
 export { slugify, generateIdFromText } from "./string-utils";
 
-// Error message utilities
-export {
-  registrationError,
-  duplicateRegistrationError,
-  notFoundError,
-  validationError,
-  initializationError,
-} from "./errors";
-
 // Response types
 export {
   defaultQueryResponseSchema,

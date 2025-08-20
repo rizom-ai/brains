@@ -426,5 +426,4 @@ describe("EntityService", (): void => {
       options,
     );
   });
-
 });

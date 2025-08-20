@@ -121,7 +121,10 @@ export class EntityService implements IEntityService {
       this.db,
       this.embeddingService,
     );
-    this.jobQueueService.registerHandler("shell:embedding", embeddingJobHandler);
+    this.jobQueueService.registerHandler(
+      "shell:embedding",
+      embeddingJobHandler,
+    );
 
     // Enable WAL mode and indexes asynchronously (non-blocking)
     this.initializeDatabase().catch((error) => {
