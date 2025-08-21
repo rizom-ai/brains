@@ -1,8 +1,8 @@
-# Content Management Plugin Architecture
+# Content Management Architecture
 
 ## Executive Summary
 
-This document outlines the architectural refactoring to create a general-purpose `content-management` plugin that serves as a coordination layer for content operations. Content providers are separate plugins that register with the content management system, enabling a truly extensible and decoupled architecture.
+This document outlines the architectural refactoring to expand `shell/content-generator` into `shell/content-service` - a shell-level service that provides content coordination and common utilities. Plugins can implement the `IContentProvider` interface to register as content providers, with site-builder serving as both a content provider and static site builder.
 
 ## Current State Analysis
 
@@ -30,16 +30,19 @@ The current content management system is distributed across multiple components:
 ### Identified Issues
 
 #### 1. Limited Scope
+
 - Current ContentManager only handles website content
 - No support for other content types (documents, emails, reports, API responses, etc.)
 - Assumes preview/production workflow which doesn't apply to all content
 
 #### 2. Tight Coupling
+
 - ContentManager is tightly coupled to site-specific concepts
 - Site-builder plugin has dual responsibilities: content management AND site building
 - Direct dependencies between components make testing and reuse difficult
 
 #### 3. Ownership Confusion
+
 - Entity types owned by site-builder but used for general content
 - Job handlers in shell instead of plugin ownership
 - Shared package creates unclear boundaries
@@ -48,66 +51,67 @@ The current content management system is distributed across multiple components:
 
 ### Overview
 
-Create a plugin ecosystem where content-management acts as a coordination layer, and content providers are independent plugins:
+Expand shell/content-generator into shell/content-service that coordinates content providers. Plugins can be content providers, content consumers, or both:
 
 ```
                     ┌─────────────────────────────┐
-                    │  content-management         │
-                    │      (plugin)                │
+                    │  shell/content-service      │
+                    │     (shell service)          │
                     │                              │
-                    │  • Content coordination      │
                     │  • Provider registry         │
-                    │  • Common operations         │
+                    │  • Content coordination      │
+                    │  • Common utilities          │
                     │  • Event orchestration       │
-                    │  • Query aggregation         │
+                    │  • Query routing             │
                     └──────────┬──────────────────┘
                                │
-                    Registers with & coordinates
+                    Plugins register as providers
                                │
     ┌──────────────────────────┼──────────────────────────┐
     │                          │                          │
 ┌───▼──────────────┐  ┌────────▼─────────┐  ┌────────────▼─────┐
-│ site-content     │  │ email-content    │  │ document-content │
-│   (plugin)       │  │   (plugin)       │  │    (plugin)      │
+│ site-builder     │  │ email-plugin     │  │ docs-plugin      │
 │                  │  │                  │  │                  │
-│ • Page content   │  │ • Email templates│  │ • Knowledge base │
-│ • Components     │  │ • Campaigns      │  │ • Documentation  │
-│ • Site workflow  │  │ • Newsletters    │  │ • Articles       │
+│ Provider:        │  │ Provider:        │  │ Provider:        │
+│ • Site content   │  │ • Email content  │  │ • Documentation  │
+│ • Preview/prod   │  │ • Templates      │  │ • Articles       │
+│                  │  │                  │  │                  │
+│ Consumer:        │  │ Consumer:        │  │ Consumer:        │
+│ • Builds sites   │  │ • Sends emails   │  │ • Generates docs │
 └──────────────────┘  └──────────────────┘  └──────────────────┘
 ```
 
-### Core Plugin: content-management
+Note: Plugins can be providers only, consumers only, or both (like site-builder).
+
+### Shell Service: content-service
 
 #### Purpose
-Act as a coordination layer that:
-- Provides a unified interface for content operations
-- Manages provider registration
-- Orchestrates cross-provider operations
-- Aggregates queries across providers
+
+Evolve shell/content-generator into a comprehensive content coordination service that:
+
+- Manages provider registration from plugins
+- Routes content operations to appropriate providers
+- Provides common utilities (template processing, markdown parsing)
 - Emits unified content events
+- Handles content queries through entity service
 
 #### Structure
+
 ```
-plugins/content-management/
+shell/content-service/  (renamed from content-generator)
 ├── src/
-│   ├── plugin.ts                 # Main plugin class
+│   ├── content-service.ts       # Main service class
 │   ├── core/
 │   │   ├── provider-registry.ts # Manage content providers
 │   │   ├── content-router.ts    # Route operations to providers
-│   │   ├── query-aggregator.ts  # Aggregate queries across providers
 │   │   └── event-orchestrator.ts # Coordinate events
 │   ├── interfaces/
-│   │   ├── provider.ts          # IContentProvider interface
-│   │   ├── content.ts           # Universal content types
-│   │   └── operations.ts        # Operation interfaces
-│   ├── handlers/
-│   │   └── coordination.ts      # Cross-provider operations
-│   ├── commands/
-│   │   ├── list-providers.ts    # Show registered providers
-│   │   ├── query.ts             # Query across providers
-│   │   └── generate.ts          # Route to appropriate provider
-│   └── tools/
-│       └── content-tools.ts     # Universal content tools
+│   │   └── provider.ts          # IContentProvider interface
+│   ├── utilities/
+│   │   ├── template-engine.ts   # Common template processing
+│   │   ├── markdown-utils.ts    # Markdown parsing/generation
+│   │   └── format-converter.ts  # Format transformations
+│   └── index.ts                 # Public API exports
 ```
 
 #### Key Interfaces
@@ -115,139 +119,159 @@ plugins/content-management/
 ```typescript
 // Interface that content provider plugins must implement
 export interface IContentProvider {
-  readonly id: string;           // Unique provider ID
-  readonly name: string;          // Human-readable name
-  readonly version: string;       // Provider version
-  
-  // Capabilities declaration
-  readonly capabilities: {
-    generate?: boolean;
-    transform?: boolean;
-    workflow?: boolean;
-    versioning?: boolean;
-    search?: boolean;
-  };
-  
+  readonly id: string; // Unique provider ID
+  readonly name: string; // Human-readable name
+  readonly version: string; // Provider version
+
   // Content type information
   getContentTypes(): ContentTypeDefinition[];
+
+  // Core operation - content generation
+  generate(request: GenerateRequest): Promise<Content>;
   
-  // Operations (all optional based on capabilities)
-  generate?(request: GenerateRequest): Promise<Content>;
-  transform?(content: Content, format: string): Promise<Content>;
-  query?(filter: QueryFilter): Promise<Content[]>;
-  validate?(content: Content): Promise<ValidationResult>;
+  // Optional operations (to be added as needed)
+  // transform?(content: Content, format: string): Promise<Content>;
 }
 
 // Universal content representation
 export interface Content {
   id: string;
-  provider: string;          // Which provider owns this
-  type: string;              // Provider-specific type
-  data: unknown;             // Provider-specific data
+  provider: string; // Which provider owns this
+  type: string; // Provider-specific type
+  data: unknown; // Provider-specific data
   metadata: {
     created: string;
     updated: string;
     version?: string;
-    [key: string]: unknown;  // Provider-specific metadata
+    [key: string]: unknown; // Provider-specific metadata
   };
 }
 ```
 
-#### Provider Registration
+#### Service Implementation
 
 ```typescript
-export class ContentManagementPlugin extends ServicePlugin {
+export class ContentService implements IContentService {
   private providers = new Map<string, IContentProvider>();
-  
-  async onRegister(context: ServicePluginContext) {
-    // Register self as a service that other plugins can discover
-    context.registerService('content-management', {
-      registerProvider: this.registerProvider.bind(this),
-      generate: this.generate.bind(this),
-      query: this.query.bind(this),
-      transform: this.transform.bind(this)
-    });
-  }
-  
-  registerProvider(provider: IContentProvider) {
+
+  constructor(
+    private entityService: IEntityService,
+    private messageBus: IMessageBus,
+    private logger: Logger
+  ) {}
+
+  // Provider registration
+  registerProvider(provider: IContentProvider): void {
     this.providers.set(provider.id, provider);
-    this.emit('provider:registered', { 
-      id: provider.id, 
-      capabilities: provider.capabilities 
+    this.messageBus.emit("content:provider:registered", {
+      id: provider.id,
+      name: provider.name,
     });
+    this.logger.info(`Content provider registered: ${provider.id}`);
   }
-  
-  async generate(request: { provider: string; type: string; data: any }) {
+
+  // Content generation - routes to appropriate provider
+  async generate(request: { provider: string; type: string; data: any }): Promise<Content> {
     const provider = this.providers.get(request.provider);
-    if (!provider?.capabilities.generate) {
-      throw new Error(`Provider ${request.provider} doesn't support generation`);
+    if (!provider) {
+      throw new Error(`Provider not found: ${request.provider}`);
     }
-    return provider.generate(request);
+    
+    const content = await provider.generate(request);
+    
+    // Emit unified event
+    this.messageBus.emit("content:generated", {
+      provider: request.provider,
+      content
+    });
+    
+    return content;
+  }
+
+  // Query using entity service (content is stored as entities)
+  async query(filter: ContentQueryFilter): Promise<Content[]> {
+    // Use entity service for queries since content is stored as entities
+    const entities = await this.entityService.searchEntities(filter);
+    return entities.map(e => this.entityToContent(e));
   }
   
-  async query(filter: QueryFilter) {
-    // Aggregate queries across providers
-    const results = [];
-    for (const provider of this.providers.values()) {
-      if (provider.capabilities.search) {
-        const providerResults = await provider.query(filter);
-        results.push(...providerResults);
-      }
-    }
-    return results;
+  // Common utilities available to all providers
+  getUtilities(): ContentUtilities {
+    return {
+      templateEngine: this.templateEngine,
+      markdownUtils: this.markdownUtils,
+      formatConverter: this.formatConverter
+    };
   }
 }
 ```
 
-### Content Provider Plugin: site-content
+### Plugin: site-builder (Provider + Consumer)
 
-This becomes a separate plugin that provides website content capabilities:
+Site-builder acts as both a content provider (for site content) AND a consumer (for building static sites):
 
 #### Structure
+
 ```
-plugins/site-content/
+plugins/site-builder/
 ├── src/
 │   ├── plugin.ts                # Main plugin class
 │   ├── entities/
 │   │   ├── site-content-preview.ts
 │   │   └── site-content-production.ts
+│   ├── providers/
+│   │   └── site-content-provider.ts  # Implements IContentProvider
 │   ├── handlers/
-│   │   ├── generation.ts       # Site content generation
-│   │   ├── derivation.ts       # Preview/production workflow
-│   │   └── promotion.ts        # Promotion operations
+│   │   ├── content-generation.ts     # Handle content generation jobs
+│   │   ├── content-derivation.ts     # Preview/production workflow
+│   │   └── site-build.ts             # Site building jobs
 │   ├── lib/
-│   │   ├── site-provider.ts    # Implements IContentProvider
-│   │   ├── route-manager.ts    # Route-specific logic
-│   │   └── section-manager.ts  # Section handling
+│   │   ├── site-builder.ts          # Static site generation
+│   │   ├── route-manager.ts         # Route-specific logic
+│   │   └── section-manager.ts       # Section handling
 │   └── commands/
-│       ├── generate-page.ts    # Site-specific generation
-│       └── promote.ts          # Preview→Production
+│       ├── generate.ts              # Generate content
+│       ├── promote.ts               # Preview→Production
+│       └── build.ts                 # Build static site
 ```
 
 #### Implementation
 
 ```typescript
-export class SiteContentPlugin extends ServicePlugin {
+export class SiteBuilderPlugin extends ServicePlugin {
   private provider: SiteContentProvider;
-  
+  private builder: SiteBuilder;
+
   async onRegister(context: ServicePluginContext) {
     // Register entity types
     context.registerEntityType('site-content-preview', ...);
     context.registerEntityType('site-content-production', ...);
-    
-    // Create provider
+
+    // Register job handlers (moved from shell)
+    context.registerJobHandler('site:generate', new ContentGenerationHandler());
+    context.registerJobHandler('site:derive', new ContentDerivationHandler());
+    context.registerJobHandler('site:build', new SiteBuildHandler());
+
+    // Create and register provider
     this.provider = new SiteContentProvider(context);
-    
-    // Register with content-management
-    const contentService = context.getService('content-management');
-    if (contentService) {
-      contentService.registerProvider(this.provider);
-    }
-    
-    // Register site-specific commands
+    const contentService = context.getService('content-service');
+    contentService.registerProvider(this.provider);
+
+    // Listen for content events to trigger builds
+    contentService.on('content:generated', async (event) => {
+      if (event.provider === 'site') {
+        await this.queueBuild(event.content);
+      }
+    });
+
+    // Register commands
     context.registerCommand({
-      name: 'generate-page',
-      handler: this.generatePage.bind(this)
+      name: 'generate',
+      handler: this.generateContent.bind(this)
+    });
+    context.registerCommand({
+      name: 'build',
+      handler: this.buildSite.bind(this)
     });
   }
 }
@@ -256,22 +280,14 @@ class SiteContentProvider implements IContentProvider {
   id = 'site';
   name = 'Website Content';
   version = '1.0.0';
-  
-  capabilities = {
-    generate: true,
-    transform: true,
-    workflow: true,    // Preview/production workflow
-    versioning: false,
-    search: true
-  };
-  
+
   getContentTypes() {
     return [
       { id: 'page', name: 'Web Page', schema: pageSchema },
       { id: 'component', name: 'Page Component', schema: componentSchema }
     ];
   }
-  
+
   async generate(request: GenerateRequest): Promise<Content> {
     // Site-specific generation logic
     // Routes, sections, templates, etc.
@@ -279,20 +295,26 @@ class SiteContentProvider implements IContentProvider {
 }
 ```
 
-### Content Provider Plugin: email-content (Future Example)
+### Example: Email Plugin (Future)
+
+An example of a plugin that's both provider and consumer (like site-builder):
 
 ```typescript
-export class EmailContentPlugin extends ServicePlugin {
+export class EmailPlugin extends ServicePlugin {
   async onRegister(context: ServicePluginContext) {
     // Register email-specific entity types
     context.registerEntityType('email-template', ...);
     context.registerEntityType('email-campaign', ...);
-    
-    // Register with content-management
-    const contentService = context.getService('content-management');
-    if (contentService) {
-      contentService.registerProvider(new EmailContentProvider(context));
-    }
+
+    // Register as content provider
+    const contentService = context.getService('content-service');
+    contentService.registerProvider(new EmailContentProvider());
+
+    // Also consume content (send emails)
+    context.registerCommand({
+      name: 'send-campaign',
+      handler: this.sendCampaign.bind(this)
+    });
   }
 }
 
@@ -300,15 +322,14 @@ class EmailContentProvider implements IContentProvider {
   id = 'email';
   name = 'Email Content';
   version = '1.0.0';
-  
-  capabilities = {
-    generate: true,
-    transform: true,    // HTML/text versions
-    workflow: true,     // Draft/scheduled/sent
-    versioning: true,   // A/B testing
-    search: true
-  };
-  
+
+  getContentTypes() {
+    return [
+      { id: 'template', name: 'Email Template', schema: templateSchema },
+      { id: 'campaign', name: 'Email Campaign', schema: campaignSchema }
+    ];
+  }
+
   async generate(request: GenerateRequest): Promise<Content> {
     // Email-specific generation
     // Templates, personalization, etc.
@@ -316,72 +337,41 @@ class EmailContentProvider implements IContentProvider {
 }
 ```
 
-### Refactored: site-builder
-
-Becomes purely focused on building static sites:
-
-```typescript
-export class SiteBuilderPlugin extends ServicePlugin {
-  async onRegister(context: ServicePluginContext) {
-    // Subscribe to site content events
-    const contentService = context.getService('content-management');
-    
-    contentService.on('content:generated', async (event) => {
-      if (event.provider === 'site') {
-        await this.queueBuild(event.content);
-      }
-    });
-    
-    // Register build command
-    context.registerCommand({
-      name: 'build',
-      handler: this.buildSite.bind(this)
-    });
-  }
-  
-  async buildSite() {
-    // Query site content
-    const contentService = this.context.getService('content-management');
-    const pages = await contentService.query({
-      provider: 'site',
-      type: 'page'
-    });
-    
-    // Build static site
-    await this.performBuild(pages);
-  }
-}
-```
-
 ## Plugin Interactions
 
 ### Registration Flow
+
 ```
-1. content-management plugin loads
-2. site-content plugin loads
-3. site-content registers its provider with content-management
-4. site-builder plugin loads
-5. site-builder subscribes to content events
+1. Shell initializes content-service
+2. site-builder plugin loads
+3. site-builder registers as 'site' content provider with content-service
+4. site-builder registers job handlers for site-specific operations
+5. site-builder subscribes to content events for rebuild triggers
 ```
 
 ### Content Generation Flow
+
 ```
 1. User: /generate type=page
-2. content-management: Routes to 'site' provider
-3. site-content: Generates page content
-4. content-management: Emits 'content:generated' event
-5. site-builder: Receives event, queues build
+2. site-builder command handler receives request
+3. site-builder queues 'site:generate' job
+4. ContentGenerationHandler processes job
+5. Handler uses content-service utilities and provider
+6. content-service emits 'content:generated' event
+7. site-builder receives event, queues 'site:build' job
 ```
 
 ### Cross-Provider Query
+
 ```
 1. User: /search term="dashboard"
-2. content-management: Queries all providers
-3. site-content: Returns matching pages
-4. email-content: Returns matching templates
-5. document-content: Returns matching docs
-6. content-management: Aggregates and returns results
+2. Command routes to content-service
+3. content-service uses entity service to search all content entities
+4. Entity service returns results from all content types
+5. content-service formats and returns aggregated results
 ```
+
+Note: Since content is stored as entities, queries leverage the existing entity service rather than querying providers directly.
 
 ## Benefits
 
@@ -421,40 +411,49 @@ export class SiteBuilderPlugin extends ServicePlugin {
 
 ## Implementation Plan
 
-### Phase 1: Core content-management Plugin
-1. Create plugin structure
-2. Implement provider registry
-3. Build content router
-4. Create query aggregator
-5. Setup event orchestration
+### Phase 1: Refactor shell/content-generator → shell/content-service
 
-### Phase 2: site-content Provider Plugin
-1. Extract from current site-builder
-2. Implement IContentProvider interface
-3. Move entity types and handlers
-4. Register with content-management
+1. Rename content-generator to content-service
+2. Add provider registry functionality
+3. Extract common utilities (template engine, markdown utils)
+4. Implement IContentProvider interface
+5. Add event orchestration through message bus
 
-### Phase 3: Refactor site-builder
-1. Remove content responsibilities
-2. Focus on build operations only
-3. Integrate with content-management service
+### Phase 2: Refactor site-builder Plugin
 
-### Phase 4: Shell Updates
-1. Remove content-generator service
-2. Update plugin loading order
-3. Verify plugin interactions
+1. Move job handlers from shell to site-builder
+   - ContentGenerationJobHandler → site-builder/handlers
+   - ContentDerivationJobHandler → site-builder/handlers
+2. Implement SiteContentProvider class
+3. Register provider with content-service
+4. Keep existing entity types and build functionality
+5. Update commands to use new architecture
+
+### Phase 3: Update Shell Initialization
+
+1. Initialize content-service instead of content-generator
+2. Remove job handler registrations (moved to site-builder)
+3. Ensure content-service is available before plugins load
+4. Update service dependencies
+
+### Phase 4: Testing & Validation
+
+1. Test provider registration
+2. Verify job handler migration
+3. Test content generation flow
+4. Validate event emissions
+5. Ensure backward compatibility
 
 ## Future Provider Plugins
 
-Each of these would be a separate plugin:
+Plugins can implement IContentProvider to add new content types:
 
-- **document-content**: Knowledge base, documentation
-- **email-content**: Email templates, campaigns
-- **report-content**: Analytics, business reports
-- **api-content**: API documentation, schemas
-- **notification-content**: System alerts, user notifications
-- **chat-content**: Conversation templates, responses
-- **form-content**: Dynamic forms, surveys
+- **documentation-plugin**: Knowledge base, technical docs (provider + viewer)
+- **email-plugin**: Templates, campaigns (provider + sender)
+- **report-plugin**: Analytics, business reports (provider + exporter)
+- **api-plugin**: API documentation, schemas (provider + generator)
+- **notification-plugin**: Alerts, notifications (provider + dispatcher)
+- **form-plugin**: Dynamic forms, surveys (provider + handler)
 
 ## Open Questions
 
