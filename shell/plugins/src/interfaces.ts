@@ -71,6 +71,11 @@ export interface IShell {
     pluginId?: string,
   ): void;
 
+  // Plugin capability registration
+  registerPluginCommands(pluginId: string, commands: Command[]): void;
+  registerPluginTools(pluginId: string, tools: PluginTool[]): void;
+  registerPluginResources(pluginId: string, resources: PluginResource[]): void;
+
   // Plugin information
   getPluginPackageName(pluginId: string): string | undefined;
 

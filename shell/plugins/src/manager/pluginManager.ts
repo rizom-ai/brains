@@ -83,10 +83,7 @@ export class PluginManager implements IPluginManager {
       this.events,
       logger,
     );
-    this.capabilityRegistrar = new CapabilityRegistrar(
-      serviceRegistry,
-      logger,
-    );
+    this.capabilityRegistrar = new CapabilityRegistrar(logger);
   }
 
   /**
@@ -165,11 +162,11 @@ export class PluginManager implements IPluginManager {
 
     // Register capabilities
     await this.capabilityRegistrar.registerCapabilities(
+      shell,
       pluginId,
       capabilities,
     );
   }
-
 
   /**
    * Get a registered plugin by ID

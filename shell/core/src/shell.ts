@@ -3,6 +3,9 @@ import type {
   Daemon,
   DefaultQueryResponse,
   QueryContext,
+  Command,
+  PluginTool,
+  PluginResource,
 } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
 import type { ServiceRegistry } from "@brains/service-registry";
@@ -450,6 +453,57 @@ export class Shell implements IShell {
 
   public getPermissionService(): PermissionService {
     return this.permissionService;
+  }
+
+  /**
+   * Register plugin commands
+   */
+  public registerPluginCommands(pluginId: string, commands: Command[]): void {
+    for (const command of commands) {
+      try {
+        this.commandRegistry.registerCommand(pluginId, command);
+      } catch (error) {
+        this.logger.error(
+          `Failed to register command ${command.name} from ${pluginId}:`,
+          error,
+        );
+      }
+    }
+  }
+
+  /**
+   * Register plugin tools
+   */
+  public registerPluginTools(pluginId: string, tools: PluginTool[]): void {
+    for (const tool of tools) {
+      try {
+        this.mcpService.registerTool(pluginId, tool);
+      } catch (error) {
+        this.logger.error(
+          `Failed to register tool ${tool.name} from ${pluginId}:`,
+          error,
+        );
+      }
+    }
+  }
+
+  /**
+   * Register plugin resources
+   */
+  public registerPluginResources(
+    pluginId: string,
+    resources: PluginResource[],
+  ): void {
+    for (const resource of resources) {
+      try {
+        this.mcpService.registerResource(pluginId, resource);
+      } catch (error) {
+        this.logger.error(
+          `Failed to register resource ${resource.name} from ${pluginId}:`,
+          error,
+        );
+      }
+    }
   }
 
   /**

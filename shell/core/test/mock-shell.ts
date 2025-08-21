@@ -4,6 +4,9 @@ import type {
   DefaultQueryResponse,
   QueryContext,
   IMCPTransport,
+  Command,
+  PluginTool,
+  PluginResource,
 } from "@brains/plugins";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
@@ -27,7 +30,6 @@ import type {
 import type { JobOptions, JobQueue } from "@brains/job-queue";
 import type {
   CommandRegistry,
-  Command,
   CommandContext,
   CommandResponse,
 } from "@brains/command-registry";
@@ -439,6 +441,23 @@ export class MockShell implements IShell {
 
   getPluginPackageName(pluginId: string): string | undefined {
     return this.plugins.get(pluginId)?.packageName;
+  }
+
+  // Plugin capability registration methods
+  registerPluginCommands(pluginId: string, commands: Command[]): void {
+    this.logger.debug(
+      `Mock: Registered ${commands.length} commands for ${pluginId}`,
+    );
+  }
+
+  registerPluginTools(pluginId: string, tools: PluginTool[]): void {
+    this.logger.debug(`Mock: Registered ${tools.length} tools for ${pluginId}`);
+  }
+
+  registerPluginResources(pluginId: string, resources: PluginResource[]): void {
+    this.logger.debug(
+      `Mock: Registered ${resources.length} resources for ${pluginId}`,
+    );
   }
 
   // Additional methods for testing

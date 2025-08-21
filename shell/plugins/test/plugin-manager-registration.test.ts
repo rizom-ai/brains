@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
 import { CorePlugin } from "../src/core/core-plugin";
 import { PluginTestHarness } from "../src/test/harness";
-import type { PluginTool, PluginResource, Command } from "../src/interfaces";
+import type {
+  PluginTool,
+  PluginResource,
+  Command,
+  IShell,
+} from "../src/interfaces";
 import type { ServiceRegistry } from "@brains/service-registry";
 import { createSilentLogger } from "@brains/utils";
 import type { CommandRegistry } from "@brains/command-registry";
@@ -74,6 +79,7 @@ describe("PluginManager - Direct Registration", () => {
   let mockServiceRegistry: ServiceRegistry;
   let mockCommandRegistry: CommandRegistry;
   let mockMCPService: IMCPService;
+  let mockShell: IShell;
   let registeredTools: Array<{ pluginId: string; tool: PluginTool }> = [];
   let registeredResources: Array<{
     pluginId: string;
@@ -123,7 +129,32 @@ describe("PluginManager - Direct Registration", () => {
 
     // Create mock shell using test harness
     const harness = new PluginTestHarness();
-    const mockShell = harness.getShell();
+    mockShell = harness.getShell();
+
+    // Override the shell's registration methods to use our mocked registries
+    mockShell.registerPluginCommands = mock(
+      (_pluginId: string, commands: Command[]) => {
+        for (const command of commands) {
+          mockCommandRegistry.registerCommand(_pluginId, command);
+        }
+      },
+    );
+
+    mockShell.registerPluginTools = mock(
+      (_pluginId: string, tools: PluginTool[]) => {
+        for (const tool of tools) {
+          mockMCPService.registerTool(_pluginId, tool);
+        }
+      },
+    );
+
+    mockShell.registerPluginResources = mock(
+      (_pluginId: string, resources: PluginResource[]) => {
+        for (const resource of resources) {
+          mockMCPService.registerResource(_pluginId, resource);
+        }
+      },
+    );
 
     // Create mock service registry
     const resolveMock = mock((name: string) => {
@@ -319,6 +350,19 @@ describe("PluginManager - Direct Registration", () => {
       });
 
       mockMCPService.registerTool = registerToolMock;
+
+      // Update shell's method to use the new mock
+      mockShell.registerPluginTools = mock(
+        (_pluginId: string, tools: PluginTool[]) => {
+          for (const tool of tools) {
+            try {
+              mockMCPService.registerTool(_pluginId, tool);
+            } catch {
+              // Shell catches and logs errors, so we do the same here
+            }
+          }
+        },
+      );
 
       const plugin = new TestPlugin();
       pluginManager.registerPlugin(plugin);

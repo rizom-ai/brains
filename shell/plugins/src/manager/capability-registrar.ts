@@ -1,7 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { ServiceRegistry } from "@brains/service-registry";
-import type { CommandRegistry } from "@brains/command-registry";
-import type { IMCPService } from "@brains/mcp-service";
+import type { IShell } from "@brains/plugins";
 import type { PluginCapabilities } from "../interfaces";
 
 /**
@@ -11,87 +9,40 @@ import type { PluginCapabilities } from "../interfaces";
 export class CapabilityRegistrar {
   private logger: Logger;
 
-  constructor(
-    private serviceRegistry: ServiceRegistry,
-    logger: Logger,
-  ) {
+  constructor(logger: Logger) {
     this.logger = logger.child("CapabilityRegistrar");
   }
 
   /**
-   * Register plugin capabilities directly with the appropriate registries
+   * Register plugin capabilities using Shell convenience methods
    */
   public async registerCapabilities(
+    shell: IShell,
     pluginId: string,
     capabilities: PluginCapabilities,
   ): Promise<void> {
-    // Get CommandRegistry and MCPService from service registry
-    // Defer resolution until actually needed to avoid initialization order issues
-    const commandRegistry =
-      this.serviceRegistry.resolve<CommandRegistry>("commandRegistry");
-    const mcpService = this.serviceRegistry.resolve<IMCPService>("mcpService");
-
     // Register commands
     if (capabilities.commands && capabilities.commands.length > 0) {
-      let registeredCount = 0;
-      for (const command of capabilities.commands) {
-        try {
-          commandRegistry.registerCommand(pluginId, command);
-          registeredCount++;
-        } catch (error) {
-          this.logger.error(
-            `Failed to register command ${command.name} from ${pluginId}:`,
-            error,
-          );
-        }
-      }
-      if (registeredCount > 0) {
-        this.logger.debug(
-          `Registered ${registeredCount} commands from ${pluginId}`,
-        );
-      }
+      shell.registerPluginCommands(pluginId, capabilities.commands);
+      this.logger.debug(
+        `Registered ${capabilities.commands.length} commands from ${pluginId}`,
+      );
     }
 
     // Register tools
     if (capabilities.tools && capabilities.tools.length > 0) {
-      let registeredCount = 0;
-      for (const tool of capabilities.tools) {
-        try {
-          mcpService.registerTool(pluginId, tool);
-          registeredCount++;
-        } catch (error) {
-          this.logger.error(
-            `Failed to register tool ${tool.name} from ${pluginId}:`,
-            error,
-          );
-        }
-      }
-      if (registeredCount > 0) {
-        this.logger.debug(
-          `Registered ${registeredCount} tools from ${pluginId}`,
-        );
-      }
+      shell.registerPluginTools(pluginId, capabilities.tools);
+      this.logger.debug(
+        `Registered ${capabilities.tools.length} tools from ${pluginId}`,
+      );
     }
 
     // Register resources
     if (capabilities.resources && capabilities.resources.length > 0) {
-      let registeredCount = 0;
-      for (const resource of capabilities.resources) {
-        try {
-          mcpService.registerResource(pluginId, resource);
-          registeredCount++;
-        } catch (error) {
-          this.logger.error(
-            `Failed to register resource ${resource.name} from ${pluginId}:`,
-            error,
-          );
-        }
-      }
-      if (registeredCount > 0) {
-        this.logger.debug(
-          `Registered ${registeredCount} resources from ${pluginId}`,
-        );
-      }
+      shell.registerPluginResources(pluginId, capabilities.resources);
+      this.logger.debug(
+        `Registered ${capabilities.resources.length} resources from ${pluginId}`,
+      );
     }
   }
 }
