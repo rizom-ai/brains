@@ -124,7 +124,7 @@ export function createServicePluginContext(
         },
         ...options,
       };
-      return jobQueueService.enqueue(type, data, defaultOptions, pluginId);
+      return jobQueueService.enqueue(type, data, defaultOptions);
     },
     enqueueBatch: async (operations, options) => {
       // Generate batch ID first to use as rootJobId for consistent tracking

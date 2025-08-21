@@ -5,26 +5,29 @@ import type {
   QueryContext,
 } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
-import { ServiceRegistry } from "@brains/service-registry";
-import { EntityRegistry, EntityService } from "@brains/entity-service";
+import type { ServiceRegistry } from "@brains/service-registry";
+import type { EntityRegistry, EntityService } from "@brains/entity-service";
 import {
-  JobQueueService,
-  JobQueueWorker,
-  BatchJobManager,
   JobProgressMonitor,
   type BatchJobStatus,
   type Batch,
   type BatchOperation,
 } from "@brains/job-queue";
-import type { JobOptions, JobQueue } from "@brains/job-queue";
-import { MessageBus } from "@brains/messaging-service";
-import { PluginManager } from "@brains/plugins";
-import { CommandRegistry } from "@brains/command-registry";
+import type {
+  JobOptions,
+  JobQueue,
+  JobQueueService,
+  JobQueueWorker,
+  BatchJobManager,
+} from "@brains/job-queue";
+import type { MessageBus } from "@brains/messaging-service";
+import type { PluginManager } from "@brains/plugins";
+import type { CommandRegistry } from "@brains/command-registry";
 import { type IMCPService, type IMCPTransport } from "@brains/mcp-service";
-import { DaemonRegistry } from "@brains/daemon-registry";
+import type { DaemonRegistry } from "@brains/daemon-registry";
 import { type IEmbeddingService } from "@brains/embedding-service";
 import { type IConversationService } from "@brains/conversation-service";
-import { ContentGenerator } from "@brains/content-generator";
+import type { ContentGenerator } from "@brains/content-generator";
 import { type IAIService } from "@brains/ai-service";
 import { PermissionService } from "@brains/permission-service";
 import { Logger } from "@brains/utils";
@@ -33,7 +36,7 @@ import type { Template } from "@brains/content-generator";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
-import { ViewRegistry } from "@brains/view-registry";
+import type { ViewRegistry } from "@brains/view-registry";
 import { ShellInitializer } from "./initialization/shellInitializer";
 
 /**

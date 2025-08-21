@@ -96,7 +96,10 @@ export class EntityService implements IEntityService {
     this.jobQueueService = options.jobQueueService;
 
     // Initialize extracted responsibility classes
-    this.entitySerializer = new EntitySerializer(this.entityRegistry, this.logger);
+    this.entitySerializer = new EntitySerializer(
+      this.entityRegistry,
+      this.logger,
+    );
     this.entityQueries = new EntityQueries(
       this.db,
       this.entitySerializer,
@@ -167,10 +170,11 @@ export class EntityService implements IEntityService {
     );
 
     // Prepare entity for storage
-    const { markdown, metadata } = this.entitySerializer.prepareEntityForStorage(
-      validatedEntity,
-      validatedEntity.entityType,
-    );
+    const { markdown, metadata } =
+      this.entitySerializer.prepareEntityForStorage(
+        validatedEntity,
+        validatedEntity.entityType,
+      );
 
     // Extract content weight from markdown
     const { contentWeight } = extractIndexedFields(
@@ -257,10 +261,11 @@ export class EntityService implements IEntityService {
     );
 
     // Prepare entity for storage
-    const { markdown, metadata } = this.entitySerializer.prepareEntityForStorage(
-      validatedEntity,
-      validatedEntity.entityType,
-    );
+    const { markdown, metadata } =
+      this.entitySerializer.prepareEntityForStorage(
+        validatedEntity,
+        validatedEntity.entityType,
+      );
 
     // Extract content weight from markdown
     const { contentWeight } = extractIndexedFields(

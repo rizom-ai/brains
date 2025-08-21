@@ -38,16 +38,14 @@ export class EntitySerializer {
   /**
    * Convert database row to entity with validation
    */
-  public async convertToEntity<T extends BaseEntity>(
-    entityData: {
-      id: string;
-      entityType: string;
-      content: string;
-      created: number;
-      updated: number;
-      metadata: Record<string, unknown>;
-    },
-  ): Promise<T | null> {
+  public async convertToEntity<T extends BaseEntity>(entityData: {
+    id: string;
+    entityType: string;
+    content: string;
+    created: number;
+    updated: number;
+    metadata: Record<string, unknown>;
+  }): Promise<T | null> {
     try {
       const adapter = this.entityRegistry.getAdapter<T>(entityData.entityType);
 

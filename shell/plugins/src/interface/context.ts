@@ -147,7 +147,7 @@ export function createInterfacePluginContext(
         },
         ...options,
       };
-      return jobQueueService.enqueue(type, data, defaultOptions, pluginId);
+      return jobQueueService.enqueue(type, data, defaultOptions);
     },
     enqueueBatch: async (operations, options) => {
       const batchId = createId();

@@ -150,10 +150,7 @@ export class EntityQueries {
   /**
    * Check if entity exists
    */
-  public async entityExists(
-    entityType: string,
-    id: string,
-  ): Promise<boolean> {
+  public async entityExists(entityType: string, id: string): Promise<boolean> {
     const result = await this.db
       .select({ id: entities.id })
       .from(entities)

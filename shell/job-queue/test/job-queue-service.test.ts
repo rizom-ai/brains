@@ -277,26 +277,31 @@ describe("JobQueueService", () => {
       expect(testHandler.validateCallCount).toBe(1);
     });
 
-    it("should fallback to shell handlers when plugin handler not found", async () => {
+    it("should NOT fallback to shell handlers when plugin handler not found", async () => {
       // Register a shell handler (no pluginId)
       service.registerHandler("content-generation", testHandler);
 
-      // Try to enqueue from a plugin context - should fallback to shell handler
-      const jobId = await service.enqueue(
-        "content-generation",
-        testEntity,
-        {
+      // Try to enqueue from a plugin context - should NOT fallback to shell handler
+      try {
+        await service.enqueue("content-generation", testEntity, {
           source: "test-plugin",
-          metadata: defaultTestMetadata,
-        },
-        "some-plugin",
-      );
+          metadata: {
+            ...defaultTestMetadata,
+            pluginId: "some-plugin",
+          },
+        });
+        expect().fail("Should have thrown an error");
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        if (error instanceof Error) {
+          expect(error.message).toBe(
+            "No handler registered for job type: some-plugin:content-generation",
+          );
+        }
+      }
 
-      expect(jobId).toBeDefined();
-      expect(typeof jobId).toBe("string");
-
-      // Verify it was processed by the shell handler
-      expect(testHandler.validateCallCount).toBe(1);
+      // Verify the shell handler was NOT called
+      expect(testHandler.validateCallCount).toBe(0);
     });
 
     it("should apply job options correctly", async () => {
@@ -636,7 +641,8 @@ describe("JobQueueService", () => {
 
       const job = await service.getStatusByEntityId(testEntity.id);
       expect(job?.type).toBe("shell:embedding");
-      expect(job?.data).toMatchObject({ id: testEntity.id });
+      const jobData = job?.data ? JSON.parse(job.data) : null;
+      expect(jobData).toMatchObject({ id: testEntity.id });
     });
 
     it("should return null when job not found", async () => {
