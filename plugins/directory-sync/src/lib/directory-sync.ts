@@ -1,8 +1,5 @@
 import type { Logger, ServicePluginContext } from "@brains/plugins";
-import type {
-  IEntityService,
-  ProgressReporter,
-} from "@brains/plugins";
+import type { IEntityService, ProgressReporter } from "@brains/plugins";
 import { resolve, isAbsolute } from "path";
 import { existsSync, mkdirSync } from "fs";
 import { z } from "zod";
@@ -382,7 +379,6 @@ export class DirectorySync {
     }
   }
 
-
   /**
    * Get file operations instance (for handlers)
    */
@@ -410,7 +406,7 @@ export class DirectorySync {
    */
   async getStatus(): Promise<DirectorySyncStatus> {
     const { files, stats } = this.fileOperations.gatherFileStatus();
-    
+
     return {
       syncPath: this.syncPath,
       exists: this.fileOperations.syncDirectoryExists(),
@@ -420,7 +416,6 @@ export class DirectorySync {
       stats,
     };
   }
-
 
   /**
    * Queue a sync batch operation
@@ -498,6 +493,4 @@ export class DirectorySync {
       this.fileWatcher.setCallback(callback);
     }
   }
-
-
 }

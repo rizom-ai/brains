@@ -14,7 +14,7 @@ export class EventHandler {
     jobQueueCallback: ((job: JobRequest) => Promise<string>) | undefined,
   ) {
     this.logger = logger;
-    
+
     // Create the import handler based on whether we have job queue
     if (jobQueueCallback) {
       this.handleImport = async (path: string) => {

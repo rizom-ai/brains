@@ -1,6 +1,6 @@
 import { describe, it, expect, mock } from "bun:test";
-import { App } from "./app.js";
-import { appConfigSchema } from "./types.js";
+import { App } from "../src/app";
+import { appConfigSchema } from "../src/types";
 import type { Shell } from "@brains/core";
 
 // Create a mock Shell

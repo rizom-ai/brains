@@ -15,35 +15,19 @@ import {
   type BatchJobStatus,
   type Batch,
   type BatchOperation,
-  type JobQueueDbConfig,
 } from "@brains/job-queue";
 import type { JobOptions, JobQueue } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import { PluginManager } from "@brains/plugins";
 import { CommandRegistry } from "@brains/command-registry";
-import {
-  MCPService,
-  type IMCPService,
-  type IMCPTransport,
-} from "@brains/mcp-service";
+import { type IMCPService, type IMCPTransport } from "@brains/mcp-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
-import {
-  EmbeddingService,
-  type IEmbeddingService,
-} from "@brains/embedding-service";
-import {
-  ConversationService,
-  type IConversationService,
-} from "@brains/conversation-service";
-// Commands now provided by system plugin
-import {
-  ContentGenerator,
-  ContentGenerationJobHandler,
-  ContentDerivationJobHandler,
-} from "@brains/content-generator";
-import { AIService, type IAIService } from "@brains/ai-service";
+import { type IEmbeddingService } from "@brains/embedding-service";
+import { type IConversationService } from "@brains/conversation-service";
+import { ContentGenerator } from "@brains/content-generator";
+import { type IAIService } from "@brains/ai-service";
 import { PermissionService } from "@brains/permission-service";
-import { Logger, LogLevel } from "@brains/utils";
+import { Logger } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
 import type { Template } from "@brains/content-generator";
 import type { RouteDefinition } from "@brains/view-registry";
@@ -95,7 +79,6 @@ export class Shell implements IShell {
   private readonly mcpService: IMCPService;
   private readonly viewRegistry: ViewRegistry;
   private readonly daemonRegistry: DaemonRegistry;
-  private readonly embeddingService: IEmbeddingService;
   private readonly entityService: EntityService;
   private readonly aiService: IAIService;
   private readonly conversationService: IConversationService;
@@ -138,39 +121,7 @@ export class Shell implements IShell {
     dependencies?: ShellDependencies,
   ): Shell {
     const fullConfig = createShellConfig(config);
-
-    // Create fresh instances of all registries
-    const logger =
-      dependencies?.logger ??
-      Logger.createFresh({
-        level: LogLevel.INFO,
-        context: fullConfig.logging.context,
-      });
-
-    const serviceRegistry = ServiceRegistry.createFresh(logger);
-    const entityRegistry = EntityRegistry.createFresh(logger);
-    const messageBus = MessageBus.createFresh(logger);
-    const pluginManager = PluginManager.createFresh(serviceRegistry, logger);
-    const permissionService = new PermissionService(fullConfig.permissions);
-    const commandRegistry = CommandRegistry.createFresh(
-      logger,
-      permissionService,
-    );
-    const mcpService = MCPService.createFresh(messageBus, logger);
-
-    // Merge fresh instances with any provided dependencies (without contentGenerator yet)
-    const freshDependencies: ShellDependencies = {
-      ...dependencies,
-      logger,
-      serviceRegistry,
-      entityRegistry,
-      messageBus,
-      pluginManager,
-      commandRegistry,
-      mcpService,
-    };
-
-    return new Shell(fullConfig, freshDependencies);
+    return new Shell(fullConfig, dependencies);
   }
 
   /**
@@ -179,203 +130,36 @@ export class Shell implements IShell {
   private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
     this.config = config;
 
-    // Default initialization when no dependencies are injected
-    if (!dependencies) {
-      // Create logger
-      const logLevel = {
-        debug: LogLevel.DEBUG,
-        info: LogLevel.INFO,
-        warn: LogLevel.WARN,
-        error: LogLevel.ERROR,
-      }[config.logging.level];
-
-      this.logger = Logger.createFresh({
-        level: logLevel,
-        context: config.logging.context,
-      });
-
-      // Create services
-      this.embeddingService = EmbeddingService.getInstance(
-        this.logger,
-        config.embedding.cacheDir,
-      );
-      this.aiService = AIService.getInstance(config.ai, this.logger);
-    } else {
-      // Use injected dependencies (for testing)
-      this.logger =
-        dependencies.logger ??
-        Logger.createFresh({
-          level: LogLevel.INFO,
-          context: config.logging.context,
-        });
-
-      this.embeddingService =
-        dependencies.embeddingService ??
-        EmbeddingService.getInstance(this.logger, config.embedding.cacheDir);
-      this.aiService =
-        dependencies.aiService ?? AIService.getInstance(config.ai, this.logger);
-    }
-
-    // Initialize core components
-    // Use provided dependencies if available, otherwise use singletons
-    this.serviceRegistry =
-      dependencies?.serviceRegistry ?? ServiceRegistry.getInstance(this.logger);
-    this.entityRegistry =
-      dependencies?.entityRegistry ?? EntityRegistry.getInstance(this.logger);
-    this.messageBus =
-      dependencies?.messageBus ?? MessageBus.getInstance(this.logger);
-    this.viewRegistry =
-      dependencies?.viewRegistry ?? ViewRegistry.getInstance();
-    this.daemonRegistry =
-      dependencies?.daemonRegistry ?? DaemonRegistry.getInstance(this.logger);
-    this.pluginManager =
-      dependencies?.pluginManager ??
-      PluginManager.getInstance(this.serviceRegistry, this.logger);
-
-    // Initialize permission service first since CommandRegistry needs it
-    this.permissionService = new PermissionService(config.permissions);
-
-    this.commandRegistry =
-      dependencies?.commandRegistry ??
-      CommandRegistry.getInstance(this.logger, this.permissionService);
-    this.mcpService =
-      dependencies?.mcpService ??
-      MCPService.getInstance(this.messageBus, this.logger);
-
-    // Initialize generic job queue service and worker
-    const jobQueueDbConfig: JobQueueDbConfig = {
-      url: config.jobQueueDatabase.url,
-      ...(config.jobQueueDatabase.authToken && {
-        authToken: config.jobQueueDatabase.authToken,
-      }),
-    };
-
-    this.jobQueueService =
-      dependencies?.jobQueueService ??
-      JobQueueService.createFresh(jobQueueDbConfig, this.logger);
-
-    // Note: Embedding job handler is now registered inside EntityService
-
-    // Initialize EntityService with its own database
-    this.entityService =
-      dependencies?.entityService ??
-      EntityService.getInstance({
-        embeddingService: this.embeddingService,
-        entityRegistry: this.entityRegistry,
-        logger: this.logger,
-        jobQueueService: this.jobQueueService,
-        dbConfig: {
-          url: config.database.url,
-          ...(config.database.authToken && {
-            authToken: config.database.authToken,
-          }),
-        },
-      });
-
-    this.conversationService =
-      dependencies?.conversationService ??
-      ConversationService.getInstance(this.logger, this.messageBus, {
-        url: config.conversationDatabase.url,
-        ...(config.conversationDatabase.authToken && {
-          authToken: config.conversationDatabase.authToken,
-        }),
-      });
-
-    this.contentGenerator =
-      dependencies?.contentGenerator ??
-      new ContentGenerator({
-        logger: this.logger,
-        entityService: this.entityService,
-        aiService: this.aiService,
-        conversationService: this.conversationService,
-      });
-
-    // Register content generation job handler
-    const contentGenerationJobHandler = ContentGenerationJobHandler.createFresh(
-      this.contentGenerator,
-      this.entityService,
-    );
-    this.jobQueueService.registerHandler(
-      "shell:content-generation",
-      contentGenerationJobHandler,
+    // Use ShellInitializer to create all services
+    const shellInitializer = ShellInitializer.getInstance(
+      Logger.getInstance(),
+      config,
     );
 
-    // Register content derivation job handler
-    const contentDerivationJobHandler = ContentDerivationJobHandler.createFresh(
-      this.entityService,
-    );
-    this.jobQueueService.registerHandler(
-      "shell:content-derivation",
-      contentDerivationJobHandler,
-    );
+    const services = shellInitializer.initializeServices(dependencies);
 
-    // Register core components in the service registry
-    this.serviceRegistry.register("shell", () => this);
-    this.serviceRegistry.register("entityRegistry", () => this.entityRegistry);
-    this.serviceRegistry.register("messageBus", () => this.messageBus);
-    this.serviceRegistry.register("pluginManager", () => this.pluginManager);
-    this.serviceRegistry.register("entityService", () => this.entityService);
-    this.serviceRegistry.register("aiService", () => this.aiService);
-    this.serviceRegistry.register(
-      "conversationService",
-      () => this.conversationService,
-    );
-    this.serviceRegistry.register(
-      "permissionService",
-      () => this.permissionService,
-    );
-    this.serviceRegistry.register(
-      "commandRegistry",
-      () => this.commandRegistry,
-    );
-    this.serviceRegistry.register("mcpService", () => this.mcpService);
-    this.serviceRegistry.register(
-      "contentGenerator",
-      () => this.contentGenerator,
-    );
-    this.serviceRegistry.register("viewRegistry", () => this.viewRegistry);
-    this.serviceRegistry.register("daemonRegistry", () => this.daemonRegistry);
-    this.serviceRegistry.register(
-      "jobQueueService",
-      () => this.jobQueueService,
-    );
-    // Initialize BatchJobManager
-    this.batchJobManager = BatchJobManager.getInstance(
-      this.jobQueueService,
-      this.logger,
-    );
-    this.serviceRegistry.register(
-      "batchJobManager",
-      () => this.batchJobManager,
-    );
+    // Store service references
+    this.logger = services.logger;
+    this.serviceRegistry = services.serviceRegistry;
+    this.entityRegistry = services.entityRegistry;
+    this.messageBus = services.messageBus;
+    this.viewRegistry = services.viewRegistry;
+    this.daemonRegistry = services.daemonRegistry;
+    this.pluginManager = services.pluginManager;
+    this.commandRegistry = services.commandRegistry;
+    this.mcpService = services.mcpService;
+    this.entityService = services.entityService;
+    this.aiService = services.aiService;
+    this.conversationService = services.conversationService;
+    this.contentGenerator = services.contentGenerator;
+    this.jobQueueService = services.jobQueueService;
+    this.jobQueueWorker = services.jobQueueWorker;
+    this.batchJobManager = services.batchJobManager;
+    this.jobProgressMonitor = services.jobProgressMonitor;
+    this.permissionService = services.permissionService;
 
-    this.jobProgressMonitor =
-      dependencies?.jobProgressMonitor ??
-      JobProgressMonitor.getInstance(
-        this.jobQueueService,
-        this.messageBus,
-        this.batchJobManager,
-        this.logger,
-      );
-    this.serviceRegistry.register(
-      "jobProgressMonitor",
-      () => this.jobProgressMonitor,
-    );
-
-    // Initialize JobQueueWorker after JobProgressMonitor
-    this.jobQueueWorker =
-      dependencies?.jobQueueWorker ??
-      JobQueueWorker.createFresh(
-        this.jobQueueService,
-        this.jobProgressMonitor,
-        this.logger,
-        {
-          pollInterval: 100, // 100ms for responsive processing
-          concurrency: 1, // Process one job at a time
-          autoStart: false, // Start manually during initialization
-        },
-      );
-    this.serviceRegistry.register("jobQueueWorker", () => this.jobQueueWorker);
+    // Register only the services that plugins actually need
+    shellInitializer.registerServices(services, this);
   }
 
   /**
@@ -611,7 +395,7 @@ export class Shell implements IShell {
     return this.initialized;
   }
 
-  // Minimal getters needed for MCP integration
+  // Keep only getters that are actually used by plugins and tests
 
   public getEntityService(): EntityService {
     return this.entityService;
@@ -655,10 +439,6 @@ export class Shell implements IShell {
 
   public getCommandRegistry(): CommandRegistry {
     return this.commandRegistry;
-  }
-
-  public getServiceRegistry(): ServiceRegistry {
-    return this.serviceRegistry;
   }
 
   public getMcpTransport(): IMCPTransport {

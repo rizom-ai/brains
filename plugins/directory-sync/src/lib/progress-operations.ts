@@ -1,8 +1,4 @@
-import type {
-  IEntityService,
-  ProgressReporter,
-  Logger,
-} from "@brains/plugins";
+import type { IEntityService, ProgressReporter, Logger } from "@brains/plugins";
 import type { ExportResult, ImportResult } from "../types";
 import type { FileOperations } from "./file-operations";
 
@@ -121,9 +117,12 @@ export class ProgressOperations {
             result.exported++;
             this.logger.debug("Exported entity", { entityType, id: entity.id });
           } catch (error) {
-            const exportError = error instanceof Error ? error : new Error(
-              `Failed to export entity ${entity.id || "unknown"}`,
-            );
+            const exportError =
+              error instanceof Error
+                ? error
+                : new Error(
+                    `Failed to export entity ${entity.id || "unknown"}`,
+                  );
             result.failed++;
             result.errors.push({
               entityId: entity.id || "unknown",

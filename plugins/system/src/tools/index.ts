@@ -1,4 +1,4 @@
-import type { PluginTool } from "@brains/plugins";
+import type { PluginTool, ToolResponse } from "@brains/plugins";
 import type { SystemPlugin } from "../plugin";
 import { z } from "zod";
 
@@ -17,7 +17,7 @@ export function createSystemTools(
         userId: z.string().optional().describe("Optional user ID for context"),
       },
       visibility: "public",
-      handler: async (input): Promise<unknown> => {
+      handler: async (input): Promise<ToolResponse> => {
         const parsed = z
           .object({
             query: z.string(),
@@ -28,7 +28,10 @@ export function createSystemTools(
         const result = await plugin.query(parsed.query, {
           userId: parsed.userId,
         });
-        return result;
+        return {
+          status: "success",
+          data: result,
+        };
       },
     },
     {
@@ -42,7 +45,7 @@ export function createSystemTools(
         limit: z.number().optional().describe("Maximum number of results"),
       },
       visibility: "public",
-      handler: async (input): Promise<unknown> => {
+      handler: async (input): Promise<ToolResponse> => {
         const parsed = z
           .object({
             entityType: z.string(),
@@ -55,7 +58,10 @@ export function createSystemTools(
           types: [parsed.entityType],
           limit: parsed.limit ?? 10,
         });
-        return results;
+        return {
+          status: "success",
+          data: { results },
+        };
       },
     },
     {
@@ -66,7 +72,7 @@ export function createSystemTools(
         id: z.string().describe("Entity ID"),
       },
       visibility: "public",
-      handler: async (input): Promise<unknown> => {
+      handler: async (input): Promise<ToolResponse> => {
         const parsed = z
           .object({
             entityType: z.string(),
@@ -75,7 +81,16 @@ export function createSystemTools(
           .parse(input);
 
         const entity = await plugin.getEntity(parsed.entityType, parsed.id);
-        return entity ?? { error: "Entity not found" };
+        if (entity) {
+          return {
+            status: "success",
+            data: { entity },
+          };
+        }
+        return {
+          status: "error",
+          message: "Entity not found",
+        };
       },
     },
     {
@@ -96,7 +111,7 @@ export function createSystemTools(
           ),
       },
       visibility: "public",
-      handler: async (input): Promise<unknown> => {
+      handler: async (input): Promise<ToolResponse> => {
         const parsed = z
           .object({
             batchId: z.string().optional(),
@@ -173,7 +188,7 @@ export function createSystemTools(
             completedOperations: batch.status.completedOperations,
             failedOperations: batch.status.failedOperations,
             currentOperation: batch.status.currentOperation,
-            userId: batch.metadata.metadata.userId,
+            pluginId: batch.metadata.metadata.pluginId,
             errors: batch.status.errors,
           }));
 
@@ -199,7 +214,7 @@ export function createSystemTools(
         conversationId: z.string().describe("Conversation ID"),
       },
       visibility: "public",
-      handler: async (input): Promise<unknown> => {
+      handler: async (input): Promise<ToolResponse> => {
         const parsed = z
           .object({
             conversationId: z.string(),
@@ -246,7 +261,7 @@ export function createSystemTools(
           .describe("Maximum number of conversations to return (default: 20)"),
       },
       visibility: "public",
-      handler: async (input): Promise<unknown> => {
+      handler: async (input): Promise<ToolResponse> => {
         const parsed = z
           .object({
             searchQuery: z.string().optional(),
@@ -294,7 +309,7 @@ export function createSystemTools(
           .describe("Maximum number of messages to return (default: 20)"),
       },
       visibility: "public",
-      handler: async (input): Promise<unknown> => {
+      handler: async (input): Promise<ToolResponse> => {
         const parsed = z
           .object({
             conversationId: z.string(),

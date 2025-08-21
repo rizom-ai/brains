@@ -1,11 +1,65 @@
-import type { Logger } from "@brains/utils";
+import { Logger, LogLevel } from "@brains/utils";
 import type { ShellConfig } from "../config";
-import type { EntityRegistry } from "@brains/entity-service";
+import { EntityRegistry, EntityService } from "@brains/entity-service";
 import type { ContentGenerator } from "@brains/content-generator";
-import type { PluginManager } from "@brains/plugins";
+import {
+  ContentGenerationJobHandler,
+  ContentDerivationJobHandler,
+} from "@brains/content-generator";
+import { PluginManager } from "@brains/plugins";
+import { ServiceRegistry } from "@brains/service-registry";
+import { MessageBus } from "@brains/messaging-service";
+import { CommandRegistry } from "@brains/command-registry";
+import { MCPService, type IMCPService } from "@brains/mcp-service";
+import { DaemonRegistry } from "@brains/daemon-registry";
+import { ViewRegistry } from "@brains/view-registry";
+import {
+  EmbeddingService,
+  type IEmbeddingService,
+} from "@brains/embedding-service";
+import {
+  ConversationService,
+  type IConversationService,
+} from "@brains/conversation-service";
+import { ContentGenerator as ContentGeneratorClass } from "@brains/content-generator";
+import { AIService, type IAIService } from "@brains/ai-service";
+import { PermissionService } from "@brains/permission-service";
+import {
+  JobQueueService,
+  JobQueueWorker,
+  BatchJobManager,
+  JobProgressMonitor,
+  type JobQueueDbConfig,
+} from "@brains/job-queue";
 import { BaseEntityAdapter } from "../entities/base-entity-adapter";
 import { knowledgeQueryTemplate } from "../templates";
 import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
+import type { ShellDependencies } from "../shell";
+
+/**
+ * Services initialized by ShellInitializer
+ */
+export interface ShellServices {
+  logger: Logger;
+  serviceRegistry: ServiceRegistry;
+  entityRegistry: EntityRegistry;
+  messageBus: MessageBus;
+  viewRegistry: ViewRegistry;
+  daemonRegistry: DaemonRegistry;
+  pluginManager: PluginManager;
+  commandRegistry: CommandRegistry;
+  mcpService: IMCPService;
+  embeddingService: IEmbeddingService;
+  entityService: EntityService;
+  aiService: IAIService;
+  conversationService: IConversationService;
+  contentGenerator: ContentGenerator;
+  jobQueueService: JobQueueService;
+  jobQueueWorker: JobQueueWorker;
+  batchJobManager: BatchJobManager;
+  jobProgressMonitor: JobProgressMonitor;
+  permissionService: PermissionService;
+}
 
 /**
  * Handles Shell initialization logic
@@ -133,6 +187,196 @@ export class ShellInitializer {
       this.logger.error("Failed to initialize plugins", error);
       throw new Error("Failed to initialize plugins");
     }
+  }
+
+  /**
+   * Initialize all services required by Shell
+   */
+  public initializeServices(dependencies?: ShellDependencies): ShellServices {
+    this.logger.debug("Initializing Shell services");
+
+    // Create or use provided logger
+    const logLevel = {
+      debug: LogLevel.DEBUG,
+      info: LogLevel.INFO,
+      warn: LogLevel.WARN,
+      error: LogLevel.ERROR,
+    }[this.config.logging.level];
+
+    const logger =
+      dependencies?.logger ??
+      Logger.createFresh({
+        level: logLevel,
+        context: this.config.logging.context,
+      });
+
+    // Create or use provided services
+    const embeddingService =
+      dependencies?.embeddingService ??
+      EmbeddingService.getInstance(logger, this.config.embedding.cacheDir);
+    const aiService =
+      dependencies?.aiService ?? AIService.getInstance(this.config.ai, logger);
+
+    // Core registries and services
+    const serviceRegistry =
+      dependencies?.serviceRegistry ?? ServiceRegistry.getInstance(logger);
+    const entityRegistry =
+      dependencies?.entityRegistry ?? EntityRegistry.getInstance(logger);
+    const messageBus =
+      dependencies?.messageBus ?? MessageBus.getInstance(logger);
+    const viewRegistry =
+      dependencies?.viewRegistry ?? ViewRegistry.getInstance();
+    const daemonRegistry =
+      dependencies?.daemonRegistry ?? DaemonRegistry.getInstance(logger);
+    const pluginManager =
+      dependencies?.pluginManager ??
+      PluginManager.getInstance(serviceRegistry, logger);
+
+    // Permission and command services
+    const permissionService = new PermissionService(this.config.permissions);
+    const commandRegistry =
+      dependencies?.commandRegistry ??
+      CommandRegistry.getInstance(logger, permissionService);
+    const mcpService =
+      dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
+
+    // Job queue configuration
+    const jobQueueDbConfig: JobQueueDbConfig = {
+      url: this.config.jobQueueDatabase.url,
+      ...(this.config.jobQueueDatabase.authToken && {
+        authToken: this.config.jobQueueDatabase.authToken,
+      }),
+    };
+
+    const jobQueueService =
+      dependencies?.jobQueueService ??
+      JobQueueService.getInstance(jobQueueDbConfig, logger);
+
+    // Entity service with its database
+    const entityService =
+      dependencies?.entityService ??
+      EntityService.getInstance({
+        embeddingService,
+        entityRegistry,
+        logger,
+        jobQueueService,
+        dbConfig: {
+          url: this.config.database.url,
+          ...(this.config.database.authToken && {
+            authToken: this.config.database.authToken,
+          }),
+        },
+      });
+
+    // Conversation service
+    const conversationService =
+      dependencies?.conversationService ??
+      ConversationService.getInstance(logger, messageBus, {
+        url: this.config.conversationDatabase.url,
+        ...(this.config.conversationDatabase.authToken && {
+          authToken: this.config.conversationDatabase.authToken,
+        }),
+      });
+
+    // Content generator
+    const contentGenerator =
+      dependencies?.contentGenerator ??
+      new ContentGeneratorClass({
+        logger,
+        entityService,
+        aiService,
+        conversationService,
+      });
+
+    // Register job handlers
+    this.registerJobHandlers(jobQueueService, contentGenerator, entityService);
+
+    // Batch and progress management
+    const batchJobManager = BatchJobManager.getInstance(
+      jobQueueService,
+      logger,
+    );
+    const jobProgressMonitor =
+      dependencies?.jobProgressMonitor ??
+      JobProgressMonitor.getInstance(
+        jobQueueService,
+        messageBus,
+        batchJobManager,
+        logger,
+      );
+
+    // Job queue worker
+    const jobQueueWorker =
+      dependencies?.jobQueueWorker ??
+      JobQueueWorker.getInstance(jobQueueService, jobProgressMonitor, logger, {
+        pollInterval: 100,
+        concurrency: 1,
+        autoStart: false,
+      });
+
+    return {
+      logger,
+      serviceRegistry,
+      entityRegistry,
+      messageBus,
+      viewRegistry,
+      daemonRegistry,
+      pluginManager,
+      commandRegistry,
+      mcpService,
+      embeddingService,
+      entityService,
+      aiService,
+      conversationService,
+      contentGenerator,
+      jobQueueService,
+      jobQueueWorker,
+      batchJobManager,
+      jobProgressMonitor,
+      permissionService,
+    };
+  }
+
+  /**
+   * Register job handlers for content generation and derivation
+   */
+  private registerJobHandlers(
+    jobQueueService: JobQueueService,
+    contentGenerator: ContentGenerator,
+    entityService: EntityService,
+  ): void {
+    // Register content generation job handler
+    const contentGenerationJobHandler = ContentGenerationJobHandler.createFresh(
+      contentGenerator,
+      entityService,
+    );
+    jobQueueService.registerHandler(
+      "shell:content-generation",
+      contentGenerationJobHandler,
+    );
+
+    // Register content derivation job handler
+    const contentDerivationJobHandler =
+      ContentDerivationJobHandler.createFresh(entityService);
+    jobQueueService.registerHandler(
+      "shell:content-derivation",
+      contentDerivationJobHandler,
+    );
+  }
+
+  /**
+   * Register services in the service registry
+   * ONLY registers the three services that are actually resolved by plugins
+   */
+  public registerServices(services: ShellServices, shell: unknown): void {
+    const { serviceRegistry, commandRegistry, mcpService } = services;
+
+    // Only register the THREE services that are actually resolved
+    serviceRegistry.register("shell", () => shell);
+    serviceRegistry.register("commandRegistry", () => commandRegistry);
+    serviceRegistry.register("mcpService", () => mcpService);
+
+    // That's it! No other services are ever resolved through the registry
   }
 
   /**
