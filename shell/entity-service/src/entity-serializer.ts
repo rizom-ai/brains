@@ -1,6 +1,6 @@
 import type { BaseEntity } from "./types";
-import { EntityRegistry } from "./entityRegistry";
-import { Logger } from "@brains/utils";
+import type { EntityRegistry } from "./entityRegistry";
+import type { Logger } from "@brains/utils";
 
 /**
  * EntitySerializer handles conversion between entities and markdown

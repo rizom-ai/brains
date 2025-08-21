@@ -1,8 +1,8 @@
 import type { EntityDB } from "./db";
 import type { BaseEntity, SearchResult, SearchOptions } from "./types";
 import type { IEmbeddingService } from "@brains/embedding-service";
-import { EntityRegistry } from "./entityRegistry";
-import { Logger } from "@brains/utils";
+import type { EntityRegistry } from "./entityRegistry";
+import type { Logger } from "@brains/utils";
 import { entities } from "./schema/entities";
 import { and, inArray, sql } from "drizzle-orm";
 import { z } from "zod";

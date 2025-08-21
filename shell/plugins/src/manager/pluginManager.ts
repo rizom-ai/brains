@@ -2,10 +2,8 @@ import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
 import type { IShell } from "@brains/plugins";
 import { EventEmitter } from "events";
-import type { Plugin, PluginCapabilities } from "../interfaces";
+import type { Plugin } from "../interfaces";
 import { DaemonRegistry } from "@brains/daemon-registry";
-import type { CommandRegistry } from "@brains/command-registry";
-import type { IMCPService } from "@brains/mcp-service";
 import type {
   PluginManager as IPluginManager,
   PluginInfo,
@@ -13,6 +11,9 @@ import type {
 } from "./types";
 import { PluginStatus, PluginEvent } from "./types";
 import { PluginError } from "../errors";
+import { PluginLifecycle } from "./plugin-lifecycle";
+import { DependencyResolver } from "./dependency-resolver";
+import { CapabilityRegistrar } from "./capability-registrar";
 
 // Re-export enums for convenience
 export { PluginEvent, PluginStatus } from "./types";
@@ -29,6 +30,9 @@ export class PluginManager implements IPluginManager {
   private events: EventEmitter;
   private daemonRegistry: DaemonRegistry;
   private serviceRegistry: ServiceRegistry;
+  private pluginLifecycle: PluginLifecycle;
+  private dependencyResolver: DependencyResolver;
+  private capabilityRegistrar: CapabilityRegistrar;
 
   /**
    * Get the singleton instance of PluginManager
@@ -66,6 +70,23 @@ export class PluginManager implements IPluginManager {
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
     this.daemonRegistry = DaemonRegistry.getInstance(logger);
+
+    // Initialize helper classes
+    this.pluginLifecycle = new PluginLifecycle(
+      this.plugins,
+      this.events,
+      this.daemonRegistry,
+      logger,
+    );
+    this.dependencyResolver = new DependencyResolver(
+      this.plugins,
+      this.events,
+      logger,
+    );
+    this.capabilityRegistrar = new CapabilityRegistrar(
+      serviceRegistry,
+      logger,
+    );
   }
 
   /**
@@ -117,92 +138,15 @@ export class PluginManager implements IPluginManager {
   public async initializePlugins(): Promise<void> {
     this.logger.info("Initializing plugins...");
 
-    // Get all plugin IDs
-    const allPluginIds = Array.from(this.plugins.keys());
-
-    // Track initialized plugins
-    const initialized = new Set<string>();
-
-    // Try to initialize all plugins
-    let progress = true;
-
-    // Continue until all plugins are initialized or no progress can be made
-    while (progress && initialized.size < allPluginIds.length) {
-      progress = false;
-
-      // Iterate through all plugins
-      for (const pluginId of allPluginIds) {
-        // Skip already initialized plugins
-        if (initialized.has(pluginId)) {
-          continue;
-        }
-
-        const pluginInfo = this.plugins.get(pluginId);
-        if (!pluginInfo) {
-          continue;
-        }
-
-        // Check if all dependencies are initialized
-        const unmetDependencies = this.getUnmetDependencies(pluginId);
-
-        if (unmetDependencies.length === 0) {
-          // All dependencies are satisfied, initialize this plugin
-          try {
-            await this.initializePlugin(pluginId);
-            initialized.add(pluginId);
-            progress = true;
-          } catch (error) {
-            // Mark as error and continue with others
-            const errorMessage =
-              error instanceof Error ? error.message : String(error);
-            this.logger.error(
-              `Failed to initialize plugin ${pluginId}: ${errorMessage}`,
-            );
-
-            // Plugin status and error event are already set in initializePlugin
-            // Consider this "handled" for dependency resolution
-            initialized.add(pluginId);
-            progress = true;
-          }
-        }
-      }
-    }
-
-    // Check for plugins that couldn't be initialized due to dependency issues
-    const uninitializedPlugins = allPluginIds.filter(
-      (id) => !initialized.has(id),
+    // Use dependency resolver to handle initialization order
+    const result = await this.dependencyResolver.resolveInitializationOrder(
+      async (pluginId) => {
+        await this.initializePlugin(pluginId);
+      },
     );
 
-    if (uninitializedPlugins.length > 0) {
-      const pluginList = uninitializedPlugins.join(", ");
-      this.logger.error(
-        `Failed to initialize plugins due to dependency issues: ${pluginList}`,
-      );
-
-      // Report specific issues for each plugin
-      for (const pluginId of uninitializedPlugins) {
-        const unmetDependencies = this.getUnmetDependencies(pluginId);
-        this.logger.error(
-          `Plugin ${pluginId} has unmet dependencies: ${unmetDependencies.join(", ")}`,
-        );
-
-        // Update plugin status
-        const pluginInfo = this.plugins.get(pluginId);
-        if (pluginInfo) {
-          pluginInfo.status = PluginStatus.ERROR;
-          pluginInfo.error = new PluginError(
-            pluginId,
-            `Unmet dependencies: ${unmetDependencies.join(", ")}`,
-          );
-        }
-
-        // Emit error event
-        this.events.emit(PluginEvent.ERROR, pluginId, pluginInfo?.error);
-      }
-    }
-
     this.logger.info(
-      `Initialized ${initialized.size} of ${allPluginIds.length} plugins`,
+      `Initialized ${result.initialized.size} of ${this.plugins.size} plugins`,
     );
   }
 
@@ -210,99 +154,22 @@ export class PluginManager implements IPluginManager {
    * Initialize a specific plugin
    */
   private async initializePlugin(pluginId: string): Promise<void> {
-    const pluginInfo = this.plugins.get(pluginId);
-    if (!pluginInfo) {
-      throw new PluginError(
-        pluginId,
-        "Registration failed: Plugin is not registered",
-      );
-    }
+    // Get Shell from ServiceRegistry
+    const shell = this.serviceRegistry.resolve<IShell>("shell");
 
-    const plugin = pluginInfo.plugin;
+    // Use plugin lifecycle to initialize
+    const capabilities = await this.pluginLifecycle.initializePlugin(
+      pluginId,
+      shell,
+    );
 
-    this.logger.debug(`Initializing plugin: ${pluginId}`);
-
-    // Emit before initialize event
-    this.events.emit(PluginEvent.BEFORE_INITIALIZE, pluginId, plugin);
-
-    // Register the plugin using the adapter
-    try {
-      // Get Shell from ServiceRegistry
-      const shell = this.serviceRegistry.resolve<IShell>("shell");
-
-      // Register the plugin directly with the new interface
-      const capabilities = await plugin.register(shell);
-
-      // Direct registration of capabilities
-      await this.registerCapabilities(pluginId, capabilities);
-
-      // Update plugin status
-      pluginInfo.status = PluginStatus.INITIALIZED;
-      this.logger.info(`Initialized plugin: ${pluginId}`);
-
-      // Start any daemons registered by this plugin
-      try {
-        await this.daemonRegistry.startPlugin(pluginId);
-        this.logger.debug(`Started daemons for plugin: ${pluginId}`);
-      } catch (error) {
-        this.logger.error(
-          `Failed to start daemons for plugin: ${pluginId}`,
-          error,
-        );
-        // Don't fail plugin initialization if daemon startup fails
-      }
-
-      // Emit initialized event
-      this.events.emit(PluginEvent.INITIALIZED, pluginId, plugin);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Error initializing plugin ${pluginId}: ${errorMessage}`,
-      );
-
-      // Update plugin status
-      pluginInfo.status = PluginStatus.ERROR;
-      pluginInfo.error =
-        error instanceof Error ? error : new Error(String(error));
-
-      // Emit error event
-      this.events.emit(PluginEvent.ERROR, pluginId, error);
-
-      // Re-throw for dependency resolution
-      throw error;
-    }
+    // Register capabilities
+    await this.capabilityRegistrar.registerCapabilities(
+      pluginId,
+      capabilities,
+    );
   }
 
-  /**
-   * Check if all dependencies of a plugin are met
-   */
-  private getUnmetDependencies(pluginId: string): string[] {
-    const pluginInfo = this.plugins.get(pluginId);
-    if (!pluginInfo) {
-      return [];
-    }
-
-    const { dependencies } = pluginInfo;
-    const unmetDependencies: string[] = [];
-
-    for (const depId of dependencies) {
-      // Check if dependency exists
-      const dependency = this.plugins.get(depId);
-
-      if (!dependency) {
-        unmetDependencies.push(depId);
-        continue;
-      }
-
-      // Check if dependency is initialized (not just registered)
-      if (dependency.status !== PluginStatus.INITIALIZED) {
-        unmetDependencies.push(depId);
-      }
-    }
-
-    return unmetDependencies;
-  }
 
   /**
    * Get a registered plugin by ID
@@ -377,65 +244,14 @@ export class PluginManager implements IPluginManager {
    * This only marks the plugin as disabled but doesn't unregister it
    */
   public async disablePlugin(id: string): Promise<void> {
-    const pluginInfo = this.plugins.get(id);
-    if (!pluginInfo) {
-      this.logger.warn(`Cannot disable plugin ${id}: not registered`);
-      return;
-    }
-
-    this.logger.debug(`Disabling plugin: ${id}`);
-
-    // Stop any daemons registered by this plugin
-    try {
-      await this.daemonRegistry.stopPlugin(id);
-      this.logger.debug(`Stopped daemons for plugin: ${id}`);
-    } catch (error) {
-      this.logger.error(`Failed to stop daemons for plugin: ${id}`, error);
-      // Continue with plugin disable even if daemon stop fails
-    }
-
-    // Update status
-    pluginInfo.status = PluginStatus.DISABLED;
-
-    // Emit disabled event
-    this.events.emit(PluginEvent.DISABLED, id, pluginInfo.plugin);
-
-    this.logger.info(`Disabled plugin: ${id}`);
+    await this.pluginLifecycle.disablePlugin(id);
   }
 
   /**
    * Enable a disabled plugin
    */
   public async enablePlugin(id: string): Promise<void> {
-    const pluginInfo = this.plugins.get(id);
-    if (!pluginInfo) {
-      this.logger.warn(`Cannot enable plugin ${id}: not registered`);
-      return;
-    }
-
-    if (pluginInfo.status !== PluginStatus.DISABLED) {
-      this.logger.warn(`Cannot enable plugin ${id}: not disabled`);
-      return;
-    }
-
-    this.logger.debug(`Enabling plugin: ${id}`);
-
-    // Update status back to initialized
-    pluginInfo.status = PluginStatus.INITIALIZED;
-
-    // Start any daemons registered by this plugin
-    try {
-      await this.daemonRegistry.startPlugin(id);
-      this.logger.debug(`Started daemons for plugin: ${id}`);
-    } catch (error) {
-      this.logger.error(`Failed to start daemons for plugin: ${id}`, error);
-      // Continue with plugin enable even if daemon start fails
-    }
-
-    // Emit enabled event
-    this.events.emit(PluginEvent.ENABLED, id, pluginInfo.plugin);
-
-    this.logger.info(`Enabled plugin: ${id}`);
+    await this.pluginLifecycle.enablePlugin(id);
   }
 
   /**
@@ -473,82 +289,5 @@ export class PluginManager implements IPluginManager {
    */
   public getEventEmitter(): EventEmitter {
     return this.events;
-  }
-
-  /**
-   * Register plugin capabilities directly with the appropriate registries
-   */
-  private async registerCapabilities(
-    pluginId: string,
-    capabilities: PluginCapabilities,
-  ): Promise<void> {
-    // Get CommandRegistry and MCPService from service registry
-    // PluginManager is a core component that needs direct access to these services
-    const commandRegistry =
-      this.serviceRegistry.resolve<CommandRegistry>("commandRegistry");
-    const mcpService = this.serviceRegistry.resolve<IMCPService>("mcpService");
-
-    // Register commands
-    if (capabilities.commands && capabilities.commands.length > 0) {
-      let registeredCount = 0;
-      for (const command of capabilities.commands) {
-        try {
-          commandRegistry.registerCommand(pluginId, command);
-          registeredCount++;
-        } catch (error) {
-          this.logger.error(
-            `Failed to register command ${command.name} from ${pluginId}:`,
-            error,
-          );
-        }
-      }
-      if (registeredCount > 0) {
-        this.logger.debug(
-          `Registered ${registeredCount} commands from ${pluginId}`,
-        );
-      }
-    }
-
-    // Register tools
-    if (capabilities.tools && capabilities.tools.length > 0) {
-      let registeredCount = 0;
-      for (const tool of capabilities.tools) {
-        try {
-          mcpService.registerTool(pluginId, tool);
-          registeredCount++;
-        } catch (error) {
-          this.logger.error(
-            `Failed to register tool ${tool.name} from ${pluginId}:`,
-            error,
-          );
-        }
-      }
-      if (registeredCount > 0) {
-        this.logger.debug(
-          `Registered ${registeredCount} tools from ${pluginId}`,
-        );
-      }
-    }
-
-    // Register resources
-    if (capabilities.resources && capabilities.resources.length > 0) {
-      let registeredCount = 0;
-      for (const resource of capabilities.resources) {
-        try {
-          mcpService.registerResource(pluginId, resource);
-          registeredCount++;
-        } catch (error) {
-          this.logger.error(
-            `Failed to register resource ${resource.name} from ${pluginId}:`,
-            error,
-          );
-        }
-      }
-      if (registeredCount > 0) {
-        this.logger.debug(
-          `Registered ${registeredCount} resources from ${pluginId}`,
-        );
-      }
-    }
   }
 }

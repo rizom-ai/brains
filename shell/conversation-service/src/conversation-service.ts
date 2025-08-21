@@ -17,7 +17,7 @@ import type {
 import { conversations, messages, summaryTracking } from "./schema";
 import type { Logger } from "@brains/utils";
 import { createId } from "@brains/utils";
-import { MessageBus } from "@brains/messaging-service";
+import type { MessageBus } from "@brains/messaging-service";
 import { eq, desc, asc, sql, count } from "drizzle-orm";
 
 /**

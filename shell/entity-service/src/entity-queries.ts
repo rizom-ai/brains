@@ -3,8 +3,8 @@ import type { BaseEntity } from "./types";
 import { entities } from "./schema/entities";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import { z } from "zod";
-import { Logger } from "@brains/utils";
-import { EntitySerializer } from "./entity-serializer";
+import type { Logger } from "@brains/utils";
+import type { EntitySerializer } from "./entity-serializer";
 
 /**
  * Schema for list entities options
