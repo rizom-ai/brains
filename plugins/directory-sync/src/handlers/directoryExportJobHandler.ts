@@ -147,7 +147,7 @@ export class DirectoryExportJobHandler
       // Process batch in parallel
       const batchPromises = entities.map(async (entity) => {
         try {
-          await this.directorySync.writeEntity(entity);
+          await this.directorySync.fileOps.writeEntity(entity);
           result.exported++;
           return { success: true };
         } catch (error) {

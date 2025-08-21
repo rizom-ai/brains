@@ -1,4 +1,8 @@
-import type { ServicePluginContext, Logger, BatchOperation } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  Logger,
+  BatchOperation,
+} from "@brains/plugins";
 import { createId } from "@brains/plugins";
 
 export interface BatchOperationResult {

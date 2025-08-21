@@ -132,7 +132,7 @@ export class DirectoryImportJobHandler
     // Process batch in parallel
     const batchPromises = batch.map(async (filePath) => {
       try {
-        const rawEntity = await this.directorySync.readEntity(filePath);
+        const rawEntity = await this.directorySync.fileOps.readEntity(filePath);
 
         // Check if entity type is registered
         const entityTypes = this.context.entityService.getEntityTypes();

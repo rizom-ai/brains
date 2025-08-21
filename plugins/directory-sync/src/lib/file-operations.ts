@@ -10,7 +10,7 @@ import {
   utimesSync,
 } from "fs";
 import { createHash } from "crypto";
-import type { RawEntity } from "../types";
+import type { RawEntity, DirectorySyncStatus } from "../types";
 
 /**
  * Handles file I/O operations for directory sync
@@ -163,5 +163,57 @@ export class FileOperations {
     const existingHash = this.calculateContentHash(existing.content);
     const newHash = this.calculateContentHash(newEntity.content);
     return existingHash !== newHash;
+  }
+
+  /**
+   * Gather file status information for directory sync status
+   */
+  gatherFileStatus(): {
+    files: DirectorySyncStatus["files"];
+    stats: DirectorySyncStatus["stats"];
+  } {
+    const files: DirectorySyncStatus["files"] = [];
+    const stats: DirectorySyncStatus["stats"] = {
+      totalFiles: 0,
+      byEntityType: {},
+    };
+
+    if (!existsSync(this.syncPath)) {
+      return { files, stats };
+    }
+
+    const allFiles = this.getAllMarkdownFiles();
+
+    for (const filePath of allFiles) {
+      try {
+        const fullPath = join(this.syncPath, filePath);
+        const fileStat = statSync(fullPath);
+        const pathParts = filePath.split("/");
+        const entityType =
+          pathParts.length > 1 && pathParts[0] ? pathParts[0] : "base";
+
+        files.push({
+          path: filePath,
+          entityType,
+          modified: fileStat.mtime,
+        });
+
+        stats.totalFiles++;
+        stats.byEntityType[entityType] =
+          (stats.byEntityType[entityType] ?? 0) + 1;
+      } catch {
+        // Skip files that can't be read
+        continue;
+      }
+    }
+
+    return { files, stats };
+  }
+
+  /**
+   * Check if sync directory exists
+   */
+  syncDirectoryExists(): boolean {
+    return existsSync(this.syncPath);
   }
 }

@@ -20,7 +20,9 @@ export class FileWatcher {
   private readonly syncPath: string;
   private readonly watchInterval: number;
   private readonly logger: Logger;
-  private readonly onFileChange?: ((event: string, path: string) => Promise<void>) | undefined;
+  private readonly onFileChange?:
+    | ((event: string, path: string) => Promise<void>)
+    | undefined;
 
   constructor(options: FileWatcherOptions) {
     this.syncPath = options.syncPath;
@@ -141,7 +143,7 @@ export class FileWatcher {
     // Process each change
     for (const [path, event] of changes) {
       const fullPath = `${this.syncPath}/${path}`;
-      
+
       try {
         if (this.onFileChange) {
           await this.onFileChange(event, fullPath);
