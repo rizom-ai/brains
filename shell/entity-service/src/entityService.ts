@@ -6,43 +6,16 @@ import {
   type EntityDB,
   type EntityDbConfig,
 } from "./db";
-import { entities } from "./schema/entities";
 import { EntityRegistry } from "./entityRegistry";
 import { Logger, extractIndexedFields, createId } from "@brains/utils";
 import type { BaseEntity, SearchResult, EntityWithoutEmbedding } from "./types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import type { SearchOptions, EntityService as IEntityService } from "./types";
-import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
-import { z } from "zod";
 import type { JobQueueService } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
-
-/**
- * Schema for list entities options
- */
-const listOptionsSchema = z.object({
-  limit: z.number().int().positive().optional().default(20),
-  offset: z.number().int().min(0).optional().default(0),
-  sortBy: z.enum(["created", "updated"]).optional().default("updated"),
-  sortDirection: z.enum(["asc", "desc"]).optional().default("desc"),
-  filter: z
-    .object({
-      metadata: z.record(z.unknown()).optional(),
-    })
-    .optional(),
-});
-
-type ListOptions = z.input<typeof listOptionsSchema>;
-
-/**
- * Schema for search options (excluding tags)
- */
-const searchOptionsSchema = z.object({
-  limit: z.number().int().positive().optional().default(20),
-  offset: z.number().int().min(0).optional().default(0),
-  types: z.array(z.string()).optional().default([]),
-  excludeTypes: z.array(z.string()).optional().default([]),
-});
+import { EntitySearch } from "./entity-search";
+import { EntitySerializer } from "./entity-serializer";
+import { EntityQueries } from "./entity-queries";
 
 /**
  * Options for creating an EntityService instance
@@ -58,6 +31,7 @@ export interface EntityServiceOptions {
 /**
  * EntityService provides CRUD operations for entities
  * Implements Component Interface Standardization pattern
+ * Refactored to use separate classes for specific responsibilities
  */
 export class EntityService implements IEntityService {
   private static instance: EntityService | null = null;
@@ -69,6 +43,11 @@ export class EntityService implements IEntityService {
   private logger: Logger;
   private embeddingService: IEmbeddingService;
   private jobQueueService: JobQueueService;
+
+  // Extracted responsibility classes
+  private entitySearch: EntitySearch;
+  private entitySerializer: EntitySerializer;
+  private entityQueries: EntityQueries;
 
   /**
    * Get the singleton instance of EntityService
@@ -115,6 +94,20 @@ export class EntityService implements IEntityService {
       );
     }
     this.jobQueueService = options.jobQueueService;
+
+    // Initialize extracted responsibility classes
+    this.entitySerializer = new EntitySerializer(this.entityRegistry, this.logger);
+    this.entityQueries = new EntityQueries(
+      this.db,
+      this.entitySerializer,
+      this.logger,
+    );
+    this.entitySearch = new EntitySearch(
+      this.db,
+      this.embeddingService,
+      this.entityRegistry,
+      this.logger,
+    );
 
     // Register embedding job handler with job queue service
     const embeddingJobHandler = EmbeddingJobHandler.createFresh(
@@ -173,14 +166,11 @@ export class EntityService implements IEntityService {
       entityWithDefaults,
     );
 
-    // Convert to markdown using adapter
-    const adapter = this.entityRegistry.getAdapter<T>(
+    // Prepare entity for storage
+    const { markdown, metadata } = this.entitySerializer.prepareEntityForStorage(
+      validatedEntity,
       validatedEntity.entityType,
     );
-    const markdown = adapter.toMarkdown(validatedEntity);
-
-    // Extract metadata using adapter
-    const metadata = adapter.extractMetadata(validatedEntity);
 
     // Extract content weight from markdown
     const { contentWeight } = extractIndexedFields(
@@ -235,58 +225,12 @@ export class EntityService implements IEntityService {
     entityType: string,
     id: string,
   ): Promise<T | null> {
-    this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
-
-    // Query database
-    const result = await this.db
-      .select()
-      .from(entities)
-      .where(and(eq(entities.id, id), eq(entities.entityType, entityType)))
-      .limit(1);
-
-    if (result.length === 0) {
-      this.logger.info(`Entity of type ${entityType} with ID ${id} not found`);
-      return null;
-    }
-
-    const entityData = result[0];
+    const entityData = await this.entityQueries.getEntityData(entityType, id);
     if (!entityData) {
       return null;
     }
 
-    // Convert from markdown to entity using hybrid storage model
-    try {
-      const adapter = this.entityRegistry.getAdapter<T>(entityType);
-
-      // Extract entity-specific fields from markdown
-      const parsedContent = adapter.fromMarkdown(entityData.content);
-
-      // Merge database fields with parsed content and metadata
-      const entity = {
-        // Core fields from database (always authoritative)
-        id: entityData.id,
-        entityType: entityData.entityType,
-        content: entityData.content,
-        created: new Date(entityData.created).toISOString(),
-        updated: new Date(entityData.updated).toISOString(),
-
-        // Fields from metadata (includes title, tags, entity-specific fields)
-        ...entityData.metadata,
-
-        // Entity-specific fields from adapter (override metadata if needed)
-        ...parsedContent,
-      } as T;
-
-      // Validate the complete entity
-      return await this.entityRegistry.validateEntity(entityType, entity);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Failed to parse entity of type ${entityType} with ID ${id}: ${errorMessage}`,
-      );
-      return null;
-    }
+    return this.entitySerializer.convertToEntity<T>(entityData);
   }
 
   /**
@@ -312,14 +256,11 @@ export class EntityService implements IEntityService {
       updatedEntity,
     );
 
-    // Convert to markdown using adapter
-    const adapter = this.entityRegistry.getAdapter<T>(
+    // Prepare entity for storage
+    const { markdown, metadata } = this.entitySerializer.prepareEntityForStorage(
+      validatedEntity,
       validatedEntity.entityType,
     );
-    const markdown = adapter.toMarkdown(validatedEntity);
-
-    // Extract metadata using adapter
-    const metadata = adapter.extractMetadata(validatedEntity);
 
     // Extract content weight from markdown
     const { contentWeight } = extractIndexedFields(
@@ -370,29 +311,7 @@ export class EntityService implements IEntityService {
    * Delete an entity by type and ID
    */
   public async deleteEntity(entityType: string, id: string): Promise<boolean> {
-    this.logger.debug(`Deleting entity of type ${entityType} with ID ${id}`);
-
-    // First check if entity exists
-    const existingEntity = await this.db
-      .select({ id: entities.id })
-      .from(entities)
-      .where(and(eq(entities.entityType, entityType), eq(entities.id, id)))
-      .limit(1);
-
-    if (existingEntity.length === 0) {
-      this.logger.info(
-        `Entity of type ${entityType} with ID ${id} not found for deletion`,
-      );
-      return false;
-    }
-
-    // Delete from database (cascades to chunks and embeddings)
-    await this.db
-      .delete(entities)
-      .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
-
-    this.logger.info(`Deleted entity of type ${entityType} with ID ${id}`);
-    return true;
+    return this.entityQueries.deleteEntity(entityType, id);
   }
 
   /**
@@ -425,93 +344,15 @@ export class EntityService implements IEntityService {
    */
   public async listEntities<T extends BaseEntity>(
     entityType: string,
-    options: ListOptions = {},
+    options?: {
+      limit?: number;
+      offset?: number;
+      sortBy?: "created" | "updated";
+      sortDirection?: "asc" | "desc";
+      filter?: { metadata?: Record<string, unknown> };
+    },
   ): Promise<T[]> {
-    const validatedOptions = listOptionsSchema.parse(options);
-    const { limit, offset, sortBy, sortDirection, filter } = validatedOptions;
-
-    this.logger.debug(
-      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)})`,
-    );
-
-    // Build where conditions
-    const whereConditions = [eq(entities.entityType, entityType)];
-
-    // Handle metadata filters
-    if (filter?.metadata) {
-      // For each metadata filter, add a JSON query condition
-      for (const [key, value] of Object.entries(filter.metadata)) {
-        if (value !== undefined) {
-          // SQLite JSON query: json_extract(metadata, '$.key') = value
-          const jsonPath = `$.${key}`;
-          whereConditions.push(
-            sql`json_extract(${entities.metadata}, ${jsonPath}) = ${value}`,
-          );
-        }
-      }
-    }
-
-    // Query database
-    const query = this.db
-      .select()
-      .from(entities)
-      .where(and(...whereConditions))
-      .limit(limit)
-      .offset(offset)
-      .orderBy(
-        sortDirection === "desc"
-          ? desc(sortBy === "created" ? entities.created : entities.updated)
-          : asc(sortBy === "created" ? entities.created : entities.updated),
-      );
-
-    const result = await query;
-
-    // Convert from markdown to entities
-    const entityList: T[] = [];
-    const adapter = this.entityRegistry.getAdapter<T>(entityType);
-
-    for (const entityData of result) {
-      try {
-        // Extract entity-specific fields from markdown
-        const parsedContent = adapter.fromMarkdown(entityData.content);
-
-        // Merge database fields with parsed content and metadata
-        const entity = {
-          // Core fields from database
-          id: entityData.id,
-          entityType: entityData.entityType,
-          content: entityData.content,
-          created: new Date(entityData.created).toISOString(),
-          updated: new Date(entityData.updated).toISOString(),
-
-          // Fields from metadata (includes title, tags, entity-specific fields)
-          ...entityData.metadata,
-
-          // Entity-specific fields from adapter (override metadata if needed)
-          ...parsedContent,
-        } as T;
-
-        // Validate and add to list
-        const validatedEntity = this.entityRegistry.validateEntity<T>(
-          entityType,
-          entity,
-        );
-        entityList.push(validatedEntity);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        this.logger.error(
-          `Failed to parse entity of type ${entityType} with ID ${entityData.id}: ${errorMessage}`,
-        );
-        // Skip invalid entities and continue
-      }
-    }
-
-    this.logger.info(
-      `Listed ${entityList.length} entities of type ${entityType}`,
-    );
-
-    return entityList;
+    return this.entityQueries.listEntities<T>(entityType, options);
   }
 
   /**
@@ -532,8 +373,7 @@ export class EntityService implements IEntityService {
    * Serialize an entity to markdown format
    */
   public serializeEntity(entity: BaseEntity): string {
-    const adapter = this.entityRegistry.getAdapter(entity.entityType);
-    return adapter.toMarkdown(entity);
+    return this.entitySerializer.serializeEntity(entity);
   }
 
   /**
@@ -544,8 +384,7 @@ export class EntityService implements IEntityService {
     markdown: string,
     entityType: string,
   ): Partial<BaseEntity> {
-    const adapter = this.entityRegistry.getAdapter(entityType);
-    return adapter.fromMarkdown(markdown);
+    return this.entitySerializer.deserializeEntity(markdown, entityType);
   }
 
   /**
@@ -555,134 +394,7 @@ export class EntityService implements IEntityService {
     query: string,
     options?: SearchOptions,
   ): Promise<SearchResult<T>[]> {
-    const validatedOptions = searchOptionsSchema.parse(options ?? {});
-    const { limit, offset, types, excludeTypes } = validatedOptions;
-
-    this.logger.debug(`Searching entities with query: "${query}"`);
-
-    // Generate embedding for the query
-    const queryEmbedding = await this.embeddingService.generateEmbedding(query);
-
-    // Convert Float32Array to JSON array for SQL
-    const embeddingArray = Array.from(queryEmbedding);
-
-    // Build the base select
-    const baseSelect = {
-      id: entities.id,
-      entityType: entities.entityType,
-      content: entities.content,
-      created: entities.created,
-      updated: entities.updated,
-      metadata: entities.metadata,
-      // Calculate cosine distance (0 = identical, 1 = orthogonal, 2 = opposite)
-      distance:
-        sql<number>`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)}))`.as(
-          "distance",
-        ),
-    };
-
-    // Build where conditions
-    const whereConditions = [
-      sql`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)})) < 1.0`,
-    ];
-
-    // Add type filter if specified
-    if (types.length > 0) {
-      whereConditions.push(inArray(entities.entityType, types));
-    }
-
-    // Add exclude types filter if specified
-    if (excludeTypes.length > 0) {
-      whereConditions.push(
-        sql`${entities.entityType} NOT IN (${sql.join(
-          excludeTypes.map((t) => sql`${t}`),
-          sql`, `,
-        )})`,
-      );
-    }
-
-    const results = await this.db
-      .select(baseSelect)
-      .from(entities)
-      .where(and(...whereConditions))
-      .orderBy(sql`distance`)
-      .limit(limit)
-      .offset(offset);
-
-    // Transform results into SearchResult format
-    const searchResults: SearchResult<T>[] = [];
-
-    for (const row of results) {
-      try {
-        const adapter = this.entityRegistry.getAdapter(row.entityType);
-        const parsedContent = adapter.fromMarkdown(row.content);
-
-        const metadata = row.metadata as Record<string, unknown>;
-        const entity = this.entityRegistry.validateEntity<T>(row.entityType, {
-          id: row.id,
-          entityType: row.entityType,
-          content: row.content,
-          created: new Date(row.created).toISOString(),
-          updated: new Date(row.updated).toISOString(),
-          ...metadata,
-          ...parsedContent,
-        });
-
-        // Convert distance to similarity score (1 - distance/2 to normalize to 0-1 range)
-        const score = 1 - row.distance / 2;
-
-        // Create a more readable excerpt
-        const excerpt = this.createExcerpt(row.content, query);
-
-        searchResults.push({
-          entity,
-          score,
-          excerpt,
-        });
-      } catch (error) {
-        this.logger.error(`Failed to parse entity during search: ${error}`);
-        // Skip this result
-      }
-    }
-
-    // Log search results count without exposing the full query
-    const queryPreview =
-      query.length > 50 ? query.substring(0, 50) + "..." : query;
-    this.logger.debug(
-      `Found ${searchResults.length} results for query "${queryPreview}"`,
-    );
-
-    return searchResults;
-  }
-
-  /**
-   * Create an excerpt from content based on query
-   */
-  private createExcerpt(content: string, query: string): string {
-    const maxLength = 200;
-    const queryLower = query.toLowerCase();
-    const contentLower = content.toLowerCase();
-
-    // Find the position of the query in the content
-    const position = contentLower.indexOf(queryLower);
-
-    if (position !== -1) {
-      // Extract text around the query
-      const start = Math.max(0, position - 50);
-      const end = Math.min(content.length, position + queryLower.length + 50);
-      let excerpt = content.slice(start, end);
-
-      // Add ellipsis if needed
-      if (start > 0) excerpt = "..." + excerpt;
-      if (end < content.length) excerpt = excerpt + "...";
-
-      return excerpt;
-    }
-
-    // If query not found, return beginning of content
-    return (
-      content.slice(0, maxLength) + (content.length > maxLength ? "..." : "")
-    );
+    return this.entitySearch.search<T>(query, options);
   }
 
   /**
@@ -693,16 +405,7 @@ export class EntityService implements IEntityService {
     query: string,
     options?: { limit?: number },
   ): Promise<SearchResult[]> {
-    // Build search options with the entity type filter
-    const searchOptions: SearchOptions = {
-      types: [entityType],
-      limit: options?.limit ?? 20,
-      offset: 0,
-      sortBy: "relevance",
-      sortDirection: "desc",
-    };
-
-    return this.search(query, searchOptions);
+    return this.entitySearch.searchEntities(entityType, query, options);
   }
 
   /**
