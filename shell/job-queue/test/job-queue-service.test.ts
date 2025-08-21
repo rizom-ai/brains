@@ -292,7 +292,11 @@ describe("JobQueueService", () => {
         delayMs: 1000,
       };
 
-      const jobId = await service.enqueue("shell:embedding", testEntity, options);
+      const jobId = await service.enqueue(
+        "shell:embedding",
+        testEntity,
+        options,
+      );
       const job = await service.getStatus(jobId);
 
       expect(job?.priority).toBe(5);
@@ -360,22 +364,30 @@ describe("JobQueueService", () => {
     });
 
     it("should respect job priority order", async () => {
-      const lowPriorityId = await service.enqueue("shell:embedding", testEntity, {
-        source: "test",
-        metadata: {
-          ...defaultTestMetadata,
-          operationType: "data_processing",
+      const lowPriorityId = await service.enqueue(
+        "shell:embedding",
+        testEntity,
+        {
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "data_processing",
+          },
+          priority: 1,
         },
-        priority: 1,
-      });
-      const highPriorityId = await service.enqueue("shell:embedding", testEntity, {
-        source: "test",
-        metadata: {
-          ...defaultTestMetadata,
-          operationType: "data_processing",
+      );
+      const highPriorityId = await service.enqueue(
+        "shell:embedding",
+        testEntity,
+        {
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "data_processing",
+          },
+          priority: 5,
         },
-        priority: 5,
-      });
+      );
 
       const firstJob = await service.dequeue();
       expect(firstJob?.id).toBe(highPriorityId);
@@ -393,13 +405,17 @@ describe("JobQueueService", () => {
         },
         delayMs: 5000,
       });
-      const immediateJob = await service.enqueue("shell:embedding", testEntity, {
-        source: "test",
-        metadata: {
-          ...defaultTestMetadata,
-          operationType: "data_processing",
+      const immediateJob = await service.enqueue(
+        "shell:embedding",
+        testEntity,
+        {
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "data_processing",
+          },
         },
-      });
+      );
 
       const job = await service.dequeue();
       expect(job?.id).toBe(immediateJob);
