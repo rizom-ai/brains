@@ -196,7 +196,7 @@ export class EntityService implements IEntityService {
     // Enqueue for async embedding generation
     const rootJobId = createId(); // Generate unique ID for system job
     const jobId = await this.jobQueueService.enqueue(
-      "embedding",
+      "shell:embedding",
       entityForQueue,
       {
         ...(options?.priority !== undefined && { priority: options.priority }),
@@ -278,7 +278,7 @@ export class EntityService implements IEntityService {
     // Queue embedding generation for the updated entity
     const rootJobId = createId(); // Generate unique ID for system job
     const jobId = await this.jobQueueService.enqueue(
-      "embedding",
+      "shell:embedding",
       {
         id: validatedEntity.id,
         entityType: validatedEntity.entityType,

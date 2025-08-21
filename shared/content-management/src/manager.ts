@@ -268,7 +268,7 @@ export class ContentManager {
     }
 
     const operations = previewIds.map((id) => ({
-      type: "content-derivation",
+      type: "shell:content-derivation",
       data: {
         entityId: id,
         sourceEntityType: "site-content-preview",
@@ -314,7 +314,7 @@ export class ContentManager {
     }
 
     const operations = productionIds.map((id) => ({
-      type: "content-derivation",
+      type: "shell:content-derivation",
       data: {
         entityId: id,
         sourceEntityType: "site-content-production",

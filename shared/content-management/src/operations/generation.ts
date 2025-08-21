@@ -139,7 +139,7 @@ export class GenerationOperations {
         };
 
         operations.push({
-          type: "content-generation",
+          type: "shell:content-generation",
           data: jobData,
         });
       }

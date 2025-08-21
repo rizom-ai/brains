@@ -10,8 +10,7 @@ import type { JobOptions } from "@brains/job-queue";
 const testJobOptions: JobOptions = {
   source: "test",
   metadata: {
-    interfaceId: "test",
-    userId: "test-user",
+    rootJobId: "test-root-id",
     operationType: "content_operations",
   },
 };
@@ -403,8 +402,7 @@ test("promote should queue batch promotion operations", async () => {
     priority: 10,
     source: "test",
     metadata: {
-      interfaceId: "test",
-      userId: "admin-123",
+      rootJobId: "test-root-id",
       operationType: "content_operations",
     },
   });
@@ -413,7 +411,7 @@ test("promote should queue batch promotion operations", async () => {
   expect(mockEnqueueBatch).toHaveBeenCalledWith(
     [
       {
-        type: "content-derivation",
+        type: "shell:content-derivation",
         data: {
           entityId: "site-content-preview:landing:hero",
           sourceEntityType: "site-content-preview",
@@ -421,7 +419,7 @@ test("promote should queue batch promotion operations", async () => {
         },
       },
       {
-        type: "content-derivation",
+        type: "shell:content-derivation",
         data: {
           entityId: "site-content-preview:landing:features",
           sourceEntityType: "site-content-preview",
@@ -429,7 +427,7 @@ test("promote should queue batch promotion operations", async () => {
         },
       },
       {
-        type: "content-derivation",
+        type: "shell:content-derivation",
         data: {
           entityId: "site-content-preview:about:content",
           sourceEntityType: "site-content-preview",
@@ -440,8 +438,7 @@ test("promote should queue batch promotion operations", async () => {
     {
       source: "test",
       metadata: {
-        interfaceId: "test",
-        userId: "admin-123",
+        rootJobId: "test-root-id",
         operationType: "content_operations",
       },
       priority: 10,
@@ -454,8 +451,7 @@ test("promote should throw for empty ids", async () => {
     contentManager.promote([], {
       source: "test",
       metadata: {
-        interfaceId: "test",
-        userId: "system",
+        rootJobId: "test-root-id",
         operationType: "content_operations",
       },
     }),
@@ -475,8 +471,7 @@ test("rollback should queue batch rollback operations", async () => {
   const batchId = await contentManager.rollback(productionIds, {
     source: "test",
     metadata: {
-      interfaceId: "test",
-      userId: "system",
+      rootJobId: "test-root-id",
       operationType: "content_operations",
     },
   });
@@ -485,7 +480,7 @@ test("rollback should queue batch rollback operations", async () => {
   expect(mockEnqueueBatch).toHaveBeenCalledWith(
     [
       {
-        type: "content-derivation",
+        type: "shell:content-derivation",
         data: {
           entityId: "site-content-production:landing:hero",
           sourceEntityType: "site-content-production",
@@ -493,7 +488,7 @@ test("rollback should queue batch rollback operations", async () => {
         },
       },
       {
-        type: "content-derivation",
+        type: "shell:content-derivation",
         data: {
           entityId: "site-content-production:about:content",
           sourceEntityType: "site-content-production",
@@ -504,8 +499,7 @@ test("rollback should queue batch rollback operations", async () => {
     {
       source: "test",
       metadata: {
-        interfaceId: "test",
-        userId: "system",
+        rootJobId: "test-root-id",
         operationType: "content_operations",
       },
     },
@@ -517,8 +511,7 @@ test("rollback should throw for empty ids", async () => {
     contentManager.rollback([], {
       source: "test",
       metadata: {
-        interfaceId: "test",
-        userId: "system",
+        rootJobId: "test-root-id",
         operationType: "content_operations",
       },
     }),

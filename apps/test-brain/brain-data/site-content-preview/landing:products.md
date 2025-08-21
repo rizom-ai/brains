@@ -15,7 +15,7 @@ Innovations for a Sustainable Future
 
 ## Description
 
-Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We partner with clients to build innovative solutions that create positive impact.
+Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We help organizations and communities thrive in the face of complex challenges by co-creating holistic solutions that drive positive impact.
 
 ## Products
 
@@ -23,47 +23,19 @@ Rizom is a dynamic collective of experts in digital transformation, organization
 
 #### ID
 
-practice-innovation
+ecosystem-design
 
 #### Name
 
-Practice Innovation
+Ecosystem Design
 
 #### Tagline
 
-Unlock organizational agility
+Build resilient, adaptive systems
 
 #### Description
 
-Empower your teams to rapidly experiment, learn, and scale impactful solutions.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Brain
-
-### Product 2
-
-#### ID
-
-ecosystem-architecture
-
-#### Name
-
-Ecosystem Architecture
-
-#### Tagline
-
-Design resilient systems
-
-#### Description
-
-Craft interconnected solutions that adapt to complex challenges.
+Our ecosystem design services help organizations and communities co-create interconnected solutions that address complex challenges in a holistic way.
 
 #### Status
 
@@ -75,23 +47,79 @@ live
 
 Network
 
+### Product 2
+
+#### ID
+
+organizational-transformation
+
+#### Name
+
+Organizational Transformation
+
+#### Tagline
+
+Unlock the potential of your people
+
+#### Description
+
+We guide organizations through profound change, empowering them to cultivate agile, purpose-driven cultures that thrive in uncertain times.
+
+#### Status
+
+live
+
+#### Link
+
+#### Icon
+
+Cpu
+
 ### Product 3
 
 #### ID
 
-economy-of-garbage
+digital-acceleration
 
 #### Name
 
-Economy of Garbage
+Digital Acceleration
 
 #### Tagline
 
-Transform waste into value
+Leverage technology for good
 
 #### Description
 
-Rethink resource flows to unlock new revenue streams and environmental benefits.
+Our digital transformation experts help clients harness the power of emerging technologies to drive sustainable innovation and positive impact.
+
+#### Status
+
+live
+
+#### Link
+
+#### Icon
+
+Zap
+
+### Product 4
+
+#### ID
+
+circular-economy
+
+#### Name
+
+Circular Economy
+
+#### Tagline
+
+Rethink waste as a resource
+
+#### Description
+
+We support organizations in transitioning to a circular economy model, unlocking new value streams and reducing environmental impact.
 
 #### Status
 
@@ -101,4 +129,4 @@ beta
 
 #### Icon
 
-Wrench
+Database

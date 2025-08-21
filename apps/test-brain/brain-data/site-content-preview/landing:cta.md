@@ -7,11 +7,11 @@ sectionId: cta
 
 ## Headline
 
-Unlock Your Mind's Full Potential
+Unlock the Power of Your Mind
 
 ## Description
 
-Transform your knowledge and boost your productivity with our powerful personal knowledge management system.
+Transform your knowledge and boost your productivity with our powerful personal knowledge management system. Take the first step towards building your second brain.
 
 ## Primary Button
 
@@ -27,7 +27,7 @@ Start Free Trial
 
 ### Text
 
-Learn More
+View Demo
 
 ### Link
 

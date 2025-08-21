@@ -10,8 +10,7 @@ import type { JobOptions } from "@brains/job-queue";
 const testJobOptions: JobOptions = {
   source: "test",
   metadata: {
-    interfaceId: "test",
-    userId: "test-user",
+    rootJobId: "test-root-id",
     operationType: "content_operations",
   },
 };
@@ -145,7 +144,7 @@ test("generate should queue content generation jobs", async () => {
   expect(mockEnqueueBatch).toHaveBeenCalledWith(
     expect.arrayContaining([
       expect.objectContaining({
-        type: "content-generation",
+        type: "shell:content-generation",
         data: expect.objectContaining({
           templateName: "hero-template",
           entityId: "landing:hero",
@@ -271,7 +270,7 @@ test("generate should queue multiple jobs for multiple sections", async () => {
   expect(mockEnqueueBatch).toHaveBeenCalledWith(
     expect.arrayContaining([
       expect.objectContaining({
-        type: "content-generation",
+        type: "shell:content-generation",
         data: expect.objectContaining({
           templateName: "template-name",
           entityId: "landing:hero",

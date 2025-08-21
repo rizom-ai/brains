@@ -147,10 +147,16 @@ export function createInterfacePluginContext(
         },
         ...options,
       };
+      // Callers must be explicit about job type scope
       return jobQueueService.enqueue(type, data, defaultOptions);
     },
     enqueueBatch: async (operations, options) => {
       const batchId = createId();
+      // Add plugin scope to operation types unless already scoped
+      const scopedOperations = operations.map((op) => ({
+        ...op,
+        type: op.type.includes(":") ? op.type : `${pluginId}:${op.type}`,
+      }));
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
@@ -161,11 +167,18 @@ export function createInterfacePluginContext(
         },
         ...options,
       };
-      return shell.enqueueBatch(operations, defaultOptions, batchId, pluginId);
+      return shell.enqueueBatch(
+        scopedOperations,
+        defaultOptions,
+        batchId,
+        pluginId,
+      );
     },
     registerJobHandler: (type, handler) => {
       const jobQueueService = shell.getJobQueueService();
-      jobQueueService.registerHandler(type, handler, pluginId);
+      // Add plugin scope to the type for explicit registration
+      const scopedType = `${pluginId}:${type}`;
+      jobQueueService.registerHandler(scopedType, handler, pluginId);
     },
 
     // Daemon support

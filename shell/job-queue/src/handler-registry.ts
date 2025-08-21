@@ -21,12 +21,10 @@ export class HandlerRegistry {
     handler: JobHandler,
     pluginId?: string,
   ): void {
-    // Apply job type scoping: no pluginId means shell, otherwise plugin
-    const scopedType = pluginId ? `${pluginId}:${type}` : `shell:${type}`;
-    this.handlers.set(scopedType, handler);
+    // Use the type exactly as provided - callers should be explicit about scope
+    this.handlers.set(type, handler);
     this.logger.debug("Registered job handler", {
-      type: scopedType,
-      originalType: type,
+      type,
       pluginId,
     });
   }

@@ -124,13 +124,20 @@ export function createServicePluginContext(
         },
         ...options,
       };
-      return jobQueueService.enqueue(type, data, defaultOptions);
+      // Add plugin scope unless already scoped (contains ':')
+      const scopedType = type.includes(":") ? type : `${pluginId}:${type}`;
+      return jobQueueService.enqueue(scopedType, data, defaultOptions);
     },
     enqueueBatch: async (operations, options) => {
       // Generate batch ID first to use as rootJobId for consistent tracking
       const batchId = createId();
+      // Add plugin scope to operation types unless already scoped
+      const scopedOperations = operations.map((op) => ({
+        ...op,
+        type: op.type.includes(":") ? op.type : `${pluginId}:${op.type}`,
+      }));
       await shell.enqueueBatch(
-        operations,
+        scopedOperations,
         {
           source: pluginId,
           metadata: {
@@ -148,7 +155,9 @@ export function createServicePluginContext(
       return batchId;
     },
     registerJobHandler: (type, handler) => {
-      jobQueueService.registerHandler(type, handler, pluginId);
+      // Add plugin scope to the type for explicit registration
+      const scopedType = `${pluginId}:${type}`;
+      jobQueueService.registerHandler(scopedType, handler, pluginId);
     },
 
     // Route registration

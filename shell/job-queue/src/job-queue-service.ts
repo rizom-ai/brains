@@ -130,9 +130,8 @@ export class JobQueueService implements IJobQueueService {
     data: unknown,
     options?: JobOptions,
   ): Promise<string> {
-    const scopedType = options?.metadata?.pluginId
-      ? `${options.metadata.pluginId}:${type}`
-      : `shell:${type}`;
+    // Use the type exactly as provided - callers should be explicit about scope
+    const scopedType = type;
 
     // Get handler and validate data
     const handler = this.handlerRegistry.getHandler(scopedType);
