@@ -1,7 +1,7 @@
 import { z } from "zod";
 // Remove ContentGenerationRequest import - we'll define our own schema
 import { Logger } from "@brains/utils";
-import type { ContentGenerator } from "@brains/content-generator";
+import type { ContentService } from "../types";
 import type { JobHandler } from "@brains/job-queue";
 import type { EntityService } from "@brains/entity-service";
 import type { ProgressReporter } from "@brains/utils";
@@ -28,7 +28,7 @@ export type ContentGenerationJobData = z.infer<
 
 /**
  * Job handler for content generation
- * Processes content generation requests using the ContentGenerator service
+ * Processes content generation requests using the ContentService
  * Implements Component Interface Standardization pattern
  */
 export class ContentGenerationJobHandler
@@ -36,18 +36,18 @@ export class ContentGenerationJobHandler
 {
   private static instance: ContentGenerationJobHandler | null = null;
   private logger: Logger;
-  private contentGenerator: ContentGenerator;
+  private contentService: ContentService;
   private entityService: EntityService;
 
   /**
    * Get the singleton instance
    */
   public static getInstance(
-    contentGenerator: ContentGenerator,
+    contentService: ContentService,
     entityService: EntityService,
   ): ContentGenerationJobHandler {
     ContentGenerationJobHandler.instance ??= new ContentGenerationJobHandler(
-      contentGenerator,
+      contentService,
       entityService,
     );
     return ContentGenerationJobHandler.instance;
@@ -64,21 +64,21 @@ export class ContentGenerationJobHandler
    * Create a fresh instance without affecting the singleton
    */
   public static createFresh(
-    contentGenerator: ContentGenerator,
+    contentService: ContentService,
     entityService: EntityService,
   ): ContentGenerationJobHandler {
-    return new ContentGenerationJobHandler(contentGenerator, entityService);
+    return new ContentGenerationJobHandler(contentService, entityService);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
   private constructor(
-    contentGenerator: ContentGenerator,
+    contentService: ContentService,
     entityService: EntityService,
   ) {
     this.logger = Logger.getInstance().child("ContentGenerationJobHandler");
-    this.contentGenerator = contentGenerator;
+    this.contentService = contentService;
     this.entityService = entityService;
   }
 
@@ -107,8 +107,8 @@ export class ContentGenerationJobHandler
         message: `Generating content with template: ${data.templateName}`,
       });
 
-      // Generate content using the ContentGenerator service
-      const content = await this.contentGenerator.generateContent<unknown>(
+      // Generate content using the ContentService
+      const content = await this.contentService.generateContent<unknown>(
         data.templateName,
         {
           prompt: data.context.prompt,
@@ -125,7 +125,7 @@ export class ContentGenerationJobHandler
       });
 
       // Format the content to string using the template's formatter
-      const formattedContent = this.contentGenerator.formatContent(
+      const formattedContent = this.contentService.formatContent(
         data.templateName,
         content,
       );

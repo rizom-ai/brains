@@ -1,11 +1,11 @@
 import { Logger, LogLevel } from "@brains/utils";
 import type { ShellConfig } from "../config";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
-import type { ContentGenerator } from "@brains/content-generator";
+import type { ContentService } from "@brains/content-service";
 import {
   ContentGenerationJobHandler,
   ContentDerivationJobHandler,
-} from "@brains/content-generator";
+} from "@brains/content-service";
 import { PluginManager } from "@brains/plugins";
 import { ServiceRegistry } from "@brains/service-registry";
 import { MessageBus } from "@brains/messaging-service";
@@ -21,7 +21,7 @@ import {
   ConversationService,
   type IConversationService,
 } from "@brains/conversation-service";
-import { ContentGenerator as ContentGeneratorClass } from "@brains/content-generator";
+import { ContentService as ContentServiceClass } from "@brains/content-service";
 import { AIService, type IAIService } from "@brains/ai-service";
 import { PermissionService } from "@brains/permission-service";
 import {
@@ -53,7 +53,7 @@ export interface ShellServices {
   entityService: EntityService;
   aiService: IAIService;
   conversationService: IConversationService;
-  contentGenerator: ContentGenerator;
+  contentService: ContentService;
   jobQueueService: JobQueueService;
   jobQueueWorker: JobQueueWorker;
   batchJobManager: BatchJobManager;
@@ -110,12 +110,12 @@ export class ShellInitializer {
   /**
    * Register shell's own system templates
    */
-  public registerShellTemplates(contentGenerator: ContentGenerator): void {
+  public registerShellTemplates(contentService: ContentService): void {
     this.logger.debug("Registering shell system templates");
 
     try {
       // Register knowledge query template for shell queries
-      contentGenerator.registerTemplate(
+      contentService.registerTemplate(
         knowledgeQueryTemplate.name,
         knowledgeQueryTemplate,
       );
@@ -135,7 +135,7 @@ export class ShellInitializer {
    */
   public registerBaseEntitySupport(
     entityRegistry: EntityRegistry,
-    contentGenerator: ContentGenerator,
+    contentService: ContentService,
   ): void {
     this.logger.debug("Registering base entity support");
 
@@ -151,7 +151,7 @@ export class ShellInitializer {
       );
 
       // Register base entity display template
-      contentGenerator.registerTemplate("shell:base-entity-display", {
+      contentService.registerTemplate("shell:base-entity-display", {
         name: "shell:base-entity-display",
         description: "Display template for base entities",
         schema: baseEntitySchema,
@@ -279,9 +279,9 @@ export class ShellInitializer {
       });
 
     // Content generator
-    const contentGenerator =
-      dependencies?.contentGenerator ??
-      new ContentGeneratorClass({
+    const contentService =
+      dependencies?.contentService ??
+      new ContentServiceClass({
         logger,
         entityService,
         aiService,
@@ -289,7 +289,7 @@ export class ShellInitializer {
       });
 
     // Register job handlers
-    this.registerJobHandlers(jobQueueService, contentGenerator, entityService);
+    this.registerJobHandlers(jobQueueService, contentService, entityService);
 
     // Batch and progress management
     const batchJobManager = BatchJobManager.getInstance(
@@ -328,7 +328,7 @@ export class ShellInitializer {
       entityService,
       aiService,
       conversationService,
-      contentGenerator,
+      contentService,
       jobQueueService,
       jobQueueWorker,
       batchJobManager,
@@ -342,12 +342,12 @@ export class ShellInitializer {
    */
   private registerJobHandlers(
     jobQueueService: JobQueueService,
-    contentGenerator: ContentGenerator,
+    contentService: ContentService,
     entityService: EntityService,
   ): void {
     // Register content generation job handler
     const contentGenerationJobHandler = ContentGenerationJobHandler.createFresh(
-      contentGenerator,
+      contentService,
       entityService,
     );
     jobQueueService.registerHandler(
@@ -384,7 +384,7 @@ export class ShellInitializer {
    * Coordinates all initialization steps
    */
   public async initializeAll(
-    contentGenerator: ContentGenerator,
+    contentService: ContentService,
     entityRegistry: EntityRegistry,
     pluginManager: PluginManager,
   ): Promise<void> {
@@ -392,10 +392,10 @@ export class ShellInitializer {
 
     try {
       // Step 1: Register shell templates
-      this.registerShellTemplates(contentGenerator);
+      this.registerShellTemplates(contentService);
 
       // Step 2: Register base entity support
-      this.registerBaseEntitySupport(entityRegistry, contentGenerator);
+      this.registerBaseEntitySupport(entityRegistry, contentService);
 
       // Step 3: Initialize plugins
       await this.initializePlugins(pluginManager);

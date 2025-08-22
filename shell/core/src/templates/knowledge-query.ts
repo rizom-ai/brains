@@ -1,4 +1,4 @@
-import type { Template } from "@brains/content-generator";
+import type { Template } from "@brains/view-registry";
 import {
   defaultQueryResponseSchema,
   type DefaultQueryResponse,

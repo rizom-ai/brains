@@ -1,7 +1,7 @@
 import type { IShell, DefaultQueryResponse } from "../interfaces";
 import type { Logger } from "@brains/utils";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
-import type { Template } from "@brains/content-generator";
+import type { Template } from "@brains/view-registry";
 import type { ICoreEntityService } from "@brains/entity-service";
 import type { Batch, BatchJobStatus } from "@brains/job-queue";
 import type { JobQueue } from "@brains/job-queue";
@@ -79,7 +79,7 @@ export function createCorePluginContext(
   pluginId: string,
 ): CorePluginContext {
   const messageBus = shell.getMessageBus();
-  const contentGenerator = shell.getContentGenerator();
+  const contentService = shell.getContentService();
   const entityService = shell.getEntityService();
   const logger = shell.getLogger().child(pluginId);
 
@@ -106,14 +106,14 @@ export function createCorePluginContext(
       data: T,
       options?: { truncate?: number },
     ): string => {
-      return contentGenerator.formatContent(templateName, data, {
+      return contentService.formatContent(templateName, data, {
         ...options,
         pluginId,
       });
     },
 
     parseContent: <T = unknown>(templateName: string, content: string): T => {
-      return contentGenerator.parseContent(templateName, content, pluginId);
+      return contentService.parseContent(templateName, content, pluginId);
     },
 
     registerTemplates: (templates: Record<string, Template>): void => {

@@ -1,23 +1,19 @@
 /**
- * @brains/content-generator
+ * @brains/content-service
  *
- * Content generation utilities for the Brain system.
+ * Content coordination and provider management service for the Brain system.
  * Provides template-based content generation with convenience methods.
  */
 
-export { ContentGenerator } from "./content-generator";
+export { ContentService } from "./content-service";
 export type {
-  ContentGeneratorDependencies,
+  ContentServiceDependencies,
   ProgressInfo,
-} from "./content-generator";
+} from "./content-service";
 export type {
-  ContentGenerator as IContentGenerator,
-  ComponentType,
+  ContentService as IContentService,
   GenerationContext,
-  TemplateDataContext,
-  Template,
 } from "./types";
-export { TemplateSchema } from "./types";
 export {
   ContentGenerationJobHandler,
   contentGenerationJobDataSchema,

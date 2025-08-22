@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { z } from "zod";
-import { ContentGenerator } from "../src/content-generator";
+import { ContentService } from "../src/content-service";
 import type {
-  ContentGeneratorDependencies,
+  ContentServiceDependencies,
   ProgressInfo,
-} from "../src/content-generator";
-import type { Template } from "../src/types";
+} from "../src/content-service";
+import type { Template } from "@brains/view-registry";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityService } from "@brains/entity-service";
 import type { AIService } from "@brains/ai-service";
 import type { IConversationService } from "@brains/conversation-service";
 import { createSilentLogger } from "@brains/utils";
 
-describe("ContentGenerator", () => {
-  let mockDependencies: ContentGeneratorDependencies;
-  let contentGenerator: ContentGenerator;
+describe("ContentService", () => {
+  let mockDependencies: ContentServiceDependencies;
+  let contentService: ContentService;
   let mockEntitySearch: ReturnType<typeof mock>;
   let mockEntityGetTypes: ReturnType<typeof mock>;
   let mockAIGenerateObject: ReturnType<typeof mock>;
@@ -56,7 +56,7 @@ describe("ContentGenerator", () => {
       conversationService: mockConversationService as IConversationService,
     };
 
-    contentGenerator = new ContentGenerator(mockDependencies);
+    contentService = new ContentService(mockDependencies);
   });
 
   describe("generateContent", () => {
@@ -73,12 +73,12 @@ describe("ContentGenerator", () => {
 
     beforeEach(() => {
       // Register the mock template directly with the content generator
-      contentGenerator.registerTemplate("test-template", mockTemplate);
+      contentService.registerTemplate("test-template", mockTemplate);
       mockAIGenerateObject.mockResolvedValue({ object: "raw content" });
     });
 
     it("should generate content successfully", async () => {
-      const result = await contentGenerator.generateContent("test-template");
+      const result = await contentService.generateContent("test-template");
 
       expect(mockAIGenerateObject).toHaveBeenCalledWith(
         "Generate test content",
@@ -96,7 +96,7 @@ describe("ContentGenerator", () => {
         ]),
       );
 
-      await contentGenerator.generateContent("test-template", {
+      await contentService.generateContent("test-template", {
         conversationId: "test-conversation-123",
       });
 
@@ -117,7 +117,7 @@ describe("ContentGenerator", () => {
         Promise.reject(new Error("Conversation not found")),
       );
 
-      const result = await contentGenerator.generateContent("test-template", {
+      const result = await contentService.generateContent("test-template", {
         conversationId: "non-existent-conversation",
       });
 
@@ -134,7 +134,7 @@ describe("ContentGenerator", () => {
     });
 
     it("should combine template prompt with additional prompt", async () => {
-      await contentGenerator.generateContent("test-template", {
+      await contentService.generateContent("test-template", {
         prompt: "Additional instructions",
       });
 
@@ -147,7 +147,7 @@ describe("ContentGenerator", () => {
 
     it("should pass context data correctly", async () => {
       const contextData = { key: "value" };
-      await contentGenerator.generateContent("test-template", {
+      await contentService.generateContent("test-template", {
         data: contextData,
       });
 
@@ -171,13 +171,13 @@ describe("ContentGenerator", () => {
         basePrompt: "Generate test content",
         schema: z.string(),
       };
-      contentGenerator.registerTemplate(
+      contentService.registerTemplate(
         "test-template-no-formatter",
         templateWithoutFormatter,
       );
       mockAIGenerateObject.mockResolvedValue({ object: "string content" });
 
-      const result = await contentGenerator.generateContent(
+      const result = await contentService.generateContent(
         "test-template-no-formatter",
       );
 
@@ -191,7 +191,7 @@ describe("ContentGenerator", () => {
         basePrompt: "Generate test content",
         schema: z.object({ data: z.string() }),
       };
-      contentGenerator.registerTemplate(
+      contentService.registerTemplate(
         "test-template-object",
         templateWithSchema,
       );
@@ -199,7 +199,7 @@ describe("ContentGenerator", () => {
         object: { data: "object" },
       });
 
-      const result = await contentGenerator.generateContent(
+      const result = await contentService.generateContent(
         "test-template-object",
       );
 
@@ -208,7 +208,7 @@ describe("ContentGenerator", () => {
 
     it("should throw error when template not found", async () => {
       expect(
-        contentGenerator.generateContent("non-existent-template"),
+        contentService.generateContent("non-existent-template"),
       ).rejects.toThrow("Template not found: non-existent-template");
     });
   });
@@ -245,14 +245,14 @@ describe("ContentGenerator", () => {
     };
 
     beforeEach(() => {
-      contentGenerator.registerTemplate("dashboard", mockTemplate);
+      contentService.registerTemplate("dashboard", mockTemplate);
       mockAIGenerateObject.mockResolvedValue({ object: "route content" });
     });
 
     it("should generate content with route context", async () => {
       const additionalContext = { siteTitle: "My Site" };
 
-      const result = await contentGenerator.generateWithRoute(
+      const result = await contentService.generateWithRoute(
         mockRoute,
         mockSection,
         mockProgress,
@@ -273,12 +273,9 @@ describe("ContentGenerator", () => {
         template: "custom-plugin:dashboard",
       };
 
-      contentGenerator.registerTemplate(
-        "custom-plugin:dashboard",
-        mockTemplate,
-      );
+      contentService.registerTemplate("custom-plugin:dashboard", mockTemplate);
 
-      await contentGenerator.generateWithRoute(
+      await contentService.generateWithRoute(
         mockRoute,
         sectionWithNamespace,
         mockProgress,
@@ -297,7 +294,7 @@ describe("ContentGenerator", () => {
       };
 
       expect(
-        contentGenerator.generateWithRoute(
+        contentService.generateWithRoute(
           mockRoute,
           sectionWithoutTemplate,
           mockProgress,
@@ -324,13 +321,13 @@ describe("ContentGenerator", () => {
     };
 
     beforeEach(() => {
-      contentGenerator.registerTemplate("test-template", mockTemplate);
+      contentService.registerTemplate("test-template", mockTemplate);
     });
 
     it("should parse content using template formatter", () => {
       const markdownContent = "# Test Title\n\nThis is test content";
 
-      const result = contentGenerator.parseContent(
+      const result = contentService.parseContent(
         "test-template",
         markdownContent,
       );
@@ -346,7 +343,7 @@ describe("ContentGenerator", () => {
 
     it("should throw error when template not found", () => {
       expect(() => {
-        contentGenerator.parseContent("non-existent-template", "content");
+        contentService.parseContent("non-existent-template", "content");
       }).toThrow("Template not found: non-existent-template");
     });
 
@@ -357,13 +354,13 @@ describe("ContentGenerator", () => {
         basePrompt: "Generate content",
         schema: z.string(),
       };
-      contentGenerator.registerTemplate(
+      contentService.registerTemplate(
         "no-formatter-template",
         templateWithoutFormatter,
       );
 
       expect(() => {
-        contentGenerator.parseContent("no-formatter-template", "content");
+        contentService.parseContent("no-formatter-template", "content");
       }).toThrow(
         "Template no-formatter-template does not have a formatter for parsing",
       );

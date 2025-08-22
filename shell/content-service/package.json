@@ -1,7 +1,7 @@
 {
-  "name": "@brains/content-generator",
+  "name": "@brains/content-service",
   "version": "0.1.0",
-  "description": "Content generation utilities for the Brain system",
+  "description": "Content coordination and provider management service for the Brain system",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {

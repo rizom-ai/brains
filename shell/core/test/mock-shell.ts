@@ -14,7 +14,7 @@ import type {
   MessageHandler,
   MessageResponse,
 } from "@brains/messaging-service";
-import type { ContentGenerator } from "@brains/content-generator";
+import type { ContentService } from "@brains/content-service";
 import type { Logger } from "@brains/utils";
 import type {
   EntityService,
@@ -36,7 +36,7 @@ import type {
 import type { ViewRegistry } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { RouteDefinition } from "@brains/view-registry";
-import type { Template } from "@brains/content-generator";
+import type { Template } from "@brains/view-registry";
 import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService } from "@brains/permission-service";
 
@@ -140,7 +140,7 @@ export class MockShell implements IShell {
     } as unknown as MessageBus;
   }
 
-  getContentGenerator(): ContentGenerator {
+  getContentService(): ContentService {
     return {
       generateContent: async <T = unknown>(
         templateName: string,
@@ -174,7 +174,7 @@ export class MockShell implements IShell {
       unregisterTemplate: (name: string) => {
         this.templates.delete(name);
       },
-    } as unknown as ContentGenerator;
+    } as unknown as ContentService;
   }
 
   getLogger(): Logger {
@@ -382,7 +382,7 @@ export class MockShell implements IShell {
     config: ContentGenerationConfig,
   ): Promise<T> {
     const scopedName = config.templateName;
-    const contentGen = this.getContentGenerator();
+    const contentGen = this.getContentService();
     return contentGen.generateContent<T>(scopedName, {
       prompt: config.prompt,
       conversationId: config.conversationId,
@@ -432,7 +432,7 @@ export class MockShell implements IShell {
     templates: Record<string, Template>,
     pluginId?: string,
   ): void {
-    const contentGen = this.getContentGenerator();
+    const contentGen = this.getContentService();
     Object.entries(templates).forEach(([name, template]) => {
       const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
       contentGen.registerTemplate(scopedName, template);

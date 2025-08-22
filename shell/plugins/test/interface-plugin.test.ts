@@ -96,7 +96,7 @@ describe("InterfacePlugin", () => {
 
   test("formats web page correctly", () => {
     const shell = harness.getShell();
-    const contentGenerator = shell.getContentGenerator();
+    const contentGenerator = shell.getContentService();
     const formatted = contentGenerator.formatContent(
       "web-page",
       {
@@ -115,7 +115,7 @@ describe("InterfacePlugin", () => {
 
   test("formats API response correctly", () => {
     const shell = harness.getShell();
-    const contentGenerator = shell.getContentGenerator();
+    const contentGenerator = shell.getContentService();
     const formatted = contentGenerator.formatContent(
       "api-response",
       {

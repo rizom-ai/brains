@@ -13,7 +13,8 @@ import {
 } from "@brains/utils";
 import type { Command } from "@brains/command-registry";
 import type { IMessageBus } from "@brains/messaging-service";
-import type { IContentGenerator, Template } from "@brains/content-generator";
+import type { IContentService } from "@brains/content-service";
+import type { Template } from "@brains/view-registry";
 import type { Logger } from "@brains/utils";
 import type { IEntityService, EntityRegistry } from "@brains/entity-service";
 import type {
@@ -48,7 +49,7 @@ export interface QueryContext {
 export interface IShell {
   // Core service accessors
   getMessageBus(): IMessageBus;
-  getContentGenerator(): IContentGenerator;
+  getContentService(): IContentService;
   getLogger(): Logger;
   getEntityService(): IEntityService;
   getEntityRegistry(): EntityRegistry;

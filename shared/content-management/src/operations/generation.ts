@@ -5,7 +5,7 @@ import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { GenerateOptions, ContentGenerationJob } from "../types";
 import type { JobOptions } from "@brains/job-queue";
-import type { ContentGenerationJobData } from "@brains/content-generator";
+import type { ContentGenerationJobData } from "@brains/content-service";
 
 /**
  * Generate deterministic entity ID for site content

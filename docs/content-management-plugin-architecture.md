@@ -128,7 +128,7 @@ export interface IContentProvider {
 
   // Core operation - content generation
   generate(request: GenerateRequest): Promise<Content>;
-  
+
   // Optional operations (to be added as needed)
   // transform?(content: Content, format: string): Promise<Content>;
 }
@@ -157,7 +157,7 @@ export class ContentService implements IContentService {
   constructor(
     private entityService: IEntityService,
     private messageBus: IMessageBus,
-    private logger: Logger
+    private logger: Logger,
   ) {}
 
   // Provider registration
@@ -171,20 +171,24 @@ export class ContentService implements IContentService {
   }
 
   // Content generation - routes to appropriate provider
-  async generate(request: { provider: string; type: string; data: any }): Promise<Content> {
+  async generate(request: {
+    provider: string;
+    type: string;
+    data: any;
+  }): Promise<Content> {
     const provider = this.providers.get(request.provider);
     if (!provider) {
       throw new Error(`Provider not found: ${request.provider}`);
     }
-    
+
     const content = await provider.generate(request);
-    
+
     // Emit unified event
     this.messageBus.emit("content:generated", {
       provider: request.provider,
-      content
+      content,
     });
-    
+
     return content;
   }
 
@@ -192,15 +196,15 @@ export class ContentService implements IContentService {
   async query(filter: ContentQueryFilter): Promise<Content[]> {
     // Use entity service for queries since content is stored as entities
     const entities = await this.entityService.searchEntities(filter);
-    return entities.map(e => this.entityToContent(e));
+    return entities.map((e) => this.entityToContent(e));
   }
-  
+
   // Common utilities available to all providers
   getUtilities(): ContentUtilities {
     return {
       templateEngine: this.templateEngine,
       markdownUtils: this.markdownUtils,
-      formatConverter: this.formatConverter
+      formatConverter: this.formatConverter,
     };
   }
 }

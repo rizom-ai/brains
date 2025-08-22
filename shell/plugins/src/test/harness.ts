@@ -4,7 +4,7 @@ import type { ServicePlugin } from "../service/service-plugin";
 import type { InterfacePlugin } from "../interface/interface-plugin";
 import type { Logger } from "@brains/utils";
 import { createSilentLogger } from "@brains/utils";
-import type { Template } from "@brains/content-generator";
+import type { Template } from "@brains/view-registry";
 import type { MessageHandler } from "@brains/messaging-service";
 import { MockShell } from "@brains/core";
 

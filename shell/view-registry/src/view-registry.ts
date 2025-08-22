@@ -4,8 +4,8 @@ import type {
   OutputFormat,
   WebRenderer,
   ViewRegistry as IViewRegistry,
+  Template,
 } from "./types";
-import type { Template } from "@brains/content-generator";
 import { RouteRegistry } from "./route-registry";
 import { ViewTemplateRegistry } from "./view-template-registry";
 

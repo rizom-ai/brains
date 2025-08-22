@@ -16,6 +16,9 @@ export type {
   ViewRegistry as IViewRegistry,
   SiteBuilder,
   SiteContentEntityType,
+  ComponentType,
+  Template,
+  TemplateDataContext,
 } from "./types";
 
 export {
@@ -25,4 +28,5 @@ export {
   SiteBuilderOptionsSchema,
   BuildResultSchema,
   SiteContentEntityTypeSchema,
+  TemplateSchema,
 } from "./types";

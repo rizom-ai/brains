@@ -330,8 +330,8 @@
         "bun-types": "latest",
       },
     },
-    "shell/content-generator": {
-      "name": "@brains/content-generator",
+    "shell/content-service": {
+      "name": "@brains/content-service",
       "version": "0.1.0",
       "dependencies": {
         "@brains/conversation-service": "workspace:*",
@@ -369,7 +369,7 @@
       "dependencies": {
         "@brains/ai-service": "workspace:*",
         "@brains/command-registry": "workspace:*",
-        "@brains/content-generator": "workspace:*",
+        "@brains/content-service": "workspace:*",
         "@brains/conversation-service": "workspace:*",
         "@brains/daemon-registry": "workspace:*",
         "@brains/embedding-service": "workspace:*",
@@ -594,9 +594,9 @@
 
     "@brains/command-registry": ["@brains/command-registry@workspace:shell/command-registry"],
 
-    "@brains/content-generator": ["@brains/content-generator@workspace:shell/content-generator"],
-
     "@brains/content-management": ["@brains/content-management@workspace:shared/content-management"],
+
+    "@brains/content-service": ["@brains/content-service@workspace:shell/content-service"],
 
     "@brains/conversation-service": ["@brains/conversation-service@workspace:shell/conversation-service"],
 

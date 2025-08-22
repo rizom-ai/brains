@@ -30,12 +30,12 @@ import { type IMCPService, type IMCPTransport } from "@brains/mcp-service";
 import type { DaemonRegistry } from "@brains/daemon-registry";
 import { type IEmbeddingService } from "@brains/embedding-service";
 import { type IConversationService } from "@brains/conversation-service";
-import type { ContentGenerator } from "@brains/content-generator";
+import type { ContentService } from "@brains/content-service";
 import { type IAIService } from "@brains/ai-service";
 import { PermissionService } from "@brains/permission-service";
 import { Logger } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
-import type { Template } from "@brains/content-generator";
+import type { Template } from "@brains/view-registry";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
@@ -59,7 +59,7 @@ export interface ShellDependencies {
   pluginManager?: PluginManager;
   commandRegistry?: CommandRegistry;
   mcpService?: IMCPService;
-  contentGenerator?: ContentGenerator;
+  contentService?: ContentService;
   jobQueueService?: JobQueueService;
   jobQueueWorker?: JobQueueWorker;
   jobProgressMonitor?: JobProgressMonitor;
@@ -88,7 +88,7 @@ export class Shell implements IShell {
   private readonly entityService: EntityService;
   private readonly aiService: IAIService;
   private readonly conversationService: IConversationService;
-  private readonly contentGenerator: ContentGenerator;
+  private readonly contentService: ContentService;
   private readonly jobQueueService: JobQueueService;
   private readonly jobQueueWorker: JobQueueWorker;
   private readonly batchJobManager: BatchJobManager;
@@ -157,7 +157,7 @@ export class Shell implements IShell {
     this.entityService = services.entityService;
     this.aiService = services.aiService;
     this.conversationService = services.conversationService;
-    this.contentGenerator = services.contentGenerator;
+    this.contentService = services.contentService;
     this.jobQueueService = services.jobQueueService;
     this.jobQueueWorker = services.jobQueueWorker;
     this.batchJobManager = services.batchJobManager;
@@ -186,7 +186,7 @@ export class Shell implements IShell {
       );
 
       await shellInitializer.initializeAll(
-        this.contentGenerator,
+        this.contentService,
         this.entityRegistry,
         this.pluginManager,
       );
@@ -244,7 +244,7 @@ export class Shell implements IShell {
     });
 
     // Register with ContentGenerator for content generation
-    this.contentGenerator.registerTemplate(scopedName, template);
+    this.contentService.registerTemplate(scopedName, template);
 
     // Register with ViewRegistry for rendering if layout is provided
     if (template.layout?.component) {
@@ -323,7 +323,7 @@ export class Shell implements IShell {
     }
 
     // Validate template exists
-    const template = this.contentGenerator.getTemplate(config.templateName);
+    const template = this.contentService.getTemplate(config.templateName);
     if (!template) {
       throw new Error(`Template not found: ${config.templateName}`);
     }
@@ -348,10 +348,7 @@ export class Shell implements IShell {
       ...(config.data && { data: config.data }),
     };
 
-    return this.contentGenerator.generateContent<T>(
-      config.templateName,
-      context,
-    );
+    return this.contentService.generateContent<T>(config.templateName, context);
   }
 
   /**
@@ -423,8 +420,8 @@ export class Shell implements IShell {
     return this.pluginManager;
   }
 
-  public getContentGenerator(): ContentGenerator {
-    return this.contentGenerator;
+  public getContentService(): ContentService {
+    return this.contentService;
   }
 
   public getViewRegistry(): ViewRegistry {

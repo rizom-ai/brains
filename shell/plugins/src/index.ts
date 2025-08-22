@@ -126,15 +126,15 @@ export type {
   ConversationDigestPayload,
 } from "@brains/conversation-service";
 
-// From @brains/content-generator
+// From @brains/content-service
 export type {
-  Template,
-  TemplateDataContext,
+  IContentService,
   GenerationContext,
-  ComponentType,
-  IContentGenerator,
-} from "@brains/content-generator";
-export { TemplateSchema } from "@brains/content-generator";
+} from "@brains/content-service";
+
+// From @brains/view-registry
+export type { Template, ComponentType, TemplateDataContext } from "@brains/view-registry";
+export { TemplateSchema } from "@brains/view-registry";
 
 // From @brains/messaging-service
 export type {

@@ -1,9 +1,10 @@
-import type { Template, GenerationContext } from "./types";
+import type { GenerationContext } from "./types";
+import type { Template } from "@brains/view-registry";
 import type { EntityService, SearchResult } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
-import type { ContentGenerator as IContentGenerator } from "./types";
+import type { ContentService as IContentService } from "./types";
 import type {
   IConversationService,
   Message,
@@ -19,9 +20,9 @@ export interface ProgressInfo {
 }
 
 /**
- * Dependencies required by ContentGenerator
+ * Dependencies required by ContentService
  */
-export interface ContentGeneratorDependencies {
+export interface ContentServiceDependencies {
   logger: Logger;
   entityService: EntityService;
   aiService: IAIService;
@@ -29,19 +30,19 @@ export interface ContentGeneratorDependencies {
 }
 
 /**
- * Content Generator
+ * Content Service
  *
- * Provides centralized content generation functionality with template-based approach.
+ * Provides content coordination, provider management, and common utilities.
  * Implements Component Interface Standardization pattern.
  */
-export class ContentGenerator implements IContentGenerator {
+export class ContentService implements IContentService {
   // Template registry for local template management
   private templates: Map<string, Template<unknown>> = new Map();
 
   /**
-   * Create a new instance of ContentGenerator
+   * Create a new instance of ContentService
    */
-  constructor(private readonly dependencies: ContentGeneratorDependencies) {}
+  constructor(private readonly dependencies: ContentServiceDependencies) {}
 
   /**
    * Apply template scoping logic

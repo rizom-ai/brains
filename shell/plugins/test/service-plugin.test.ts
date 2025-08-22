@@ -101,7 +101,7 @@ describe("ServicePlugin", () => {
 
   test("provides content generation", () => {
     const shell = harness.getShell();
-    const contentGenerator = shell.getContentGenerator();
+    const contentGenerator = shell.getContentService();
 
     expect(contentGenerator).toBeDefined();
     expect(contentGenerator.generateContent).toBeDefined();

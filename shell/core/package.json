@@ -30,7 +30,7 @@
     "@brains/service-registry": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/view-registry": "workspace:*",
-    "@brains/content-generator": "workspace:*",
+    "@brains/content-service": "workspace:*",
     "ai": "^4.3.16",
     "zod": "^3.25.1"
   },
