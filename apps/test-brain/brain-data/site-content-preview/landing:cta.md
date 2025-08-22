@@ -2,33 +2,24 @@
 routeId: landing
 sectionId: cta
 ---
-
 # CTA Section
 
 ## Headline
-
-Unlock the Power of Your Mind
+Elevate Your Mind, Amplify Your Impact
 
 ## Description
-
-Transform your knowledge and boost your productivity with our powerful personal knowledge management system. Take the first step towards building your second brain.
+Harness the power of your knowledge. Join the personal knowledge revolution.
 
 ## Primary Button
-
 ### Text
-
 Start Free Trial
 
 ### Link
-
 /signup
 
 ## Secondary Button
-
 ### Text
-
-View Demo
+Learn More
 
 ### Link
-
-/demo
+/about

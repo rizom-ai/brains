@@ -130,10 +130,20 @@ export type {
 export type {
   IContentService,
   GenerationContext,
+  IContentProvider,
+  Content,
+  ContentContext,
+  ContentTypeDefinition,
+  GenerateRequest,
+  ProviderContentTypes,
 } from "@brains/content-service";
 
 // From @brains/view-registry
-export type { Template, ComponentType, TemplateDataContext } from "@brains/view-registry";
+export type {
+  Template,
+  ComponentType,
+  TemplateDataContext,
+} from "@brains/view-registry";
 export { TemplateSchema } from "@brains/view-registry";
 
 // From @brains/messaging-service

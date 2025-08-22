@@ -2,131 +2,84 @@
 routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label
-
 Our Offerings
 
 ## Headline
-
 Innovations for a Sustainable Future
 
 ## Description
-
-Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We help organizations and communities thrive in the face of complex challenges by co-creating holistic solutions that drive positive impact.
+Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We collaborate to create innovative solutions that drive positive change and a more sustainable future.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
-ecosystem-design
+practice-innovation
 
 #### Name
-
-Ecosystem Design
+Practice Innovation
 
 #### Tagline
-
-Build resilient, adaptive systems
+Transformative organizational practices
 
 #### Description
-
-Our ecosystem design services help organizations and communities co-create interconnected solutions that address complex challenges in a holistic way.
+Leverage our expertise in organizational development and change management to drive meaningful innovation within your business.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Network
+#### Icon
+Brain
 
 ### Product 2
 
 #### ID
-
-organizational-transformation
+ecosystem-architecture
 
 #### Name
-
-Organizational Transformation
+Ecosystem Architecture
 
 #### Tagline
-
-Unlock the potential of your people
+Design resilient business ecosystems
 
 #### Description
-
-We guide organizations through profound change, empowering them to cultivate agile, purpose-driven cultures that thrive in uncertain times.
+Harness the power of collaborative networks to build adaptable, future-proof business models and ecosystems.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Cpu
+#### Icon
+Network
 
 ### Product 3
 
 #### ID
-
-digital-acceleration
-
-#### Name
-
-Digital Acceleration
-
-#### Tagline
-
-Leverage technology for good
-
-#### Description
-
-Our digital transformation experts help clients harness the power of emerging technologies to drive sustainable innovation and positive impact.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Zap
-
-### Product 4
-
-#### ID
-
-circular-economy
+economy-of-garbage
 
 #### Name
-
-Circular Economy
+Economy of Garbage
 
 #### Tagline
-
-Rethink waste as a resource
+Extracting value from waste
 
 #### Description
-
-We support organizations in transitioning to a circular economy model, unlocking new value streams and reducing environmental impact.
+Discover innovative ways to turn waste streams into valuable resources, unlocking new revenue opportunities and environmental benefits.
 
 #### Status
-
 beta
 
 #### Link
 
-#### Icon
 
-Database
+#### Icon
+Wrench

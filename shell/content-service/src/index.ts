@@ -14,6 +14,16 @@ export type {
   ContentService as IContentService,
   GenerationContext,
 } from "./types";
+
+// Provider interfaces for plugins
+export type {
+  IContentProvider,
+  Content,
+  ContentContext,
+  ContentTypeDefinition,
+  GenerateRequest,
+  ProviderContentTypes,
+} from "./interfaces/provider";
 export {
   ContentGenerationJobHandler,
   contentGenerationJobDataSchema,
