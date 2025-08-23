@@ -8,12 +8,12 @@ import type {
 import type { SiteBuilder } from "../lib/site-builder";
 import type { SiteContentService } from "../lib/site-content-service";
 import type { SiteBuilderConfig } from "../config";
+import { z } from "zod";
 import {
+  GenerateOptionsSchema,
   PromoteOptionsSchema,
   RollbackOptionsSchema,
-} from "../lib/site-content-service";
-import { z } from "zod";
-import { GenerateOptionsSchema } from "@brains/plugins";
+} from "../types/content-schemas";
 
 export function createSiteBuilderTools(
   getSiteBuilder: () => SiteBuilder | undefined,
@@ -82,6 +82,7 @@ export function createSiteBuilderTools(
 
           // Create job metadata
           const metadata: JobContext = {
+            rootJobId: `generate-${Date.now()}`,
             progressToken: context.progressToken,
             pluginId,
             operationType: "content_operations",
@@ -163,6 +164,7 @@ export function createSiteBuilderTools(
           {
             source: `plugin:${pluginId}`,
             metadata: {
+              rootJobId: `build-${Date.now()}`,
               progressToken: context?.progressToken,
               operationType: "content_operations",
               pluginId,
@@ -270,6 +272,7 @@ export function createSiteBuilderTools(
 
         // Create job metadata
         const metadata: JobContext = {
+          rootJobId: `promote-${Date.now()}`,
           progressToken: context.progressToken,
           pluginId,
           operationType: "content_operations",
@@ -325,6 +328,7 @@ export function createSiteBuilderTools(
 
         // Create job metadata
         const metadata: JobContext = {
+          rootJobId: `rollback-${Date.now()}`,
           progressToken: context.progressToken,
           pluginId,
           operationType: "content_operations",

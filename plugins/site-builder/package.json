@@ -16,7 +16,6 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@brains/content-management": "workspace:*",
     "@brains/plugins": "workspace:*",
     "preact": "^10.19.3",
     "preact-render-to-string": "^6.3.1",

@@ -2,15 +2,16 @@
 routeId: landing
 sectionId: cta
 ---
+
 # CTA Section
 
 ## Headline
 
-Elevate Your Productivity - Start Your Free Trial Now
+Unlock the Power of Your Knowledge
 
 ## Description
 
-Transform your knowledge into a powerful second brain. Join thousands who are already boosting their productivity and creativity with Rizom.
+Join thousands who are building their digital second brain with Rizom
 
 ## Primary Button
 

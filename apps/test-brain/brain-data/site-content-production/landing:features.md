@@ -2,6 +2,7 @@
 routeId: landing
 sectionId: features
 ---
+
 # Features Section
 
 ## Label
@@ -10,11 +11,11 @@ Features
 
 ## Headline
 
-Unlock the Power of Your Knowledge
+Elevate Your Knowledge Mastery
 
 ## Description
 
-Our personal knowledge management system helps you organize, search, secure, and gain insights from your information, so you can focus on what matters.
+Rizom's personal knowledge management system empowers you to organize, access, and leverage your expertise like never before.
 
 ## Feature Cards
 
@@ -22,21 +23,21 @@ Our personal knowledge management system helps you organize, search, secure, and
 
 #### Title
 
-Structured Capture
+Intelligent Organization
 
 #### Icon
 
-FileText
+Brain
 
 #### Description
 
-Easily log and organize your notes, documents, and ideas in a centralized knowledge base.
+Effortlessly structure your knowledge with intuitive tagging and powerful semantic search to find what you need, when you need it.
 
 ### Feature Card 2
 
 #### Title
 
-Intelligent Search
+Frictionless Discovery
 
 #### Icon
 
@@ -44,13 +45,13 @@ Search
 
 #### Description
 
-Quickly find what you need with advanced search capabilities and smart suggestions.
+Uncover hidden connections and surface relevant insights across your personal knowledge base with advanced search and filtering.
 
 ### Feature Card 3
 
 #### Title
 
-Secure Storage
+Secure Knowledge Vault
 
 #### Icon
 
@@ -58,4 +59,4 @@ Shield
 
 #### Description
 
-Keep your personal information safe with robust encryption and access controls.
+Protect your valuable information with enterprise-grade security and granular access controls to keep your data safe.

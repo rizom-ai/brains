@@ -2,19 +2,20 @@
 routeId: landing
 sectionId: hero
 ---
+
 # Hero Section
 
 ## Headline
 
-Elevate Your Knowledge Workflows
+Amplify Your Knowledge, Accelerate Your Growth
 
 ## Subheadline
 
-Harness the power of personal knowledge management to boost productivity and amplify your expertise.
+Rizom's personal knowledge management platform empowers you to capture, connect, and capitalize on your expertise.
 
 ## CTA Text
 
-Start Your Free Trial
+Get Started
 
 ## CTA Link
 

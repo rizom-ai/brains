@@ -2,19 +2,20 @@
 routeId: landing
 sectionId: products
 ---
+
 # Products Section
 
 ## Label
 
-Our Ecosystem
+Our Offerings
 
 ## Headline
 
-The Tools We Build to Power Your Success
+Transforming the Future with Innovative Solutions
 
 ## Description
 
-Our product suite empowers teams to collaborate, innovate, and thrive in the digital economy. From ecosystem design to organizational transformation, we provide the tools and expertise to help you build a resilient, future-ready business.
+Rizom is a dynamic collective of experts driving digital transformation, organizational development, and ecosystem design. Our diverse portfolio of products and services empower organizations to thrive in the evolving landscape.
 
 ## Products
 
@@ -22,19 +23,19 @@ Our product suite empowers teams to collaborate, innovate, and thrive in the dig
 
 #### ID
 
-rizom-canvas
+rizom-studio
 
 #### Name
 
-Rizom Canvas
+Rizom Studio
 
 #### Tagline
 
-Visualize and design your ecosystem
+Design your digital ecosystem
 
 #### Description
 
-Rizom Canvas is an intuitive platform for mapping, modeling, and optimizing complex business ecosystems. Gain a holistic view of your value network to identify opportunities and mitigate risks.
+A collaborative platform for visualizing, simulating, and optimizing complex digital ecosystems.
 
 #### Status
 
@@ -44,65 +45,9 @@ live
 
 #### Icon
 
-Brain
+Globe
 
 ### Product 2
-
-#### ID
-
-rizom-labs
-
-#### Name
-
-Rizom Labs
-
-#### Tagline
-
-Prototype and experiment with new ideas
-
-#### Description
-
-Rizom Labs is a collaborative workspace where teams can rapidly ideate, test, and validate new products, services, and business models. Accelerate innovation through structured experimentation.
-
-#### Status
-
-beta
-
-#### Link
-
-#### Icon
-
-Zap
-
-### Product 3
-
-#### ID
-
-rizom-orchestrator
-
-#### Name
-
-Rizom Orchestrator
-
-#### Tagline
-
-Coordinate and align your ecosystem
-
-#### Description
-
-Rizom Orchestrator is a workflow automation platform that helps you manage complex, multi-stakeholder initiatives. Streamline processes, improve transparency, and drive collective impact.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Network
-
-### Product 4
 
 #### ID
 
@@ -114,11 +59,11 @@ Rizom Insights
 
 #### Tagline
 
-Uncover hidden patterns and trends
+Uncover data-driven opportunities
 
 #### Description
 
-Rizom Insights is a data analytics suite that provides deep visibility into your ecosystem's performance. Leverage predictive models and AI-powered recommendations to make informed, data-driven decisions.
+Advanced analytics and AI-powered tools to generate actionable insights from organizational data.
 
 #### Status
 
@@ -129,3 +74,59 @@ beta
 #### Icon
 
 Database
+
+### Product 3
+
+#### ID
+
+rizom-academy
+
+#### Name
+
+Rizom Academy
+
+#### Tagline
+
+Upskill your team
+
+#### Description
+
+Comprehensive training programs and workshops to develop future-ready capabilities in your organization.
+
+#### Status
+
+live
+
+#### Link
+
+#### Icon
+
+Brain
+
+### Product 4
+
+#### ID
+
+rizom-ventures
+
+#### Name
+
+Rizom Ventures
+
+#### Tagline
+
+Invest in the future
+
+#### Description
+
+A venture capital fund that supports innovative startups shaping the digital economy.
+
+#### Status
+
+alpha
+
+#### Link
+
+#### Icon
+
+Zap

@@ -2,40 +2,35 @@
 routeId: dashboard
 sectionId: main
 ---
+
 # Dashboard Data
 
 entityStats:
-  - type: base
-    count: 40
-  - type: topic
-    count: 2
-  - type: site-content-preview
-    count: 5
-  - type: site-content-production
-    count: 5
+
+- type: note
+  count: 42
+- type: task
+  count: 17
+- type: profile
+  count: 5
+- type: project
+  count: 3
 
 recentEntities:
-  - id: Urging New Institutions
-    type: base
-    title: Urging New Institutions
-    created: 2025-08-04T05:39:25.431Z
-  - id: Ecosystem Engagement
-    type: base
-    title: Ecosystem Engagement
-    created: 2025-08-04T05:39:25.428Z
-  - id: Practice Innovation
-    type: base
-    title: Practice Innovation
-    created: 2025-08-04T05:39:25.429Z
-  - id: Profile Questions
-    type: base
-    title: Profile Questions
-    created: 2025-08-04T05:39:25.429Z
-  - id: Learning From Nature
-    type: base
-    title: Learning From Nature
-    created: 2025-08-04T05:39:25.429Z
+
+- id: 1
+  type: note
+  title: Meeting Notes - Q4 Planning
+  created: 2025-08-23T15:53:08.654Z
+- id: 2
+  type: task
+  title: Review pull request #123
+  created: 2025-08-23T14:53:08.654Z
+- id: 3
+  type: note
+  title: Architecture refactoring ideas
+  created: 2025-08-22T16:53:08.654Z
 
 buildInfo:
-  timestamp: 2025-08-22T04:54:23.220Z
-  version: 1.0.0
+timestamp: 2025-08-23T16:53:08.654Z
+version: 1.0.0

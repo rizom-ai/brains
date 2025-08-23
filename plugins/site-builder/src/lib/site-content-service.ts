@@ -1,72 +1,31 @@
-import type {
-  ServicePluginContext,
-  JobContext,
-  SectionDefinition,
-  GenerateOptions,
-} from "@brains/plugins";
-import type { ContentManager } from "@brains/plugins";
-import { GenerateOptionsSchema } from "@brains/plugins";
-import { z } from "zod";
-
-/**
- * Promote options schema
- */
-export const PromoteOptionsSchema = z.object({
-  routeId: z.string().optional().describe("Optional: specific route filter"),
-  sectionId: z
-    .string()
-    .optional()
-    .describe("Optional: specific section filter"),
-  sections: z
-    .array(z.string())
-    .optional()
-    .describe("Optional: batch promote multiple sections"),
-  dryRun: z
-    .boolean()
-    .default(false)
-    .describe("Optional: preview changes without executing"),
-});
-
-export type PromoteOptions = z.infer<typeof PromoteOptionsSchema>;
-
-/**
- * Rollback options schema
- */
-export const RollbackOptionsSchema = z.object({
-  routeId: z.string().optional().describe("Optional: specific route filter"),
-  sectionId: z
-    .string()
-    .optional()
-    .describe("Optional: specific section filter"),
-  sections: z
-    .array(z.string())
-    .optional()
-    .describe("Optional: batch rollback multiple sections"),
-  dryRun: z
-    .boolean()
-    .default(false)
-    .describe("Optional: preview changes without executing"),
-});
-
-export type RollbackOptions = z.infer<typeof RollbackOptionsSchema>;
+import type { ServicePluginContext, JobContext } from "@brains/plugins";
+import {
+  GenerateOptionsSchema,
+  type GenerateOptions,
+  type PromoteOptions,
+  type RollbackOptions,
+} from "../types/content-schemas";
+import { SiteContentOperations } from "./site-content-operations";
 
 /**
  * Service for managing site content operations
  */
 export class SiteContentService {
+  private readonly operations: SiteContentOperations;
+
   constructor(
-    private readonly pluginContext: ServicePluginContext,
-    private readonly pluginId: string,
-    private readonly contentManager: ContentManager,
+    pluginContext: ServicePluginContext,
     private readonly siteConfig?: Record<string, unknown>,
-  ) {}
+  ) {
+    this.operations = new SiteContentOperations(pluginContext);
+  }
 
   /**
    * Generate content for routes
    */
   async generateContent(
     options: GenerateOptions,
-    context: JobContext,
+    metadata?: Partial<JobContext>,
   ): Promise<{
     jobs: Array<{ jobId: string; routeId: string; sectionId: string }>;
     totalSections: number;
@@ -76,40 +35,14 @@ export class SiteContentService {
     // Validate input
     const validatedOptions = GenerateOptionsSchema.parse(options);
 
-    // Get all registered routes
-    const routes = this.pluginContext.listRoutes();
-
-    // Template resolver
-    const templateResolver = (section: SectionDefinition): string => {
-      if (!section.template) {
-        throw new Error(`No template specified for section ${section.id}`);
-      }
-      return section.template;
-    };
-
     // Generate content
-    const result = await this.contentManager.generate(
+    const result = await this.operations.generate(
       validatedOptions,
-      routes,
-      templateResolver,
-      "site-content-preview",
-      {
-        source: `plugin:${this.pluginId}`,
-        metadata: context,
-      },
       this.siteConfig,
+      metadata,
     );
 
-    return {
-      jobs: result.jobs.map((job) => ({
-        jobId: job.jobId,
-        routeId: job.routeId,
-        sectionId: job.sectionId,
-      })),
-      totalSections: result.totalSections,
-      queuedSections: result.queuedSections,
-      batchId: result.batchId,
-    };
+    return result;
   }
 
   /**
@@ -117,10 +50,10 @@ export class SiteContentService {
    */
   async promoteContent(
     options: PromoteOptions,
-    context: JobContext,
+    metadata?: Partial<JobContext>,
   ): Promise<string> {
     // Get preview entities based on filters
-    const previewEntities = await this.contentManager.getPreviewEntities({
+    const previewEntities = await this.operations.getPreviewEntities({
       ...(options.routeId && { routeId: options.routeId }),
     });
 
@@ -146,10 +79,7 @@ export class SiteContentService {
     }
 
     // Promote using derive operation
-    return this.contentManager.promote(entityIds, {
-      source: `plugin:${this.pluginId}`,
-      metadata: context,
-    });
+    return this.operations.promote(entityIds, metadata);
   }
 
   /**
@@ -157,10 +87,10 @@ export class SiteContentService {
    */
   async rollbackContent(
     options: RollbackOptions,
-    context: JobContext,
+    metadata?: Partial<JobContext>,
   ): Promise<string> {
     // Get production entities based on filters
-    const productionEntities = await this.contentManager.getProductionEntities({
+    const productionEntities = await this.operations.getProductionEntities({
       ...(options.routeId && { routeId: options.routeId }),
     });
 
@@ -186,9 +116,6 @@ export class SiteContentService {
     }
 
     // Rollback by deleting production entities
-    return this.contentManager.rollback(entityIds, {
-      source: `plugin:${this.pluginId}`,
-      metadata: context,
-    });
+    return this.operations.rollback(entityIds, metadata);
   }
 }

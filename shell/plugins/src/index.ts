@@ -130,12 +130,6 @@ export type {
 export type {
   IContentService,
   GenerationContext,
-  IContentProvider,
-  Content,
-  ContentContext,
-  ContentTypeDefinition,
-  GenerateRequest,
-  ProviderContentTypes,
 } from "@brains/content-service";
 
 // From @brains/view-registry
@@ -215,15 +209,7 @@ export {
 // Test utilities from @brains/core
 export { MockShell } from "@brains/core";
 
-// From @brains/content-management (shared utility for content operations)
-export {
-  ContentManager,
-  GenerateOptionsSchema,
-  GenerateResultSchema,
-  type GenerateOptions,
-  type GenerateResult,
-  type SiteContentEntity,
-} from "@brains/content-management";
+// Content management exports removed - these types are now defined in site-builder plugin
 
 // Utility functions
 export { createId } from "./utils/id";

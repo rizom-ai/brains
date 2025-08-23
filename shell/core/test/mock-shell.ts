@@ -398,7 +398,6 @@ export class MockShell implements IShell {
     return this.generateContent<DefaultQueryResponse>({
       prompt,
       templateName: "shell:knowledge-query",
-      userId: context?.userId || "anonymous",
       conversationId: context?.conversationId || "default",
       ...(context && { data: context }),
       interfacePermissionGrant: "public",

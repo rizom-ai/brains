@@ -2,84 +2,131 @@
 routeId: landing
 sectionId: products
 ---
+
 # Products Section
 
 ## Label
+
 Our Offerings
 
 ## Headline
-Innovations for a Sustainable Future
+
+Transforming the Future with Innovative Solutions
 
 ## Description
-Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We collaborate to create innovative solutions that drive positive change and a more sustainable future.
+
+Rizom is a dynamic collective of experts driving digital transformation, organizational development, and ecosystem design. Our diverse portfolio of products and services empower organizations to thrive in the evolving landscape.
 
 ## Products
 
 ### Product 1
 
 #### ID
-practice-innovation
+
+rizom-studio
 
 #### Name
-Practice Innovation
+
+Rizom Studio
 
 #### Tagline
-Transformative organizational practices
+
+Design your digital ecosystem
 
 #### Description
-Leverage our expertise in organizational development and change management to drive meaningful innovation within your business.
+
+A collaborative platform for visualizing, simulating, and optimizing complex digital ecosystems.
 
 #### Status
+
 live
 
 #### Link
 
-
 #### Icon
-Brain
+
+Globe
 
 ### Product 2
 
 #### ID
-ecosystem-architecture
+
+rizom-insights
 
 #### Name
-Ecosystem Architecture
+
+Rizom Insights
 
 #### Tagline
-Design resilient business ecosystems
+
+Uncover data-driven opportunities
 
 #### Description
-Harness the power of collaborative networks to build adaptable, future-proof business models and ecosystems.
+
+Advanced analytics and AI-powered tools to generate actionable insights from organizational data.
 
 #### Status
-live
 
-#### Link
-
-
-#### Icon
-Network
-
-### Product 3
-
-#### ID
-economy-of-garbage
-
-#### Name
-Economy of Garbage
-
-#### Tagline
-Extracting value from waste
-
-#### Description
-Discover innovative ways to turn waste streams into valuable resources, unlocking new revenue opportunities and environmental benefits.
-
-#### Status
 beta
 
 #### Link
 
+#### Icon
+
+Database
+
+### Product 3
+
+#### ID
+
+rizom-academy
+
+#### Name
+
+Rizom Academy
+
+#### Tagline
+
+Upskill your team
+
+#### Description
+
+Comprehensive training programs and workshops to develop future-ready capabilities in your organization.
+
+#### Status
+
+live
+
+#### Link
 
 #### Icon
-Wrench
+
+Brain
+
+### Product 4
+
+#### ID
+
+rizom-ventures
+
+#### Name
+
+Rizom Ventures
+
+#### Tagline
+
+Invest in the future
+
+#### Description
+
+A venture capital fund that supports innovative startups shaping the digital economy.
+
+#### Status
+
+alpha
+
+#### Link
+
+#### Icon
+
+Zap

@@ -33,6 +33,10 @@ export interface ServicePluginContext extends CorePluginContext {
   // AI content generation
   generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
 
+  // Content formatting and parsing using template formatter
+  formatContent: <T = unknown>(templateName: string, data: T) => string;
+  parseContent: <T = unknown>(templateName: string, content: string) => T;
+
   // Conversation service helpers
   searchConversations: (query: string) => Promise<Conversation[]>;
   getMessages: (
@@ -96,6 +100,16 @@ export function createServicePluginContext(
     // AI content generation
     generateContent: async (config) => {
       return shell.generateContent(config);
+    },
+
+    // Content formatting and parsing using template formatter
+    formatContent: (templateName, data) => {
+      const contentService = shell.getContentService();
+      return contentService.formatContent(templateName, data, { pluginId });
+    },
+    parseContent: (templateName, content) => {
+      const contentService = shell.getContentService();
+      return contentService.parseContent(templateName, content, pluginId);
     },
 
     // Conversation service helpers

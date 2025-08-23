@@ -218,11 +218,11 @@ export class SiteBuilder implements ISiteBuilder {
     }
 
     // Look up entity by ID pattern (routeId:sectionId)
-    const entityId = `${route.id}:${section.id}`;
     const entityType =
       environment === "production"
         ? "site-content-production"
         : "site-content-preview";
+    const entityId = `${route.id}:${section.id}`;
 
     try {
       const entity = await this.context.entityService.getEntity(

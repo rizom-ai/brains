@@ -7,7 +7,6 @@ import type {
   CommandResponse,
   JobContext,
   Template,
-  SectionDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
@@ -17,10 +16,11 @@ import {
   siteContentPreviewAdapter,
   siteContentProductionAdapter,
 } from "./entities/site-content-adapter";
-import { ContentManager } from "@brains/plugins";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
+import { SiteContentDerivationJobHandler } from "./handlers/site-content-derivation-handler";
+import { SiteContentGenerationJobHandler } from "./handlers/site-content-generation-handler";
 import { createSiteBuilderTools } from "./tools";
 import type { SiteBuilderConfig } from "./config";
 import {
@@ -36,7 +36,6 @@ import packageJson from "../package.json";
 export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteBuilder?: SiteBuilder;
   private siteContentService?: SiteContentService;
-  private contentManager?: ContentManager;
   private pluginContext?: ServicePluginContext;
 
   constructor(config: Partial<SiteBuilderConfig> = {}) {
@@ -123,28 +122,37 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context,
     );
 
-    // Initialize the shared content manager first
-    this.contentManager = new ContentManager(
-      context.entityService,
-      this.logger.child("ContentManager"),
-      context,
-    );
-
-    // Initialize the site content service with the shared content manager
+    // Initialize the site content service
     this.siteContentService = new SiteContentService(
       context,
-      this.id,
-      this.contentManager,
       this.config.siteConfig,
     );
 
-    // Register job handler for site builds
+    // Register job handlers
     const siteBuildHandler = new SiteBuildJobHandler(
       this.logger.child("SiteBuildJobHandler"),
       context,
     );
     context.registerJobHandler("site-build", siteBuildHandler);
     this.logger.debug("Registered site-build job handler");
+
+    const siteContentDerivationHandler = new SiteContentDerivationJobHandler(
+      context,
+    );
+    context.registerJobHandler(
+      "content-derivation",
+      siteContentDerivationHandler,
+    );
+    this.logger.debug("Registered content-derivation job handler");
+
+    const siteContentGenerationHandler = new SiteContentGenerationJobHandler(
+      context,
+    );
+    context.registerJobHandler(
+      "content-generation",
+      siteContentGenerationHandler,
+    );
+    this.logger.debug("Registered content-generation job handler");
 
     // Site builder is now encapsulated within the plugin
   }
@@ -176,7 +184,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         description:
           "Generate content for all routes, a specific route, or a specific section",
         usage: "/generate [routeId] [sectionId] [--force] [--dry-run]",
-        handler: async (args, context): Promise<CommandResponse> => {
+        handler: async (args): Promise<CommandResponse> => {
           // Parse command arguments
           const dryRun = args.includes("--dry-run");
           const force = args.includes("--force");
@@ -192,46 +200,22 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             };
           }
 
-          if (!this.contentManager || !this.context) {
+          if (!this.siteContentService || !this.context) {
             return {
               type: "message",
               message:
-                "❌ Content manager not initialized. Please ensure the plugin is properly registered.",
+                "❌ Site content service not initialized. Please ensure the plugin is properly registered.",
             };
           }
 
           try {
-            // Get routes and template resolver
-            const routes = this.context.listRoutes();
-            const templateResolver = (section: SectionDefinition): string => {
-              if (!this.context) {
-                throw new Error("Plugin context not initialized");
-              }
-              const viewTemplate = this.context.getViewTemplate(
-                section.template,
-              );
-              if (!viewTemplate) {
-                throw new Error(`Template not found: ${section.template}`);
-              }
-              return viewTemplate.name;
-            };
-
-            // Create metadata for job context
-            const metadata: JobContext = {
-              progressToken: context.messageId,
-              pluginId: this.id,
-              operationType: "content_operations",
-            };
-
-            // Use the content manager to generate content
-            const result = await this.contentManager.generate(
-              { routeId, sectionId, force, dryRun },
-              routes,
-              templateResolver,
-              "site-content-preview",
-              { source: "command:generate", metadata },
-              this.config.siteConfig,
-            );
+            // Use the site content service to generate content
+            const result = await this.siteContentService.generateContent({
+              routeId,
+              sectionId,
+              force,
+              dryRun,
+            });
 
             if (dryRun) {
               const scope = routeId
@@ -270,7 +254,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         description:
           "Promote all preview content, a specific route, or a specific section to production",
         usage: "/promote [routeId] [sectionId] [--dry-run]",
-        handler: async (args, context): Promise<CommandResponse> => {
+        handler: async (args): Promise<CommandResponse> => {
           // Parse command arguments
           const dryRun = args.includes("--dry-run");
           const filteredArgs = args.filter((arg) => !arg.startsWith("--"));
@@ -285,32 +269,50 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             };
           }
 
-          if (!this.contentManager) {
+          if (!this.siteContentService) {
             return {
               type: "message",
               message:
-                "❌ Content manager not initialized. Please ensure the plugin is properly registered.",
+                "❌ Site content service not initialized. Please ensure the plugin is properly registered.",
             };
           }
 
           try {
-            // Get filtered preview entities
-            const previewEntities =
-              await this.contentManager.getPreviewEntities({
-                ...(routeId && { routeId }),
-              });
+            const batchId = await this.siteContentService.promoteContent({
+              routeId,
+              sectionId,
+              dryRun,
+            });
 
-            let entityIds: string[];
-            if (sectionId) {
-              // Filter by section
-              entityIds = previewEntities
-                .filter((e) => e.sectionId === sectionId)
-                .map((e) => e.id);
-            } else {
-              entityIds = previewEntities.map((e) => e.id);
+            if (dryRun) {
+              const scope = routeId
+                ? sectionId
+                  ? `section ${routeId}:${sectionId}`
+                  : `route ${routeId}`
+                : "all routes";
+              return {
+                type: "message",
+                message: `🔍 **Dry run** - Would promote content for ${scope}. Use \`/promote\` without --dry-run to execute.`,
+              };
             }
 
-            if (entityIds.length === 0) {
+            const scope = routeId
+              ? sectionId
+                ? `section ${routeId}:${sectionId}`
+                : `route ${routeId}`
+              : "all routes";
+            return {
+              type: "batch-operation",
+              message: `📤 **Promotion started** - Promoting content to production for ${scope}...`,
+              batchId,
+              operationCount: 1,
+            };
+          } catch (error) {
+            this.error("Promote command failed", error);
+            const errorMsg =
+              error instanceof Error ? error.message : "Unknown error occurred";
+            // Check for specific error about no content found
+            if (errorMsg.includes("No preview content found")) {
               const scope = routeId
                 ? sectionId
                   ? `section ${routeId}:${sectionId}`
@@ -321,46 +323,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
                 message: `ℹ️ No preview content found to promote for ${scope}.`,
               };
             }
-
-            if (dryRun) {
-              const scope = routeId
-                ? sectionId
-                  ? `section ${routeId}:${sectionId}`
-                  : `route ${routeId}`
-                : "all routes";
-              return {
-                type: "message",
-                message: `🔍 **Dry run** - Would promote ${entityIds.length} preview entities to production for ${scope}. Use \`/promote\` without --dry-run to execute.`,
-              };
-            }
-
-            const metadata: JobContext = {
-              progressToken: context.messageId,
-              pluginId: this.id,
-              operationType: "content_operations",
-            };
-
-            const batchId = await this.contentManager.promote(entityIds, {
-              source: "command:promote",
-              metadata,
-            });
-
-            const scope = routeId
-              ? sectionId
-                ? `section ${routeId}:${sectionId}`
-                : `route ${routeId}`
-              : "all routes";
-            return {
-              type: "batch-operation",
-              message: `📤 **Promotion started** - Promoting ${entityIds.length} preview entities to production for ${scope}...`,
-              batchId,
-              operationCount: entityIds.length,
-            };
-          } catch (error) {
-            this.error("Promote command failed", error);
             return {
               type: "message",
-              message: `❌ **Promotion failed**: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
+              message: `❌ **Promotion failed**: ${errorMsg}`,
             };
           }
         },
@@ -370,7 +335,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         description:
           "Rollback all production content, a specific route, or a specific section",
         usage: "/rollback [routeId] [sectionId] [--dry-run]",
-        handler: async (args, context): Promise<CommandResponse> => {
+        handler: async (args): Promise<CommandResponse> => {
           // Parse command arguments
           const dryRun = args.includes("--dry-run");
           const filteredArgs = args.filter((arg) => !arg.startsWith("--"));
@@ -385,32 +350,50 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             };
           }
 
-          if (!this.contentManager) {
+          if (!this.siteContentService) {
             return {
               type: "message",
               message:
-                "❌ Content manager not initialized. Please ensure the plugin is properly registered.",
+                "❌ Site content service not initialized. Please ensure the plugin is properly registered.",
             };
           }
 
           try {
-            // Get filtered production entities
-            const productionEntities =
-              await this.contentManager.getProductionEntities({
-                ...(routeId && { routeId }),
-              });
+            const batchId = await this.siteContentService.rollbackContent({
+              routeId,
+              sectionId,
+              dryRun,
+            });
 
-            let entityIds: string[];
-            if (sectionId) {
-              // Filter by section
-              entityIds = productionEntities
-                .filter((e) => e.sectionId === sectionId)
-                .map((e) => e.id);
-            } else {
-              entityIds = productionEntities.map((e) => e.id);
+            if (dryRun) {
+              const scope = routeId
+                ? sectionId
+                  ? `section ${routeId}:${sectionId}`
+                  : `route ${routeId}`
+                : "all routes";
+              return {
+                type: "message",
+                message: `🔍 **Dry run** - Would rollback content for ${scope}. Use \`/rollback\` without --dry-run to execute.`,
+              };
             }
 
-            if (entityIds.length === 0) {
+            const scope = routeId
+              ? sectionId
+                ? `section ${routeId}:${sectionId}`
+                : `route ${routeId}`
+              : "all routes";
+            return {
+              type: "batch-operation",
+              message: `↩️ **Rollback started** - Rolling back content for ${scope}...`,
+              batchId,
+              operationCount: 1,
+            };
+          } catch (error) {
+            this.error("Rollback command failed", error);
+            const errorMsg =
+              error instanceof Error ? error.message : "Unknown error occurred";
+            // Check for specific error about no content found
+            if (errorMsg.includes("No production content found")) {
               const scope = routeId
                 ? sectionId
                   ? `section ${routeId}:${sectionId}`
@@ -421,46 +404,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
                 message: `ℹ️ No production content found to rollback for ${scope}.`,
               };
             }
-
-            if (dryRun) {
-              const scope = routeId
-                ? sectionId
-                  ? `section ${routeId}:${sectionId}`
-                  : `route ${routeId}`
-                : "all routes";
-              return {
-                type: "message",
-                message: `🔍 **Dry run** - Would rollback ${entityIds.length} production entities for ${scope}. Use \`/rollback\` without --dry-run to execute.`,
-              };
-            }
-
-            const metadata: JobContext = {
-              progressToken: context.messageId,
-              pluginId: this.id,
-              operationType: "content_operations",
-            };
-
-            const batchId = await this.contentManager.rollback(entityIds, {
-              source: "command:rollback",
-              metadata,
-            });
-
-            const scope = routeId
-              ? sectionId
-                ? `section ${routeId}:${sectionId}`
-                : `route ${routeId}`
-              : "all routes";
-            return {
-              type: "batch-operation",
-              message: `↩️ **Rollback started** - Rolling back ${entityIds.length} production entities for ${scope}...`,
-              batchId,
-              operationCount: entityIds.length,
-            };
-          } catch (error) {
-            this.error("Rollback command failed", error);
             return {
               type: "message",
-              message: `❌ **Rollback failed**: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
+              message: `❌ **Rollback failed**: ${errorMsg}`,
             };
           }
         },
@@ -505,6 +451,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             };
 
             const metadata: JobContext = {
+              rootJobId: `site-build-${Date.now()}`,
               progressToken: context.messageId,
               pluginId: this.id,
               operationType: "content_operations",

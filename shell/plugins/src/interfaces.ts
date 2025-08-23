@@ -313,8 +313,7 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
 export interface ContentGenerationConfig {
   prompt: string;
   templateName: string;
-  userId: string;
-  conversationId: string;
+  conversationId?: string;
   data?: Record<string, unknown>;
   interfacePermissionGrant?: UserPermissionLevel;
 }

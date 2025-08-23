@@ -2,24 +2,33 @@
 routeId: landing
 sectionId: cta
 ---
+
 # CTA Section
 
 ## Headline
-Elevate Your Mind, Amplify Your Impact
+
+Unlock the Power of Your Knowledge
 
 ## Description
-Harness the power of your knowledge. Join the personal knowledge revolution.
+
+Join thousands who are building their digital second brain with Rizom
 
 ## Primary Button
+
 ### Text
+
 Start Free Trial
 
 ### Link
+
 /signup
 
 ## Secondary Button
+
 ### Text
-Learn More
+
+View Demo
 
 ### Link
-/about
+
+/demo

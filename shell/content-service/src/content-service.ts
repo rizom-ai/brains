@@ -9,14 +9,6 @@ import type {
   IConversationService,
   Message,
 } from "@brains/conversation-service";
-import type { 
-  IContentProvider, 
-  Content, 
-  GenerateRequest, 
-  ContentContext,
-  ProviderContentTypes 
-} from "./interfaces/provider";
-import { ProviderRegistry } from "./core/provider-registry";
 
 /**
  * Progress information for content generation operations
@@ -46,16 +38,11 @@ export interface ContentServiceDependencies {
 export class ContentService implements IContentService {
   // Template registry for local template management
   private templates: Map<string, Template<unknown>> = new Map();
-  
-  // Provider registry for content provider management
-  private providerRegistry: ProviderRegistry;
 
   /**
    * Create a new instance of ContentService
    */
-  constructor(private readonly dependencies: ContentServiceDependencies) {
-    this.providerRegistry = new ProviderRegistry(dependencies.logger.child("ProviderRegistry"));
-  }
+  constructor(private readonly dependencies: ContentServiceDependencies) {}
 
   /**
    * Apply template scoping logic
@@ -103,10 +90,13 @@ export class ContentService implements IContentService {
 
   /**
    * Generate content using a template with entity-aware context
+   * TODO: Factor out conversationId from content generation - it should be handled
+   * at a higher level (e.g., in conversation-aware interfaces) rather than being
+   * part of the core content generation logic
    */
   async generateContent<T = unknown>(
     templateName: string,
-    context: GenerationContext = { conversationId: "default" },
+    context: GenerationContext = {},
     pluginId?: string,
   ): Promise<T> {
     // Apply template scoping if pluginId is provided
@@ -348,79 +338,5 @@ export class ContentService implements IContentService {
     }
 
     return prompt;
-  }
-
-  // ===== Provider Registry Methods =====
-
-  /**
-   * Register a content provider
-   */
-  registerProvider(provider: IContentProvider): void {
-    this.providerRegistry.register(provider);
-  }
-
-  /**
-   * Unregister a content provider
-   */
-  unregisterProvider(providerId: string): void {
-    this.providerRegistry.unregister(providerId);
-  }
-
-  /**
-   * Get a registered provider
-   */
-  getProvider(providerId: string): IContentProvider | undefined {
-    return this.providerRegistry.get(providerId);
-  }
-
-  /**
-   * List all registered providers
-   */
-  listProviders(): IContentProvider[] {
-    return this.providerRegistry.list();
-  }
-
-  /**
-   * Generate content using a provider
-   * Routes the request to the appropriate provider
-   */
-  async generate(request: {
-    provider: string;
-    type: string;
-    data: unknown;
-    context?: ContentContext;
-  }): Promise<Content> {
-    const provider = this.providerRegistry.get(request.provider);
-    if (!provider) {
-      throw new Error(`Provider not found: ${request.provider}`);
-    }
-
-    const generateRequest: GenerateRequest = {
-      type: request.type,
-      data: request.data,
-      ...(request.context ? { context: request.context } : {}),
-    };
-
-    this.dependencies.logger.debug("Generating content with provider", {
-      provider: request.provider,
-      type: request.type,
-    });
-
-    const content = await provider.generate(generateRequest);
-
-    this.dependencies.logger.info("Content generated", {
-      provider: request.provider,
-      type: request.type,
-      contentId: content.id,
-    });
-
-    return content;
-  }
-
-  /**
-   * Get all available content types from all providers
-   */
-  getAvailableContentTypes(): ProviderContentTypes[] {
-    return this.providerRegistry.getAllContentTypes();
   }
 }

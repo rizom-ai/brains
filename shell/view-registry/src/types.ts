@@ -35,7 +35,7 @@ export interface TemplateDataContext {
   context: {
     prompt?: string | undefined;
     data?: Record<string, unknown> | undefined;
-    conversationId: string;
+    conversationId?: string | undefined;
   };
   dependencies: {
     entityService: unknown; // EntityService from entity-service
