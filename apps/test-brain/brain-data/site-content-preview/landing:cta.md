@@ -7,11 +7,11 @@ sectionId: cta
 
 ## Headline
 
-Unlock the Power of Your Knowledge
+Elevate Your Knowledge, Amplify Your Impact
 
 ## Description
 
-Join thousands who are building their digital second brain with Rizom
+Join the personal knowledge management revolution and unlock your full potential.
 
 ## Primary Button
 

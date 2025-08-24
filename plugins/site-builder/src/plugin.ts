@@ -18,6 +18,7 @@ import {
 } from "./entities/site-content-adapter";
 import { dashboardTemplate } from "./templates/dashboard";
 import { DashboardFormatter } from "./templates/dashboard/formatter";
+import { DashboardProvider } from "./providers/dashboard-provider";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { SiteContentDerivationJobHandler } from "./handlers/site-content-derivation-handler";
 import { SiteContentGenerationJobHandler } from "./handlers/site-content-generation-handler";
@@ -74,6 +75,11 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     // Register built-in dashboard template using unified method
     context.registerTemplates({ dashboard: dashboardTemplate });
     this.logger.debug("Registered dashboard template");
+
+    // Register dashboard provider
+    const dashboardProvider = new DashboardProvider(context.entityService);
+    context.registerContentProvider(dashboardProvider);
+    this.logger.debug("Registered dashboard provider");
 
     // Register dashboard route
     const dashboardFormatter = new DashboardFormatter();

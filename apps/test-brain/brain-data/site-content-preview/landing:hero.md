@@ -7,11 +7,11 @@ sectionId: hero
 
 ## Headline
 
-Amplify Your Knowledge, Accelerate Your Growth
+Unleash the Power of Your Personal Brain
 
 ## Subheadline
 
-Rizom's personal knowledge management platform empowers you to capture, connect, and capitalize on your expertise.
+Effortlessly capture, organize, and leverage your knowledge to achieve your goals.
 
 ## CTA Text
 

@@ -14,6 +14,7 @@ import type {
   Message,
   GetMessagesOptions,
 } from "@brains/conversation-service";
+import type { IContentProvider } from "@brains/content-service";
 import type { z } from "zod";
 import { createCorePluginContext } from "../core/context";
 
@@ -29,6 +30,9 @@ export interface ServicePluginContext extends CorePluginContext {
     schema: z.ZodSchema<T>,
     adapter: EntityAdapter<T>,
   ) => void;
+
+  // Content provider registration
+  registerContentProvider: (provider: IContentProvider) => void;
 
   // AI content generation
   generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
@@ -95,6 +99,12 @@ export function createServicePluginContext(
     entityService,
     registerEntityType: (entityType, schema, adapter) => {
       entityRegistry.registerEntityType(entityType, schema, adapter);
+    },
+
+    // Content provider registration
+    registerContentProvider: (provider) => {
+      const contentService = shell.getContentService();
+      contentService.registerProvider(provider);
     },
 
     // AI content generation

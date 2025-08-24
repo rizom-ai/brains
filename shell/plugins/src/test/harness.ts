@@ -6,6 +6,7 @@ import type { Logger } from "@brains/utils";
 import { createSilentLogger } from "@brains/utils";
 import type { Template } from "@brains/view-registry";
 import type { MessageHandler } from "@brains/messaging-service";
+import type { IContentProvider } from "@brains/content-service";
 import { MockShell } from "@brains/core";
 
 export interface HarnessOptions {
@@ -91,6 +92,13 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    */
   getTemplates(): Map<string, Template> {
     return this.mockShell.getTemplates();
+  }
+
+  /**
+   * Get registered content providers
+   */
+  getContentProviders(): Map<string, IContentProvider> {
+    return this.mockShell.getContentProviders();
   }
 
   /**

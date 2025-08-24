@@ -1,6 +1,6 @@
 /**
  * Content Provider Interface
- * 
+ *
  * Minimal interface for plugins to provide content generation capabilities.
  * Providers implement only the methods they need.
  */
@@ -25,7 +25,7 @@ export interface IContentProvider {
    * Optional: Fetch existing data
    * Used by providers that aggregate data (e.g., dashboard, reports)
    */
-  fetch?: (query: unknown) => Promise<unknown>;
+  fetch?: (query?: unknown) => Promise<unknown>;
 
   /**
    * Optional: Transform content between formats

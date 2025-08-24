@@ -24,7 +24,7 @@ Add a minimal provider pattern to content-service without moving view-registry. 
 export interface IContentProvider {
   id: string;
   name: string;
-  
+
   // Implement only what you need
   generate?: (request: any) => Promise<any>;
   fetch?: (query: any) => Promise<any>;
@@ -39,15 +39,15 @@ export interface IContentProvider {
 class ContentService {
   // Keep all existing functionality
   private templates = new Map<string, Template>();
-  
+
   // Add provider management
   private providers = new Map<string, IContentProvider>();
-  
+
   // New provider methods
   registerProvider(provider: IContentProvider): void {
     this.providers.set(provider.id, provider);
   }
-  
+
   async generateFromProvider(providerId: string, request: any) {
     const provider = this.providers.get(providerId);
     if (!provider?.generate) {
@@ -55,7 +55,7 @@ class ContentService {
     }
     return provider.generate(request);
   }
-  
+
   async fetchFromProvider(providerId: string, query: any) {
     const provider = this.providers.get(providerId);
     if (!provider?.fetch) {
@@ -81,9 +81,9 @@ viewRegistry.registerRoute({
       id: "main",
       template: "dashboard",
       // New: specify data provider
-      providerId: "dashboard-provider"
-    }
-  ]
+      providerId: "dashboard-provider",
+    },
+  ],
 });
 
 // Dashboard provider supplies the data
@@ -92,7 +92,7 @@ contentService.registerProvider({
   name: "Dashboard Data Provider",
   async fetch() {
     return { entityStats, recentEntities };
-  }
+  },
 });
 ```
 
@@ -101,12 +101,14 @@ contentService.registerProvider({
 ### Phase 1: Add Provider Pattern (Day 1)
 
 1. Create provider types
+
    ```typescript
    // content-service/src/providers/types.ts
    export interface IContentProvider { ... }
    ```
 
 2. Add provider registry to ContentService
+
    ```typescript
    // content-service/src/content-service.ts
    private providers = new Map<string, IContentProvider>();
@@ -115,7 +117,7 @@ contentService.registerProvider({
 
 3. Add provider methods
    - `generateFromProvider()`
-   - `fetchFromProvider()` 
+   - `fetchFromProvider()`
    - `transformWithProvider()`
 
 4. Write tests for provider functionality
@@ -123,6 +125,7 @@ contentService.registerProvider({
 ### Phase 2: Create First Provider (Day 2)
 
 1. Create DashboardProvider in site-builder
+
    ```typescript
    class DashboardProvider implements IContentProvider {
      id = "dashboard";
@@ -140,12 +143,14 @@ contentService.registerProvider({
 ### Phase 3: Enable Provider Discovery (Day 3)
 
 1. Add provider info methods
+
    ```typescript
    getProviderInfo(id: string): ProviderInfo
    listProviders(): ProviderInfo[]
    ```
 
 2. Create provider capabilities discovery
+
    ```typescript
    interface ProviderInfo {
      id: string;
@@ -163,10 +168,11 @@ contentService.registerProvider({
 ### Phase 4: Transform Site-Builder (Week 2)
 
 1. Create SiteContentProvider
+
    ```typescript
    class SiteContentProvider implements IContentProvider {
      id = "site-content";
-     
+
      async generate(request: GenerateRequest) {
        // Move existing generation logic here
        return this.generateContent(request);
@@ -187,9 +193,9 @@ contentService.registerProvider({
 class DashboardProvider implements IContentProvider {
   id = "dashboard";
   name = "Dashboard Data Provider";
-  
+
   constructor(private entityService: EntityService) {}
-  
+
   async fetch(): Promise<DashboardData> {
     const stats = await this.entityService.getStats();
     const recent = await this.entityService.getRecent(10);
@@ -210,15 +216,15 @@ plugin.onInitialize = async (context) => {
 class EmailProvider implements IContentProvider {
   id = "email";
   name = "Email Content Provider";
-  
+
   async generate(request: EmailRequest): Promise<EmailContent> {
     return {
       subject: request.subject,
       body: await this.generateBody(request),
-      recipients: request.recipients
+      recipients: request.recipients,
     };
   }
-  
+
   async transform(content: EmailContent, format: string) {
     if (format === "html") {
       return this.renderAsHtml(content);
@@ -232,22 +238,21 @@ class EmailProvider implements IContentProvider {
 
 ```typescript
 // Generate content
-const emailContent = await contentService.generateFromProvider(
-  "email",
-  { subject: "Welcome", template: "welcome" }
-);
+const emailContent = await contentService.generateFromProvider("email", {
+  subject: "Welcome",
+  template: "welcome",
+});
 
 // Fetch data
-const dashboardData = await contentService.fetchFromProvider(
-  "dashboard",
-  { timeRange: "last-7-days" }
-);
+const dashboardData = await contentService.fetchFromProvider("dashboard", {
+  timeRange: "last-7-days",
+});
 
 // Transform content
 const htmlEmail = await contentService.transformWithProvider(
   "email",
   emailContent,
-  "html"
+  "html",
 );
 ```
 
@@ -262,17 +267,20 @@ const htmlEmail = await contentService.transformWithProvider(
 ## Success Criteria
 
 ### Phase 1 Success
+
 - [ ] Provider interface defined
 - [ ] Provider registry working
 - [ ] Tests passing
 - [ ] No breaking changes
 
-### Phase 2 Success  
+### Phase 2 Success
+
 - [ ] Dashboard using provider
 - [ ] Provider discovery working
 - [ ] Documentation complete
 
 ### Phase 3 Success
+
 - [ ] Site-builder using provider pattern
 - [ ] Multiple providers registered
 - [ ] Clean separation of concerns

@@ -64,7 +64,7 @@ describe("ContentService - Provider Management", () => {
     it("should throw error when registering duplicate provider", () => {
       contentService.registerProvider(mockProvider);
       expect(() => contentService.registerProvider(mockProvider)).toThrow(
-        'Provider with id "mock-provider" is already registered'
+        'Provider with id "mock-provider" is already registered',
       );
     });
 
@@ -154,23 +154,28 @@ describe("ContentService - Provider Management", () => {
     it("should generate content using provider", async () => {
       contentService.registerProvider(mockProvider);
       const request = { template: "test", data: "some data" };
-      const result = await contentService.generateFromProvider("mock-provider", request);
-      
+      const result = await contentService.generateFromProvider(
+        "mock-provider",
+        request,
+      );
+
       expect(mockProvider.generate).toHaveBeenCalledWith(request);
       expect(result).toEqual({ generated: true, request });
     });
 
     it("should throw error for non-existent provider", async () => {
       await expect(
-        contentService.generateFromProvider("non-existent", {})
+        contentService.generateFromProvider("non-existent", {}),
       ).rejects.toThrow('Provider "non-existent" not found');
     });
 
     it("should throw error if provider doesn't support generation", async () => {
       contentService.registerProvider(partialProvider);
       await expect(
-        contentService.generateFromProvider("partial-provider", {})
-      ).rejects.toThrow('Provider "partial-provider" does not support generation');
+        contentService.generateFromProvider("partial-provider", {}),
+      ).rejects.toThrow(
+        'Provider "partial-provider" does not support generation',
+      );
     });
   });
 
@@ -178,8 +183,11 @@ describe("ContentService - Provider Management", () => {
     it("should fetch data using provider", async () => {
       contentService.registerProvider(mockProvider);
       const query = { filter: "test" };
-      const result = await contentService.fetchFromProvider("mock-provider", query);
-      
+      const result = await contentService.fetchFromProvider(
+        "mock-provider",
+        query,
+      );
+
       expect(mockProvider.fetch).toHaveBeenCalledWith(query);
       expect(result).toEqual({ fetched: true, query });
     });
@@ -187,15 +195,18 @@ describe("ContentService - Provider Management", () => {
     it("should work with partial provider that has fetch", async () => {
       contentService.registerProvider(partialProvider);
       const query = { id: "123" };
-      const result = await contentService.fetchFromProvider("partial-provider", query);
-      
+      const result = await contentService.fetchFromProvider(
+        "partial-provider",
+        query,
+      );
+
       expect(partialProvider.fetch).toHaveBeenCalledWith(query);
       expect(result).toEqual({ data: "some data", query });
     });
 
     it("should throw error for non-existent provider", async () => {
       await expect(
-        contentService.fetchFromProvider("non-existent", {})
+        contentService.fetchFromProvider("non-existent", {}),
       ).rejects.toThrow('Provider "non-existent" not found');
     });
   });
@@ -208,9 +219,9 @@ describe("ContentService - Provider Management", () => {
       const result = await contentService.transformWithProvider(
         "mock-provider",
         content,
-        format
+        format,
       );
-      
+
       expect(mockProvider.transform).toHaveBeenCalledWith(content, format);
       expect(result).toEqual({ transformed: true, content, format });
     });
@@ -218,13 +229,15 @@ describe("ContentService - Provider Management", () => {
     it("should throw error if provider doesn't support transformation", async () => {
       contentService.registerProvider(partialProvider);
       await expect(
-        contentService.transformWithProvider("partial-provider", {}, "html")
-      ).rejects.toThrow('Provider "partial-provider" does not support transformation');
+        contentService.transformWithProvider("partial-provider", {}, "html"),
+      ).rejects.toThrow(
+        'Provider "partial-provider" does not support transformation',
+      );
     });
 
     it("should throw error for non-existent provider", async () => {
       await expect(
-        contentService.transformWithProvider("non-existent", {}, "html")
+        contentService.transformWithProvider("non-existent", {}, "html"),
       ).rejects.toThrow('Provider "non-existent" not found');
     });
   });

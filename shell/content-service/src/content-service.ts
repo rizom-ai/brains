@@ -39,7 +39,7 @@ export interface ContentServiceDependencies {
 export class ContentService implements IContentService {
   // Template registry for local template management
   private templates: Map<string, Template<unknown>> = new Map();
-  
+
   // Provider registry for content providers
   private providers: Map<string, IContentProvider> = new Map();
 
@@ -351,10 +351,14 @@ export class ContentService implements IContentService {
    */
   registerProvider(provider: IContentProvider): void {
     if (this.providers.has(provider.id)) {
-      throw new Error(`Provider with id "${provider.id}" is already registered`);
+      throw new Error(
+        `Provider with id "${provider.id}" is already registered`,
+      );
     }
     this.providers.set(provider.id, provider);
-    this.dependencies.logger.debug(`Registered content provider: ${provider.id}`);
+    this.dependencies.logger.debug(
+      `Registered content provider: ${provider.id}`,
+    );
   }
 
   /**
@@ -409,7 +413,10 @@ export class ContentService implements IContentService {
   /**
    * Generate content using a provider
    */
-  async generateFromProvider(providerId: string, request: unknown): Promise<unknown> {
+  async generateFromProvider(
+    providerId: string,
+    request: unknown,
+  ): Promise<unknown> {
     const provider = this.providers.get(providerId);
     if (!provider) {
       throw new Error(`Provider "${providerId}" not found`);
@@ -419,14 +426,19 @@ export class ContentService implements IContentService {
       throw new Error(`Provider "${providerId}" does not support generation`);
     }
 
-    this.dependencies.logger.debug(`Generating content with provider: ${providerId}`);
+    this.dependencies.logger.debug(
+      `Generating content with provider: ${providerId}`,
+    );
     return provider.generate(request);
   }
 
   /**
    * Fetch data using a provider
    */
-  async fetchFromProvider(providerId: string, query: unknown): Promise<unknown> {
+  async fetchFromProvider(
+    providerId: string,
+    query?: unknown,
+  ): Promise<unknown> {
     const provider = this.providers.get(providerId);
     if (!provider) {
       throw new Error(`Provider "${providerId}" not found`);
@@ -436,7 +448,9 @@ export class ContentService implements IContentService {
       throw new Error(`Provider "${providerId}" does not support fetching`);
     }
 
-    this.dependencies.logger.debug(`Fetching data with provider: ${providerId}`);
+    this.dependencies.logger.debug(
+      `Fetching data with provider: ${providerId}`,
+    );
     return provider.fetch(query);
   }
 
@@ -454,10 +468,14 @@ export class ContentService implements IContentService {
     }
 
     if (!provider.transform) {
-      throw new Error(`Provider "${providerId}" does not support transformation`);
+      throw new Error(
+        `Provider "${providerId}" does not support transformation`,
+      );
     }
 
-    this.dependencies.logger.debug(`Transforming content with provider: ${providerId} to format: ${format}`);
+    this.dependencies.logger.debug(
+      `Transforming content with provider: ${providerId} to format: ${format}`,
+    );
     return provider.transform(content, format);
   }
 }

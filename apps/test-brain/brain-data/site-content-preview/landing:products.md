@@ -7,15 +7,15 @@ sectionId: products
 
 ## Label
 
-Our Offerings
+Our Ecosystem
 
 ## Headline
 
-Transforming the Future with Innovative Solutions
+Innovative Solutions for a Sustainable Future
 
 ## Description
 
-Rizom is a dynamic collective of experts driving digital transformation, organizational development, and ecosystem design. Our diverse portfolio of products and services empower organizations to thrive in the evolving landscape.
+Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. We offer a suite of interconnected products and services to help organizations and communities thrive in the 21st century.
 
 ## Products
 
@@ -23,75 +23,19 @@ Rizom is a dynamic collective of experts driving digital transformation, organiz
 
 #### ID
 
-rizom-studio
+practice-innovation
 
 #### Name
 
-Rizom Studio
+Practice Innovation
 
 #### Tagline
 
-Design your digital ecosystem
+Accelerate your digital transformation
 
 #### Description
 
-A collaborative platform for visualizing, simulating, and optimizing complex digital ecosystems.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Globe
-
-### Product 2
-
-#### ID
-
-rizom-insights
-
-#### Name
-
-Rizom Insights
-
-#### Tagline
-
-Uncover data-driven opportunities
-
-#### Description
-
-Advanced analytics and AI-powered tools to generate actionable insights from organizational data.
-
-#### Status
-
-beta
-
-#### Link
-
-#### Icon
-
-Database
-
-### Product 3
-
-#### ID
-
-rizom-academy
-
-#### Name
-
-Rizom Academy
-
-#### Tagline
-
-Upskill your team
-
-#### Description
-
-Comprehensive training programs and workshops to develop future-ready capabilities in your organization.
+Our comprehensive framework empowers organizations to adopt agile, human-centric practices and foster a culture of continuous improvement.
 
 #### Status
 
@@ -103,30 +47,58 @@ live
 
 Brain
 
-### Product 4
+### Product 2
 
 #### ID
 
-rizom-ventures
+ecosystem-architecture
 
 #### Name
 
-Rizom Ventures
+Ecosystem Architecture
 
 #### Tagline
 
-Invest in the future
+Design resilient, adaptive systems
 
 #### Description
 
-A venture capital fund that supports innovative startups shaping the digital economy.
+We help clients build interconnected ecosystems that can adapt to changing market conditions and emerging technologies.
 
 #### Status
 
-alpha
+live
 
 #### Link
 
 #### Icon
 
-Zap
+Network
+
+### Product 3
+
+#### ID
+
+economy-of-garbage
+
+#### Name
+
+Economy of Garbage
+
+#### Tagline
+
+Turn waste into value
+
+#### Description
+
+Our circular economy strategies enable organizations to rethink resource use, minimize waste, and uncover new revenue streams.
+
+#### Status
+
+beta
+
+#### Link
+
+#### Icon
+
+Wrench

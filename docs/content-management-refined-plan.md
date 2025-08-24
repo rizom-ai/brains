@@ -7,6 +7,7 @@ Transform content-service into a unified coordination platform by merging view-r
 ## Core Concept
 
 Content-service coordinates three things:
+
 1. **Templates** - How to render content (from view-registry)
 2. **Providers** - What supplies content/data (new pattern)
 3. **Routes** - Where content appears on web (simple mappings)
@@ -14,40 +15,50 @@ Content-service coordinates three things:
 ## What We Gain
 
 ### 1. **Extensible Content Generation**
+
 Any plugin can provide content by implementing a simple interface:
+
 ```typescript
 class EmailProvider {
-  generate(request) { return emailContent; }
+  generate(request) {
+    return emailContent;
+  }
 }
 // Emails are now part of the content system
 ```
 
 ### 2. **Unified Template Management**
+
 All templates register centrally and can be shared:
+
 ```typescript
 // Email provider uses site-builder's header
-emailProvider.useTemplate('site-builder:header');
+emailProvider.useTemplate("site-builder:header");
 ```
 
 ### 3. **Single Coordination Point**
+
 Everything goes through content-service:
+
 ```typescript
-contentService.generate('email', data);
-contentService.generate('webpage', data);
-contentService.generate('report', data);
+contentService.generate("email", data);
+contentService.generate("webpage", data);
+contentService.generate("report", data);
 ```
 
 ### 4. **Separation of Concerns**
+
 Providers handle WHAT (data/logic), templates handle HOW (rendering), routes handle WHERE (URLs).
 
 ## Simplified Architecture
 
 ### Provider Interface (Minimal)
+
 ```typescript
 interface IContentProvider {
   id: string;
   name: string;
-  
+
   // Implement only what you need
   generate?: (request: any) => Promise<any>;
   fetch?: (query: any) => Promise<any>;
@@ -56,57 +67,64 @@ interface IContentProvider {
 ```
 
 Key decisions:
+
 - **No mandatory methods** - providers implement what makes sense
 - **Direct return types** - no wrapper objects, providers return their specific types
 - **No provider dependencies** - providers are independent
 
 ### Template System (From View-Registry)
+
 ```typescript
 interface Template<T = unknown> {
   name: string;
   pluginId: string;
-  schema: z.ZodType<T>;  // Zod validation
-  render: (data: T) => VNode;  // Start with web only
+  schema: z.ZodType<T>; // Zod validation
+  render: (data: T) => VNode; // Start with web only
 }
 ```
 
 Key decisions:
+
 - **Web-only initially** - add other formats when needed
 - **No permission system** - all templates shareable for now
 - **Keep existing view-registry structure** - proven to work
 
 ### Route System (Simplified)
+
 ```typescript
 interface Route {
   path: string;
   templateId: string;
-  providerId?: string;  // Optional data source
+  providerId?: string; // Optional data source
 }
 ```
 
 Key decisions:
+
 - **Simple mappings** - URL → template + optional provider
 - **No sections** - complexity lives in templates/providers
 - **Web-specific** - routes are inherently about URLs
 
 ### Content Service Structure
+
 ```typescript
 class ContentService {
   // Simple Maps, not complex registries
   private templates = new Map<string, Template>();
   private providers = new Map<string, IContentProvider>();
   private routes = new Map<string, Route>();
-  
+
   // Direct methods, no abstraction layers
-  registerTemplate(template: Template) { }
-  registerProvider(provider: IContentProvider) { }
-  registerRoute(route: Route) { }
-  
+  registerTemplate(template: Template) {}
+  registerProvider(provider: IContentProvider) {}
+  registerRoute(route: Route) {}
+
   // Core operations
   async renderRoute(path: string) {
     const route = this.routes.get(path);
-    const provider = route.providerId ? 
-      this.providers.get(route.providerId) : null;
+    const provider = route.providerId
+      ? this.providers.get(route.providerId)
+      : null;
     const data = provider ? await provider.fetch() : {};
     const template = this.templates.get(route.templateId);
     return template.render(data);
@@ -117,12 +135,14 @@ class ContentService {
 ## Implementation Plan (Simplified)
 
 ### Phase 1: Merge and Restructure (Week 1)
+
 1. **Move view-registry into content-service**
    - Keep all existing functionality
    - Organize into templates/, providers/, routes/ folders
    - No legacy folder needed - clean break
 
 2. **Create provider interface**
+
    ```typescript
    // providers/types.ts
    export interface IContentProvider {
@@ -139,15 +159,17 @@ class ContentService {
    - Just path → template + optional provider
 
 ### Phase 2: Implement Core (Week 2)
+
 1. **ContentService class**
    - Three Maps for templates, providers, routes
    - Simple registration methods
    - Basic renderRoute operation
 
 2. **Transform existing dashboard**
+
    ```typescript
    class DashboardProvider implements IContentProvider {
-     id = 'dashboard';
+     id = "dashboard";
      async fetch() {
        return { entityStats, recentEntities };
      }
@@ -160,6 +182,7 @@ class ContentService {
    - Keep route management
 
 ### Phase 3: Test and Validate (Week 3)
+
 1. **Ensure backward compatibility**
    - Existing templates work
    - Site-builder functions unchanged
@@ -186,9 +209,9 @@ class ContentService {
 ```typescript
 // Dashboard as both provider and route
 class DashboardProvider implements IContentProvider {
-  id = 'dashboard';
-  name = 'Dashboard Data Provider';
-  
+  id = "dashboard";
+  name = "Dashboard Data Provider";
+
   async fetch(): Promise<DashboardData> {
     // Get entity statistics
     const stats = await this.getEntityStats();
@@ -199,17 +222,17 @@ class DashboardProvider implements IContentProvider {
 
 // Site-builder registers the route
 siteBuilder.registerRoute({
-  path: '/dashboard',
-  templateId: 'dashboard-template',
-  providerId: 'dashboard'
+  path: "/dashboard",
+  templateId: "dashboard-template",
+  providerId: "dashboard",
 });
 
 // Content-service coordinates
 async function renderDashboard() {
-  const route = routes.get('/dashboard');
-  const provider = providers.get('dashboard');
+  const route = routes.get("/dashboard");
+  const provider = providers.get("dashboard");
   const data = await provider.fetch();
-  const template = templates.get('dashboard-template');
+  const template = templates.get("dashboard-template");
   return template.render(data);
 }
 ```
@@ -217,6 +240,7 @@ async function renderDashboard() {
 ## Success Criteria
 
 ### Minimum Viable Success
+
 - [ ] View-registry merged into content-service
 - [ ] Provider pattern implemented (minimal)
 - [ ] Dashboard works as provider
@@ -224,6 +248,7 @@ async function renderDashboard() {
 - [ ] No breaking changes
 
 ### Next Level Success
+
 - [ ] Second provider implemented
 - [ ] Templates shared between providers
 - [ ] Clean separation of concerns
