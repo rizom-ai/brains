@@ -119,15 +119,17 @@ export class ContentService implements IContentService {
 
     // Check if template supports AI generation
     if (!typedTemplate.basePrompt) {
-      // Template doesn't use AI - check for getData method
-      if (typedTemplate.getData) {
-        return typedTemplate.getData({
-          context,
-          dependencies: this.dependencies,
-        });
+      // Template doesn't use AI - check for providerId
+      if (typedTemplate.providerId) {
+        const data = await this.fetchFromProvider(
+          typedTemplate.providerId,
+          context.data,
+        );
+        // Validate with template schema
+        return typedTemplate.schema.parse(data);
       }
       throw new Error(
-        `Template ${templateName} must have either basePrompt or getData method`,
+        `Template ${templateName} must have either basePrompt or providerId`,
       );
     }
 
@@ -435,10 +437,10 @@ export class ContentService implements IContentService {
   /**
    * Fetch data using a provider
    */
-  async fetchFromProvider(
+  async fetchFromProvider<T = unknown>(
     providerId: string,
     query?: unknown,
-  ): Promise<unknown> {
+  ): Promise<T> {
     const provider = this.providers.get(providerId);
     if (!provider) {
       throw new Error(`Provider "${providerId}" not found`);
@@ -451,7 +453,7 @@ export class ContentService implements IContentService {
     this.dependencies.logger.debug(
       `Fetching data with provider: ${providerId}`,
     );
-    return provider.fetch(query);
+    return provider.fetch(query) as T;
   }
 
   /**

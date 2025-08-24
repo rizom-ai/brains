@@ -1,19 +1,19 @@
 import type { IContentProvider } from "@brains/content-service";
-import type { IEntityService, BaseEntity } from "@brains/entity-service";
+import type { IEntityService, BaseEntity } from "@brains/plugins";
 import {
   DashboardDataSchema,
   type DashboardData,
 } from "../templates/dashboard/schema";
 
 /**
- * Dashboard Provider
+ * System Stats Provider
  *
- * Provides data for the dashboard by aggregating entity statistics
- * and recent entity information.
+ * Provides system statistics including entity counts,
+ * recent activity, and build information.
  */
-export class DashboardProvider implements IContentProvider {
-  id = "dashboard";
-  name = "Dashboard Data Provider";
+export class SystemStatsProvider implements IContentProvider {
+  id = "system-stats";
+  name = "System Statistics Provider";
 
   constructor(private entityService: IEntityService) {}
 

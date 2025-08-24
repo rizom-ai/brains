@@ -53,6 +53,10 @@ export interface Template<T = unknown>
   schema: z.ZodType<T>;
   formatter?: ContentFormatter<T>;
   /**
+   * Optional provider ID for templates that fetch data from a content provider
+   */
+  providerId?: string;
+  /**
    * Optional method to get data for templates that don't use AI generation
    * Used when basePrompt is not provided
    */

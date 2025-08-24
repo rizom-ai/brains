@@ -33,6 +33,7 @@ export interface ServicePluginContext extends CorePluginContext {
 
   // Content provider registration
   registerContentProvider: (provider: IContentProvider) => void;
+  fetchFromProvider: <T = unknown>(providerId: string, query?: unknown) => Promise<T>;
 
   // AI content generation
   generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
@@ -105,6 +106,10 @@ export function createServicePluginContext(
     registerContentProvider: (provider) => {
       const contentService = shell.getContentService();
       contentService.registerProvider(provider);
+    },
+    fetchFromProvider: <T = unknown>(providerId: string, query?: unknown) => {
+      const contentService = shell.getContentService();
+      return contentService.fetchFromProvider<T>(providerId, query);
     },
 
     // AI content generation

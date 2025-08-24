@@ -75,6 +75,15 @@ export class SiteContentOperations {
           continue;
         }
 
+        // Skip sections with static content
+        if (section.content) {
+          logger.debug("Section has static content, skipping", {
+            routeId: route.id,
+            sectionId: section.id,
+          });
+          continue;
+        }
+
         // Check if content already exists (unless force is true)
         if (!options.force && !options.dryRun) {
           const entityId = `${route.id}:${section.id}`;

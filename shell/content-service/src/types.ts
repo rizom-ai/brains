@@ -107,7 +107,7 @@ export interface ContentService {
   /**
    * Fetch data using a provider
    */
-  fetchFromProvider(providerId: string, query: unknown): Promise<unknown>;
+  fetchFromProvider<T = unknown>(providerId: string, query?: unknown): Promise<T>;
 
   /**
    * Transform content using a provider

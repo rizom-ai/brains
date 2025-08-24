@@ -10,14 +10,10 @@ export const dashboardTemplate: Template<DashboardData> = {
   name: "dashboard",
   description: "Interactive system dashboard showing entity statistics",
   schema: DashboardDataSchema,
-  // No basePrompt - uses getData instead
+  // No basePrompt - uses provider instead
   requiredPermission: "public",
   formatter: new DashboardFormatter(),
-  getData: async (): Promise<DashboardData> => {
-    // TODO: Implement real data fetching when dependencies are properly typed
-    // For now, return mock data to avoid type issues
-    return new DashboardFormatter().getMockData();
-  },
+  providerId: "system-stats", // Fetch data from system stats provider
   layout: {
     component: DashboardWidget, // Use same component for both SSR and hydration
     interactive: true, // KEY: Marks this component for client-side hydration
