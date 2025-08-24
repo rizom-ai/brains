@@ -9,6 +9,7 @@ import type {
   IConversationService,
   Message,
 } from "@brains/conversation-service";
+import type { IContentProvider, ProviderInfo } from "./providers/types";
 
 /**
  * Progress information for content generation operations
@@ -38,6 +39,9 @@ export interface ContentServiceDependencies {
 export class ContentService implements IContentService {
   // Template registry for local template management
   private templates: Map<string, Template<unknown>> = new Map();
+  
+  // Provider registry for content providers
+  private providers: Map<string, IContentProvider> = new Map();
 
   /**
    * Create a new instance of ContentService
@@ -338,5 +342,122 @@ export class ContentService implements IContentService {
     }
 
     return prompt;
+  }
+
+  // ========== Provider Management ==========
+
+  /**
+   * Register a content provider
+   */
+  registerProvider(provider: IContentProvider): void {
+    if (this.providers.has(provider.id)) {
+      throw new Error(`Provider with id "${provider.id}" is already registered`);
+    }
+    this.providers.set(provider.id, provider);
+    this.dependencies.logger.debug(`Registered content provider: ${provider.id}`);
+  }
+
+  /**
+   * Get a provider by ID
+   */
+  getProvider(id: string): IContentProvider | undefined {
+    return this.providers.get(id);
+  }
+
+  /**
+   * List all registered providers
+   */
+  listProviders(): IContentProvider[] {
+    return Array.from(this.providers.values());
+  }
+
+  /**
+   * Get provider information for discovery
+   */
+  getProviderInfo(id: string): ProviderInfo | undefined {
+    const provider = this.providers.get(id);
+    if (!provider) {
+      return undefined;
+    }
+
+    return {
+      id: provider.id,
+      name: provider.name,
+      capabilities: {
+        canGenerate: typeof provider.generate === "function",
+        canFetch: typeof provider.fetch === "function",
+        canTransform: typeof provider.transform === "function",
+      },
+    };
+  }
+
+  /**
+   * Get all provider information
+   */
+  getAllProviderInfo(): ProviderInfo[] {
+    return this.listProviders().map((provider) => ({
+      id: provider.id,
+      name: provider.name,
+      capabilities: {
+        canGenerate: typeof provider.generate === "function",
+        canFetch: typeof provider.fetch === "function",
+        canTransform: typeof provider.transform === "function",
+      },
+    }));
+  }
+
+  /**
+   * Generate content using a provider
+   */
+  async generateFromProvider(providerId: string, request: unknown): Promise<unknown> {
+    const provider = this.providers.get(providerId);
+    if (!provider) {
+      throw new Error(`Provider "${providerId}" not found`);
+    }
+
+    if (!provider.generate) {
+      throw new Error(`Provider "${providerId}" does not support generation`);
+    }
+
+    this.dependencies.logger.debug(`Generating content with provider: ${providerId}`);
+    return provider.generate(request);
+  }
+
+  /**
+   * Fetch data using a provider
+   */
+  async fetchFromProvider(providerId: string, query: unknown): Promise<unknown> {
+    const provider = this.providers.get(providerId);
+    if (!provider) {
+      throw new Error(`Provider "${providerId}" not found`);
+    }
+
+    if (!provider.fetch) {
+      throw new Error(`Provider "${providerId}" does not support fetching`);
+    }
+
+    this.dependencies.logger.debug(`Fetching data with provider: ${providerId}`);
+    return provider.fetch(query);
+  }
+
+  /**
+   * Transform content using a provider
+   */
+  async transformWithProvider(
+    providerId: string,
+    content: unknown,
+    format: string,
+  ): Promise<unknown> {
+    const provider = this.providers.get(providerId);
+    if (!provider) {
+      throw new Error(`Provider "${providerId}" not found`);
+    }
+
+    if (!provider.transform) {
+      throw new Error(`Provider "${providerId}" does not support transformation`);
+    }
+
+    this.dependencies.logger.debug(`Transforming content with provider: ${providerId} to format: ${format}`);
+    return provider.transform(content, format);
   }
 }

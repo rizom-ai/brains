@@ -15,6 +15,13 @@ export type {
   GenerationContext,
 } from "./types";
 
+// Provider types
+export type {
+  IContentProvider,
+  ProviderInfo,
+  ProviderCapabilities,
+} from "./providers/types";
+
 export {
   ContentGenerationJobHandler,
   contentGenerationJobDataSchema,

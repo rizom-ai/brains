@@ -4,6 +4,7 @@ import type {
   Template,
 } from "@brains/view-registry";
 import type { ProgressInfo } from "./content-service";
+import type { IContentProvider, ProviderInfo } from "./providers/types";
 
 /**
  * Context for content generation - simplified for template-based approach
@@ -70,4 +71,50 @@ export interface ContentService {
     content: string,
     pluginId?: string,
   ): T;
+
+  // ========== Provider Methods ==========
+
+  /**
+   * Register a content provider
+   */
+  registerProvider(provider: IContentProvider): void;
+
+  /**
+   * Get a provider by ID
+   */
+  getProvider(id: string): IContentProvider | undefined;
+
+  /**
+   * List all registered providers
+   */
+  listProviders(): IContentProvider[];
+
+  /**
+   * Get provider information for discovery
+   */
+  getProviderInfo(id: string): ProviderInfo | undefined;
+
+  /**
+   * Get all provider information
+   */
+  getAllProviderInfo(): ProviderInfo[];
+
+  /**
+   * Generate content using a provider
+   */
+  generateFromProvider(providerId: string, request: unknown): Promise<unknown>;
+
+  /**
+   * Fetch data using a provider
+   */
+  fetchFromProvider(providerId: string, query: unknown): Promise<unknown>;
+
+  /**
+   * Transform content using a provider
+   */
+  transformWithProvider(
+    providerId: string,
+    content: unknown,
+    format: string,
+  ): Promise<unknown>;
 }
