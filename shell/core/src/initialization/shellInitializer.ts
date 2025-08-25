@@ -13,6 +13,7 @@ import { CommandRegistry } from "@brains/command-registry";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import { ViewRegistry } from "@brains/view-registry";
+import { TemplateRegistry } from "@brains/templates";
 import {
   EmbeddingService,
   type IEmbeddingService,
@@ -48,6 +49,7 @@ export interface ShellServices {
   daemonRegistry: DaemonRegistry;
   pluginManager: PluginManager;
   commandRegistry: CommandRegistry;
+  templateRegistry: TemplateRegistry;
   mcpService: IMCPService;
   embeddingService: IEmbeddingService;
   entityService: EntityService;
@@ -110,12 +112,12 @@ export class ShellInitializer {
   /**
    * Register shell's own system templates
    */
-  public registerShellTemplates(contentService: ContentService): void {
+  public registerShellTemplates(templateRegistry: TemplateRegistry): void {
     this.logger.debug("Registering shell system templates");
 
     try {
       // Register knowledge query template for shell queries
-      contentService.registerTemplate(
+      templateRegistry.register(
         knowledgeQueryTemplate.name,
         knowledgeQueryTemplate,
       );
@@ -135,7 +137,7 @@ export class ShellInitializer {
    */
   public registerBaseEntitySupport(
     entityRegistry: EntityRegistry,
-    contentService: ContentService,
+    templateRegistry: TemplateRegistry,
   ): void {
     this.logger.debug("Registering base entity support");
 
@@ -151,8 +153,8 @@ export class ShellInitializer {
       );
 
       // Register base entity display template
-      contentService.registerTemplate("shell:base-entity-display", {
-        name: "shell:base-entity-display",
+      templateRegistry.register("shell:base-entity-display", {
+        name: "base-entity-display",
         description: "Display template for base entities",
         schema: baseEntitySchema,
         formatter: new BaseEntityFormatter(),
@@ -278,6 +280,9 @@ export class ShellInitializer {
         }),
       });
 
+    // Template registry
+    const templateRegistry = new TemplateRegistry(logger);
+
     // Content generator
     const contentService =
       dependencies?.contentService ??
@@ -286,6 +291,7 @@ export class ShellInitializer {
         entityService,
         aiService,
         conversationService,
+        templateRegistry,
       });
 
     // Register job handlers
@@ -323,6 +329,7 @@ export class ShellInitializer {
       daemonRegistry,
       pluginManager,
       commandRegistry,
+      templateRegistry,
       mcpService,
       embeddingService,
       entityService,
@@ -384,7 +391,7 @@ export class ShellInitializer {
    * Coordinates all initialization steps
    */
   public async initializeAll(
-    contentService: ContentService,
+    templateRegistry: TemplateRegistry,
     entityRegistry: EntityRegistry,
     pluginManager: PluginManager,
   ): Promise<void> {
@@ -392,10 +399,10 @@ export class ShellInitializer {
 
     try {
       // Step 1: Register shell templates
-      this.registerShellTemplates(contentService);
+      this.registerShellTemplates(templateRegistry);
 
       // Step 2: Register base entity support
-      this.registerBaseEntitySupport(entityRegistry, contentService);
+      this.registerBaseEntitySupport(entityRegistry, templateRegistry);
 
       // Step 3: Initialize plugins
       await this.initializePlugins(pluginManager);

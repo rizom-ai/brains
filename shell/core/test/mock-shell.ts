@@ -166,9 +166,6 @@ export class MockShell implements IShell {
       ): T => {
         return { parsed: content } as T;
       },
-      registerTemplate: (name: string, template: Template) => {
-        this.templates.set(name, template);
-      },
       hasTemplate: (name: string) => this.templates.has(name),
       getTemplate: (name: string) => this.templates.get(name) ?? null,
       listTemplates: () => Array.from(this.templates.values()),
@@ -434,14 +431,17 @@ export class MockShell implements IShell {
     });
   }
 
+  registerTemplate(name: string, template: Template, pluginId?: string): void {
+    const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
+    this.templates.set(scopedName, template);
+  }
+
   registerTemplates(
     templates: Record<string, Template>,
     pluginId?: string,
   ): void {
-    const contentGen = this.getContentService();
     Object.entries(templates).forEach(([name, template]) => {
-      const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
-      contentGen.registerTemplate(scopedName, template);
+      this.registerTemplate(name, template, pluginId);
     });
   }
 

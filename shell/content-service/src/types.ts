@@ -48,11 +48,6 @@ export interface GenerationContext {
  */
 export interface ContentService {
   /**
-   * Register a reusable template
-   */
-  registerTemplate<T>(name: string, template: ContentTemplate<T>): void;
-
-  /**
    * Get a registered template
    */
   getTemplate(name: string): ContentTemplate<unknown> | null;

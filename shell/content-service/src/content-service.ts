@@ -9,6 +9,7 @@ import type {
   Message,
 } from "@brains/conversation-service";
 import type { IContentProvider, ProviderInfo } from "./providers/types";
+import type { TemplateRegistry } from "@brains/templates";
 
 /**
  * Progress information for content generation operations
@@ -27,6 +28,7 @@ export interface ContentServiceDependencies {
   entityService: EntityService;
   aiService: IAIService;
   conversationService: IConversationService;
+  templateRegistry: TemplateRegistry;
 }
 
 /**
@@ -36,9 +38,6 @@ export interface ContentServiceDependencies {
  * Implements Component Interface Standardization pattern.
  */
 export class ContentService implements IContentService {
-  // Template registry for local template management
-  private templates: Map<string, ContentTemplate<unknown>> = new Map();
-
   // Provider registry for content providers
   private providers: Map<string, IContentProvider> = new Map();
 
@@ -69,24 +68,56 @@ export class ContentService implements IContentService {
   }
 
   /**
-   * Register a reusable template
-   */
-  registerTemplate<T>(name: string, template: ContentTemplate<T>): void {
-    this.templates.set(name, template);
-  }
-
-  /**
    * Get a registered template
    */
   getTemplate(name: string): ContentTemplate<unknown> | null {
-    return this.templates.get(name) ?? null;
+    const template = this.dependencies.templateRegistry.get(name);
+    if (!template) return null;
+
+    // Convert unified Template back to ContentTemplate format
+    const contentTemplate: ContentTemplate<unknown> = {
+      name: template.name,
+      description: template.description,
+      schema: template.schema,
+      requiredPermission: template.requiredPermission,
+    };
+
+    if (template.basePrompt) {
+      contentTemplate.basePrompt = template.basePrompt;
+    }
+
+    if (template.formatter) {
+      contentTemplate.formatter = template.formatter;
+    }
+
+    return contentTemplate;
   }
 
   /**
    * List all available templates
    */
   listTemplates(): ContentTemplate<unknown>[] {
-    return Array.from(this.templates.values());
+    return this.dependencies.templateRegistry
+      .list()
+      .filter((template) => template.basePrompt || template.formatter) // Only content templates
+      .map((template) => {
+        const contentTemplate: ContentTemplate<unknown> = {
+          name: template.name,
+          description: template.description,
+          schema: template.schema,
+          requiredPermission: template.requiredPermission,
+        };
+
+        if (template.basePrompt) {
+          contentTemplate.basePrompt = template.basePrompt;
+        }
+
+        if (template.formatter) {
+          contentTemplate.formatter = template.formatter;
+        }
+
+        return contentTemplate;
+      });
   }
 
   /**

@@ -31,7 +31,7 @@ import { type IMCPService, type IMCPTransport } from "@brains/mcp-service";
 import type { DaemonRegistry } from "@brains/daemon-registry";
 import { type IEmbeddingService } from "@brains/embedding-service";
 import { type IConversationService } from "@brains/conversation-service";
-import type { ContentService, ContentTemplate } from "@brains/content-service";
+import type { ContentService } from "@brains/content-service";
 import { type IAIService } from "@brains/ai-service";
 import { PermissionService } from "@brains/permission-service";
 import { Logger } from "@brains/utils";
@@ -154,6 +154,7 @@ export class Shell implements IShell {
     this.daemonRegistry = services.daemonRegistry;
     this.pluginManager = services.pluginManager;
     this.commandRegistry = services.commandRegistry;
+    this.templateRegistry = services.templateRegistry;
     this.mcpService = services.mcpService;
     this.entityService = services.entityService;
     this.aiService = services.aiService;
@@ -164,9 +165,6 @@ export class Shell implements IShell {
     this.batchJobManager = services.batchJobManager;
     this.jobProgressMonitor = services.jobProgressMonitor;
     this.permissionService = services.permissionService;
-
-    // Initialize template registry with logger
-    this.templateRegistry = new TemplateRegistry(this.logger);
 
     // Register only the services that plugins actually need
     shellInitializer.registerServices(services, this);
@@ -190,7 +188,7 @@ export class Shell implements IShell {
       );
 
       await shellInitializer.initializeAll(
-        this.contentService,
+        this.templateRegistry,
         this.entityRegistry,
         this.pluginManager,
       );
@@ -578,27 +576,7 @@ export class Shell implements IShell {
     // Store in central registry
     this.templateRegistry.register(scopedName, template);
 
-    // Also register with legacy services for backward compatibility
-    // TODO: Remove these after migration is complete
-    if (template.basePrompt || template.formatter || template.providerId) {
-      const contentTemplate: ContentTemplate = {
-        name: template.name,
-        description: template.description,
-        schema: template.schema,
-        requiredPermission: template.requiredPermission,
-      };
-
-      if (template.basePrompt) {
-        contentTemplate.basePrompt = template.basePrompt;
-      }
-
-      if (template.formatter) {
-        contentTemplate.formatter = template.formatter;
-      }
-
-      this.contentService.registerTemplate(scopedName, contentTemplate);
-    }
-
+    // Register with ViewRegistry for rendering if layout is provided
     if (template.layout?.component) {
       this.viewRegistry.registerTemplate(scopedName, template);
     }

@@ -5,7 +5,7 @@ import type {
   ContentServiceDependencies,
   ProgressInfo,
 } from "../src/content-service";
-import type { Template } from "@brains/templates";
+import { TemplateRegistry, type Template } from "@brains/templates";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityService } from "@brains/entity-service";
 import type { AIService } from "@brains/ai-service";
@@ -15,6 +15,7 @@ import { createSilentLogger } from "@brains/utils";
 describe("ContentService", () => {
   let mockDependencies: ContentServiceDependencies;
   let contentService: ContentService;
+  let templateRegistry: TemplateRegistry;
   let mockEntitySearch: ReturnType<typeof mock>;
   let mockEntityGetTypes: ReturnType<typeof mock>;
   let mockAIGenerateObject: ReturnType<typeof mock>;
@@ -49,11 +50,15 @@ describe("ContentService", () => {
       searchConversations: mock(),
     };
 
+    // Create a fresh TemplateRegistry for each test
+    templateRegistry = TemplateRegistry.createFresh(mockLogger);
+
     mockDependencies = {
       logger: mockLogger,
       entityService: mockEntityService as EntityService,
       aiService: mockAIService as AIService,
       conversationService: mockConversationService as IConversationService,
+      templateRegistry,
     };
 
     contentService = new ContentService(mockDependencies);
@@ -72,8 +77,8 @@ describe("ContentService", () => {
     };
 
     beforeEach(() => {
-      // Register the mock template directly with the content generator
-      contentService.registerTemplate("test-template", mockTemplate);
+      // Register the mock template with the registry
+      templateRegistry.register("test-template", mockTemplate);
       mockAIGenerateObject.mockResolvedValue({ object: "raw content" });
     });
 
@@ -171,7 +176,7 @@ describe("ContentService", () => {
         basePrompt: "Generate test content",
         schema: z.string(),
       };
-      contentService.registerTemplate(
+      templateRegistry.register(
         "test-template-no-formatter",
         templateWithoutFormatter,
       );
@@ -191,7 +196,7 @@ describe("ContentService", () => {
         basePrompt: "Generate test content",
         schema: z.object({ data: z.string() }),
       };
-      contentService.registerTemplate(
+      templateRegistry.register(
         "test-template-object",
         templateWithSchema,
       );
@@ -245,7 +250,7 @@ describe("ContentService", () => {
     };
 
     beforeEach(() => {
-      contentService.registerTemplate("dashboard", mockTemplate);
+      templateRegistry.register("dashboard", mockTemplate);
       mockAIGenerateObject.mockResolvedValue({ object: "route content" });
     });
 
@@ -273,7 +278,7 @@ describe("ContentService", () => {
         template: "custom-plugin:dashboard",
       };
 
-      contentService.registerTemplate("custom-plugin:dashboard", mockTemplate);
+      templateRegistry.register("custom-plugin:dashboard", mockTemplate);
 
       await contentService.generateWithRoute(
         mockRoute,
@@ -321,7 +326,7 @@ describe("ContentService", () => {
     };
 
     beforeEach(() => {
-      contentService.registerTemplate("test-template", mockTemplate);
+      templateRegistry.register("test-template", mockTemplate);
     });
 
     it("should parse content using template formatter", () => {
@@ -354,7 +359,7 @@ describe("ContentService", () => {
         basePrompt: "Generate content",
         schema: z.string(),
       };
-      contentService.registerTemplate(
+      templateRegistry.register(
         "no-formatter-template",
         templateWithoutFormatter,
       );
