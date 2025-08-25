@@ -1,20 +1,26 @@
-# Provider Architecture Fix Plan
+# DataSource Architecture Implementation Plan
 
-> **📋 STATUS UPDATE**: Phase 1 (template type issues) has been resolved using the [Unified Template Registry Plan](./unified-template-registry-plan.md). This plan remains active for implementing the provider pattern behavior (Phases 2-3).
+> **📋 STATUS UPDATE**: Phase 1 (template type issues) has been resolved using the [Unified Template Registry Plan](./unified-template-registry-plan.md). This plan has been updated to implement the DataSource pattern (formerly Provider pattern) with improved naming and architecture.
 >
-> **Current Focus**: Site-builder integration with provider pattern, content generation optimization, and end-to-end provider data flow.
+> **Current Focus**: Creating @brains/datasource package, RenderService integration with DataSources, and site-builder refactoring for dynamic data fetching.
 
 ## Problem Statement
 
-Dashboard shows stale/mock data because provider information is lost during Template → ViewTemplate conversion, preventing fresh data fetch at build time.
+Dashboard shows stale/mock data because data source information is lost during Template → ViewTemplate conversion, preventing fresh data fetch at build time.
 
 ## Root Cause Analysis
 
-### Type Architecture Issues
+### Original Architecture Issues (RESOLVED)
 
-1. **Template** lives in wrong place (`view-registry` instead of `content-service`)
-2. **Template** has wrong name (should be `ContentTemplate` for clarity)
-3. **ViewTemplate** loses critical information during conversion (providerId, formatter)
+1. ~~**Template** lives in wrong place~~ → ✅ Unified template registry created
+2. ~~**Template** has wrong name~~ → ✅ Clear separation: Template, ContentTemplate, ViewTemplate
+3. ~~**ViewTemplate** loses critical information~~ → ✅ All properties preserved in central registry
+
+### Remaining Issues
+
+1. **Provider naming is confusing** → Will rename to DataSource for clarity
+2. **Provider location creates coupling** → Will create new @brains/datasource package
+3. **Site-builder doesn't check for dynamic data** → Will integrate with RenderService
 
 ### Current Flow Problems
 
@@ -140,48 +146,298 @@ async generate(options: GenerateContentOptions): Promise<void> {
 
 ### 🚧 In Progress
 
-- **Site-builder integration**: Update `getContentForSection()` to check for providers
+- **DataSource architecture implementation**: Creating new package and refactoring provider pattern
 
 ### ⏳ Remaining Work
 
-1. **`plugins/site-builder/src/lib/site-builder.ts`**
-   - Implement provider checking in `getContentForSection()`
-   - Add template lookup via `context.getTemplate()`
+#### Phase 2A: Create DataSource Package
 
-2. **`plugins/site-builder/src/lib/site-content-operations.ts`**
-   - Skip content generation for provider-based templates
-   - Add template checks in generate operations
+1. **New Package (`shell/datasource/`)**
+   - Create `@brains/datasource` package structure
+   - Define `IDataSource` interface (replacing IContentProvider)
+   - Implement `DataSourceRegistry` with CIS pattern
+   - Add base DataSource class for common functionality
+   - Write comprehensive tests
 
-3. **Testing & Validation**
-   - Verify dashboard shows real entity data
-   - Test provider vs entity patterns
-   - Performance validation
+2. **Migrate Existing Providers**
+   - Update `SystemStatsProvider` to implement `IDataSource`
+   - Move from `plugins/site-builder/src/providers/` to use new interface
+   - Update all references from "provider" to "datasource"
+
+#### Phase 2B: RenderService Integration
+
+3. **RenderService Enhancement (`shell/render-service/src/render-service.ts`)**
+   - Add dependency on `@brains/datasource`
+   - Implement `resolveContent()` method that checks for DataSources
+   - Create `ContentResolutionContext` interface
+   - Add `usesDataSource()` helper method
+
+4. **Template Updates**
+   - Change `providerId` to `dataSourceId` in Template interface
+   - Update dashboard template to use `dataSourceId: "system-stats"`
+   - Update all template references
+
+#### Phase 2C: Site-builder Refactoring
+
+5. **ServicePluginContext (`shell/plugins/src/service/context.ts`)**
+   - Add `getTemplate()` method to access unified registry
+   - Update `fetchFromProvider()` to `fetchFromDataSource()`
+   - Ensure DataSourceRegistry is accessible
+
+6. **Site-builder Updates (`plugins/site-builder/src/lib/site-builder.ts`)**
+   - Replace `getContentForSection()` with RenderService calls
+   - Remove duplicate template resolution logic
+   - Use DataSource pattern for dashboard
+
+7. **Content Operations (`plugins/site-builder/src/lib/site-content-operations.ts`)**
+   - Check `template.dataSourceId` before generation
+   - Skip DataSource templates in content operations
+   - Add appropriate logging
+
+#### Phase 2D: Testing & Validation
+
+8. **End-to-End Testing**
+   - Dashboard shows real entity statistics (not mock)
+   - Static content continues to work
+   - DataSource pattern functions correctly
+   - Performance benchmarks pass
+
+## DataSource Architecture
+
+### Why DataSource?
+
+The term "Provider" was too generic and often confused with dependency injection providers. "DataSource" clearly indicates:
+
+- **Purpose**: Provides data for templates
+- **Pattern**: Familiar from database/API patterns
+- **Clarity**: No confusion with DI or other provider patterns
+
+### Package Structure
+
+```
+shell/datasource/
+├── src/
+│   ├── index.ts           # Main exports
+│   ├── types.ts           # IDataSource interface
+│   ├── registry.ts        # DataSourceRegistry with CIS pattern
+│   └── base.ts            # BaseDataSource abstract class
+├── test/
+│   └── registry.test.ts
+├── package.json
+└── README.md
+```
+
+### Core Interfaces
+
+```typescript
+// shell/datasource/src/types.ts
+export interface IDataSource {
+  id: string;
+  name: string;
+  description?: string;
+
+  // Optional methods - implement what you need
+  fetch?: (query?: unknown) => Promise<unknown>;
+  generate?: (request: unknown) => Promise<unknown>;
+  transform?: (content: unknown, format: string) => Promise<unknown>;
+}
+
+export interface DataSourceCapabilities {
+  canFetch: boolean;
+  canGenerate: boolean;
+  canTransform: boolean;
+}
+
+// shell/datasource/src/registry.ts
+export class DataSourceRegistry {
+  private static instance: DataSourceRegistry | null = null;
+  private sources = new Map<string, IDataSource>();
+
+  public static getInstance(): DataSourceRegistry {
+    DataSourceRegistry.instance ??= new DataSourceRegistry();
+    return DataSourceRegistry.instance;
+  }
+
+  public static resetInstance(): void {
+    DataSourceRegistry.instance = null;
+  }
+
+  public static createFresh(): DataSourceRegistry {
+    return new DataSourceRegistry();
+  }
+
+  register(source: IDataSource): void;
+  unregister(id: string): void;
+  get(id: string): IDataSource | undefined;
+  has(id: string): boolean;
+  list(): IDataSource[];
+}
+```
+
+### Integration with Templates
+
+```typescript
+// shell/templates/src/types.ts
+interface Template {
+  name: string;
+  description: string;
+  schema: z.ZodSchema;
+
+  // DataSource for dynamic data (renamed from providerId)
+  dataSourceId?: string;
+
+  // For AI generation
+  basePrompt?: string;
+
+  // For formatting
+  formatter?: ContentFormatter<unknown>;
+
+  // For rendering
+  layout?: {
+    component?: ComponentType<unknown>;
+    interactive?: boolean;
+  };
+
+  requiredPermission: UserPermissionLevel;
+}
+```
+
+### Dependency Flow
+
+```
+@brains/datasource (standalone, no shell dependencies)
+    ↑
+    ├── @brains/templates (references via dataSourceId)
+    ├── @brains/content-service (uses for content generation)
+    ├── @brains/render-service (uses for content resolution)
+    └── @brains/plugins (re-exports for plugin development)
+```
+
+## RenderService Integration Strategy
+
+### Architectural Shift
+
+Moving content resolution logic from site-builder to RenderService provides:
+
+- **Centralized template logic**: All template-related operations in one place
+- **Reusable provider pattern**: Other plugins can leverage provider resolution
+- **Clean separation**: Site-builder focuses on building, RenderService handles content resolution
+
+### New RenderService Methods
+
+```typescript
+// shell/render-service/src/render-service.ts
+import { DataSourceRegistry } from "@brains/datasource";
+
+export interface ContentResolutionContext {
+  routeId?: string;
+  sectionId?: string;
+  entityId?: string;
+  entityType?: string;
+  entityService: IEntityService;
+  query?: unknown;
+}
+
+class RenderService {
+  constructor(
+    private templateRegistry: TemplateRegistry,
+    private dataSourceRegistry: DataSourceRegistry,
+  ) {}
+
+  // New method for content resolution
+  async resolveContent(
+    templateName: string,
+    context: ContentResolutionContext,
+  ): Promise<unknown> {
+    const template = this.templateRegistry.get(templateName);
+
+    // Check for DataSource-based content
+    if (template?.dataSourceId) {
+      const dataSource = this.dataSourceRegistry.get(template.dataSourceId);
+      if (dataSource?.fetch) {
+        return await dataSource.fetch({
+          routeId: context.routeId,
+          sectionId: context.sectionId,
+          ...context.query,
+        });
+      }
+    }
+
+    // Fall back to entity-based content
+    if (context.entityId && context.entityType) {
+      const entity = await context.entityService.getEntity(
+        context.entityType,
+        context.entityId,
+      );
+      if (entity && template?.formatter) {
+        return template.formatter.parse(entity.content);
+      }
+    }
+
+    return null;
+  }
+
+  // Helper to check if template uses DataSource
+  usesDataSource(templateName: string): boolean {
+    const template = this.templateRegistry.get(templateName);
+    return !!template?.dataSourceId;
+  }
+
+  // Get DataSource for a template
+  getDataSource(templateName: string): IDataSource | undefined {
+    const template = this.templateRegistry.get(templateName);
+    if (template?.dataSourceId) {
+      return this.dataSourceRegistry.get(template.dataSourceId);
+    }
+    return undefined;
+  }
+}
+```
 
 ## Implementation Roadmap
 
 ### Next Steps (Phases 2-3)
 
-1. **Implement Site-builder Provider Support**
-   - Add `context.getTemplate()` calls in site-builder
-   - Implement provider checking logic in `getContentForSection()`
-   - Test with dashboard template
+1. **Enhance RenderService with Content Resolution**
+   - Add `resolveContent()` method for unified content fetching
+   - Implement `usesProvider()` helper method
+   - Create ContentResolutionContext interface
 
-2. **Optimize Content Generation**
-   - Update generate operations to skip provider templates
-   - Add template-based generation logic
-   - Validate generation performance
+2. **Update ServicePluginContext**
+   - Add `getTemplate()` to access unified registry
+   - Ensure RenderService methods are accessible
+   - Maintain backward compatibility
 
-3. **End-to-End Testing**
+3. **Refactor Site-builder**
+   - Replace `getContentForSection()` internals with RenderService calls
+   - Remove duplicate template resolution logic
+   - Use provider pattern for dashboard
+
+4. **Optimize Content Generation**
+   - Check templates before generation using `usesProvider()`
+   - Skip provider templates in content operations
+   - Add appropriate logging
+
+5. **End-to-End Testing**
    - Dashboard shows real entity statistics
    - Static content still works correctly
    - Provider pattern functions properly
+   - Performance benchmarks pass
 
 ### Success Criteria
 
-- **Dashboard Problem Fixed**: Shows live entity counts, not stale data
-- **Provider Pattern Working**: Dynamic content fetches fresh data at build time
+- **Dashboard Problem Fixed**: Shows live entity counts, not stale/mock data
+- **DataSource Pattern Working**: Dynamic content fetches fresh data at build time
 - **Static Content Preserved**: Existing entity-based content still functions
-- **Clean Architecture**: Single template registry, clear provider vs entity patterns
+- **Clean Architecture**:
+  - Unified template registry (✅ completed)
+  - Separate DataSource package with clear interfaces
+  - RenderService handles all content resolution
+  - No duplicate template logic in site-builder
+- **Developer Experience**:
+  - Clear naming (DataSource vs Provider)
+  - Simple API (`template.dataSourceId`, `resolveContent()`)
+  - Clean dependency graph
 
 ## Current Architecture
 

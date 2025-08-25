@@ -1,0 +1,28 @@
+{
+  "name": "@brains/datasource",
+  "version": "0.1.0",
+  "description": "DataSource registry for dynamic content fetching",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
+  },
+  "dependencies": {
+    "@brains/utils": "workspace:*",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}
