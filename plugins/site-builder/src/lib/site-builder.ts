@@ -2,9 +2,9 @@ import type { ProgressCallback, Logger } from "@brains/plugins";
 import { ProgressReporter } from "@brains/plugins";
 import type {
   ServicePluginContext,
-  Template,
   SectionDefinition,
   RouteDefinition,
+  Template,
 } from "@brains/plugins";
 import type {
   ISiteBuilder,

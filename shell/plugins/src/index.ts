@@ -132,14 +132,9 @@ export type {
   GenerationContext,
 } from "@brains/content-service";
 
-// From @brains/view-registry
-export type {
-  ComponentType,
-} from "@brains/view-registry";
-
-// From @brains/content-service (Template moved here)
-export type { ContentTemplate } from "@brains/content-service";
-export { ContentTemplateSchema } from "@brains/content-service";
+// From @brains/templates (unified template type)
+export type { Template, ComponentType } from "@brains/templates";
+export { TemplateSchema } from "@brains/templates";
 
 // From @brains/messaging-service
 export type {

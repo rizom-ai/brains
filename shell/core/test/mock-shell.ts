@@ -36,7 +36,7 @@ import type {
 import type { ViewRegistry } from "@brains/view-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { RouteDefinition } from "@brains/view-registry";
-import type { ContentTemplate } from "@brains/content-service";
+import type { Template } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IContentProvider } from "@brains/content-service";
 import { PermissionService } from "@brains/permission-service";
@@ -50,7 +50,7 @@ import { createSilentLogger } from "@brains/utils";
 export class MockShell implements IShell {
   private plugins = new Map<string, Plugin>();
   private logger: Logger;
-  private templates = new Map<string, ContentTemplate>();
+  private templates = new Map<string, Template>();
   private routes = new Map<string, RouteDefinition>();
   private commands = new Map<string, Command>();
   private services = new Map<string, unknown>();
@@ -166,7 +166,7 @@ export class MockShell implements IShell {
       ): T => {
         return { parsed: content } as T;
       },
-      registerTemplate: (name: string, template: ContentTemplate) => {
+      registerTemplate: (name: string, template: Template) => {
         this.templates.set(name, template);
       },
       hasTemplate: (name: string) => this.templates.has(name),
@@ -435,7 +435,7 @@ export class MockShell implements IShell {
   }
 
   registerTemplates(
-    templates: Record<string, ContentTemplate>,
+    templates: Record<string, Template>,
     pluginId?: string,
   ): void {
     const contentGen = this.getContentService();
@@ -479,7 +479,7 @@ export class MockShell implements IShell {
     return this.plugins.get(pluginId);
   }
 
-  getTemplates(): Map<string, ContentTemplate> {
+  getTemplates(): Map<string, Template> {
     return new Map(this.templates);
   }
 

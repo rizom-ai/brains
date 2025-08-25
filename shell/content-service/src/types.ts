@@ -1,7 +1,4 @@
-import type {
-  RouteDefinition,
-  SectionDefinition,
-} from "@brains/view-registry";
+import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { ProgressInfo } from "./content-service";
 import type { IContentProvider, ProviderInfo } from "./providers/types";
 import { z } from "zod";

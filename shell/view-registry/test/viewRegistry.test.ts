@@ -11,7 +11,7 @@ const testSchema = z.object({
 });
 
 // Test template
-const testTemplate: Template<{ title: string; content: string }> = {
+const testTemplate: Template = {
   name: "test-plugin:test-template",
   description: "Test template",
   schema: testSchema,

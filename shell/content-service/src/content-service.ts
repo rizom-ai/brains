@@ -72,9 +72,7 @@ export class ContentService implements IContentService {
    * Register a reusable template
    */
   registerTemplate<T>(name: string, template: ContentTemplate<T>): void {
-    // When storing in a heterogeneous map, we lose specific type information
-    // This is safe because templates are retrieved by name and used with appropriate types
-    this.templates.set(name, template as ContentTemplate<unknown>);
+    this.templates.set(name, template);
   }
 
   /**

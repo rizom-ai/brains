@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createServicePluginHarness } from "@brains/plugins";
-import type { PluginCapabilities, Template } from "@brains/plugins";
+import type { PluginCapabilities } from "@brains/plugins";
+import { createTemplate } from "@brains/templates";
 import { z } from "zod";
 import { h } from "preact";
 
@@ -44,7 +45,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should register templates when provided", async () => {
-    const testTemplate: Template<{ title: string }> = {
+    const testTemplate = createTemplate<{ title: string }>({
       name: "test-template",
       description: "Test template",
       schema: z.object({ title: z.string() }),
@@ -59,7 +60,7 @@ describe("SiteBuilderPlugin", () => {
         component: ({ title }: { title: string }) => h("div", {}, title),
         interactive: false,
       },
-    };
+    });
 
     plugin = new SiteBuilderPlugin({
       previewOutputDir: "/tmp/test-output",
@@ -136,7 +137,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should provide generate tool when routes have content entities", async () => {
-    const testTemplate: Template<{ content: string }> = {
+    const testTemplate = createTemplate<{ content: string }>({
       name: "test",
       description: "Test",
       schema: z.object({ content: z.string() }),
@@ -150,7 +151,7 @@ describe("SiteBuilderPlugin", () => {
         component: ({ content }: { content: string }) => h("div", {}, content),
         interactive: false,
       },
-    };
+    });
 
     plugin = new SiteBuilderPlugin({
       previewOutputDir: "/tmp/test-output",

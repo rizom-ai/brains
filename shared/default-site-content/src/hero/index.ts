@@ -6,9 +6,9 @@ import { landingHeroDataSchema, type LandingHeroData } from "./schema";
 import { HeroLayout } from "./layout";
 import { HeroSectionFormatter } from "./formatter";
 import heroPrompt from "./prompt.txt";
-import type { ContentTemplate } from "@brains/plugins";
+import type { Template } from "@brains/plugins";
 
-export const heroTemplate: ContentTemplate<LandingHeroData> = {
+export const heroTemplate: Template<LandingHeroData> = {
   name: "hero",
   description: "Hero section with headline and call-to-action",
   schema: landingHeroDataSchema,

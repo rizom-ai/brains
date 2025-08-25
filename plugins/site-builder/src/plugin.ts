@@ -6,7 +6,6 @@ import type {
   Command,
   CommandResponse,
   JobContext,
-  Template,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
@@ -105,9 +104,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
     // Register templates from configuration using unified registration
     if (this.config.templates) {
-      context.registerTemplates(
-        this.config.templates as Record<string, Template>,
-      );
+      context.registerTemplates(this.config.templates);
       this.logger.debug(
         `Registered ${Object.keys(this.config.templates).length} templates from config`,
       );

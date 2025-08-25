@@ -16,7 +16,6 @@ export type {
   ViewRegistry as IViewRegistry,
   SiteBuilder,
   SiteContentEntityType,
-  ComponentType,
 } from "./types";
 
 export {

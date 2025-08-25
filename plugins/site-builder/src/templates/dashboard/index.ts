@@ -10,7 +10,8 @@ export const dashboardTemplate = createTemplate<DashboardData>({
   name: "dashboard",
   description: "Interactive system dashboard showing entity statistics",
   schema: DashboardDataSchema,
-  basePrompt: "Generate system dashboard data with entity statistics and build information",
+  basePrompt:
+    "Generate system dashboard data with entity statistics and build information",
   requiredPermission: "public",
   formatter: new DashboardFormatter(),
   providerId: "system-stats",

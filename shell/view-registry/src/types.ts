@@ -1,12 +1,6 @@
 import { z } from "zod";
-import type { VNode } from "preact";
 import type { ProgressCallback, ContentFormatter } from "@brains/utils";
-
-/**
- * Component type for layouts - using Preact
- * Returns a Preact VNode
- */
-export type ComponentType<P = unknown> = (props: P) => VNode;
+import type { ComponentType } from "@brains/templates";
 
 /**
  * Zod schema for Template validation (used in plugin configurations)

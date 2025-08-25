@@ -521,9 +521,30 @@
         "typescript": "^5.3.3",
       },
     },
+    "shell/templates": {
+      "name": "@brains/templates",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/permission-service": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "preact": "^10.19.3",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/typescript-config": "workspace:*",
+        "bun-types": "latest",
+        "typescript": "^5.0.0",
+      },
+    },
     "shell/view-registry": {
       "name": "@brains/view-registry",
       "version": "0.1.0",
+      "dependencies": {
+        "@brains/templates": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "preact": "^10.19.3",
+        "zod": "^3.22.4",
+      },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -616,6 +637,8 @@
     "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
 
     "@brains/system": ["@brains/system@workspace:plugins/system"],
+
+    "@brains/templates": ["@brains/templates@workspace:shell/templates"],
 
     "@brains/test-brain": ["@brains/test-brain@workspace:apps/test-brain"],
 

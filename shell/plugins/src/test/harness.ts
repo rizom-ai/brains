@@ -4,7 +4,7 @@ import type { ServicePlugin } from "../service/service-plugin";
 import type { InterfacePlugin } from "../interface/interface-plugin";
 import type { Logger } from "@brains/utils";
 import { createSilentLogger } from "@brains/utils";
-import type { ContentTemplate } from "@brains/content-service";
+import type { Template } from "@brains/templates";
 import type { MessageHandler } from "@brains/messaging-service";
 import type { IContentProvider } from "@brains/content-service";
 import { MockShell } from "@brains/core";
@@ -83,14 +83,14 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   /**
    * Register a template for testing
    */
-  registerTemplate(name: string, template: ContentTemplate): void {
+  registerTemplate(name: string, template: Template): void {
     this.mockShell.registerTemplates({ [name]: template });
   }
 
   /**
    * Get registered templates
    */
-  getTemplates(): Map<string, ContentTemplate> {
+  getTemplates(): Map<string, Template> {
     return this.mockShell.getTemplates();
   }
 

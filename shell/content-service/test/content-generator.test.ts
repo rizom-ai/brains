@@ -5,7 +5,7 @@ import type {
   ContentServiceDependencies,
   ProgressInfo,
 } from "../src/content-service";
-import type { ContentTemplate } from "../src/types";
+import type { Template } from "@brains/templates";
 import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
 import type { EntityService } from "@brains/entity-service";
 import type { AIService } from "@brains/ai-service";

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ContentTemplateSchema } from "@brains/plugins";
+import { Template } from "@brains/plugins";
 import { RouteDefinitionSchema } from "@brains/plugins";
 
 /**
@@ -26,10 +26,7 @@ export const siteBuilderConfigSchema = z.object({
       description: "A knowledge management system",
     })
     .optional(),
-  templates: z
-    .record(ContentTemplateSchema)
-    .optional()
-    .describe("Template definitions to register"),
+  templates: z.any().optional().describe("Template definitions to register"),
   routes: z
     .array(RouteDefinitionSchema)
     .optional()
@@ -37,7 +34,10 @@ export const siteBuilderConfigSchema = z.object({
   environment: z.enum(["preview", "production"]).default("preview").optional(),
 });
 
-export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema>;
+export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema> & {
+  // Override the templates field type to be properly typed
+  templates?: Record<string, Template>;
+};
 
 export const SITE_BUILDER_CONFIG_DEFAULTS = {
   previewOutputDir: "./dist/site-preview",

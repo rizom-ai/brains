@@ -15,7 +15,7 @@ export type ComponentType<P = unknown> = (props: P) => VNode;
  */
 export function createTypedComponent<T>(
   schema: z.ZodType<T>,
-  component: ComponentType<T>
+  component: ComponentType<T>,
 ): ComponentType<unknown> {
   return (props: unknown) => {
     const parsedProps = schema.parse(props);
@@ -27,10 +27,13 @@ export function createTypedComponent<T>(
  * Unified template interface that bundles content generation and view rendering
  * This is the single source of truth for what constitutes a template
  */
-export interface Template 
-  extends Omit<z.infer<typeof TemplateSchema>, "schema" | "layout" | "formatter"> {
+export interface Template
+  extends Omit<
+    z.infer<typeof TemplateSchema>,
+    "schema" | "layout" | "formatter"
+  > {
   schema: z.ZodSchema;
-  
+
   // View rendering capability (optional)
   layout?: {
     component?: ComponentType<unknown>;
@@ -44,14 +47,16 @@ export interface Template
 /**
  * Helper to create a template with automatic component wrapping
  */
-export function createTemplate<T>(template: Omit<Template, 'layout'> & {
-  layout?: {
-    component?: ComponentType<T>;
-    interactive?: boolean;
-  };
-}): Template {
+export function createTemplate<T>(
+  template: Omit<Template, "layout"> & {
+    layout?: {
+      component?: ComponentType<T>;
+      interactive?: boolean;
+    };
+  },
+): Template {
   const { layout, schema, ...rest } = template;
-  
+
   const result: Template = {
     ...rest,
     schema,
