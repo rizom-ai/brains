@@ -6,7 +6,10 @@ import type {
   ProgressInfo,
 } from "../src/content-service";
 import { TemplateRegistry, type Template } from "@brains/templates";
-import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import type {
+  RouteDefinition,
+  SectionDefinition,
+} from "@brains/render-service";
 import type { EntityService } from "@brains/entity-service";
 import type { AIService } from "@brains/ai-service";
 import type { IConversationService } from "@brains/conversation-service";
@@ -196,10 +199,7 @@ describe("ContentService", () => {
         basePrompt: "Generate test content",
         schema: z.object({ data: z.string() }),
       };
-      templateRegistry.register(
-        "test-template-object",
-        templateWithSchema,
-      );
+      templateRegistry.register("test-template-object", templateWithSchema);
       mockAIGenerateObject.mockResolvedValue({
         object: { data: "object" },
       });

@@ -134,7 +134,7 @@ export type {
 
 // From @brains/templates (unified template type)
 export type { Template, ComponentType } from "@brains/templates";
-export { TemplateSchema } from "@brains/templates";
+export { TemplateSchema, createTemplate } from "@brains/templates";
 
 // From @brains/messaging-service
 export type {
@@ -167,14 +167,14 @@ export type {
 } from "@brains/command-registry";
 // Note: CommandRegistry is not exported as plugins access commands through context
 
-// From @brains/view-registry
+// From @brains/render-service
 export type {
   RouteDefinition,
   ViewTemplate,
   SectionDefinition,
   OutputFormat,
-} from "@brains/view-registry";
-export { RouteDefinitionSchema } from "@brains/view-registry";
+} from "@brains/render-service";
+export { RouteDefinitionSchema } from "@brains/render-service";
 // Note: ViewRegistry is not exported as plugins access views through context
 
 // Note: DaemonRegistry is not exported as plugins should use IShell.registerDaemon()

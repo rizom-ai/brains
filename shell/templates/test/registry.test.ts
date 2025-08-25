@@ -8,7 +8,7 @@ describe("TemplateRegistry", () => {
   let registry: TemplateRegistry;
 
   beforeEach(() => {
-    registry = new TemplateRegistry();
+    registry = TemplateRegistry.createFresh();
   });
 
   describe("basic operations", () => {

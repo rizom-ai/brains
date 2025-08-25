@@ -1,12 +1,12 @@
 {
-  "name": "@brains/view-registry",
+  "name": "@brains/render-service",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./test": "./test/mock-view-registry.ts"
+    "./test": "./test/viewRegistry.test.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

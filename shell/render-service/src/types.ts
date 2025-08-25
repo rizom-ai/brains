@@ -135,47 +135,9 @@ export interface RouteRegistry {
  * View template registry interface
  */
 export interface ViewTemplateRegistry {
-  register(template: ViewTemplate<unknown>): void;
-  unregister(name: string): void;
   get(name: string): ViewTemplate<unknown> | undefined;
   list(): ViewTemplate<unknown>[];
   validate(templateName: string, content: unknown): boolean;
-}
-
-/**
- * View registry interface - combines routes and templates
- */
-export interface ViewRegistry {
-  // Route methods
-  registerRoute(route: RouteDefinition): void;
-  getRoute(path: string): RouteDefinition | undefined;
-  findRoute(filter: {
-    id?: string;
-    pluginId?: string;
-    pathPattern?: string;
-  }): RouteDefinition | undefined;
-  listRoutes(): RouteDefinition[];
-  listRoutesByPlugin(pluginId: string): RouteDefinition[];
-  validateRoute(route: RouteDefinition): boolean;
-
-  // View template methods
-  registerViewTemplate(template: ViewTemplate<unknown>): void;
-  getViewTemplate(name: string): ViewTemplate<unknown> | undefined;
-  listViewTemplates(): ViewTemplate<unknown>[];
-  validateViewTemplate(templateName: string, content: unknown): boolean;
-  findViewTemplate(filter: {
-    name?: string;
-    pluginId?: string;
-    namePattern?: string;
-  }): ViewTemplate<unknown> | undefined;
-
-  // Renderer access methods
-  getRenderer(
-    templateName: string,
-    format: OutputFormat,
-  ): WebRenderer | undefined;
-  hasRenderer(templateName: string, format: OutputFormat): boolean;
-  listFormats(templateName: string): OutputFormat[];
 }
 
 /**

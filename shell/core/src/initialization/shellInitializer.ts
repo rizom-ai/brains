@@ -12,7 +12,7 @@ import { MessageBus } from "@brains/messaging-service";
 import { CommandRegistry } from "@brains/command-registry";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
-import { ViewRegistry } from "@brains/view-registry";
+import { RenderService, RouteRegistry } from "@brains/render-service";
 import { TemplateRegistry } from "@brains/templates";
 import {
   EmbeddingService,
@@ -45,7 +45,8 @@ export interface ShellServices {
   serviceRegistry: ServiceRegistry;
   entityRegistry: EntityRegistry;
   messageBus: MessageBus;
-  viewRegistry: ViewRegistry;
+  renderService: RenderService;
+  routeRegistry: RouteRegistry;
   daemonRegistry: DaemonRegistry;
   pluginManager: PluginManager;
   commandRegistry: CommandRegistry;
@@ -226,8 +227,15 @@ export class ShellInitializer {
       dependencies?.entityRegistry ?? EntityRegistry.getInstance(logger);
     const messageBus =
       dependencies?.messageBus ?? MessageBus.getInstance(logger);
-    const viewRegistry =
-      dependencies?.viewRegistry ?? ViewRegistry.getInstance();
+    // Template registry
+    const templateRegistry = TemplateRegistry.getInstance(logger);
+
+    // Render and route services
+    const renderService =
+      dependencies?.renderService ??
+      RenderService.getInstance(templateRegistry);
+    const routeRegistry =
+      dependencies?.routeRegistry ?? RouteRegistry.getInstance();
     const daemonRegistry =
       dependencies?.daemonRegistry ?? DaemonRegistry.getInstance(logger);
     const pluginManager =
@@ -280,9 +288,6 @@ export class ShellInitializer {
         }),
       });
 
-    // Template registry
-    const templateRegistry = new TemplateRegistry(logger);
-
     // Content generator
     const contentService =
       dependencies?.contentService ??
@@ -325,7 +330,8 @@ export class ShellInitializer {
       serviceRegistry,
       entityRegistry,
       messageBus,
-      viewRegistry,
+      renderService,
+      routeRegistry,
       daemonRegistry,
       pluginManager,
       commandRegistry,

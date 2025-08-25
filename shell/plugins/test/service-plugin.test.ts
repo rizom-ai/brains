@@ -90,13 +90,15 @@ describe("ServicePlugin", () => {
     });
   });
 
-  test("provides view registry access", () => {
+  test("provides render service and route registry access", () => {
     const shell = harness.getShell();
-    const viewRegistry = shell.getViewRegistry();
+    const renderService = shell.getRenderService();
+    const routeRegistry = shell.getRouteRegistry();
 
-    expect(viewRegistry).toBeDefined();
-    expect(viewRegistry.registerRoute).toBeDefined();
-    // The registerRoutes (plural) method is provided by ServicePluginContext, not ViewRegistry directly
+    expect(renderService).toBeDefined();
+    expect(routeRegistry).toBeDefined();
+    expect(routeRegistry.register).toBeDefined();
+    // The registerRoutes (plural) method is provided by ServicePluginContext, not RouteRegistry directly
   });
 
   test("provides content generation", () => {

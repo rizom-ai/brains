@@ -8,7 +8,7 @@ import type {
 import type { JobHandler, BatchOperation } from "@brains/job-queue";
 import type { JobOptions } from "@brains/job-queue";
 import { createId } from "@brains/utils";
-import type { RouteDefinition, ViewTemplate } from "@brains/view-registry";
+import type { RouteDefinition, ViewTemplate } from "@brains/render-service";
 import type {
   Conversation,
   Message,
@@ -94,7 +94,8 @@ export function createServicePluginContext(
   const entityService = shell.getEntityService();
   const entityRegistry = shell.getEntityRegistry();
   const jobQueueService = shell.getJobQueueService();
-  const viewRegistry = shell.getViewRegistry();
+  const renderService = shell.getRenderService();
+  const routeRegistry = shell.getRouteRegistry();
 
   return {
     ...coreContext,
@@ -197,13 +198,13 @@ export function createServicePluginContext(
       shell.registerRoutes(routes, { pluginId, ...options });
     },
     listRoutes: () => {
-      return viewRegistry.listRoutes();
+      return routeRegistry.list();
     },
     getViewTemplate: (name: string) => {
-      return viewRegistry.getViewTemplate(name);
+      return renderService.get(name);
     },
     listViewTemplates: () => {
-      return viewRegistry.listViewTemplates();
+      return renderService.list();
     },
 
     // Plugin metadata

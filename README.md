@@ -71,7 +71,7 @@ The project follows a **tool-first architecture** where all functionality is exp
 - **@brains/messaging-service**: Inter-component messaging bus
 - **@brains/job-queue**: Background job processing and batch operations
 - **@brains/permission-service**: Permission and access control
-- **@brains/view-registry**: View and template registration system
+- **@brains/render-service**: View and template registration system
 
 #### Interfaces
 

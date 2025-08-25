@@ -6,9 +6,9 @@ import { featuresSectionSchema, type FeaturesSection } from "./schema";
 import { FeaturesLayout } from "./layout";
 import { FeaturesSectionFormatter } from "./formatter";
 import featuresPrompt from "./prompt.txt";
-import type { Template } from "@brains/plugins";
+import { createTemplate } from "@brains/templates";
 
-export const featuresTemplate: Template<FeaturesSection> = {
+export const featuresTemplate = createTemplate<FeaturesSection>({
   name: "features",
   description: "Features section with cards",
   schema: featuresSectionSchema,
@@ -19,4 +19,4 @@ export const featuresTemplate: Template<FeaturesSection> = {
     component: FeaturesLayout,
     interactive: false,
   },
-};
+});

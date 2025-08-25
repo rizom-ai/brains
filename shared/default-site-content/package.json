@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@brains/utils": "workspace:*",
+    "@brains/templates": "workspace:*",
     "lucide-preact": "^0.460.0",
     "preact": "^10.19.3",
     "zod": "^3.25.1"

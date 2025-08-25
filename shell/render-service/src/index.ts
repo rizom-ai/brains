@@ -1,6 +1,5 @@
-export { ViewRegistry } from "./view-registry";
+export { RenderService } from "./render-service";
 export { RouteRegistry } from "./route-registry";
-export { ViewTemplateRegistry } from "./view-template-registry";
 
 // Export types
 export type {
@@ -12,8 +11,6 @@ export type {
   SiteBuilderOptions,
   BuildResult,
   RouteRegistry as IRouteRegistry,
-  ViewTemplateRegistry as IViewTemplateRegistry,
-  ViewRegistry as IViewRegistry,
   SiteBuilder,
   SiteContentEntityType,
 } from "./types";

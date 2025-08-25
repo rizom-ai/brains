@@ -4,12 +4,42 @@ import type { Logger } from "@brains/utils";
 /**
  * Central template registry that stores and manages all templates
  * This is the single source of truth for template storage
+ * Implements Component Interface Standardization pattern.
  */
 export class TemplateRegistry {
+  private static instance: TemplateRegistry | null = null;
+
   private templates = new Map<string, Template>();
   private logger?: Logger | undefined;
 
-  constructor(logger?: Logger | undefined) {
+  /**
+   * Get the singleton instance of TemplateRegistry
+   */
+  public static getInstance(logger?: Logger): TemplateRegistry {
+    if (!TemplateRegistry.instance) {
+      TemplateRegistry.instance = new TemplateRegistry(logger);
+    }
+    return TemplateRegistry.instance;
+  }
+
+  /**
+   * Testing reset
+   */
+  public static resetInstance(): void {
+    TemplateRegistry.instance = null;
+  }
+
+  /**
+   * Isolated instance creation
+   */
+  public static createFresh(logger?: Logger): TemplateRegistry {
+    return new TemplateRegistry(logger);
+  }
+
+  /**
+   * Private constructor to enforce factory methods
+   */
+  private constructor(logger?: Logger | undefined) {
     this.logger = logger;
   }
 

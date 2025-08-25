@@ -2,7 +2,10 @@ import type { GenerationContext, ContentTemplate } from "./types";
 import type { EntityService, SearchResult } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
-import type { RouteDefinition, SectionDefinition } from "@brains/view-registry";
+import type {
+  RouteDefinition,
+  SectionDefinition,
+} from "@brains/render-service";
 import type { ContentService as IContentService } from "./types";
 import type {
   IConversationService,

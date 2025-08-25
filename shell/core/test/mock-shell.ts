@@ -33,9 +33,9 @@ import type {
   CommandContext,
   CommandResponse,
 } from "@brains/command-registry";
-import type { ViewRegistry } from "@brains/view-registry";
+import type { RenderService, RouteRegistry } from "@brains/render-service";
 import type { ServiceRegistry } from "@brains/service-registry";
-import type { RouteDefinition } from "@brains/view-registry";
+import type { RouteDefinition } from "@brains/render-service";
 import type { Template } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IContentProvider } from "@brains/content-service";
@@ -331,22 +331,30 @@ export class MockShell implements IShell {
     } as unknown as CommandRegistry;
   }
 
-  getViewRegistry(): ViewRegistry {
+  getRenderService(): RenderService {
     return {
-      registerRoute: (route: RouteDefinition) => {
+      get: () => undefined,
+      list: () => [],
+      validate: () => true,
+      findViewTemplate: () => undefined,
+      getRenderer: () => undefined,
+      hasRenderer: () => false,
+      listFormats: () => [],
+    } as unknown as RenderService;
+  }
+
+  getRouteRegistry(): RouteRegistry {
+    return {
+      register: (route: RouteDefinition) => {
         this.routes.set(route.path, route);
       },
-      getRoute: (path: string) => this.routes.get(path),
-      findRoute: () => undefined,
-      listRoutes: () => Array.from(this.routes.values()),
-      listRoutesByPlugin: () => [],
-      validateRoute: () => true,
-      registerViewTemplate: () => {},
-      getViewTemplate: () => undefined,
-      listViewTemplates: () => [],
-      validateViewTemplate: () => true,
-      findViewTemplate: () => undefined,
-    } as unknown as ViewRegistry;
+      unregister: (path: string) => {
+        this.routes.delete(path);
+      },
+      get: (path: string) => this.routes.get(path),
+      list: () => Array.from(this.routes.values()),
+      listByPlugin: () => [],
+    } as unknown as RouteRegistry;
   }
 
   getServiceRegistry(): ServiceRegistry {
@@ -422,9 +430,9 @@ export class MockShell implements IShell {
     routes: RouteDefinition[],
     options?: { pluginId?: string },
   ): void {
-    const viewReg = this.getViewRegistry();
+    const routeReg = this.getRouteRegistry();
     routes.forEach((route) => {
-      viewReg.registerRoute({
+      routeReg.register({
         ...route,
         pluginId: options?.pluginId,
       });

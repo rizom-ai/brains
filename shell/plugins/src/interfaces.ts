@@ -25,7 +25,11 @@ import type {
 } from "@brains/job-queue";
 import type { JobOptions, JobQueue } from "@brains/job-queue";
 import type { CommandRegistry } from "@brains/command-registry";
-import type { ViewRegistry, RouteDefinition } from "@brains/view-registry";
+import type {
+  RenderService,
+  RouteRegistry,
+  RouteDefinition,
+} from "@brains/render-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { PermissionService } from "@brains/permission-service";
@@ -55,7 +59,8 @@ export interface IShell {
   getEntityRegistry(): EntityRegistry;
   getJobQueueService(): JobQueueService;
   getCommandRegistry(): CommandRegistry;
-  getViewRegistry(): ViewRegistry;
+  getRenderService(): RenderService;
+  getRouteRegistry(): RouteRegistry;
   getConversationService(): IConversationService;
   getMcpTransport(): IMCPTransport;
   getPermissionService(): PermissionService;

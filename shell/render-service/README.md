@@ -1,6 +1,6 @@
-# @brains/view-registry
+# @brains/render-service
 
-View template and rendering registry for Personal Brain shell.
+Rendering service and template management for Personal Brain shell.
 
 ## Overview
 
@@ -19,13 +19,13 @@ This package manages view templates, renderers, and presentation logic for the B
 ## Installation
 
 ```bash
-bun add @brains/view-registry
+bun add @brains/render-service
 ```
 
 ## Usage
 
 ```typescript
-import { ViewRegistry } from "@brains/view-registry";
+import { ViewRegistry } from "@brains/render-service";
 
 const registry = ViewRegistry.getInstance();
 
@@ -82,7 +82,7 @@ interface ViewContext {
 ### Text Components
 
 ```typescript
-import { text, bold, italic, color } from "@brains/view-registry/terminal";
+import { text, bold, italic, color } from "@brains/render-service/terminal";
 
 registry.register("welcome", {
   format: "terminal",
@@ -371,8 +371,8 @@ const html = await registry.render("entity", data, { format: "html" });
 ## Testing
 
 ```typescript
-import { ViewRegistry } from "@brains/view-registry";
-import { createMockContext } from "@brains/view-registry/test";
+import { ViewRegistry } from "@brains/render-service";
+import { createMockContext } from "@brains/render-service/test";
 
 const registry = ViewRegistry.createFresh();
 
@@ -399,7 +399,7 @@ import {
   spinner,
   chart,
   tree,
-} from "@brains/view-registry/components";
+} from "@brains/render-service/components";
 
 // Box with border
 const boxed = box("Content", {

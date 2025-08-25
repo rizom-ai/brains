@@ -275,7 +275,7 @@ The Personal Brain project uses a modern, TypeScript-based stack optimized for b
 - `@brains/utils` - Common utilities
 - `@brains/db` - Database schemas and vector storage
 - `@brains/command-registry` - Command management
-- `@brains/view-registry` - View management
+- `@brains/render-service` - View management
 
 ## Version Requirements
 

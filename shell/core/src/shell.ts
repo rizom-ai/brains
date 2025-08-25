@@ -36,10 +36,10 @@ import { type IAIService } from "@brains/ai-service";
 import { PermissionService } from "@brains/permission-service";
 import { Logger } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
-import type { RouteDefinition } from "@brains/view-registry";
+import type { RouteDefinition } from "@brains/render-service";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
-import type { ViewRegistry } from "@brains/view-registry";
+import type { RenderService, RouteRegistry } from "@brains/render-service";
 import { ShellInitializer } from "./initialization/shellInitializer";
 
 /**
@@ -54,7 +54,8 @@ export interface ShellDependencies {
   serviceRegistry?: ServiceRegistry;
   entityRegistry?: EntityRegistry;
   messageBus?: MessageBus;
-  viewRegistry?: ViewRegistry;
+  renderService?: RenderService;
+  routeRegistry?: RouteRegistry;
   daemonRegistry?: DaemonRegistry;
   pluginManager?: PluginManager;
   commandRegistry?: CommandRegistry;
@@ -83,7 +84,8 @@ export class Shell implements IShell {
   private readonly pluginManager: PluginManager;
   private readonly commandRegistry: CommandRegistry;
   private readonly mcpService: IMCPService;
-  private readonly viewRegistry: ViewRegistry;
+  private readonly renderService: RenderService;
+  private readonly routeRegistry: RouteRegistry;
   private readonly daemonRegistry: DaemonRegistry;
   private readonly entityService: EntityService;
   private readonly aiService: IAIService;
@@ -116,6 +118,7 @@ export class Shell implements IShell {
     // Also reset dependent singletons
     ShellInitializer.resetInstance();
     JobProgressMonitor.resetInstance();
+    TemplateRegistry.resetInstance();
   }
 
   /**
@@ -150,7 +153,8 @@ export class Shell implements IShell {
     this.serviceRegistry = services.serviceRegistry;
     this.entityRegistry = services.entityRegistry;
     this.messageBus = services.messageBus;
-    this.viewRegistry = services.viewRegistry;
+    this.renderService = services.renderService;
+    this.routeRegistry = services.routeRegistry;
     this.daemonRegistry = services.daemonRegistry;
     this.pluginManager = services.pluginManager;
     this.commandRegistry = services.commandRegistry;
@@ -253,7 +257,7 @@ export class Shell implements IShell {
         })),
       };
 
-      this.viewRegistry.registerRoute(processedRoute);
+      this.routeRegistry.register(processedRoute);
     });
 
     this.logger.debug(`Registered ${routes.length} routes`, { pluginId });
@@ -397,8 +401,12 @@ export class Shell implements IShell {
     return this.contentService;
   }
 
-  public getViewRegistry(): ViewRegistry {
-    return this.viewRegistry;
+  public getRenderService(): RenderService {
+    return this.renderService;
+  }
+
+  public getRouteRegistry(): RouteRegistry {
+    return this.routeRegistry;
   }
 
   public getMessageBus(): MessageBus {
@@ -576,10 +584,7 @@ export class Shell implements IShell {
     // Store in central registry
     this.templateRegistry.register(scopedName, template);
 
-    // Register with ViewRegistry for rendering if layout is provided
-    if (template.layout?.component) {
-      this.viewRegistry.registerTemplate(scopedName, template);
-    }
+    // RenderService automatically queries central TemplateRegistry for templates with layout.component
 
     this.logger.debug(`Registered template: ${scopedName}`);
   }

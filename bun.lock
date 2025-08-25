@@ -319,6 +319,8 @@
       "dependencies": {
         "@brains/conversation-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
+        "@brains/render-service": "workspace:*",
+        "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
         "zod": "^3.25.1",
       },
@@ -361,9 +363,9 @@
         "@brains/messaging-service": "workspace:*",
         "@brains/permission-service": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/render-service": "workspace:*",
         "@brains/service-registry": "workspace:*",
         "@brains/utils": "workspace:*",
-        "@brains/view-registry": "workspace:*",
         "ai": "^4.3.16",
         "zod": "^3.25.1",
       },
@@ -507,6 +509,23 @@
         "typescript": "~5.7.2",
       },
     },
+    "shell/render-service": {
+      "name": "@brains/render-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/templates": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "preact": "^10.19.3",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shell/service-registry": {
       "name": "@brains/service-registry",
       "version": "0.1.0",
@@ -534,23 +553,6 @@
         "@brains/typescript-config": "workspace:*",
         "bun-types": "latest",
         "typescript": "^5.0.0",
-      },
-    },
-    "shell/view-registry": {
-      "name": "@brains/view-registry",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/templates": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "preact": "^10.19.3",
-        "zod": "^3.22.4",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
       },
     },
   },
@@ -632,6 +634,8 @@
 
     "@brains/plugins": ["@brains/plugins@workspace:shell/plugins"],
 
+    "@brains/render-service": ["@brains/render-service@workspace:shell/render-service"],
+
     "@brains/service-registry": ["@brains/service-registry@workspace:shell/service-registry"],
 
     "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
@@ -649,8 +653,6 @@
     "@brains/ui-library": ["@brains/ui-library@workspace:shared/ui-library"],
 
     "@brains/utils": ["@brains/utils@workspace:shared/utils"],
-
-    "@brains/view-registry": ["@brains/view-registry@workspace:shell/view-registry"],
 
     "@brains/webserver": ["@brains/webserver@workspace:interfaces/webserver"],
 
@@ -1074,7 +1076,7 @@
 
     "buffer-from": ["buffer-from@1.1.2", "", {}, "sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ=="],
 
-    "bun-types": ["bun-types@1.2.20", "", { "dependencies": { "@types/node": "*" }, "peerDependencies": { "@types/react": "^19" } }, "sha512-pxTnQYOrKvdOwyiyd/7sMt9yFOenN004Y6O4lCcCUoKVej48FS5cvTw9geRaEcB9TsDZaJKAxPTVvi8tFsVuXA=="],
+    "bun-types": ["bun-types@1.2.21", "", { "dependencies": { "@types/node": "*" }, "peerDependencies": { "@types/react": "^19" } }, "sha512-sa2Tj77Ijc/NTLS0/Odjq/qngmEPZfbfnOERi0KRUYhT9R8M4VBioWVmMWE5GrYbKMc+5lVybXygLdibHaqVqw=="],
 
     "bytes": ["bytes@3.1.2", "", {}, "sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg=="],
 
@@ -2040,6 +2042,8 @@
 
     "@types/body-parser/@types/node": ["@types/node@22.17.1", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-y3tBaz+rjspDTylNjAX37jEC3TETEFGNJL6uQDxwF9/8GLLIjW1rvVHlynyuUKMnMr1Roq8jOv3vkopBjC4/VA=="],
 
+    "@types/bun/bun-types": ["bun-types@1.2.20", "", { "dependencies": { "@types/node": "*" }, "peerDependencies": { "@types/react": "^19" } }, "sha512-pxTnQYOrKvdOwyiyd/7sMt9yFOenN004Y6O4lCcCUoKVej48FS5cvTw9geRaEcB9TsDZaJKAxPTVvi8tFsVuXA=="],
+
     "@types/connect/@types/node": ["@types/node@22.17.1", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-y3tBaz+rjspDTylNjAX37jEC3TETEFGNJL6uQDxwF9/8GLLIjW1rvVHlynyuUKMnMr1Roq8jOv3vkopBjC4/VA=="],
 
     "@types/cors/@types/node": ["@types/node@22.17.1", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-y3tBaz+rjspDTylNjAX37jEC3TETEFGNJL6uQDxwF9/8GLLIjW1rvVHlynyuUKMnMr1Roq8jOv3vkopBjC4/VA=="],
@@ -2229,6 +2233,8 @@
     "@tailwindcss/oxide/tar/minizlib": ["minizlib@3.0.2", "", { "dependencies": { "minipass": "^7.1.2" } }, "sha512-oG62iEk+CYt5Xj2YqI5Xi9xWUeZhDI8jjQmC5oThVH5JGCTgIjr7ciJDzC7MBzYd//WvR1OTmP5Q38Q8ShQtVA=="],
 
     "@tailwindcss/oxide/tar/yallist": ["yallist@5.0.0", "", {}, "sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw=="],
+
+    "@types/bun/bun-types/@types/node": ["@types/node@22.17.1", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-y3tBaz+rjspDTylNjAX37jEC3TETEFGNJL6uQDxwF9/8GLLIjW1rvVHlynyuUKMnMr1Roq8jOv3vkopBjC4/VA=="],
 
     "@typescript-eslint/typescript-estree/minimatch/brace-expansion": ["brace-expansion@2.0.2", "", { "dependencies": { "balanced-match": "^1.0.0" } }, "sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ=="],
 
