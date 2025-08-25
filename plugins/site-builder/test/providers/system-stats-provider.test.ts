@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
-import { createServicePluginHarness, type PluginTestHarness } from "@brains/plugins";
+import {
+  createServicePluginHarness,
+  type PluginTestHarness,
+} from "@brains/plugins";
 import { DashboardDataSchema } from "../../src/templates/dashboard/schema";
 
 describe("SystemStatsProvider", () => {
@@ -47,7 +50,9 @@ describe("SystemStatsProvider", () => {
       const provider = providers.get("system-stats");
 
       if (!provider || !provider.fetch) {
-        throw new Error("System stats provider not found or doesn't have fetch");
+        throw new Error(
+          "System stats provider not found or doesn't have fetch",
+        );
       }
 
       const rawResult = await provider.fetch();
@@ -67,7 +72,9 @@ describe("SystemStatsProvider", () => {
       const provider = providers.get("system-stats");
 
       if (!provider || !provider.fetch) {
-        throw new Error("System stats provider not found or doesn't have fetch");
+        throw new Error(
+          "System stats provider not found or doesn't have fetch",
+        );
       }
 
       const before = new Date().toISOString();
@@ -91,7 +98,9 @@ describe("SystemStatsProvider", () => {
       const provider = providers.get("system-stats");
 
       if (!provider || !provider.fetch) {
-        throw new Error("System stats provider not found or doesn't have fetch");
+        throw new Error(
+          "System stats provider not found or doesn't have fetch",
+        );
       }
 
       const rawResult = await provider.fetch();

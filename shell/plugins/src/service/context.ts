@@ -33,7 +33,10 @@ export interface ServicePluginContext extends CorePluginContext {
 
   // Content provider registration
   registerContentProvider: (provider: IContentProvider) => void;
-  fetchFromProvider: <T = unknown>(providerId: string, query?: unknown) => Promise<T>;
+  fetchFromProvider: <T = unknown>(
+    providerId: string,
+    query?: unknown,
+  ) => Promise<T>;
 
   // AI content generation
   generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;

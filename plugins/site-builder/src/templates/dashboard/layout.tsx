@@ -3,7 +3,7 @@
 import { h } from "preact";
 import { useState, useMemo } from "preact/hooks";
 import type { VNode } from "preact";
-import type { DashboardData, EntityStat } from "./schema";
+import { type DashboardData, type EntityStat } from "./schema";
 
 interface DashboardRenderProps {
   data: DashboardData;

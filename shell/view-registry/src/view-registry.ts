@@ -4,8 +4,8 @@ import type {
   OutputFormat,
   WebRenderer,
   ViewRegistry as IViewRegistry,
-  Template,
 } from "./types";
+import type { ContentTemplate } from "@brains/content-service";
 import { RouteRegistry } from "./route-registry";
 import { ViewTemplateRegistry } from "./view-template-registry";
 
@@ -89,7 +89,7 @@ export class ViewRegistry implements IViewRegistry {
 
   // ===== View Template Methods =====
 
-  registerTemplate<T>(name: string, template: Template<T>): void {
+  registerTemplate<T>(name: string, template: ContentTemplate<T>): void {
     // Extract plugin ID from namespaced name
     const parts = name.split(":");
     if (parts.length < 2) {

@@ -134,11 +134,12 @@ export type {
 
 // From @brains/view-registry
 export type {
-  Template,
   ComponentType,
-  TemplateDataContext,
 } from "@brains/view-registry";
-export { TemplateSchema } from "@brains/view-registry";
+
+// From @brains/content-service (Template moved here)
+export type { ContentTemplate } from "@brains/content-service";
+export { ContentTemplateSchema } from "@brains/content-service";
 
 // From @brains/messaging-service
 export type {

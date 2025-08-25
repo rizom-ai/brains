@@ -3,6 +3,8 @@ import {
   type InterfacePluginContext,
   type Daemon,
   type DaemonHealth,
+  type JobProgressEvent,
+  type JobContext,
 } from "@brains/plugins";
 import { ServerManager } from "./server-manager";
 import { existsSync } from "fs";
@@ -83,6 +85,16 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         };
       },
     };
+  }
+
+  /**
+   * Handle progress events (no-op for webserver interface)
+   */
+  protected async handleProgressEvent(
+    _event: JobProgressEvent,
+    _context: JobContext,
+  ): Promise<void> {
+    // Webserver doesn't need to handle progress events
   }
 
   /**

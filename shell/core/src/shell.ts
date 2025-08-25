@@ -35,7 +35,7 @@ import { type IAIService } from "@brains/ai-service";
 import { PermissionService } from "@brains/permission-service";
 import { Logger } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
-import type { Template } from "@brains/view-registry";
+import type { ContentTemplate } from "@brains/content-service";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
@@ -213,7 +213,7 @@ export class Shell implements IShell {
    * Register multiple templates at once
    */
   public registerTemplates(
-    templates: Record<string, Template>,
+    templates: Record<string, ContentTemplate>,
     pluginId?: string,
   ): void {
     this.logger.debug("Registering templates", {
@@ -231,7 +231,7 @@ export class Shell implements IShell {
    */
   public registerTemplate<T>(
     name: string,
-    template: Template<T>,
+    template: ContentTemplate<T>,
     pluginId?: string,
   ): void {
     // Apply scoping: shell templates get "shell:" prefix, plugins get "pluginId:" prefix

@@ -28,40 +28,10 @@ export const TemplateSchema = z.object({
     .optional(),
 });
 
-/**
- * Dependencies available to template getData method
- */
-export interface TemplateDataContext {
-  context: {
-    prompt?: string | undefined;
-    data?: Record<string, unknown> | undefined;
-    conversationId?: string | undefined;
-  };
-  dependencies: {
-    entityService: unknown; // EntityService from entity-service
-    logger: unknown; // Logger from utils
-    aiService: unknown; // IAIService from ai-service
-  };
-}
+// TemplateDataContext removed - was only used by deprecated getData method
 
-/**
- * Template for reusable generation patterns and view rendering
- * Inferred from TemplateSchema with proper typing for generic T
- */
-export interface Template<T = unknown>
-  extends Omit<z.infer<typeof TemplateSchema>, "schema" | "formatter"> {
-  schema: z.ZodType<T>;
-  formatter?: ContentFormatter<T>;
-  /**
-   * Optional provider ID for templates that fetch data from a content provider
-   */
-  providerId?: string;
-  /**
-   * Optional method to get data for templates that don't use AI generation
-   * Used when basePrompt is not provided
-   */
-  getData?: (dataContext: TemplateDataContext) => Promise<T>;
-}
+// Template has been moved to @brains/content-service as ContentTemplate
+// This interface is deprecated and will be removed
 
 /**
  * Site content entity types
@@ -151,6 +121,10 @@ export interface ViewTemplate<T = unknown> {
 
   // Mark components that need client-side hydration
   interactive: boolean;
+
+  // Content source information (preserved from ContentTemplate)
+  providerId?: string; // For provider-based data fetching
+  formatter?: ContentFormatter<T>; // For parsing stored content
 }
 
 /**

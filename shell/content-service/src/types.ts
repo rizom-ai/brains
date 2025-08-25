@@ -1,10 +1,40 @@
 import type {
   RouteDefinition,
   SectionDefinition,
-  Template,
 } from "@brains/view-registry";
 import type { ProgressInfo } from "./content-service";
 import type { IContentProvider, ProviderInfo } from "./providers/types";
+import { z } from "zod";
+import type { ContentFormatter } from "@brains/utils";
+
+/**
+ * Zod schema for ContentTemplate validation (used in plugin configurations)
+ */
+export const ContentTemplateSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  schema: z.any(), // ZodType can't be validated at runtime - required
+  basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
+  requiredPermission: z.enum(["anchor", "trusted", "public"]),
+  formatter: z.any().optional(), // ContentFormatter instance
+  layout: z
+    .object({
+      component: z.any(), // Component function or string
+      description: z.string().optional(),
+      interactive: z.boolean().optional(),
+      packageName: z.string().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * ContentTemplate for reusable generation patterns and view rendering
+ */
+export interface ContentTemplate<T = unknown>
+  extends Omit<z.infer<typeof ContentTemplateSchema>, "schema" | "formatter"> {
+  schema: z.ZodType<T>;
+  formatter?: ContentFormatter<T>;
+}
 
 /**
  * Context for content generation - simplified for template-based approach
@@ -23,17 +53,17 @@ export interface ContentService {
   /**
    * Register a reusable template
    */
-  registerTemplate<T>(name: string, template: Template<T>): void;
+  registerTemplate<T>(name: string, template: ContentTemplate<T>): void;
 
   /**
    * Get a registered template
    */
-  getTemplate(name: string): Template<unknown> | null;
+  getTemplate(name: string): ContentTemplate<unknown> | null;
 
   /**
    * List all available templates
    */
-  listTemplates(): Template<unknown>[];
+  listTemplates(): ContentTemplate<unknown>[];
 
   /**
    * Generate content using a template with entity-aware context
@@ -107,7 +137,10 @@ export interface ContentService {
   /**
    * Fetch data using a provider
    */
-  fetchFromProvider<T = unknown>(providerId: string, query?: unknown): Promise<T>;
+  fetchFromProvider<T = unknown>(
+    providerId: string,
+    query?: unknown,
+  ): Promise<T>;
 
   /**
    * Transform content using a provider

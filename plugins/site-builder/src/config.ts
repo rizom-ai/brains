@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TemplateSchema } from "@brains/plugins";
+import { ContentTemplateSchema } from "@brains/plugins";
 import { RouteDefinitionSchema } from "@brains/plugins";
 
 /**
@@ -27,7 +27,7 @@ export const siteBuilderConfigSchema = z.object({
     })
     .optional(),
   templates: z
-    .record(TemplateSchema)
+    .record(ContentTemplateSchema)
     .optional()
     .describe("Template definitions to register"),
   routes: z

@@ -6,9 +6,9 @@ import { ctaSectionSchema, type CTASection } from "./schema";
 import { CTALayout } from "./layout";
 import { CTASectionFormatter } from "./formatter";
 import ctaPrompt from "./prompt.txt";
-import type { Template } from "@brains/content-generator";
+import type { ContentTemplate } from "@brains/plugins";
 
-export const ctaTemplate: Template<CTASection> = {
+export const ctaTemplate: ContentTemplate<CTASection> = {
   name: "cta",
   description: "Call to action section",
   schema: ctaSectionSchema,

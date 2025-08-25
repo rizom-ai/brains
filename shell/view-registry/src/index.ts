@@ -17,8 +17,6 @@ export type {
   SiteBuilder,
   SiteContentEntityType,
   ComponentType,
-  Template,
-  TemplateDataContext,
 } from "./types";
 
 export {

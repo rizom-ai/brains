@@ -1,7 +1,7 @@
 import type { IShell, DefaultQueryResponse } from "../interfaces";
 import type { Logger } from "@brains/utils";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
-import type { Template } from "@brains/view-registry";
+import type { ContentTemplate } from "@brains/content-service";
 import type { ICoreEntityService } from "@brains/entity-service";
 import type { Batch, BatchJobStatus } from "@brains/job-queue";
 import type { JobQueue } from "@brains/job-queue";
@@ -37,7 +37,7 @@ export interface CorePluginContext {
     options?: { truncate?: number },
   ) => string;
   parseContent: <T = unknown>(templateName: string, content: string) => T;
-  registerTemplates: (templates: Record<string, Template>) => void;
+  registerTemplates: (templates: Record<string, ContentTemplate>) => void;
 
   // Query functionality (core shell operation)
   query: (
@@ -116,7 +116,7 @@ export function createCorePluginContext(
       return contentService.parseContent(templateName, content, pluginId);
     },
 
-    registerTemplates: (templates: Record<string, Template>): void => {
+    registerTemplates: (templates: Record<string, ContentTemplate>): void => {
       shell.registerTemplates(templates, pluginId);
     },
 

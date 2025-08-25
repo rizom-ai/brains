@@ -1,4 +1,4 @@
-import type { Template } from "@brains/plugins";
+import type { ContentTemplate } from "@brains/plugins";
 import { z } from "zod";
 import { topicExtractionResponseSchema } from "../schemas/extraction";
 
@@ -9,7 +9,7 @@ const extractionResultSchema = z.object({
 
 export type ExtractionResult = z.infer<typeof extractionResultSchema>;
 
-export const topicExtractionTemplate: Template<ExtractionResult> = {
+export const topicExtractionTemplate: ContentTemplate<ExtractionResult> = {
   name: "topics:extraction",
   description: "Extract topics from conversation text",
   schema: extractionResultSchema,

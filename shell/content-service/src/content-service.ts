@@ -1,5 +1,4 @@
-import type { GenerationContext } from "./types";
-import type { Template } from "@brains/view-registry";
+import type { GenerationContext, ContentTemplate } from "./types";
 import type { EntityService, SearchResult } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
@@ -38,7 +37,7 @@ export interface ContentServiceDependencies {
  */
 export class ContentService implements IContentService {
   // Template registry for local template management
-  private templates: Map<string, Template<unknown>> = new Map();
+  private templates: Map<string, ContentTemplate<unknown>> = new Map();
 
   // Provider registry for content providers
   private providers: Map<string, IContentProvider> = new Map();
@@ -72,23 +71,23 @@ export class ContentService implements IContentService {
   /**
    * Register a reusable template
    */
-  registerTemplate<T>(name: string, template: Template<T>): void {
+  registerTemplate<T>(name: string, template: ContentTemplate<T>): void {
     // When storing in a heterogeneous map, we lose specific type information
     // This is safe because templates are retrieved by name and used with appropriate types
-    this.templates.set(name, template as Template<unknown>);
+    this.templates.set(name, template as ContentTemplate<unknown>);
   }
 
   /**
    * Get a registered template
    */
-  getTemplate(name: string): Template<unknown> | null {
+  getTemplate(name: string): ContentTemplate<unknown> | null {
     return this.templates.get(name) ?? null;
   }
 
   /**
    * List all available templates
    */
-  listTemplates(): Template<unknown>[] {
+  listTemplates(): ContentTemplate<unknown>[] {
     return Array.from(this.templates.values());
   }
 
@@ -115,21 +114,12 @@ export class ContentService implements IContentService {
     }
 
     // Cast template to correct type
-    const typedTemplate = template as Template<T>;
+    const typedTemplate = template as ContentTemplate<T>;
 
     // Check if template supports AI generation
     if (!typedTemplate.basePrompt) {
-      // Template doesn't use AI - check for providerId
-      if (typedTemplate.providerId) {
-        const data = await this.fetchFromProvider(
-          typedTemplate.providerId,
-          context.data,
-        );
-        // Validate with template schema
-        return typedTemplate.schema.parse(data);
-      }
       throw new Error(
-        `Template ${templateName} must have either basePrompt or providerId`,
+        `Template ${templateName} must have basePrompt for content generation`,
       );
     }
 
@@ -179,7 +169,7 @@ export class ContentService implements IContentService {
     }
 
     // Cast template to correct type
-    const typedTemplate = template as Template<T>;
+    const typedTemplate = template as ContentTemplate<T>;
 
     if (!typedTemplate.formatter) {
       throw new Error(
@@ -286,7 +276,7 @@ export class ContentService implements IContentService {
    * Build enhanced prompt with context from template, user context, entities, and conversation
    */
   private async buildPrompt<T>(
-    template: Template<T>,
+    template: ContentTemplate<T>,
     context: GenerationContext,
     relevantEntities: SearchResult[] = [],
   ): Promise<string> {

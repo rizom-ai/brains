@@ -1,4 +1,4 @@
-import type { Template } from "@brains/view-registry";
+import type { ContentTemplate } from "@brains/content-service";
 import {
   defaultQueryResponseSchema,
   type DefaultQueryResponse,
@@ -9,7 +9,7 @@ import { DefaultQueryResponseFormatter } from "@brains/utils";
  * Knowledge query template for shell queries
  * Uses entity-aware search to provide contextual responses
  */
-export const knowledgeQueryTemplate: Template<DefaultQueryResponse> = {
+export const knowledgeQueryTemplate: ContentTemplate<DefaultQueryResponse> = {
   name: "shell:knowledge-query",
   description: "Knowledge-aware query processing with entity search",
   basePrompt: `You are a personal knowledge assistant with access to the user's entities and data.

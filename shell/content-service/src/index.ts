@@ -13,7 +13,9 @@ export type {
 export type {
   ContentService as IContentService,
   GenerationContext,
+  ContentTemplate,
 } from "./types";
+export { ContentTemplateSchema } from "./types";
 
 // Provider types
 export type {
