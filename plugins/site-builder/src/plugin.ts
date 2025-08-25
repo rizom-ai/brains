@@ -16,7 +16,6 @@ import {
   siteContentProductionAdapter,
 } from "./entities/site-content-adapter";
 import { dashboardTemplate } from "./templates/dashboard";
-import { SystemStatsProvider } from "./providers/system-stats-provider";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { SiteContentDerivationJobHandler } from "./handlers/site-content-derivation-handler";
 import { SiteContentGenerationJobHandler } from "./handlers/site-content-generation-handler";
@@ -74,11 +73,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     context.registerTemplates({ dashboard: dashboardTemplate });
     this.logger.debug("Registered dashboard template");
 
-    // Register system stats provider
-    const systemStatsProvider = new SystemStatsProvider(context.entityService);
-    context.registerContentProvider(systemStatsProvider);
-    this.logger.debug("Registered system stats provider");
-
     // Register dashboard route
     context.registerRoutes(
       [
@@ -91,7 +85,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
             {
               id: "main",
               template: "dashboard", // Plugin prefix is added automatically
-              // No static content - will use provider to fetch data dynamically
+              // No static content - will use DataSource to fetch data dynamically
             },
           ],
         },

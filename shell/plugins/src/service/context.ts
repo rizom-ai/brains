@@ -8,13 +8,17 @@ import type {
 import type { JobHandler, BatchOperation } from "@brains/job-queue";
 import type { JobOptions } from "@brains/job-queue";
 import { createId } from "@brains/utils";
-import type { RouteDefinition, ViewTemplate } from "@brains/render-service";
+import type {
+  RouteDefinition,
+  ViewTemplate,
+  RenderService,
+} from "@brains/render-service";
 import type {
   Conversation,
   Message,
   GetMessagesOptions,
 } from "@brains/conversation-service";
-import type { IContentProvider } from "@brains/content-service";
+import type { DataSource } from "@brains/datasource";
 import type { z } from "zod";
 import { createCorePluginContext } from "../core/context";
 
@@ -31,12 +35,8 @@ export interface ServicePluginContext extends CorePluginContext {
     adapter: EntityAdapter<T>,
   ) => void;
 
-  // Content provider registration
-  registerContentProvider: (provider: IContentProvider) => void;
-  fetchFromProvider: <T = unknown>(
-    providerId: string,
-    query?: unknown,
-  ) => Promise<T>;
+  // DataSource registration
+  registerDataSource: (name: string, dataSource: DataSource) => void;
 
   // AI content generation
   generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
@@ -75,6 +75,7 @@ export interface ServicePluginContext extends CorePluginContext {
   listRoutes: () => RouteDefinition[];
   getViewTemplate: (name: string) => ViewTemplate<unknown> | undefined;
   listViewTemplates: () => ViewTemplate<unknown>[];
+  getRenderService: () => RenderService;
 
   // Plugin metadata
   getPluginPackageName: (pluginId: string) => string | undefined;
@@ -96,6 +97,7 @@ export function createServicePluginContext(
   const jobQueueService = shell.getJobQueueService();
   const renderService = shell.getRenderService();
   const routeRegistry = shell.getRouteRegistry();
+  const dataSourceRegistry = shell.getDataSourceRegistry();
 
   return {
     ...coreContext,
@@ -106,14 +108,9 @@ export function createServicePluginContext(
       entityRegistry.registerEntityType(entityType, schema, adapter);
     },
 
-    // Content provider registration
-    registerContentProvider: (provider) => {
-      const contentService = shell.getContentService();
-      contentService.registerProvider(provider);
-    },
-    fetchFromProvider: <T = unknown>(providerId: string, query?: unknown) => {
-      const contentService = shell.getContentService();
-      return contentService.fetchFromProvider<T>(providerId, query);
+    // DataSource registration
+    registerDataSource: (name: string, dataSource: DataSource) => {
+      dataSourceRegistry.registerWithPrefix(name, dataSource, pluginId);
     },
 
     // AI content generation
@@ -205,6 +202,9 @@ export function createServicePluginContext(
     },
     listViewTemplates: () => {
       return renderService.list();
+    },
+    getRenderService: () => {
+      return renderService;
     },
 
     // Plugin metadata

@@ -252,14 +252,14 @@ describe("TemplateRegistry", () => {
           stats: z.array(z.object({ type: z.string(), count: z.number() })),
         }),
         requiredPermission: "public",
-        providerId: "system-stats",
+        dataSourceId: "system-stats",
       });
 
       registry.register("provider-template", providerTemplate);
 
       const retrieved = registry.get("provider-template");
       expect(retrieved).toBeDefined();
-      expect(retrieved?.providerId).toBe("system-stats");
+      expect(retrieved?.dataSourceId).toBe("system-stats");
     });
   });
 });

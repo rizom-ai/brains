@@ -3,6 +3,7 @@ import type {
   ServicePluginContext,
   RouteDefinition,
   ViewTemplate,
+  SectionDefinition,
 } from "@brains/plugins";
 import { join } from "path";
 import { fileURLToPath } from "url";
@@ -77,7 +78,13 @@ export class HydrationManager {
   /**
    * Update HTML files to include Preact scripts and compile hydration scripts
    */
-  async updateHTMLFiles(routes: RouteDefinition[]): Promise<void> {
+  async updateHTMLFiles(
+    routes: RouteDefinition[],
+    getContent?: (
+      route: RouteDefinition,
+      section: SectionDefinition,
+    ) => Promise<unknown>,
+  ): Promise<void> {
     for (const route of routes) {
       const hasInteractive = route.sections.some((section) => {
         const template = this.getViewTemplate(section.template);
@@ -121,7 +128,20 @@ export class HydrationManager {
         let hydrationScripts = "";
         for (const section of route.sections) {
           const template = this.getViewTemplate(section.template);
-          if (template?.interactive && section.content) {
+          if (template?.interactive) {
+            // Resolve content using the same logic as the renderer
+            let content = section.content;
+            if (!content && getContent) {
+              content = await getContent(route, section);
+            }
+
+            if (!content) {
+              this.logger.warn(
+                `No content for interactive section: ${section.id}, skipping hydration`,
+              );
+              continue;
+            }
+
             // Extract template name from the full template name
             // Format must be "pluginId:templateName" e.g., "site-builder:dashboard"
             const parts = section.template.split(":");
@@ -134,7 +154,7 @@ export class HydrationManager {
             const [, templateName] = parts;
 
             // Add data script and hydration script
-            hydrationScripts += `\n<script type="application/json" data-${templateName}-props="true">${JSON.stringify(section.content)}</script>`;
+            hydrationScripts += `\n<script type="application/json" data-${templateName}-props="true">${JSON.stringify(content)}</script>`;
             hydrationScripts += `\n<script src="/${templateName}-hydration.js"></script>`;
 
             // Get the plugin package name for hydration script resolution

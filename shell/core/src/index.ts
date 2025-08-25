@@ -34,3 +34,6 @@ export type { SerializableEntity, SerializableQueryResult } from "./types";
 
 // Re-export test utilities
 export { MockShell } from "../test/mock-shell";
+
+// Re-export DataSources
+export * from "./datasources";

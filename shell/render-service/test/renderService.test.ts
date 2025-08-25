@@ -3,6 +3,9 @@ import { RenderService, RouteRegistry } from "../src";
 import type { RouteDefinition } from "../src";
 import { TemplateRegistry } from "@brains/templates";
 import type { Template } from "@brains/templates";
+import { DataSourceRegistry } from "@brains/datasource";
+import type { DataSource } from "@brains/datasource";
+import { createSilentLogger } from "@brains/utils";
 import { z } from "zod";
 
 // Test schemas
@@ -17,6 +20,19 @@ const testTemplate: Template = {
   description: "Test template",
   schema: testSchema,
   requiredPermission: "public",
+  layout: {
+    component: () => "Test component",
+    interactive: false,
+  },
+};
+
+// Test template with DataSource
+const testTemplateWithDataSource: Template = {
+  name: "test-plugin:datasource-template",
+  description: "Test template with DataSource",
+  schema: testSchema,
+  requiredPermission: "public",
+  dataSourceId: "test:mock-data",
   layout: {
     component: () => "Test component",
     interactive: false,
@@ -38,15 +54,31 @@ const testRoute: RouteDefinition = {
   ],
 };
 
+// Mock DataSource
+const mockDataSource: DataSource<{ title: string; content: string }> = {
+  id: "mock-data",
+  name: "Mock Data Source",
+  description: "A test data source",
+  async fetch() {
+    return { title: "DataSource Title", content: "DataSource Content" };
+  },
+};
+
 describe("RenderService", () => {
   let renderService: RenderService;
   let templateRegistry: TemplateRegistry;
+  let dataSourceRegistry: DataSourceRegistry;
 
   beforeEach(() => {
     RenderService.resetInstance();
     TemplateRegistry.resetInstance();
+    DataSourceRegistry.resetInstance();
     templateRegistry = TemplateRegistry.createFresh();
-    renderService = RenderService.createFresh(templateRegistry);
+    dataSourceRegistry = DataSourceRegistry.createFresh(createSilentLogger());
+    renderService = RenderService.createFresh(
+      templateRegistry,
+      dataSourceRegistry,
+    );
   });
 
   test("should retrieve templates with layout components", () => {
@@ -141,6 +173,165 @@ describe("RenderService", () => {
 
     const formats = renderService.listFormats("test-plugin:test-template");
     expect(formats).toContain("web");
+  });
+
+  describe("resolveContent", () => {
+    test("should return undefined for non-existent template", async () => {
+      const result = await renderService.resolveContent(
+        "non-existent:template",
+      );
+      expect(result).toBeUndefined();
+    });
+
+    test("should resolve static content", async () => {
+      templateRegistry.register(testTemplate.name, testTemplate);
+
+      const staticContent = {
+        title: "Static Title",
+        content: "Static Content",
+      };
+      const result = await renderService.resolveContent(testTemplate.name, {
+        staticContent,
+      });
+
+      expect(result).toEqual(staticContent);
+    });
+
+    test("should resolve content from DataSource", async () => {
+      templateRegistry.register(
+        testTemplateWithDataSource.name,
+        testTemplateWithDataSource,
+      );
+      dataSourceRegistry.registerWithPrefix(
+        "mock-data",
+        mockDataSource,
+        "test",
+      );
+
+      const result = await renderService.resolveContent(
+        testTemplateWithDataSource.name,
+      );
+
+      expect(result).toEqual({
+        title: "DataSource Title",
+        content: "DataSource Content",
+      });
+    });
+
+    test("should prioritize static content over DataSource", async () => {
+      templateRegistry.register(
+        testTemplateWithDataSource.name,
+        testTemplateWithDataSource,
+      );
+      dataSourceRegistry.registerWithPrefix(
+        "mock-data",
+        mockDataSource,
+        "test",
+      );
+
+      const staticContent = {
+        title: "Static Title",
+        content: "Static Content",
+      };
+      const result = await renderService.resolveContent(
+        testTemplateWithDataSource.name,
+        {
+          staticContent,
+        },
+      );
+
+      expect(result).toEqual(staticContent);
+    });
+
+    test("should fall back to custom resolver", async () => {
+      templateRegistry.register(testTemplate.name, testTemplate);
+
+      const customResult = { title: "Custom Title", content: "Custom Content" };
+      const result = await renderService.resolveContent(testTemplate.name, {
+        customResolver: async () => customResult,
+      });
+
+      expect(result).toEqual(customResult);
+    });
+
+    test("should validate content against template schema", async () => {
+      templateRegistry.register(testTemplate.name, testTemplate);
+
+      // Mock console.warn to avoid test output noise
+      const originalWarn = console.warn;
+      console.warn = () => {};
+
+      try {
+        const invalidContent = { title: "Valid Title" }; // missing content
+        const result = await renderService.resolveContent(testTemplate.name, {
+          staticContent: invalidContent,
+        });
+
+        expect(result).toBeUndefined(); // Should fail validation and return undefined
+      } finally {
+        console.warn = originalWarn;
+      }
+    });
+
+    test("should handle DataSource fetch errors gracefully", async () => {
+      const errorDataSource: DataSource = {
+        id: "error-data",
+        name: "Error Data Source",
+        async fetch() {
+          throw new Error("DataSource error");
+        },
+      };
+
+      const templateWithErrorDataSource: Template = {
+        ...testTemplate,
+        name: "test:error-template",
+        dataSourceId: "test:error-data",
+      };
+
+      templateRegistry.register(
+        templateWithErrorDataSource.name,
+        templateWithErrorDataSource,
+      );
+      dataSourceRegistry.registerWithPrefix(
+        "error-data",
+        errorDataSource,
+        "test",
+      );
+
+      // Mock console.warn to avoid test output noise
+      const originalWarn = console.warn;
+      console.warn = () => {};
+
+      try {
+        const result = await renderService.resolveContent(
+          templateWithErrorDataSource.name,
+        );
+        expect(result).toBeUndefined(); // Should handle error gracefully
+      } finally {
+        console.warn = originalWarn;
+      }
+    });
+
+    test("should handle missing DataSource gracefully", async () => {
+      templateRegistry.register(
+        testTemplateWithDataSource.name,
+        testTemplateWithDataSource,
+      );
+      // Don't register the DataSource
+
+      // Mock console.warn to avoid test output noise
+      const originalWarn = console.warn;
+      console.warn = () => {};
+
+      try {
+        const result = await renderService.resolveContent(
+          testTemplateWithDataSource.name,
+        );
+        expect(result).toBeUndefined(); // Should handle missing DataSource gracefully
+      } finally {
+        console.warn = originalWarn;
+      }
+    });
   });
 });
 

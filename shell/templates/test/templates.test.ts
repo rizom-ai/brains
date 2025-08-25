@@ -25,7 +25,7 @@ describe("Templates", () => {
       layout: {
         interactive: true,
       },
-      providerId: "test-provider",
+      dataSourceId: "test-provider",
     };
 
     const result = TemplateSchema.safeParse(template);
@@ -51,7 +51,7 @@ describe("Templates", () => {
       description: "View rendering only",
       schema: z.object({ data: z.string() }),
       requiredPermission: "public",
-      providerId: "static-provider",
+      dataSourceId: "static-provider",
       layout: {
         interactive: false,
       },

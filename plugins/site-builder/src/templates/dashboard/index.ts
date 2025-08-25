@@ -14,7 +14,7 @@ export const dashboardTemplate = createTemplate<DashboardData>({
     "Generate system dashboard data with entity statistics and build information",
   requiredPermission: "public",
   formatter: new DashboardFormatter(),
-  providerId: "system-stats",
+  dataSourceId: "shell:system-stats",
   layout: {
     component: DashboardWidget,
     interactive: true,

@@ -183,9 +183,7 @@
       "name": "@brains/topics",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/core": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
         "zod": "^3.22.4",
       },
       "devDependencies": {
@@ -200,6 +198,7 @@
       "name": "@brains/default-site-content",
       "version": "0.0.1",
       "dependencies": {
+        "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
         "lucide-preact": "^0.460.0",
         "preact": "^10.19.3",
@@ -357,6 +356,7 @@
         "@brains/content-service": "workspace:*",
         "@brains/conversation-service": "workspace:*",
         "@brains/daemon-registry": "workspace:*",
+        "@brains/datasource": "workspace:*",
         "@brains/embedding-service": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
@@ -365,6 +365,7 @@
         "@brains/plugins": "workspace:*",
         "@brains/render-service": "workspace:*",
         "@brains/service-registry": "workspace:*",
+        "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
         "ai": "^4.3.16",
         "zod": "^3.25.1",
@@ -382,6 +383,21 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "shell/datasource": {
+      "name": "@brains/datasource",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/utils": "workspace:*",
+        "zod": "^3.22.4",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -495,6 +511,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@brains/command-registry": "workspace:*",
+        "@brains/datasource": "workspace:*",
         "@brains/messaging-service": "workspace:*",
         "@brains/permission-service": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -513,6 +530,7 @@
       "name": "@brains/render-service",
       "version": "0.1.0",
       "dependencies": {
+        "@brains/datasource": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
         "preact": "^10.19.3",
@@ -607,6 +625,8 @@
     "@brains/core": ["@brains/core@workspace:shell/core"],
 
     "@brains/daemon-registry": ["@brains/daemon-registry@workspace:shell/daemon-registry"],
+
+    "@brains/datasource": ["@brains/datasource@workspace:shell/datasource"],
 
     "@brains/default-site-content": ["@brains/default-site-content@workspace:shared/default-site-content"],
 

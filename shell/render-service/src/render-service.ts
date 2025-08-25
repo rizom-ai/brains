@@ -5,13 +5,21 @@ import type {
   WebRenderer,
 } from "./types";
 import type { TemplateRegistry, Template } from "@brains/templates";
+import type { DataSourceRegistry } from "@brains/datasource";
 
 export class RenderService implements IViewTemplateRegistry {
   private static instance: RenderService | null = null;
   private templateRegistry: TemplateRegistry;
+  private dataSourceRegistry: DataSourceRegistry;
 
-  public static getInstance(templateRegistry: TemplateRegistry): RenderService {
-    RenderService.instance ??= new RenderService(templateRegistry);
+  public static getInstance(
+    templateRegistry: TemplateRegistry,
+    dataSourceRegistry: DataSourceRegistry,
+  ): RenderService {
+    RenderService.instance ??= new RenderService(
+      templateRegistry,
+      dataSourceRegistry,
+    );
     return RenderService.instance;
   }
 
@@ -19,12 +27,19 @@ export class RenderService implements IViewTemplateRegistry {
     RenderService.instance = null;
   }
 
-  public static createFresh(templateRegistry: TemplateRegistry): RenderService {
-    return new RenderService(templateRegistry);
+  public static createFresh(
+    templateRegistry: TemplateRegistry,
+    dataSourceRegistry: DataSourceRegistry,
+  ): RenderService {
+    return new RenderService(templateRegistry, dataSourceRegistry);
   }
 
-  private constructor(templateRegistry: TemplateRegistry) {
+  private constructor(
+    templateRegistry: TemplateRegistry,
+    dataSourceRegistry: DataSourceRegistry,
+  ) {
     this.templateRegistry = templateRegistry;
+    this.dataSourceRegistry = dataSourceRegistry;
   }
 
   get(name: string): ViewTemplate<unknown> | undefined {
@@ -146,5 +161,76 @@ export class RenderService implements IViewTemplateRegistry {
     if (template.renderers.web) formats.push("web");
 
     return formats;
+  }
+
+  /**
+   * Resolve content for a template using multiple resolution strategies
+   * @param templateName - The name of the template
+   * @param options - Resolution options and strategies
+   * @returns The resolved content data, or undefined if no content could be resolved
+   */
+  async resolveContent<T = unknown>(
+    templateName: string,
+    options?: {
+      // Direct static content
+      staticContent?: unknown;
+
+      // Custom resolver function for plugin-specific logic
+      customResolver?: () => Promise<unknown | undefined>;
+
+      // Query parameters for DataSource resolution
+      query?: unknown;
+    },
+  ): Promise<T | undefined> {
+    const template = this.templateRegistry.get(templateName);
+    if (!template) {
+      return undefined; // Template not found
+    }
+
+    // Try static content first if provided
+    if (options?.staticContent !== undefined) {
+      try {
+        return template.schema.parse(options.staticContent);
+      } catch (error) {
+        console.warn(
+          `Static content doesn't match template ${templateName} schema:`,
+          error,
+        );
+      }
+    }
+
+    // Try DataSource resolution if template has one configured
+    if (template.dataSourceId) {
+      try {
+        const dataSource = this.dataSourceRegistry.get(template.dataSourceId);
+        if (dataSource?.fetch) {
+          const result = await dataSource.fetch(options?.query);
+          return template.schema.parse(result);
+        }
+      } catch (error) {
+        console.warn(
+          `DataSource resolution failed for template ${templateName}:`,
+          error,
+        );
+      }
+    }
+
+    // Try custom resolver as fallback
+    if (options?.customResolver) {
+      try {
+        const result = await options.customResolver();
+        if (result !== undefined) {
+          return template.schema.parse(result);
+        }
+      } catch (error) {
+        console.warn(
+          `Custom resolver failed for template ${templateName}:`,
+          error,
+        );
+      }
+    }
+
+    // No strategy succeeded
+    return undefined;
   }
 }

@@ -41,6 +41,8 @@ import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
 import type { RenderService, RouteRegistry } from "@brains/render-service";
 import { ShellInitializer } from "./initialization/shellInitializer";
+import type { DataSourceRegistry } from "@brains/datasource";
+import { SystemStatsDataSource } from "./datasources";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -97,6 +99,7 @@ export class Shell implements IShell {
   private readonly jobProgressMonitor: JobProgressMonitor;
   private readonly permissionService: PermissionService;
   private readonly templateRegistry: TemplateRegistry;
+  private readonly dataSourceRegistry: DataSourceRegistry;
   private initialized = false;
 
   /**
@@ -159,6 +162,7 @@ export class Shell implements IShell {
     this.pluginManager = services.pluginManager;
     this.commandRegistry = services.commandRegistry;
     this.templateRegistry = services.templateRegistry;
+    this.dataSourceRegistry = services.dataSourceRegistry;
     this.mcpService = services.mcpService;
     this.entityService = services.entityService;
     this.aiService = services.aiService;
@@ -204,6 +208,9 @@ export class Shell implements IShell {
       // Start the job progress monitor
       this.jobProgressMonitor.start();
       this.logger.info("Job progress monitor started");
+
+      // Register core DataSources
+      this.registerCoreDataSources();
 
       // Shell commands now provided by system plugin
 
@@ -594,5 +601,28 @@ export class Shell implements IShell {
    */
   public getTemplate(name: string): Template | undefined {
     return this.templateRegistry.get(name);
+  }
+
+  /**
+   * Get the DataSource registry
+   */
+  public getDataSourceRegistry(): DataSourceRegistry {
+    return this.dataSourceRegistry;
+  }
+
+  /**
+   * Register core DataSources that are built into the shell
+   */
+  private registerCoreDataSources(): void {
+    this.logger.debug("Registering core DataSources");
+
+    // Register the SystemStats DataSource with shell prefix
+    const systemStatsDataSource = new SystemStatsDataSource(this.entityService);
+    this.dataSourceRegistry.registerWithPrefix(
+      "system-stats",
+      systemStatsDataSource,
+    );
+
+    this.logger.debug("Core DataSources registered");
   }
 }

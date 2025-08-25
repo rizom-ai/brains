@@ -63,7 +63,10 @@ export class PreactBuilder implements StaticSiteBuilder {
     );
 
     if (interactiveTemplates.length > 0) {
-      await hydrationManager.updateHTMLFiles(context.routes);
+      await hydrationManager.updateHTMLFiles(
+        context.routes,
+        context.getContent,
+      );
     }
 
     onProgress("Preact build complete");

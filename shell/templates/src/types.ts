@@ -91,7 +91,7 @@ export const TemplateSchema = z.object({
       interactive: z.boolean().optional(),
     })
     .optional(),
-  providerId: z.string().optional(),
+  dataSourceId: z.string().optional(),
 });
 
 export type TemplateInput = z.infer<typeof TemplateSchema>;

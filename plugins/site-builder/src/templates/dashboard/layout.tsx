@@ -74,6 +74,30 @@ const DashboardRender = ({
         ))}
       </div>
 
+      {/* Recent entities - shown when details are toggled */}
+      {showDetails && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-3">Recent Entities</h3>
+          <div className="space-y-2">
+            {data.recentEntities.map((entity) => (
+              <div key={entity.id} className="bg-theme p-3 rounded border">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium">{entity.title}</h4>
+                    <p className="text-sm text-theme-muted">
+                      Type: {entity.type} | ID: {entity.id}
+                    </p>
+                  </div>
+                  <span className="text-xs text-theme-muted">
+                    {new Date(entity.created).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Build info */}
       <div className="mt-6 text-sm text-theme-muted">
         Built: {new Date(data.buildInfo.timestamp).toLocaleString()}

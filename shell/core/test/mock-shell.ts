@@ -40,6 +40,7 @@ import type { Template } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IContentProvider } from "@brains/content-service";
 import { PermissionService } from "@brains/permission-service";
+import type { DataSourceRegistry, DataSource } from "@brains/datasource";
 
 import { createSilentLogger } from "@brains/utils";
 
@@ -57,6 +58,7 @@ export class MockShell implements IShell {
   private entities = new Map<string, BaseEntity>();
   private entityTypes = new Set<string>();
   private contentProviders = new Map<string, IContentProvider>();
+  private dataSources = new Map<string, DataSource>();
   private messageHandlers = new Map<
     string,
     Set<MessageHandler<unknown, unknown>>
@@ -388,6 +390,32 @@ export class MockShell implements IShell {
   getPermissionService(): PermissionService {
     // Return a mock PermissionService for testing
     return new PermissionService({});
+  }
+
+  getDataSourceRegistry(): DataSourceRegistry {
+    return {
+      register: (name: string, dataSource: DataSource) => {
+        this.dataSources.set(name, dataSource);
+      },
+      registerWithId: (id: string, dataSource: DataSource) => {
+        this.dataSources.set(id, dataSource);
+      },
+      registerWithPrefix: (
+        name: string,
+        dataSource: DataSource,
+        prefix?: string,
+      ) => {
+        const scopedId = prefix ? `${prefix}:${name}` : `shell:${name}`;
+        this.dataSources.set(scopedId, dataSource);
+      },
+      get: (id: string) => this.dataSources.get(id),
+      has: (id: string) => this.dataSources.has(id),
+      list: () => Array.from(this.dataSources.values()),
+      getIds: () => Array.from(this.dataSources.keys()),
+      unregister: (id: string) => {
+        this.dataSources.delete(id);
+      },
+    } as unknown as DataSourceRegistry;
   }
 
   async generateContent<T = unknown>(

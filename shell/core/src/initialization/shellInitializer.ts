@@ -14,6 +14,7 @@ import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import { RenderService, RouteRegistry } from "@brains/render-service";
 import { TemplateRegistry } from "@brains/templates";
+import { DataSourceRegistry } from "@brains/datasource";
 import {
   EmbeddingService,
   type IEmbeddingService,
@@ -51,6 +52,7 @@ export interface ShellServices {
   pluginManager: PluginManager;
   commandRegistry: CommandRegistry;
   templateRegistry: TemplateRegistry;
+  dataSourceRegistry: DataSourceRegistry;
   mcpService: IMCPService;
   embeddingService: IEmbeddingService;
   entityService: EntityService;
@@ -230,10 +232,13 @@ export class ShellInitializer {
     // Template registry
     const templateRegistry = TemplateRegistry.getInstance(logger);
 
+    // DataSource registry
+    const dataSourceRegistry = DataSourceRegistry.getInstance(logger);
+
     // Render and route services
     const renderService =
       dependencies?.renderService ??
-      RenderService.getInstance(templateRegistry);
+      RenderService.getInstance(templateRegistry, dataSourceRegistry);
     const routeRegistry =
       dependencies?.routeRegistry ?? RouteRegistry.getInstance();
     const daemonRegistry =
@@ -336,6 +341,7 @@ export class ShellInitializer {
       pluginManager,
       commandRegistry,
       templateRegistry,
+      dataSourceRegistry,
       mcpService,
       embeddingService,
       entityService,

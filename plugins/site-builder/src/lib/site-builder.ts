@@ -212,31 +212,49 @@ export class SiteBuilder implements ISiteBuilder {
     route: { id: string },
     environment: "preview" | "production" = "preview",
   ): Promise<unknown> {
-    // If content is provided directly, use it
-    if (section.content) {
-      return section.content;
+    // If no template, only static content is possible
+    if (!section.template) {
+      return section.content ?? null;
     }
 
-    // Look up entity by ID pattern (routeId:sectionId)
-    const entityType =
-      environment === "production"
-        ? "site-content-production"
-        : "site-content-preview";
-    const entityId = `${route.id}:${section.id}`;
+    // Add plugin scope if not already present
+    const templateName = section.template.includes(":")
+      ? section.template
+      : `site-builder:${section.template}`;
 
-    try {
-      const entity = await this.context.entityService.getEntity(
-        entityType,
-        entityId,
-      );
-      if (entity && section.template) {
-        this.logger.debug(`Found entity ${entityId}, parsing content`);
-        return this.context.parseContent(section.template, entity.content);
-      }
-    } catch (error) {
-      this.logger.debug(`No entity found with ID ${entityId}`, { error });
-    }
+    const renderService = this.context.getRenderService();
 
-    return null;
+    // Use RenderService with all resolution strategies
+    const content = await renderService.resolveContent(templateName, {
+      // Static content from section definition
+      staticContent: section.content,
+
+      // Custom resolver for site-builder's entity storage
+      customResolver: async () => {
+        const entityType =
+          environment === "production"
+            ? "site-content-production"
+            : "site-content-preview";
+        const entityId = `${route.id}:${section.id}`;
+
+        try {
+          const entity = await this.context.entityService.getEntity(
+            entityType,
+            entityId,
+          );
+          if (entity) {
+            this.logger.debug(`Found stored entity content for ${entityId}`);
+            return this.context.parseContent(section.template, entity.content);
+          }
+        } catch (error) {
+          this.logger.debug(`No stored entity found with ID ${entityId}`, {
+            error,
+          });
+        }
+        return undefined;
+      },
+    });
+
+    return content ?? null;
   }
 }

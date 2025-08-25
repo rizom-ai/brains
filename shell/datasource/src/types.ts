@@ -5,7 +5,11 @@
  * DataSources are registered in the DataSourceRegistry and referenced by templates
  * via their dataSourceId property.
  */
-export interface DataSource {
+export interface DataSource<
+  TFetch = unknown,
+  TGenerate = unknown,
+  TTransform = unknown,
+> {
   /**
    * Unique identifier for this data source
    */
@@ -25,19 +29,19 @@ export interface DataSource {
    * Optional: Fetch existing data
    * Used by data sources that aggregate or retrieve data (e.g., dashboard stats, API data)
    */
-  fetch?: (query?: unknown) => Promise<unknown>;
+  fetch?: (query?: unknown) => Promise<TFetch>;
 
   /**
    * Optional: Generate new content
    * Used by data sources that create content (e.g., AI-generated content, reports)
    */
-  generate?: (request: unknown) => Promise<unknown>;
+  generate?: (request: unknown) => Promise<TGenerate>;
 
   /**
    * Optional: Transform content between formats
    * Used by data sources that convert content (e.g., markdown to HTML, data formatting)
    */
-  transform?: (content: unknown, format: string) => Promise<unknown>;
+  transform?: (content: unknown, format: string) => Promise<TTransform>;
 }
 
 /**

@@ -7,6 +7,7 @@ import { createSilentLogger } from "@brains/utils";
 import type { Template } from "@brains/templates";
 import type { MessageHandler } from "@brains/messaging-service";
 import type { IContentProvider } from "@brains/content-service";
+import type { DataSource } from "@brains/datasource";
 import { MockShell } from "@brains/core";
 
 export interface HarnessOptions {
@@ -99,6 +100,37 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    */
   getContentProviders(): Map<string, IContentProvider> {
     return this.mockShell.getContentProviders();
+  }
+
+  /**
+   * Register a DataSource for testing
+   */
+  registerDataSource(
+    name: string,
+    dataSource: DataSource,
+    prefix?: string,
+  ): void {
+    this.mockShell
+      .getDataSourceRegistry()
+      .registerWithPrefix(name, dataSource, prefix);
+  }
+
+  /**
+   * Get registered DataSources
+   */
+  getDataSources(): Map<string, DataSource> {
+    const registry = this.mockShell.getDataSourceRegistry();
+    const dataSources = new Map<string, DataSource>();
+
+    // Get all DataSource IDs and their corresponding DataSources
+    registry.getIds().forEach((id) => {
+      const dataSource = registry.get(id);
+      if (dataSource) {
+        dataSources.set(id, dataSource);
+      }
+    });
+
+    return dataSources;
   }
 
   /**
