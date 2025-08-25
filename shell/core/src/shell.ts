@@ -26,16 +26,16 @@ import type {
 import type { MessageBus } from "@brains/messaging-service";
 import type { PluginManager } from "@brains/plugins";
 import type { CommandRegistry } from "@brains/command-registry";
+import { TemplateRegistry, type Template } from "@brains/templates";
 import { type IMCPService, type IMCPTransport } from "@brains/mcp-service";
 import type { DaemonRegistry } from "@brains/daemon-registry";
 import { type IEmbeddingService } from "@brains/embedding-service";
 import { type IConversationService } from "@brains/conversation-service";
-import type { ContentService } from "@brains/content-service";
+import type { ContentService, ContentTemplate } from "@brains/content-service";
 import { type IAIService } from "@brains/ai-service";
 import { PermissionService } from "@brains/permission-service";
 import { Logger } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
-import type { Template } from "@brains/templates";
 import type { RouteDefinition } from "@brains/view-registry";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
@@ -94,6 +94,7 @@ export class Shell implements IShell {
   private readonly batchJobManager: BatchJobManager;
   private readonly jobProgressMonitor: JobProgressMonitor;
   private readonly permissionService: PermissionService;
+  private readonly templateRegistry: TemplateRegistry;
   private initialized = false;
 
   /**
@@ -164,6 +165,9 @@ export class Shell implements IShell {
     this.jobProgressMonitor = services.jobProgressMonitor;
     this.permissionService = services.permissionService;
 
+    // Initialize template registry with logger
+    this.templateRegistry = new TemplateRegistry(this.logger);
+
     // Register only the services that plugins actually need
     shellInitializer.registerServices(services, this);
   }
@@ -224,34 +228,6 @@ export class Shell implements IShell {
     Object.entries(templates).forEach(([name, template]) => {
       this.registerTemplate(name, template, pluginId);
     });
-  }
-
-  /**
-   * Register a unified template for both content generation and view rendering
-   */
-  public registerTemplate(
-    name: string,
-    template: Template,
-    pluginId?: string,
-  ): void {
-    // Apply scoping: shell templates get "shell:" prefix, plugins get "pluginId:" prefix
-    const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
-
-    this.logger.debug("Registering unified template", {
-      originalName: name,
-      scopedName,
-      pluginId: pluginId ?? "shell",
-    });
-
-    // Register with ContentGenerator for content generation
-    this.contentService.registerTemplate(scopedName, template);
-
-    // Register with ViewRegistry for rendering if layout is provided
-    if (template.layout?.component) {
-      this.viewRegistry.registerTemplate(scopedName, template);
-    }
-
-    this.logger.debug(`Registered unified template: ${scopedName}`);
   }
 
   /**
@@ -583,5 +559,57 @@ export class Shell implements IShell {
         return this.batchJobManager.getBatchStatus(batchId);
       },
     };
+  }
+
+  // =====================================
+  // Template Registry Methods
+  // =====================================
+
+  /**
+   * Register a template in the central registry
+   */
+  public registerTemplate(
+    name: string,
+    template: Template,
+    pluginId?: string,
+  ): void {
+    const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
+
+    // Store in central registry
+    this.templateRegistry.register(scopedName, template);
+
+    // Also register with legacy services for backward compatibility
+    // TODO: Remove these after migration is complete
+    if (template.basePrompt || template.formatter || template.providerId) {
+      const contentTemplate: ContentTemplate = {
+        name: template.name,
+        description: template.description,
+        schema: template.schema,
+        requiredPermission: template.requiredPermission,
+      };
+
+      if (template.basePrompt) {
+        contentTemplate.basePrompt = template.basePrompt;
+      }
+
+      if (template.formatter) {
+        contentTemplate.formatter = template.formatter;
+      }
+
+      this.contentService.registerTemplate(scopedName, contentTemplate);
+    }
+
+    if (template.layout?.component) {
+      this.viewRegistry.registerTemplate(scopedName, template);
+    }
+
+    this.logger.debug(`Registered template: ${scopedName}`);
+  }
+
+  /**
+   * Get a template by name from the central registry
+   */
+  public getTemplate(name: string): Template | undefined {
+    return this.templateRegistry.get(name);
   }
 }

@@ -99,7 +99,8 @@ export class TemplateRegistry {
    */
   getPluginTemplateNames(pluginId: string): string[] {
     const prefix = `${pluginId}:`;
-    return Array.from(this.templates.keys())
-      .filter((name) => name.startsWith(prefix));
+    return Array.from(this.templates.keys()).filter((name) =>
+      name.startsWith(prefix),
+    );
   }
 }

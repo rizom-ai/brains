@@ -21,7 +21,7 @@ describe("TemplateRegistry", () => {
       });
 
       registry.register("test-template", template);
-      
+
       const retrieved = registry.get("test-template");
       expect(retrieved).toBeDefined();
       expect(retrieved?.name).toBe("test");
@@ -77,8 +77,8 @@ describe("TemplateRegistry", () => {
     it("should list all templates as array", () => {
       const list = registry.list();
       expect(list).toHaveLength(2);
-      expect(list.some(t => t.name === "template1")).toBe(true);
-      expect(list.some(t => t.name === "template2")).toBe(true);
+      expect(list.some((t) => t.name === "template1")).toBe(true);
+      expect(list.some((t) => t.name === "template2")).toBe(true);
     });
 
     it("should return template names", () => {
@@ -124,8 +124,8 @@ describe("TemplateRegistry", () => {
     it("should get templates by plugin ID", () => {
       const plugin1Templates = registry.getPluginTemplates("plugin1");
       expect(plugin1Templates).toHaveLength(2);
-      expect(plugin1Templates.some(t => t.name === "template1")).toBe(true);
-      expect(plugin1Templates.some(t => t.name === "template2")).toBe(true);
+      expect(plugin1Templates.some((t) => t.name === "template1")).toBe(true);
+      expect(plugin1Templates.some((t) => t.name === "template2")).toBe(true);
 
       const plugin2Templates = registry.getPluginTemplates("plugin2");
       expect(plugin2Templates).toHaveLength(1);
@@ -215,7 +215,7 @@ describe("TemplateRegistry", () => {
       });
 
       registry.register("complex-template", templateWithLayout);
-      
+
       const retrieved = registry.get("complex-template");
       expect(retrieved).toBeDefined();
       expect(retrieved?.layout).toBeDefined();
@@ -236,7 +236,7 @@ describe("TemplateRegistry", () => {
       });
 
       registry.register("formatted-template", templateWithFormatter);
-      
+
       const retrieved = registry.get("formatted-template");
       expect(retrieved).toBeDefined();
       expect(retrieved?.formatter).toBeDefined();
@@ -248,17 +248,18 @@ describe("TemplateRegistry", () => {
       const providerTemplate = createTemplate({
         name: "provider",
         description: "Template with provider",
-        schema: z.object({ stats: z.array(z.object({ type: z.string(), count: z.number() })) }),
+        schema: z.object({
+          stats: z.array(z.object({ type: z.string(), count: z.number() })),
+        }),
         requiredPermission: "public",
         providerId: "system-stats",
       });
 
       registry.register("provider-template", providerTemplate);
-      
+
       const retrieved = registry.get("provider-template");
       expect(retrieved).toBeDefined();
       expect(retrieved?.providerId).toBe("system-stats");
     });
   });
-
 });
