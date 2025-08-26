@@ -133,7 +133,7 @@ describe("SiteContentGenerationJobHandler", () => {
     });
 
     test("should handle generation errors gracefully", async () => {
-      // Mock generateContent to throw an error
+      // Test 1: Real errors should be re-thrown
       const generateContentSpy = spyOn(context, "generateContent");
       generateContentSpy.mockRejectedValue(new Error("AI service unavailable"));
 
@@ -155,6 +155,24 @@ describe("SiteContentGenerationJobHandler", () => {
           mockProgressReporter as ProgressReporter,
         ),
       ).rejects.toThrow("AI service unavailable");
+
+      // Test 2: Templates without generation support should be skipped gracefully
+      generateContentSpy.mockRejectedValue(
+        new Error("Template test-template doesn't support content generation"),
+      );
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        mockProgressReporter as ProgressReporter,
+      );
+
+      expect(result).toBe("[Template test-template is fetch-only]");
+      expect(mockProgressReporter.report).toHaveBeenCalledWith({
+        progress: 3,
+        total: 3,
+        message: "Skipped landing:hero - template doesn't support generation",
+      });
     });
 
     test("should handle missing template gracefully", async () => {

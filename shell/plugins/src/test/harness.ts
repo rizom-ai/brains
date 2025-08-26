@@ -107,9 +107,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    */
   registerDataSource(dataSource: DataSource): void {
     // Just register the DataSource directly - the register method handles prefixing
-    this.mockShell
-      .getDataSourceRegistry()
-      .register(dataSource);
+    this.mockShell.getDataSourceRegistry().register(dataSource);
   }
 
   /**

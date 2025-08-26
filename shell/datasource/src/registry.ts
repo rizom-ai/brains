@@ -48,10 +48,11 @@ export class DataSourceRegistry {
    * If the ID doesn't contain ":", applies "shell:" prefix
    */
   register(dataSource: DataSource): void {
-    const id = dataSource.id.includes(':') ? dataSource.id : `shell:${dataSource.id}`;
+    const id = dataSource.id.includes(":")
+      ? dataSource.id
+      : `shell:${dataSource.id}`;
     this.registerWithId(id, dataSource);
   }
-
 
   /**
    * Internal method to register a data source with a specific ID

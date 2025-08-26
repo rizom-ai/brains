@@ -39,13 +39,13 @@ describe("AIContentDataSource", () => {
     getMessagesMock.mockReset();
     searchMock.mockReset();
     getTemplateMock.mockReset();
-    
+
     dataSource = new AIContentDataSource(
       mockAIService,
       mockConversationService,
       mockEntityService,
       mockTemplateRegistry,
-      logger
+      logger,
     );
   });
 
@@ -53,7 +53,9 @@ describe("AIContentDataSource", () => {
     it("should have correct metadata", () => {
       expect(dataSource.id).toBe("ai-content");
       expect(dataSource.name).toBe("AI Content Generator");
-      expect(dataSource.description).toBe("Generates content using AI based on templates and prompts");
+      expect(dataSource.description).toBe(
+        "Generates content using AI based on templates and prompts",
+      );
     });
   });
 
@@ -63,26 +65,26 @@ describe("AIContentDataSource", () => {
     it("should throw error if templateName is missing", async () => {
       const request = {};
 
-      await expect(dataSource.generate(request, testSchema)).rejects.toThrow(
-        "Required"
+      expect(dataSource.generate(request, testSchema)).rejects.toThrow(
+        "Required",
       );
     });
 
     it("should throw error if template is not found", async () => {
       const request = {
-        templateName: "non-existent-template"
+        templateName: "non-existent-template",
       };
 
       getTemplateMock.mockReturnValue(null);
 
-      await expect(dataSource.generate(request, testSchema)).rejects.toThrow(
-        "Template not found: non-existent-template"
+      expect(dataSource.generate(request, testSchema)).rejects.toThrow(
+        "Template not found: non-existent-template",
       );
     });
 
     it("should throw error if template has no basePrompt", async () => {
       const request = {
-        templateName: "test-template"
+        templateName: "test-template",
       };
 
       const template = {
@@ -93,8 +95,8 @@ describe("AIContentDataSource", () => {
 
       getTemplateMock.mockReturnValue(template);
 
-      await expect(dataSource.generate(request, testSchema)).rejects.toThrow(
-        "Template test-template must have basePrompt for content generation"
+      expect(dataSource.generate(request, testSchema)).rejects.toThrow(
+        "Template test-template must have basePrompt for content generation",
       );
     });
 
@@ -102,7 +104,7 @@ describe("AIContentDataSource", () => {
       const request = {
         templateName: "test-template",
         prompt: "Generate a summary",
-        data: { topic: "AI" }
+        data: { topic: "AI" },
       };
 
       const schema = z.object({
@@ -112,18 +114,18 @@ describe("AIContentDataSource", () => {
       const template = {
         name: "test-template",
         basePrompt: "Generate content about:",
-        schema: schema
+        schema: schema,
       };
 
       const mockEntities = [
         {
           entity: { entityType: "note", id: "note-1" },
-          excerpt: "AI is transformative"
-        }
+          excerpt: "AI is transformative",
+        },
       ];
 
       const mockAIResponse = {
-        object: { content: "Generated AI content about the topic" }
+        object: { content: "Generated AI content about the topic" },
       };
 
       getTemplateMock.mockReturnValue(template);
@@ -135,15 +137,17 @@ describe("AIContentDataSource", () => {
       expect(getTemplateMock).toHaveBeenCalledWith("test-template");
       expect(searchMock).toHaveBeenCalledWith(
         "Generate content about: Generate a summary",
-        { limit: 5 }
+        { limit: 5 },
       );
-      expect(result).toEqual({ content: "Generated AI content about the topic" });
+      expect(result).toEqual({
+        content: "Generated AI content about the topic",
+      });
     });
 
     it("should generate structured content for templates with schema", async () => {
       const request = {
         templateName: "structured-template",
-        conversationId: "conv-123"
+        conversationId: "conv-123",
       };
 
       const schema = z.object({
@@ -154,14 +158,14 @@ describe("AIContentDataSource", () => {
       const template = {
         name: "structured-template",
         basePrompt: "Generate structured content:",
-        schema: schema
+        schema: schema,
       };
 
       const mockStructuredResponse = {
         object: {
           title: "Generated Title",
-          content: "Generated content"
-        }
+          content: "Generated content",
+        },
       };
 
       getTemplateMock.mockReturnValue(template);
@@ -173,11 +177,11 @@ describe("AIContentDataSource", () => {
       expect(generateObjectMock).toHaveBeenCalledWith(
         "Generate structured content:",
         expect.stringContaining("Generate structured content:"),
-        schema
+        schema,
       );
       expect(result).toEqual({
         title: "Generated Title",
-        content: "Generated content"
+        content: "Generated content",
       });
     });
   });

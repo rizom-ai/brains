@@ -16,6 +16,7 @@ export const ContentTemplateSchema = z.object({
   basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
   requiredPermission: z.enum(["anchor", "trusted", "public"]),
   formatter: z.any().optional(), // ContentFormatter instance
+  dataSourceId: z.string().optional(), // DataSource ID for content generation
   layout: z
     .object({
       component: z.any(), // Component function or string
@@ -33,6 +34,7 @@ export interface ContentTemplate<T = unknown>
   extends Omit<z.infer<typeof ContentTemplateSchema>, "schema" | "formatter"> {
   schema: z.ZodType<T>;
   formatter?: ContentFormatter<T>;
+  dataSourceId?: string;
 }
 
 /**
@@ -95,5 +97,4 @@ export interface ContentService {
     content: string,
     pluginId?: string,
   ): T;
-
 }

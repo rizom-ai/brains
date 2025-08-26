@@ -120,7 +120,7 @@ describe("Site Builder Content Resolution", () => {
     // Verify the plugin successfully registered a template that references a DataSource
     const siteBuilder = plugin.getSiteBuilder();
     expect(siteBuilder).toBeDefined();
-    
+
     // The key test: verify that templates with dataSourceId can be created and used
     expect(dataSourceTemplate.dataSourceId).toBe("shell:mock-test-data");
   });

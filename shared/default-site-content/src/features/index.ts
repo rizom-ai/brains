@@ -13,6 +13,7 @@ export const featuresTemplate = createTemplate<FeaturesSection>({
   description: "Features section with cards",
   schema: featuresSectionSchema,
   basePrompt: featuresPrompt,
+  dataSourceId: "shell:ai-content",
   requiredPermission: "public",
   formatter: new FeaturesSectionFormatter(),
   layout: {

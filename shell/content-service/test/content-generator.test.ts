@@ -12,7 +12,7 @@ import type {
 } from "@brains/render-service";
 import type { EntityService } from "@brains/entity-service";
 import type { AIService } from "@brains/ai-service";
-import type { IConversationService } from "@brains/conversation-service";
+import type { DataSourceRegistry } from "@brains/datasource";
 import { createSilentLogger } from "@brains/utils";
 
 describe("ContentService", () => {
@@ -45,23 +45,24 @@ describe("ContentService", () => {
       { role: "assistant", content: "Test response 1" },
     ]);
 
-    const mockConversationService = {
-      startConversation: mock(),
-      addMessage: mock(),
-      getMessages: mockGetMessages,
-      getConversation: mock(),
-      searchConversations: mock(),
-    };
-
     // Create a fresh TemplateRegistry for each test
     templateRegistry = TemplateRegistry.createFresh(mockLogger);
+
+    // Create mock DataSourceRegistry
+    const mockDataSourceRegistry = {
+      get: mock(),
+      register: mock(),
+      has: mock(),
+      getIds: mock(),
+      list: mock(),
+    };
 
     mockDependencies = {
       logger: mockLogger,
       entityService: mockEntityService as EntityService,
       aiService: mockAIService as AIService,
-      conversationService: mockConversationService as IConversationService,
       templateRegistry,
+      dataSourceRegistry: mockDataSourceRegistry as DataSourceRegistry,
     };
 
     contentService = new ContentService(mockDependencies);
@@ -72,6 +73,7 @@ describe("ContentService", () => {
       name: "test-template",
       description: "Test template for content generation",
       basePrompt: "Generate test content",
+      dataSourceId: "shell:ai-content",
       schema: z.string(),
       formatter: {
         format: mock((content) => `formatted: ${content}`),
@@ -79,97 +81,98 @@ describe("ContentService", () => {
       },
     };
 
+    const mockDataSource = {
+      id: "shell:ai-content",
+      name: "AI Content DataSource",
+      generate: mock(),
+    };
+
     beforeEach(() => {
       // Register the mock template with the registry
       templateRegistry.register("test-template", mockTemplate);
-      mockAIGenerateObject.mockResolvedValue({ object: "raw content" });
+      // Setup DataSource registry mock to return our mock DataSource
+      mockDependencies.dataSourceRegistry.get.mockReturnValue(mockDataSource);
+      mockDataSource.generate.mockResolvedValue("raw content");
     });
 
-    it("should generate content successfully", async () => {
+    it("should generate content successfully using DataSource", async () => {
       const result = await contentService.generateContent("test-template");
 
-      expect(mockAIGenerateObject).toHaveBeenCalledWith(
-        "Generate test content",
-        "Generate test content",
+      expect(mockDependencies.dataSourceRegistry.get).toHaveBeenCalledWith(
+        "shell:ai-content",
+      );
+      expect(mockDataSource.generate).toHaveBeenCalledWith(
+        { templateName: "test-template" },
         mockTemplate.schema,
       );
       expect(result).toBe("raw content");
     });
 
-    it("should include conversation context when conversationId is provided", async () => {
-      mockDependencies.conversationService.getMessages = mock(() =>
-        Promise.resolve([
-          { role: "user", content: "Hello" },
-          { role: "assistant", content: "Hi there!" },
-        ]),
-      );
-
-      await contentService.generateContent("test-template", {
+    it("should pass context including conversationId to DataSource", async () => {
+      const context = {
         conversationId: "test-conversation-123",
-      });
+        prompt: "Additional prompt",
+      };
 
-      expect(
-        mockDependencies.conversationService.getMessages,
-      ).toHaveBeenCalledWith("test-conversation-123", { limit: 20 });
-      expect(mockAIGenerateObject).toHaveBeenCalledWith(
-        "Generate test content",
-        expect.stringContaining(
-          "Recent conversation context:\nUser: Hello\n\nAssistant: Hi there!",
-        ),
+      await contentService.generateContent("test-template", context);
+
+      expect(mockDataSource.generate).toHaveBeenCalledWith(
+        {
+          templateName: "test-template",
+          conversationId: "test-conversation-123",
+          prompt: "Additional prompt",
+        },
         mockTemplate.schema,
       );
     });
 
-    it("should handle missing conversation context gracefully", async () => {
-      mockDependencies.conversationService.getMessages = mock(() =>
-        Promise.reject(new Error("Conversation not found")),
+    it("should throw error for templates without dataSourceId", async () => {
+      const templateWithoutDataSource: Template = {
+        name: "no-datasource-template",
+        description: "Template without DataSource",
+        basePrompt: "Generate content",
+        schema: z.string(),
+      };
+
+      templateRegistry.register(
+        "no-datasource-template",
+        templateWithoutDataSource,
       );
 
-      const result = await contentService.generateContent("test-template", {
-        conversationId: "non-existent-conversation",
-      });
-
-      // Should still generate content without conversation context
       expect(
-        mockDependencies.conversationService.getMessages,
-      ).toHaveBeenCalledWith("non-existent-conversation", { limit: 20 });
-      expect(mockAIGenerateObject).toHaveBeenCalledWith(
-        "Generate test content",
-        "Generate test content", // No conversation context added
-        mockTemplate.schema,
+        contentService.generateContent("no-datasource-template"),
+      ).rejects.toThrow(
+        "Template no-datasource-template doesn't support content generation. Add dataSourceId to enable generation through DataSource pattern.",
       );
-      expect(result).toBe("raw content");
     });
 
-    it("should combine template prompt with additional prompt", async () => {
+    it("should pass additional prompt to DataSource", async () => {
       await contentService.generateContent("test-template", {
         prompt: "Additional instructions",
       });
 
-      expect(mockAIGenerateObject).toHaveBeenCalledWith(
-        "Generate test content",
-        "Generate test content\n\nAdditional instructions: Additional instructions",
+      expect(mockDataSource.generate).toHaveBeenCalledWith(
+        {
+          templateName: "test-template",
+          prompt: "Additional instructions",
+        },
         mockTemplate.schema,
       );
     });
 
-    it("should pass context data correctly", async () => {
+    it("should pass context data to DataSource", async () => {
       const contextData = { key: "value" };
       await contentService.generateContent("test-template", {
         data: contextData,
       });
 
-      expect(mockAIGenerateObject).toHaveBeenCalledWith(
-        "Generate test content",
-        expect.stringContaining("Generate test content"),
+      expect(mockDataSource.generate).toHaveBeenCalledWith(
+        {
+          templateName: "test-template",
+          data: contextData,
+        },
         mockTemplate.schema,
       );
-
-      // Verify the enhanced prompt includes the context data
-      const actualCall = mockAIGenerateObject.mock.calls[0];
-      const enhancedPrompt = actualCall[1] as string;
-      expect(enhancedPrompt).toContain("Context data:");
-      expect(enhancedPrompt).toContain('"key": "value"');
     });
 
     it("should handle templates without formatters", async () => {
@@ -177,13 +180,14 @@ describe("ContentService", () => {
         name: "test-template-no-formatter",
         description: "Test template without formatter",
         basePrompt: "Generate test content",
+        dataSourceId: "shell:ai-content",
         schema: z.string(),
       };
       templateRegistry.register(
         "test-template-no-formatter",
         templateWithoutFormatter,
       );
-      mockAIGenerateObject.mockResolvedValue({ object: "string content" });
+      mockDataSource.generate.mockResolvedValue("string content");
 
       const result = await contentService.generateContent(
         "test-template-no-formatter",
@@ -192,17 +196,16 @@ describe("ContentService", () => {
       expect(result).toBe("string content");
     });
 
-    it("should handle object content from AI service", async () => {
+    it("should handle object content from DataSource", async () => {
       const templateWithSchema: Template = {
         name: "test-template-object",
         description: "Test template for object content",
         basePrompt: "Generate test content",
+        dataSourceId: "shell:ai-content",
         schema: z.object({ data: z.string() }),
       };
       templateRegistry.register("test-template-object", templateWithSchema);
-      mockAIGenerateObject.mockResolvedValue({
-        object: { data: "object" },
-      });
+      mockDataSource.generate.mockResolvedValue({ data: "object" });
 
       const result = await contentService.generateContent(
         "test-template-object",
@@ -223,11 +226,18 @@ describe("ContentService", () => {
       name: "site-builder:dashboard",
       description: "Dashboard template for site builder",
       basePrompt: "Generate route content",
+      dataSourceId: "shell:ai-content",
       schema: z.string(),
       formatter: {
         format: mock((content) => `formatted: ${content}`),
         parse: mock(),
       },
+    };
+
+    const mockDataSource = {
+      id: "shell:ai-content",
+      name: "AI Content DataSource",
+      generate: mock(),
     };
 
     const mockRoute: RouteDefinition = {
@@ -251,7 +261,8 @@ describe("ContentService", () => {
 
     beforeEach(() => {
       templateRegistry.register("dashboard", mockTemplate);
-      mockAIGenerateObject.mockResolvedValue({ object: "route content" });
+      mockDependencies.dataSourceRegistry.get.mockReturnValue(mockDataSource);
+      mockDataSource.generate.mockResolvedValue("route content");
     });
 
     it("should generate content with route context", async () => {
@@ -264,9 +275,18 @@ describe("ContentService", () => {
         additionalContext,
       );
 
-      expect(mockAIGenerateObject).toHaveBeenCalledWith(
-        "Generate route content",
-        expect.stringContaining("Generate route content"),
+      expect(mockDependencies.dataSourceRegistry.get).toHaveBeenCalledWith(
+        "shell:ai-content",
+      );
+      expect(mockDataSource.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateName: "dashboard",
+          conversationId: "system",
+          data: expect.objectContaining({
+            routeId: "test-route",
+            siteTitle: "My Site",
+          }),
+        }),
         mockTemplate.schema,
       );
       expect(result).toBe("formatted: route content");
@@ -286,9 +306,10 @@ describe("ContentService", () => {
         mockProgress,
       );
 
-      expect(mockAIGenerateObject).toHaveBeenCalledWith(
-        "Generate route content",
-        expect.stringContaining("Generate route content"),
+      expect(mockDataSource.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateName: "custom-plugin:dashboard",
+        }),
         mockTemplate.schema,
       );
     });

@@ -39,7 +39,11 @@ export interface DataSource {
    * Optional: Transform content between formats
    * Used by data sources that convert content (e.g., markdown to HTML, data formatting)
    */
-  transform?: <T>(content: unknown, format: string, schema: z.ZodSchema<T>) => Promise<T>;
+  transform?: <T>(
+    content: unknown,
+    format: string,
+    schema: z.ZodSchema<T>,
+  ) => Promise<T>;
 }
 
 /**

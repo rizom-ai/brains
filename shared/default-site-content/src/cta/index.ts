@@ -13,6 +13,7 @@ export const ctaTemplate = createTemplate<CTASection>({
   description: "Call to action section",
   schema: ctaSectionSchema,
   basePrompt: ctaPrompt,
+  dataSourceId: "shell:ai-content",
   requiredPermission: "public",
   formatter: new CTASectionFormatter(),
   layout: {

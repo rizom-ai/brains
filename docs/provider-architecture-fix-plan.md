@@ -49,6 +49,7 @@ Template type issues have been resolved using the **Unified Template Registry** 
 ### ✅ Phase 2: DataSource Package Creation (COMPLETED)
 
 **Key Outcomes**:
+
 - **✅ @brains/datasource package created** with clean DataSource interface
 - **✅ DataSourceRegistry implemented** with Component Interface Standardization pattern
 - **✅ SystemStatsDataSource moved to shell core** with prefixed naming (shell:system-stats)
@@ -57,6 +58,7 @@ Template type issues have been resolved using the **Unified Template Registry** 
 ### ✅ Phase 3: RenderService Integration (COMPLETED)
 
 **Key Outcomes**:
+
 - **✅ RenderService enhanced** with content resolution strategies (static, DataSource, custom resolver)
 - **✅ Site-builder updated** to use RenderService.resolveContent() for unified content fetching
 - **✅ Dashboard hydration fixed** - HydrationManager now resolves content properly
@@ -69,17 +71,20 @@ The final phase migrates content generation from the old Provider pattern to use
 #### Current State Analysis
 
 **Content-Service Issues:**
+
 - Still maintains separate Provider registry (`Map<string, IContentProvider>`)
 - Has `generateFromProvider`, `fetchFromProvider`, `transformContent` methods
 - ContentGenerationJobHandler uses content-service.generateContent()
 - Templates and providers are disconnected
 
-**Site-Builder Issues:**  
+**Site-Builder Issues:**
+
 - Content generation doesn't check for DataSource templates
 - Generates entities for templates that use DataSources
 - Creates unnecessary work and stale entities
 
 **DataSource Underutilization:**
+
 - DataSources support `generate` operation but it's not used
 - Only `fetch` is used for dashboard, `generate` potential is ignored
 
@@ -88,6 +93,7 @@ The final phase migrates content generation from the old Provider pattern to use
 **Goal**: Replace Provider registry with DataSourceRegistry integration
 
 **Changes:**
+
 ```typescript
 // shell/content-service/src/content-service.ts
 export interface ContentServiceDependencies {
@@ -111,15 +117,17 @@ export class ContentService {
     pluginId?: string,
   ): Promise<T> {
     const template = this.dependencies.templateRegistry.get(templateName);
-    
+
     // NEW: Check for DataSource-based generation
     if (template?.dataSourceId) {
-      const dataSource = this.dependencies.dataSourceRegistry.get(template.dataSourceId);
+      const dataSource = this.dependencies.dataSourceRegistry.get(
+        template.dataSourceId,
+      );
       if (dataSource?.generate) {
         return await dataSource.generate(context);
       }
     }
-    
+
     // Existing AI generation logic for templates without DataSources
     // ...
   }
@@ -134,12 +142,16 @@ export class ContentService {
 **Goal**: Create DataSource for AI-powered content generation
 
 **Implementation:**
+
 ```typescript
 // shell/core/src/datasources/ai-content-datasource.ts
-export class AIContentDataSource implements DataSource<unknown, unknown, unknown> {
+export class AIContentDataSource
+  implements DataSource<unknown, unknown, unknown>
+{
   readonly id = "ai-content";
   readonly name = "AI Content Generator";
-  readonly description = "Generates content using AI based on templates and prompts";
+  readonly description =
+    "Generates content using AI based on templates and prompts";
 
   constructor(
     private aiService: IAIService,
@@ -155,16 +167,17 @@ export class AIContentDataSource implements DataSource<unknown, unknown, unknown
 ```
 
 **Registration:**
+
 ```typescript
 // shell/core/src/initialization/shellInitializer.ts
 private async initializeDataSources(): Promise<void> {
   // Register shell DataSources
   this.dataSourceRegistry.registerWithPrefix(
-    "system-stats", 
-    new SystemStatsDataSource(this.entityService), 
+    "system-stats",
+    new SystemStatsDataSource(this.entityService),
     "shell"
   );
-  
+
   // NEW: Register AI content DataSource
   this.dataSourceRegistry.registerWithPrefix(
     "ai-content",
@@ -179,6 +192,7 @@ private async initializeDataSources(): Promise<void> {
 **Goal**: Skip content generation for DataSource-based templates
 
 **Changes:**
+
 ```typescript
 // plugins/site-builder/src/lib/site-content-operations.ts
 async generate(options: GenerateOptions): Promise<{...}> {
@@ -187,7 +201,7 @@ async generate(options: GenerateOptions): Promise<{...}> {
       // Skip sections with static content
       if (section.content) continue;
 
-      // NEW: Skip sections with DataSource templates  
+      // NEW: Skip sections with DataSource templates
       const template = this.context.getViewTemplate(section.template);
       if (template?.dataSourceId) {
         logger.debug("Section uses DataSource, skipping generation", {
@@ -211,6 +225,7 @@ async generate(options: GenerateOptions): Promise<{...}> {
 **Goal**: Clean up obsolete Provider pattern code
 
 **Files to clean:**
+
 - Remove `shell/content-service/src/providers/` directory
 - Remove Provider exports from `shell/content-service/src/index.ts`
 - Remove Provider references from `shell/content-service/test/`
@@ -219,7 +234,7 @@ async generate(options: GenerateOptions): Promise<{...}> {
 ### Phase 4 Benefits
 
 1. **Unified Architecture**: Single DataSource pattern for all data operations
-2. **Better Performance**: No unnecessary entity generation for DataSource templates  
+2. **Better Performance**: No unnecessary entity generation for DataSource templates
 3. **Cleaner Code**: Remove duplicate Provider/DataSource patterns
 4. **More Flexible**: DataSources can be plugin-specific or shell-provided
 5. **Consistent API**: DataSource.generate() matches DataSource.fetch()
@@ -229,7 +244,7 @@ async generate(options: GenerateOptions): Promise<{...}> {
 ### ✅ Completed
 
 - **Unified Template Registry**: Templates stored in central registry ✅
-- **DataSource Package**: @brains/datasource created with clean interfaces ✅  
+- **DataSource Package**: @brains/datasource created with clean interfaces ✅
 - **RenderService Integration**: Content resolution with DataSource support ✅
 - **Dashboard Hydration**: Fixed with proper content resolution ✅
 - **Testing Infrastructure**: DataSource testing support added ✅
@@ -237,13 +252,13 @@ async generate(options: GenerateOptions): Promise<{...}> {
 ### 🚧 In Progress
 
 - **ContentService Migration**: Removing Provider pattern, integrating DataSourceRegistry
-- **AI Content DataSource**: Creating DataSource for content generation  
+- **AI Content DataSource**: Creating DataSource for content generation
 - **Site-Builder Updates**: Skip generation for DataSource templates
 
 ### Success Criteria for Phase 4
 
 - **✅ ContentService uses DataSourceRegistry**: No separate Provider registry
-- **✅ AI Content DataSource created**: Handles content generation as DataSource operation  
+- **✅ AI Content DataSource created**: Handles content generation as DataSource operation
 - **✅ Site-builder skips DataSource templates**: No unnecessary entity generation
 - **✅ All Provider code removed**: Clean codebase with single DataSource pattern
 - **✅ Performance improved**: Less unnecessary work during content generation
@@ -252,17 +267,17 @@ async generate(options: GenerateOptions): Promise<{...}> {
 
 ### DataSource Pattern (Dynamic Content)
 
-- Real-time data fetched/generated at build time or on-demand  
+- Real-time data fetched/generated at build time or on-demand
 - No stored entities in database (unless caching is specifically needed)
 - Examples: dashboards, system stats, AI-generated content
 - Templates have `dataSourceId` property
 - Uses DataSource.fetch() for retrieval, DataSource.generate() for creation
 
-### Entity Pattern (Static/Cached Content)  
+### Entity Pattern (Static/Cached Content)
 
 - Pre-generated content stored as entities in database
 - Content created through generation jobs, then cached
-- Examples: articles, marketing copy, documentation that doesn't change often  
+- Examples: articles, marketing copy, documentation that doesn't change often
 - Templates have neither `dataSourceId` (handled directly by content operations)
 - Uses entity storage for persistence
 
@@ -276,7 +291,7 @@ async generate(options: GenerateOptions): Promise<{...}> {
 
 ### Immediate Action Items
 
-1. **Update ContentService**: Remove Provider registry, integrate DataSourceRegistry  
+1. **Update ContentService**: Remove Provider registry, integrate DataSourceRegistry
 2. **Create AI Content DataSource**: Move content generation to DataSource.generate()
 3. **Update Site-Builder**: Skip generation for DataSource-based templates
 4. **Clean up Provider code**: Remove all obsolete Provider pattern files
@@ -286,13 +301,13 @@ async generate(options: GenerateOptions): Promise<{...}> {
 After completing the DataSource migration, consider:
 
 - **Plugin-specific DataSources**: Allow plugins to register their own DataSources
-- **DataSource composition**: Chain DataSources for complex content workflows  
+- **DataSource composition**: Chain DataSources for complex content workflows
 - **Caching strategies**: Add caching to DataSource operations where appropriate
 - **Transform operations**: Implement DataSource.transform() for format conversion
 
 ## Related Documentation
 
-- [Unified Template Registry Plan](./unified-template-registry-plan.md) - Template architecture details  
+- [Unified Template Registry Plan](./unified-template-registry-plan.md) - Template architecture details
 - [Content Provider Pattern](./content-provider-pattern.md) - Provider implementation guide
 
 ---

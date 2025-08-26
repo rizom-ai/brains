@@ -13,6 +13,7 @@ export const heroTemplate = createTemplate<LandingHeroData>({
   description: "Hero section with headline and call-to-action",
   schema: landingHeroDataSchema,
   basePrompt: heroPrompt,
+  dataSourceId: "shell:ai-content",
   requiredPermission: "public",
   formatter: new HeroSectionFormatter(),
   layout: {

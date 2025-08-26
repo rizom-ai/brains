@@ -300,7 +300,6 @@ export class ShellInitializer {
         logger,
         entityService,
         aiService,
-        conversationService,
         templateRegistry,
         dataSourceRegistry,
       });

@@ -14,7 +14,7 @@ import {
 import type { Command } from "@brains/command-registry";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { IContentService } from "@brains/content-service";
-import type { ContentTemplate } from "@brains/content-service";
+import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 import type { IEntityService, EntityRegistry } from "@brains/entity-service";
 import type {
@@ -75,7 +75,7 @@ export interface IShell {
     options?: { pluginId?: string; environment?: string },
   ): void;
   registerTemplates(
-    templates: Record<string, ContentTemplate>,
+    templates: Record<string, Template>,
     pluginId?: string,
   ): void;
 

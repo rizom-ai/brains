@@ -9,33 +9,39 @@ const mockFetchDataSource: DataSource = {
   id: "test-fetch",
   name: "Test Fetch DataSource",
   description: "A test data source that fetches data",
-  fetch: async <T>(query: unknown, schema: z.ZodSchema<T>): Promise<T> => 
+  fetch: async <T>(query: unknown, schema: z.ZodSchema<T>): Promise<T> =>
     schema.parse({ result: "fetched", query }),
 };
 
 const mockGenerateDataSource: DataSource = {
   id: "test-generate",
   name: "Test Generate DataSource",
-  generate: async <T>(request: unknown, schema: z.ZodSchema<T>): Promise<T> => 
+  generate: async <T>(request: unknown, schema: z.ZodSchema<T>): Promise<T> =>
     schema.parse({ result: "generated", request }),
 };
 
 const mockTransformDataSource: DataSource = {
   id: "test-transform",
   name: "Test Transform DataSource",
-  transform: async <T>(content: unknown, format: string, schema: z.ZodSchema<T>): Promise<T> => 
-    schema.parse({ result: "transformed", content, format }),
+  transform: async <T>(
+    content: unknown,
+    format: string,
+    schema: z.ZodSchema<T>,
+  ): Promise<T> => schema.parse({ result: "transformed", content, format }),
 };
 
 const mockMultiCapabilityDataSource: DataSource = {
   id: "test-multi",
   name: "Test Multi-Capability DataSource",
-  fetch: async <T>(_query: unknown, schema: z.ZodSchema<T>): Promise<T> => 
+  fetch: async <T>(_query: unknown, schema: z.ZodSchema<T>): Promise<T> =>
     schema.parse({ result: "multi-fetch" }),
-  generate: async <T>(_request: unknown, schema: z.ZodSchema<T>): Promise<T> => 
+  generate: async <T>(_request: unknown, schema: z.ZodSchema<T>): Promise<T> =>
     schema.parse({ result: "multi-generate" }),
-  transform: async <T>(_content: unknown, _format: string, schema: z.ZodSchema<T>): Promise<T> => 
-    schema.parse({ result: "multi-transform" }),
+  transform: async <T>(
+    _content: unknown,
+    _format: string,
+    schema: z.ZodSchema<T>,
+  ): Promise<T> => schema.parse({ result: "multi-transform" }),
 };
 
 describe("DataSourceRegistry", () => {
@@ -78,19 +84,25 @@ describe("DataSourceRegistry", () => {
     test("should register a generate data source", () => {
       registry.register(mockGenerateDataSource);
       expect(registry.has("shell:test-generate")).toBe(true);
-      expect(registry.get("shell:test-generate")).toEqual(mockGenerateDataSource);
+      expect(registry.get("shell:test-generate")).toEqual(
+        mockGenerateDataSource,
+      );
     });
 
     test("should register a transform data source", () => {
       registry.register(mockTransformDataSource);
       expect(registry.has("shell:test-transform")).toBe(true);
-      expect(registry.get("shell:test-transform")).toEqual(mockTransformDataSource);
+      expect(registry.get("shell:test-transform")).toEqual(
+        mockTransformDataSource,
+      );
     });
 
     test("should register a multi-capability data source", () => {
       registry.register(mockMultiCapabilityDataSource);
       expect(registry.has("shell:test-multi")).toBe(true);
-      expect(registry.get("shell:test-multi")).toEqual(mockMultiCapabilityDataSource);
+      expect(registry.get("shell:test-multi")).toEqual(
+        mockMultiCapabilityDataSource,
+      );
     });
 
     test("should throw error for duplicate IDs", () => {
@@ -99,7 +111,6 @@ describe("DataSourceRegistry", () => {
         'DataSource with id "shell:test-fetch" already exists',
       );
     });
-
   });
 
   describe("Retrieval", () => {

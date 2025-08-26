@@ -37,6 +37,7 @@ export const queryResponseTemplate: ContentTemplate<QueryResponse> = {
   name: "shell:query_response",
   description: "Template for structured query responses for public users",
   schema: queryResponseSchema,
+  dataSourceId: "shell:ai-content",
   requiredPermission: "public",
   basePrompt: `You are a helpful assistant providing information from a knowledge base.
 

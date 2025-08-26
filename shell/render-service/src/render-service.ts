@@ -204,7 +204,10 @@ export class RenderService implements IViewTemplateRegistry {
       try {
         const dataSource = this.dataSourceRegistry.get(template.dataSourceId);
         if (dataSource?.fetch) {
-          const result = await dataSource.fetch(options?.query, template.schema);
+          const result = await dataSource.fetch(
+            options?.query,
+            template.schema,
+          );
           return result;
         }
       } catch (error) {

@@ -1,5 +1,5 @@
 import type { GenerationContext, ContentTemplate } from "./types";
-import type { EntityService, SearchResult } from "@brains/entity-service";
+import type { EntityService } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type {
@@ -7,10 +7,6 @@ import type {
   SectionDefinition,
 } from "@brains/render-service";
 import type { ContentService as IContentService } from "./types";
-import type {
-  IConversationService,
-  Message,
-} from "@brains/conversation-service";
 import type { TemplateRegistry } from "@brains/templates";
 import type { DataSourceRegistry } from "@brains/datasource";
 
@@ -30,7 +26,6 @@ export interface ContentServiceDependencies {
   logger: Logger;
   entityService: EntityService;
   aiService: IAIService;
-  conversationService: IConversationService;
   templateRegistry: TemplateRegistry;
   dataSourceRegistry: DataSourceRegistry;
 }
@@ -42,7 +37,6 @@ export interface ContentServiceDependencies {
  * Implements Component Interface Standardization pattern.
  */
 export class ContentService implements IContentService {
-
   /**
    * Create a new instance of ContentService
    */
@@ -92,6 +86,10 @@ export class ContentService implements IContentService {
       contentTemplate.formatter = template.formatter;
     }
 
+    if (template.dataSourceId) {
+      contentTemplate.dataSourceId = template.dataSourceId;
+    }
+
     return contentTemplate;
   }
 
@@ -116,6 +114,10 @@ export class ContentService implements IContentService {
 
         if (template.formatter) {
           contentTemplate.formatter = template.formatter;
+        }
+
+        if (template.dataSourceId) {
+          contentTemplate.dataSourceId = template.dataSourceId;
         }
 
         return contentTemplate;
@@ -147,37 +149,35 @@ export class ContentService implements IContentService {
     // Cast template to correct type
     const typedTemplate = template as ContentTemplate<T>;
 
-    // Check if template supports AI generation
-    if (!typedTemplate.basePrompt) {
+    // Check if template has a DataSource configured
+    if (!typedTemplate.dataSourceId) {
       throw new Error(
-        `Template ${templateName} must have basePrompt for content generation`,
+        `Template ${scopedTemplateName} doesn't support content generation. Add dataSourceId to enable generation through DataSource pattern.`,
       );
     }
 
-    // Query relevant entities to provide context for generation
-    const searchTerms = [typedTemplate.basePrompt, context.prompt]
-      .filter(Boolean)
-      .join(" ");
-    const relevantEntities = searchTerms
-      ? await this.dependencies.entityService.search(searchTerms, { limit: 5 })
-      : [];
-
-    // Build enhanced prompt with template, user context, entity context, and conversation context
-    const enhancedPrompt = await this.buildPrompt(
-      typedTemplate,
-      context,
-      relevantEntities,
+    // Use DataSource pattern for generation
+    const dataSource = this.dependencies.dataSourceRegistry.get(
+      typedTemplate.dataSourceId,
     );
 
-    // Generate content using AI service with entity-informed context
-    const result = await this.dependencies.aiService.generateObject<T>(
-      typedTemplate.basePrompt,
-      enhancedPrompt,
-      typedTemplate.schema,
-    );
+    if (!dataSource) {
+      throw new Error(`DataSource ${typedTemplate.dataSourceId} not found`);
+    }
 
-    // Return the typed content directly - no cast needed
-    return result.object;
+    if (!dataSource.generate) {
+      // This DataSource doesn't support generation (e.g., fetch-only like system-stats)
+      throw new Error(
+        `Template ${scopedTemplateName} uses DataSource ${typedTemplate.dataSourceId} which doesn't support content generation. This template is for data fetching only.`,
+      );
+    }
+
+    const request = {
+      templateName: scopedTemplateName,
+      ...context,
+    };
+
+    return dataSource.generate(request, typedTemplate.schema);
   }
 
   /**
@@ -285,87 +285,4 @@ export class ContentService implements IContentService {
 
     return formatted;
   }
-
-  /**
-   * Format messages as conversation context for AI prompts
-   */
-  private formatMessagesAsContext(messages: Message[]): string {
-    if (messages.length === 0) {
-      return "";
-    }
-
-    // Format messages as a conversation transcript
-    return messages
-      .map((m) => {
-        const role = m.role.charAt(0).toUpperCase() + m.role.slice(1);
-        return `${role}: ${m.content}`;
-      })
-      .join("\n\n");
-  }
-
-  /**
-   * Build enhanced prompt with context from template, user context, entities, and conversation
-   */
-  private async buildPrompt<T>(
-    template: ContentTemplate<T>,
-    context: GenerationContext,
-    relevantEntities: SearchResult[] = [],
-  ): Promise<string> {
-    // basePrompt is required for AI generation, verified by caller
-    if (!template.basePrompt) {
-      throw new Error("Template basePrompt is required for AI generation");
-    }
-    let prompt = template.basePrompt;
-
-    // Add conversation context if not a system conversation
-    if (
-      context.conversationId &&
-      context.conversationId !== "system" &&
-      context.conversationId !== "default"
-    ) {
-      try {
-        const messages =
-          await this.dependencies.conversationService.getMessages(
-            context.conversationId,
-            { limit: 20 }, // Get last 20 messages for context
-          );
-
-        const workingMemory = this.formatMessagesAsContext(messages);
-        if (workingMemory) {
-          prompt += `\n\nRecent conversation context:\n${workingMemory}`;
-        }
-      } catch (error) {
-        // Log error but don't fail generation if conversation context unavailable
-        this.dependencies.logger.debug("Failed to get conversation context", {
-          error,
-          conversationId: context.conversationId,
-        });
-      }
-    }
-
-    // Add entity context to inform the generation
-    if (relevantEntities.length > 0) {
-      const entityContext = relevantEntities
-        .map(
-          (result) =>
-            `[${result.entity.entityType}] ${result.entity.id}: ${result.excerpt}`,
-        )
-        .join("\n");
-      prompt += `\n\nRelevant context from your knowledge base:\n${entityContext}`;
-    }
-
-    // Add user context data if provided
-    if (context.data) {
-      prompt += `\n\nContext data:\n${JSON.stringify(context.data, null, 2)}`;
-    }
-
-    // Add additional instructions if provided
-    if (context.prompt) {
-      prompt += `\n\nAdditional instructions: ${context.prompt}`;
-    }
-
-    return prompt;
-  }
-
 }
-

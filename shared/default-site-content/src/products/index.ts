@@ -13,6 +13,7 @@ export const productsTemplate = createTemplate<ProductsSection>({
   description: "Products section with status badges",
   schema: productsSectionSchema,
   basePrompt: productsPrompt,
+  dataSourceId: "shell:ai-content",
   requiredPermission: "public",
   formatter: new ProductsSectionFormatter(),
   layout: {

@@ -10,6 +10,7 @@ export const metadataTemplate: Template = {
   description: "Site metadata (title and tagline)",
   schema: landingMetadataSchema,
   basePrompt: metadataPrompt,
+  dataSourceId: "shell:ai-content",
   requiredPermission: "public",
   // No layout component since metadata is used in HTML head
 };
