@@ -1,6 +1,9 @@
 import type { DataSource } from "@brains/datasource";
 import type { IAIService } from "@brains/ai-service";
-import type { IConversationService, Message } from "@brains/conversation-service";
+import type {
+  IConversationService,
+  Message,
+} from "@brains/conversation-service";
 import type { EntityService, SearchResult } from "@brains/entity-service";
 import type { Logger } from "@brains/utils";
 import type { TemplateRegistry } from "@brains/templates";
@@ -23,14 +26,15 @@ export type GenerationContext = z.infer<typeof GenerationContextSchema>;
 
 /**
  * AI Content DataSource
- * 
+ *
  * Handles AI-powered content generation using templates and context.
  * Replaces the Provider pattern for content generation.
  */
 export class AIContentDataSource implements DataSource {
   readonly id = "ai-content";
   readonly name = "AI Content Generator";
-  readonly description = "Generates content using AI based on templates and prompts";
+  readonly description =
+    "Generates content using AI based on templates and prompts";
 
   constructor(
     private readonly aiService: IAIService,
@@ -57,7 +61,7 @@ export class AIContentDataSource implements DataSource {
     // Check if template supports AI generation
     if (!template.basePrompt) {
       throw new Error(
-        `Template ${context.templateName} must have basePrompt for content generation`
+        `Template ${context.templateName} must have basePrompt for content generation`,
       );
     }
 
@@ -71,7 +75,7 @@ export class AIContentDataSource implements DataSource {
 
     // Build enhanced prompt with template, user context, entity context, and conversation context
     const enhancedPrompt = await this.buildPrompt(
-      template,
+      { basePrompt: template.basePrompt },
       context,
       relevantEntities,
     );
@@ -91,7 +95,7 @@ export class AIContentDataSource implements DataSource {
    * Build enhanced prompt with context from template, user context, entities, and conversation
    */
   private async buildPrompt(
-    template: any,
+    template: { basePrompt: string },
     context: GenerationContext,
     relevantEntities: SearchResult[] = [],
   ): Promise<string> {
