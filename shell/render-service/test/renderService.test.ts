@@ -32,7 +32,7 @@ const testTemplateWithDataSource: Template = {
   description: "Test template with DataSource",
   schema: testSchema,
   requiredPermission: "public",
-  dataSourceId: "test:mock-data",
+  dataSourceId: "shell:mock-data",
   layout: {
     component: () => "Test component",
     interactive: false,
@@ -202,11 +202,7 @@ describe("RenderService", () => {
         testTemplateWithDataSource.name,
         testTemplateWithDataSource,
       );
-      dataSourceRegistry.registerWithPrefix(
-        "mock-data",
-        mockDataSource,
-        "test",
-      );
+      dataSourceRegistry.register(mockDataSource);
 
       const result = await renderService.resolveContent(
         testTemplateWithDataSource.name,
@@ -223,11 +219,7 @@ describe("RenderService", () => {
         testTemplateWithDataSource.name,
         testTemplateWithDataSource,
       );
-      dataSourceRegistry.registerWithPrefix(
-        "mock-data",
-        mockDataSource,
-        "test",
-      );
+      dataSourceRegistry.register(mockDataSource);
 
       const staticContent = {
         title: "Static Title",
@@ -285,18 +277,14 @@ describe("RenderService", () => {
       const templateWithErrorDataSource: Template = {
         ...testTemplate,
         name: "test:error-template",
-        dataSourceId: "test:error-data",
+        dataSourceId: "shell:error-data",
       };
 
       templateRegistry.register(
         templateWithErrorDataSource.name,
         templateWithErrorDataSource,
       );
-      dataSourceRegistry.registerWithPrefix(
-        "error-data",
-        errorDataSource,
-        "test",
-      );
+      dataSourceRegistry.register(errorDataSource);
 
       // Mock console.warn to avoid test output noise
       const originalWarn = console.warn;

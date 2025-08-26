@@ -36,7 +36,7 @@ export interface ServicePluginContext extends CorePluginContext {
   ) => void;
 
   // DataSource registration
-  registerDataSource: (name: string, dataSource: DataSource) => void;
+  registerDataSource: (dataSource: DataSource) => void;
 
   // AI content generation
   generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
@@ -109,8 +109,9 @@ export function createServicePluginContext(
     },
 
     // DataSource registration
-    registerDataSource: (name: string, dataSource: DataSource) => {
-      dataSourceRegistry.registerWithPrefix(name, dataSource, pluginId);
+    registerDataSource: (dataSource: DataSource) => {
+      // Just register the DataSource directly - the register method handles prefixing
+      dataSourceRegistry.register(dataSource);
     },
 
     // AI content generation

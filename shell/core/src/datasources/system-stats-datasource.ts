@@ -34,7 +34,7 @@ export type DashboardData = z.infer<typeof DashboardDataSchema>;
  * Provides system statistics including entity counts,
  * recent activity, and build information.
  */
-export class SystemStatsDataSource implements DataSource<DashboardData> {
+export class SystemStatsDataSource implements DataSource {
   readonly id = "system-stats";
   readonly name = "System Statistics DataSource";
   readonly description =
@@ -46,7 +46,7 @@ export class SystemStatsDataSource implements DataSource<DashboardData> {
    * Fetch dashboard data
    * This is the main method for the dashboard data source
    */
-  async fetch(_query?: unknown): Promise<DashboardData> {
+  async fetch<T>(_query: unknown, schema: z.ZodSchema<T>): Promise<T> {
     // Get entity statistics
     const entityStats = await this.getEntityStats();
 
@@ -63,8 +63,8 @@ export class SystemStatsDataSource implements DataSource<DashboardData> {
       },
     };
 
-    // Validate against schema to ensure type safety
-    return DashboardDataSchema.parse(data);
+    // Validate and return using provided schema
+    return schema.parse(data);
   }
 
   /**

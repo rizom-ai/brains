@@ -44,23 +44,14 @@ export class DataSourceRegistry {
   }
 
   /**
-   * Register a data source
+   * Register a data source with automatic prefixing
+   * If the ID doesn't contain ":", applies "shell:" prefix
    */
   register(dataSource: DataSource): void {
-    this.registerWithId(dataSource.id, dataSource);
+    const id = dataSource.id.includes(':') ? dataSource.id : `shell:${dataSource.id}`;
+    this.registerWithId(id, dataSource);
   }
 
-  /**
-   * Register a data source with a scoped/prefixed ID
-   */
-  registerWithPrefix(
-    name: string,
-    dataSource: DataSource,
-    prefix?: string,
-  ): void {
-    const scopedId = prefix ? `${prefix}:${name}` : `shell:${name}`;
-    this.registerWithId(scopedId, dataSource);
-  }
 
   /**
    * Internal method to register a data source with a specific ID

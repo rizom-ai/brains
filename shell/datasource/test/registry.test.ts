@@ -2,37 +2,40 @@ import { describe, expect, test, beforeEach } from "bun:test";
 import { DataSourceRegistry } from "../src/registry";
 import type { DataSource } from "../src/types";
 import { createSilentLogger } from "@brains/utils";
+import { z } from "zod";
 
 // Test data sources
 const mockFetchDataSource: DataSource = {
   id: "test-fetch",
   name: "Test Fetch DataSource",
   description: "A test data source that fetches data",
-  fetch: async (query?: unknown) => ({ result: "fetched", query }),
+  fetch: async <T>(query: unknown, schema: z.ZodSchema<T>): Promise<T> => 
+    schema.parse({ result: "fetched", query }),
 };
 
 const mockGenerateDataSource: DataSource = {
   id: "test-generate",
   name: "Test Generate DataSource",
-  generate: async (request: unknown) => ({ result: "generated", request }),
+  generate: async <T>(request: unknown, schema: z.ZodSchema<T>): Promise<T> => 
+    schema.parse({ result: "generated", request }),
 };
 
 const mockTransformDataSource: DataSource = {
   id: "test-transform",
   name: "Test Transform DataSource",
-  transform: async (content: unknown, format: string) => ({
-    result: "transformed",
-    content,
-    format,
-  }),
+  transform: async <T>(content: unknown, format: string, schema: z.ZodSchema<T>): Promise<T> => 
+    schema.parse({ result: "transformed", content, format }),
 };
 
 const mockMultiCapabilityDataSource: DataSource = {
   id: "test-multi",
   name: "Test Multi-Capability DataSource",
-  fetch: async () => ({ result: "multi-fetch" }),
-  generate: async () => ({ result: "multi-generate" }),
-  transform: async () => ({ result: "multi-transform" }),
+  fetch: async <T>(_query: unknown, schema: z.ZodSchema<T>): Promise<T> => 
+    schema.parse({ result: "multi-fetch" }),
+  generate: async <T>(_request: unknown, schema: z.ZodSchema<T>): Promise<T> => 
+    schema.parse({ result: "multi-generate" }),
+  transform: async <T>(_content: unknown, _format: string, schema: z.ZodSchema<T>): Promise<T> => 
+    schema.parse({ result: "multi-transform" }),
 };
 
 describe("DataSourceRegistry", () => {
@@ -68,53 +71,35 @@ describe("DataSourceRegistry", () => {
   describe("Registration", () => {
     test("should register a fetch data source", () => {
       registry.register(mockFetchDataSource);
-      expect(registry.has("test-fetch")).toBe(true);
-      expect(registry.get("test-fetch")).toEqual(mockFetchDataSource);
+      expect(registry.has("shell:test-fetch")).toBe(true);
+      expect(registry.get("shell:test-fetch")).toEqual(mockFetchDataSource);
     });
 
     test("should register a generate data source", () => {
       registry.register(mockGenerateDataSource);
-      expect(registry.has("test-generate")).toBe(true);
-      expect(registry.get("test-generate")).toEqual(mockGenerateDataSource);
+      expect(registry.has("shell:test-generate")).toBe(true);
+      expect(registry.get("shell:test-generate")).toEqual(mockGenerateDataSource);
     });
 
     test("should register a transform data source", () => {
       registry.register(mockTransformDataSource);
-      expect(registry.has("test-transform")).toBe(true);
-      expect(registry.get("test-transform")).toEqual(mockTransformDataSource);
+      expect(registry.has("shell:test-transform")).toBe(true);
+      expect(registry.get("shell:test-transform")).toEqual(mockTransformDataSource);
     });
 
     test("should register a multi-capability data source", () => {
       registry.register(mockMultiCapabilityDataSource);
-      expect(registry.has("test-multi")).toBe(true);
-      expect(registry.get("test-multi")).toEqual(mockMultiCapabilityDataSource);
+      expect(registry.has("shell:test-multi")).toBe(true);
+      expect(registry.get("shell:test-multi")).toEqual(mockMultiCapabilityDataSource);
     });
 
     test("should throw error for duplicate IDs", () => {
       registry.register(mockFetchDataSource);
       expect(() => registry.register(mockFetchDataSource)).toThrow(
-        'DataSource with id "test-fetch" already exists',
+        'DataSource with id "shell:test-fetch" already exists',
       );
     });
 
-    test("should register data source with prefix", () => {
-      registry.registerWithPrefix("stats", mockFetchDataSource, "plugin1");
-      expect(registry.has("plugin1:stats")).toBe(true);
-      expect(registry.get("plugin1:stats")).toEqual(mockFetchDataSource);
-    });
-
-    test("should register data source with shell prefix when no prefix provided", () => {
-      registry.registerWithPrefix("stats", mockFetchDataSource);
-      expect(registry.has("shell:stats")).toBe(true);
-      expect(registry.get("shell:stats")).toEqual(mockFetchDataSource);
-    });
-
-    test("should prevent duplicate prefixed IDs", () => {
-      registry.registerWithPrefix("stats", mockFetchDataSource, "plugin1");
-      expect(() =>
-        registry.registerWithPrefix("stats", mockGenerateDataSource, "plugin1"),
-      ).toThrow('DataSource with id "plugin1:stats" already exists');
-    });
   });
 
   describe("Retrieval", () => {
@@ -126,12 +111,12 @@ describe("DataSourceRegistry", () => {
     });
 
     test("should get data source by ID", () => {
-      expect(registry.get("test-fetch")).toEqual(mockFetchDataSource);
+      expect(registry.get("shell:test-fetch")).toEqual(mockFetchDataSource);
       expect(registry.get("nonexistent")).toBeUndefined();
     });
 
     test("should check if data source exists", () => {
-      expect(registry.has("test-fetch")).toBe(true);
+      expect(registry.has("shell:test-fetch")).toBe(true);
       expect(registry.has("nonexistent")).toBe(false);
     });
 
@@ -147,10 +132,10 @@ describe("DataSourceRegistry", () => {
     test("should get all data source IDs", () => {
       const ids = registry.getIds();
       expect(ids).toHaveLength(4);
-      expect(ids).toContain("test-fetch");
-      expect(ids).toContain("test-generate");
-      expect(ids).toContain("test-transform");
-      expect(ids).toContain("test-multi");
+      expect(ids).toContain("shell:test-fetch");
+      expect(ids).toContain("shell:test-generate");
+      expect(ids).toContain("shell:test-transform");
+      expect(ids).toContain("shell:test-multi");
     });
   });
 
@@ -197,11 +182,11 @@ describe("DataSourceRegistry", () => {
   describe("Management", () => {
     test("should unregister data source", () => {
       registry.register(mockFetchDataSource);
-      expect(registry.has("test-fetch")).toBe(true);
+      expect(registry.has("shell:test-fetch")).toBe(true);
 
-      registry.unregister("test-fetch");
-      expect(registry.has("test-fetch")).toBe(false);
-      expect(registry.get("test-fetch")).toBeUndefined();
+      registry.unregister("shell:test-fetch");
+      expect(registry.has("shell:test-fetch")).toBe(false);
+      expect(registry.get("shell:test-fetch")).toBeUndefined();
     });
 
     test("should clear all data sources", () => {

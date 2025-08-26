@@ -3,7 +3,6 @@ import type {
   SectionDefinition,
 } from "@brains/render-service";
 import type { ProgressInfo } from "./content-service";
-import type { IContentProvider, ProviderInfo } from "./providers/types";
 import { z } from "zod";
 import type { ContentFormatter } from "@brains/utils";
 
@@ -97,52 +96,4 @@ export interface ContentService {
     pluginId?: string,
   ): T;
 
-  // ========== Provider Methods ==========
-
-  /**
-   * Register a content provider
-   */
-  registerProvider(provider: IContentProvider): void;
-
-  /**
-   * Get a provider by ID
-   */
-  getProvider(id: string): IContentProvider | undefined;
-
-  /**
-   * List all registered providers
-   */
-  listProviders(): IContentProvider[];
-
-  /**
-   * Get provider information for discovery
-   */
-  getProviderInfo(id: string): ProviderInfo | undefined;
-
-  /**
-   * Get all provider information
-   */
-  getAllProviderInfo(): ProviderInfo[];
-
-  /**
-   * Generate content using a provider
-   */
-  generateFromProvider(providerId: string, request: unknown): Promise<unknown>;
-
-  /**
-   * Fetch data using a provider
-   */
-  fetchFromProvider<T = unknown>(
-    providerId: string,
-    query?: unknown,
-  ): Promise<T>;
-
-  /**
-   * Transform content using a provider
-   */
-  transformWithProvider(
-    providerId: string,
-    content: unknown,
-    format: string,
-  ): Promise<unknown>;
 }

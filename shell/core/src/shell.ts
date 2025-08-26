@@ -42,7 +42,7 @@ import { createShellConfig } from "./config";
 import type { RenderService, RouteRegistry } from "@brains/render-service";
 import { ShellInitializer } from "./initialization/shellInitializer";
 import type { DataSourceRegistry } from "@brains/datasource";
-import { SystemStatsDataSource } from "./datasources";
+import { SystemStatsDataSource, AIContentDataSource } from "./datasources";
 
 /**
  * Optional dependencies that can be injected for testing
@@ -616,12 +616,19 @@ export class Shell implements IShell {
   private registerCoreDataSources(): void {
     this.logger.debug("Registering core DataSources");
 
-    // Register the SystemStats DataSource with shell prefix
+    // Register the SystemStats DataSource
     const systemStatsDataSource = new SystemStatsDataSource(this.entityService);
-    this.dataSourceRegistry.registerWithPrefix(
-      "system-stats",
-      systemStatsDataSource,
+    this.dataSourceRegistry.register(systemStatsDataSource);
+
+    // Register the AI Content DataSource
+    const aiContentDataSource = new AIContentDataSource(
+      this.aiService,
+      this.conversationService,
+      this.entityService,
+      this.templateRegistry,
+      this.logger,
     );
+    this.dataSourceRegistry.register(aiContentDataSource);
 
     this.logger.debug("Core DataSources registered");
   }

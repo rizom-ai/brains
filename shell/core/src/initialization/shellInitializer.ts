@@ -302,6 +302,7 @@ export class ShellInitializer {
         aiService,
         conversationService,
         templateRegistry,
+        dataSourceRegistry,
       });
 
     // Register job handlers

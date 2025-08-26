@@ -400,14 +400,6 @@ export class MockShell implements IShell {
       registerWithId: (id: string, dataSource: DataSource) => {
         this.dataSources.set(id, dataSource);
       },
-      registerWithPrefix: (
-        name: string,
-        dataSource: DataSource,
-        prefix?: string,
-      ) => {
-        const scopedId = prefix ? `${prefix}:${name}` : `shell:${name}`;
-        this.dataSources.set(scopedId, dataSource);
-      },
       get: (id: string) => this.dataSources.get(id),
       has: (id: string) => this.dataSources.has(id),
       list: () => Array.from(this.dataSources.values()),
