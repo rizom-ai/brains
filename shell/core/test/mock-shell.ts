@@ -504,7 +504,6 @@ export class MockShell implements IShell {
     return new Map(this.templates);
   }
 
-
   // Batch job operations - simple mock implementations
   async enqueueBatch(
     operations: BatchOperation[],

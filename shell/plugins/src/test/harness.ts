@@ -94,7 +94,6 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     return this.mockShell.getTemplates();
   }
 
-
   /**
    * Register a DataSource for testing
    */

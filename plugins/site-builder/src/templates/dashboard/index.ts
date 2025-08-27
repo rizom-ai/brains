@@ -5,16 +5,15 @@ import { createTemplate } from "@brains/templates";
 
 /**
  * Dashboard template definition
+ * Fetches real-time system statistics - does not generate content
  */
 export const dashboardTemplate = createTemplate<DashboardData>({
   name: "dashboard",
   description: "Interactive system dashboard showing entity statistics",
   schema: DashboardDataSchema,
-  basePrompt:
-    "Generate system dashboard data with entity statistics and build information",
   requiredPermission: "public",
   formatter: new DashboardFormatter(),
-  dataSourceId: "shell:system-stats",
+  dataSourceId: "shell:system-stats", // Fetch-only DataSource for real-time stats
   layout: {
     component: DashboardWidget,
     interactive: true,

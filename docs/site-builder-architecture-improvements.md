@@ -58,12 +58,13 @@ interface Template {
   description: string;
   schema: ZodSchema;
   requiredPermission: UserPermissionLevel;
-  
+
   // Capabilities (all optional)
-  basePrompt?: string;        // Supports AI generation
-  dataSourceId?: string;       // Supports data fetching
-  formatter?: ContentFormatter;// Supports content parsing
-  layout?: {                  // Supports rendering
+  basePrompt?: string; // Supports AI generation
+  dataSourceId?: string; // Supports data fetching
+  formatter?: ContentFormatter; // Supports content parsing
+  layout?: {
+    // Supports rendering
     component: ComponentType;
     interactive?: boolean;
   };
@@ -72,18 +73,21 @@ interface Template {
 // Helper functions for capability detection
 class TemplateCapabilities {
   static canGenerate(template: Template): boolean {
-    return !!template.basePrompt && !!template.dataSourceId && 
-           template.dataSourceId.includes('ai-content');
+    return (
+      !!template.basePrompt &&
+      !!template.dataSourceId &&
+      template.dataSourceId.includes("ai-content")
+    );
   }
-  
+
   static canFetch(template: Template): boolean {
     return !!template.dataSourceId && !this.canGenerate(template);
   }
-  
+
   static canRender(template: Template): boolean {
     return !!template.layout?.component;
   }
-  
+
   static isStaticOnly(template: Template): boolean {
     return !this.canGenerate(template) && !this.canFetch(template);
   }
@@ -96,13 +100,15 @@ Create a universal content orchestration service that's independent of content u
 
 ```typescript
 interface ContentContext {
-  staticContent?: unknown;           // Inline/provided content
-  entityContext?: {                  // Entity storage lookup
+  staticContent?: unknown; // Inline/provided content
+  entityContext?: {
+    // Entity storage lookup
     type: string;
     id: string;
   };
-  dataContext?: unknown;              // DataSource parameters
-  generationContext?: {               // AI generation parameters
+  dataContext?: unknown; // DataSource parameters
+  generationContext?: {
+    // AI generation parameters
     prompt?: string;
     data?: unknown;
     conversationId?: string;
@@ -114,55 +120,62 @@ class ContentOrchestrator {
     private templateRegistry: TemplateRegistry,
     private entityService: EntityService,
     private dataSourceRegistry: DataSourceRegistry,
-    private contentGenerator: ContentGenerator  // renamed
+    private contentGenerator: ContentGenerator, // renamed
   ) {}
-  
+
   async resolveContent(
     templateName: string,
-    context?: ContentContext
+    context?: ContentContext,
   ): Promise<unknown> {
     const template = this.templateRegistry.get(templateName);
     if (!template) return null;
-    
+
     // 1. Static content (highest priority)
     if (context?.staticContent !== undefined) {
       return this.validateContent(template, context.staticContent);
     }
-    
+
     // 2. Entity storage (for persisted content)
     if (context?.entityContext) {
       const entity = await this.entityService.getEntity(
         context.entityContext.type,
-        context.entityContext.id
+        context.entityContext.id,
       );
       if (entity?.content) {
         return this.parseContent(template, entity.content);
       }
     }
-    
+
     // 3. DataSource fetch (for runtime data)
     if (template.dataSourceId && TemplateCapabilities.canFetch(template)) {
       const dataSource = this.dataSourceRegistry.get(template.dataSourceId);
       if (dataSource?.fetch) {
-        const data = await dataSource.fetch(context?.dataContext, template.schema);
+        const data = await dataSource.fetch(
+          context?.dataContext,
+          template.schema,
+        );
         if (data !== undefined) return data;
       }
     }
-    
+
     // 4. AI generation (fallback or explicit)
-    if (TemplateCapabilities.canGenerate(template) && context?.generationContext) {
+    if (
+      TemplateCapabilities.canGenerate(template) &&
+      context?.generationContext
+    ) {
       return await this.contentGenerator.generateContent({
         templateName,
-        ...context.generationContext
+        ...context.generationContext,
       });
     }
-    
+
     return null;
   }
 }
 ```
 
 This orchestrator can be used by any service that needs content:
+
 - Site-builder for page rendering
 - CLI interfaces for response generation
 - API endpoints for data responses
@@ -171,17 +184,19 @@ This orchestrator can be used by any service that needs content:
 ### 3. Clarified Service Responsibilities
 
 #### ContentGenerator (renamed from ContentService)
+
 - **Purpose**: AI-powered content generation only
 - **Responsibilities**:
   - Generate content using templates with AI capabilities
   - Format generated content
   - Parse content from markdown
-- **Key Changes**: 
+- **Key Changes**:
   - Renamed to better reflect its purpose
   - Remove direct DataSource access
   - Focus purely on AI generation
 
-#### RenderService  
+#### RenderService
+
 - **Purpose**: View rendering and component management
 - **Responsibilities**:
   - Manage templates with rendering capabilities
@@ -190,6 +205,7 @@ This orchestrator can be used by any service that needs content:
 - **Key Change**: Remove content resolution entirely - use ContentOrchestrator instead
 
 #### DataSourceRegistry
+
 - **Purpose**: Runtime data operations
 - **Responsibilities**:
   - Register and manage DataSources
@@ -205,33 +221,34 @@ class SiteBuilder {
   constructor(
     private contentOrchestrator: ContentOrchestrator,
     private renderService: RenderService,
-    private contentOperations: SiteContentOperations
+    private contentOperations: SiteContentOperations,
   ) {}
 
   async build(options: BuildOptions): Promise<BuildResult> {
     const routes = this.getRoutes();
-    
+
     for (const route of routes) {
       for (const section of route.sections) {
         // Get the template
         const template = this.templateRegistry.get(section.template);
         if (!template) continue;
-        
+
         // Resolve content using orchestrator
         const content = await this.contentOrchestrator.resolveContent(
           section.template,
           {
             staticContent: section.content,
             entityContext: {
-              type: options.environment === 'production' 
-                ? 'site-content-production' 
-                : 'site-content-preview',
-              id: `${route.id}:${section.id}`
+              type:
+                options.environment === "production"
+                  ? "site-content-production"
+                  : "site-content-preview",
+              id: `${route.id}:${section.id}`,
             },
-            dataContext: { route, section }
-          }
+            dataContext: { route, section },
+          },
         );
-        
+
         // Render if template supports it
         if (TemplateCapabilities.canRender(template)) {
           await this.renderPage(route, section, content, template);
@@ -248,21 +265,30 @@ Move content generation operations to a separate service:
 
 ```typescript
 class SiteContentOperations {
-  async generateContent(route: RouteDefinition, section: SectionDefinition): Promise<void> {
+  async generateContent(
+    route: RouteDefinition,
+    section: SectionDefinition,
+  ): Promise<void> {
     const template = this.templateRegistry.get(section.template);
-    
+
     // Only generate if template supports it
     if (!TemplateCapabilities.canGenerate(template)) {
-      this.logger.info(`Template ${template.name} doesn't support generation, skipping`);
+      this.logger.info(
+        `Template ${template.name} doesn't support generation, skipping`,
+      );
       return;
     }
-    
+
     // Queue generation job
     await this.queueContentGeneration(template, route, section);
   }
-  
-  async promoteContent(/*...*/): Promise<void> { /* ... */ }
-  async rollbackContent(/*...*/): Promise<void> { /* ... */ }
+
+  async promoteContent(/*...*/): Promise<void> {
+    /* ... */
+  }
+  async rollbackContent(/*...*/): Promise<void> {
+    /* ... */
+  }
 }
 ```
 
@@ -362,18 +388,21 @@ class SiteContentOperations {
 ## Benefits
 
 ### Developer Experience
+
 - **Single Template Definition**: All capabilities in one place
 - **Universal Content Resolution**: One service for all content needs
 - **Clear Capability Model**: Easy to understand what templates can do
 - **Better Error Messages**: Clear feedback when operations aren't supported
 
 ### Architecture Quality
+
 - **Separation of Concerns**: Clear service boundaries
 - **Reusability**: ContentOrchestrator works for any content consumer
 - **Predictable Behavior**: Documented resolution priority
 - **Extensibility**: Easy to add new resolution strategies
 
 ### Maintainability
+
 - **Less Coupling**: Services don't depend on implementation details
 - **Single Source of Truth**: One place for content resolution logic
 - **Better Testing**: Components can be tested in isolation
@@ -409,8 +438,8 @@ class SiteContentOperations {
 ```typescript
 const dashboardTemplate: Template = {
   name: "dashboard",
-  basePrompt: "Generate dashboard data",  // Misleading - doesn't actually generate
-  dataSourceId: "shell:system-stats",    // Fetch-only DataSource
+  basePrompt: "Generate dashboard data", // Misleading - doesn't actually generate
+  dataSourceId: "shell:system-stats", // Fetch-only DataSource
   layout: { component: DashboardWidget },
   // This creates confusion about what the template actually does
 };
@@ -423,19 +452,20 @@ const dashboardTemplate: Template = {
   name: "dashboard",
   description: "System dashboard with real-time stats",
   schema: DashboardSchema,
-  dataSourceId: "shell:system-stats",    // Fetch runtime data
-  layout: {                              // Render the view
+  dataSourceId: "shell:system-stats", // Fetch runtime data
+  layout: {
+    // Render the view
     component: DashboardWidget,
-    interactive: true
+    interactive: true,
   },
   // No basePrompt - clearly indicates no generation capability
-  requiredPermission: "public"
+  requiredPermission: "public",
 };
 
 // Usage is clear
-TemplateCapabilities.canGenerate(dashboardTemplate);  // false
-TemplateCapabilities.canFetch(dashboardTemplate);     // true
-TemplateCapabilities.canRender(dashboardTemplate);    // true
+TemplateCapabilities.canGenerate(dashboardTemplate); // false
+TemplateCapabilities.canFetch(dashboardTemplate); // true
+TemplateCapabilities.canRender(dashboardTemplate); // true
 ```
 
 ## Conclusion
