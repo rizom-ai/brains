@@ -268,9 +268,9 @@ describe("TemplateRegistry", () => {
     it("should log error for basePrompt without AI dataSource", () => {
       const logger = createSilentLogger();
       const errorSpy = spyOn(logger, "error");
-      
+
       const registryWithLogger = TemplateRegistry.createFresh(logger);
-      
+
       const template = createTemplate({
         name: "test",
         description: "Test template",
@@ -279,20 +279,20 @@ describe("TemplateRegistry", () => {
         dataSourceId: "shell:system-stats", // Wrong dataSource
         requiredPermission: "public",
       });
-      
+
       registryWithLogger.register("test", template);
-      
+
       expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Template configuration error:")
+        expect.stringContaining("Template configuration error:"),
       );
     });
 
     it("should log error for AI dataSource without basePrompt", () => {
       const logger = createSilentLogger();
       const errorSpy = spyOn(logger, "error");
-      
+
       const registryWithLogger = TemplateRegistry.createFresh(logger);
-      
+
       const template = createTemplate({
         name: "test",
         description: "Test template",
@@ -300,20 +300,20 @@ describe("TemplateRegistry", () => {
         dataSourceId: "shell:ai-content", // AI dataSource without basePrompt
         requiredPermission: "public",
       });
-      
+
       registryWithLogger.register("test", template);
-      
+
       expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Template configuration error:")
+        expect.stringContaining("Template configuration error:"),
       );
     });
 
     it("should not log errors for valid configurations", () => {
       const logger = createSilentLogger();
       const errorSpy = spyOn(logger, "error");
-      
+
       const registryWithLogger = TemplateRegistry.createFresh(logger);
-      
+
       // Valid fetch-only template
       const fetchTemplate = createTemplate({
         name: "fetch",
@@ -322,7 +322,7 @@ describe("TemplateRegistry", () => {
         dataSourceId: "shell:system-stats",
         requiredPermission: "public",
       });
-      
+
       // Valid AI generation template
       const aiTemplate = createTemplate({
         name: "ai",
@@ -332,7 +332,7 @@ describe("TemplateRegistry", () => {
         dataSourceId: "shell:ai-content",
         requiredPermission: "public",
       });
-      
+
       // Valid static template
       const staticTemplate = createTemplate({
         name: "static",
@@ -343,11 +343,11 @@ describe("TemplateRegistry", () => {
           component: () => h("div", {}, "Static"),
         },
       });
-      
+
       registryWithLogger.register("fetch", fetchTemplate);
       registryWithLogger.register("ai", aiTemplate);
       registryWithLogger.register("static", staticTemplate);
-      
+
       expect(errorSpy).not.toHaveBeenCalled();
     });
   });

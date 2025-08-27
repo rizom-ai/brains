@@ -1,4 +1,8 @@
-import type { GenerationContext, ContentTemplate } from "./types";
+import type {
+  GenerationContext,
+  ContentTemplate,
+  ResolutionOptions,
+} from "./types";
 import type { EntityService } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
@@ -8,6 +12,7 @@ import type {
 } from "@brains/render-service";
 import type { ContentService as IContentService } from "./types";
 import type { TemplateRegistry } from "@brains/templates";
+import { TemplateCapabilities } from "@brains/templates";
 import type { DataSourceRegistry } from "@brains/datasource";
 
 /**
@@ -122,6 +127,110 @@ export class ContentService implements IContentService {
 
         return contentTemplate;
       });
+  }
+
+  /**
+   * Resolve content for a template using multiple resolution strategies
+   * Priority order: DataSource fetch -> saved content -> fallback
+   *
+   * Note: Templates MUST have a formatter to work with saved content from entities.
+   */
+  async resolveContent<T = unknown>(
+    templateName: string,
+    options?: ResolutionOptions,
+    pluginId?: string,
+  ): Promise<T | null> {
+    // Apply template scoping if pluginId is provided
+    const scopedTemplateName = this.applyTemplateScoping(
+      templateName,
+      pluginId,
+    );
+
+    const template = this.dependencies.templateRegistry.get(scopedTemplateName);
+    if (!template) {
+      this.dependencies.logger.debug(
+        `Template not found: ${scopedTemplateName}`,
+      );
+      return null;
+    }
+
+    // 1. Priority: DataSource fetch (real-time data like dashboard stats)
+    if (template.dataSourceId && TemplateCapabilities.canFetch(template)) {
+      const dataSource = this.dependencies.dataSourceRegistry.get(
+        template.dataSourceId,
+      );
+      if (dataSource?.fetch) {
+        try {
+          const data = await dataSource.fetch(
+            options?.dataParams,
+            template.schema,
+          );
+          if (data !== undefined) {
+            this.dependencies.logger.debug(
+              `Resolved content via DataSource fetch for ${scopedTemplateName}`,
+            );
+            return data as T;
+          }
+        } catch (error) {
+          this.dependencies.logger.debug(
+            `DataSource fetch failed for ${scopedTemplateName}`,
+            { error },
+          );
+        }
+      }
+    }
+
+    // 2. Try saved content (previously stored/generated content)
+    // IMPORTANT: Templates must have a formatter to parse entity-stored content
+    if (options?.savedContent) {
+      if (!template.formatter) {
+        this.dependencies.logger.warn(
+          `Template ${scopedTemplateName} has no formatter but saved content was requested. ` +
+            `Templates must have a formatter to parse entity-stored content.`,
+        );
+      } else {
+        try {
+          const entity = await this.dependencies.entityService.getEntity(
+            options.savedContent.entityType,
+            options.savedContent.entityId,
+          );
+          if (entity?.content) {
+            this.dependencies.logger.debug(
+              `Resolved content from saved entity for ${scopedTemplateName}`,
+            );
+            // Use the formatter to parse the content
+            return this.parseContent(scopedTemplateName, entity.content) as T;
+          }
+        } catch (error) {
+          this.dependencies.logger.debug(
+            `No saved content found for ${scopedTemplateName}: ${options.savedContent.entityType}/${options.savedContent.entityId}`,
+            { error },
+          );
+        }
+      }
+    }
+
+    // 3. Static fallback content
+    if (options?.fallback !== undefined) {
+      try {
+        const validated = template.schema.parse(options.fallback);
+        this.dependencies.logger.debug(
+          `Using fallback content for ${scopedTemplateName}`,
+        );
+        return validated as T;
+      } catch (error) {
+        this.dependencies.logger.debug(
+          `Fallback content validation failed for ${scopedTemplateName}`,
+          { error },
+        );
+      }
+    }
+
+    // No resolution strategy succeeded
+    this.dependencies.logger.debug(
+      `No content could be resolved for ${scopedTemplateName}`,
+    );
+    return null;
   }
 
   /**

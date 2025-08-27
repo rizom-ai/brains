@@ -49,18 +49,18 @@ export class TemplateRegistry {
    */
   register(name: string, template: Template): void {
     this.templates.set(name, template);
-    
+
     // Check for configuration errors
     const errors = TemplateCapabilities.validate(template);
     if (errors.length > 0) {
-      errors.forEach(error => {
+      errors.forEach((error) => {
         this.logger?.error(`Template configuration error: ${error}`);
       });
     }
-    
+
     // Log capability information in debug mode
     TemplateCapabilities.logCapabilities(template, this.logger);
-    
+
     this.logger?.debug(`Registered template: ${name}`);
   }
 

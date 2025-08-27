@@ -217,42 +217,21 @@ export class SiteBuilder implements ISiteBuilder {
       return section.content ?? null;
     }
 
-    // Add plugin scope if not already present
-    const templateName = section.template.includes(":")
-      ? section.template
-      : `site-builder:${section.template}`;
+    // Template name will be automatically scoped by the context helper
+    const templateName = section.template;
 
-    const renderService = this.context.getRenderService();
-
-    // Use RenderService with all resolution strategies
-    const content = await renderService.resolveContent(templateName, {
-      // Static content from section definition
-      staticContent: section.content,
-
-      // Custom resolver for site-builder's entity storage
-      customResolver: async () => {
-        const entityType =
+    // Use the context's resolveContent helper
+    const content = await this.context.resolveContent(templateName, {
+      // Saved content from entity storage
+      savedContent: {
+        entityType:
           environment === "production"
             ? "site-content-production"
-            : "site-content-preview";
-        const entityId = `${route.id}:${section.id}`;
-
-        try {
-          const entity = await this.context.entityService.getEntity(
-            entityType,
-            entityId,
-          );
-          if (entity) {
-            this.logger.debug(`Found stored entity content for ${entityId}`);
-            return this.context.parseContent(section.template, entity.content);
-          }
-        } catch (error) {
-          this.logger.debug(`No stored entity found with ID ${entityId}`, {
-            error,
-          });
-        }
-        return undefined;
+            : "site-content-preview",
+        entityId: `${route.id}:${section.id}`,
       },
+      // Static fallback content from section definition
+      fallback: section.content,
     });
 
     return content ?? null;

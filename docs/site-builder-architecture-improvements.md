@@ -121,7 +121,7 @@ class ContentService {
   async deriveContent(...) { /* Content transformation */ }
   async promoteContent(...) { /* Environment promotion */ }
   async rollbackContent(...) { /* Environment rollback */ }
-  
+
   // NEW: Content resolution with proper priority
   async resolveContent(
     templateName: string,
@@ -131,7 +131,7 @@ class ContentService {
     if (!template) return null;
 
     // Priority order (freshest to most static):
-    
+
     // 1. DataSource fetch (real-time data like dashboard stats)
     if (template.dataSourceId && TemplateCapabilities.canFetch(template)) {
       const dataSource = this.dataSourceRegistry.get(template.dataSourceId);
@@ -256,7 +256,12 @@ class SiteBuilder {
 
         // Render if template supports it
         if (TemplateCapabilities.canRender(template)) {
-          await this.renderService.renderPage(route, section, content, template);
+          await this.renderService.renderPage(
+            route,
+            section,
+            content,
+            template,
+          );
         }
       }
     }

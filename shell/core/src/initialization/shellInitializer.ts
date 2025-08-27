@@ -238,7 +238,7 @@ export class ShellInitializer {
     // Render and route services
     const renderService =
       dependencies?.renderService ??
-      RenderService.getInstance(templateRegistry, dataSourceRegistry);
+      RenderService.getInstance(templateRegistry);
     const routeRegistry =
       dependencies?.routeRegistry ?? RouteRegistry.getInstance();
     const daemonRegistry =

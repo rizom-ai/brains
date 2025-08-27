@@ -5,6 +5,7 @@ import type {
   BaseEntity,
   EntityAdapter,
 } from "@brains/entity-service";
+import type { ResolutionOptions } from "@brains/content-service";
 import type { JobHandler, BatchOperation } from "@brains/job-queue";
 import type { JobOptions } from "@brains/job-queue";
 import { createId } from "@brains/utils";
@@ -76,6 +77,12 @@ export interface ServicePluginContext extends CorePluginContext {
   getViewTemplate: (name: string) => ViewTemplate<unknown> | undefined;
   listViewTemplates: () => ViewTemplate<unknown>[];
   getRenderService: () => RenderService;
+
+  // Content resolution helper
+  resolveContent: <T = unknown>(
+    templateName: string,
+    options?: ResolutionOptions,
+  ) => Promise<T | null>;
 
   // Plugin metadata
   getPluginPackageName: (pluginId: string) => string | undefined;
@@ -206,6 +213,12 @@ export function createServicePluginContext(
     },
     getRenderService: () => {
       return renderService;
+    },
+
+    // Content resolution helper
+    resolveContent: async (templateName, options) => {
+      const contentService = shell.getContentService();
+      return contentService.resolveContent(templateName, options, pluginId);
     },
 
     // Plugin metadata

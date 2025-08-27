@@ -67,7 +67,7 @@ export class TemplateCapabilities {
     const errors: string[] = [];
 
     // Only warn about actual misconfigurations, not different template types
-    
+
     // Error: AI dataSource requires basePrompt to function
     if (template.dataSourceId?.includes("ai-content") && !template.basePrompt) {
       errors.push(
@@ -76,7 +76,10 @@ export class TemplateCapabilities {
     }
 
     // Error: basePrompt without AI dataSource won't be used
-    if (template.basePrompt && (!template.dataSourceId || !template.dataSourceId.includes("ai-content"))) {
+    if (
+      template.basePrompt &&
+      (!template.dataSourceId || !template.dataSourceId.includes("ai-content"))
+    ) {
       errors.push(
         `Template "${template.name}" has basePrompt but no AI-content dataSourceId. The basePrompt won't be used.`,
       );

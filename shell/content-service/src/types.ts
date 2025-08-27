@@ -47,6 +47,21 @@ export interface GenerationContext {
 }
 
 /**
+ * Options for content resolution with multiple strategies
+ */
+export interface ResolutionOptions {
+  /** Look up previously saved content from entity storage */
+  savedContent?: {
+    entityType: string;
+    entityId: string;
+  };
+  /** Parameters for DataSource fetch operation */
+  dataParams?: unknown;
+  /** Static fallback content */
+  fallback?: unknown;
+}
+
+/**
  * Public interface for ContentService
  * Used by plugins and for testing
  */
@@ -60,6 +75,16 @@ export interface ContentService {
    * List all available templates
    */
   listTemplates(): ContentTemplate<unknown>[];
+
+  /**
+   * Resolve content for a template using multiple resolution strategies
+   * Priority order: DataSource fetch -> saved content -> fallback
+   */
+  resolveContent<T = unknown>(
+    templateName: string,
+    options?: ResolutionOptions,
+    pluginId?: string,
+  ): Promise<T | null>;
 
   /**
    * Generate content using a template with entity-aware context
