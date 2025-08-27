@@ -1,4 +1,5 @@
 import type { Template } from "./types";
+import type { Logger } from "@brains/utils";
 
 /**
  * Utility class for detecting template capabilities
@@ -60,57 +61,42 @@ export class TemplateCapabilities {
 
   /**
    * Validate template capabilities for consistency
-   * Returns warnings if there are potential issues
+   * Returns errors only for actual misconfigurations
    */
   static validate(template: Template): string[] {
-    const warnings: string[] = [];
+    const errors: string[] = [];
 
-    // Check for basePrompt without AI dataSource
-    if (template.basePrompt && !template.dataSourceId?.includes("ai-content")) {
-      warnings.push(
-        `Template "${template.name}" has basePrompt but no AI-content dataSourceId. It won't be able to generate content.`,
-      );
-    }
-
-    // Check for AI dataSource without basePrompt
+    // Only warn about actual misconfigurations, not different template types
+    
+    // Error: AI dataSource requires basePrompt to function
     if (template.dataSourceId?.includes("ai-content") && !template.basePrompt) {
-      warnings.push(
-        `Template "${template.name}" has AI-content dataSourceId but no basePrompt. Consider adding a basePrompt or using a different dataSource.`,
+      errors.push(
+        `Template "${template.name}" has AI-content dataSourceId but no basePrompt. AI generation requires a basePrompt.`,
       );
     }
 
-    // Check for formatter without any content source
-    if (template.formatter && !template.basePrompt && !template.dataSourceId) {
-      warnings.push(
-        `Template "${template.name}" has a formatter but no content source (basePrompt or dataSourceId).`,
+    // Error: basePrompt without AI dataSource won't be used
+    if (template.basePrompt && (!template.dataSourceId || !template.dataSourceId.includes("ai-content"))) {
+      errors.push(
+        `Template "${template.name}" has basePrompt but no AI-content dataSourceId. The basePrompt won't be used.`,
       );
     }
 
-    // Check for interactive components without a dataSource
-    if (template.layout?.interactive && !template.dataSourceId) {
-      warnings.push(
-        `Template "${template.name}" is marked as interactive but has no dataSourceId for dynamic data.`,
-      );
-    }
-
-    return warnings;
+    return errors;
   }
 
   /**
    * Log capability information for debugging
    */
-  static logCapabilities(
-    template: Template,
-    logger?: { debug: (msg: string, meta?: any) => void },
-  ): void {
+  static logCapabilities(template: Template, logger?: Logger): void {
     const caps = this.getCapabilities(template);
-    const warnings = this.validate(template);
+    const errors = this.validate(template);
 
-    const log = logger?.debug || console.log;
-
-    log(`Template capabilities for "${template.name}":`, {
-      ...caps,
-      warnings: warnings.length > 0 ? warnings : undefined,
-    });
+    if (logger) {
+      logger.debug(`Template capabilities for "${template.name}":`, {
+        ...caps,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    }
   }
 }

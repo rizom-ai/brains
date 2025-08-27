@@ -1,8 +1,9 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, spyOn } from "bun:test";
 import { TemplateCapabilities } from "../src/capabilities";
 import { createTemplate, type ComponentType } from "../src/types";
 import { z } from "zod";
 import type { ContentFormatter } from "@brains/utils";
+import { createSilentLogger } from "@brains/utils";
 import { h } from "preact";
 
 describe("TemplateCapabilities", () => {
@@ -254,7 +255,7 @@ describe("TemplateCapabilities", () => {
   });
 
   describe("validate", () => {
-    it("should warn about basePrompt without AI dataSource", () => {
+    it("should error when basePrompt is used without AI dataSource", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
@@ -264,13 +265,13 @@ describe("TemplateCapabilities", () => {
         requiredPermission: "public",
       });
 
-      const warnings = TemplateCapabilities.validate(template);
-      expect(warnings).toContain(
-        'Template "test" has basePrompt but no AI-content dataSourceId. It won\'t be able to generate content.',
+      const errors = TemplateCapabilities.validate(template);
+      expect(errors).toContain(
+        'Template "test" has basePrompt but no AI-content dataSourceId. The basePrompt won\'t be used.',
       );
     });
 
-    it("should warn about AI dataSource without basePrompt", () => {
+    it("should error when AI dataSource is used without basePrompt", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
@@ -279,32 +280,47 @@ describe("TemplateCapabilities", () => {
         requiredPermission: "public",
       });
 
-      const warnings = TemplateCapabilities.validate(template);
-      expect(warnings).toContain(
-        'Template "test" has AI-content dataSourceId but no basePrompt. Consider adding a basePrompt or using a different dataSource.',
+      const errors = TemplateCapabilities.validate(template);
+      expect(errors).toContain(
+        'Template "test" has AI-content dataSourceId but no basePrompt. AI generation requires a basePrompt.',
       );
     });
 
-    it("should warn about formatter without content source", () => {
+    it("should return no errors for fetch-only template", () => {
+      const template = createTemplate({
+        name: "test",
+        description: "Test template",
+        schema: z.string(),
+        dataSourceId: "shell:system-stats",
+        requiredPermission: "public",
+      });
+
+      const errors = TemplateCapabilities.validate(template);
+      expect(errors).toEqual([]);
+    });
+
+    it("should return no errors for static-only template", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
         schema: z.string(),
         requiredPermission: "public",
         formatter: mockFormatter,
+        layout: {
+          component: mockComponent,
+        },
       });
 
-      const warnings = TemplateCapabilities.validate(template);
-      expect(warnings).toContain(
-        'Template "test" has a formatter but no content source (basePrompt or dataSourceId).',
-      );
+      const errors = TemplateCapabilities.validate(template);
+      expect(errors).toEqual([]);
     });
 
-    it("should warn about interactive components without dataSource", () => {
+    it("should return no errors for interactive template with dataSource", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
         schema: z.string(),
+        dataSourceId: "shell:system-stats",
         requiredPermission: "public",
         layout: {
           component: mockComponent,
@@ -312,13 +328,11 @@ describe("TemplateCapabilities", () => {
         },
       });
 
-      const warnings = TemplateCapabilities.validate(template);
-      expect(warnings).toContain(
-        'Template "test" is marked as interactive but has no dataSourceId for dynamic data.',
-      );
+      const errors = TemplateCapabilities.validate(template);
+      expect(errors).toEqual([]);
     });
 
-    it("should return no warnings for a well-configured template", () => {
+    it("should return no errors for well-configured AI generation template", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
@@ -332,16 +346,15 @@ describe("TemplateCapabilities", () => {
         },
       });
 
-      const warnings = TemplateCapabilities.validate(template);
-      expect(warnings).toEqual([]);
+      const errors = TemplateCapabilities.validate(template);
+      expect(errors).toEqual([]);
     });
   });
 
   describe("logCapabilities", () => {
-    it("should log capabilities with warnings", () => {
-      const mockLogger = {
-        debug: mock(),
-      };
+    it("should log capabilities with errors", () => {
+      const logger = createSilentLogger();
+      const debugSpy = spyOn(logger, "debug");
 
       const template = createTemplate({
         name: "test",
@@ -352,16 +365,16 @@ describe("TemplateCapabilities", () => {
         requiredPermission: "public",
       });
 
-      TemplateCapabilities.logCapabilities(template, mockLogger);
+      TemplateCapabilities.logCapabilities(template, logger);
 
-      expect(mockLogger.debug).toHaveBeenCalledWith(
+      expect(debugSpy).toHaveBeenCalledWith(
         'Template capabilities for "test":',
         expect.objectContaining({
           canGenerate: false,
           canFetch: true,
           canRender: false,
           isStaticOnly: false,
-          warnings: expect.arrayContaining([
+          errors: expect.arrayContaining([
             expect.stringContaining(
               "basePrompt but no AI-content dataSourceId",
             ),

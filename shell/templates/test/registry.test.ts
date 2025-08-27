@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { TemplateRegistry } from "../src/registry";
 import { createTemplate } from "../src/types";
 import { z } from "zod";
 import { h } from "preact";
+import { createSilentLogger } from "@brains/utils";
 
 describe("TemplateRegistry", () => {
   let registry: TemplateRegistry;
@@ -260,6 +261,94 @@ describe("TemplateRegistry", () => {
       const retrieved = registry.get("provider-template");
       expect(retrieved).toBeDefined();
       expect(retrieved?.dataSourceId).toBe("system-stats");
+    });
+  });
+
+  describe("capability validation", () => {
+    it("should log error for basePrompt without AI dataSource", () => {
+      const logger = createSilentLogger();
+      const errorSpy = spyOn(logger, "error");
+      
+      const registryWithLogger = TemplateRegistry.createFresh(logger);
+      
+      const template = createTemplate({
+        name: "test",
+        description: "Test template",
+        schema: z.string(),
+        basePrompt: "Generate content",
+        dataSourceId: "shell:system-stats", // Wrong dataSource
+        requiredPermission: "public",
+      });
+      
+      registryWithLogger.register("test", template);
+      
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Template configuration error:")
+      );
+    });
+
+    it("should log error for AI dataSource without basePrompt", () => {
+      const logger = createSilentLogger();
+      const errorSpy = spyOn(logger, "error");
+      
+      const registryWithLogger = TemplateRegistry.createFresh(logger);
+      
+      const template = createTemplate({
+        name: "test",
+        description: "Test template",
+        schema: z.string(),
+        dataSourceId: "shell:ai-content", // AI dataSource without basePrompt
+        requiredPermission: "public",
+      });
+      
+      registryWithLogger.register("test", template);
+      
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Template configuration error:")
+      );
+    });
+
+    it("should not log errors for valid configurations", () => {
+      const logger = createSilentLogger();
+      const errorSpy = spyOn(logger, "error");
+      
+      const registryWithLogger = TemplateRegistry.createFresh(logger);
+      
+      // Valid fetch-only template
+      const fetchTemplate = createTemplate({
+        name: "fetch",
+        description: "Fetch template",
+        schema: z.string(),
+        dataSourceId: "shell:system-stats",
+        requiredPermission: "public",
+      });
+      
+      // Valid AI generation template
+      const aiTemplate = createTemplate({
+        name: "ai",
+        description: "AI template",
+        schema: z.string(),
+        basePrompt: "Generate content",
+        dataSourceId: "shell:ai-content",
+        requiredPermission: "public",
+      });
+      
+      // Valid static template
+      const staticTemplate = createTemplate({
+        name: "static",
+        description: "Static template",
+        schema: z.string(),
+        requiredPermission: "public",
+        layout: {
+          component: () => h("div", {}, "Static"),
+        },
+      });
+      
+      registryWithLogger.register("fetch", fetchTemplate);
+      registryWithLogger.register("ai", aiTemplate);
+      registryWithLogger.register("static", staticTemplate);
+      
+      expect(errorSpy).not.toHaveBeenCalled();
     });
   });
 });
