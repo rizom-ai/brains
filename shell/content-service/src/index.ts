@@ -17,13 +17,6 @@ export type {
 } from "./types";
 export { ContentTemplateSchema } from "./types";
 
-// Provider types
-export type {
-  IContentProvider,
-  ProviderInfo,
-  ProviderCapabilities,
-} from "./providers/types";
-
 export {
   ContentGenerationJobHandler,
   contentGenerationJobDataSchema,

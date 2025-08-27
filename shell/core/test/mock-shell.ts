@@ -38,7 +38,6 @@ import type { ServiceRegistry } from "@brains/service-registry";
 import type { RouteDefinition } from "@brains/render-service";
 import type { Template } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
-import type { IContentProvider } from "@brains/content-service";
 import { PermissionService } from "@brains/permission-service";
 import type { DataSourceRegistry, DataSource } from "@brains/datasource";
 
@@ -57,7 +56,6 @@ export class MockShell implements IShell {
   private services = new Map<string, unknown>();
   private entities = new Map<string, BaseEntity>();
   private entityTypes = new Set<string>();
-  private contentProviders = new Map<string, IContentProvider>();
   private dataSources = new Map<string, DataSource>();
   private messageHandlers = new Map<
     string,
@@ -175,11 +173,6 @@ export class MockShell implements IShell {
       unregisterTemplate: (name: string) => {
         this.templates.delete(name);
       },
-      registerProvider: (provider: IContentProvider) => {
-        this.contentProviders.set(provider.id, provider);
-      },
-      getProvider: (id: string) => this.contentProviders.get(id),
-      listProviders: () => Array.from(this.contentProviders.values()),
     } as unknown as ContentService;
   }
 
@@ -511,9 +504,6 @@ export class MockShell implements IShell {
     return new Map(this.templates);
   }
 
-  getContentProviders(): Map<string, IContentProvider> {
-    return new Map(this.contentProviders);
-  }
 
   // Batch job operations - simple mock implementations
   async enqueueBatch(
