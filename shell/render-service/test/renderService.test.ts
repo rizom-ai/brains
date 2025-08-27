@@ -23,7 +23,6 @@ const testTemplate: Template = {
   },
 };
 
-
 // Test route
 const testRoute: RouteDefinition = {
   id: "test-route",

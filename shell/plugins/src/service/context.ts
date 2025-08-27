@@ -6,6 +6,7 @@ import type {
   EntityAdapter,
 } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
+import { TemplateCapabilities } from "@brains/templates";
 import type { JobHandler, BatchOperation } from "@brains/job-queue";
 import type { JobOptions } from "@brains/job-queue";
 import { createId } from "@brains/utils";
@@ -83,6 +84,14 @@ export interface ServicePluginContext extends CorePluginContext {
     templateName: string,
     options?: ResolutionOptions,
   ) => Promise<T | null>;
+
+  // Template capability checking
+  getTemplateCapabilities: (templateName: string) => {
+    canGenerate: boolean;
+    canFetch: boolean;
+    canRender: boolean;
+    isStaticOnly: boolean;
+  } | null;
 
   // Plugin metadata
   getPluginPackageName: (pluginId: string) => string | undefined;
@@ -219,6 +228,22 @@ export function createServicePluginContext(
     resolveContent: async (templateName, options) => {
       const contentService = shell.getContentService();
       return contentService.resolveContent(templateName, options, pluginId);
+    },
+
+    // Template capability checking
+    getTemplateCapabilities: (templateName) => {
+      // Apply plugin scoping if not already scoped
+      const scopedTemplateName = templateName.includes(":")
+        ? templateName
+        : `${pluginId}:${templateName}`;
+
+      // Use the getTemplate method from shell which already handles registry access
+      const template = shell.getTemplate(scopedTemplateName);
+      if (!template) {
+        return null;
+      }
+
+      return TemplateCapabilities.getCapabilities(template);
     },
 
     // Plugin metadata

@@ -439,6 +439,11 @@ export class MockShell implements IShell {
     return null;
   }
 
+  getTemplate(name: string): Template | undefined {
+    // Mock implementation - return from templates map
+    return this.templates.get(name);
+  }
+
   registerRoutes(
     routes: RouteDefinition[],
     options?: { pluginId?: string },

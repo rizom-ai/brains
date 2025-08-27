@@ -43,6 +43,18 @@ describe("SiteContentGenerationJobHandler", () => {
     const shell = harness.getShell();
     context = createServicePluginContext(shell, "site-builder");
 
+    // Mock getTemplateCapabilities to return a template with canGenerate=true
+    const getTemplateCapabilitiesSpy = spyOn(
+      context,
+      "getTemplateCapabilities",
+    );
+    getTemplateCapabilitiesSpy.mockReturnValue({
+      canGenerate: true,
+      canFetch: false,
+      canRender: true,
+      isStaticOnly: false,
+    });
+
     // Create handler
     handler = new SiteContentGenerationJobHandler(context);
 
@@ -133,7 +145,7 @@ describe("SiteContentGenerationJobHandler", () => {
     });
 
     test("should handle generation errors gracefully", async () => {
-      // Test 1: Real errors should be re-thrown
+      // Mock generateContent to fail with AI service error
       const generateContentSpy = spyOn(context, "generateContent");
       generateContentSpy.mockRejectedValue(new Error("AI service unavailable"));
 
@@ -155,11 +167,31 @@ describe("SiteContentGenerationJobHandler", () => {
           mockProgressReporter as ProgressReporter,
         ),
       ).rejects.toThrow("AI service unavailable");
+    });
 
-      // Test 2: Templates without generation support should be skipped gracefully
-      generateContentSpy.mockRejectedValue(
-        new Error("Template test-template doesn't support content generation"),
+    test("should skip templates without generation support", async () => {
+      // Mock getTemplateCapabilities to return a template without generation support
+      const getTemplateCapabilitiesSpy = spyOn(
+        context,
+        "getTemplateCapabilities",
       );
+      getTemplateCapabilitiesSpy.mockReturnValue({
+        canGenerate: false,
+        canFetch: true,
+        canRender: true,
+        isStaticOnly: false,
+      });
+
+      const jobData = {
+        routeId: "landing",
+        sectionId: "hero",
+        entityId: "landing:hero",
+        entityType: "site-content-preview" as const,
+        templateName: "test-template",
+        context: {
+          prompt: "Generate hero content",
+        },
+      };
 
       const result = await handler.process(
         jobData,
@@ -176,14 +208,12 @@ describe("SiteContentGenerationJobHandler", () => {
     });
 
     test("should handle missing template gracefully", async () => {
-      // Mock successful generation
-      const generateContentSpy = spyOn(context, "generateContent");
-      generateContentSpy.mockResolvedValue({ content: "Generated" });
-
-      // Mock formatContent to throw (template not found)
-      context.formatContent = mock(() => {
-        throw new Error("Template not found: missing-template");
-      });
+      // Mock getTemplateCapabilities to return null (template not found)
+      const getTemplateCapabilitiesSpy = spyOn(
+        context,
+        "getTemplateCapabilities",
+      );
+      getTemplateCapabilitiesSpy.mockReturnValue(null);
 
       const jobData = {
         routeId: "landing",
@@ -196,13 +226,18 @@ describe("SiteContentGenerationJobHandler", () => {
         },
       };
 
-      expect(
-        handler.process(
-          jobData,
-          "job-123",
-          mockProgressReporter as ProgressReporter,
-        ),
-      ).rejects.toThrow("Template not found: missing-template");
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        mockProgressReporter as ProgressReporter,
+      );
+
+      expect(result).toBe("[Template missing-template not found]");
+      expect(mockProgressReporter.report).toHaveBeenCalledWith({
+        progress: 3,
+        total: 3,
+        message: "Skipped landing:hero - template not found",
+      });
     });
   });
 

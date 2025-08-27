@@ -84,6 +84,38 @@ export class SiteContentOperations {
           continue;
         }
 
+        // Check template capabilities
+        if (section.template) {
+          const capabilities = this.context.getTemplateCapabilities(
+            section.template,
+          );
+
+          if (!capabilities) {
+            logger.warn("Template not found, skipping section", {
+              routeId: route.id,
+              sectionId: section.id,
+              templateName: section.template,
+            });
+            continue;
+          }
+
+          if (!capabilities.canGenerate) {
+            logger.info("Template doesn't support generation, skipping", {
+              routeId: route.id,
+              sectionId: section.id,
+              templateName: section.template,
+              capabilities,
+            });
+            continue;
+          }
+        } else {
+          logger.debug("Section has no template, skipping", {
+            routeId: route.id,
+            sectionId: section.id,
+          });
+          continue;
+        }
+
         // Check if content already exists (unless force is true)
         if (!options.force && !options.dryRun) {
           const entityId = `${route.id}:${section.id}`;

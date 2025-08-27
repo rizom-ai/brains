@@ -78,6 +78,7 @@ export interface IShell {
     templates: Record<string, Template>,
     pluginId?: string,
   ): void;
+  getTemplate(name: string): Template | undefined;
 
   // Plugin capability registration
   registerPluginCommands(pluginId: string, commands: Command[]): void;

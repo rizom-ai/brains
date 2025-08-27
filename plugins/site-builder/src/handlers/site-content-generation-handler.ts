@@ -58,48 +58,46 @@ export class SiteContentGenerationJobHandler
         message: `Generating content for ${data.routeId}:${data.sectionId}`,
       });
 
-      // Generate content using the template
-      // Check if this template supports generation (some templates like dashboard only support fetch)
-      const generatedContent = await this.context
-        .generateContent({
-          prompt: data.context.prompt || "",
-          templateName: data.templateName,
-          ...(data.context.data && { data: data.context.data }),
-        })
-        .catch((error: unknown) => {
-          // If template doesn't support generation (e.g., dashboard with system-stats), skip it
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          if (errorMessage.includes("doesn't support content generation")) {
-            logger.info("Template doesn't support generation, skipping", {
-              jobId,
-              templateName: data.templateName,
-              error: errorMessage,
-            });
-            return null;
-          }
-          // Re-throw other errors
-          throw error;
-        });
+      // Check template capabilities first
+      const capabilities = this.context.getTemplateCapabilities(
+        data.templateName,
+      );
 
-      // If no content was generated (template doesn't support it), skip entity creation
-      if (generatedContent === null) {
+      if (!capabilities) {
+        logger.warn("Template not found", {
+          jobId,
+          templateName: data.templateName,
+        });
+        await progressReporter.report({
+          progress: 3,
+          total: 3,
+          message: `Skipped ${data.routeId}:${data.sectionId} - template not found`,
+        });
+        return `[Template ${data.templateName} not found]`;
+      }
+
+      if (!capabilities.canGenerate) {
+        logger.info("Template doesn't support generation, skipping", {
+          jobId,
+          templateName: data.templateName,
+          capabilities,
+        });
         await progressReporter.report({
           progress: 3,
           total: 3,
           message: `Skipped ${data.routeId}:${data.sectionId} - template doesn't support generation`,
         });
-
-        logger.info("Skipped entity creation for non-generative template", {
-          jobId,
-          routeId: data.routeId,
-          sectionId: data.sectionId,
-          templateName: data.templateName,
-        });
-
-        // Return a status message instead of empty string
-        return `[Template ${data.templateName} is fetch-only]`;
+        return `[Template ${data.templateName} is ${
+          capabilities.canFetch ? "fetch-only" : "static-only"
+        }]`;
       }
+
+      // Generate content using the template
+      const generatedContent = await this.context.generateContent({
+        prompt: data.context.prompt || "",
+        templateName: data.templateName,
+        ...(data.context.data && { data: data.context.data }),
+      });
 
       // Format the generated content using the template's formatter
       const formattedContent = this.context.formatContent(

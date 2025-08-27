@@ -47,6 +47,18 @@ describe("SiteContentOperations", () => {
     const shell = harness.getShell();
     context = createServicePluginContext(shell, "site-builder");
 
+    // Mock getTemplateCapabilities to return templates with canGenerate=true by default
+    const getTemplateCapabilitiesSpy = spyOn(
+      context,
+      "getTemplateCapabilities",
+    );
+    getTemplateCapabilitiesSpy.mockReturnValue({
+      canGenerate: true,
+      canFetch: false,
+      canRender: true,
+      isStaticOnly: false,
+    });
+
     // Create operations instance with the context
     operations = new SiteContentOperations(context);
   });
