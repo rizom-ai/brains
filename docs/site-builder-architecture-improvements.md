@@ -94,19 +94,19 @@ class TemplateCapabilities {
 }
 ```
 
-### 2. Content Orchestration Service
+### 2. Enhanced ContentService
 
-Create a universal content orchestration service that's independent of content usage:
+Consolidate all content operations into ContentService, making it the single source of truth for content management:
 
 ```typescript
 interface ContentContext {
-  staticContent?: unknown; // Inline/provided content
   entityContext?: {
     // Entity storage lookup
     type: string;
     id: string;
   };
-  dataContext?: unknown; // DataSource parameters
+  dataParams?: unknown; // DataSource parameters
+  staticContent?: unknown; // Fallback content
   generationContext?: {
     // AI generation parameters
     prompt?: string;
@@ -115,14 +115,14 @@ interface ContentContext {
   };
 }
 
-class ContentOrchestrator {
-  constructor(
-    private templateRegistry: TemplateRegistry,
-    private entityService: EntityService,
-    private dataSourceRegistry: DataSourceRegistry,
-    private contentGenerator: ContentGenerator, // renamed
-  ) {}
-
+class ContentService {
+  // Existing methods
+  async generateContent(...) { /* AI generation */ }
+  async deriveContent(...) { /* Content transformation */ }
+  async promoteContent(...) { /* Environment promotion */ }
+  async rollbackContent(...) { /* Environment rollback */ }
+  
+  // NEW: Content resolution with proper priority
   async resolveContent(
     templateName: string,
     context?: ContentContext,
@@ -130,12 +130,21 @@ class ContentOrchestrator {
     const template = this.templateRegistry.get(templateName);
     if (!template) return null;
 
-    // 1. Static content (highest priority)
-    if (context?.staticContent !== undefined) {
-      return this.validateContent(template, context.staticContent);
+    // Priority order (freshest to most static):
+    
+    // 1. DataSource fetch (real-time data like dashboard stats)
+    if (template.dataSourceId && TemplateCapabilities.canFetch(template)) {
+      const dataSource = this.dataSourceRegistry.get(template.dataSourceId);
+      if (dataSource?.fetch) {
+        const data = await dataSource.fetch(
+          context?.dataParams,
+          template.schema,
+        );
+        if (data !== undefined) return data;
+      }
     }
 
-    // 2. Entity storage (for persisted content)
+    // 2. Entity storage (previously saved/generated content)
     if (context?.entityContext) {
       const entity = await this.entityService.getEntity(
         context.entityContext.type,
@@ -146,27 +155,21 @@ class ContentOrchestrator {
       }
     }
 
-    // 3. DataSource fetch (for runtime data)
-    if (template.dataSourceId && TemplateCapabilities.canFetch(template)) {
-      const dataSource = this.dataSourceRegistry.get(template.dataSourceId);
-      if (dataSource?.fetch) {
-        const data = await dataSource.fetch(
-          context?.dataContext,
-          template.schema,
-        );
-        if (data !== undefined) return data;
-      }
-    }
-
-    // 4. AI generation (fallback or explicit)
+    // 3. AI generation (create new content if needed)
     if (
       TemplateCapabilities.canGenerate(template) &&
       context?.generationContext
     ) {
-      return await this.contentGenerator.generateContent({
+      const result = await this.generateContent({
         templateName,
         ...context.generationContext,
       });
+      return result?.content;
+    }
+
+    // 4. Static content (fallback)
+    if (context?.staticContent !== undefined) {
+      return this.validateContent(template, context.staticContent);
     }
 
     return null;
@@ -174,26 +177,28 @@ class ContentOrchestrator {
 }
 ```
 
-This orchestrator can be used by any service that needs content:
+ContentService can now be used by any service that needs content:
 
-- Site-builder for page rendering
+- Site-builder for page content
 - CLI interfaces for response generation
 - API endpoints for data responses
 - Message interfaces for conversational responses
 
 ### 3. Clarified Service Responsibilities
 
-#### ContentGenerator (renamed from ContentService)
+#### ContentService (enhanced, not renamed)
 
-- **Purpose**: AI-powered content generation only
+- **Purpose**: Complete content management
 - **Responsibilities**:
-  - Generate content using templates with AI capabilities
-  - Format generated content
-  - Parse content from markdown
+  - Content resolution from multiple sources
+  - AI-powered content generation
+  - Content derivation and transformation
+  - Content promotion/rollback between environments
+  - Content validation and parsing
 - **Key Changes**:
-  - Renamed to better reflect its purpose
-  - Remove direct DataSource access
-  - Focus purely on AI generation
+  - Added content resolution capability
+  - Centralized all content operations
+  - Clear, cohesive API
 
 #### RenderService
 
@@ -219,7 +224,7 @@ Site-builder becomes focused on orchestration:
 ```typescript
 class SiteBuilder {
   constructor(
-    private contentOrchestrator: ContentOrchestrator,
+    private contentService: ContentService,
     private renderService: RenderService,
     private contentOperations: SiteContentOperations,
   ) {}
@@ -233,11 +238,10 @@ class SiteBuilder {
         const template = this.templateRegistry.get(section.template);
         if (!template) continue;
 
-        // Resolve content using orchestrator
-        const content = await this.contentOrchestrator.resolveContent(
+        // Resolve content using ContentService
+        const content = await this.contentService.resolveContent(
           section.template,
           {
-            staticContent: section.content,
             entityContext: {
               type:
                 options.environment === "production"
@@ -245,13 +249,14 @@ class SiteBuilder {
                   : "site-content-preview",
               id: `${route.id}:${section.id}`,
             },
-            dataContext: { route, section },
+            dataParams: { route, section },
+            staticContent: section.content, // fallback
           },
         );
 
         // Render if template supports it
         if (TemplateCapabilities.canRender(template)) {
-          await this.renderPage(route, section, content, template);
+          await this.renderService.renderPage(route, section, content, template);
         }
       }
     }
@@ -294,39 +299,42 @@ class SiteContentOperations {
 
 ## Implementation Plan
 
-### Phase 1: Template Capability Detection (Week 1)
+### Phase 1: Template Capability Detection (Week 1) ✅ COMPLETED
 
-1. **Add TemplateCapabilities utility**
-   - Create capability detection methods
-   - Add tests for all template types
-   - Document capability combinations
+1. **Add TemplateCapabilities utility** ✅
+   - Created capability detection methods (canGenerate, canFetch, canRender, isStaticOnly)
+   - Added comprehensive tests for all template types
+   - Documented capability combinations
 
-2. **Update existing templates**
-   - Ensure capabilities are correctly declared
-   - Fix dashboard template (remove basePrompt or change dataSourceId)
-   - Add capability metadata
+2. **Update existing templates** ✅
+   - Fixed dashboard template (removed misleading basePrompt)
+   - Ensured capabilities are correctly declared
+   - Templates now clearly indicate their purpose
 
-3. **Add capability validation**
-   - Warn about invalid capability combinations
-   - Provide helpful error messages
-   - Log capability detection results
+3. **Add capability validation** ✅
+   - Added validation for actual misconfigurations only
+   - Integrated validation into TemplateRegistry
+   - Logs errors for invalid configurations, not different template types
 
-### Phase 2: Content Orchestrator Implementation (Week 2)
+### Phase 2: Enhanced ContentService (Week 2)
 
-1. **Create ContentOrchestrator service**
-   - Implement the core orchestration logic
-   - Add resolution priority system
-   - Include proper error handling
+1. **Add content resolution to ContentService**
+   - ContentService becomes the complete content management service
+   - Add `resolveContent` method with proper priority system:
+     1. DataSource fetch (real-time data)
+     2. Entity storage (cached content)
+     3. Static content (fallback)
+   - Keep existing generation, derivation, and promotion capabilities
 
-2. **Integrate with existing services**
-   - Wire up to TemplateRegistry
-   - Connect to EntityService
-   - Link with DataSourceRegistry and ContentService
+2. **Clean up method organization**
+   - Group related methods (resolution, generation, operations)
+   - Ensure clean internal APIs
+   - No type casts, proper type safety
 
 3. **Add comprehensive tests**
    - Test each resolution path
    - Test priority ordering
-   - Test error scenarios
+   - Test integration with existing content operations
 
 ### Phase 3: Service Refactoring (Week 3)
 
@@ -336,13 +344,13 @@ class SiteContentOperations {
    - Update documentation
 
 2. **Update site-builder**
-   - Use ContentOrchestrator instead of custom resolution
-   - Remove direct entity service calls
+   - Use ContentService.resolveContent instead of RenderService
    - Simplify getContentForSection
+   - Remove custom resolver pattern
 
 3. **Update other consumers**
-   - Message interfaces to use ContentOrchestrator
-   - CLI interfaces to use ContentOrchestrator
+   - Message interfaces to use ContentService
+   - CLI interfaces to use ContentService
    - Any other services doing content resolution
 
 ### Phase 4: Content Operations Cleanup (Week 4)
@@ -364,11 +372,10 @@ class SiteContentOperations {
 
 ### Phase 5: Final Refactoring and Documentation (Week 5)
 
-1. **Rename ContentService to ContentGenerator**
-   - Better reflects its actual purpose (AI generation only)
-   - Update all references throughout codebase
-   - Update imports and documentation
-   - Clear distinction from ContentOrchestrator
+1. **ContentService consolidation**
+   - ContentService now handles all content concerns
+   - Clear internal organization of responsibilities
+   - Well-documented public API
 
 2. **Comprehensive testing**
    - Unit tests for each component
@@ -481,6 +488,6 @@ The key insight is that templates can have mixed concerns - that's their strengt
 
 ---
 
-**Document Status**: Planning Phase  
-**Review Status**: Pending Review  
-**Implementation**: Not Started
+**Document Status**: In Progress  
+**Review Status**: Architecture Revised  
+**Implementation**: Phase 1 Complete (2025-01-27)
