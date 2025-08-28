@@ -69,10 +69,10 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       this.config,
       this.logger,
     );
-    context.registerJobHandler("topics:extraction", extractionHandler);
+    context.registerJobHandler("extraction", extractionHandler);
 
     const processingHandler = new TopicProcessingHandler(context, this.logger);
-    context.registerJobHandler("topics:process-single", processingHandler);
+    context.registerJobHandler("process-single", processingHandler);
 
     // Store tools for MCP
     this.tools = [
