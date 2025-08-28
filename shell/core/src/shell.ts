@@ -366,7 +366,7 @@ export class Shell implements IShell {
     return this.generateContent<DefaultQueryResponse>({
       prompt,
       templateName: "shell:knowledge-query",
-      conversationId: context?.conversationId || "default",
+      conversationId: context?.conversationId ?? "default",
       data: queryContext,
       interfacePermissionGrant: "public", // Default to public, callers can override via context
     });

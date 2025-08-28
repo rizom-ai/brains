@@ -7,6 +7,7 @@ import type {
   SearchResult,
 } from "@brains/plugins";
 import type { BatchJobStatus, Batch, JobQueue } from "@brains/job-queue";
+import type { Conversation, Message } from "@brains/conversation-service";
 import {
   systemConfigSchema,
   defaultSystemConfig,
@@ -160,7 +161,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   /**
    * Get conversation details by ID
    */
-  public async getConversation(conversationId: string) {
+  public async getConversation(conversationId: string): Promise<Conversation | null> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
@@ -170,7 +171,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   /**
    * Get messages from a conversation
    */
-  public async getMessages(conversationId: string, limit?: number) {
+  public async getMessages(conversationId: string, limit?: number): Promise<Message[]> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
@@ -183,7 +184,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   /**
    * Search conversations
    */
-  public async searchConversations(query: string) {
+  public async searchConversations(query: string): Promise<Conversation[]> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }

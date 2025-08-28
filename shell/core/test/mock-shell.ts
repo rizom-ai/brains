@@ -8,6 +8,7 @@ import type {
   PluginTool,
   PluginResource,
 } from "@brains/plugins";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
   MessageBus,
@@ -246,7 +247,7 @@ export class MockShell implements IShell {
   getConversationService(): IConversationService {
     return {
       startConversation: async () => `conv-${Date.now()}`,
-      addMessage: async () => {},
+      addMessage: async (): Promise<void> => {},
       getConversation: async () => null,
       searchConversations: async () => [],
       getMessages: async () => [],
@@ -371,10 +372,10 @@ export class MockShell implements IShell {
   getMcpTransport(): IMCPTransport {
     // Return a mock MCP transport for testing
     return {
-      getMcpServer: () => {
+      getMcpServer: (): McpServer => {
         throw new Error("Mock MCP server not implemented");
       },
-      setPermissionLevel: () => {
+      setPermissionLevel: (): void => {
         // No-op for testing
       },
     };
@@ -423,7 +424,7 @@ export class MockShell implements IShell {
     return this.generateContent<DefaultQueryResponse>({
       prompt,
       templateName: "shell:knowledge-query",
-      conversationId: context?.conversationId || "default",
+      conversationId: context?.conversationId ?? "default",
       ...(context && { data: context }),
       interfacePermissionGrant: "public",
     });

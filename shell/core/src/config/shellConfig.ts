@@ -14,10 +14,31 @@ export const STANDARD_PATHS = {
 } as const;
 
 /**
+ * Standard configuration type
+ */
+export interface StandardConfig {
+  database: {
+    url: string;
+    authToken: string | undefined;
+  };
+  jobQueueDatabase: {
+    url: string;
+    authToken: string | undefined;
+  };
+  conversationDatabase: {
+    url: string;
+    authToken: string | undefined;
+  };
+  embedding: {
+    cacheDir: string;
+  };
+}
+
+/**
  * Get standard configuration with required paths
  * This is the single source of truth for all path configuration
  */
-export function getStandardConfig() {
+export function getStandardConfig(): StandardConfig {
   return {
     database: {
       url: `file:${STANDARD_PATHS.dataDir}/brain.db`,
@@ -41,7 +62,7 @@ export function getStandardConfig() {
  * Get standard configuration and ensure directories exist
  * Use this for migration scripts and setup operations
  */
-export async function getStandardConfigWithDirectories() {
+export async function getStandardConfigWithDirectories(): Promise<StandardConfig> {
   // Ensure all directories exist
   await mkdir(STANDARD_PATHS.dataDir, { recursive: true });
   await mkdir(STANDARD_PATHS.cacheDir, { recursive: true });

@@ -164,8 +164,8 @@ export function createSystemTools(
           };
         } else {
           // All active operations
-          const activeJobs = status.activeJobs || [];
-          const activeBatches = status.activeBatches || [];
+          const activeJobs = status.activeJobs ?? [];
+          const activeBatches = status.activeBatches ?? [];
 
           // Format individual jobs
           const formattedJobs = activeJobs.map((job) => ({

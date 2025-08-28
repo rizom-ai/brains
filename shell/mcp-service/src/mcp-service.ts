@@ -144,7 +144,7 @@ export class MCPService implements IMCPService {
             "MCPService",
           );
 
-          if (response && "success" in response && !response.success) {
+          if ("success" in response && !response.success) {
             throw new Error(
               (response as { error?: string }).error ?? "Tool execution failed",
             );
@@ -155,7 +155,7 @@ export class MCPService implements IMCPService {
               {
                 type: "text" as const,
                 text: JSON.stringify(
-                  response && "data" in response
+                  "data" in response
                     ? (response as { data: unknown }).data
                     : response,
                   null,
@@ -207,7 +207,7 @@ export class MCPService implements IMCPService {
             "MCPService",
           );
 
-          if (response && "success" in response && !response.success) {
+          if ("success" in response && !response.success) {
             throw new Error(
               (response as { error?: string }).error ?? "Resource fetch failed",
             );
@@ -219,7 +219,7 @@ export class MCPService implements IMCPService {
                 uri: resource.uri,
                 mimeType: resource.mimeType ?? "text/plain",
                 text: JSON.stringify(
-                  response && "data" in response
+                  "data" in response
                     ? (response as { data: unknown }).data
                     : response,
                   null,

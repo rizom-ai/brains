@@ -153,8 +153,8 @@ export function createSystemCommands(
             };
           } else {
             // All active operations
-            const activeJobs = status.activeJobs || [];
-            const activeBatches = status.activeBatches || [];
+            const activeJobs = status.activeJobs ?? [];
+            const activeBatches = status.activeBatches ?? [];
 
             const formattedJobs = activeJobs.map((job) => ({
               id: job.id,
@@ -299,7 +299,7 @@ export function createSystemCommands(
           const grouped = conversations.reduce(
             (acc, conv) => {
               const interfaceType = conv.interfaceType;
-              if (!acc[interfaceType]) acc[interfaceType] = [];
+              acc[interfaceType] ??= [];
               acc[interfaceType].push(conv);
               return acc;
             },
