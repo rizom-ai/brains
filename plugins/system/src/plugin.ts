@@ -161,7 +161,9 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   /**
    * Get conversation details by ID
    */
-  public async getConversation(conversationId: string): Promise<Conversation | null> {
+  public async getConversation(
+    conversationId: string,
+  ): Promise<Conversation | null> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
@@ -171,7 +173,10 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   /**
    * Get messages from a conversation
    */
-  public async getMessages(conversationId: string, limit?: number): Promise<Message[]> {
+  public async getMessages(
+    conversationId: string,
+    limit?: number,
+  ): Promise<Message[]> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }

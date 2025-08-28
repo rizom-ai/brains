@@ -20,7 +20,7 @@
     "test": "bun test",
     "matrix:setup": "bun scripts/matrix-setup.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint brain.config.ts --ext .ts",
+    "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
