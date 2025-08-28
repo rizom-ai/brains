@@ -150,8 +150,8 @@ export function createSiteBuilderTools(
         // Determine output directory based on environment
         const outputDir =
           params.environment === "production"
-            ? config.productionOutputDir || "./dist/site-production"
-            : config.previewOutputDir || "./dist/site-preview";
+            ? (config.productionOutputDir ?? "./dist/site-production")
+            : (config.previewOutputDir ?? "./dist/site-preview");
 
         // Enqueue the build job
         const jobId = await pluginContext.enqueueJob(
@@ -167,7 +167,7 @@ export function createSiteBuilderTools(
             source: `plugin:${pluginId}`,
             metadata: {
               rootJobId: `build-${Date.now()}`,
-              progressToken: context?.progressToken,
+              progressToken: context.progressToken,
               operationType: "content_operations",
               pluginId,
             },

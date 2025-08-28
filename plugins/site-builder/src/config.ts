@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Template } from "@brains/plugins";
+import type { Template } from "@brains/plugins";
 import { RouteDefinitionSchema } from "./types/routes";
 
 /**

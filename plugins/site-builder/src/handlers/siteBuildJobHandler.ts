@@ -1,6 +1,6 @@
 import type { JobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/plugins";
-import { SiteBuilder } from "../lib/site-builder";
+import type { SiteBuilder } from "../lib/site-builder";
 import {
   siteBuildJobSchema,
   type SiteBuildJobData,

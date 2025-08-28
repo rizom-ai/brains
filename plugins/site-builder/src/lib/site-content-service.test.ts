@@ -206,9 +206,9 @@ describe("SiteContentService", () => {
 
       // Should only promote section1
       const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] || [];
+      const batchJobs = call?.[0] ?? [];
       expect(batchJobs).toHaveLength(1);
-      expect(batchJobs[0]?.data?.["entityId"]).toBe("test-route:section1");
+      expect(batchJobs[0]?.data["entityId"]).toBe("test-route:section1");
     });
 
     test("should support dry run", async () => {
@@ -271,13 +271,11 @@ describe("SiteContentService", () => {
 
       // Check the rollback job has correct source/target
       const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] || [];
-      expect(batchJobs[0]?.data?.["sourceEntityType"]).toBe(
+      const batchJobs = call?.[0] ?? [];
+      expect(batchJobs[0]?.data["sourceEntityType"]).toBe(
         "site-content-production",
       );
-      expect(batchJobs[0]?.data?.["targetEntityType"]).toBe(
-        "site-content-preview",
-      );
+      expect(batchJobs[0]?.data["targetEntityType"]).toBe("site-content-preview");
     });
 
     test("should throw if no production content found", async () => {

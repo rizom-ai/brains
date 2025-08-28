@@ -37,7 +37,7 @@ declare global {
 
     try {
       // Parse the data
-      const data = JSON.parse(dataScript.textContent ?? "{}");
+      const data = JSON.parse(dataScript.textContent || "{}");
 
       console.log("[Dashboard] Container before hydration:", container);
       console.log(

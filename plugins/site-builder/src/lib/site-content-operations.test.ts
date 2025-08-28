@@ -245,7 +245,7 @@ describe("SiteContentOperations", () => {
 
       // Get the batch jobs that were queued
       const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] || [];
+      const batchJobs = call?.[0] ?? [];
 
       expect(batchJobs).toHaveLength(2);
       expect(batchJobs[0]).toEqual({
@@ -285,7 +285,7 @@ describe("SiteContentOperations", () => {
       const batchId = await operations.rollback(entityIds);
 
       const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] || [];
+      const batchJobs = call?.[0] ?? [];
 
       expect(batchJobs).toHaveLength(1);
       expect(batchJobs[0]).toEqual({
@@ -313,7 +313,7 @@ describe("SiteContentOperations", () => {
 
       // Should have queued jobs for all sections
       const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] || [];
+      const batchJobs = call?.[0] ?? [];
 
       // We have 4 sections total (2 in landing, 1 in about, 1 in dashboard)
       // The plugin always registers a dashboard route
@@ -330,7 +330,7 @@ describe("SiteContentOperations", () => {
       expect(batchJobs[0]?.data).toHaveProperty("routeId");
       expect(batchJobs[0]?.data).toHaveProperty("sectionId");
       expect(batchJobs[0]?.data).toHaveProperty("entityId");
-      expect(batchJobs[0]?.data?.["entityType"]).toBe("site-content-preview");
+      expect(batchJobs[0]?.data["entityType"]).toBe("site-content-preview");
     });
 
     test("should filter by routeId when provided", async () => {
@@ -344,7 +344,7 @@ describe("SiteContentOperations", () => {
       });
 
       const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] || [];
+      const batchJobs = call?.[0] ?? [];
 
       // Should only have 2 sections from landing route
       expect(batchJobs).toHaveLength(2);
@@ -365,10 +365,10 @@ describe("SiteContentOperations", () => {
       });
 
       const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] || [];
+      const batchJobs = call?.[0] ?? [];
 
-      expect(batchJobs[0]?.data?.["entityId"]).toBe("landing:hero");
-      expect(batchJobs[1]?.data?.["entityId"]).toBe("landing:features");
+      expect(batchJobs[0]?.data["entityId"]).toBe("landing:hero");
+      expect(batchJobs[1]?.data["entityId"]).toBe("landing:features");
     });
   });
 });

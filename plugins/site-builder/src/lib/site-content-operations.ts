@@ -28,12 +28,12 @@ export class SiteContentOperations {
     if (!metadata) return undefined;
 
     return {
-      source: metadata.operationType || defaultSource,
+      source: metadata.operationType ?? defaultSource,
       metadata: {
-        rootJobId: metadata.rootJobId || `${defaultSource}-${Date.now()}`,
-        operationType: metadata.operationType || "content_operations",
+        rootJobId: metadata.rootJobId ?? `${defaultSource}-${Date.now()}`,
+        operationType: metadata.operationType ?? "content_operations",
         progressToken: metadata.progressToken,
-        pluginId: metadata.pluginId || "site-builder",
+        pluginId: metadata.pluginId ?? "site-builder",
       },
     };
   }
