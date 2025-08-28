@@ -1,6 +1,6 @@
 import type { InterfacePluginContext } from "../interface/context";
 import { createInterfacePluginContext } from "../interface/context";
-import type { MessageRole } from "@brains/conversation-service";
+import type { MessageRole, Message } from "@brains/conversation-service";
 import type { IShell } from "../interfaces";
 
 /**
@@ -21,6 +21,11 @@ export interface MessageInterfacePluginContext extends InterfacePluginContext {
     content: string,
     metadata?: Record<string, unknown>,
   ) => Promise<void>;
+
+  getMessages: (
+    conversationId: string,
+    options?: { limit?: number },
+  ) => Promise<Message[]>;
 }
 
 /**
@@ -76,6 +81,14 @@ export function createMessageInterfacePluginContext(
           hasMetadata: !!metadata,
         },
       );
+    },
+
+    getMessages: async (
+      conversationId: string,
+      options?: { limit?: number },
+    ): Promise<Message[]> => {
+      const conversationService = shell.getConversationService();
+      return conversationService.getMessages(conversationId, options);
     },
   };
 }

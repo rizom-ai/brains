@@ -631,10 +631,8 @@ export class Shell implements IShell {
     // Register the AI Content DataSource
     const aiContentDataSource = new AIContentDataSource(
       this.aiService,
-      this.conversationService,
       this.entityService,
       this.templateRegistry,
-      this.logger,
     );
     this.dataSourceRegistry.register(aiContentDataSource);
 

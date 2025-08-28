@@ -1,25 +1,18 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { AIContentDataSource } from "./ai-content-datasource";
 import type { IAIService } from "@brains/ai-service";
-import type { IConversationService } from "@brains/conversation-service";
 import type { EntityService } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
-import { createSilentLogger } from "@brains/utils";
 import { z } from "zod";
 
 // Mock dependencies
 const generateObjectMock = mock();
-const getMessagesMock = mock();
 const searchMock = mock();
 const getTemplateMock = mock();
 
 const mockAIService = {
   generateObject: generateObjectMock,
 } as unknown as IAIService;
-
-const mockConversationService = {
-  getMessages: getMessagesMock,
-} as unknown as IConversationService;
 
 const mockEntityService = {
   search: searchMock,
@@ -29,23 +22,18 @@ const mockTemplateRegistry = {
   get: getTemplateMock,
 } as unknown as TemplateRegistry;
 
-const logger = createSilentLogger();
-
 describe("AIContentDataSource", () => {
   let dataSource: AIContentDataSource;
 
   beforeEach(() => {
     generateObjectMock.mockReset();
-    getMessagesMock.mockReset();
     searchMock.mockReset();
     getTemplateMock.mockReset();
 
     dataSource = new AIContentDataSource(
       mockAIService,
-      mockConversationService,
       mockEntityService,
       mockTemplateRegistry,
-      logger,
     );
   });
 
@@ -147,7 +135,6 @@ describe("AIContentDataSource", () => {
     it("should generate structured content for templates with schema", async () => {
       const request = {
         templateName: "structured-template",
-        conversationId: "conv-123",
       };
 
       const schema = z.object({
@@ -183,6 +170,42 @@ describe("AIContentDataSource", () => {
         title: "Generated Title",
         content: "Generated content",
       });
+    });
+
+    it("should use conversation history if provided in context data", async () => {
+      const request = {
+        templateName: "test-template",
+        data: {
+          conversationHistory: "User: Hello\n\nAssistant: Hi there!",
+        },
+      };
+
+      const schema = z.object({
+        content: z.string(),
+      });
+
+      const template = {
+        name: "test-template",
+        basePrompt: "Generate a response:",
+        schema: schema,
+      };
+
+      const mockAIResponse = {
+        object: { content: "Response with context" },
+      };
+
+      getTemplateMock.mockReturnValue(template);
+      searchMock.mockResolvedValue([]);
+      generateObjectMock.mockResolvedValue(mockAIResponse);
+
+      await dataSource.generate(request, schema);
+
+      // Verify the conversation history was included in the prompt
+      expect(generateObjectMock).toHaveBeenCalledWith(
+        "Generate a response:",
+        expect.stringContaining("User: Hello\n\nAssistant: Hi there!"),
+        schema,
+      );
     });
   });
 });

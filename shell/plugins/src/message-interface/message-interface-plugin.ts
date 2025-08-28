@@ -387,14 +387,29 @@ export abstract class MessageInterfacePlugin<
     context: MessageContext,
   ): Promise<string> {
     const pluginContext = this.getContext();
+    const conversationId = `${context.interfaceType}-${context.channelId}`;
+
+    // Fetch conversation history explicitly
+    let conversationHistory: string | undefined;
+    try {
+      if (conversationId !== "system" && conversationId !== "default") {
+        const messages = await pluginContext.getMessages(conversationId, {
+          limit: 20,
+        });
+        conversationHistory = this.formatMessagesAsContext(messages);
+      }
+    } catch (error) {
+      this.logger.debug("Could not fetch conversation history", { error });
+    }
 
     const result = await this.queue.add(async () => {
       const queryResponse = await pluginContext.query(query, {
         userId: context.userId,
-        conversationId: `${context.interfaceType}-${context.channelId}`,
+        conversationId,
         messageId: context.messageId,
         threadId: context.threadId,
         timestamp: context.timestamp.toISOString(),
+        conversationHistory, // Explicitly pass conversation history
       });
 
       return queryResponse.message;
@@ -506,5 +521,24 @@ export abstract class MessageInterfacePlugin<
       channelId: context.channelId,
       message: message.substring(0, 100),
     });
+  }
+
+  /**
+   * Format messages as conversation context for AI prompts
+   */
+  private formatMessagesAsContext(
+    messages: Array<{ role: string; content: string }>,
+  ): string {
+    if (messages.length === 0) {
+      return "";
+    }
+
+    // Format messages as a conversation transcript
+    return messages
+      .map((m) => {
+        const role = m.role.charAt(0).toUpperCase() + m.role.slice(1);
+        return `${role}: ${m.content}`;
+      })
+      .join("\n\n");
   }
 }

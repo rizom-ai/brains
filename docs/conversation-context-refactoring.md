@@ -16,13 +16,14 @@ Currently, the `AIContentDataSource` automatically injects conversation history 
 ### Current Flow
 
 ```
-Interface → shell.query(prompt, {conversationId}) → ContentService 
+Interface → shell.query(prompt, {conversationId}) → ContentService
     → AIContentDataSource → [automatically fetches conversation] → AI generation
 ```
 
 ## Proposed Solution
 
 Move conversation history handling completely OUT of the content generation pipeline. The interface layer (caller) should:
+
 1. Explicitly fetch conversation history when needed
 2. Pass it as part of the context data
 3. Let the DataSource remain a pure content generator
@@ -30,7 +31,7 @@ Move conversation history handling completely OUT of the content generation pipe
 ### New Flow
 
 ```
-Interface → [fetch conversation if needed] → shell.query(prompt, {conversationHistory}) 
+Interface → [fetch conversation if needed] → shell.query(prompt, {conversationHistory})
     → ContentService → AIContentDataSource → [uses provided context] → AI generation
 ```
 
@@ -47,16 +48,19 @@ Interface → [fetch conversation if needed] → shell.query(prompt, {conversati
 ### 1. AIContentDataSource Changes
 
 **Remove:**
+
 - `conversationService` from constructor
 - Conversation fetching logic in `buildPrompt()` method
 - The special handling of `conversationId` parameter
 
 **Keep:**
+
 - Using context data if provided
 - Entity search and context building
 - Template-based prompt construction
 
 **Before:**
+
 ```typescript
 constructor(
   private readonly aiService: IAIService,
@@ -76,6 +80,7 @@ private async buildPrompt(...) {
 ```
 
 **After:**
+
 ```typescript
 constructor(
   private readonly aiService: IAIService,
@@ -103,7 +108,7 @@ public async processQuery(
 ): Promise<string> {
   const pluginContext = this.getContext();
   const conversationId = `${context.interfaceType}-${context.channelId}`;
-  
+
   // Fetch conversation history explicitly
   let conversationHistory: string | undefined;
   try {
@@ -127,7 +132,7 @@ public async processQuery(
     });
     return queryResponse.message;
   });
-  
+
   return result;
 }
 ```
@@ -137,7 +142,7 @@ public async processQuery(
 ```typescript
 private formatMessagesAsContext(messages: Message[]): string {
   if (messages.length === 0) return "";
-  
+
   return messages
     .map((m) => {
       const role = m.role.charAt(0).toUpperCase() + m.role.slice(1);
@@ -169,16 +174,19 @@ The query context already uses `Record<string, unknown>` so no type changes are 
 ## Testing Strategy
 
 ### Unit Tests
+
 1. **AIContentDataSource**: Test that it uses provided conversation history from context
 2. **MessageInterfacePlugin**: Test that it fetches and passes conversation history
 3. **Shell**: Ensure query still works with new DataSource signature
 
 ### Integration Tests
+
 1. Verify conversation context is included in chat queries
 2. Verify NO conversation context in site content generation
 3. Test error handling when conversation service is unavailable
 
 ### Manual Testing
+
 1. Start a conversation in CLI interface
 2. Ask follow-up questions - verify context is maintained
 3. Generate site content - verify no conversation leakage
@@ -187,6 +195,7 @@ The query context already uses `Record<string, unknown>` so no type changes are 
 ## Migration Notes
 
 This is a **breaking change** for the internal architecture but not for external APIs:
+
 - No changes to plugin APIs
 - No changes to command interfaces
 - No database migrations needed
@@ -194,6 +203,7 @@ This is a **breaking change** for the internal architecture but not for external
 ## Rollback Plan
 
 If issues are discovered:
+
 1. Revert the commit
 2. The old behavior will be restored immediately
 3. No data migration or cleanup needed

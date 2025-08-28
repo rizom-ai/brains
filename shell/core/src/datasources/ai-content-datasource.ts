@@ -1,11 +1,6 @@
 import type { DataSource } from "@brains/datasource";
 import type { IAIService } from "@brains/ai-service";
-import type {
-  IConversationService,
-  Message,
-} from "@brains/conversation-service";
 import type { EntityService, SearchResult } from "@brains/entity-service";
-import type { Logger } from "@brains/utils";
 import type { TemplateRegistry } from "@brains/templates";
 import { z } from "zod";
 
@@ -38,10 +33,8 @@ export class AIContentDataSource implements DataSource {
 
   constructor(
     private readonly aiService: IAIService,
-    private readonly conversationService: IConversationService,
     private readonly entityService: EntityService,
     private readonly templateRegistry: TemplateRegistry,
-    private readonly logger: Logger,
   ) {}
 
   /**
@@ -101,29 +94,10 @@ export class AIContentDataSource implements DataSource {
   ): Promise<string> {
     let prompt = template.basePrompt;
 
-    // Add conversation context if not a system conversation
-    if (
-      context.conversationId &&
-      context.conversationId !== "system" &&
-      context.conversationId !== "default"
-    ) {
-      try {
-        const messages = await this.conversationService.getMessages(
-          context.conversationId,
-          { limit: 20 }, // Get last 20 messages for context
-        );
-
-        const workingMemory = this.formatMessagesAsContext(messages);
-        if (workingMemory) {
-          prompt += `\n\nRecent conversation context:\n${workingMemory}`;
-        }
-      } catch (error) {
-        // Log error but don't fail generation if conversation context unavailable
-        this.logger.debug("Failed to get conversation context", {
-          error,
-          conversationId: context.conversationId,
-        });
-      }
+    // Add conversation history if explicitly provided in context data
+    if (context.data && "conversationHistory" in context.data) {
+      const history = context.data["conversationHistory"] as string;
+      prompt += `\n\nRecent conversation context:\n${history}`;
     }
 
     // Add entity context to inform the generation
@@ -150,20 +124,4 @@ export class AIContentDataSource implements DataSource {
     return prompt;
   }
 
-  /**
-   * Format messages as conversation context for AI prompts
-   */
-  private formatMessagesAsContext(messages: Message[]): string {
-    if (messages.length === 0) {
-      return "";
-    }
-
-    // Format messages as a conversation transcript
-    return messages
-      .map((m) => {
-        const role = m.role.charAt(0).toUpperCase() + m.role.slice(1);
-        return `${role}: ${m.content}`;
-      })
-      .join("\n\n");
-  }
 }
