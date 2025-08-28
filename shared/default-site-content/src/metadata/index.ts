@@ -2,7 +2,7 @@ export { landingMetadataSchema, type LandingMetadata } from "./schema";
 
 import { landingMetadataSchema } from "./schema";
 import metadataPrompt from "./prompt.txt";
-import type { Template } from "@brains/plugins";
+import type { Template } from "@brains/templates";
 
 // Metadata doesn't have a layout component since it's used in HTML head
 export const metadataTemplate: Template = {

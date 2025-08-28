@@ -118,16 +118,6 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
   }
 
   /**
-   * Override to register routes during initialization
-   */
-  protected async registerRoutes(
-    _context: ServicePluginContext,
-  ): Promise<void> {
-    // Default implementation does nothing
-    // Override in subclasses to register routes
-  }
-
-  /**
    * Override onRegister to add service-specific initialization
    */
   protected override async onRegister(
@@ -138,8 +128,5 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
 
     // Register job handlers
     await this.registerJobHandlers(context);
-
-    // Register routes
-    await this.registerRoutes(context);
   }
 }

@@ -134,9 +134,6 @@ describe("PluginManager", (): void => {
         listTemplates: (): unknown[] => [],
       }),
       getViewRegistry: (): {
-        registerRoute: (route: unknown) => void;
-        getRoute: (path: string) => unknown;
-        listRoutes: () => unknown[];
         registerViewTemplate: (template: unknown) => void;
         getViewTemplate: (name: string) => unknown;
         listViewTemplates: () => unknown[];
@@ -145,9 +142,6 @@ describe("PluginManager", (): void => {
           content: unknown,
         ) => boolean;
       } => ({
-        registerRoute: (): void => undefined,
-        getRoute: (): undefined => undefined,
-        listRoutes: (): unknown[] => [],
         registerViewTemplate: (): void => undefined,
         getViewTemplate: (): undefined => undefined,
         listViewTemplates: (): unknown[] => [],

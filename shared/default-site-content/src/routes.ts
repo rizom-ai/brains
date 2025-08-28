@@ -1,6 +1,6 @@
-import type { RouteDefinition } from "@brains/render-service";
-
-export const routes: RouteDefinition[] = [
+// Default routes for the site
+// Site-builder will apply proper typing when consuming these
+export const routes = [
   {
     id: "landing",
     path: "/",
