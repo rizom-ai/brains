@@ -28,6 +28,7 @@ export const RouteDefinitionSchema = z.object({
   sections: z.array(SectionDefinitionSchema), // Page sections
   pluginId: z.string().optional(), // Plugin that registered this route
   environment: z.string().optional(), // Environment (production, development, etc)
+  sourceEntityType: z.string().optional(), // Entity type that generated this route (indicates dynamic)
 });
 
 // Type exports
