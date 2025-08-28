@@ -2,7 +2,6 @@
 routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label

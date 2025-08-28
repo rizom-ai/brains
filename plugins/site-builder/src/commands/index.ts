@@ -18,10 +18,10 @@ export function createSiteBuilderCommands(
 
   return [
     {
-      name: "generate",
+      name: "site-generate",
       description:
         "Generate content for all routes, a specific route, or a specific section",
-      usage: "/generate [routeId] [sectionId] [--force] [--dry-run]",
+      usage: "/site-generate [routeId] [sectionId] [--force] [--dry-run]",
       handler: async (args): Promise<CommandResponse> => {
         // Parse command arguments
         const dryRun = args.includes("--dry-run");
@@ -63,7 +63,7 @@ export function createSiteBuilderCommands(
               : "all routes";
             return {
               type: "message",
-              message: `🔍 **Dry run completed** - No content was actually generated for ${scope}. Use \`/generate\` without --dry-run to execute.`,
+              message: `🔍 **Dry run completed** - No content was actually generated for ${scope}. Use \`/site-generate\` without --dry-run to execute.`,
             };
           }
 
@@ -88,10 +88,10 @@ export function createSiteBuilderCommands(
       },
     },
     {
-      name: "promote",
+      name: "site-promote",
       description:
         "Promote all preview content, a specific route, or a specific section to production",
-      usage: "/promote [routeId] [sectionId] [--dry-run]",
+      usage: "/site-promote [routeId] [sectionId] [--dry-run]",
       handler: async (args): Promise<CommandResponse> => {
         // Parse command arguments
         const dryRun = args.includes("--dry-run");
@@ -130,7 +130,7 @@ export function createSiteBuilderCommands(
               : "all routes";
             return {
               type: "message",
-              message: `🔍 **Dry run** - Would promote content for ${scope}. Use \`/promote\` without --dry-run to execute.`,
+              message: `🔍 **Dry run** - Would promote content for ${scope}. Use \`/site-promote\` without --dry-run to execute.`,
             };
           }
 
@@ -169,10 +169,10 @@ export function createSiteBuilderCommands(
       },
     },
     {
-      name: "rollback",
+      name: "site-rollback",
       description:
         "Rollback all production content, a specific route, or a specific section",
-      usage: "/rollback [routeId] [sectionId] [--dry-run]",
+      usage: "/site-rollback [routeId] [sectionId] [--dry-run]",
       handler: async (args): Promise<CommandResponse> => {
         // Parse command arguments
         const dryRun = args.includes("--dry-run");
@@ -211,7 +211,7 @@ export function createSiteBuilderCommands(
               : "all routes";
             return {
               type: "message",
-              message: `🔍 **Dry run** - Would rollback content for ${scope}. Use \`/rollback\` without --dry-run to execute.`,
+              message: `🔍 **Dry run** - Would rollback content for ${scope}. Use \`/site-rollback\` without --dry-run to execute.`,
             };
           }
 
@@ -250,9 +250,9 @@ export function createSiteBuilderCommands(
       },
     },
     {
-      name: "build-site",
+      name: "site-build",
       description: "Build static site from existing content",
-      usage: "/build-site [preview|production]",
+      usage: "/site-build [preview|production]",
       handler: async (args, commandContext): Promise<CommandResponse> => {
         // Parse environment from args (default to preview)
         const environment = (
@@ -296,7 +296,7 @@ export function createSiteBuilderCommands(
           // Queue the job for async processing
           const jobId = await context.enqueueJob("site-build", jobData, {
             priority: 5,
-            source: "command:build-site",
+            source: "command:site-build",
             metadata,
           });
 
