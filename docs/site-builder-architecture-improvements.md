@@ -321,59 +321,61 @@ class SiteContentOperations {
    - Integrated validation into TemplateRegistry
    - Logs errors for invalid configurations, not different template types
 
-### Phase 2: Enhanced ContentService (Week 2)
+### Phase 2: Enhanced ContentService (Week 2) ✅ COMPLETED
 
-1. **Add content resolution to ContentService**
-   - ContentService becomes the complete content management service
-   - Add `resolveContent` method with proper priority system:
+1. **Add content resolution to ContentService** ✅
+   - ContentService now handles all content management
+   - Implemented `resolveContent` with proper priority system:
      1. DataSource fetch (real-time data)
-     2. Entity storage (cached content)
+     2. Entity storage (cached content - requires formatter)
      3. Static content (fallback)
-   - Keep existing generation, derivation, and promotion capabilities
+   - Preserved existing generation, derivation, and promotion capabilities
 
-2. **Clean up method organization**
-   - Group related methods (resolution, generation, operations)
-   - Ensure clean internal APIs
-   - No type casts, proper type safety
+2. **Clean up method organization** ✅
+   - Grouped related methods (resolution, generation, operations)
+   - Clean internal APIs with proper type safety
+   - No type casts needed
 
-3. **Add comprehensive tests**
-   - Test each resolution path
-   - Test priority ordering
-   - Test integration with existing content operations
+3. **Add comprehensive tests** ✅
+   - Tests for each resolution path
+   - Tests for priority ordering
+   - Tests for plugin scoping and integration
 
-### Phase 3: Service Refactoring (Week 3)
+### Phase 3: Service Refactoring (Week 3) ✅ COMPLETED
 
-1. **Simplify RenderService**
-   - Remove resolveContent method
-   - Focus purely on component management
-   - Update documentation
+1. **Simplify RenderService** ✅
+   - Removed resolveContent method and DataSourceRegistry dependency
+   - Focused purely on component/template management
+   - Updated documentation
 
-2. **Update site-builder**
-   - Use ContentService.resolveContent instead of RenderService
-   - Simplify getContentForSection
-   - Remove custom resolver pattern
+2. **Update site-builder** ✅
+   - Now uses ContentService.resolveContent via plugin context helper
+   - Simplified getContentForSection
+   - Removed custom resolver pattern
 
-3. **Update other consumers**
-   - Message interfaces to use ContentService
-   - CLI interfaces to use ContentService
-   - Any other services doing content resolution
+3. **Update other consumers** ✅
+   - Message interfaces don't need content resolution (they generate responses)
+   - CLI interfaces don't need content resolution (they forward commands)
+   - Site-builder is the primary consumer of content resolution
 
-### Phase 4: Content Operations Cleanup (Week 4)
+### Phase 4: Content Operations Cleanup (Week 4) ✅ COMPLETED
 
-1. **Enhance SiteContentOperations**
-   - Add capability checking before generation
-   - Improve error handling
-   - Better skip logic for non-generative templates
+1. **Enhance SiteContentOperations** ✅
+   - Added capability checking before generation
+   - Improved error handling with clear messages
+   - Sections with non-generative templates are skipped gracefully
 
-2. **Update job handlers**
-   - Check template capabilities before operations
-   - Provide better error messages
-   - Skip unsupported operations gracefully
+2. **Update job handlers** ✅
+   - Migrated to shell-provided handlers with `shell:` namespace
+   - Template capabilities checked before operations
+   - Better error messages for missing/unsupported templates
+   - Removed duplicate handlers from site-builder plugin
 
-3. **Clean up interfaces**
-   - Remove redundant methods
-   - Simplify parameter passing
-   - Document behavior clearly
+3. **Clean up interfaces** ✅
+   - Added getTemplateCapabilities helper to ServicePluginContext
+   - Added getTemplate method to IShell interface
+   - Removed redundant handler implementations
+   - Clear separation: shell owns content operations, plugins use them
 
 ### Phase 5: Final Refactoring and Documentation (Week 5)
 
@@ -396,6 +398,33 @@ class SiteContentOperations {
    - Add deprecation warnings
    - Provide migration utilities
    - Update plugin examples
+
+## Key Architectural Decisions
+
+### Shell Handler Pattern
+We established that shell-provided handlers use explicit namespacing:
+- Shell registers core handlers with `shell:` prefix (e.g., `shell:content-generation`)
+- Plugins queue jobs using the shell namespace when they need core handlers
+- This makes ownership explicit and avoids naming conflicts
+
+### Content Resolution Priority
+ContentService.resolveContent follows a strict priority order:
+1. **DataSource fetch** - Real-time data has highest priority
+2. **Saved content** - Cached entities (requires formatter for parsing)
+3. **Static fallback** - Default content provided by caller
+
+### Template Capabilities
+Templates must declare their capabilities explicitly:
+- `canGenerate`: Template supports AI content generation (has basePrompt)
+- `canFetch`: Template supports DataSource fetching (has dataSourceId)
+- `canRender`: Template has rendering components (has layout)
+- `isStaticOnly`: Template only uses static content (no generation or fetch)
+
+### Formatter Requirement
+Templates MUST have a formatter to work with entity storage:
+- Formatters enable parsing saved content back into structured data
+- Without a formatter, ContentService cannot use saved entities
+- This ensures type safety and prevents content corruption
 
 ## Benefits
 
@@ -493,6 +522,6 @@ The key insight is that templates can have mixed concerns - that's their strengt
 
 ---
 
-**Document Status**: In Progress  
-**Review Status**: Architecture Revised  
-**Implementation**: Phase 1 Complete (2025-01-27)
+**Document Status**: Complete  
+**Review Status**: Architecture Implemented  
+**Implementation**: Phases 1-4 Complete (2025-01-28)
