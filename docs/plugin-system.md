@@ -79,7 +79,7 @@ interface CorePluginContext {
 ```typescript
 interface InterfacePluginContext extends CorePluginContext {
   daemonRegistry: DaemonRegistry;
-  viewRegistry: ViewRegistry;
+  renderService: RenderService;
 }
 ```
 

@@ -70,15 +70,15 @@ The shell directory contains the core services that power the brain application.
   - Singleton pattern implementation
 - **Size**: 168 lines
 
-#### `shell/view-registry`
+#### `shell/render-service`
 
-- **Purpose**: View and route registration system
+- **Purpose**: Route registry and view template management
 - **Responsibilities**:
   - Route management
   - View template registration
   - Output format handling
   - Renderer coordination
-- **Size**: 325 lines
+- **Size**: ~250 lines
 
 #### `shell/ai-service`
 

@@ -22,11 +22,6 @@ export const TemplateSchema = z.object({
     .optional(),
 });
 
-// TemplateDataContext removed - was only used by deprecated getData method
-
-// Template has been moved to @brains/content-service as ContentTemplate
-// This interface is deprecated and will be removed
-
 /**
  * Site content entity types
  */

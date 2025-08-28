@@ -31,8 +31,8 @@ The codebase follows a 4-directory monorepo structure managed by Turborepo:
 - **shell/mcp-service**: MCP server and tool/resource registration
 - **shell/messaging-service**: Event-driven messaging with pub/sub
 - **shell/plugins**: Plugin base classes and interfaces
+- **shell/render-service**: Route registry and view template management
 - **shell/service-registry**: Component registration and dependency injection
-- **shell/view-registry**: Route and template management for views
 
 ### Shared Packages (Cross-Cutting Concerns)
 
