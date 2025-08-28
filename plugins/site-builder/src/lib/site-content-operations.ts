@@ -183,7 +183,7 @@ export class SiteContentOperations {
       };
 
       batchJobs.push({
-        type: "content-generation",
+        type: "shell:content-generation",
         data: jobData,
       });
     }
@@ -288,7 +288,7 @@ export class SiteContentOperations {
     }
 
     const batchJobs = entityIds.map((entityId) => ({
-      type: "content-derivation",
+      type: "shell:content-derivation",
       data: {
         entityId,
         sourceEntityType: "site-content-preview",
@@ -318,7 +318,7 @@ export class SiteContentOperations {
     }
 
     const batchJobs = entityIds.map((entityId) => ({
-      type: "content-derivation",
+      type: "shell:content-derivation",
       data: {
         entityId,
         sourceEntityType: "site-content-production",

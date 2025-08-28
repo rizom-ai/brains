@@ -211,7 +211,7 @@ describe("SiteContentOperations", () => {
 
       expect(batchJobs).toHaveLength(2);
       expect(batchJobs[0]).toEqual({
-        type: "content-derivation",
+        type: "shell:content-derivation",
         data: {
           entityId: "landing:hero",
           sourceEntityType: "site-content-preview",
@@ -220,7 +220,7 @@ describe("SiteContentOperations", () => {
         },
       });
       expect(batchJobs[1]).toEqual({
-        type: "content-derivation",
+        type: "shell:content-derivation",
         data: {
           entityId: "landing:features",
           sourceEntityType: "site-content-preview",
@@ -251,7 +251,7 @@ describe("SiteContentOperations", () => {
 
       expect(batchJobs).toHaveLength(1);
       expect(batchJobs[0]).toEqual({
-        type: "content-derivation",
+        type: "shell:content-derivation",
         data: {
           entityId: "landing:hero",
           sourceEntityType: "site-content-production",
@@ -288,7 +288,7 @@ describe("SiteContentOperations", () => {
       expect(routeIds).toContain("dashboard");
 
       // Check job structure (using first job)
-      expect(batchJobs[0]?.type).toBe("content-generation");
+      expect(batchJobs[0]?.type).toBe("shell:content-generation");
       expect(batchJobs[0]?.data).toHaveProperty("routeId");
       expect(batchJobs[0]?.data).toHaveProperty("sectionId");
       expect(batchJobs[0]?.data).toHaveProperty("entityId");

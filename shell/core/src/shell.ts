@@ -201,6 +201,14 @@ export class Shell implements IShell {
         this.pluginManager,
       );
 
+      // Register job handlers for content operations
+      shellInitializer.registerJobHandlers(
+        this.jobQueueService,
+        this.contentService,
+        this.entityService,
+      );
+      this.logger.info("Content job handlers registered");
+
       // Start the job queue worker
       await this.jobQueueWorker.start();
       this.logger.info("Job queue worker started");

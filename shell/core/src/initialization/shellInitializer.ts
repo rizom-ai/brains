@@ -359,12 +359,12 @@ export class ShellInitializer {
   /**
    * Register job handlers for content generation and derivation
    */
-  private registerJobHandlers(
+  public registerJobHandlers(
     jobQueueService: JobQueueService,
     contentService: ContentService,
     entityService: EntityService,
   ): void {
-    // Register content generation job handler
+    // Register content generation job handler with shell namespace
     const contentGenerationJobHandler = ContentGenerationJobHandler.createFresh(
       contentService,
       entityService,
@@ -372,14 +372,16 @@ export class ShellInitializer {
     jobQueueService.registerHandler(
       "shell:content-generation",
       contentGenerationJobHandler,
+      "shell",
     );
 
-    // Register content derivation job handler
+    // Register content derivation job handler with shell namespace
     const contentDerivationJobHandler =
       ContentDerivationJobHandler.createFresh(entityService);
     jobQueueService.registerHandler(
       "shell:content-derivation",
       contentDerivationJobHandler,
+      "shell",
     );
   }
 

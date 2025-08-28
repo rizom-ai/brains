@@ -17,8 +17,6 @@ import {
 } from "./entities/site-content-adapter";
 import { dashboardTemplate } from "./templates/dashboard";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
-import { SiteContentDerivationJobHandler } from "./handlers/site-content-derivation-handler";
-import { SiteContentGenerationJobHandler } from "./handlers/site-content-generation-handler";
 import { createSiteBuilderTools } from "./tools";
 import type { SiteBuilderConfig } from "./config";
 import {
@@ -123,7 +121,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.config.siteConfig,
     );
 
-    // Register job handlers
+    // Register site-build job handler (site-specific, not a content operation)
     const siteBuildHandler = new SiteBuildJobHandler(
       this.logger.child("SiteBuildJobHandler"),
       context,
@@ -131,23 +129,8 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     context.registerJobHandler("site-build", siteBuildHandler);
     this.logger.debug("Registered site-build job handler");
 
-    const siteContentDerivationHandler = new SiteContentDerivationJobHandler(
-      context,
-    );
-    context.registerJobHandler(
-      "content-derivation",
-      siteContentDerivationHandler,
-    );
-    this.logger.debug("Registered content-derivation job handler");
-
-    const siteContentGenerationHandler = new SiteContentGenerationJobHandler(
-      context,
-    );
-    context.registerJobHandler(
-      "content-generation",
-      siteContentGenerationHandler,
-    );
-    this.logger.debug("Registered content-generation job handler");
+    // Note: content-generation and content-derivation handlers are registered
+    // by the shell as they are core content operations owned by ContentService
 
     // Site builder is now encapsulated within the plugin
   }

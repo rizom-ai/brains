@@ -1,3 +1,3 @@
 export { SiteBuildJobHandler } from "./siteBuildJobHandler";
-export { SiteContentDerivationJobHandler } from "./site-content-derivation-handler";
-export { SiteContentGenerationJobHandler } from "./site-content-generation-handler";
+// Note: SiteContentDerivationJobHandler and SiteContentGenerationJobHandler
+// have been removed as content operations are now handled by shell's ContentService
