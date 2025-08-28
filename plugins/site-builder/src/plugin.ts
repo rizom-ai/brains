@@ -115,6 +115,13 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
           ...route,
           pluginId: this.id,
           environment: this.config.environment ?? "preview",
+          // Prefix template names with plugin ID for consistency
+          sections: route.sections.map((section) => ({
+            ...section,
+            template: section.template.includes(":")
+              ? section.template
+              : `${this.id}:${section.template}`,
+          })),
         });
       }
     }

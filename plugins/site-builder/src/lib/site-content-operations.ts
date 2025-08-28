@@ -161,7 +161,7 @@ export class SiteContentOperations {
     for (const { route, section } of sectionsToGenerate) {
       const entityId = `${route.id}:${section.id}`;
 
-      // Template names need to be scoped for the shell's content-service
+      // Template name is already scoped in the route definition
       const templateName = section.template;
 
       const jobData: Record<string, unknown> = {

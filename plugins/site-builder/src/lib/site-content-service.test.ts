@@ -65,8 +65,8 @@ describe("SiteContentService", () => {
       title: "Test",
       description: "Test route",
       sections: [
-        { id: "section1", template: "test-template" },
-        { id: "section2", template: "test-template" },
+        { id: "section1", template: "site-builder:test-template" },
+        { id: "section2", template: "site-builder:test-template" },
       ],
       pluginId: "site-builder",
       environment: "preview",
@@ -275,7 +275,9 @@ describe("SiteContentService", () => {
       expect(batchJobs[0]?.data["sourceEntityType"]).toBe(
         "site-content-production",
       );
-      expect(batchJobs[0]?.data["targetEntityType"]).toBe("site-content-preview");
+      expect(batchJobs[0]?.data["targetEntityType"]).toBe(
+        "site-content-preview",
+      );
     });
 
     test("should throw if no production content found", async () => {
