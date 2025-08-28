@@ -32,35 +32,6 @@ export const SiteContentEntityTypeSchema = z.enum([
 export type SiteContentEntityType = z.infer<typeof SiteContentEntityTypeSchema>;
 
 /**
- * Section definition schema
- */
-export const SectionDefinitionSchema = z.object({
-  id: z.string(),
-  template: z.string(), // renamed from layout
-  content: z.unknown().optional(),
-  contentEntity: z
-    .object({
-      entityType: z.string(), // Keep as string for flexibility - could be site content or other entity types
-      template: z.string().optional(),
-      query: z.record(z.unknown()).optional(),
-    })
-    .optional(),
-  order: z.number().optional(),
-});
-
-/**
- * Route definition schema
- */
-export const RouteDefinitionSchema = z.object({
-  id: z.string(), // Used for page in contentEntity queries (required)
-  path: z.string(),
-  title: z.string(),
-  description: z.string(),
-  sections: z.array(SectionDefinitionSchema),
-  pluginId: z.string().optional(),
-});
-
-/**
  * View template schema
  */
 export const ViewTemplateSchema = z.object({
@@ -74,10 +45,6 @@ export const ViewTemplateSchema = z.object({
   }),
   interactive: z.boolean(),
 });
-
-// Type exports
-export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
-export type RouteDefinition = z.infer<typeof RouteDefinitionSchema>;
 
 /**
  * Renderer types for different output formats
@@ -114,16 +81,6 @@ export interface ViewTemplate<T = unknown> {
   // Content source information (preserved from ContentTemplate)
   providerId?: string; // For provider-based data fetching
   formatter?: ContentFormatter<T>; // For parsing stored content
-}
-
-/**
- * Route registry interface
- */
-export interface RouteRegistry {
-  register(route: RouteDefinition): void;
-  unregister(path: string): void;
-  get(path: string): RouteDefinition | undefined;
-  list(): RouteDefinition[];
 }
 
 /**

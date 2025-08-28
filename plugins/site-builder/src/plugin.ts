@@ -9,6 +9,14 @@ import { ServicePlugin } from "@brains/plugins";
 import { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
 import { SiteBuilder } from "./lib/site-builder";
 import { SiteContentService } from "./lib/site-content-service";
+import { RouteRegistry } from "./lib/route-registry";
+import type { RouteDefinition } from "./types/routes";
+import {
+  RegisterRoutesPayloadSchema,
+  UnregisterRoutesPayloadSchema,
+  ListRoutesPayloadSchema,
+  GetRoutePayloadSchema,
+} from "./types/routes";
 import {
   siteContentPreviewAdapter,
   siteContentProductionAdapter,
@@ -32,6 +40,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteBuilder?: SiteBuilder;
   private siteContentService?: SiteContentService;
   private pluginContext?: ServicePluginContext;
+  private routeRegistry: RouteRegistry;
 
   constructor(config: Partial<SiteBuilderConfig> = {}) {
     super(
@@ -41,6 +50,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       siteBuilderConfigSchema,
       SITE_BUILDER_CONFIG_DEFAULTS,
     );
+    this.routeRegistry = new RouteRegistry();
   }
 
   /**
@@ -50,6 +60,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     context: ServicePluginContext,
   ): Promise<void> {
     this.pluginContext = context;
+
+    // Setup route message handlers
+    this.setupRouteHandlers(context);
 
     // Register site content entity types
     context.registerEntityType(
@@ -70,27 +83,21 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     context.registerTemplates({ dashboard: dashboardTemplate });
     this.logger.debug("Registered dashboard template");
 
-    // Register dashboard route
-    context.registerRoutes(
-      [
+    // Register dashboard route via internal registry
+    this.routeRegistry.register({
+      id: "dashboard",
+      path: "/dashboard",
+      title: "System Dashboard",
+      description: "Monitor your Brain system statistics and activity",
+      sections: [
         {
-          id: "dashboard",
-          path: "/dashboard",
-          title: "System Dashboard",
-          description: "Monitor your Brain system statistics and activity",
-          sections: [
-            {
-              id: "main",
-              template: "dashboard", // Plugin prefix is added automatically
-              // No static content - will use DataSource to fetch data dynamically
-            },
-          ],
+          id: "main",
+          template: `${this.id}:dashboard`, // Add plugin prefix
         },
       ],
-      {
-        environment: this.config.environment ?? "preview",
-      },
-    );
+      pluginId: this.id,
+      environment: this.config.environment ?? "preview",
+    });
     this.logger.debug("Registered dashboard route");
 
     // Register templates from configuration using unified registration
@@ -103,27 +110,33 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
     // Register routes if provided
     if (this.config.routes) {
-      context.registerRoutes(this.config.routes, {
-        environment: this.config.environment ?? "preview",
-      });
+      for (const route of this.config.routes) {
+        this.routeRegistry.register({
+          ...route,
+          pluginId: this.id,
+          environment: this.config.environment ?? "preview",
+        });
+      }
     }
 
-    // Initialize the site builder with plugin context
+    // Initialize the site builder with plugin context and route registry
     this.siteBuilder = SiteBuilder.getInstance(
       context.logger.child("SiteBuilder"),
       context,
+      this.routeRegistry,
     );
 
-    // Initialize the site content service
+    // Initialize the site content service with route registry
     this.siteContentService = new SiteContentService(
       context,
+      this.routeRegistry,
       this.config.siteConfig,
     );
 
     // Register site-build job handler (site-specific, not a content operation)
     const siteBuildHandler = new SiteBuildJobHandler(
       this.logger.child("SiteBuildJobHandler"),
-      context,
+      this.siteBuilder,
     );
     context.registerJobHandler("site-build", siteBuildHandler);
     this.logger.debug("Registered site-build job handler");
@@ -148,6 +161,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.pluginContext,
       this.id,
       this.config,
+      this.routeRegistry,
     );
   }
 
@@ -182,6 +196,91 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
    */
   public getSiteContentService(): SiteContentService | undefined {
     return this.siteContentService;
+  }
+
+  /**
+   * Setup message handlers for route operations
+   */
+  private setupRouteHandlers(context: ServicePluginContext): void {
+    // Register handler for route registration
+    context.subscribe("plugin:site-builder:route:register", async (message) => {
+      try {
+        const payload = RegisterRoutesPayloadSchema.parse(message.payload);
+        const { routes, pluginId, environment } = payload;
+
+        for (const route of routes) {
+          const processedRoute: RouteDefinition = {
+            ...route,
+            pluginId,
+            environment: environment ?? this.config.environment ?? "preview",
+            // Add plugin prefix to template names if not already prefixed
+            sections: route.sections.map((section) => ({
+              ...section,
+              template: section.template.includes(":")
+                ? section.template
+                : `${pluginId}:${section.template}`,
+            })),
+          };
+          this.routeRegistry.register(processedRoute);
+        }
+
+        this.logger.debug(`Registered ${routes.length} routes for ${pluginId}`);
+        return { success: true };
+      } catch (error) {
+        this.logger.error("Failed to register routes", { error });
+        return { success: false, error: "Failed to register routes" };
+      }
+    });
+
+    // Handler for unregistering routes
+    context.subscribe(
+      "plugin:site-builder:route:unregister",
+      async (message) => {
+        try {
+          const payload = UnregisterRoutesPayloadSchema.parse(message.payload);
+          const { paths, pluginId } = payload;
+
+          if (paths) {
+            for (const path of paths) {
+              this.routeRegistry.unregister(path);
+            }
+          } else if (pluginId) {
+            this.routeRegistry.unregisterByPlugin(pluginId);
+          }
+
+          return { success: true };
+        } catch (error) {
+          this.logger.error("Failed to unregister routes", { error });
+          return { success: false, error: "Failed to unregister routes" };
+        }
+      },
+    );
+
+    // Handler for listing routes
+    context.subscribe("plugin:site-builder:route:list", async (message) => {
+      try {
+        const payload = ListRoutesPayloadSchema.parse(message.payload);
+        const routes = this.routeRegistry.list(
+          payload.pluginId || payload.environment ? payload : undefined,
+        );
+        return { success: true, data: { routes } };
+      } catch (error) {
+        this.logger.error("Failed to list routes", { error });
+        return { success: false, error: "Failed to list routes" };
+      }
+    });
+
+    // Handler for getting specific route
+    context.subscribe("plugin:site-builder:route:get", async (message) => {
+      try {
+        const payload = GetRoutePayloadSchema.parse(message.payload);
+        const route = this.routeRegistry.get(payload.path);
+        return { success: true, data: { route } };
+      } catch (error) {
+        this.logger.error("Failed to get route", { error });
+        return { success: false, error: "Failed to get route" };
+      }
+    });
   }
 }
 

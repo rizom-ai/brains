@@ -3,13 +3,15 @@
 ## Current Architecture Analysis
 
 ### Current State
+
 - **RouteRegistry** lives in `shell/render-service` as a core shell component
-- Routes are registered directly via `shell.registerRoutes()` 
+- Routes are registered directly via `shell.registerRoutes()`
 - Plugins access routes through `context.listRoutes()` and `context.registerRoutes()`
 - Site-builder plugin reads routes but doesn't own the registry
 - Routes are tightly coupled to the shell layer
 
 ### Problems with Current Architecture
+
 1. **Wrong ownership**: Routes are primarily for web UI, which is site-builder's responsibility
 2. **Tight coupling**: Shell shouldn't know about web routes directly
 3. **Limited flexibility**: Site-builder can't fully control route management
@@ -18,6 +20,7 @@
 ## Proposed Architecture (Clean Separation)
 
 ### Core Design
+
 - Site-builder plugin **completely owns** route management
 - All route operations go through message bus
 - **No route methods in shell or plugin contexts**
@@ -28,16 +31,17 @@
 
 ```typescript
 // Message types for route management
-'plugin:site-builder:route:register'    // Register routes
-'plugin:site-builder:route:unregister'  // Unregister routes  
-'plugin:site-builder:route:list'        // List all routes
-'plugin:site-builder:route:get'         // Get specific route
-'plugin:site-builder:route:list-by-plugin' // List routes by plugin
+"plugin:site-builder:route:register"; // Register routes
+"plugin:site-builder:route:unregister"; // Unregister routes
+"plugin:site-builder:route:list"; // List all routes
+"plugin:site-builder:route:get"; // Get specific route
+"plugin:site-builder:route:list-by-plugin"; // List routes by plugin
 ```
 
 ## Implementation Steps
 
 ### Step 1: Create Route Management in Site-Builder
+
 - [ ] Create `plugins/site-builder/src/lib/route-registry.ts` with RouteRegistry class
 - [ ] Move route-related types from render-service to site-builder
 - [ ] Add message handlers for all route operations
@@ -45,6 +49,7 @@
 - [ ] Export route types from site-builder package
 
 ### Step 2: Remove ALL Route Support from Shell & Context
+
 - [ ] Remove `routeRegistry` from Shell class
 - [ ] Remove `registerRoutes()` method from Shell
 - [ ] Remove `registerRoutes` from ServicePluginContext interface
@@ -53,17 +58,20 @@
 - [ ] Clean up shell initialization
 
 ### Step 3: Update RenderService
+
 - [ ] Remove dependency on RouteRegistry
 - [ ] Remove route-related methods
 - [ ] Focus purely on rendering templates
 - [ ] Clean up types and imports
 
 ### Step 4: Update Site-Builder Internal Usage
+
 - [ ] Site-builder uses internal registry directly
 - [ ] Site-builder tools query internal registry
 - [ ] Commands work with internal registry
 
 ### Step 5: Update Plugins That Use Routes
+
 - [ ] Plugins must import route types from `@brains/site-builder-plugin`
 - [ ] Plugins register routes via message bus
 - [ ] Example plugins updated to show pattern
@@ -85,7 +93,7 @@ class MyPlugin extends ServicePlugin {
         sections: [...]
       }
     ];
-    
+
     // Register via message bus
     const response = await context.messageBus.send(
       'plugin:site-builder:route:register',
@@ -95,7 +103,7 @@ class MyPlugin extends ServicePlugin {
         environment: 'production'
       }
     );
-    
+
     if (!response.success) {
       this.logger.error('Failed to register routes', { error: response.error });
     }
@@ -108,7 +116,7 @@ class MyPlugin extends ServicePlugin {
 ```typescript
 // Register Routes Message
 interface RegisterRoutesMessage {
-  type: 'plugin:site-builder:route:register';
+  type: "plugin:site-builder:route:register";
   payload: {
     routes: RouteDefinition[];
     pluginId: string;
@@ -116,26 +124,26 @@ interface RegisterRoutesMessage {
   };
 }
 
-// Unregister Routes Message  
+// Unregister Routes Message
 interface UnregisterRoutesMessage {
-  type: 'plugin:site-builder:route:unregister';
+  type: "plugin:site-builder:route:unregister";
   payload: {
-    paths?: string[];        // Specific paths to unregister
-    pluginId?: string;       // Or all routes from a plugin
+    paths?: string[]; // Specific paths to unregister
+    pluginId?: string; // Or all routes from a plugin
   };
 }
 
 // List Routes Message
 interface ListRoutesMessage {
-  type: 'plugin:site-builder:route:list';
+  type: "plugin:site-builder:route:list";
   payload: {
-    environment?: string;    // Optional filter
+    environment?: string; // Optional filter
   };
 }
 
 // Get Route Message
 interface GetRouteMessage {
-  type: 'plugin:site-builder:route:get';
+  type: "plugin:site-builder:route:get";
   payload: {
     path: string;
   };
@@ -162,21 +170,21 @@ interface SingleRouteResponse extends RouteResponse {
 // plugins/site-builder/src/lib/route-registry.ts
 export class RouteRegistry {
   private routes = new Map<string, RouteDefinition>();
-  
+
   register(route: RouteDefinition): void {
     if (this.routes.has(route.path)) {
       const existing = this.routes.get(route.path);
       throw new Error(
-        `Route path "${route.path}" already registered by plugin "${existing?.pluginId}"`
+        `Route path "${route.path}" already registered by plugin "${existing?.pluginId}"`,
       );
     }
     this.routes.set(route.path, route);
   }
-  
+
   unregister(path: string): void {
     this.routes.delete(path);
   }
-  
+
   unregisterByPlugin(pluginId: string): void {
     for (const [path, route] of this.routes.entries()) {
       if (route.pluginId === pluginId) {
@@ -184,22 +192,25 @@ export class RouteRegistry {
       }
     }
   }
-  
+
   get(path: string): RouteDefinition | undefined {
     return this.routes.get(path);
   }
-  
-  list(filter?: { pluginId?: string; environment?: string }): RouteDefinition[] {
+
+  list(filter?: {
+    pluginId?: string;
+    environment?: string;
+  }): RouteDefinition[] {
     let routes = Array.from(this.routes.values());
-    
+
     if (filter?.pluginId) {
-      routes = routes.filter(r => r.pluginId === filter.pluginId);
+      routes = routes.filter((r) => r.pluginId === filter.pluginId);
     }
-    
+
     if (filter?.environment) {
-      routes = routes.filter(r => r.environment === filter.environment);
+      routes = routes.filter((r) => r.environment === filter.environment);
     }
-    
+
     return routes;
   }
 }
@@ -212,11 +223,11 @@ export class RouteRegistry {
 private setupRouteHandlers(context: ServicePluginContext): void {
   // Initialize registry
   this.routeRegistry = new RouteRegistry();
-  
+
   // Register handler for route registration
   context.messageBus.register('plugin:site-builder:route:register', async (message) => {
     const { routes, pluginId, environment } = message.payload;
-    
+
     try {
       routes.forEach(route => {
         const processedRoute = {
@@ -231,7 +242,7 @@ private setupRouteHandlers(context: ServicePluginContext): void {
         };
         this.routeRegistry.register(processedRoute);
       });
-      
+
       this.logger.debug(`Registered ${routes.length} routes for ${pluginId}`);
       return { success: true };
     } catch (error) {
@@ -239,7 +250,7 @@ private setupRouteHandlers(context: ServicePluginContext): void {
       return { success: false, error: error.message };
     }
   });
-  
+
   // Handler for listing routes
   context.messageBus.register('plugin:site-builder:route:list', async (message) => {
     try {
@@ -249,7 +260,7 @@ private setupRouteHandlers(context: ServicePluginContext): void {
       return { success: false, error: error.message };
     }
   });
-  
+
   // Handler for getting specific route
   context.messageBus.register('plugin:site-builder:route:get', async (message) => {
     try {
@@ -259,18 +270,18 @@ private setupRouteHandlers(context: ServicePluginContext): void {
       return { success: false, error: error.message };
     }
   });
-  
+
   // Handler for unregistering routes
   context.messageBus.register('plugin:site-builder:route:unregister', async (message) => {
     try {
       const { paths, pluginId } = message.payload;
-      
+
       if (paths) {
         paths.forEach(path => this.routeRegistry.unregister(path));
       } else if (pluginId) {
         this.routeRegistry.unregisterByPlugin(pluginId);
       }
-      
+
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -290,16 +301,19 @@ private setupRouteHandlers(context: ServicePluginContext): void {
 ## Migration Checklist
 
 ### Files to Create
+
 - [ ] `plugins/site-builder/src/lib/route-registry.ts`
 - [ ] `plugins/site-builder/src/types/routes.ts` (move types here)
 - [ ] `plugins/site-builder/src/handlers/route-handlers.ts`
 
 ### Files to Update
+
 - [ ] `plugins/site-builder/src/plugin.ts` - Add message handlers
 - [ ] `plugins/site-builder/src/index.ts` - Export route types
 - [ ] Any plugin using routes - Update to use messages
 
 ### Files to Remove/Clean
+
 - [ ] `shell/render-service/src/route-registry.ts` - Delete file
 - [ ] `shell/render-service/src/types.ts` - Remove route types
 - [ ] `shell/core/src/shell.ts` - Remove ALL route code
@@ -308,6 +322,7 @@ private setupRouteHandlers(context: ServicePluginContext): void {
 - [ ] `shell/core/test/mock-shell.ts` - Remove route mock methods
 
 ### Testing Updates
+
 - [ ] Move route registry tests to site-builder
 - [ ] Add message handler tests
 - [ ] Test route registration via messages
@@ -316,6 +331,7 @@ private setupRouteHandlers(context: ServicePluginContext): void {
 ## Example Migration
 
 ### Before (Direct Context Method)
+
 ```typescript
 class MyPlugin extends ServicePlugin {
   async onRegister(context: ServicePluginContext) {
@@ -323,13 +339,14 @@ class MyPlugin extends ServicePlugin {
     context.registerRoutes([
       { path: '/my-route', sections: [...] }
     ]);
-    
+
     const routes = context.listRoutes();
   }
 }
 ```
 
 ### After (Message Bus)
+
 ```typescript
 import type { RouteDefinition } from '@brains/site-builder-plugin';
 
@@ -343,7 +360,7 @@ class MyPlugin extends ServicePlugin {
         pluginId: this.metadata.id
       }
     );
-    
+
     // Query routes if needed
     const listResponse = await context.messageBus.send(
       'plugin:site-builder:route:list',

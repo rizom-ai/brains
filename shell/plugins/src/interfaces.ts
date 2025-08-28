@@ -25,11 +25,7 @@ import type {
 } from "@brains/job-queue";
 import type { JobOptions, JobQueue } from "@brains/job-queue";
 import type { CommandRegistry } from "@brains/command-registry";
-import type {
-  RenderService,
-  RouteRegistry,
-  RouteDefinition,
-} from "@brains/render-service";
+import type { RenderService } from "@brains/render-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { PermissionService } from "@brains/permission-service";
@@ -61,7 +57,6 @@ export interface IShell {
   getJobQueueService(): JobQueueService;
   getCommandRegistry(): CommandRegistry;
   getRenderService(): RenderService;
-  getRouteRegistry(): RouteRegistry;
   getConversationService(): IConversationService;
   getMcpTransport(): IMCPTransport;
   getPermissionService(): PermissionService;
@@ -70,10 +65,6 @@ export interface IShell {
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
   query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;
-  registerRoutes(
-    routes: RouteDefinition[],
-    options?: { pluginId?: string; environment?: string },
-  ): void;
   registerTemplates(
     templates: Record<string, Template>,
     pluginId?: string,

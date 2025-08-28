@@ -7,6 +7,7 @@ import {
 } from "@brains/plugins";
 import { SiteBuilderPlugin } from "../plugin";
 import type { SiteContentPreview, SiteContentProduction } from "../types";
+import { RouteRegistry } from "./route-registry";
 
 describe("SiteContentOperations", () => {
   let operations: SiteContentOperations;
@@ -59,8 +60,45 @@ describe("SiteContentOperations", () => {
       isStaticOnly: false,
     });
 
-    // Create operations instance with the context
-    operations = new SiteContentOperations(context);
+    // Create a RouteRegistry with test routes matching what the test expects
+    const routeRegistry = new RouteRegistry();
+
+    // Register the routes that the test expects (matching the plugin config)
+    routeRegistry.register([
+      {
+        id: "landing",
+        path: "/",
+        title: "Home",
+        description: "Landing page",
+        sections: [
+          { id: "hero", template: "hero" },
+          { id: "features", template: "features" },
+        ],
+        pluginId: "site-builder",
+        environment: "preview",
+      },
+      {
+        id: "about",
+        path: "/about",
+        title: "About",
+        description: "About us page",
+        sections: [{ id: "main", template: "content" }],
+        pluginId: "site-builder",
+        environment: "preview",
+      },
+      {
+        id: "dashboard",
+        path: "/dashboard",
+        title: "System Dashboard",
+        description: "Monitor your Brain system statistics and activity",
+        sections: [{ id: "main", template: "site-builder:dashboard" }],
+        pluginId: "site-builder",
+        environment: "preview",
+      },
+    ]);
+
+    // Create operations instance with the context and route registry
+    operations = new SiteContentOperations(context, routeRegistry);
   });
 
   afterEach(() => {

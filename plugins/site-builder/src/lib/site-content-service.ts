@@ -6,6 +6,7 @@ import {
   type RollbackOptions,
 } from "../types/content-schemas";
 import { SiteContentOperations } from "./site-content-operations";
+import type { RouteRegistry } from "./route-registry";
 
 /**
  * Service for managing site content operations
@@ -15,9 +16,10 @@ export class SiteContentService {
 
   constructor(
     pluginContext: ServicePluginContext,
+    routeRegistry: RouteRegistry,
     private readonly siteConfig?: Record<string, unknown>,
   ) {
-    this.operations = new SiteContentOperations(pluginContext);
+    this.operations = new SiteContentOperations(pluginContext, routeRegistry);
   }
 
   /**

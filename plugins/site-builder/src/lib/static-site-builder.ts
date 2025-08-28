@@ -1,9 +1,9 @@
 import type {
   Logger,
   ServicePluginContext,
-  RouteDefinition,
   ViewTemplate,
 } from "@brains/plugins";
+import type { RouteDefinition } from "../types/routes";
 import type { CSSProcessor } from "../css/css-processor";
 
 /**

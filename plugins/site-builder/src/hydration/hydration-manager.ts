@@ -1,10 +1,6 @@
 import type { Logger } from "@brains/plugins";
-import type {
-  ServicePluginContext,
-  RouteDefinition,
-  ViewTemplate,
-  SectionDefinition,
-} from "@brains/plugins";
+import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
+import type { RouteDefinition, SectionDefinition } from "../types/routes";
 import { join } from "path";
 import { fileURLToPath } from "url";
 import { promises as fs } from "fs";
@@ -86,10 +82,12 @@ export class HydrationManager {
     ) => Promise<unknown>,
   ): Promise<void> {
     for (const route of routes) {
-      const hasInteractive = route.sections.some((section) => {
-        const template = this.getViewTemplate(section.template);
-        return template?.interactive;
-      });
+      const hasInteractive = route.sections.some(
+        (section: SectionDefinition) => {
+          const template = this.getViewTemplate(section.template);
+          return template?.interactive;
+        },
+      );
 
       if (!hasInteractive) continue;
 

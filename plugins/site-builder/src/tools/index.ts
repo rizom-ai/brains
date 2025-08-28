@@ -8,6 +8,7 @@ import type {
 import type { SiteBuilder } from "../lib/site-builder";
 import type { SiteContentService } from "../lib/site-content-service";
 import type { SiteBuilderConfig } from "../config";
+import type { RouteRegistry } from "../lib/route-registry";
 import { z } from "zod";
 import {
   GenerateOptionsSchema,
@@ -21,6 +22,7 @@ export function createSiteBuilderTools(
   pluginContext: ServicePluginContext,
   pluginId: string,
   config: SiteBuilderConfig,
+  routeRegistry: RouteRegistry,
 ): PluginTool[] {
   return [
     {
@@ -191,7 +193,7 @@ export function createSiteBuilderTools(
         _input: unknown,
         _context: ToolContext,
       ): Promise<ToolResponse> => {
-        const routes = pluginContext.listRoutes();
+        const routes = routeRegistry.list();
 
         return {
           success: true,

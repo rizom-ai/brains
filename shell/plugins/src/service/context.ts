@@ -10,11 +10,7 @@ import { TemplateCapabilities } from "@brains/templates";
 import type { JobHandler, BatchOperation } from "@brains/job-queue";
 import type { JobOptions } from "@brains/job-queue";
 import { createId } from "@brains/utils";
-import type {
-  RouteDefinition,
-  ViewTemplate,
-  RenderService,
-} from "@brains/render-service";
+import type { ViewTemplate, RenderService } from "@brains/render-service";
 import type {
   Conversation,
   Message,
@@ -69,12 +65,7 @@ export interface ServicePluginContext extends CorePluginContext {
     handler: JobHandler<string, T, R>,
   ) => void;
 
-  // Route registration (web UI)
-  registerRoutes: (
-    routes: RouteDefinition[],
-    options: { environment?: string },
-  ) => void;
-  listRoutes: () => RouteDefinition[];
+  // View template access
   getViewTemplate: (name: string) => ViewTemplate<unknown> | undefined;
   listViewTemplates: () => ViewTemplate<unknown>[];
   getRenderService: () => RenderService;
@@ -112,7 +103,6 @@ export function createServicePluginContext(
   const entityRegistry = shell.getEntityRegistry();
   const jobQueueService = shell.getJobQueueService();
   const renderService = shell.getRenderService();
-  const routeRegistry = shell.getRouteRegistry();
   const dataSourceRegistry = shell.getDataSourceRegistry();
 
   return {
@@ -207,13 +197,7 @@ export function createServicePluginContext(
       jobQueueService.registerHandler(scopedType, handler, pluginId);
     },
 
-    // Route registration
-    registerRoutes: (routes, options) => {
-      shell.registerRoutes(routes, { pluginId, ...options });
-    },
-    listRoutes: () => {
-      return routeRegistry.list();
-    },
+    // View template access
     getViewTemplate: (name: string) => {
       return renderService.get(name);
     },

@@ -4,9 +4,9 @@ import type { BuildContext } from "../../src/lib/static-site-builder";
 import type {
   ServicePluginContext,
   ViewTemplate,
-  RouteDefinition,
   OutputFormat,
 } from "@brains/plugins";
+import type { RouteDefinition } from "../../src/types/routes";
 import { createSilentLogger } from "@brains/plugins";
 import { z } from "zod";
 import { promises as fs } from "fs";

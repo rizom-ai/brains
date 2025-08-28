@@ -6,23 +6,10 @@ import type {
 import type { EntityService } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
-import type {
-  RouteDefinition,
-  SectionDefinition,
-} from "@brains/render-service";
 import type { ContentService as IContentService } from "./types";
 import type { TemplateRegistry } from "@brains/templates";
 import { TemplateCapabilities } from "@brains/templates";
 import type { DataSourceRegistry } from "@brains/datasource";
-
-/**
- * Progress information for content generation operations
- */
-export interface ProgressInfo {
-  current: number;
-  total: number;
-  message: string;
-}
 
 /**
  * Dependencies required by ContentService
@@ -319,44 +306,6 @@ export class ContentService implements IContentService {
 
     // Use the formatter to parse the content
     return typedTemplate.formatter.parse(content);
-  }
-
-  /**
-   * Convenience method for route-based content generation
-   */
-  async generateWithRoute(
-    route: RouteDefinition,
-    section: SectionDefinition,
-    progressInfo: ProgressInfo,
-    additionalContext: Record<string, unknown> = {},
-  ): Promise<string> {
-    if (!section.template) {
-      throw new Error(`No template specified for section ${section.id}`);
-    }
-
-    const templateName = section.template;
-
-    const context: GenerationContext = {
-      conversationId: "system",
-      data: {
-        routeId: route.id,
-        routeTitle: route.title,
-        routeDescription: route.description,
-        sectionId: section.id,
-        progressInfo: {
-          currentSection: progressInfo.current,
-          totalSections: progressInfo.total,
-          processingStage: progressInfo.message,
-        },
-        ...additionalContext,
-      },
-    };
-
-    // Generate content as object first
-    const contentObject = await this.generateContent(templateName, context);
-
-    // Use the formatContent method to convert object to string
-    return this.formatContent(templateName, contentObject);
   }
 
   /**

@@ -6,10 +6,7 @@
  */
 
 export { ContentService } from "./content-service";
-export type {
-  ContentServiceDependencies,
-  ProgressInfo,
-} from "./content-service";
+export type { ContentServiceDependencies } from "./content-service";
 export type {
   ContentService as IContentService,
   GenerationContext,

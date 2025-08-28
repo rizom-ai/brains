@@ -1,4 +1,4 @@
-import type { JobHandler, ServicePluginContext } from "@brains/plugins";
+import type { JobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/plugins";
 import { SiteBuilder } from "../lib/site-builder";
 import {
@@ -15,7 +15,7 @@ export class SiteBuildJobHandler
 {
   constructor(
     private logger: Logger,
-    private context: ServicePluginContext,
+    private siteBuilder: SiteBuilder,
   ) {}
 
   async process(
@@ -37,11 +37,8 @@ export class SiteBuildJobHandler
         message: `Starting site build for ${data.environment} environment`,
       });
 
-      // Get or create site builder instance
-      const siteBuilder = SiteBuilder.getInstance(
-        this.logger.child("SiteBuilder"),
-        this.context,
-      );
+      // Use the injected site builder instance
+      const siteBuilder = this.siteBuilder;
 
       // Create a sub-reporter that maps build progress to job progress
       const buildProgressReporter = progressReporter.createSub({

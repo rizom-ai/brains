@@ -1,11 +1,7 @@
 import type { ProgressCallback, Logger } from "@brains/plugins";
 import { ProgressReporter } from "@brains/plugins";
-import type {
-  ServicePluginContext,
-  SectionDefinition,
-  RouteDefinition,
-  Template,
-} from "@brains/plugins";
+import type { ServicePluginContext, Template } from "@brains/plugins";
+import type { SectionDefinition, RouteDefinition } from "../types/routes";
 import type {
   ISiteBuilder,
   SiteBuilderOptions,
@@ -18,6 +14,7 @@ import type {
 } from "./static-site-builder";
 import { createPreactBuilder } from "./preact-builder";
 import { join } from "path";
+import type { RouteRegistry } from "./route-registry";
 
 export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
@@ -26,6 +23,7 @@ export class SiteBuilder implements ISiteBuilder {
   private logger: Logger;
   private context: ServicePluginContext;
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
+  private routeRegistry: RouteRegistry;
 
   /**
    * Set the default static site builder factory for all instances
@@ -39,11 +37,13 @@ export class SiteBuilder implements ISiteBuilder {
   public static getInstance(
     logger: Logger,
     context: ServicePluginContext,
+    routeRegistry: RouteRegistry,
   ): SiteBuilder {
     SiteBuilder.instance ??= new SiteBuilder(
       logger,
       SiteBuilder.defaultStaticSiteBuilderFactory,
       context,
+      routeRegistry,
     );
     return SiteBuilder.instance;
   }
@@ -55,12 +55,14 @@ export class SiteBuilder implements ISiteBuilder {
   public static createFresh(
     logger: Logger,
     context: ServicePluginContext,
+    routeRegistry: RouteRegistry,
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
   ): SiteBuilder {
     return new SiteBuilder(
       logger,
       staticSiteBuilderFactory ?? SiteBuilder.defaultStaticSiteBuilderFactory,
       context,
+      routeRegistry,
     );
   }
 
@@ -68,10 +70,12 @@ export class SiteBuilder implements ISiteBuilder {
     logger: Logger,
     staticSiteBuilderFactory: StaticSiteBuilderFactory,
     context: ServicePluginContext,
+    routeRegistry: RouteRegistry,
   ) {
     this.logger = logger;
     this.context = context;
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
+    this.routeRegistry = routeRegistry;
 
     // Factory is now encapsulated within the site builder
 
@@ -118,7 +122,7 @@ export class SiteBuilder implements ISiteBuilder {
       });
 
       // Get all registered routes
-      const routes = this.context.listRoutes();
+      const routes = this.routeRegistry.list();
       if (routes.length === 0) {
         warnings.push("No routes registered for site build");
       }

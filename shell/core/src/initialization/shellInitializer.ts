@@ -12,7 +12,7 @@ import { MessageBus } from "@brains/messaging-service";
 import { CommandRegistry } from "@brains/command-registry";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
-import { RenderService, RouteRegistry } from "@brains/render-service";
+import { RenderService } from "@brains/render-service";
 import { TemplateRegistry } from "@brains/templates";
 import { DataSourceRegistry } from "@brains/datasource";
 import {
@@ -47,7 +47,6 @@ export interface ShellServices {
   entityRegistry: EntityRegistry;
   messageBus: MessageBus;
   renderService: RenderService;
-  routeRegistry: RouteRegistry;
   daemonRegistry: DaemonRegistry;
   pluginManager: PluginManager;
   commandRegistry: CommandRegistry;
@@ -239,8 +238,6 @@ export class ShellInitializer {
     const renderService =
       dependencies?.renderService ??
       RenderService.getInstance(templateRegistry);
-    const routeRegistry =
-      dependencies?.routeRegistry ?? RouteRegistry.getInstance();
     const daemonRegistry =
       dependencies?.daemonRegistry ?? DaemonRegistry.getInstance(logger);
     const pluginManager =
@@ -336,7 +333,6 @@ export class ShellInitializer {
       entityRegistry,
       messageBus,
       renderService,
-      routeRegistry,
       daemonRegistry,
       pluginManager,
       commandRegistry,

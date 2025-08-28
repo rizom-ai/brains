@@ -34,9 +34,8 @@ import type {
   CommandContext,
   CommandResponse,
 } from "@brains/command-registry";
-import type { RenderService, RouteRegistry } from "@brains/render-service";
+import type { RenderService } from "@brains/render-service";
 import type { ServiceRegistry } from "@brains/service-registry";
-import type { RouteDefinition } from "@brains/render-service";
 import type { Template } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService } from "@brains/permission-service";
@@ -52,7 +51,6 @@ export class MockShell implements IShell {
   private plugins = new Map<string, Plugin>();
   private logger: Logger;
   private templates = new Map<string, Template>();
-  private routes = new Map<string, RouteDefinition>();
   private commands = new Map<string, Command>();
   private services = new Map<string, unknown>();
   private entities = new Map<string, BaseEntity>();
@@ -170,7 +168,6 @@ export class MockShell implements IShell {
       hasTemplate: (name: string) => this.templates.has(name),
       getTemplate: (name: string) => this.templates.get(name) ?? null,
       listTemplates: () => Array.from(this.templates.values()),
-      generateWithRoute: async () => "Generated route content",
       unregisterTemplate: (name: string) => {
         this.templates.delete(name);
       },
@@ -339,20 +336,6 @@ export class MockShell implements IShell {
     } as unknown as RenderService;
   }
 
-  getRouteRegistry(): RouteRegistry {
-    return {
-      register: (route: RouteDefinition) => {
-        this.routes.set(route.path, route);
-      },
-      unregister: (path: string) => {
-        this.routes.delete(path);
-      },
-      get: (path: string) => this.routes.get(path),
-      list: () => Array.from(this.routes.values()),
-      listByPlugin: () => [],
-    } as unknown as RouteRegistry;
-  }
-
   getServiceRegistry(): ServiceRegistry {
     return {
       register: (name: string, factory: () => unknown) => {
@@ -443,19 +426,6 @@ export class MockShell implements IShell {
   getTemplate(name: string): Template | undefined {
     // Mock implementation - return from templates map
     return this.templates.get(name);
-  }
-
-  registerRoutes(
-    routes: RouteDefinition[],
-    options?: { pluginId?: string },
-  ): void {
-    const routeReg = this.getRouteRegistry();
-    routes.forEach((route) => {
-      routeReg.register({
-        ...route,
-        pluginId: options?.pluginId,
-      });
-    });
   }
 
   registerTemplate(name: string, template: Template, pluginId?: string): void {

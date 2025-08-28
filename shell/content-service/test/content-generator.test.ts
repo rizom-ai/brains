@@ -1,15 +1,8 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { z } from "zod";
 import { ContentService } from "../src/content-service";
-import type {
-  ContentServiceDependencies,
-  ProgressInfo,
-} from "../src/content-service";
+import type { ContentServiceDependencies } from "../src/content-service";
 import { TemplateRegistry, type Template } from "@brains/templates";
-import type {
-  RouteDefinition,
-  SectionDefinition,
-} from "@brains/render-service";
 import type { EntityService } from "@brains/entity-service";
 import type { AIService } from "@brains/ai-service";
 import type { DataSourceRegistry } from "@brains/datasource";
@@ -218,114 +211,6 @@ describe("ContentService", () => {
       expect(
         contentService.generateContent("non-existent-template"),
       ).rejects.toThrow("Template not found: non-existent-template");
-    });
-  });
-
-  describe("generateWithRoute", () => {
-    const mockTemplate: Template = {
-      name: "site-builder:dashboard",
-      description: "Dashboard template for site builder",
-      basePrompt: "Generate route content",
-      dataSourceId: "shell:ai-content",
-      schema: z.string(),
-      formatter: {
-        format: mock((content) => `formatted: ${content}`),
-        parse: mock(),
-      },
-    };
-
-    const mockDataSource = {
-      id: "shell:ai-content",
-      name: "AI Content DataSource",
-      generate: mock(),
-    };
-
-    const mockRoute: RouteDefinition = {
-      id: "test-route",
-      path: "/test",
-      title: "Test Route",
-      description: "Test route description",
-      sections: [],
-    };
-
-    const mockSection: SectionDefinition = {
-      id: "test-section",
-      template: "dashboard",
-    };
-
-    const mockProgress: ProgressInfo = {
-      current: 1,
-      total: 5,
-      message: "Processing...",
-    };
-
-    beforeEach(() => {
-      templateRegistry.register("dashboard", mockTemplate);
-      mockDependencies.dataSourceRegistry.get.mockReturnValue(mockDataSource);
-      mockDataSource.generate.mockResolvedValue("route content");
-    });
-
-    it("should generate content with route context", async () => {
-      const additionalContext = { siteTitle: "My Site" };
-
-      const result = await contentService.generateWithRoute(
-        mockRoute,
-        mockSection,
-        mockProgress,
-        additionalContext,
-      );
-
-      expect(mockDependencies.dataSourceRegistry.get).toHaveBeenCalledWith(
-        "shell:ai-content",
-      );
-      expect(mockDataSource.generate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          templateName: "dashboard",
-          conversationId: "system",
-          data: expect.objectContaining({
-            routeId: "test-route",
-            siteTitle: "My Site",
-          }),
-        }),
-        mockTemplate.schema,
-      );
-      expect(result).toBe("formatted: route content");
-    });
-
-    it("should handle templates with namespace prefix", async () => {
-      const sectionWithNamespace: SectionDefinition = {
-        id: "test-section",
-        template: "custom-plugin:dashboard",
-      };
-
-      templateRegistry.register("custom-plugin:dashboard", mockTemplate);
-
-      await contentService.generateWithRoute(
-        mockRoute,
-        sectionWithNamespace,
-        mockProgress,
-      );
-
-      expect(mockDataSource.generate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          templateName: "custom-plugin:dashboard",
-        }),
-        mockTemplate.schema,
-      );
-    });
-
-    it("should throw error when section has no template", async () => {
-      const sectionWithoutTemplate: SectionDefinition = {
-        id: "test-section",
-      };
-
-      expect(
-        contentService.generateWithRoute(
-          mockRoute,
-          sectionWithoutTemplate,
-          mockProgress,
-        ),
-      ).rejects.toThrow("No template specified for section test-section");
     });
   });
 

@@ -1,19 +1,22 @@
 import type {
   ServicePluginContext,
-  RouteDefinition,
-  SectionDefinition,
   JobContext,
   JobOptions,
 } from "@brains/plugins";
+import type { RouteDefinition, SectionDefinition } from "../types/routes";
 import type { SiteContentPreview, SiteContentProduction } from "../types";
 import type { GenerateOptions } from "../types/content-schemas";
+import type { RouteRegistry } from "./route-registry";
 
 /**
  * Site content operations - handles content generation, promotion, and rollback
  * Replaces ContentManager functionality for site-builder plugin
  */
 export class SiteContentOperations {
-  constructor(private readonly context: ServicePluginContext) {}
+  constructor(
+    private readonly context: ServicePluginContext,
+    private readonly routeRegistry: RouteRegistry,
+  ) {}
 
   /**
    * Create JobOptions from metadata
@@ -50,8 +53,8 @@ export class SiteContentOperations {
   }> {
     const logger = this.context.logger.child("SiteContentOperations");
 
-    // Get all routes from context
-    const routes = this.context.listRoutes();
+    // Get all routes from registry
+    const routes = this.routeRegistry.list();
 
     // Filter routes based on options
     let targetRoutes = routes;

@@ -36,10 +36,9 @@ import { type IAIService } from "@brains/ai-service";
 import { PermissionService } from "@brains/permission-service";
 import { Logger } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
-import type { RouteDefinition } from "@brains/render-service";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
-import type { RenderService, RouteRegistry } from "@brains/render-service";
+import type { RenderService } from "@brains/render-service";
 import { ShellInitializer } from "./initialization/shellInitializer";
 import type { DataSourceRegistry } from "@brains/datasource";
 import { SystemStatsDataSource, AIContentDataSource } from "./datasources";
@@ -57,7 +56,6 @@ export interface ShellDependencies {
   entityRegistry?: EntityRegistry;
   messageBus?: MessageBus;
   renderService?: RenderService;
-  routeRegistry?: RouteRegistry;
   daemonRegistry?: DaemonRegistry;
   pluginManager?: PluginManager;
   commandRegistry?: CommandRegistry;
@@ -87,7 +85,6 @@ export class Shell implements IShell {
   private readonly commandRegistry: CommandRegistry;
   private readonly mcpService: IMCPService;
   private readonly renderService: RenderService;
-  private readonly routeRegistry: RouteRegistry;
   private readonly daemonRegistry: DaemonRegistry;
   private readonly entityService: EntityService;
   private readonly aiService: IAIService;
@@ -157,7 +154,6 @@ export class Shell implements IShell {
     this.entityRegistry = services.entityRegistry;
     this.messageBus = services.messageBus;
     this.renderService = services.renderService;
-    this.routeRegistry = services.routeRegistry;
     this.daemonRegistry = services.daemonRegistry;
     this.pluginManager = services.pluginManager;
     this.commandRegistry = services.commandRegistry;
@@ -245,37 +241,6 @@ export class Shell implements IShell {
     Object.entries(templates).forEach(([name, template]) => {
       this.registerTemplate(name, template, pluginId);
     });
-  }
-
-  /**
-   * Register routes (typically called by plugins)
-   */
-  public registerRoutes(
-    routes: RouteDefinition[],
-    options?: {
-      pluginId?: string;
-      environment?: string;
-    },
-  ): void {
-    const { pluginId } = options ?? {};
-    this.logger.debug("Registering routes", { pluginId, count: routes.length });
-
-    routes.forEach((route) => {
-      const processedRoute = {
-        ...route,
-        pluginId,
-        sections: route.sections.map((section) => ({
-          ...section,
-          // Add scoping prefix to template name: shell templates get "shell:" prefix, plugins get "pluginId:" prefix
-          template:
-            section.template && `${pluginId ?? "shell"}:${section.template}`,
-        })),
-      };
-
-      this.routeRegistry.register(processedRoute);
-    });
-
-    this.logger.debug(`Registered ${routes.length} routes`, { pluginId });
   }
 
   /**
@@ -418,10 +383,6 @@ export class Shell implements IShell {
 
   public getRenderService(): RenderService {
     return this.renderService;
-  }
-
-  public getRouteRegistry(): RouteRegistry {
-    return this.routeRegistry;
   }
 
   public getMessageBus(): MessageBus {

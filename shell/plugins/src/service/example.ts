@@ -222,9 +222,11 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
       },
     });
 
-    // Register routes for web UI
-    context.registerRoutes(
-      [
+    // Register routes for web UI (if site-builder plugin is available)
+    // Routes are now managed through the site-builder plugin via message bus
+    // To register routes, send a message to the site-builder plugin:
+    await context.sendMessage("plugin:site-builder:route:register", {
+      routes: [
         {
           id: "calculator-home",
           path: "/calculator",
@@ -250,8 +252,9 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
           ],
         },
       ],
-      {},
-    );
+      pluginId: this.id,
+      environment: "preview",
+    });
 
     context.logger.info(
       "Calculator service plugin registered with all ServicePluginContext features tested",

@@ -7,6 +7,7 @@ import {
 } from "@brains/plugins";
 import { SiteBuilderPlugin } from "../plugin";
 import type { SiteContentPreview } from "../types";
+import { RouteRegistry } from "./route-registry";
 
 describe("SiteContentService", () => {
   let service: SiteContentService;
@@ -56,8 +57,23 @@ describe("SiteContentService", () => {
       isStaticOnly: false,
     });
 
+    // Create a RouteRegistry and register test routes
+    const routeRegistry = new RouteRegistry();
+    routeRegistry.register({
+      id: "test-route",
+      path: "/test",
+      title: "Test",
+      description: "Test route",
+      sections: [
+        { id: "section1", template: "test-template" },
+        { id: "section2", template: "test-template" },
+      ],
+      pluginId: "site-builder",
+      environment: "preview",
+    });
+
     // Create service instance
-    service = new SiteContentService(context, {
+    service = new SiteContentService(context, routeRegistry, {
       title: "Test Site",
       description: "Test site description",
     });

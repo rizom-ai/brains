@@ -90,15 +90,12 @@ describe("ServicePlugin", () => {
     });
   });
 
-  test("provides render service and route registry access", () => {
+  test("provides render service access", () => {
     const shell = harness.getShell();
     const renderService = shell.getRenderService();
-    const routeRegistry = shell.getRouteRegistry();
 
     expect(renderService).toBeDefined();
-    expect(routeRegistry).toBeDefined();
-    expect(routeRegistry.register).toBeDefined();
-    // The registerRoutes (plural) method is provided by ServicePluginContext, not RouteRegistry directly
+    // Routes are now managed through the site-builder plugin via message bus
   });
 
   test("provides content generation", () => {

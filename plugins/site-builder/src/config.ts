@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Template } from "@brains/plugins";
-import { RouteDefinitionSchema } from "@brains/plugins";
+import { RouteDefinitionSchema } from "./types/routes";
 
 /**
  * Configuration schema for the site builder plugin

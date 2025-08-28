@@ -168,14 +168,9 @@ export type {
 // Note: CommandRegistry is not exported as plugins access commands through context
 
 // From @brains/render-service
-export type {
-  RouteDefinition,
-  ViewTemplate,
-  SectionDefinition,
-  OutputFormat,
-} from "@brains/render-service";
-export { RouteDefinitionSchema } from "@brains/render-service";
+export type { ViewTemplate, OutputFormat } from "@brains/render-service";
 // Note: ViewRegistry is not exported as plugins access views through context
+// Note: Route types moved to @brains/site-builder-plugin - plugins that need routes should import from there
 
 // Note: DaemonRegistry is not exported as plugins should use IShell.registerDaemon()
 

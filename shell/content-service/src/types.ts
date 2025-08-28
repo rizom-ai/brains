@@ -1,8 +1,3 @@
-import type {
-  RouteDefinition,
-  SectionDefinition,
-} from "@brains/render-service";
-import type { ProgressInfo } from "./content-service";
 import { z } from "zod";
 import type { ContentFormatter } from "@brains/utils";
 
@@ -94,16 +89,6 @@ export interface ContentService {
     context?: GenerationContext,
     pluginId?: string,
   ): Promise<T>;
-
-  /**
-   * Generate content for a specific route and section
-   */
-  generateWithRoute(
-    route: RouteDefinition,
-    section: SectionDefinition,
-    progressInfo: ProgressInfo,
-    additionalContext?: Record<string, unknown>,
-  ): Promise<string>;
 
   /**
    * Format content using a template's formatter
