@@ -17,7 +17,7 @@ Rather than viewing these as historical dead ends, I trace how these lost lineag
 By mapping these forgotten futures — particularly the rich tradition of cellular automata from Conway to Wolfram — I explore how recovering abandoned approaches could fundamentally transform the intersection of technology, creativity, and politics, offering new possibilities for intelligence that emerges from simple, local interactions rather than massive, centralized systems.
 
 ## Bio
- 
- Jan Hein ‘Yeehaa’ Hoogstad  is the founder of Rizom and holds a Ph.D. in Philosophy from Utrecht University. His work bridges technology, arts, and politics through projects like the award-winning “Augmenting Masterpieces” and pioneering digital humanities education initiatives.
 
-Operating at the intersection of entrepreneurship and scholarship, Yeehaa investigates how alternative technological genealogies can reshape creative and collaborative practices. 
+Jan Hein ‘Yeehaa’ Hoogstad is the founder of Rizom and holds a Ph.D. in Philosophy from Utrecht University. His work bridges technology, arts, and politics through projects like the award-winning “Augmenting Masterpieces” and pioneering digital humanities education initiatives.
+
+Operating at the intersection of entrepreneurship and scholarship, Yeehaa investigates how alternative technological genealogies can reshape creative and collaborative practices.

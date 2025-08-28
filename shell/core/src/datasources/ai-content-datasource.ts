@@ -123,5 +123,4 @@ export class AIContentDataSource implements DataSource {
 
     return prompt;
   }
-
 }

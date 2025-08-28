@@ -12,6 +12,7 @@ export type ExtractionResult = z.infer<typeof extractionResultSchema>;
 export const topicExtractionTemplate = createTemplate<ExtractionResult>({
   name: "topics:extraction",
   description: "Extract topics from conversation text",
+  dataSourceId: "ai-content",
   schema: extractionResultSchema,
   basePrompt: `You are an expert at analyzing conversations and extracting key topics.
 
