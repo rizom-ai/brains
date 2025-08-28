@@ -402,26 +402,34 @@ class SiteContentOperations {
 ## Key Architectural Decisions
 
 ### Shell Handler Pattern
+
 We established that shell-provided handlers use explicit namespacing:
+
 - Shell registers core handlers with `shell:` prefix (e.g., `shell:content-generation`)
 - Plugins queue jobs using the shell namespace when they need core handlers
 - This makes ownership explicit and avoids naming conflicts
 
 ### Content Resolution Priority
+
 ContentService.resolveContent follows a strict priority order:
+
 1. **DataSource fetch** - Real-time data has highest priority
 2. **Saved content** - Cached entities (requires formatter for parsing)
 3. **Static fallback** - Default content provided by caller
 
 ### Template Capabilities
+
 Templates must declare their capabilities explicitly:
+
 - `canGenerate`: Template supports AI content generation (has basePrompt)
 - `canFetch`: Template supports DataSource fetching (has dataSourceId)
 - `canRender`: Template has rendering components (has layout)
 - `isStaticOnly`: Template only uses static content (no generation or fetch)
 
 ### Formatter Requirement
+
 Templates MUST have a formatter to work with entity storage:
+
 - Formatters enable parsing saved content back into structured data
 - Without a formatter, ContentService cannot use saved entities
 - This ensures type safety and prevents content corruption
