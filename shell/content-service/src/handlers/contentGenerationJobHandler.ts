@@ -1,7 +1,7 @@
 import { z } from "zod";
 // Remove ContentGenerationRequest import - we'll define our own schema
 import { Logger } from "@brains/utils";
-import type { ContentService } from "../types";
+import type { ContentService, GenerationContext } from "../types";
 import type { JobHandler } from "@brains/job-queue";
 import type { EntityService } from "@brains/entity-service";
 import type { ProgressReporter } from "@brains/utils";
@@ -14,7 +14,7 @@ export const contentGenerationJobDataSchema = z.object({
   context: z.object({
     prompt: z.string().optional(),
     data: z.record(z.unknown()).optional(),
-    conversationId: z.string().default("system"),
+    conversationHistory: z.string().optional(),
   }),
   userId: z.string().optional(),
   // Entity information for saving generated content
@@ -108,13 +108,20 @@ export class ContentGenerationJobHandler
       });
 
       // Generate content using the ContentService
+      const generationContext: GenerationContext = {};
+      if (data.context.prompt !== undefined) {
+        generationContext.prompt = data.context.prompt;
+      }
+      if (data.context.data !== undefined) {
+        generationContext.data = data.context.data;
+      }
+      if (data.context.conversationHistory !== undefined) {
+        generationContext.conversationHistory = data.context.conversationHistory;
+      }
+      
       const content = await this.contentService.generateContent<unknown>(
         data.templateName,
-        {
-          prompt: data.context.prompt,
-          data: data.context.data,
-          conversationId: data.context.conversationId || "system",
-        },
+        generationContext,
       );
 
       // Report progress after content generation

@@ -178,7 +178,6 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
     const explanation = await context.generateContent({
       templateName: "math-explanation",
       prompt: "Explain the mathematical concept of addition",
-      conversationId: "plugin-init",
       data: {
         operation: "addition",
         operands: ["numbers", "values"],
@@ -385,7 +384,6 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
           const explanation = await this.generateContent<DefaultQueryResponse>({
             templateName: "math-explanation",
             prompt: `Explain the mathematical concept: ${concept}`,
-            conversationId: "math-tool",
             data: { operation: concept },
           });
 

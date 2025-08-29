@@ -36,7 +36,7 @@ import type { DataSourceRegistry } from "@brains/datasource";
  */
 export interface QueryContext {
   userId?: string;
-  conversationId?: string;
+  conversationHistory?: string;
   messageId?: string;
   threadId?: string;
   timestamp?: string;
@@ -312,7 +312,7 @@ export type Plugin = z.infer<typeof pluginMetadataSchema> & {
 export interface ContentGenerationConfig {
   prompt: string;
   templateName: string;
-  conversationId?: string;
+  conversationHistory?: string;
   data?: Record<string, unknown>;
   interfacePermissionGrant?: UserPermissionLevel;
 }

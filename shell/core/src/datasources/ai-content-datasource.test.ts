@@ -172,12 +172,10 @@ describe("AIContentDataSource", () => {
       });
     });
 
-    it("should use conversation history if provided in context data", async () => {
+    it("should use conversation history if provided in context", async () => {
       const request = {
         templateName: "test-template",
-        data: {
-          conversationHistory: "User: Hello\n\nAssistant: Hi there!",
-        },
+        conversationHistory: "User: Hello\n\nAssistant: Hi there!",
       };
 
       const schema = z.object({

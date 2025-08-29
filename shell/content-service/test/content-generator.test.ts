@@ -101,9 +101,9 @@ describe("ContentService", () => {
       expect(result).toBe("raw content");
     });
 
-    it("should pass context including conversationId to DataSource", async () => {
+    it("should pass context including conversationHistory to DataSource", async () => {
       const context = {
-        conversationId: "test-conversation-123",
+        conversationHistory: "User: Hello\n\nAssistant: Hi there!",
         prompt: "Additional prompt",
       };
 
@@ -112,7 +112,7 @@ describe("ContentService", () => {
       expect(mockDataSource.generate).toHaveBeenCalledWith(
         {
           templateName: "test-template",
-          conversationId: "test-conversation-123",
+          conversationHistory: "User: Hello\n\nAssistant: Hi there!",
           prompt: "Additional prompt",
         },
         mockTemplate.schema,

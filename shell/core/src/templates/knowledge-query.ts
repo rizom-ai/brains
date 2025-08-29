@@ -13,10 +13,11 @@ export const knowledgeQueryTemplate: Template = {
 Analyze the user's query and provide a helpful response based on available information.
 
 Instructions:
-1. Search through available entities for relevant information
-2. Provide accurate, contextual responses based on the data
-3. If information is missing, clearly state what additional data might be helpful
-4. Structure your response clearly and concisely`,
+1. Use the conversation history if provided to maintain context and continuity
+2. Search through available entities for relevant information
+3. Provide accurate, contextual responses based on the data
+4. If information is missing, clearly state what additional data might be helpful
+5. Structure your response clearly and concisely`,
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
   schema: defaultQueryResponseSchema,

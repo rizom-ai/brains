@@ -302,7 +302,7 @@ export class Shell implements IShell {
     // Generate content
     const context = {
       prompt: config.prompt,
-      ...(config.conversationId && { conversationId: config.conversationId }),
+      ...(config.conversationHistory && { conversationHistory: config.conversationHistory }),
       ...(config.data && { data: config.data }),
     };
 
@@ -327,12 +327,15 @@ export class Shell implements IShell {
       timestamp: new Date().toISOString(),
     };
 
+    // Extract conversationHistory to pass at top level
+    const { conversationHistory, ...contextData } = queryContext;
+
     // Use the knowledge-query template for AI-powered responses
     return this.generateContent<DefaultQueryResponse>({
       prompt,
       templateName: "shell:knowledge-query",
-      conversationId: context?.conversationId ?? "default",
-      data: queryContext,
+      ...(conversationHistory && { conversationHistory }),
+      data: contextData,
       interfacePermissionGrant: "public", // Default to public, callers can override via context
     });
   }

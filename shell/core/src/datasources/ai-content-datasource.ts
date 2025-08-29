@@ -9,8 +9,8 @@ import { z } from "zod";
  */
 export const GenerationContextSchema = z.object({
   prompt: z.string().optional(),
+  conversationHistory: z.string().optional(),
   data: z.record(z.unknown()).optional(),
-  conversationId: z.string().optional(),
   templateName: z.string(),
 });
 
@@ -94,10 +94,9 @@ export class AIContentDataSource implements DataSource {
   ): Promise<string> {
     let prompt = template.basePrompt;
 
-    // Add conversation history if explicitly provided in context data
-    if (context.data && "conversationHistory" in context.data) {
-      const history = context.data["conversationHistory"] as string;
-      prompt += `\n\nRecent conversation context:\n${history}`;
+    // Add conversation history if provided
+    if (context.conversationHistory) {
+      prompt += `\n\nRecent conversation context:\n${context.conversationHistory}`;
     }
 
     // Add entity context to inform the generation

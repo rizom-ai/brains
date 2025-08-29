@@ -36,9 +36,9 @@ export interface ContentTemplate<T = unknown>
  * Context for content generation - simplified for template-based approach
  */
 export interface GenerationContext {
-  prompt?: string | undefined;
-  data?: Record<string, unknown> | undefined;
-  conversationId?: string | undefined;
+  prompt?: string;
+  conversationHistory?: string;
+  data?: Record<string, unknown>;
 }
 
 /**

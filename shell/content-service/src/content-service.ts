@@ -245,9 +245,6 @@ export class ContentService implements IContentService {
 
   /**
    * Generate content using a template with entity-aware context
-   * TODO: Factor out conversationId from content generation - it should be handled
-   * at a higher level (e.g., in conversation-aware interfaces) rather than being
-   * part of the core content generation logic
    */
   async generateContent<T = unknown>(
     templateName: string,

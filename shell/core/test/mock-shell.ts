@@ -15,7 +15,7 @@ import type {
   MessageHandler,
   MessageResponse,
 } from "@brains/messaging-service";
-import type { ContentService } from "@brains/content-service";
+import type { ContentService, GenerationContext } from "@brains/content-service";
 import type { Logger } from "@brains/utils";
 import type {
   EntityService,
@@ -392,11 +392,16 @@ export class MockShell implements IShell {
   ): Promise<T> {
     const scopedName = config.templateName;
     const contentGen = this.getContentService();
-    return contentGen.generateContent<T>(scopedName, {
+    const generationContext: GenerationContext = {
       prompt: config.prompt,
-      conversationId: config.conversationId,
-      data: config.data,
-    });
+    };
+    if (config.conversationHistory) {
+      generationContext.conversationHistory = config.conversationHistory;
+    }
+    if (config.data) {
+      generationContext.data = config.data;
+    }
+    return contentGen.generateContent<T>(scopedName, generationContext);
   }
 
   async query(
@@ -404,11 +409,12 @@ export class MockShell implements IShell {
     context?: QueryContext,
   ): Promise<DefaultQueryResponse> {
     // Mock query implementation - uses generateContent under the hood
+    const { conversationHistory, ...contextData } = context || {};
     return this.generateContent<DefaultQueryResponse>({
       prompt,
       templateName: "shell:knowledge-query",
-      conversationId: context?.conversationId ?? "default",
-      ...(context && { data: context }),
+      ...(conversationHistory && { conversationHistory }),
+      ...(context && { data: contextData }),
       interfacePermissionGrant: "public",
     });
   }
