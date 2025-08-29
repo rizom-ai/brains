@@ -52,6 +52,8 @@ export interface ResolutionOptions {
   };
   /** Parameters for DataSource fetch operation */
   dataParams?: unknown;
+  /** Format for DataSource transform operation (e.g., "list" or "detail") */
+  transformFormat?: string;
   /** Static fallback content */
   fallback?: unknown;
 }

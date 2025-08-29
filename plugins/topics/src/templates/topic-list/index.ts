@@ -7,6 +7,7 @@ export const topicListTemplate = createTemplate<TopicListData>({
   name: "topics:topic-list",
   description: "List view of all discovered topics",
   schema: topicListSchema,
+  dataSourceId: "topics:entities",
   requiredPermission: "public",
   formatter: new TopicListFormatter(),
   layout: {

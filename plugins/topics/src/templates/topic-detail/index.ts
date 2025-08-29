@@ -7,6 +7,7 @@ export const topicDetailTemplate = createTemplate<TopicDetailData>({
   name: "topics:topic-detail",
   description: "Detailed view of a single topic",
   schema: topicDetailSchema,
+  dataSourceId: "topics:entities",
   requiredPermission: "public",
   formatter: new TopicDetailFormatter(),
   layout: {

@@ -146,21 +146,46 @@ export class ContentService implements IContentService {
       const dataSource = this.dependencies.dataSourceRegistry.get(
         template.dataSourceId,
       );
-      if (dataSource?.fetch) {
+      if (dataSource) {
         try {
-          const data = await dataSource.fetch(
-            options?.dataParams,
-            template.schema,
-          );
-          if (data !== undefined) {
-            this.dependencies.logger.debug(
-              `Resolved content via DataSource fetch for ${scopedTemplateName}`,
+          // For entity DataSources, use fetch + transform pattern
+          if (dataSource.fetch && dataSource.transform && options?.transformFormat) {
+            // First fetch the raw data
+            const rawData = await dataSource.fetch(
+              options.dataParams,
+              template.schema, // Pass schema for validation
             );
-            return data as T;
+            
+            // Then transform it to the desired format
+            const transformedData = await dataSource.transform(
+              rawData,
+              options.transformFormat,
+              template.schema,
+            );
+            
+            if (transformedData !== undefined) {
+              this.dependencies.logger.debug(
+                `Resolved content via DataSource fetch+transform for ${scopedTemplateName}`,
+              );
+              return transformedData as T;
+            }
+          } 
+          // Fallback to simple fetch for non-entity DataSources
+          else if (dataSource.fetch) {
+            const data = await dataSource.fetch(
+              options?.dataParams,
+              template.schema,
+            );
+            if (data !== undefined) {
+              this.dependencies.logger.debug(
+                `Resolved content via DataSource fetch for ${scopedTemplateName}`,
+              );
+              return data as T;
+            }
           }
         } catch (error) {
           this.dependencies.logger.debug(
-            `DataSource fetch failed for ${scopedTemplateName}`,
+            `DataSource operation failed for ${scopedTemplateName}`,
             { error },
           );
         }

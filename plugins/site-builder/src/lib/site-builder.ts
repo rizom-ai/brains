@@ -238,7 +238,24 @@ export class SiteBuilder implements ISiteBuilder {
     // Template name will be automatically scoped by the context helper
     const templateName = section.template;
 
-    // Use the context's resolveContent helper
+    // Check if this section uses dynamic entity content
+    if (section.contentEntity) {
+      const format = section.contentEntity.query?.id ? "detail" : "list";
+      
+      // Use the context's resolveContent helper with entity params
+      const content = await this.context.resolveContent(templateName, {
+        // Parameters for DataSource fetch
+        dataParams: section.contentEntity,
+        // Format for DataSource transform
+        transformFormat: format,
+        // Static fallback content from section definition
+        fallback: section.content,
+      });
+
+      return content ?? null;
+    }
+
+    // Use the context's resolveContent helper for static content
     const content = await this.context.resolveContent(templateName, {
       // Saved content from entity storage
       savedContent: {

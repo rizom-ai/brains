@@ -1,5 +1,5 @@
 import type { DataSource } from "@brains/datasource";
-import type { EntityService } from "@brains/entity-service";
+import type { IEntityService } from "@brains/plugins";
 import { z } from "zod";
 import { TopicAdapter } from "../lib/topic-adapter";
 import { topicEntitySchema } from "../schemas/topic";
@@ -25,7 +25,7 @@ export class TopicsDataSource implements DataSource {
   public readonly description =
     "Fetches and transforms topic entities for rendering";
 
-  constructor(private entityService: EntityService) {}
+  constructor(private entityService: IEntityService) {}
 
   /**
    * Fetch raw topic entities based on query
@@ -48,13 +48,14 @@ export class TopicsDataSource implements DataSource {
     }
 
     // Fetch entity list
-    const listOptions: Parameters<typeof this.entityService.listEntities>[1] = {};
+    const listOptions: Parameters<typeof this.entityService.listEntities>[1] =
+      {};
     if (params.query?.limit !== undefined) {
       listOptions.limit = params.query.limit;
     } else {
       listOptions.limit = 100;
     }
-    
+
     const entities = await this.entityService.listEntities(
       params.entityType,
       listOptions,
