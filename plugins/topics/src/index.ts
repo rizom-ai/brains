@@ -19,6 +19,10 @@ import { TopicExtractor } from "./lib/topic-extractor";
 import { TopicExtractionHandler } from "./handlers/topic-extraction-handler";
 import { TopicProcessingHandler } from "./handlers/topic-processing-handler";
 import { topicExtractionTemplate } from "./templates/extraction-template";
+// TODO: Register these templates when ready
+// import { topicListTemplate } from "./templates/topic-list";
+// import { topicDetailTemplate } from "./templates/topic-detail";
+// import { TopicsDataSource } from "./datasources/topics-datasource";
 import packageJson from "../package.json";
 import {
   createExtractTool,

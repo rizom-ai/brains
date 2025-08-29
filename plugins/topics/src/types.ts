@@ -1,2 +1,2 @@
-// Re-export TopicEntity from the adapter where it's properly defined
-export type { TopicEntity } from "./lib/topic-adapter";
+// Re-export TopicEntity from schemas where it's now defined
+export type { TopicEntity } from "./schemas/topic";

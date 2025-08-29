@@ -1,29 +1,14 @@
 import type { EntityAdapter } from "@brains/plugins";
-import {
-  baseEntitySchema,
-  parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/plugins";
-import { topicMetadataSchema, type TopicSource } from "../schemas/topic";
+import {
+  topicEntitySchema,
+  topicBodySchema,
+  type TopicEntity,
+  type TopicBody,
+  type TopicSource,
+} from "../schemas/topic";
 import { z } from "zod";
-
-// Extend base entity schema for topics
-export const topicEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("topic"),
-  metadata: topicMetadataSchema.optional(),
-});
-
-export type TopicEntity = z.infer<typeof topicEntitySchema>;
-
-// Schema for topic body structure (without title, which is dynamic)
-const topicBodySchema = z.object({
-  summary: z.string(),
-  content: z.string(),
-  keywords: z.array(z.string()),
-  sources: z.array(z.string()), // Just source IDs
-});
-
-type TopicBody = z.infer<typeof topicBodySchema>;
 
 /**
  * Entity adapter for Topic entities

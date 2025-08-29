@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { baseEntitySchema } from "@brains/plugins";
 
 /**
  * Topic metadata schema
@@ -7,6 +8,28 @@ import { z } from "zod";
 export const topicMetadataSchema = z.object({});
 
 export type TopicMetadata = z.infer<typeof topicMetadataSchema>;
+
+/**
+ * Topic entity schema - extends base entity with topic-specific fields
+ */
+export const topicEntitySchema = baseEntitySchema.extend({
+  entityType: z.literal("topic"),
+  metadata: topicMetadataSchema.optional(),
+});
+
+export type TopicEntity = z.infer<typeof topicEntitySchema>;
+
+/**
+ * Schema for topic body structure (without title, which is dynamic)
+ */
+export const topicBodySchema = z.object({
+  summary: z.string(),
+  content: z.string(),
+  keywords: z.array(z.string()),
+  sources: z.array(z.string()), // Just source IDs
+});
+
+export type TopicBody = z.infer<typeof topicBodySchema>;
 
 /**
  * Topic sources are just IDs of entities this topic was extracted from
