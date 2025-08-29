@@ -18,7 +18,7 @@ describe("DynamicRouteGenerator", () => {
     entities = new Map();
     templates = [];
     routeRegistry = new RouteRegistry();
-    
+
     mockContext = {
       logger: createSilentLogger("test"),
       entityService: {
@@ -27,7 +27,7 @@ describe("DynamicRouteGenerator", () => {
       } as unknown as ServicePluginContext["entityService"],
       listViewTemplates: () => templates,
     } as ServicePluginContext;
-    
+
     generator = new DynamicRouteGenerator(mockContext, routeRegistry);
   });
 
@@ -39,7 +39,7 @@ describe("DynamicRouteGenerator", () => {
 
     test("should not generate routes when entity has no matching templates", async () => {
       entityTypes.push("topic");
-      
+
       await generator.generateEntityRoutes();
       expect(routeRegistry.size()).toBe(0);
     });
@@ -51,7 +51,7 @@ describe("DynamicRouteGenerator", () => {
         { id: "intro-to-ai", entityType: "topic" },
         { id: "machine-learning", entityType: "topic" },
       ]);
-      
+
       // Set up templates
       templates.push(
         {
@@ -63,23 +63,23 @@ describe("DynamicRouteGenerator", () => {
         },
         {
           name: "topics:topic-detail",
-          pluginId: "topics", 
+          pluginId: "topics",
           schema: z.object({}),
           renderers: {},
           interactive: false,
-        }
+        },
       );
-      
+
       await generator.generateEntityRoutes();
-      
+
       // Should have 1 index route + 2 detail routes
       expect(routeRegistry.size()).toBe(3);
-      
+
       // Check index route
       const indexRoute = routeRegistry.get("/topics");
       expect(indexRoute).toBeDefined();
       expect(indexRoute?.id).toBe("topic-index");
-      
+
       // Check detail routes
       expect(routeRegistry.get("/topics/intro-to-ai")).toBeDefined();
       expect(routeRegistry.get("/topics/machine-learning")).toBeDefined();
@@ -87,7 +87,7 @@ describe("DynamicRouteGenerator", () => {
 
     test("should only generate routes when both list and detail templates exist", async () => {
       entityTypes.push("topic");
-      
+
       // Only list template, no detail
       templates.push({
         name: "topics:topic-list",
@@ -96,7 +96,7 @@ describe("DynamicRouteGenerator", () => {
         renderers: {},
         interactive: false,
       });
-      
+
       await generator.generateEntityRoutes();
       expect(routeRegistry.size()).toBe(0);
     });
@@ -105,16 +105,40 @@ describe("DynamicRouteGenerator", () => {
       entityTypes.push("topic", "profile");
       entities.set("topic", [{ id: "topic1", entityType: "topic" }]);
       entities.set("profile", [{ id: "user1", entityType: "profile" }]);
-      
+
       templates.push(
-        { name: "topics:topic-list", pluginId: "topics", schema: z.object({}), renderers: {}, interactive: false },
-        { name: "topics:topic-detail", pluginId: "topics", schema: z.object({}), renderers: {}, interactive: false },
-        { name: "profiles:profile-list", pluginId: "profiles", schema: z.object({}), renderers: {}, interactive: false },
-        { name: "profiles:profile-detail", pluginId: "profiles", schema: z.object({}), renderers: {}, interactive: false }
+        {
+          name: "topics:topic-list",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "topics:topic-detail",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "profiles:profile-list",
+          pluginId: "profiles",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "profiles:profile-detail",
+          pluginId: "profiles",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
       );
-      
+
       await generator.generateEntityRoutes();
-      
+
       // Should have 2 index routes + 2 detail routes = 4 total
       expect(routeRegistry.size()).toBe(4);
       expect(routeRegistry.get("/topics")).toBeDefined();
@@ -131,7 +155,7 @@ describe("DynamicRouteGenerator", () => {
         { entity: "box", expected: "/boxes" },
         { entity: "match", expected: "/matches" },
       ];
-      
+
       for (const { entity, expected } of testCases) {
         const testRegistry = new RouteRegistry();
         const testGenerator = new DynamicRouteGenerator(
@@ -142,15 +166,27 @@ describe("DynamicRouteGenerator", () => {
               listEntities: async () => [],
             } as unknown as ServicePluginContext["entityService"],
             listViewTemplates: () => [
-              { name: `test:${entity}-list`, pluginId: "test", schema: z.object({}), renderers: {}, interactive: false },
-              { name: `test:${entity}-detail`, pluginId: "test", schema: z.object({}), renderers: {}, interactive: false },
+              {
+                name: `test:${entity}-list`,
+                pluginId: "test",
+                schema: z.object({}),
+                renderers: {},
+                interactive: false,
+              },
+              {
+                name: `test:${entity}-detail`,
+                pluginId: "test",
+                schema: z.object({}),
+                renderers: {},
+                interactive: false,
+              },
             ],
           } as ServicePluginContext,
-          testRegistry
+          testRegistry,
         );
-        
+
         await testGenerator.generateEntityRoutes();
-        
+
         const route = testRegistry.get(expected);
         expect(route).toBeDefined();
       }
@@ -161,10 +197,22 @@ describe("DynamicRouteGenerator", () => {
     test("should match templates without plugin prefix", async () => {
       entityTypes.push("topic");
       templates.push(
-        { name: "topic-list", pluginId: "topics", schema: z.object({}), renderers: {}, interactive: false },
-        { name: "topic-detail", pluginId: "topics", schema: z.object({}), renderers: {}, interactive: false }
+        {
+          name: "topic-list",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "topic-detail",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
       );
-      
+
       await generator.generateEntityRoutes();
       expect(routeRegistry.size()).toBe(1); // Just index route since no entities
     });
@@ -172,13 +220,31 @@ describe("DynamicRouteGenerator", () => {
     test("should prefer templates with plugin prefix", async () => {
       entityTypes.push("topic");
       templates.push(
-        { name: "topic-list", pluginId: "old-plugin", schema: z.object({}), renderers: {}, interactive: false },
-        { name: "new-plugin:topic-list", pluginId: "new-plugin", schema: z.object({}), renderers: {}, interactive: false },
-        { name: "new-plugin:topic-detail", pluginId: "new-plugin", schema: z.object({}), renderers: {}, interactive: false }
+        {
+          name: "topic-list",
+          pluginId: "old-plugin",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "new-plugin:topic-list",
+          pluginId: "new-plugin",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "new-plugin:topic-detail",
+          pluginId: "new-plugin",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
       );
-      
+
       await generator.generateEntityRoutes();
-      
+
       const route = routeRegistry.get("/topics");
       expect(route).toBeDefined();
       expect(route?.sections[0]?.template).toBe("new-plugin:topic-list");

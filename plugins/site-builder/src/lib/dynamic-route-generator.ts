@@ -16,11 +16,11 @@ export class DynamicRouteGenerator {
    */
   async generateEntityRoutes(): Promise<void> {
     const logger = this.context.logger.child("DynamicRouteGenerator");
-    
+
     // Get all registered entity types from entity service
     const entityTypes = this.context.entityService.getEntityTypes();
     logger.debug(`Found ${entityTypes.length} entity types`, { entityTypes });
-    
+
     for (const entityType of entityTypes) {
       await this.generateRoutesForEntityType(entityType);
     }
@@ -31,81 +31,100 @@ export class DynamicRouteGenerator {
    */
   private async generateRoutesForEntityType(entityType: string): Promise<void> {
     const logger = this.context.logger.child("DynamicRouteGenerator");
-    
+
     // Try to find matching templates from any plugin
-    const { listTemplateName, detailTemplateName } = 
+    const { listTemplateName, detailTemplateName } =
       this.findTemplatesForEntityType(entityType);
-    
+
     if (!listTemplateName || !detailTemplateName) {
-      logger.debug(`No matching templates found for entity type: ${entityType}`);
+      logger.debug(
+        `No matching templates found for entity type: ${entityType}`,
+      );
       return;
     }
-    
+
     logger.info(`Generating routes for entity type: ${entityType}`, {
       listTemplate: listTemplateName,
       detailTemplate: detailTemplateName,
     });
-    
+
     // Register index route
     const indexRoute: RouteDefinition = {
       id: `${entityType}-index`,
       path: `/${this.pluralize(entityType)}`,
       title: `${this.capitalize(entityType)}s`,
       description: `Browse all ${this.pluralize(entityType)}`,
-      sections: [{
-        id: "list",
-        template: listTemplateName,
-        contentEntity: {
-          entityType,
-          query: { limit: 100 } // Reasonable default limit
-        }
-      }],
+      sections: [
+        {
+          id: "list",
+          template: listTemplateName,
+          contentEntity: {
+            entityType,
+            query: { limit: 100 }, // Reasonable default limit
+          },
+        },
+      ],
       sourceEntityType: entityType,
     };
-    
+
     try {
       this.routeRegistry.register(indexRoute);
-      logger.debug(`Registered index route for ${entityType}`, { path: indexRoute.path });
+      logger.debug(`Registered index route for ${entityType}`, {
+        path: indexRoute.path,
+      });
     } catch (error) {
-      logger.warn(`Failed to register index route for ${entityType}`, { error });
+      logger.warn(`Failed to register index route for ${entityType}`, {
+        error,
+      });
     }
-    
+
     // Get all entities of this type and create detail routes
     try {
       const entities = await this.context.entityService.listEntities(
         entityType,
-        { limit: 1000 } // Get all entities for static generation
+        { limit: 1000 }, // Get all entities for static generation
       );
-      
-      logger.info(`Found ${entities.length} ${entityType} entities to generate routes for`);
-      
+
+      logger.info(
+        `Found ${entities.length} ${entityType} entities to generate routes for`,
+      );
+
       for (const entity of entities) {
         const detailRoute: RouteDefinition = {
           id: `${entityType}-${entity.id}`,
           path: `/${this.pluralize(entityType)}/${entity.id}`,
           title: `${this.capitalize(entityType)}: ${entity.id}`,
           description: `View ${entityType} details`,
-          sections: [{
-            id: "detail",
-            template: detailTemplateName,
-            contentEntity: {
-              entityType,
-              query: { id: entity.id }
-            }
-          }],
+          sections: [
+            {
+              id: "detail",
+              template: detailTemplateName,
+              contentEntity: {
+                entityType,
+                query: { id: entity.id },
+              },
+            },
+          ],
           sourceEntityType: entityType,
         };
-        
+
         try {
           this.routeRegistry.register(detailRoute);
         } catch (error) {
-          logger.warn(`Failed to register detail route for ${entityType}/${entity.id}`, { error });
+          logger.warn(
+            `Failed to register detail route for ${entityType}/${entity.id}`,
+            { error },
+          );
         }
       }
-      
-      logger.info(`Successfully registered ${entities.length + 1} routes for ${entityType}`);
+
+      logger.info(
+        `Successfully registered ${entities.length + 1} routes for ${entityType}`,
+      );
     } catch (error) {
-      logger.error(`Failed to list entities for type: ${entityType}`, { error });
+      logger.error(`Failed to list entities for type: ${entityType}`, {
+        error,
+      });
     }
   }
 
@@ -118,25 +137,25 @@ export class DynamicRouteGenerator {
   } {
     // Get list of all templates to search through
     const allTemplates = this.context.listViewTemplates();
-    
+
     // Look for templates matching the pattern [entityType]-list/detail
     let listTemplateName: string | undefined;
     let detailTemplateName: string | undefined;
-    
+
     for (const template of allTemplates) {
       const templateName = template.name;
-      
+
       // Check for list template
       if (templateName.endsWith(`${entityType}-list`)) {
         listTemplateName = templateName;
       }
-      
+
       // Check for detail template
       if (templateName.endsWith(`${entityType}-detail`)) {
         detailTemplateName = templateName;
       }
     }
-    
+
     // Return found templates
     if (listTemplateName && detailTemplateName) {
       return {
@@ -144,7 +163,7 @@ export class DynamicRouteGenerator {
         detailTemplateName,
       };
     }
-    
+
     return {};
   }
 

@@ -15,6 +15,7 @@ import type {
 import { createPreactBuilder } from "./preact-builder";
 import { join } from "path";
 import type { RouteRegistry } from "./route-registry";
+import { DynamicRouteGenerator } from "./dynamic-route-generator";
 
 export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
@@ -112,6 +113,19 @@ export class SiteBuilder implements ISiteBuilder {
         total: 100,
       });
 
+      // Generate dynamic routes from entities before building
+      await reporter?.report({
+        message: "Generating dynamic routes",
+        progress: 10,
+        total: 100,
+      });
+
+      const dynamicRouteGenerator = new DynamicRouteGenerator(
+        this.context,
+        this.routeRegistry,
+      );
+      await dynamicRouteGenerator.generateEntityRoutes();
+
       // Create static site builder instance
       const workingDir =
         options.workingDir ?? join(options.outputDir, ".preact-work");
@@ -121,7 +135,7 @@ export class SiteBuilder implements ISiteBuilder {
         outputDir: options.outputDir,
       });
 
-      // Get all registered routes
+      // Get all registered routes (now includes dynamically generated ones)
       const routes = this.routeRegistry.list();
       if (routes.length === 0) {
         warnings.push("No routes registered for site build");
