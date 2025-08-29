@@ -19,12 +19,12 @@ const mockDataSource: DataSource = {
   id: "mock-test-data",
   name: "Mock Test Data Source",
   description: "A test data source for content resolution",
-  async fetch<T>(_query: unknown, schema: z.ZodSchema<T>): Promise<T> {
+  async fetch<T>(_query: unknown): Promise<T> {
     const data = {
       title: "DataSource Title",
       content: "This content was fetched from a DataSource",
     };
-    return schema.parse(data);
+    return data as T;
   },
 };
 

@@ -9,8 +9,8 @@ const mockFetchDataSource: DataSource = {
   id: "test-fetch",
   name: "Test Fetch DataSource",
   description: "A test data source that fetches data",
-  fetch: async <T>(query: unknown, schema: z.ZodSchema<T>): Promise<T> =>
-    schema.parse({ result: "fetched", query }),
+  fetch: async <T>(query: unknown): Promise<T> =>
+    ({ result: "fetched", query } as T),
 };
 
 const mockGenerateDataSource: DataSource = {
@@ -33,8 +33,8 @@ const mockTransformDataSource: DataSource = {
 const mockMultiCapabilityDataSource: DataSource = {
   id: "test-multi",
   name: "Test Multi-Capability DataSource",
-  fetch: async <T>(_query: unknown, schema: z.ZodSchema<T>): Promise<T> =>
-    schema.parse({ result: "multi-fetch" }),
+  fetch: async <T>(_query: unknown): Promise<T> =>
+    ({ result: "multi-fetch" } as T),
   generate: async <T>(_request: unknown, schema: z.ZodSchema<T>): Promise<T> =>
     schema.parse({ result: "multi-generate" }),
   transform: async <T>(

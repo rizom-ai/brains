@@ -69,7 +69,10 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     });
 
     // Register DataSource
-    const topicsDataSource = new TopicsDataSource(context.entityService);
+    const topicsDataSource = new TopicsDataSource(
+      context.entityService,
+      this.logger.child("TopicsDataSource"),
+    );
     context.registerDataSource(topicsDataSource);
 
     // Register job handlers

@@ -107,7 +107,7 @@ describe("PreactBuilder", () => {
         title: "Test Site",
         description: "Test Site Description",
       },
-      getContent: async () => null,
+      getContent: async (_route, section) => section.content || null,
     };
 
     await builder.build(buildContext, () => {});
@@ -189,7 +189,7 @@ describe("PreactBuilder", () => {
         title: "Test Site",
         description: "Test",
       },
-      getContent: async () => null,
+      getContent: async (_route, section) => section.content || null,
     };
 
     await builder.build(buildContext, () => {});
@@ -252,7 +252,7 @@ describe("PreactBuilder", () => {
         title: "Test Site",
         description: "Test",
       },
-      getContent: async () => null,
+      getContent: async (_route, section) => section.content || null,
     };
 
     // Should not throw

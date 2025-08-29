@@ -141,9 +141,8 @@ export class PreactBuilder implements StaticSiteBuilder {
         continue;
       }
 
-      // Get content from entity or use provided content
-      let content = section.content;
-      content ??= await context.getContent(route, section);
+      // Always get content through context to allow dynamic resolution
+      const content = await context.getContent(route, section);
 
       if (!content) {
         this.logger.warn(`No content for section: ${section.id}`);

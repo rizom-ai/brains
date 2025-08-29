@@ -207,9 +207,12 @@ export class SiteBuilder implements ISiteBuilder {
       }
 
       return result;
-    } catch {
+    } catch (error) {
       const buildError = new Error("Site build process failed");
-      this.logger.error("Site build failed", { error: buildError });
+      this.logger.error("Site build failed", {
+        error: buildError,
+        originalError: error,
+      });
 
       errors.push(buildError.message);
       return {
@@ -241,7 +244,7 @@ export class SiteBuilder implements ISiteBuilder {
     // Check if this section uses dynamic entity content
     if (section.contentEntity) {
       const format = section.contentEntity.query?.id ? "detail" : "list";
-      
+
       // Use the context's resolveContent helper with entity params
       const content = await this.context.resolveContent(templateName, {
         // Parameters for DataSource fetch

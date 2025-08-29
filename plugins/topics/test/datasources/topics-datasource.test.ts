@@ -4,20 +4,28 @@ import { topicDetailSchema } from "../../src/templates/topic-detail/schema";
 import { topicListSchema } from "../../src/templates/topic-list/schema";
 import { z } from "zod";
 import type { TopicEntity } from "../../src/schemas/topic";
+import { createSilentLogger } from "@brains/utils";
+import type { IEntityService } from "@brains/plugins";
 
 describe("TopicsDataSource", () => {
   let dataSource: TopicsDataSource;
   let mockEntityService: {
     getEntity: ReturnType<typeof mock>;
     listEntities: ReturnType<typeof mock>;
+    getEntityTypes: ReturnType<typeof mock>;
   };
 
   beforeEach(() => {
     mockEntityService = {
       getEntity: mock(),
       listEntities: mock(),
+      getEntityTypes: mock().mockReturnValue([]),
     };
-    dataSource = new TopicsDataSource(mockEntityService as any);
+    const logger = createSilentLogger();
+    dataSource = new TopicsDataSource(
+      mockEntityService as unknown as IEntityService,
+      logger,
+    );
   });
 
   describe("fetch", () => {

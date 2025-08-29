@@ -46,7 +46,7 @@ export class SystemStatsDataSource implements DataSource {
    * Fetch dashboard data
    * This is the main method for the dashboard data source
    */
-  async fetch<T>(_query: unknown, schema: z.ZodSchema<T>): Promise<T> {
+  async fetch<T>(_query: unknown): Promise<T> {
     // Get entity statistics
     const entityStats = await this.getEntityStats();
 
@@ -54,7 +54,7 @@ export class SystemStatsDataSource implements DataSource {
     const recentEntities = await this.getRecentEntities();
 
     // Build dashboard data
-    const data = {
+    const data: DashboardData = {
       entityStats,
       recentEntities,
       buildInfo: {
@@ -63,8 +63,8 @@ export class SystemStatsDataSource implements DataSource {
       },
     };
 
-    // Validate and return using provided schema
-    return schema.parse(data);
+    // Validate against our schema and return
+    return DashboardDataSchema.parse(data) as T;
   }
 
   /**

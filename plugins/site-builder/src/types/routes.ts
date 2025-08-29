@@ -11,11 +11,14 @@ export const SectionDefinitionSchema = z.object({
     .object({
       entityType: z.string(), // Entity type to fetch content from
       template: z.string().optional(), // Template for entity queries
-      query: z.object({
-        id: z.string().optional(), // Entity ID for detail views
-        limit: z.number().optional(), // Limit for list views
-        offset: z.number().optional(), // Offset for pagination
-      }).passthrough().optional(), // Query parameters for fetching entities - allows additional properties
+      query: z
+        .object({
+          id: z.string().optional(), // Entity ID for detail views
+          limit: z.number().optional(), // Limit for list views
+          offset: z.number().optional(), // Offset for pagination
+        })
+        .passthrough()
+        .optional(), // Query parameters for fetching entities - allows additional properties
     })
     .optional(),
   order: z.number().optional(), // Section ordering

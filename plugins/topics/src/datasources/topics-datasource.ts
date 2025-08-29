@@ -1,5 +1,5 @@
 import type { DataSource } from "@brains/datasource";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, Logger } from "@brains/plugins";
 import { z } from "zod";
 import { TopicAdapter } from "../lib/topic-adapter";
 import { topicEntitySchema } from "../schemas/topic";
@@ -25,13 +25,18 @@ export class TopicsDataSource implements DataSource {
   public readonly description =
     "Fetches and transforms topic entities for rendering";
 
-  constructor(private entityService: IEntityService) {}
+  constructor(
+    private entityService: IEntityService,
+    private readonly logger: Logger,
+  ) {
+    this.logger.debug("TopicsDataSource initialized");
+  }
 
   /**
    * Fetch raw topic entities based on query
    * Returns validated entity or entity array
    */
-  async fetch<T>(query: unknown, schema: z.ZodSchema<T>): Promise<T> {
+  async fetch<T>(query: unknown): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
 
@@ -41,10 +46,11 @@ export class TopicsDataSource implements DataSource {
         params.entityType,
         params.query.id,
       );
+
       if (!entity) {
         throw new Error(`Entity not found: ${params.query.id}`);
       }
-      return schema.parse(entity);
+      return entity as T;
     }
 
     // Fetch entity list
@@ -61,7 +67,7 @@ export class TopicsDataSource implements DataSource {
       listOptions,
     );
 
-    return schema.parse(entities);
+    return entities as T;
   }
 
   /**
