@@ -61,7 +61,7 @@ describe("SiteContentOperations", () => {
     });
 
     // Create a RouteRegistry with test routes matching what the test expects
-    const routeRegistry = new RouteRegistry();
+    const routeRegistry = new RouteRegistry(context.logger);
 
     // Register the routes that the test expects (matching the plugin config)
     routeRegistry.register([

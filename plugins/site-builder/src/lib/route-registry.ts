@@ -1,5 +1,6 @@
 import type { RouteDefinition } from "../types/routes";
 import { RouteDefinitionSchema } from "../types/routes";
+import type { Logger } from "@brains/utils";
 
 /**
  * Route Registry - manages route definitions for the site builder
@@ -7,6 +8,8 @@ import { RouteDefinitionSchema } from "../types/routes";
  */
 export class RouteRegistry {
   private routes = new Map<string, RouteDefinition>();
+
+  constructor(private readonly logger: Logger) {}
 
   /**
    * Register one or more route definitions
@@ -19,11 +22,11 @@ export class RouteRegistry {
       // Validate route definition
       const validated = RouteDefinitionSchema.parse(route);
 
-      // Check for path conflicts
+      // Override existing route if it exists (dynamic routes can be regenerated)
       if (this.routes.has(validated.path)) {
         const existing = this.routes.get(validated.path);
-        throw new Error(
-          `Route path "${validated.path}" already registered by plugin "${existing?.pluginId}"`,
+        this.logger.debug(
+          `Overriding route "${validated.path}" (was registered by plugin "${existing?.pluginId}")`,
         );
       }
 

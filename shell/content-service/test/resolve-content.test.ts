@@ -398,9 +398,10 @@ describe("ContentService.resolveContent", () => {
       });
 
       expect(result).toEqual(transformedData);
-      expect(mockDataSource.fetch).toHaveBeenCalledWith(
-        { entityType: "topic", query: { limit: 10 } },
-      );
+      expect(mockDataSource.fetch).toHaveBeenCalledWith({
+        entityType: "topic",
+        query: { limit: 10 },
+      });
       expect(mockDataSource.transform).toHaveBeenCalledWith(
         rawData,
         "list",

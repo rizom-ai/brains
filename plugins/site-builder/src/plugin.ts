@@ -40,7 +40,17 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteBuilder?: SiteBuilder;
   private siteContentService?: SiteContentService;
   private pluginContext?: ServicePluginContext;
-  private routeRegistry: RouteRegistry;
+  private _routeRegistry?: RouteRegistry;
+
+  /**
+   * Get the route registry, throwing if not initialized
+   */
+  private get routeRegistry(): RouteRegistry {
+    if (!this._routeRegistry) {
+      throw new Error("RouteRegistry not initialized - plugin not registered");
+    }
+    return this._routeRegistry;
+  }
 
   constructor(config: Partial<SiteBuilderConfig> = {}) {
     super(
@@ -50,7 +60,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       siteBuilderConfigSchema,
       SITE_BUILDER_CONFIG_DEFAULTS,
     );
-    this.routeRegistry = new RouteRegistry();
   }
 
   /**
@@ -60,6 +69,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     context: ServicePluginContext,
   ): Promise<void> {
     this.pluginContext = context;
+
+    // Initialize route registry with logger
+    this._routeRegistry = new RouteRegistry(context.logger);
 
     // Setup route message handlers
     this.setupRouteHandlers(context);

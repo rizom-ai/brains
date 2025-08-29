@@ -101,7 +101,7 @@ describe("SiteBuilder contentEntity handling", () => {
           description: "Test Description",
         },
       });
-      
+
       // Verify resolveContent was called with correct params
       expect(mockContext.resolveContent).toHaveBeenCalledWith(
         "topics:topic-list",
@@ -153,7 +153,7 @@ describe("SiteBuilder contentEntity handling", () => {
             description: "Test Description",
           },
         });
-      } catch (error) {
+      } catch {
         // Ignore build errors - we're just testing the content resolution
       }
 
@@ -217,7 +217,7 @@ describe("SiteBuilder contentEntity handling", () => {
             description: "Test Description",
           },
         });
-      } catch (error) {
+      } catch {
         // Ignore build errors - we're just testing the content resolution
       }
 
@@ -279,7 +279,7 @@ describe("SiteBuilder contentEntity handling", () => {
             description: "Test Description",
           },
         });
-      } catch (error) {
+      } catch {
         // Ignore build errors - we're just testing the content resolution
       }
 
@@ -313,7 +313,7 @@ describe("SiteBuilder contentEntity handling", () => {
                 offset: 20,
                 customParam: "value",
                 anotherParam: 123,
-              } as any, // Allow additional properties
+              } as Record<string, unknown>,
             },
           },
         ],
@@ -336,7 +336,7 @@ describe("SiteBuilder contentEntity handling", () => {
             description: "Test Description",
           },
         });
-      } catch (error) {
+      } catch {
         // Ignore build errors - we're just testing the content resolution
       }
 

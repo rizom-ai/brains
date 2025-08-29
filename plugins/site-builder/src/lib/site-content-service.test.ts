@@ -58,7 +58,7 @@ describe("SiteContentService", () => {
     });
 
     // Create a RouteRegistry and register test routes
-    const routeRegistry = new RouteRegistry();
+    const routeRegistry = new RouteRegistry(context.logger);
     routeRegistry.register({
       id: "test-route",
       path: "/test",

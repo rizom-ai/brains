@@ -17,10 +17,11 @@ describe("DynamicRouteGenerator", () => {
     entityTypes = [];
     entities = new Map();
     templates = [];
-    routeRegistry = new RouteRegistry();
+    const logger = createSilentLogger("test");
+    routeRegistry = new RouteRegistry(logger);
 
     mockContext = {
-      logger: createSilentLogger("test"),
+      logger,
       entityService: {
         getEntityTypes: () => entityTypes,
         listEntities: async (type: string) => entities.get(type) ?? [],
@@ -157,7 +158,8 @@ describe("DynamicRouteGenerator", () => {
       ];
 
       for (const { entity, expected } of testCases) {
-        const testRegistry = new RouteRegistry();
+        const testLogger = createSilentLogger("test");
+        const testRegistry = new RouteRegistry(testLogger);
         const testGenerator = new DynamicRouteGenerator(
           {
             ...mockContext,
