@@ -1,9 +1,6 @@
 import type { EntityAdapter } from "@brains/plugins";
-import type { SiteContentPreview, SiteContentProduction } from "../types";
-import {
-  siteContentPreviewSchema,
-  siteContentProductionSchema,
-} from "../types";
+import type { SiteContent } from "../types";
+import { siteContentSchema } from "../types";
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
@@ -21,20 +18,17 @@ const frontmatterSchema = z.object({
 });
 
 /**
- * Base entity adapter for site content with shared functionality
+ * Entity adapter for site content
  */
-abstract class SiteContentAdapter<
-  T extends SiteContentPreview | SiteContentProduction,
-> implements EntityAdapter<T>
-{
-  public abstract readonly entityType: string;
-  public abstract readonly schema: z.ZodSchema<T>;
+export class SiteContentAdapter implements EntityAdapter<SiteContent> {
+  public readonly entityType = "site-content";
+  public readonly schema = siteContentSchema;
 
   constructor() {
     // No initialization needed
   }
 
-  public toMarkdown(entity: T): string {
+  public toMarkdown(entity: SiteContent): string {
     // The content field already contains the formatted content
     // We just need to add/update the frontmatter
     const metadata: Record<string, unknown> = {
@@ -56,7 +50,7 @@ abstract class SiteContentAdapter<
     }
   }
 
-  public fromMarkdown(markdown: string): Partial<T> {
+  public fromMarkdown(markdown: string): Partial<SiteContent> {
     // Parse frontmatter to get routeId and sectionId
     const { metadata } = parseMarkdownWithFrontmatter(
       markdown,
@@ -65,16 +59,16 @@ abstract class SiteContentAdapter<
 
     // The content is the formatted markdown
     // For import, we store the full markdown as the source of truth
-    const result: Partial<T> = {
+    const result: Partial<SiteContent> = {
       routeId: metadata.routeId,
       sectionId: metadata.sectionId,
       content: markdown, // Store the full markdown including frontmatter
-    } as Partial<T>;
+    };
 
     return result;
   }
 
-  public extractMetadata(entity: T): Record<string, unknown> {
+  public extractMetadata(entity: SiteContent): Record<string, unknown> {
     return {
       routeId: entity.routeId,
       sectionId: entity.sectionId,
@@ -89,7 +83,7 @@ abstract class SiteContentAdapter<
     return metadata;
   }
 
-  public generateFrontMatter(entity: T): string {
+  public generateFrontMatter(entity: SiteContent): string {
     const metadata: Record<string, unknown> = {
       routeId: entity.routeId,
       sectionId: entity.sectionId,
@@ -99,22 +93,12 @@ abstract class SiteContentAdapter<
   }
 }
 
-/**
- * Entity adapter for preview site content
- */
-export class SiteContentPreviewAdapter extends SiteContentAdapter<SiteContentPreview> {
-  public readonly entityType = "site-content-preview";
-  public readonly schema = siteContentPreviewSchema;
-}
+// Create default instance
+export const siteContentAdapter = new SiteContentAdapter();
 
-/**
- * Entity adapter for production site content
- */
-export class SiteContentProductionAdapter extends SiteContentAdapter<SiteContentProduction> {
-  public readonly entityType = "site-content-production";
-  public readonly schema = siteContentProductionSchema;
-}
-
-// Create default instances
-export const siteContentPreviewAdapter = new SiteContentPreviewAdapter();
-export const siteContentProductionAdapter = new SiteContentProductionAdapter();
+// Legacy exports for backward compatibility during migration
+// TODO: Remove these after migration is complete
+export const siteContentPreviewAdapter = siteContentAdapter;
+export const siteContentProductionAdapter = siteContentAdapter;
+export class SiteContentPreviewAdapter extends SiteContentAdapter {}
+export class SiteContentProductionAdapter extends SiteContentAdapter {}

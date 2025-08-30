@@ -20,8 +20,3 @@ export {
   contentGenerationJobDataSchema,
   type ContentGenerationJobData,
 } from "./handlers/contentGenerationJobHandler";
-export {
-  ContentDerivationJobHandler,
-  contentDerivationJobDataSchema,
-  type ContentDerivationJobData,
-} from "./handlers/contentDerivationJobHandler";

@@ -116,9 +116,10 @@ export class ContentGenerationJobHandler
         generationContext.data = data.context.data;
       }
       if (data.context.conversationHistory !== undefined) {
-        generationContext.conversationHistory = data.context.conversationHistory;
+        generationContext.conversationHistory =
+          data.context.conversationHistory;
       }
-      
+
       const content = await this.contentService.generateContent<unknown>(
         data.templateName,
         generationContext,

@@ -302,7 +302,9 @@ export class Shell implements IShell {
     // Generate content
     const context = {
       prompt: config.prompt,
-      ...(config.conversationHistory && { conversationHistory: config.conversationHistory }),
+      ...(config.conversationHistory && {
+        conversationHistory: config.conversationHistory,
+      }),
       ...(config.data && { data: config.data }),
     };
 

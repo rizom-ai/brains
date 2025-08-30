@@ -31,7 +31,6 @@ export const siteBuilderConfigSchema = z.object({
     .array(RouteDefinitionSchema)
     .optional()
     .describe("Routes to register"),
-  environment: z.enum(["preview", "production"]).default("preview").optional(),
 });
 
 export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema> & {

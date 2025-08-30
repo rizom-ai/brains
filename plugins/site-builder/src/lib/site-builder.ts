@@ -162,7 +162,7 @@ export class SiteBuilder implements ISiteBuilder {
           route: RouteDefinition,
           section: SectionDefinition,
         ) => {
-          return this.getContentForSection(section, route, options.environment);
+          return this.getContentForSection(section, route);
         },
         getViewTemplate: (name: string) => {
           return this.context.getViewTemplate(name);
@@ -231,7 +231,6 @@ export class SiteBuilder implements ISiteBuilder {
   private async getContentForSection(
     section: SectionDefinition,
     route: { id: string },
-    environment: "preview" | "production" = "preview",
   ): Promise<unknown> {
     // If no template, only static content is possible
     if (!section.template) {
@@ -262,10 +261,7 @@ export class SiteBuilder implements ISiteBuilder {
     const content = await this.context.resolveContent(templateName, {
       // Saved content from entity storage
       savedContent: {
-        entityType:
-          environment === "production"
-            ? "site-content-production"
-            : "site-content-preview",
+        entityType: "site-content",
         entityId: `${route.id}:${section.id}`,
       },
       // Static fallback content from section definition

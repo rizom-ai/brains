@@ -15,7 +15,10 @@ import type {
   MessageHandler,
   MessageResponse,
 } from "@brains/messaging-service";
-import type { ContentService, GenerationContext } from "@brains/content-service";
+import type {
+  ContentService,
+  GenerationContext,
+} from "@brains/content-service";
 import type { Logger } from "@brains/utils";
 import type {
   EntityService,

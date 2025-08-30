@@ -224,7 +224,7 @@ describe("SiteBuilder contentEntity handling", () => {
       // Verify static content was resolved normally
       expect(mockContext.resolveContent).toHaveBeenCalledWith("hero", {
         savedContent: {
-          entityType: "site-content-preview",
+          entityType: "site-content",
           entityId: "mixed:static",
         },
         fallback: { title: "Static Hero" },

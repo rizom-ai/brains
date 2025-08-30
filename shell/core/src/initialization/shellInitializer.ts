@@ -2,10 +2,7 @@ import { Logger, LogLevel } from "@brains/utils";
 import type { ShellConfig } from "../config";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import type { ContentService } from "@brains/content-service";
-import {
-  ContentGenerationJobHandler,
-  ContentDerivationJobHandler,
-} from "@brains/content-service";
+import { ContentGenerationJobHandler } from "@brains/content-service";
 import { PluginManager } from "@brains/plugins";
 import { ServiceRegistry } from "@brains/service-registry";
 import { MessageBus } from "@brains/messaging-service";
@@ -371,14 +368,6 @@ export class ShellInitializer {
       "shell",
     );
 
-    // Register content derivation job handler with shell namespace
-    const contentDerivationJobHandler =
-      ContentDerivationJobHandler.createFresh(entityService);
-    jobQueueService.registerHandler(
-      "shell:content-derivation",
-      contentDerivationJobHandler,
-      "shell",
-    );
   }
 
   /**

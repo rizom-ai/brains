@@ -15,10 +15,12 @@ export const GenerateOptionsSchema = z.object({
     .describe("Optional: specific section filter"),
   dryRun: z
     .boolean()
+    .optional()
     .default(false)
     .describe("Optional: preview changes without executing"),
   force: z
     .boolean()
+    .optional()
     .default(false)
     .describe("Force regeneration even if content exists"),
 });
@@ -41,53 +43,5 @@ export const GenerateResultSchema = z.object({
 });
 
 // Export inferred types
-export type GenerateOptions = z.infer<typeof GenerateOptionsSchema>;
+export type GenerateOptions = z.input<typeof GenerateOptionsSchema>;
 export type GenerateResult = z.infer<typeof GenerateResultSchema>;
-
-/**
- * Promote operation options
- */
-export const PromoteOptionsSchema = z.object({
-  routeId: z
-    .string()
-    .optional()
-    .describe("Optional: specific route to promote"),
-  sectionId: z
-    .string()
-    .optional()
-    .describe("Optional: specific section to promote"),
-  sections: z
-    .array(z.string())
-    .optional()
-    .describe("Optional: array of section IDs to promote"),
-  dryRun: z
-    .boolean()
-    .default(false)
-    .describe("Preview changes without executing"),
-});
-
-export type PromoteOptions = z.infer<typeof PromoteOptionsSchema>;
-
-/**
- * Rollback operation options
- */
-export const RollbackOptionsSchema = z.object({
-  routeId: z
-    .string()
-    .optional()
-    .describe("Optional: specific route to rollback"),
-  sectionId: z
-    .string()
-    .optional()
-    .describe("Optional: specific section to rollback"),
-  sections: z
-    .array(z.string())
-    .optional()
-    .describe("Optional: array of section IDs to rollback"),
-  dryRun: z
-    .boolean()
-    .default(false)
-    .describe("Preview changes without executing"),
-});
-
-export type RollbackOptions = z.infer<typeof RollbackOptionsSchema>;

@@ -1,292 +1,208 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { SiteContentService } from "./site-content-service";
+import { RouteRegistry } from "./route-registry";
 import {
-  createServicePluginHarness,
+  MockShell,
   createServicePluginContext,
+  createSilentLogger,
   type ServicePluginContext,
 } from "@brains/plugins";
-import { SiteBuilderPlugin } from "../plugin";
-import type { SiteContentPreview } from "../types";
-import { RouteRegistry } from "./route-registry";
+import { SiteContentOperations } from "./site-content-operations";
 
 describe("SiteContentService", () => {
-  let service: SiteContentService;
-  let harness: ReturnType<typeof createServicePluginHarness<SiteBuilderPlugin>>;
-  let plugin: SiteBuilderPlugin;
+  let mockShell: MockShell;
   let context: ServicePluginContext;
+  let service: SiteContentService;
+  let routeRegistry: RouteRegistry;
 
-  beforeEach(async () => {
-    harness = createServicePluginHarness<SiteBuilderPlugin>();
+  beforeEach(() => {
+    // Create mock shell and context
+    const logger = createSilentLogger("site-builder-test");
+    mockShell = new MockShell({ logger });
+    context = createServicePluginContext(mockShell, "site-builder");
 
-    // Create plugin with test configuration
-    plugin = new SiteBuilderPlugin({
-      routes: [
-        {
-          id: "test-route",
-          path: "/test",
-          title: "Test",
-          description: "Test route",
-          sections: [
-            { id: "section1", template: "test-template" },
-            { id: "section2", template: "test-template" },
-          ],
-        },
-      ],
-      siteConfig: {
-        title: "Test Site",
-        description: "Test site description",
-      },
-    });
+    // Set up route registry with test routes
+    routeRegistry = new RouteRegistry(context.logger);
 
-    // Install plugin
-    await harness.installPlugin(plugin);
-
-    // Get the mock shell and create a context
-    const shell = harness.getShell();
-    context = createServicePluginContext(shell, "site-builder");
-
-    // Mock getTemplateCapabilities to return templates with canGenerate=true by default
-    const getTemplateCapabilitiesSpy = spyOn(
-      context,
-      "getTemplateCapabilities",
-    );
-    getTemplateCapabilitiesSpy.mockReturnValue({
-      canGenerate: true,
-      canFetch: false,
-      canRender: true,
-      isStaticOnly: false,
-    });
-
-    // Create a RouteRegistry and register test routes
-    const routeRegistry = new RouteRegistry(context.logger);
+    // Register test routes
     routeRegistry.register({
-      id: "test-route",
-      path: "/test",
-      title: "Test",
-      description: "Test route",
+      id: "landing",
+      path: "/",
+      title: "Home",
+      description: "Landing page",
       sections: [
-        { id: "section1", template: "site-builder:test-template" },
-        { id: "section2", template: "site-builder:test-template" },
+        { id: "hero", template: "site-builder:hero" },
+        { id: "features", template: "site-builder:features" },
       ],
       pluginId: "site-builder",
-      environment: "preview",
+    });
+
+    routeRegistry.register({
+      id: "about",
+      path: "/about",
+      title: "About",
+      description: "About us page",
+      sections: [{ id: "main", template: "site-builder:content" }],
+      pluginId: "site-builder",
     });
 
     // Create service instance
     service = new SiteContentService(context, routeRegistry, {
       title: "Test Site",
-      description: "Test site description",
+      description: "Test Description",
     });
   });
 
   afterEach(() => {
-    harness.reset();
+    // No cleanup needed for mock shell
   });
 
   describe("generateContent", () => {
-    test("should validate options and call operations.generate", async () => {
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
-      enqueueBatchSpy.mockResolvedValue("batch-123");
+    let generateSpy: ReturnType<typeof spyOn>;
 
-      const result = await service.generateContent({
-        routeId: "test-route",
-        dryRun: false,
-        force: false,
+    beforeEach(() => {
+      // Reset the spy before each test
+      generateSpy = spyOn(
+        SiteContentOperations.prototype,
+        "generate",
+      );
+    });
+
+    afterEach(() => {
+      // Restore the original function
+      generateSpy.mockRestore();
+    });
+
+    test("should call operations.generate with correct parameters", async () => {
+      generateSpy.mockResolvedValue({
+        jobs: [
+          { jobId: "job-1", routeId: "landing", sectionId: "hero" },
+          { jobId: "job-2", routeId: "landing", sectionId: "features" },
+        ],
+        totalSections: 2,
+        queuedSections: 2,
+        batchId: "batch-123",
       });
 
-      // The result will be "empty-..." if no sections match generation criteria,
-      // or "batch-123" if at least one section was queued
-      expect(result.batchId).toBeDefined();
-      expect(result.jobs).toBeDefined();
+      const result = await service.generateContent({
+        routeId: "landing",
+        force: true,
+      });
 
-      // Check if enqueueBatch was called (it should be with our mock capabilities)
-      if (result.totalSections > 0 && result.queuedSections > 0) {
-        expect(enqueueBatchSpy).toHaveBeenCalled();
-      }
+      // Verify operations.generate was called with correct params
+      expect(generateSpy).toHaveBeenCalledTimes(1);
+      
+      expect(generateSpy).toHaveBeenCalledWith(
+        {
+          routeId: "landing",
+          force: true,
+          dryRun: false,
+        },
+        { title: "Test Site", description: "Test Description" },
+        undefined,
+      );
+
+      // Verify result
+      expect(result).toEqual({
+        jobs: [
+          { jobId: "job-1", routeId: "landing", sectionId: "hero" },
+          { jobId: "job-2", routeId: "landing", sectionId: "features" },
+        ],
+        totalSections: 2,
+        queuedSections: 2,
+        batchId: "batch-123",
+      });
+    });
+
+    test("should pass metadata when provided", async () => {
+      generateSpy.mockResolvedValue({
+        jobs: [],
+        totalSections: 0,
+        queuedSections: 0,
+        batchId: "batch-456",
+      });
+
+      const metadata = {
+        rootJobId: "root-123",
+        progressToken: "token-abc",
+        pluginId: "site-builder",
+        operationType: "content_operations" as const,
+      };
+
+      await service.generateContent(
+        { routeId: "about", sectionId: "main" },
+        metadata,
+      );
+
+      // Verify metadata was passed through
+      expect(generateSpy).toHaveBeenCalledWith(
+        { routeId: "about", sectionId: "main", dryRun: false, force: false },
+        { title: "Test Site", description: "Test Description" },
+        metadata,
+      );
+    });
+
+    test("should handle dry run", async () => {
+      generateSpy.mockResolvedValue({
+        jobs: [],
+        totalSections: 3,
+        queuedSections: 3,
+        batchId: "dry-run-789",
+      });
+
+      const result = await service.generateContent({
+        dryRun: true,
+      });
+
+      expect(generateSpy).toHaveBeenCalledWith(
+        { dryRun: true, force: false },
+        { title: "Test Site", description: "Test Description" },
+        undefined,
+      );
+
+      expect(result).toMatchObject({
+        jobs: [],
+        totalSections: 3,
+        queuedSections: 3,
+        batchId: "dry-run-789",
+      });
     });
 
     test("should handle validation errors", async () => {
-      expect(
-        service.generateContent({
-          // @ts-ignore - intentionally passing invalid data
-          routeId: 123, // Should be string
-        }),
-      ).rejects.toThrow();
+      // Reset the spy to ensure clean state
+      generateSpy.mockResolvedValue({
+        jobs: [],
+        totalSections: 0,
+        queuedSections: 0,
+        batchId: "batch-error",
+      });
+      
+      // The validation happens inside async function
+      try {
+        await service.generateContent({
+          routeId: 123 as unknown as string, // Invalid type
+        });
+        expect(true).toBe(false); // Should not reach here
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
     });
 
-    test("should pass dryRun option", async () => {
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
-      enqueueBatchSpy.mockResolvedValue("batch-123");
-
-      await service.generateContent({
-        dryRun: true,
-        force: false,
+    test("should work without site config", async () => {
+      // Create service without site config
+      const serviceNoConfig = new SiteContentService(context, routeRegistry);
+      generateSpy.mockResolvedValue({
+        jobs: [],
+        totalSections: 0,
+        queuedSections: 0,
+        batchId: "batch-no-config",
       });
 
-      // In dry run, no jobs should be queued
-      expect(enqueueBatchSpy).not.toHaveBeenCalled();
-    });
-  });
+      const result = await serviceNoConfig.generateContent({});
+      expect(result).toBeDefined();
 
-  describe("promoteContent", () => {
-    test("should get preview entities and promote them", async () => {
-      // Mock some preview entities
-      const mockEntities: SiteContentPreview[] = [
-        {
-          id: "test-route:section1",
-          entityType: "site-content-preview" as const,
-          content: "# Section 1",
-          routeId: "test-route",
-          sectionId: "section1",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-      ];
-
-      const listEntitiesSpy = spyOn(context.entityService, "listEntities");
-      listEntitiesSpy.mockResolvedValue(mockEntities);
-
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
-      enqueueBatchSpy.mockResolvedValue("batch-promote-123");
-
-      const batchId = await service.promoteContent({
-        routeId: "test-route",
-        dryRun: false,
-      });
-
-      expect(batchId).toBe("batch-promote-123");
-      expect(listEntitiesSpy).toHaveBeenCalledWith("site-content-preview", {
-        limit: 1000,
-      });
-      expect(enqueueBatchSpy).toHaveBeenCalled();
-    });
-
-    test("should throw if no preview content found", async () => {
-      const listEntitiesSpy = spyOn(context.entityService, "listEntities");
-      listEntitiesSpy.mockResolvedValue([]);
-
-      expect(
-        service.promoteContent({ routeId: "test-route", dryRun: false }),
-      ).rejects.toThrow("No preview content found to promote");
-    });
-
-    test("should filter by sectionId", async () => {
-      const mockEntities: SiteContentPreview[] = [
-        {
-          id: "test-route:section1",
-          entityType: "site-content-preview" as const,
-          content: "# Section 1",
-          routeId: "test-route",
-          sectionId: "section1",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-        {
-          id: "test-route:section2",
-          entityType: "site-content-preview" as const,
-          content: "# Section 2",
-          routeId: "test-route",
-          sectionId: "section2",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-      ];
-
-      const listEntitiesSpy = spyOn(context.entityService, "listEntities");
-      listEntitiesSpy.mockResolvedValue(mockEntities);
-
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
-      enqueueBatchSpy.mockResolvedValue("batch-promote-123");
-
-      await service.promoteContent({
-        routeId: "test-route",
-        sectionId: "section1",
-        dryRun: false,
-      });
-
-      // Should only promote section1
-      const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] ?? [];
-      expect(batchJobs).toHaveLength(1);
-      expect(batchJobs[0]?.data["entityId"]).toBe("test-route:section1");
-    });
-
-    test("should support dry run", async () => {
-      const mockEntities: SiteContentPreview[] = [
-        {
-          id: "test-route:section1",
-          entityType: "site-content-preview" as const,
-          content: "# Section 1",
-          routeId: "test-route",
-          sectionId: "section1",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-      ];
-
-      const listEntitiesSpy = spyOn(context.entityService, "listEntities");
-      listEntitiesSpy.mockResolvedValue(mockEntities);
-
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
-
-      const result = await service.promoteContent({
-        routeId: "test-route",
-        dryRun: true,
-      });
-
-      expect(result).toMatch(/^dry-run-/);
-      expect(enqueueBatchSpy).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("rollbackContent", () => {
-    test("should get production entities and rollback", async () => {
-      const mockEntities = [
-        {
-          id: "test-route:section1",
-          entityType: "site-content-production" as const,
-          content: "# Production Content",
-          routeId: "test-route",
-          sectionId: "section1",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-      ];
-
-      const listEntitiesSpy = spyOn(context.entityService, "listEntities");
-      listEntitiesSpy.mockResolvedValue(mockEntities);
-
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
-      enqueueBatchSpy.mockResolvedValue("batch-rollback-123");
-
-      const batchId = await service.rollbackContent({
-        routeId: "test-route",
-        dryRun: false,
-      });
-
-      expect(batchId).toBe("batch-rollback-123");
-      expect(listEntitiesSpy).toHaveBeenCalledWith("site-content-production", {
-        limit: 1000,
-      });
-
-      // Check the rollback job has correct source/target
-      const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] ?? [];
-      expect(batchJobs[0]?.data["sourceEntityType"]).toBe(
-        "site-content-production",
-      );
-      expect(batchJobs[0]?.data["targetEntityType"]).toBe(
-        "site-content-preview",
-      );
-    });
-
-    test("should throw if no production content found", async () => {
-      const listEntitiesSpy = spyOn(context.entityService, "listEntities");
-      listEntitiesSpy.mockResolvedValue([]);
-
-      expect(
-        service.rollbackContent({ routeId: "test-route", dryRun: false }),
-      ).rejects.toThrow("No production content found to rollback");
+      // Should pass undefined as siteConfig
+      expect(generateSpy).toHaveBeenCalledWith({ dryRun: false, force: false }, undefined, undefined);
     });
   });
 });

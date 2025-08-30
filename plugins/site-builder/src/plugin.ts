@@ -6,7 +6,7 @@ import type {
   Command,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
+import { siteContentSchema } from "./types";
 import { SiteBuilder } from "./lib/site-builder";
 import { SiteContentService } from "./lib/site-content-service";
 import { RouteRegistry } from "./lib/route-registry";
@@ -17,10 +17,7 @@ import {
   ListRoutesPayloadSchema,
   GetRoutePayloadSchema,
 } from "./types/routes";
-import {
-  siteContentPreviewAdapter,
-  siteContentProductionAdapter,
-} from "./entities/site-content-adapter";
+import { siteContentAdapter } from "./entities/site-content-adapter";
 import { dashboardTemplate } from "./templates/dashboard";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { createSiteBuilderTools } from "./tools";
@@ -76,20 +73,13 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     // Setup route message handlers
     this.setupRouteHandlers(context);
 
-    // Register site content entity types
+    // Register site content entity type
     context.registerEntityType(
-      "site-content-preview",
-      siteContentPreviewSchema,
-      siteContentPreviewAdapter,
+      "site-content",
+      siteContentSchema,
+      siteContentAdapter,
     );
-    this.logger.debug("Registered site-content-preview entity type");
-
-    context.registerEntityType(
-      "site-content-production",
-      siteContentProductionSchema,
-      siteContentProductionAdapter,
-    );
-    this.logger.debug("Registered site-content-production entity type");
+    this.logger.debug("Registered site-content entity type");
 
     // Register built-in dashboard template using unified method
     context.registerTemplates({ dashboard: dashboardTemplate });
@@ -108,7 +98,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         },
       ],
       pluginId: this.id,
-      environment: this.config.environment ?? "preview",
     });
     this.logger.debug("Registered dashboard route");
 
@@ -126,7 +115,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         this.routeRegistry.register({
           ...route,
           pluginId: this.id,
-          environment: this.config.environment ?? "preview",
           // Prefix template names with plugin ID for consistency
           sections: route.sections.map((section) => ({
             ...section,
@@ -225,13 +213,12 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     context.subscribe("plugin:site-builder:route:register", async (message) => {
       try {
         const payload = RegisterRoutesPayloadSchema.parse(message.payload);
-        const { routes, pluginId, environment } = payload;
+        const { routes, pluginId } = payload;
 
         for (const route of routes) {
           const processedRoute: RouteDefinition = {
             ...route,
             pluginId,
-            environment: environment ?? this.config.environment ?? "preview",
             // Add plugin prefix to template names if not already prefixed
             sections: route.sections.map((section) => ({
               ...section,
@@ -280,7 +267,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       try {
         const payload = ListRoutesPayloadSchema.parse(message.payload);
         const routes = this.routeRegistry.list(
-          payload.pluginId || payload.environment ? payload : undefined,
+          payload.pluginId ? payload : undefined,
         );
         return { success: true, data: { routes } };
       } catch (error) {

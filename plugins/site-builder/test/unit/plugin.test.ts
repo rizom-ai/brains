@@ -132,8 +132,6 @@ describe("SiteBuilderPlugin", () => {
     expect(toolNames).toContain("site-builder:build-site");
     expect(toolNames).toContain("site-builder:list_routes");
     expect(toolNames).toContain("site-builder:list_templates");
-    expect(toolNames).toContain("site-builder:promote-content");
-    expect(toolNames).toContain("site-builder:rollback-content");
   });
 
   it("should provide generate tool when routes have content entities", async () => {
@@ -237,7 +235,6 @@ describe("SiteBuilderPlugin", () => {
     plugin = new SiteBuilderPlugin({
       previewOutputDir: "/tmp/test-output",
       productionOutputDir: "/tmp/test-output-production",
-      environment: "production",
       routes: [
         {
           id: "home-env",

@@ -1,374 +1,417 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { SiteContentOperations } from "./site-content-operations";
-import {
-  createServicePluginHarness,
-  createServicePluginContext,
-  type ServicePluginContext,
-} from "@brains/plugins";
-import { SiteBuilderPlugin } from "../plugin";
-import type { SiteContentPreview, SiteContentProduction } from "../types";
 import { RouteRegistry } from "./route-registry";
+import {
+  MockShell,
+  createServicePluginContext,
+  createSilentLogger,
+  type ServicePluginContext,
+  type BatchOperation,
+} from "@brains/plugins";
 
 describe("SiteContentOperations", () => {
-  let operations: SiteContentOperations;
-  let harness: ReturnType<typeof createServicePluginHarness<SiteBuilderPlugin>>;
-  let plugin: SiteBuilderPlugin;
+  let mockShell: MockShell;
   let context: ServicePluginContext;
+  let operations: SiteContentOperations;
+  let routeRegistry: RouteRegistry;
 
-  beforeEach(async () => {
-    harness = createServicePluginHarness<SiteBuilderPlugin>();
+  beforeEach(() => {
+    // Create mock shell and context
+    const logger = createSilentLogger("site-builder-test");
+    mockShell = new MockShell({ logger });
+    context = createServicePluginContext(mockShell, "site-builder");
 
-    // Create plugin with test routes
-    plugin = new SiteBuilderPlugin({
-      routes: [
-        {
-          id: "landing",
-          path: "/",
-          title: "Home",
-          description: "Landing page",
-          sections: [
-            { id: "hero", template: "hero" },
-            { id: "features", template: "features" },
-          ],
-        },
-        {
-          id: "about",
-          path: "/about",
-          title: "About",
-          description: "About us page",
-          sections: [{ id: "main", template: "content" }],
-        },
+    // Set up route registry with test routes
+    routeRegistry = new RouteRegistry(context.logger);
+
+    // Register test routes
+    routeRegistry.register({
+      id: "landing",
+      path: "/",
+      title: "Home",
+      description: "Landing page",
+      sections: [
+        { id: "hero", template: "site-builder:hero" },
+        { id: "features", template: "site-builder:features" },
       ],
+      pluginId: "site-builder",
     });
 
-    // Install plugin
-    await harness.installPlugin(plugin);
-
-    // Get the mock shell and create a context
-    const shell = harness.getShell();
-    context = createServicePluginContext(shell, "site-builder");
-
-    // Mock getTemplateCapabilities to return templates with canGenerate=true by default
-    const getTemplateCapabilitiesSpy = spyOn(
-      context,
-      "getTemplateCapabilities",
-    );
-    getTemplateCapabilitiesSpy.mockReturnValue({
-      canGenerate: true,
-      canFetch: false,
-      canRender: true,
-      isStaticOnly: false,
+    routeRegistry.register({
+      id: "about",
+      path: "/about",
+      title: "About",
+      description: "About us page",
+      sections: [{ id: "main", template: "site-builder:content" }],
+      pluginId: "site-builder",
     });
 
-    // Create a RouteRegistry with test routes matching what the test expects
-    const routeRegistry = new RouteRegistry(context.logger);
-
-    // Register the routes that the test expects (matching the plugin config)
-    routeRegistry.register([
-      {
-        id: "landing",
-        path: "/",
-        title: "Home",
-        description: "Landing page",
-        sections: [
-          { id: "hero", template: "site-builder:hero" },
-          { id: "features", template: "site-builder:features" },
-        ],
-        pluginId: "site-builder",
-        environment: "preview",
-      },
-      {
-        id: "about",
-        path: "/about",
-        title: "About",
-        description: "About us page",
-        sections: [{ id: "main", template: "site-builder:content" }],
-        pluginId: "site-builder",
-        environment: "preview",
-      },
-      {
-        id: "dashboard",
-        path: "/dashboard",
-        title: "System Dashboard",
-        description: "Monitor your Brain system statistics and activity",
-        sections: [{ id: "main", template: "site-builder:dashboard" }],
-        pluginId: "site-builder",
-        environment: "preview",
-      },
-    ]);
+    routeRegistry.register({
+      id: "dashboard",
+      path: "/dashboard",
+      title: "System Dashboard",
+      description: "Monitor your Brain system statistics and activity",
+      sections: [{ id: "main", template: "site-builder:dashboard" }],
+      pluginId: "site-builder",
+    });
 
     // Create operations instance with the context and route registry
     operations = new SiteContentOperations(context, routeRegistry);
   });
 
   afterEach(() => {
-    harness.reset();
-  });
-
-  describe("getPreviewEntities", () => {
-    test("should use listEntities with correct entity type", async () => {
-      const mockEntities: SiteContentPreview[] = [
-        {
-          id: "landing:hero",
-          entityType: "site-content-preview" as const,
-          content: "# Hero Content",
-          routeId: "landing",
-          sectionId: "hero",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-        {
-          id: "landing:features",
-          entityType: "site-content-preview" as const,
-          content: "# Features",
-          routeId: "landing",
-          sectionId: "features",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-      ];
-
-      // Spy on the entity service method
-      const listEntitiesSpy = spyOn(context.entityService, "listEntities");
-      listEntitiesSpy.mockResolvedValue(mockEntities);
-
-      const result = await operations.getPreviewEntities();
-
-      // Verify it calls listEntities with the correct entity type
-      expect(listEntitiesSpy).toHaveBeenCalledWith("site-content-preview", {
-        limit: 1000,
-      });
-
-      // Verify the result
-      expect(result).toEqual([
-        { id: "landing:hero", routeId: "landing", sectionId: "hero" },
-        { id: "landing:features", routeId: "landing", sectionId: "features" },
-      ]);
-    });
-
-    test("should filter by routeId when provided", async () => {
-      const mockEntities: SiteContentPreview[] = [
-        {
-          id: "landing:hero",
-          entityType: "site-content-preview" as const,
-          content: "# Hero Content",
-          routeId: "landing",
-          sectionId: "hero",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-        {
-          id: "about:main",
-          entityType: "site-content-preview" as const,
-          content: "# About",
-          routeId: "about",
-          sectionId: "main",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-      ];
-
-      const listEntitiesSpy = spyOn(context.entityService, "listEntities");
-      listEntitiesSpy.mockResolvedValue(mockEntities);
-
-      const result = await operations.getPreviewEntities({
-        routeId: "landing",
-      });
-
-      // Should still call listEntities for all entities
-      expect(listEntitiesSpy).toHaveBeenCalledWith("site-content-preview", {
-        limit: 1000,
-      });
-
-      // But should filter the results
-      expect(result).toEqual([
-        { id: "landing:hero", routeId: "landing", sectionId: "hero" },
-      ]);
-    });
-
-    test("should NOT use search method", async () => {
-      // This test ensures we don't regress to the bug
-      // We're testing that the search method is NOT called, only listEntities
-      const listEntitiesSpy = spyOn(context.entityService, "listEntities");
-      listEntitiesSpy.mockResolvedValue([]);
-
-      await operations.getPreviewEntities();
-
-      // Verify listEntities WAS called with correct parameters
-      expect(listEntitiesSpy).toHaveBeenCalledWith("site-content-preview", {
-        limit: 1000,
-      });
-    });
-  });
-
-  describe("getProductionEntities", () => {
-    test("should use listEntities with correct entity type", async () => {
-      const mockEntities: SiteContentProduction[] = [
-        {
-          id: "landing:hero",
-          entityType: "site-content-production" as const,
-          content: "# Hero Content",
-          routeId: "landing",
-          sectionId: "hero",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-      ];
-
-      const listEntitiesSpy = spyOn(context.entityService, "listEntities");
-      listEntitiesSpy.mockResolvedValue(mockEntities);
-
-      const result = await operations.getProductionEntities();
-
-      // Verify it calls listEntities with the correct entity type
-      expect(listEntitiesSpy).toHaveBeenCalledWith("site-content-production", {
-        limit: 1000,
-      });
-
-      expect(result).toEqual([
-        { id: "landing:hero", routeId: "landing", sectionId: "hero" },
-      ]);
-    });
-  });
-
-  describe("promote", () => {
-    test("should queue derivation jobs with correct entity types", async () => {
-      const entityIds = ["landing:hero", "landing:features"];
-
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
-      enqueueBatchSpy.mockResolvedValue("batch-123");
-
-      const batchId = await operations.promote(entityIds);
-
-      // Verify enqueueBatch was called
-      expect(enqueueBatchSpy).toHaveBeenCalled();
-
-      // Get the batch jobs that were queued
-      const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] ?? [];
-
-      expect(batchJobs).toHaveLength(2);
-      expect(batchJobs[0]).toEqual({
-        type: "shell:content-derivation",
-        data: {
-          entityId: "landing:hero",
-          sourceEntityType: "site-content-preview",
-          targetEntityType: "site-content-production",
-          options: { deleteSource: false },
-        },
-      });
-      expect(batchJobs[1]).toEqual({
-        type: "shell:content-derivation",
-        data: {
-          entityId: "landing:features",
-          sourceEntityType: "site-content-preview",
-          targetEntityType: "site-content-production",
-          options: { deleteSource: false },
-        },
-      });
-
-      expect(batchId).toBe("batch-123");
-    });
-
-    test("should throw if no entities to promote", async () => {
-      expect(() => operations.promote([])).toThrow("No entities to promote");
-    });
-  });
-
-  describe("rollback", () => {
-    test("should queue derivation jobs with reversed entity types", async () => {
-      const entityIds = ["landing:hero"];
-
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
-      enqueueBatchSpy.mockResolvedValue("batch-123");
-
-      const batchId = await operations.rollback(entityIds);
-
-      const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] ?? [];
-
-      expect(batchJobs).toHaveLength(1);
-      expect(batchJobs[0]).toEqual({
-        type: "shell:content-derivation",
-        data: {
-          entityId: "landing:hero",
-          sourceEntityType: "site-content-production",
-          targetEntityType: "site-content-preview",
-        },
-      });
-
-      expect(batchId).toBe("batch-123");
-    });
+    // No cleanup needed for mock shell
   });
 
   describe("generate", () => {
-    test("should queue content generation jobs for all sections", async () => {
+    test("should queue generation jobs for all sections", async () => {
+      // Set up template capabilities
+      const getTemplateCapabilitiesSpy = spyOn(
+        context,
+        "getTemplateCapabilities",
+      );
+      getTemplateCapabilitiesSpy.mockReturnValue({
+        canRender: true,
+        canGenerate: true,
+        canFetch: false,
+        isStaticOnly: false,
+      });
+
+      // Spy on entity service to simulate no existing content
+      const getEntitySpy = spyOn(context.entityService, "getEntity");
+      getEntitySpy.mockResolvedValue(null);
+
+      // Spy on enqueueBatch
       const enqueueBatchSpy = spyOn(context, "enqueueBatch");
       enqueueBatchSpy.mockResolvedValue("batch-123");
 
-      await operations.generate({
-        dryRun: false,
-        force: false,
-      });
+      const result = await operations.generate({});
 
-      // Should have queued jobs for all sections
-      const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] ?? [];
+      // Should check template capabilities for each section
+      expect(getTemplateCapabilitiesSpy).toHaveBeenCalledTimes(4);
 
-      // We have 4 sections total (2 in landing, 1 in about, 1 in dashboard)
-      // The plugin always registers a dashboard route
+      // Should check for existing content for each section
+      expect(getEntitySpy).toHaveBeenCalledTimes(4);
+
+      // Should enqueue batch with 4 jobs (all sections)
+      expect(enqueueBatchSpy).toHaveBeenCalledTimes(1);
+      const batchJobs = enqueueBatchSpy.mock.calls[0]?.[0];
       expect(batchJobs).toHaveLength(4);
 
-      // Check that we have jobs for all expected routes
-      const routeIds = batchJobs.map((job) => job.data["routeId"]);
-      expect(routeIds).toContain("landing");
-      expect(routeIds).toContain("about");
-      expect(routeIds).toContain("dashboard");
-
-      // Check job structure (using first job)
-      expect(batchJobs[0]?.type).toBe("shell:content-generation");
-      expect(batchJobs[0]?.data).toHaveProperty("routeId");
-      expect(batchJobs[0]?.data).toHaveProperty("sectionId");
-      expect(batchJobs[0]?.data).toHaveProperty("entityId");
-      expect(batchJobs[0]?.data["entityType"]).toBe("site-content-preview");
+      // Verify result
+      expect(result).toEqual({
+        jobs: [
+          { jobId: "batch-123-0", routeId: "landing", sectionId: "hero" },
+          { jobId: "batch-123-1", routeId: "landing", sectionId: "features" },
+          { jobId: "batch-123-2", routeId: "about", sectionId: "main" },
+          { jobId: "batch-123-3", routeId: "dashboard", sectionId: "main" },
+        ],
+        totalSections: 4,
+        queuedSections: 4,
+        batchId: "batch-123",
+      });
     });
 
-    test("should filter by routeId when provided", async () => {
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
-      enqueueBatchSpy.mockResolvedValue("batch-123");
-
-      await operations.generate({
-        routeId: "landing",
-        dryRun: false,
-        force: false,
+    test("should filter by routeId when specified", async () => {
+      // Set up template capabilities
+      const getTemplateCapabilitiesSpy = spyOn(
+        context,
+        "getTemplateCapabilities",
+      );
+      getTemplateCapabilitiesSpy.mockReturnValue({
+        canRender: true,
+        canGenerate: true,
+        canFetch: false,
+        isStaticOnly: false,
       });
 
-      const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] ?? [];
+      // Spy on entity service
+      const getEntitySpy = spyOn(context.entityService, "getEntity");
+      getEntitySpy.mockResolvedValue(null);
 
-      // Should only have 2 sections from landing route
+      // Spy on enqueueBatch
+      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      enqueueBatchSpy.mockResolvedValue("batch-456");
+
+      const result = await operations.generate({ routeId: "landing" });
+
+      // Should only check templates for landing sections
+      expect(getTemplateCapabilitiesSpy).toHaveBeenCalledTimes(2);
+
+      // Should only check existing content for landing sections
+      expect(getEntitySpy).toHaveBeenCalledTimes(2);
+
+      // Should enqueue batch with 2 jobs (landing sections only)
+      expect(enqueueBatchSpy).toHaveBeenCalledTimes(1);
+      const batchJobs = enqueueBatchSpy.mock.calls[0]?.[0];
       expect(batchJobs).toHaveLength(2);
 
-      expect(batchJobs.every((job) => job.data["routeId"] === "landing")).toBe(
-        true,
-      );
+      // Verify result
+      expect(result).toEqual({
+        jobs: [
+          { jobId: "batch-456-0", routeId: "landing", sectionId: "hero" },
+          { jobId: "batch-456-1", routeId: "landing", sectionId: "features" },
+        ],
+        totalSections: 2,
+        queuedSections: 2,
+        batchId: "batch-456",
+      });
     });
 
-    test("should create correct entity IDs in format routeId:sectionId", async () => {
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
-      enqueueBatchSpy.mockResolvedValue("batch-123");
-
-      await operations.generate({
-        routeId: "landing",
-        dryRun: false,
-        force: false,
+    test("should filter by sectionId when specified with routeId", async () => {
+      // Set up template capabilities
+      const getTemplateCapabilitiesSpy = spyOn(
+        context,
+        "getTemplateCapabilities",
+      );
+      getTemplateCapabilitiesSpy.mockReturnValue({
+        canRender: true,
+        canGenerate: true,
+        canFetch: false,
+        isStaticOnly: false,
       });
 
-      const call = enqueueBatchSpy.mock.calls[0];
-      const batchJobs = call?.[0] ?? [];
+      // Spy on entity service
+      const getEntitySpy = spyOn(context.entityService, "getEntity");
+      getEntitySpy.mockResolvedValue(null);
 
-      expect(batchJobs[0]?.data["entityId"]).toBe("landing:hero");
-      expect(batchJobs[1]?.data["entityId"]).toBe("landing:features");
+      // Spy on enqueueBatch
+      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      enqueueBatchSpy.mockResolvedValue("batch-789");
+
+      const result = await operations.generate({
+        routeId: "landing",
+        sectionId: "hero",
+      });
+
+      // Should only check template for hero section
+      expect(getTemplateCapabilitiesSpy).toHaveBeenCalledTimes(1);
+
+      // Should only check existing content for hero section
+      expect(getEntitySpy).toHaveBeenCalledTimes(1);
+
+      // Should enqueue batch with 1 job
+      expect(enqueueBatchSpy).toHaveBeenCalledTimes(1);
+      const batchJobs = enqueueBatchSpy.mock.calls[0]?.[0];
+      expect(batchJobs).toHaveLength(1);
+
+      // Verify result
+      expect(result).toEqual({
+        jobs: [{ jobId: "batch-789-0", routeId: "landing", sectionId: "hero" }],
+        totalSections: 1,
+        queuedSections: 1,
+        batchId: "batch-789",
+      });
+    });
+
+    test("should skip sections with existing content when force is false", async () => {
+      // Set up template capabilities
+      const getTemplateCapabilitiesSpy = spyOn(
+        context,
+        "getTemplateCapabilities",
+      );
+      getTemplateCapabilitiesSpy.mockReturnValue({
+        canRender: true,
+        canGenerate: true,
+        canFetch: false,
+        isStaticOnly: false,
+      });
+
+      // Mock existing content for hero section
+      const getEntitySpy = spyOn(context.entityService, "getEntity");
+      
+      // First call returns existing entity, second returns null
+      getEntitySpy.mockResolvedValueOnce({
+        id: "landing:hero",
+        entityType: "site-content",
+        content: "Existing content",
+        created: "2024-01-01",
+        updated: "2024-01-01",
+        metadata: {
+          routeId: "landing",
+          sectionId: "hero",
+        },
+      });
+      getEntitySpy.mockResolvedValueOnce(null); // For features section
+
+      // Spy on enqueueBatch
+      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      enqueueBatchSpy.mockResolvedValue("batch-abc");
+
+      const result = await operations.generate({ routeId: "landing" });
+
+      // Should check both sections
+      expect(getEntitySpy).toHaveBeenCalledTimes(2);
+
+      // Should only queue 1 job (features section, hero is skipped)
+      const batchJobs = enqueueBatchSpy.mock.calls[0]?.[0];
+      expect(batchJobs).toBeDefined();
+      expect(batchJobs).toHaveLength(1);
+      expect(batchJobs?.[0]?.data).toMatchObject({
+        routeId: "landing",
+        sectionId: "features",
+      });
+
+      expect(result.queuedSections).toBe(1);
+      expect(result.totalSections).toBe(1);
+    });
+
+    test("should regenerate existing content when force is true", async () => {
+      // Set up template capabilities
+      const getTemplateCapabilitiesSpy = spyOn(
+        context,
+        "getTemplateCapabilities",
+      );
+      getTemplateCapabilitiesSpy.mockReturnValue({
+        canRender: true,
+        canGenerate: true,
+        canFetch: false,
+        isStaticOnly: false,
+      });
+
+      // No need to check for existing content when force is true
+      const getEntitySpy = spyOn(context.entityService, "getEntity");
+
+      // Spy on enqueueBatch
+      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      enqueueBatchSpy.mockResolvedValue("batch-def");
+
+      const result = await operations.generate({
+        routeId: "landing",
+        force: true,
+      });
+
+      // Should NOT check for existing content when force is true
+      expect(getEntitySpy).not.toHaveBeenCalled();
+
+      // Should queue both jobs
+      const batchJobs = enqueueBatchSpy.mock.calls[0]?.[0];
+      expect(batchJobs).toHaveLength(2);
+
+      expect(result.queuedSections).toBe(2);
+    });
+
+    test("should handle dry run without enqueueing jobs", async () => {
+      // Set up template capabilities
+      const getTemplateCapabilitiesSpy = spyOn(
+        context,
+        "getTemplateCapabilities",
+      );
+      getTemplateCapabilitiesSpy.mockReturnValue({
+        canRender: true,
+        canGenerate: true,
+        canFetch: false,
+        isStaticOnly: false,
+      });
+
+      // Spy on enqueueBatch
+      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+
+      const result = await operations.generate({ dryRun: true });
+
+      // Should NOT enqueue any jobs
+      expect(enqueueBatchSpy).not.toHaveBeenCalled();
+
+      // Should return dry run result
+      expect(result).toMatchObject({
+        jobs: [],
+        totalSections: 4,
+        queuedSections: 4,
+        batchId: expect.stringContaining("dry-run-"),
+      });
+    });
+
+    test("should skip sections with static content", async () => {
+      // Register a route with static content section
+      routeRegistry.register({
+        id: "static-page",
+        path: "/static",
+        title: "Static Page",
+        description: "Page with static content",
+        sections: [
+          { id: "static-section", template: "site-builder:static", content: "This is static content" },
+          { id: "dynamic-section", template: "site-builder:content" },
+        ],
+        pluginId: "site-builder",
+      });
+
+      // Set up template capabilities
+      const getTemplateCapabilitiesSpy = spyOn(
+        context,
+        "getTemplateCapabilities",
+      );
+      getTemplateCapabilitiesSpy.mockReturnValue({
+        canRender: true,
+        canGenerate: true,
+        canFetch: false,
+        isStaticOnly: false,
+      });
+
+      // Spy on entity service
+      const getEntitySpy = spyOn(context.entityService, "getEntity");
+      getEntitySpy.mockResolvedValue(null);
+
+      // Spy on enqueueBatch
+      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      enqueueBatchSpy.mockResolvedValue("batch-ghi");
+
+      const result = await operations.generate({});
+
+      // Should only queue jobs for sections with templates (5 total: 2 from landing, 1 from about, 1 from dashboard, 1 from static-page)
+      // The static-section should be skipped
+      const batchJobs = enqueueBatchSpy.mock.calls[0]?.[0];
+      expect(batchJobs).toHaveLength(5);
+
+      // Verify the static section is not in the jobs
+      const sectionIds = batchJobs?.map((job: BatchOperation) => job.data["sectionId"] as string) ?? [];
+      expect(sectionIds).not.toContain("static-section");
+      expect(sectionIds).toContain("dynamic-section");
+
+      expect(result.queuedSections).toBe(5);
+    });
+
+    test("should skip sections where template doesn't support generation", async () => {
+      // Set up template capabilities - dashboard doesn't support generation
+      const getTemplateCapabilitiesSpy = spyOn(
+        context,
+        "getTemplateCapabilities",
+      );
+      getTemplateCapabilitiesSpy.mockImplementation((name: string) => {
+        if (name === "site-builder:dashboard") {
+          return {
+            canRender: true,
+            canGenerate: false, // Dashboard can't generate
+            canFetch: false,
+            isStaticOnly: true,
+          };
+        }
+        return {
+          canRender: true,
+          canGenerate: true,
+          canFetch: false,
+          isStaticOnly: false,
+        };
+      });
+
+      // Spy on entity service
+      const getEntitySpy = spyOn(context.entityService, "getEntity");
+      getEntitySpy.mockResolvedValue(null);
+
+      // Spy on enqueueBatch
+      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      enqueueBatchSpy.mockResolvedValue("batch-jkl");
+
+      const result = await operations.generate({});
+
+      // Should only queue 3 jobs (dashboard is skipped)
+      const batchJobs = enqueueBatchSpy.mock.calls[0]?.[0];
+      expect(batchJobs).toHaveLength(3);
+
+      // Verify dashboard is not in the jobs
+      const routeIds = batchJobs?.map((job: BatchOperation) => job.data["routeId"] as string) ?? [];
+      expect(routeIds).not.toContain("dashboard");
+
+      expect(result.queuedSections).toBe(3);
     });
   });
 });

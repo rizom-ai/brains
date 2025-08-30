@@ -216,7 +216,6 @@ describe("MessageInterfacePlugin", () => {
 
       shell.getConversationService = () => mockConversationService;
 
-
       // Now install and get the plugin
       const plugin = echoMessageInterfacePlugin({ debug: false });
       await testHarness.installPlugin(plugin);

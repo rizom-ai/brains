@@ -4,13 +4,11 @@ import type {
   JobOptions,
 } from "@brains/plugins";
 import type { RouteDefinition, SectionDefinition } from "../types/routes";
-import type { SiteContentPreview, SiteContentProduction } from "../types";
 import type { GenerateOptions } from "../types/content-schemas";
 import type { RouteRegistry } from "./route-registry";
 
 /**
- * Site content operations - handles content generation, promotion, and rollback
- * Replaces ContentManager functionality for site-builder plugin
+ * Site content operations - handles content generation
  */
 export class SiteContentOperations {
   constructor(
@@ -123,7 +121,7 @@ export class SiteContentOperations {
         if (!options.force && !options.dryRun) {
           const entityId = `${route.id}:${section.id}`;
           const existing = await this.context.entityService.getEntity(
-            "site-content-preview",
+            "site-content",
             entityId,
           );
           if (existing) {
@@ -168,7 +166,7 @@ export class SiteContentOperations {
         routeId: route.id,
         sectionId: section.id,
         entityId,
-        entityType: "site-content-preview",
+        entityType: "site-content",
         templateName,
         context: {
           prompt:
@@ -229,112 +227,4 @@ export class SiteContentOperations {
     };
   }
 
-  /**
-   * Get preview entities
-   */
-  async getPreviewEntities(filters?: {
-    routeId?: string;
-  }): Promise<Array<{ id: string; routeId: string; sectionId: string }>> {
-    // Use listEntities like the old ContentManager implementation did
-    const entities =
-      await this.context.entityService.listEntities<SiteContentPreview>(
-        "site-content-preview",
-        { limit: 1000 },
-      );
-
-    // Filter by routeId if specified
-    const filtered = filters?.routeId
-      ? entities.filter((e) => e.routeId === filters.routeId)
-      : entities;
-
-    return filtered.map((entity) => ({
-      id: entity.id,
-      routeId: entity.routeId,
-      sectionId: entity.sectionId,
-    }));
-  }
-
-  /**
-   * Get production entities
-   */
-  async getProductionEntities(filters?: {
-    routeId?: string;
-  }): Promise<Array<{ id: string; routeId: string; sectionId: string }>> {
-    // Use listEntities like the old ContentManager implementation did
-    const entities =
-      await this.context.entityService.listEntities<SiteContentProduction>(
-        "site-content-production",
-        { limit: 1000 },
-      );
-
-    // Filter by routeId if specified
-    const filtered = filters?.routeId
-      ? entities.filter((e) => e.routeId === filters.routeId)
-      : entities;
-
-    return filtered.map((entity) => ({
-      id: entity.id,
-      routeId: entity.routeId,
-      sectionId: entity.sectionId,
-    }));
-  }
-
-  /**
-   * Promote preview content to production
-   */
-  async promote(
-    entityIds: string[],
-    metadata?: Partial<JobContext>,
-  ): Promise<string> {
-    if (entityIds.length === 0) {
-      throw new Error("No entities to promote");
-    }
-
-    const batchJobs = entityIds.map((entityId) => ({
-      type: "shell:content-derivation",
-      data: {
-        entityId,
-        sourceEntityType: "site-content-preview",
-        targetEntityType: "site-content-production",
-        options: { deleteSource: false },
-      },
-    }));
-
-    const jobOptions = this.createJobOptions(
-      metadata,
-      "site:content-derivation",
-    );
-    return jobOptions
-      ? this.context.enqueueBatch(batchJobs, jobOptions)
-      : this.context.enqueueBatch(batchJobs);
-  }
-
-  /**
-   * Rollback production content
-   */
-  async rollback(
-    entityIds: string[],
-    metadata?: Partial<JobContext>,
-  ): Promise<string> {
-    if (entityIds.length === 0) {
-      throw new Error("No entities to rollback");
-    }
-
-    const batchJobs = entityIds.map((entityId) => ({
-      type: "shell:content-derivation",
-      data: {
-        entityId,
-        sourceEntityType: "site-content-production",
-        targetEntityType: "site-content-preview",
-      },
-    }));
-
-    const jobOptions = this.createJobOptions(
-      metadata,
-      "site:content-derivation",
-    );
-    return jobOptions
-      ? this.context.enqueueBatch(batchJobs, jobOptions)
-      : this.context.enqueueBatch(batchJobs);
-  }
 }

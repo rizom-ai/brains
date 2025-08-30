@@ -34,7 +34,6 @@ export const RouteDefinitionSchema = z.object({
   description: z.string(), // Route description
   sections: z.array(SectionDefinitionSchema), // Page sections
   pluginId: z.string().optional(), // Plugin that registered this route
-  environment: z.string().optional(), // Environment (production, development, etc)
   sourceEntityType: z.string().optional(), // Entity type that generated this route (indicates dynamic)
 });
 
@@ -48,7 +47,6 @@ export type RouteDefinition = z.infer<typeof RouteDefinitionSchema>;
 export const RegisterRoutesPayloadSchema = z.object({
   routes: z.array(RouteDefinitionSchema),
   pluginId: z.string(),
-  environment: z.string().optional(),
 });
 
 export const UnregisterRoutesPayloadSchema = z.object({
@@ -58,7 +56,6 @@ export const UnregisterRoutesPayloadSchema = z.object({
 
 export const ListRoutesPayloadSchema = z.object({
   pluginId: z.string().optional(), // Filter by plugin
-  environment: z.string().optional(), // Filter by environment
 });
 
 export const GetRoutePayloadSchema = z.object({

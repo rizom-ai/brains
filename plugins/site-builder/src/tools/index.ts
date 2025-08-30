@@ -10,11 +10,7 @@ import type { SiteContentService } from "../lib/site-content-service";
 import type { SiteBuilderConfig } from "../config";
 import type { RouteRegistry } from "../lib/route-registry";
 import { z } from "zod";
-import {
-  GenerateOptionsSchema,
-  PromoteOptionsSchema,
-  RollbackOptionsSchema,
-} from "../types/content-schemas";
+import { GenerateOptionsSchema } from "../types/content-schemas";
 
 export function createSiteBuilderTools(
   getSiteBuilder: () => SiteBuilder | undefined,
@@ -235,118 +231,6 @@ export function createSiteBuilderTools(
               hasWebRenderer: !!template.renderers.web,
             })),
             count: templates.length,
-          },
-        };
-      },
-    },
-    {
-      name: `${pluginId}:promote-content`,
-      description: "Promote preview content to production",
-      inputSchema: {
-        routeId: z
-          .string()
-          .optional()
-          .describe("Optional: specific route ID to promote"),
-        sectionId: z
-          .string()
-          .optional()
-          .describe("Optional: specific section ID to promote"),
-        sections: z
-          .array(z.string())
-          .optional()
-          .describe("Optional: array of section IDs to promote"),
-        dryRun: z
-          .boolean()
-          .default(false)
-          .describe("Preview changes without executing"),
-      },
-      visibility: "anchor",
-      handler: async (
-        input: unknown,
-        context: ToolContext,
-      ): Promise<ToolResponse> => {
-        const promoteOptions = PromoteOptionsSchema.parse(input);
-
-        const siteContentService = getSiteContentService();
-        if (!siteContentService) {
-          throw new Error("Site content service not initialized");
-        }
-
-        // Create job metadata
-        const metadata: JobContext = {
-          rootJobId: `promote-${Date.now()}`,
-          progressToken: context.progressToken,
-          pluginId,
-          operationType: "content_operations",
-        };
-
-        const batchId = await siteContentService.promoteContent(
-          promoteOptions,
-          metadata,
-        );
-
-        return {
-          success: true,
-          message:
-            "Promotion operation queued. Jobs are running in the background.",
-          data: {
-            batchId,
-          },
-        };
-      },
-    },
-    {
-      name: `${pluginId}:rollback-content`,
-      description: "Remove production content (rollback to preview-only)",
-      inputSchema: {
-        routeId: z
-          .string()
-          .optional()
-          .describe("Optional: specific route ID to rollback"),
-        sectionId: z
-          .string()
-          .optional()
-          .describe("Optional: specific section ID to rollback"),
-        sections: z
-          .array(z.string())
-          .optional()
-          .describe("Optional: array of section IDs to rollback"),
-        dryRun: z
-          .boolean()
-          .default(false)
-          .describe("Preview changes without executing"),
-      },
-      visibility: "anchor",
-      handler: async (
-        input: unknown,
-        context: ToolContext,
-      ): Promise<ToolResponse> => {
-        const rollbackOptions = RollbackOptionsSchema.parse(input);
-
-        const siteContentService = getSiteContentService();
-        if (!siteContentService) {
-          throw new Error("Site content service not initialized");
-        }
-
-        // Create job metadata
-        const metadata: JobContext = {
-          rootJobId: `rollback-${Date.now()}`,
-          progressToken: context.progressToken,
-          pluginId,
-          operationType: "content_operations",
-        };
-
-        const batchId = await siteContentService.rollbackContent(
-          rollbackOptions,
-          metadata,
-        );
-
-        return {
-          success: true,
-          message:
-            "Rollback operation queued. Jobs are running in the background.",
-          data: {
-            batchId,
           },
         };
       },

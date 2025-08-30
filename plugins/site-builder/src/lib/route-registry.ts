@@ -65,16 +65,11 @@ export class RouteRegistry {
    */
   list(filter?: {
     pluginId?: string | undefined;
-    environment?: string | undefined;
   }): RouteDefinition[] {
     let routes = Array.from(this.routes.values());
 
     if (filter?.pluginId) {
       routes = routes.filter((r) => r.pluginId === filter.pluginId);
-    }
-
-    if (filter?.environment) {
-      routes = routes.filter((r) => r.environment === filter.environment);
     }
 
     return routes;
