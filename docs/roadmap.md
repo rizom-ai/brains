@@ -1,10 +1,24 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-01-15
+Last Updated: 2025-01-30
 
 ## Vision
 
 Build a robust, extensible knowledge management platform that serves as the foundation for individual, team, and collective products.
+
+## Next Priority Items
+
+Based on current progress, the following items are ready to be worked on:
+
+### Immediate Priorities (Foundation Complete)
+1. **Link Plugin** - Web content capture with AI (Priority 1)
+2. **Entity Service Batch Operations** - Performance optimization
+3. **Health Checks for All Services** - Production readiness
+
+### Secondary Priorities  
+4. **Database Backup/Restore** - Data safety
+5. **Article Plugin** - Long-form content management
+6. **Vector Search Optimization** - Performance improvement
 
 ## Current Status
 
@@ -17,7 +31,7 @@ Build a robust, extensible knowledge management platform that serves as the foun
 - **Conversation Memory**: Conversation tracking and message storage
 - **Job Queue**: Background processing with progress tracking and batch operations
 - **Content Generation**: Template-based content generation with AI integration
-- **Test Infrastructure**: Standardized test harnesses for all plugin types
+- **Test Infrastructure**: Standardized test harnesses for all plugin types (220+ test files)
 - **Centralized Permission System**: Single source of truth for user permissions across all interfaces
 - **Transport-based MCP Permissions**: Automatic permission levels based on MCP transport type
 - **Database Migration System**: Drizzle-based migrations for all databases
@@ -29,10 +43,13 @@ Build a robust, extensible knowledge management platform that serves as the foun
 - **Site Builder Plugin**: Static site generation with Preact components
 - **Topics Plugin**: AI-powered topic extraction from entities
 - **System Plugin**: System information and health checks
+- **Template Capabilities System**: Runtime detection of template capabilities
+- **Dynamic Route Generation**: Convention-based routes for entity types
+- **Entity DataSource Integration**: Plugin-specific DataSources for entity display
+- **Site Content Consolidation**: Removed preview/production distinction
 
 ### In Progress 🚧
 
-- **Performance Optimization**: Entity service batch operations
 - **Documentation**: Updating docs to reflect current architecture
 
 ## Phase 1: Production Readiness (Q1 2025)
@@ -46,16 +63,16 @@ Build a robust, extensible knowledge management platform that serves as the foun
 ### 1.2 Performance & Scalability
 
 - [x] Batch operations for job queue ✅
-- [ ] Batch operations for entity service
+- [ ] **Batch operations for entity service** (Not started)
 - [x] Async embedding generation queue ✅
-- [ ] Optimize vector search performance
+- [ ] **Optimize vector search performance** (Basic implementation exists)
 
 ### 1.3 Monitoring & Observability
 
 - [x] Structured logging with log levels ✅
 - [x] Health check endpoints for MCP service ✅
-- [ ] Health check endpoints for all services
-- [ ] Metrics collection and reporting
+- [ ] **Health check endpoints for all services** (Not implemented)
+- [ ] **Metrics collection and reporting** (Not started)
 
 ### 1.4 App Package Refactoring
 
@@ -72,28 +89,28 @@ Build a robust, extensible knowledge management platform that serves as the foun
 
 ## Phase 2: First Plugins (Q1-Q2 2025)
 
-### 2.1 Link Plugin (Priority 1)
+### 2.1 Link Plugin (Priority 1) - **Not Started**
 
 - [ ] Web content capture via MCP tool
 - [ ] AI-powered summarization
 - [ ] Automatic tagging and categorization
 - [ ] Integration with read-later services
 
-### 2.2 Article Plugin (Priority 2)
+### 2.2 Article Plugin (Priority 2) - **Not Started**
 
 - [ ] Long-form content creation
 - [ ] Draft/publish workflow
 - [ ] Version history
 - [ ] Export to various formats
 
-### 2.3 Task Plugin
+### 2.3 Task Plugin - **Not Started**
 
 - [ ] Task creation and management
 - [ ] Project organization
 - [ ] Due dates and reminders
 - [ ] Integration with calendar systems
 
-## Phase 3: Enhanced Interfaces (Q2 2025)
+## Phase 3: Enhanced Interfaces (Q2 2025) - **Not Started**
 
 ### 3.1 Web UI
 
@@ -119,9 +136,9 @@ Build a robust, extensible knowledge management platform that serves as the foun
 ### 4.1 Multi-user Support
 
 - [x] Centralized permission system ✅
-- [ ] User authentication and authorization
-- [ ] Role-based access control
-- [ ] Personal and shared workspaces
+- [ ] **User authentication and authorization** (Not started)
+- [ ] **Role-based access control** (Permission levels exist, no roles)
+- [ ] **Personal and shared workspaces** (Not implemented)
 
 ### 4.2 Collaboration
 
