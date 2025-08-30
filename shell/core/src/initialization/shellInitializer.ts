@@ -367,7 +367,6 @@ export class ShellInitializer {
       contentGenerationJobHandler,
       "shell",
     );
-
   }
 
   /**

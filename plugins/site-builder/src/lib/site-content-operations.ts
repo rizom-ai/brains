@@ -226,5 +226,4 @@ export class SiteContentOperations {
       batchId: `empty-${Date.now()}`,
     };
   }
-
 }

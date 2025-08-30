@@ -62,10 +62,7 @@ describe("SiteContentService", () => {
 
     beforeEach(() => {
       // Reset the spy before each test
-      generateSpy = spyOn(
-        SiteContentOperations.prototype,
-        "generate",
-      );
+      generateSpy = spyOn(SiteContentOperations.prototype, "generate");
     });
 
     afterEach(() => {
@@ -91,7 +88,7 @@ describe("SiteContentService", () => {
 
       // Verify operations.generate was called with correct params
       expect(generateSpy).toHaveBeenCalledTimes(1);
-      
+
       expect(generateSpy).toHaveBeenCalledWith(
         {
           routeId: "landing",
@@ -176,7 +173,7 @@ describe("SiteContentService", () => {
         queuedSections: 0,
         batchId: "batch-error",
       });
-      
+
       // The validation happens inside async function
       try {
         await service.generateContent({
@@ -202,7 +199,11 @@ describe("SiteContentService", () => {
       expect(result).toBeDefined();
 
       // Should pass undefined as siteConfig
-      expect(generateSpy).toHaveBeenCalledWith({ dryRun: false, force: false }, undefined, undefined);
+      expect(generateSpy).toHaveBeenCalledWith(
+        { dryRun: false, force: false },
+        undefined,
+        undefined,
+      );
     });
   });
 });

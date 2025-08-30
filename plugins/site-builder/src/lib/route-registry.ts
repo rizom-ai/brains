@@ -63,9 +63,7 @@ export class RouteRegistry {
   /**
    * List all routes with optional filtering
    */
-  list(filter?: {
-    pluginId?: string | undefined;
-  }): RouteDefinition[] {
+  list(filter?: { pluginId?: string | undefined }): RouteDefinition[] {
     let routes = Array.from(this.routes.values());
 
     if (filter?.pluginId) {

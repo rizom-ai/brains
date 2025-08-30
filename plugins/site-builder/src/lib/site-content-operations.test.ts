@@ -219,7 +219,7 @@ describe("SiteContentOperations", () => {
 
       // Mock existing content for hero section
       const getEntitySpy = spyOn(context.entityService, "getEntity");
-      
+
       // First call returns existing entity, second returns null
       getEntitySpy.mockResolvedValueOnce({
         id: "landing:hero",
@@ -329,7 +329,11 @@ describe("SiteContentOperations", () => {
         title: "Static Page",
         description: "Page with static content",
         sections: [
-          { id: "static-section", template: "site-builder:static", content: "This is static content" },
+          {
+            id: "static-section",
+            template: "site-builder:static",
+            content: "This is static content",
+          },
           { id: "dynamic-section", template: "site-builder:content" },
         ],
         pluginId: "site-builder",
@@ -363,7 +367,10 @@ describe("SiteContentOperations", () => {
       expect(batchJobs).toHaveLength(5);
 
       // Verify the static section is not in the jobs
-      const sectionIds = batchJobs?.map((job: BatchOperation) => job.data["sectionId"] as string) ?? [];
+      const sectionIds =
+        batchJobs?.map(
+          (job: BatchOperation) => job.data["sectionId"] as string,
+        ) ?? [];
       expect(sectionIds).not.toContain("static-section");
       expect(sectionIds).toContain("dynamic-section");
 
@@ -408,7 +415,10 @@ describe("SiteContentOperations", () => {
       expect(batchJobs).toHaveLength(3);
 
       // Verify dashboard is not in the jobs
-      const routeIds = batchJobs?.map((job: BatchOperation) => job.data["routeId"] as string) ?? [];
+      const routeIds =
+        batchJobs?.map(
+          (job: BatchOperation) => job.data["routeId"] as string,
+        ) ?? [];
       expect(routeIds).not.toContain("dashboard");
 
       expect(result.queuedSections).toBe(3);
