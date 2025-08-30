@@ -11,13 +11,15 @@ Build a robust, extensible knowledge management platform that serves as the foun
 Based on current progress, the following items are ready to be worked on:
 
 ### Immediate Priorities (Foundation Complete)
+
 1. **Link Plugin** - Web content capture with AI (Priority 1)
 2. **Entity Service Batch Operations** - Performance optimization
 3. **Health Checks for All Services** - Production readiness
 
-### Secondary Priorities  
+### Secondary Priorities
+
 4. **Database Backup/Restore** - Data safety
-5. **Article Plugin** - Long-form content management
+5. **Blog Plugin** - Long-form content management (planning complete)
 6. **Vector Search Optimization** - Performance improvement
 
 ## Current Status
@@ -96,12 +98,12 @@ Based on current progress, the following items are ready to be worked on:
 - [ ] Automatic tagging and categorization
 - [ ] Integration with read-later services
 
-### 2.2 Article Plugin (Priority 2) - **Not Started**
+### 2.2 Blog Plugin (Priority 2) - **Planning Complete**
 
-- [ ] Long-form content creation
+- [ ] Long-form content management (minimal wrapper over entities)
 - [ ] Draft/publish workflow
-- [ ] Version history
-- [ ] Export to various formats
+- [ ] Leverages existing markdown file storage
+- [ ] Basic metadata (title, slug, status, tags)
 
 ### 2.3 Task Plugin - **Not Started**
 
