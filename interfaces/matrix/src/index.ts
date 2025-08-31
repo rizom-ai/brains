@@ -1,5 +1,5 @@
 export { MatrixInterface } from "./plugin";
-export { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "./schemas";
+export { matrixConfigSchema } from "./schemas";
 export type { MatrixConfig } from "./schemas";
 
 // Setup utilities

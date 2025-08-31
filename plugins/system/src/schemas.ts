@@ -8,16 +8,12 @@ export const systemConfigSchema = z.object({
     .number()
     .min(1)
     .max(100)
-    .describe("Default number of search results to return"),
-  debug: z.boolean().describe("Enable debug logging"),
+    .describe("Default number of search results to return")
+    .default(10),
+  debug: z.boolean().describe("Enable debug logging").default(false),
 });
 
 export type SystemConfig = z.infer<typeof systemConfigSchema>;
-
-export const defaultSystemConfig: SystemConfig = {
-  searchLimit: 10,
-  debug: false,
-};
 
 /**
  * Search options schema

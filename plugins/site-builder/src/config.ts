@@ -9,12 +9,18 @@ export const siteBuilderConfigSchema = z.object({
   previewOutputDir: z
     .string()
     .optional()
-    .describe("Output directory for preview builds"),
+    .describe("Output directory for preview builds")
+    .default("./dist/site-preview"),
   productionOutputDir: z
     .string()
     .optional()
-    .describe("Output directory for production builds"),
-  workingDir: z.string().optional().describe("Working directory for builds"),
+    .describe("Output directory for production builds")
+    .default("./dist/site-production"),
+  workingDir: z
+    .string()
+    .optional()
+    .describe("Working directory for builds")
+    .default("./.preact-work"),
   siteConfig: z
     .object({
       title: z.string(),
@@ -37,9 +43,3 @@ export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema> & {
   // Override the templates field type to be properly typed
   templates?: Record<string, Template>;
 };
-
-export const SITE_BUILDER_CONFIG_DEFAULTS = {
-  previewOutputDir: "./dist/site-preview",
-  productionOutputDir: "./dist/site-production",
-  workingDir: "./.preact-work",
-} as const;

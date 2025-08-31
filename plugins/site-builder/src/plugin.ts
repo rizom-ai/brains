@@ -23,9 +23,7 @@ import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { createSiteBuilderTools } from "./tools";
 import { createSiteBuilderCommands } from "./commands";
 import type { SiteBuilderConfig } from "./config";
-import {
-  siteBuilderConfigSchema,
-} from "./config";
+import { siteBuilderConfigSchema } from "./config";
 import packageJson from "../package.json";
 
 /**
@@ -49,12 +47,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   }
 
   constructor(config: Partial<SiteBuilderConfig> = {}) {
-    super(
-      "site-builder",
-      packageJson,
-      config,
-      siteBuilderConfigSchema,
-    );
+    super("site-builder", packageJson, config, siteBuilderConfigSchema);
   }
 
   /**

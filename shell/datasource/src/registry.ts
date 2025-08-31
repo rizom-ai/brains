@@ -16,9 +16,7 @@ export class DataSourceRegistry {
    * Get the singleton instance
    */
   public static getInstance(logger: Logger): DataSourceRegistry {
-    if (!DataSourceRegistry.instance) {
-      DataSourceRegistry.instance = new DataSourceRegistry(logger);
-    }
+    DataSourceRegistry.instance ??= new DataSourceRegistry(logger);
     return DataSourceRegistry.instance;
   }
 

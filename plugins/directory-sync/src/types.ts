@@ -4,10 +4,19 @@ import { z } from "@brains/utils";
  * Configuration schema for directory sync plugin
  */
 export const directorySyncConfigSchema = z.object({
-  syncPath: z.string().describe("Directory path for synchronization").default("./brain-data"),
+  syncPath: z
+    .string()
+    .describe("Directory path for synchronization")
+    .default("./brain-data"),
   watchEnabled: z.boolean().describe("Enable file watching").default(true),
-  watchInterval: z.number().describe("Watch polling interval in ms").default(1000),
-  includeMetadata: z.boolean().describe("Include frontmatter metadata").default(true),
+  watchInterval: z
+    .number()
+    .describe("Watch polling interval in ms")
+    .default(1000),
+  includeMetadata: z
+    .boolean()
+    .describe("Include frontmatter metadata")
+    .default(true),
   entityTypes: z
     .array(z.string())
     .optional()

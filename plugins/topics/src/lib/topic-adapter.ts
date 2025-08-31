@@ -8,7 +8,7 @@ import {
   type TopicBody,
   type TopicSource,
 } from "../schemas/topic";
-import { z } from "@brains/utils";
+import type { z } from "@brains/utils";
 
 /**
  * Entity adapter for Topic entities

@@ -49,7 +49,7 @@ describe("MatrixInterface", () => {
 
     // Configure mock shell with permissions
     const mockShell = harness.getShell();
-    mockShell.getPermissionService = () => {
+    mockShell.getPermissionService = (): PermissionService => {
       return new PermissionService({
         anchors: ["matrix:@admin:example.org"],
         trusted: ["matrix:@trusted:example.org"],

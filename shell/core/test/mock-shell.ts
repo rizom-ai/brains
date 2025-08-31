@@ -412,7 +412,7 @@ export class MockShell implements IShell {
     context?: QueryContext,
   ): Promise<DefaultQueryResponse> {
     // Mock query implementation - uses generateContent under the hood
-    const { conversationHistory, ...contextData } = context || {};
+    const { conversationHistory, ...contextData } = context ?? {};
     return this.generateContent<DefaultQueryResponse>({
       prompt,
       templateName: "shell:knowledge-query",

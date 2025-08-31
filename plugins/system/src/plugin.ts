@@ -31,12 +31,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   declare protected config: SystemConfig;
 
   constructor(config: Partial<SystemConfig> = {}) {
-    super(
-      "system",
-      packageJson,
-      config,
-      systemConfigSchema,
-    );
+    super("system", packageJson, config, systemConfigSchema);
   }
 
   /**

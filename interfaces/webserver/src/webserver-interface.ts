@@ -9,10 +9,7 @@ import {
 import { ServerManager } from "./server-manager";
 import { existsSync } from "fs";
 import { join } from "path";
-import {
-  webserverConfigSchema,
-  type WebserverConfig,
-} from "./config";
+import { webserverConfigSchema, type WebserverConfig } from "./config";
 import { placeholderHtml } from "./templates/placeholder";
 import packageJson from "../package.json";
 
@@ -24,12 +21,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   private serverManager!: ServerManager;
 
   constructor(config: Partial<WebserverConfig> = {}) {
-    super(
-      "webserver",
-      packageJson,
-      config,
-      webserverConfigSchema,
-    );
+    super("webserver", packageJson, config, webserverConfigSchema);
   }
 
   /**

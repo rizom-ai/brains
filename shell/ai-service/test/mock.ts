@@ -96,7 +96,7 @@ export function createMockAIService(): IAIService {
       };
     },
 
-    updateConfig: (_config: Partial<AIModelConfig>) => {
+    updateConfig: (_config: Partial<AIModelConfig>): void => {
       // Mock implementation - does nothing
     },
 

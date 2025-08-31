@@ -34,13 +34,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
   private client?: MatrixClientWrapper;
 
   constructor(config: Partial<MatrixConfig>, sessionId?: string) {
-    super(
-      "matrix",
-      packageJson,
-      config,
-      matrixConfigSchema,
-      sessionId,
-    );
+    super("matrix", packageJson, config, matrixConfigSchema, sessionId);
     // Set command prefix to match Matrix config
     this.commandPrefix = this.config.commandPrefix;
   }

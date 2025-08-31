@@ -12,7 +12,10 @@ import { z } from "@brains/utils";
 
 // Define the plugin configuration schema
 const calculatorConfigSchema = z.object({
-  enabled: z.boolean().describe("Enable the calculator service plugin").default(true),
+  enabled: z
+    .boolean()
+    .describe("Enable the calculator service plugin")
+    .default(true),
   debug: z.boolean().describe("Enable debug logging").default(false),
   enableBatchProcessing: z
     .boolean()

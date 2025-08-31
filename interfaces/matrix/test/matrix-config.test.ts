@@ -1,11 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "../src";
+import { matrixConfigSchema } from "../src";
 
 describe("MatrixConfig", () => {
   describe("Schema Validation", () => {
     it("should accept valid config with defaults", () => {
       const config = {
-        ...MATRIX_CONFIG_DEFAULTS,
         homeserver: "https://matrix.example.org",
         accessToken: "test-token",
         userId: "@bot:example.org",
@@ -22,7 +21,6 @@ describe("MatrixConfig", () => {
 
     it("should reject invalid URL", () => {
       const config = {
-        ...MATRIX_CONFIG_DEFAULTS,
         homeserver: "not-a-url",
         accessToken: "test-token",
         userId: "@bot:example.org",
@@ -34,7 +32,6 @@ describe("MatrixConfig", () => {
 
     it("should reject invalid user ID format", () => {
       const config = {
-        ...MATRIX_CONFIG_DEFAULTS,
         homeserver: "https://matrix.example.org",
         accessToken: "test-token",
         userId: "invalid-user-id",
@@ -44,7 +41,7 @@ describe("MatrixConfig", () => {
       expect(result.success).toBe(false);
     });
 
-    it("should validate partial config for merging with defaults", () => {
+    it("should validate partial config and apply schema defaults", () => {
       // Partial config as it would come from user
       const partialConfig = {
         homeserver: "https://matrix.example.org",
@@ -52,11 +49,10 @@ describe("MatrixConfig", () => {
         userId: "@bot:example.org",
       };
 
-      // This is how the plugin actually uses it
-      const merged = { ...MATRIX_CONFIG_DEFAULTS, ...partialConfig };
-      const result = matrixConfigSchema.parse(merged);
+      // Parse with schema defaults
+      const result = matrixConfigSchema.parse(partialConfig);
 
-      // Check defaults are applied
+      // Check schema defaults are applied
       expect(result.publicToolsOnly).toBe(false);
       expect(result.autoJoinRooms).toBe(true);
       expect(result.enableEncryption).toBe(true);

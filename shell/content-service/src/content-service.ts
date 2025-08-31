@@ -91,7 +91,7 @@ export class ContentService implements IContentService {
   listTemplates(): ContentTemplate<unknown>[] {
     return this.dependencies.templateRegistry
       .list()
-      .filter((template) => template.basePrompt || template.formatter) // Only content templates
+      .filter((template) => template.basePrompt ?? template.formatter) // Only content templates
       .map((template) => {
         const contentTemplate: ContentTemplate<unknown> = {
           name: template.name,

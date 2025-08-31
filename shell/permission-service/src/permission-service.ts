@@ -54,9 +54,9 @@ export class PermissionService {
   private rules: PermissionRule[];
 
   constructor(config: PermissionConfig) {
-    this.anchors = new Set(config.anchors || []);
-    this.trusted = new Set(config.trusted || []);
-    this.rules = config.rules || [];
+    this.anchors = new Set(config.anchors ?? []);
+    this.trusted = new Set(config.trusted ?? []);
+    this.rules = config.rules ?? [];
   }
 
   /**
@@ -111,7 +111,7 @@ export class PermissionService {
     userLevel: UserPermissionLevel,
   ): T[] {
     return items.filter((item) => {
-      const requiredLevel = item.visibility || "public";
+      const requiredLevel = item.visibility ?? "public";
       return this.hasPermission(userLevel, requiredLevel);
     });
   }

@@ -16,12 +16,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
 
   constructor(config: Partial<GitSyncConfig>) {
-    super(
-      "git-sync",
-      packageJson,
-      config,
-      gitSyncConfigSchema,
-    );
+    super("git-sync", packageJson, config, gitSyncConfigSchema);
   }
 
   private getGitSync(): GitSync {

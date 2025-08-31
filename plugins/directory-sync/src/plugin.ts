@@ -18,7 +18,6 @@ import { createDirectorySyncCommands } from "./commands";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
 
-
 /**
  * Directory Sync plugin that extends BasePlugin
  * Synchronizes brain entities with a directory structure
@@ -28,12 +27,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   private pluginContext?: ServicePluginContext;
 
   constructor(config: Partial<DirectorySyncConfig> = {}) {
-    super(
-      "directory-sync",
-      packageJson,
-      config,
-      directorySyncConfigSchema,
-    );
+    super("directory-sync", packageJson, config, directorySyncConfigSchema);
   }
 
   private requireDirectorySync(): DirectorySync {
