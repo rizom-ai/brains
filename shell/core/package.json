@@ -32,8 +32,7 @@
     "@brains/utils": "workspace:*",
     "@brains/render-service": "workspace:*",
     "@brains/content-service": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "ai": "^4.3.16"
+    "@brains/templates": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

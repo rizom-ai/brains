@@ -54,7 +54,7 @@ describe("AIContentDataSource", () => {
       const request = {};
 
       expect(dataSource.generate(request, testSchema)).rejects.toThrow(
-        "Required",
+        "expected string, received undefined",
       );
     });
 

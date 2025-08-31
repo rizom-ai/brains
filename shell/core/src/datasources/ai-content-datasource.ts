@@ -10,7 +10,7 @@ import { z } from "@brains/utils";
 export const GenerationContextSchema = z.object({
   prompt: z.string().optional(),
   conversationHistory: z.string().optional(),
-  data: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
   templateName: z.string(),
 });
 

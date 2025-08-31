@@ -114,7 +114,10 @@ export const shellConfigSchema = z.object({
       level: z.enum(["debug", "info", "warn", "error"]).default("info"),
       context: z.string().default("shell"),
     })
-    .default({}),
+    .default({
+      level: "info",
+      context: "shell"
+    }),
 
   // Feature flags (removed enablePlugins - it doesn't make sense)
   features: z.object({}).default({}),

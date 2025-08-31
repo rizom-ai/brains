@@ -11,8 +11,8 @@ void mock.module("ai", () => ({
     Promise.resolve({
       text: "Generated text response",
       usage: {
-        promptTokens: 10,
-        completionTokens: 20,
+        inputTokens: 10,
+        outputTokens: 20,
         totalTokens: 30,
       },
     }),
@@ -21,8 +21,8 @@ void mock.module("ai", () => ({
     Promise.resolve({
       object: { result: "structured data" },
       usage: {
-        promptTokens: 15,
-        completionTokens: 25,
+        inputTokens: 15,
+        outputTokens: 25,
         totalTokens: 40,
       },
     }),

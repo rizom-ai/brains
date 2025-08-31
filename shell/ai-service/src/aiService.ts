@@ -1,6 +1,6 @@
 import { generateText, generateObject } from "ai";
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
-import type { LanguageModelV1 } from "@ai-sdk/provider";
+import type { LanguageModel } from "ai";
 import type { Logger } from "@brains/utils";
 import type { z } from "@brains/utils";
 import type { AIModelConfig, AIService as IAIService } from "./types";
@@ -62,7 +62,7 @@ export class AIService implements IAIService {
   /**
    * Get the Anthropic model instance
    */
-  private getModel(): LanguageModelV1 {
+  private getModel(): LanguageModel {
     const { model } = this.config;
     return this.anthropicProvider(model ?? DEFAULT_MODEL);
   }
@@ -101,9 +101,9 @@ export class AIService implements IAIService {
       return {
         text: result.text,
         usage: {
-          promptTokens: result.usage.promptTokens,
-          completionTokens: result.usage.completionTokens,
-          totalTokens: result.usage.totalTokens,
+          promptTokens: result.usage.inputTokens ?? 0,
+          completionTokens: result.usage.outputTokens ?? 0,
+          totalTokens: result.usage.totalTokens ?? 0,
         },
       };
     } catch (error) {
@@ -148,9 +148,9 @@ export class AIService implements IAIService {
       return {
         object: result.object,
         usage: {
-          promptTokens: result.usage.promptTokens,
-          completionTokens: result.usage.completionTokens,
-          totalTokens: result.usage.totalTokens,
+          promptTokens: result.usage.inputTokens ?? 0,
+          completionTokens: result.usage.outputTokens ?? 0,
+          totalTokens: result.usage.totalTokens ?? 0,
         },
       };
     } catch (error) {
