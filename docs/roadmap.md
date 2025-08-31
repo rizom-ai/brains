@@ -12,7 +12,7 @@ Based on current progress, the following items are ready to be worked on:
 
 ### Immediate Priorities (Foundation Complete)
 
-1. **Link Plugin** - Web content capture with AI (Priority 1)
+1. **Link Plugin** - Web content capture with AI (Priority 1, planning complete)
 2. **Entity Service Batch Operations** - Performance optimization
 3. **Health Checks for All Services** - Production readiness
 
@@ -91,12 +91,12 @@ Based on current progress, the following items are ready to be worked on:
 
 ## Phase 2: First Plugins (Q1-Q2 2025)
 
-### 2.1 Link Plugin (Priority 1) - **Not Started**
+### 2.1 Link Plugin (Priority 1) - **Planning Complete**
 
-- [ ] Web content capture via MCP tool
-- [ ] AI-powered summarization
-- [ ] Automatic tagging and categorization
-- [ ] Integration with read-later services
+- [ ] Web content capture with AI extraction
+- [ ] Structured content storage (like topics plugin)
+- [ ] AI-powered summarization and tagging
+- [ ] Simple list and search functionality
 
 ### 2.2 Blog Plugin (Priority 2) - **Planning Complete**
 

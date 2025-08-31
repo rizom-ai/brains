@@ -81,7 +81,9 @@ export const blogConfigSchema = z.object({
 
 ```typescript
 export class BlogPlugin extends ServicePlugin<BlogConfig> {
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     // Register the blog entity type
     context.registerEntityType("blog", blogPostSchema, blogPostAdapter);
   }
@@ -99,7 +101,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
         handler: async (input) => {
           const { title, content, tags } = input;
           const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-          
+
           // Create entity using existing entity service
           return await this.context.entityService.createEntity({
             entityType: "blog",
@@ -123,7 +125,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
         handler: async (input) => {
           const { id } = input;
           const post = await this.context.entityService.getEntity("blog", id);
-          
+
           return await this.context.entityService.updateEntity("blog", id, {
             metadata: {
               ...post.metadata,
@@ -141,11 +143,9 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
         },
         handler: async (input) => {
           const { status = "all" } = input;
-          
-          const filter = status === "all" 
-            ? {} 
-            : { "metadata.status": status };
-          
+
+          const filter = status === "all" ? {} : { "metadata.status": status };
+
           return await this.context.entityService.search({
             entityType: "blog",
             filter,
@@ -183,6 +183,7 @@ Content goes here...
 ## Site Builder Integration
 
 The blog plugin just needs to register the entity type. Site-builder already handles:
+
 - Rendering markdown entities
 - Generating routes based on entity types
 - Creating list pages
@@ -203,15 +204,15 @@ describe("BlogPlugin", () => {
     const result = await tools.execute("blog:new", {
       title: "Test Post",
     });
-    
+
     expect(result.entityType).toBe("blog");
     expect(result.metadata.slug).toBe("test-post");
   });
-  
+
   it("should publish post by updating metadata", async () => {
     const post = await tools.execute("blog:new", { title: "Draft" });
     const published = await tools.execute("blog:publish", { id: post.id });
-    
+
     expect(published.metadata.status).toBe("published");
     expect(published.metadata.publishedAt).toBeDefined();
   });
