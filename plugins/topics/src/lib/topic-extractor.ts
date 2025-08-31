@@ -117,7 +117,7 @@ Return an array of topics in the required JSON format.`;
       }>({
         prompt,
         templateName: "topics:extraction",
-        conversationId: conversationId,
+        conversationHistory: conversationId,
       });
 
       const extractedData = result.topics;

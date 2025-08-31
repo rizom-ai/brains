@@ -59,9 +59,13 @@ plugins/link/
 
 ```typescript
 export const linkConfigSchema = z.object({
-  enableSummarization: z.boolean().default(true)
+  enableSummarization: z
+    .boolean()
+    .default(true)
     .describe("Generate AI summaries for captured links"),
-  autoTag: z.boolean().default(true)
+  autoTag: z
+    .boolean()
+    .default(true)
     .describe("Automatically generate tags from content"),
 });
 ```
@@ -103,7 +107,7 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
       ],
     });
   }
-  
+
   public createLinkBody(params: {
     title: string;
     url: string;
@@ -123,15 +127,15 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
       capturedAt: new Date().toISOString(),
     });
   }
-  
+
   public parseLinkBody(body: string): LinkBody & { title: string } {
     // Extract title from H1
     const titleMatch = body.match(/^#\s+(.+)$/m);
     const title = titleMatch?.[1]?.trim() ?? "Untitled Link";
-    
+
     const formatter = this.createFormatter(title);
     const parsed = formatter.parse(body);
-    
+
     return { ...parsed, title };
   }
 
@@ -156,7 +160,9 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
 
 ```typescript
 export class LinkPlugin extends ServicePlugin<LinkConfig> {
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     // Register the link entity type with adapter
     const linkAdapter = new LinkAdapter();
     context.registerEntityType("link", linkSchema, linkAdapter);
@@ -173,7 +179,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
         },
         handler: async (input) => {
           const { url, tags } = input;
-          
+
           // Let AI handle extraction
           const extracted = await this.context.aiService.complete({
             prompt: `Fetch and analyze this URL: ${url}
@@ -185,9 +191,9 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
             - content: main content in markdown (max 5000 chars)
             - suggested_tags: array of 3-5 relevant tags`,
           });
-          
+
           const data = JSON.parse(extracted);
-          
+
           // Create structured content using adapter
           const linkAdapter = new LinkAdapter();
           const linkBody = linkAdapter.createLinkBody({
@@ -198,7 +204,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
             content: data.content,
             tags: tags || data.suggested_tags,
           });
-          
+
           // Save as entity
           return await this.context.entityService.createEntity({
             entityType: "link",
@@ -216,7 +222,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
         },
         handler: async (input) => {
           const { limit = 10 } = input;
-          
+
           return await this.context.entityService.search({
             entityType: "link",
             sort: { createdAt: "desc" },
@@ -233,7 +239,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
         },
         handler: async (input) => {
           const { query, tags } = input;
-          
+
           // Search in content (which includes all structured data)
           return await this.context.entityService.search({
             entityType: "link",
@@ -308,16 +314,16 @@ describe("LinkPlugin", () => {
     const result = await tools.execute("link:capture", {
       url: "https://example.com",
     });
-    
+
     expect(result.entityType).toBe("link");
     expect(result.content).toContain("## URL");
     expect(result.content).toContain("https://example.com");
   });
-  
+
   it("should parse link body correctly", async () => {
     const adapter = new LinkAdapter();
     const parsed = adapter.parseLinkBody(sampleLinkContent);
-    
+
     expect(parsed.url).toBe("https://example.com");
     expect(parsed.tags).toBeInstanceOf(Array);
   });
@@ -327,16 +333,19 @@ describe("LinkPlugin", () => {
 ## Implementation Phases
 
 ### Phase 1: MVP
+
 - Basic URL capture with AI extraction
 - Structured content storage
 - Simple list and search
 
 ### Phase 2: Enhancements
+
 - Better AI prompts for extraction
 - Domain-specific extraction rules
 - Related links discovery
 
 ### Phase 3: Advanced (Future)
+
 - Browser extension
 - Bookmarklet support
 - Archive.org fallback for dead links
