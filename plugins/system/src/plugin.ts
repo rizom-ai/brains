@@ -10,7 +10,6 @@ import type { BatchJobStatus, Batch, JobQueue } from "@brains/job-queue";
 import type { Conversation, Message } from "@brains/conversation-service";
 import {
   systemConfigSchema,
-  defaultSystemConfig,
   type SystemConfig,
   type SearchOptions,
 } from "./schemas";
@@ -37,7 +36,6 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
       packageJson,
       config,
       systemConfigSchema,
-      defaultSystemConfig,
     );
   }
 

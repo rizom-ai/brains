@@ -4,10 +4,10 @@ import { z } from "@brains/utils";
  * Configuration schema for directory sync plugin
  */
 export const directorySyncConfigSchema = z.object({
-  syncPath: z.string().describe("Directory path for synchronization"),
-  watchEnabled: z.boolean().describe("Enable file watching"),
-  watchInterval: z.number().describe("Watch polling interval in ms"),
-  includeMetadata: z.boolean().describe("Include frontmatter metadata"),
+  syncPath: z.string().describe("Directory path for synchronization").default("./brain-data"),
+  watchEnabled: z.boolean().describe("Enable file watching").default(true),
+  watchInterval: z.number().describe("Watch polling interval in ms").default(1000),
+  includeMetadata: z.boolean().describe("Include frontmatter metadata").default(true),
   entityTypes: z
     .array(z.string())
     .optional()
@@ -15,21 +15,25 @@ export const directorySyncConfigSchema = z.object({
   initialSync: z
     .boolean()
     .optional()
-    .describe("Queue initial sync job on startup"),
+    .describe("Queue initial sync job on startup")
+    .default(true),
   initialSyncDelay: z
     .number()
     .optional()
-    .describe("Delay before initial sync (ms)"),
+    .describe("Delay before initial sync (ms)")
+    .default(1000),
   syncBatchSize: z
     .number()
     .optional()
-    .describe("Batch size for sync operations"),
+    .describe("Batch size for sync operations")
+    .default(10),
   syncPriority: z
     .number()
     .min(1)
     .max(10)
     .optional()
-    .describe("Job priority (1-10)"),
+    .describe("Job priority (1-10)")
+    .default(3),
 });
 
 export type DirectorySyncConfig = z.infer<typeof directorySyncConfigSchema>;

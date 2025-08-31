@@ -41,13 +41,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   private commands: Command[] = [];
 
   constructor(config: Partial<TopicsPluginConfig> = {}) {
-    super(
-      "topics",
-      packageJson,
-      config,
-      topicsPluginConfigSchema,
-      {},
-    );
+    super("topics", packageJson, config, topicsPluginConfigSchema);
   }
 
   override async onRegister(context: ServicePluginContext): Promise<void> {

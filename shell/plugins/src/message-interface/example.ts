@@ -5,9 +5,9 @@ import { z } from "@brains/utils";
 
 // Define the plugin configuration schema
 const echoConfigSchema = z.object({
-  enabled: z.boolean().describe("Enable the echo interface"),
-  prefix: z.string().describe("Prefix for echo messages"),
-  debug: z.boolean().describe("Enable debug logging"),
+  enabled: z.boolean().describe("Enable the echo interface").default(true),
+  prefix: z.string().describe("Prefix for echo messages").default("[ECHO]"),
+  debug: z.boolean().describe("Enable debug logging").default(false),
 });
 
 type EchoConfig = z.infer<typeof echoConfigSchema>;
@@ -26,12 +26,6 @@ export class EchoMessageInterface extends MessageInterfacePlugin<EchoConfig> {
   private messageCounter = 0;
 
   constructor(config: EchoConfigInput = {}) {
-    const defaults: Partial<EchoConfig> = {
-      enabled: true,
-      prefix: "[ECHO]",
-      debug: false,
-    };
-
     super(
       "echo-interface",
       {
@@ -41,7 +35,6 @@ export class EchoMessageInterface extends MessageInterfacePlugin<EchoConfig> {
       },
       config,
       echoConfigSchema,
-      defaults,
     );
   }
 

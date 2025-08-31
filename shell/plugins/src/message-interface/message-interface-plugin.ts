@@ -49,10 +49,9 @@ export abstract class MessageInterfacePlugin<
     packageJson: { name: string; version: string; description?: string },
     partialConfig: Partial<TConfig>,
     configSchema: z.ZodType<TConfig>,
-    defaults: Partial<TConfig>,
     sessionId?: string,
   ) {
-    super(id, packageJson, partialConfig, configSchema, defaults);
+    super(id, packageJson, partialConfig, configSchema);
     this.sessionId = sessionId ?? `${id}-session-${Date.now()}`;
     this.queue = new PQueue({
       concurrency: 1,

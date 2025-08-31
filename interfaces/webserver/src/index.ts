@@ -9,7 +9,6 @@
 export { WebserverInterface } from "./webserver-interface";
 export {
   webserverConfigSchema,
-  defaultWebserverConfig,
   type WebserverConfig,
 } from "./config";
 

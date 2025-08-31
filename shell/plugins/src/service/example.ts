@@ -12,14 +12,16 @@ import { z } from "@brains/utils";
 
 // Define the plugin configuration schema
 const calculatorConfigSchema = z.object({
-  enabled: z.boolean().describe("Enable the calculator service plugin"),
-  debug: z.boolean().describe("Enable debug logging"),
+  enabled: z.boolean().describe("Enable the calculator service plugin").default(true),
+  debug: z.boolean().describe("Enable debug logging").default(false),
   enableBatchProcessing: z
     .boolean()
-    .describe("Enable batch calculation processing"),
+    .describe("Enable batch calculation processing")
+    .default(true),
   maxBatchSize: z
     .number()
-    .describe("Maximum number of calculations in a batch"),
+    .describe("Maximum number of calculations in a batch")
+    .default(100),
 });
 
 type CalculatorConfig = z.infer<typeof calculatorConfigSchema>;
@@ -36,13 +38,6 @@ type CalculatorConfigInput = Partial<CalculatorConfig>;
  */
 export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
   constructor(config: CalculatorConfigInput = {}) {
-    const defaults: CalculatorConfig = {
-      enabled: true,
-      debug: false,
-      enableBatchProcessing: true,
-      maxBatchSize: 100,
-    };
-
     super(
       "calculator-service",
       {
@@ -53,7 +48,6 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
       },
       config,
       calculatorConfigSchema,
-      defaults,
     );
   }
 

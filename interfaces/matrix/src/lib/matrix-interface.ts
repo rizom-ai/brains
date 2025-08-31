@@ -9,7 +9,7 @@ import {
   type JobProgressEvent,
   type JobContext,
 } from "@brains/plugins";
-import { matrixConfigSchema, MATRIX_CONFIG_DEFAULTS } from "../schemas";
+import { matrixConfigSchema } from "../schemas";
 import type { MatrixConfig } from "../schemas";
 import { MatrixClientWrapper } from "../client/matrix-client";
 import {
@@ -39,7 +39,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       packageJson,
       config,
       matrixConfigSchema,
-      MATRIX_CONFIG_DEFAULTS,
       sessionId,
     );
     // Set command prefix to match Matrix config

@@ -11,7 +11,6 @@ import { existsSync } from "fs";
 import { join } from "path";
 import {
   webserverConfigSchema,
-  defaultWebserverConfig,
   type WebserverConfig,
 } from "./config";
 import { placeholderHtml } from "./templates/placeholder";
@@ -30,7 +29,6 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
       packageJson,
       config,
       webserverConfigSchema,
-      defaultWebserverConfig,
     );
   }
 

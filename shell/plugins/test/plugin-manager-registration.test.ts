@@ -23,7 +23,6 @@ class TestPlugin extends CorePlugin<Record<string, never>> {
       { name: "test-plugin", version: "1.0.0" },
       {}, // config
       z.object({}), // configSchema
-      {}, // defaults
     );
   }
 
@@ -242,7 +241,6 @@ describe("PluginManager - Direct Registration", () => {
             { name: "empty-plugin", version: "1.0.0" },
             {},
             z.object({}),
-            {},
           );
         }
       }
@@ -265,7 +263,6 @@ describe("PluginManager - Direct Registration", () => {
             { name: "second-plugin", version: "1.0.0" },
             {},
             z.object({}),
-            {},
           );
         }
 

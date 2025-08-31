@@ -25,7 +25,6 @@ import { createSiteBuilderCommands } from "./commands";
 import type { SiteBuilderConfig } from "./config";
 import {
   siteBuilderConfigSchema,
-  SITE_BUILDER_CONFIG_DEFAULTS,
 } from "./config";
 import packageJson from "../package.json";
 
@@ -55,7 +54,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       packageJson,
       config,
       siteBuilderConfigSchema,
-      SITE_BUILDER_CONFIG_DEFAULTS,
     );
   }
 

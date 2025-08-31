@@ -11,14 +11,6 @@ import packageJson from "../package.json";
  * Git Sync plugin that extends CorePlugin
  * Adds git version control to directory-sync
  */
-// Default configuration for git-sync plugin
-const GIT_SYNC_DEFAULTS: Partial<GitSyncConfig> = {
-  enabled: true,
-  debug: false,
-  branch: "main",
-  autoSync: false,
-  syncInterval: 5,
-};
 
 export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
@@ -29,7 +21,6 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
       packageJson,
       config,
       gitSyncConfigSchema,
-      GIT_SYNC_DEFAULTS,
     );
   }
 

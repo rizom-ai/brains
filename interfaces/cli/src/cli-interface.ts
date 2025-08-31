@@ -13,7 +13,7 @@ import type {
   JobContext,
 } from "@brains/plugins";
 import type { Instance } from "ink";
-import { cliConfigSchema, defaultCLIConfig, type CLIConfig } from "./config";
+import { cliConfigSchema, type CLIConfig } from "./config";
 import { progressReducer, formatProgressMessage } from "./handlers/progress";
 import { MessageHandlers } from "./handlers";
 import { createCLICommands } from "./commands";
@@ -27,7 +27,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   private messageHandlers = new MessageHandlers();
 
   constructor(config: Partial<CLIConfig> = {}) {
-    super("cli", packageJson, config, cliConfigSchema, defaultCLIConfig);
+    super("cli", packageJson, config, cliConfigSchema);
   }
 
   public override determineUserPermissionLevel(

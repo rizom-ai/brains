@@ -31,4 +31,3 @@ export const topicsPluginConfigSchema = z.object({
 });
 
 export type TopicsPluginConfig = z.infer<typeof topicsPluginConfigSchema>;
-

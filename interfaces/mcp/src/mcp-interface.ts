@@ -34,7 +34,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   private httpServer: StreamableHTTPServer | undefined;
 
   constructor(config: Partial<MCPConfig> = {}) {
-    super("mcp", packageJson, config, mcpConfigSchema, {});
+    super("mcp", packageJson, config, mcpConfigSchema);
   }
 
   /**

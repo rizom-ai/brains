@@ -18,16 +18,6 @@ import { createDirectorySyncCommands } from "./commands";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
 
-const DIRECTORY_SYNC_CONFIG_DEFAULTS = {
-  syncPath: "./brain-data",
-  watchEnabled: true,
-  watchInterval: 1000,
-  includeMetadata: true,
-  initialSync: true,
-  initialSyncDelay: 1000,
-  syncBatchSize: 10,
-  syncPriority: 3,
-} as const;
 
 /**
  * Directory Sync plugin that extends BasePlugin
@@ -43,7 +33,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       packageJson,
       config,
       directorySyncConfigSchema,
-      DIRECTORY_SYNC_CONFIG_DEFAULTS,
     );
   }
 

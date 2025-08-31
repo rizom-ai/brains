@@ -13,8 +13,8 @@ import { z } from "@brains/utils";
  * - Clear documentation of expected configuration
  */
 const calculatorConfigSchema = z.object({
-  enabled: z.boolean().describe("Enable the calculator plugin"),
-  debug: z.boolean().describe("Enable debug logging"),
+  enabled: z.boolean().describe("Enable the calculator plugin").default(true),
+  debug: z.boolean().describe("Enable debug logging").default(false),
 });
 
 type CalculatorConfig = z.infer<typeof calculatorConfigSchema>;
@@ -39,11 +39,6 @@ type CalculatorConfigInput = Partial<CalculatorConfig>;
  */
 export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
   constructor(config: CalculatorConfigInput = {}) {
-    const defaults: CalculatorConfig = {
-      enabled: true,
-      debug: false,
-    };
-
     super(
       "calculator",
       {
@@ -52,9 +47,8 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
         description:
           "Simple calculator plugin demonstrating Core plugin capabilities",
       },
-      { ...defaults, ...config },
+      config,
       calculatorConfigSchema,
-      defaults,
     );
   }
 

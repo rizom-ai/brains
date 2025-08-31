@@ -78,16 +78,14 @@ export abstract class BasePlugin<
     packageJson: { name: string; version: string; description?: string },
     partialConfig: Partial<TConfig>,
     configSchema: z.ZodType<TConfig>,
-    defaults: Partial<TConfig>,
   ) {
     this.id = id;
     this.packageName = packageJson.name;
     this.version = packageJson.version;
     this.description = packageJson.description ?? `${packageJson.name} plugin`;
 
-    // Merge with defaults first, then validate
-    const configWithDefaults = { ...defaults, ...partialConfig };
-    this.config = configSchema.parse(configWithDefaults);
+    // Let Zod schema handle defaults during parsing
+    this.config = configSchema.parse(partialConfig);
   }
 
   /**
