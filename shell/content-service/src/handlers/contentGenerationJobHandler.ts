@@ -13,7 +13,7 @@ export const contentGenerationJobDataSchema = z.object({
   templateName: z.string().min(1, "Template name is required"),
   context: z.object({
     prompt: z.string().optional(),
-    data: z.record(z.unknown()).optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
     conversationHistory: z.string().optional(),
   }),
   userId: z.string().optional(),
@@ -245,7 +245,7 @@ export class ContentGenerationJobHandler
     } catch (error) {
       this.logger.warn("Invalid content generation job data", {
         data,
-        validationError: error instanceof z.ZodError ? error.errors : error,
+        validationError: error instanceof z.ZodError ? error.issues : error,
       });
       return null;
     }

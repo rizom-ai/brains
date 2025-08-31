@@ -16,7 +16,7 @@ const listOptionsSchema = z.object({
   sortDirection: z.enum(["asc", "desc"]).optional().default("desc"),
   filter: z
     .object({
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     })
     .optional(),
 });

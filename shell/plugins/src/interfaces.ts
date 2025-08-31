@@ -114,7 +114,7 @@ export const systemToolRegisterSchema = z.object({
   tool: z.object({
     name: z.string(),
     description: z.string(),
-    inputSchema: z.record(z.unknown()), // ZodRawShape
+    inputSchema: z.record(z.string(), z.unknown()), // ZodRawShape
     handler: z.function(),
     visibility: z.enum(["public", "trusted", "anchor"]).optional(),
   }),
@@ -190,7 +190,7 @@ export const DaemonHealthSchema = z.object({
   status: z.enum(["healthy", "warning", "error", "unknown"]),
   message: z.string().optional(),
   lastCheck: z.date().optional(),
-  details: z.record(z.unknown()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type DaemonHealth = z.infer<typeof DaemonHealthSchema>;
@@ -255,7 +255,7 @@ export const toolResponseSchema = z
     status: z.string().optional(),
     message: z.string().optional(),
     success: z.boolean().optional(),
-    data: z.record(z.unknown()).optional(), // Generic data object
+    data: z.record(z.string(), z.unknown()).optional(), // Generic data object
   })
   .passthrough(); // Allow additional fields
 

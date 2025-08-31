@@ -65,7 +65,7 @@ export const JobResultSchema = z.object({
  */
 export const BatchOperationSchema = z.object({
   type: z.string(),
-  data: z.record(z.unknown()).default({}),
+  data: z.record(z.string(), z.unknown()).default({}),
 });
 
 /**

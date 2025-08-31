@@ -18,7 +18,7 @@ export const baseMessageSchema = z.object({
   type: z.string().min(1),
   source: z.string().min(1),
   target: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

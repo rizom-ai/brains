@@ -332,7 +332,7 @@ export class MessageBus implements IMessageBus {
       if (error instanceof z.ZodError) {
         return {
           valid: false,
-          error: error.errors[0]?.message ?? "Validation failed",
+          error: error.issues[0]?.message ?? "Validation failed",
         };
       }
       return { valid: false, error: "Unknown validation error" };

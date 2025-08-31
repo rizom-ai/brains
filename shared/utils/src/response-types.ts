@@ -19,7 +19,7 @@ export const defaultQueryResponseSchema = z
       )
       .optional()
       .describe("Source entities used to answer the query"),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
   })
   .describe("defaultQueryResponse");
 

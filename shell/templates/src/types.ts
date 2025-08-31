@@ -48,7 +48,8 @@ export interface Template
  * Helper to create a template with automatic component wrapping
  */
 export function createTemplate<T>(
-  template: Omit<Template, "layout"> & {
+  template: Omit<Template, "layout" | "schema"> & {
+    schema: z.ZodType<T>;
     layout?: {
       component?: ComponentType<T>;
       interactive?: boolean;

@@ -9,7 +9,7 @@ import {
 } from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils";
 import {
-  defaultTopicsPluginConfig,
+  topicsPluginConfigSchema,
   type TopicsPluginConfig,
 } from "../../src/schemas/config";
 
@@ -27,16 +27,8 @@ describe("TopicExtractionHandler", () => {
     // Create service plugin context with mock shell
     context = createServicePluginContext(mockShell, "topics", logger);
 
-    // Build config with defaults
-    config = {
-      extractionWindowHours:
-        defaultTopicsPluginConfig.extractionWindowHours ?? 24,
-      minRelevanceScore: defaultTopicsPluginConfig.minRelevanceScore ?? 0.5,
-      mergeSimilarityThreshold:
-        defaultTopicsPluginConfig.mergeSimilarityThreshold ?? 0.8,
-      autoExtract: defaultTopicsPluginConfig.autoExtract ?? true,
-      autoMerge: defaultTopicsPluginConfig.autoMerge ?? true,
-    };
+    // Use schema defaults by parsing empty object
+    config = topicsPluginConfigSchema.parse({});
 
     handler = new TopicExtractionHandler(context, config, logger);
   });

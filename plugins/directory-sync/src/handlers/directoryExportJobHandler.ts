@@ -217,7 +217,7 @@ export class DirectoryExportJobHandler
     } catch (error) {
       this.logger.warn("Invalid directory export job data", {
         data,
-        validationError: error instanceof z.ZodError ? error.errors : error,
+        validationError: error instanceof z.ZodError ? error.issues : error,
       });
       return null;
     }

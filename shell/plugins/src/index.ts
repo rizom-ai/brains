@@ -76,8 +76,6 @@ export {
 // Config utilities
 export {
   basePluginConfigSchema,
-  validatePluginConfig,
-  mergePluginConfig,
   type PluginConfigInput,
   type PluginConfig,
 } from "./config";

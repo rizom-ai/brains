@@ -14,7 +14,7 @@ const embeddingJobDataSchema = z.object({
   id: z.string().min(1, "Entity ID is required"),
   entityType: z.string().min(1, "Entity type is required"),
   content: z.string().min(1, "Content is required"),
-  metadata: z.record(z.unknown()).default({}),
+  metadata: z.record(z.string(), z.unknown()).default({}),
   created: z.number().int().positive("Created timestamp must be positive"),
   updated: z.number().int().positive("Updated timestamp must be positive"),
   contentWeight: z
@@ -200,7 +200,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
     } catch (error) {
       this.logger.warn("Invalid embedding job data", {
         data,
-        validationError: error instanceof z.ZodError ? error.errors : error,
+        validationError: error instanceof z.ZodError ? error.issues : error,
       });
       return null;
     }

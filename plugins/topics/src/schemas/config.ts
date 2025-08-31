@@ -7,38 +7,28 @@ export const topicsPluginConfigSchema = z.object({
   /**
    * Number of messages to process in each window
    */
-  windowSize: z.number().min(10).max(100).optional(),
+  windowSize: z.number().min(10).max(100).default(30),
 
   /**
    * Minimum relevance score for topic extraction
    */
-  minRelevanceScore: z.number().min(0).max(1).optional(),
+  minRelevanceScore: z.number().min(0).max(1).default(0.5),
 
   /**
    * Similarity threshold for automatic merging
    */
-  mergeSimilarityThreshold: z.number().min(0).max(1).optional(),
+  mergeSimilarityThreshold: z.number().min(0).max(1).default(0.6),
 
   /**
    * Enable automatic merging of similar topics
    */
-  autoMerge: z.boolean().optional(),
+  autoMerge: z.boolean().default(true),
 
   /**
    * Enable automatic topic extraction from conversation digests
    */
-  enableAutoExtraction: z.boolean().optional(),
+  enableAutoExtraction: z.boolean().default(true),
 });
 
 export type TopicsPluginConfig = z.infer<typeof topicsPluginConfigSchema>;
 
-/**
- * Default configuration
- */
-export const defaultTopicsPluginConfig: Partial<TopicsPluginConfig> = {
-  windowSize: 30,
-  minRelevanceScore: 0.5,
-  mergeSimilarityThreshold: 0.6,
-  autoMerge: true,
-  enableAutoExtraction: true,
-};

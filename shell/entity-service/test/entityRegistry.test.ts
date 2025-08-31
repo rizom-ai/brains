@@ -77,7 +77,10 @@ const markdownParseSchema = z
     updated: z.string().datetime().optional(),
     entityType: z.literal("note").optional(),
   })
-  .default({});
+  .default({
+    category: "",
+    tags: [],
+  });
 
 /**
  * Test adapter implementation for Note entities

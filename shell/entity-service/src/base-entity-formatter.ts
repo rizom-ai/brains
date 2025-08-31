@@ -29,7 +29,7 @@ export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
       try {
         const parsed = parseMarkdownWithFrontmatter(
           entity.content,
-          z.record(z.unknown()), // Allow any frontmatter structure
+          z.record(z.string(), z.unknown()), // Allow any frontmatter structure
         );
         actualContent = parsed.content;
         frontmatter = parsed.metadata;

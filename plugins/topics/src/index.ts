@@ -12,7 +12,6 @@ import { conversationDigestPayloadSchema } from "@brains/conversation-service";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
-  defaultTopicsPluginConfig,
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
 import { TopicExtractor } from "./lib/topic-extractor";
@@ -47,7 +46,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       packageJson,
       config,
       topicsPluginConfigSchema,
-      defaultTopicsPluginConfig,
+      {},
     );
   }
 

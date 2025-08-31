@@ -256,7 +256,7 @@ export class DirectoryImportJobHandler
     } catch (error) {
       this.logger.warn("Invalid directory import job data", {
         data,
-        validationError: error instanceof z.ZodError ? error.errors : error,
+        validationError: error instanceof z.ZodError ? error.issues : error,
       });
       return null;
     }
