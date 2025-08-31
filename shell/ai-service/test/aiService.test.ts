@@ -271,7 +271,6 @@ describe("AIService", () => {
     });
   });
 
-
   describe("Edge Cases", () => {
     it("should handle empty prompts", async () => {
       const service = AIService.createFresh({}, logger);

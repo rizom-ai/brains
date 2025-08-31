@@ -54,6 +54,7 @@ export class App {
           model: "claude-3-haiku-20240307",
           temperature: 0.7,
           maxTokens: 1000,
+          webSearch: false,
         };
       }
 
