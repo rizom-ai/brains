@@ -1,4 +1,9 @@
-import type { Plugin, ServicePluginContext, Command, PluginTool } from "@brains/plugins";
+import type {
+  Plugin,
+  ServicePluginContext,
+  Command,
+  PluginTool,
+} from "@brains/plugins";
 import { ServicePlugin, createId } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
 import {

@@ -122,7 +122,10 @@ export function createCorePluginContext(
     },
 
     // Query functionality
-    query: (prompt: string, context?: Record<string, unknown>): Promise<DefaultQueryResponse> => {
+    query: (
+      prompt: string,
+      context?: Record<string, unknown>,
+    ): Promise<DefaultQueryResponse> => {
       return shell.query(prompt, context);
     },
 
@@ -141,7 +144,9 @@ export function createCorePluginContext(
     },
 
     // Conversation service
-    getConversation: async (conversationId: string): Promise<Conversation | null> => {
+    getConversation: async (
+      conversationId: string,
+    ): Promise<Conversation | null> => {
       const conversationService = shell.getConversationService();
       return conversationService.getConversation(conversationId);
     },

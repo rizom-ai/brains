@@ -8,7 +8,7 @@ import type { AIModelConfig, AIService as IAIService } from "./types";
 /**
  * Default model configuration
  */
-const DEFAULT_MODEL = "claude-4-sonnet-20250514";
+const DEFAULT_MODEL = "claude-3-5-haiku-latest";
 
 /**
  * AI Service for generating responses using Vercel AI SDK
@@ -50,6 +50,7 @@ export class AIService implements IAIService {
       model: config.model ?? DEFAULT_MODEL,
       temperature: config.temperature ?? 0.7,
       maxTokens: config.maxTokens ?? 1000,
+      webSearch: config.webSearch ?? true, // Default to true
     };
     this.logger = logger.child("AIService");
 
@@ -95,6 +96,9 @@ export class AIService implements IAIService {
         }),
         ...(this.config.maxTokens !== undefined && {
           maxTokens: this.config.maxTokens,
+        }),
+        ...(this.config.webSearch && {
+          webSearch: true,
         }),
       });
 
@@ -142,6 +146,9 @@ export class AIService implements IAIService {
         }),
         ...(this.config.maxTokens !== undefined && {
           maxTokens: this.config.maxTokens,
+        }),
+        ...(this.config.webSearch && {
+          webSearch: true,
         }),
       });
 

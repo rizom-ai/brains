@@ -8,6 +8,7 @@ export interface AIModelConfig {
   apiKey?: string;
   temperature?: number;
   maxTokens?: number;
+  webSearch?: boolean;
 }
 
 /**

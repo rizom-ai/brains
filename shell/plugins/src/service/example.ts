@@ -292,12 +292,12 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
             },
           });
 
-          return { 
+          return {
             success: true,
             data: {
-              result: result.toString(), 
-              calculationId: calculation.entityId 
-            }
+              result: result.toString(),
+              calculationId: calculation.entityId,
+            },
           };
         },
       },

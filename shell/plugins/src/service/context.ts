@@ -121,7 +121,9 @@ export function createServicePluginContext(
     },
 
     // AI content generation
-    generateContent: async <T = unknown>(config: ContentGenerationConfig): Promise<T> => {
+    generateContent: async <T = unknown>(
+      config: ContentGenerationConfig,
+    ): Promise<T> => {
       return shell.generateContent(config);
     },
 
@@ -150,7 +152,9 @@ export function createServicePluginContext(
 
     // Job queue functionality
     enqueueJob: async (type, data, options): Promise<string> => {
-      const rootJobId = options?.metadata ? options.metadata.rootJobId : createId();
+      const rootJobId = options?.metadata
+        ? options.metadata.rootJobId
+        : createId();
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
@@ -209,14 +213,28 @@ export function createServicePluginContext(
     },
 
     // Content resolution helper
-    resolveContent: async <T = unknown>(templateName: string, options?: ResolutionOptions): Promise<T | null> => {
+    resolveContent: async <T = unknown>(
+      templateName: string,
+      options?: ResolutionOptions,
+    ): Promise<T | null> => {
       const contentService = shell.getContentService();
-      const result = await contentService.resolveContent(templateName, options, pluginId);
+      const result = await contentService.resolveContent(
+        templateName,
+        options,
+        pluginId,
+      );
       return result as T;
     },
 
     // Template capability checking
-    getTemplateCapabilities: (templateName: string): { canGenerate: boolean; canFetch: boolean; canRender: boolean; isStaticOnly: boolean; } | null => {
+    getTemplateCapabilities: (
+      templateName: string,
+    ): {
+      canGenerate: boolean;
+      canFetch: boolean;
+      canRender: boolean;
+      isStaticOnly: boolean;
+    } | null => {
       // Apply plugin scoping if not already scoped
       const scopedTemplateName = templateName.includes(":")
         ? templateName

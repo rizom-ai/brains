@@ -97,9 +97,10 @@ export const shellConfigSchema = z.object({
   ai: z.object({
     provider: z.enum(["anthropic"]).default("anthropic"),
     apiKey: z.string(),
-    model: z.string().default("claude-3-haiku-20240307"),
+    model: z.string().default("claude-3-5-haiku-latest"),
     temperature: z.number().min(0).max(2).default(0.7),
     maxTokens: z.number().positive().default(1000),
+    webSearch: z.boolean().default(true),
   }),
 
   // Embedding configuration (required - no defaults)
@@ -151,9 +152,10 @@ export function createShellConfig(
     ai: {
       provider: "anthropic" as const,
       apiKey: process.env["ANTHROPIC_API_KEY"] ?? overrides.ai?.apiKey ?? "",
-      model: overrides.ai?.model ?? "claude-3-haiku-20240307",
+      model: overrides.ai?.model ?? "claude-3-5-haiku-latest",
       temperature: overrides.ai?.temperature ?? 0.7,
       maxTokens: overrides.ai?.maxTokens ?? 1000,
+      webSearch: overrides.ai?.webSearch ?? true,
     },
     embedding: overrides.embedding ?? standardConfig.embedding,
     logging: {

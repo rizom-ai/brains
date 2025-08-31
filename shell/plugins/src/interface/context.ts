@@ -136,7 +136,9 @@ export function createInterfacePluginContext(
     // Job queue functionality
     enqueueJob: async (type, data, options): Promise<string> => {
       const jobQueueService = shell.getJobQueueService();
-      const rootJobId = options?.metadata ? options.metadata.rootJobId : createId();
+      const rootJobId = options?.metadata
+        ? options.metadata.rootJobId
+        : createId();
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {

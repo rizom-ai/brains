@@ -83,7 +83,7 @@ describe("AIService", () => {
       const service = AIService.createFresh({}, logger);
       const config = service.getConfig();
 
-      expect(config.model).toBe("claude-4-sonnet-20250514");
+      expect(config.model).toBe("claude-3-5-haiku-latest");
       expect(config.temperature).toBe(0.7);
       expect(config.maxTokens).toBe(1000);
     });
@@ -141,6 +141,7 @@ describe("AIService", () => {
         prompt: userPrompt,
         temperature: 0.7,
         maxTokens: 1000,
+        webSearch: true,
       });
     });
 
@@ -232,6 +233,7 @@ describe("AIService", () => {
         schema: testSchema,
         temperature: 0.7,
         maxTokens: 1000,
+        webSearch: true,
       });
     });
 
@@ -268,6 +270,7 @@ describe("AIService", () => {
       );
     });
   });
+
 
   describe("Edge Cases", () => {
     it("should handle empty prompts", async () => {

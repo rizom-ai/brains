@@ -84,10 +84,15 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
         }),
         basePrompt: "",
         formatter: {
-          format: (data: { operation: string; operands?: string[] }): string => {
+          format: (data: {
+            operation: string;
+            operands?: string[];
+          }): string => {
             return `The operation ${data.operation} was performed on ${data.operands?.join(", ") ?? "no operands"}`;
           },
-          parse: (content: string): { operation: string; operands?: string[] } => {
+          parse: (
+            content: string,
+          ): { operation: string; operands?: string[] } => {
             const match = content.match(
               /The operation (.*) was performed on (.*)/,
             );

@@ -151,8 +151,7 @@ export class TopicExtractionHandler
           this.config.autoMerge &&
           searchResults.length > 0 &&
           searchResults[0] &&
-          searchResults[0].score >=
-            this.config.mergeSimilarityThreshold
+          searchResults[0].score >= this.config.mergeSimilarityThreshold
         ) {
           await topicService.updateTopic(searchResults[0].entity.id, {
             sources: topic.sources,
