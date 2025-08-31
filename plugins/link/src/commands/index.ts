@@ -35,7 +35,9 @@ export function createLinkCommands(
           // Parse tags if provided
           for (let i = 1; i < args.length; i++) {
             if (args[i] === "--tags" && args[i + 1]) {
-              tags = (args[i + 1] as string).split(",").map(tag => tag.trim());
+              tags = (args[i + 1] as string)
+                .split(",")
+                .map((tag) => tag.trim());
               break;
             }
           }
@@ -85,8 +87,9 @@ export function createLinkCommands(
           }
 
           const linkList = links
-            .map((link, index) => 
-              `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Tags: ${link.tags.join(", ") || "None"}\n   Captured: ${new Date(link.capturedAt).toLocaleDateString()}`
+            .map(
+              (link, index) =>
+                `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Tags: ${link.tags.join(", ") || "None"}\n   Captured: ${new Date(link.capturedAt).toLocaleDateString()}`,
             )
             .join("\n\n");
 
@@ -116,9 +119,11 @@ export function createLinkCommands(
           let i = 0;
           while (i < args.length) {
             const arg = args[i] as string;
-            
+
             if (arg === "--tags" && args[i + 1]) {
-              tags = (args[i + 1] as string).split(",").map(tag => tag.trim());
+              tags = (args[i + 1] as string)
+                .split(",")
+                .map((tag) => tag.trim());
               i += 2;
             } else if (arg === "--limit" && args[i + 1]) {
               limit = parseInt(args[i + 1] as string, 10);
@@ -137,13 +142,17 @@ export function createLinkCommands(
             }
           }
 
-          const links = await linkService.searchLinks(query, tags.length > 0 ? tags : undefined, limit);
+          const links = await linkService.searchLinks(
+            query,
+            tags.length > 0 ? tags : undefined,
+            limit,
+          );
 
           if (links.length === 0) {
             const searchTerms = [];
             if (query) searchTerms.push(`query: "${query}"`);
             if (tags.length > 0) searchTerms.push(`tags: ${tags.join(", ")}`);
-            
+
             return {
               type: "message",
               message: `No links found${searchTerms.length > 0 ? ` for ${searchTerms.join(" and ")}` : ""}.`,
@@ -151,8 +160,9 @@ export function createLinkCommands(
           }
 
           const linkList = links
-            .map((link, index) => 
-              `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Tags: ${link.tags.join(", ") || "None"}\n   Description: ${link.description}`
+            .map(
+              (link, index) =>
+                `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Tags: ${link.tags.join(", ") || "None"}\n   Description: ${link.description}`,
             )
             .join("\n\n");
 

@@ -30,7 +30,7 @@ describe("LinkPlugin", () => {
         enableSummarization: false,
         autoTag: false,
       }) as LinkPlugin;
-      
+
       expect(customPlugin.config.enableSummarization).toBe(false);
       expect(customPlugin.config.autoTag).toBe(false);
     });

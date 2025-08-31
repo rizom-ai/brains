@@ -7,7 +7,11 @@ import {
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins";
-import { mockLinkContent, mockLinkEntity, mockAIResponse } from "../fixtures/link-entities";
+import {
+  mockLinkContent,
+  mockLinkEntity,
+  mockAIResponse,
+} from "../fixtures/link-entities";
 
 describe("LinkService", () => {
   let linkService: LinkService;
@@ -65,16 +69,22 @@ describe("LinkService", () => {
 
       const url = "https://example.com/test-article";
 
-      await expect(linkService.captureLink(url)).rejects.toThrow("AI service failed");
+      await expect(linkService.captureLink(url)).rejects.toThrow(
+        "AI service failed",
+      );
     });
 
     it("should handle invalid JSON response from AI", async () => {
       // Mock AI service to return invalid response type
-      context.generateContent = mock(async () => "invalid json response" as any);
+      context.generateContent = mock(
+        async () => "invalid json response" as any,
+      );
 
       const url = "https://example.com/test-article";
 
-      await expect(linkService.captureLink(url)).rejects.toThrow("Failed to parse AI extraction result");
+      await expect(linkService.captureLink(url)).rejects.toThrow(
+        "Failed to parse AI extraction result",
+      );
     });
 
     it("should handle incomplete AI response", async () => {
@@ -83,7 +93,9 @@ describe("LinkService", () => {
 
       const url = "https://example.com/test-article";
 
-      await expect(linkService.captureLink(url)).rejects.toThrow("AI extraction failed to provide all required fields");
+      await expect(linkService.captureLink(url)).rejects.toThrow(
+        "AI extraction failed to provide all required fields",
+      );
     });
   });
 
@@ -139,7 +151,10 @@ describe("LinkService", () => {
 
       const result = await linkService.getLink("link-1");
 
-      expect(context.entityService.getEntity).toHaveBeenCalledWith("link", "link-1");
+      expect(context.entityService.getEntity).toHaveBeenCalledWith(
+        "link",
+        "link-1",
+      );
 
       expect(result).not.toBeNull();
       expect(result?.id).toBe("link-1");

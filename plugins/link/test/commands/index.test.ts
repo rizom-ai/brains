@@ -8,7 +8,11 @@ import {
   type CommandContext,
   type Logger,
 } from "@brains/plugins";
-import { mockLinkContent, mockLinkEntity, mockAIResponse } from "../fixtures/link-entities";
+import {
+  mockLinkContent,
+  mockLinkEntity,
+  mockAIResponse,
+} from "../fixtures/link-entities";
 
 describe("Link Commands", () => {
   let context: ServicePluginContext;
@@ -36,16 +40,22 @@ describe("Link Commands", () => {
 
   describe("link-capture command", () => {
     it("should have correct metadata", () => {
-      const captureCommand = commands.find((cmd) => cmd.name === "link-capture");
+      const captureCommand = commands.find(
+        (cmd) => cmd.name === "link-capture",
+      );
 
       expect(captureCommand).toBeDefined();
-      expect(captureCommand?.description).toBe("Capture a web link with AI-powered content extraction");
+      expect(captureCommand?.description).toBe(
+        "Capture a web link with AI-powered content extraction",
+      );
       expect(captureCommand?.usage).toContain("<url>");
       expect(captureCommand?.usage).toContain("--tags");
     });
 
     it("should capture link with AI extraction", async () => {
-      const captureCommand = commands.find((cmd) => cmd.name === "link-capture")!;
+      const captureCommand = commands.find(
+        (cmd) => cmd.name === "link-capture",
+      )!;
 
       // Mock the AI content generation
       context.generateContent = mock(async () => mockAIResponse.complete);
@@ -62,7 +72,9 @@ describe("Link Commands", () => {
     });
 
     it("should require URL argument", async () => {
-      const captureCommand = commands.find((cmd) => cmd.name === "link-capture")!;
+      const captureCommand = commands.find(
+        (cmd) => cmd.name === "link-capture",
+      )!;
 
       const result = await captureCommand.handler([], mockCommandContext);
 
@@ -71,7 +83,9 @@ describe("Link Commands", () => {
     });
 
     it("should handle capture errors", async () => {
-      const captureCommand = commands.find((cmd) => cmd.name === "link-capture")!;
+      const captureCommand = commands.find(
+        (cmd) => cmd.name === "link-capture",
+      )!;
 
       // Mock AI service to throw error
       context.generateContent = mock(async () => {
@@ -127,7 +141,10 @@ describe("Link Commands", () => {
     it("should respect limit argument", async () => {
       const listCommand = commands.find((cmd) => cmd.name === "link-list")!;
 
-      const result = await listCommand.handler(["--limit", "5"], mockCommandContext);
+      const result = await listCommand.handler(
+        ["--limit", "5"],
+        mockCommandContext,
+      );
 
       expect(result.type).toBe("message");
       // Since no links exist, it should return "No links found"
@@ -155,7 +172,9 @@ describe("Link Commands", () => {
       );
 
       expect(result.type).toBe("message");
-      expect(result.message).toContain('No links found for query: "javascript"');
+      expect(result.message).toContain(
+        'No links found for query: "javascript"',
+      );
     });
 
     it("should handle missing query", async () => {
@@ -207,7 +226,10 @@ describe("Link Commands", () => {
     it("should handle non-existent link", async () => {
       const getCommand = commands.find((cmd) => cmd.name === "link-get")!;
 
-      const result = await getCommand.handler(["non-existent"], mockCommandContext);
+      const result = await getCommand.handler(
+        ["non-existent"],
+        mockCommandContext,
+      );
 
       expect(result.type).toBe("message");
       expect(result.message).toBe("Link not found: non-existent");

@@ -270,3 +270,20 @@ export function createMergeTool(
     },
   };
 }
+
+/**
+ * Create all topics tools
+ */
+export function createTopicsTools(
+  context: ServicePluginContext,
+  config: TopicsPluginConfig,
+  logger: Logger,
+): PluginTool[] {
+  return [
+    createExtractTool(context, config, logger),
+    createListTool(context, config, logger),
+    createGetTool(context, config, logger),
+    createSearchTool(context, config, logger),
+    createMergeTool(context, config, logger),
+  ];
+}

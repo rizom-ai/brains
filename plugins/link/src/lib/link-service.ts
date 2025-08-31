@@ -8,16 +8,17 @@ import { LinkAdapter } from "../adapters/link-adapter";
 export class LinkService {
   private linkAdapter: LinkAdapter;
 
-  constructor(
-    private context: ServicePluginContext,
-  ) {
+  constructor(private context: ServicePluginContext) {
     this.linkAdapter = new LinkAdapter();
   }
 
   /**
    * Capture a web link with AI extraction
    */
-  async captureLink(url: string, tags?: string[]): Promise<{
+  async captureLink(
+    url: string,
+    tags?: string[],
+  ): Promise<{
     entityId: string;
     title: string;
     url: string;
@@ -53,11 +54,18 @@ Format your response as JSON with these fields:
         extractedData = extractionResult;
       }
     } catch (parseError) {
-      throw new Error(`Failed to parse AI extraction result: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      throw new Error(
+        `Failed to parse AI extraction result: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+      );
     }
 
     // Validate required fields
-    if (!extractedData.title || !extractedData.description || !extractedData.summary || !extractedData.content) {
+    if (
+      !extractedData.title ||
+      !extractedData.description ||
+      !extractedData.summary ||
+      !extractedData.content
+    ) {
       throw new Error("AI extraction failed to provide all required fields");
     }
 
@@ -89,15 +97,17 @@ Format your response as JSON with these fields:
   /**
    * List captured links
    */
-  async listLinks(limit: number = 10): Promise<Array<{
-    id: string;
-    title: string;
-    url: string;
-    description: string;
-    tags: string[];
-    domain: string;
-    capturedAt: string;
-  }>> {
+  async listLinks(limit: number = 10): Promise<
+    Array<{
+      id: string;
+      title: string;
+      url: string;
+      description: string;
+      tags: string[];
+      domain: string;
+      capturedAt: string;
+    }>
+  > {
     const results = await this.context.entityService.search("", {
       types: ["link"],
       limit,
@@ -122,21 +132,27 @@ Format your response as JSON with these fields:
   /**
    * Search captured links
    */
-  async searchLinks(query?: string, tags?: string[], limit: number = 20): Promise<Array<{
-    id: string;
-    title: string;
-    url: string;
-    description: string;
-    tags: string[];
-    domain: string;
-    capturedAt: string;
-  }>> {
+  async searchLinks(
+    query?: string,
+    tags?: string[],
+    limit: number = 20,
+  ): Promise<
+    Array<{
+      id: string;
+      title: string;
+      url: string;
+      description: string;
+      tags: string[];
+      domain: string;
+      capturedAt: string;
+    }>
+  > {
     // Build search query
     let searchQuery = query ?? "";
-    
+
     // Add tag filters to search query
     if (tags && tags.length > 0) {
-      const tagQuery = tags.map(tag => `tags: ${tag}`).join(" OR ");
+      const tagQuery = tags.map((tag) => `tags: ${tag}`).join(" OR ");
       searchQuery = searchQuery ? `${searchQuery} AND (${tagQuery})` : tagQuery;
     }
 

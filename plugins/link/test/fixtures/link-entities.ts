@@ -110,7 +110,8 @@ export const mockAIResponse = {
     title: "Test Article",
     description: "A test article description",
     summary: "This is a test summary of the article content.",
-    content: "# Test Article\n\nThis is the main article content with some details.",
+    content:
+      "# Test Article\n\nThis is the main article content with some details.",
     suggested_tags: ["test", "article", "example"],
   },
   minimal: {

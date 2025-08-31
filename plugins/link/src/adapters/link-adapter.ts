@@ -1,7 +1,15 @@
 import type { EntityAdapter } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter, StructuredContentFormatter } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  StructuredContentFormatter,
+} from "@brains/plugins";
 import type { z } from "@brains/utils";
-import { linkSchema, linkBodySchema, type LinkEntity, type LinkBody } from "../schemas/link";
+import {
+  linkSchema,
+  linkBodySchema,
+  type LinkEntity,
+  type LinkBody,
+} from "../schemas/link";
 
 /**
  * Link adapter for managing link entities with structured content

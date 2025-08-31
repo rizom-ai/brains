@@ -1,4 +1,9 @@
-import type { Plugin, ServicePluginContext, PluginTool, Command } from "@brains/plugins";
+import type {
+  Plugin,
+  ServicePluginContext,
+  PluginTool,
+  Command,
+} from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { linkConfigSchema, linkSchema, type LinkConfig } from "./schemas/link";
 import { LinkAdapter } from "./adapters/link-adapter";
@@ -8,7 +13,7 @@ import packageJson from "../package.json";
 
 /**
  * Link plugin for web content capture with AI-powered extraction
- * 
+ *
  * Captures web links and extracts their content using AI, storing them
  * as structured markdown entities following the topics plugin pattern.
  */
@@ -20,7 +25,9 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
   /**
    * Register plugin components
    */
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     // Register the link entity type with its adapter
     const linkAdapter = new LinkAdapter();
     context.registerEntityType("link", linkSchema, linkAdapter);

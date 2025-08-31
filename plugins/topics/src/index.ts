@@ -21,13 +21,7 @@ import { topicListTemplate } from "./templates/topic-list";
 import { topicDetailTemplate } from "./templates/topic-detail";
 import { TopicsDataSource } from "./datasources/topics-datasource";
 import packageJson from "../package.json";
-import {
-  createExtractTool,
-  createListTool,
-  createGetTool,
-  createSearchTool,
-  createMergeTool,
-} from "./tools";
+import { createTopicsTools } from "./tools";
 import { createTopicsCommands } from "./commands";
 
 /**
@@ -35,9 +29,6 @@ import { createTopicsCommands } from "./commands";
  */
 export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   declare protected config: TopicsPluginConfig;
-
-  private tools: PluginTool[] = [];
-  private commands: Command[] = [];
 
   constructor(config: Partial<TopicsPluginConfig> = {}) {
     super("topics", packageJson, config, topicsPluginConfigSchema);
@@ -78,18 +69,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     const processingHandler = new TopicProcessingHandler(context, this.logger);
     context.registerJobHandler("process-single", processingHandler);
 
-    // Store tools for MCP
-    this.tools = [
-      createExtractTool(context, this.config, this.logger),
-      createListTool(context, this.config, this.logger),
-      createGetTool(context, this.config, this.logger),
-      createSearchTool(context, this.config, this.logger),
-      createMergeTool(context, this.config, this.logger),
-    ];
-
-    // Store commands for CLI
-    this.commands = createTopicsCommands(context, this.config, this.logger);
-
     // Subscribe to conversation digest events for auto-extraction
     if (this.config.enableAutoExtraction) {
       context.subscribe("conversation:digest", async (message) => {
@@ -101,11 +80,17 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   }
 
   protected override async getCommands(): Promise<Command[]> {
-    return this.commands;
+    if (!this.context) {
+      return [];
+    }
+    return createTopicsCommands(this.context, this.config, this.logger);
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
-    return this.tools;
+    if (!this.context) {
+      return [];
+    }
+    return createTopicsTools(this.context, this.config, this.logger);
   }
 
   protected override async getResources(): Promise<PluginResource[]> {
