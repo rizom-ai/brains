@@ -15,8 +15,7 @@
     "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
-    "@brains/plugins": "workspace:*",
-    "zod": "^3.22.4"
+    "@brains/plugins": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

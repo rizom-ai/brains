@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 /**
  * Configuration schema for the Topics plugin

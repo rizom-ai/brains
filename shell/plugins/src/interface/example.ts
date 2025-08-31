@@ -2,7 +2,7 @@ import { InterfacePlugin } from "./interface-plugin";
 import type { InterfacePluginContext } from "./context";
 import type { Daemon, BaseJobTrackingInfo } from "../interfaces";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 // Define tracking info for webserver interface jobs
 export interface WebserverTrackingInfo extends BaseJobTrackingInfo {

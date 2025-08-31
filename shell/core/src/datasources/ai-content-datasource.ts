@@ -2,7 +2,7 @@ import type { DataSource } from "@brains/datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { EntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 /**
  * Zod schema for GenerationContext validation

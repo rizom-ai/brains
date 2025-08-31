@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { z } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type {
   BaseEntity,

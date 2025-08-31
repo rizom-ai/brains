@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 // Schema for individual topic summary in list
 const topicSummarySchema = z.object({

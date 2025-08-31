@@ -5,7 +5,7 @@ import type {
   Logger,
   Message,
 } from "@brains/plugins";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { TopicExtractor } from "../lib/topic-extractor";
 import { TopicService } from "../lib/topic-service";
 import type { TopicsPluginConfig } from "../schemas/config";

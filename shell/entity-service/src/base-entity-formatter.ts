@@ -2,7 +2,7 @@ import type { ContentFormatter } from "@brains/utils";
 import type { BaseEntity } from "./types";
 import { stripMarkdown } from "@brains/utils";
 import { parseMarkdownWithFrontmatter } from "./frontmatter";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 /**
  * Formatter for base entities

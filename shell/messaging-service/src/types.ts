@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 import type { UserPermissionLevel } from "@brains/permission-service";
 import type {
   MessageResponse,

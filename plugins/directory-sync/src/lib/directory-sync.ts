@@ -2,7 +2,7 @@ import type { Logger, ServicePluginContext } from "@brains/plugins";
 import type { IEntityService, ProgressReporter } from "@brains/plugins";
 import { resolve, isAbsolute } from "path";
 import { existsSync, mkdirSync } from "fs";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import type {
   DirectorySyncStatus,
   ExportResult,

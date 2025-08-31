@@ -15,8 +15,7 @@
   },
   "dependencies": {
     "@brains/permission-service": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "zod": "^3.25.1"
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "bun-types": "latest"

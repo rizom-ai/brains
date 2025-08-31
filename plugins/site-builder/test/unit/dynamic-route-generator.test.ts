@@ -3,7 +3,7 @@ import { DynamicRouteGenerator } from "../../src/lib/dynamic-route-generator";
 import { RouteRegistry } from "../../src/lib/route-registry";
 import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
 import { createSilentLogger } from "@brains/utils";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 describe("DynamicRouteGenerator", () => {
   let routeRegistry: RouteRegistry;

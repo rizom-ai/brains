@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import {
   extractMetadata,
   generateMarkdownWithFrontmatter,

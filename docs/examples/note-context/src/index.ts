@@ -12,7 +12,7 @@ import { Logger } from "@personal-brain/skeleton/src/utils/logger";
 /**
  * Note context configuration schema
  */
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 export const noteContextConfigSchema = z.object({
   defaultFormat: z.enum(["markdown", "text", "html"]).default("markdown"),

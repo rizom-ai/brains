@@ -1,5 +1,5 @@
 import type { IAIService, AIModelConfig } from "../src";
-import type { z } from "zod";
+import type { z } from "@brains/utils";
 
 /**
  * Mock AI Service for testing

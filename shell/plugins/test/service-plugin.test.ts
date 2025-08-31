@@ -3,7 +3,7 @@ import { createServicePluginHarness } from "../src/test/harness";
 import { calculatorServicePlugin } from "../src/service/example";
 import type { PluginCapabilities } from "../src/interfaces";
 import { DefaultContentFormatter } from "@brains/utils";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 describe("ServicePlugin", () => {
   let harness: ReturnType<typeof createServicePluginHarness>;

@@ -1,6 +1,6 @@
 import type { PluginTool, ToolResponse } from "@brains/plugins";
 import type { GitSync } from "../lib/git-sync";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 export function createGitSyncTools(
   gitSync: GitSync,

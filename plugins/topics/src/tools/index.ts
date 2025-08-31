@@ -5,7 +5,7 @@ import {
   type PluginTool,
   createId,
 } from "@brains/plugins";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { TopicService } from "../lib/topic-service";
 import { TopicAdapter } from "../lib/topic-adapter";
 import type { TopicsPluginConfig } from "../schemas/config";

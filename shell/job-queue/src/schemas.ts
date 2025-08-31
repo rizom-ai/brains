@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 // Import JobContextSchema from local schema
 import { JobContextSchema } from "./schema/job-queue";
 

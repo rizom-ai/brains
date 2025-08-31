@@ -1,5 +1,5 @@
 import { ResponseFormatter } from "./base";
-import { z } from "zod";
+import { z } from "../../zod";
 
 const simpleTextResponseSchema = z.object({
   message: z.string(),

@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach } from "bun:test";
 import { DataSourceRegistry } from "../src/registry";
 import type { DataSource } from "../src/types";
 import { createSilentLogger } from "@brains/utils";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 // Test data sources
 const mockFetchDataSource: DataSource = {

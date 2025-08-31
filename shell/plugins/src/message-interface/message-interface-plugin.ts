@@ -9,7 +9,7 @@ import type {
   PluginCapabilities,
   BaseJobTrackingInfo,
 } from "../interfaces";
-import type { z } from "zod";
+import type { z } from "@brains/utils";
 import PQueue from "p-queue";
 
 import { commandResponseSchema } from "@brains/command-registry";

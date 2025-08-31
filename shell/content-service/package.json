@@ -18,8 +18,7 @@
     "@brains/job-queue": "workspace:*",
     "@brains/conversation-service": "workspace:*",
     "@brains/render-service": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "zod": "^3.25.1"
+    "@brains/templates": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

@@ -13,8 +13,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
     "@brains/utils": "workspace:*",
-    "ai": "^4.3.16",
-    "zod": "^3.25.1"
+    "ai": "^4.3.16"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

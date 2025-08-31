@@ -1,7 +1,7 @@
 import { CorePlugin } from "./core-plugin";
 import type { CorePluginContext } from "./context";
 import type { Command } from "@brains/command-registry";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 /**
  * PLUGIN CONFIGURATION SCHEMA

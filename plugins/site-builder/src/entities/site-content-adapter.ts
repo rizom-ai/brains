@@ -6,7 +6,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateFrontmatter,
 } from "@brains/plugins";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 // Schema for parsing frontmatter
 const frontmatterSchema = z.object({

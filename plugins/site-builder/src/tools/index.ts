@@ -9,7 +9,7 @@ import type { SiteBuilder } from "../lib/site-builder";
 import type { SiteContentService } from "../lib/site-content-service";
 import type { SiteBuilderConfig } from "../config";
 import type { RouteRegistry } from "../lib/route-registry";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { GenerateOptionsSchema } from "../types/content-schemas";
 
 export function createSiteBuilderTools(

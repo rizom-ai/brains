@@ -52,3 +52,18 @@ export {
   type CreateEntityResponse,
   type UpdateEntityResponse,
 } from "./response-types";
+
+// Zod exports - centralized for the entire monorepo
+export * as zod from "./zod";
+export { z, ZodError } from "./zod";
+
+// Type-only exports
+export type {
+  ZodType,
+  ZodSchema,
+  ZodRawShape,
+  ZodInfer,
+  ZodInput,
+  ZodOutput,
+  ZodTypeAny,
+} from "./zod";

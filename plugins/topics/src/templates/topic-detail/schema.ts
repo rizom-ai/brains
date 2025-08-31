@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 // Schema for source reference
 const sourceReferenceSchema = z.object({

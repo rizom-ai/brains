@@ -17,7 +17,7 @@ import type {
   GetMessagesOptions,
 } from "@brains/conversation-service";
 import type { DataSource } from "@brains/datasource";
-import type { z } from "zod";
+import type { z } from "@brains/utils";
 import { createCorePluginContext } from "../core/context";
 
 /**

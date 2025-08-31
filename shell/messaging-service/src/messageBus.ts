@@ -7,7 +7,7 @@ import type {
   MessageWithPayload,
   SubscriptionFilter,
 } from "./types";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 // Internal type for wrapped handlers
 type WrappedHandler = (

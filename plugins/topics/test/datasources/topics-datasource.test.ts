@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { TopicsDataSource } from "../../src/datasources/topics-datasource";
 import { topicDetailSchema } from "../../src/templates/topic-detail/schema";
 import { topicListSchema } from "../../src/templates/topic-list/schema";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import type { TopicEntity } from "../../src/schemas/topic";
 import { createSilentLogger } from "@brains/utils";
 import type { IEntityService } from "@brains/plugins";

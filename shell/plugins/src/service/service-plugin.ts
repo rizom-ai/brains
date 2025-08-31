@@ -11,7 +11,7 @@ import type {
 } from "@brains/entity-service";
 import type { ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
-import type { z } from "zod";
+import type { z } from "@brains/utils";
 
 /**
  * Base class for service plugins

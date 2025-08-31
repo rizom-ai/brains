@@ -1,4 +1,4 @@
-import { z, type ZodRawShape } from "zod";
+import { z, type ZodRawShape } from "@brains/utils";
 import type { ProgressNotification } from "@brains/utils";
 import type { UserPermissionLevel } from "@brains/permission-service";
 import {

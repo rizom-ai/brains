@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { createId } from "@brains/utils";
 
 /**

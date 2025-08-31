@@ -1,5 +1,5 @@
 import type { ContentFormatter } from "../types";
-import { z } from "zod";
+import { z } from "../../zod";
 import { remark } from "remark";
 import type { Root, Heading, Paragraph, Content } from "mdast";
 

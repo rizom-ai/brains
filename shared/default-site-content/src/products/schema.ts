@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 export const productSchema = z.object({
   id: z.string().describe("Unique identifier"),

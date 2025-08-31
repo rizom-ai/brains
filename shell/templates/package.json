@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "^3.22.4",
     "preact": "^10.19.3",
     "@brains/utils": "workspace:*",
     "@brains/permission-service": "workspace:*"

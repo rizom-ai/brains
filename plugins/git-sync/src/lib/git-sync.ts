@@ -2,7 +2,7 @@ import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 import { existsSync, mkdirSync } from "fs";
 import { join, basename } from "path";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import type { CorePluginContext } from "@brains/plugins";
 
 /**

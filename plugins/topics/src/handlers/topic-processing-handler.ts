@@ -4,7 +4,7 @@ import type {
   ProgressReporter,
   Logger,
 } from "@brains/plugins";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { TopicService } from "../lib/topic-service";
 
 // Schema for processing single topic job data

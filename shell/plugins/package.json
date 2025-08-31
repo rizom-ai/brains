@@ -17,8 +17,7 @@
     "@brains/command-registry": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/permission-service": "workspace:*",
-    "@brains/datasource": "workspace:*",
-    "zod": "^3.25.1"
+    "@brains/datasource": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

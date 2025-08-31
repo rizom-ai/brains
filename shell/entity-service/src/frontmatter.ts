@@ -1,5 +1,5 @@
 import matter from "gray-matter";
-import type { z } from "zod";
+import type { z } from "@brains/utils";
 import type { BaseEntity } from "./types";
 
 /**

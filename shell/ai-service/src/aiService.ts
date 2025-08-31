@@ -2,7 +2,7 @@ import { generateText, generateObject } from "ai";
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import type { LanguageModelV1 } from "@ai-sdk/provider";
 import type { Logger } from "@brains/utils";
-import type { z } from "zod";
+import type { z } from "@brains/utils";
 import type { AIModelConfig, AIService as IAIService } from "./types";
 
 /**

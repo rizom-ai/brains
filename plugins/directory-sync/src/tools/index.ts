@@ -1,7 +1,7 @@
 import type { PluginTool, ToolContext, ToolResponse } from "@brains/plugins";
 import type { DirectorySync } from "../lib/directory-sync";
 import type { ServicePluginContext } from "@brains/plugins";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { createId } from "@brains/plugins";
 
 export function createDirectorySyncTools(

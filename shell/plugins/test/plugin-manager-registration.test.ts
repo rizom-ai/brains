@@ -13,7 +13,7 @@ import { createSilentLogger } from "@brains/utils";
 import type { CommandRegistry } from "@brains/command-registry";
 import type { IMCPService } from "@brains/mcp-service";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 // Mock plugin for testing
 class TestPlugin extends CorePlugin<Record<string, never>> {

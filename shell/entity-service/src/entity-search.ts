@@ -5,7 +5,7 @@ import type { EntityRegistry } from "./entityRegistry";
 import type { Logger } from "@brains/utils";
 import { entities } from "./schema/entities";
 import { and, inArray, sql } from "drizzle-orm";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 /**
  * Schema for search options (excluding tags)

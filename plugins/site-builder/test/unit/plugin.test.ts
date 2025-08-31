@@ -3,7 +3,7 @@ import { SiteBuilderPlugin } from "../../src/plugin";
 import { createServicePluginHarness } from "@brains/plugins";
 import type { PluginCapabilities } from "@brains/plugins";
 import { createTemplate } from "@brains/templates";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { h } from "preact";
 
 describe("SiteBuilderPlugin", () => {

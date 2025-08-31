@@ -8,7 +8,7 @@ import type {
 } from "@brains/plugins";
 import type { RouteDefinition } from "../../src/types/routes";
 import { createSilentLogger } from "@brains/plugins";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";

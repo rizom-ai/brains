@@ -4,7 +4,7 @@ import { webserverInterfacePlugin } from "../src/interface/example";
 import type { WebserverInterfacePlugin } from "../src/interface/example";
 import type { PluginCapabilities } from "../src/interfaces";
 import { DefaultContentFormatter } from "@brains/utils";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 describe("InterfacePlugin", () => {
   let harness: ReturnType<

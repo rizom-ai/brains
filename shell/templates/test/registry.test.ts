@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { TemplateRegistry } from "../src/registry";
 import { createTemplate } from "../src/types";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { h } from "preact";
 import { createSilentLogger } from "@brains/utils";
 

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { basePluginConfigSchema } from "@brains/plugins";
 
 export const gitSyncConfigSchema = basePluginConfigSchema

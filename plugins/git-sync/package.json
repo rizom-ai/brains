@@ -13,8 +13,7 @@
   "dependencies": {
     "@brains/plugins": "workspace:*",
     "@brains/directory-sync": "workspace:*",
-    "simple-git": "^3.21.0",
-    "zod": "^3.25.1"
+    "simple-git": "^3.21.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

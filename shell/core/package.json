@@ -33,8 +33,7 @@
     "@brains/render-service": "workspace:*",
     "@brains/content-service": "workspace:*",
     "@brains/templates": "workspace:*",
-    "ai": "^4.3.16",
-    "zod": "^3.25.1"
+    "ai": "^4.3.16"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

@@ -2,7 +2,7 @@ import type { EntityDB } from "./db";
 import type { BaseEntity } from "./types";
 import { entities } from "./schema/entities";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { EntitySerializer } from "./entity-serializer";
 

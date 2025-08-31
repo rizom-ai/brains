@@ -8,7 +8,7 @@ import type {
 import type { Command } from "@brains/command-registry";
 import type { MessageWithPayload } from "@brains/messaging-service";
 import { createId } from "@brains/utils";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 // Define the plugin configuration schema
 const calculatorConfigSchema = z.object({

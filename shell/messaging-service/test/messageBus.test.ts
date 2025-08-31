@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { MessageBus } from "@/messageBus";
 
 import { createSilentLogger, type Logger } from "@brains/utils";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 describe("MessageBus", () => {
   let messageBus: MessageBus;

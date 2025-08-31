@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach } from "bun:test";
 import { RenderService } from "../src";
 import { TemplateRegistry } from "@brains/templates";
 import type { Template } from "@brains/templates";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 // Test schemas
 const testSchema = z.object({

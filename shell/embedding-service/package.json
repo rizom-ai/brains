@@ -13,8 +13,7 @@
   },
   "dependencies": {
     "@brains/utils": "workspace:*",
-    "fastembed": "^1.14.4",
-    "zod": "^3.25.1"
+    "fastembed": "^1.14.4"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

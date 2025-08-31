@@ -4,7 +4,7 @@ import { createServicePluginHarness } from "@brains/plugins";
 import type { PluginCapabilities } from "@brains/plugins";
 import type { BaseEntity, EntityAdapter } from "@brains/plugins";
 import { baseEntitySchema } from "@brains/plugins";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync } from "fs";

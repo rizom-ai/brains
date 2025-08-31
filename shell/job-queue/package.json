@@ -21,8 +21,7 @@
   "dependencies": {
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.15.7",
-    "drizzle-orm": "^0.44.4",
-    "zod": "^3.25.1"
+    "drizzle-orm": "^0.44.4"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

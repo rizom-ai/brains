@@ -1,7 +1,7 @@
 import { MessageInterfacePlugin } from "./message-interface-plugin";
 import type { MessageContext } from "@brains/messaging-service";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 // Define the plugin configuration schema
 const echoConfigSchema = z.object({

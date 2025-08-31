@@ -8,7 +8,7 @@ import type { MessageBus } from "@brains/messaging-service";
 import type { IJobQueueService } from "./types";
 import type { BatchJobManager } from "./batch-job-manager";
 import type { BatchJobStatus } from "./schemas";
-import type { z } from "zod";
+import type { z } from "@brains/utils";
 import type { JobProgressEventSchema } from "./schemas";
 import { type JobContext } from "./schema/job-queue";
 

@@ -1,6 +1,6 @@
 import type { DataSource } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
-import { z } from "zod";
+import { z } from "@brains/utils";
 import { TopicAdapter } from "../lib/topic-adapter";
 import { topicEntitySchema } from "../schemas/topic";
 

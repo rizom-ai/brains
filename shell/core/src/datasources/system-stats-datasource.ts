@@ -1,6 +1,6 @@
 import type { DataSource } from "@brains/datasource";
 import type { IEntityService, BaseEntity } from "@brains/entity-service";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 /**
  * Schema for dashboard data

@@ -1,5 +1,5 @@
 import type { UserPermissionLevel } from "@brains/permission-service";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 /**
  * Context provided to command handlers

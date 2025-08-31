@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@brains/utils";
 import type { ProgressCallback, ContentFormatter } from "@brains/utils";
 import type { ComponentType } from "@brains/templates";
 
