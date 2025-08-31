@@ -17,7 +17,7 @@ export class EventHandler {
 
     // Create the import handler based on whether we have job queue
     if (jobQueueCallback) {
-      this.handleImport = async (path: string) => {
+      this.handleImport = async (path: string): Promise<void> => {
         const jobId = await jobQueueCallback({
           type: "directory-import" as const,
           data: {
@@ -30,7 +30,7 @@ export class EventHandler {
         });
       };
     } else {
-      this.handleImport = async (path: string) => {
+      this.handleImport = async (path: string): Promise<void> => {
         await importFn([path]);
       };
     }

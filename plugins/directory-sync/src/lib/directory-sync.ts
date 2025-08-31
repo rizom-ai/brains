@@ -467,7 +467,7 @@ export class DirectorySync {
       syncPath: this.syncPath,
       watchInterval: this.watchInterval,
       logger: this.logger,
-      onFileChange: async (event: string, path: string) => {
+      onFileChange: async (event: string, path: string): Promise<void> => {
         await eventHandler.handleFileChange(event, path);
       },
     });

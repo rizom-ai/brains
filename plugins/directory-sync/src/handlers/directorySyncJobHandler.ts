@@ -48,7 +48,7 @@ export class DirectorySyncJobHandler
     progressReporter: ProgressReporter,
   ): Promise<SyncResult> {
     const startTime = Date.now();
-    const syncDirection = data.syncDirection || "both";
+    const syncDirection = data.syncDirection ?? "both";
 
     this.logger.info("Starting directory sync job", {
       jobId,

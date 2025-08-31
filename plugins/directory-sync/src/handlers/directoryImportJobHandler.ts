@@ -243,9 +243,8 @@ export class DirectoryImportJobHandler
       if (parsed.paths !== undefined) {
         result.paths = parsed.paths;
       }
-      if (parsed.batchSize !== undefined) {
-        result.batchSize = parsed.batchSize;
-      }
+      // batchSize always has a value due to .default(100) in schema
+      result.batchSize = parsed.batchSize;
       if (parsed.batchIndex !== undefined) {
         result.batchIndex = parsed.batchIndex;
       }

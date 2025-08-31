@@ -53,7 +53,7 @@ export class TopicExtractionHandler
     // Determine the range to process
     const startIdx = data.startIdx;
     const endIdx = data.endIdx;
-    const windowSize = data.windowSize ?? this.config.windowSize ?? 30;
+    const windowSize = data.windowSize ?? this.config.windowSize;
 
     // If no specific range provided, we'll handle it differently
     let messages: Message[];
@@ -101,12 +101,12 @@ export class TopicExtractionHandler
               data.conversationId,
               startIdx,
               endIdx,
-              data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
+              data.minRelevanceScore ?? this.config.minRelevanceScore,
             )
           : await this.topicExtractor.extractFromMessages(
               data.conversationId,
               messages,
-              data.minRelevanceScore ?? this.config.minRelevanceScore ?? 0.5,
+              data.minRelevanceScore ?? this.config.minRelevanceScore,
             );
 
       this.logger.info(`Extracted ${extractedTopics.length} topics`);
@@ -152,7 +152,7 @@ export class TopicExtractionHandler
           searchResults.length > 0 &&
           searchResults[0] &&
           searchResults[0].score >=
-            (this.config.mergeSimilarityThreshold ?? 0.8)
+            this.config.mergeSimilarityThreshold
         ) {
           await topicService.updateTopic(searchResults[0].entity.id, {
             sources: topic.sources,

@@ -88,10 +88,10 @@ export function createTopicsCommands(
           // Parse optional arguments
           const windowSize = args[1]
             ? parseInt(args[1] as string, 10)
-            : (config.windowSize ?? 30);
+            : config.windowSize;
           const minRelevance = args[2]
             ? parseFloat(args[2] as string)
-            : (config.minRelevanceScore ?? 0.7);
+            : config.minRelevanceScore;
 
           // Extract topics directly
           const topicExtractor = new TopicExtractor(context, logger);

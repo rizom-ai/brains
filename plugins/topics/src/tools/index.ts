@@ -3,6 +3,7 @@ import {
   type Logger,
   type JobOptions,
   type PluginTool,
+  type ToolResponse,
   createId,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -58,7 +59,7 @@ export function createExtractTool(
     name: "topics-extract",
     description: "Extract topics from a specific conversation",
     inputSchema: extractParamsSchema.shape,
-    handler: async (params) => {
+    handler: async (params): Promise<ToolResponse> => {
       const parsed = extractParamsSchema.safeParse(params);
       if (!parsed.success) {
         throw new Error(`Invalid parameters: ${parsed.error.message}`);
@@ -101,7 +102,7 @@ export function createListTool(
     name: "topics-list",
     description: "List all topics",
     inputSchema: listParamsSchema.shape,
-    handler: async (params) => {
+    handler: async (params): Promise<ToolResponse> => {
       const parsed = listParamsSchema.safeParse(params);
       if (!parsed.success) {
         throw new Error(`Invalid parameters: ${parsed.error.message}`);
@@ -149,7 +150,7 @@ export function createGetTool(
     name: "topics-get",
     description: "Get details of a specific topic",
     inputSchema: getParamsSchema.shape,
-    handler: async (params) => {
+    handler: async (params): Promise<ToolResponse> => {
       const parsed = getParamsSchema.safeParse(params);
       if (!parsed.success) {
         throw new Error(`Invalid parameters: ${parsed.error.message}`);
@@ -188,7 +189,7 @@ export function createSearchTool(
     name: "topics-search",
     description: "Search topics by query",
     inputSchema: searchParamsSchema.shape,
-    handler: async (params) => {
+    handler: async (params): Promise<ToolResponse> => {
       const parsed = searchParamsSchema.safeParse(params);
       if (!parsed.success) {
         throw new Error(`Invalid parameters: ${parsed.error.message}`);
@@ -233,7 +234,7 @@ export function createMergeTool(
     name: "topics-merge",
     description: "Merge multiple topics into one",
     inputSchema: mergeParamsSchema.shape,
-    handler: async (params) => {
+    handler: async (params): Promise<ToolResponse> => {
       const parsed = mergeParamsSchema.safeParse(params);
       if (!parsed.success) {
         throw new Error(`Invalid parameters: ${parsed.error.message}`);

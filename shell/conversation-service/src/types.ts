@@ -57,12 +57,25 @@ export interface IConversationService {
 }
 
 /**
+ * Schema for Message validation - manually defined to match Drizzle Message type
+ * Note: role is string in DB schema, but we validate it as enum for payload validation
+ */
+export const messageSchema = z.object({
+  id: z.string(),
+  conversationId: z.string(),
+  role: z.string(), // Keep as string to match Drizzle type, enum validation happens at API boundaries
+  content: z.string(),
+  timestamp: z.string(),
+  metadata: z.string().nullable(),
+});
+
+/**
  * Schema for conversation digest payload validation
  */
 export const conversationDigestPayloadSchema = z.object({
   conversationId: z.string(),
   messageCount: z.number(),
-  messages: z.array(z.unknown()), // Messages schema would be complex, using unknown for now
+  messages: z.array(messageSchema),
   windowStart: z.number(),
   windowEnd: z.number(),
   windowSize: z.number(),

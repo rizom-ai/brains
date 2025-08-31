@@ -134,9 +134,9 @@ export function createInterfacePluginContext(
     },
 
     // Job queue functionality
-    enqueueJob: async (type, data, options) => {
+    enqueueJob: async (type, data, options): Promise<string> => {
       const jobQueueService = shell.getJobQueueService();
-      const rootJobId = options?.metadata?.rootJobId || createId();
+      const rootJobId = options?.metadata ? options.metadata.rootJobId : createId();
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
@@ -150,7 +150,7 @@ export function createInterfacePluginContext(
       // Callers must be explicit about job type scope
       return jobQueueService.enqueue(type, data, defaultOptions);
     },
-    enqueueBatch: async (operations, options) => {
+    enqueueBatch: async (operations, options): Promise<string> => {
       const batchId = createId();
       // Add plugin scope to operation types unless already scoped
       const scopedOperations = operations.map((op) => ({
@@ -174,7 +174,7 @@ export function createInterfacePluginContext(
         pluginId,
       );
     },
-    registerJobHandler: (type, handler) => {
+    registerJobHandler: (type, handler): void => {
       const jobQueueService = shell.getJobQueueService();
       // Add plugin scope to the type for explicit registration
       const scopedType = `${pluginId}:${type}`;

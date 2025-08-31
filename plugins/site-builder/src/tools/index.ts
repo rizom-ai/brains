@@ -146,8 +146,8 @@ export function createSiteBuilderTools(
         // Determine output directory based on environment
         const outputDir =
           params.environment === "production"
-            ? (config.productionOutputDir ?? "./dist/site-production")
-            : (config.previewOutputDir ?? "./dist/site-preview");
+            ? config.productionOutputDir
+            : config.previewOutputDir;
 
         // Enqueue the build job
         const jobId = await pluginContext.enqueueJob(

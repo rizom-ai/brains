@@ -4,7 +4,9 @@ import type {
   PluginTool,
   PluginResource,
   DefaultQueryResponse,
+  ToolResponse,
 } from "../interfaces";
+import type { CommandResponse } from "@brains/command-registry";
 import type { Command } from "@brains/command-registry";
 import type { MessageWithPayload } from "@brains/messaging-service";
 import { createId } from "@brains/utils";
@@ -73,7 +75,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
             const match = content.match(
               /🧮 Result: (.*) \(calculated at (.*)\)/,
             );
-            return { result: match?.[1] || "", timestamp: match?.[2] || "" };
+            return { result: match?.[1] ?? "", timestamp: match?.[2] ?? "" };
           },
         },
       },
@@ -88,14 +90,14 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         basePrompt: "",
         formatter: {
           format: (data: { operation: string; operands?: string[] }) => {
-            return `The operation ${data.operation} was performed on ${data.operands?.join(", ") || "no operands"}`;
+            return `The operation ${data.operation} was performed on ${data.operands?.join(", ") ?? "no operands"}`;
           },
           parse: (content: string) => {
             const match = content.match(
               /The operation (.*) was performed on (.*)/,
             );
             return {
-              operation: match?.[1] || "",
+              operation: match?.[1] ?? "",
               operands: match?.[2]
                 ?.split(", ")
                 .filter((op) => op !== "no operands"),
@@ -144,7 +146,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         const { operation, a, b } = message.payload;
         let result: number;
 
-        if (!operation || a === undefined || b === undefined) {
+        if (!operation || typeof a !== "number" || typeof b !== "number") {
           return { success: false, error: "Missing required parameters" };
         }
 
@@ -270,7 +272,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         inputSchema: {
           expression: z.string().describe("Math expression to evaluate"),
         },
-        handler: async (input) => {
+        handler: async (input): Promise<ToolResponse> => {
           const parsed = z.object({ expression: z.string() }).parse(input);
           const { expression } = parsed;
 
@@ -290,7 +292,13 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
             },
           });
 
-          return { result, calculationId: calculation.entityId };
+          return { 
+            success: true,
+            data: {
+              result: result.toString(), 
+              calculationId: calculation.entityId 
+            }
+          };
         },
       },
     ];
@@ -328,7 +336,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         name: "calc:add",
         description: "Add two numbers",
         usage: "calc:add <num1> <num2>",
-        handler: async (args) => {
+        handler: async (args): Promise<CommandResponse> => {
           if (args.length < 2) {
             return {
               type: "message",
@@ -352,7 +360,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         name: "calc:format",
         description: "Format a calculation result",
         usage: "calc:format <result>",
-        handler: async (args) => {
+        handler: async (args): Promise<CommandResponse> => {
           const result = args[0];
           // Test content formatting
           return {
@@ -368,7 +376,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         name: "calc:explain",
         description: "Get AI explanation of a math concept",
         usage: "calc:explain <concept>",
-        handler: async (args) => {
+        handler: async (args): Promise<CommandResponse> => {
           const concept = args.join(" ");
           if (!concept) {
             return {
@@ -391,7 +399,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         name: "calc:history",
         description: "Show calculation history",
         usage: "calc:history [limit]",
-        handler: async () => {
+        handler: async (): Promise<CommandResponse> => {
           const calculations =
             await context.entityService.listEntities("calculation");
 
@@ -411,7 +419,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         name: "calc:batch",
         description: "Queue multiple calculations",
         usage: "calc:batch <expr1> <expr2> ...",
-        handler: async (args) => {
+        handler: async (args): Promise<CommandResponse> => {
           if (args.length === 0) {
             return {
               type: "message",

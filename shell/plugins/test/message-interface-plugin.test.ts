@@ -5,7 +5,7 @@ import {
   EchoMessageInterface,
 } from "../src/message-interface/example";
 import type { MessageContext } from "@brains/messaging-service";
-import type { PluginCapabilities, QueryContext } from "../src";
+import type { PluginCapabilities, QueryContext, DefaultQueryResponse } from "../src";
 import { PluginError } from "../src";
 
 describe("MessageInterfacePlugin", () => {
@@ -204,17 +204,17 @@ describe("MessageInterfacePlugin", () => {
 
       // Mock getConversationService to return consistent mock
       const mockConversationService = {
-        startConversation: async (sessionId: string) => {
+        startConversation: async (sessionId: string): Promise<string> => {
           storedConversationId = sessionId;
           return sessionId;
         },
-        addMessage: async () => {},
-        getConversation: async () => null,
-        searchConversations: async () => [],
-        getMessages: async () => [],
+        addMessage: async (): Promise<void> => {},
+        getConversation: async (): Promise<null> => null,
+        searchConversations: async (): Promise<never[]> => [],
+        getMessages: async (): Promise<never[]> => [],
       };
 
-      shell.getConversationService = () => mockConversationService;
+      shell.getConversationService = (): typeof mockConversationService => mockConversationService;
 
       // Now install and get the plugin
       const plugin = echoMessageInterfacePlugin({ debug: false });
@@ -236,7 +236,7 @@ describe("MessageInterfacePlugin", () => {
 
       // Mock the shell's query method to capture the context
       const originalQuery = shell.query.bind(shell);
-      shell.query = async (prompt: string, context?: QueryContext) => {
+      shell.query = async (prompt: string, context?: QueryContext): Promise<DefaultQueryResponse> => {
         capturedContext = context;
         return originalQuery(prompt, context);
       };

@@ -35,12 +35,10 @@ export class JobQueueService implements IJobQueueService {
     config: JobQueueDbConfig,
     logger?: Logger,
   ): JobQueueService {
-    if (!JobQueueService.instance) {
-      JobQueueService.instance = new JobQueueService(
-        config,
-        logger ?? Logger.getInstance(),
-      );
-    }
+    JobQueueService.instance ??= new JobQueueService(
+      config,
+      logger ?? Logger.getInstance(),
+    );
     return JobQueueService.instance;
   }
 
@@ -179,7 +177,7 @@ export class JobQueueService implements IJobQueueService {
         scheduledFor: jobData.scheduledFor
           ? new Date(jobData.scheduledFor).toISOString()
           : "immediate",
-        rootJobId: jobData.metadata?.rootJobId,
+        rootJobId: jobData.metadata.rootJobId,
       });
 
       return id;
@@ -351,7 +349,7 @@ export class JobQueueService implements IJobQueueService {
         ),
       );
 
-    const deletedCount = result.rowsAffected ?? 0;
+    const deletedCount = result.rowsAffected;
 
     if (deletedCount > 0) {
       this.logger.info("Cleaned up old jobs", {

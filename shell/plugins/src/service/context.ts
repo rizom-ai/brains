@@ -110,47 +110,47 @@ export function createServicePluginContext(
 
     // Entity service access
     entityService,
-    registerEntityType: (entityType, schema, adapter) => {
+    registerEntityType: (entityType, schema, adapter): void => {
       entityRegistry.registerEntityType(entityType, schema, adapter);
     },
 
     // DataSource registration
-    registerDataSource: (dataSource: DataSource) => {
+    registerDataSource: (dataSource: DataSource): void => {
       // Just register the DataSource directly - the register method handles prefixing
       dataSourceRegistry.register(dataSource);
     },
 
     // AI content generation
-    generateContent: async (config) => {
+    generateContent: async <T = unknown>(config: ContentGenerationConfig): Promise<T> => {
       return shell.generateContent(config);
     },
 
     // Content formatting and parsing using template formatter
-    formatContent: (templateName, data) => {
+    formatContent: (templateName, data): string => {
       const contentService = shell.getContentService();
       return contentService.formatContent(templateName, data, { pluginId });
     },
-    parseContent: (templateName, content) => {
+    parseContent: <T = unknown>(templateName: string, content: string): T => {
       const contentService = shell.getContentService();
       return contentService.parseContent(templateName, content, pluginId);
     },
 
     // Conversation service helpers
-    searchConversations: async (query: string) => {
+    searchConversations: async (query: string): Promise<Conversation[]> => {
       const conversationService = shell.getConversationService();
       return conversationService.searchConversations(query);
     },
     getMessages: async (
       conversationId: string,
       options?: GetMessagesOptions,
-    ) => {
+    ): Promise<Message[]> => {
       const conversationService = shell.getConversationService();
       return conversationService.getMessages(conversationId, options);
     },
 
     // Job queue functionality
-    enqueueJob: async (type, data, options) => {
-      const rootJobId = options?.metadata?.rootJobId || createId();
+    enqueueJob: async (type, data, options): Promise<string> => {
+      const rootJobId = options?.metadata ? options.metadata.rootJobId : createId();
       const defaultOptions: JobOptions = {
         source: pluginId,
         metadata: {
@@ -165,7 +165,7 @@ export function createServicePluginContext(
       const scopedType = type.includes(":") ? type : `${pluginId}:${type}`;
       return jobQueueService.enqueue(scopedType, data, defaultOptions);
     },
-    enqueueBatch: async (operations, options) => {
+    enqueueBatch: async (operations, options): Promise<string> => {
       // Generate batch ID first to use as rootJobId for consistent tracking
       const batchId = createId();
       // Add plugin scope to operation types unless already scoped
@@ -191,31 +191,32 @@ export function createServicePluginContext(
 
       return batchId;
     },
-    registerJobHandler: (type, handler) => {
+    registerJobHandler: (type, handler): void => {
       // Add plugin scope to the type for explicit registration
       const scopedType = `${pluginId}:${type}`;
       jobQueueService.registerHandler(scopedType, handler, pluginId);
     },
 
     // View template access
-    getViewTemplate: (name: string) => {
-      return renderService.get(name);
+    getViewTemplate: (name: string): ViewTemplate<unknown> | undefined => {
+      return renderService.get(name) ?? undefined;
     },
-    listViewTemplates: () => {
+    listViewTemplates: (): ViewTemplate[] => {
       return renderService.list();
     },
-    getRenderService: () => {
+    getRenderService: (): RenderService => {
       return renderService;
     },
 
     // Content resolution helper
-    resolveContent: async (templateName, options) => {
+    resolveContent: async <T = unknown>(templateName: string, options?: ResolutionOptions): Promise<T | null> => {
       const contentService = shell.getContentService();
-      return contentService.resolveContent(templateName, options, pluginId);
+      const result = await contentService.resolveContent(templateName, options, pluginId);
+      return result as T;
     },
 
     // Template capability checking
-    getTemplateCapabilities: (templateName) => {
+    getTemplateCapabilities: (templateName: string): { canGenerate: boolean; canFetch: boolean; canRender: boolean; isStaticOnly: boolean; } | null => {
       // Apply plugin scoping if not already scoped
       const scopedTemplateName = templateName.includes(":")
         ? templateName
@@ -227,11 +228,17 @@ export function createServicePluginContext(
         return null;
       }
 
-      return TemplateCapabilities.getCapabilities(template);
+      const capabilities = TemplateCapabilities.getCapabilities(template);
+      return {
+        canGenerate: capabilities.canGenerate,
+        canFetch: capabilities.canFetch,
+        canRender: capabilities.canRender,
+        isStaticOnly: capabilities.isStaticOnly,
+      };
     },
 
     // Plugin metadata
-    getPluginPackageName: (targetPluginId: string) => {
+    getPluginPackageName: (targetPluginId: string): string | undefined => {
       return shell.getPluginPackageName(targetPluginId);
     },
   };

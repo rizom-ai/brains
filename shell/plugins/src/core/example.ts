@@ -1,6 +1,6 @@
 import { CorePlugin } from "./core-plugin";
 import type { CorePluginContext } from "./context";
-import type { Command } from "@brains/command-registry";
+import type { Command, CommandResponse } from "@brains/command-registry";
 import { z } from "@brains/utils";
 
 /**
@@ -63,14 +63,14 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
         }),
         basePrompt: "",
         formatter: {
-          format: (data: { result: string; timestamp: string }) => {
+          format: (data: { result: string; timestamp: string }): string => {
             return `🧮 Result: ${data.result} (calculated at ${data.timestamp})`;
           },
-          parse: (content: string) => {
+          parse: (content: string): { result: string; timestamp: string } => {
             const match = content.match(
               /🧮 Result: (.*) \(calculated at (.*)\)/,
             );
-            return { result: match?.[1] || "", timestamp: match?.[2] || "" };
+            return { result: match?.[1] ?? "", timestamp: match?.[2] ?? "" };
           },
         },
         requiredPermission: "public",
@@ -84,18 +84,19 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
         }),
         basePrompt: "",
         formatter: {
-          format: (data: { operation: string; operands?: string[] }) => {
-            return `The operation ${data.operation} was performed on ${data.operands?.join(", ") || "no operands"}`;
+          format: (data: { operation: string; operands?: string[] }): string => {
+            return `The operation ${data.operation} was performed on ${data.operands?.join(", ") ?? "no operands"}`;
           },
-          parse: (content: string) => {
+          parse: (content: string): { operation: string; operands?: string[] } => {
             const match = content.match(
               /The operation (.*) was performed on (.*)/,
             );
+            const operands = match?.[2]
+              ?.split(", ")
+              .filter((op) => op !== "no operands");
             return {
-              operation: match?.[1] || "",
-              operands: match?.[2]
-                ?.split(", ")
-                .filter((op) => op !== "no operands"),
+              operation: match?.[1] ?? "",
+              ...(operands && { operands }),
             };
           },
         },
@@ -129,9 +130,9 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
       }) => {
         this.info("Processing calculation request", message);
 
-        const { operation, a, b } = message.payload || {};
+        const { operation, a, b } = message.payload;
 
-        if (!operation || a === undefined || b === undefined) {
+        if (!operation || typeof a !== "number" || typeof b !== "number") {
           return { success: false, error: "Missing required parameters" };
         }
 
@@ -184,7 +185,7 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
         name: "calc:add",
         description: "Add two numbers",
         usage: "calc:add <num1> <num2>",
-        handler: async (args) => {
+        handler: async (args): Promise<CommandResponse> => {
           if (args.length < 2) {
             return {
               type: "message",
@@ -210,7 +211,7 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
         name: "calc:format",
         description: "Format a calculation result",
         usage: "calc:format <result>",
-        handler: async (args) => {
+        handler: async (args): Promise<CommandResponse> => {
           const result = args[0];
           // Test content formatting
           const formatted = this.formatContent("calculation-result", {
@@ -227,7 +228,7 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
         name: "calc:stats",
         description: "Show calculation statistics",
         usage: "calc:stats",
-        handler: async (_args, context) => {
+        handler: async (_args, context): Promise<CommandResponse> => {
           // Demonstrate permission-based responses
           if (context.userPermissionLevel === "public") {
             return {
@@ -247,14 +248,11 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
         name: "calc:history",
         description: "Show recent calculations",
         usage: "calc:history [limit]",
-        handler: async (args, _context) => {
+        handler: async (args, _context): Promise<CommandResponse> => {
           const limit = args[0] ? parseInt(args[0], 10) : 5;
 
           // Use the context to access entity service (read-only)
           const ctx = this.getContext();
-          if (!ctx) {
-            return { type: "message", message: "Context not available" };
-          }
 
           try {
             // Search for calculation entities using the entity service

@@ -149,7 +149,7 @@ export function createDirectorySyncTools(
 
         const filesToImport =
           params.paths ?? directorySync.getAllMarkdownFiles();
-        const batchSize = params.batchSize ?? 50;
+        const batchSize = params.batchSize;
 
         const batches: string[][] = [];
         for (let i = 0; i < filesToImport.length; i += batchSize) {

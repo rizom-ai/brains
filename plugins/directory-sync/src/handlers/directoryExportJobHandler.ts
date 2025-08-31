@@ -207,9 +207,8 @@ export class DirectoryExportJobHandler
       if (parsed.entityTypes !== undefined) {
         result.entityTypes = parsed.entityTypes;
       }
-      if (parsed.batchSize !== undefined) {
-        result.batchSize = parsed.batchSize;
-      }
+      // batchSize always has a value due to .default(100) in schema
+      result.batchSize = parsed.batchSize;
       this.logger.debug("Directory export job data validation successful", {
         data: result,
       });

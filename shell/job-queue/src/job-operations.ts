@@ -69,8 +69,8 @@ export class JobOperations {
       return;
     }
 
-    const maxRetries = job.maxRetries ?? 3;
-    const retryCount = job.retryCount ?? 0;
+    const maxRetries = job.maxRetries;
+    const retryCount = job.retryCount;
     const now = Date.now();
 
     if (retryCount < maxRetries) {

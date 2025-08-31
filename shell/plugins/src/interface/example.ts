@@ -1,6 +1,6 @@
 import { InterfacePlugin } from "./interface-plugin";
 import type { InterfacePluginContext } from "./context";
-import type { Daemon, BaseJobTrackingInfo } from "../interfaces";
+import type { Daemon, BaseJobTrackingInfo, DaemonHealth } from "../interfaces";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import { z } from "@brains/utils";
 
@@ -55,7 +55,7 @@ export class WebserverInterfacePlugin extends InterfacePlugin<
    */
   protected override createDaemon(): Daemon {
     return {
-      start: async () => {
+      start: async (): Promise<void> => {
         this.logger.info(
           `Starting webserver daemon on ${this.config.host}:${this.config.port}`,
         );
@@ -63,13 +63,13 @@ export class WebserverInterfacePlugin extends InterfacePlugin<
         // In a real implementation, this would start an HTTP server
       },
 
-      stop: async () => {
+      stop: async (): Promise<void> => {
         this.logger.info("Stopping webserver daemon");
         this.isRunning = false;
         // In a real implementation, this would stop the HTTP server
       },
 
-      healthCheck: async () => {
+      healthCheck: async (): Promise<DaemonHealth> => {
         return {
           status: this.isRunning ? "healthy" : "error",
           message: this.isRunning
@@ -90,8 +90,8 @@ export class WebserverInterfacePlugin extends InterfacePlugin<
       return {
         success: true,
         data: {
-          status: status?.status || "unknown",
-          message: status?.message || "Status unknown",
+          status: status?.status ?? "unknown",
+          message: status?.message ?? "Status unknown",
         },
       };
     });
@@ -133,8 +133,8 @@ export class WebserverInterfacePlugin extends InterfacePlugin<
             );
 
             return {
-              title: titleMatch?.[1] || h1Match?.[1] || "",
-              content: contentMatch?.[1] || "",
+              title: titleMatch?.[1] ?? h1Match?.[1] ?? "",
+              content: contentMatch?.[1] ?? "",
               timestamp: footerMatch?.[1],
             };
           },
@@ -212,9 +212,6 @@ export class WebserverInterfacePlugin extends InterfacePlugin<
    */
   async serveContent(path: string): Promise<string> {
     const context = this.getContext();
-    if (!context) {
-      return "Webserver not initialized";
-    }
 
     // In a real implementation, this would:
     // 1. Check if the path maps to a route
@@ -238,14 +235,6 @@ export class WebserverInterfacePlugin extends InterfacePlugin<
    * Example method showing how to handle API requests
    */
   async handleApiRequest(endpoint: string, params: unknown): Promise<string> {
-    const context = this.getContext();
-    if (!context) {
-      return JSON.stringify({
-        status: "error",
-        message: "Webserver not initialized",
-      });
-    }
-
     // In a real implementation, this would route to appropriate handlers
     // For now, just echo the request
     return this.formatContent("api-response", {

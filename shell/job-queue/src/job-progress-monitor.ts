@@ -183,7 +183,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
 
       // Skip individual job progress for batch operations
       // Only show individual job progress for standalone jobs (where rootJobId === jobId)
-      const rootJobId = job.metadata?.rootJobId;
+      const rootJobId = job.metadata.rootJobId;
       if (rootJobId && rootJobId !== jobId) {
         // This is part of a batch operation - skip individual job progress
         // The batch progress will be emitted separately by handleJobStatusChange
@@ -243,7 +243,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       }
 
       // Skip individual job completion for batch operations
-      const rootJobId = job.metadata?.rootJobId;
+      const rootJobId = job.metadata.rootJobId;
       if (rootJobId && rootJobId !== jobId) {
         this.logger.debug(
           "Skipping individual job completion for batch operation",
@@ -297,7 +297,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       }
 
       // Skip individual job failure for batch operations
-      const rootJobId = job.metadata?.rootJobId;
+      const rootJobId = job.metadata.rootJobId;
       if (rootJobId && rootJobId !== jobId) {
         this.logger.debug(
           "Skipping individual job failure for batch operation",
@@ -364,7 +364,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       // Emit individual job status event
       if (status === "completed") {
         await this.emitJobCompletion(jobId);
-      } else if (status === "failed") {
+      } else {
+        // status === "failed"
         await this.emitJobFailure(jobId);
       }
 

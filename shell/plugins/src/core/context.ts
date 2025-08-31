@@ -1,4 +1,5 @@
-import type { IShell, DefaultQueryResponse } from "../interfaces";
+import type { IShell } from "../interfaces";
+import type { DefaultQueryResponse } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { Template } from "@brains/templates";
@@ -121,37 +122,37 @@ export function createCorePluginContext(
     },
 
     // Query functionality
-    query: (prompt: string, context?: Record<string, unknown>) => {
+    query: (prompt: string, context?: Record<string, unknown>): Promise<DefaultQueryResponse> => {
       return shell.query(prompt, context);
     },
 
     // Job monitoring
-    getActiveJobs: (types?: string[]) => {
+    getActiveJobs: (types?: string[]): Promise<JobQueue[]> => {
       return shell.getActiveJobs(types);
     },
-    getActiveBatches: () => {
+    getActiveBatches: (): Promise<Batch[]> => {
       return shell.getActiveBatches();
     },
-    getBatchStatus: (batchId: string) => {
+    getBatchStatus: (batchId: string): Promise<BatchJobStatus | null> => {
       return shell.getBatchStatus(batchId);
     },
-    getJobStatus: (jobId: string) => {
+    getJobStatus: (jobId: string): Promise<JobQueue | null> => {
       return shell.getJobStatus(jobId);
     },
 
     // Conversation service
-    getConversation: async (conversationId: string) => {
+    getConversation: async (conversationId: string): Promise<Conversation | null> => {
       const conversationService = shell.getConversationService();
       return conversationService.getConversation(conversationId);
     },
-    searchConversations: async (query: string) => {
+    searchConversations: async (query: string): Promise<Conversation[]> => {
       const conversationService = shell.getConversationService();
       return conversationService.searchConversations(query);
     },
     getMessages: async (
       conversationId: string,
       options?: GetMessagesOptions,
-    ) => {
+    ): Promise<Message[]> => {
       const conversationService = shell.getConversationService();
       return conversationService.getMessages(conversationId, options);
     },
@@ -159,7 +160,7 @@ export function createCorePluginContext(
       conversationId: string,
       interfaceType: string,
       channelId: string,
-    ) => {
+    ): Promise<string> => {
       const conversationService = shell.getConversationService();
       return conversationService.startConversation(
         conversationId,
@@ -172,7 +173,7 @@ export function createCorePluginContext(
       role: MessageRole,
       content: string,
       metadata?: Record<string, unknown>,
-    ) => {
+    ): Promise<void> => {
       const conversationService = shell.getConversationService();
       await conversationService.addMessage(
         conversationId,

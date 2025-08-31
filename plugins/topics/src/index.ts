@@ -5,7 +5,6 @@ import {
   type PluginResource,
   type Command,
   type ConversationDigestPayload,
-  type Message,
   createId,
 } from "@brains/plugins";
 import { conversationDigestPayloadSchema } from "@brains/conversation-service";
@@ -136,8 +135,8 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       const topicExtractor = new TopicExtractor(context, this.logger);
       const extractedTopics = await topicExtractor.extractFromMessages(
         payload.conversationId,
-        payload.messages as Message[], // Cast since payload uses unknown[]
-        this.config.minRelevanceScore ?? 0.7,
+        payload.messages,
+        this.config.minRelevanceScore,
       );
 
       if (extractedTopics.length === 0) {
