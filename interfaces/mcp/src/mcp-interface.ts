@@ -34,12 +34,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   private httpServer: StreamableHTTPServer | undefined;
 
   constructor(config: Partial<MCPConfig> = {}) {
-    const defaults: MCPConfig = {
-      transport: "http",
-      httpPort: 3333,
-    };
-
-    super("mcp", packageJson, config, mcpConfigSchema, defaults);
+    super("mcp", packageJson, config, mcpConfigSchema, {});
   }
 
   /**
