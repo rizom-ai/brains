@@ -97,7 +97,8 @@ export function createLinkCommands(
     {
       name: "link-search",
       description: "Search captured links",
-      usage: "/link-search [query] [--keywords keyword1,keyword2,...] [--limit <number>]",
+      usage:
+        "/link-search [query] [--keywords keyword1,keyword2,...] [--limit <number>]",
       handler: async (args, _context): Promise<CommandResponse> => {
         try {
           let query: string | undefined;
@@ -140,7 +141,8 @@ export function createLinkCommands(
           if (links.length === 0) {
             const searchTerms = [];
             if (query) searchTerms.push(`query: "${query}"`);
-            if (keywords.length > 0) searchTerms.push(`keywords: ${keywords.join(", ")}`);
+            if (keywords.length > 0)
+              searchTerms.push(`keywords: ${keywords.join(", ")}`);
 
             return {
               type: "message",
@@ -157,7 +159,8 @@ export function createLinkCommands(
 
           const searchInfo = [];
           if (query) searchInfo.push(`query: "${query}"`);
-          if (keywords.length > 0) searchInfo.push(`keywords: ${keywords.join(", ")}`);
+          if (keywords.length > 0)
+            searchInfo.push(`keywords: ${keywords.join(", ")}`);
 
           return {
             type: "message",

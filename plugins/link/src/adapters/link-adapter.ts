@@ -29,7 +29,12 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
         { key: "description", label: "Description", type: "string" },
         { key: "summary", label: "Summary", type: "string" },
         { key: "content", label: "Content", type: "string" },
-        { key: "keywords", label: "Keywords", type: "array", itemType: "string" },
+        {
+          key: "keywords",
+          label: "Keywords",
+          type: "array",
+          itemType: "string",
+        },
         { key: "domain", label: "Domain", type: "string" },
         { key: "capturedAt", label: "Captured", type: "string" },
       ],

@@ -15,9 +15,7 @@ export class LinkService {
   /**
    * Capture a web link with AI extraction
    */
-  async captureLink(
-    url: string,
-  ): Promise<{
+  async captureLink(url: string): Promise<{
     entityId: string;
     title: string;
     url: string;
@@ -73,7 +71,7 @@ export class LinkService {
 
     // Use keywords from AI extraction
     const keywords = extractedData.keywords ?? [];
-    
+
     // Debug logging for keywords
     this.context.logger.info("Extracted keywords", {
       keywords,
@@ -163,7 +161,9 @@ export class LinkService {
     // Add keyword filters to search query
     if (keywords && keywords.length > 0) {
       const keywordQuery = keywords.map((k) => `keywords: ${k}`).join(" OR ");
-      searchQuery = searchQuery ? `${searchQuery} AND (${keywordQuery})` : keywordQuery;
+      searchQuery = searchQuery
+        ? `${searchQuery} AND (${keywordQuery})`
+        : keywordQuery;
     }
 
     const results = await this.context.entityService.search(searchQuery, {
