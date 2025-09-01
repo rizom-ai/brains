@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { LinkService } from "../../src/lib/link-service";
+import { UrlUtils } from "../../src/lib/url-utils";
 import {
   MockShell,
   createServicePluginContext,
@@ -94,6 +95,90 @@ describe("LinkService", () => {
 
       await expect(linkService.captureLink(url)).rejects.toThrow(
         "AI extraction failed to provide all required fields",
+      );
+    });
+
+    it("should use deterministic entity ID based on URL", async () => {
+      const url = "https://github.com/user/repo";
+
+      // Mock the AI content generation
+      context.generateContent = mock(async () => mockAIResponse.complete);
+
+      const result = await linkService.captureLink(url);
+
+      // Verify the entity ID matches expected format
+      const expectedId = UrlUtils.generateEntityId(url);
+      expect(result.entityId).toBe(expectedId);
+      expect(result.entityId).toMatch(/^github-com-[a-f0-9]{6}$/);
+    });
+
+    it("should accept custom entity ID", async () => {
+      const url = "https://example.com/test";
+      const customId = "custom-link-id";
+
+      // Mock the AI content generation
+      context.generateContent = mock(async () => mockAIResponse.complete);
+
+      const result = await linkService.captureLink(url, { id: customId });
+
+      expect(result.entityId).toBe(customId);
+    });
+
+    it("should deduplicate links with same normalized URL", async () => {
+      const url1 = "https://example.com/article?utm_source=twitter";
+      const url2 = "https://example.com/article?utm_source=facebook";
+
+      // Mock the AI content generation
+      context.generateContent = mock(async () => mockAIResponse.complete);
+
+      // First capture
+      const result1 = await linkService.captureLink(url1);
+
+      // Create new service instance for second capture to reset mocks
+      const linkService2 = new LinkService(context);
+
+      // Mock entity service to return existing entity for second capture
+      const existingEntity = mockLinkEntity();
+      existingEntity.id = result1.entityId;
+      context.entityService.getEntity = mock(async () => existingEntity);
+
+      // Reset generateContent mock for clarity
+      const generateContentMock = mock(async () => mockAIResponse.complete);
+      context.generateContent = generateContentMock;
+
+      // Second capture with different query params
+      const result2 = await linkService2.captureLink(url2);
+
+      // Should return same entity ID (deduplication worked)
+      expect(result2.entityId).toBe(result1.entityId);
+
+      // AI extraction should NOT be called for the second capture (due to deduplication)
+      expect(generateContentMock).not.toHaveBeenCalled();
+    });
+
+    it("should store metadata when provided", async () => {
+      const url = "https://example.com/test";
+      const metadata = { conversationId: "conv-123", userId: "user-456" };
+
+      // Mock the AI content generation
+      context.generateContent = mock(async () => mockAIResponse.complete);
+
+      // Mock createEntity to track calls
+      const createEntityMock = mock(async () => ({
+        entityId: UrlUtils.generateEntityId(url),
+        entityType: "link",
+        content: "",
+        metadata,
+      }));
+      context.entityService.createEntity = createEntityMock;
+
+      await linkService.captureLink(url, { metadata });
+
+      // Verify entity was created with metadata
+      expect(createEntityMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata,
+        }),
       );
     });
   });

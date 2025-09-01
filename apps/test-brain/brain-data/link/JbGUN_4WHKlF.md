@@ -1,15 +1,19 @@
 # Obsidian - A knowledge base that works on local Markdown files
 
 ## URL
+
 https://obsidian.md/about
 
 ## Description
+
 Obsidian is a powerful note-taking and knowledge management app that works on local Markdown files.
 
 ## Summary
+
 Obsidian is a note-taking and knowledge management application that uses local Markdown files as its backend. It allows users to create, edit, and link notes together to build a personal knowledge base. The app offers a range of features including bi-directional linking, graph visualization, and plugins to extend its functionality. Obsidian is designed to be a flexible and customizable tool that empowers users to organize their thoughts and information in a way that works best for them.
 
 ## Content
+
 # Obsidian - A knowledge base that works on local Markdown files
 
 ## What is Obsidian?
@@ -28,7 +32,6 @@ Obsidian is a powerful note-taking and knowledge management application that wor
 
 Obsidian is designed to be a flexible and customizable tool that empowers you to organize your thoughts and information in a way that works best for you. Whether you're a student, researcher, writer, or just someone who wants to better manage their personal knowledge, Obsidian can be a powerful ally in your quest for better organization and productivity.
 
-
 ## Keywords
 
 - note-taking
@@ -40,7 +43,9 @@ Obsidian is designed to be a flexible and customizable tool that empowers you to
 - local-first
 
 ## Domain
+
 obsidian.md
 
 ## Captured
+
 2025-09-01T14:41:12.233Z

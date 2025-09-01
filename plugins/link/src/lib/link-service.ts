@@ -1,6 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
-import { createId } from "@brains/utils";
 import { LinkAdapter } from "../adapters/link-adapter";
+import { UrlUtils } from "./url-utils";
 
 /**
  * Core service for link operations
@@ -14,14 +14,44 @@ export class LinkService {
 
   /**
    * Capture a web link with AI extraction
+   * @param url - The URL to capture
+   * @param options - Optional parameters including custom entity ID and metadata
    */
-  async captureLink(url: string): Promise<{
+  async captureLink(
+    url: string,
+    options?: {
+      id?: string;
+      metadata?: Record<string, unknown>;
+    },
+  ): Promise<{
     entityId: string;
     title: string;
     url: string;
   }> {
     // Log the capture request
     this.context.logger.debug("Starting link capture", { url });
+
+    // Generate deterministic ID from URL if not provided
+    const entityId = options?.id ?? UrlUtils.generateEntityId(url);
+
+    // Check if entity already exists (for deduplication)
+    const existingEntity = await this.context.entityService.getEntity(
+      "link",
+      entityId,
+    );
+    if (existingEntity) {
+      this.context.logger.info("Link already captured, returning existing", {
+        url,
+        entityId,
+      });
+      // Return existing entity info
+      const parsed = this.linkAdapter.parseLinkBody(existingEntity.content);
+      return {
+        entityId: existingEntity.id,
+        title: parsed.title,
+        url,
+      };
+    }
 
     // Use AI to extract content from the URL using our custom template
     const extractionResult = await this.context.generateContent({
@@ -87,12 +117,12 @@ export class LinkService {
       keywords,
     });
 
-    // Create entity
+    // Create entity with deterministic ID
     const entity = await this.context.entityService.createEntity({
-      id: createId(),
+      id: entityId,
       entityType: "link",
       content: linkBody,
-      metadata: {},
+      metadata: options?.metadata ?? {},
     });
 
     return {

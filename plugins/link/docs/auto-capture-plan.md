@@ -7,7 +7,7 @@ This document outlines the implementation plan for automatic link extraction fro
 ## Goals
 
 1. **Seamless Capture**: Automatically detect and capture links shared in conversations without user intervention
-2. **Non-Intrusive**: Process links asynchronously without blocking conversation flow  
+2. **Non-Intrusive**: Process links asynchronously without blocking conversation flow
 3. **Intelligent Deduplication**: Use deterministic URL-based entity IDs to prevent duplicates
 4. **Configurable**: Allow users to enable/disable and configure auto-capture behavior
 5. **Selective Processing**: Only capture links from user messages (not assistant responses or commands)
@@ -52,7 +52,7 @@ LinkPlugin
 │   ├── Extract URLs from message
 │   └── Enqueue auto-capture jobs
 │
-├── Auto-Capture Job Handler  
+├── Auto-Capture Job Handler
 │   ├── Generate deterministic entity ID
 │   ├── Check for existing entity
 │   └── Capture if new
@@ -76,16 +76,16 @@ LinkPlugin
 // plugins/link/src/schemas/link.ts
 export const linkConfigSchema = z.object({
   // Existing config...
-  
+
   // Auto-capture configuration (Phase 1)
   enableAutoCapture: z.boolean().default(true),
-  
+
   // Optional notification when links are captured
   notifyOnCapture: z.boolean().default(false),
-  
+
   // Maximum URLs to capture per message
   maxUrlsPerMessage: z.number().min(1).max(10).default(3),
-  
+
   // Future enhancements (Phase 2):
   // - autoCaptureDomains: z.array(z.string()).default([])
   // - autoCaptureIgnoreDomains: z.array(z.string()).default([])
@@ -104,7 +104,7 @@ export interface ConversationMessagePayload {
   channelId: string;
   interfaceType: string;
   content: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   timestamp: string;
   metadata?: Record<string, unknown>;
 }
@@ -114,12 +114,12 @@ export interface ConversationMessagePayload {
 
 ```typescript
 // plugins/link/src/lib/url-utils.ts
-import { createHash } from 'crypto';
+import { createHash } from "crypto";
 
 export class UrlUtils {
   // Comprehensive URL regex pattern
   private static readonly URL_PATTERN = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
-  
+
   /**
    * Extract URLs from text
    */
@@ -127,7 +127,7 @@ export class UrlUtils {
     const matches = text.match(UrlUtils.URL_PATTERN) || [];
     return [...new Set(matches)]; // Remove duplicates within message
   }
-  
+
   /**
    * Normalize URL for deduplication (remove query params and fragments)
    */
@@ -140,7 +140,7 @@ export class UrlUtils {
       return url;
     }
   }
-  
+
   /**
    * Generate deterministic entity ID from URL
    * Format: "{domain}-{hash[:6]}"
@@ -148,26 +148,26 @@ export class UrlUtils {
    */
   static generateEntityId(url: string): string {
     const normalized = this.normalizeUrl(url);
-    const hash = createHash('sha256').update(normalized).digest('hex');
-    
+    const hash = createHash("sha256").update(normalized).digest("hex");
+
     try {
       const parsed = new URL(normalized);
       // Clean domain name for ID (remove dots, keep hyphens)
-      const domain = parsed.hostname.replace(/\./g, '-');
+      const domain = parsed.hostname.replace(/\./g, "-");
       return `${domain}-${hash.substring(0, 6)}`;
     } catch {
       // Fallback to just hash if URL parsing fails
       return hash.substring(0, 12);
     }
   }
-  
+
   /**
    * Validate URL format
    */
   static isValidUrl(url: string): boolean {
     try {
       const parsed = new URL(url);
-      return ['http:', 'https:'].includes(parsed.protocol);
+      return ["http:", "https:"].includes(parsed.protocol);
     } catch {
       return false;
     }
@@ -190,54 +190,58 @@ interface AutoCaptureJobData {
   userId: string;
 }
 
-export class AutoCaptureHandler implements JobHandler<string, AutoCaptureJobData, void> {
+export class AutoCaptureHandler
+  implements JobHandler<string, AutoCaptureJobData, void>
+{
   constructor(
     private context: ServicePluginContext,
     private config: LinkConfig,
-    private logger: Logger
+    private logger: Logger,
   ) {}
-  
+
   async handle(jobId: string, data: AutoCaptureJobData): Promise<void> {
     const { url, conversationId } = data;
-    
+
     try {
       // Generate deterministic entity ID
       const entityId = UrlUtils.generateEntityId(url);
-      
+
       // Check if entity already exists
-      const existing = await this.context.entityService.getEntity('link', entityId);
+      const existing = await this.context.entityService.getEntity(
+        "link",
+        entityId,
+      );
       if (existing) {
-        this.logger.debug('Link already captured', { url, entityId });
+        this.logger.debug("Link already captured", { url, entityId });
         return;
       }
-      
+
       // Capture the link with deterministic ID
       const linkService = new LinkService(this.context);
       const result = await linkService.captureLink(url, {
         id: entityId,
-        metadata: { conversationId }
+        metadata: { conversationId },
       });
-      
-      this.logger.info('Auto-captured link', {
+
+      this.logger.info("Auto-captured link", {
         url,
         entityId: result.entityId,
         title: result.title,
-        conversationId
+        conversationId,
       });
-      
+
       // Send notification if configured
       if (this.config.notifyOnCapture) {
         // Emit notification event (handled by interface plugins)
-        await this.context.sendMessage('link:captured', {
+        await this.context.sendMessage("link:captured", {
           url,
           title: result.title,
           entityId: result.entityId,
-          conversationId
+          conversationId,
         });
       }
-      
     } catch (error) {
-      this.logger.error('Failed to auto-capture link', { url, error });
+      this.logger.error("Failed to auto-capture link", { url, error });
       throw error; // Let job queue handle retry
     }
   }
@@ -254,47 +258,47 @@ export class MessageEventHandler {
   constructor(
     private context: ServicePluginContext,
     private config: LinkConfig,
-    private logger: Logger
+    private logger: Logger,
   ) {}
-  
+
   async handleMessage(payload: ConversationMessagePayload): Promise<void> {
     // Skip assistant messages (only process user messages)
-    if (payload.role !== 'user') {
+    if (payload.role !== "user") {
       return;
     }
-    
+
     // Extract URLs from message
     const urls = UrlUtils.extractUrls(payload.content);
     if (urls.length === 0) {
       return;
     }
-    
+
     // Limit URLs to process
     const urlsToProcess = urls.slice(0, this.config.maxUrlsPerMessage);
-    
+
     // Enqueue auto-capture jobs for each URL
     for (const url of urlsToProcess) {
       if (!UrlUtils.isValidUrl(url)) {
-        this.logger.debug('Invalid URL skipped', { url });
+        this.logger.debug("Invalid URL skipped", { url });
         continue;
       }
-      
+
       // Enqueue job for async processing
       await this.context.enqueueJob(
-        'link:auto-capture',
+        "link:auto-capture",
         {
           url,
           conversationId: payload.conversationId,
           messageId: payload.messageId,
-          userId: payload.userId
+          userId: payload.userId,
         },
         {
-          priority: 'low',
-          retries: 2
-        }
+          priority: "low",
+          retries: 2,
+        },
       );
-      
-      this.logger.debug('Queued URL for auto-capture', { url });
+
+      this.logger.debug("Queued URL for auto-capture", { url });
     }
   }
 }
@@ -309,34 +313,36 @@ import { AutoCaptureHandler } from "./handlers/auto-capture-handler";
 
 export class LinkPlugin extends ServicePlugin<LinkConfig> {
   private messageEventHandler?: MessageEventHandler;
-  
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     // Existing registration...
-    
+
     // Register auto-capture job handler
     const autoCaptureHandler = new AutoCaptureHandler(
       context,
       this.config,
-      this.logger
+      this.logger,
     );
-    context.registerJobHandler('auto-capture', autoCaptureHandler);
-    
+    context.registerJobHandler("auto-capture", autoCaptureHandler);
+
     // Setup auto-capture if enabled
     if (this.config.enableAutoCapture) {
       this.messageEventHandler = new MessageEventHandler(
-        context, 
-        this.config, 
-        this.logger
+        context,
+        this.config,
+        this.logger,
       );
-      
+
       // Subscribe to conversation messages
-      context.subscribe('conversation:message', async (message) => {
+      context.subscribe("conversation:message", async (message) => {
         const payload = conversationMessagePayloadSchema.parse(message.payload);
         await this.messageEventHandler?.handleMessage(payload);
         return { success: true };
       });
-      
-      this.logger.info('Auto-capture enabled for Link plugin');
+
+      this.logger.info("Auto-capture enabled for Link plugin");
     }
   }
 }
@@ -352,7 +358,7 @@ protected async handleInput(
   replyToId?: string,
 ): Promise<void> {
   // Existing code...
-  
+
   // Store user message and publish event (around line 274-287)
   const isCommand = input.startsWith(this.commandPrefix);
   if (!isCommand) {
@@ -367,7 +373,7 @@ protected async handleInput(
       this.logger.debug("Could not store user message", { error });
     }
   }
-  
+
   // ALWAYS publish message event for ALL user messages (even commands)
   // This allows plugins to process all user input
   try {
@@ -388,7 +394,7 @@ protected async handleInput(
   } catch (error) {
     this.logger.debug("Could not publish message event", { error });
   }
-  
+
   // Rest of existing code...
 }
 ```
@@ -437,6 +443,7 @@ protected async handleInput(
 ## Configuration Examples
 
 ### Default Configuration
+
 ```typescript
 {
   enableAutoCapture: true,
@@ -449,6 +456,7 @@ protected async handleInput(
 ```
 
 ### Selective Capture (Whitelist)
+
 ```typescript
 {
   enableAutoCapture: true,
@@ -461,6 +469,7 @@ protected async handleInput(
 ```
 
 ### Minimal Processing
+
 ```typescript
 {
   enableAutoCapture: true,
@@ -485,29 +494,34 @@ protected async handleInput(
 ## Implementation Timeline
 
 ### Phase 0: Foundation (Immediate)
+
 - [ ] Implement URL hash-based entity IDs in LinkService
 - [ ] Update captureLink to accept custom entity ID
 - [ ] Test deduplication with deterministic IDs
 
 ### Phase 1: Core Auto-Capture (Day 1-2)
+
 - [ ] Add enableAutoCapture config to LinkConfig schema
 - [ ] Create UrlUtils class with extraction and ID generation
 - [ ] Implement AutoCaptureHandler job handler
 - [ ] Register job handler in plugin
 
 ### Phase 2: Message Event Integration (Day 3-4)
+
 - [ ] Publish conversation:message event from MessageInterfacePlugin
 - [ ] Create MessageEventHandler to process messages
 - [ ] Subscribe to events in LinkPlugin
 - [ ] Test end-to-end flow
 
 ### Phase 3: Testing & Polish (Day 5)
+
 - [ ] Unit tests for UrlUtils
 - [ ] Integration tests for auto-capture flow
 - [ ] Add notifyOnCapture option
 - [ ] Documentation updates
 
 ### Phase 4: Future Enhancements (Later)
+
 - [ ] Domain filtering with wildcard support
 - [ ] Per-conversation capture settings
 - [ ] Capture statistics and metrics
