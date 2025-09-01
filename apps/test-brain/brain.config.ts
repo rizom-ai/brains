@@ -8,6 +8,7 @@ import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { templates, routes } from "@brains/default-site-content";
 import { TopicsPlugin } from "@brains/topics";
+import { LinkPlugin } from "@brains/link";
 
 const config = defineConfig({
   name: "test-brain",
@@ -33,6 +34,7 @@ const config = defineConfig({
   plugins: [
     new SystemPlugin({}),
     new TopicsPlugin({}),
+    new LinkPlugin({}),
     new MCPInterface({}),
     new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",

@@ -136,6 +136,7 @@ export class AIService implements IAIService {
     });
 
     try {
+      // @ts-expect-error - Type instantiation issue with Zod v3 and AI SDK
       const result = await generateObject({
         model: this.getModel(),
         system: systemPrompt,
@@ -153,7 +154,7 @@ export class AIService implements IAIService {
       });
 
       return {
-        object: result.object,
+        object: result.object as T,
         usage: {
           promptTokens: result.usage.inputTokens ?? 0,
           completionTokens: result.usage.outputTokens ?? 0,

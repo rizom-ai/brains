@@ -9,6 +9,7 @@ import { linkConfigSchema, linkSchema, type LinkConfig } from "./schemas/link";
 import { LinkAdapter } from "./adapters/link-adapter";
 import { createLinkTools } from "./tools/index";
 import { createLinkCommands } from "./commands/index";
+import { linkExtractionTemplate } from "./templates/extraction-template";
 import packageJson from "../package.json";
 
 /**
@@ -31,6 +32,11 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     // Register the link entity type with its adapter
     const linkAdapter = new LinkAdapter();
     context.registerEntityType("link", linkSchema, linkAdapter);
+
+    // Register templates
+    context.registerTemplates({
+      extraction: linkExtractionTemplate,
+    });
 
     this.logger.info("Link plugin registered successfully");
   }

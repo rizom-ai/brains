@@ -23,26 +23,21 @@ export class LinkService {
     title: string;
     url: string;
   }> {
-    // Use AI to extract content from the URL
+    // Log the capture request
+    this.context.logger.debug("Starting link capture", { url, tags });
+
+    // Use AI to extract content from the URL using our custom template
     const extractionResult = await this.context.generateContent({
-      templateName: "shell:knowledge-query",
-      prompt: `Analyze and extract content from this URL: ${url}
-
-Please provide:
-1. A clear, descriptive title for the page
-2. A one-sentence description of what this page is about
-3. A 2-3 paragraph summary of the main content
-4. The main content extracted and formatted as clean markdown (maximum 5000 characters)
-5. 3-5 relevant tags that categorize this content
-
-Format your response as JSON with these fields:
-- title: string
-- description: string  
-- summary: string
-- content: string (markdown format)
-- suggested_tags: string[]`,
+      templateName: "link:extraction",
+      prompt: `Fetch and analyze the webpage at: ${url}`,
       data: { url },
       interfacePermissionGrant: "public",
+    });
+
+    // Log the raw extraction result
+    this.context.logger.debug("AI extraction result", {
+      type: typeof extractionResult,
+      result: extractionResult,
     });
 
     // Parse the AI response
@@ -54,10 +49,18 @@ Format your response as JSON with these fields:
         extractedData = extractionResult;
       }
     } catch (parseError) {
+      this.context.logger.error("Failed to parse AI extraction", {
+        error:
+          parseError instanceof Error ? parseError.message : String(parseError),
+        rawResult: extractionResult,
+      });
       throw new Error(
         `Failed to parse AI extraction result: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
       );
     }
+
+    // Log the parsed data
+    this.context.logger.debug("Parsed extraction data", { extractedData });
 
     // Validate required fields
     if (

@@ -42,7 +42,7 @@ describe("LinkService", () => {
 
       // Verify AI content generation was called correctly
       expect(context.generateContent).toHaveBeenCalledWith({
-        templateName: "shell:knowledge-query",
+        templateName: "link:extraction",
         prompt: expect.stringContaining(url),
         data: { url },
         interfacePermissionGrant: "public",
