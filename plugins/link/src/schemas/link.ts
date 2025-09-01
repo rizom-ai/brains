@@ -8,7 +8,7 @@ export const linkBodySchema = z.object({
   description: z.string(),
   summary: z.string(),
   content: z.string(),
-  tags: z.array(z.string()),
+  keywords: z.array(z.string()),
   domain: z.string(),
   capturedAt: z.string().datetime(),
 });
@@ -33,10 +33,10 @@ export const linkConfigSchema = z.object({
     .boolean()
     .default(true)
     .describe("Generate AI summaries for captured links"),
-  autoTag: z
+  autoExtractKeywords: z
     .boolean()
     .default(true)
-    .describe("Automatically generate tags from content"),
+    .describe("Automatically extract keywords from content"),
 });
 
 export type LinkBody = z.infer<typeof linkBodySchema>;

@@ -49,7 +49,7 @@ describe("Link Commands", () => {
         "Capture a web link with AI-powered content extraction",
       );
       expect(captureCommand?.usage).toContain("<url>");
-      expect(captureCommand?.usage).toContain("--tags");
+      expect(captureCommand?.usage).not.toContain("--tags");
     });
 
     it("should capture link with AI extraction", async () => {
@@ -159,7 +159,7 @@ describe("Link Commands", () => {
       expect(searchCommand).toBeDefined();
       expect(searchCommand?.description).toBe("Search captured links");
       expect(searchCommand?.usage).toContain("[query]");
-      expect(searchCommand?.usage).toContain("[--tags");
+      expect(searchCommand?.usage).toContain("[--keywords");
     });
 
     it("should search links", async () => {
@@ -190,7 +190,7 @@ describe("Link Commands", () => {
       const searchCommand = commands.find((cmd) => cmd.name === "link-search")!;
 
       const result = await searchCommand.handler(
-        ["--tags", "javascript", "tutorial"],
+        ["--keywords", "javascript,tutorial"],
         mockCommandContext,
       );
 

@@ -29,12 +29,11 @@ describe("LinkService", () => {
   describe("captureLink", () => {
     it("should capture a link successfully with AI extraction", async () => {
       const url = "https://example.com/test-article";
-      const tags = ["custom", "tag"];
 
       // Mock the AI content generation
       context.generateContent = mock(async () => mockAIResponse.complete);
 
-      const result = await linkService.captureLink(url, tags);
+      const result = await linkService.captureLink(url);
 
       expect(result.title).toBe("Test Article");
       expect(result.url).toBe(url);
@@ -49,7 +48,7 @@ describe("LinkService", () => {
       });
     });
 
-    it("should use suggested tags when no custom tags provided", async () => {
+    it("should use keywords from AI extraction", async () => {
       const url = "https://example.com/test-article";
 
       // Mock the AI content generation
@@ -121,7 +120,7 @@ describe("LinkService", () => {
       expect(result[0].title).toBe("Article 1");
       expect(result[0].url).toBe("https://example.com/article1");
       expect(result[0].description).toBe("First article");
-      expect(result[0].tags).toEqual(["tag1", "tag2"]);
+      expect(result[0].keywords).toEqual(["keyword1", "keyword2"]);
       expect(result[0].domain).toBe("example.com");
     });
 
@@ -163,7 +162,7 @@ describe("LinkService", () => {
       expect(result?.description).toBe("Test description");
       expect(result?.summary).toBe("Test summary");
       expect(result?.content).toBe("Test content");
-      expect(result?.tags).toEqual(["test"]);
+      expect(result?.keywords).toEqual(["test"]);
       expect(result?.domain).toBe("example.com");
     });
 

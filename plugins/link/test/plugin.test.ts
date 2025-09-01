@@ -8,7 +8,7 @@ describe("LinkPlugin", () => {
   beforeEach(() => {
     plugin = createLinkPlugin({
       enableSummarization: true,
-      autoTag: true,
+      autoExtractKeywords: true,
     }) as LinkPlugin;
   });
 
@@ -22,17 +22,17 @@ describe("LinkPlugin", () => {
     it("should use default configuration when not provided", () => {
       const defaultPlugin = createLinkPlugin() as LinkPlugin;
       expect(defaultPlugin.config.enableSummarization).toBe(true);
-      expect(defaultPlugin.config.autoTag).toBe(true);
+      expect(defaultPlugin.config.autoExtractKeywords).toBe(true);
     });
 
     it("should accept custom configuration", () => {
       const customPlugin = createLinkPlugin({
         enableSummarization: false,
-        autoTag: false,
+        autoExtractKeywords: false,
       }) as LinkPlugin;
 
       expect(customPlugin.config.enableSummarization).toBe(false);
-      expect(customPlugin.config.autoTag).toBe(false);
+      expect(customPlugin.config.autoExtractKeywords).toBe(false);
     });
   });
 
@@ -55,7 +55,7 @@ describe("LinkPlugin", () => {
         description: "A test article",
         summary: "This is a test article summary.",
         content: "# Test Article\n\nThis is the main content.",
-        tags: ["test", "example"],
+        keywords: ["test", "example"],
       });
 
       expect(linkBody).toContain("# Test Article");
@@ -63,7 +63,7 @@ describe("LinkPlugin", () => {
       expect(linkBody).toContain("https://example.com/test");
       expect(linkBody).toContain("## Description");
       expect(linkBody).toContain("A test article");
-      expect(linkBody).toContain("## Tags");
+      expect(linkBody).toContain("## Keywords");
       expect(linkBody).toContain("- test");
       expect(linkBody).toContain("- example");
       expect(linkBody).toContain("## Domain");
@@ -91,7 +91,7 @@ This is a test article summary.
 
 This is the main content.
 
-## Tags
+## Keywords
 
 - test
 - example
@@ -110,7 +110,7 @@ example.com
       expect(parsed.url).toBe("https://example.com/test");
       expect(parsed.description).toBe("A test article");
       expect(parsed.summary).toBe("This is a test article summary.");
-      expect(parsed.tags).toEqual(["test", "example"]);
+      expect(parsed.keywords).toEqual(["test", "example"]);
       expect(parsed.domain).toBe("example.com");
       expect(parsed.capturedAt).toBe("2025-01-30T10:00:00.000Z");
     });

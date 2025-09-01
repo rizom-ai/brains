@@ -6,7 +6,6 @@ import { LinkService } from "../lib/link-service";
 // Schema for tool parameters
 const captureParamsSchema = z.object({
   url: z.string().url(),
-  tags: z.array(z.string()).optional(),
 });
 
 const listParamsSchema = z.object({
@@ -15,7 +14,7 @@ const listParamsSchema = z.object({
 
 const searchParamsSchema = z.object({
   query: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+  keywords: z.array(z.string()).optional(),
   limit: z.number().min(1).max(100).default(20),
 });
 
@@ -38,10 +37,10 @@ export function createLinkTools(
       description: "Capture a web link with AI-powered content extraction",
       inputSchema: captureParamsSchema.shape,
       handler: async (input): Promise<ToolResponse> => {
-        const { url, tags } = captureParamsSchema.parse(input);
+        const { url } = captureParamsSchema.parse(input);
 
         try {
-          const result = await linkService.captureLink(url, tags);
+          const result = await linkService.captureLink(url);
           return {
             success: true,
             data: {
@@ -86,10 +85,10 @@ export function createLinkTools(
       description: "Search captured links",
       inputSchema: searchParamsSchema.shape,
       handler: async (input): Promise<ToolResponse> => {
-        const { query, tags, limit } = searchParamsSchema.parse(input);
+        const { query, keywords, limit } = searchParamsSchema.parse(input);
 
         try {
-          const links = await linkService.searchLinks(query, tags, limit);
+          const links = await linkService.searchLinks(query, keywords, limit);
           return {
             success: true,
             data: {

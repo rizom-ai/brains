@@ -18,31 +18,20 @@ export function createLinkCommands(
     {
       name: "link-capture",
       description: "Capture a web link with AI-powered content extraction",
-      usage: "/link-capture <url> [--tags tag1,tag2,...]",
+      usage: "/link-capture <url>",
       handler: async (args, _context): Promise<CommandResponse> => {
         try {
           // Parse arguments
           if (args.length === 0) {
             return {
               type: "message",
-              message: "Usage: /link-capture <url> [--tags tag1,tag2,...]",
+              message: "Usage: /link-capture <url>",
             };
           }
 
           const url = args[0] as string;
-          let tags: string[] = [];
 
-          // Parse tags if provided
-          for (let i = 1; i < args.length; i++) {
-            if (args[i] === "--tags" && args[i + 1]) {
-              tags = (args[i + 1] as string)
-                .split(",")
-                .map((tag) => tag.trim());
-              break;
-            }
-          }
-
-          const result = await linkService.captureLink(url, tags);
+          const result = await linkService.captureLink(url);
 
           return {
             type: "message",
@@ -89,7 +78,7 @@ export function createLinkCommands(
           const linkList = links
             .map(
               (link, index) =>
-                `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Tags: ${link.tags.join(", ") || "None"}\n   Captured: ${new Date(link.capturedAt).toLocaleDateString()}`,
+                `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Keywords: ${link.keywords.join(", ") || "None"}\n   Captured: ${new Date(link.capturedAt).toLocaleDateString()}`,
             )
             .join("\n\n");
 
@@ -108,11 +97,11 @@ export function createLinkCommands(
     {
       name: "link-search",
       description: "Search captured links",
-      usage: "/link-search [query] [--tags tag1,tag2,...] [--limit <number>]",
+      usage: "/link-search [query] [--keywords keyword1,keyword2,...] [--limit <number>]",
       handler: async (args, _context): Promise<CommandResponse> => {
         try {
           let query: string | undefined;
-          let tags: string[] = [];
+          let keywords: string[] = [];
           let limit = 20;
 
           // Parse arguments
@@ -120,10 +109,10 @@ export function createLinkCommands(
           while (i < args.length) {
             const arg = args[i] as string;
 
-            if (arg === "--tags" && args[i + 1]) {
-              tags = (args[i + 1] as string)
+            if (arg === "--keywords" && args[i + 1]) {
+              keywords = (args[i + 1] as string)
                 .split(",")
-                .map((tag) => tag.trim());
+                .map((k) => k.trim());
               i += 2;
             } else if (arg === "--limit" && args[i + 1]) {
               limit = parseInt(args[i + 1] as string, 10);
@@ -144,14 +133,14 @@ export function createLinkCommands(
 
           const links = await linkService.searchLinks(
             query,
-            tags.length > 0 ? tags : undefined,
+            keywords.length > 0 ? keywords : undefined,
             limit,
           );
 
           if (links.length === 0) {
             const searchTerms = [];
             if (query) searchTerms.push(`query: "${query}"`);
-            if (tags.length > 0) searchTerms.push(`tags: ${tags.join(", ")}`);
+            if (keywords.length > 0) searchTerms.push(`keywords: ${keywords.join(", ")}`);
 
             return {
               type: "message",
@@ -162,13 +151,13 @@ export function createLinkCommands(
           const linkList = links
             .map(
               (link, index) =>
-                `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Tags: ${link.tags.join(", ") || "None"}\n   Description: ${link.description}`,
+                `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Keywords: ${link.keywords.join(", ") || "None"}\n   Description: ${link.description}`,
             )
             .join("\n\n");
 
           const searchInfo = [];
           if (query) searchInfo.push(`query: "${query}"`);
-          if (tags.length > 0) searchInfo.push(`tags: ${tags.join(", ")}`);
+          if (keywords.length > 0) searchInfo.push(`keywords: ${keywords.join(", ")}`);
 
           return {
             type: "message",
@@ -209,7 +198,7 @@ export function createLinkCommands(
 
 **URL:** ${link.url}
 **Domain:** ${link.domain}
-**Tags:** ${link.tags.join(", ") || "None"}
+**Keywords:** ${link.keywords.join(", ") || "None"}
 **Captured:** ${new Date(link.capturedAt).toLocaleDateString()}
 
 **Description:**

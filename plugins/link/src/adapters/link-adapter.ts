@@ -29,7 +29,7 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
         { key: "description", label: "Description", type: "string" },
         { key: "summary", label: "Summary", type: "string" },
         { key: "content", label: "Content", type: "string" },
-        { key: "tags", label: "Tags", type: "array", itemType: "string" },
+        { key: "keywords", label: "Keywords", type: "array", itemType: "string" },
         { key: "domain", label: "Domain", type: "string" },
         { key: "capturedAt", label: "Captured", type: "string" },
       ],
@@ -45,7 +45,7 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
     description: string;
     summary: string;
     content: string;
-    tags: string[];
+    keywords: string[];
   }): string {
     const formatter = this.createFormatter(params.title);
     return formatter.format({
@@ -53,7 +53,7 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
       description: params.description,
       summary: params.summary,
       content: params.content,
-      tags: params.tags,
+      keywords: params.keywords,
       domain: new URL(params.url).hostname,
       capturedAt: new Date().toISOString(),
     });

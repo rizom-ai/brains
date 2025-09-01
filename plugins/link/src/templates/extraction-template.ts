@@ -7,7 +7,7 @@ const linkExtractionSchema = z.object({
   description: z.string().describe("A one-sentence description"),
   summary: z.string().describe("A 2-3 paragraph summary"),
   content: z.string().describe("The main content in markdown format"),
-  suggested_tags: z.array(z.string()).describe("3-5 relevant tags"),
+  keywords: z.array(z.string()).describe("3-5 relevant keywords"),
 });
 
 export type LinkExtractionResult = z.infer<typeof linkExtractionSchema>;
@@ -26,7 +26,7 @@ For the extracted content, provide:
 2. A one-sentence description of what the page is about
 3. A 2-3 paragraph summary of the main content
 4. The main content extracted and formatted as clean markdown (maximum 5000 characters)
-5. 3-5 relevant tags that categorize this content
+5. 3-5 relevant keywords that categorize this content
 
 Format the content section as proper markdown with:
 - Headers for main sections
@@ -40,7 +40,7 @@ Expected JSON format:
   "description": "One sentence describing the page",
   "summary": "2-3 paragraph overview of the content",
   "content": "# Main Content\\n\\nFormatted markdown content here...",
-  "suggested_tags": ["tag1", "tag2", "tag3"]
+  "keywords": ["keyword1", "keyword2", "keyword3"]
 }
 
 Return the extracted information in the required JSON format.`,

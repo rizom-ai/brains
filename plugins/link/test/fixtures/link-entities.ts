@@ -21,7 +21,7 @@ Test summary
 
 Test content
 
-## Tags
+## Keywords
 
 - test
 
@@ -51,7 +51,7 @@ Test summary
 
 Test content
 
-## Tags
+## Keywords
 
 - test
 - example
@@ -82,10 +82,10 @@ Summary of first article
 
 Content here
 
-## Tags
+## Keywords
 
-- tag1
-- tag2
+- keyword1
+- keyword2
 
 ## Domain
 
@@ -112,14 +112,14 @@ export const mockAIResponse = {
     summary: "This is a test summary of the article content.",
     content:
       "# Test Article\n\nThis is the main article content with some details.",
-    suggested_tags: ["test", "article", "example"],
+    keywords: ["test", "article", "example"],
   },
   minimal: {
     title: "Test Article",
     description: "Test description",
     summary: "Test summary",
     content: "Test content",
-    suggested_tags: ["test"],
+    keywords: ["test"],
   },
   missingFields: {
     title: "Test Article",

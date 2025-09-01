@@ -17,14 +17,13 @@ export class LinkService {
    */
   async captureLink(
     url: string,
-    tags?: string[],
   ): Promise<{
     entityId: string;
     title: string;
     url: string;
   }> {
     // Log the capture request
-    this.context.logger.debug("Starting link capture", { url, tags });
+    this.context.logger.debug("Starting link capture", { url });
 
     // Use AI to extract content from the URL using our custom template
     const extractionResult = await this.context.generateContent({
@@ -72,6 +71,14 @@ export class LinkService {
       throw new Error("AI extraction failed to provide all required fields");
     }
 
+    // Use keywords from AI extraction
+    const keywords = extractedData.keywords ?? [];
+    
+    // Debug logging for keywords
+    this.context.logger.info("Extracted keywords", {
+      keywords,
+    });
+
     // Create structured content using adapter
     const linkBody = this.linkAdapter.createLinkBody({
       title: extractedData.title,
@@ -79,7 +86,7 @@ export class LinkService {
       description: extractedData.description,
       summary: extractedData.summary,
       content: extractedData.content,
-      tags: tags ?? extractedData.suggested_tags ?? [],
+      keywords,
     });
 
     // Create entity
@@ -106,7 +113,7 @@ export class LinkService {
       title: string;
       url: string;
       description: string;
-      tags: string[];
+      keywords: string[];
       domain: string;
       capturedAt: string;
     }>
@@ -125,7 +132,7 @@ export class LinkService {
         title: parsed.title,
         url: parsed.url,
         description: parsed.description,
-        tags: parsed.tags,
+        keywords: parsed.keywords,
         domain: parsed.domain,
         capturedAt: parsed.capturedAt,
       };
@@ -137,7 +144,7 @@ export class LinkService {
    */
   async searchLinks(
     query?: string,
-    tags?: string[],
+    keywords?: string[],
     limit: number = 20,
   ): Promise<
     Array<{
@@ -145,7 +152,7 @@ export class LinkService {
       title: string;
       url: string;
       description: string;
-      tags: string[];
+      keywords: string[];
       domain: string;
       capturedAt: string;
     }>
@@ -153,10 +160,10 @@ export class LinkService {
     // Build search query
     let searchQuery = query ?? "";
 
-    // Add tag filters to search query
-    if (tags && tags.length > 0) {
-      const tagQuery = tags.map((tag) => `tags: ${tag}`).join(" OR ");
-      searchQuery = searchQuery ? `${searchQuery} AND (${tagQuery})` : tagQuery;
+    // Add keyword filters to search query
+    if (keywords && keywords.length > 0) {
+      const keywordQuery = keywords.map((k) => `keywords: ${k}`).join(" OR ");
+      searchQuery = searchQuery ? `${searchQuery} AND (${keywordQuery})` : keywordQuery;
     }
 
     const results = await this.context.entityService.search(searchQuery, {
@@ -173,7 +180,7 @@ export class LinkService {
         title: parsed.title,
         url: parsed.url,
         description: parsed.description,
-        tags: parsed.tags,
+        keywords: parsed.keywords,
         domain: parsed.domain,
         capturedAt: parsed.capturedAt,
       };
@@ -190,7 +197,7 @@ export class LinkService {
     description: string;
     summary: string;
     content: string;
-    tags: string[];
+    keywords: string[];
     domain: string;
     capturedAt: string;
   } | null> {
@@ -207,7 +214,7 @@ export class LinkService {
       description: parsed.description,
       summary: parsed.summary,
       content: parsed.content,
-      tags: parsed.tags,
+      keywords: parsed.keywords,
       domain: parsed.domain,
       capturedAt: parsed.capturedAt,
     };
