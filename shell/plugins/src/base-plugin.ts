@@ -77,7 +77,7 @@ export abstract class BasePlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     partialConfig: Partial<TConfig>,
-    configSchema: z.ZodType<TConfig>,
+    configSchema: z.ZodTypeAny,
   ) {
     this.id = id;
     this.packageName = packageJson.name;

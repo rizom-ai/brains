@@ -48,7 +48,7 @@ export abstract class MessageInterfacePlugin<
     id: string,
     packageJson: { name: string; version: string; description?: string },
     partialConfig: Partial<TConfig>,
-    configSchema: z.ZodType<TConfig>,
+    configSchema: z.ZodTypeAny,
     sessionId?: string,
   ) {
     super(id, packageJson, partialConfig, configSchema);
