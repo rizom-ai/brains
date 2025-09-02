@@ -93,8 +93,7 @@ export class LinkService {
     if (
       !extractedData.title ||
       !extractedData.description ||
-      !extractedData.summary ||
-      !extractedData.content
+      !extractedData.summary
     ) {
       throw new Error("AI extraction failed to provide all required fields");
     }
@@ -113,7 +112,6 @@ export class LinkService {
       url,
       description: extractedData.description,
       summary: extractedData.summary,
-      content: extractedData.content,
       keywords,
     });
 
@@ -226,7 +224,6 @@ export class LinkService {
     url: string;
     description: string;
     summary: string;
-    content: string;
     keywords: string[];
     domain: string;
     capturedAt: string;
@@ -243,7 +240,6 @@ export class LinkService {
       url: parsed.url,
       description: parsed.description,
       summary: parsed.summary,
-      content: parsed.content,
       keywords: parsed.keywords,
       domain: parsed.domain,
       capturedAt: parsed.capturedAt,

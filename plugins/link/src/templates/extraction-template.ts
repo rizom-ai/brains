@@ -5,8 +5,7 @@ import { z } from "@brains/utils";
 const linkExtractionSchema = z.object({
   title: z.string().describe("The page title"),
   description: z.string().describe("A one-sentence description"),
-  summary: z.string().describe("A 2-3 paragraph summary"),
-  content: z.string().describe("The main content in markdown format"),
+  summary: z.string().describe("A 1-2 paragraph summary"),
   keywords: z.array(z.string()).describe("3-5 relevant keywords"),
 });
 
@@ -17,29 +16,23 @@ export const linkExtractionTemplate = createTemplate<LinkExtractionResult>({
   description: "Extract structured content from a web page",
   dataSourceId: "shell:ai-content",
   schema: linkExtractionSchema,
-  basePrompt: `You are an expert at extracting and structuring web content.
+  basePrompt: `You are an expert at extracting key information from web search results.
 
-Analyze the provided webpage and extract the key information.
+Based on the web search information available, extract:
 
-For the extracted content, provide:
 1. A clear, descriptive title for the page
-2. A one-sentence description of what the page is about
-3. A 2-3 paragraph summary of the main content
-4. The main content extracted and formatted as clean markdown (maximum 5000 characters)
-5. 3-5 relevant keywords that categorize this content
+2. A one-sentence description of what the page is about  
+3. A 1-2 paragraph summary of the main topic
+4. 3-5 relevant keywords that categorize this content
 
-Format the content section as proper markdown with:
-- Headers for main sections
-- Bullet points for lists
-- Code blocks where appropriate
-- Clean, readable formatting
+Focus only on information you can confidently extract from the search results.
+Do not make up or hallucinate content that isn't available.
 
 Expected JSON format:
 {
   "title": "Clear descriptive title",
   "description": "One sentence describing the page",
-  "summary": "2-3 paragraph overview of the content",
-  "content": "# Main Content\\n\\nFormatted markdown content here...",
+  "summary": "1-2 paragraph summary",
   "keywords": ["keyword1", "keyword2", "keyword3"]
 }
 

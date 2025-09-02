@@ -208,10 +208,7 @@ export function createLinkCommands(
 ${link.description}
 
 **Summary:**
-${link.summary}
-
-**Content Preview:**
-${link.content.length > 500 ? link.content.substring(0, 500) + "..." : link.content}`;
+${link.summary}`;
 
           return {
             type: "message",

@@ -246,7 +246,6 @@ describe("LinkService", () => {
       expect(result?.url).toBe("https://example.com/test");
       expect(result?.description).toBe("Test description");
       expect(result?.summary).toBe("Test summary");
-      expect(result?.content).toBe("Test content");
       expect(result?.keywords).toEqual(["test"]);
       expect(result?.domain).toBe("example.com");
     });

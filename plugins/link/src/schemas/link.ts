@@ -7,7 +7,6 @@ export const linkBodySchema = z.object({
   url: z.string().url(),
   description: z.string(),
   summary: z.string(),
-  content: z.string(),
   keywords: z.array(z.string()),
   domain: z.string(),
   capturedAt: z.string().datetime(),
