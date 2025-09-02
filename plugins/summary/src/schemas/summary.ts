@@ -45,12 +45,14 @@ export const summarySchema = z.object({
   content: z.string(), // Structured markdown with log entries
   created: z.string().datetime(),
   updated: z.string().datetime(),
-  metadata: z.object({
-    conversationId: z.string(),
-    entryCount: z.number(),
-    totalMessages: z.number(),
-    lastUpdated: z.string().datetime(),
-  }).optional(),
+  metadata: z
+    .object({
+      conversationId: z.string(),
+      entryCount: z.number(),
+      totalMessages: z.number(),
+      lastUpdated: z.string().datetime(),
+    })
+    .optional(),
   embedding: z.array(z.number()).optional(),
   source: z.string().optional(),
 });
@@ -80,3 +82,28 @@ export const summaryConfigSchema = z.object({
 });
 
 export type SummaryConfig = z.infer<typeof summaryConfigSchema>;
+
+/**
+ * AI decision result schema for digest analysis
+ */
+export const aiDecisionResultSchema = z.object({
+  decision: z.enum(["update", "new"]),
+  entryIndex: z.number().optional(),
+  title: z.string(),
+  reasoning: z.string(),
+});
+
+export type AiDecisionResult = z.infer<typeof aiDecisionResultSchema>;
+
+/**
+ * AI summary generation result schema
+ */
+export const aiSummaryResultSchema = z.object({
+  content: z.string(),
+  keyPoints: z.array(z.string()).optional(),
+  decisions: z.array(z.string()).optional(),
+  actionItems: z.array(z.string()).optional(),
+  participants: z.array(z.string()).optional(),
+});
+
+export type AiSummaryResult = z.infer<typeof aiSummaryResultSchema>;

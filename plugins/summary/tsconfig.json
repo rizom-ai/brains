@@ -1,9 +1,11 @@
 {
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
-    "rootDir": ".",
-    "outDir": "dist"
+    "rootDir": "src",
+    "outDir": "dist",
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
   },
-  "include": ["src/**/*", "test/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "test"]
 }

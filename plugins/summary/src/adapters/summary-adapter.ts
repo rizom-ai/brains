@@ -1,5 +1,8 @@
 import type { EntityAdapter } from "@brains/plugins";
-import { StructuredContentFormatter, parseMarkdownWithFrontmatter } from "@brains/plugins";
+import {
+  StructuredContentFormatter,
+  parseMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import { summarySchema, summaryLogEntrySchema } from "../schemas/summary";
 import type {
   SummaryEntity,
@@ -153,15 +156,15 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
 
     const timestampPart = section.substring(0, headerEndIndex);
     const titleLine = section.substring(headerEndIndex + 1).split("\n")[0];
-    const title = titleLine?.trim() || "";
+    const title = titleLine?.trim() ?? "";
 
     let created: string;
     let updated: string;
 
     if (timestampPart.includes(" - Updated ")) {
       const [createdPart, updatedPart] = timestampPart.split(" - Updated ");
-      created = createdPart?.trim() || new Date().toISOString();
-      updated = updatedPart?.trim() || created;
+      created = createdPart?.trim() ?? new Date().toISOString();
+      updated = updatedPart?.trim() ?? created;
     } else {
       created = timestampPart.trim();
       updated = created;
@@ -209,7 +212,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
 
     // Extract conversation ID from title
     const titleMatch = content.match(/^# Conversation Summary: (.+)$/m);
-    const conversationId = titleMatch?.[1] || "";
+    const conversationId = titleMatch?.[1] ?? "";
 
     // Extract metadata
     const totalMessagesMatch = content.match(/\*\*Total Messages:\*\* (\d+)/);
@@ -218,7 +221,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
       : 0;
 
     const lastUpdatedMatch = content.match(/\*\*Last Updated:\*\* (.+)/);
-    const lastUpdated = lastUpdatedMatch?.[1] || new Date().toISOString();
+    const lastUpdated = lastUpdatedMatch?.[1] ?? new Date().toISOString();
 
     // Split by entry headers (### [...])
     const logSection = content.split("## Summary Log")[1];
@@ -272,7 +275,9 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
     return {
       entityType: "summary",
       content: markdown,
-      created: body.entries[body.entries.length - 1]?.created || new Date().toISOString(),
+      created:
+        body.entries[body.entries.length - 1]?.created ??
+        new Date().toISOString(),
       updated: body.lastUpdated,
       metadata: {
         conversationId: body.conversationId,
@@ -287,9 +292,9 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
    * Extract metadata for storage
    */
   public extractMetadata(entity: SummaryEntity): Record<string, unknown> {
-    return entity.metadata || {};
+    return entity.metadata ?? {};
   }
-  
+
   /**
    * Parse frontmatter from markdown
    * Summaries don't use frontmatter, everything is in the content
@@ -353,21 +358,21 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
           windowEnd: newEntry.windowEnd, // Update window end
           // Merge arrays if they exist
           keyPoints: [
-            ...(existingEntry.keyPoints || []),
-            ...(newEntry.keyPoints || []),
+            ...(existingEntry.keyPoints ?? []),
+            ...(newEntry.keyPoints ?? []),
           ],
           decisions: [
-            ...(existingEntry.decisions || []),
-            ...(newEntry.decisions || []),
+            ...(existingEntry.decisions ?? []),
+            ...(newEntry.decisions ?? []),
           ],
           actionItems: [
-            ...(existingEntry.actionItems || []),
-            ...(newEntry.actionItems || []),
+            ...(existingEntry.actionItems ?? []),
+            ...(newEntry.actionItems ?? []),
           ],
           participants: Array.from(
             new Set([
-              ...(existingEntry.participants || []),
-              ...(newEntry.participants || []),
+              ...(existingEntry.participants ?? []),
+              ...(newEntry.participants ?? []),
             ]),
           ),
         };
