@@ -10,16 +10,19 @@ Rizom aims to address challenges around freelancing, purpose alignment, and fair
 
 ## Keywords
 
-- retro gaming
-- emulation
-- hardware hacking
-- Doom
-- SNES
-- Raspberry Pi
-- RP2350
+- decentralized work
+- independent experts
+- freelance collaboration
+- knowledge sharing
+- professional networks
+- autonomous talent
+- on-demand expertise
 
 ## Sources
 
+- cli-cli
+- cli-cli
+- cli-cli
 - cli-cli
 - cli-cli
 - cli-cli

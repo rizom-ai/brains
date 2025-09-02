@@ -10,6 +10,8 @@ import { LinkAdapter } from "./adapters/link-adapter";
 import { createLinkTools } from "./tools/index";
 import { createLinkCommands } from "./commands/index";
 import { linkExtractionTemplate } from "./templates/extraction-template";
+import { AutoCaptureHandler } from "./handlers/auto-capture-handler";
+import { MessageEventHandler } from "./handlers/message-event-handler";
 import packageJson from "../package.json";
 
 /**
@@ -19,6 +21,8 @@ import packageJson from "../package.json";
  * as structured markdown entities following the topics plugin pattern.
  */
 export class LinkPlugin extends ServicePlugin<LinkConfig> {
+  private messageEventUnsubscribe?: () => void;
+
   constructor(config: Partial<LinkConfig> = {}) {
     super("link", packageJson, config, linkConfigSchema);
   }
@@ -38,7 +42,48 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
       extraction: linkExtractionTemplate,
     });
 
+    // Register auto-capture job handler
+    this.logger.info("Link plugin config", {
+      enableAutoCapture: this.config.enableAutoCapture,
+      config: this.config,
+    });
+
+    if (this.config.enableAutoCapture) {
+      const autoCaptureHandler = AutoCaptureHandler.getInstance(context);
+      context.registerJobHandler("auto-capture", autoCaptureHandler);
+      this.logger.info("Auto-capture handler registered");
+
+      // Subscribe to conversation message events
+      const messageEventHandler = MessageEventHandler.getInstance(
+        context,
+        this.config,
+      );
+      this.messageEventUnsubscribe = context.subscribe(
+        "conversation:messageAdded",
+        messageEventHandler.getHandler(),
+      );
+      this.logger.info("Subscribed to conversation:messageAdded events");
+    } else {
+      this.logger.info(
+        "Auto-capture is disabled, skipping handler registration",
+      );
+    }
+
     this.logger.info("Link plugin registered successfully");
+  }
+
+  /**
+   * Clean up when plugin is unregistered
+   */
+  public async cleanup(): Promise<void> {
+    // Unsubscribe from message events if subscribed
+    if (this.messageEventUnsubscribe) {
+      this.messageEventUnsubscribe();
+    }
+
+    // Reset singleton instances for clean testing
+    AutoCaptureHandler.resetInstance();
+    MessageEventHandler.resetInstance();
   }
 
   /**
