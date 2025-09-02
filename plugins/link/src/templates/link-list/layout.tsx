@@ -37,8 +37,12 @@ export const LinkListLayout = ({
                   {link.domain}
                 </p>
 
-                <p className="text-theme mb-3 line-clamp-2">
+                <p className="text-theme mb-2 font-medium">
                   {link.description}
+                </p>
+
+                <p className="text-theme-muted mb-3 text-sm line-clamp-3">
+                  {link.summary}
                 </p>
 
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -57,12 +61,17 @@ export const LinkListLayout = ({
                   )}
                 </div>
 
-                <time
-                  dateTime={link.capturedAt}
-                  className="text-xs text-theme-muted"
-                >
-                  Captured {new Date(link.capturedAt).toLocaleDateString()}
-                </time>
+                <div className="flex items-center gap-3 text-xs text-theme-muted">
+                  <time dateTime={link.capturedAt}>
+                    Captured {new Date(link.capturedAt).toLocaleDateString()}
+                  </time>
+                  {link.conversationId && (
+                    <>
+                      <span>•</span>
+                      <span>From conversation</span>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="flex-shrink-0">

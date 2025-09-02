@@ -100,7 +100,7 @@ describe("DynamicRouteGenerator", () => {
 
       await generator.generateEntityRoutes();
       expect(routeRegistry.size()).toBe(1);
-      
+
       // Check that list route was created
       const indexRoute = routeRegistry.get("/topics");
       expect(indexRoute).toBeDefined();
