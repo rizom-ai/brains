@@ -98,7 +98,9 @@ export class LinksDataSource implements DataSource {
           keywords: parsed.keywords,
           domain: parsed.domain,
           capturedAt: parsed.capturedAt,
-          conversationId: entity.metadata?.["conversationId"] as string | undefined,
+          conversationId: entity.metadata?.["conversationId"] as
+            | string
+            | undefined,
         };
       });
 

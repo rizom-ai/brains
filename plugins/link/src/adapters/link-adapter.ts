@@ -1,9 +1,10 @@
 import type { EntityAdapter } from "@brains/plugins";
 import {
   parseMarkdownWithFrontmatter,
+  generateMarkdownWithFrontmatter,
   StructuredContentFormatter,
 } from "@brains/plugins";
-import type { z } from "@brains/utils";
+import { z } from "@brains/utils";
 import {
   linkSchema,
   linkBodySchema,
@@ -76,27 +77,39 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
   }
 
   /**
-   * Convert entity to markdown
+   * Convert entity to markdown with metadata in frontmatter
    */
   public toMarkdown(entity: LinkEntity): string {
+    // If entity has metadata, include it as frontmatter
+    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
+      return generateMarkdownWithFrontmatter(entity.content, entity.metadata);
+    }
     return entity.content;
   }
 
   /**
-   * Convert markdown to entity
+   * Convert markdown to entity, extracting metadata from frontmatter
    */
   public fromMarkdown(markdown: string): Partial<LinkEntity> {
+    // Try to parse frontmatter for metadata
+    const { metadata } = parseMarkdownWithFrontmatter(
+      markdown,
+      z.record(z.unknown()).default({}),
+    );
+    
     return {
-      content: markdown,
+      content: markdown, // Keep the full markdown including frontmatter
       entityType: "link",
+      metadata: metadata && Object.keys(metadata).length > 0 ? metadata : undefined,
     };
   }
 
   /**
-   * Extract metadata (empty for links as all data is in content)
+   * Extract metadata from entity
    */
-  public extractMetadata(_entity: LinkEntity): Record<string, unknown> {
-    return {};
+  public extractMetadata(entity: LinkEntity): Record<string, unknown> {
+    // Return the entity's metadata if it exists
+    return entity.metadata ?? {};
   }
 
   /**
