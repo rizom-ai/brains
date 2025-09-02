@@ -1,24 +1,33 @@
+---
+conversationId: 'matrix-!IiXnxQOIANAsMqSADH:rizom.ai'
+userId: '@yeehaa:rizom.ai'
+messageId: uChEB0V4VhRR
+timestamp: '2025-09-02T08:44:37.817Z'
+---
 # Sly Stone Obituary
 
 ## URL
 https://pitchfork.com/features/afterword/sly-stone-obituary/
 
 ## Description
-A tribute to the influential and innovative funk pioneer Sly Stone, who died at the age of 75.
+Pitchfork's obituary and tribute to the pioneering musician Sly Stone, who died at the age of 75.
 
 ## Summary
-This article is an obituary for Sly Stone, the groundbreaking musician and founder of the band Sly & the Family Stone. It chronicles Sly Stone's influential career, his innovative contributions to funk music, and the personal struggles and controversies that marked his later years. The summary highlights Sly Stone's status as a visionary artist who helped shape the sound of 1960s and 1970s popular music, while also exploring the complexities and contradictions of his life and legacy.
+This Pitchfork article is an obituary and tribute to the influential musician Sly Stone, who died at the age of 75. The article covers Sly Stone's pioneering work with his band Sly & the Family Stone, blending funk, soul, psychedelia, and rock into a unique sound that was hugely influential. It discusses his rise to fame in the 1960s, his struggles with addiction and erratic behavior in later years, and his lasting impact on music. The summary provides an overview of Sly Stone's life, career, and legacy as a groundbreaking artist.
 
 ## Keywords
 
 - Sly Stone
 - Sly & the Family Stone
-- funk music
 - obituary
-- music history
+- tribute
+- funk
+- soul
+- psychedelia
+- rock music
 
 ## Domain
 pitchfork.com
 
 ## Captured
-2025-09-02T05:49:04.221Z
+2025-09-02T08:44:40.169Z

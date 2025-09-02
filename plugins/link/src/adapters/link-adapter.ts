@@ -96,11 +96,12 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
       markdown,
       z.record(z.unknown()).default({}),
     );
-    
+
     return {
       content: markdown, // Keep the full markdown including frontmatter
       entityType: "link",
-      metadata: metadata && Object.keys(metadata).length > 0 ? metadata : undefined,
+      metadata:
+        metadata && Object.keys(metadata).length > 0 ? metadata : undefined,
     };
   }
 
