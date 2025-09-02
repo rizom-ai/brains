@@ -36,7 +36,7 @@ export class DynamicRouteGenerator {
     const { listTemplateName, detailTemplateName } =
       this.findTemplatesForEntityType(entityType);
 
-    if (!listTemplateName || !detailTemplateName) {
+    if (!listTemplateName && !detailTemplateName) {
       logger.debug(
         `No matching templates found for entity type: ${entityType}`,
       );
@@ -48,83 +48,90 @@ export class DynamicRouteGenerator {
       detailTemplate: detailTemplateName,
     });
 
-    // Register index route
-    const indexRoute: RouteDefinition = {
-      id: `${entityType}-index`,
-      path: `/${this.pluralize(entityType)}`,
-      title: `${this.capitalize(entityType)}s`,
-      description: `Browse all ${this.pluralize(entityType)}`,
-      sections: [
-        {
-          id: "list",
-          template: listTemplateName,
-          contentEntity: {
-            entityType,
-            query: { limit: 100 }, // Reasonable default limit
+    // Register index route if we have a list template
+    if (listTemplateName) {
+      const indexRoute: RouteDefinition = {
+        id: `${entityType}-index`,
+        path: `/${this.pluralize(entityType)}`,
+        title: `${this.capitalize(entityType)}s`,
+        description: `Browse all ${this.pluralize(entityType)}`,
+        sections: [
+          {
+            id: "list",
+            template: listTemplateName,
+            contentEntity: {
+              entityType,
+              query: { limit: 100 }, // Reasonable default limit
+            },
           },
-        },
-      ],
-      sourceEntityType: entityType,
-    };
+        ],
+        sourceEntityType: entityType,
+      };
 
-    try {
-      this.routeRegistry.register(indexRoute);
-      logger.debug(`Registered index route for ${entityType}`, {
-        path: indexRoute.path,
-      });
-    } catch (error) {
-      logger.warn(`Failed to register index route for ${entityType}`, {
-        error,
-      });
+      try {
+        this.routeRegistry.register(indexRoute);
+        logger.debug(`Registered index route for ${entityType}`, {
+          path: indexRoute.path,
+        });
+      } catch (error) {
+        logger.warn(`Failed to register index route for ${entityType}`, {
+          error,
+        });
+      }
     }
 
-    // Get all entities of this type and create detail routes
-    try {
-      const entities = await this.context.entityService.listEntities(
-        entityType,
-        { limit: 1000 }, // Get all entities for static generation
-      );
+    // Get all entities of this type and create detail routes if we have a detail template
+    if (detailTemplateName) {
+      try {
+        const entities = await this.context.entityService.listEntities(
+          entityType,
+          { limit: 1000 }, // Get all entities for static generation
+        );
 
-      logger.info(
-        `Found ${entities.length} ${entityType} entities to generate routes for`,
-      );
+        logger.info(
+          `Found ${entities.length} ${entityType} entities to generate routes for`,
+        );
 
-      for (const entity of entities) {
-        const detailRoute: RouteDefinition = {
-          id: `${entityType}-${entity.id}`,
-          path: `/${this.pluralize(entityType)}/${entity.id}`,
-          title: `${this.capitalize(entityType)}: ${entity.id}`,
-          description: `View ${entityType} details`,
-          sections: [
-            {
-              id: "detail",
-              template: detailTemplateName,
-              contentEntity: {
-                entityType,
-                query: { id: entity.id },
+        for (const entity of entities) {
+          const detailRoute: RouteDefinition = {
+            id: `${entityType}-${entity.id}`,
+            path: `/${this.pluralize(entityType)}/${entity.id}`,
+            title: `${this.capitalize(entityType)}: ${entity.id}`,
+            description: `View ${entityType} details`,
+            sections: [
+              {
+                id: "detail",
+                template: detailTemplateName,
+                contentEntity: {
+                  entityType,
+                  query: { id: entity.id },
+                },
               },
-            },
-          ],
-          sourceEntityType: entityType,
-        };
+            ],
+            sourceEntityType: entityType,
+          };
 
-        try {
-          this.routeRegistry.register(detailRoute);
-        } catch (error) {
-          logger.warn(
-            `Failed to register detail route for ${entityType}/${entity.id}`,
-            { error },
-          );
+          try {
+            this.routeRegistry.register(detailRoute);
+          } catch (error) {
+            logger.warn(
+              `Failed to register detail route for ${entityType}/${entity.id}`,
+              { error },
+            );
+          }
         }
-      }
 
-      logger.info(
-        `Successfully registered ${entities.length + 1} routes for ${entityType}`,
-      );
-    } catch (error) {
-      logger.error(`Failed to list entities for type: ${entityType}`, {
-        error,
-      });
+        const routeCount = listTemplateName
+          ? entities.length + 1
+          : entities.length;
+        logger.info(
+          `Successfully registered ${routeCount} routes for ${entityType}`,
+        );
+      } catch (error) {
+        logger.error(`Failed to list entities for type: ${entityType}`, {
+          error,
+        });
+      }
     }
   }
 
@@ -156,15 +163,20 @@ export class DynamicRouteGenerator {
       }
     }
 
-    // Return found templates
-    if (listTemplateName && detailTemplateName) {
-      return {
-        listTemplateName,
-        detailTemplateName,
-      };
+    // Return found templates (allow list-only or detail-only)
+    const result: {
+      listTemplateName?: string;
+      detailTemplateName?: string;
+    } = {};
+
+    if (listTemplateName) {
+      result.listTemplateName = listTemplateName;
+    }
+    if (detailTemplateName) {
+      result.detailTemplateName = detailTemplateName;
     }
 
-    return {};
+    return result;
   }
 
   /**

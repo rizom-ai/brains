@@ -86,7 +86,7 @@ describe("DynamicRouteGenerator", () => {
       expect(routeRegistry.get("/topics/machine-learning")).toBeDefined();
     });
 
-    test("should only generate routes when both list and detail templates exist", async () => {
+    test("should generate list route when only list template exists", async () => {
       entityTypes.push("topic");
 
       // Only list template, no detail
@@ -99,7 +99,12 @@ describe("DynamicRouteGenerator", () => {
       });
 
       await generator.generateEntityRoutes();
-      expect(routeRegistry.size()).toBe(0);
+      expect(routeRegistry.size()).toBe(1);
+      
+      // Check that list route was created
+      const indexRoute = routeRegistry.get("/topics");
+      expect(indexRoute).toBeDefined();
+      expect(indexRoute?.id).toBe("topic-index");
     });
 
     test("should handle multiple entity types", async () => {

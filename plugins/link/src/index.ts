@@ -10,6 +10,8 @@ import { LinkAdapter } from "./adapters/link-adapter";
 import { createLinkTools } from "./tools/index";
 import { createLinkCommands } from "./commands/index";
 import { linkExtractionTemplate } from "./templates/extraction-template";
+import { linkListTemplate } from "./templates/link-list";
+import { LinksDataSource } from "./datasources/links-datasource";
 import { AutoCaptureHandler } from "./handlers/auto-capture-handler";
 import { MessageEventHandler } from "./handlers/message-event-handler";
 import packageJson from "../package.json";
@@ -40,7 +42,15 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     // Register templates
     context.registerTemplates({
       extraction: linkExtractionTemplate,
+      "link-list": linkListTemplate,
     });
+
+    // Register DataSource
+    const linksDataSource = new LinksDataSource(
+      context.entityService,
+      this.logger.child("LinksDataSource"),
+    );
+    context.registerDataSource(linksDataSource);
 
     // Register auto-capture job handler
     this.logger.info("Link plugin config", {
