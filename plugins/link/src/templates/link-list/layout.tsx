@@ -69,10 +69,9 @@ export const LinkListLayout = ({
                     <>
                       <span>•</span>
                       <span className="text-xs" title={link.conversationId}>
-                        {link.conversationId.startsWith('matrix-') 
+                        {link.conversationId.startsWith("matrix-")
                           ? `Matrix: ${link.conversationId.slice(7, 20)}...`
-                          : `Conv: ${link.conversationId.slice(0, 12)}...`
-                        }
+                          : `Conv: ${link.conversationId.slice(0, 12)}...`}
                       </span>
                     </>
                   )}
