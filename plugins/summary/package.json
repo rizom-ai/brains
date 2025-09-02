@@ -1,0 +1,26 @@
+{
+  "name": "@brains/summary",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+  },
+  "dependencies": {
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/node": "^20.11.30",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5"
+  }
+}
