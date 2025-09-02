@@ -43,15 +43,16 @@ export const summarySchema = z.object({
   id: z.string(), // Format: summary-{conversationId}
   entityType: z.literal("summary"),
   content: z.string(), // Structured markdown with log entries
+  created: z.string().datetime(),
+  updated: z.string().datetime(),
   metadata: z.object({
     conversationId: z.string(),
     entryCount: z.number(),
     totalMessages: z.number(),
     lastUpdated: z.string().datetime(),
-  }),
+  }).optional(),
   embedding: z.array(z.number()).optional(),
-  createdAt: z.string().datetime(),
-  source: z.string(),
+  source: z.string().optional(),
 });
 
 export type SummaryEntity = z.infer<typeof summarySchema>;
