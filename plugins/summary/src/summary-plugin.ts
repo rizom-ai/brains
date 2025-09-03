@@ -10,9 +10,8 @@ import { DigestHandler } from "./handlers/digest-handler";
 import type { SummaryEntity } from "./schemas/summary";
 import { summaryConfigSchema, type SummaryConfig } from "./schemas/summary";
 import { createSummaryTools } from "./tools/index";
-import type { PluginTool } from "@brains/plugins";
-// import { createSummaryCommands } from "./commands/index";
-// import type { Command } from "@brains/plugins";
+import { createSummaryCommands } from "./commands/index";
+import type { PluginTool, Command } from "@brains/plugins";
 import packageJson from "../package.json";
 
 /**
@@ -67,10 +66,12 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     return createSummaryTools(this.context, this.config, this.logger);
   }
 
-  // TODO: Add commands
-  // protected override async getCommands(): Promise<Command[]> {
-  //   return [];
-  // }
+  protected override async getCommands(): Promise<Command[]> {
+    if (!this.context) {
+      throw new Error("Plugin not initialized");
+    }
+    return createSummaryCommands(this.context, this.config, this.logger);
+  }
 
   /**
    * Handle incoming digest messages
