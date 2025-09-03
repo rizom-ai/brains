@@ -5,9 +5,9 @@ import {
   type ToolResponse,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
+import { SummaryService } from "../lib/summary-service";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryConfig } from "../schemas/summary";
-import type { SummaryEntity } from "../schemas/summary";
 
 // Schema for tool parameters
 const getParamsSchema = z.object({
@@ -34,6 +34,9 @@ export function createGetTool(
   _config: SummaryConfig,
   logger: Logger,
 ): PluginTool {
+  const summaryService = new SummaryService(context.entityService);
+  const adapter = new SummaryAdapter();
+
   return {
     name: "summary-get",
     description: "Get chronological summary for a conversation",
@@ -45,61 +48,62 @@ export function createGetTool(
       }
 
       try {
-        const summaryId = `summary-${parsed.data.conversationId}`;
-        const summary = await context.entityService.getEntity<SummaryEntity>(
-          "summary",
-          summaryId,
+        const summary = await summaryService.getSummary(
+          parsed.data.conversationId,
         );
 
         if (!summary) {
+          logger.info("No summary found for conversation", {
+            conversationId: parsed.data.conversationId,
+          });
           return {
             success: false,
-            error: `No summary found for conversation: ${parsed.data.conversationId}`,
+            data: {
+              message: `No summary found for conversation ${parsed.data.conversationId}`,
+            },
           };
         }
 
-        // Parse summary content to extract structured data
-        const adapter = new SummaryAdapter();
-        const parsedContent = adapter.parseSummaryContent(summary.content);
+        const body = adapter.parseSummaryContent(summary.content);
+
+        logger.info("Retrieved summary", {
+          conversationId: parsed.data.conversationId,
+          entryCount: body.entries.length,
+        });
 
         return {
           success: true,
           data: {
             conversationId: parsed.data.conversationId,
-            summary: {
-              id: summary.id,
-              entries: parsedContent.entries,
-              totalMessages: parsedContent.totalMessages,
-              lastUpdated: parsedContent.lastUpdated,
-              entryCount: parsedContent.entries.length,
-            },
-            metadata: summary.metadata,
             created: summary.created,
             updated: summary.updated,
+            entryCount: body.entries.length,
+            entries: body.entries,
+            metadata: summary.metadata,
           },
         };
       } catch (error) {
-        logger.error("Error getting summary", {
+        logger.error("Failed to retrieve summary", {
           conversationId: parsed.data.conversationId,
           error: error instanceof Error ? error.message : String(error),
         });
-        return {
-          success: false,
-          error: `Failed to get summary: ${error instanceof Error ? error.message : String(error)}`,
-        };
+        throw error;
       }
     },
   };
 }
 
 /**
- * List all summaries
+ * List all conversation summaries
  */
 export function createListTool(
   context: ServicePluginContext,
   _config: SummaryConfig,
   logger: Logger,
 ): PluginTool {
+  const summaryService = new SummaryService(context.entityService);
+  const adapter = new SummaryAdapter();
+
   return {
     name: "summary-list",
     description: "List all conversation summaries",
@@ -110,65 +114,55 @@ export function createListTool(
         throw new Error(`Invalid parameters: ${parsed.error.message}`);
       }
 
+      const limit = parsed.data.limit ?? 10;
+
       try {
-        const summaries =
-          await context.entityService.listEntities<SummaryEntity>("summary", {
-            limit: parsed.data.limit ?? 50,
-            sortBy: "updated",
-            sortDirection: "desc",
-          });
+        const summaries = await summaryService.getAllSummaries();
 
-        const adapter = new SummaryAdapter();
-        const summaryData = summaries.map((summary) => {
-          const conversationId =
-            summary.metadata?.conversationId ??
-            summary.id.replace("summary-", "");
-          const entryCount = summary.metadata?.entryCount ?? 0;
-          const totalMessages = summary.metadata?.totalMessages ?? 0;
+        // Apply limit
+        const limitedSummaries = summaries.slice(0, limit);
 
-          // Get first entry title as preview
-          const parsed = adapter.parseSummaryContent(summary.content);
-          const firstEntryTitle = parsed.entries[0]?.title ?? "No entries";
-
+        const summaryList = limitedSummaries.map((summary) => {
+          const body = adapter.parseSummaryContent(summary.content);
+          const conversationId = summary.id.replace("summary-", "");
           return {
             conversationId,
-            id: summary.id,
-            entryCount,
-            totalMessages,
-            latestEntry: firstEntryTitle,
-            lastUpdated: summary.updated,
             created: summary.created,
+            updated: summary.updated,
+            entryCount: body.entries.length,
+            lastEntry: body.entries[0]?.title ?? "No entries",
           };
         });
+
+        logger.info("Listed summaries", { count: summaryList.length });
 
         return {
           success: true,
           data: {
-            summaries: summaryData,
-            count: summaries.length,
+            summaries: summaryList,
+            total: summaryList.length,
           },
         };
       } catch (error) {
-        logger.error("Error listing summaries", {
+        logger.error("Failed to list summaries", {
           error: error instanceof Error ? error.message : String(error),
         });
-        return {
-          success: false,
-          error: `Failed to list summaries: ${error instanceof Error ? error.message : String(error)}`,
-        };
+        throw error;
       }
     },
   };
 }
 
 /**
- * Export summary as markdown
+ * Export a summary as formatted markdown
  */
 export function createExportTool(
   context: ServicePluginContext,
   _config: SummaryConfig,
   logger: Logger,
 ): PluginTool {
+  const summaryService = new SummaryService(context.entityService);
+
   return {
     name: "summary-export",
     description: "Export summary as formatted markdown",
@@ -180,49 +174,54 @@ export function createExportTool(
       }
 
       try {
-        const summaryId = `summary-${parsed.data.conversationId}`;
-        const summary = await context.entityService.getEntity<SummaryEntity>(
-          "summary",
-          summaryId,
+        const markdown = await summaryService.exportSummary(
+          parsed.data.conversationId,
         );
 
-        if (!summary) {
+        if (!markdown) {
+          logger.info("No summary found for export", {
+            conversationId: parsed.data.conversationId,
+          });
           return {
             success: false,
-            error: `No summary found for conversation: ${parsed.data.conversationId}`,
+            data: {
+              message: `No summary found for conversation ${parsed.data.conversationId}`,
+            },
           };
         }
+
+        logger.info("Exported summary", {
+          conversationId: parsed.data.conversationId,
+        });
 
         return {
           success: true,
           data: {
             conversationId: parsed.data.conversationId,
-            markdown: summary.content,
-            exported: new Date().toISOString(),
+            markdown,
           },
         };
       } catch (error) {
-        logger.error("Error exporting summary", {
+        logger.error("Failed to export summary", {
           conversationId: parsed.data.conversationId,
           error: error instanceof Error ? error.message : String(error),
         });
-        return {
-          success: false,
-          error: `Failed to export summary: ${error instanceof Error ? error.message : String(error)}`,
-        };
+        throw error;
       }
     },
   };
 }
 
 /**
- * Delete a summary
+ * Delete a conversation summary
  */
 export function createDeleteTool(
   context: ServicePluginContext,
   _config: SummaryConfig,
   logger: Logger,
 ): PluginTool {
+  const summaryService = new SummaryService(context.entityService);
+
   return {
     name: "summary-delete",
     description: "Delete a conversation summary",
@@ -234,40 +233,38 @@ export function createDeleteTool(
       }
 
       try {
-        const summaryId = `summary-${parsed.data.conversationId}`;
-        const success = await context.entityService.deleteEntity(
-          "summary",
-          summaryId,
+        const success = await summaryService.deleteSummary(
+          parsed.data.conversationId,
         );
 
         if (!success) {
+          logger.info("No summary found to delete", {
+            conversationId: parsed.data.conversationId,
+          });
           return {
             success: false,
-            error: `Failed to delete summary for conversation: ${parsed.data.conversationId}`,
+            data: {
+              message: `No summary found for conversation ${parsed.data.conversationId}`,
+            },
           };
         }
 
-        logger.info("Summary deleted", {
+        logger.info("Deleted summary", {
           conversationId: parsed.data.conversationId,
-          summaryId,
         });
 
         return {
           success: true,
           data: {
-            conversationId: parsed.data.conversationId,
-            message: `Successfully deleted summary for conversation: ${parsed.data.conversationId}`,
+            message: `Summary deleted for conversation ${parsed.data.conversationId}`,
           },
         };
       } catch (error) {
-        logger.error("Error deleting summary", {
+        logger.error("Failed to delete summary", {
           conversationId: parsed.data.conversationId,
           error: error instanceof Error ? error.message : String(error),
         });
-        return {
-          success: false,
-          error: `Failed to delete summary: ${error instanceof Error ? error.message : String(error)}`,
-        };
+        throw error;
       }
     },
   };
@@ -281,41 +278,27 @@ export function createStatsTool(
   _config: SummaryConfig,
   logger: Logger,
 ): PluginTool {
+  const summaryService = new SummaryService(context.entityService);
+
   return {
     name: "summary-stats",
-    description: "Get summary statistics across all conversations",
+    description: "Get summary statistics",
     inputSchema: z.object({}).shape,
     handler: async (_params): Promise<ToolResponse> => {
       try {
-        const summaries =
-          await context.entityService.listEntities<SummaryEntity>("summary", {
-            limit: 1000,
-          });
+        const stats = await summaryService.getStatistics();
 
-        let totalEntries = 0;
-        for (const summary of summaries) {
-          totalEntries += summary.metadata?.entryCount ?? 0;
-        }
-
-        const stats = {
-          totalSummaries: summaries.length,
-          totalEntries,
-          averageEntriesPerSummary:
-            summaries.length > 0 ? totalEntries / summaries.length : 0,
-        };
+        logger.info("Retrieved summary statistics", stats);
 
         return {
           success: true,
           data: stats,
         };
       } catch (error) {
-        logger.error("Error getting statistics", {
+        logger.error("Failed to get summary statistics", {
           error: error instanceof Error ? error.message : String(error),
         });
-        return {
-          success: false,
-          error: `Failed to get statistics: ${error instanceof Error ? error.message : String(error)}`,
-        };
+        throw error;
       }
     },
   };

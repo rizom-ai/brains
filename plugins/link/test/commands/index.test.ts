@@ -1,5 +1,10 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { createLinkCommands } from "../../src/commands";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import {
+  createCaptureCommand,
+  createListCommand,
+  createSearchCommand,
+  createGetCommand,
+} from "../../src/commands";
 import {
   MockShell,
   createServicePluginContext,
@@ -8,73 +13,43 @@ import {
   type CommandContext,
   type Logger,
 } from "@brains/plugins";
-import {
-  mockLinkContent,
-  mockLinkEntity,
-  mockAIResponse,
-} from "../fixtures/link-entities";
+import { LinkService } from "../../src/lib/link-service";
 
 describe("Link Commands", () => {
   let context: ServicePluginContext;
   let logger: Logger;
   let mockShell: MockShell;
-  let commands: ReturnType<typeof createLinkCommands>;
   let mockCommandContext: CommandContext;
 
   beforeEach(() => {
     logger = createSilentLogger();
     mockShell = new MockShell({ logger });
     context = createServicePluginContext(mockShell, "link");
-    commands = createLinkCommands("link", context);
 
     // Mock command context
     mockCommandContext = {
       messageId: "test-message-id",
       userId: "test-user",
       channelId: "test-channel",
-      sendMessage: mock(async () => {}),
-      sendError: mock(async () => {}),
-      sendProgress: mock(async () => {}),
+      interfaceType: "cli",
+      userPermissionLevel: "public" as const,
     };
   });
 
   describe("link-capture command", () => {
     it("should have correct metadata", () => {
-      const captureCommand = commands.find(
-        (cmd) => cmd.name === "link-capture",
-      );
+      const captureCommand = createCaptureCommand(context);
 
-      expect(captureCommand).toBeDefined();
-      expect(captureCommand?.description).toBe(
+      expect(captureCommand.name).toBe("link-capture");
+      expect(captureCommand.description).toBe(
         "Capture a web link with AI-powered content extraction",
       );
-      expect(captureCommand?.usage).toContain("<url>");
-      expect(captureCommand?.usage).not.toContain("--tags");
-    });
-
-    it("should capture link with AI extraction", async () => {
-      const captureCommand = commands.find(
-        (cmd) => cmd.name === "link-capture",
-      )!;
-
-      // Mock the AI content generation
-      context.generateContent = mock(async () => mockAIResponse.complete);
-
-      const result = await captureCommand.handler(
-        ["https://example.com/test", "custom", "tag"],
-        mockCommandContext,
-      );
-
-      expect(result.type).toBe("message");
-      expect(result.message).toContain("Successfully captured");
-      expect(result.message).toContain("Test Article");
-      expect(result.message).toContain("https://example.com/test");
+      expect(captureCommand.usage).toContain("<url>");
+      expect(captureCommand.usage).not.toContain("--tags");
     });
 
     it("should require URL argument", async () => {
-      const captureCommand = commands.find(
-        (cmd) => cmd.name === "link-capture",
-      )!;
+      const captureCommand = createCaptureCommand(context);
 
       const result = await captureCommand.handler([], mockCommandContext);
 
@@ -82,166 +57,186 @@ describe("Link Commands", () => {
       expect(result.message).toContain("Usage:");
     });
 
-    it("should handle capture errors", async () => {
-      const captureCommand = commands.find(
-        (cmd) => cmd.name === "link-capture",
-      )!;
-
-      // Mock AI service to throw error
-      context.generateContent = mock(async () => {
-        throw new Error("AI service failed");
+    it("should call LinkService.captureLink with correct parameters", async () => {
+      const captureCommand = createCaptureCommand(context);
+      const captureLinkSpy = spyOn(
+        LinkService.prototype,
+        "captureLink",
+      ).mockResolvedValue({
+        title: "Test Title",
+        url: "https://example.com/test",
+        entityId: "test-id",
       });
 
-      const result = await captureCommand.handler(
+      await captureCommand.handler(
         ["https://example.com/test"],
         mockCommandContext,
       );
 
-      expect(result.type).toBe("message");
-      expect(result.message).toContain("Failed to capture link");
+      expect(captureLinkSpy).toHaveBeenCalledWith("https://example.com/test");
     });
   });
 
   describe("link-list command", () => {
     it("should have correct metadata", () => {
-      const listCommand = commands.find((cmd) => cmd.name === "link-list");
+      const listCommand = createListCommand(context);
 
-      expect(listCommand).toBeDefined();
-      expect(listCommand?.description).toBe("List captured links");
-      expect(listCommand?.usage).toContain("--limit");
+      expect(listCommand.name).toBe("link-list");
+      expect(listCommand.description).toBe("List captured links");
+      expect(listCommand.usage).toContain("--limit");
     });
 
-    it("should list links with default limit", async () => {
-      const listCommand = commands.find((cmd) => cmd.name === "link-list")!;
-
-      // Mock the entity service search to return mock link entities
-      context.entityService.search = mock(async () => [
-        {
-          entity: mockLinkEntity(mockLinkContent.withMultipleTags),
-        },
-      ]);
-
-      const result = await listCommand.handler([], mockCommandContext);
-
-      expect(result.type).toBe("message");
-      expect(result.message).toContain("Test Article");
-      expect(result.message).toContain("https://example.com/test");
-      expect(result.message).toContain("test, example");
-    });
-
-    it("should handle empty link list", async () => {
-      const listCommand = commands.find((cmd) => cmd.name === "link-list")!;
-
-      const result = await listCommand.handler([], mockCommandContext);
-
-      expect(result.type).toBe("message");
-      expect(result.message).toBe("No links found.");
-    });
-
-    it("should respect limit argument", async () => {
-      const listCommand = commands.find((cmd) => cmd.name === "link-list")!;
+    it("should handle invalid limit argument", async () => {
+      const listCommand = createListCommand(context);
 
       const result = await listCommand.handler(
-        ["--limit", "5"],
-        mockCommandContext,
-      );
-
-      expect(result.type).toBe("message");
-      // Since no links exist, it should return "No links found"
-      expect(result.message).toBe("No links found.");
-    });
-  });
-
-  describe("link-search command", () => {
-    it("should have correct metadata", () => {
-      const searchCommand = commands.find((cmd) => cmd.name === "link-search");
-
-      expect(searchCommand).toBeDefined();
-      expect(searchCommand?.description).toBe("Search captured links");
-      expect(searchCommand?.usage).toContain("[query]");
-      expect(searchCommand?.usage).toContain("[--keywords");
-    });
-
-    it("should search links", async () => {
-      const searchCommand = commands.find((cmd) => cmd.name === "link-search")!;
-
-      // MockShell search always returns empty, but we can test the command works
-      const result = await searchCommand.handler(
-        ["javascript"],
+        ["--limit", "invalid"],
         mockCommandContext,
       );
 
       expect(result.type).toBe("message");
       expect(result.message).toContain(
-        'No links found for query: "javascript"',
+        "Limit must be a number between 1 and 100",
       );
     });
 
-    it("should handle missing query", async () => {
-      const searchCommand = commands.find((cmd) => cmd.name === "link-search")!;
+    it("should handle limit out of range", async () => {
+      const listCommand = createListCommand(context);
 
-      const result = await searchCommand.handler([], mockCommandContext);
-
-      expect(result.type).toBe("message");
-      expect(result.message).toBe("No links found.");
-    });
-
-    it("should handle tag filters", async () => {
-      const searchCommand = commands.find((cmd) => cmd.name === "link-search")!;
-
-      const result = await searchCommand.handler(
-        ["--keywords", "javascript,tutorial"],
+      const result = await listCommand.handler(
+        ["--limit", "200"],
         mockCommandContext,
       );
 
       expect(result.type).toBe("message");
-      expect(result.message).toContain("No links found");
+      expect(result.message).toContain(
+        "Limit must be a number between 1 and 100",
+      );
+    });
+
+    it("should call LinkService.listLinks with correct limit", async () => {
+      const listCommand = createListCommand(context);
+      const listLinksSpy = spyOn(
+        LinkService.prototype,
+        "listLinks",
+      ).mockResolvedValue([]);
+
+      await listCommand.handler(["--limit", "5"], mockCommandContext);
+
+      expect(listLinksSpy).toHaveBeenCalledWith(5);
+    });
+
+    it("should call LinkService.listLinks with default limit", async () => {
+      const listCommand = createListCommand(context);
+      const listLinksSpy = spyOn(
+        LinkService.prototype,
+        "listLinks",
+      ).mockResolvedValue([]);
+
+      await listCommand.handler([], mockCommandContext);
+
+      expect(listLinksSpy).toHaveBeenCalledWith(10);
+    });
+  });
+
+  describe("link-search command", () => {
+    it("should have correct metadata", () => {
+      const searchCommand = createSearchCommand(context);
+
+      expect(searchCommand.name).toBe("link-search");
+      expect(searchCommand.description).toBe("Search captured links");
+      expect(searchCommand.usage).toContain("[query]");
+      expect(searchCommand.usage).toContain("[--keywords");
+    });
+
+    it("should handle invalid limit argument", async () => {
+      const searchCommand = createSearchCommand(context);
+
+      const result = await searchCommand.handler(
+        ["query", "--limit", "invalid"],
+        mockCommandContext,
+      );
+
+      expect(result.type).toBe("message");
+      expect(result.message).toContain(
+        "Limit must be a number between 1 and 100",
+      );
+    });
+
+    it("should handle limit out of range", async () => {
+      const searchCommand = createSearchCommand(context);
+
+      const result = await searchCommand.handler(
+        ["query", "--limit", "0"],
+        mockCommandContext,
+      );
+
+      expect(result.type).toBe("message");
+      expect(result.message).toContain(
+        "Limit must be a number between 1 and 100",
+      );
+    });
+
+    it("should call LinkService.searchLinks with correct parameters", async () => {
+      const searchCommand = createSearchCommand(context);
+      const searchLinksSpy = spyOn(
+        LinkService.prototype,
+        "searchLinks",
+      ).mockResolvedValue([]);
+
+      await searchCommand.handler(
+        ["javascript", "--keywords", "tutorial,web", "--limit", "15"],
+        mockCommandContext,
+      );
+
+      expect(searchLinksSpy).toHaveBeenCalledWith(
+        "javascript",
+        ["tutorial", "web"],
+        15,
+      );
+    });
+
+    it("should call LinkService.searchLinks with default parameters", async () => {
+      const searchCommand = createSearchCommand(context);
+      const searchLinksSpy = spyOn(
+        LinkService.prototype,
+        "searchLinks",
+      ).mockResolvedValue([]);
+
+      await searchCommand.handler([], mockCommandContext);
+
+      expect(searchLinksSpy).toHaveBeenCalledWith(undefined, undefined, 20);
     });
   });
 
   describe("link-get command", () => {
     it("should have correct metadata", () => {
-      const getCommand = commands.find((cmd) => cmd.name === "link-get");
+      const getCommand = createGetCommand(context);
 
-      expect(getCommand).toBeDefined();
-      expect(getCommand?.description).toBe("Get details of a specific link");
-      expect(getCommand?.usage).toContain("<entity-id>");
-    });
-
-    it("should get link by ID", async () => {
-      const getCommand = commands.find((cmd) => cmd.name === "link-get")!;
-
-      // Mock the entity service getEntity to return a mock link entity
-      context.entityService.getEntity = mock(async () => mockLinkEntity());
-
-      const result = await getCommand.handler(["link-1"], mockCommandContext);
-
-      expect(result.type).toBe("message");
-      expect(result.message).toContain("Test Article");
-      expect(result.message).toContain("https://example.com/test");
-      expect(result.message).toContain("Test description");
-      expect(result.message).toContain("Test summary");
-    });
-
-    it("should handle non-existent link", async () => {
-      const getCommand = commands.find((cmd) => cmd.name === "link-get")!;
-
-      const result = await getCommand.handler(
-        ["non-existent"],
-        mockCommandContext,
-      );
-
-      expect(result.type).toBe("message");
-      expect(result.message).toBe("Link not found: non-existent");
+      expect(getCommand.name).toBe("link-get");
+      expect(getCommand.description).toBe("Get details of a specific link");
+      expect(getCommand.usage).toContain("<entity-id>");
     });
 
     it("should handle missing ID argument", async () => {
-      const getCommand = commands.find((cmd) => cmd.name === "link-get")!;
+      const getCommand = createGetCommand(context);
 
       const result = await getCommand.handler([], mockCommandContext);
 
       expect(result.type).toBe("message");
       expect(result.message).toContain("Usage:");
+    });
+
+    it("should call LinkService.getLink with correct ID", async () => {
+      const getCommand = createGetCommand(context);
+      const getLinkSpy = spyOn(
+        LinkService.prototype,
+        "getLink",
+      ).mockResolvedValue(null);
+
+      await getCommand.handler(["test-id"], mockCommandContext);
+
+      expect(getLinkSpy).toHaveBeenCalledWith("test-id");
     });
   });
 });

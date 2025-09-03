@@ -313,7 +313,13 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         name: "Calculation History",
         description: "Recent calculations performed",
         mimeType: "application/json",
-        handler: async () => {
+        handler: async (): Promise<{
+          contents: Array<{
+            text: string;
+            uri: string;
+            mimeType?: string;
+          }>;
+        }> => {
           const calculations =
             await context.entityService.listEntities("calculation");
           return {

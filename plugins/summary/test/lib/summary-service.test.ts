@@ -1,164 +1,219 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, spyOn } from "bun:test";
 import { SummaryService } from "../../src/lib/summary-service";
-import { MockShell, createSilentLogger } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
+import type { SummaryEntity } from "../../src/schemas/summary";
 
 describe("SummaryService", () => {
-  let service: SummaryService;
-  let mockShell: MockShell;
-
-  beforeEach(() => {
-    const logger = createSilentLogger();
-    mockShell = new MockShell({ logger });
-
-    // Get the real EntityService from MockShell
-    const entityService = mockShell.getEntityService();
-
-    // Create SummaryService with real dependencies
-    service = new SummaryService(entityService);
-  });
+  function createMockEntityService(): IEntityService {
+    return {
+      getEntity: async () => null,
+      createEntity: async () => ({}),
+      updateEntity: async () => ({}),
+      upsertEntity: async () => {},
+      deleteEntity: async () => {},
+      listEntities: async () => [],
+      searchEntities: async () => [],
+      search: async () => [],
+      getEntityTypes: async () => [],
+      getRegistry: () => null,
+      getCapabilities: () => ({}),
+      registerEntity: () => {},
+    } as unknown as IEntityService;
+  }
 
   describe("getSummary", () => {
-    it("should return summary for existing conversation", async () => {
-      const conversationId = "test-conversation";
-      const summaryId = `summary-${conversationId}`;
+    it("should call getEntity with correct parameters", async () => {
+      const mockEntityService = createMockEntityService();
+      const getEntitySpy = spyOn(
+        mockEntityService,
+        "getEntity",
+      ).mockResolvedValue(null);
 
-      // Create actual entity in MockShell
-      const entityService = mockShell.getEntityService();
-      await entityService.createEntity({
-        id: summaryId,
-        entityType: "summary",
-        content: "# Test Summary\n\n## Summary Log\n\nTest content",
-        metadata: {
-          conversationId,
-          entryCount: 1,
-          totalMessages: 10,
-          lastUpdated: new Date().toISOString(),
-        },
-      });
+      const service = new SummaryService(mockEntityService);
+      const conversationId = "conv-123";
+      await service.getSummary(conversationId);
 
-      const result = await service.getSummary(conversationId);
-
-      expect(result).not.toBeNull();
-      expect(result?.id).toBe(summaryId);
-      expect(result?.entityType).toBe("summary");
+      expect(getEntitySpy).toHaveBeenCalledWith(
+        "summary",
+        `summary-${conversationId}`,
+      );
     });
 
     it("should return null for non-existent conversation", async () => {
-      const conversationId = "non-existent";
+      const mockEntityService = createMockEntityService();
+      spyOn(mockEntityService, "getEntity").mockRejectedValue(
+        new Error("Not found"),
+      );
 
-      const result = await service.getSummary(conversationId);
+      const service = new SummaryService(mockEntityService);
+      const result = await service.getSummary("non-existent");
 
       expect(result).toBeNull();
+    });
+
+    it("should return the summary entity when it exists", async () => {
+      const mockEntityService = createMockEntityService();
+      const mockSummary: SummaryEntity = {
+        id: "summary-conv-123",
+        entityType: "summary",
+        content: "# Summary\n\nContent here",
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
+        metadata: {
+          conversationId: "conv-123",
+          entryCount: 1,
+          totalMessages: 10,
+          lastUpdated: "2025-01-01T00:00:00Z",
+        },
+      };
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(mockSummary);
+
+      const service = new SummaryService(mockEntityService);
+      const result = await service.getSummary("conv-123");
+
+      expect(result).toEqual(mockSummary);
     });
   });
 
   describe("deleteSummary", () => {
-    it("should successfully delete existing summary", async () => {
-      const conversationId = "test-conversation";
-      const summaryId = `summary-${conversationId}`;
+    it("should call deleteEntity with correct parameters", async () => {
+      const mockEntityService = createMockEntityService();
+      const deleteEntitySpy = spyOn(
+        mockEntityService,
+        "deleteEntity",
+      ).mockResolvedValue(true);
 
-      // Create entity first
-      const entityService = mockShell.getEntityService();
-      await entityService.createEntity({
-        id: summaryId,
-        entityType: "summary",
-        content: "# Test Summary",
-        metadata: { conversationId },
-      });
+      const service = new SummaryService(mockEntityService);
+      const conversationId = "conv-123";
+      await service.deleteSummary(conversationId);
 
-      const result = await service.deleteSummary(conversationId);
+      expect(deleteEntitySpy).toHaveBeenCalledWith(
+        "summary",
+        `summary-${conversationId}`,
+      );
+    });
+
+    it("should return true when deletion succeeds", async () => {
+      const mockEntityService = createMockEntityService();
+      spyOn(mockEntityService, "deleteEntity").mockResolvedValue(true);
+
+      const service = new SummaryService(mockEntityService);
+      const result = await service.deleteSummary("conv-123");
 
       expect(result).toBe(true);
-
-      // Verify it was deleted
-      const deleted = await service.getSummary(conversationId);
-      expect(deleted).toBeNull();
     });
 
     it("should return false when deletion fails", async () => {
-      const conversationId = "non-existent";
+      const mockEntityService = createMockEntityService();
+      spyOn(mockEntityService, "deleteEntity").mockRejectedValue(
+        new Error("Failed"),
+      );
 
-      // This should succeed even for non-existent entities
-      const result = await service.deleteSummary(conversationId);
+      const service = new SummaryService(mockEntityService);
+      const result = await service.deleteSummary("non-existent");
 
-      expect(result).toBe(true); // MockShell doesn't throw errors
+      expect(result).toBe(false);
     });
   });
 
   describe("getAllSummaries", () => {
-    it("should return list of all summaries", async () => {
-      const entityService = mockShell.getEntityService();
+    it("should call listEntities with correct parameters", async () => {
+      const mockEntityService = createMockEntityService();
+      const listEntitiesSpy = spyOn(
+        mockEntityService,
+        "listEntities",
+      ).mockResolvedValue([]);
 
-      // Create test summaries
-      await entityService.createEntity({
-        id: "summary-conv1",
-        entityType: "summary",
-        content: "Summary 1",
-        metadata: {
-          conversationId: "conv1",
-          entryCount: 2,
-          totalMessages: 20,
-          lastUpdated: new Date().toISOString(),
-        },
-      });
+      const service = new SummaryService(mockEntityService);
+      await service.getAllSummaries();
 
-      await entityService.createEntity({
-        id: "summary-conv2",
-        entityType: "summary",
-        content: "Summary 2",
-        metadata: {
-          conversationId: "conv2",
-          entryCount: 3,
-          totalMessages: 30,
-          lastUpdated: new Date().toISOString(),
-        },
-      });
-
-      const result = await service.getAllSummaries();
-
-      expect(result.length).toBeGreaterThanOrEqual(2);
-      const summaryIds = result.map((s) => s.id);
-      expect(summaryIds).toContain("summary-conv1");
-      expect(summaryIds).toContain("summary-conv2");
+      expect(listEntitiesSpy).toHaveBeenCalledWith("summary", { limit: 1000 });
     });
 
-    it("should return empty array when no summaries exist", async () => {
-      // Start with fresh MockShell that has no entities
+    it("should return summaries when they exist", async () => {
+      const mockEntityService = createMockEntityService();
+      const mockSummaries: SummaryEntity[] = [
+        {
+          id: "summary-1",
+          entityType: "summary",
+          content: "content1",
+          created: "2025-01-01T00:00:00Z",
+          updated: "2025-01-01T00:00:00Z",
+          metadata: {
+            conversationId: "conv-1",
+            entryCount: 3,
+            totalMessages: 30,
+            lastUpdated: "2025-01-01T00:00:00Z",
+          },
+        },
+        {
+          id: "summary-2",
+          entityType: "summary",
+          content: "content2",
+          created: "2025-01-01T00:00:00Z",
+          updated: "2025-01-01T00:00:00Z",
+          metadata: {
+            conversationId: "conv-2",
+            entryCount: 2,
+            totalMessages: 20,
+            lastUpdated: "2025-01-01T00:00:00Z",
+          },
+        },
+      ];
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(mockSummaries);
+
+      const service = new SummaryService(mockEntityService);
       const result = await service.getAllSummaries();
 
-      expect(Array.isArray(result)).toBe(true);
+      expect(result).toEqual(mockSummaries);
+    });
+
+    it("should return empty array on error", async () => {
+      const mockEntityService = createMockEntityService();
+      spyOn(mockEntityService, "listEntities").mockRejectedValue(
+        new Error("Failed"),
+      );
+
+      const service = new SummaryService(mockEntityService);
+      const result = await service.getAllSummaries();
+
+      expect(result).toEqual([]);
     });
   });
 
   describe("exportSummary", () => {
-    it("should return markdown content for existing summary", async () => {
-      const conversationId = "test-conversation";
-      const summaryId = `summary-${conversationId}`;
+    it("should return content for existing summary", async () => {
+      const mockEntityService = createMockEntityService();
       const content = "# Test Summary\n\nExported content";
-
-      // Create entity
-      const entityService = mockShell.getEntityService();
-      await entityService.createEntity({
-        id: summaryId,
+      const mockSummary: SummaryEntity = {
+        id: "summary-conv-123",
         entityType: "summary",
         content,
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
         metadata: {
-          conversationId,
-          entryCount: 1,
-          totalMessages: 10,
-          lastUpdated: new Date().toISOString(),
+          conversationId: "conv-123",
+          entryCount: 5,
+          totalMessages: 50,
+          lastUpdated: "2025-01-01T00:00:00Z",
         },
-      });
+      };
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(mockSummary);
 
-      const result = await service.exportSummary(conversationId);
+      const service = new SummaryService(mockEntityService);
+      const result = await service.exportSummary("conv-123");
 
       expect(result).toBe(content);
     });
 
     it("should return null for non-existent summary", async () => {
-      const conversationId = "non-existent";
+      const mockEntityService = createMockEntityService();
+      spyOn(mockEntityService, "getEntity").mockRejectedValue(
+        new Error("Not found"),
+      );
 
-      const result = await service.exportSummary(conversationId);
+      const service = new SummaryService(mockEntityService);
+      const result = await service.exportSummary("non-existent");
 
       expect(result).toBeNull();
     });
@@ -166,73 +221,77 @@ describe("SummaryService", () => {
 
   describe("getStatistics", () => {
     it("should calculate correct statistics from summaries", async () => {
-      const entityService = mockShell.getEntityService();
-
-      // Create test summaries with specific entry counts
-      await entityService.createEntity({
-        id: "summary-conv1",
-        entityType: "summary",
-        content: "Summary 1",
-        metadata: {
-          conversationId: "conv1",
-          entryCount: 3,
-          totalMessages: 30,
-          lastUpdated: new Date().toISOString(),
+      const mockEntityService = createMockEntityService();
+      const mockSummaries: SummaryEntity[] = [
+        {
+          id: "summary-1",
+          entityType: "summary",
+          content: "content1",
+          created: "2025-01-01T00:00:00Z",
+          updated: "2025-01-01T00:00:00Z",
+          metadata: {
+            conversationId: "conv-1",
+            entryCount: 3,
+            totalMessages: 30,
+            lastUpdated: "2025-01-01T00:00:00Z",
+          },
         },
-      });
-
-      await entityService.createEntity({
-        id: "summary-conv2",
-        entityType: "summary",
-        content: "Summary 2",
-        metadata: {
-          conversationId: "conv2",
-          entryCount: 5,
-          totalMessages: 50,
-          lastUpdated: new Date().toISOString(),
+        {
+          id: "summary-2",
+          entityType: "summary",
+          content: "content2",
+          created: "2025-01-01T00:00:00Z",
+          updated: "2025-01-01T00:00:00Z",
+          metadata: {
+            conversationId: "conv-2",
+            entryCount: 2,
+            totalMessages: 20,
+            lastUpdated: "2025-01-01T00:00:00Z",
+          },
         },
-      });
+      ];
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(mockSummaries);
 
+      const service = new SummaryService(mockEntityService);
       const result = await service.getStatistics();
 
-      expect(result.totalSummaries).toBeGreaterThanOrEqual(2);
-      expect(result.totalEntries).toBeGreaterThanOrEqual(8); // 3 + 5
+      expect(result.totalSummaries).toBe(2);
+      expect(result.totalEntries).toBe(5);
+      expect(result.averageEntriesPerSummary).toBe(2.5);
     });
 
     it("should handle empty summaries list", async () => {
-      // Use fresh service with empty MockShell
-      const emptyShell = new MockShell({ logger: createSilentLogger() });
-      const emptyService = new SummaryService(emptyShell.getEntityService());
+      const mockEntityService = createMockEntityService();
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
-      const result = await emptyService.getStatistics();
+      const service = new SummaryService(mockEntityService);
+      const result = await service.getStatistics();
 
-      expect(result).toEqual({
-        totalSummaries: 0,
-        totalEntries: 0,
-        averageEntriesPerSummary: 0,
-      });
+      expect(result.totalSummaries).toBe(0);
+      expect(result.totalEntries).toBe(0);
+      expect(result.averageEntriesPerSummary).toBe(0);
     });
 
     it("should handle missing entryCount metadata", async () => {
-      const entityService = mockShell.getEntityService();
-
-      // Create summary without entryCount
-      await entityService.createEntity({
-        id: "summary-conv-no-count",
-        entityType: "summary",
-        content: "Summary without count",
-        metadata: {
-          conversationId: "conv-no-count",
-          totalMessages: 30,
-          lastUpdated: new Date().toISOString(),
-          // Missing entryCount
+      const mockEntityService = createMockEntityService();
+      const mockSummaries: SummaryEntity[] = [
+        {
+          id: "summary-1",
+          entityType: "summary",
+          content: "content1",
+          created: "2025-01-01T00:00:00Z",
+          updated: "2025-01-01T00:00:00Z",
+          // metadata omitted to test missing entryCount
         },
-      });
+      ];
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(mockSummaries);
 
+      const service = new SummaryService(mockEntityService);
       const result = await service.getStatistics();
 
-      expect(result.totalSummaries).toBeGreaterThanOrEqual(1);
-      // EntryCount defaults to 0 for missing metadata
+      expect(result.totalSummaries).toBe(1);
+      expect(result.totalEntries).toBe(0);
+      expect(result.averageEntriesPerSummary).toBe(0);
     });
   });
 });

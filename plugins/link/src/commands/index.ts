@@ -6,198 +6,216 @@ import type {
 import { LinkService } from "../lib/link-service";
 
 /**
- * Create link plugin commands for CLI/chat interface
+ * Create link-capture command
  */
-export function createLinkCommands(
-  _pluginId: string,
-  context: ServicePluginContext,
-): Command[] {
+export function createCaptureCommand(context: ServicePluginContext): Command {
   const linkService = new LinkService(context);
 
-  return [
-    {
-      name: "link-capture",
-      description: "Capture a web link with AI-powered content extraction",
-      usage: "/link-capture <url>",
-      handler: async (args, _context): Promise<CommandResponse> => {
-        try {
-          // Parse arguments
-          if (args.length === 0) {
-            return {
-              type: "message",
-              message: "Usage: /link-capture <url>",
-            };
-          }
-
-          const url = args[0] as string;
-
-          const result = await linkService.captureLink(url);
-
+  return {
+    name: "link-capture",
+    description: "Capture a web link with AI-powered content extraction",
+    usage: "/link-capture <url>",
+    handler: async (args, _context): Promise<CommandResponse> => {
+      try {
+        // Parse arguments
+        if (args.length === 0) {
           return {
             type: "message",
-            message: `✅ Successfully captured link: **${result.title}**\n\nURL: ${result.url}\nEntity ID: ${result.entityId}`,
-          };
-        } catch (error) {
-          return {
-            type: "message",
-            message: `Failed to capture link: ${error instanceof Error ? error.message : String(error)}`,
+            message: "Usage: /link-capture <url>",
           };
         }
-      },
+
+        const url = args[0] as string;
+
+        const result = await linkService.captureLink(url);
+
+        return {
+          type: "message",
+          message: `✅ Successfully captured link: **${result.title}**\n\nURL: ${result.url}\nEntity ID: ${result.entityId}`,
+        };
+      } catch (error) {
+        return {
+          type: "message",
+          message: `Failed to capture link: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
     },
-    {
-      name: "link-list",
-      description: "List captured links",
-      usage: "/link-list [--limit <number>]",
-      handler: async (args, _context): Promise<CommandResponse> => {
-        try {
-          // Parse limit argument
-          let limit = 10;
-          for (let i = 0; i < args.length; i++) {
-            if (args[i] === "--limit" && args[i + 1]) {
-              limit = parseInt(args[i + 1] as string, 10);
-              if (isNaN(limit) || limit < 1 || limit > 100) {
-                return {
-                  type: "message",
-                  message: "Limit must be a number between 1 and 100",
-                };
-              }
-              break;
+  };
+}
+
+/**
+ * Create link-list command
+ */
+export function createListCommand(context: ServicePluginContext): Command {
+  const linkService = new LinkService(context);
+
+  return {
+    name: "link-list",
+    description: "List captured links",
+    usage: "/link-list [--limit <number>]",
+    handler: async (args, _context): Promise<CommandResponse> => {
+      try {
+        // Parse limit argument
+        let limit = 10;
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === "--limit" && args[i + 1]) {
+            limit = parseInt(args[i + 1] as string, 10);
+            if (isNaN(limit) || limit < 1 || limit > 100) {
+              return {
+                type: "message",
+                message: "Limit must be a number between 1 and 100",
+              };
             }
+            break;
           }
+        }
 
-          const links = await linkService.listLinks(limit);
+        const links = await linkService.listLinks(limit);
 
-          if (links.length === 0) {
-            return {
-              type: "message",
-              message: "No links found.",
-            };
-          }
-
-          const linkList = links
-            .map(
-              (link, index) =>
-                `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Keywords: ${link.keywords.join(", ") || "None"}\n   Captured: ${new Date(link.capturedAt).toLocaleDateString()}`,
-            )
-            .join("\n\n");
-
+        if (links.length === 0) {
           return {
             type: "message",
-            message: `📋 **Captured Links** (${links.length})\n\n${linkList}`,
-          };
-        } catch (error) {
-          return {
-            type: "message",
-            message: `Failed to list links: ${error instanceof Error ? error.message : String(error)}`,
+            message: "No links found.",
           };
         }
-      },
+
+        const linkList = links
+          .map(
+            (link, index) =>
+              `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Keywords: ${link.keywords.join(", ") || "None"}\n   Captured: ${new Date(link.capturedAt).toLocaleDateString()}`,
+          )
+          .join("\n\n");
+
+        return {
+          type: "message",
+          message: `📋 **Captured Links** (${links.length})\n\n${linkList}`,
+        };
+      } catch (error) {
+        return {
+          type: "message",
+          message: `Failed to list links: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
     },
-    {
-      name: "link-search",
-      description: "Search captured links",
-      usage:
-        "/link-search [query] [--keywords keyword1,keyword2,...] [--limit <number>]",
-      handler: async (args, _context): Promise<CommandResponse> => {
-        try {
-          let query: string | undefined;
-          let keywords: string[] = [];
-          let limit = 20;
+  };
+}
 
-          // Parse arguments
-          let i = 0;
-          while (i < args.length) {
-            const arg = args[i] as string;
+/**
+ * Create link-search command
+ */
+export function createSearchCommand(context: ServicePluginContext): Command {
+  const linkService = new LinkService(context);
 
-            if (arg === "--keywords" && args[i + 1]) {
-              keywords = (args[i + 1] as string)
-                .split(",")
-                .map((k) => k.trim());
-              i += 2;
-            } else if (arg === "--limit" && args[i + 1]) {
-              limit = parseInt(args[i + 1] as string, 10);
-              if (isNaN(limit) || limit < 1 || limit > 100) {
-                return {
-                  type: "message",
-                  message: "Limit must be a number between 1 and 100",
-                };
-              }
-              i += 2;
-            } else if (!arg.startsWith("--") && !query) {
-              query = arg;
-              i++;
-            } else {
-              i++;
+  return {
+    name: "link-search",
+    description: "Search captured links",
+    usage:
+      "/link-search [query] [--keywords keyword1,keyword2,...] [--limit <number>]",
+    handler: async (args, _context): Promise<CommandResponse> => {
+      try {
+        let query: string | undefined;
+        let keywords: string[] = [];
+        let limit = 20;
+
+        // Parse arguments
+        let i = 0;
+        while (i < args.length) {
+          const arg = args[i] as string;
+
+          if (arg === "--keywords" && args[i + 1]) {
+            keywords = (args[i + 1] as string).split(",").map((k) => k.trim());
+            i += 2;
+          } else if (arg === "--limit" && args[i + 1]) {
+            limit = parseInt(args[i + 1] as string, 10);
+            if (isNaN(limit) || limit < 1 || limit > 100) {
+              return {
+                type: "message",
+                message: "Limit must be a number between 1 and 100",
+              };
             }
+            i += 2;
+          } else if (!arg.startsWith("--") && !query) {
+            query = arg;
+            i++;
+          } else {
+            i++;
           }
+        }
 
-          const links = await linkService.searchLinks(
-            query,
-            keywords.length > 0 ? keywords : undefined,
-            limit,
-          );
+        const links = await linkService.searchLinks(
+          query,
+          keywords.length > 0 ? keywords : undefined,
+          limit,
+        );
 
-          if (links.length === 0) {
-            const searchTerms = [];
-            if (query) searchTerms.push(`query: "${query}"`);
-            if (keywords.length > 0)
-              searchTerms.push(`keywords: ${keywords.join(", ")}`);
-
-            return {
-              type: "message",
-              message: `No links found${searchTerms.length > 0 ? ` for ${searchTerms.join(" and ")}` : ""}.`,
-            };
-          }
-
-          const linkList = links
-            .map(
-              (link, index) =>
-                `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Keywords: ${link.keywords.join(", ") || "None"}\n   Description: ${link.description}`,
-            )
-            .join("\n\n");
-
-          const searchInfo = [];
-          if (query) searchInfo.push(`query: "${query}"`);
+        if (links.length === 0) {
+          const searchTerms = [];
+          if (query) searchTerms.push(`query: "${query}"`);
           if (keywords.length > 0)
-            searchInfo.push(`keywords: ${keywords.join(", ")}`);
+            searchTerms.push(`keywords: ${keywords.join(", ")}`);
 
           return {
             type: "message",
-            message: `🔍 **Search Results** (${links.length})${searchInfo.length > 0 ? ` for ${searchInfo.join(" and ")}` : ""}\n\n${linkList}`,
-          };
-        } catch (error) {
-          return {
-            type: "message",
-            message: `Failed to search links: ${error instanceof Error ? error.message : String(error)}`,
+            message: `No links found${searchTerms.length > 0 ? ` for ${searchTerms.join(" and ")}` : ""}.`,
           };
         }
-      },
+
+        const linkList = links
+          .map(
+            (link, index) =>
+              `${index + 1}. **${link.title}**\n   URL: ${link.url}\n   Domain: ${link.domain}\n   Keywords: ${link.keywords.join(", ") || "None"}\n   Description: ${link.description}`,
+          )
+          .join("\n\n");
+
+        const searchInfo = [];
+        if (query) searchInfo.push(`query: "${query}"`);
+        if (keywords.length > 0)
+          searchInfo.push(`keywords: ${keywords.join(", ")}`);
+
+        return {
+          type: "message",
+          message: `🔍 **Search Results** (${links.length})${searchInfo.length > 0 ? ` for ${searchInfo.join(" and ")}` : ""}\n\n${linkList}`,
+        };
+      } catch (error) {
+        return {
+          type: "message",
+          message: `Failed to search links: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
     },
-    {
-      name: "link-get",
-      description: "Get details of a specific link",
-      usage: "/link-get <entity-id>",
-      handler: async (args, _context): Promise<CommandResponse> => {
-        try {
-          if (args.length === 0) {
-            return {
-              type: "message",
-              message: "Usage: /link-get <entity-id>",
-            };
-          }
+  };
+}
 
-          const entityId = args[0] as string;
-          const link = await linkService.getLink(entityId);
+/**
+ * Create link-get command
+ */
+export function createGetCommand(context: ServicePluginContext): Command {
+  const linkService = new LinkService(context);
 
-          if (!link) {
-            return {
-              type: "message",
-              message: `Link not found: ${entityId}`,
-            };
-          }
+  return {
+    name: "link-get",
+    description: "Get details of a specific link",
+    usage: "/link-get <entity-id>",
+    handler: async (args, _context): Promise<CommandResponse> => {
+      try {
+        if (args.length === 0) {
+          return {
+            type: "message",
+            message: "Usage: /link-get <entity-id>",
+          };
+        }
 
-          const content = `📄 **${link.title}**
+        const entityId = args[0] as string;
+        const link = await linkService.getLink(entityId);
+
+        if (!link) {
+          return {
+            type: "message",
+            message: `Link not found: ${entityId}`,
+          };
+        }
+
+        const content = `📄 **${link.title}**
 
 **URL:** ${link.url}
 **Domain:** ${link.domain}
@@ -210,17 +228,31 @@ ${link.description}
 **Summary:**
 ${link.summary}`;
 
-          return {
-            type: "message",
-            message: content,
-          };
-        } catch (error) {
-          return {
-            type: "message",
-            message: `Failed to get link: ${error instanceof Error ? error.message : String(error)}`,
-          };
-        }
-      },
+        return {
+          type: "message",
+          message: content,
+        };
+      } catch (error) {
+        return {
+          type: "message",
+          message: `Failed to get link: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
     },
+  };
+}
+
+/**
+ * Create link plugin commands for CLI/chat interface
+ */
+export function createLinkCommands(
+  _pluginId: string,
+  context: ServicePluginContext,
+): Command[] {
+  return [
+    createCaptureCommand(context),
+    createListCommand(context),
+    createSearchCommand(context),
+    createGetCommand(context),
   ];
 }

@@ -136,7 +136,7 @@ export class AIService implements IAIService {
     });
 
     try {
-      // @ts-expect-error - Type instantiation issue with Zod v3 and AI SDK
+      // @ts-ignore - Type instantiation issue with Zod v3 and AI SDK
       const result = await generateObject({
         model: this.getModel(),
         system: systemPrompt,

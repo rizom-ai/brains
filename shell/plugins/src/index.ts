@@ -106,6 +106,7 @@ export type {
   EntityAdapter,
   EntityInput,
   SearchResult,
+  SearchOptions,
   IEntityService,
   ICoreEntityService,
   EntityRegistry,
