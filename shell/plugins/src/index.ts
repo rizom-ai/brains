@@ -123,6 +123,7 @@ export type {
   Message,
   ConversationDigestPayload,
 } from "@brains/conversation-service";
+export { conversationDigestPayloadSchema } from "@brains/conversation-service";
 
 // From @brains/content-service
 export type {
