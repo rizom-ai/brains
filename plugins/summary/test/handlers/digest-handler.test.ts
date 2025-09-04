@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, spyOn, mock } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  spyOn,
+  mock,
+} from "bun:test";
 import { DigestHandler } from "../../src/handlers/digest-handler";
 import { SummaryExtractor } from "../../src/lib/summary-extractor";
 import {
@@ -64,26 +72,26 @@ describe("DigestHandler", () => {
       windowStart: 1,
       windowEnd: 50,
       messages: [
-        { 
+        {
           id: "msg-1",
           conversationId: "conv-123",
-          role: "assistant", 
+          role: "assistant",
           content: "Hello, how can I help you?",
           timestamp: "2025-01-01T00:00:00Z",
           metadata: null,
         },
-        { 
+        {
           id: "msg-2",
           conversationId: "conv-123",
-          role: "user", 
+          role: "user",
           content: "I need help with my project",
           timestamp: "2025-01-01T00:00:01Z",
           metadata: null,
         },
-        { 
+        {
           id: "msg-3",
           conversationId: "conv-123",
-          role: "assistant", 
+          role: "assistant",
           content: "Sure, let me assist you",
           timestamp: "2025-01-01T00:00:02Z",
           metadata: null,
@@ -111,17 +119,18 @@ describe("DigestHandler", () => {
 
       // Mock content generation for AI decision and summary
       const generateContentSpy = spyOn(context, "generateContent");
-      
+
       // First call returns the decision
       generateContentSpy.mockResolvedValueOnce({
         decision: "new",
         title: "Project assistance discussion",
         reasoning: "First conversation about project help",
       });
-      
+
       // Second call returns the summary content
       generateContentSpy.mockResolvedValueOnce({
-        content: "User requested help with their project. Assistant offered to provide assistance.",
+        content:
+          "User requested help with their project. Assistant offered to provide assistance.",
         keyPoints: ["User needs project help", "Assistant ready to assist"],
         decisions: [],
         actionItems: [],
@@ -134,7 +143,7 @@ describe("DigestHandler", () => {
       expect(upsertSpy).toHaveBeenCalled();
       const upsertCall = upsertSpy.mock.calls[0];
       expect(upsertCall).toBeDefined();
-      
+
       if (upsertCall) {
         const entity = upsertCall[0] as SummaryEntity;
         expect(entity.id).toBe("summary-conv-123");
@@ -189,7 +198,7 @@ Window End: 50
 
       // Mock content generation for AI decision and summary
       const generateContentSpy = spyOn(context, "generateContent");
-      
+
       // First call returns the decision to update
       generateContentSpy.mockResolvedValueOnce({
         decision: "update",
@@ -197,7 +206,7 @@ Window End: 50
         title: "Initial discussion",
         reasoning: "Continuation of the same topic",
       });
-      
+
       // Second call returns the summary content
       generateContentSpy.mockResolvedValueOnce({
         content: "Continued discussion about project implementation details.",
@@ -220,7 +229,7 @@ Window End: 50
 
       expect(upsertSpy).toHaveBeenCalled();
       const upsertCall = upsertSpy.mock.calls[0];
-      
+
       if (upsertCall) {
         const entity = upsertCall[0] as SummaryEntity;
         expect(entity.content).toContain("UPDATE:");
@@ -234,26 +243,26 @@ Window End: 50
         windowStart: 51,
         windowEnd: 100,
         messages: [
-          { 
+          {
             id: "msg-4",
             conversationId: "conv-123",
-            role: "user", 
+            role: "user",
             content: "Let's move on to a different topic",
             timestamp: "2025-01-01T00:01:00Z",
             metadata: null,
           },
-          { 
+          {
             id: "msg-5",
             conversationId: "conv-123",
-            role: "assistant", 
+            role: "assistant",
             content: "Sure, what would you like to discuss?",
             timestamp: "2025-01-01T00:01:01Z",
             metadata: null,
           },
-          { 
+          {
             id: "msg-6",
             conversationId: "conv-123",
-            role: "user", 
+            role: "user",
             content: "I want to learn about testing",
             timestamp: "2025-01-01T00:01:02Z",
             metadata: null,
@@ -298,17 +307,18 @@ Window End: 50
 
       // Mock content generation for AI decision and summary
       const generateContentSpy = spyOn(context, "generateContent");
-      
+
       // First call returns the decision for new entry
       generateContentSpy.mockResolvedValueOnce({
         decision: "new",
         title: "Testing discussion",
         reasoning: "New topic introduced",
       });
-      
+
       // Second call returns the summary content
       generateContentSpy.mockResolvedValueOnce({
-        content: "User wants to learn about testing. Assistant is ready to help.",
+        content:
+          "User wants to learn about testing. Assistant is ready to help.",
         keyPoints: ["Testing discussion"],
         decisions: [],
         actionItems: ["Learn about testing"],
@@ -328,7 +338,7 @@ Window End: 50
 
       expect(upsertSpy).toHaveBeenCalled();
       const upsertCall = upsertSpy.mock.calls[0];
-      
+
       if (upsertCall) {
         const entity = upsertCall[0] as SummaryEntity;
         expect(entity.content).toContain("Testing discussion");
@@ -362,13 +372,13 @@ Window End: 50
 
       // Mock content generation for empty messages
       const generateContentSpy = spyOn(context, "generateContent");
-      
+
       generateContentSpy.mockResolvedValueOnce({
         decision: "new",
         title: "Empty conversation",
         reasoning: "No messages to summarize",
       });
-      
+
       generateContentSpy.mockResolvedValueOnce({
         content: "No conversation content available.",
         keyPoints: [],
@@ -415,13 +425,13 @@ Window End: 50
       );
 
       const generateContentSpy = spyOn(context, "generateContent");
-      
+
       generateContentSpy.mockResolvedValueOnce({
         decision: "new",
         title: "Continuation",
         reasoning: "New content",
       });
-      
+
       generateContentSpy.mockResolvedValueOnce({
         content: "More discussion content.",
         keyPoints: [],

@@ -181,7 +181,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
     // Parse the entry content with formatter
     // Add back the title header for the formatter to parse
     const formatter = this.createEntryFormatter(title);
-    const entryWithTitle = `# ${title}\n\n${entryContent}`;
+    const entryWithTitle = `# ${title}\n${entryContent}`;
 
     try {
       const parsedEntry = formatter.parse(entryWithTitle);
@@ -272,13 +272,16 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
   public fromMarkdown(markdown: string): Partial<SummaryEntity> {
     const body = this.parseSummaryContent(markdown);
 
+    // Get the oldest entry's created date (last in array since they're newest-first)
+    // If entries are empty, use current date
+    const oldestEntry = body.entries[body.entries.length - 1];
+    const newestEntry = body.entries[0];
+    
     return {
       entityType: "summary",
       content: markdown,
-      created:
-        body.entries[body.entries.length - 1]?.created ??
-        new Date().toISOString(),
-      updated: body.lastUpdated,
+      created: oldestEntry?.created ?? new Date().toISOString(),
+      updated: newestEntry?.updated ?? body.lastUpdated,
       metadata: {
         conversationId: body.conversationId,
         entryCount: body.entries.length,

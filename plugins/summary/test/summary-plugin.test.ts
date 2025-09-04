@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, spyOn, mock } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  spyOn,
+  mock,
+} from "bun:test";
 import { SummaryPlugin } from "../src";
 import {
   MockShell,
@@ -90,10 +98,10 @@ describe("SummaryPlugin", () => {
   describe("digest handling", () => {
     it("should subscribe to digest events and handle them", async () => {
       const context = createServicePluginContext(mockShell, "summary");
-      
+
       // Set up spy before initialization
       const subscribeSpy = spyOn(context, "subscribe");
-      
+
       await plugin.initialize(context, logger);
 
       // Verify subscription was made
@@ -101,7 +109,7 @@ describe("SummaryPlugin", () => {
         "conversation.digest",
         expect.any(Function),
       );
-      
+
       const handler = subscribeSpy.mock.calls[0]?.[1];
       expect(handler).toBeDefined();
 
@@ -113,26 +121,26 @@ describe("SummaryPlugin", () => {
           windowStart: 1,
           windowEnd: 50,
           messages: [
-            { 
+            {
               id: "msg-1",
               conversationId: "conv-123",
-              role: "assistant", 
+              role: "assistant",
               content: "Hello",
               timestamp: new Date().toISOString(),
               metadata: null,
             },
-            { 
+            {
               id: "msg-2",
               conversationId: "conv-123",
-              role: "user", 
+              role: "user",
               content: "How are you?",
               timestamp: new Date().toISOString(),
               metadata: null,
             },
-            { 
+            {
               id: "msg-3",
               conversationId: "conv-123",
-              role: "assistant", 
+              role: "assistant",
               content: "I'm doing great!",
               timestamp: new Date().toISOString(),
               metadata: null,
@@ -148,7 +156,7 @@ describe("SummaryPlugin", () => {
           jobId: "job-123",
           created: true,
         });
-        
+
         // Mock content generation
         const generateContentSpy = spyOn(context, "generateContent");
         generateContentSpy.mockResolvedValueOnce({
@@ -337,7 +345,7 @@ describe("SummaryPlugin", () => {
   describe("plugin capabilities", () => {
     it("should register and return capabilities including tools and commands", async () => {
       const capabilities = await plugin.register(mockShell);
-      
+
       expect(capabilities).toBeDefined();
       expect(capabilities.tools).toBeDefined();
       expect(capabilities.commands).toBeDefined();
