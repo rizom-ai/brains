@@ -145,8 +145,8 @@ export class TopicExtractionHandler
           this.context.entityService,
           this.logger,
         );
-        // Search by content as well as title for better matching
-        const searchQuery = `${topic.title} ${topic.summary} ${topic.keywords.slice(0, 3).join(' ')}`;
+        // Search by title only - require high similarity (85%) to merge
+        const searchQuery = topic.title;
         const searchResults = await topicService.searchTopics(searchQuery);
 
         if (
