@@ -12,12 +12,10 @@ export class SummaryService {
    * Get summary for a conversation
    */
   async getSummary(conversationId: string): Promise<SummaryEntity | null> {
-    const summaryId = `summary-${conversationId}`;
-
     try {
       return await this.entityService.getEntity<SummaryEntity>(
         "summary",
-        summaryId,
+        conversationId,
       );
     } catch {
       return null;
@@ -28,10 +26,8 @@ export class SummaryService {
    * Delete summary for a conversation
    */
   async deleteSummary(conversationId: string): Promise<boolean> {
-    const summaryId = `summary-${conversationId}`;
-
     try {
-      await this.entityService.deleteEntity("summary", summaryId);
+      await this.entityService.deleteEntity("summary", conversationId);
       return true;
     } catch {
       return false;

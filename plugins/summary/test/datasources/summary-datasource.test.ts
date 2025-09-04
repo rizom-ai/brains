@@ -62,7 +62,7 @@ describe("SummaryDataSource", () => {
   describe("fetch", () => {
     it("should fetch single summary by conversation ID", async () => {
       const mockSummary: SummaryEntity = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary",
         content: `# Conversation Summary: conv-123
 
@@ -107,13 +107,13 @@ Test content
         query: { conversationId: "conv-123" },
       });
 
-      expect(getEntitySpy).toHaveBeenCalledWith("summary", "summary-conv-123");
+      expect(getEntitySpy).toHaveBeenCalledWith("summary", "conv-123");
       expect(result).toEqual(mockSummary);
     });
 
     it("should fetch single summary by ID", async () => {
       const mockSummary: SummaryEntity = {
-        id: "summary-conv-456",
+        id: "conv-456",
         entityType: "summary",
         content: "# Test",
         created: "2025-01-01T00:00:00Z",
@@ -127,24 +127,24 @@ Test content
 
       const result = await datasource.fetch({
         entityType: "summary",
-        query: { id: "summary-conv-456" },
+        query: { id: "conv-456" },
       });
 
-      expect(getEntitySpy).toHaveBeenCalledWith("summary", "summary-conv-456");
+      expect(getEntitySpy).toHaveBeenCalledWith("summary", "conv-456");
       expect(result).toEqual(mockSummary);
     });
 
     it("should fetch multiple summaries", async () => {
       const mockSummaries: SummaryEntity[] = [
         {
-          id: "summary-1",
+          id: "1",
           entityType: "summary",
           content: "content1",
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
         },
         {
-          id: "summary-2",
+          id: "2",
           entityType: "summary",
           content: "content2",
           created: "2025-01-02T00:00:00Z",
@@ -191,7 +191,7 @@ Test content
 
   describe("transform", () => {
     const createMockSummary = (): SummaryEntity => ({
-      id: "summary-conv-123",
+      id: "conv-123",
       entityType: "summary",
       content: `# Conversation Summary: conv-123
 
@@ -268,7 +268,7 @@ Initial discussion
       expect(result.summaries).toHaveLength(1);
 
       const summary = result.summaries[0];
-      expect(summary?.id).toBe("summary-conv-123");
+      expect(summary?.id).toBe("conv-123");
       expect(summary?.conversationId).toBe("conv-123");
       expect(summary?.entryCount).toBe(2);
       expect(summary?.totalMessages).toBe(100);
@@ -299,7 +299,7 @@ Initial discussion
 
     it("should handle summaries with no entries", async () => {
       const mockSummary: SummaryEntity = {
-        id: "summary-empty",
+        id: "empty",
         entityType: "summary",
         content: `# Conversation Summary: empty
 

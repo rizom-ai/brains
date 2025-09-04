@@ -90,7 +90,7 @@ describe("DigestHandler", () => {
         context.entityService,
         "upsertEntity",
       ).mockResolvedValue({
-        entityId: "summary-conv-123",
+        entityId: "conv-123",
         jobId: "job-123",
         created: true,
       });
@@ -124,7 +124,7 @@ describe("DigestHandler", () => {
 
       if (upsertCall) {
         const entity = upsertCall[0] as SummaryEntity;
-        expect(entity.id).toBe("summary-conv-123");
+        expect(entity.id).toBe("conv-123");
         expect(entity.entityType).toBe("summary");
         expect(entity.content).toContain("Conversation Summary: conv-123");
         expect(entity.metadata?.conversationId).toBe("conv-123");
@@ -140,7 +140,7 @@ describe("DigestHandler", () => {
 
       // Mock existing summary with simplified format
       const existingSummary: SummaryEntity = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary",
         content: `# Conversation Summary: conv-123
 
@@ -235,7 +235,7 @@ User asked about project setup
       });
 
       const existingSummary: SummaryEntity = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary",
         content: `# Conversation Summary: conv-123
 
@@ -355,7 +355,7 @@ Window End: 50
         context.entityService,
         "upsertEntity",
       ).mockResolvedValue({
-        entityId: "summary-conv-123",
+        entityId: "conv-123",
         jobId: "job-123",
         created: true,
       });
@@ -371,7 +371,7 @@ Window End: 50
       });
 
       const existingSummary: SummaryEntity = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary",
         content: "# Conversation Summary: conv-123\n\nExisting content",
         created: "2025-01-01T00:00:00Z",

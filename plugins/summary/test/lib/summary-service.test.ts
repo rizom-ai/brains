@@ -33,10 +33,7 @@ describe("SummaryService", () => {
       const conversationId = "conv-123";
       await service.getSummary(conversationId);
 
-      expect(getEntitySpy).toHaveBeenCalledWith(
-        "summary",
-        `summary-${conversationId}`,
-      );
+      expect(getEntitySpy).toHaveBeenCalledWith("summary", conversationId);
     });
 
     it("should return null for non-existent conversation", async () => {
@@ -54,7 +51,7 @@ describe("SummaryService", () => {
     it("should return the summary entity when it exists", async () => {
       const mockEntityService = createMockEntityService();
       const mockSummary: SummaryEntity = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary",
         content: "# Summary\n\nContent here",
         created: "2025-01-01T00:00:00Z",
@@ -87,10 +84,7 @@ describe("SummaryService", () => {
       const conversationId = "conv-123";
       await service.deleteSummary(conversationId);
 
-      expect(deleteEntitySpy).toHaveBeenCalledWith(
-        "summary",
-        `summary-${conversationId}`,
-      );
+      expect(deleteEntitySpy).toHaveBeenCalledWith("summary", conversationId);
     });
 
     it("should return true when deletion succeeds", async () => {
@@ -134,7 +128,7 @@ describe("SummaryService", () => {
       const mockEntityService = createMockEntityService();
       const mockSummaries: SummaryEntity[] = [
         {
-          id: "summary-1",
+          id: "1",
           entityType: "summary",
           content: "content1",
           created: "2025-01-01T00:00:00Z",
@@ -147,7 +141,7 @@ describe("SummaryService", () => {
           },
         },
         {
-          id: "summary-2",
+          id: "2",
           entityType: "summary",
           content: "content2",
           created: "2025-01-01T00:00:00Z",
@@ -186,7 +180,7 @@ describe("SummaryService", () => {
       const mockEntityService = createMockEntityService();
       const content = "# Test Summary\n\nExported content";
       const mockSummary: SummaryEntity = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary",
         content,
         created: "2025-01-01T00:00:00Z",
@@ -224,7 +218,7 @@ describe("SummaryService", () => {
       const mockEntityService = createMockEntityService();
       const mockSummaries: SummaryEntity[] = [
         {
-          id: "summary-1",
+          id: "1",
           entityType: "summary",
           content: "content1",
           created: "2025-01-01T00:00:00Z",
@@ -237,7 +231,7 @@ describe("SummaryService", () => {
           },
         },
         {
-          id: "summary-2",
+          id: "2",
           entityType: "summary",
           content: "content2",
           created: "2025-01-01T00:00:00Z",
@@ -276,7 +270,7 @@ describe("SummaryService", () => {
       const mockEntityService = createMockEntityService();
       const mockSummaries: SummaryEntity[] = [
         {
-          id: "summary-1",
+          id: "1",
           entityType: "summary",
           content: "content1",
           created: "2025-01-01T00:00:00Z",

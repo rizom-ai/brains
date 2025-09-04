@@ -60,8 +60,6 @@ export class DigestHandler {
    * Process a conversation digest and update the summary
    */
   public async handleDigest(digest: ConversationDigestPayload): Promise<void> {
-    const summaryId = `summary-${digest.conversationId}`;
-
     try {
       this.logger.info("Processing digest for conversation", {
         conversationId: digest.conversationId,
@@ -75,11 +73,13 @@ export class DigestHandler {
         existingEntity =
           await this.context.entityService.getEntity<SummaryEntity>(
             "summary",
-            summaryId,
+            digest.conversationId,
           );
       } catch {
         // Entity doesn't exist yet, that's fine
-        this.logger.debug("No existing summary found", { summaryId });
+        this.logger.debug("No existing summary found", {
+          conversationId: digest.conversationId,
+        });
       }
 
       // Analyze the digest and decide how to update
@@ -126,7 +126,7 @@ export class DigestHandler {
 
       // Save the updated summary
       const summaryEntity: SummaryEntity = {
-        id: summaryId,
+        id: digest.conversationId,
         entityType: "summary",
         content: updatedContent,
         created: existingEntity?.created ?? digest.timestamp,

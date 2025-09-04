@@ -137,17 +137,15 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
       throw new Error("Plugin not initialized");
     }
 
-    const summaryId = `summary-${conversationId}`;
-
     try {
       const entity = await this.context.entityService.getEntity<SummaryEntity>(
         "summary",
-        summaryId,
+        conversationId,
       );
       return entity ?? null;
     } catch (error) {
       this.logger.debug("Summary not found", {
-        summaryId,
+        conversationId,
         error: error instanceof Error ? error.message : String(error),
       });
       return null;
@@ -162,15 +160,13 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
       throw new Error("Plugin not initialized");
     }
 
-    const summaryId = `summary-${conversationId}`;
-
     try {
-      await this.context.entityService.deleteEntity("summary", summaryId);
-      this.logger.info("Summary deleted", { summaryId });
+      await this.context.entityService.deleteEntity("summary", conversationId);
+      this.logger.info("Summary deleted", { conversationId });
       return true;
     } catch (error) {
       this.logger.error("Failed to delete summary", {
-        summaryId,
+        conversationId,
         error: error instanceof Error ? error.message : String(error),
       });
       return false;

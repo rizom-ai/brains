@@ -47,10 +47,9 @@ export class SummaryDataSource implements DataSource {
 
     if (params.query?.conversationId) {
       // Fetch single summary by conversation ID
-      const summaryId = `summary-${params.query.conversationId}`;
       const entity = await this.entityService.getEntity<SummaryEntity>(
         "summary",
-        summaryId,
+        params.query.conversationId,
       );
 
       if (!entity) {

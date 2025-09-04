@@ -80,7 +80,7 @@ describe("Summary Commands", () => {
       const command = createListCommand(context, config, logger);
       const mockSummaries = [
         {
-          id: "summary-1",
+          id: "1",
           entityType: "summary" as const,
           content: "content1",
           created: "2025-01-01T00:00:00Z",
@@ -93,7 +93,7 @@ describe("Summary Commands", () => {
           },
         },
         {
-          id: "summary-2",
+          id: "2",
           entityType: "summary" as const,
           content: "content2",
           created: "2025-01-02T00:00:00Z",
@@ -199,7 +199,7 @@ describe("Summary Commands", () => {
 
       // Mock getSummary to return an existing summary
       const mockSummary = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary" as const,
         content: "content",
         created: "2025-01-01T00:00:00Z",

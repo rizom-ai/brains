@@ -66,7 +66,7 @@ describe("Summary Tools", () => {
     it("should call SummaryService.getSummary with correct ID", async () => {
       const tool = createGetTool(context, config, logger);
       const mockSummary = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary" as const,
         content: "# Summary\n\nContent",
         created: "2025-01-01T00:00:00Z",

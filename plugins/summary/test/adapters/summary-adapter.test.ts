@@ -297,7 +297,7 @@ Content
   describe("toMarkdown and fromMarkdown", () => {
     it("should convert entity to markdown", () => {
       const entity: SummaryEntity = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary",
         content: "# Test content",
         created: "2025-01-01T00:00:00Z",
@@ -345,7 +345,7 @@ Content
   describe("extractMetadata", () => {
     it("should extract metadata from entity", () => {
       const entity: SummaryEntity = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary",
         content: "content",
         created: "2025-01-01T00:00:00Z",
@@ -364,7 +364,7 @@ Content
 
     it("should return empty object if no metadata", () => {
       const entity: SummaryEntity = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary",
         content: "content",
         created: "2025-01-01T00:00:00Z",
@@ -379,7 +379,7 @@ Content
   describe("generateFrontMatter", () => {
     it("should return empty string as summaries don't use frontmatter", () => {
       const entity: SummaryEntity = {
-        id: "summary-conv-123",
+        id: "conv-123",
         entityType: "summary",
         content: "content",
         created: "2025-01-01T00:00:00Z",

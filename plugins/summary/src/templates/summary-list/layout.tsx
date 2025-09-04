@@ -22,7 +22,7 @@ export const SummaryListLayout = ({
           >
             <h2 className="text-xl font-semibold mb-2">
               <a
-                href={`/summaries/${summary.conversationId}`}
+                href={`/summaries/${summary.id}`}
                 className="text-brand hover:text-brand-dark"
               >
                 Conversation {summary.conversationId}
