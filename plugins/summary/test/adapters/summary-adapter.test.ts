@@ -26,7 +26,8 @@ describe("SummaryAdapter", () => {
         entries: [
           {
             title: "Initial discussion",
-            content: "User asked about project setup and we discussed TypeScript configuration.",
+            content:
+              "User asked about project setup and we discussed TypeScript configuration.",
             created: "2025-01-01T00:00:00Z",
             updated: "2025-01-01T00:00:00Z",
           },
@@ -68,7 +69,7 @@ describe("SummaryAdapter", () => {
       };
 
       const content = adapter.createSummaryContent(body);
-      
+
       // Check entries appear in order (newest first)
       const recentIndex = content.indexOf("Recent topic");
       const initialIndex = content.indexOf("Initial topic");
@@ -483,7 +484,9 @@ Original content
         0, // Update the first (most recent) entry
       );
 
-      expect(result).toContain("Original content\n\nUPDATE: Additional content");
+      expect(result).toContain(
+        "Original content\n\nUPDATE: Additional content",
+      );
       expect(result).toContain("Updated 2025-01-01T12:00:00Z");
     });
 

@@ -9,6 +9,7 @@ import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { templates, routes } from "@brains/default-site-content";
 import { TopicsPlugin } from "@brains/topics";
 import { LinkPlugin } from "@brains/link";
+import { SummaryPlugin } from "@brains/summary";
 
 const config = defineConfig({
   name: "test-brain",
@@ -34,6 +35,7 @@ const config = defineConfig({
   plugins: [
     new SystemPlugin({}),
     new TopicsPlugin({}),
+    new SummaryPlugin({}),
     new LinkPlugin({}),
     new MCPInterface({}),
     new MatrixInterface({

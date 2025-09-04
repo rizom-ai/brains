@@ -4,7 +4,7 @@ import { SummaryDetailLayout } from "./layout";
 import { SummaryDetailFormatter } from "./formatter";
 
 export const summaryDetailTemplate = createTemplate<SummaryDetailData>({
-  name: "summary-detail",
+  name: "summary:summary-detail",
   description:
     "Detailed view of a conversation summary with chronological log entries",
   schema: summaryDetailSchema,

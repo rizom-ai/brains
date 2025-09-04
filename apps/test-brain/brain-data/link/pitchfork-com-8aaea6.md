@@ -1,8 +1,8 @@
 ---
-conversationId: "matrix-!IiXnxQOIANAsMqSADH:rizom.ai"
-userId: "@yeehaa:rizom.ai"
+conversationId: 'matrix-!IiXnxQOIANAsMqSADH:rizom.ai'
+userId: '@yeehaa:rizom.ai'
 messageId: uChEB0V4VhRR
-timestamp: "2025-09-02T08:44:37.817Z"
+timestamp: '2025-09-02T08:44:37.817Z'
 ---
 
 # Sly Stone Obituary

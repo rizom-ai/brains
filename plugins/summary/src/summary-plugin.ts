@@ -2,7 +2,6 @@ import { ServicePlugin } from "@brains/plugins";
 import {
   conversationDigestPayloadSchema,
   type ServicePluginContext,
-  type Logger,
   type ConversationDigestPayload,
 } from "@brains/plugins";
 import type { MessageWithPayload } from "@brains/messaging-service";
@@ -19,6 +18,7 @@ import { createSummaryCommands } from "./commands/index";
 import type { PluginTool, Command } from "@brains/plugins";
 import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
+import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
 import { SummaryDataSource } from "./datasources/summary-datasource";
 import packageJson from "../package.json";
 
@@ -41,42 +41,40 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
   }
 
   /**
-   * Initialize the plugin and set up digest subscription
+   * Register the plugin and set up digest subscription
    */
-  public async initialize(
-    context: ServicePluginContext,
-    logger: Logger,
-  ): Promise<void> {
-    this.context = context;
+  override async onRegister(context: ServicePluginContext): Promise<void> {
+    // Call parent onRegister first to set up base functionality
+    await super.onRegister(context);
 
-    // Parse and validate configuration
-    this.config = summaryConfigSchema.parse(this.config);
+    this.logger.info("Registering Summary plugin");
 
     // Register the summary entity type with its adapter
     context.registerEntityType("summary", summarySchema, new SummaryAdapter());
-    logger.debug("Registered summary entity type");
+    this.logger.debug("Registered summary entity type");
 
     // Register templates
     context.registerTemplates({
       "summary-list": summaryListTemplate,
       "summary-detail": summaryDetailTemplate,
+      "ai-response": summaryAiResponseTemplate,
     });
-    logger.debug("Registered summary templates");
+    this.logger.debug("Registered summary templates");
 
     // Register datasource for templates
     const summaryDataSource = new SummaryDataSource(
       context.entityService,
-      logger,
+      this.logger,
     );
     context.registerDataSource(summaryDataSource);
-    logger.debug("Registered summary datasource");
+    this.logger.debug("Registered summary datasource");
 
     // Initialize digest handler using singleton pattern
-    this.digestHandler = DigestHandler.getInstance(context, logger);
+    this.digestHandler = DigestHandler.getInstance(context, this.logger);
 
     // Subscribe to conversation digest events
     if (this.config.enableAutoSummary) {
-      context.subscribe("conversation.digest", async (message) => {
+      context.subscribe("conversation:digest", async (message) => {
         const payload = conversationDigestPayloadSchema.parse(message.payload);
         await this.handleDigestMessage({ ...message, payload });
         return { success: true };
@@ -135,18 +133,23 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     conversationId: string,
   ): Promise<SummaryEntity | null> {
     if (!this.context) {
+      this.logger.error("Plugin context not initialized");
       throw new Error("Plugin not initialized");
     }
 
     const summaryId = `summary-${conversationId}`;
 
     try {
-      return await this.context.entityService.getEntity<SummaryEntity>(
+      const entity = await this.context.entityService.getEntity<SummaryEntity>(
         "summary",
         summaryId,
       );
-    } catch {
-      this.logger.debug("Summary not found", { summaryId });
+      return entity || null;
+    } catch (error) {
+      this.logger.debug("Summary not found", { 
+        summaryId,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return null;
     }
   }

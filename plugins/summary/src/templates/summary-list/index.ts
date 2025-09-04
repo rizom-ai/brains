@@ -4,7 +4,7 @@ import { SummaryListLayout } from "./layout";
 import { SummaryListFormatter } from "./formatter";
 
 export const summaryListTemplate = createTemplate<SummaryListData>({
-  name: "summary-list",
+  name: "summary:summary-list",
   description: "List view of all conversation summaries",
   schema: summaryListSchema,
   dataSourceId: "summary:entities",

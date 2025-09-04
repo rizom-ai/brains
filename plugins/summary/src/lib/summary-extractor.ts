@@ -128,7 +128,7 @@ Respond with a JSON object with these fields:
     try {
       const response = await this.context.generateContent<AiResponse>({
         prompt,
-        templateName: "summary-ai-response",
+        templateName: "summary:ai-response",
         data: {
           schema: aiResponseSchema,
         },

@@ -32,6 +32,7 @@
     "@brains/job-queue": "workspace:*",
     "@brains/matrix": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
+    "@brains/summary": "workspace:*",
     "@brains/webserver": "workspace:*",
     "preact": "^10.26.9"
   },
