@@ -26,6 +26,13 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
   }
 
   /**
+   * Get the current configuration
+   */
+  public getConfig(): SummaryConfig {
+    return this.config;
+  }
+
+  /**
    * Initialize the plugin and set up digest subscription
    */
   public async initialize(
@@ -37,8 +44,8 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     // Parse and validate configuration
     this.config = summaryConfigSchema.parse(this.config);
 
-    // Initialize digest handler
-    this.digestHandler = new DigestHandler(context, logger);
+    // Initialize digest handler using singleton pattern
+    this.digestHandler = DigestHandler.getInstance(context, logger);
 
     // Subscribe to conversation digest events
     if (this.config.enableAutoSummary) {

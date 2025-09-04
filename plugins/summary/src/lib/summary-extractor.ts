@@ -20,11 +20,44 @@ export type DigestDecision =
 
 /**
  * Service for extracting summaries from conversation digests using AI
+ * Implements singleton pattern for consistent state management
  */
 export class SummaryExtractor {
+  private static instance: SummaryExtractor | null = null;
   private adapter: SummaryAdapter;
 
-  constructor(
+  /**
+   * Get singleton instance
+   */
+  public static getInstance(
+    context: ServicePluginContext,
+    logger: Logger,
+  ): SummaryExtractor {
+    SummaryExtractor.instance ??= new SummaryExtractor(context, logger);
+    return SummaryExtractor.instance;
+  }
+
+  /**
+   * Reset singleton instance (for testing)
+   */
+  public static resetInstance(): void {
+    SummaryExtractor.instance = null;
+  }
+
+  /**
+   * Create fresh instance (for testing)
+   */
+  public static createFresh(
+    context: ServicePluginContext,
+    logger: Logger,
+  ): SummaryExtractor {
+    return new SummaryExtractor(context, logger);
+  }
+
+  /**
+   * Private constructor to enforce singleton pattern
+   */
+  private constructor(
     private readonly context: ServicePluginContext,
     private readonly logger: Logger,
   ) {

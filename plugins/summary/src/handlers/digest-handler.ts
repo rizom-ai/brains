@@ -9,15 +9,48 @@ import type { SummaryEntity } from "../schemas/summary";
 /**
  * Handler for conversation digest events
  * Processes digests and updates summary entities
+ * Implements singleton pattern for consistent state management
  */
 export class DigestHandler {
+  private static instance: DigestHandler | null = null;
   private extractor: SummaryExtractor;
 
-  constructor(
+  /**
+   * Get singleton instance
+   */
+  public static getInstance(
+    context: ServicePluginContext,
+    logger: Logger,
+  ): DigestHandler {
+    DigestHandler.instance ??= new DigestHandler(context, logger);
+    return DigestHandler.instance;
+  }
+
+  /**
+   * Reset singleton instance (for testing)
+   */
+  public static resetInstance(): void {
+    DigestHandler.instance = null;
+  }
+
+  /**
+   * Create fresh instance (for testing)
+   */
+  public static createFresh(
+    context: ServicePluginContext,
+    logger: Logger,
+  ): DigestHandler {
+    return new DigestHandler(context, logger);
+  }
+
+  /**
+   * Private constructor to enforce singleton pattern
+   */
+  private constructor(
     private readonly context: ServicePluginContext,
     private readonly logger: Logger,
   ) {
-    this.extractor = new SummaryExtractor(context, logger);
+    this.extractor = SummaryExtractor.createFresh(context, logger);
   }
 
   /**
