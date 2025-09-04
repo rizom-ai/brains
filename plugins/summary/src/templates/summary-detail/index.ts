@@ -8,7 +8,7 @@ export const summaryDetailTemplate = createTemplate<SummaryDetailData>({
   description:
     "Detailed view of a conversation summary with chronological log entries",
   schema: summaryDetailSchema,
-  dataSourceId: "summary:entity",
+  dataSourceId: "summary:entities",
   requiredPermission: "public",
   formatter: new SummaryDetailFormatter(),
   layout: {

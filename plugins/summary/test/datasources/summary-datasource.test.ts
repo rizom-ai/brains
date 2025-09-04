@@ -239,12 +239,12 @@ Initial discussion
       },
     });
 
-    it("should transform for summary-detail template", async () => {
+    it("should transform for detail template", async () => {
       const mockSummary = createMockSummary();
 
       const result = await datasource.transform<SummaryDetailData>(
         mockSummary,
-        "summary-detail",
+        "detail",
       );
 
       expect(result.conversationId).toBe("conv-123");
@@ -256,12 +256,12 @@ Initial discussion
       expect(result.entries[1]?.title).toBe("Initial Topic");
     });
 
-    it("should transform for summary-list template", async () => {
+    it("should transform for list template", async () => {
       const mockSummaries = [createMockSummary()];
 
       const result = await datasource.transform<SummaryListData>(
         mockSummaries,
-        "summary-list",
+        "list",
       );
 
       expect(result.totalCount).toBe(1);
@@ -282,7 +282,7 @@ Initial discussion
 
       const result = await datasource.transform<SummaryListData>(
         mockSummary,
-        "summary-list",
+        "list",
       );
 
       expect(result.totalCount).toBe(1);
@@ -317,7 +317,7 @@ Initial discussion
 
       const result = await datasource.transform<SummaryListData>(
         [mockSummary],
-        "summary-list",
+        "list",
       );
 
       expect(result.summaries[0]?.latestEntry).toBe("No entries");

@@ -91,8 +91,21 @@ export class SummaryDataSource implements DataSource {
    * Transform raw data using adapter for template rendering
    */
   async transform<T>(data: unknown, templateId?: string): Promise<T> {
+    this.logger.info("Transform called", {
+      templateId,
+      dataType: Array.isArray(data) ? "array" : typeof data,
+      dataLength: Array.isArray(data) ? (data as unknown[]).length : "N/A",
+    });
+
     // Handle detail view - parse and return structured entries
-    if (templateId === "summary-detail") {
+    if (templateId === "detail") {
+      // If data is an array (from list query), we can't show detail view
+      if (Array.isArray(data)) {
+        throw new Error(
+          "Cannot render detail view without specific summary ID",
+        );
+      }
+
       const entity = data as SummaryEntity;
       const body = this.adapter.parseSummaryContent(entity.content);
 
@@ -108,9 +121,14 @@ export class SummaryDataSource implements DataSource {
     }
 
     // Handle list view - extract basic info
-    if (templateId === "summary-list") {
+    if (templateId === "list") {
       const entities = Array.isArray(data) ? data : [data];
       const summaries = entities as SummaryEntity[];
+
+      this.logger.info("Creating list data", {
+        summaryCount: summaries.length,
+        firstSummary: summaries[0]?.id,
+      });
 
       const listData: SummaryListData = {
         summaries: summaries.map((summary) => {

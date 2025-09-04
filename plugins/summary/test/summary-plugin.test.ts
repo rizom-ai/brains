@@ -1,16 +1,6 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  mock,
-} from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { SummaryPlugin } from "../src";
-import {
-  MockShell,
-  createSilentLogger,
-} from "@brains/plugins";
+import { MockShell, createSilentLogger } from "@brains/plugins";
 
 describe("SummaryPlugin", () => {
   let plugin: SummaryPlugin;
@@ -68,7 +58,7 @@ describe("SummaryPlugin", () => {
       // Just ensure register completes successfully
       // The actual subscription happens internally via context
       await plugin.register(mockShell);
-      
+
       // Verify plugin is configured correctly
       const config = plugin.getConfig();
       expect(config.enableAutoSummary).toBe(true);
@@ -90,11 +80,11 @@ describe("SummaryPlugin", () => {
   describe("digest handling", () => {
     it("should be configured to handle digest events", async () => {
       await plugin.register(mockShell);
-      
+
       // Plugin should be ready to handle digests when configured
       const config = plugin.getConfig();
       expect(config.enableAutoSummary).toBe(true);
-      
+
       // The actual digest handling is tested via integration tests
       // or by testing DigestHandler directly
     });
@@ -103,21 +93,21 @@ describe("SummaryPlugin", () => {
   describe("summary operations", () => {
     it("should handle operations after registration", async () => {
       await plugin.register(mockShell);
-      
+
       // Just verify the plugin can perform operations without errors
       // The actual functionality is tested via the MockShell's default implementations
       const summary = await plugin.getSummary("test-conv");
       expect(summary).toBeNull(); // MockShell returns null by default
-      
-      const deleted = await plugin.deleteSummary("test-conv");  
+
+      const deleted = await plugin.deleteSummary("test-conv");
       expect(deleted).toBe(true); // Delete always succeeds in mock
-      
+
       const summaries = await plugin.getAllSummaries();
       expect(summaries).toEqual([]); // MockShell returns empty array by default
-      
+
       const exported = await plugin.exportSummary("test-conv");
       expect(exported).toBeNull(); // No summary exists
-      
+
       const stats = await plugin.getStatistics();
       expect(stats).toEqual({
         totalSummaries: 0,

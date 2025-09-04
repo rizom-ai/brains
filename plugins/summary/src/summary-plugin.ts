@@ -144,11 +144,11 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
         "summary",
         summaryId,
       );
-      return entity || null;
+      return entity ?? null;
     } catch (error) {
-      this.logger.debug("Summary not found", { 
+      this.logger.debug("Summary not found", {
         summaryId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return null;
     }
