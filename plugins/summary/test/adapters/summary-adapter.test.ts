@@ -1,9 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-} from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { SummaryAdapter } from "../../src/adapters/summary-adapter";
 import type { SummaryEntity, SummaryLogEntry } from "../../src/schemas/summary";
 
@@ -47,11 +42,13 @@ describe("SummaryAdapter", () => {
       };
 
       const content = adapter.createSummaryContent(body);
-      
+
       expect(content).toContain("# Conversation Summary: conv-123");
       expect(content).toContain("**Total Messages:** 50");
       expect(content).toContain("**Last Updated:** 2025-01-01T00:00:00Z");
-      expect(content).toContain("### [2025-01-01T00:00:00Z] Initial discussion");
+      expect(content).toContain(
+        "### [2025-01-01T00:00:00Z] Initial discussion",
+      );
       expect(content).toContain("User asked about project setup");
       expect(content).toContain("## Window Start\n1");
       expect(content).toContain("## Window End\n50");
@@ -88,7 +85,7 @@ describe("SummaryAdapter", () => {
       const content = adapter.createSummaryContent(body);
       const recentIndex = content.indexOf("Recent topic");
       const earlierIndex = content.indexOf("Earlier topic");
-      
+
       expect(recentIndex).toBeLessThan(earlierIndex);
     });
 
@@ -110,8 +107,10 @@ describe("SummaryAdapter", () => {
       };
 
       const content = adapter.createSummaryContent(body);
-      
-      expect(content).toContain("[2025-01-01T00:00:00Z - Updated 2025-01-01T12:00:00Z]");
+
+      expect(content).toContain(
+        "[2025-01-01T00:00:00Z - Updated 2025-01-01T12:00:00Z]",
+      );
     });
 
     it("should handle empty entries array", () => {
@@ -123,7 +122,7 @@ describe("SummaryAdapter", () => {
       };
 
       const content = adapter.createSummaryContent(body);
-      
+
       expect(content).toContain("# Conversation Summary: conv-123");
       expect(content).toContain("## Summary Log");
       expect(content).not.toContain("###");
@@ -175,12 +174,12 @@ User asked about project setup
 `;
 
       const body = adapter.parseSummaryContent(markdown);
-      
+
       expect(body.conversationId).toBe("conv-123");
       expect(body.totalMessages).toBe(50);
       expect(body.lastUpdated).toBe("2025-01-01T00:00:00Z");
       expect(body.entries).toHaveLength(1);
-      
+
       const entry = body.entries[0];
       expect(entry?.title).toBe("Initial discussion");
       expect(entry?.content).toBe("User asked about project setup");
@@ -230,7 +229,7 @@ Earlier discussion
 `;
 
       const body = adapter.parseSummaryContent(markdown);
-      
+
       expect(body.entries).toHaveLength(2);
       expect(body.entries[0]?.title).toBe("Recent topic");
       expect(body.entries[1]?.title).toBe("Earlier topic");
@@ -258,7 +257,7 @@ Window End: 50
 `;
 
       const body = adapter.parseSummaryContent(markdown);
-      
+
       expect(body.entries).toHaveLength(1);
       expect(body.entries[0]?.created).toBe("2025-01-01T00:00:00Z");
       expect(body.entries[0]?.updated).toBe("2025-01-01T12:00:00Z");
@@ -277,7 +276,7 @@ Window End: 50
 `;
 
       const body = adapter.parseSummaryContent(markdown);
-      
+
       expect(body.conversationId).toBe("conv-123");
       expect(body.entries).toHaveLength(0);
       expect(body.totalMessages).toBe(0);
@@ -291,7 +290,7 @@ Window End: 50
 `;
 
       const body = adapter.parseSummaryContent(markdown);
-      
+
       expect(body.conversationId).toBe("conv-123");
       expect(body.totalMessages).toBe(0);
       expect(body.lastUpdated).toBeDefined();
@@ -336,7 +335,7 @@ Window End: 50
 `;
 
       const entries = adapter.getRecentEntries(markdown, 2);
-      
+
       expect(entries).toHaveLength(2);
       expect(entries[0]?.title).toBe("Third topic");
       expect(entries[1]?.title).toBe("Second topic");
@@ -363,7 +362,7 @@ Window End: 50
 `;
 
       const entries = adapter.getRecentEntries(markdown, 5);
-      
+
       expect(entries).toHaveLength(1);
     });
   });
@@ -385,7 +384,7 @@ Window End: 50
       };
 
       const markdown = adapter.toMarkdown(entity);
-      
+
       expect(markdown).toBe("# Test Content");
     });
 
@@ -428,7 +427,7 @@ Test
 `;
 
       const entity = adapter.fromMarkdown(markdown);
-      
+
       expect(entity.entityType).toBe("summary");
       expect(entity.content).toBe(markdown);
       expect(entity.created).toBe("2025-01-01T00:00:00Z");
@@ -456,7 +455,7 @@ Test
       };
 
       const metadata = adapter.extractMetadata(entity);
-      
+
       expect(metadata).toEqual({
         conversationId: "conv-123",
         entryCount: 5,
@@ -475,7 +474,7 @@ Test
       };
 
       const metadata = adapter.extractMetadata(entity);
-      
+
       expect(metadata).toEqual({});
     });
   });
@@ -491,7 +490,7 @@ Test
       };
 
       const frontmatter = adapter.generateFrontMatter(entity);
-      
+
       expect(frontmatter).toBe("");
     });
   });
@@ -514,7 +513,7 @@ Test
         "conv-123",
         false,
       );
-      
+
       expect(result).toContain("# Conversation Summary: conv-123");
       expect(result).toContain("**Total Messages:** 50");
       expect(result).toContain("Initial discussion");
@@ -556,10 +555,10 @@ Window End: 50
         "conv-123",
         false,
       );
-      
+
       expect(result).toContain("**Total Messages:** 100");
       expect(result).toContain("**Last Updated:** 2025-01-02T00:00:00Z");
-      
+
       // New entry should appear before old entry
       const newIndex = result.indexOf("New discussion");
       const oldIndex = result.indexOf("Old discussion");
@@ -612,7 +611,7 @@ Original content
         true,
         0, // Update the first (most recent) entry
       );
-      
+
       expect(result).toContain("UPDATE: Additional content");
       expect(result).toContain("Updated 2025-01-01T12:00:00Z");
       expect(result).toContain("## Window End\n100");
@@ -667,7 +666,7 @@ Original
         true,
         0,
       );
-      
+
       const body = adapter.parseSummaryContent(result);
       expect(body.entries[0]?.participants).toContain("user-1");
       expect(body.entries[0]?.participants).toContain("user-2");
@@ -711,7 +710,7 @@ Window End: 50
         true,
         5, // Index that doesn't exist
       );
-      
+
       // Should prepend as new entry since index doesn't exist
       const body = adapter.parseSummaryContent(result);
       expect(body.entries).toHaveLength(2);

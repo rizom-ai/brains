@@ -8,10 +8,14 @@ import {
 import type { MessageWithPayload } from "@brains/messaging-service";
 import { DigestHandler } from "./handlers/digest-handler";
 import type { SummaryEntity } from "./schemas/summary";
-import { summaryConfigSchema, type SummaryConfig } from "./schemas/summary";
+import { summaryConfigSchema, summarySchema, type SummaryConfig } from "./schemas/summary";
+import { SummaryAdapter } from "./adapters/summary-adapter";
 import { createSummaryTools } from "./tools/index";
 import { createSummaryCommands } from "./commands/index";
 import type { PluginTool, Command } from "@brains/plugins";
+import { summaryListTemplate } from "./templates/summary-list";
+import { summaryDetailTemplate } from "./templates/summary-detail";
+import { SummaryDataSource } from "./datasources/summary-datasource";
 import packageJson from "../package.json";
 
 /**
@@ -43,6 +47,22 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
 
     // Parse and validate configuration
     this.config = summaryConfigSchema.parse(this.config);
+
+    // Register the summary entity type with its adapter
+    context.registerEntityType("summary", summarySchema, new SummaryAdapter());
+    logger.debug("Registered summary entity type");
+
+    // Register templates
+    context.registerTemplates({
+      "summary-list": summaryListTemplate,
+      "summary-detail": summaryDetailTemplate,
+    });
+    logger.debug("Registered summary templates");
+
+    // Register datasource for templates
+    const summaryDataSource = new SummaryDataSource(context.entityService, logger);
+    context.registerDataSource(summaryDataSource);
+    logger.debug("Registered summary datasource");
 
     // Initialize digest handler using singleton pattern
     this.digestHandler = DigestHandler.getInstance(context, logger);

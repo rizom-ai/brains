@@ -276,7 +276,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
     // If entries are empty, use current date
     const oldestEntry = body.entries[body.entries.length - 1];
     const newestEntry = body.entries[0];
-    
+
     return {
       entityType: "summary",
       content: markdown,
